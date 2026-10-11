@@ -90,6 +90,8 @@ public class ArenaShippingTests
         Assert.True(ArenaRegistry.Get("after_hours").HasValue);
         Assert.True(ArenaRegistry.Get("rec_center_roof").HasValue);
         Assert.True(ArenaRegistry.Get("picnic_panic").HasValue);
+        Assert.True(ArenaRegistry.Get("table_manners").HasValue);
+        Assert.True(ArenaRegistry.Get("last_stop").HasValue);
         Assert.True(ArenaRegistry.Get("training").HasValue);
         Assert.Null(ArenaRegistry.Get("square"));
         Assert.Null(ArenaRegistry.Get("steps"));
@@ -123,6 +125,53 @@ public class ArenaShippingTests
         Assert.True(lines.KillMaxZ > arena.MaxZ,
             $"{fileName}: max Z line {lines.KillMaxZ} not beyond mesh {arena.MaxZ}");
     }
+    public static IEnumerable<object[]> BargeRecoveryContacts()
+    {
+        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var direction in new[] { (-1f, 0f), (1f, 0f), (0f, -1f), (0f, 1f), (-1f, -1f), (-1f, 1f), (1f, -1f), (1f, 1f) })
+        foreach (float height in new[] { -2f, -9f })
+            yield return new object[] { cls, direction.Item1, direction.Item2, height };
+    }
+
+    [Theory]
+    [MemberData(nameof(BargeRecoveryContacts))]
+    public void SplashDeck_RecoveryHullBlocksAirbornePassThrough(
+        CharacterClass cls, float outwardX, float outwardZ, float height)
+    {
+        var arena = ArenaBinaryFormat.LoadFromFile(
+            Path.Combine(RepoRoot(), "data", "arenas", "splash_deck.arena"))!.Value;
+        var def = TestHelpers.ResolveDef(cls);
+        float edgeX = outwardX < 0 ? arena.MinX : arena.MaxX;
+        float edgeZ = outwardZ < 0 ? arena.MinZ : arena.MaxZ;
+        var state = TestHelpers.PlayerState(
+            outwardX == 0 ? 0 : edgeX + outwardX,
+            outwardZ == 0 ? 0 : edgeZ + outwardZ);
+        state.PY = height;
+        state.IsGrounded = false;
+        state.AirTimeTicks = def.Movement.FloatWindowTicks;
+        state.State = ActionState.Attacking;
+        state.AnimLockTicks = 60;
+        state.VX = -outwardX * 120f;
+        state.VZ = -outwardZ * 120f;
+
+        Simulation.SimulateTick(ref state, def, default, arena, out _, out _, DownActionTuning.Default, false);
+
+        float dx = MathF.Max(arena.MinX - state.PX, MathF.Max(0, state.PX - arena.MaxX));
+        float dz = MathF.Max(arena.MinZ - state.PZ, MathF.Max(0, state.PZ - arena.MaxZ));
+        float distance = MathF.Sqrt(dx * dx + dz * dz);
+        Assert.InRange(distance, def.CapsuleRadius - 0.03f, def.CapsuleRadius + 0.05f);
+        Assert.False(state.IsGrounded);
+        Assert.InRange(state.PY, height - 0.1f, height + 0.01f);
+
+        state.VX = outwardX * 12f;
+        state.VZ = outwardZ * 12f;
+        Simulation.SimulateTick(ref state, def, default, arena, out _, out _, DownActionTuning.Default, false);
+        dx = MathF.Max(arena.MinX - state.PX, MathF.Max(0, state.PX - arena.MaxX));
+        dz = MathF.Max(arena.MinZ - state.PZ, MathF.Max(0, state.PZ - arena.MaxZ));
+        Assert.True(MathF.Sqrt(dx * dx + dz * dz) > distance + 0.1f,
+            $"{cls}: recovery hull trapped outward movement at ({state.PX:F3}, {state.PY:F3}, {state.PZ:F3}).");
+    }
+
     [Theory]
     [InlineData(CharacterClass.FightGuy, -7.5f, 1f)]
     [InlineData(CharacterClass.Manki, -7.5f, 1f)]

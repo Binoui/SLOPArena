@@ -68,13 +68,22 @@ require runtime API `1.3.0`; older supported content remains admitted.
 Authoring does not contain arbitrary branches, expressions, or transition predicates. Hold/release and other variable-duration behavior lives in bounded engine capabilities. Ground/air aliases are expanded by the compiler and do not exist as runtime dispatch rules.
 
 `slop.ability.targeted-leap.v1` is a public, bounded stateful lifecycle:
-mobile aim/release, clamped target-relative ballistic flight, no-landing
+policy-controlled aim/release, clamped target-relative ballistic flight, no-landing
 timeout, and a landing-triggered pose seek, ordinary typed hitbox and recovery.
 The package authors its movement/landing/hitbox values; Shared owns every
 transition and interruption. At most one targeted leap may own a slot, its
 seek plus recovery fits the authored stage, and its hitbox lifetime fits
 recovery. Ability Lab edits the same typed source contract, not a separate
 simulation or a Bonk-specific ability.
+
+The roster's ground-cursor, directional, and camera-aimed holds use
+`aimMovement: fixed`: they stop horizontal velocity and reject movement input
+until release. Vertical physics and the released ability's travel still run.
+Controller left-stick input aims during these holds; the right stick also remains
+available. Directional aim follows the stick direction, ground targeting moves a
+virtual cursor, and camera aiming adjusts yaw/pitch. Mouse aiming is unchanged.
+`mobile` remains an explicit option for abilities that allow repositioning, using
+the left stick for movement and right stick for aim.
 
 `slop.ability.charged-directional-dash.v1` is a public lifecycle requiring runtime
 API `1.5.0`. It owns capped hold charge, release-locked manual direction,
@@ -89,6 +98,17 @@ Ability Lab edits these typed parameters and records actual hold/release frames.
 Traversal keeps its one-hit-per-opponent history through Hitstop-paused travel,
 then is removed at the endpoint or a shield/terrain stop. Sword lifetime remains
 independent; interruption removes both activation-owned hitboxes.
+
+
+`slop.ability.charged-projectile.v1` requires runtime API `1.6.0`. It owns a
+stationary capped hold, two thresholds selecting three projectile radii, and one
+release-triggered shot after authored startup. The outer timeline pauses during
+charge and controls firing recovery. It accepts one tick-zero capability in a
+single `ChargeAttack` stage with zero IASA; competing motion, aim, hitbox and
+projectile operations are rejected. Target-assisted slots resolve the opponent
+at launch; manually aimed slots retain the release direction. Ability Lab edits
+the typed charge and nested projectile parameters. Projectile visual packet v2
+carries radius so remote visuals match authoritative collision size.
 
 
 ## Engine-owned mechanics
@@ -144,6 +164,13 @@ InputState
   → CharacterState receives authoritative results
   → presentation events/state reach the client
 ```
+
+Fresh and buffered slot presses enter `Attacking` only through `ServerSimulation`'s
+pre-simulation admission and ability lifecycle. A press buffered during JumpSquat,
+or made eligible by takeoff/timer expiry, is admitted on the next eligible
+pre-simulation tick using the current ground/air variant and ordinary resource gates.
+A fresh accepted press supersedes an older buffer. Landing-lag and defense-commitment
+presses are discarded, including on their expiry tick; they do not queue an attack.
 
 The Match Content Catalog is immutable for the match. A later cook applies only to a later match. Missing, invalid, stale, incompatible, or hash-mismatched content fails closed; it does not fall back to raw source, C# definitions, or a similar capability.
 

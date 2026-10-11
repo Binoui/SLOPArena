@@ -18,22 +18,22 @@ MonoBehaviour:
   - Character: 1
     AttackSlot: 11
     Airborne: 0
-    Prefab: {fileID: 5710766023260875415, guid: 8b8f86038b7ad386590bec0fb8fec3d3, type: 3}
+    Prefab: {fileID: 5113496752642633616, guid: f43706d28f4fe0a5584d724f371176b0, type: 3}
     Scale: 80
   - Character: 1
     AttackSlot: 11
     Airborne: 1
-    Prefab: {fileID: 5710766023260875415, guid: 8b8f86038b7ad386590bec0fb8fec3d3, type: 3}
+    Prefab: {fileID: 5113496752642633616, guid: f43706d28f4fe0a5584d724f371176b0, type: 3}
     Scale: 80
   - Character: 1
     AttackSlot: 5
     Airborne: 0
-    Prefab: {fileID: 5509305661840162670, guid: fe04ebf1c79c0a7789ac9cf04b96cd27, type: 3}
+    Prefab: {fileID: 4597441028840013306, guid: 3c45e635860d298d7a9aebb91a1966c8, type: 3}
     Scale: 1
   - Character: 1
     AttackSlot: 5
     Airborne: 1
-    Prefab: {fileID: 5509305661840162670, guid: fe04ebf1c79c0a7789ac9cf04b96cd27, type: 3}
+    Prefab: {fileID: 4597441028840013306, guid: 3c45e635860d298d7a9aebb91a1966c8, type: 3}
     Scale: 1
   - Character: 3
     AttackSlot: 11

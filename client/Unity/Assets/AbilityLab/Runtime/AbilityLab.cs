@@ -360,6 +360,7 @@ namespace SlopArena.Client.Tools
         private readonly AbilityLabPresentationPreviewer _presentationPreviewer = new();
         private readonly AbilityLabSimulationController _simulationPreviewer = new();
         public int PresentationPreviewInstanceCount => _presentationPreviewer.ActiveInstanceCount;
+        public IReadOnlyList<string> PresentationPreviewDiagnostics => _presentationPreviewer.Diagnostics;
         public IReadOnlyCollection<GameObject> PresentationPreviewInstances => _presentationPreviewer.ActiveInstances;
 
         public AbilityLabScenarioResult Scenario { get; private set; }
@@ -455,7 +456,7 @@ namespace SlopArena.Client.Tools
         private void RebuildScenarioTrailHistory()
         {
             _scenarioActorHistory.Clear();
-            if (Scenario == null || _weaponAttach?.HasSwordTrail != true) return;
+            if (Scenario == null) return;
             foreach (var frame in Scenario.Frames) _scenarioActorHistory.Add(frame.Actor);
         }
 
@@ -481,7 +482,7 @@ namespace SlopArena.Client.Tools
                 frame.Opponent.State == ActionState.Attacking);
             _dummyWeaponAttach?.SetHitboxTrailActive(false);
             _presentationPreviewer.SetSimulationFrame(Scenario.PresentationEvents, frame.MatchTick,
-                _presentationBindings, _previewRenderer, _previewRenderer.transform);
+                _presentationBindings, _previewRenderer, _previewRenderer.transform, _scenarioActorHistory);
             UpdateScenarioChargeCue(frame.Actor, airborne);
             _weaponAttach?.RefreshPresentation();
             if (ShowDummy) _dummyWeaponAttach?.RefreshPresentation();
@@ -542,14 +543,32 @@ namespace SlopArena.Client.Tools
         }
 
 #if UNITY_EDITOR
-        private void OnEnable() => EditorApplication.update += UpdateEditorPlayback;
-        private void OnDisable() => EditorApplication.update -= UpdateEditorPlayback;
+        [NonSerialized] private bool _waitingForAssemblyReload;
+        private void OnEnable()
+        {
+            _waitingForAssemblyReload = false;
+            Instance = this;
+            EditorApplication.update += UpdateEditorPlayback;
+        }
+        private void OnDisable()
+        {
+            EditorApplication.update -= UpdateEditorPlayback;
+            ReleasePreviewForReload();
+        }
+
+        public void ReleasePreviewForReload()
+        {
+            _waitingForAssemblyReload = true;
+            _presentationPreviewer.Clear();
+            foreach (var animancer in GetComponentsInChildren<Animancer.AnimancerComponent>(true))
+                if (animancer.IsGraphInitialized) animancer.Graph.Destroy();
+        }
 
         private void UpdateEditorPlayback()
         {
             // A close dispatched earlier in this update can destroy us after the invocation list was captured.
             if (this == null) return;
-            if (EditorApplication.isPlayingOrWillChangePlaymode || !isActiveAndEnabled) return;
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || _waitingForAssemblyReload || !isActiveAndEnabled) return;
             AdvancePlayback();
         }
 #endif
@@ -1467,6 +1486,9 @@ namespace SlopArena.Client.Tools
         /// </summary>
         public void RefreshPose()
         {
+#if UNITY_EDITOR
+            if (EditorApplication.isCompiling || _waitingForAssemblyReload) return;
+#endif
             EnsurePreviewRenderers();
             if (_previewRenderer == null || Def == null)
             {
@@ -1547,10 +1569,11 @@ namespace SlopArena.Client.Tools
                 }
                 _presentationPreviewer.SetSimulationFrame(
                     _simulationPreviewer.PresentationEvents,
-                    (uint)simulationTick,
+                    (uint)(simulationTick + 1),
                     _presentationBindings,
                     _previewRenderer,
-                    _previewRenderer.transform);
+                    _previewRenderer.transform,
+                    _simulationPreviewer.StateHistory);
             }
             else
             {

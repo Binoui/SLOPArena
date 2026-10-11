@@ -157,9 +157,9 @@ namespace SlopArena.Client.UI
             }
 
             var initial = _btnRefresh ?? _btnHost ?? _btnDirectConnect;
+            // Escape returns to Home; Start acts only on a focused join row, if any.
             if (initial != null)
                 MenuNavigation.Configure(_context, initial, LeaveBrowser);
-
             ChatSession.ConfigureMasterServerUrl(ClientSession.MasterServerUrl);
             _chatSession = ChatSession.Instance;
             if (_chatSession != null)
@@ -230,6 +230,7 @@ namespace SlopArena.Client.UI
                 var rooms = await lobby.GetRoomsAsync();
                 if (!IsCurrent(operation, ct))
                     return;
+                _context.ForwardButton = null;
                 _serverList?.Clear();
                 if (rooms == null || rooms.Length == 0)
                 {
@@ -301,6 +302,7 @@ namespace SlopArena.Client.UI
             join.AddToClassList("server-join");
             join.SetEnabled(room.Joinable);
             row.Add(join);
+            join.RegisterCallback<FocusInEvent>(_ => _context.ForwardButton = join);
             return row;
         }
 
@@ -563,10 +565,9 @@ namespace SlopArena.Client.UI
             SetPageSectionsEnabled(false);
             _directConnectModal.style.display = DisplayStyle.Flex;
             _modalPresented = true;
-            UiModalState.Push();
-            // Controller Back resolves this page-owned modal; Escape/Start
-            // opens the shell menu above it without closing the form.
+            // The modal owns Start; Escape resolves to the page-owned close action.
             _context.SetModalAction(CloseDirectConnect);
+            _context.ModalForwardButton = _modalJoin;
             FrontendFocusRouter.NotifyPresentationChanged();
             if (_directConnectStatus != null)
             {
@@ -607,6 +608,7 @@ namespace SlopArena.Client.UI
             }
             _directConnectModal.style.display = DisplayStyle.None;
             _context.SetModalAction(null);
+            _context.ModalForwardButton = null;
             if (_modalPresented)
             {
                 _modalPresented = false;

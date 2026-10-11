@@ -152,19 +152,20 @@ public class ComboInfluenceTests
         state.KVX = 10f;
         state.KVY = 5f;
         state.State = ActionState.Idle;
+        state.AirTimeTicks = Simulation.KnockbackPopTicks;
 
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         sim.RegisterEntity(1, TestHelpers.EngineDef, state);
 
         sim.Tick(new() { { 1, default } });
         var first = sim.GetState(1);
-        TestHelpers.AssertNear(10f - (10f / 60f), first.KVX, 0.001f);
-        TestHelpers.AssertNear(5f - (8f / 60f), first.KVY, 0.001f);
+        TestHelpers.AssertNear(10f - Simulation.FlightFriction * Simulation.TickDt, first.KVX, 0.001f);
+        TestHelpers.AssertNear(5f - Simulation.FlightGravity * Simulation.TickDt, first.KVY, 0.001f);
 
         sim.Tick(new() { { 1, default } });
         var second = sim.GetState(1);
-        TestHelpers.AssertNear(first.KVX - (10f / 60f), second.KVX, 0.001f);
-        TestHelpers.AssertNear(first.KVY - (8f / 60f), second.KVY, 0.001f);
+        TestHelpers.AssertNear(first.KVX - Simulation.FlightFriction * Simulation.TickDt, second.KVX, 0.001f);
+        TestHelpers.AssertNear(first.KVY - Simulation.FlightGravity * Simulation.TickDt, second.KVY, 0.001f);
 
         for (int i = 0; i < 240 && (second.KVX != 0f || second.KVY != 0f || second.KVZ != 0f); i++)
         {

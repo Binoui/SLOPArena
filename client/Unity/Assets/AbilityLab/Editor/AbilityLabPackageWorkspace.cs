@@ -31,6 +31,8 @@ public sealed class AbilityLabPackageWorkspace
     public CookedCharacterPackage? LiveDraftPackage { get; private set; }
     public bool LiveDraftInvalid { get; private set; }
     public string Status { get; private set; } = "Unknown";
+    private bool _persistedSourceCurrent;
+    private string _persistedStatusStamp = "";
     private const int MaxUndoDepth = 50;
     private readonly Stack<WorkspaceSnapshot> _undo = new();
     private readonly Stack<WorkspaceSnapshot> _redo = new();
@@ -117,6 +119,8 @@ public sealed class AbilityLabPackageWorkspace
         CookedSourceHash = inspection.CookedSourceHash ?? "";
         CookedContentHash = inspection.CookedContentHash ?? "";
         PackageHash = inspection.PackageHash ?? "";
+        _persistedSourceCurrent = inspection.Status == "valid";
+        _persistedStatusStamp = PersistedStatusStamp();
         var inspectionDiagnostics = new List<CharacterDiagnostic>(inspection.RawDiagnostics);
         if (inspection.Status == "stale")
             inspectionDiagnostics.AddRange((inspection.StaleReasons ?? Array.Empty<CharacterPackageStaleReason>())
@@ -137,6 +141,45 @@ public sealed class AbilityLabPackageWorkspace
     }
 
     public bool ReloadPackage() => HasPackage && OpenPackage(PackageRoot);
+
+    /// <summary>Observe external source/cook changes without replacing the draft, Undo history or Lab cursor.</summary>
+    public bool RefreshPersistedStatus(bool force = false)
+    {
+        if (!HasPackage || Status == "Cooking") return false;
+        string stamp = PersistedStatusStamp();
+        if (!force && stamp == _persistedStatusStamp) return false;
+        _persistedStatusStamp = stamp;
+        var inspection = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Inspect(PackageRoot);
+        bool sourceMatches = ComputeDiskHash() == LoadedDiskHash && ComputeCatalogFingerprint() == LoadedCatalogFingerprint;
+        _persistedSourceCurrent = sourceMatches && inspection.Status == "valid";
+        var diagnostics = LiveDraftInvalid ? _diagnostics.ToList() : new List<CharacterDiagnostic>(inspection.RawDiagnostics);
+        if (inspection.Status == "stale")
+            diagnostics.AddRange((inspection.StaleReasons ?? Array.Empty<CharacterPackageStaleReason>())
+                .Select(reason => new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, reason.Code, reason.Path, reason.Message)));
+        if (!sourceMatches)
+            diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, "workspace.external.changed", PackageRoot,
+                "Package source or asset bindings changed outside this workspace. Your current draft is retained; reopen the package to load those changes."));
+        CookedSourceHash = inspection.CookedSourceHash ?? "";
+        CookedContentHash = inspection.CookedContentHash ?? "";
+        PackageHash = inspection.PackageHash ?? "";
+        string status = LiveDraftInvalid ? "Failed" : _persistedSourceCurrent && !IsDirty ? "Valid" : "Stale";
+        SetDiagnosticsWithoutNotify(diagnostics, status);
+        return true;
+    }
+
+    private string PersistedStatusStamp()
+    {
+        string project = UnityCharacterAssetCooker.ProjectRoot();
+        string[] paths =
+        {
+            ToFull(PackageRoot + "/package.json"), ToFull(PackageRoot + "/character.json"),
+            ToFull(PackageRoot + "/CharacterAssetCatalog.asset"),
+            Path.Combine(project, CharacterCookOutput.For(PackageId).IntermediateDirectory, "cook-status.json"),
+        };
+        return string.Join("|", paths.Select(path => File.Exists(path)
+            ? $"{new FileInfo(path).LastWriteTimeUtc.Ticks}:{new FileInfo(path).Length}" : "missing"))
+            + "|" + AssetDatabase.GetAssetDependencyHash(PackageRoot + "/CharacterAssetCatalog.asset");
+    }
     public bool SavePackage()
     {
         if (ComputeDiskHash() != LoadedDiskHash)
@@ -177,6 +220,8 @@ public sealed class AbilityLabPackageWorkspace
             CookedSourceHash = cook.SourceHash;
             CookedContentHash = cook.CookedContentHash;
             PackageHash = cook.PackageHash;
+            _persistedSourceCurrent = true;
+            _persistedStatusStamp = PersistedStatusStamp();
             Preview = candidatePreview;
             LiveDraftPackage = null;
             LiveDraftInvalid = false;
@@ -899,7 +944,7 @@ public sealed class AbilityLabPackageWorkspace
         {
             LiveDraftPackage = compiled.CookedPackage;
             LiveDraftInvalid = false;
-            SetDiagnostics(diagnostics, "Stale");
+            SetDiagnostics(diagnostics, !IsDirty && _persistedSourceCurrent ? "Valid" : "Stale");
             return;
         }
 

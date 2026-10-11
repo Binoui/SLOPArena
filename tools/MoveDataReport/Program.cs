@@ -1291,7 +1291,8 @@ internal static class Program
         sb.AppendLine("> knockback via `Simulation.ApplyKnockback`, then steps the sim until landing (cap 2400 ticks).");
         sb.AppendLine("> No DI/SDI input. Hitstop is reported (in-code `ComputeHitstopTicks`, ADR-0019: min(12, dmg/3 + 6))");
         sb.AppendLine("> but not simulated — flight starts at launch.");
-        sb.AppendLine("> Flight law (current sim): KV holds constant through hitstun (single integration per tick); at stun expiry KV is copied");
+        sb.AppendLine($"> Flight law (current sim): upward sends receive {Simulation.KnockbackPopTicks} ticks of pop grace, then gravity during hitstun.");
+        sb.AppendLine("> Horizontal KV holds through the lock (single integration per tick); at stun expiry KV is copied");
         sb.AppendLine($"> to V and the victim enters post-hitstun flight (ADR-0019 §6): gravity {Simulation.FlightGravity:0} m/s2 + horizontal friction {Simulation.FlightFriction:0} until");
         sb.AppendLine("> landing or any action (jump/ability clears the regime). The AirTime float window no longer applies to launches.");
         sb.AppendLine("> Combo matrix uses the no-travel bound: `TA = (IASA - trigger) [+ landing lag] [+ jump squat] + follow-up trigger`;");

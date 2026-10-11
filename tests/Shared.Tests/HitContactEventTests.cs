@@ -88,6 +88,33 @@ public sealed class HitContactEventTests
     }
 
     [Theory]
+    [InlineData(2f, 0.6f)]
+    [InlineData(6f, 1f)]
+    [InlineData(13f, 1.4719601f)]
+    [InlineData(100f, 1.6f)]
+    public void ConfirmedImpactWeightTravelsWithContactAndSurvivesPacketReplay(float damage, float scale)
+    {
+        var sim = CreateSimulation(ConfiguredDefinition(), (AttackerId, -2f), (VictimId, 0f));
+        var victim = sim.GetState(VictimId);
+        var contact = Contact(in victim);
+        contact.Damage = damage;
+        sim.Resolver.Spawn(contact);
+        sim.Tick(new Dictionary<ulong, InputState>());
+
+        var evt = Assert.Single(sim.GetPresentationEvents());
+        Assert.Equal(scale, evt.Placement.LocalScaleX, 5);
+        Assert.Equal(scale, evt.Placement.LocalScaleY, 5);
+        Assert.Equal(scale, evt.Placement.LocalScaleZ, 5);
+        var packet = new PresentationEventPacket(evt.MatchTick, evt.EntityId, evt.OperationIndex,
+            evt.PresentationId, evt.AttackSequence, evt.Source, evt.WorldX, evt.WorldY,
+            evt.WorldZ, evt.WorldYaw, evt.Placement);
+        var bytes = new byte[packet.WireSize];
+        packet.Serialize(bytes);
+        Assert.True(PresentationEventPacket.TryDeserialize(bytes, out var replay));
+        Assert.Equal(evt, replay!.Value.ToEvent());
+    }
+
+    [Theory]
     [InlineData("shield")]
     [InlineData("invincible")]
     [InlineData("counter")]

@@ -33,9 +33,22 @@ namespace SlopArena.Client.UI
         private int _displayRevertHeight;
         private float _displayDeadline;
         private Label? _displayCountdown;
+        private int _backConsumedFrame = -1;
 
         private void Update()
         {
+            // The frontend router owns shell input; gameplay settings need
+            // the same Back/Done shortcuts without relying on panel focus.
+            if (_open && !FrontendController.IsFrontendActive
+                && !ChatInputGate.ExternalOverlaySuppressed && !HumanInputActions.IsCapturing)
+            {
+                var pad = UnityEngine.InputSystem.Gamepad.current;
+                if (pad?.buttonEast.wasPressedThisFrame == true)
+                    HandleBack();
+                else if (pad?.startButton.wasPressedThisFrame == true
+                    && !pad.buttonSouth.wasPressedThisFrame)
+                    GamepadUIBridge.Submit(ForwardButton);
+            }
             if (_displayCountdown == null) return;
             if (!Application.isFocused || _surface == null || _surface.panel == null)
             {
@@ -50,6 +63,9 @@ namespace SlopArena.Client.UI
         public static SettingsOverlay? Active { get; private set; }
         public bool IsOpen => _open;
         public static bool ClosedThisFrame => _closedFrame == Time.frameCount;
+
+        internal Button? ForwardButton => !_open ? null
+            : _resetConfirmation?.Q<Button>() ?? _surface?.Q<Button>("settings-back");
 
         public void Open(VisualElement host, Action? onClose = null)
         {
@@ -438,6 +454,9 @@ namespace SlopArena.Client.UI
 
         public void HandleBack()
         {
+            if (_backConsumedFrame == Time.frameCount)
+                return;
+            _backConsumedFrame = Time.frameCount;
             if (HumanInputActions.IsCapturing) { HumanInputActions.CancelCapture(); return; }
             if (_displayCountdown != null) { RevertDisplay(); return; }
             if (_resetConfirmation != null) CancelReset();

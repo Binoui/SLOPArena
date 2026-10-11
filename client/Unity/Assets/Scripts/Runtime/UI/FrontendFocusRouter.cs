@@ -43,7 +43,7 @@ namespace SlopArena.Client.UI
                 Instance = null;
             if (_shell?.Root != null)
             {
-                _shell.Root.UnregisterCallback<NavigationCancelEvent>(OnShellNavigationCancel);
+                _shell.Root.UnregisterCallback<NavigationCancelEvent>(OnShellNavigationCancel, TrickleDown.TrickleDown);
                 _shell.Root.UnregisterCallback<ClickEvent>(OnShellClick);
             }
             FrontendController.PageChanged -= OnPageChanged;
@@ -75,7 +75,7 @@ namespace SlopArena.Client.UI
                 return;
             }
             _shell = shell;
-            _shell.Root.RegisterCallback<NavigationCancelEvent>(OnShellNavigationCancel);
+            _shell.Root.RegisterCallback<NavigationCancelEvent>(OnShellNavigationCancel, TrickleDown.TrickleDown);
             _shell.Root.RegisterCallback<ClickEvent>(OnShellClick);
             FrontendController.PageChanged += OnPageChanged;
             _bound = true;
@@ -90,16 +90,10 @@ namespace SlopArena.Client.UI
             _regionFocus[(int)UiRegion.Page] = null;
             if (_region == UiRegion.TopBar)
                 _regionBeforeTopBar = UiRegion.Page;
-            _region = page == FrontendPage.Home ? UiRegion.TopBar : UiRegion.Page;
+            _region = UiRegion.Page;
             _chatRootResolved = false;
             ApplyRegionFocusability();
             UpdateHints();
-            if (page == FrontendPage.Home)
-                _shell?.TopBar?.schedule.Execute(() =>
-                {
-                    if (FrontendController.CurrentPage == FrontendPage.Home && !UiModalState.Presented)
-                        FocusRegionDefault(UiRegion.TopBar);
-                }).StartingIn(0);
         }
 
         private void Update()
@@ -109,10 +103,17 @@ namespace SlopArena.Client.UI
                 return;
             if (ChatInputGate.ExternalOverlaySuppressed)
                 return; // Native Steam overlay owns input until every held control is released.
+            if (HumanInputActions.IsCapturing)
+                return; // Rebinding owns face buttons, including A/B.
 
-            // Exactly one pump owner on shell pages: the chat overlay skips
-            // the shell panel, so the router pumps it here (issue #220).
-            GamepadUIBridge.Pump(shell.Root.panel);
+            // Restore lost focus before A submits; B does not depend on focus.
+            var focused = shell.Root.panel?.focusController?.focusedElement as VisualElement;
+            if (!UiModalState.Presented && !GamepadUIBridge.IsAvailable(focused))
+                FocusRegionDefault(_region);
+            GamepadUIBridge.Pump(shell.Root.panel, cancel: false);
+            if (Gamepad.current?.buttonEast.wasPressedThisFrame == true)
+                HandlePageCancel();
+            PollForward();
             PollPause();
             if (UiModalState.Presented)
             {
@@ -128,19 +129,55 @@ namespace SlopArena.Client.UI
             UpdateHints();
         }
 
-        private void PollPause()
+        private void PollForward()
         {
-            if (Gamepad.current?.startButton.wasPressedThisFrame != true
-                && Keyboard.current?.escapeKey.wasPressedThisFrame != true)
+            var pad = Gamepad.current;
+            if (pad?.startButton.wasPressedThisFrame != true
+                || pad.buttonSouth.wasPressedThisFrame || pad.buttonEast.wasPressedThisFrame)
                 return;
-            // Settings already handles Escape through its own NavigationCancelEvent.
-            // Start is not a UI cancel event, so send it to the protected layer.
+            var panel = _shell?.Root?.panel;
+            var focused = panel?.focusController?.focusedElement as VisualElement;
             if (SettingsOverlay.Active is { IsOpen: true } settings)
             {
-                if (Gamepad.current?.startButton.wasPressedThisFrame == true)
-                    settings.HandleBack();
+                GamepadUIBridge.Submit(settings.ForwardButton);
                 return;
             }
+            if (_shell?.IsMenuOpen == true)
+            {
+                GamepadUIBridge.Submit(_shell.Root?.Q<Button>("shell-menu-resume"));
+                return;
+            }
+            if (FrontendController.Identity is { IsPresented: true } identity)
+            {
+                GamepadUIBridge.Submit(identity.ForwardButton);
+                return;
+            }
+            if (SteamRoomJoinPrompt.IsConfirming)
+            {
+                GamepadUIBridge.Submit(SteamRoomJoinPrompt.ForwardButton);
+                return;
+            }
+            if (UiModalState.Presented)
+            {
+                GamepadUIBridge.Submit(FrontendController.CurrentContext?.ModalForwardButton);
+                return;
+            }
+            if (_region == UiRegion.Social || IsEditingAnyField(panel))
+                return;
+            var forward = FrontendController.CurrentContext?.ForwardButton;
+            if (forward != null)
+                GamepadUIBridge.Submit(forward);
+            else if (_region == UiRegion.Page && FrontendController.CurrentPage == FrontendPage.Home)
+                GamepadUIBridge.Submit(focused as Button);
+        }
+
+        private void PollPause()
+        {
+            if (Keyboard.current?.escapeKey.wasPressedThisFrame != true)
+                return;
+            // Settings handles Escape through its own NavigationCancelEvent.
+            if (SettingsOverlay.Active is { IsOpen: true })
+                return;
             HandlePageCancel();
             UpdateHints();
         }
@@ -246,14 +283,15 @@ namespace SlopArena.Client.UI
                     TryFocus(FindFirstFocusable(chatRoot));
                     break;
                 default:
-                    TryFocus(FindFirstFocusable(_shell?.PageContentRoot, exclude: _shell?.SocialHost));
+                    if (!TryFocus(MenuNavigation.PageInitialFocus))
+                        TryFocus(FindFirstFocusable(_shell?.PageContentRoot, exclude: _shell?.SocialHost));
                     break;
             }
         }
 
         private static bool TryFocus(VisualElement? element)
         {
-            if (element == null || element.panel == null || !element.focusable || !element.enabledSelf)
+            if (element == null || !element.focusable || !GamepadUIBridge.IsAvailable(element))
                 return false;
             element.Focus();
             return true;
@@ -263,13 +301,16 @@ namespace SlopArena.Client.UI
         {
             if (root == null)
                 return null;
-            foreach (var element in root.Query<VisualElement>().ToList())
+            for (int i = 0; i < root.hierarchy.childCount; i++)
             {
-                if (exclude != null && exclude.Contains(element))
+                var element = root.hierarchy[i];
+                if (element == exclude || !GamepadUIBridge.IsAvailable(element))
                     continue;
-                if (element is Focusable focusable && focusable.focusable && element.enabledSelf
-                    && element.style.display != DisplayStyle.None)
+                if (element.focusable)
                     return element;
+                var child = FindFirstFocusable(element, exclude);
+                if (child != null)
+                    return child;
             }
             return null;
         }
@@ -368,15 +409,15 @@ namespace SlopArena.Client.UI
         // ── Cancel resolution ─────────────────────────────────────────────
 
         /// <summary>
-        /// Escape/Start toggles the shell menu; controller Back resolves the
-        /// active modal, then region focus and page Back.
+        /// Escape toggles the shell menu; controller Back closes the active
+        /// modal, otherwise invokes the current page's Back action.
         /// The handler on the stable shell root is the frontend entry point.
         /// </summary>
         private void OnShellNavigationCancel(NavigationCancelEvent evt)
         {
             if (!FrontendController.IsFrontendActive)
                 return;
-            if (ChatInputGate.ExternalOverlaySuppressed)
+            if (ChatInputGate.ExternalOverlaySuppressed || HumanInputActions.IsCapturing)
             {
                 evt.StopImmediatePropagation();
                 return;
@@ -425,26 +466,22 @@ namespace SlopArena.Client.UI
             }
             if (SteamRoomJoinPrompt.CancelActive())
                 return;
-            // Escape/Start opens over ordinary page dialogs, chat and editors.
-            if (Gamepad.current?.startButton.wasPressedThisFrame == true
-                || Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            // Keyboard Escape retains the shell-menu shortcut.
+            if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {
                 shell?.OpenMenu();
                 return;
             }
-            // Controller Back closes a page-owned modal first; Escape/Start
-            // instead opens the menu above it without discarding its form.
+            // Controller Back closes a page-owned modal first.
             if (UiModalState.Presented && FrontendController.CurrentContext != null)
             {
                 FrontendController.CurrentContext.InvokeModalAction();
                 return;
             }
-            // Layer 3: top-bar interaction — one press leaves the top bar and
-            // restores where the player came from.
+            // Leaving the top bar must not consume the page's Back action.
             if (_region == UiRegion.TopBar)
             {
-                SetActiveRegion(_regionBeforeTopBar, focusTarget: true);
-                return;
+                SetActiveRegion(UiRegion.Page, focusTarget: true);
             }
             // Layer 4: social interaction — one press leaves the conversation
             // (the compact cell stays visible) and returns the page.
@@ -457,10 +494,9 @@ namespace SlopArena.Client.UI
                 SetActiveRegion(UiRegion.Page, focusTarget: true);
                 return;
             }
-            // Layer 5: the page Back action. Never while a text field owns
-            // editing — typing must never trigger a shell shortcut.
-            if (!IsEditingAnyField(_shell?.Root?.panel))
-                FrontendController.CurrentContext?.InvokeBackAction();
+            // B remains Back while a page text field is focused. Keyboard
+            // Escape was handled above; it never discards a page editor.
+            FrontendController.CurrentContext?.InvokeBackAction();
         }
 
         // ── Hints ─────────────────────────────────────────────────────────
@@ -479,6 +515,9 @@ namespace SlopArena.Client.UI
                 _topBarHint = _shell.Root.Q<Label>(TopBarHintName);
             if (_topBarHint != null)
             {
+                _topBarHint.text = Gamepad.current != null
+                    ? "A // SELECT   B // BACK   START // NEXT   X // TOP BAR"
+                    : "E // TOP BAR";
                 _topBarHint.style.display = show && _region != UiRegion.TopBar
                     ? DisplayStyle.Flex : DisplayStyle.None;
             }
@@ -553,8 +592,7 @@ namespace SlopArena.Client.UI
         public void NotifyModalClosed()
         {
             if (_region == UiRegion.TopBar)
-                SetActiveRegion(FrontendController.CurrentPage == FrontendPage.Home
-                    ? UiRegion.TopBar : _regionBeforeTopBar, focusTarget: true);
+                SetActiveRegion(_regionBeforeTopBar, focusTarget: true);
             ApplyRegionFocusability();
             UpdateHints();
         }

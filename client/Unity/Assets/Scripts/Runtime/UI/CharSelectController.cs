@@ -194,7 +194,7 @@ namespace SlopArena.Client.UI
                 btnBack.clicked += back;
             ConfigureNavigation(context, MenuRoster.Classes.Length > 0
                 ? _btnEditPlayer ?? _gridButtons.FirstOrDefault()
-                : null, btnBack, back);
+                : null, btnBack, back, selectButton);
 
             if (MenuRoster.Classes.Length == 0)
                 ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
@@ -225,14 +225,12 @@ namespace SlopArena.Client.UI
 
         private static void ConfigureNavigation(
             FrontendPageContext context,
-            Button initial,
-            Button backButton,
-            Action back)
+            Button? initial,
+            Button? backButton,
+            Action back,
+            Button? forward = null)
         {
-            if (backButton != null && initial != null)
-                MenuNavigation.Configure(context, initial, back);
-            else if (backButton != null)
-                MenuNavigation.Configure(context, backButton, back);
+            MenuNavigation.Configure(context, initial ?? backButton, back, forward);
         }
 
         private static void ShowRosterUnavailable(FrontendPageContext context, string heading, string detail)
@@ -583,6 +581,7 @@ namespace SlopArena.Client.UI
                 _btnStartMatch.SetEnabled(leader && allLocked && !_roomActionPending &&
                     _lobby?.IsConnected == true);
             }
+            _context.ForwardButton = localLocked ? _btnStartMatch : _btnLockIn;
             SetRoomStatus(admittedCharacters.Length == 0
                 ? "Master has not admitted any characters for this Room."
                 : localLocked
@@ -725,7 +724,8 @@ namespace SlopArena.Client.UI
             var btnBack = context.Q<Button>("btn-back");
             if (btnBack != null)
                 btnBack.clicked += OnPvPBackClicked;
-            ConfigureNavigation(context, _gridButtons.FirstOrDefault() ?? _btnLockIn, btnBack, OnPvPBackClicked);
+            ConfigureNavigation(context, _gridButtons.FirstOrDefault() ?? _btnLockIn, btnBack, OnPvPBackClicked,
+                _btnLockIn);
 
             _lobby = ClientSession.ActiveLobby;
             if (_lobby == null)
@@ -769,6 +769,8 @@ namespace SlopArena.Client.UI
             if (_lockedIn) return;
             _btnLockIn.SetEnabled(false);
             _btnLockIn.text = "LOCKED";
+            if (IsLocalHost())
+                _context.ForwardButton = _btnStartMatch;
             Debug.Log($"[CharSelect] Locking in {_selected}");
             _ = _lobby.SelectCharacterAsync(_selected.ToString());
         }
@@ -958,6 +960,7 @@ namespace SlopArena.Client.UI
             var players = _snapshot?.Players ?? System.Array.Empty<LobbyPlayerInfo>();
             bool canStart = players.Count >= 2 && players.All(p => p.LockedIn);
             _btnStartMatch.SetEnabled(canStart);
+            _context.ForwardButton = _btnLockIn?.enabledSelf == true ? _btnLockIn : _btnStartMatch;
 
             Debug.Log($"[CharSelect] StartMatch check: count={players.Count} locked={string.Join(",", players.Select(p => $"{p.Name}:{p.LockedIn}"))} -> canStart={canStart}");
 

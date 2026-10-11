@@ -339,7 +339,7 @@ public sealed class BonkKitTests
     }
 
     [Fact]
-    public void BonkE_HoldsPastAimCap_AllowsMovementAndReleasesCachedTarget()
+    public void BonkE_HoldsPastAimCap_StopsMovementAndReleasesCachedTarget()
     {
         var def = BonkDefinition();
         var sim = TestHelpers.MakeSim();
@@ -358,7 +358,8 @@ public sealed class BonkKitTests
         }
 
         var heldState = sim.GetState(1);
-        Assert.True(heldState.PZ > startZ, "mobile aim must preserve normal movement");
+        Assert.Equal(startZ, heldState.PZ);
+        Assert.Equal(0f, heldState.VZ);
 
         sim.Tick(new Dictionary<ulong, InputState>
         {

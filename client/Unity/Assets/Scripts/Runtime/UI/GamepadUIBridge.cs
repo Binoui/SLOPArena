@@ -24,7 +24,7 @@ namespace SlopArena.Client.UI
 
         /// <summary>Poll the current gamepad and dispatch submit/cancel
         /// navigation events for the panel's focused element.</summary>
-        public static void Pump(IPanel? panel)
+        public static void Pump(IPanel? panel, bool cancel = true)
         {
             var pad = Gamepad.current;
             if (pad == null || panel?.focusController == null)
@@ -35,16 +35,38 @@ namespace SlopArena.Client.UI
                 _lastSubmitTime = now;
                 Dispatch<NavigationSubmitEvent>(panel);
             }
-            if (pad.buttonEast.wasPressedThisFrame && now - _lastCancelTime > DebounceSeconds)
+            if (cancel && pad.buttonEast.wasPressedThisFrame && now - _lastCancelTime > DebounceSeconds)
             {
                 _lastCancelTime = now;
                 Dispatch<NavigationCancelEvent>(panel);
             }
         }
 
+        internal static bool IsAvailable(VisualElement? element)
+        {
+            if (element?.panel == null || !element.enabledInHierarchy)
+                return false;
+            for (var current = element; current != null; current = current.parent)
+            {
+                if (current.resolvedStyle.display == DisplayStyle.None
+                    || current.resolvedStyle.visibility == Visibility.Hidden)
+                    return false;
+            }
+            return true;
+        }
+
+        internal static void Submit(Button? button)
+        {
+            if (!IsAvailable(button))
+                return;
+            using var evt = NavigationSubmitEvent.GetPooled();
+            evt.target = button;
+            button!.SendEvent(evt);
+        }
+
         private static void Dispatch<T>(IPanel panel) where T : EventBase<T>, new()
         {
-            if (panel.focusController.focusedElement is not VisualElement focused)
+            if (panel.focusController.focusedElement is not VisualElement focused || !IsAvailable(focused))
                 return;
             using var evt = EventBase<T>.GetPooled();
             evt.target = focused;

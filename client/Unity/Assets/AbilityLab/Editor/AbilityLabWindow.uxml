@@ -54,6 +54,7 @@
               <ui:Slider name="timeline-zoom" low-value="0.5" high-value="4" value="1" label="Zoom" />
             </ui:VisualElement>
             <ui:Label name="timeline-notice" class="timeline-notice" />
+            <ui:Label name="timeline-vfx-status" class="timeline-notice" />
             <ui:ScrollView name="timeline-scroll" mode="Horizontal" class="timeline-scroll">
               <ui:VisualElement name="timeline-track" class="timeline-track" />
             </ui:ScrollView>

@@ -90,7 +90,7 @@ namespace SlopArena.Client.UI
             int stageCount = 0;
             foreach (var arena in ArenaRegistry.All)
             {
-                if (arena.Name == "training" && !isTraining) continue;
+                if (!IsInStageSelectRoster(arena.Name, isTraining)) continue;
                 string? baked = BakedContentPaths.ResolveArena(arena.Name);
                 if (baked == null) continue;
                 var arenaOpt = ArenaBinaryFormat.LoadFromFile(baked);
@@ -169,7 +169,7 @@ namespace SlopArena.Client.UI
             }
             Button initial = isHost && firstStageButton != null ? firstStageButton : btnBack;
             if (initial != null)
-                MenuNavigation.Configure(_context, initial, back);
+                MenuNavigation.Configure(_context, initial, back, _btnConfirm);
 
             if (_roomMode)
             {
@@ -225,6 +225,25 @@ namespace SlopArena.Client.UI
             var progressLabel = FrontendController.CurrentContext?.Q<Label>("flow-progress");
             if (progressLabel != null)
                 progressLabel.text = progress;
+        }
+
+        // Curated picker roster: other baked arenas remain available for
+        // compatibility and authoring until their rebuilds are ready.
+        private static bool IsInStageSelectRoster(string arenaName, bool isTraining)
+        {
+            switch (arenaName)
+            {
+                case "table_manners":
+                case "splash_deck":
+                case "slop_pit":
+                case "after_hours":
+                case "last_stop":
+                    return true;
+                case "training":
+                    return isTraining;
+                default:
+                    return false;
+            }
         }
 
         private static string DisplayName(ArenaDefinition arena)
@@ -434,26 +453,6 @@ namespace SlopArena.Client.UI
                 _btnConfirm?.SetEnabled(false);
                 ShowRoomStatus($"The chosen arena ({room.ArenaName}) is not available in this client build.", true);
             }
-            ConfigureRoomNavigation();
-        }
-        private void ConfigureRoomNavigation()
-        {
-            Button initial = null;
-            if (ClientSession.IsLobbyHost && _grid != null)
-            {
-                foreach (var element in _grid.Children())
-                {
-                    if (element is Button button && button.enabledSelf &&
-                        button.style.display != DisplayStyle.None)
-                    {
-                        initial = button;
-                        break;
-                    }
-                }
-            }
-            initial ??= _btnConfirm ?? _context.Q<Button>("btn-back");
-            if (initial != null)
-                MenuNavigation.Configure(_context, initial, BackToRoom);
         }
 
 

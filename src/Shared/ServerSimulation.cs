@@ -270,6 +270,7 @@ namespace SlopArena.Shared
 			ability.PresentationOperationIndex = -1;
 			ability.ClearArmorWindow();
 			state.ClearStartupAimCorrection();
+			state.BufferedSlot = 0;
             bool aimingAbility = cookedSlot != null
                 ? cookedSlot.AimMode != AuthoringAimMode.None
                 : spec != null && spec.AimMode != AimMode.None;
@@ -837,6 +838,11 @@ namespace SlopArena.Shared
 					continue;
 				if (CanTakeOrdinaryAbilityAction(state, def))
 					_lastTickOrdinaryActionOpportunities.Add(id);
+				bool bufferedPress = input.ActiveSlot == 0 && state.BufferedSlot > 0
+					&& state.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding)
+					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed;
+				if (bufferedPress)
+					input.ActiveSlot = state.BufferedSlot;
 				if (input.ActiveSlot == 0)
 				{
 					if (TryCancelGroundedNormalOnMovement(id, ref state, def, input))
@@ -858,6 +864,12 @@ namespace SlopArena.Shared
 				if (state.State != ActionState.Idle && state.State != ActionState.Attacking
 					&& state.State != ActionState.Run && state.State != ActionState.Crouching
 					&& state.State != ActionState.Sliding) continue;
+				if (bufferedPress)
+				{
+					state.BufferedSlot = 0;
+					_states[id] = state;
+				}
+
 
 				bool airborne = !state.IsGrounded;
 				var cookedSlot = def.GetCookedSlotAbility(input.ActiveSlot, airborne);
@@ -1539,8 +1551,10 @@ namespace SlopArena.Shared
 					}
 
 					float penetration = radiusSum - distance;
-					bool firstFixed = first.WarpSpeed > 0f || first.State == ActionState.GrabAttempt;
-					bool secondFixed = second.WarpSpeed > 0f || second.State == ActionState.GrabAttempt;
+					bool firstFixed = first.WarpSpeed > 0f || first.State == ActionState.GrabAttempt
+                        || (firstAbility?.HoldsFighterPushboxPosition ?? false);
+					bool secondFixed = second.WarpSpeed > 0f || second.State == ActionState.GrabAttempt
+                        || (secondAbility?.HoldsFighterPushboxPosition ?? false);
 					if (firstFixed && secondFixed)
 						continue;
 
@@ -2516,6 +2530,8 @@ namespace SlopArena.Shared
 						hit.AttackSlot - 1, hit.Airborne);
 					if (!string.IsNullOrEmpty(attackSpec?.HitPresentationId))
 					{
+						// Confirmed contact carries cosmetic weight, including through replay.
+						float presentationScale = Math.Clamp(MathF.Sqrt(finalDamage / 6f), 0.6f, 1.6f);
 						_presentationEvents.Add(new TimelinePresentationEvent(
 							_tick, hit.OwnerEntityId, hitContactOperationIndex,
 							attackSpec.HitPresentationId!, hit.AttackSequence,
@@ -2523,7 +2539,11 @@ namespace SlopArena.Shared
 							hit.HitX, hit.HitY, hit.HitZ,
 							attackerExists ? attackerState.FacingYaw : 0f)
 						{
-							Placement = new PresentationPlacement(DurationTicks: 150),
+							Placement = new PresentationPlacement(
+								LocalScaleX: presentationScale,
+								LocalScaleY: presentationScale,
+								LocalScaleZ: presentationScale,
+								DurationTicks: 150),
 						});
 					}
 				}

@@ -354,7 +354,8 @@ public sealed class CharacterPackageAssemblerTests
             {
                 var operation = operations[index]!;
                 string? kind = operation["kind"]?.GetValue<string>();
-                if (kind == "armorWindow" || !startupCorrection && kind == "startupAimCorrection")
+                if (kind == "armorWindow" || !startupCorrection && kind == "startupAimCorrection" ||
+                    operation["capabilityId"]?.GetValue<string>() == CharacterPackageCompiler.ChargedProjectileCapabilityId)
                     operations.RemoveAt(index);
                 else if (operation["hitbox"]?["fixedHitstunTicks"] is not null)
                     operation["hitbox"]!["fixedHitstunTicks"] = 0;
@@ -412,26 +413,36 @@ public sealed class CharacterPackageAssemblerTests
         Assert.NotEqual(baseline.PackageHash, changed.PackageHash);
     }
 
-    [Fact]
-    public void ChargedDirectionalDash_CookedLoaderRestoresNestedHitboxesAndApiFloor()
+    [Theory]
+    [InlineData("wibou", "1.5.0", "1.4.0")]
+    [InlineData("fightguy", "1.6.0", "1.5.0")]
+    public void ChargedLifecycle_CookedLoaderRestoresParametersAndApiFloor(string id, string api, string incompatibleApi)
     {
-        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/wibou");
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/" + id);
         var compiled = CharacterPackageCompiler.Compile(
             File.ReadAllText(Path.Combine(root, "package.json")),
             File.ReadAllText(Path.Combine(root, "character.json")),
             CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(compiled.CookedPackage);
         var package = compiled.CookedPackage!;
-        Assert.Equal("1.5.0", package.Metadata.RuntimeApiMin);
+        Assert.Equal(api, package.Metadata.RuntimeApiMin);
         var assembly = CharacterPackageAssembler.Assemble(BuildInput(
             package, Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements,
             Array.Empty<CharacterDiagnostic>()));
         Assert.True(assembly.IsValid, string.Join("; ", assembly.Diagnostics.Select(x => x.Message)));
         var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
         Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(x => x.Message)));
+        if (id == "fightguy")
+        {
+            var charge = Assert.IsType<CookedChargedProjectileCapabilityParameters>(loaded.Package!.Definition.Slots
+                .Single(slot => slot.Id == "ground.A").Timeline.Stages[0].Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+            Assert.Equal(1f, charge.GetRadius(45));
+            Assert.Equal(20f, charge.Projectile.Speed);
+            Assert.Equal((ushort)112, charge.Projectile.MaxFlightTicks);
+        }
         var input = BuildInput(package, Array.Empty<PackageDependencySource>(),
             package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
-        const string incompatibleApi = "1.4.0";
         var runtime = JsonNode.Parse(input.RuntimeBytes)!.AsObject();
         runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = incompatibleApi;
         byte[] runtimeBytes = Encoding.UTF8.GetBytes(runtime.ToJsonString());

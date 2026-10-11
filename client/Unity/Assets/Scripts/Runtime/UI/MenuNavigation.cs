@@ -32,7 +32,8 @@ namespace SlopArena.Client.UI
         /// unregistered when the context releases, so repeated navigation
         /// never accumulates callbacks on the stable shell hosts.
         /// </summary>
-        public static void Configure(FrontendPageContext context, Button initialButton, Action backAction)
+        public static void Configure(FrontendPageContext context, Button? initialButton, Action backAction,
+            Button? forwardButton = null)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
@@ -41,6 +42,7 @@ namespace SlopArena.Client.UI
             // The page context owns Back; shell routing resolves modal,
             // expanded social and top-bar layers before this action.
             context.SetBackAction(backAction);
+            context.ForwardButton = forwardButton;
 
             var roots = context.OwnedRoots;
             EventCallback<ClickEvent> clickHandler = _ => UISFX.PlayClick();
@@ -94,9 +96,8 @@ namespace SlopArena.Client.UI
             evt.StopImmediatePropagation();
             if (ChatInputGate.SuppressShortcuts)
                 return;
-            // On shell-mounted pages, Escape/Start opens the shell menu;
-            // controller Back resolves the existing modal, social, region,
-            // then page layers. One press never departs two layers.
+            // Escape opens the shell menu; controller Back closes the active
+            // dialog or navigates back. One press never departs two layers.
             if (FrontendController.IsFrontendActive && FrontendController.FocusRouter is { } router)
             {
                 router.HandlePageCancel();

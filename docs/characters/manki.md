@@ -8,8 +8,8 @@ source_image: "manki_action.png"
 palette:
   fur: "#D84315"
   face: "#E53935"
-  overalls: "#1565C0"
-  accents: "#FDD835"
+  overalls: "#30363A"
+  accents: "#9B9D9E"
   horns: "#1A1A1A"
 kit:
   - slot: "LMB"
@@ -111,9 +111,25 @@ yet accepted; the retained Editor owner controls that verification window.
 |---------|-------|
 | Fur | Burnt orange #D84315 |
 | Face/butt | Bright red #E53935 |
-| Overalls | Jean blue #1565C0 |
-| Helmet/gloves | Yellow #FDD835 |
+| Vest/shorts | Charcoal #30363A |
+| Work gloves | Soot brown #4A4338 |
+| Bracers | Worn steel #9B9D9E |
 | Horns/claws | Soot black #1A1A1A |
+
+### Palette implementation — 2026-10-11
+
+The catalog uses the owned `Presentation/MankiVisualRig.prefab`: existing vest
+and shorts regions are charcoal, gloves are dark leather, and the bracer plates
+use worn steel. Orange fur and the red face retain their original texture
+treatment. This replaces the rejected blue/yellow candidate; the bright accent
+comes from the gadgets' fire. The owned `Presentation/Readability/` assets are
+`MankiReadabilityBody.asset`, `MankiClothCharcoal.mat`, `MankiWorkGloves.mat` and
+`MankiWornMetal.mat`. The two renamed materials retain their GUIDs.
+
+The body keeps **14,029 vertices / 11,590 triangles**, its skeleton, Avatar,
+weights and UVs. Renderer count stays **10**; material slots rise **10 → 12**
+through two additional body submeshes. Cooked `poses.bin` is unchanged.
+The original Art prefab's mesh/material bindings are restored.
 
 ## Kit
 
@@ -131,7 +147,7 @@ yet accepted; the retained Editor owner controls that verification window.
 ## Local cooldown tuning — 2026-10-03
 
 Round Bomb's ground and aliased air cooldown is **240 ticks / 4 s**, reduced
-from 300 / 5 s. The explosive mobile-aim option remains costlier than a plain
+from 300 / 5 s. The explosive aimed option remains costlier than a plain
 two-second projectile without changing its reward, aim hold or release timing.
 E/R/F remain **210 / 240 / 600 ticks** (3.5 / 4 / 10 s); normals remain zero.
 These are playtest tuning values, not a match-balance verdict. Cooldown begins
@@ -143,6 +159,156 @@ roster pins are unchanged.
 - **E**: Jetpack Boost. On activation, Manki compresses for 3 vulnerable ticks while preserving vertical fall velocity and clearing horizontal velocity. On ignition, the authoritative simulation samples the current movement stick, normalizes it when above 0.001 magnitude, and launches at `VY=15` with horizontal speed `3.5` along that direction. A single owner-centered sphere (radius 1.25, damage 4, 75° angle, base 2, growth 8, stun 8, duration 4) resolves the ignition hit. The ascent is unsteerable; gravity is active immediately, and normal air drift/actions return when `VY <= 0`. Cooldown: 210 ticks. The move is a recovery move and aliases `air.E` to `ground.E`.
 - **R**: Bazooka (FPS-style). Short cast (20 ticks), fire a rocket projectile in camera direction (AimYaw/AimPitch). Projectile has gravity (15 m/s²), speed 40 m/s, max flight 45 ticks. Explodes on entity hit or ground contact with 3m AoE. CanHitOwner=true on explosion — aim at feet for rocket jump (4 self-damage, upward knockback). No rise, no hover, no hold-to-aim. 240 tick cooldown (4s).
 - **F**: Aerosol Inferno. Hold enters the loop animation and freezes horizontal movement. Manki follows camera yaw only; vertical aim is ignored. Release switches to the attack animation, then emits the right-hand aerosol VFX and forward flame hitbox at the authored 18-tick trigger. Cooldown: 600 ticks.
+
+## Jetpack presentation — 2026-10-11
+
+The E visual pass keeps the current authored movement, ignition hitbox, cooldown,
+animation and air alias. The original world-space ignition burst remains separate
+from the attached exhaust.
+
+`presentation.manki.jetpack-boost.exhaust` emits at authored attack tick **3**,
+on the same simulation tick as ignition. Recorded Lab runs show that as
+**MatchTick 3 / frame 2**; recorded frame numbers are not authored cue ticks.
+The cue attaches to `bone.hips` at local position `(0, -0.15, -0.2)`, with
+identity rotation and scale. Its authored duration is **57 ticks**, the remainder
+of the 60-tick stage.
+
+The owned `Presentation/MankiJetpackExhaust.prefab` uses a compact warm flame
+directed down, embers and short smoke to sell propulsion. The existing ignition
+prefab's root scale is **0.6**, a cosmetic adjustment to the separate burst.
+The exhaust's `AttackBoundPresentation` marker
+clears the exhaust when E ends at the apex, is interrupted or replaced, or loses
+its owner; hitstop retains the remaining attack ticks. The 57-tick upper bound
+does not extend movement or keep the effect running after control returns.
+
+Native cook, package verification and roster refresh passed. Lab evidence is
+under `.ability-lab-cache/manki-cooler-20261011/pass2/`, including
+`front/manki_ground.1_tick-0000.png` and `e-right/manki_ground.E_tick-0020.png`.
+Native Lab contact, shield and ground/air whiff runs all emitted ignition and
+exhaust at MatchTick 3 without diagnostics. At 1.2 m, Idle accepted one
+10-damage hit and Shield accepted a zero-damage block, both with nine ticks of
+hitstop; 10 m ground/air runs missed. Inspected frame-20 hit/shield captures
+retain the jet; air-whiff frame 45 shows it cleared after control returns.
+These captures are under `.ability-lab-cache/manki-cooler-20261011/post-restart/`.
+
+The earlier blue/yellow candidate was checked in live Training at **1920 × 1080**
+on **Splash Deck** and **After Hours**, including E ascent at elapsed tick **23**.
+Those captures are historical evidence under
+`.ability-lab-cache/manki-cooler-20261011/arena/`; the muted palette above
+supersedes that candidate.
+
+The visual check temporarily disabled domain reload after the normal Play Mode
+reload stalled. Exact Editor preferences were restored afterward; general Play
+Mode/script reload instability remains unresolved. Multiplayer verification is
+pending. The follow-up below extends the presentation pass to Q/R/F.
+
+## Gadget presentation follow-up — 2026-10-11
+
+All four specials use warm flame, embers and short soot smoke. Ground and air
+aliases share the same presentation assets. Gameplay parameters and animation
+bindings remain unchanged; only presentation cues, placement and assets change.
+
+| Move | Presentation |
+|------|--------------|
+| Q / Round Bomb | `MankiLitBomb.prefab` retains the existing bomb mesh and scale, adding a small ember glow, fuse sparks and short smoke at the fuse tip. Both the held prop and moving bomb use this owned prefab. Existing contact explosions remain. |
+| E / Jetpack Boost | Retains the downward jet, embers, smoke and separate ignition burst from the first pass. |
+| R / Bazooka | `MankiBazookaMuzzle.prefab` emits at the existing tick-6 rocket trigger, with flame, sparks and smoke at the imported barrel tip. `MankiBazookaRocket.prefab` has a compact fiery core and world-space smoke/embers. The launcher remains visible through the firing motion. |
+| F / Aerosol Inferno | `MankiAerosolInferno.prefab` now uses a fuller orange flame stream, embers and smoke. Flame billboards and an owned material without soft-particle fading retain visibility from the gameplay camera. Its cue starts at the can nozzle, at right-hand local position `(0, 0.14, 0.385)`, retaining the tick-18 trigger and 28-tick presentation duration. |
+
+`MankiWeaponAttachments.asset` is an owned copy of the existing attachment
+config. It preserves attachment positions and rotations, uses the lit bomb,
+and changes the bazooka's cosmetic hide threshold from 5 to 20 ticks.
+The shared projectile visual config changes only Manki's ground/air Q and R
+prefab references. No projectile motion or collision logic changes.
+
+R's new `presentation.manki.bazooka.muzzle` cue has an 18-tick upper bound.
+Both the muzzle and F stream use `AttackBoundPresentation`, so interruption,
+replacement or owner removal clears the attached effect. F's previous sample
+effect script and light are removed; the owned effects need no sample scripts,
+dynamic lights or physics components.
+
+Native cooking, package verification and roster refresh passed. Focused Shared
+coverage passed **10 tests**, including canonical source compilation, E behavior,
+R rocket-jump behavior and F contact behavior. Lab captures are under
+`.ability-lab-cache/manki-scrappy-20261011/`: `palette-front`, `palette-back`,
+`final-r`, `final-f` and `pass1-e`. Recorded 20-tick holds show the R muzzle
+at **MatchTick 27 / frame 26** and F at **MatchTick 39 / frame 38**, with
+no presentation diagnostics. Cooked pose bytes remain unchanged.
+Final F runs at 2.5 m accepted a 15-damage hit and a zero-damage shield block,
+both at MatchTick 39. Air F and air R whiffs emitted their matching cues without
+diagnostics. Frame-85 F captures show the stream cleared after the action.
+
+Live Training captures at **1920 × 1080** checked the muted outfit on Splash
+Deck and After Hours, Q's fuse before and after launch, R's muzzle and moving
+rocket, F's flame, and E ascent. The initial F side-view candidate was too faint
+from the gameplay camera; the final billboard/material revision is captured in
+`.ability-lab-cache/manki-scrappy-20261011/arena-final/f-inferno.png`.
+The held and thrown bomb each had live fuse sparks, glow and smoke; R had live
+muzzle particles, a rocket core and world-space smoke/embers. F had 30 flame
+particles at attack tick 28; E retained its exhaust at attack tick 23.
+
+Verification temporarily disabled domain reload and restored the original
+Editor preferences, Game View settings and clean Ability Lab scene. Saved
+source hashes matched across both Training checks, the Editor settings file
+was restored byte for byte, and the final console had no errors. These checks
+completed without a reload hang; the general reload problem remains unresolved.
+Verification receipts are in the planning workspace's
+`_bmad-output/manki-scrappy-polish-20261011/`.
+
+## Normal attack presentation — 2026-10-11
+
+Ground and air normals now use short cream/gold swing marks and world-space
+ribbons that follow the striking limb. Heavy attacks get a wider sweep; air
+1 accents both hands and air 2 has a smaller follow-through at its sour window.
+These are cosmetic cues at the existing hitbox triggers. Attack timings,
+collision, damage, movement, rig and cooked pose bytes remain unchanged.
+
+| Slot | Cue tick / attachment | Presentation |
+|------|-----------------------|--------------|
+| `ground.1` | 9 / right foot | Small sweep, matching the existing kick pose despite the Monkey Punch label |
+| `ground.2` | 9 / right hand | Compact strike |
+| `ground.3` | 9 / right foot | Kick sweep |
+| `ground.4` | 12 / both feet | Heavy right-foot sweep and smaller left-foot accent |
+| `air.1` | 7 / right hand; 18 / left hand | Two separate strike accents |
+| `air.2` | 8 and 14 / left foot | Sweep followed by a smaller accent |
+| `air.3` | 16 / right foot | High-kick sweep |
+| `air.4` | 23 / right hand | Heavy swing |
+
+The catalog owns `MankiNormalStrike.prefab`, `MankiNormalSweep.prefab` and
+`MankiHeavySwing.prefab`, backed by a feathered arc mesh and
+`MankiNormalSwing.mat`. Their `AttackBoundPresentation` marker clears attached
+effects on interruption, attack replacement or owner removal. Presentation
+windows are bounded to 8–14 ticks. Each prefab has two particle systems,
+with no lights, colliders or sample-effect scripts.
+
+All eight normals bind `presentation.manki.normal.hit` to the owned
+`MankiNormalHit.prefab`, a compact warm variant of FightGuy's impact burst.
+Shared confirmed-hit events place and scale it at contact. Whiffs emit only
+the swing cue; shield contacts retain the existing `combat.block` effect.
+The contact burst has its own lifetime and does not stay attached to a limb.
+
+Native cook, verification and roster admission passed. Six focused Shared
+tests passed: canonical compilation and five ground/air contact/recovery cases.
+Lab checked every normal's whiff cue, all four grounded hits at 0.8 m, and a
+shield block. Contact damage remains 4/7/7/14; hits occur at MatchTicks
+9/9/10/12 respectively. The block deals zero damage and emits no normal-hit
+burst. Presentation diagnostics and the final console are empty.
+
+Live Training at 1920 × 1080 checked ground and air accents on Splash Deck,
+then the grounded first normal on After Hours. That last run waits 30 input
+ticks for grounding before attacking; the initial immediate-spawn slot-1
+sample selected the air variant. Read-only runtime probes confirmed visible
+particle systems and distinct world-space ribbon positions. After recovery,
+the attached effects were gone. Lab captures cannot reconstruct moving ribbon
+paths from a single scrubbed pose; the live check covers that behavior.
+
+Captures are under `.ability-lab-cache/manki-normal-vfx-20261011/` in
+`final-*`, `contact-*`, `arena` and `arena-final`. Detailed receipts are in
+the planning workspace's `_bmad-output/manki-normal-vfx-20261011/`.
+Both live batches kept all 260 saved source fingerprints unchanged and restored
+Editor preferences byte for byte. The clean, stopped Ability Lab is left on
+`ground.4`, frame 13. General Play Mode reload instability remains unresolved;
+these cosmetic checks temporarily disabled domain reload and restored it.
 
 ## Animation Inventory
 

@@ -60,7 +60,7 @@ namespace SlopArena.Client.UI
             _returnButton.clicked += ReturnFromResults;
             // Page activation contract (issue #210): focus the page action and
             // give Escape the page's flow-specific back (return) action.
-            MenuNavigation.Configure(_context, _returnButton, ReturnFromResults);
+            MenuNavigation.Configure(_context, _returnButton, ReturnFromResults, _returnButton);
             RenderResults();
         }
 

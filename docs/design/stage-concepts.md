@@ -4,6 +4,8 @@
 **Scope:** static PVP stage concepts, gameplay readability, and presentation hierarchy
 **Implementation workflow:** [Stage authoring skill](../../.omp/skills/sloparena-stage-authoring/SKILL.md)
 
+**Current picker:** [Stage-select roster](stages/roster.md)
+
 ## Purpose
 
 A SlopArena stage must be gameplay-ready before it becomes elaborate. It should give fighters clear, authoritative space to move, fight, recover, and respawn, then use art to make that space feel specific rather than empty.
@@ -99,7 +101,7 @@ Use this order when forming a new concept:
 1. **Fight premise.** State what the main floor, props, and vertical routes make players decide during a match.
 2. **Gameplay shell.** Sketch the authoritative playable geometry and visual outline before detailed art. Mark every gameplay-significant prop and accessible surface.
 3. **Readability check.** View the shell from the gameplay camera. Confirm that fighters, routes, edges, platforms, and large props read without relying on background detail.
-4. **World framing.** Add only enough background to establish scale, location, and mood around the readable shell.
+4. **World framing.** Block out land/building volumes, depth layers, supporting foundations, and intentional gaps around the readable shell. Check the full orbit and low recovery views before choosing dressing; then add only props that explain the place. Build the place, then dress it — not asset-pack scenes connected by filler.
 5. **Stage brief.** Record the actual topology, traversability, spawn and boundary plan, visual concept, lighting intent, and any verticality exception in `docs/design/stages/<key>.md`.
 6. **Implementation and acceptance.** Follow the Stage authoring skill. Structural checks prove the source/baked/presentation relationship; external human PVP review at two and four players judges actual usability.
 
@@ -118,6 +120,27 @@ A beautiful scene view is not proof. The relevant view is the match camera with 
 | Readability | The tabletop, fighters, and gameplay props remain the clearest elements. Background furniture has quieter detail and contrast, and does not resemble an alternate playable route. |
 
 The concept succeeds when players immediately understand the tabletop fight, then notice that they are tiny in a child’s room.
+
+## Worked example: moored barge and coherent coastal background
+
+**Premise:** a fight on a moored working boat, with a tropical harbor around it. The accepted playable shell stays fixed; this example concerns background construction, not a new boat simulation or universal recovery rule.
+
+The initial failure was disconnected scenery joined by a flat sand sheet, judged from selected screenshots. The improved result came from giving the scenery geography and support, then placing props on that geometry. More assets were not the first step.
+
+| Layer | Geometry and space | Dressing role |
+| --- | --- | --- |
+| Playable foreground | Retain the accepted deck, closed hull, raised surfaces, spawns, and authoritative boundaries. | Retain accepted boat presentation; background work does not alter the shell. |
+| Immediate surroundings | Leave the fight/recovery corridor clear and preserve open water around the boat. | No cosmetic obstacle or apparently safe island in player-death space. |
+| Harbor coast | Connect the village, headland, and harbor with real land volume, sloping shores, grounded pads, and submerged foundations. | Houses occupy pads; pier modules meet the harbor edge; ships sit offshore. |
+| Separate low islands | Use irregular silhouettes and believable shore profiles, separated by water rather than forced sand bridges. | Sparse palms grounded on the actual island meshes. |
+| Outer bay | A distant rocky ridge, low islands, and small reefs vary height and spacing without closing every gap. | Quiet supporting silhouettes, not another equally loud hero landmark. |
+
+Grass, stone, and sand describe the same continuous landform rather than disguise joins between unrelated scenes. Give shores thickness below the waterline and maintain smooth material boundaries. Parent each island's dressing to its region so moving a region does not strand its props.
+
+Check geometry before detail, then repeat after surfacing and dressing: full intermediate-yaw sweep, low recovery views, numeric support/contact checks, actual background-triangle clearance, and preservation of accepted content. A top-down view or one attractive shot cannot prove a 360° scene works.
+
+The `splash_deck` session's actual textured Edit Mode captures demonstrated this presentation approach; [the stage record](stages/splash_deck.md) records the local orbit, grounding, clearance, and preservation evidence. This is not human in-match/PVP acceptance, a performance result, or a new topology/balance standard. Keep those gates separate.
+
 
 ## Learning loop
 

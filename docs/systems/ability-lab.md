@@ -5,6 +5,41 @@ packages. The shell owns selection, preview status, diagnostics, stage/tick cont
 SceneView guidance. Package authoring and cooking remain in `AbilityLabPackageWorkspace` and
 `CharacterPackageAuthoringService`.
 
+## VFX authoring
+
+1. Open the character package. In **Assets → Presentation Assets**, assign an
+   owned prefab to a presentation ID. Keep vendor source prefabs unchanged.
+2. In **Moves**, select a VFX timeline cue and edit its start tick, duration,
+   attachment bone, position, rotation and scale. Scrub or play the move to inspect
+   it; Scene View handles edit the selected cue's placement.
+3. Run **Scenario Controls** against an idle opponent, a shield and a distant
+   opponent to compare hits, blocks and whiffs. Use **Save + Cook** when ready to
+   persist the package.
+
+Missing VFX prefab bindings and attachment bones appear below the timeline.
+Native `sloparena.lab.inspect` also exposes `presentationDiagnostics` and
+`activeVfxCount` for the selected frame. A missing bone retains the existing
+event-position fallback and reports it explicitly.
+
+Recorded previews and match playback share the attached-effect lifetime rules:
+hitstop retains the remaining attack ticks; interruption, attack replacement and
+attack completion end attached effects. Scrubbing backward reconstructs the
+effect from recorded states. World contact bursts keep their independent lifetime.
+Particle animation continues with elapsed match time, as it does in matches;
+retaining an effect during hitstop does not freeze its particles.
+
+Preparing a valid in-memory preview keeps a saved, current package **Cooked**.
+The open workspace observes external cook and asset changes once per second
+without replacing its draft, Undo history, selected move or cursor. External
+source/binding changes produce a diagnostic and retain the current draft.
+Preview effects are transient and are cleared before reload; Lab animation
+graphs are released at compilation start and before reload, including the
+inactive dummy's graph and rigs placed in a scene.
+
+Regression check: **Tools → SlopArena → Tests → Ability Lab VFX Workflow**.
+It checks match/preview lifetime parity and draft-safe status refresh without
+saving or cooking character content.
+
 ## Agent-facing workspace commands
 
 Typed Unity Pipeline commands expose package open, Shared two-fighter scenarios,
@@ -12,26 +47,39 @@ recorded-frame preview, read-only inspect, and PNG capture without temporary C#.
 Use native commands first for gameplay setup and evidence; do not use `eval` to
 construct fighters or emulate gameplay.
 
+Use the [Unity CLI gateway](../contributing/unity-cli.md#pipeline-connection-and-shared-editor-leases),
+not raw `unity command`. Set `ORCA_TERMINAL_HANDLE` to your own runtime-issued
+handle first. Keep dependent open/run/inspect/preview/capture operations in one
+`--batch` so another lease cannot change the workspace between them.
+These Edit Mode examples intentionally leave the Lab open with the selected
+package; add any task-required restoration to `restore` before invoking them.
+
+`inspect` returns the current `rigInstanceId`. Hidden preview rigs cannot reliably
+be resolved by hierarchy path; if a typed transform command is needed, use
+`--target instanceId:<rigInstanceId>` from the current inspection. Do not reuse
+an instance ID across rig recreation or reload.
+
+Save this batch as `/tmp/ability-lab-scenarios.json`. It observes a close idle
+opponent, a shield, a distant miss, and a Shared grab; outcomes are not forced:
+
+```json
+{
+  "commands": [
+    ["sloparena.lab.open", "--target", "fightguy"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "1.2", "--opponent", "idle"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "1.2", "--opponent", "shield"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "12", "--opponent", "idle"],
+    ["sloparena.lab.run", "--action", "grab", "--ticks", "60", "--distance", "0.7", "--opponent", "idle"],
+    ["sloparena.lab.inspect"]
+  ],
+  "restore": []
+}
+```
+
 ```bash
-unity command --project-path client/Unity \
-  sloparena.lab.open --target fightguy --format json
-# Normal hit: close idle opponent; outcome is determined by Shared simulation.
-unity command --project-path client/Unity \
-  sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 \
-  --opponent idle --format json
-# Shield block, then a distant miss (no contact is a successful run).
-unity command --project-path client/Unity \
-  sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 \
-  --opponent shield --format json
-unity command --project-path client/Unity \
-  sloparena.lab.run --action ground.1 --ticks 60 --distance 12 \
-  --opponent idle --format json
-# Shared grab against a nearby idle opponent.
-unity command --project-path client/Unity \
-  sloparena.lab.run --action grab --ticks 60 --distance 0.7 \
-  --opponent idle --format json
-unity command --project-path client/Unity \
-  sloparena.lab.inspect --format json
+bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
+  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+  --batch /tmp/ability-lab-scenarios.json
 ```
 
 The UI presents both fighters and scenario controls; native `run` options are
@@ -48,14 +96,25 @@ run and options when the action matches; it does not substitute defaults.
 Without a matching run, grab preview/capture creates a default grab scenario,
 not a copy of another action's options/horizon; canonical actions retain
 ordinary authoring preview. Run explicitly first to choose opponent settings.
-Capture frames into the ignored cache:
+Capture frames into the ignored cache. Save this complete sequence as
+`/tmp/ability-lab-grab-capture.json`; choose a fresh output directory for each run:
+
+```json
+{
+  "commands": [
+    ["sloparena.lab.open", "--target", "fightguy"],
+    ["sloparena.lab.run", "--action", "grab", "--ticks", "60", "--distance", "0.7", "--opponent", "idle"],
+    ["sloparena.lab.preview", "--action", "grab", "--tick", "7"],
+    ["sloparena.lab.capture", "--action", "grab", "--ticks", "7,19", "--output", ".ability-lab-cache/fightguy/grab"]
+  ],
+  "restore": []
+}
+```
 
 ```bash
-unity command --project-path client/Unity \
-  sloparena.lab.preview --action grab --tick 7 --format json
-unity command --project-path client/Unity \
-  sloparena.lab.capture --action grab --ticks 7,19 \
-  --output .ability-lab-cache/fightguy/grab --format json
+bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
+  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+  --batch /tmp/ability-lab-grab-capture.json
 ```
 
 Scenario frame indexes are zero-based: frame 0 contains the first input at
@@ -275,15 +334,17 @@ Inspect is read-only and reports source status, canonical slots, hashes, stale r
 structured diagnostics:
 
 ```bash
-unity command --project-path client/Unity \
-  sloparena.character.inspect --target <package> --format json
+bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
+  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+  -- sloparena.character.inspect --target fightguy
 ```
 
 Cook publishes only a validated package:
 
 ```bash
-unity command --project-path client/Unity \
-  sloparena.character.cook --target <package> --format json
+bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
+  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+  -- sloparena.character.cook --target fightguy
 ```
 
 Failed cooks do not replace last-valid artifacts or persisted cook status. Compatibility is

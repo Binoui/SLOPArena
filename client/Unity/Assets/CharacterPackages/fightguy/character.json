@@ -54,7 +54,7 @@
   "hurtboxRadius": 1,
   "shieldRadius": 1.05,
   "captureGeometry": {
-    "reach": 0.76,
+    "reach": 1.8,
     "width": 0.68,
     "height": 1.15,
     "offsetY": 0.57,
@@ -178,7 +178,15 @@
   ],
   "attachmentBoneIds": [],
   "presentationIds": [
-    "presentation.fightguy.ki-shot.hit"
+    "presentation.fightguy.ki-shot.release",
+    "presentation.fightguy.rising-dragon.fist",
+    "presentation.fightguy.cyclone-kick.spiral",
+    "presentation.fightguy.fist-of-fury.wrap",
+    "presentation.fightguy.empowered.hit",
+    "presentation.fightguy.power-aura",
+    "presentation.fightguy.normal.strike",
+    "presentation.fightguy.normal.sweep",
+    "presentation.fightguy.normal.heavy"
   ],
   "capabilityRequirements": [
     {
@@ -187,6 +195,10 @@
     },
     {
       "capabilityId": "slop.internal.fightguy.cyclone-kick.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.charged-projectile.v1",
       "capabilityVersion": "1"
     }
   ],
@@ -199,6 +211,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -257,6 +270,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.21,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.75,
+                  "localScaleY": 0.75,
+                  "localScaleZ": 0.75,
+                  "durationTicks": 8
+                }
               }
             ]
           }
@@ -271,6 +304,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -355,6 +389,46 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.strike",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.1,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 18,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.strike",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.1,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1.1,
+                  "localScaleY": 1.1,
+                  "localScaleZ": 1.1,
+                  "durationTicks": 8
+                }
               }
             ]
           }
@@ -369,6 +443,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -427,6 +502,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 6,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.strike",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.1,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 8
+                }
               }
             ]
           }
@@ -441,6 +536,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -525,6 +621,46 @@
                   "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.6,
+                  "localScaleY": 0.6,
+                  "localScaleZ": 0.6,
+                  "durationTicks": 8
+                }
               }
             ]
           }
@@ -539,6 +675,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -597,6 +734,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 9
+                }
               }
             ]
           }
@@ -611,6 +768,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -669,6 +827,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 16,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.14,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1.05,
+                  "localScaleY": 1.05,
+                  "localScaleZ": 1.05,
+                  "durationTicks": 9
+                }
               }
             ]
           }
@@ -683,6 +861,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -741,6 +920,46 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.25,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 10
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.25,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.6,
+                  "localScaleY": 0.6,
+                  "localScaleZ": 0.6,
+                  "durationTicks": 10
+                }
               }
             ]
           }
@@ -755,6 +974,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -813,6 +1033,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 23,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.normal.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 10
+                }
               }
             ]
           }
@@ -822,12 +1062,12 @@
     {
       "id": "ground.A",
       "name": "Ki Shot",
-      "description": "After startup, fire a ki projectile toward the current target.",
+      "description": "Hold to charge three tiers of ki; release a larger, slower projectile toward the current target.",
       "iconId": "icon.a",
-      "behavior": "aimedProjectile",
+      "behavior": "chargeAttack",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "hitPresentationId": "presentation.fightguy.ki-shot.hit",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 120,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -850,29 +1090,60 @@
             ],
             "operations": [
               {
-                "kind": "spawnProjectile",
-                "tick": 8,
-                "unit": "meters",
-                "projectile": {
-                  "launchOffsetX": 0,
-                  "launchOffsetY": 1.2,
-                  "launchOffsetZ": 0,
-                  "speed": 25,
-                  "gravity": 1,
-                  "radius": 0.5,
-                  "damage": 6,
-                  "angle": 30,
-                  "baseKnockback": 3,
-                  "knockbackGrowth": 4.5,
-                  "stunTicks": 12,
-                  "maxFlightTicks": 90,
-                  "yawOffsetDegrees": 0
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.charged-projectile.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "maxChargeTicks": 60,
+                  "tier2Ticks": 20,
+                  "tier3Ticks": 45,
+                  "fireTriggerTick": 8,
+                  "tier2Radius": 0.75,
+                  "tier3Radius": 1.0,
+                  "projectile": {
+                    "launchOffsetX": 0,
+                    "launchOffsetY": 1.2,
+                    "launchOffsetZ": 0,
+                    "speed": 20,
+                    "gravity": 1,
+                    "radius": 0.5,
+                    "damage": 6,
+                    "angle": 30,
+                    "baseKnockback": 3,
+                    "knockbackGrowth": 4.5,
+                    "stunTicks": 12,
+                    "maxFlightTicks": 112,
+                    "yawOffsetDegrees": 0
+                  }
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 4,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.ki-shot.release",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 1.89,
+                  "localRotationY": 318.2,
+                  "localRotationZ": 71.8,
+                  "localScaleX": 0.25,
+                  "localScaleY": 0.25,
+                  "localScaleZ": 0.25,
+                  "durationTicks": 18
                 }
               }
             ]
           }
         ]
-      }
+      },
+      "aimAnimationId": "anim.ki-shot-loop"
     },
     {
       "id": "ground.E",
@@ -882,6 +1153,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 240,
       "isRecoveryMove": true,
       "preserveMomentumOnStart": false,
@@ -992,6 +1264,46 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 6,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.rising-dragon.fist",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 25
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.power-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": -0.3,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.85,
+                  "localScaleY": 0.85,
+                  "localScaleZ": 0.85,
+                  "durationTicks": 20
+                }
               }
             ]
           }
@@ -1006,6 +1318,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 240,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -1061,6 +1374,26 @@
                   "bodyY": 0.8,
                   "sideY": 0.3
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 6,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.cyclone-kick.spiral",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": -0.15,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 42
+                }
               }
             ]
           }
@@ -1075,6 +1408,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 720,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -1096,6 +1430,26 @@
               "anim.fist-of-fury"
             ],
             "operations": [
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.power-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.7,
+                  "localScaleY": 0.7,
+                  "localScaleZ": 0.7,
+                  "durationTicks": 100
+                }
+              },
               {
                 "kind": "startupAimCorrection",
                 "tick": 0,
@@ -1136,6 +1490,26 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 10,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 5
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 20,
                 "unit": "meters",
@@ -1160,6 +1534,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "towardOwner",
                   "fixedHitstunTicks": 80
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 20,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 5
                 }
               },
               {
@@ -1190,6 +1584,26 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 28,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 5
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 36,
                 "unit": "meters",
@@ -1214,6 +1628,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "towardOwner",
                   "fixedHitstunTicks": 64
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 36,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 5
                 }
               },
               {
@@ -1244,6 +1678,26 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 44,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 4
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 52,
                 "unit": "meters",
@@ -1268,6 +1722,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "towardOwner",
                   "fixedHitstunTicks": 48
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 52,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 4
                 }
               },
               {
@@ -1297,6 +1771,26 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 88,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1.65,
+                  "localScaleY": 1.65,
+                  "localScaleZ": 1.65,
+                  "durationTicks": 12
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 60,
                 "unit": "meters",
@@ -1321,6 +1815,26 @@
                   "hitGroup": 0,
                   "knockbackDirection": "towardOwner",
                   "fixedHitstunTicks": 40
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 60,
+                "unit": "ticks",
+                "presentationId": "presentation.fightguy.fist-of-fury.wrap",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 11
                 }
               }
             ]

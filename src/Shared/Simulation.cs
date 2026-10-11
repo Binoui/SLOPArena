@@ -59,14 +59,18 @@ namespace SlopArena.Shared
         /// </summary>
         private const float KnockbackMinGravity = 2.0f;
 
-        // ADR-0019 §6 post-hitstun flight law (InPostHitstunFlight):
-        // flight gravity 14 m/s² (raised from 8 in the 2026-08-14 feel pass — launches
-        // dropped too slowly, felt floaty) + linear horizontal friction 10 m/s², applied
-        // while the victim is airborne from a launch until landing or any action.
+        /// <summary>Brief upward launch grace, independent of the action lock. Hitstop
+        /// does not advance AirTimeTicks; downward and flat sends receive gravity immediately.</summary>
+        public const ushort KnockbackPopTicks = 4;
+
+        // Launch gravity applies after KnockbackPopTicks, including during hitstun.
+        // Flight gravity 14 m/s² + horizontal friction 6 m/s². Gentler braking retains
+        // outward travel with the shorter arcs produced by gravity during hitstun.
+        // Horizontal friction applies after hitstun until landing or an accepted action.
         // Hardcoded, not MovementStats — the balance pass can promote them. Public so
         // tools/MoveDataReport prints the live values.
         public const float FlightGravity = 14f;
-        public const float FlightFriction = 10f;
+        public const float FlightFriction = 6f;
 
         // ADR-0019 balance pass (2026-08-17, melee-shape adoption): velocity-only scale on
         // the damage/weight formula. Hitstun is computed from the UNSCALED magnitude so combo
@@ -186,6 +190,7 @@ namespace SlopArena.Shared
             var stats = def.Movement;
             bool wasGrounded = s.IsGrounded;   // airborne→grounded detection for the Rush reset
             bool blockStunLocked = s.BlockStunTicks > 0;
+            bool slotInputBlocked = s.LandingLagTicks > 0 || IsDefenseActionState(s.State);
 
             if (verticalMotionOwned)
                 ClearMovementInterruptionFlags(ref s);
@@ -448,28 +453,6 @@ namespace SlopArena.Shared
 
 
 
-            // 5.5 Consume buffered input (any lock just expired)
-            if (s.BufferedSlot > 0 && s.AnimLockTicks == 0 && s.HitstunTicks == 0 &&
-                s.LandingLagTicks == 0 &&
-                (s.State == ActionState.Idle || s.State == ActionState.Run
-                    || s.State == ActionState.Crouching || s.State == ActionState.Sliding)
-                && !input.Jump && !input.ShieldHeld && !input.GrabPressed)
-            {
-                byte slot = s.BufferedSlot;
-                // Drop a buffered slot unavailable in the current cooked air/ground state.
-                if (def.GetCookedSlotAbility(slot, !s.IsGrounded) == null)
-                {
-                    s.BufferedSlot = 0;
-                }
-                else
-                {
-                    s.BufferedSlot = 0;
-                    // Ability activation handled by ServerSimulation.Tick pre-sim phase
-                    s.CrouchSettled = false;
-                    s.State = ActionState.Attacking;
-                    s.AttackSlot = slot;
-                }
-            }
             if (input.GrabPressed && s.IsGrounded
                 && s.VX * s.VX + s.VZ * s.VZ <= 0.0025f
                 && CanAcceptDefenseAction(in s, def, blockStunLocked, verticalMotionOwned))
@@ -556,52 +539,27 @@ namespace SlopArena.Shared
                 }
             }
 
-            // Ability activation admits ordinary grounded low states alongside Idle/Run.
-            // Universal airborne Dash is gone; package-owned mobility remains a slot ability.
-            if (s.LandingLagTicks == 0 && (s.AnimLockTicks == 0 || IsIasaUnlocked(s, def))
-                && s.State != ActionState.Hitstun && s.State != ActionState.JumpSquat
-                && s.State != ActionState.Aiming && s.State != ActionState.LedgeHang
-                && !blockStunLocked && !IsDefenseActionState(s.State))
+            // Only ServerSimulation activates abilities. A press made eligible by this
+            // tick's takeoff/timers stays buffered until its next pre-simulation admission.
+            // Landing-lag and defense commitment presses are dropped, including expiry.
+            if (!slotInputBlocked && !blockStunLocked && !movementActionAccepted
+                && input.ActiveSlot > 0 && s.LandingLagTicks == 0 && s.BufferedSlot == 0)
             {
-                if (input.ActiveSlot > 0 && (s.State == ActionState.Idle || s.State == ActionState.Run
-                    || s.State == ActionState.Crouching || s.State == ActionState.Sliding))
-                {
-                    ushort cd = s.GetCooldown(input.ActiveSlot);
-                    if (cd == 0)
-                    {
-                        s.CrouchSettled = false;
-                        s.State = ActionState.Attacking;
-                        s.AttackSlot = input.ActiveSlot;
-                        s.StateTicks = 0;
-                    }
-                }
-            }
-
-            // Buffer input if locked within window
-            // NOTE: Combo buffering is now handled by ServerAbility.Tick lifecycle
-            // Only general input buffering (unlock window) is kept for client prediction.
-            // Landing lag never buffers (issue #125): the lock is a hard no-input window —
-            // a press inside it is dropped, like Melee, not queued for unlock.
-            if (!blockStunLocked && input.ActiveSlot > 0 && s.LandingLagTicks == 0
-                && (s.AnimLockTicks > 0 || s.HitstunTicks > 0
-                    || s.State == ActionState.JumpSquat) && s.BufferedSlot == 0)
-            {
-                // General buffer: within window of unlock
-                if (s.State == ActionState.JumpSquat ||
-                    (s.AnimLockTicks > 0 && s.AnimLockTicks <= InputBufferWindow) ||
-                    (s.HitstunTicks > 0 && s.HitstunTicks <= InputBufferWindow))
-                {
-                    // No cooldown check here — ServerSimulation handles ability activation validation
+                bool readyAfterTimers = s.AnimLockTicks == 0 && s.HitstunTicks == 0
+                    && s.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding)
+                    && s.GetCooldown(input.ActiveSlot) == 0;
+                if (readyAfterTimers || s.State == ActionState.JumpSquat
+                    || (s.AnimLockTicks > 0 && s.AnimLockTicks <= InputBufferWindow)
+                    || (s.HitstunTicks > 0 && s.HitstunTicks <= InputBufferWindow))
                     s.BufferedSlot = input.ActiveSlot;
-                }
             }
 
-            // 7. ProcessNormalMovement (idle, grounded low states + aiming — attacks handle
-            // velocity via LungeForce. Aiming keeps walk/run unlocked for repositioning.)
-            // Fixed-policy aim holds process no inputs: momentum bleeds via friction, but the
-            // player cannot steer, dash, or jump. Mobile-policy aim keeps normal movement control.
+            // 7. Fixed aim holds stop horizontal movement, including incoming air momentum.
+            // Mobile-policy holds retain normal movement control. Attacks own their travel.
             bool fixedAim = s.State == ActionState.Aiming && s.AttackSlot > 0
                 && def.GetAimMovementMode(s.AttackSlot, !s.IsGrounded) == AimMovementMode.Fixed;
+            if (fixedAim)
+                s.VX = s.VZ = 0f;
             // Landing lag (issue #125): "no input, no movement" — the stick cannot steer
             // during the lock, even once the aerial has ended and the state is Idle.
             if (!blockStunLocked && s.LandingLagTicks == 0
@@ -654,7 +612,7 @@ namespace SlopArena.Shared
                 s.InPostHitstunFlight = false;
             }
 
-            // 8. Gravity (skip during hitstun — ProcessHitstun handles KVY decay;
+            // 8. Gravity (skip during hitstun — ProcessHitstun handles launch gravity;
             // skip during LedgeHang — a hang is a hang, no gravity, else the character
             // slides down through the FindLedge tolerance window and falls off on its own)
             if (s.State != ActionState.Hitstun && s.State != ActionState.LedgeHang)
@@ -958,12 +916,20 @@ namespace SlopArena.Shared
         private static void ProcessHitstun(ref CharacterState s, InputState input,
             ArenaDefinition arena, CharacterDefinition def)
         {
-            // ADR-0019: constant knockback velocity during hitstun. Position is NOT
-            // integrated here — the caller falls through to the generic position update.
+            // The lock preserves horizontal impulse, but never suspends gravity for its
+            // entire duration. Position is integrated by the caller's collision pass.
             s.VX = s.KVX;
             s.VY = s.KVY;
             s.VZ = s.KVZ;
             if (s.VY > 0f) s.IsGrounded = false;
+
+            // On the expiry tick the transfer below hands gravity to ApplyGravity.
+            // Advance once per tick, including locks shorter than the pop window.
+            if (s.HitstunTicks > 0 && !s.IsGrounded)
+            {
+                ApplyLaunchGravity(ref s.KVY, ref s.AirTimeTicks, def.Movement.MaxFallSpeed);
+                s.VY = s.KVY;
+            }
 
             if (input.MoveX != 0f || input.MoveY != 0f)
             {
@@ -1359,11 +1325,9 @@ namespace SlopArena.Shared
 
         private static void ProcessKnockback(ref CharacterState s, ArenaDefinition arena, CharacterDefinition def)
         {
-            // ADR-0019 post-hitstun flight: linear horizontal friction only;
-            // knockback vertical velocity is preserved while flight gravity
-            // affects the integrated vertical velocity.
+            // Lock-free launches use the same pop/gravity law and vector braking.
             float horizontal = MathF.Sqrt(s.KVX * s.KVX + s.KVZ * s.KVZ);
-            float retained = MathF.Max(0f, horizontal - 10f * TickDt);
+            float retained = MathF.Max(0f, horizontal - FlightFriction * TickDt);
             if (horizontal > 0.0001f)
             {
                 float scale = retained / horizontal;
@@ -1372,7 +1336,7 @@ namespace SlopArena.Shared
             }
 
             if (!s.IsGrounded)
-                s.KVY -= 8f * TickDt;
+                ApplyLaunchGravity(ref s.KVY, ref s.AirTimeTicks, def.Movement.MaxFallSpeed);
             s.VX = s.KVX;
             s.VY = s.KVY;
             s.VZ = s.KVZ;
@@ -1830,10 +1794,18 @@ namespace SlopArena.Shared
             }
             else
             {
-                // ADR-0019 §6: post-hitstun flight uses the sharper 10 m/s² azimuth friction.
-                float friction = (s.InPostHitstunFlight ? FlightFriction : stats.AirFriction) * TickDt;
-                s.VX = MoveToward(s.VX, 0f, friction);
-                s.VZ = MoveToward(s.VZ, 0f, friction);
+                if (s.InPostHitstunFlight)
+                {
+                    // Brake the vector, not each axis: diagonal sends retain the same
+                    // distance and heading as axis-aligned sends of equal strength.
+                    DecayHorizontalSpeed(ref s, FlightFriction * TickDt);
+                }
+                else
+                {
+                    float friction = stats.AirFriction * TickDt;
+                    s.VX = MoveToward(s.VX, 0f, friction);
+                    s.VZ = MoveToward(s.VZ, 0f, friction);
+                }
             }
             ApplyVelocityDeadZone(ref s);
 
@@ -2079,10 +2051,27 @@ namespace SlopArena.Shared
 
         // ── GRAVITY ──
         
+        private static void ApplyLaunchGravity(ref float verticalVelocity, ref ushort airTimeTicks,
+            float maxFallSpeed)
+        {
+            if (airTimeTicks < ushort.MaxValue) airTimeTicks++;
+            if (airTimeTicks <= KnockbackPopTicks && verticalVelocity > 0f) return;
+
+            // Gravity accelerates a fall; it must not slow an already stronger spike.
+            float fallLimit = MathF.Min(verticalVelocity, -maxFallSpeed);
+            verticalVelocity = MathF.Max(verticalVelocity - FlightGravity * TickDt, fallLimit);
+        }
+
         private static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier)
         {
             if (!s.IsGrounded)
             {
+                if (s.InPostHitstunFlight && !s.IsFastFalling)
+                {
+                    ApplyLaunchGravity(ref s.VY, ref s.AirTimeTicks, stats.MaxFallSpeed);
+                    return;
+                }
+
                 if (s.AirTimeTicks < ushort.MaxValue)
                     s.AirTimeTicks++;
 
@@ -2092,11 +2081,9 @@ namespace SlopArena.Shared
                     return;
                 }
 
-                float gravity = s.InPostHitstunFlight
-                    ? FlightGravity
-                    : (s.AirTimeTicks < stats.FloatWindowTicks)
-                        ? stats.AirFloatGravity
-                        : stats.Gravity;
+                float gravity = (s.AirTimeTicks < stats.FloatWindowTicks)
+                    ? stats.AirFloatGravity
+                    : stats.Gravity;
 
                 s.VY -= gravity * gravityMultiplier * TickDt;
 

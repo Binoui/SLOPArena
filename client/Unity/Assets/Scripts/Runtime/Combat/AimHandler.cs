@@ -186,6 +186,8 @@ namespace SlopArena.Client.Combat
             }
 
             AimMode aimMode = spec?.AimMode ?? AimMode.None;
+            bool locksMovement = spec?.AimMovement == AimMovementMode.Fixed;
+            Vector2 aimStick = inputController.GetAimStick(locksMovement);
 
             // ── 2. Drive camera mode (transitions only) ──
             CameraMode desired = aimMode switch
@@ -272,8 +274,11 @@ namespace SlopArena.Client.Combat
 
             if (aimMode == AimMode.GroundCursor)
             {
-                var (yawRad, distCm, aimTarget) = ComputeGroundCursorAim();
+                var (yawRad, distCm, aimTarget) = ComputeGroundCursorAim(aimStick);
+                _lastAimYawRad = yawRad ?? _lastAimYawRad;
+                _lastAimPitchRad = 0f;
                 _lastAimDistanceCm = distCm ?? 0;
+                _lastAimingSlot = _aimingSlot;
                 ctx = new AimContext
                 {
                     IsAiming      = true,
@@ -300,13 +305,16 @@ namespace SlopArena.Client.Combat
                 // Screen-space aim: the direction follows the mouse like a hidden cursor
                 // anchored at the character's screen position. Horizontal AND vertical mouse
                 // movement rotate it naturally (1:1 on screen), instead of a yaw-only delta.
-                Vector2 delta = HumanInputActions.MouseLook.ReadValue<Vector2>()
-                    + HumanInputActions.StickLook.ReadValue<Vector2>() * (600f * Time.deltaTime);
+                Vector2 delta = HumanInputActions.MouseLook.ReadValue<Vector2>();
                 var cameraSettings = ClientSettingsService.Instance;
                 delta *= cameraSettings.CameraInputGain;
                 if (cameraSettings.InvertCameraHorizontal) delta.x = -delta.x;
                 if (cameraSettings.InvertCameraVertical) delta.y = -delta.y;
                 _aimScreenOffset += delta;
+                // Stick direction selects the ground direction immediately. Keeping the
+                // last offset on neutral preserves the chosen aim through release.
+                if (aimStick.sqrMagnitude > 0.01f)
+                    _aimScreenOffset = aimStick.normalized * (AimScreenDeadZone * 2f);
                 _aimScreenOffset = Vector2.ClampMagnitude(_aimScreenOffset, AimScreenMaxOffset);
                 if (_aimScreenOffset.sqrMagnitude > AimScreenDeadZone * AimScreenDeadZone)
                 {
@@ -363,7 +371,7 @@ namespace SlopArena.Client.Combat
                 if (aimMode == AimMode.CameraForward3D && _aimCameraMount != null)
                 {
                     Vector2 delta = HumanInputActions.MouseLook.ReadValue<Vector2>()
-                        + HumanInputActions.StickLook.ReadValue<Vector2>() * (600f * Time.deltaTime);
+                        + aimStick * (600f * Time.deltaTime);
                     var cameraSettings = ClientSettingsService.Instance;
                     if (cameraSettings.InvertCameraHorizontal) delta.x = -delta.x;
                     if (cameraSettings.InvertCameraVertical) delta.y = -delta.y;
@@ -404,6 +412,7 @@ namespace SlopArena.Client.Combat
             }
 
             ShowCrosshair = aimMode is AimMode.GroundCursor or AimMode.CameraForward3D;
+            ctx.LocksMovement = ctx.IsAiming && locksMovement;
             return ctx;
         }
 
@@ -412,7 +421,7 @@ namespace SlopArena.Client.Combat
         /// window, return yaw + distance in cm. Replaces the old AimIndicator.UpdateAim
         /// raycast — identical numerics; the view is no longer in the input path.
         /// </summary>
-        private (float? yawRad, ushort? distCm, Vector3? aimTarget) ComputeGroundCursorAim()
+        private (float? yawRad, ushort? distCm, Vector3? aimTarget) ComputeGroundCursorAim(Vector2 stick)
         {
             if (_characterTransform == null) return (null, null, null);
 
@@ -425,7 +434,6 @@ namespace SlopArena.Client.Combat
             }
 
             var mouse = Mouse.current;
-            Vector2 stick = HumanInputActions.StickLook.ReadValue<Vector2>();
             if (stick.sqrMagnitude > 0.01f)
             {
                 if (!_controllerCursorActive && mouse != null)

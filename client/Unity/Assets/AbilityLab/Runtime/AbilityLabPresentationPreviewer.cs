@@ -14,10 +14,12 @@ public sealed class AbilityLabPresentationPreviewer
     private readonly Dictionary<PresentationEventKey, GameObject> _instances = new();
     private readonly List<Animator> _animators = new();
     private readonly List<ParticleSystem> _particleSystems = new();
+    private readonly List<string> _diagnostics = new();
     private CharacterAssetCatalog.PresentationBinding[] _bindings = Array.Empty<CharacterAssetCatalog.PresentationBinding>();
     private CharacterStageSource _stage;
     public int ActiveInstanceCount => _instances.Count;
     public IReadOnlyCollection<GameObject> ActiveInstances => _instances.Values;
+    public IReadOnlyList<string> Diagnostics => _diagnostics;
     public void SetBindings(CharacterAssetCatalog.PresentationBinding[] bindings)
     {
         var next = bindings ?? Array.Empty<CharacterAssetCatalog.PresentationBinding>();
@@ -34,6 +36,7 @@ public sealed class AbilityLabPresentationPreviewer
         PlayerRenderer renderer = null)
     {
         SetBindings(bindings);
+        _diagnostics.Clear();
         if (stage == null || origin == null)
         {
             Clear();
@@ -59,7 +62,7 @@ public sealed class AbilityLabPresentationPreviewer
             active.Add(key);
             if (!_instances.TryGetValue(key, out var instance))
             {
-                var binding = FindBinding(operation.PresentationId);
+                var binding = ResolveBinding(operation.PresentationId, operation.Placement, renderer);
                 if (binding?.Prefab == null) continue;
                 instance = PresentationPlacementResolver.Instantiate(
                     binding,
@@ -69,6 +72,11 @@ public sealed class AbilityLabPresentationPreviewer
                     origin.position,
                     origin.rotation);
                 if (instance == null) continue;
+                instance.hideFlags = HideFlags.HideAndDontSave;
+                // Keep world-space effects in the preview hierarchy so Lab captures
+                // include them. The arena root stays fixed while the actor moves.
+                if (instance.transform.parent == null)
+                    instance.transform.SetParent(origin.parent ?? origin, true);
                 _instances[key] = instance;
             }
             EvaluateInstance(instance, (tick - operation.Tick) / AbilityLab.TickRate);
@@ -81,24 +89,30 @@ public sealed class AbilityLabPresentationPreviewer
         uint currentTick,
         CharacterAssetCatalog.PresentationBinding[] bindings,
         PlayerRenderer renderer,
-        Transform origin)
+        Transform origin,
+        IReadOnlyList<CharacterState> stateHistory,
+        uint firstMatchTick = 1)
     {
         SetBindings(bindings);
+        _diagnostics.Clear();
         _stage = null;
         var active = new HashSet<PresentationEventKey>();
         foreach (var presentationEvent in events ?? Array.Empty<TimelinePresentationEvent>())
         {
-            int lifetime = TimelinePresentationDispatcher.LifetimeTicks(presentationEvent);
             if (currentTick < presentationEvent.MatchTick ||
-                currentTick >= presentationEvent.MatchTick + (uint)lifetime)
-                continue;
+                presentationEvent.Source == PresentationEventSource.BlockContact) continue;
+            var binding = ResolveBinding(presentationEvent.PresentationId, presentationEvent.Placement, renderer);
+            if (binding?.Prefab == null) continue;
+            bool attackBound = presentationEvent.Source == PresentationEventSource.Timeline
+                && presentationEvent.Placement?.AttachmentMode == AuthoringPresentationAttachmentMode.Bone
+                && binding.Prefab.GetComponent<AttackBoundPresentation>() != null;
+            if (attackBound && (renderer == null || !renderer.isActiveAndEnabled)) continue;
+            if (!IsAlive(presentationEvent, currentTick, attackBound, stateHistory, firstMatchTick)) continue;
 
             PresentationEventKey key = presentationEvent.Key;
             active.Add(key);
             if (!_instances.TryGetValue(key, out var instance))
             {
-                var binding = FindBinding(presentationEvent.PresentationId);
-                if (binding?.Prefab == null) continue;
                 instance = PresentationPlacementResolver.Instantiate(
                     binding,
                     presentationEvent.Placement,
@@ -107,6 +121,9 @@ public sealed class AbilityLabPresentationPreviewer
                     new Vector3(presentationEvent.WorldX, presentationEvent.WorldY, presentationEvent.WorldZ),
                     Quaternion.Euler(0f, presentationEvent.WorldYaw * Mathf.Rad2Deg, 0f));
                 if (instance == null) continue;
+                instance.hideFlags = HideFlags.HideAndDontSave;
+                if (instance.transform.parent == null)
+                    instance.transform.SetParent(origin.parent ?? origin, true);
                 _instances[key] = instance;
             }
             EvaluateInstance(instance, (currentTick - presentationEvent.MatchTick) / (float)AbilityLab.TickRate);
@@ -119,6 +136,47 @@ public sealed class AbilityLabPresentationPreviewer
     {
         ClearInstances();
         _stage = null;
+        _diagnostics.Clear();
+    }
+
+    private static bool IsAlive(TimelinePresentationEvent presentationEvent, uint currentTick,
+        bool attackBound, IReadOnlyList<CharacterState> history, uint firstMatchTick)
+    {
+        int duration = TimelinePresentationDispatcher.LifetimeTicks(presentationEvent);
+        if (!attackBound) return currentTick - presentationEvent.MatchTick < duration;
+        if (history == null || presentationEvent.MatchTick < firstMatchTick || currentTick < firstMatchTick)
+            return false;
+        int start = (int)(presentationEvent.MatchTick - firstMatchTick);
+        int end = (int)(currentTick - firstMatchTick);
+        if (start >= history.Count || end >= history.Count) return false;
+        var initial = history[start];
+        if (!PresentationLifetime.IsCurrentAttack(initial.State, initial.AttackSequence, presentationEvent.AttackSequence))
+            return false;
+        var lifetime = new PresentationLifetime(duration, true, presentationEvent.AttackSequence, initial.AttackElapsedTicks);
+        for (int index = start + 1; index <= end; index++)
+        {
+            var state = history[index];
+            if (!lifetime.Advance(state.EntityId == presentationEvent.EntityId, state.State,
+                    state.AttackSequence, state.AttackElapsedTicks)) return false;
+        }
+        return true;
+    }
+
+    private CharacterAssetCatalog.PresentationBinding ResolveBinding(string id, PresentationPlacement placement,
+        PlayerRenderer renderer)
+    {
+        var binding = FindBinding(id);
+        if (binding?.Prefab == null)
+            AddDiagnostic($"Missing VFX prefab binding: {id}. Assign it in Assets → Presentation Assets.");
+        else if (placement?.AttachmentMode == AuthoringPresentationAttachmentMode.Bone
+            && renderer?.ResolvePresentationBone(placement.BoneId) == null)
+            AddDiagnostic($"VFX {id}: bone {placement.BoneId} is missing; preview uses the event position.");
+        return binding;
+    }
+
+    private void AddDiagnostic(string message)
+    {
+        if (!_diagnostics.Contains(message)) _diagnostics.Add(message);
     }
 
     private void EvaluateInstance(GameObject instance, float elapsedSeconds)

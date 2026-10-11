@@ -51,6 +51,41 @@ public sealed class CharacterPackageCompilerTests
         Assert.Equal(result.CookedPackage.CanonicalBytes, second.CookedPackage!.CanonicalBytes);
     }
 
+    [Theory]
+    [InlineData("tier2Ticks", 0)]
+    [InlineData("tier2Ticks", 45)]
+    [InlineData("tier3Ticks", 61)]
+    [InlineData("fireTriggerTick", 0)]
+    [InlineData("fireTriggerTick", 45)]
+    [InlineData("tier2Radius", 0.5)]
+    [InlineData("tier3Radius", 0.75)]
+    public void ChargedProjectile_RejectsInvalidThresholdsAndDimensions(string field, double value)
+    {
+        AssertError(CompileCharacter(character =>
+        {
+            var slot = character["slots"]!.AsArray().Single(slot => slot!["id"]!.GetValue<string>() == "ground.A")!;
+            var operation = slot["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+                .Single(op => op!["kind"]!.GetValue<string>() == "startCapability")!;
+            operation["parameters"]![field] = value;
+        }), "value.out-of-range");
+    }
+
+    [Fact]
+    public void ChargedProjectile_RejectsCompetingProjectileLifecycle()
+    {
+        AssertError(CompileCharacter(character =>
+        {
+            var slot = character["slots"]!.AsArray().Single(slot => slot!["id"]!.GetValue<string>() == "ground.A")!;
+            var operations = slot["timeline"]!["stages"]![0]!["operations"]!.AsArray();
+            var charge = operations.Single(op => op!["kind"]!.GetValue<string>() == "startCapability")!;
+            operations.Add(new JsonObject
+            {
+                ["kind"] = "spawnProjectile", ["tick"] = 8, ["unit"] = "meters",
+                ["projectile"] = charge["parameters"]!["projectile"]!.DeepClone(),
+            });
+        }), "capability.ambiguous");
+    }
+
     [Fact]
     public void AirDodgeSpeed_CooksAndAdaptsIndependentlyFromDashSpeed()
     {

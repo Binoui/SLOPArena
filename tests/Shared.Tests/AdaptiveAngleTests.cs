@@ -116,9 +116,16 @@ public class AdaptiveAngleTests
         });
 
         for (int i = 0; i < 12; i++)
+        {
             sim.Tick(new() { { 1, default }, { 100, default } });
+            var launched = sim.GetState(100);
+            // Inspect the launch angle before flight gravity bends the trajectory.
+            if (launched.State == ActionState.Hitstun && launched.HitstopTicks == 0)
+                return launched.KVY;
+        }
 
-        return sim.GetState(100).KVY;
+        Assert.Fail("Adaptive hitbox did not launch the victim.");
+        return 0f;
     }
 
     [Fact]

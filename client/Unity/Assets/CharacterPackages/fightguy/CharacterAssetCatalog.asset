@@ -110,6 +110,26 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: ec85ad82fa4577ab0908d4e873fdace2, type: 2}
     _extrapolation: 0
     _poseTrackId: pose.fightguy.slide
+  - _semanticId: anim.ki-shot-loop
+    _clip: {fileID: 3094330708855449807, guid: 579ec584c5beef4bf8c560f408b7f1a4, type: 3}
+    _extrapolation: 0
+    _poseTrackId: anim.ki-shot-loop
   _presentations:
-  - _semanticId: presentation.fightguy.ki-shot.hit
-    _prefab: {fileID: 583897833427099164, guid: 6560b49a31294a90a4b69e4d85d68b7f, type: 3}
+  - _semanticId: presentation.fightguy.ki-shot.release
+    _prefab: {fileID: 8177038320521043680, guid: 831de7c86b0cb5112b539ceb98ef0411, type: 3}
+  - _semanticId: presentation.fightguy.rising-dragon.fist
+    _prefab: {fileID: 4597324245859296335, guid: ace7ab805cb8fce4b980ef6bbc2cccda, type: 3}
+  - _semanticId: presentation.fightguy.cyclone-kick.spiral
+    _prefab: {fileID: 4571857302201807794, guid: 6e162548b46d03feab0289ca423c67ba, type: 3}
+  - _semanticId: presentation.fightguy.fist-of-fury.wrap
+    _prefab: {fileID: 4597324245859296335, guid: 562b33cfeaa9723808e5a4bd38c2432a, type: 3}
+  - _semanticId: presentation.fightguy.empowered.hit
+    _prefab: {fileID: 583897833427099164, guid: 18e6050bad6227564afde58204487822, type: 3}
+  - _semanticId: presentation.fightguy.power-aura
+    _prefab: {fileID: 1064919628000095592, guid: 521b432a2a86d3e19a18c49d731d09e9, type: 3}
+  - _semanticId: presentation.fightguy.normal.strike
+    _prefab: {fileID: 2820401576934385866, guid: 597b7b4802e0c326d92ffa678e38169e, type: 3}
+  - _semanticId: presentation.fightguy.normal.sweep
+    _prefab: {fileID: 90945389294720209, guid: 918b3a5312c96986e8eb02b7865b66c1, type: 3}
+  - _semanticId: presentation.fightguy.normal.heavy
+    _prefab: {fileID: 1368957726725579125, guid: 8dddd9ff7ab7b90d68d387f7edab2bb6, type: 3}

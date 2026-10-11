@@ -39,7 +39,9 @@ namespace SlopArena.Client.World
         private sealed class ActivePresentation
         {
             public GameObject Instance;
-            public int RemainingTicks;
+            public PresentationLifetime Lifetime;
+            public ulong AttackEntityId;
+            public PlayerRenderer AttackOwner;
         }
 
         public void Register(ulong entityId, PlayerRenderer renderer, CharacterAnimationCatalog catalog)
@@ -57,8 +59,19 @@ namespace SlopArena.Client.World
             for (int i = _active.Count - 1; i >= 0; i--)
             {
                 ActivePresentation active = _active[i];
-                active.RemainingTicks--;
-                if (active.RemainingTicks > 0) continue;
+                if (active.Instance == null)
+                {
+                    _active.RemoveAt(i);
+                    continue;
+                }
+                bool ownerAvailable = active.AttackOwner != null
+                    && active.AttackOwner.isActiveAndEnabled
+                    && _entries.TryGetValue(active.AttackEntityId, out Entry owner)
+                    && owner.Renderer == active.AttackOwner;
+                if (active.Lifetime.Advance(ownerAvailable,
+                        active.AttackOwner != null ? active.AttackOwner.CurrentActionState : default,
+                        active.AttackOwner != null ? active.AttackOwner.CurrentAttackSequence : (byte)0,
+                        active.AttackOwner != null ? active.AttackOwner.CurrentAttackElapsedTicks : 0)) continue;
                 if (active.Instance != null) DestroyInstance(active.Instance);
                 _active.RemoveAt(i);
             }
@@ -88,7 +101,6 @@ namespace SlopArena.Client.World
                 }
                 if (!_entries.TryGetValue(presentationEvent.EntityId, out Entry entry)) continue;
                 if (entry.Renderer == null || entry.Catalog == null) continue;
-
                 CharacterAnimationCatalog.PresentationEntry binding = FindBinding(
                     entry.Catalog.Presentations, presentationEvent.PresentationId);
                 if (binding?.Prefab == null)
@@ -96,6 +108,14 @@ namespace SlopArena.Client.World
                     Debug.LogError($"[Presentation] Missing binding '{presentationEvent.PresentationId}' for owner {presentationEvent.EntityId}.");
                     continue;
                 }
+                bool attachedToAttack = presentationEvent.Source == PresentationEventSource.Timeline
+                    && presentationEvent.Placement?.AttachmentMode == AuthoringPresentationAttachmentMode.Bone
+                    && binding.Prefab.GetComponent<AttackBoundPresentation>() != null;
+                // Late confirmations must not attach an old effect to a new move or idle pose.
+                if (attachedToAttack && (!entry.Renderer.isActiveAndEnabled
+                    || !PresentationLifetime.IsCurrentAttack(entry.Renderer.CurrentActionState,
+                        entry.Renderer.CurrentAttackSequence, presentationEvent.AttackSequence)))
+                    continue;
 
                 GameObject instance = PresentationPlacementResolver.Instantiate(
                     binding,
@@ -108,7 +128,10 @@ namespace SlopArena.Client.World
                 _active.Add(new ActivePresentation
                 {
                     Instance = instance,
-                    RemainingTicks = LifetimeTicks(presentationEvent),
+                    Lifetime = new PresentationLifetime(LifetimeTicks(presentationEvent), attachedToAttack,
+                        presentationEvent.AttackSequence, entry.Renderer.CurrentAttackElapsedTicks),
+                    AttackEntityId = presentationEvent.EntityId,
+                    AttackOwner = attachedToAttack ? entry.Renderer : null,
                 });
             }
         }

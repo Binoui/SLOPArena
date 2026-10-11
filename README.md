@@ -63,6 +63,8 @@ Run the headless GameServer locally:
 dotnet run --project src/Server/
 ```
 
+Explore the [knockback visual comparison](tools/KnockbackVisuals/README.md) to watch saved before/after trajectories for all four fighters. Run `python3 tools/KnockbackVisuals/serve.py` and open http://localhost:8765/, or open the standalone HTML directly in a browser.
+
 ## Architecture in one view
 
 ```text
@@ -106,6 +108,14 @@ unity command --project-path client/Unity \
 Ability Lab is the primary gameplay editor for package drafts. It previews valid drafts through the same cooked definition and interpreter used by the game; an invalid draft is never silently substituted into a match.
 
 To add a new character, start with [Adding a Character](docs/characters/adding-a-new-character.md). Do not copy the legacy C# registry path for new work.
+
+### SlopBot creator guide
+
+[SlopBot skills](skills/README.md) provide guided or fast project orientation and
+humanoid character creation with explicit asset/tool handoffs, bounded animation
+adaptation, and resumable local progress. Instructions are harness-neutral;
+execution requires supported tools and approval. The next-character verified
+package/local-play run remains the public-release gate.
 
 ## Documentation
 

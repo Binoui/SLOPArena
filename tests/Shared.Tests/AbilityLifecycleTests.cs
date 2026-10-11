@@ -17,13 +17,14 @@ public class AbilityLifecycleTests
     [Fact]
     public void MankiQ_BasicActivation()
     {
+        var def = TestHelpers.ResolveSourceDef("manki");
         var arena = TestHelpers.TestArena();
         var sim = TestHelpers.MakeSim(arena);
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.MankiGroundPY;
-        TestHelpers.RegisterPlayer(sim, Def, state);
+        TestHelpers.RegisterPlayer(sim, def, state);
 
-        Assert.Equal(AimMovementMode.Mobile, Def.GetAimMovementMode(AbilitySlots.A, airborne: false));
+        Assert.Equal(AimMovementMode.Fixed, def.GetAimMovementMode(AbilitySlots.A, airborne: false));
         var t0 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.A), 1);
         Assert.Equal(ActionState.Aiming, t0.State);
         Assert.Equal((byte)AbilitySlots.A, t0.AttackSlot);
@@ -32,12 +33,13 @@ public class AbilityLifecycleTests
     // ── Q hold: fixed aim — movement is locked, action transitions stay locked ──
 
     [Fact]
-    public void MankiQ_MobileHold_AllowsMovement()
+    public void MankiQ_FixedHold_StopsMovement()
     {
+        var def = TestHelpers.ResolveSourceDef("manki");
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.MankiGroundPY;
-        TestHelpers.RegisterPlayer(sim, Def, state);
+        TestHelpers.RegisterPlayer(sim, def, state);
 
         float startZ = state.PZ;
         var aim = TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true, moveY: 1f);
@@ -48,8 +50,8 @@ public class AbilityLifecycleTests
         Assert.Equal(ActionState.Aiming, s.State);
         Assert.Equal((byte)0, s.ComboStage);
         Assert.NotNull(sim.GetActiveAbility(1));
-        Assert.True(s.PZ > startZ, "mobile aim must allow movement");
-        Assert.NotEqual(0f, s.VZ);
+        Assert.Equal(startZ, s.PZ);
+        Assert.Equal(0f, s.VZ);
     }
 
     [Fact]
@@ -250,7 +252,8 @@ public class AbilityLifecycleTests
         float expectedFeetY = state.PY - Def.CapsuleHeight * 0.5f;
         TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 4), 4);
 
-        var presentation = Assert.Single(sim.GetPresentationEvents());
+        var presentation = Assert.Single(sim.GetPresentationEvents(),
+            e => e.PresentationId == "presentation.manki.jetpack-boost.ignition");
         Assert.Equal((ulong)1, presentation.EntityId);
         Assert.Equal("presentation.manki.jetpack-boost.ignition", presentation.PresentationId);
         Assert.Equal(PresentationEventSource.CapabilityExplosion, presentation.Source);

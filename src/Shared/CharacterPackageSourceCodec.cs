@@ -429,6 +429,7 @@ public static class CharacterPackageSourceCodec
         => p switch
         {
             RisingDragonCapabilityParameters x => x with { },
+            ChargedProjectileCapabilityParameters x => x with { Projectile = x.Projectile with { } },
             CycloneKickCapabilityParameters x => x with { },
             ChargedDirectionalDashCapabilityParameters x => x with
             {
@@ -661,6 +662,11 @@ public static class CharacterPackageSourceCodec
         w.WriteStartObject();
         switch (x)
         {
+            case ChargedProjectileCapabilityParameters p:
+                w.WriteNumber("maxChargeTicks", p.MaxChargeTicks); w.WriteNumber("tier2Ticks", p.Tier2Ticks);
+                w.WriteNumber("tier3Ticks", p.Tier3Ticks); w.WriteNumber("fireTriggerTick", p.FireTriggerTick);
+                Number(w, "tier2Radius", p.Tier2Radius); Number(w, "tier3Radius", p.Tier3Radius);
+                WriteProjectile(w, p.Projectile); break;
             case RisingDragonCapabilityParameters p: Number(w, "riseSpeed", p.RiseSpeed); w.WriteNumber("riseTicks", p.RiseTicks); w.WriteNumber("riseDelay", p.RiseDelay); break;
             case CycloneKickCapabilityParameters p: w.WriteNumber("forwardSpeed", p.ForwardSpeed); w.WriteNumber("windupTicks", p.WindupTicks); w.WriteNumber("hitboxEndTick", p.HitboxEndTick); w.WriteNumber("durationTicks", p.DurationTicks); Number(w, "bodyRadius", p.BodyRadius); Number(w, "sideRadius", p.SideRadius); Number(w, "sideOffset", p.SideOffset); Number(w, "damage", p.Damage); Number(w, "knockbackAngle", p.KnockbackAngle); Number(w, "knockbackBase", p.KnockbackBase); Number(w, "knockbackGrowth", p.KnockbackGrowth); w.WriteNumber("stunTicks", p.StunTicks); Number(w, "bodyY", p.BodyY); Number(w, "sideY", p.SideY); break;
             case ChargedDirectionalDashCapabilityParameters p:
@@ -1093,6 +1099,7 @@ public static class CharacterPackageSourceCodec
         if (!parent.TryGetValue("parameters", out var element)) { d.Error("operation.parameter-missing", path + ".parameters", "Capability parameters are required."); return new RisingDragonCapabilityParameters(0, 0, 0); }
         var allowed = id switch
         {
+            "slop.ability.charged-projectile.v1" => new[] { "maxChargeTicks", "tier2Ticks", "tier3Ticks", "fireTriggerTick", "tier2Radius", "tier3Radius", "projectile" },
             "slop.internal.fightguy.rising-dragon.v1" => new[] { "riseSpeed", "riseTicks", "riseDelay" },
             "slop.internal.fightguy.cyclone-kick.v1" => new[] { "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY" },
             "slop.ability.charged-directional-dash.v1" => new[] { "maxChargeTicks", "tier2Ticks", "tier3Ticks", "minDistance", "maxDistance", "dashSpeed", "finisherLeadTicks", "finisherSeekTick", "recoveryTicks", "tier2Damage", "tier3Damage", "traversalHitbox", "finisherHitbox" },
@@ -1108,6 +1115,15 @@ public static class CharacterPackageSourceCodec
         };
         var p = ReadObjectWithCode(element, path + ".parameters", d, "operation.parameter-unknown", allowed);
         foreach (var required in allowed) if (!string.Equals(required, "explosionPresentationId", StringComparison.Ordinal) && !p.ContainsKey(required)) d.Error("operation.parameter-missing", path + ".parameters." + required, "Required capability parameter is missing.");
+        if (id == CharacterPackageCompiler.ChargedProjectileCapabilityId)
+            return new ChargedProjectileCapabilityParameters(
+                UShort(p, "maxChargeTicks", path + ".parameters.maxChargeTicks", d),
+                UShort(p, "tier2Ticks", path + ".parameters.tier2Ticks", d),
+                UShort(p, "tier3Ticks", path + ".parameters.tier3Ticks", d),
+                UShort(p, "fireTriggerTick", path + ".parameters.fireTriggerTick", d),
+                Float(p, "tier2Radius", path + ".parameters.tier2Radius", d),
+                Float(p, "tier3Radius", path + ".parameters.tier3Radius", d),
+                ParseProjectile(p, path + ".parameters", d));
         if (id.EndsWith("rising-dragon.v1", StringComparison.Ordinal)) return new RisingDragonCapabilityParameters(Float(p, "riseSpeed", path + ".parameters.riseSpeed", d), UShort(p, "riseTicks", path + ".parameters.riseTicks", d), UShort(p, "riseDelay", path + ".parameters.riseDelay", d));
         if (id.EndsWith("cyclone-kick.v1", StringComparison.Ordinal)) return new CycloneKickCapabilityParameters(Float(p, "forwardSpeed", path + ".parameters.forwardSpeed", d), UShort(p, "windupTicks", path + ".parameters.windupTicks", d), UShort(p, "hitboxEndTick", path + ".parameters.hitboxEndTick", d), UShort(p, "durationTicks", path + ".parameters.durationTicks", d), Float(p, "bodyRadius", path + ".parameters.bodyRadius", d), Float(p, "sideRadius", path + ".parameters.sideRadius", d), Float(p, "sideOffset", path + ".parameters.sideOffset", d), Float(p, "damage", path + ".parameters.damage", d), Float(p, "knockbackAngle", path + ".parameters.knockbackAngle", d), Float(p, "knockbackBase", path + ".parameters.knockbackBase", d), Float(p, "knockbackGrowth", path + ".parameters.knockbackGrowth", d), UShort(p, "stunTicks", path + ".parameters.stunTicks", d), Float(p, "bodyY", path + ".parameters.bodyY", d), Float(p, "sideY", path + ".parameters.sideY", d));
         if (id == CharacterPackageCompiler.ChargedDirectionalDashCapabilityId)

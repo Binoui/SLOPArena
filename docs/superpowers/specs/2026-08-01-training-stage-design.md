@@ -1,10 +1,19 @@
 # Training Box Stage — Design Spec
 
 **Date:** 2026-08-01
-**Status:** Superseded by the grey lab rebuild on 2026-09-08; the tutorial below is historical.
+**Status:** Current presentation is the quiet practice lab pass of 2026-10-11; earlier rebuild notes and the original tutorial below are historical.
 **Owner:** binoui (new to Unity — spec doubles as a build tutorial)
 
-## Current training lab — 2026-09-08
+## Quiet practice lab — 2026-10-11
+
+- Cosmetic refinement of the existing room: warm mid-grey measurement floor, muted sage platforms, softer ambient fill, shallow wall panels, diffuser strips, an observation window, storage panels and `SLOP ARENA / TRAINING` signage. North/east markers, a thin floor perimeter and origin ticks help orientation without cluttering the fight floor.
+- The existing metre grid, stronger 5 m lines and red axes remain. Larger platform labels show 1.0, 2.0 and 3.5 m; top numbers identify the three blocks. Paint surfaces have a small offset to remove grid flicker.
+- Wall presentation is one-sided toward the room so orbiting cameras retain a clear cutaway. Wall decorations stay shallow and cast no large shadows across the floor. No new lights or Unity colliders were added.
+- Layout remains 40 × 40 m with 20 m walls and the same three 4 × 4 m platforms. The authoritative Training scene and baked arena are byte-identical to the pre-pass snapshot: 96 collision triangles, four spawns, SHA-256 `fb9f9b3a93770790f4f052b07931c50ad1dc29e199fbe556d06719126e25d266`. All other stage prefabs/arenas and the saved Frontend/Ability Lab scenes are unchanged.
+- Finish meshes and material copies are owned by `Assets/Resources/Stages/training.prefab`; all eight existing external materials were checked unchanged. Native inspection reports 32 renderers, 3,996 cosmetic triangles, 13 materials, one existing local light, zero Colliders and no missing references or diagnostics. The Training thumbnail is refreshed at 16:9.
+- Reviewed 24 native orbit views, eight low views and a hero view with four posed package fighters. Evidence: `.ability-lab-cache/training-practice-20261011/pass-04/` and `.stage-authoring-cache/training/practice-lab-20261011/`. Preview setup restored the previously open scene, selection and gizmo preferences; the final audit found a clean, stopped Ability Lab and zero native console errors. These are Edit Mode presentation checks; live gameplay/PVP and performance acceptance were not rerun for this cosmetic pass.
+
+## Grey lab rebuild — 2026-09-08 (historical)
 
 - Neutral grey room: 40 × 40 m interior, 20 m walls, a clear centre, and three 4 × 4 m side platforms at 1, 2, and 3.5 m.
 - Flat texture markings replace raised bars and checkerboards: 1 m grid, stronger 5 m lines, muted red origin axes, distance labels, and platform-height labels.

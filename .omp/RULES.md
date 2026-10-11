@@ -10,7 +10,9 @@
 - Live Unity interaction MUST use the project-local gateway around the installed Unity CLI
   and `com.unity.pipeline`: `bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path <approved-canonical-project> -- <command>`.
   Set your own runtime-issued `ORCA_TERMINAL_HANDLE` explicitly; never infer caller identity
-  from the active pane. Wait for your own lease, run/restoration, then settled release;
+  from the active pane. T3 Code callers instead use their harness-injected
+  `CODEX_THREAD_ID`/`CODEX_SESSION_ID`; the gateway namespaces their identity and
+  retains the same lease protocol. Wait for your own lease, run/restoration, then settled release;
   no ordinary owner-inbox verification delegation. Runtime status is authoritative,
   historical ownership records are not. `blocked`/unknown/ambiguous work never permits takeover.
   Coordinate only concrete overlapping source writes or explicitly required stable-source

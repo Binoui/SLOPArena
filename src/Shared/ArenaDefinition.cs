@@ -950,8 +950,10 @@ namespace SlopArena.Shared
 
         private static void ClampRange(ref int lo, ref int hi, int min, int max)
         {
-            if (lo < min) lo = min;
-            if (hi > max) hi = max;
+            // A wall on the grid's maximum plane belongs to the last cell.
+            // Clamping only hi left lo one past the grid and dropped that wall.
+            lo = Math.Clamp(lo, min, max);
+            hi = Math.Clamp(hi, min, max);
         }
     }
 

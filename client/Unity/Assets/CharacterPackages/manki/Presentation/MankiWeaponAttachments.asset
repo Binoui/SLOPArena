@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba7feec0a7a86aeaeb0fa45e03e79f84, type: 3}
+  m_Name: MankiWeaponAttachments
+  m_EditorClassIdentifier: 
+  Entries:
+  - AttackSlot: 11
+    BoneName: mixamorig:RightHand
+    Prefab: {fileID: 5113496752642633616, guid: f43706d28f4fe0a5584d724f371176b0, type: 3}
+    PositionOffset: {x: 0, y: 0.06, z: 0.06}
+    HasFirePhaseOverride: 0
+    FirePositionOffset: {x: 0, y: 0, z: 0}
+    FireRotationOffset: {x: 0, y: 0, z: 0}
+    RotationOffset: {x: 0, y: 0, z: 0}
+    HideAfterTicks: 10
+    TrailStylePrefab: {fileID: 0}
+    HitboxMotionTime: 0.12
+    TrailBladeWidth: 0.8
+    TrailHiltAnchor: 
+    TrailTipAnchor: 
+  - AttackSlot: 5
+    BoneName: mixamorig:RightHand
+    Prefab: {fileID: 8210465015160624024, guid: 2704a55cea0d24252af263e5b3263c82, type: 3}
+    PositionOffset: {x: 0, y: 0.51, z: -0.1}
+    HasFirePhaseOverride: 0
+    FirePositionOffset: {x: 0, y: 0, z: 0}
+    FireRotationOffset: {x: 0, y: 0, z: 0}
+    RotationOffset: {x: -20, y: -90, z: 0}
+    HideAfterTicks: 20
+    TrailStylePrefab: {fileID: 0}
+    HitboxMotionTime: 0.12
+    TrailBladeWidth: 0.8
+    TrailHiltAnchor: 
+    TrailTipAnchor: 
+  - AttackSlot: 6
+    BoneName: mixamorig:RightHand
+    Prefab: {fileID: 549402415988426766, guid: e8283359ce6830a83b95ef89361f2f9a, type: 3}
+    PositionOffset: {x: 0, y: 0.14, z: 0.06}
+    HasFirePhaseOverride: 0
+    FirePositionOffset: {x: 0, y: 0, z: 0}
+    FireRotationOffset: {x: 0, y: 0, z: 0}
+    RotationOffset: {x: 180, y: 0, z: 0}
+    HideAfterTicks: 0
+    TrailStylePrefab: {fileID: 0}
+    HitboxMotionTime: 0.12
+    TrailBladeWidth: 0.8
+    TrailHiltAnchor: 
+    TrailTipAnchor: 

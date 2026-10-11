@@ -8,7 +8,7 @@ Before gateway examples, set `ORCA_TERMINAL_HANDLE` to your own runtime-issued t
 
 # SlopArena Asset Selection
 
-Use this skill when a stage concept needs environment assets selected and verified before scene composition. This skill prepares an inspected workset; it does not author a stage scene.
+Use this skill when an agreed stage composition needs imported environment assets for specific roles. Prepare an inspected workset before introducing new dependencies; gray-box geography may already exist. This skill does not author a stage scene or decide its layout.
 
 ## Authority and boundaries
 
@@ -42,10 +42,21 @@ This workflow must not:
 
 Unity remains the authority for imported prefab identity and measurements. The server/shared simulation remains the authority for gameplay.
 
+## Targeted procurement, not asset-led composition
+
+Read the stage's numbered composition decisions and gray massing first. The [stage-design workflow](../sloparena-stage-design/SKILL.md) owns geography, silhouettes, depth layers, and negative space; procurement supplies missing pieces for that place.
+
+- State each needed role and its host: houses on the village pad, palms on low islands, pier modules at the harbor edge. Record available footprint, height, scale, and silhouette constraints in the design/handoff notes, not invented profile-schema fields.
+- Reuse suitable assets already resident in the accepted stage before retrieving another pack. Reuse does not waive reference, shader, collider-removal, or placement checks. Original coast/ridge/foundation meshes belong to stage authoring, not catalog retrieval.
+- Query only the missing roles. Quotas describe the requested workset, not a target amount of clutter to place; a broad shortlist is not permission to fill every gap.
+- Judge the inspected candidate against its geometric role, not just its thumbnail. If it needs awkward filler terrain or breaks the silhouette, revise procurement or report a design deviation; do not silently redesign the place around the pack.
+- Keep the existing identity, provenance, materialization, and visual-evidence checks for every newly referenced external asset, even if its pack is already imported. A pack's sample scene is not an approved stage composition.
+
+
 ## Pipeline
 
 ```text
-stage concept/profile
+agreed composition → missing asset roles → concept/profile
         │
         ▼
 AssetCatalog probe
@@ -271,6 +282,7 @@ Stage authoring must use the inspection results as asset evidence, then make exp
 ## Verification checklist
 
 - [ ] Profile schema and role quotas validate; total shortlist size is the sum of quotas.
+- [ ] Requested roles have hosts and geometric constraints from the agreed composition; existing suitable stage assets were considered first.
 - [ ] Probe is deterministic, obeys per-role and family limits, and records underfill explicitly.
 - [ ] Query output is deterministic and contains score reasons.
 - [ ] Shortlist identities are unique and family limits hold.

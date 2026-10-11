@@ -47,6 +47,8 @@ namespace SlopArena.Client.UI
         /// <summary>True while the identity modal is presented over the shell.</summary>
         public bool IsPresented => _presented;
 
+        internal Button? ForwardButton => _presented ? _submit : null;
+
         /// <summary>
         /// True while no locally valid name is accepted yet. Pages read this
         /// for mode-button gating; it is no longer conditional on any

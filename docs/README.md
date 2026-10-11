@@ -33,6 +33,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Hitbox System](systems/hitbox-system.md) | Hitbox, hurtbox, and collision geometry |
 | [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, and Combo Influence design |
 | [Ability Lab](systems/ability-lab.md) | Package editing, authoritative preview, and agent-facing workspace commands |
+| [Knockback visual comparison](../tools/KnockbackVisuals/README.md) | Saved before/after flight playback, time scrubbing, and offline trajectory comparisons |
 | [NPC System](systems/npc-system.md) | Training entities and AI |
 | [Blast Zones](systems/blast-zones.md) | Void death and arena boundaries |
 | [VFX and Particles](systems/vfx-particles.md) | Presentation effects and visual contracts |

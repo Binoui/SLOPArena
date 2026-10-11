@@ -34,6 +34,8 @@ namespace SlopArena.Shared.Abilities
         public virtual float GravityMultiplier => 1f;
         /// <summary>Whether this activation phases through other fighters' pushboxes.</summary>
         public virtual bool IgnoresFighterPushboxes => false;
+        /// <summary>Whether body overlap moves only the other fighter during this activation.</summary>
+        public virtual bool HoldsFighterPushboxPosition => false;
 
         /// <summary>True while this activation's authored armor window remains active.</summary>
         public bool HasArmor => _armorWindowTicks > 0;
@@ -251,6 +253,55 @@ namespace SlopArena.Shared.Abilities
             s.VX = vx;
             s.VY = vy;
             s.VZ = vz;
+        }
+
+        /// <summary>Spawn an authored projectile using launch-time targeting or the locked aim.</summary>
+        protected void SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget)
+        {
+            float aimYaw;
+            float aimPitch;
+            if (autoTarget)
+            {
+                OwnerSimulation!.ResolveAutoTargetProjectileAim(ref s, projectile.LaunchOffsetX,
+                    projectile.LaunchOffsetY, projectile.LaunchOffsetZ, out aimYaw, out aimPitch);
+            }
+            else
+            {
+                aimYaw = s.AttackCorrectionOwned ? s.FacingYaw : s.AimYaw;
+                aimPitch = s.AttackCorrectionOwned ? s.AttackPosePitch : s.AimPitch;
+            }
+            aimYaw += projectile.YawOffsetDegrees * MathF.PI / 180f;
+            float cosPitch = MathF.Cos(aimPitch);
+            float dirX = cosPitch * MathF.Sin(aimYaw);
+            float dirY = MathF.Sin(aimPitch);
+            float dirZ = cosPitch * MathF.Cos(aimYaw);
+            float cosYaw = MathF.Cos(s.FacingYaw);
+            float sinYaw = MathF.Sin(s.FacingYaw);
+            float offsetX = projectile.LaunchOffsetX * cosYaw + projectile.LaunchOffsetZ * sinYaw;
+            float offsetZ = -projectile.LaunchOffsetX * sinYaw + projectile.LaunchOffsetZ * cosYaw;
+            float damage = projectile.Damage;
+            float radius = projectile.Radius;
+            SpawnResolverHitbox(new Hitbox
+            {
+                X = s.PX + offsetX,
+                Y = s.PY + projectile.LaunchOffsetY,
+                Z = s.PZ + offsetZ,
+                VX = dirX * projectile.Speed,
+                VY = dirY * projectile.Speed,
+                VZ = dirZ * projectile.Speed,
+                Radius = radius,
+                Shape = HitboxShape.Sphere,
+                Damage = damage,
+                BaseKnockback = projectile.BaseKnockback,
+                KnockbackGrowth = projectile.KnockbackGrowth,
+                KnockbackAngle = (sbyte)projectile.Angle,
+                StunTicks = projectile.StunTicks,
+                DurationTicks = projectile.MaxFlightTicks,
+                OwnerId = s.EntityId,
+                AttackSlot = (byte)(Slot + 1),
+                VisualOperationIndex = operationIndex,
+                Gravity = projectile.Gravity,
+            });
         }
 
         /// <summary>Spawn a raw hitbox while preserving this activation's provenance.</summary>

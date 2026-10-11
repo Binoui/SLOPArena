@@ -16,6 +16,10 @@ public static class InternalCapabilityRegistry
 
         switch (capabilityId)
         {
+            case CharacterPackageCompiler.ChargedProjectileCapabilityId
+                when parameters is CookedChargedProjectileCapabilityParameters projectile:
+                capability = new ChargedProjectileAbility(projectile);
+                return true;
             case "slop.internal.fightguy.rising-dragon.v1" when parameters is CookedRisingDragonCapabilityParameters rising:
                 capability = new FightGuyRisingKick(rising);
                 return true;

@@ -27,6 +27,7 @@ namespace SlopArena.Server
 		private readonly MatchContentCatalog _contentCatalog;
 		private readonly List<PlayerSlot> _slots;
         private readonly bool _hasWibou;
+        private readonly bool _hasProjectileVisuals;
         private readonly List<ProjectileVisualState> _projectileVisuals = new(12);
         private readonly List<ulong> _swordTrailOwners = new(4);
 		private UdpClient? _udpServer;
@@ -115,6 +116,7 @@ namespace SlopArena.Server
 					?? throw new InvalidDataException($"Roster selector '{p.CharacterClass}' is not in the match content catalog.");
 				_slots.Add(new PlayerSlot((ulong)p.EntityId, p.CharacterClass, p.SteamId, content));
                 _hasWibou |= p.CharacterClass == CharacterClass.Wibou;
+                _hasProjectileVisuals |= p.CharacterClass is CharacterClass.Wibou or CharacterClass.FightGuy;
 			}
 		}
 
@@ -738,18 +740,19 @@ namespace SlopArena.Server
             }
 
             byte[]? projectileBuffer = null;
-            if (_hasWibou)
+            if (_hasProjectileVisuals)
             {
                 _projectileVisuals.Clear();
                 foreach (var hitbox in _sim.Resolver.GetActiveHitboxes())
                 {
+                    var character = _sim.GetDefinition(hitbox.OwnerId)?.Class ?? CharacterClass.None;
                     if (_matchState != MatchState.Playing || hitbox.AttackSlot != AbilitySlots.A || !hitbox.Active
-                        || _sim.GetDefinition(hitbox.OwnerId)?.Class != CharacterClass.Wibou)
+                        || character is not (CharacterClass.Wibou or CharacterClass.FightGuy))
                         continue;
                     _projectileVisuals.Add(new ProjectileVisualState(
                         hitbox.OwnerId, hitbox.ActivationId, hitbox.VisualOperationIndex,
-                        CharacterClass.Wibou, hitbox.AttackSlot, hitbox.ActivationAirborne,
-                        hitbox.X, hitbox.Y, hitbox.Z, hitbox.VX, hitbox.VY, hitbox.VZ));
+                        character, hitbox.AttackSlot, hitbox.ActivationAirborne,
+                        hitbox.X, hitbox.Y, hitbox.Z, hitbox.VX, hitbox.VY, hitbox.VZ, hitbox.Radius));
                 }
                 var snapshot = new ProjectileVisualPacket(_serverTick, _projectileVisuals);
                 int offset = _steamSend is null ? 0 : 1;

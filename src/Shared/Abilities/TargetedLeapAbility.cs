@@ -3,7 +3,7 @@ using SlopArena.Shared;
 
 namespace SlopArena.Shared.Abilities;
 
-/// <summary>Mobile aim, bounded targeted flight, landing hitbox, pose seek, and recovery.</summary>
+/// <summary>Policy-controlled aim, bounded targeted flight, landing hitbox, pose seek, and recovery.</summary>
 public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILandingContinuationCapability
 {
     private const ushort ReleaseDebounceTicks = 8;

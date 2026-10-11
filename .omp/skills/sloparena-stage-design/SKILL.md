@@ -15,7 +15,7 @@ This skill is the interactive, conversational workflow for designing one stage's
 - a locked Stage Design Brief at `docs/design/stages/<key>.design.md`, and
 - approved gray-box blockout screenshots in `.stage-authoring-cache/<key>/design/`.
 
-It must NOT run `sloparena.stage.bake`, `sloparena.stage.inspect`, asset-selection or provenance work, material authoring, or lighting polish. Those belong to [`sloparena-stage-authoring`](../sloparena-stage-authoring/SKILL.md), which begins only after LOCK (section 5). The only Unity content this skill creates is gray-box primitives (cubes/cylinders/spheres, colliders destroyed) and at most one temporary light.
+It must NOT run `sloparena.stage.bake`, `sloparena.stage.inspect`, asset-selection or provenance work, material authoring, or lighting polish. Those belong to [`sloparena-stage-authoring`](../sloparena-stage-authoring/SKILL.md), which begins only after LOCK (section 5). Unity blockout content is limited to gray-box primitives or simple original massing meshes (coasts, ridges, banks, building volumes), with no Colliders and at most one temporary light. Persist generated meshes and the neutral gray material as valid assets/sub-assets. No detailed surfacing or imported prop dressing in this phase.
 
 ## 2. Inputs
 
@@ -28,6 +28,16 @@ It must NOT run `sloparena.stage.bake`, `sloparena.stage.inspect`, asset-selecti
 - **If the shell itself is the problem** (layout, routes, boundary shape feel boring or unjustified), that is a gameplay change, not a cosmetic re-mass. Design the shell concept conversationally first — fight premise, named route purposes, spawn plan, ASCII top-down — then implement it through the production skill's gameplay path (collision scene → bake → ArenaShipping tests → human PVP review), and only then run this visual design session on the new shell.
 
 Early layout talk should prefer terminal-ASCII wireframes. They are throwaway thinking tools, not deliverables.
+
+### Geometry before dressing
+
+For each background region, decide its silhouette, depth, support, and surrounding negative space before choosing props. Block out the place, not a collection of asset-pack scenes:
+
+- Start with land/building volumes and their connecting slopes, foundations, shorelines, or gaps. A coast needs thickness and a water-facing profile, not a flat sand sheet hiding seams.
+- Compose near, middle, and far masses around the fixed shell. Vary height and spacing; leave intentional open water/sky and the entire fight/recovery corridor clear. Do not distribute equal landmarks around a ring just to fill every yaw.
+- Check all sides and low views before adding detail. If the gray landforms still read as disconnected pads, floating scenery, or cardboard façades, more props will not fix them.
+- Name the later dressing roles in the brief: houses on a village pad, palms on a low island, a pier at a harbor edge. Existing assets may constrain a role's dimensions, but do not let the available pack dictate the geography.
+
 
 ## 3. Wireframe loop (gray-box + design-capture)
 
@@ -54,8 +64,8 @@ Iterate visual massing with throwaway scripts, then capture with the typed desig
    var root = UnityEditor.PrefabUtility.LoadPrefabContents(prefabPath);
    string result;
    try {
-       // destroy or add primitive children: cubes/cylinders/spheres for masses;
-       // destroy their Colliders; assign `gray` to each MeshRenderer
+       // edit only the agreed blockout roots; use primitives or original massing meshes
+       // with no Colliders; assign `gray` to each MeshRenderer
        UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
        result = "ok";
    } finally {
@@ -69,7 +79,26 @@ Iterate visual massing with throwaway scripts, then capture with the typed desig
    ```bash
    bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.stage.design-capture --stage <key>
    ```
-3. **After every meaningful composition change, the human reviewer enters Play Mode and reviews the stage through the real in-game camera.** Move, jump, and rotate freely from the main floor, every accessible platform, and the recovery/death-space views. Check that the world reads as a 3D place; that nearby façades, windows, and ramps have believable depth; and that background geometry neither masquerades as a route nor visibly intercepts an ejected fighter. The agent records the observations and iterates the gray box. Optional in-game screenshots may be kept in `.stage-authoring-cache/<key>/design/` as discussion evidence.
+3. **Run an agent full-orbit check before dressing.** Five design-capture views are not a 360° review. In a clean, stopped Editor, use a temporary additive scene with a stage instance and explicitly named cameras; capture through the gateway's `sloparena.capture.game-view --source camera`. Keep lighting consistent, isolate the temporary render, and restore the original scene/selection and close only your temporary scene in the same bounded batch. Do not retain a lease while writing scripts.
+
+   Cover intermediate yaw angles as well as N/E/S/W, plus low views around the recovery rim. The tested `splash_deck` framing below is a starting recipe, not a universal camera or stage-size rule; adjust distance/target to the shell and record the actual poses.
+
+   | Sweep | Yaw degrees | Radius / camera Y | Look-at XYZ | Vertical FOV |
+   | --- | --- | --- | --- | --- |
+   | Elevated | 0 through 345, step 15 | 53 / 25 | (0, −1, 0) | 42° |
+   | Low recovery | 0 through 315, step 45 | 35 / −1 | (0, −3, 0) | 52° |
+
+   Camera X/Z relative to the shell center are `sin(yaw) * radius` / `cos(yaw) * radius`. Use radians for the trig functions. Inspect every frame, not just a contact sheet or the best angle. Look for rear-face voids, flat joins, hovering props, repeated silhouettes, occluded edges, and false recovery routes. Intentional empty water/sky is not a defect.
+
+   For each already-created camera, use a fresh output path; the camera capture command does not create the camera or perform the sweep:
+
+   ```bash
+   bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.capture.game-view --source camera --camera <camera-name> --output .ability-lab-cache/<key>/<pass>/orbit-000.png --width 1600 --height 900
+   ```
+
+   Keep supporting captures local, record scene restoration, and remove throwaway setup scripts after proof. These are Edit Mode rendering checks, not match-camera, gameplay, or human acceptance.
+
+4. **After every meaningful composition change, the human reviewer enters Play Mode and reviews the stage through the real in-game camera.** Move, jump, and rotate freely from the main floor, every accessible platform, and the recovery/death-space views. Check that the world reads as a 3D place; that nearby façades, windows, and ramps have believable depth; and that background geometry neither masquerades as a route nor visibly intercepts an ejected fighter. The agent records the observations and iterates the gray box. Optional in-game screenshots may be kept in `.stage-authoring-cache/<key>/design/` as discussion evidence.
    Ask these questions in that review; they turn vague impressions into decisions:
 
    1. Does the playable shell feel good enough to fight on from the real camera?
@@ -81,17 +110,17 @@ Iterate visual massing with throwaway scripts, then capture with the typed desig
 
    This is a visual-design review, not the production workflow's external 2–4-player PVP acceptance. It establishes presentation readability before LOCK; it does not prove final gameplay usability.
 
-4. Asset edits may cause a reload/connection gap. Keep dependent operations in the same bounded gateway batch and let it reconcile known work before release. Observe ownership through gateway `status`; blocked or uncertain completion requires reconciliation, not replaying `eval_file`, capture, or another mutation to obtain an acknowledgment.
+5. Asset edits may cause a reload/connection gap. Keep dependent operations in the same bounded gateway batch and let it reconcile known work before release. Observe ownership through gateway `status`; blocked or uncertain completion requires reconciliation, not replaying `eval_file`, capture, or another mutation to obtain an acknowledgment.
 
-5. Saving into the real cosmetic prefab `client/Unity/Assets/Resources/Stages/<key>.prefab` is expected and safe mid-design: the production session replaces it wholesale, and the lock capture is the durable artifact.
+6. For a new stage, saving the agreed blockout into `client/Unity/Assets/Resources/Stages/<key>.prefab` is expected. For an existing stage, preserve accepted content and the gameplay shell; use isolated temporary blockout or targeted edits to explicitly approved roots, never wholesale replacement. Production retains approved massing and replaces only agreed placeholders; captures and numbered decisions record what must survive.
 
 Design captures are supporting evidence for silhouette, massing, camera-region composition, busy/empty zones, landmark placement, and numeric clearance. They are not a substitute for the human in-game review, material-quality review, prop-provenance work, or numeric placement verification.
 
 ## 4. Decision vocabulary
 
-Composition decisions MUST be written in gameplay-camera region language — "from the default camera: left third / center / right edge / foreground bottom" — never world coordinates, because the player reads the stage through the camera, not the scene view.
+Composition intent MUST be written in gameplay-camera region language — "from the default camera: left third / center / right edge / foreground bottom" — with the yaw named, because the player reads the stage through the camera. Record world coordinates and bounds separately for placement and numeric verification.
 
-The match camera (`CameraMount` + `CinemachineOrbitalFollow`) orbits with FREE 360° yaw (pitch clamped 0–45°, mouse-driven zoom). Composition MUST therefore hold from every yaw angle, not one. State the yaw vantages the stage must read from — at minimum four quarter-turn views (N/E/S/W of the stage) — plus any stage-pinned vantage (for example, looking out from a raised deck). A background mass on one side only leaves void in the other three; single-direction backdrops are a defect, not a style.
+The match camera (`CameraMount` + `CinemachineOrbitalFollow`) orbits with FREE 360° yaw (pitch clamped 0–45°, mouse-driven zoom). Composition MUST therefore hold from every yaw angle, not one. Name the quarter-turn views and any stage-pinned vantage, then inspect the intermediate angles using section 3's full-orbit check. Different directions may deliberately have different density, including open water or sky; an uncomposed rear side or one-direction cardboard backdrop is a defect.
 
 Include a "busy here / empty here" zoning statement.
 

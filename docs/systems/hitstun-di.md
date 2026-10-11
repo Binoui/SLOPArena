@@ -6,14 +6,17 @@ Melee-based hit response — knockback formula, hitstun, hitstop, DI/SDI/ASDI, a
 
 ```
 Attack lands → Hitstop (freeze, DI/SDI decision window) → Launch (KV, DI-rotated)
-            → Hitstun lock (constant KV flight, no input) → actionable flight
+            → Hitstun lock (brief pop, then gravity; no input) → actionable flight
             → post-hitstun drift (linear friction + flight gravity) → landing / tech
 ```
 
 1. **Hitstop** (`HitstopTicks`): per-pair freeze (ADR-0012). The defender commits DI input and one-shot SDI here; Burst is pressable (ADR-0014).
 2. **Launch**: at hitstop exit, the queued knockback velocity (KV) is applied, rotated by DI (below).
-3. **Hitstun** (`ActionState.Hitstun`): the **no-input lock** — the victim flies at **constant KV** (no decay, no freeze). Control returns at lock end with residual speed.
-4. **Post-hitstun flight**: linear horizontal-azimuth friction (10 m/s²), flight gravity (8 m/s²), aerials usable, no airdodge (ADR-0019 §6).
+3. **Hitstun** (`ActionState.Hitstun`): the **no-input lock** preserves the horizontal launch impulse. Upward sends receive four airborne ticks of gravity grace; then flight gravity applies during the lock. Control returns at lock end with residual speed. Landing never shortens the lock.
+4. **Post-hitstun flight**: linear horizontal-azimuth friction (6 m/s²), flight gravity (14 m/s²), aerials usable. The pop clock continues across lock expiry.
+
+The 2026-10-11 flight update replaces ADR-0019 §6's gravity-free lock; see the
+[roster comparison](../generated/knockback-flight-comparison.md). DI is unchanged.
 
 ## Knockback Formula (ADR-0019 §1)
 
@@ -28,7 +31,7 @@ mag = (base + growth·(P/100 + 1.0) + Damage·0.1) · 200/(W + 100)
 ## Hitstun (ADR-0019 §2)
 
 ```
-hitstun = max(1, (int)(0.5 · kbMag))     // k = 0.5 provisional
+hitstun = max(1, (int)(0.45 · rawKbMag))
 ```
 
 - **Pure function of the applied KB** — `StunTicks` is **gate-only**: `0` → no lock at all (zero-KB hitboxes AND KB-bearing moves like the burst shove stay lock-free). This is the one deviation from Melee's min-1.
@@ -59,14 +62,20 @@ Jabs 7, mediums 8, kills 10 ticks. Cap 12 = never-biting safety. The old `hitsto
 
 ## Knockback During Flight
 
-- **Hitstun**: constant KV; **Melee hard-set bounce** on stage contact during hitstun.
-- **Post-hitstun**: horizontal-azimuth KV decays linearly (10 m/s²), KVY untouched (flight gravity 8 m/s²). No re-lock — the victim is actionable (jump, aerials, specials) once the lock ends.
+- **Pop window**: the first four airborne simulation ticks of an upward launch preserve its vertical impulse. Hitstop never consumes that window. Downward and flat airborne sends receive gravity immediately.
+- **Hitstun**: horizontal KV remains constant; vertical KV follows flight gravity after the pop window. Stage contact projects velocity and permits landing/grounded carry without ending hitstun.
+- **Post-hitstun**: the current KV transfers to movement velocity; gravity continues without restarting the pop window or applying twice on expiry. Neutral horizontal braking reduces vector magnitude by 6 m/s², preserving heading and equal braking in every horizontal direction. No re-lock — the victim is actionable once the lock ends.
+- **Gravity**: 14 m/s² across both phases, using the victim's maximum fall speed. An already stronger downward launch is preserved rather than slowed to that limit.
+- **Replication**: the existing `AirTimeTicks` field carries the pop clock. No new state-packet fields or changes to launch magnitude, damage, hitstun calculation, hitstop, or DI.
 
 ## Balancing (post-design, ADR-0019 Consequences)
 
 | Axis | Current | Lever |
 |------|---------|-------|
-| Hitstun k | 0.5 | per-char weight, k, vertical-KB lean (steeper angles + magnitude) |
+| Hitstun k | 0.45 | per-char weight, k |
+| Upward pop grace | 4 ticks | `Simulation.KnockbackPopTicks` |
+| Flight gravity | 14 m/s² | `Simulation.FlightGravity` |
+| Neutral flight braking | 6 m/s² | `Simulation.FlightFriction` |
 | DI rotation | 18°·sin² | rotation cap |
 | SDI | global scale + ASDI ~0.4× | `sdiScale`, ASDI fraction |
 | Weight | W=100 all | per-character values |

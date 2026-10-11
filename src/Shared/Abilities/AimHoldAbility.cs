@@ -13,7 +13,7 @@ namespace SlopArena.Shared.Abilities
     ///     so without zeroing VY here an aim cast mid-jump-rise would climb through the
     ///     float.
     ///     Simulation's movement gate reads the explicit aim movement policy. Fixed-policy
-    ///     holds bleed momentum through friction; mobile-policy holds retain normal movement.
+    ///     holds stop horizontal momentum; mobile-policy holds retain normal movement.
     ///   - Aim phase: 8-tick debounce, optional mid-hold anim swap, manual release
     ///     (!IsAiming) or auto-release at the positive hold cap. A cap of zero is unlimited.
     ///     The cap reads the SPEC's ChargeHoldTicks — the same field Simulation.cs clamps

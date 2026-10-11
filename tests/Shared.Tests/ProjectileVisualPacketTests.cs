@@ -14,8 +14,8 @@ public sealed class ProjectileVisualPacketTests
         var entries = new[]
         {
             new ProjectileVisualState(1, 17, 2, CharacterClass.Wibou, AbilitySlots.A, false, 0, 1, 2, 0, 0, 20),
-            new ProjectileVisualState(1, 17, 3, CharacterClass.Wibou, AbilitySlots.A, false, 0, 1, 2, -5, 0, 19),
-            new ProjectileVisualState(1, 17, 4, CharacterClass.Wibou, AbilitySlots.A, false, 0, 1, 2, 5, 0, 19),
+            new ProjectileVisualState(1, 17, 3, CharacterClass.Wibou, AbilitySlots.A, false, 0, 1, 2, -5, 0, 19, .75f),
+            new ProjectileVisualState(1, 17, 4, CharacterClass.Wibou, AbilitySlots.A, false, 0, 1, 2, 5, 0, 19, 1f),
         };
         var packet = new ProjectileVisualPacket(42, entries);
         var bytes = new byte[packet.WireSize];
@@ -51,6 +51,13 @@ public sealed class ProjectileVisualPacketTests
         var nonfinite = (byte[])bytes.Clone();
         BinaryPrimitives.WriteInt32LittleEndian(nonfinite.AsSpan(ProjectileVisualPacket.HeaderSize + 23), unchecked((int)0x7FC00000));
         Assert.False(ProjectileVisualPacket.TryDeserialize(nonfinite, out _));
+        var badRadius = (byte[])bytes.Clone();
+        BinaryPrimitives.WriteInt32LittleEndian(badRadius.AsSpan(ProjectileVisualPacket.HeaderSize + 47),
+            BitConverter.SingleToInt32Bits(-1f));
+        Assert.False(ProjectileVisualPacket.TryDeserialize(badRadius, out _));
+        BinaryPrimitives.WriteInt32LittleEndian(badRadius.AsSpan(ProjectileVisualPacket.HeaderSize + 47),
+            unchecked((int)0x7FC00000));
+        Assert.False(ProjectileVisualPacket.TryDeserialize(badRadius, out _));
     }
     [Fact]
     public void WibouQProducesThreeIndividuallyAddressableProjectileVisuals()

@@ -8,7 +8,10 @@ namespace SlopArena.Client.UI
     public sealed class SteamRoomJoinPrompt
     {
         private static SteamRoomJoinPrompt? _active;
+        private static int _closedFrame = -1;
+        internal static bool ClosedThisFrame => _closedFrame == Time.frameCount;
         public static bool IsConfirming => _active != null;
+        internal static Button? ForwardButton => _active?._acceptButton;
         public static bool CancelActive()
         {
             if (_active == null) return false;
@@ -191,6 +194,7 @@ namespace SlopArena.Client.UI
 
             if (_ownsModal)
             {
+                _closedFrame = Time.frameCount;
                 if (_active == this) _active = null;
                 UiModalState.Pop();
                 _ownsModal = false;

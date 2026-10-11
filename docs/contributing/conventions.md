@@ -43,6 +43,8 @@ Thank creators in [Credits](../../CREDITS.md). Record source links, versions, li
 
 Keep purchased and restricted source packs out of Git, including Unity Asset Store imports and their raw art. The project also has ignored **required** local dependencies such as Animancer; a fresh checkout is not a complete visual or build environment. Check the actual build and tracked cooked artifacts before saying licensed work is absent from a distribution. See the accepted content boundary in [ADR 0022](../adr/0022-workshop-first-content-architecture.md).
 
+The local Cartoon FX adaptations `FightGuyCycloneSpiral`, `FightGuyEmpoweredHit`, `FightGuyKiRelease`, `FightGuyPowerAura`, `FightGuyRisingFist`, `FightGuyStrikeWrap`, and `MankiNormalHit` are excluded from Git with their `.meta` files. Provision these customized prefabs under each package's `Presentation/` directory from the local asset backup, preserving the `.meta` GUIDs used by the committed catalogs. Importing the vendor pack alone does not restore these customized copies. Project-authored normal swing prefabs, meshes, and materials remain versioned.
+
 ## Readability and presentation
 
 - Test silhouettes and move tells from the actual gameplay camera.

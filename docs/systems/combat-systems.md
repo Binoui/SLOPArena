@@ -144,6 +144,14 @@ determine capture; neither target lock nor Unity animation moves the victim.
 Reciprocal active grabs clash with 10 recovery ticks. An accepted damaging hit
 resolves before capture and interrupts a linked pair before its release.
 
+Forward reach is tuned for close frontal shield punishes after block response,
+not automatic capture of every blocked attack. Authored reach is 1.7 m for Manki,
+1.8 m for FightGuy/Wibou, and 1.9 m for Bonk; width, height, anchors and timing are
+unchanged. Spaced hits and sufficiently early recovery/IASA still permit escape.
+Existing vertical hurtbox coverage still applies, including low and airborne poses.
+Editor development matches consume source tuning; persisted matches receive it only
+after the accepted cook/verify/roster-refresh boundary.
+
 In the Editor, enable Scene or Game **Gizmos** to see the cooked forward grab box
 while `GrabAttempt` runs: yellow startup, orange active contact, gray whiff
 recovery. `PlayerRenderer` places it using Shared position and captured facing;

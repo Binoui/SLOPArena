@@ -8,36 +8,39 @@ public class FightGuyAbilityTests
 {
     private static readonly float GroundPY = TestHelpers.GroundPY(TestHelpers.FightGuyDef);
 
-    // ── A (Ki Shot — cooked projectile) ──
+    // ── A (Ki Shot — charged projectile) ──
 
     [Fact]
-    public void FightGuyKiShot_PressStartsAttackWithoutAimState()
+    public void FightGuyKiShot_PressStartsStationaryCharge()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState();
         state.PY = GroundPY;
-        TestHelpers.RegisterPlayer(sim, TestHelpers.FightGuyDef, state);
+        TestHelpers.RegisterPlayer(sim, ChargedQDefinition(), state);
         var result = TestHelpers.TickN(sim, new InputState { ActiveSlot = 11, IsAiming = true, AimYaw = 9000 }, 1);
-        Assert.Equal(ActionState.Attacking, result.State);
-        Assert.False(result.IsAiming);
+        Assert.Equal(ActionState.Aiming, result.State);
+        Assert.True(result.IsAiming);
     }
 
     [Fact]
-    public void FightGuyKiShot_FiresAfterStartupWhileAimInputIsIgnored()
+    public void FightGuyKiShot_HoldsThenFiresAfterReleaseStartup()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState();
         state.PY = GroundPY;
-        TestHelpers.RegisterPlayer(sim, TestHelpers.FightGuyDef, state);
+        TestHelpers.RegisterPlayer(sim, ChargedQDefinition(), state);
         sim.Tick(new() { { 1, new InputState { ActiveSlot = 11, IsAiming = true, AimYaw = 9000, AimPitch = 5000 } } });
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 60; i++)
         {
             sim.Tick(new() { { 1, new InputState { IsAiming = true, AimYaw = 9000, AimPitch = 5000 } } });
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
         }
-        sim.Tick(new() { { 1, new InputState { IsAiming = true, AimYaw = 9000, AimPitch = 5000 } } });
+        sim.Tick(new() { { 1, default } });
+        TestHelpers.TickDefault(sim, 8);
         var projectile = Assert.Single(sim.Resolver.GetActiveHitboxes());
         Assert.Equal(HitboxShape.Sphere, projectile.Shape);
+        Assert.Equal(1f, projectile.Radius);
+        Assert.Equal(20f, projectile.VZ, 3);
         Assert.True(projectile.VZ > 0f && MathF.Abs(projectile.VX) < projectile.VZ);
         Assert.InRange(MathF.Abs(projectile.VY), 0f, 0.1f);
     }
@@ -46,7 +49,7 @@ public class FightGuyAbilityTests
     public void FightGuyKiShot_HitDoesNotMarkTarget()
     {
         var sim = TestHelpers.MakeSim();
-        var def = TestHelpers.FightGuyDef;
+        var def = ChargedQDefinition();
         var baked = TestHelpers.LoadBakedData(def);
         var player = TestHelpers.PlayerState();
         player.PY = GroundPY;
@@ -63,6 +66,13 @@ public class FightGuyAbilityTests
         Assert.Equal((ushort)6, target.DamagePercent);
         Assert.Equal((byte)0, target.StatusFlags);
         Assert.Equal((ushort)0, target.StatusRemainingTicks);
+    }
+
+    private static CharacterDefinition ChargedQDefinition()
+    {
+        var def = TestHelpers.ResolveSourceDef("fightguy");
+        def.Class = CharacterClass.FightGuy;
+        return def;
     }
 
     // ── R (FightGuyCycloneKick) ──
@@ -151,6 +161,34 @@ public class FightGuyAbilityTests
     // ── F (FightGuy Fist of Fury) ──
 
     [Theory]
+    [InlineData(1UL, 100UL)]
+    [InlineData(100UL, 1UL)]
+    public void FightGuyFistOfFury_BodyContactHoldsCasterOnlyDuringMove(ulong casterId, ulong targetId)
+    {
+        var def = TestHelpers.FightGuyDef;
+        var sim = TestHelpers.MakeSim();
+        var player = TestHelpers.PlayerState(50f, 50f) with { PY = GroundPY };
+        var target = TestHelpers.NpcState(50f, 50.2f) with { PY = GroundPY };
+        sim.RegisterEntity(casterId, def, player);
+        sim.RegisterEntity(targetId, def, target);
+
+        sim.Tick(new() { { casterId, TestHelpers.Input(activeSlot: 6) }, { targetId, default } });
+
+        Assert.Equal(player.PZ, sim.GetState(casterId).PZ, 4);
+        Assert.Equal(player.PZ + def.CapsuleRadius * 2f, sim.GetState(targetId).PZ, 4);
+
+        for (int i = 0; i < 300 && sim.GetActiveAbility(casterId) != null; i++)
+            sim.Tick(new() { { casterId, default }, { targetId, default } });
+        Assert.Null(sim.GetActiveAbility(casterId));
+
+        sim.SetState(targetId, target);
+        sim.Tick(new() { { casterId, default }, { targetId, default } });
+
+        Assert.True(sim.GetState(casterId).PZ < player.PZ,
+            "ordinary body contact must push the caster again after the move ends");
+    }
+
+    [Theory]
     [InlineData(0.9f, 0, 0, CharacterClass.FightGuy)]
     [InlineData(1.6f, 150, 0, CharacterClass.FightGuy)]
     [InlineData(1.6f, 0, 20, CharacterClass.FightGuy)]
@@ -175,7 +213,7 @@ public class FightGuyAbilityTests
             .OfType<CookedSpawnHitboxOperation>()
             .Single(operation => operation.Hitbox.StartBoneId == "bone.right-foot");
         var sim = TestHelpers.MakeSim();
-        // Keep the combo away from the heightmap boundary while inward hits resolve pushboxes.
+        // Keep the combo away from the heightmap boundary.
         var player = TestHelpers.PlayerState(50f, 50f);
         player.PY = GroundPY;
         sim.RegisterEntity(1, def, player, baked);
@@ -217,6 +255,10 @@ public class FightGuyAbilityTests
                     Assert.Equal(AuthoringKnockbackDirection.TowardOwner, hit.KnockbackDirection);
                 }
             }
+
+            var attacker = sim.GetState(1);
+            Assert.InRange(MathF.Abs(attacker.PX - player.PX), 0f, 0.0001f);
+            Assert.InRange(MathF.Abs(attacker.PZ - player.PZ), 0f, 0.0001f);
 
             var target = sim.GetState(100);
             if (caught && !kicked)

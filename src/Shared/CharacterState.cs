@@ -53,7 +53,8 @@ namespace SlopArena.Shared
         public ushort DamagePercent;    // 0-999, Smash-style % (increases when hit, knockback scales with it)
         public byte JumpsLeft;
         public byte AirDodgesLeft;
-        /// <summary>Airborne ticks since the last gravity-window reset; selects ordinary FloatWindow gravity.</summary>
+        /// <summary>Airborne ticks since the last gravity-window reset; selects ordinary
+        /// FloatWindow gravity or the brief launch pop window, including during hitstun.</summary>
         public ushort AirTimeTicks;
         /// <summary>
         /// Consecutive ticks the jump key has been held (issue #116 / ADR-0016). Reset when
@@ -65,8 +66,8 @@ namespace SlopArena.Shared
         public bool IsGrounded;
         public bool WasAirborneDuringKnockback;
 
-        /// <summary>ADR-0019 §6: airborne from a launch, post-hitstun — flight gravity 8,
-        /// horizontal friction 10 until landing or any action (jump/ability). Replicated
+        /// <summary>Airborne from a launch, post-hitstun — launch gravity and horizontal
+        /// friction until landing or any action (jump/ability). Replicated
         /// in CharacterStatePacket so reconstruction preserves the flight law.</summary>
         public bool InPostHitstunFlight;
         /// <summary>Latched deliberate fast-fall action, replicated for reconstruction.</summary>

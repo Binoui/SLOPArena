@@ -18,11 +18,13 @@ namespace SlopArena.Client.UI
     public class MatchPauseMenu : MonoBehaviour
     {
         private bool _paused;
+        private int _pauseChangedFrame = -1;
         private CameraMount? _cameraMount;
         private bool _freezeSimulation = true;
         private InputController? _inputController;
         private Action? _onLeaveMatch;
         private VisualElement? _panel;
+        private Button? _resumeButton;
         private VisualElement? _leftSection;
         private SettingsOverlay? _settingsOverlay;
 
@@ -50,8 +52,25 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
-            if (SteamRoomJoinPrompt.IsConfirming)
+            // Escape also generates a UI Toolkit cancel event. Whichever path
+            // changes pause first consumes the press for this frame.
+            if (_pauseChangedFrame == Time.frameCount)
                 return;
+            if (SteamRoomJoinPrompt.ClosedThisFrame)
+                return;
+            if (SteamRoomJoinPrompt.IsConfirming)
+            {
+                if (!ChatInputGate.ExternalOverlaySuppressed)
+                {
+                    var pad = UnityEngine.InputSystem.Gamepad.current;
+                    if (pad?.buttonEast.wasPressedThisFrame == true)
+                        SteamRoomJoinPrompt.CancelActive();
+                    else if (pad?.startButton.wasPressedThisFrame == true
+                        && !pad.buttonSouth.wasPressedThisFrame)
+                        GamepadUIBridge.Submit(SteamRoomJoinPrompt.ForwardButton);
+                }
+                return;
+            }
             if (ChatInputGate.SuppressShortcuts)
                 return;
             if (SettingsOverlay.ClosedThisFrame)
@@ -59,6 +78,11 @@ namespace SlopArena.Client.UI
             if (SettingsOverlay.Active is { IsOpen: true })
                 return;
 
+            if (_paused && UnityEngine.InputSystem.Gamepad.current?.buttonEast.wasPressedThisFrame == true)
+            {
+                SetPaused(false);
+                return;
+            }
             if (HumanInputActions.Get("Pause").WasPressedThisFrame())
                 SetPaused(!_paused);
         }
@@ -67,6 +91,7 @@ namespace SlopArena.Client.UI
         {
             if (_paused == paused) return;
             _paused = paused;
+            _pauseChangedFrame = Time.frameCount;
             // Local Training/Solo pauses stop simulation; online UI suppresses
             // local controls while transport and authoritative progress continue.
             Time.timeScale = paused && _freezeSimulation ? 0f : 1f;
@@ -88,6 +113,9 @@ namespace SlopArena.Client.UI
 
             if (_panel != null)
                 _panel.style.display = paused ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (paused)
+                _resumeButton?.Focus();
 
             // The pause menu obscures chat, so the docked/expanded conversation
             // behind it must not be treated as read (issue #214).
@@ -144,15 +172,22 @@ namespace SlopArena.Client.UI
             box.Add(title);
 
             box.Add(MakeButton("SETTINGS", OpenSettings));
-            var resume = MakeButton("RESUME", () => SetPaused(false));
-            resume.AddToClassList("match-pause-action--primary");
-            box.Add(resume);
+            _resumeButton = MakeButton("RESUME", () => SetPaused(false));
+            _resumeButton.AddToClassList("match-pause-action--primary");
+            box.Add(_resumeButton);
             box.Add(MakeButton("LEAVE MATCH", LeaveMatch));
             box.Add(MakeButton("QUIT GAME", QuitGame));
 
             row.Add(box);
             _panel.Add(row);
             root.Add(_panel);
+            _panel.RegisterCallback<NavigationCancelEvent>(evt =>
+            {
+                evt.StopImmediatePropagation();
+                if (_paused && _pauseChangedFrame != Time.frameCount
+                    && !ChatInputGate.ExternalOverlaySuppressed)
+                    SetPaused(false);
+            });
             _panel.style.display = DisplayStyle.None;
         }
 

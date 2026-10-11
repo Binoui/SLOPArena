@@ -54,7 +54,7 @@
   "hurtboxRadius": 1,
   "shieldRadius": 1.05,
   "captureGeometry": {
-    "reach": 0.78,
+    "reach": 1.8,
     "width": 0.66,
     "height": 1.12,
     "offsetY": 0.56,
@@ -926,7 +926,7 @@
       "iconId": "icon.r",
       "behavior": "directionalDash",
       "aimMode": "groundVector",
-      "aimMovement": "mobile",
+      "aimMovement": "fixed",
       "cooldownTicks": 90,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,

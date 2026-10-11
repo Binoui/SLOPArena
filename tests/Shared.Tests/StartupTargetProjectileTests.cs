@@ -27,11 +27,14 @@ public sealed class StartupTargetProjectileTests
         sim.RegisterEntity(100, targetDef, target);
         var input = new InputState { ActiveSlot = 11, IsAiming = true, AimYaw = -9000, AimPitch = -5000 };
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
-        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
-        Assert.False(sim.GetState(1).IsAiming);
+        Assert.Equal(characterClass == CharacterClass.FightGuy ? ActionState.Aiming : ActionState.Attacking, sim.GetState(1).State);
+        Assert.Equal(characterClass == CharacterClass.FightGuy, sim.GetState(1).IsAiming);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
         input.ActiveSlot = 0;
-        for (var i = 0; i < 6; i++)
+        input.IsAiming = false;
+        if (characterClass == CharacterClass.FightGuy)
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
+        for (var i = 0; i < (characterClass == CharacterClass.FightGuy ? 7 : 6); i++)
         {
             sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
@@ -72,7 +75,7 @@ public sealed class StartupTargetProjectileTests
         sim.RegisterEntity(1, def, player);
         var input = new InputState { ActiveSlot = 11 };
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
-        for (var i = 0; i < 7; i++) sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+        for (var i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++) sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
         var shots = sim.Resolver.GetActiveHitboxes();
         Assert.Equal(characterClass == CharacterClass.Wibou ? 3 : 1, shots.Count);
         var shot = shots.OrderBy(x => MathF.Abs(x.VZ)).First();
@@ -108,7 +111,7 @@ public sealed class StartupTargetProjectileTests
         var input = new InputState { ActiveSlot = 11, TargetEntityId = 100 };
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
         input.ActiveSlot = 0;
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++)
             sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
         var shot = sim.Resolver.GetActiveHitboxes().OrderBy(x => MathF.Abs(x.VZ)).First();
         Assert.True(shot.VX > 0f && MathF.Abs(shot.VZ) < .01f);
@@ -120,7 +123,7 @@ public sealed class StartupTargetProjectileTests
         removed.Tick(new Dictionary<ulong, InputState> { [1] = input });
         removed.RemoveEntity(100);
         input.ActiveSlot = 0;
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++)
             removed.Tick(new Dictionary<ulong, InputState> { [1] = input });
         shot = removed.Resolver.GetActiveHitboxes().OrderBy(x => MathF.Abs(x.VX)).First();
         Assert.True(shot.VZ > 0f && MathF.Abs(shot.VX) < .01f);
@@ -135,7 +138,7 @@ public sealed class StartupTargetProjectileTests
         var inputs = new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = 11 } };
         sim.Tick(inputs);
         inputs[1] = default;
-        for (int tick = 2; tick <= 44; tick++)
+        for (int tick = 2; tick <= 45; tick++)
         {
             sim.Tick(inputs);
             Assert.Equal(ActionState.Attacking, sim.GetState(1).State);

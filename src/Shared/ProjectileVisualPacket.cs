@@ -13,14 +13,15 @@ public readonly record struct ProjectileVisualState(
     byte AttackSlot,
     bool Airborne,
     float X, float Y, float Z,
-    float VX, float VY, float VZ);
+    float VX, float VY, float VZ,
+    float Radius = 0.5f);
 
 public readonly struct ProjectileVisualPacket
 {
     private const uint Magic = 0x53495650; // PVIS
-    private const byte Version = 1;
+    private const byte Version = 2;
     public const int HeaderSize = 10;
-    public const int EntrySize = 47;
+    public const int EntrySize = 51;
     public const int MaxProjectiles = 16;
     public const int MaxSize = HeaderSize + EntrySize * MaxProjectiles;
 
@@ -60,6 +61,7 @@ public readonly struct ProjectileVisualPacket
             WriteFloat(entry.Slice(35), value.VX);
             WriteFloat(entry.Slice(39), value.VY);
             WriteFloat(entry.Slice(43), value.VZ);
+            WriteFloat(entry.Slice(47), value.Radius);
         }
     }
 
@@ -82,7 +84,8 @@ public readonly struct ProjectileVisualPacket
                 BinaryPrimitives.ReadInt32LittleEndian(entry.Slice(16)),
                 (CharacterClass)entry[20], entry[21], entry[22] == 1,
                 ReadFloat(entry.Slice(23)), ReadFloat(entry.Slice(27)), ReadFloat(entry.Slice(31)),
-                ReadFloat(entry.Slice(35)), ReadFloat(entry.Slice(39)), ReadFloat(entry.Slice(43)));
+                ReadFloat(entry.Slice(35)), ReadFloat(entry.Slice(39)), ReadFloat(entry.Slice(43)),
+                ReadFloat(entry.Slice(47)));
             if (!Valid(value)) return false;
             entries[i] = value;
         }
@@ -100,5 +103,6 @@ public readonly struct ProjectileVisualPacket
             && value.Character is > CharacterClass.None and <= CharacterClass.Bonk
             && value.AttackSlot > 0 && value.AttackSlot <= AbilitySlots.Count
             && Finite(value.X) && Finite(value.Y) && Finite(value.Z)
-            && Finite(value.VX) && Finite(value.VY) && Finite(value.VZ);
+            && Finite(value.VX) && Finite(value.VY) && Finite(value.VZ)
+            && Finite(value.Radius) && value.Radius > 0f;
 }

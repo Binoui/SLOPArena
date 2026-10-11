@@ -413,6 +413,15 @@ namespace SlopArena.Client.Input
             return Vector2.ClampMagnitude(new Vector2(x, y) + stick, 1f);
         }
 
+        /// <summary>Stationary aim uses the left stick; the right stick remains a fallback.</summary>
+        public Vector2 GetAimStick(bool locksMovement)
+        {
+            if (_aiControlled || HumanInputBlocked) return Vector2.zero;
+            Vector2 left = HumanInputActions.Get("MoveStick").ReadValue<Vector2>();
+            return locksMovement && left.sqrMagnitude > 0.01f
+                ? left : HumanInputActions.StickLook.ReadValue<Vector2>();
+        }
+
         // ════════════════════════════════════════════════════════════════
         //  BuildInputState
         // ════════════════════════════════════════════════════════════════
@@ -559,10 +568,11 @@ namespace SlopArena.Client.Input
 
             input.AimDistance = aimCtx.AimDistanceCm ?? 0;
             // FSM movement gate: zero out input if state disallows movement
-            if (canMove != null && !canMove())
+            if (aimCtx.LocksMovement || (canMove != null && !canMove()))
             {
                 input.MoveX = 0f;
                 input.MoveY = 0f;
+                input.Up = input.Left = input.Right = false;
                 input.Jump = false;
                 input.JumpHeld = false;
                 moveDirection = Vector3.zero;

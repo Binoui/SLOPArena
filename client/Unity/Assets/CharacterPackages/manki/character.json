@@ -54,7 +54,7 @@
   "hurtboxRadius": 1,
   "shieldRadius": 0.95,
   "captureGeometry": {
-    "reach": 0.66,
+    "reach": 1.7,
     "width": 0.58,
     "height": 0.98,
     "offsetY": 0.49,
@@ -181,7 +181,13 @@
     "presentation.manki.aerosol-inferno.start",
     "presentation.manki.round-bomb.explosion",
     "presentation.manki.jetpack-boost.ignition",
-    "presentation.manki.bazooka.explosion"
+    "presentation.manki.jetpack-boost.exhaust",
+    "presentation.manki.bazooka.explosion",
+    "presentation.manki.bazooka.muzzle",
+    "presentation.manki.normal.strike",
+    "presentation.manki.normal.sweep",
+    "presentation.manki.normal.heavy",
+    "presentation.manki.normal.hit"
   ],
   "capabilityRequirements": [
     {
@@ -265,11 +271,32 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 9,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.18,
+                  "localPositionZ": 0.24,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.75,
+                  "localScaleY": 0.75,
+                  "localScaleZ": 0.75,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "air.1",
@@ -360,11 +387,52 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.strike",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.1,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 18,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.strike",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.1,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1.1,
+                  "localScaleY": 1.1,
+                  "localScaleZ": 1.1,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "ground.2",
@@ -429,11 +497,32 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 9,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.strike",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.15,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "air.2",
@@ -524,11 +613,52 @@
                   "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.12,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.12,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.6,
+                  "localScaleY": 0.6,
+                  "localScaleZ": 0.6,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "ground.3",
@@ -593,11 +723,32 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 9,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.18,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "air.3",
@@ -662,11 +813,32 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 16,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.14,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1.05,
+                  "localScaleY": 1.05,
+                  "localScaleZ": 1.05,
+                  "durationTicks": 9
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "ground.4",
@@ -731,11 +903,52 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.12,
+                  "localPositionZ": 0.12,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 10
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.sweep",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0.12,
+                  "localPositionZ": 0.12,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.6,
+                  "localScaleY": 0.6,
+                  "localScaleZ": 0.6,
+                  "durationTicks": 10
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "air.4",
@@ -800,11 +1013,32 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 23,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.normal.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.1,
+                  "localPositionZ": 0.18,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 10
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.normal.hit"
     },
     {
       "id": "ground.A",
@@ -813,7 +1047,7 @@
       "iconId": "icon.a",
       "behavior": "aimedProjectile",
       "aimMode": "groundCursor",
-      "aimMovement": "mobile",
+      "aimMovement": "fixed",
       "aimAnimationId": "anim.manki.ga-loop",
       "cooldownTicks": 240,
       "isRecoveryMove": false,
@@ -915,6 +1149,26 @@
                   "explosionDurationTicks": 8,
                   "explosionPresentationId": "presentation.manki.jetpack-boost.ignition"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 3,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.jetpack-boost.exhaust",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": -0.15,
+                  "localPositionZ": -0.2,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 57
+                }
               }
             ]
           }
@@ -974,6 +1228,26 @@
                   "castDuration": 20,
                   "recoveryDuration": 15,
                   "explosionPresentationId": "presentation.manki.bazooka.explosion"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 6,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.bazooka.muzzle",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": -0.176166,
+                  "localPositionY": 1.293537,
+                  "localPositionZ": -0.085102,
+                  "localRotationX": -20,
+                  "localRotationY": -90,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 18
                 }
               }
             ]
@@ -1053,9 +1327,9 @@
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.right-hand",
-                  "localPositionX": 0.42,
-                  "localPositionY": 0,
-                  "localPositionZ": 0.66,
+                  "localPositionX": 0,
+                  "localPositionY": 0.14,
+                  "localPositionZ": 0.385,
                   "localRotationX": 90,
                   "localRotationY": 0,
                   "localRotationZ": 0,

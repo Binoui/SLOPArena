@@ -43,6 +43,9 @@ Desktop.ini
 # Local harness configuration
 /.mcp.json
 
+# Project-local SlopBot character progress.
+/.slopbot/
+
 # Local Blender studies and export bundles (archive before pruning).
 # Existing tracked Blender sources remain versioned.
 *.blend1
@@ -159,6 +162,8 @@ client/Unity/Assets/JMO\ Assets/
 client/Unity/Assets/JMO\ Assets.meta
 
 # Locally imported JustCreate environment packs (non-redistributable)
+client/Unity/Assets/LP_CozyInterior_JC/
+client/Unity/Assets/LP_CozyInterior_JC.meta
 client/Unity/Assets/LowPolyMegaBundle/
 client/Unity/Assets/LowPolyMegaBundle.meta
 client/Unity/Assets/LowPoly*/
@@ -185,6 +190,22 @@ client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShot.prefa
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShot.prefab.meta
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShotHit.prefab
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShotHit.prefab.meta
+
+# Local Cartoon FX-derived character effects; keep copies and GUID metadata local.
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyCycloneSpiral.prefab
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyCycloneSpiral.prefab.meta
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyEmpoweredHit.prefab
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyEmpoweredHit.prefab.meta
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiRelease.prefab
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiRelease.prefab.meta
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyPowerAura.prefab
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyPowerAura.prefab.meta
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyRisingFist.prefab
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyRisingFist.prefab.meta
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyStrikeWrap.prefab
+client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyStrikeWrap.prefab.meta
+client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab
+client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab.meta
 
 # Character art (models, textures, materials — non-redistributable)
 # Solo-dev local audio; keep licensed/downloaded source assets out of Git.
@@ -242,6 +263,14 @@ client/Unity/Assets/Resources/InputPrompts.meta
 *.jpg
 *.jpeg
 *.mat
+!client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyTornadoRibbon.mat
+!client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyNormalSwing.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiClothCharcoal.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWorkGloves.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWornMetal.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/MankiAerosolFlame.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/MankiFuseEmber.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalSwing.mat
 *.mask
 *.exr
 *.hdr
@@ -261,6 +290,12 @@ client/Unity/Assets/Resources/InputPrompts.meta
 # Stage presentation prefabs (local licensed art dependencies)
 client/Unity/Assets/Resources/Stages/*.prefab
 client/Unity/Assets/Resources/Stages/*.prefab.meta
+
+# Local stage previews and Cozy Interior-derived table mesh.
+client/Unity/Assets/StageDesignPreviews/
+client/Unity/Assets/StageDesignPreviews.meta
+client/Unity/Assets/Stages/table_manners/TableMannersCoffeeTable.asset
+client/Unity/Assets/Stages/table_manners/TableMannersCoffeeTable.asset.meta
 
 # Auto-generated prefabs from symlinked asset packs (regenerate on clone)
 client/Unity/Assets/Prefabs/Arena_*.prefab
@@ -345,3 +380,11 @@ __pycache__/
 # Runtime UI artwork shipped with the pre-match screens.
 !client/Unity/Assets/Resources/UI/Portraits/*.png
 !client/Unity/Assets/Resources/UI/Stages/*.png
+
+# Table Manners preview depends on the locally installed Cozy Interior pack.
+client/Unity/Assets/Resources/UI/Stages/table_manners.png
+client/Unity/Assets/Resources/UI/Stages/table_manners.png.meta
+
+# Last Stop preview depends on the locally installed Train Station pack.
+client/Unity/Assets/Resources/UI/Stages/last_stop.png
+client/Unity/Assets/Resources/UI/Stages/last_stop.png.meta

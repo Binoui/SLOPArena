@@ -18,6 +18,7 @@
     "VZ": 3.559042,
     "DamagePercent": 15,
     "HitstunTicks": 15,
+    "AirTimeTicks": 1,
     "JumpsLeft": 2
   },
   "PlayerFinal": {
@@ -30,12 +31,12 @@
   },
   "NpcFinal": {
     "FacingYaw": -3.1415927,
-    "PY": 2.8247523,
-    "PZ": 2.4461873,
-    "VY": 1.5828378,
-    "VZ": 1.0590415,
+    "PY": 1.926419,
+    "PZ": 2.5795217,
+    "VY": -0.983829,
+    "VZ": 2.0590434,
     "DamagePercent": 15,
-    "AirTimeTicks": 15,
+    "AirTimeTicks": 30,
     "JumpsLeft": 2
   }
 }

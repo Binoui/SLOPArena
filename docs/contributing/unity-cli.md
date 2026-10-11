@@ -93,6 +93,9 @@ Use your own runtime-issued terminal handle from the injected session/task ident
 Set `ORCA_TERMINAL_HANDLE` explicitly; the gateway confirms that exact handle and
 incarnation with Orca. Never infer your identity from an active pane or an unqualified
 `orca-ide terminal show`. Missing/mismatched/orphaned identity fails before acquisition.
+T3 Code sessions use their harness-injected `CODEX_THREAD_ID` and
+`CODEX_SESSION_ID` instead; the gateway records a namespaced `t3:<thread-id>`
+caller and retains the same lease, settlement and release protocol.
 
 For the examples below, define this local shell helper once; it is not an installed
 alias and does not modify shell configuration:
@@ -135,41 +138,53 @@ For gameplay scenarios, run and inspect the native Shared two-fighter scenario
 first. Do not generate temporary C# or use `eval` to create opponents or arrange
 gameplay. `eval` is reserved for novel diagnostics not covered by a typed command.
 
-```bash
-editor sloparena.lab.open --target fightguy
-# Normal hit
-editor sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 \
-  --opponent idle
-# Block, miss, shared grab capture/throw
-editor sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 \
-  --opponent shield
-editor sloparena.lab.run --action ground.1 --ticks 60 --distance 12 \
-  --opponent idle
-editor sloparena.lab.run --action grab --ticks 60 --distance 0.7 \
-  --opponent idle
-editor sloparena.lab.inspect
+Keep open/run/inspect in one gateway batch. Save this as `/tmp/ability-lab-run.json`:
+
+```json
+{
+  "commands": [
+    ["sloparena.lab.open", "--target", "fightguy"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "1.2", "--opponent", "idle"],
+    ["sloparena.lab.inspect"]
+  ],
+  "restore": []
+}
 ```
+
+```bash
+bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
+  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+  --batch /tmp/ability-lab-run.json
+```
+
+This Edit Mode example intentionally leaves the Lab selected; declare any
+task-required restoration in `restore`. Complete shield/miss/grab and capture
+batches are in the [Ability Lab guide](../systems/ability-lab.md#agent-facing-workspace-commands).
 
 The Ability Lab UI shows both fighters and scenario controls. The `run`
 contract is `--action <canonical-id|grab> --ticks <last-frame>` (0–3600),
-`--distance <metres>`, `--opponent idle|shield`, `--damage 0..999`, and
-`--facing <relative-degrees>`. Defaults are 60, 2.5, idle, 0, and 180.
+`--distance <metres>`, `--opponent idle|shield`, `--damage 0..999`,
+`--facing <relative-degrees>`, and `--charge-ticks 0..600`.
+Defaults are 60, 2.5, idle, 0, 180°, and zero held ticks.
+Charge ticks hold aim, then release; zero means no held input, including for
+targeted leaps. A capped charge stays held until the requested release.
+Choose a horizon long enough to observe release and recovery.
 Outcomes are genuine Shared results: success may mean hit, blocked contact,
 miss, grab whiff, or paired capture/release, not guaranteed success.
 
 Use `preview --action <id|grab> --tick <frame>` to seek recorded scenario
 frames; frame 0 is the first input at MatchTick 1. `capture --action` uses the
-matching recorded run and its options, not replacement defaults.
-Without a matching run, `grab` preview/capture creates a default grab scenario;
-it does not inherit another action's distance, opponent, damage, facing or horizon.
-Canonical actions without a matching run retain ordinary authoring preview.
-For example, run a grab with the desired distance/opponent/horizon, then:
-
-```bash
-editor sloparena.lab.preview --action grab --tick 7
-editor sloparena.lab.capture --action grab --ticks 7,19 \
-  --output .ability-lab-cache/fightguy/grab
-```
+matching recorded run and its options when `--charge-ticks` is omitted.
+Explicit `--charge-ticks 0` requests a tap, not a replay of a held charge.
+Changing capture's charge creates a new scenario with default opponent settings;
+prefer an explicit `run` followed by capture with charge omitted to preserve
+your chosen distance, opponent, damage and horizon.
+Without a matching run or explicit charge, `grab` preview/capture creates a default
+grab scenario; it does not inherit another action's options. Canonical actions
+without a matching run retain ordinary authoring preview.
+Keep open/run/preview/capture in one batch; see the
+[grab capture batch](../systems/ability-lab.md#agent-facing-workspace-commands)
+and the [charged-run recipe](../../.omp/skills/sloparena-ability-lab/SKILL.md#charged-run-and-recorded-capture).
 
 This scenario frame numbering differs from canonical authoring timeline
 preview: authoring cumulative ticks include the requested duration endpoint,

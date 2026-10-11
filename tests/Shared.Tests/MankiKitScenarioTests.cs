@@ -119,7 +119,8 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         var slot = package.Definition.Slots.Single(x => x.Id == slotId);
         Assert.Equal(behavior, slot.Behavior);
         Assert.Equal(aimMode, slot.AimMode);
-        var operation = Assert.IsType<CookedStartCapabilityOperation>(Assert.Single(slot.Timeline.Stages.Single().Operations));
+        var operation = Assert.Single(slot.Timeline.Stages.Single().Operations
+            .OfType<CookedStartCapabilityOperation>());
         Assert.Equal((ushort)0, operation.Tick);
         Assert.Equal(capabilityId, operation.CapabilityId);
         Assert.Equal("1", operation.CapabilityVersion);

@@ -31,7 +31,7 @@ namespace SlopArena.Client.UI
             _context.Q<Button>("menu-online")!.clicked += () => FrontendController.StartMode(GameMode.PvP);
             _context.Q<Button>("menu-solo")!.clicked += () => FrontendController.StartMode(GameMode.Solo);
             _context.Q<Button>("menu-training")!.clicked += () => FrontendController.StartMode(GameMode.Training);
-            MenuNavigation.Configure(_context, null, ReturnToMainMenu);
+            MenuNavigation.Configure(_context, _context.Q<Button>("menu-online"), ReturnToMainMenu);
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
             _artworkColumn?.RegisterCallback<GeometryChangedEvent>(FitArtwork);

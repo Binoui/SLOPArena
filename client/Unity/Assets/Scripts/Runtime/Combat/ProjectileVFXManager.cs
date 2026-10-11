@@ -50,7 +50,7 @@ namespace SlopArena.Client.Combat
 
         private readonly Dictionary<ulong, HeldProjectile> _heldVisuals = new();
 
-        public void UpdateHeldVisual(ulong owner, CharacterState state, Transform hand)
+        public void UpdateHeldVisual(ulong owner, CharacterState state, Transform hand, CharacterDefinition definition)
         {
             bool aiming = state.State == ActionState.Aiming && state.AttackSlot == AbilitySlots.A;
             bool firing = state.State == ActionState.Attacking && state.AttackSlot == AbilitySlots.A;
@@ -74,6 +74,10 @@ namespace SlopArena.Client.Combat
                 };
                 held.Visual.transform.position = hand.position;
             }
+            var charge = GetChargedProjectileParameters(definition, state.AttackSlot, !state.IsGrounded);
+            if (held.Visual != null && charge != null)
+                ScaleProjectileVisual(held.Visual, charge.GetRadius(state.ChargeTicks), charge,
+                    CharacterClass.FightGuy, state.AttackSlot, !state.IsGrounded);
             _heldVisuals[owner] = held;
         }
 
@@ -140,6 +144,11 @@ namespace SlopArena.Client.Combat
                     _remoteVisuals.Add(key, visual);
                 }
                 visual.transform.position = new Vector3(projectile.X, projectile.Y, projectile.Z);
+                var charge = GetChargedProjectileParameters(
+                    SlopArena.Client.ClientSession.MatchContentCatalog?.Resolve(projectile.Character)?.Definition,
+                    projectile.AttackSlot, projectile.Airborne);
+                ScaleProjectileVisual(visual, projectile.Radius, charge,
+                    projectile.Character, projectile.AttackSlot, projectile.Airborne);
                 OrientProjectile(visual.transform, projectile.Character, projectile.AttackSlot,
                     projectile.VX, projectile.VY, projectile.VZ);
             }
@@ -178,6 +187,9 @@ namespace SlopArena.Client.Combat
                     _activeProjectileClasses[projectileKey] = character;
                 }
                 vis.transform.position = new Vector3(hb.X, hb.Y, hb.Z);
+                ScaleProjectileVisual(vis, hb.Radius,
+                    GetChargedProjectileParameters(_sim.GetDefinition(hb.OwnerId), hb.AttackSlot, hb.ActivationAirborne),
+                    character, hb.AttackSlot, hb.ActivationAirborne);
                 OrientProjectile(vis.transform, character, hb.AttackSlot, hb.VX, hb.VY, hb.VZ);
             }
 
@@ -214,6 +226,27 @@ namespace SlopArena.Client.Combat
             hash = hash * 31 + Mathf.RoundToInt(oy * 10f);
             hash = hash * 31 + Mathf.RoundToInt(oz * 10f);
             return hash;
+        }
+
+        private static CookedChargedProjectileCapabilityParameters GetChargedProjectileParameters(
+            CharacterDefinition definition, byte slot, bool airborne)
+        {
+            var cooked = definition?.GetCookedSlotAbility(slot, airborne);
+            if (cooked == null) return null;
+            foreach (var stage in cooked.Timeline.Stages)
+            foreach (var operation in stage.Operations)
+                if (operation is CookedStartCapabilityOperation
+                    { Parameters: CookedChargedProjectileCapabilityParameters charge })
+                    return charge;
+            return null;
+        }
+
+        private void ScaleProjectileVisual(GameObject visual, float radius,
+            CookedChargedProjectileCapabilityParameters charge, CharacterClass character, byte slot, bool airborne)
+        {
+            if (charge == null || visual == null) return;
+            float baseScale = FindProjectileEntry(character, slot, airborne)?.Scale ?? _sphereRadius * 2f;
+            visual.transform.localScale = Vector3.one * (baseScale * radius / charge.Projectile.Radius);
         }
 
         private GameObject CreateProjectileVisual(CharacterClass character, byte attackSlot, bool airborne)

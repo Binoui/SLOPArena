@@ -112,7 +112,7 @@ namespace SlopArena.Client.UI
                 _btnStart.style.display = DisplayStyle.None;
             }
             // Leave is always visible; never focus a hidden recovery action first.
-            MenuNavigation.Configure(_context, _btnLeave ?? _btnStart ?? _btnRetry, Leave);
+            MenuNavigation.Configure(_context, _btnLeave ?? _btnStart ?? _btnRetry, Leave, _btnStart);
 
             RenderPlayers();
             var chat = ChatSession.Instance;

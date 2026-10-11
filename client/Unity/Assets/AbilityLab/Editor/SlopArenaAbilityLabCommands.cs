@@ -948,6 +948,9 @@ public static class SlopArenaAbilityLabCommands
     {
         var result = new AbilityLabCommandResult { Success = true };
         AbilityLab? lab = window != null ? window.CommandLab : AbilityLab.Instance;
+        result.PresentationDiagnostics = lab?.PresentationPreviewDiagnostics.ToList();
+        result.ActiveVfxCount = lab?.PresentationPreviewInstanceCount;
+        result.RigInstanceId = lab != null ? lab.gameObject.GetInstanceID() : null;
         ApplyScenarioSnapshot(result, lab, scenarioOverride);
         if (window == null)
         {
@@ -1230,12 +1233,15 @@ public sealed class AbilityLabCommandResult
     [JsonProperty("previewStatus", NullValueHandling = NullValueHandling.Ignore)] public string? PreviewStatus { get; set; }
     [JsonProperty("workspaceStatus", NullValueHandling = NullValueHandling.Ignore)] public string? WorkspaceStatus { get; set; }
     [JsonProperty("rigName", NullValueHandling = NullValueHandling.Ignore)] public string? RigName { get; set; }
+    [JsonProperty("rigInstanceId", NullValueHandling = NullValueHandling.Ignore)] public int? RigInstanceId { get; set; }
     [JsonProperty("cameraName", NullValueHandling = NullValueHandling.Ignore)] public string? CameraName { get; set; }
     [JsonProperty("slots", NullValueHandling = NullValueHandling.Ignore)] public List<AbilityLabCommandSlot>? Slots { get; set; }
     [JsonProperty("diagnostics")] public List<AbilityLabCommandDiagnostic> Diagnostics { get; } = new();
     [JsonProperty("captures", NullValueHandling = NullValueHandling.Ignore)] public List<AbilityLabCommandCapture>? Captures { get; set; }
     [JsonProperty("presentation", NullValueHandling = NullValueHandling.Ignore)] public SlopArenaPresentationActorInfo? Presentation { get; set; }
     [JsonProperty("presentationError", NullValueHandling = NullValueHandling.Ignore)] public string? PresentationError { get; set; }
+    [JsonProperty("presentationDiagnostics", NullValueHandling = NullValueHandling.Ignore)] public List<string>? PresentationDiagnostics { get; set; }
+    [JsonProperty("activeVfxCount", NullValueHandling = NullValueHandling.Ignore)] public int? ActiveVfxCount { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]

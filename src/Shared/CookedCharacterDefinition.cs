@@ -463,6 +463,23 @@ public sealed record CookedProjectile(
     ushort MaxFlightTicks,
     float YawOffsetDegrees = 0f);
 
+public sealed record CookedChargedProjectileCapabilityParameters(
+    ushort MaxChargeTicks,
+    ushort Tier2Ticks,
+    ushort Tier3Ticks,
+    ushort FireTriggerTick,
+    float Tier2Radius,
+    float Tier3Radius,
+    CookedProjectile Projectile) : CookedCapabilityParameters
+{
+    public byte GetChargeTier(ushort chargeTicks)
+        => chargeTicks >= Tier3Ticks ? (byte)2 : chargeTicks >= Tier2Ticks ? (byte)1 : (byte)0;
+
+    public float GetRadius(ushort chargeTicks)
+        => GetChargeTier(chargeTicks) == 2 ? Tier3Radius
+            : GetChargeTier(chargeTicks) == 1 ? Tier2Radius : Projectile.Radius;
+}
+
 public sealed class CookedSetAimStateOperation : CookedTimelineOperation
 {
     public AuthoringAimMode AimState { get; }

@@ -49,6 +49,21 @@ public sealed class CookedTimelineAbility : ServerAbility
         }
     }
 
+    public override bool HoldsFighterPushboxPosition
+    {
+        get
+        {
+            if (_completed)
+                return false;
+            // Pulling victims into body contact must not push the caster out of the combo.
+            foreach (var operation in CurrentStage.Operations)
+                if (operation is CookedSpawnHitboxOperation hitbox &&
+                    hitbox.Hitbox.KnockbackDirection == AuthoringKnockbackDirection.TowardOwner)
+                    return true;
+            return false;
+        }
+    }
+
 
     public CookedTimelineAbility(CookedSlotDefinition slot, string[] animationNames)
     {
@@ -281,7 +296,8 @@ public sealed class CookedTimelineAbility : ServerAbility
                     SpawnCookedHitbox(ref s, hitbox.Hitbox);
                     break;
                 case CookedSpawnProjectileOperation projectile:
-                    SpawnCookedProjectile(ref s, projectile.Projectile, flattenedOperationIndex);
+                    SpawnCookedProjectile(ref s, projectile.Projectile, flattenedOperationIndex,
+                        _slot.Behavior == AuthoringAbilityBehavior.AimedProjectile && _slot.AimMode == AuthoringAimMode.None);
                     break;
                 case CookedSetAimStateOperation aim:
                     s.IsAiming = aim.AimState != AuthoringAimMode.None;
@@ -406,54 +422,6 @@ public sealed class CookedTimelineAbility : ServerAbility
             Interruptible = cooked.Interruptible,
             HitGroup = cooked.HitGroup,
             KnockbackDirection = cooked.KnockbackDirection,
-        });
-    }
-
-    private void SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex)
-    {
-        float aimYaw;
-        float aimPitch;
-        if (_slot.Behavior == AuthoringAbilityBehavior.AimedProjectile && _slot.AimMode == AuthoringAimMode.None)
-        {
-            OwnerSimulation!.ResolveAutoTargetProjectileAim(ref s, projectile.LaunchOffsetX,
-                projectile.LaunchOffsetY, projectile.LaunchOffsetZ, out aimYaw, out aimPitch);
-        }
-        else
-        {
-            aimYaw = s.AttackCorrectionOwned ? s.FacingYaw : s.AimYaw;
-            aimPitch = s.AttackCorrectionOwned ? s.AttackPosePitch : s.AimPitch;
-        }
-        aimYaw += projectile.YawOffsetDegrees * MathF.PI / 180f;
-        float cosPitch = MathF.Cos(aimPitch);
-        float dirX = cosPitch * MathF.Sin(aimYaw);
-        float dirY = MathF.Sin(aimPitch);
-        float dirZ = cosPitch * MathF.Cos(aimYaw);
-        float cosYaw = MathF.Cos(s.FacingYaw);
-        float sinYaw = MathF.Sin(s.FacingYaw);
-        float offsetX = projectile.LaunchOffsetX * cosYaw + projectile.LaunchOffsetZ * sinYaw;
-        float offsetZ = -projectile.LaunchOffsetX * sinYaw + projectile.LaunchOffsetZ * cosYaw;
-        float damage = projectile.Damage;
-        float radius = projectile.Radius;
-        SpawnResolverHitbox(new Hitbox
-        {
-            X = s.PX + offsetX,
-            Y = s.PY + projectile.LaunchOffsetY,
-            Z = s.PZ + offsetZ,
-            VX = dirX * projectile.Speed,
-            VY = dirY * projectile.Speed,
-            VZ = dirZ * projectile.Speed,
-            Radius = radius,
-            Shape = HitboxShape.Sphere,
-            Damage = damage,
-            BaseKnockback = projectile.BaseKnockback,
-            KnockbackGrowth = projectile.KnockbackGrowth,
-            KnockbackAngle = (sbyte)projectile.Angle,
-            StunTicks = projectile.StunTicks,
-            DurationTicks = projectile.MaxFlightTicks,
-            OwnerId = s.EntityId,
-            AttackSlot = (byte)(Slot + 1),
-            VisualOperationIndex = operationIndex,
-            Gravity = projectile.Gravity,
         });
     }
 

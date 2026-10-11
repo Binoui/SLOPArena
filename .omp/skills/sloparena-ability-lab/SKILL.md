@@ -3,7 +3,7 @@ name: sloparena-ability-lab
 description: "Use when an agent needs native-first Ability Lab runs or scenarios against idle/shield opponents, Shared hit/block/miss/grab outcomes, recorded-frame preview or capture, or workspace diagnostics."
 category: game-dev
 ---
-Before gateway examples, set `ORCA_TERMINAL_HANDLE` to your own runtime-issued terminal handle; the gateway verifies its incarnation and fails closed if it is missing or mismatched. Use the canonical gateway in [`docs/contributing/unity-cli.md`](../../../docs/contributing/unity-cli.md) and the [shared Editor coordination protocol](file:///home/binoui/Documents/projects/sloparena-workspace/docs/unity-editor-coordination.md). Wait for an independent lease; never inject work into an owner's batch. Runtime ownership status replaces historical Markdown ownership; `blocked` or unknown is not free.
+Orca callers set `ORCA_TERMINAL_HANDLE` to their own runtime-issued terminal handle. T3 Code callers use their harness-injected `CODEX_THREAD_ID`/`CODEX_SESSION_ID`; the gateway namespaces that identity and retains the same lease protocol. Use the canonical gateway in [`docs/contributing/unity-cli.md`](../../../docs/contributing/unity-cli.md) and the [shared Editor coordination protocol](file:///home/binoui/Documents/projects/sloparena-workspace/docs/unity-editor-coordination.md). Wait for an independent lease; never inject work into an owner's batch. Runtime ownership status replaces historical Markdown ownership; `blocked` or unknown is not free.
 
 # SlopArena Ability Lab
 
@@ -22,16 +22,12 @@ reference, *Screenshots and visual evidence*).
 bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts status --project-path /home/binoui/Documents/projects/SlopArena/client/Unity
 bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- --query sloparena.lab --detail full
    ```
-2. Open the package and run an actual scenario. Choose distance/opponent
-   deliberately; `run` does not force a hit:
-   ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.open --target fightguy
-# Hit / block / miss / shared grab
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent idle
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent shield
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 12 --opponent idle
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action grab --ticks 60 --distance 0.7 --opponent idle
-   ```
+2. Open the package and run an actual scenario in one gateway `--batch`.
+   Choose distance/opponent deliberately; `run` does not force a hit.
+   Use the complete hit/block/miss/grab and capture batches in the
+   [Ability Lab guide](../../../docs/systems/ability-lab.md#agent-facing-workspace-commands).
+   Put required restoration in `restore`; do not split dependent workspace
+   operations across leases.
 3. Check `.data.result.success` and diagnostics, then assess observations:
    `scenario.frames[]` contains both fighters' state, movement/knockback
    velocity, facingYaw (radians), damage, hitstop/hitstun/blockStun and
@@ -42,13 +38,14 @@ bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gat
    have no contacts; judge semantic outcomes, not just command success.
 4. `preview --action <id|grab> --tick <frame>` seeks the same action's recorded
    run. `capture --action <id|grab> --ticks <frames>` captures that matching
-   recorded run/options; first run the desired scenario. Without a matching
-   run, grab uses default scenario options, never another action's options;
-   canonical actions retain ordinary authoring preview. Example:
-   ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.preview --action grab --tick 7
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.capture --action grab --ticks 7,19 --output .ability-lab-cache/fightguy/grab
-   ```
+   recorded run/options; first run the desired scenario in the same batch.
+   Omit capture's `--charge-ticks` to replay the recorded charge.
+   Explicit `--charge-ticks 0` requests a tap rather than reusing a held run.
+   Changing capture's charge creates a new scenario with default opponent
+   settings; use `run` first to choose distance/opponent/damage deliberately.
+   Without a matching run or explicit charge, grab uses default scenario
+   options, never another action's options; canonical actions retain ordinary
+   authoring preview.
 5. Use `inspect` for current workspace/run state (the gateway already forces JSON). Capture writes
    PNGs only under `.ability-lab-cache/`, rejects existing files and unsafe
    paths, cleans partial outputs on failure, and restores prior cursor,
@@ -56,11 +53,43 @@ bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gat
    Edit Mode and report structured failures for invalid mode, missing/invalid
    preview/action/options/frame, or capture input/path issues. Require semantic
    result success; inspect diagnostics.
+   `inspect` exposes `activeVfxCount`, `presentationDiagnostics` and the live
+   `rigInstanceId`. Hidden preview rigs do not resolve reliably by hierarchy
+   path. If a typed transform command is needed, target the observed
+   `instanceId:<rigInstanceId>`; inspect again after reload or rig recreation.
 
 `--ticks` on `run` is the last frame (0–3600); defaults are last frame 60,
-distance 2.5 m, idle opponent, damage 0, facing 180°. `--opponent` is `idle`
-or `shield`; damage range is 0–999. UI displays both fighters and scenario
-controls.
+distance 2.5 m, idle opponent, damage 0, facing 180°, and zero held ticks.
+`--opponent` is `idle` or `shield`; damage range is 0–999.
+`run --charge-ticks N` (0–600 input frames) holds aim for N ticks, then releases.
+Zero means no held input, including for targeted leaps; use an explicit hold
+when target acquisition needs it. Reaching a move's charge cap does not release
+it early. Choose a scenario horizon long enough to observe release and recovery.
+
+### Charged run and recorded capture
+
+Save this batch as `/tmp/ability-lab-charge.json`, choose a fresh capture output
+directory, and invoke it with your own terminal identity already set.
+The batch intentionally leaves Wibou selected in the Lab; declare any required
+restoration in `restore`. Capture omits charge so it replays the 45-tick hold:
+
+```json
+{
+  "commands": [
+    ["sloparena.lab.open", "--target", "wibou"],
+    ["sloparena.lab.run", "--action", "ground.R", "--charge-ticks", "45", "--ticks", "180", "--distance", "5.6", "--opponent", "idle"],
+    ["sloparena.lab.inspect"],
+    ["sloparena.lab.capture", "--action", "ground.R", "--ticks", "44,80", "--view", "right", "--output", ".ability-lab-cache/wibou/charged-run"]
+  ],
+  "restore": []
+}
+```
+
+```bash
+bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
+  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+  --batch /tmp/ability-lab-charge.json
+```
 
 The workspace prepares current source in memory using existing compiler,
 verified poses, catalog and rig; it does not save/cook, alter Undo history,

@@ -62,6 +62,71 @@ public class LandingAerialDriftTests
         return -1;
     }
 
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    public void JumpStartupAttack_StartsTimeline_AndLandingStopsDrift(int attackTick, bool fastFall)
+    {
+        var def = TestHelpers.EngineDef;
+        def.Movement = def.Movement with { JumpSquatTicks = 2, FloatWindowTicks = 0 };
+        var slots = def.CookedSlots!.ToArray();
+        slots[8] = new CookedSlotDefinition(8, "air.1", true, "Jump startup landing fixture", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[]
+            {
+                new CookedStage(60, 0, 4, 0, 0, Array.Empty<string>(),
+                    Array.Empty<CookedTimelineOperation>()),
+            }));
+        def.CookedSlots = slots;
+        var arena = TestHelpers.TestArena();
+        arena.CollisionTriangles = new[]
+        {
+            new CollisionTriangle { AX = -100, AZ = -100, BX = -100, BZ = 100, CX = 100, CZ = -100 },
+            new CollisionTriangle { AX = 100, AZ = 100, BX = 100, BZ = -100, CX = -100, CZ = 100 },
+        };
+        var sim = TestHelpers.MakeSim(arena);
+        TestHelpers.RegisterPlayer(sim, def, TestHelpers.PlayerState() with
+        {
+            PY = TestHelpers.GroundPY(def),
+            State = ActionState.Run,
+            VZ = def.Movement.RunSpeed,
+        });
+        var inputs = new Dictionary<ulong, InputState>();
+        bool downPressed = false, aerialStarted = false, landedDuringAttack = false;
+        for (int tick = 0; tick < 120; tick++)
+        {
+            var before = sim.GetState(1);
+            bool downEdge = fastFall && !downPressed && !before.IsGrounded && before.VY < 0f;
+            downPressed |= downEdge;
+            inputs[1] = new InputState
+            {
+                Jump = tick == 0,
+                ActiveSlot = tick == attackTick ? AbilitySlots.Slot1 : (byte)0,
+                DownPressed = downEdge,
+            };
+            sim.Tick(inputs);
+            var after = sim.GetState(1);
+            aerialStarted |= !after.IsGrounded && after.State == ActionState.Attacking
+                && after.AttackSequence != 0 && after.AnimLockTicks > 0;
+            if (!before.IsGrounded && after.IsGrounded && before.State == ActionState.Attacking)
+            {
+                landedDuringAttack = true;
+                Assert.Equal(ActionState.Idle, after.State);
+                Assert.Equal((byte)0, after.AttackSlot);
+                Assert.Equal((ushort)4, after.LandingLagTicks);
+            }
+        }
+        Assert.True(aerialStarted, "A buffered/takeoff press must execute the aerial, not just set Attacking.");
+        Assert.True(landedDuringAttack, "The aerial must remain active until the landing boundary.");
+        var final = sim.GetState(1);
+        Assert.True(final.IsGrounded);
+        Assert.Equal(ActionState.Idle, final.State);
+        Assert.Equal((byte)0, final.AttackSlot);
+        Assert.Equal(0f, final.VZ);
+    }
+
     [Fact]
     public void Cyclone_LandMidMove_ContinuesUntilNaturalEnd()
     {

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knockback — before and after</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111b28;color:#eef3f9;font:16px system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:30px 26px}h1{font-size:32px;margin:0 0 8px}p{color:#a0b0c3;line-height:1.5;margin:8px 0 18px}.legend{display:flex;gap:24px;font-weight:650;margin:18px 0}.old{color:#ea9254}.new{color:#58dcc7}label{display:grid;gap:6px;color:#a0b0c3;font-size:13px}.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end}select,button{font:inherit;color:#eef3f9;background:#223245;border:1px solid #485d73;border-radius:8px;padding:10px 14px;cursor:pointer}button:hover{background:#314760}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #58dcc7;outline-offset:3px}.presets{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 8px}.presets button{font-size:14px;padding:8px 12px}canvas{display:block;width:100%;height:470px;background:#152131;border:1px solid #304257;border-radius:12px;margin:15px 0}.playback{display:flex;gap:16px;align-items:center}input[type=range]{flex:1;min-width:100px;accent-color:#58dcc7}output{min-width:90px;font-variant-numeric:tabular-nums}.states{display:flex;flex-wrap:wrap;gap:28px;margin:18px 0;font-size:16px}.note{font-size:13px;max-width:1000px}.insight{color:#eef3f9;font-size:18px;margin-top:20px;min-height:28px}@media(max-width:600px){main{padding:20px 14px}canvas{height:360px}h1{font-size:26px}.playback{gap:8px}}
+</style>
+<main>
+<h1>See the knockback change</h1>
+<p class="note" id="snapshot"></p>
+<p>Two versions of the same hit, viewed from the side. Watch how high the victim goes, how far they travel, and when they return to the floor.</p>
+<div class="controls">
+<label>Character<select id="character"><option value="fightguy">FightGuy</option><option value="manki">Manki</option><option value="wibou">Wibou</option><option value="bonk">Bonk</option></select></label>
+<label>Move / isolated hit<select id="move"></select></label>
+<label>Damage before the hit<select id="percent"><option>0</option><option>60</option><option selected>120</option><option>200</option></select></label>
+<label>Playback speed<select id="speed"><option value="1">Real time</option><option value="0.5" selected>Half speed</option><option value="0.15">Slow motion</option></select></label>
+</div>
+<div class="presets"><button data-preset="fightguy,g4,120">Strong send</button><button data-preset="fightguy,a3,120">Launcher</button><button data-preset="fightguy,g1,0">Weak pop</button><button data-preset="wibou,g3,120">Steep launcher</button><button data-preset="bonk,a2,120">Bonk outlier</button></div>
+<div class="legend"><span class="old">● Before</span><span class="new">● After</span></div>
+<canvas id="plot" aria-label="Side view of before and after knockback paths; orange is before, teal is after."></canvas>
+<div class="playback"><button id="play">Pause</button><button id="restart">Replay</button><input id="time" aria-label="Time since launch" type="range" min="0" step="0.01"><output id="clock"></output></div>
+<div class="states"><span id="oldState" class="old"></span><span id="newState" class="new"></span></div>
+<p class="insight" id="insight"></p>
+<p class="note" id="scale"></p>
+<p class="note">Recorded shared simulation, using the same cooked move data in both versions. No DI, SDI, player movement, or follow-up hits. Hitstop is excluded. Every multihit entry shows one isolated hit. Downward hits start above the floor. Paths stop at the end of the original flight report; later grounded sliding is excluded. Ground contact can occur before hitstun ends.</p>
+</main>
+<script>
+const data=__TRAJECTORIES__;
+const metadata=__COMPARISON_META__;
+document.getElementById('snapshot').textContent='Saved snapshot: '+metadata.label+'. These paths stay fixed when gameplay code changes.';
+const $=id=>document.getElementById(id), colors=['#ea9254','#58dcc7'];
+let curves, tick=0, end=0, playing=true, last=0, hold=0;
+function fillMoves(){const list=data[$('character').value];$('move').replaceChildren(...list.map((m,i)=>{const o=document.createElement('option');o.value=i;const multi=list.filter(x=>x.slot===m.slot).length>1;o.textContent=m.label+(multi?' · hit '+(m.hit+1):'');return o}));}
+function select(){const m=data[$('character').value][+$('move').value];curves=m.trajectories[$('percent').value];end=Math.max(...curves.map(c=>c.points.at(-1)[0]));tick=0;hold=0;playing=true;$('time').max=end;$('play').textContent='Pause';
+const x=Math.max(...curves.flatMap(c=>c.points.map(p=>p[1]))),y=Math.max(...curves.flatMap(c=>c.points.map(p=>p[2])));
+$('scale').textContent=(y<.2?'Close-up: height magnified 5× so the small pop is visible. ':'Equal horizontal and vertical distance scale. ')+'Both versions use the same scale; the view refits when you change moves.';
+$('insight').textContent=y<.2?'The weak hit still lifts the victim briefly, then settles to the floor.':$('character').value==='bonk'&&m.slot==='a2'?'This authored outlier still launches very high after the shared change.':curves[0].points[0][2]>0?'Downward sends still drive the victim into the floor.':m.slot==='g4'?'The victim stays much closer to the floor and lands sooner. Total sideways travel is shorter here.':['a3','g3'].includes(m.slot)?'Upward sends retain their direction, with less time spent overhead.':'Compare the height, landing position, and time in the air.';draw();}
+function point(c,t){const p=c.points;let i=0;while(i+1<p.length&&p[i+1][0]<=t)i++;const a=p[i],b=p[Math.min(i+1,p.length-1)],f=b[0]===a[0]?0:Math.min(1,(t-a[0])/(b[0]-a[0]));return[a[0],a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f,a[3]];}
+function draw(){if(!curves)return;const canvas=$('plot'),rect=canvas.getBoundingClientRect(),w=rect.width,h=rect.height,dpr=window.devicePixelRatio||1;canvas.width=w*dpr;canvas.height=h*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+const all=curves.flatMap(c=>c.points),mx=Math.max(.01,...all.map(p=>p[1])),my=Math.max(.01,...all.map(p=>p[2])),stretch=my<.2?5:1,scale=Math.min((w-140)/(mx*1.1),(h-110)/(my*stretch*1.16));const ox=65,oy=h-62,X=x=>ox+x*scale,Y=y=>oy-y*scale*stretch;
+ctx.font='13px system-ui';ctx.textAlign='left';ctx.fillStyle='#a0b0c3';ctx.fillText('Height above grounded stance',20,27);ctx.fillText('Sideways travel →',Math.max(ox,w-165),h-16);
+const step=Math.pow(10,Math.floor(Math.log10(mx/5)))*([1,2,5,10].find(v=>v*Math.pow(10,Math.floor(Math.log10(mx/5)))>=mx/5)||10);
+for(let x=0;x<=mx*1.05;x+=step){ctx.strokeStyle='#25374b';ctx.beginPath();ctx.moveTo(X(x),48);ctx.lineTo(X(x),oy);ctx.stroke();ctx.fillStyle='#a0b0c3';ctx.fillText(Number(x.toPrecision(3))+' m',X(x)-8,oy+25)}
+ctx.strokeStyle='#64788d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(35,oy);ctx.lineTo(w-25,oy);ctx.stroke();ctx.fillStyle='#a0b0c3';ctx.fillText('Floor',20,oy-12);
+function path(points,color,alpha,width){ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(X(p[1]),Y(p[2])):ctx.moveTo(X(p[1]),Y(p[2])));ctx.stroke();ctx.globalAlpha=1;}
+curves.forEach((c,i)=>{const p=point(c,tick);path(c.points,colors[i],.24,3);path([...c.points.filter(p=>p[0]<=tick),p],colors[i],1,3);ctx.beginPath();ctx.arc(X(p[1]),Y(p[2]),i===0?10:6,0,2*Math.PI);ctx.fillStyle=colors[i];ctx.fill();ctx.strokeStyle='#111b28';ctx.lineWidth=2;ctx.stroke();const grounded=tick>0&&p[2]<.00001;$(i?'newState':'oldState').textContent=(i?'After':'Before')+': '+(grounded?'On ground':'In the air')+(p[3]?' · in hitstun':' · actionable');});
+$('clock').textContent=(tick/60).toFixed(2)+' s';$('time').value=tick;}
+function animate(now){const dt=last?Math.min(.1,(now-last)/1000):0;last=now;if(playing){if(tick<end)tick=Math.min(end,tick+dt*60*+$('speed').value);else{hold+=dt;if(hold>1.5){tick=0;hold=0}}draw()}requestAnimationFrame(animate);}
+$('character').addEventListener('change',()=>{fillMoves();select()});['move','percent'].forEach(id=>$(id).addEventListener('change',select));$('play').addEventListener('click',()=>{playing=!playing;$('play').textContent=playing?'Pause':'Play'});$('restart').addEventListener('click',()=>{tick=0;hold=0;playing=true;$('play').textContent='Pause';draw()});$('time').addEventListener('input',()=>{tick=+$('time').value;playing=false;$('play').textContent='Play';draw()});document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{const [c,s,p]=b.dataset.preset.split(',');$('character').value=c;fillMoves();$('move').value=data[c].findIndex(m=>m.slot===s);$('percent').value=p;$('speed').value=s==='g1'?'0.15':'0.5';select()}));window.addEventListener('resize',draw);fillMoves();$('move').value=data.fightguy.findIndex(m=>m.slot==='g4');select();requestAnimationFrame(animate);
+</script>
+</html>

@@ -284,6 +284,15 @@ public sealed record ProjectileSource(
 
 public abstract record TypedCapabilityParameters;
 
+public sealed record ChargedProjectileCapabilityParameters(
+    ushort MaxChargeTicks,
+    ushort Tier2Ticks,
+    ushort Tier3Ticks,
+    ushort FireTriggerTick,
+    float Tier2Radius,
+    float Tier3Radius,
+    ProjectileSource Projectile) : TypedCapabilityParameters;
+
 
 public sealed record RisingDragonCapabilityParameters(
     float RiseSpeed,

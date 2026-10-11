@@ -8,11 +8,11 @@ Before gateway examples, set `ORCA_TERMINAL_HANDLE` to your own runtime-issued t
 
 # SlopArena Stage Authoring
 
-Use this skill for a new PVP stage or a gameplay change to an existing PVP stage. It is an implementation workflow, not a concept-design guide.
+Use this skill for new PVP stages, gameplay changes, and cosmetic stage presentation. It is an implementation workflow, not a concept-design guide.
 
 Read [`docs/design/stage-concepts.md`](../../../docs/design/stage-concepts.md) before substantive work. That canonical page exists and is required input for topology, readability, and balance intent.
 
-For new environment assets, read and complete [`sloparena-asset-selection`](../sloparena-asset-selection/SKILL.md) first. New assets require its verified workset and inspection evidence.
+For external environment assets newly referenced by the stage, read and complete [`sloparena-asset-selection`](../sloparena-asset-selection/SKILL.md) before introducing dependencies, even if the pack is already imported. These assets require its verified workset and inspection evidence; reusing accepted stage assets and original authored geometry is not new catalog procurement.
 
 ## Current authority and runtime path
 
@@ -124,7 +124,7 @@ The front matter and body together bind:
 - competitive intent: `competitive`, `mixed`, or `playful`; and the gameplay intent plus applicable Stage Concepts criteria;
 - platform, traversability, spawn, and derived-boundary plan;
 - visual concept and local-lighting intent;
-- verified asset-selection workset/inspection references for newly introduced assets;
+- verified asset-selection workset/inspection references for newly referenced external assets;
 - fixed collision source scene, baked `.arena`, and cosmetic prefab paths;
 - required automated preflight and the external human-review owner/process.
 
@@ -134,7 +134,7 @@ Do not duplicate baked collision values or render metrics into the brief. The `.
 
 Create or update this brief on the first **gameplay** change to an existing stage: gameplay geometry, spawns, bounds, blast-boundary behavior, or variant/capability behavior.
 
-A cosmetic-only change to an existing stage has no dedicated stage-authoring gate by decision. It still must preserve the global authority boundary: cosmetics cannot introduce gameplay ownership, and new visual assets still require the asset-selection workflow.
+A cosmetic-only change to an existing stage has no dedicated stage-authoring gate by decision. It still must preserve the global authority boundary: cosmetics cannot introduce gameplay ownership, and newly referenced external assets still require the asset-selection workflow.
 
 ## Collision authoring scene
 
@@ -179,7 +179,7 @@ Rules:
 - It aligns with the authoritative source/baked coordinates with no offset, scale correction, or runtime alignment script.
 - It contains **no `Collider` components** anywhere. Decorative collision is prohibited, including trigger-only convenience colliders.
 - It owns stage-specific local lighting. The match scene supplies only global base lighting.
-- It may reference only valid imported assets. Newly added environment assets need an approved asset-selection workset.
+- Imported references must resolve to valid assets. Newly referenced external environment assets need an approved asset-selection workset; original meshes/materials must be persisted as valid project assets or prefab sub-assets.
 - It must not carry scripts that adjudicate gameplay, movement, spawn, blast, collision, hazard, or platform behavior.
 
 This prefab is reviewed as art and presentation. It is never a substitute for collision baking.
@@ -192,7 +192,7 @@ This prefab is reviewed as art and presentation. It is never a substitute for co
 1. Confirm `docs/design/stage-concepts.md` exists and applies to the stage.
 2. Create or update `docs/design/stages/<key>.md` with its YAML front matter and production contract.
 3. Confirm the stage is static, PVP-only, and supports all 2–4-player matches. A non-static declaration blocks on the missing authoritative capability.
-4. For new visual assets, produce and accept an asset-selection workset before introducing them to the prefab.
+4. For newly referenced external visual assets, produce and accept an asset-selection workset before introducing them to the prefab.
 
 ### 2. Author collision separately
 
@@ -206,16 +206,23 @@ Do not make collision geometry from the cosmetic prefab, copy arbitrary vendor m
 
 ### 3. Author presentation separately
 
-1. Compose `Resources/Stages/<key>.prefab` from approved assets.
-2. Keep the visual root identity-aligned with the collision source.
-3. Put stage-specific local lighting in the prefab.
-4. Remove every Collider and gameplay-owning component from the prefab.
-5. Preserve unrelated existing-stage content; use targeted edits, never broad scene regeneration.
-6. Take visual intent only from the locked Stage Design Brief; never improvise composition.
+1. Build the approved large-scale geometry first: landforms, building volumes, supporting foundations, slopes, shorelines, and intentional gaps. Use original cosmetic meshes where a pack cannot supply the required shape; do not stitch asset-pack scenes together with flat filler.
+2. Keep the visual root identity-aligned with the collision source. Keep solid non-playable background land/buildings out of the fight/recovery/blast corridor; playable presentation must match the authoritative shell. Visual-only water must not suggest a safe surface or acquire gameplay collision.
+3. Review the gray massing from a full orbit and low recovery views using the [stage-design capture recipe](../sloparena-stage-design/SKILL.md#3-wireframe-loop-gray-box--design-capture) before dressing it.
+4. Dress only established roles with resident or verified imported assets. Ground houses, piers, vegetation, and rocks on actual support surfaces; props explain the geography rather than hide broken joins.
+5. Put stage-specific local lighting in the prefab. Keep background detail and contrast subordinate to fighters and usable edges.
+6. Remove every Collider and gameplay-owning component from the prefab.
+7. Preserve accepted and unrelated existing content; use targeted edits, never broad scene regeneration. Take visual intent only from the locked Stage Design Brief; never improvise composition.
+
+For existing-stage passes, record a baseline for the protected collision source, `.arena`, accepted visual roots, materials, and atmosphere. An additive request means add the agreed roots, not rebuild accepted scenery. Compare protected data after saving; report any intended exception explicitly.
+
+Verify placement numerically as well as visually: sample the actual support mesh under each prop footprint, check foundation contact/embedding, and keep island/building dressing parented to its own region without changing world poses. Bounds are a clearance broad phase; check actual triangles where bounds overlap the forbidden corridor, including relevant LODs. A visually convincing screenshot alone cannot prove grounding or clearance.
+
+Repeat the full-orbit and low-view capture after surfacing and dressing. Inspect all frames for rear-face gaps, hovering foundations, sawtooth material boundaries, repeated islands, and false landable routes. Preserve open water/sky rather than filling every gap. Record structural metrics and remaining human review separately; renders do not establish performance or PVP acceptance.
 
 ### 4. Bake and inspect
 
-After the typed tools exist, run the explicit sequence:
+For new stages and gameplay changes, run the explicit sequence below. For a cosmetic-only pass, preserve the collision-source and `.arena` hashes and run inspect without rebaking; art must not mutate authoritative data.
 
 ```bash
 bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.stage.bake --stage <key>
@@ -286,7 +293,7 @@ A stage is not ready for acceptance while the human PVP review is missing or fai
 - [ ] Collision scene has the named root hierarchy; meshes only under `GameplayGeometry`.
 - [ ] Four ordered `SpawnPoint` markers bake onto valid ground.
 - [ ] Cosmetic prefab is identity-aligned, has local lighting as needed, and has zero Colliders.
-- [ ] Every newly introduced asset has asset-selection workset evidence.
+- [ ] Newly referenced external assets have asset-selection workset evidence; original authored meshes/materials are persisted and inspected.
 - [ ] Static variant is accepted; unsupported variants are blocked on explicit authoritative capability work.
 - [ ] Typed bake and inspect tools exist and both succeed.
 - [ ] Inspection report and six overlay captures are written to local cache and reviewed.

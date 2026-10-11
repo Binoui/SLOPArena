@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _packageId: manki
   _catalogSchemaVersion: 1
-  _rig: {fileID: 3272137664510204803, guid: 0997198e3b16cc82e9921f19d3a7b05d, type: 3}
-  _weaponConfig: {fileID: 11400000, guid: f5be594e8b6924d9b8d707e01ac783c2, type: 2}
+  _rig: {fileID: 3272137664510204803, guid: 62c2019b4ee5201929da356261f122ec, type: 3}
+  _weaponConfig: {fileID: 11400000, guid: fd9406611d16ba894bbf8f7ebce5c78d, type: 2}
   _sampleRate: 60
   _bindings:
   - _semanticId: anim.manki.idle
@@ -127,3 +127,15 @@ MonoBehaviour:
     _prefab: {fileID: 7426718004780168451, guid: 532e7411ae49bb9848f1a677d3d0bd4c, type: 3}
   - _semanticId: presentation.manki.round-bomb.explosion
     _prefab: {fileID: 1621577324978609086, guid: 5a05e652b58df8f4b9c144db709ec648, type: 3}
+  - _semanticId: presentation.manki.jetpack-boost.exhaust
+    _prefab: {fileID: 6096631983397958538, guid: efebdfca49c7f6b35b5a61bab2e8f987, type: 3}
+  - _semanticId: presentation.manki.bazooka.muzzle
+    _prefab: {fileID: 449301842896312784, guid: 08c5eed4f650862dd87e8de48372f27b, type: 3}
+  - _semanticId: presentation.manki.normal.strike
+    _prefab: {fileID: 2948220418426161532, guid: ab3730744ea3c564a85621c3867afd49, type: 3}
+  - _semanticId: presentation.manki.normal.sweep
+    _prefab: {fileID: 3144838381080570624, guid: 7e0c0cc8a6785639299eff9bbd7c971a, type: 3}
+  - _semanticId: presentation.manki.normal.heavy
+    _prefab: {fileID: 7884285152855736568, guid: 75901118443c31dd39b771fa36f9393d, type: 3}
+  - _semanticId: presentation.manki.normal.hit
+    _prefab: {fileID: 8134240675301078329, guid: 4817b8dd91f7cd9c7be851a10c7b1c46, type: 3}

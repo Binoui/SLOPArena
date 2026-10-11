@@ -387,6 +387,8 @@ namespace SlopArena.Client.Entities
         public byte CurrentAttackSlot => _lastAttackSlot;
         /// <summary>Ticks since the current attack began (0 when not attacking). Read by weapon attach components.</summary>
         public int CurrentAttackElapsedTicks => _lastState.AttackElapsedTicks;
+        /// <summary>Identity of the last applied attack, for attached presentation cleanup.</summary>
+        public byte CurrentAttackSequence => _lastState.AttackSequence;
         /// <summary>Resolve the actual charge or release clip and its preview envelope.</summary>
         public bool TryGetAbilityPhaseAnimation(
             byte attackSlot,
@@ -1022,7 +1024,7 @@ namespace SlopArena.Client.Entities
             if (_projectileVFX == null) return;
             if (_kiShotHand == null && state.State == ActionState.Aiming)
                 _kiShotHand = ResolvePresentationBone("bone.right-hand");
-            _projectileVFX.UpdateHeldVisual(_entityId, state, _kiShotHand);
+            _projectileVFX.UpdateHeldVisual(_entityId, state, _kiShotHand, _charDef);
         }
 
         private void PresentStockTransition(

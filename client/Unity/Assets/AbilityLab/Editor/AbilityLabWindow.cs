@@ -45,6 +45,12 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private AbilityLab? _lab;
     private bool _ownsLab;
+    [SerializeField] private string _reloadSlot = "";
+    [SerializeField] private string _reloadPackageId = "";
+    [SerializeField] private int _reloadStage, _reloadTick;
+    [SerializeField] private bool _reloadPlaying, _restoreReloadCursor;
+    private bool _refreshAfterCompilation;
+    [NonSerialized] private bool _waitingForAssemblyReload;
     private AbilityLabPackageWorkspace _workspace = new();
     private AbilityLabPackagePreviewResult? _preview;
     private readonly List<PackageOption> _packages = new();
@@ -262,11 +268,17 @@ public sealed partial class AbilityLabWindow : EditorWindow
     private void OnEnable()
     {
         _suppressInitialPackage = _openingForCommand;
+        _refreshAfterCompilation = true;
+        _waitingForAssemblyReload = false;
         SceneView.duringSceneGui += OnSceneGUI;
+        AssemblyReloadEvents.beforeAssemblyReload += ReleaseLabBeforeReload;
+        UnityEditor.Compilation.CompilationPipeline.compilationStarted += ReleaseLabBeforeCompilation;
     }
     private void OnDisable()
     {
         SceneView.duringSceneGui -= OnSceneGUI;
+        AssemblyReloadEvents.beforeAssemblyReload -= ReleaseLabBeforeReload;
+        UnityEditor.Compilation.CompilationPipeline.compilationStarted -= ReleaseLabBeforeCompilation;
         ReleaseMovesViewport();
         DisposeAttachmentPreview();
         if (_grabSelected && _lab != null) _lab.ShowHitboxes = _grabPriorShowHitboxes;
@@ -303,8 +315,9 @@ public sealed partial class AbilityLabWindow : EditorWindow
         BindAssetsPage();
         BindPhaseAuthoring();
         BindAdvancedPage();
-        if (!_workspace.HasPackage && !_suppressInitialPackage && _packages.Any(option => option.PackageId == "fightguy"))
-            OpenPackage("fightguy");
+        string initialPackage = _packages.Any(option => option.PackageId == _reloadPackageId) ? _reloadPackageId : "fightguy";
+        if (!_workspace.HasPackage && !_suppressInitialPackage && _packages.Any(option => option.PackageId == initialPackage))
+            OpenPackage(initialPackage);
         else
             RefreshAll();
         _workspace.StatusChanged -= RefreshAll;
@@ -316,12 +329,47 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private void Update()
     {
+        if (_uiReady && _refreshAfterCompilation && !_waitingForAssemblyReload && !EditorApplication.isCompiling)
+        {
+            _refreshAfterCompilation = false;
+            _lab = FindLab();
+            if (_restoreReloadCursor && _lab?.IsPackagePreview == true &&
+                CanonicalSlotProjection.TryGet(_reloadSlot, out var address))
+            {
+                _restoreReloadCursor = false;
+                _lab.SetSlot(address);
+                int stage = _reloadStage, tick = _reloadTick;
+                if (_workspace.TryResolveCanonicalSlot(_reloadSlot, out _, out var sourceSlot) && sourceSlot.Timeline.Stages.Count > 0)
+                {
+                    stage = Mathf.Clamp(stage, 0, sourceSlot.Timeline.Stages.Count - 1);
+                    tick = Mathf.Clamp(tick, 0, Mathf.Max(0, sourceSlot.Timeline.Stages[stage].DurationTicks - 1));
+                }
+                _lab.SetStage(stage);
+                _lab.SetTick((ushort)tick);
+                _lab.Playing = _reloadPlaying;
+            }
+            _lab?.RefreshPose();
+            UpdateTimelineControls();
+        }
+        if (_uiReady && EditorApplication.timeSinceStartup >= _nextPersistedStatusCheck)
+        {
+            _nextPersistedStatusCheck = EditorApplication.timeSinceStartup + 1d;
+            if (_workspace.RefreshPersistedStatus())
+            {
+                _inspection = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Inspect(_workspace.PackageRoot);
+                RefreshWorkspaceControls();
+                RefreshAdvanced();
+                RefreshDiagnostics();
+            }
+        }
         if (_lab != null && _lab.Playing)
         {
             UpdateTimelineControls();
             Repaint();
         }
     }
+
+    private double _nextPersistedStatusCheck;
 
     private void BindElements()
     {
@@ -1330,6 +1378,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         if (_workspace.LiveDraftPackage != null && _preview?.IsAvailable == true)
         {
             _lab?.ApplyPackageDraftPreview(_workspace.LiveDraftPackage, _preview);
+            _lab?.SetPresentationBindings(_workspace.Catalog.Presentations);
             _airborneSelector = _lab?.SelectedSlotId.StartsWith("air.", StringComparison.Ordinal) ?? false;
             UpdateMoveModeButtons();
             BuildMoveButtons(_airborneSelector);
@@ -1763,6 +1812,10 @@ public sealed partial class AbilityLabWindow : EditorWindow
     }
     private void UpdateTimelineControls()
     {
+        var vfxStatus = Required<Label>("timeline-vfx-status");
+        var vfxDiagnostics = _lab?.PresentationPreviewDiagnostics;
+        vfxStatus.text = vfxDiagnostics == null ? "" : string.Join("\n", vfxDiagnostics);
+        vfxStatus.style.display = string.IsNullOrEmpty(vfxStatus.text) ? DisplayStyle.None : DisplayStyle.Flex;
         RefreshMovesViewport();
         RefreshPhaseControls();
         if (UpdatePhaseTimeline())
@@ -2627,6 +2680,11 @@ public sealed partial class AbilityLabWindow : EditorWindow
         {
             AddChargedDashInspector(group, operation, capability, chargedDash);
         }
+        else if (operation.Source is StartCapabilityOperationSource chargedProjectileSource &&
+            chargedProjectileSource.Parameters is ChargedProjectileCapabilityParameters chargedProjectile)
+        {
+            AddChargedProjectileInspector(group, operation, chargedProjectile);
+        }
         else if (operation.Source is StartCapabilityOperationSource otherCapability)
         {
             AddCapabilityPresentationSelector(group, operation, otherCapability);
@@ -2950,6 +3008,70 @@ public sealed partial class AbilityLabWindow : EditorWindow
         SceneView.RepaintAll();
     }
 
+    private void AddChargedProjectileInspector(Foldout group, AbilityLabOperationProjection operation,
+        ChargedProjectileCapabilityParameters value)
+    {
+        group.Add(new Label("Hold to charge; release fires one projectile after startup. Charge caps without firing."));
+        AddDelayedInteger(group, "Maximum charge ticks", value.MaxChargeTicks,
+            v => CommitChargedProjectile(operation, p => p with { MaxChargeTicks = UShort(v) }));
+        AddDelayedInteger(group, "Tier 2 threshold ticks", value.Tier2Ticks,
+            v => CommitChargedProjectile(operation, p => p with { Tier2Ticks = UShort(v) }));
+        AddDelayedInteger(group, "Tier 3 threshold ticks", value.Tier3Ticks,
+            v => CommitChargedProjectile(operation, p => p with { Tier3Ticks = UShort(v) }));
+        AddDelayedInteger(group, "Firing startup ticks", value.FireTriggerTick,
+            v => CommitChargedProjectile(operation, p => p with { FireTriggerTick = UShort(v) }));
+        AddDelayedFloat(group, "Tier 1 radius (m)", value.Projectile.Radius,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { Radius = v } }));
+        AddDelayedFloat(group, "Tier 2 radius (m)", value.Tier2Radius,
+            v => CommitChargedProjectile(operation, p => p with { Tier2Radius = v }));
+        AddDelayedFloat(group, "Tier 3 radius (m)", value.Tier3Radius,
+            v => CommitChargedProjectile(operation, p => p with { Tier3Radius = v }));
+        AddDelayedFloat(group, "Speed (m/s)", value.Projectile.Speed,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { Speed = v } }));
+        AddDelayedInteger(group, "Flight lifetime ticks", value.Projectile.MaxFlightTicks,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { MaxFlightTicks = UShort(v) } }));
+        AddDelayedFloat(group, "Gravity", value.Projectile.Gravity,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { Gravity = v } }));
+        AddDelayedFloat(group, "Damage", value.Projectile.Damage,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { Damage = v } }));
+        AddDelayedFloat(group, "Knockback angle", value.Projectile.Angle,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { Angle = v } }));
+        AddDelayedFloat(group, "Base knockback", value.Projectile.BaseKnockback,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { BaseKnockback = v } }));
+        AddDelayedFloat(group, "Knockback growth", value.Projectile.KnockbackGrowth,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { KnockbackGrowth = v } }));
+        AddDelayedInteger(group, "Stun ticks", value.Projectile.StunTicks,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { StunTicks = UShort(v) } }));
+        AddDelayedFloat(group, "Launch offset X", value.Projectile.LaunchOffsetX,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { LaunchOffsetX = v } }));
+        AddDelayedFloat(group, "Launch offset Y", value.Projectile.LaunchOffsetY,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { LaunchOffsetY = v } }));
+        AddDelayedFloat(group, "Launch offset Z", value.Projectile.LaunchOffsetZ,
+            v => CommitChargedProjectile(operation, p => p with { Projectile = p.Projectile with { LaunchOffsetZ = v } }));
+    }
+
+    private void CommitChargedProjectile(AbilityLabOperationProjection selected,
+        Func<ChargedProjectileCapabilityParameters, ChargedProjectileCapabilityParameters> edit)
+    {
+        if (_updatingControls || _lab == null || selected.Source is not StartCapabilityOperationSource original ||
+            original.Parameters is not ChargedProjectileCapabilityParameters parameters ||
+            !_workspace.TryResolveCanonicalSlot(_lab.SelectedSlotId, out int slotIndex, out _)) return;
+        _updatingControls = true;
+        bool accepted;
+        try
+        {
+            accepted = _workspace.ReplaceOperation(slotIndex, selected.SourceStageIndex, selected.SourceOperationIndex,
+                original with { Parameters = edit(parameters) });
+        }
+        finally { _updatingControls = false; }
+        if (!accepted) return;
+        UpdateTimelineControls();
+        _selectedOperation = FindProjectedOperation(selected.SourceStageIndex, selected.SourceOperationIndex);
+        _timelineTrack.SelectedOperation = _selectedOperation;
+        RefreshInspector();
+        SceneView.RepaintAll();
+    }
+
     private void CommitProjectileOperation(
         AbilityLabOperationProjection selected,
         Func<SpawnProjectileOperationSource, SpawnProjectileOperationSource> edit)
@@ -3245,8 +3367,36 @@ public sealed partial class AbilityLabWindow : EditorWindow
         _lab = null;
         _ownsLab = false;
         if (labObject != null)
+        {
+            // Inactive preview objects can own Playables without receiving
+            // OnDestroy. Release them while their managed domain is still alive.
+            foreach (var animancer in labObject.GetComponentsInChildren<Animancer.AnimancerComponent>(true))
+                if (animancer.IsGraphInitialized)
+                    animancer.Graph.Destroy();
             DestroyImmediate(labObject);
+        }
     }
+
+    private void ReleaseLabBeforeReload()
+    {
+        _waitingForAssemblyReload = true;
+        if (_lab?.IsPackagePreview == true && !_lab.IsScenarioPreview && !_lab.PhasePreviewActive)
+        {
+            _reloadSlot = _lab.SelectedSlotId;
+            _reloadPackageId = _workspace.PackageId;
+            _reloadStage = _lab.StageIndex;
+            _reloadTick = _lab.Tick;
+            _reloadPlaying = _lab.Playing;
+            _restoreReloadCursor = true;
+        }
+        _refreshAfterCompilation = true;
+        // Scene-authored Labs also own inactive dummy Playables. Release their
+        // graphs before the managed domain changes while preserving the scene rig.
+        if (_lab != null) _lab.ReleasePreviewForReload();
+        DestroyOwnedLab();
+    }
+
+    private void ReleaseLabBeforeCompilation(object context) => ReleaseLabBeforeReload();
 
     private AbilityLab? FindLab()
     {

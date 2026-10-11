@@ -88,6 +88,13 @@ namespace SlopArena.Client.UI
         private Action? _backAction;
         private Action? _modalCloseAction;
 
+        /// <summary>The current page's primary Continue/Ready/Play control.
+        /// Start submits this button only while it is visible and enabled.</summary>
+        public Button? ForwardButton { get; set; }
+
+        /// <summary>Primary validation control for the page-owned modal.</summary>
+        public Button? ModalForwardButton { get; set; }
+
         /// <summary>
         /// The page-owned modal's close action while a page modal is
         /// presented in the shell modal host (issue #221). The shell focus
@@ -158,6 +165,8 @@ namespace SlopArena.Client.UI
             _ownedRoots.Clear();
             _backAction = null;
             _modalCloseAction = null;
+            ForwardButton = null;
+            ModalForwardButton = null;
         }
     }
 }

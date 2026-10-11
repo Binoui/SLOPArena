@@ -36,6 +36,49 @@ in fresh publish outputs, then build and exercise the packaged client/server
 join-to-rematch path. The server project and release scripts derive required package IDs
 from the roster manifest and verify all four payloads for each admitted package.
 
+### Controller menu navigation
+
+- A / south face button validates the focused control. Home initially focuses a
+  mode action; lost page focus is restored to a visible, enabled control.
+- B / east face button closes the topmost dialog or menu, otherwise invokes the
+  page's Back action, including from top-bar focus or a page text field. Social
+  focus returns to the page first. Home has no preceding page.
+- Start invokes the page's Continue/Ready/Play action independently of focused
+  fighter/stage cards: fighter selection → stage selection → launch; online
+  selection → lock-in → leader-only continuation. Disabled/hidden controls stay
+  unavailable. Browser continuation joins the last controller-focused room;
+  it does not silently create a room or select an arbitrary server.
+- Start validates the active identity/address/join dialog instead of advancing
+  the covered page. In Settings it accepts the active confirmation or finishes
+  Settings; in the shell menu it resumes. Gameplay Start still opens/resumes
+  pause. B closes pause, with Resume focused on entry.
+- X / west switches top-bar focus; Y / north switches page/social focus.
+  Keyboard Escape retains the shell-menu shortcut. Native Steam overlay and
+  active rebinding keep input ownership; menu shortcuts do not steal captures.
+
+Test in Unity with a controller: navigate Home → Solo/Training → fighters →
+stages without a mouse; select cards with A, continue with Start and return with
+B. Repeat from the top bar and after clearing focus. Open Settings, reset/display
+confirmation and the address dialog: one B press must close only one layer;
+Start must never invoke an obscured page. Verify disabled online continuation,
+Room join/lock-in/leader continuation and Results return with a real session.
+At 1920×1080 and 1366×768 check focus outlines and controller hints. In Training,
+pause, open Settings, return and resume; gameplay must not receive the held menu
+button on resume.
+
+2026-10-10 verification: actual runtime sources compiled offline, and the
+authorized graceful Editor restart recovered the original retained lease.
+The restarted Editor opened the same clean Frontend scene, stopped; native
+recompile status was `up_to_date`, `failed=false`, `errors=[]`, and the
+pre-Play error console was empty. Entering Play Mode then left the ownership
+endpoint unreachable during assembly reload: `sloparena.ui.status` timed out
+after 30 seconds, and the gateway's declared stop/release was unverified at
+its 300-second deadline. Normal close did not complete. An explicitly authorized
+force-close/reopen then restored the same clean Frontend scene, stopped, with
+no compilation/reload in progress and an empty current error console. The new
+session released its verification lease: free, settled, zero active operations.
+Play Mode was not retried; controller/visual acceptance remains unverified.
+
 ### Shared build and tests
 
 `src/Shared/` is pure C# `netstandard2.1`. Run after Shared changes:
@@ -159,6 +202,14 @@ scripts/verify-fightguy-package.sh
 ```
 
 ### Ability Lab and Unity Training
+
+For VFX workflow changes, run **Tools/SlopArena/Tests/Ability Lab VFX Workflow**
+in Edit Mode with a valid FightGuy package. Inspect the Console for its explicit
+passed message; menu execution alone does not prove the check passed. The check
+uses temporary preview objects and does not save/cook package content. Follow
+with a native hit/block/whiff scenario pass and verify the original Lab
+selection/cursor and clean scene are restored. With an effect visible, recompile
+and confirm no duplicate preview effects or prior-domain Playable handles remain.
 
 For integrated Unity-facing changes and accepted package verification:
 

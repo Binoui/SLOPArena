@@ -11,6 +11,7 @@ namespace SlopArena.Client.Camera
         public float? AimPitchRad;
         public ushort? AimDistanceCm;
         public bool IsAiming;
+        public bool LocksMovement;
 
         /// <summary>No active aim — camera-driven defaults.</summary>
         public static readonly AimContext None = new AimContext { IsAiming = false };
