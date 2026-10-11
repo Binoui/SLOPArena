@@ -177,8 +177,7 @@ internal static class Program
         // --json/--html and appends a markdown section on the default path.
         bool reach = args.Contains("--reach");
 
-        // --kbm <model>: knockback-tuning lab. Overrides the sim's global KB knobs
-        // (Simulation.KbScaleFactor / HitstunStunCoefficient / HitstunMagBonus) so the
+        // --kbm <model>: knockback-tuning lab. Supplies immutable combat settings so the
         // combo matrix + trajectories re-run under a candidate curve. base = shipped
         // (the adopted Melee shape). old = the pre-adoption curve.
         //   old        — pre-adoption (stun 0.5·mag, KV×0.14 — zero true combos)
@@ -191,14 +190,13 @@ internal static class Program
         //   melee-soft — softer: stun 0.45×mag, KV×0.17             (0.45 / 0.17 / 0)
         // Profile table lives in Shared (TuningProfiles) — shared with AbDiffReport + tests.
         string kbm = ParseArg(args, "--kbm") ?? "base";
-        if (!TuningProfiles.TryApply(kbm))
+        if (!TuningProfiles.TryGet(kbm, out var combatTuning))
         {
             if (kbm != "base")
                 Console.Error.WriteLine($"warn: unknown --kbm '{kbm}' (base|old|stunx18|kv70|stun16kv11|floor30) — using base");
-            TuningProfiles.Apply("base");
         }
         if (kbm != "base")
-            Console.Error.WriteLine($"kbm={kbm}: stun={Simulation.HitstunStunCoefficient:0.0}×(mag+{Simulation.HitstunMagBonus:0}), KV×{Simulation.KbScaleFactor:0.00}");
+            Console.Error.WriteLine($"kbm={kbm}: stun={combatTuning.HitstunCoefficient:0.0}×(mag+{combatTuning.HitstunMagnitudeBonus:0}), KV×{combatTuning.KnockbackScale:0.00}");
 
         // --json / --html: lossless structured report + self-contained visual report.
         // Both come from one richer collection (per-tick arcs + KO analysis); markdown path is untouched.
@@ -206,7 +204,7 @@ internal static class Program
         string? htmlPath = ParseArg(args, "--html");
         if (jsonPath != null || htmlPath != null)
         {
-            var report = BuildReport(def, hits, pcts, baked, trueCombos, di, reach);
+            var report = BuildReport(def, hits, pcts, baked, trueCombos, di, reach, combatTuning);
             if (jsonPath != null)
             {
                 var dir = Path.GetDirectoryName(jsonPath);
@@ -241,7 +239,7 @@ internal static class Program
         // ApplyKnockback trajectory rows.
         if (args.Contains("--pipe"))
         {
-            PipeLaunch(entry);
+            PipeLaunch(entry, combatTuning);
             return 0;
         }
 
@@ -256,7 +254,7 @@ internal static class Program
         if (shapeStepArg != null)
         {
             int step = int.TryParse(shapeStepArg, out int s) && s > 0 ? s : 12;
-            DumpShapes(def, hits, pcts, step);
+            DumpShapes(def, hits, pcts, step, combatTuning);
             return 0;
         }
 
@@ -265,20 +263,20 @@ internal static class Program
         if (trajSlot.HasValue)
         {
             var h = hits.First(x => x.Slot.Air == false && x.Slot.Slot == trajSlot.Value && x.HitIndex == 0);
-            DumpTrajectory(def, h, pcts);
+            DumpTrajectory(def, h, pcts, combatTuning);
             return 0;
         }
 
         var runs = new Dictionary<(SlotRef, int, int), RunResult>();
         foreach (var h in hits)
         foreach (var p in pcts)
-            runs[(h.Slot, h.HitIndex, p)] = RunTrajectory(def, h, p);
+            runs[(h.Slot, h.HitIndex, p)] = RunTrajectory(def, h, p, combatTuning);
 
         // Pipeline parity: the game launches through ResolveHits → freeze queue, not a
         // direct ApplyKnockback call. Run BOTH paths and compare — a drift here means the
         // game behaves differently from this report (the 2026-08-14 x87 float bug was
         // exactly this divergence, invisible to .NET: every hit took the unscaled force path).
-        var parity = ComputeParity(def, hits, runs, pcts, baked);
+        var parity = ComputeParity(def, hits, runs, pcts, baked, combatTuning);
         foreach (var p in parity)
             if (!p.Ok)
                 Console.Error.WriteLine($"PARITY DIVERGENCE: {p.Label}@{p.Pct}% direct KV {p.DirectKv:F2} vs pipeline {p.PipeKv:F2}");
@@ -300,7 +298,7 @@ internal static class Program
             foreach (var r in probeRoutes)
             {
                 if (starterSpawns.ContainsKey(r.From)) continue;
-                var spawn = CalibrateStarter(def, r.From, baked);
+                var spawn = CalibrateStarter(def, r.From, baked, combatTuning);
                 if (spawn == null)
                     Console.Error.WriteLine($"probe {r.Label}: no starter placement connects — route will report NO");
                 else
@@ -312,21 +310,21 @@ internal static class Program
                 if (!starterSpawns.TryGetValue(r.From, out var spawn))
                     probes[(r.From, r.To, p)] = (ProbeVerdict.None, -1);
                 else
-                    probes[(r.From, r.To, p)] = RunProbe(def, r, p, baked, spawn);
+                    probes[(r.From, r.To, p)] = RunProbe(def, r, p, baked, spawn, combatTuning);
             }
         }
 
         (ComboStarterData[], ComboDensityData[])? comboGraph = null;
-        if (trueCombos) comboGraph = ComputeTrueComboGraph(def, hits, pcts, baked);
-        Dictionary<(SlotRef, int), DiEscapeData[]>? diData = di ? ComputeDiEscape(def, hits, pcts, NoRespawn(BuildArena())) : null;
+        if (trueCombos) comboGraph = ComputeTrueComboGraph(def, hits, pcts, baked, combatTuning);
+        Dictionary<(SlotRef, int), DiEscapeData[]>? diData = di ? ComputeDiEscape(def, hits, pcts, NoRespawn(BuildArena()), combatTuning) : null;
         string md = BuildMarkdown(def, hits, runs, pcts, routes, probeRoutes, probes, parity, which, combos,
             comboGraph, diData, reach ? BuildReach(def, hits, baked) : null);
         // Isolated recovery-move record (FightGuy E) — attacker self-motion + victim launch,
         // outside the normals machinery (no parity / reach / combo pollution).
-        if (RunRecoveryTrace(def) is { } recovery)
+        if (RunRecoveryTrace(def, combatTuning) is { } recovery)
         {
             var launchSpec = RecoveryHitSpec(def);
-            var launches = pcts.Select(p => (Pct: p, R: RunTrajectory(def, launchSpec, p))).ToList();
+            var launches = pcts.Select(p => (Pct: p, R: RunTrajectory(def, launchSpec, p, combatTuning))).ToList();
             md += BuildRecoveryMarkdown(recovery, launches);
         }
         Console.WriteLine(md);
@@ -401,7 +399,7 @@ internal static class Program
     /// a victim-knockback report can't show, so it lives in an isolated section, NOT in the normal-tier
     /// `hits` list — no parity / reach / combo pollution. Returns null when the kit has no recovery move.
     /// </summary>
-    internal static RecoveryData? RunRecoveryTrace(CharacterDefinition def)
+    internal static RecoveryData? RunRecoveryTrace(CharacterDefinition def, CombatTuning? combatTuning = null)
     {
         var spec = def.E;
         if (spec == null || !spec.IsRecoveryMove) return null;
@@ -409,7 +407,7 @@ internal static class Program
         // E = ActiveSlot byte 4 (grounded and air share the cooked slot).
         const byte activeSlot = 4;
 
-        var sim = new ServerSimulation(BuildArena());
+        var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
         float groundY = def.CapsuleHeight * 0.5f;
         var state = new CharacterState
         {
@@ -650,9 +648,9 @@ internal static class Program
     /// first, so the queued launch sees the post-hit percent (verified by the pipeline
     /// parity section). No DI/SDI input; hitstop is reported but not simulated.
     /// </summary>
-    internal static RunResult RunTrajectory(CharacterDefinition def, HitSpec h, int pct)
+    internal static RunResult RunTrajectory(CharacterDefinition def, HitSpec h, int pct, CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(BuildArena());
+        var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
         float groundY = def.CapsuleHeight * 0.5f;
         var state = new CharacterState
         {
@@ -661,7 +659,7 @@ internal static class Program
         };
         Simulation.ApplyKnockback(ref state, 0f, 1f, h.LaunchAngle,
             h.BaseKb, h.GrowthKb,
-            h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+            h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
         float kv = MathF.Sqrt(state.KVX * state.KVX + state.KVY * state.KVY + state.KVZ * state.KVZ);
         ushort stun = state.HitstunTicks;
         ushort hitstop = ServerSimulation.ComputeHitstopTicks(h.Hit.Damage, null);
@@ -699,11 +697,11 @@ internal static class Program
     /// vertical velocity, horizontal velocity, phase flag (H=hitstun, F=flight,
     /// A=apex tick, G=landed).
     /// </summary>
-    internal static void DumpTrajectory(CharacterDefinition def, HitSpec h, int[] pcts)
+    internal static void DumpTrajectory(CharacterDefinition def, HitSpec h, int[] pcts, CombatTuning? combatTuning = null)
     {
         foreach (var pct in pcts)
         {
-            var sim = new ServerSimulation(BuildArena());
+            var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
             float groundY = def.CapsuleHeight * 0.5f;
             var state = new CharacterState
             {
@@ -712,7 +710,7 @@ internal static class Program
             };
             Simulation.ApplyKnockback(ref state, 0f, 1f, h.LaunchAngle,
                 h.BaseKb, h.GrowthKb,
-                h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+                h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
             sim.RegisterEntity(1, def, state);
             var inputs = new Dictionary<ulong, InputState> { [1] = default };
 
@@ -748,12 +746,13 @@ internal static class Program
     /// 0.2s). Uses the post-hit % (pct + damage) so rows match the Per-hit trajectories.
     /// This is the combo-free view: how far, how high, and at what angle each hit sends.
     /// </summary>
-    internal static void DumpShapes(CharacterDefinition def, List<HitSpec> hits, int[] pcts, int step)
+    internal static void DumpShapes(CharacterDefinition def, List<HitSpec> hits, int[] pcts, int step,
+        CombatTuning? combatTuning = null)
     {
         foreach (var h in hits)
         foreach (var pct in pcts)
         {
-            var sim = new ServerSimulation(BuildArena());
+            var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
             float groundY = def.CapsuleHeight * 0.5f;
             var state = new CharacterState
             {
@@ -762,7 +761,7 @@ internal static class Program
             };
             Simulation.ApplyKnockback(ref state, 0f, 1f, h.LaunchAngle,
                 h.BaseKb, h.GrowthKb,
-                h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+                h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
             float kv = MathF.Sqrt(state.KVX * state.KVX + state.KVY * state.KVY + state.KVZ * state.KVZ);
             ushort stun = state.HitstunTicks;
             sim.RegisterEntity(1, def, state);
@@ -810,20 +809,21 @@ internal static class Program
     /// must match the tool here; divergence means the report doesn't describe the game.
     /// </summary>
     internal static List<ParityResult> ComputeParity(CharacterDefinition def, List<HitSpec> hits,
-        Dictionary<(SlotRef, int, int), RunResult> runs, int[] pcts, BakedAnimationData? baked)
+        Dictionary<(SlotRef, int, int), RunResult> runs, int[] pcts, BakedAnimationData? baked,
+        CombatTuning? combatTuning = null)
     {
         var result = new List<ParityResult>();
         foreach (var h in hits.Where(x => x.HitIndex == 0 && !x.Adaptive))
         foreach (var pct in new[] { pcts[0], pcts[^1] })
         {
             var direct = runs[(h.Slot, 0, pct)];
-            var spawn = CalibrateStarter(def, h.Slot, baked);
+            var spawn = CalibrateStarter(def, h.Slot, baked, combatTuning);
             if (spawn == null)
             {
                 result.Add(new ParityResult(Label(h), pct, direct.Kv, float.NaN, direct.Stun, -1, direct.Apex, float.NaN, false));
                 continue;
             }
-            var pipe = RunPipelineLaunch(def, h.Slot, pct, baked, spawn.Value);
+            var pipe = RunPipelineLaunch(def, h.Slot, pct, baked, spawn.Value, combatTuning);
             if (pipe == null)
             {
                 result.Add(new ParityResult(Label(h), pct, direct.Kv, float.NaN, direct.Stun, -1, direct.Apex, float.NaN, false));
@@ -852,9 +852,10 @@ internal static class Program
     /// applied KV magnitude, hitstun, hitstop and apex, or null when the starter whiffs.
     /// </summary>
     internal static (float KvMag, int Hitstun, int Hitstop, float Apex)? RunPipelineLaunch(
-        CharacterDefinition def, SlotRef slot, int pct, BakedAnimationData? baked, (float AtkY, float NpcY, float NpcZ) spawn)
+        CharacterDefinition def, SlotRef slot, int pct, BakedAnimationData? baked, (float AtkY, float NpcY, float NpcZ) spawn,
+        CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(BuildArena());
+        var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
         bool air = slot.Air;
         var attacker = new CharacterState
         {
@@ -913,21 +914,27 @@ internal static class Program
             var simType = asm.GetType("SlopArena.Shared.Simulation")!;
             Console.WriteLine($"file={Path.GetFullPath(dllPath)}");
             Console.WriteLine($"MVID={asm.ManifestModule.ModuleVersionId}");
-            var scaleField = simType.GetField("KbScaleFactor");
+            var tuningType = asm.GetType("SlopArena.Shared.CombatTuning");
+            var defaults = tuningType?.GetField("Default")?.GetValue(null);
+            // Older assemblies kept the scale in a static field; the probe can inspect either layout.
+            var scale = defaults != null
+                ? tuningType!.GetProperty("KnockbackScale")?.GetValue(defaults)
+                : simType.GetField("KbScaleFactor")?.GetValue(null);
             var gField = simType.GetField("FlightGravity");
-            Console.WriteLine($"KbScaleFactor={(scaleField?.GetValue(null)?.ToString() ?? "MISSING")} " +
+            Console.WriteLine($"KnockbackScale={(scale?.ToString() ?? "MISSING")} " +
                 $"FlightGravity={(gField?.GetValue(null)?.ToString() ?? "MISSING")}");
             var stateType = asm.GetType("SlopArena.Shared.CharacterState")!;
             var state = Activator.CreateInstance(stateType)!;
             Set(stateType, state, "PX", 0f); Set(stateType, state, "PY", 0.85f); Set(stateType, state, "PZ", 0f);
             Set(stateType, state, "IsGrounded", true); Set(stateType, state, "DamagePercent", (ushort)0);
             var apply = simType.GetMethods()
-                .FirstOrDefault(m => m.Name == "ApplyKnockback" && m.GetParameters().Length == 10);
-            if (apply == null) { Console.WriteLine("ERR: ApplyKnockback(10 params) not found"); return; }
+                .FirstOrDefault(m => m.Name == "ApplyKnockback" && m.GetParameters().Length is 10 or 11);
+            if (apply == null) { Console.WriteLine("ERR: ApplyKnockback not found"); return; }
             Console.WriteLine($"sig={string.Join(", ", apply.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name))}");
-            var args = new object[] { state, 0f, 1f, (sbyte)28, 14f, 26f, 8f, (ushort)20, 100f, true };
+            var args = new object?[] { state, 0f, 1f, (sbyte)28, 14f, 26f, 8f, (ushort)20, 100f, true }
+                .Concat(apply.GetParameters().Skip(10).Select(p => p.DefaultValue)).ToArray();
             apply.Invoke(null, args);
-            state = (object)args[0];
+            state = args[0]!;
             float kvx = (float)Get(stateType, state, "KVX")!;
             float kvy = (float)Get(stateType, state, "KVY")!;
             float kvz = (float)Get(stateType, state, "KVZ")!;
@@ -958,14 +965,14 @@ internal static class Program
     /// (inputs + baked bones → ResolveHits → hitstop queue → queued launch). Prints the
     /// victim's applied KV + hitstun + travel to landing — the number the GAME produces,
     /// vs the direct-ApplyKnockback trajectory rows.
-    internal static void PipeLaunch(MatchContentEntry entry)
+    internal static void PipeLaunch(MatchContentEntry entry, CombatTuning? combatTuning = null)
     {
         var def = entry.Definition;
         var baked = entry.BakedAnimation;
         float gpy = def.CapsuleHeight * 0.5f;
         foreach (var z in new[] { 0.8f, 1.0f, 1.2f, 1.5f, 2.0f })
         {
-            var sim = new ServerSimulation(BuildArena());
+            var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
             var atk = new CharacterState
             {
                 PX = 0f, PY = gpy, PZ = 0f, IsGrounded = true,
@@ -1011,7 +1018,8 @@ internal static class Program
     /// radius reach varies per move and changes with retunes — don't trust stale test
     /// positions). Tries a small grid, returns the first working (attackerY, victimY, victimZ).
     /// </summary>
-    internal static (float AtkY, float NpcY, float NpcZ)? CalibrateStarter(CharacterDefinition def, SlotRef from, BakedAnimationData? baked)
+    internal static (float AtkY, float NpcY, float NpcZ)? CalibrateStarter(CharacterDefinition def, SlotRef from,
+        BakedAnimationData? baked, CombatTuning? combatTuning = null)
     {
         float gpy = def.CapsuleHeight * 0.5f;
         var candidates = new List<(float, float, float)>();
@@ -1027,14 +1035,15 @@ internal static class Program
                 candidates.Add((ay, ny, z));
         }
         foreach (var c in candidates)
-            if (StarterConnects(def, SlotByte(from.Slot), c, baked, from.Air, from.Air)) return c;
+            if (StarterConnects(def, SlotByte(from.Slot), c, baked, from.Air, from.Air, combatTuning)) return c;
         return null;
     }
 
     internal static bool StarterConnects(CharacterDefinition def, byte slotByte,
-        (float AtkY, float NpcY, float NpcZ) p, BakedAnimationData? baked, bool attackerAir, bool victimAir)
+        (float AtkY, float NpcY, float NpcZ) p, BakedAnimationData? baked, bool attackerAir, bool victimAir,
+        CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(BuildArena());
+        var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
         var attacker = new CharacterState
         {
             PX = 0f, PY = p.AtkY, PZ = 0f, IsGrounded = !attackerAir,
@@ -1063,7 +1072,8 @@ internal static class Program
     /// scenario and returns the first working placement, or null when the move can't reach
     /// that hit state at all.
     /// </summary>
-    internal static ProbeSetup? CalibrateScenario(CharacterDefinition def, HitSpec h, bool victimAir, BakedAnimationData? baked)
+    internal static ProbeSetup? CalibrateScenario(CharacterDefinition def, HitSpec h, bool victimAir,
+        BakedAnimationData? baked, CombatTuning? combatTuning = null)
     {
         float gpy = def.CapsuleHeight * 0.5f;
         bool attackerAir = h.Slot.Air;
@@ -1102,7 +1112,7 @@ internal static class Program
             }
         }
         foreach (var c in candidates)
-            if (StarterConnects(def, SlotByte(h.Slot.Slot), c, baked, attackerAir, victimAir))
+            if (StarterConnects(def, SlotByte(h.Slot.Slot), c, baked, attackerAir, victimAir, combatTuning))
                 return new ProbeSetup(c.Item1, c.Item2, c.Item3, attackerAir, victimAir);
         return null;
     }
@@ -1126,9 +1136,10 @@ internal static class Program
     /// own verdict (juggle vs ground hit vs combo-true vs combo-false).
     /// </summary>
     internal static ProbeOutcome RunFollowUpSim(CharacterDefinition def, SlotRef from, SlotRef to, int toTriggerTicks,
-        int starterIasaTicks, float followUpLunge, int pct, BakedAnimationData? baked, in ProbeSetup setup)
+        int starterIasaTicks, float followUpLunge, int pct, BakedAnimationData? baked, in ProbeSetup setup,
+        CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(BuildArena());
+        var sim = new ServerSimulation(BuildArena(), combatTuning: combatTuning);
 
         bool air = setup.AttackerAir;
         var attacker = new CharacterState
@@ -1242,14 +1253,14 @@ internal static class Program
     /// target — opponent is fully actionable); None = never connected.
     /// </summary>
     internal static (ProbeVerdict Verdict, int ConnectTick) RunProbe(CharacterDefinition def, Route r, int pct, BakedAnimationData? baked,
-        (float AtkY, float NpcY, float NpcZ) spawn)
+        (float AtkY, float NpcY, float NpcZ) spawn, CombatTuning? combatTuning = null)
     {
         int toTriggerTicks = def.GetSlotAbility(SlotByte(r.To.Slot) - 1, r.To.Air)?.Stages[0]
             .HitboxEvents?[0].TriggerTick ?? 0;
         int starterIasa = def.GetSlotAbility(SlotByte(r.From.Slot) - 1, r.From.Air)?.Stages[0].IasaTicks ?? 0;
         float followUpLunge = def.GetSlotAbility(SlotByte(r.To.Slot) - 1, r.To.Air)?.Stages[0].LungeForce ?? 0f;
         var outcome = RunFollowUpSim(def, r.From, r.To, toTriggerTicks, starterIasa, followUpLunge, pct, baked,
-            new ProbeSetup(spawn.AtkY, spawn.NpcY, spawn.NpcZ, r.From.Air, r.From.Air));
+            new ProbeSetup(spawn.AtkY, spawn.NpcY, spawn.NpcZ, r.From.Air, r.From.Air), combatTuning);
         return outcome.Connected
             ? (outcome.VictimAirborne ? ProbeVerdict.Airborne : ProbeVerdict.Grounded, outcome.ConnectTick)
             : (ProbeVerdict.None, -1);
@@ -1555,14 +1566,14 @@ internal static class Program
         return recovery + landLag + jumpSquat + to.Hit.TriggerTick;
     }
 
-    /// <summary>Hitstun the sim actually applies for this hit at this victim %: 0.5 × the unscaled
-    /// KB magnitude. The authored <c>StunTicks</c> is a zero/nonzero gate only (Simulation.cs
-    /// "Hitstun from the UNSCALED magnitude") — the real window scales with launch speed.</summary>
-    internal static int SimStun(CharacterDefinition def, HitSpec h, int pct)
+    /// <summary>Hitstun the sim actually applies for this hit at this victim %, using the selected tuning.
+    /// The authored <c>StunTicks</c> is a zero/nonzero gate; the duration derives from
+    /// unscaled launch magnitude and the profile's coefficient/bonus.</summary>
+    internal static int SimStun(CharacterDefinition def, HitSpec h, int pct, CombatTuning? combatTuning = null)
     {
         var s = new CharacterState { DamagePercent = (ushort)(pct + (int)h.Hit.Damage) };
         Simulation.ApplyKnockback(ref s, 0f, 1f, h.LaunchAngle, h.BaseKb, h.GrowthKb,
-            h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+            h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
         return s.HitstunTicks;
     }
 
@@ -1572,14 +1583,15 @@ internal static class Program
     /// effective send — it re-launches the victim, so its stun/trigger define the window. Positive =
     /// the follow-up's hitbox is active before stun ends on paper; the sim verdict in the graph shows
     /// whether travel/range make it real.</summary>
-    internal static int TightnessOf(CharacterDefinition def, HitSpec starter, HitSpec followUp, int pct)
+    internal static int TightnessOf(CharacterDefinition def, HitSpec starter, HitSpec followUp, int pct,
+        CombatTuning? combatTuning = null)
     {
         var send = starter.Stage.HitboxEvents[^1];
         int unlock = starter.Stage.IasaTicks > 0 ? starter.Stage.IasaTicks : starter.Stage.DurationTicks;
         int recovery = Math.Max(0, unlock - send.TriggerTick);
         if (starter.Slot.Air && !followUp.Slot.Air) recovery += starter.Stage.LandingLagTicks;
         if (!starter.Slot.Air && followUp.Slot.Air) recovery += def.Movement.JumpSquatTicks;
-        return SimStun(def, starter, pct) - recovery - followUp.Hit.TriggerTick;
+        return SimStun(def, starter, pct, combatTuning) - recovery - followUp.Hit.TriggerTick;
     }
 
     /// <summary>
@@ -1590,7 +1602,8 @@ internal static class Program
     /// Also aggregates combo density (true links per character per %).
     /// </summary>
     internal static (ComboStarterData[] Starters, ComboDensityData[] Density) ComputeTrueComboGraph(
-        CharacterDefinition def, List<HitSpec> hits, int[] pcts, BakedAnimationData? baked)
+        CharacterDefinition def, List<HitSpec> hits, int[] pcts, BakedAnimationData? baked,
+        CombatTuning? combatTuning = null)
     {
         var normals = hits.Where(x => x.HitIndex == 0).ToList();
         var starters = new List<ComboStarterData>();
@@ -1599,7 +1612,7 @@ internal static class Program
         foreach (var starter in normals)
         foreach (var (stateName, victimAir) in new[] { ("grounded", false), ("airborne", true) })
         {
-            var setup = CalibrateScenario(def, starter, victimAir, baked);
+            var setup = CalibrateScenario(def, starter, victimAir, baked, combatTuning);
             if (setup == null)
             {
                 Console.Error.WriteLine($"truecombos: {Label(starter)} {stateName}: no placement connects — hit state skipped");
@@ -1611,10 +1624,10 @@ internal static class Program
             for (int pi = 0; pi < pcts.Length; pi++)
             {
                 var outcome = RunFollowUpSim(def, starter.Slot, followUp.Slot, followUp.Hit.TriggerTick,
-                    starterIasa, followUp.Stage.LungeForce, pcts[pi], baked, setup.Value);
+                    starterIasa, followUp.Stage.LungeForce, pcts[pi], baked, setup.Value, combatTuning);
                 string verdict = !outcome.Connected ? "never"
                     : outcome.VictimStunAtConnect > 0 ? "true" : "false";
-                edges.Add(new ComboEdgeData(Label(followUp), TightnessOf(def, starter, followUp, pcts[pi]),
+                edges.Add(new ComboEdgeData(Label(followUp), TightnessOf(def, starter, followUp, pcts[pi], combatTuning),
                     pcts[pi], verdict, outcome.ConnectTick, outcome.VictimStunAtConnect));
                 if (verdict == "true")
                 {
@@ -1688,9 +1701,9 @@ internal static class Program
     /// crosses a real blast line, recording the per-tick arc. Runs on a no-respawn arena so the flight
     /// is captured in full and the crossing is detected against <paramref name="detect"/>.</summary>
     internal static TrajectoryData RunTrajectoryFull(CharacterDefinition def, HitSpec h, int pct,
-        ArenaDefinition phys, in ArenaCollision.BlastLines detect)
+        ArenaDefinition phys, in ArenaCollision.BlastLines detect, CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(phys);
+        var sim = new ServerSimulation(phys, combatTuning: combatTuning);
         float groundY = def.CapsuleHeight * 0.5f;
         bool spike = h.LaunchAngle < 0;
         float startY = spike ? groundY + SpikeLaunchAltitude : groundY;
@@ -1702,7 +1715,7 @@ internal static class Program
         };
         Simulation.ApplyKnockback(ref state, 0f, 1f, h.LaunchAngle,
             h.BaseKb, h.GrowthKb,
-            h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+            h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
         float launchX = state.KVX, launchY = state.KVY, launchZ = state.KVZ;
         float kv = MathF.Sqrt(launchX * launchX + launchY * launchY + launchZ * launchZ);
         ushort stun = state.HitstunTicks;
@@ -1793,9 +1806,10 @@ internal static class Program
     /// arc plus the angular deviation of the launch vector from baseline.
     /// </summary>
     internal static DiVariantData RunTrajectoryWithDi(CharacterDefinition def, HitSpec h, int pct,
-        ArenaDefinition phys, in ArenaCollision.BlastLines detect, string dir, float dx, float dy)
+        ArenaDefinition phys, in ArenaCollision.BlastLines detect, string dir, float dx, float dy,
+        CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(phys);
+        var sim = new ServerSimulation(phys, combatTuning: combatTuning);
         float groundY = def.CapsuleHeight * 0.5f;
         bool spike = h.LaunchAngle < 0;
         float startY = spike ? groundY + SpikeLaunchAltitude : groundY;
@@ -1807,7 +1821,7 @@ internal static class Program
         };
         Simulation.ApplyKnockback(ref state, 0f, 1f, h.LaunchAngle,
             h.BaseKb, h.GrowthKb,
-            h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+            h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
         float kvx0 = state.KVX, kvy0 = state.KVY, kvz0 = state.KVZ;
         state.DIX = dx; state.DIY = dy;
         Simulation.ApplyDirectionalInfluence(ref state);
@@ -1839,30 +1853,30 @@ internal static class Program
     /// with the max launch-vector deviation as the escape magnitude. Per-move results align with
     /// the move's Trajectories array by pct index.</summary>
     internal static DiEscapeData[] ComputeDiEscapeFor(CharacterDefinition def, HitSpec h, int[] pcts,
-        ArenaDefinition phys, in ArenaCollision.BlastLines detect)
+        ArenaDefinition phys, in ArenaCollision.BlastLines detect, CombatTuning? combatTuning = null)
     {
         var result = new List<DiEscapeData>();
         foreach (var pct in pcts)
         {
             var variants = new List<DiVariantData>();
             foreach (var (name, dx, dy) in DiDirections)
-                variants.Add(RunTrajectoryWithDi(def, h, pct, phys, detect, name, dx, dy));
+                variants.Add(RunTrajectoryWithDi(def, h, pct, phys, detect, name, dx, dy, combatTuning));
             result.Add(new DiEscapeData(pct, variants.Max(v => v.DevDeg), variants.ToArray()));
         }
         return result.ToArray();
     }
 
     internal static Dictionary<(SlotRef, int), DiEscapeData[]> ComputeDiEscape(CharacterDefinition def,
-        List<HitSpec> hits, int[] pcts, ArenaDefinition phys)
+        List<HitSpec> hits, int[] pcts, ArenaDefinition phys, CombatTuning? combatTuning = null)
     {
         var detect = ArenaCollision.ResolveBlastLines(in phys);
-        return hits.ToDictionary(h => (h.Slot, h.HitIndex), h => ComputeDiEscapeFor(def, h, pcts, phys, detect));
+        return hits.ToDictionary(h => (h.Slot, h.HitIndex), h => ComputeDiEscapeFor(def, h, pcts, phys, detect, combatTuning));
     }
 
     internal static (bool Killed, string Line) RunKillProbe(CharacterDefinition def, HitSpec h, int pct,
-        ArenaDefinition phys, in ArenaCollision.BlastLines detect)
+        ArenaDefinition phys, in ArenaCollision.BlastLines detect, CombatTuning? combatTuning = null)
     {
-        var sim = new ServerSimulation(phys);
+        var sim = new ServerSimulation(phys, combatTuning: combatTuning);
         float groundY = def.CapsuleHeight * 0.5f;
         var state = new CharacterState
         {
@@ -1871,7 +1885,7 @@ internal static class Program
         };
         Simulation.ApplyKnockback(ref state, 0f, 1f, h.LaunchAngle,
             h.BaseKb, h.GrowthKb,
-            h.Hit.Damage, h.Hit.StunTicks, def.Weight);
+            h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
         sim.RegisterEntity(1, def, state);
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
         for (int t = 0; t < MaxTicks; t++)
@@ -1888,15 +1902,15 @@ internal static class Program
     /// <summary>Lowest victim % (pre-hit) at which the launch crosses a blast line before landing.
     /// Binary search — knockback grows monotonically with damage. null = no KO by 250%.</summary>
     internal static (int Pct, string Line)? KillPctFor(CharacterDefinition def, HitSpec h,
-        ArenaDefinition phys, in ArenaCollision.BlastLines detect)
+        ArenaDefinition phys, in ArenaCollision.BlastLines detect, CombatTuning? combatTuning = null)
     {
         const int MAX = 250;
-        if (!RunKillProbe(def, h, MAX, phys, detect).Killed) return null;
+        if (!RunKillProbe(def, h, MAX, phys, detect, combatTuning).Killed) return null;
         int lo = 0, hi = MAX, found = MAX; string line = "";
         while (lo <= hi)
         {
             int mid = (lo + hi) / 2;
-            var r = RunKillProbe(def, h, mid, phys, detect);
+            var r = RunKillProbe(def, h, mid, phys, detect, combatTuning);
             if (r.Killed) { found = mid; line = r.Line; hi = mid - 1; }
             else lo = mid + 1;
         }
@@ -1911,7 +1925,7 @@ internal static class Program
         h.Hit.Knockback.Profile.ToString(), h.Adaptive);
 
     internal static ReportData BuildReport(CharacterDefinition def, List<HitSpec> hits, int[] pcts,
-        BakedAnimationData? baked, bool trueCombos, bool di, bool reach = false)
+        BakedAnimationData? baked, bool trueCombos, bool di, bool reach = false, CombatTuning? combatTuning = null)
     {
         var reportArena = BuildArena();
         var reportDetect = ArenaCollision.ResolveBlastLines(in reportArena);
@@ -1921,10 +1935,10 @@ internal static class Program
         var killDetect = ArenaCollision.ResolveBlastLines(in killArena);
         var killPhys = NoRespawn(killArena);
 
-        var diEscape = di ? ComputeDiEscape(def, hits, pcts, reportPhys) : null;
+        var diEscape = di ? ComputeDiEscape(def, hits, pcts, reportPhys, combatTuning) : null;
         var reachData = reach ? BuildReach(def, hits, baked) : null;
         var (graph, density) = trueCombos
-            ? ComputeTrueComboGraph(def, hits, pcts, baked)
+            ? ComputeTrueComboGraph(def, hits, pcts, baked, combatTuning)
             : (Array.Empty<ComboStarterData>(), Array.Empty<ComboDensityData>());
 
         var moves = new List<MoveData>();
@@ -1932,8 +1946,8 @@ internal static class Program
         {
             var trajs = new List<TrajectoryData>();
             foreach (var p in pcts)
-                trajs.Add(RunTrajectoryFull(def, h, p, reportPhys, reportDetect));
-            var kill = KillPctFor(def, h, killPhys, killDetect);
+                trajs.Add(RunTrajectoryFull(def, h, p, reportPhys, reportDetect, combatTuning));
+            var kill = KillPctFor(def, h, killPhys, killDetect, combatTuning);
             moves.Add(new MoveData(Label(h), SlotName(h.Slot), h.HitIndex, h.Ability.Name,
                 BuildFrameData(h), kill?.Pct, kill?.Line, ClearanceOf(def, trajs[^1], killDetect), trajs.ToArray(),
                 diEscape != null ? diEscape[(h.Slot, h.HitIndex)] : Array.Empty<DiEscapeData>()));

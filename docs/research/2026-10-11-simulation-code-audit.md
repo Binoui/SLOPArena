@@ -160,23 +160,38 @@ and authoritative replacement discards the old callback's state writes.
   `BoneTrails` still has renderer readers and was retained. `SpecialEffectKeys`
   lost its sole reader with the CPU fallback and was removed.
 
+## Match-owned combat tuning follow-up
+
+Follow-up baseline: `8e813f4`, after the legacy cleanup above. The three mutable
+process-wide combat values have been replaced by immutable
+[CombatTuning](../../src/Shared/CombatTuning.cs), following the existing
+`DownActionTuning` pattern. `ServerSimulation` owns its settings for its full
+lifetime, including immediate hits, Hitstop-deferred launches, fixed-force hooks,
+throw release, and hit-event impact force. Production callers retain the shipped
+defaults: velocity scale 0.17, hitstun coefficient 0.45, magnitude bonus 0.
+
+`TuningProfiles.Get`/`TryGet` return settings instead of mutating the process.
+The profile table is read-only. Self-play, A/B reports, trajectory/DI/KO analysis,
+combo probes, and route replay contexts pass settings explicitly. Replay provenance
+records the owning context's values and rejects a replay from a different tuning
+context. Existing CLI flags and replay schema are unchanged. The DLL diagnostic
+supports both the old static-field layout and the new immutable default.
+
+Regression coverage compares complete sequential and concurrent self-play traces
+and report JSON, interleaves two profile-specific hit/Hitstop traces, and checks
+fixed-force hooks, throws, route launches, and replay identity rejection. Shared
+test collections now run concurrently with a bounded worker count. No production
+race was demonstrated at the audit baseline; this removes the shared mutation that
+previously required serialized tests.
+
 ## Next structural improvements
 
-After this cleanup, reduce `ServerSimulation.cs` (2,515 lines, down from 2,815)
+After this cleanup, reduce `ServerSimulation.cs` (2,520 lines, down from 2,815)
 around concrete responsibilities: ability
 lifecycle, target acquisition/aim correction, and coupled grab interactions.
-Keep the existing tick phase order explicit. `Simulation.cs` (2,038 lines, down from 2,151) can
+Keep the existing tick phase order explicit. `Simulation.cs` (2,024 lines, down from 2,151) can
 similarly separate stage movement/collision from input/action admission. Avoid
 introducing a general state-machine or ECS framework to accomplish these cuts.
-
-The three mutable process-wide combat tuning values are another useful follow-up.
-`TuningProfiles.Apply` changes `Simulation.KbScaleFactor`,
-`HitstunStunCoefficient`, and `HitstunMagBonus` for every simulation in the process.
-The test project explicitly disables collection parallelism because of these
-globals. An immutable match-owned combat tuning value, following the existing
-`DownActionTuning` pattern, would let comparison tools and tests run simulations
-with different profiles without global mutation. Production callers currently
-use the shared defaults; no production race was demonstrated.
 
 The legacy 11-slot wire layout still exists alongside the canonical 8-input /
 16-entry package grid. `Lmb`, `Rmb`, and `Slot5` are dormant gameplay slots, but
@@ -230,9 +245,20 @@ benchmark was run.
 
 Post-cleanup test/build logs are under `/tmp/sloparena-simulation-refactor-*.log`.
 
+Post-tuning follow-up: **Shared: 1,280 passed, 2 skipped, 0 failed. Server: 27
+passed, 0 failed.** Shared collections ran in parallel. The Shared build and
+documentation checks also pass, and the DLL diagnostic successfully inspects both
+assembly layouts. Before editing, an A/B report was captured for FightGuy,
+`base` versus `floor30`, percent buckets 0/60, DI, the full true-combo graph, KO
+probes, and one seeded self-play match per profile. The post-refactor report is
+semantically identical in every field after excluding generation timestamps only.
+This verifies both the shipped and non-default calculation paths without changing
+the balance values. Reports, comparison receipt, and test logs are under
+`/tmp/sloparena-tuning-*` and are disposable local evidence.
+
 The remaining structural work is migrating runtime consumers off compatibility
-projections, isolating combat tuning per match, and extracting focused subsystems
+projections and extracting focused subsystems
 without changing tick order. Packet compression remains a separate protocol change.
 
-net: -1,237 Shared source lines, -0 dependencies. Measured against the audit baseline;
+Legacy cleanup net: -1,237 Shared source lines, -0 dependencies. Measured against the audit baseline;
 test and documentation changes are excluded.

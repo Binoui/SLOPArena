@@ -82,6 +82,8 @@ namespace SlopArena.Shared
 		private bool _abilityTickPhaseComplete;
 		private readonly IMatchRule _rule;
 		private readonly DownActionTuning _downActionTuning;
+		/// <summary>Immutable combat settings owned by this simulation.</summary>
+		public CombatTuning CombatTuning { get; }
 		private readonly ArenaCollision.BlastLines _blastLines;
 		/// <summary>Ticks of invincibility granted on respawn (60 = 1s at 60Hz). Issue #37.</summary>
 		public ushort RespawnInvincibilityTicks { get; set; } = 60;
@@ -95,12 +97,15 @@ namespace SlopArena.Shared
 
 		/// <param name="rule">Win-condition rule (elimination + match end). Defaults to stock mode, 3 stocks.</param>
 		/// <param name="downActionTuning">Immutable down-action tuning. Defaults to the shared production values.</param>
-		public ServerSimulation(ArenaDefinition arena, IMatchRule? rule = null, DownActionTuning? downActionTuning = null)
+		/// <param name="combatTuning">Immutable combat tuning. Defaults to the shipped profile.</param>
+		public ServerSimulation(ArenaDefinition arena, IMatchRule? rule = null, DownActionTuning? downActionTuning = null,
+			CombatTuning? combatTuning = null)
 		{
 			_arena = arena;
 			_blastLines = ArenaCollision.ResolveBlastLines(in arena);
 			_rule = rule ?? new StockMatchRule(3);
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
+			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
 		}
 
 		// ── Hitstop tuning (ADR-0012). Game-wide defaults; per-ability overrides via
@@ -1262,7 +1267,7 @@ namespace SlopArena.Shared
 					partner.QueuedCrouchBrace = false;
 					Simulation.ApplyKnockback(ref partner, MathF.Sin(yaw), MathF.Cos(yaw),
 						30, ThrowBaseKnockback, ThrowGrowthKnockback, ThrowDamage, 1,
-						_defs[partnerId].Weight);
+						_defs[partnerId].Weight, combatTuning: CombatTuning);
 					if (inputs.TryGetValue(partnerId, out var throwInput)
 						&& (throwInput.MoveX != 0f || throwInput.MoveY != 0f))
 					{
@@ -1358,7 +1363,7 @@ namespace SlopArena.Shared
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned,
-					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f);
+					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
 				if (state.State is ActionState.Shielding or ActionState.GrabAttempt or ActionState.AirDodgeMovement)
 					CancelDefenseAttackRuntime(id, ref state);
 
@@ -2115,7 +2120,7 @@ namespace SlopArena.Shared
                 // Capture the default once: the hook check must compare kbForce to this exact
             // stored value — re-computing the expression at the check is NOT bit-identical
             // (the editor JIT evaluates in 80-bit x87 precision, so round32(expr) !=
-            // expr80 — every normal hit wrongly took the force path, bypassing KbScaleFactor).
+            // expr80 — every normal hit wrongly took the force path, bypassing the velocity scale).
             float kbForceDefault = hit.BaseKnockback + hit.KnockbackGrowth * (targetState.DamagePercent * 0.01f);
             float kbForce = kbForceDefault;
                 bool hookSuppliedForce = false;
@@ -2188,7 +2193,7 @@ namespace SlopArena.Shared
 					if (hookSuppliedForce)
 					{
 						Simulation.ApplyKnockbackForce(ref targetState, dirX, dirZ,
-							hit.KnockbackAngle, kbForce, hit.StunTicks);
+							hit.KnockbackAngle, kbForce, hit.StunTicks, CombatTuning);
 						Simulation.ApplyFixedHitstun(ref targetState, hit.FixedHitstunTicks, hit.StunTicks);
 					}
 					else if (hookZeroForce)
@@ -2202,7 +2207,7 @@ namespace SlopArena.Shared
 					{
 						Simulation.ApplyKnockback(ref targetState, dirX, dirZ,
 							hit.KnockbackAngle, launchBase, launchGrowth,
-							finalDamage, hit.StunTicks, _defs[hit.TargetEntityId].Weight);
+							finalDamage, hit.StunTicks, _defs[hit.TargetEntityId].Weight, combatTuning: CombatTuning);
 						Simulation.ApplyFixedHitstun(ref targetState, hit.FixedHitstunTicks, hit.StunTicks);
 						Simulation.ApplyCrouchBrace(
 							ref targetState, crouchBraceEligible && ordinaryFormulaLaunch,
@@ -2245,7 +2250,7 @@ namespace SlopArena.Shared
 							? _downActionTuning.CrouchLaunchMultiplier : 1f;
 						impactForce = (launchBase
 							+ launchGrowth * (targetState.DamagePercent * 0.01f + 1f)
-							+ finalDamage * 0.1f) * 200f / mass * Simulation.KbScaleFactor
+							+ finalDamage * 0.1f) * 200f / mass * CombatTuning.KnockbackScale
 							* braceMultiplier;
 					}
 				}

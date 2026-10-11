@@ -149,8 +149,8 @@ public sealed class ArmorCombatTests
         while (sim.GetState(DefenderId).HitstopTicks > 0)
             sim.Tick(inputs);
 
-        var expected = (ushort)(Simulation.HitstunStunCoefficient
-            * (hit.ImpactForce / Simulation.KbScaleFactor + Simulation.HitstunMagBonus));
+        var expected = (ushort)(CombatTuning.Default.HitstunCoefficient
+            * (hit.ImpactForce / CombatTuning.Default.KnockbackScale + CombatTuning.Default.HitstunMagnitudeBonus));
         Assert.Equal(expected, sim.GetState(DefenderId).HitstunTicks);
     }
 

@@ -25,12 +25,13 @@ public static class SelfPlayMatch
     /// <param name="maxTicks">Tick cap; a match reaching it is <see cref="MatchRecord.TimedOut"/>.</param>
     /// <param name="stocks">Stocks per bot for the <see cref="StockMatchRule"/>.</param>
     /// <param name="difficulty">Shared named CPU difficulty for both bots.</param>
+    /// <param name="combatTuning">Immutable combat settings for this match; null uses shipped defaults.</param>
     public static MatchRecord Run(CharacterDefinition def, ArenaDefinition arena, int seed,
         BakedAnimationData? baked = null, int maxTicks = DefaultMaxTicks, int stocks = 3,
-        CpuDifficulty difficulty = CpuDifficulty.Normal)
+        CpuDifficulty difficulty = CpuDifficulty.Normal, CombatTuning? combatTuning = null)
     {
         var rule = new StockMatchRule((byte)stocks);
-        var sim = new ServerSimulation(arena, rule);
+        var sim = new ServerSimulation(arena, rule, combatTuning: combatTuning);
 
         float gpy = def.CapsuleHeight * 0.5f;
         RegisterBot(sim, def, EntityA, -12f, gpy, baked);
