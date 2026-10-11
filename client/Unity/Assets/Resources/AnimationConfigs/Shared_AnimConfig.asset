@@ -30,3 +30,24 @@ MonoBehaviour:
   - Name: throw
     Clip: {fileID: 6992682855264344001, guid: 98bf89b97d2599a708023fd9af4bf3ae, type: 3}
     Extrapolation: 0
+  - Name: grab_idle_a
+    Clip: {fileID: -2589665871518202692, guid: 5eb0f07b8544f1a67a30819325737508, type: 3}
+    Extrapolation: 0
+  - Name: grab_idle_b
+    Clip: {fileID: 5024436281422990708, guid: c0cafb7524f907c1d94a78a5a00ed8a9, type: 3}
+    Extrapolation: 0
+  - Name: Grab_Walk_F_A
+    Clip: {fileID: -1114125292390415714, guid: f411df8b81b32ebfabbcb2441a8a5a8f, type: 3}
+    Extrapolation: 0
+  - Name: Grab_Walk_B_A
+    Clip: {fileID: -6948146173839420471, guid: 82238ebb68a746c5f91d4b00fd1ea2fa, type: 3}
+    Extrapolation: 0
+  - Name: Grab_Walk_F_B
+    Clip: {fileID: -8524078776891291187, guid: 24bba36b98fbf449e8f6236c831c9667, type: 3}
+    Extrapolation: 0
+  - Name: Grab_Walk_B_B
+    Clip: {fileID: -5851313478546539384, guid: d525f7b7ab49dcf2d972e8d2a138c70e, type: 3}
+    Extrapolation: 0
+  - Name: Grab_Throw_B
+    Clip: {fileID: 4369335640847186979, guid: 836dd107bc8704825b8ff7d4a464ef01, type: 3}
+    Extrapolation: 0

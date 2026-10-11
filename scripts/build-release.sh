@@ -5,7 +5,7 @@ set -euo pipefail
 
 VERSION="${1:?usage: build-release.sh <version>}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-UNITY="${UNITY_EDITOR:-/home/binoui/Unity/Hub/Editor/6000.0.78f1/Editor/Unity}"
+UNITY="${UNITY_EDITOR:-$HOME/Unity/Hub/Editor/6000.0.78f1/Editor/Unity}"
 PROJ="$ROOT/client/Unity"
 REL="$ROOT/build/release/SlopArena-$VERSION"
 SA="$PROJ/Assets/StreamingAssets"

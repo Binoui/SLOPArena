@@ -213,6 +213,65 @@ public class LocalTrackTests
         Assert.Equal(0, track.CorrectionCount);
     }
 
+    [Theory]
+    [InlineData(ActionState.Attacking)]
+    [InlineData(ActionState.Aiming)]
+    public void ReconcileWithServer_DelayedAbilitySnapshotCannotRestartRecoveredSelf(ActionState action)
+    {
+        var track = new SlopArena.Shared.Rollback.LocalTrack(TestHelpers.TestArena(), SelfId);
+        track.RegisterEntity(Def, GroundState(x: 50f, z: 50f));
+        for (int tick = 0; tick < 5; tick++) track.Tick(default);
+        var before = track.GetState();
+        var lateAbility = before with
+        {
+            State = action, AttackSlot = AbilitySlots.Slot1, IsAiming = action == ActionState.Aiming,
+            PX = before.PX + 8f,
+        };
+
+        track.ReconcileWithServer(new ServerEntityPacket
+        {
+            EntityId = SelfId, Tick = 3, State = CharacterStatePacket.FromState(lateAbility),
+        });
+
+        Assert.Equal(0, track.CorrectionCount);
+        Assert.Equal(CharacterStatePacket.FromState(before), CharacterStatePacket.FromState(track.GetState()));
+
+        // The next recoverable authority packet must still correct position, and
+        // subsequent player inputs must be able to move and start a new ability.
+        var recovered = before with { PX = before.PX + 2f };
+        track.ReconcileWithServer(new ServerEntityPacket
+        {
+            EntityId = SelfId, Tick = 5, State = CharacterStatePacket.FromState(recovered),
+        });
+        Assert.Equal(1, track.CorrectionCount);
+        Assert.Equal(recovered.PX, track.GetState().PX);
+        for (int tick = 0; tick < 10; tick++) track.Tick(TestHelpers.Input(moveX: 1f));
+        Assert.True(track.GetState().PX > recovered.PX);
+        var nextAttack = track.Tick(TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+        Assert.Equal(ActionState.Attacking, nextAttack.State);
+        Assert.Equal(AbilitySlots.Slot1, nextAttack.AttackSlot);
+    }
+
+    [Fact]
+    public void ReconcileWithServer_AuthoritativeHitstunStillInterruptsPredictableSelf()
+    {
+        var track = new SlopArena.Shared.Rollback.LocalTrack(TestHelpers.TestArena(), SelfId);
+        track.RegisterEntity(Def, GroundState(x: 50f, z: 50f));
+        track.Tick(default);
+        var hit = track.GetState() with { State = ActionState.Hitstun, HitstunTicks = 12, DamagePercent = 7 };
+
+        track.ReconcileWithServer(new ServerEntityPacket
+        {
+            EntityId = SelfId, Tick = 1, State = CharacterStatePacket.FromState(hit),
+        });
+
+        Assert.Equal(1, track.CorrectionCount);
+        Assert.Equal(ActionState.Hitstun, track.GetState().State);
+        Assert.Equal(hit.HitstunTicks, track.GetState().HitstunTicks);
+        Assert.Equal(hit.DamagePercent, track.GetState().DamagePercent);
+        Assert.Equal(ActionState.Hitstun, track.Tick(default).State);
+    }
+
     [Fact]
     public void ReconcileWithServer_SkipsAuthoritativeHitstopSnapshot()
     {

@@ -246,6 +246,8 @@ public class CharacterStatePacketTests
             (ActionState.Throwing, 16),
             (ActionState.AirDodgeMovement, 18),
             (ActionState.AirDodgeRecovery, 19),
+            (ActionState.Grabbing, 20),
+            (ActionState.Thrown, 21),
         };
         foreach (var (state, wireValue) in states)
         {

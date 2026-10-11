@@ -871,7 +871,8 @@
 
 .menu-info {
     width: 348px;
-    height: 300px;
+    min-height: 300px;
+    align-self: flex-start;
     flex-shrink: 0;
     margin-left: 24px;
     background-color: var(--shell-paper);
@@ -893,8 +894,7 @@
 }
 
 .menu-announcements {
-    flex-grow: 1;
-    min-height: 0;
+    flex-shrink: 0;
     margin-top: 18px;
     padding: 0 22px;
 }
@@ -912,6 +912,13 @@
     white-space: normal;
 }
 
+.menu-discord {
+    min-height: 44px;
+    flex-shrink: 0;
+    margin: 16px 22px 20px;
+    font-size: 16px;
+}
+
 .frontend-shell--compact .menu-actions {
     width: 270px;
     margin-right: 16px;
@@ -923,7 +930,7 @@
 }
 .frontend-shell--compact .menu-info {
     width: 270px;
-    height: 260px;
+    min-height: 260px;
     margin-left: 16px;
 }
 .frontend-shell--compact .menu-info-declaration { font-size: 22px; }
@@ -934,6 +941,7 @@
     font-size: 12px;
 }
 .frontend-shell--compact .menu-announcements { padding: 0 18px; }
+.frontend-shell--compact .menu-discord { margin: 12px 18px 16px; }
 
 
 /* Fighter Select */
@@ -968,6 +976,7 @@
 .menu-action,
 .menu-info-heading,
 .menu-info-declaration,
+.menu-discord,
 .char-header--local .flow-title,
 .char-header--local .btn-back,
 .char-summary-section .selection-target,

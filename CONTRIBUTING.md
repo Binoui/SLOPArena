@@ -29,43 +29,25 @@ Supply those assets separately for a complete Unity build and visible PVP stages
 
 ## Agent tooling
 
-OMP discovers project skills from the working directory and its ancestors, not nested
-repositories. Start in this repository, or configure the enclosing workspace's
-`skills.customDirectories` to point at this repository's `.omp/skills`. Keep the
-retired Unity skill exclusions from `.omp/config.yml`, including the stale
-`agent/sloparena-*`, `agent/movement-platform-fighter-3d`, and `agent/orient` aliases.
-Do not repair project routing by rewriting user-level skill installations.
+Project instructions live in root [AGENTS.md](AGENTS.md); maintained workflows live
+in [skills/](skills/README.md). Codex and OMP have generated discovery adapters;
+Claude Code and other file-capable assistants can read the same public sources.
+See [agent setup](docs/contributing/agents.md) for discovery, selected checkouts,
+manual handoffs and explicit invocation policy. No private workspace or BMAD
+installation is required.
 
-Skill discovery is a startup snapshot. Start a fresh session after changing routing;
-`omp read skill://sloparena-build` is a read-only fresh-process check. It must resolve
-to the Unity CLI/Pipeline workflow, not the removed MCP workflow.
+The optional navigation-only [OMP solution](.omp/SlopArena.sln) includes Shared,
+Server, their tests and C# tools. `.omp/lsp.json` invokes `omnisharp` on PATH with
+this solution when OMP starts at the game root. Configure your own installed
+language server if needed; this does not install it or generate Unity metadata.
+Unity semantic navigation uses Editor-generated projects and the same bounded
+lease protocol as other live Editor work. Compilation/presentation checks use
+[Unity CLI](docs/contributing/unity-cli.md).
 
-Skill discovery does not change command working directories. For workspace launches,
-follow [orientation's execution-root rules](.omp/skills/orient/SKILL.md#execution-root)
-and set each game command's `cwd` to the canonical selected checkout. Keep BMAD
-configuration and planning at the supplied workspace root. Implementation handoffs
-must include both roots and the absolute spec/ticket path; a workspace worktree does
-not isolate its symlinked game repository.
-
-The navigation-only [OMP solution](.omp/SlopArena.sln) includes Shared, Server,
-their tests, and the C# projects under `tools/`. `.omp/lsp.json` points the installed
-OmniSharp at that explicit solution to avoid recursively scanning Unity asset/cache
-trees. The enclosing workspace uses `.omp/SlopArena.Workspace.sln` to load those
-projects plus MasterServer and its tests; MasterServer also has a standalone
-`.omp/MasterServer.sln` and cwd-local LSP configuration. Adjust executable and
-checkout paths when moving machines, and reload LSP with `action: "reload",
-file: "*"` after configuration changes. Through a symlinked checkout, use canonical
-absolute file paths so queries match MSBuild's document identities.
-
-This solution does not supply Unity project metadata. Unity semantic navigation needs
-the Editor-generated projects; do not generate or refresh them while another agent owns
-the Editor. Compilation and presentation checks still use the
-[Unity CLI workflow](docs/contributing/unity-cli.md).
-
-Routine numerical tuning does not automatically require new golden tests. Prefer
+Routine numerical tuning does not automatically require new goldens. Prefer
 focused behavioral assertions for mechanics; use the
-[kit regression skill](.omp/skills/sloparena-kit-regression-testing/SKILL.md) for explicit
-scenario coverage and deliberate golden maintenance.
+[kit regression workflow](skills/sloparena-kit-regression-testing/SKILL.md) for
+explicit scenario coverage and deliberate golden maintenance.
 
 ## Core rules
 

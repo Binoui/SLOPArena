@@ -7,6 +7,57 @@ It exercises the authoritative Shared compiler, trusted built-in capability
 admission, cooked package loading, Character Select discovery, and match
 content admission. Avatar visual/pose review remains a release prerequisite.
 
+## Combat presentation — 2026-10-11
+
+Bonk's package now has a cream, rust-red and charcoal steel treatment, with
+dust and angular debris for weight. All eight normals have a blade-tip glint,
+a brief rough cut and a recolored sword sweep; ground normals also plant a
+small dust puff. Accepted sword hits add a jagged flash, steel sparks and dark
+flecks. Shield contacts retain the shared block effect.
+
+Q's Shoulder Bash adds an armour scrape, charge dust and a sharper contact
+clang. R accents its first slash lightly and its second slash more strongly.
+F adds turbulent wind during its mobile spin, ground dust only for the ground
+variant, and a larger cut at its final authored hit window. `air.F` is now
+explicit so it can choose the airborne presentation while preserving the same
+gameplay as the former alias.
+
+E uses optional `launchPresentationId` and `landingPresentationId` on the
+targeted-leap capability. The landing dust ring, stone chips and low thud
+trigger at the actual landing position, independent of aim hold or flight
+length. A flight timeout does not produce a landing burst. Both phase cues
+use the replicated presentation-event path.
+
+The prefabs, materials, meshes and steel trail live under package-owned
+`Presentation/`; sounds reuse the existing Bonk clips through the SFX mixer.
+Gameplay values, damage windows, movement, cooldowns and animation assets
+are unchanged by this pass. Attached effects share the match/Lab lifetime
+rules, including mobile aim, Hitstop, interruption and activation replacement.
+
+Verification: all sixteen slots retain their previous gameplay after presentation
+operations are removed and aliases are expanded. The saved package passes native
+inspect/verify with matching source and cooked hashes and an updated roster pin.
+Ability Lab exercised all eight normals, ground/air specials, damaging contact,
+shield contact and whiffs; the VFX and sword-trail self-tests passed. Live Training
+on After Hours showed the heavy swing, mobile spin, final cut and actual landing
+burst, with effects clearing after recovery and an empty error console. Captures
+and the receipt are in `.ability-lab-cache/bonk-impact-vfx-20261011/`.
+
+Shared build and tests passed (1,787 passed, two existing skips); Server build
+and all 34 tests passed. The approved Editor restart recovered the stalled reload.
+Training used a temporary no-domain-reload setting, restored afterward along with
+the viewport and clean Frontend scene. Hidden Lab previews were disposed before
+Play Mode; this pass does not change the Lab window's ownership lifecycle.
+
+Shoulder Bash follow-up: its contact flash is about a third larger, lasts a
+little longer and throws more steel sparks/flecks. The armour glint is stronger,
+and a quiet heavy-impact layer sits beneath the lower-pitched clang. Only the
+`BonkBashImpact` and `BonkBrace` prefabs changed. Native hit, shield, whiff and
+airborne checks passed with no lingering effects or errors; before/after Shared
+scenario frames, gameplay payload and poses are identical. The recooked package
+and roster pin verify successfully. Comparison captures and the follow-up receipt
+are in `.ability-lab-cache/bonk-bash-emphasis-20261011/`.
+
 ## Local cooldown tuning — 2026-10-03
 
 Both explicit ground/air A variants now cost **120 ticks / 2 s**, and both R
@@ -131,7 +182,7 @@ The package is `client/Unity/Assets/CharacterPackages/bonk/`:
   Eight normals use sword capsules from `_weapon_hilt` to `_weapon_tip`; A is Shoulder
   Bash, E is the targeted recovery slam, R is Charging Double Slash, and F is Blade Storm.
   `air.A` and `air.R` are explicit aerial variants with their own temporary gravity
-  windows; other shared specials remain aliases.
+  windows; `air.E` and `air.F` choose their own airborne presentation cues.
 - `CharacterAssetCatalog.asset` — schema 1, 60 Hz, Bonk rig, presentation bindings,
   independent move-animation bindings, and the package-owned `BonkWeaponAttachConfig.asset`.
 
@@ -172,7 +223,8 @@ inspector edits these parameters through the package draft and Undo.
 
 `ground.F` is `Blade Storm`: a 100-tick timeline with hitboxes at ticks 2, 16, 24,
 32, and 44, and a 900-tick cooldown. Its mobile aim ends at tick 75, locking
-movement for the final 25 ticks. `air.F` aliases this definition.
+movement for the final 25 ticks. `air.F` has the same gameplay with airborne wind
+and no ground-dust emitter.
 
 `air.A` and `air.R` preserve their grounded timelines and add a `gravityWindow`
 at tick 0: 0.5× the active airborne gravity for 30 ticks. FastFall overrides

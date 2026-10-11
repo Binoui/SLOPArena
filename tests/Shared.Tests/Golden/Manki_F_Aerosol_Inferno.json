@@ -1,42 +1,37 @@
 {
   "Scenario": "Manki F Aerosol Inferno",
-  "TickCount": 60,
+  "TickCount": 100,
   "PlayerSnap": {
     "State": 4,
     "PY": 0.75,
     "ComboStage": 1,
     "AttackSlot": 6,
+    "HitstopTicks": 5,
+    "ChargeTicks": 18,
     "JumpsLeft": 2,
     "IsGrounded": true
   },
   "NpcSnap": {
-    "State": 2,
     "FacingYaw": -3.1415927,
-    "PY": 0.80170834,
-    "PZ": 1.0895615,
-    "VY": 3.1025,
-    "VZ": 5.3736877,
-    "DamagePercent": 15,
-    "HitstunTicks": 15,
-    "AirTimeTicks": 1,
-    "JumpsLeft": 2
+    "PY": 0.75,
+    "PZ": 1,
+    "DamagePercent": 10,
+    "HitstopTicks": 5,
+    "JumpsLeft": 2,
+    "IsGrounded": true
   },
   "PlayerFinal": {
-    "State": 4,
     "PY": 0.75,
-    "ComboStage": 1,
-    "AttackSlot": 6,
+    "Cooldown5": 580,
     "JumpsLeft": 2,
     "IsGrounded": true
   },
   "NpcFinal": {
     "FacingYaw": -3.1415927,
-    "PY": 0.9362499,
-    "PZ": 3.486845,
-    "VY": -2.964167,
-    "VZ": 3.8736892,
-    "DamagePercent": 15,
-    "AirTimeTicks": 30,
-    "JumpsLeft": 2
+    "PY": 0.75,
+    "PZ": 3.5450442,
+    "DamagePercent": 10,
+    "JumpsLeft": 2,
+    "IsGrounded": true
   }
 }

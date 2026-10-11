@@ -16,7 +16,7 @@ public static class AbilityLabScenarioSelfTest
         var controller = new AbilityLabSimulationController();
         Vector3 origin = new(0f, definition.CapsuleHeight * 0.5f, 0f);
         AbilityLabScenarioResult Sim(string action, float distance, AbilityLabOpponentBehavior behavior = AbilityLabOpponentBehavior.Idle)
-            => controller.RunScenario(definition, null, new AbilityLabScenarioOptions(action, 48, distance, behavior), origin, 0f);
+            => controller.RunScenario(definition, null, new AbilityLabScenarioOptions(action, action == "grab" ? 300 : 48, distance, behavior), origin, 0f);
 
         var hit = Sim("ground.1", 1.2f);
         Require(hit.Contacts.Count == 1 && !hit.Contacts[0].Hit.Blocked, "Cooked move did not produce one accepted contact.");
@@ -46,13 +46,14 @@ public static class AbilityLabScenarioSelfTest
         Require(captured.Interactions.Count == 2 && captured.Interactions[0].Kind == "capture"
             && captured.Interactions[1].Kind == "release", "Grab did not record paired capture and automatic release.");
         var captureFrame = captured.Frames[captured.Interactions[0].FrameIndex];
-        Require(captureFrame.Actor.State == ActionState.Throwing && captureFrame.Opponent.State == ActionState.Grabbed
-            && captureFrame.Actor.InteractionId == captureFrame.Opponent.InteractionId, "Capture introduced a hold phase or lost linkage.");
+        Require(captureFrame.Actor.State == ActionState.Grabbing && captureFrame.Opponent.State == ActionState.Grabbed
+            && captureFrame.Actor.InteractionId == captureFrame.Opponent.InteractionId, "Capture lost the held state or linkage.");
         var releaseFrame = captured.Frames[captured.Interactions[1].FrameIndex];
         Require(releaseFrame.Actor.InteractionId == 0 && releaseFrame.Opponent.InteractionId == 0
             && releaseFrame.Opponent.DamagePercent > captureFrame.Opponent.DamagePercent
-            && releaseFrame.Opponent.State == ActionState.Hitstun, "Automatic release lost terminal linkage, damage or launch state.");
-        Require(captured.Interactions[1].FrameIndex - captured.Interactions[0].FrameIndex == DefenseConfig.ThrowReleaseTicks,
+            && releaseFrame.Opponent.State == ActionState.Thrown, "Automatic release lost terminal linkage, damage or launch state.");
+        Require(captured.Interactions[1].FrameIndex - captured.Interactions[0].FrameIndex
+            == DefenseConfig.GrabHoldTicks + DefenseConfig.ThrowReleaseTicks,
             "Scenario orchestration changed Shared release timing.");
         Require(captured.Contacts.Count == 0, "Grab invented a hitbox contact record.");
         var shieldGrab = Sim("grab", 1.2f, AbilityLabOpponentBehavior.Shield);

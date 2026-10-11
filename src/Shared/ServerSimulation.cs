@@ -1181,8 +1181,8 @@ namespace SlopArena.Shared
 			CancelDefenseAttackRuntime(targetId, ref target);
 			ClearAttackState(ref grabber);
 			ClearAttackState(ref target);
-			grabber.State = ActionState.Throwing;
-			grabber.StateTicks = DefenseConfig.ThrowReleaseTicks;
+			grabber.State = ActionState.Grabbing;
+			grabber.StateTicks = DefenseConfig.GrabHoldTicks;
 			grabber.InteractionId = interactionId;
 			grabber.InteractionPartnerId = targetId;
 			grabber.InteractionPhase = (byte)DefenseInteractionPhase.Captured;
@@ -1190,12 +1190,13 @@ namespace SlopArena.Shared
 			grabber.VX = grabber.VY = grabber.VZ = 0f;
 			grabber.FacingYaw = grabber.CapturedYaw * (MathF.PI / 18000f);
 			target.State = ActionState.Grabbed;
-			target.StateTicks = DefenseConfig.ThrowReleaseTicks;
+			target.StateTicks = DefenseConfig.GrabHoldTicks;
 			target.InteractionId = interactionId;
 			target.InteractionPartnerId = grabberId;
 			target.InteractionPhase = (byte)DefenseInteractionPhase.Captured;
 			target.InteractionTick = _tick;
 			target.CapturedYaw = grabber.CapturedYaw;
+			target.FacingYaw = target.AimYaw = grabber.FacingYaw;
 			target.PX = x; target.PY = y; target.PZ = z;
 			target.VX = target.VY = target.VZ = 0f;
 			_states[grabberId] = grabber;
@@ -1224,10 +1225,16 @@ namespace SlopArena.Shared
 				ulong ownerId = _interactionScratch[i];
 				if (!_states.TryGetValue(ownerId, out var owner) || owner.InteractionId == 0)
 					continue;
+				// Leave death-bound positions intact until CheckBlastDeaths commits
+				// the paired interruption and respawn barrier later in this tick.
+				if (IsOutsideBlastZone(in owner)
+					|| _states.TryGetValue(owner.InteractionPartnerId, out var dyingPartner)
+						&& IsOutsideBlastZone(in dyingPartner))
+					continue;
 				if (owner.State == ActionState.Grabbed)
 				{
 					if (!_states.TryGetValue(owner.InteractionPartnerId, out var grabber)
-						|| grabber.State != ActionState.Throwing
+						|| grabber.State is not (ActionState.Grabbing or ActionState.Throwing)
 						|| grabber.InteractionId != owner.InteractionId
 						|| grabber.InteractionPartnerId != ownerId
 						|| grabber.InteractionPhase != owner.InteractionPhase)
@@ -1237,7 +1244,7 @@ namespace SlopArena.Shared
 					}
 					continue;
 				}
-				if (owner.State != ActionState.Throwing)
+				if (owner.State is not (ActionState.Grabbing or ActionState.Throwing))
 				{
 					InterruptInteraction(ref owner);
 					_states[ownerId] = owner;
@@ -1254,24 +1261,42 @@ namespace SlopArena.Shared
 					|| partner.InteractionPhase != owner.InteractionPhase
 					|| partner.State != ActionState.Grabbed
 					|| !owner.IsGrounded || _rule.IsEliminated(owner) || _rule.IsEliminated(partner)
-					|| (partner.PY >= _blastLines.KillHeight && partner.PY <= _blastLines.KillTop
-						&& partner.PX >= _blastLines.KillMinX && partner.PX <= _blastLines.KillMaxX
-						&& partner.PZ >= _blastLines.KillMinZ && partner.PZ <= _blastLines.KillMaxZ
-						&& !CanPlaceVictim(in owner, in partner, _defs[ownerId], _defs[partnerId],
-							out _, out _, out _)))
+					|| !CanPlaceVictim(in owner, in partner, _defs[ownerId], _defs[partnerId],
+						out float x, out float y, out float z))
 				{
 					InterruptInteraction(ref owner);
 					_states[ownerId] = owner;
 					continue;
 				}
 
+				// Movement is simulated once between these two interaction passes. Keep
+				// the victim attached to the final, collision-resolved grabber position.
+				partner.PX = x; partner.PY = y; partner.PZ = z;
+				partner.VX = owner.VX; partner.VY = owner.VY; partner.VZ = owner.VZ;
+				partner.FacingYaw = partner.AimYaw = owner.FacingYaw;
+				partner.CapturedYaw = owner.CapturedYaw;
+
 				uint elapsed = _tick - owner.InteractionTick;
-				if (elapsed >= DefenseConfig.ThrowReleaseTicks && releaseDue)
+				if (owner.State == ActionState.Grabbing && !releaseDue
+					&& (elapsed >= DefenseConfig.GrabHoldTicks
+						|| inputs.TryGetValue(ownerId, out var grabInput) && grabInput.ActiveSlot > 0))
+				{
+					owner.State = ActionState.Throwing;
+					owner.InteractionPhase = partner.InteractionPhase = (byte)DefenseInteractionPhase.Throwing;
+					owner.InteractionTick = partner.InteractionTick = _tick;
+					owner.VX = owner.VY = owner.VZ = 0f;
+					partner.VX = partner.VY = partner.VZ = 0f;
+					elapsed = 0;
+					_lastTickAcceptedActions.Add(ownerId);
+				}
+
+				if (owner.State == ActionState.Throwing
+					&& elapsed >= DefenseConfig.ThrowReleaseTicks && releaseDue)
 				{
 					float yaw = owner.CapturedYaw * (MathF.PI / 18000f);
 					ClearAttackState(ref owner);
-					owner.State = ActionState.Idle;
-					owner.StateTicks = 0;
+					owner.State = ActionState.Throwing;
+					owner.StateTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
 					owner.AnimLockTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
 					ClearAttackState(ref partner);
 					partner.DamagePercent = (ushort)Math.Min(999, partner.DamagePercent + (ushort)ThrowDamage);
@@ -1280,14 +1305,15 @@ namespace SlopArena.Shared
 					Simulation.ApplyKnockback(ref partner, MathF.Sin(yaw), MathF.Cos(yaw),
 						30, ThrowBaseKnockback, ThrowGrowthKnockback, ThrowDamage, 1,
 						_defs[partnerId].Weight, combatTuning: CombatTuning);
-					if (inputs.TryGetValue(partnerId, out var throwInput)
-						&& (throwInput.MoveX != 0f || throwInput.MoveY != 0f))
-					{
-						partner.DIX = throwInput.MoveX; partner.DIY = throwInput.MoveY;
-						Simulation.ApplySdi(ref partner, partner.DIX, partner.DIY, _defs[partnerId], _arena);
-						Simulation.ApplyDirectionalInfluence(ref partner);
-						partner.DIX = partner.DIY = 0f;
-					}
+					// Retain percent/weight-scaled horizontal launch. The paired animation
+					// owns the vertical flight time, with ground contact at victim frame 34.
+					partner.State = ActionState.Thrown;
+					partner.StateTicks = DefenseConfig.ThrownAnimationTicks - DefenseConfig.ThrowReleaseTicks;
+					partner.IsGrounded = false;
+					partner.KVY = _defs[partnerId].Movement.Gravity
+						* (DefenseConfig.ThrownLandingTicks - DefenseConfig.ThrowReleaseTicks + 1)
+						* Simulation.TickDt * 0.5f;
+					partner.VX = partner.KVX; partner.VY = partner.KVY; partner.VZ = partner.KVZ;
 					_lastHitCredits[partnerId] = (ownerId, _tick, 0);
 					_lastHitContexts[partnerId] = (ownerId, _tick, 0);
 					MarkInteractionTerminal(ref owner, interactionId);
@@ -1297,15 +1323,12 @@ namespace SlopArena.Shared
 					continue;
 				}
 
-				if (elapsed > 0)
-				{
-					owner.InteractionPhase = (byte)DefenseInteractionPhase.Throwing;
-					partner.InteractionPhase = (byte)DefenseInteractionPhase.Throwing;
-				}
-				ushort remainingTicks = elapsed >= DefenseConfig.ThrowReleaseTicks
-					? (ushort)0 : (ushort)(DefenseConfig.ThrowReleaseTicks - elapsed);
-				owner.StateTicks = remainingTicks;
-				partner.StateTicks = remainingTicks;
+				int ownerDuration = owner.State == ActionState.Grabbing
+					? DefenseConfig.GrabHoldTicks : DefenseConfig.ThrowAnimationTicks;
+				int partnerDuration = owner.State == ActionState.Grabbing
+					? DefenseConfig.GrabHoldTicks : DefenseConfig.ThrownAnimationTicks;
+				owner.StateTicks = (ushort)Math.Max(0, ownerDuration - (int)elapsed);
+				partner.StateTicks = (ushort)Math.Max(0, partnerDuration - (int)elapsed);
 				_states[ownerId] = owner;
 				_states[partnerId] = partner;
 
@@ -1322,7 +1345,7 @@ namespace SlopArena.Shared
 			if (_states.TryGetValue(partnerId, out var partner)
 				&& partner.InteractionId == interactionId)
 			{
-				if (partner.State is ActionState.Grabbed or ActionState.Throwing)
+				if (partner.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing)
 				{
 					ClearAttackState(ref partner);
 					partner.State = partner.HitstunTicks > 0
@@ -1332,7 +1355,7 @@ namespace SlopArena.Shared
 				MarkInteractionTerminal(ref partner, interactionId);
 				_states[partnerId] = partner;
 			}
-			if ((affected.State is ActionState.Grabbed or ActionState.Throwing)
+			if ((affected.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing)
 				&& affected.HitstunTicks == 0)
 			{
 				ClearAttackState(ref affected);
@@ -1364,9 +1387,12 @@ namespace SlopArena.Shared
 				if (_rule.IsEliminated(state)) continue;
 				if (!_defs.TryGetValue(id, out var def)) continue; // state exists but no definition — invalid entity, skip (never simulate)
 				if (state.InteractionId != 0
-					&& state.State is (ActionState.Grabbed or ActionState.Throwing))
+					&& (IsOutsideBlastZone(in state)
+						|| _states.TryGetValue(state.InteractionPartnerId, out var dyingPartner)
+							&& IsOutsideBlastZone(in dyingPartner)))
 					continue;
 				var input = inputs.TryGetValue(id, out var i2) ? i2 : default;
+				var beforeMovement = state;
 				bool wasGrounded = state.IsGrounded;
 				_activeAbilities.TryGetValue(id, out var activeAbility);
 				if (activeAbility != null)
@@ -1376,6 +1402,18 @@ namespace SlopArena.Shared
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned,
 					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
+				if (state.State == ActionState.Grabbing && state.InteractionId != 0
+					&& _states.TryGetValue(state.InteractionPartnerId, out var heldPartner)
+					&& !CanPlaceVictim(in state, in heldPartner, def, _defs[state.InteractionPartnerId],
+						out _, out _, out _))
+				{
+					state.PX = beforeMovement.PX; state.PY = beforeMovement.PY; state.PZ = beforeMovement.PZ;
+					state.IsGrounded = beforeMovement.IsGrounded;
+					state.FacingYaw = beforeMovement.FacingYaw;
+					state.AimYaw = beforeMovement.AimYaw;
+					state.CapturedYaw = beforeMovement.CapturedYaw;
+					state.VX = state.VY = state.VZ = 0f;
+				}
 				if (state.State is ActionState.Shielding or ActionState.GrabAttempt or ActionState.AirDodgeMovement)
 					CancelDefenseAttackRuntime(id, ref state);
 
@@ -2350,6 +2388,11 @@ namespace SlopArena.Shared
 			}
 		}
 
+		private bool IsOutsideBlastZone(in CharacterState state)
+			=> state.PY < _blastLines.KillHeight || state.PY > _blastLines.KillTop
+				|| state.PX < _blastLines.KillMinX || state.PX > _blastLines.KillMaxX
+				|| state.PZ < _blastLines.KillMinZ || state.PZ > _blastLines.KillMaxZ;
+
 		private void CheckBlastDeaths()
 		{
 			// ── Step 4: Blast zone death check (void + side + top; inactive planes are ±inf) ──
@@ -2358,9 +2401,7 @@ namespace SlopArena.Shared
 			{
 				var s = kvp.Value;
 				if (!PredictCoupledInteractions && s.InteractionId != 0) continue;
-				if (s.PY < _blastLines.KillHeight || s.PY > _blastLines.KillTop
-					|| s.PX < _blastLines.KillMinX || s.PX > _blastLines.KillMaxX
-					|| s.PZ < _blastLines.KillMinZ || s.PZ > _blastLines.KillMaxZ)
+				if (IsOutsideBlastZone(in s))
 					deadIds.Add(kvp.Key);
 			}
 			foreach (var id in deadIds)

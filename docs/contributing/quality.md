@@ -12,12 +12,14 @@ push to `main` and on pull requests. These are the available project verificatio
 commands:
 
 ```bash
-python3 -m unittest discover -s tools -p 'test_check_docs.py'
+python3 -m unittest discover -s tools -p 'test_*.py'
 python3 tools/check_docs.py
-dotnet build src/Shared/ --nologo
-dotnet test tests/Shared.Tests/ --nologo
-dotnet build src/Server/ --nologo
-dotnet test tests/Server.Tests/ --nologo
+python3 tools/sync_agent_skills.py --check
+node --test --test-concurrency=1 scripts/unity-editor-gateway.test.ts tools/skill-evals/src/import.test.ts
+dotnet build src/Shared/ --nologo -p:SkipUnityPluginCopy=true
+dotnet test tests/Shared.Tests/ --nologo -p:SkipUnityPluginCopy=true
+dotnet build src/Server/ --nologo -p:SkipUnityPluginCopy=true
+dotnet test tests/Server.Tests/ --nologo -p:SkipUnityPluginCopy=true
 ```
 
 Choose checks for the changed surface rather than treating unrelated layers as
@@ -29,10 +31,14 @@ is explicitly set. For an open Editor, coordinate saved-source writers, acquire
 your own bounded gateway hold before that build, and let imports/compilation
 settle before ending the hold. Never copy into another owner's Editor window.
 
-The documentation checker validates Markdown links, selected current vocabulary,
-and simple executable targets/paths in this guide, including the documented
-unittest discovery suite. It does not interpret shell programs or prove that
-a command succeeds. Its tests are run in CI by `.github/workflows/ci.yml`.
+The documentation checker validates Markdown links, current workflow vocabulary,
+portable paths and discovery adapter freshness, plus simple executable targets in
+this guide. It does not interpret shell programs or prove command success. CI runs
+the documentation/adapter unit tests and a separate Node gateway job. The gateway
+suite uses mock Pipeline/CLI processes; it never opens Unity or needs Orca. Node
+22.18+ runs the TypeScript directly; see [Node's type stripping documentation](https://nodejs.org/api/typescript.html#type-stripping).
+For live Editor or plugin refresh checks, use [Unity CLI](unity-cli.md) and the
+[coordination protocol](unity-editor-coordination.md).
 
 ## EditorConfig and analyzers
 

@@ -238,6 +238,7 @@ namespace SlopArena.Client.UI
                 case "slop_pit":
                 case "after_hours":
                 case "last_stop":
+                case "log_off":
                     return true;
                 case "training":
                     return isTraining;

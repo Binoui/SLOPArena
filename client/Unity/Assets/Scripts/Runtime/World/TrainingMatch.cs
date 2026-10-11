@@ -17,8 +17,10 @@ namespace SlopArena.Client.World
 {
     public enum NpcAiMode
     {
-        Heuristic = 1,
-        Idle = 2
+        Attack = 1,
+        Idle = 2,
+        Shield = 3,
+        Avoid = 4,
     }
     
     public class TrainingMatch : MatchBase
@@ -55,6 +57,7 @@ namespace SlopArena.Client.World
         private int _nextNpcId = 101; // first NPC keeps entity id 100 (capture harness + Solo)
 
         private MatchContentEntry _npcEntry;
+        private MatchContentEntry _playerEntry;
         private int _selectedNpcIndex;
 #if UNITY_EDITOR
         // Launch-contract sentinel: logs the applied launch once per hit so the game can
@@ -145,12 +148,13 @@ namespace SlopArena.Client.World
             _captureInputOverride = null;
             _captureInputSequenceOwner = null;
         }
-        // ── Training settings panel (issue #187): Training-mode-only public surface ──
+        // ── Training controls ──
 
         public int NpcCount => _npcs.Count;
         public int SelectedNpcIndex => _selectedNpcIndex;
         public NpcAiMode CurrentNpcMode => _npcAiMode;
         public CpuDifficulty CurrentNpcDifficulty => BotDifficultyProfile.Normalize(_npcDifficulty);
+        public bool NoCooldowns => _bridge != null && _bridge.InternalSim.NoCooldownsEntityId == PlayerEntityId;
         public ulong SelectedNpcId => _npcs.Count > 0 ? _npcs[_selectedNpcIndex].Id : 0ul;
         public ulong GetNpcIdAt(int index) => _npcs[index].Id;
 
@@ -158,19 +162,30 @@ namespace SlopArena.Client.World
         {
             if (_npcs.Count == 0) return;
             _selectedNpcIndex = Math.Clamp(index, 0, _npcs.Count - 1);
+            _settingsPanel?.RefreshSelection();
         }
 
         public void SetNoCooldowns(bool on)
             => _bridge.InternalSim.NoCooldownsEntityId = on ? PlayerEntityId : null;
 
-        public void SetNpcMode(NpcAiMode mode) => _npcAiMode = mode;
+        public void SetNpcMode(NpcAiMode mode)
+        {
+            if (_npcs.Count == 0 || !Enum.IsDefined(typeof(NpcAiMode), mode)) return;
+            _npcAiMode = mode;
+            foreach (var npc in _npcs)
+                npc.Memory.Reset();
+            _settingsPanel?.RefreshSelection();
+        }
 
         public void SetNpcDifficulty(CpuDifficulty difficulty)
         {
             _npcDifficulty = BotDifficultyProfile.Normalize(difficulty);
             foreach (var npc in _npcs)
+            {
                 npc.Memory.Difficulty = _npcDifficulty;
-            _settingsPanel?.RefreshDifficultyHighlight();
+                npc.Memory.Reset();
+            }
+            _settingsPanel?.RefreshSelection();
         }
         public float GetSelectedNpcDamage()
             => _npcs.Count > 0 ? _bridge.GetState(SelectedNpcId).DamagePercent : 0f;
@@ -182,6 +197,66 @@ namespace SlopArena.Client.World
             var state = _bridge.GetState(SelectedNpcId);
             state.DamagePercent = (ushort)Mathf.Clamp(Mathf.RoundToInt(percent), 0, 999);
             _bridge.InternalSim.SetState(SelectedNpcId, state);
+            _hudManager?.Refresh();
+        }
+
+        /// <summary>Zero damage for the player and every CPU without moving them.</summary>
+        public void ResetTrainingDamage()
+        {
+            if (_bridge == null || MatchConfig.Mode != GameMode.Training) return;
+            foreach (var entity in new Dictionary<ulong, CharacterState>(_bridge.GetAllStates()))
+            {
+                var state = entity.Value;
+                state.DamagePercent = 0;
+                _bridge.InternalSim.SetState(entity.Key, state);
+            }
+            _hudManager?.Refresh();
+        }
+
+        /// <summary>Return every fighter to its spawn, preserving damage and CPU settings.</summary>
+        public void ResetTrainingPositions()
+        {
+            if (_bridge == null || _playerEntry == null || MatchConfig.Mode != GameMode.Training) return;
+            var states = new Dictionary<ulong, CharacterState>(_bridge.GetAllStates());
+            // Remove first so paired grabs and active abilities are interrupted before any
+            // fresh state is installed. Clear lingering projectiles from completed abilities.
+            foreach (var entity in states)
+                _bridge.InternalSim.RemoveEntity(entity.Key);
+            _bridge.InternalSim.Resolver.Clear();
+            RestoreTrainingEntity(PlayerEntityId, _arenaDef.SpawnPoints[0], _playerEntry,
+                states[PlayerEntityId], _playerRenderer);
+            foreach (var npc in _npcs)
+            {
+                RestoreTrainingEntity(npc.Id, npc.Spawn, _npcEntry, states[npc.Id], npc.Renderer);
+                npc.Memory.Reset();
+                npc.LastDeaths = states[npc.Id].Deaths;
+            }
+            ResetTrainingPresentation();
+            _projectileVFX?.OnTick();
+            _hudManager?.Refresh();
+        }
+
+        private void RestoreTrainingEntity(ulong id, SpawnPoint spawn, MatchContentEntry entry,
+            CharacterState previous, PlayerRenderer renderer)
+        {
+            var state = new CharacterState
+            {
+                PX = spawn.X, PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw,
+                JumpsLeft = entry.Definition.Movement.MaxJumps, AirDodgesLeft = 1,
+                DamagePercent = previous.DamagePercent, Deaths = previous.Deaths,
+            };
+            _bridge.RegisterEntity(id, entry.Definition, state, entry.BakedAnimation);
+            _bridge.SetRespawnPosition(id, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
+            renderer?.ResetAnimationState();
+            renderer?.ApplyServerState(_bridge.GetState(id));
+            _projectileVFX?.ClearHeldVisual(id);
+        }
+
+        public void ResetTrainingPresentation()
+        {
+            _inputController?.RequireReleaseBeforeHumanInput();
+            _aimHandler?.ResetPresentation();
+            _showCrosshair = false;
         }
 
         public void AddNpc()
@@ -248,7 +323,7 @@ namespace SlopArena.Client.World
             _arenaDef = arena;
             bool solo = MatchConfig.Mode == GameMode.Solo;
             if (solo)
-                _npcAiMode = NpcAiMode.Heuristic;
+                _npcAiMode = NpcAiMode.Attack;
             _npcDifficulty = BotDifficultyProfile.Normalize(MatchConfig.SoloCpuDifficulty);
             _soloCountdownTicks = solo ? (ushort)300 : (ushort)0;
             _bridge = new LocalSimulationBridge(
@@ -275,6 +350,7 @@ namespace SlopArena.Client.World
             }
             var playerDef = playerEntry.Definition;
             _playerDef = playerDef;
+            _playerEntry = playerEntry;
             var npcDef = npcEntry.Definition;
             _npcEntry = npcEntry;
 
@@ -318,13 +394,12 @@ namespace SlopArena.Client.World
             SetupAimHandler(playerDef);
             SetupLockIndicator(_npcs.Select(n => n.Renderer).ToArray(), arena);
             _lockIndicator = FindFirstObjectByType<TargetIndicator>();
-            // Training settings — Training mode only, never Solo/PvP. Attached to the
-            // pause menu's left side; it shows while paused (sim frozen by the pause menu).
+            // Training controls remain visible on the HUD throughout practice.
             if (MatchConfig.Mode == GameMode.Training)
             {
                 var panel = gameObject.AddComponent<TrainingSettingsPanel>();
-                panel.Init(this, _pauseMenu);
                 _settingsPanel = panel;
+                panel.Init(this, _hudManager.Document, _cameraMount);
             }
         }
 
@@ -388,8 +463,6 @@ namespace SlopArena.Client.World
         {
             if (_bridge == null || _playerRenderer == null) return;
 
-            // The sim is frozen while the pause menu (and thus settings) is open, so no
-            // neutral-input branch is needed here — FixedUpdate doesn't run under pause.
             // Poll done in Update() — keep FixedUpdate clean
             byte slot = _inputController.ConsumePendingSlotPress();
 
@@ -448,9 +521,6 @@ namespace SlopArena.Client.World
                 {
                     npc.LastDeaths = npcState.Deaths;
                     npc.Memory.Reset();
-                    npc.Memory.Difficulty = MatchConfig.Mode == GameMode.Solo
-                        ? BotDifficultyProfile.Normalize(MatchConfig.SoloCpuDifficulty)
-                        : CurrentNpcDifficulty;
                     continue;
                 }
 
@@ -632,7 +702,9 @@ namespace SlopArena.Client.World
             return _npcAiMode switch
             {
                 NpcAiMode.Idle => BuildIdleInput(),
-                NpcAiMode.Heuristic => BuildHeuristicInput(npcState, playerState, slot),
+                NpcAiMode.Attack => BuildPolicyInput(npcState, playerState, slot, CpuBehavior.Attack),
+                NpcAiMode.Shield => BuildPolicyInput(npcState, playerState, slot, CpuBehavior.Shield),
+                NpcAiMode.Avoid => BuildPolicyInput(npcState, playerState, slot, CpuBehavior.Avoid),
                 _ => BuildIdleInput(),
             };
         }
@@ -643,12 +715,13 @@ namespace SlopArena.Client.World
         /// existing input-injection / rendering / respawn plumbing applies unchanged. Seeded
         /// randomly per match; idle until the match has initialized the NPC def.
         /// </summary>
-        private InputState BuildHeuristicInput(CharacterState npcState, CharacterState playerState, NpcSlot slot)
+        private InputState BuildPolicyInput(CharacterState npcState, CharacterState playerState,
+            NpcSlot slot, CpuBehavior behavior)
         {
             if (slot.Def == null) return BuildIdleInput();
             slot.Rng ??= new System.Random();
             return _npcPolicy.Decide(npcState, playerState, slot.Def, slot.Rng, slot.Memory,
-                _arenaDef, _npcEntry.BakedAnimation);
+                _arenaDef, _npcEntry.BakedAnimation, behavior);
         }
 
         private static InputState BuildIdleInput()

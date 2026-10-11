@@ -310,7 +310,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             });
         }
 
-        Assert.Equal(15f, sim.GetState(100).DamagePercent);
+        Assert.Equal(10f, sim.GetState(100).DamagePercent);
         Assert.Equal(0f, sim.GetState(101).DamagePercent);
     }
 
@@ -323,11 +323,11 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             Def = Def,
             Setup = GroundedPlayer,
             Inputs = new InputSequence().Press(0, AbilitySlots.F),
-            Assert = _ => { },
+            Assert = state => Assert.Equal(ActionState.Idle, state.State),
             NpcSetup = () => TestHelpers.NpcState(0f, 1f) with { PY = GroundPy },
-            NpcAssert = npc => Assert.Equal(15f, npc.DamagePercent),
+            NpcAssert = npc => Assert.Equal(10f, npc.DamagePercent),
             SnapshotTick = 30,
-            TotalTicks = 60,
+            TotalTicks = 100,
         });
     }
 

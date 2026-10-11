@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check project documentation
         run: |
-          python3 -m unittest discover -s tools -p 'test_check_docs.py'
+          python3 -m unittest discover -s tools -p 'test_*.py'
           python3 tools/check_docs.py
       - uses: actions/setup-dotnet@v6
         with:
@@ -19,3 +19,14 @@ jobs:
       - run: dotnet test tests/Shared.Tests/ --nologo
       - run: dotnet build src/Server/ --nologo
       - run: dotnet test tests/Server.Tests/ --nologo
+  agent-tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Test agent tooling without a live Editor
+        run: node --test --test-concurrency=1 scripts/unity-editor-gateway.test.ts tools/skill-evals/src/import.test.ts

@@ -51,7 +51,7 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
                 TickAim(ref s, input, def);
                 break;
             case Phase.Flight:
-                TickFlight(ref s);
+                TickFlight(ref s, def);
                 break;
             case Phase.Landing:
                 TickLanding(ref s);
@@ -99,14 +99,15 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         s.VZ = MathF.Cos(_aimYaw) * _horizontalSpeed;
         s.AttackElapsedTicks = 0;
         s.AnimLockTicks = _parameters.MaxFlightTicks;
+        EmitPhasePresentation(ref s, def, _parameters.LaunchPresentationId, PresentationEventSource.CapabilityLaunch);
     }
 
-    private void TickFlight(ref CharacterState s)
+    private void TickFlight(ref CharacterState s, CharacterDefinition def)
     {
         s.IsAiming = false;
         if (s.IsGrounded)
         {
-            StartLanding(ref s);
+            StartLanding(ref s, def);
             return;
         }
 
@@ -123,7 +124,7 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         s.VZ = MathF.Cos(_aimYaw) * _horizontalSpeed;
     }
 
-    private void StartLanding(ref CharacterState s)
+    private void StartLanding(ref CharacterState s, CharacterDefinition def)
     {
         _phase = Phase.Landing;
         _phaseTicks = 0;
@@ -137,6 +138,16 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         s.AttackElapsedTicks = _parameters.LandingSeekTick;
         s.AnimLockTicks = _parameters.RecoveryTicks;
         SpawnLandingHitbox(ref s);
+        EmitPhasePresentation(ref s, def, _parameters.LandingPresentationId, PresentationEventSource.CapabilityLanding);
+    }
+
+    private void EmitPhasePresentation(ref CharacterState s, CharacterDefinition def, string id, PresentationEventSource source)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        // Ground bursts use the actual capsule feet at the phase transition, never
+        // a cursor destination or an assumed flight/animation duration.
+        PresentationSink?.Invoke(new TimelinePresentationEvent(0, s.EntityId, PresentationOperationIndex,
+            id, PresentationAttackSequence, source, s.PX, s.PY - def.CapsuleHeight * 0.5f, s.PZ, s.FacingYaw));
     }
 
     private void TickLanding(ref CharacterState s)

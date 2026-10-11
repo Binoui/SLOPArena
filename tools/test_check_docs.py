@@ -159,6 +159,39 @@ class CheckDocsTests(unittest.TestCase):
         result, output = self.run_checker(root)
         self.assertEqual(result, 0, output)
 
+    def test_current_guidance_rejects_private_paths_but_preserves_history(self) -> None:
+        root = self.make_repo()
+        guide = root / "docs/contributing/agents.md"
+        guide.write_text("Run /home/alice/private/gateway.ts\n", encoding="utf-8")
+        historical = root / "docs/plans/old-workflow.md"
+        historical.parent.mkdir(parents=True)
+        historical.write_text("Historical path /home/alice/private/gateway.ts\n")
+        result, output = self.run_checker(root)
+        self.assertEqual(result, 1)
+        self.assertIn("author-specific filesystem path", output)
+        self.assertNotIn("old-workflow.md", output)
+        guide.write_text("Run scripts/unity-editor-gateway.ts\n")
+        result, output = self.run_checker(root)
+        self.assertEqual(result, 0, output)
+
+    def test_canonical_skills_are_checked_for_retired_workflows(self) -> None:
+        root = self.make_repo()
+        guide = root / "skills/example/SKILL.md"
+        guide.parent.mkdir(parents=True)
+        guide.write_text("Use CharacterRegistry to add new fighters.\n")
+        errors: list[str] = []
+        with mock.patch.object(check_docs, "ROOT", root):
+            check_docs.check_forbidden_terms(errors, [guide.relative_to(root)])
+        self.assertTrue(any("global character registry" in error for error in errors))
+
+    def test_current_file_uri_is_rejected_even_though_link_has_a_scheme(self) -> None:
+        root = self.make_repo()
+        guide = root / "docs/contributing/agents.md"
+        guide.write_text("Read [protocol](file:///Users/alice/private/protocol.md).\n")
+        result, output = self.run_checker(root)
+        self.assertEqual(result, 1)
+        self.assertIn("author-specific filesystem path", output)
+
 
 if __name__ == "__main__":
     unittest.main()

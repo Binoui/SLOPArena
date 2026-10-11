@@ -1,6 +1,21 @@
 # Restricted VPS release
 
-This profile deploys SlopArena to a dedicated Ubuntu 24.04 amd64 VPS. It is separate from `deploy/local/` and any home deployment. CI deployment is opt-in through the separately provisioned restricted account below; there is no implicit SSH host. Use a host dedicated to this profile; do not copy credentials, runtime configuration, or database state from another environment.
+This is the current Steam Playtest backend on the dedicated Ubuntu 24.04 amd64
+VPS. The workstation operator alias is `sloparena`; public Master HTTPS is
+`https://master-test.sloparena.barakaslurp.fr`. It is separate from `deploy/local/`
+and the historical Alfred home deployment. Keep credentials/runtime state
+specific to this environment.
+
+## Routine release and investigation
+
+- Release: use [the isolated client build and coordinated GitHub Actions workflow](../../docs/systems/release-pipeline.md). Steam default activation stays manual after VPS readiness.
+- Match lag or frozen fighters: start with [MasterConsole diagnostics](#match-diagnostics), then the [two bounded process-log commands](#noninteractive-agent-log-access).
+- Readiness: public `/ready` plus a fresh private MasterConsole server heartbeat. Full image/schema/backup status needs an authenticated operator sudo session.
+- CI connectivity failure: **Check Playtest VPS** (`check-playtest-vps.yml`) checks the protected tunnel and refusal boundaries; it neither fetches match logs nor checks application readiness.
+
+Bootstrap and CI provisioning below are one-time administration. Do not repeat
+them for a normal release or log request. The ordinary SSH log grant does not
+authorize passwordless status/deploy/rollback or arbitrary Docker commands.
 
 ## Operator prerequisites
 
@@ -33,16 +48,23 @@ Before provider-firewall cutover, permit only management-source SSH and the revi
 
 ## Release
 
-The release script runs on the selected VPS itself, not through an SSH default. Create a release JSON from `release.example.json` in an operator-owned directory outside Git. Fill exact published `repository@sha256:<digest>` references for GameHost, Master and migrations, their source revisions, shared `release_id`, target/compatible EF migrations, test DNS names, VPS IPv4 and required private runtime file paths. Do not substitute local Docker image IDs, tags or another environment's endpoint. Keep each release record; the CLI saves a copy under the private target.
+This is the **manual privileged fallback**, used when the coordinated CI path is
+unavailable. The installed script runs on the selected VPS in an authenticated
+operator sudo session. Create a release JSON from `release.example.json` outside
+Git with exact published digests, full source revisions, shared `release_id`,
+target/compatible EF migrations, test DNS/VPS identity and private runtime file
+paths. Preserve each record; the CLI saves a private copy. For a catalog change,
+manually prepare a new Master environment file and reference it in the record;
+the automatic environment copy belongs to the CI receiver, not `release.py`.
+Require a fresh successful off-host backup before manual replacement.
 
 ```bash
-sudo python3 deploy/vps/release.py deploy \
+sudo python3 /opt/sloparena/deploy/vps/release.py status --target-dir /var/lib/sloparena
+sudo python3 /opt/sloparena/deploy/vps/release.py deploy \
   --target-dir /var/lib/sloparena --config /etc/sloparena/release.json
-sudo python3 deploy/vps/release.py status --target-dir /var/lib/sloparena
-sudo python3 deploy/vps/release.py logs --target-dir /var/lib/sloparena --service master
-sudo python3 deploy/vps/release.py logs --target-dir /var/lib/sloparena --service caddy --tail 50
-sudo python3 deploy/vps/release.py rollback \
-  --target-dir /var/lib/sloparena --release-id <previous-compatible-release-id>
+sudo python3 /opt/sloparena/deploy/vps/release.py status --target-dir /var/lib/sloparena
+sudo python3 /opt/sloparena/deploy/vps/release.py rollback \
+  --target-dir /var/lib/sloparena --release-id '<previous-compatible-release-id>'
 ```
 
 The deployment lock serializes changes; image/digest/label, DNS and Compose checks precede writer disruption. Deployment and rollback of an active release also require fresh Master heartbeat evidence of zero active matches immediately before stopping writers; stale/unavailable registration is not zero. Schema changes stop writers, require a successful `pg_dump` before running the pinned EF bundle, then check the applied migration. Keep an off-host copy of the pre-migration backup before relying on disaster recovery. Do not use `down -v`, destructive prune, or runtime-config rsync.
@@ -326,11 +348,98 @@ Check `systemctl status sloparena-backup.service` and its journal on failure. Fo
 
 `release.py status` reports release/source/image identities, container state, application health/readiness, Master registration freshness, reported active-match count, filesystem use, and off-host backup status. GameServer readiness requires cooked content and a recent Master registration or heartbeat acknowledgement; `/health` is a listener check. A Master outage can make readiness fail without stopping active fights or dropping the registration token. A successful heartbeat restores readiness; a rejected heartbeat triggers re-registration.
 
-Match count comes from the latest Master heartbeat, not a synchronous simulation query. Logs are bounded, and pre-replacement bundles are retained privately. Treat raw Docker logs as private until containers are replaced; never paste raw logs, tokens or chat bodies into an issue.
+Match count comes from the latest Master heartbeat, not a synchronous simulation
+query. Logs are bounded and pre-replacement bundles are retained privately.
+Keep raw Docker logs private, including after replacement; share only relevant
+sanitized evidence, excluding tokens, credentials and chat bodies.
 
 Replace credentials through the environment's documented private configuration and provider controls. Change one credential domain at a time, check readiness/registration, and revoke the old value only after the new path works. Changing a database password file alone does not change an existing database role. Replacing host registration credentials does not necessarily invalidate an already provisioned GameServer API token; follow the Master/GameServer enrollment procedure to invalidate and issue a new token safely. Do not remove an active registration during a match. Preserve provider-console recovery and management-source restrictions when changing SSH keys. Do not reuse restored GameServer registrations or tokens to enroll a new host.
 
 A database restore does not undo schema migrations or reissue credentials. Restore only to a fresh isolated target unless an operator has separately approved and verified a recovery plan. Do not import another environment's in-memory lobby/chat state or runtime configuration.
+
+### Match diagnostics
+
+The local MasterConsole at `http://127.0.0.1:4173` reaches Master through the
+existing private SSH forward on `127.0.0.1:18080`. Its code/run instructions live
+in the separate `SlopArena-console` checkout. If starting a tunnel, resolve the
+current private Master address first; the verified address for this deployment
+is `172.30.12.2:8080`, and it must be rechecked after replacement:
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:18080:172.30.12.2:8080 sloparena
+```
+
+Reuse the existing console/tunnel when available. Enter the dedicated console
+key only in its masked field; it is held in page memory and cleared on disconnect
+or authorization failure. The operator key file is
+`~/.local/state/sloparena-console/console.key`, outside Git with owner-only mode.
+Do not expose `/owner` routes publicly or substitute a player JWT for this key.
+
+Choose **Matches → a match → Pull match logs**. **Download diagnostics JSON**
+preserves that snapshot; pull again to refresh an active match. It includes server
+tick, mean/maximum tick work, scheduling delay/resets, timestamped Steam RTT and
+receive/send quality, and recent lifecycle/connection/error events. Steam quality
+is an estimate, not a packet-loss percentage. Client FPS/frame time and prediction
+correction counts are not collected by this endpoint.
+
+GameHost retains active matches plus the last 50 ended matches, with 256 events
+per match and an overwritten-event count. Restart loses these records. Matches
+from before deployment may remain in Master without any retained diagnostics.
+
+| Result | Meaning |
+| --- | --- |
+| `200` | Captured typed snapshot; inspect its capture/sample times |
+| `401` | Console key missing or wrong |
+| `404` | Unknown match, or owner API disabled by missing configuration |
+| `410` | Known match has no retained GameHost diagnostics |
+| `502` | Invalid/oversized upstream response |
+| `503` | GameHost unavailable or not provisioned for private control |
+
+For an authorized automated export, use the fixed local proxy and read the key
+into memory. From the game checkout, replace the match ID with a canonical GUID
+from MasterConsole; the command writes a private snapshot, not credentials:
+
+```python
+import json
+import os
+from pathlib import Path
+from uuid import UUID
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+match_id = "replace-with-match-GUID"
+assert str(UUID(match_id)) == match_id
+key = (Path.home() / ".local/state/sloparena-console/console.key").read_text().strip()
+request = Request(
+    f"http://127.0.0.1:4173/api/matches/{match_id}/diagnostics",
+    headers={"X-Console-Key": key},
+)
+try:
+    with urlopen(request, timeout=8) as response:
+        data = response.read(512 * 1024 + 1)
+except HTTPError as error:
+    raise SystemExit(f"Match diagnostics returned HTTP {error.code}; see the result table.")
+except URLError:
+    raise SystemExit("Private console/tunnel unavailable.")
+if len(data) > 512 * 1024:
+    raise SystemExit("Diagnostics exceeded the response limit.")
+snapshot = json.loads(data)
+output = Path("build/diagnostics") / f"match-{match_id}.json"
+output.parent.mkdir(parents=True, exist_ok=True)
+fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+with os.fdopen(fd, "w") as saved:
+    os.fchmod(saved.fileno(), 0o600)
+    json.dump(snapshot, saved, indent=2)
+    saved.write("\n")
+print(output)
+```
+
+The private chain is console `/api/matches/<GUID>/diagnostics` → Master
+`/owner/matches/<GUID>/diagnostics` → GameHost `/match/diagnostics/<GUID>`.
+Master uses the provisioned host and private control credential, bounds the
+response and projects safe fields. The owner key never goes in a URL or command
+argument; do not dump the full owner observation just to find one match.
 
 ### Noninteractive agent log access
 

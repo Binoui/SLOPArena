@@ -1,42 +1,54 @@
-# Troubleshooting — SlopArena Online (master + game server + client)
+# Troubleshooting — Steam Playtest and VPS
 
-Operational debugging guide for the historical home setup on `alfred`. Companion
-to [Production Hosting](production-hosting.md). The current Steam Playtest uses
-the separate VPS: start with [Release Pipeline](release-pipeline.md) and the
-[VPS runbook](../../deploy/vps/README.md), not the home public-UDP recipes below.
-The historical failure entries originated in the 2026-08-02 home playtest.
+The current target is the `sloparena` VPS, with Master at
+`https://master-test.sloparena.barakaslurp.fr`. Use
+[sloparena-ops](../../skills/sloparena-ops/SKILL.md) for the compressed
+investigation flow and [the VPS runbook](../../deploy/vps/README.md) for access.
+Release through [the current pipeline](release-pipeline.md); a log request does
+not require a release, container restart or shared-Editor session.
 
-## 0. Where the logs live
+## Start with evidence from the reported match
 
-| Component | Where | What to look for |
-|---|---|---|
-| Client (Windows exe / Steam Proton) | `%USERPROFILE%\AppData\LocalLow\SlopArena\SlopArena\Player.log` — under Proton: `<steamapps>/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/LocalLow/SlopArena/SlopArena/Player.log` | `[ServerBrowser]`, `[LobbyClient]`, `Exception`, `Error` |
-| Client (Unity Editor, Linux) | `~/.config/unity3d/Editor.log` (or the Editor console) | same markers |
-| Game server | `ssh alfred 'docker compose -f /root/homelab/sloparena/docker-compose.yml logs server-1'` | `[Registration]`, `[Heartbeat]`, `[MatchControl]`, `[MatchInstance]` |
-| Master server | same, `... logs master` | `Game server registered/re-registered`, `Rate limit exceeded`, `error` |
-| Postgres | `ssh alfred 'docker exec sloparena-postgres psql -U sloparena -d sloparena -c "..."'` | `GameServers` rows, heartbeat freshness |
-
-## 1. The diagnostic ladder (fastest → deepest)
+1. Record approximate UTC time, match ID, installed client version and symptom.
+2. In local MasterConsole select **Matches → a match → Pull match logs**, then
+   **Download diagnostics JSON**. Pull again for a fresh active-match snapshot.
+3. Correlate server tick work/scheduling, peer sample times/RTT/quality and recent
+   lifecycle/error events with bounded process logs and client `Player.log`.
+4. For service status, use public `/ready` and the console's server heartbeat.
+   A 15-second-old heartbeat is stale; container uptime and `/health` are not
+   admission proof. Full image/schema/backup status requires operator sudo.
 
 ```bash
-# 1. Is the tunnel up? (client can reach the master API)
-curl -s https://sloparena.barakaslurp.fr/health          # expect {"status":"ok",...}
-
-# 2. Are all containers up?
-ssh alfred 'cd /root/homelab/sloparena && docker compose ps'
-
-# 3. Is the game server registered AND heartbeating (fresh = seconds old)?
-ssh alfred 'docker exec sloparena-postgres psql -U sloparena -d sloparena -c \
-  "SELECT \"Name\", \"IpAddress\", \"Port\", \"IsOfficial\", NOW() - \"LastHeartbeat\" AS age FROM \"GameServers\";"'
-# age > 30s → heartbeat dead → server crashed or unreachable
-
-# 4. Is UDP actually reachable? (firewall/forward issues hide here)
-timeout 8 bash -c 'echo > /dev/tcp/<alfred-lan-ip>/7777' && echo "TCP OK"     # 0=OK, 124=DROP
-timeout 8 bash -c 'echo > /dev/tcp/<public-ip>/7777' && echo "public OK" # hairpin through Bbox
-
-# 5. Client log tail — the actual player experience
-tail -40 ~/.local/share/Steam/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/LocalLow/SlopArena/SlopArena/Player.log
+curl --fail --silent --show-error --max-time 10 \
+  https://master-test.sloparena.barakaslurp.fr/ready
 ```
+
+**Check Playtest VPS** checks the protected CI tunnel and SSH refusal boundaries;
+it does not check live application readiness or retrieve a match's logs.
+
+## Where current logs live
+
+| Evidence | Access |
+| --- | --- |
+| Per-match timing, peer health and lifecycle events | [Private MasterConsole diagnostics](../../deploy/vps/README.md#match-diagnostics) |
+| GameHost process log | [Exact permitted VPS command](../../deploy/vps/README.md#noninteractive-agent-log-access), `--service game --tail 200` |
+| Master process log | Same grant, `--service master --tail 200` |
+| Windows player | `%USERPROFILE%\AppData\LocalLow\SlopArena\SlopArena\Player.log` |
+| Proton player | Selected Steam library: `steamapps/compatdata/5325920/pfx/drive_c/users/steamuser/AppData/LocalLow/SlopArena/SlopArena/Player.log` |
+| Linux Unity Editor | `~/.config/unity3d/Editor.log` |
+
+The current SSH log grant needs an unlocked VPS key, but no sudo password.
+Use those exact commands instead of requesting privileged `status`/Docker access
+before fetching logs. Keep raw captures private and report relevant sanitized
+lines; client logs can contain authentication details. Copy `Player.log` before
+another launch overwrites it. A bounded process tail may no longer cover the
+reported match.
+
+GameHost retains active matches plus its last 50 ended matches, with 256 recent
+events per match; restart loses the records. Match diagnostics `410` means a
+known match has no retained logs, not that it ran cleanly. See
+[the result table](../../deploy/vps/README.md#match-diagnostics) for authorization,
+unknown-match and unavailable-upstream responses.
 
 ## Steam match loads but both fighters freeze before countdown
 
@@ -54,124 +66,16 @@ validation. Unreliable, malformed, wrong-version, spoofed and client-sent Clock
 frames remain invalid. The server fix uses the existing protocol and requires
 a deployed GameHost update; editing this checkout does not repair a running VPS.
 
-Run the startup regression and rejection checks with:
+When modifying the startup handler, run the focused regression/rejection checks:
 
 ```bash
 dotnet test tests/Server.Tests/Server.Tests.csproj --nologo -p:SkipUnityPluginCopy=true \
   --filter 'FullyQualifiedName~SteamBootstrapBeforeReady|FullyQualifiedName~SteamStartupControls|FullyQualifiedName~SteamReadyRetains'
 ```
 
-## Projectile aim diverges after camera turns
-
-Yaw is a circular direction, not a value to saturate at the signed-short limit.
-Human input must normalize both facing and aim yaw before encoding signed
-centidegrees; resolve an active ability's aim override before that conversion.
-For example, camera yaw 450° must arrive as 90°, not 327.67°. Pitch retains its
-separate ±90° clamp, and the packet layout does not change.
-
-Run `Tools/SlopArena/Tests/Training Sequence Parser` in the Editor for the human
-input/wire regression. For visual acceptance, hold Manki R (controller LB+X /
-Square), turn the aim camera through full rotations in both directions, and
-release: the rocket should follow the camera, including vertical aim. Updating
-source does not update the installed Steam player; use the approved release
-pipeline before retesting the published build.
-
-## 2. Failure catalog
-
-### 2.1 "I hit Join and it just hangs" — UFW dropping game ports
-
-**Symptom:** client log shows `[ServerBrowser] Joining server: SlopArena EU #1 (sloparena.barakaslurp.fr:7777)` then nothing; TCP probe to `<alfred-lan-ip>:7777` times out (exit 124); loopback works.
-
-**Cause:** alfred's UFW has `INPUT policy DROP` and game ports weren't allowed. Bbox forward ≠ host firewall — both must be open.
-
-**Fix:**
-```bash
-ssh alfred 'sudo ufw allow 7777/tcp && sudo ufw allow 7777:7791/udp'
-sudo ufw status | grep 7777   # confirm
-```
-**Verify:** re-run the TCP/UDP probes (section 1 step 4) — both must pass.
-
-### 2.2 Registration fails `400 Invalid IP address: <domain>` (master side)
-
-**Symptom:** server logs `[Registration] Failed: BadRequest — {"error":"Invalid IP address: ..."}`.
-
-**Cause:** master's `IsValidIpAddress` historically required an IPv4 literal; official servers register with a DNS hostname (`sloparena.barakaslurp.fr`). Fixed in master `Program.cs` (`Uri.CheckHostName is IPv4 or Dns`). If you still see it, the deployed master is stale — redeploy per runbook.
-
-**Current binaries:** registration retries transient Master outages and recovers
-from a lost server record. A missing or wrong approved-host credential in the
-VPS profile fails startup rather than retrying. The legacy home deployment
-needs an explicit `development` profile before upgrading either binary;
-do not restart it solely because Master restarted.
-
-### 2.3 False 429s in the master test suite
-
-**Symptom:** `LobbyHubAuthIntegrationTests...Returns200` fails with 429 when running the full suite, passes alone.
-
-**Cause:** `RateLimitTracker` was a static class — all parallel test factories shared one counter. Now a DI singleton (per app instance). If it regresses, check `Program.cs` registers `RateLimitTracker` and the middleware resolves it via `context.RequestServices`.
-
-### 2.4 rsync wiped the master config
-
-**Symptom:** master container starts, then dies / loses DB connection after a deploy; `appsettings.Production.json` missing.
-
-**Cause:** `rsync --delete` or `--delete-excluded` on the master publish dir deletes the config that lives inside `publish/`. **Never use `--delete*` on the master rsync.** Use `--exclude 'appsettings.Production.json'` with plain `rsync -avz`. If the config is gone: rebuild it (real DB password from `/root/homelab/sloparena/.env`, fresh JWT secret via `openssl rand -base64 48`), chmod 600. Old JWTs die — acceptable, clients re-auth.
-
-### 2.5 `MSB3030` / exploding publish output (master repo)
-
-**Symptom:** `dotnet publish` fails with `MSB3030: Could not copy ... MasterServer.Tests/bin/Debug/...` recursing deeper each run.
-
-**Cause:** publishing into `build/minipc-master` inside the repo — the `MasterServer.Tests` subfolder (excluded from Compile but not content globs) leaks its `bin/obj` into the output and copies itself on each publish.
-
-**Fix:** publish to `/tmp/minipc-master` (or add `<Content Remove="MasterServer.Tests\**" />` to the csproj). Always `/tmp` for master publishes.
-
-### 2.6 Unity player build fails `build target was unsupported` / `UnityEditor.Handles` CS0234
-
-**Symptom:** `build-release.sh` aborts at the Unity step.
-
-**Causes (both hit):**
-1. Missing **Windows Build Support (Mono)** module on Linux editors: `ls Editor/Data/PlaybackEngines/` lacks `WindowsStandaloneSupport`. Fix: `/opt/unityhub/unityhub-bin -- --headless install-modules --version 6000.0.78f1 -m windows-mono`.
-2. Editor-only API in runtime scripts: `UnityEditor.Handles` in `OnDrawGizmos` (fixed with `#if UNITY_EDITOR`). Grep for `UnityEditor\.` in `Assets/Scripts/Runtime/` before release builds.
-
-**Note:** `dotnet build` does not compile Unity scripts. Use the authorized native gateway build/compile path for an open Editor; standalone batchmode requires a separately authorized, confirmed-closed project. Never close another owner's Editor to clear a lock. See [Unity CLI](../contributing/unity-cli.md).
-
-### 2.7 Saved settings / staging after a failed release build
-
-`build-release.sh` saves the existing `ProjectSettings.asset` bytes and
-StreamingAssets directories before staging. Its EXIT trap restores those saved
-inputs on normal success or failure; it refuses unstaged settings edits and does
-not restore settings from Git. A forced termination can prevent the trap from
-running: first prove the process has stopped, then recover only that run's
-`build/.release-stage.*` backup. Unity may separately re-serialize assets outside
-the saved inputs. Compare against the pre-build snapshot and preserve unrelated
-changes; never blanket-reset settings or delete StreamingAssets/meta files.
-
-### 2.8 `localhost:5000` leak in the release zip
-
-**Symptom/check:** Task 7.2 requires `localhost:5000` NOWHERE in the shipped zip.
-
-**Cause:** the server csproj copies `server.json` (dev defaults) into publish output → shipped in `StreamingAssets/Server/`. `build-release.sh` now deletes it from both publish outputs. If it regresses: unzip, `grep -rl "localhost:5000" .`.
-
-### 2.9 Dev machine DNS is broken (known)
-
-The dev machine's DNS resolver is misconfigured (systemd-resolved/NetworkManager). Use `dig @1.1.1.1` and `curl --resolve HOST:443:188.114.97.2` when verifying the tunnel. Not a server fault.
-
-## 3. Arena notes
-
-`data/arenas/` contains 7 files; 4 are small stubs (cross/pit/sanctum/split, <500B) that fail `[ArenaRegistry] Failed to load` — expected, not a deploy bug. Playable: `training`, `colosseum`, `Island_arena`.
-
-## 4. Rebuild-the-zip quick path
-
-```bash
-cd ~/Documents/projects/SlopArena
-# editor must be CLOSED (Unity refuses a second instance on one project)
-./scripts/build-release.sh 0.2.0-demo.1
-# verify: unzip -l build/release/SlopArena-0.2.0-demo.1.zip | grep -c server.json   # 0
-#         unzip + grep -rl "localhost:5000" .                                      # nothing
-# publish: gh release create v0.2.0-demo.1 build/release/SlopArena-0.2.0-demo.1.zip --title ... --notes ...
-```
-
 ## PvP jerks during hits after startup succeeds
 
-The 2026-10-11 two-player Steam match completed normally but the opponent's
+The protocol-6 match investigated on 2026-10-11 completed normally but the opponent's
 hit animation logged 440 repeated restarts without a new hitstun entry. Protocol 6
 omitted HitstunTicks from CharacterStatePacket, leaving raw opponent states at zero;
 the renderer's one-tick-countdown test also treated repeated/skipped snapshots as
@@ -188,5 +92,78 @@ These are safe structured match records, not a dump of raw process/authenticatio
 logs. Client FPS/frame time and prediction correction counts remain uncollected.
 
 Regression coverage uses the real snapshot codec and the production presentation
-policy, including repeated/skipped frames, shorter re-hits and hitstop. Release
-all protocol participants together; protocol 6 clients cannot join protocol 7 hosts.
+policy, including repeated/skipped frames, shorter re-hits and hitstop. Keep client, GameHost and Master protocol-compatible; protocol 6 clients cannot join
+protocol 7 hosts. If a new protocol-7 match still snaps, capture new evidence rather
+than assuming the earlier omission is still the cause.
+
+## Projectile aim diverges after camera turns
+
+Yaw is a circular direction, not a value to saturate at the signed-short limit.
+Human input must normalize both facing and aim yaw before encoding signed
+centidegrees; resolve an active ability's aim override before that conversion.
+For example, camera yaw 450° must arrive as 90°, not 327.67°. Pitch retains its
+separate ±90° clamp, and the packet layout does not change.
+
+Run `Tools/SlopArena/Tests/Training Sequence Parser` in the Editor for the human
+input/wire regression. For visual acceptance, hold Manki R (controller LB+X /
+Square), turn the aim camera through full rotations in both directions, and
+release: the rocket should follow the camera, including vertical aim. Updating
+source does not update the installed Steam player; use the approved release
+pipeline before retesting the published build.
+
+## Registration stale or admission unavailable
+
+Check the selected VPS profile, Steam login/listener, Master readiness and
+registration/heartbeat logs. Current GameHost retries transient Master failures
+and re-registers after a rejected/lost heartbeat identity. A Master restart alone
+does not require a GameHost restart. Permanent credential/profile rejection must
+be corrected through the deployment's private configuration, not by disabling
+authentication or exposing raw UDP/control ports.
+
+Compare the installed Steam client with the live default BuildID, deployed image
+source revisions, protocol and catalog. A pushed source change or successful
+Steam upload does not prove default activation. Use the deployment receipt and
+Steamworks branch table; check for an unaccepted browser/mobile confirmation
+before assuming a stale public app-info result is just propagation.
+
+## Build and source checks
+
+Routine Steam builds use the isolated local wrapper in
+[Release Pipeline](release-pipeline.md#2-build-the-windows-client-locally). The
+canonical Editor can remain open. `dotnet build` alone does not compile Unity
+runtime scripts or prove a Windows player. A missing Windows Build Support
+module/license is a build prerequisite, not an operational log failure; software
+installation still requires authorization.
+
+For `UnityEditor` references leaking into player runtime code, guard editor-only
+APIs with `#if UNITY_EDITOR` and rebuild the isolated player. If a package fails
+freshness/admission, resolve its accepted cook/pins before selecting the release
+source; do not bypass that refusal.
+
+The older `build-release.sh` ZIP path runs against its selected closed project.
+It backs up/restores settings and staging on normal exit. After a forced stop,
+first confirm settlement and recover only that run's saved inputs. Never
+blanket-reset the user's assets/settings to recover a release.
+
+## Historical Alfred and development findings
+
+[Historical home hosting](production-hosting.md) records the 2026-08-02 Alfred
+router/UFW, raw-UDP, rsync, private configuration and backup procedures. They are
+not current VPS instructions. Its old addresses, resolver status, arena counts
+and binary layouts must not be assumed current.
+
+Older findings remain useful when the same evidence appears:
+
+- A home Join hang was caused by UFW despite a working router forward. Revalidate
+  that explicitly selected host's topology; Steam VPS gameplay uses Steam P2P.
+- Home Master configuration was lost through `rsync --delete`/`--delete-excluded`.
+  Preserve private configuration and use the selected host's runbook; CI VPS
+  releases do not rsync application binaries or environments.
+- False parallel-test 429s came from a static rate-limit tracker. It is now a
+  per-app DI singleton; inspect that scope if the isolated test regression returns.
+- Recursive Master publish output came from nested test `bin/obj` content globs.
+  Use the maintained container context or an isolated publish output and check
+  the actual error, rather than treating every deployment failure as this bug.
+
+Historical release reports and old successful tests are evidence, not a reason
+to repeat all their checks for an unrelated change.

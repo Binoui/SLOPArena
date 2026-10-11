@@ -162,7 +162,22 @@
     "_weapon_hilt",
     "_weapon_tip"
   ],
-  "presentationIds": [],
+  "presentationIds": [
+    "presentation.bonk.steel.hit",
+    "presentation.bonk.bash.hit",
+    "presentation.bonk.normal.glint",
+    "presentation.bonk.normal.plant",
+    "presentation.bonk.bash.brace",
+    "presentation.bonk.bash.charge",
+    "presentation.bonk.slam.launch",
+    "presentation.bonk.slam.air-launch",
+    "presentation.bonk.slam.landing",
+    "presentation.bonk.slash.cut",
+    "presentation.bonk.slash.heavy",
+    "presentation.bonk.storm.wind",
+    "presentation.bonk.storm.air-wind",
+    "presentation.bonk.storm.dust"
+  ],
   "capabilityRequirements": [
     {
       "capabilityId": "slop.ability.targeted-leap.v1",
@@ -209,6 +224,40 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 3,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.8,
+                  "localScaleY": 0.8,
+                  "localScaleZ": 0.8,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.plant",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.55,
+                  "localScaleY": 0.55,
+                  "localScaleZ": 0.55,
+                  "durationTicks": 25
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 11,
                 "unit": "meters",
@@ -233,11 +282,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 11,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.65,
+                  "localScaleY": 0.65,
+                  "localScaleZ": 0.65,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "ground.2",
@@ -278,6 +345,40 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.8,
+                  "localScaleY": 0.8,
+                  "localScaleZ": 0.8,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 16,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.plant",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.55,
+                  "localScaleY": 0.55,
+                  "localScaleZ": 0.55,
+                  "durationTicks": 25
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 20,
                 "unit": "meters",
@@ -302,11 +403,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 20,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.65,
+                  "localScaleY": 0.65,
+                  "localScaleZ": 0.65,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "ground.3",
@@ -347,6 +466,40 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 13,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.8,
+                  "localScaleY": 0.8,
+                  "localScaleZ": 0.8,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 17,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.plant",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.55,
+                  "localScaleY": 0.55,
+                  "localScaleZ": 0.55,
+                  "durationTicks": 25
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 21,
                 "unit": "meters",
@@ -371,11 +524,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 21,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.65,
+                  "localScaleY": 0.65,
+                  "localScaleZ": 0.65,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "ground.4",
@@ -416,6 +587,40 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 40,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1.2,
+                  "localScaleY": 1.2,
+                  "localScaleZ": 1.2,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 44,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.plant",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.85,
+                  "localScaleY": 0.85,
+                  "localScaleZ": 0.85,
+                  "durationTicks": 25
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 48,
                 "unit": "meters",
@@ -440,11 +645,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 48,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.85,
+                  "localScaleY": 0.85,
+                  "localScaleZ": 0.85,
+                  "durationTicks": 11
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "ground.A",
@@ -488,6 +711,23 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.bash.brace",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 9
+                }
+              },
+              {
                 "kind": "armorWindow",
                 "tick": 12,
                 "unit": "ticks",
@@ -499,6 +739,23 @@
                 "unit": "metersPerSecond",
                 "speed": 15,
                 "durationTicks": 12
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.bash.charge",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 24
+                }
               },
               {
                 "kind": "spawnHitbox",
@@ -536,7 +793,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.bash.hit"
     },
     {
       "id": "ground.E",
@@ -601,13 +859,16 @@
                     "interruptible": true,
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
-                  }
+                  },
+                  "launchPresentationId": "presentation.bonk.slam.launch",
+                  "landingPresentationId": "presentation.bonk.slam.landing"
                 }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "ground.R",
@@ -665,6 +926,40 @@
                 "stopInAttackRange": true
               },
               {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.bash.charge",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.85,
+                  "localScaleY": 0.85,
+                  "localScaleZ": 0.85,
+                  "durationTicks": 23
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 22,
                 "unit": "meters",
@@ -692,6 +987,40 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 22,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.6,
+                  "localScaleY": 0.6,
+                  "localScaleZ": 0.6,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 34,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1.1,
+                  "localScaleY": 1.1,
+                  "localScaleZ": 1.1,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 42,
                 "unit": "meters",
@@ -716,11 +1045,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 42,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 11
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "ground.F",
@@ -782,6 +1129,40 @@
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 2,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.storm.wind",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 45
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 2,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.storm.dust",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-foot",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 45
                 }
               },
               {
@@ -889,6 +1270,23 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 44,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 12
+                }
+              },
+              {
                 "kind": "setAimState",
                 "tick": 75,
                 "unit": "ticks",
@@ -897,7 +1295,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "air.1",
@@ -938,6 +1337,23 @@
                 "pitchDegreesPerSecond": 180
               },
               {
+                "kind": "emitPresentation",
+                "tick": 11,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.8,
+                  "localScaleY": 0.8,
+                  "localScaleZ": 0.8,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 19,
                 "unit": "meters",
@@ -962,11 +1378,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 19,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.65,
+                  "localScaleY": 0.65,
+                  "localScaleZ": 0.65,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "air.2",
@@ -1007,6 +1441,23 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.8,
+                  "localScaleY": 0.8,
+                  "localScaleZ": 0.8,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 15,
                 "unit": "meters",
@@ -1031,11 +1482,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 15,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.65,
+                  "localScaleY": 0.65,
+                  "localScaleZ": 0.65,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "air.3",
@@ -1076,6 +1545,23 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 13,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.8,
+                  "localScaleY": 0.8,
+                  "localScaleZ": 0.8,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 21,
                 "unit": "meters",
@@ -1100,11 +1586,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 21,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.65,
+                  "localScaleY": 0.65,
+                  "localScaleZ": 0.65,
+                  "durationTicks": 8
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "air.4",
@@ -1145,6 +1649,23 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 29,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1.2,
+                  "localScaleY": 1.2,
+                  "localScaleZ": 1.2,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 37,
                 "unit": "meters",
@@ -1169,11 +1690,29 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 37,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.85,
+                  "localScaleY": 0.85,
+                  "localScaleZ": 0.85,
+                  "durationTicks": 11
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "air.A",
@@ -1224,6 +1763,23 @@
                 "durationTicks": 30
               },
               {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.bash.brace",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 9
+                }
+              },
+              {
                 "kind": "armorWindow",
                 "tick": 12,
                 "unit": "ticks",
@@ -1272,7 +1828,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.bash.hit"
     },
     {
       "id": "air.E",
@@ -1337,13 +1894,16 @@
                     "interruptible": true,
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
-                  }
+                  },
+                  "launchPresentationId": "presentation.bonk.slam.air-launch",
+                  "landingPresentationId": "presentation.bonk.slam.landing"
                 }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     },
     {
       "id": "air.R",
@@ -1408,6 +1968,23 @@
                 "stopInAttackRange": true
               },
               {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 22,
                 "unit": "meters",
@@ -1435,6 +2012,40 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 22,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.6,
+                  "localScaleY": 0.6,
+                  "localScaleZ": 0.6,
+                  "durationTicks": 8
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 34,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.normal.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1.1,
+                  "localScaleY": 1.1,
+                  "localScaleZ": 1.1,
+                  "durationTicks": 8
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 42,
                 "unit": "meters",
@@ -1459,17 +2070,242 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 42,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 0.9,
+                  "localScaleY": 0.9,
+                  "localScaleZ": 0.9,
+                  "durationTicks": 11
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
+    },
+    {
+      "id": "air.F",
+      "name": "Blade Storm",
+      "description": "Repeated hilt-to-tip greatsword slashes ending in a heavy finisher.",
+      "iconId": "icon.f",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "mobile",
+      "aimAnimationId": "anim.bonk.gf",
+      "cooldownTicks": 900,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 100,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bonk.gf"
+            ],
+            "operations": [
+              {
+                "kind": "setAimState",
+                "tick": 0,
+                "unit": "ticks",
+                "aimState": "cameraForward3D"
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 2,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": -0.2,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": -0.5,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 25,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 8,
+                  "stunTicks": 8,
+                  "durationTicks": 74,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 2,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.storm.air-wind",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 45
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 16,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.32,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 25,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 8,
+                  "stunTicks": 8,
+                  "durationTicks": 4,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 24,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.32,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 25,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 8,
+                  "stunTicks": 8,
+                  "durationTicks": 4,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 32,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.32,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 25,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 8,
+                  "stunTicks": 8,
+                  "durationTicks": 4,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 44,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.42,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 12,
+                  "angle": 25,
+                  "baseKnockback": 10,
+                  "knockbackGrowth": 36,
+                  "stunTicks": 20,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 44,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.slash.heavy",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 12
+                }
+              },
+              {
+                "kind": "setAimState",
+                "tick": 75,
+                "unit": "ticks",
+                "aimState": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.bonk.steel.hit"
     }
   ],
-  "aliases": [
-    {
-      "from": "air.F",
-      "to": "ground.F"
-    }
-  ]
+  "aliases": []
 }

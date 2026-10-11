@@ -105,7 +105,7 @@ public sealed class ShieldGrabPunishTests
                 result.AttackerCouldActBeforeCapture = true;
             defenderState = sim.GetState(2);
             result.GrabStarted |= defenderState.State == ActionState.GrabAttempt;
-            if (defenderState.State == ActionState.Throwing && defenderState.InteractionId != 0)
+            if (defenderState.State == ActionState.Grabbing && defenderState.InteractionId != 0)
             {
                 var captured = sim.GetState(1);
                 Assert.Equal(ActionState.Grabbed, captured.State);

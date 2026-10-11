@@ -115,8 +115,9 @@ No publishing cook is required for these presentation-code changes.
 
 ### Bonk SLASH sweep
 
-Bonk's `BonkWeaponAttachConfig.asset` selects **CFXR4 Sword Trail SLASH (360 Spiral)**
-with `bladeHilt` / `bladeEnd`, 0.8 blade coverage, and 0.12-second mesh history.
+Bonk's `BonkWeaponAttachConfig.asset` selects a package-owned cream/rust/charcoal
+copy of **CFXR4 Sword Trail SLASH (360 Spiral)** with `bladeHilt` / `bladeEnd`,
+1.0 blade coverage, and 0.12-second mesh history.
 The existing baked `_weapon_hilt` → `_weapon_tip` hitbox windows gate emission.
 
 The shared sweep also accepts SLASH's `Background trail`, `Lines`, and `Lines black`
@@ -129,6 +130,19 @@ restart layer timing without joining the ribbons.
 
 TECH keeps its existing `Background slash` and five dots per moving pose sample.
 Style and width remain editable through Ability Lab's weapon-trail controls.
+
+The October 11 Bonk pass adds short blade glints, rough cut accents, foot dust,
+accepted-hit steel bursts, bash clangs, landing dust/debris and Blade Storm wind.
+`PlayerRenderer.ResolvePresentationBone` resolves `_weapon_hilt` and `_weapon_tip`
+through the equipped weapon's live trail anchors. Attached presentation lifetimes
+accept both `Attacking` and mobile `Aiming` states for the same attack sequence;
+Hitstop preserves their clock and interruption or replacement clears them.
+
+Targeted-leap launch/landing presentation IDs are optional package parameters.
+Shared emits their phase events at the actual capsule feet; the landing effect
+is independent of hit confirmation and is absent on a flight timeout. The
+network packet recognizes both phase event sources. Ground and air Blade Storm
+use separate bindings so the air version emits wind without foot dust.
 
 
 ---

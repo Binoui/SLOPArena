@@ -584,7 +584,9 @@ public sealed record CookedTargetedLeapCapabilityParameters(
     float LaunchVerticalSpeed,
     ushort LandingSeekTick,
     ushort RecoveryTicks,
-    CookedHitbox Hitbox) : CookedCapabilityParameters;
+    CookedHitbox Hitbox,
+    string LaunchPresentationId = "",
+    string LandingPresentationId = "") : CookedCapabilityParameters;
 public sealed record CookedMankiRoundBombCapabilityParameters(
     ushort ThrowTriggerTick,
     float MaxRange,
@@ -647,7 +649,25 @@ public sealed record CookedMankiAerosolInfernoCapabilityParameters(
     float KnockbackBase,
     float KnockbackGrowth,
     ushort StunTicks,
-    byte HitGroup) : CookedCapabilityParameters;
+    byte HitGroup,
+    ushort MinimumChargeTicks = 0,
+    IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers = null) : CookedCapabilityParameters
+{
+    public ushort MaxChargeTicks => ChargeTiers != null && ChargeTiers.Count > 0
+        ? ChargeTiers[ChargeTiers.Count - 1].ChargeTicks : MinimumChargeTicks;
+
+    public MankiAerosolChargeTier GetChargeTier(ushort chargeTicks)
+    {
+        var selected = new MankiAerosolChargeTier(MinimumChargeTicks, Damage, 1f);
+        if (ChargeTiers != null)
+            foreach (var tier in ChargeTiers)
+            {
+                if (chargeTicks < tier.ChargeTicks) break;
+                selected = tier;
+            }
+        return selected;
+    }
+}
 
 public sealed record CookedBudget(
     int SlotCount,

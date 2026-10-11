@@ -533,6 +533,23 @@ public static class CharacterPackageCompiler
                         "Tier radii must be positive and increasing; speed, flight lifetime, and fire startup must be positive.");
                 ValidateOperation(new SpawnProjectileOperationSource(0, AuthoringUnit.Meters, charge.Projectile), c, d);
                 break;
+            case StartCapabilityOperationSource capability when capability.Parameters is MankiAerosolInfernoCapabilityParameters aerosol:
+                if (aerosol.ChargeTiers != null)
+                {
+                    if (aerosol.ChargeTiers.Count == 0 || aerosol.ChargeTiers[0].ChargeTicks != aerosol.MinimumChargeTicks)
+                        d.Error("value.out-of-range", "character.operation.parameters.chargeTiers", "The first charge tier must start at the minimum charge.");
+                    ushort previousTick = 0;
+                    float previousDamage = -1f, previousScale = 0f;
+                    for (int i = 0; i < aerosol.ChargeTiers.Count; i++)
+                    {
+                        var tier = aerosol.ChargeTiers[i];
+                        ValidateFiniteValues(new[] { tier.Damage, tier.ReachScale }, "character.operation.parameters.chargeTiers", d);
+                        if ((i > 0 && tier.ChargeTicks <= previousTick) || tier.Damage < 0f || tier.Damage <= previousDamage || tier.ReachScale <= previousScale)
+                            d.Error("value.out-of-range", "character.operation.parameters.chargeTiers", "Charge thresholds, damage, and positive reach scales must increase between tiers.");
+                        previousTick = tier.ChargeTicks; previousDamage = tier.Damage; previousScale = tier.ReachScale;
+                    }
+                }
+                break;
             case StartupAimCorrectionOperationSource:
                 break;
         }
@@ -635,6 +652,18 @@ public static class CharacterPackageCompiler
         DiagnosticBag d)
     {
         const string path = "character.operation.parameters";
+        foreach (var (id, field) in new[]
+        {
+            (parameters.LaunchPresentationId, "launchPresentationId"),
+            (parameters.LandingPresentationId, "landingPresentationId"),
+        })
+        {
+            if (string.IsNullOrEmpty(id)) continue;
+            if (!id.StartsWith("presentation.", StringComparison.Ordinal))
+                d.Error("id.invalid", path + "." + field, "Leap presentation ID must use the presentation. prefix.");
+            else if (!character.PresentationIds.Contains(id, StringComparer.Ordinal))
+                d.Error("reference.unresolved", path + "." + field, "Leap presentation ID is not declared.");
+        }
         ValidateFiniteValues(new[] { parameters.MinRange, parameters.MaxRange, parameters.LaunchVerticalSpeed }, path, d);
         ValidateNonNegative(parameters.MinRange, path + ".minRange", d);
         ValidateNonNegative(parameters.MaxRange, path + ".maxRange", d);
@@ -722,6 +751,7 @@ public static class CharacterPackageCompiler
             op is EmitPresentationOperationSource emit && emit.PresentationId == id ||
             op is StartCapabilityOperationSource capability && (capability.Parameters switch
             {
+                TargetedLeapCapabilityParameters p => p.LaunchPresentationId == id || p.LandingPresentationId == id,
                 MankiRoundBombCapabilityParameters p => p.ExplosionPresentationId == id,
                 MankiJetpackBoostCapabilityParameters p => p.ExplosionPresentationId == id,
                 MankiBazookaCapabilityParameters p => p.ExplosionPresentationId == id,
@@ -838,7 +868,7 @@ public static class CharacterPackageCompiler
             MankiRoundBombCapabilityParameters x => x with { },
             MankiJetpackBoostCapabilityParameters x => x with { },
             MankiBazookaCapabilityParameters x => x with { },
-            MankiAerosolInfernoCapabilityParameters x => x with { },
+            MankiAerosolInfernoCapabilityParameters x => x with { ChargeTiers = x.ChargeTiers?.Select(tier => tier with { }).ToArray() },
             _ => throw new InvalidDataException("Unknown capability parameters.")
         };
 
@@ -909,11 +939,11 @@ public static class CharacterPackageCompiler
             CookHitbox(x.TraversalHitbox), CookHitbox(x.FinisherHitbox)),
         WibouRisingSlashCapabilityParameters x => new CookedWibouRisingSlashCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.HomingRange, x.HomingSpeed),
         WibouBladeFlurryCapabilityParameters x => new CookedWibouBladeFlurryCapabilityParameters(x.ForwardSpeed, x.MoveTicks),
-        TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox)),
+        TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox), x.LaunchPresentationId, x.LandingPresentationId),
         MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.ThrowTriggerTick, x.MaxRange, x.LaunchAngle, x.Gravity, x.HitboxRadius, x.Damage, x.StunTicks, x.MaxFlightTicks, x.KbAngle, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.ExplosionPresentationId),
         MankiJetpackBoostCapabilityParameters x => new CookedMankiJetpackBoostCapabilityParameters(x.StartupTicks, x.VerticalSpeed, x.HorizontalSpeed, x.ExplosionRadius, x.ExplosionDamage, x.ExplosionKbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionPresentationId),
         MankiBazookaCapabilityParameters x => new CookedMankiBazookaCapabilityParameters(x.FireTriggerTick, x.ProjectileSpeed, x.HitboxRadius, x.Damage, x.Gravity, x.MaxFlightTicks, x.StunTicks, x.ExplosionRadius, x.KbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.CastDuration, x.RecoveryDuration, x.ExplosionPresentationId),
-        MankiAerosolInfernoCapabilityParameters x => new CookedMankiAerosolInfernoCapabilityParameters(x.FireTriggerTick, x.FireDurationTicks, x.HitboxDurationTicks, x.HitboxRadius, x.OffsetY, x.OffsetZ, x.EndOffsetZ, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.HitGroup),
+        MankiAerosolInfernoCapabilityParameters x => new CookedMankiAerosolInfernoCapabilityParameters(x.FireTriggerTick, x.FireDurationTicks, x.HitboxDurationTicks, x.HitboxRadius, x.OffsetY, x.OffsetZ, x.EndOffsetZ, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.HitGroup, x.MinimumChargeTicks, x.ChargeTiers == null ? null : Array.AsReadOnly(x.ChargeTiers.Select(tier => tier with { }).ToArray())),
         _ => throw new InvalidDataException("Unknown capability parameters.")
     };
 
@@ -1168,11 +1198,13 @@ public static class CharacterPackageCompiler
                 w.WriteNumber("landingSeekTick", x.LandingSeekTick);
                 w.WriteNumber("recoveryTicks", x.RecoveryTicks);
                 WriteHitbox(w, x.Hitbox);
+                OptionalString(w, "launchPresentationId", x.LaunchPresentationId);
+                OptionalString(w, "landingPresentationId", x.LandingPresentationId);
                 break;
             case CookedMankiRoundBombCapabilityParameters x: w.WriteNumber("throwTriggerTick", x.ThrowTriggerTick); Number(w, "maxRange", x.MaxRange); Number(w, "launchAngle", x.LaunchAngle); Number(w, "gravity", x.Gravity); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
             case CookedMankiJetpackBoostCapabilityParameters x: w.WriteNumber("startupTicks", x.StartupTicks); Number(w, "verticalSpeed", x.VerticalSpeed); Number(w, "horizontalSpeed", x.HorizontalSpeed); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
             case CookedMankiBazookaCapabilityParameters x: w.WriteNumber("fireTriggerTick", x.FireTriggerTick); Number(w, "projectileSpeed", x.ProjectileSpeed); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); Number(w, "gravity", x.Gravity); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); w.WriteNumber("castDuration", x.CastDuration); w.WriteNumber("recoveryDuration", x.RecoveryDuration); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
-            case CookedMankiAerosolInfernoCapabilityParameters x: w.WriteNumber("fireTriggerTick", x.FireTriggerTick); w.WriteNumber("fireDurationTicks", x.FireDurationTicks); w.WriteNumber("hitboxDurationTicks", x.HitboxDurationTicks); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetZ", x.EndOffsetZ); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("hitGroup", x.HitGroup); break;
+            case CookedMankiAerosolInfernoCapabilityParameters x: if (x.MinimumChargeTicks != 0) w.WriteNumber("minimumChargeTicks", x.MinimumChargeTicks); if (x.ChargeTiers != null) { w.WritePropertyName("chargeTiers"); w.WriteStartArray(); foreach (var tier in x.ChargeTiers) { w.WriteStartObject(); w.WriteNumber("chargeTicks", tier.ChargeTicks); Number(w, "damage", tier.Damage); Number(w, "reachScale", tier.ReachScale); w.WriteEndObject(); } w.WriteEndArray(); } w.WriteNumber("fireTriggerTick", x.FireTriggerTick); w.WriteNumber("fireDurationTicks", x.FireDurationTicks); w.WriteNumber("hitboxDurationTicks", x.HitboxDurationTicks); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetZ", x.EndOffsetZ); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("hitGroup", x.HitGroup); break;
             default: throw new InvalidDataException("Unknown capability parameters.");
         }
         w.WriteEndObject();

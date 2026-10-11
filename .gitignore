@@ -175,6 +175,10 @@ client/Unity/Assets/ThirdParty.meta
 client/Unity/Assets/Cartoon*/
 client/Unity/Assets/Cartoon*.meta
 
+# Locally imported Fantasy Forest environment pack.
+client/Unity/Assets/FantasyForest/
+client/Unity/Assets/FantasyForest.meta
+
 # Locally installed animation and shader packs (non-redistributable)
 client/Unity/Assets/Martial Art Animations/
 client/Unity/Assets/Martial Art Animations.meta
@@ -360,8 +364,7 @@ __pycache__/
 *.visual-check.html
 *.visual-check.*.png
 
-# Locally installed agent skills
-/.agents/
+# Locally installed agent skills stay ignored; project adapters are allowed below.
 
 # Separate website repository; not a game submodule
 /SlopArena-web/
@@ -388,3 +391,39 @@ client/Unity/Assets/Resources/UI/Stages/table_manners.png.meta
 # Last Stop preview depends on the locally installed Train Station pack.
 client/Unity/Assets/Resources/UI/Stages/last_stop.png
 client/Unity/Assets/Resources/UI/Stages/last_stop.png.meta
+
+# BEGIN project skill adapters (tools/sync_agent_skills.py)
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/blender-character-polish/
+!/.agents/skills/branch-status/
+!/.agents/skills/code-review/
+!/.agents/skills/implement/
+!/.agents/skills/movement-platform-fighter-3d/
+!/.agents/skills/orient/
+!/.agents/skills/sim-test/
+!/.agents/skills/sloparena-ability-lab/
+!/.agents/skills/sloparena-animation-authoring/
+!/.agents/skills/sloparena-asset-selection/
+!/.agents/skills/sloparena-build/
+!/.agents/skills/sloparena-build-export/
+!/.agents/skills/sloparena-character-workflow/
+!/.agents/skills/sloparena-combat-engine/
+!/.agents/skills/sloparena-entity-system/
+!/.agents/skills/sloparena-finish-branch/
+!/.agents/skills/sloparena-kit-regression-testing/
+!/.agents/skills/sloparena-move-data-report/
+!/.agents/skills/sloparena-netcode/
+!/.agents/skills/sloparena-ops/
+!/.agents/skills/sloparena-stage-authoring/
+!/.agents/skills/sloparena-stage-design/
+!/.agents/skills/slopbot/
+!/.agents/skills/slopbot-animation/
+!/.agents/skills/slopbot-character/
+/.agents/skills/*/*
+!/.agents/skills/*/SKILL.md
+!/.agents/skills/*/agents/
+/.agents/skills/*/agents/*
+!/.agents/skills/*/agents/openai.yaml
+# END project skill adapters

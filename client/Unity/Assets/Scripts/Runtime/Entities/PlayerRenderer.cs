@@ -30,6 +30,10 @@ namespace SlopArena.Client.Entities
         private CharacterAnimationCatalog _animationCatalog;
         private AnimationClip _grabClip;
         private AnimationClip _throwClip;
+        private AnimationClip _grabHoldClip, _grabbedHoldClip;
+        private AnimationClip _grabWalkForwardClip, _grabWalkBackwardClip;
+        private AnimationClip _grabbedWalkForwardClip, _grabbedWalkBackwardClip;
+        private AnimationClip _thrownClip;
         private ProjectileVFXManager _projectileVFX;
         private Transform _kiShotHand;
 
@@ -677,7 +681,8 @@ namespace SlopArena.Client.Entities
             _sfxSource.spatialBlend = 0f;
             _sfxSource.volume = 0.7f;
             _jumpSfx = Resources.Load<AudioClip>("Audio/SFX/jump");
-            MovementFeedbackEffect.Prewarm();
+            if (Application.isPlaying)
+                MovementFeedbackEffect.Prewarm();
         }
         // ── Frame-by-frame animation control ──
 
@@ -734,10 +739,64 @@ namespace SlopArena.Client.Entities
 
         private void LoadSharedAnimations()
         {
-            if (_grabClip != null && _throwClip != null) return;
+            if (_grabClip != null && _throwClip != null && _grabHoldClip != null && _grabbedHoldClip != null
+                && _grabWalkForwardClip != null && _grabWalkBackwardClip != null
+                && _grabbedWalkForwardClip != null && _grabbedWalkBackwardClip != null && _thrownClip != null) return;
             var shared = Resources.Load<CharacterAnimationConfig>("AnimationConfigs/Shared_AnimConfig");
             _grabClip = shared?.GetClipByName("grab");
             _throwClip = shared?.GetClipByName("throw");
+            _grabHoldClip = shared?.GetClipByName("grab_idle_a");
+            _grabbedHoldClip = shared?.GetClipByName("grab_idle_b");
+            _grabWalkForwardClip = shared?.GetClipByName("Grab_Walk_F_A");
+            _grabWalkBackwardClip = shared?.GetClipByName("Grab_Walk_B_A");
+            _grabbedWalkForwardClip = shared?.GetClipByName("Grab_Walk_F_B");
+            _grabbedWalkBackwardClip = shared?.GetClipByName("Grab_Walk_B_B");
+            _thrownClip = shared?.GetClipByName("Grab_Throw_B");
+        }
+
+        private bool TryResolveGrabAnimation(in CharacterState snapshot, out AnimationClip clip, out float time)
+        {
+            clip = null;
+            time = 0f;
+            LoadSharedAnimations();
+            int duration;
+            bool loop = false;
+            if (snapshot.State == ActionState.GrabAttempt)
+            {
+                clip = _grabClip;
+                duration = DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks + DefenseConfig.GrabWhiffRecoveryTicks;
+            }
+            else if (snapshot.State == ActionState.Throwing)
+            {
+                clip = _throwClip;
+                duration = DefenseConfig.ThrowAnimationTicks;
+            }
+            else if (snapshot.State == ActionState.Thrown
+                || snapshot.State == ActionState.Grabbed && snapshot.InteractionPhase == (byte)DefenseInteractionPhase.Throwing)
+            {
+                clip = _thrownClip;
+                duration = DefenseConfig.ThrownAnimationTicks;
+            }
+            else if (snapshot.State is ActionState.Grabbing or ActionState.Grabbed)
+            {
+                bool grabber = snapshot.State == ActionState.Grabbing;
+                float yaw = snapshot.CapturedYaw * (Mathf.PI / 18000f);
+                bool forward = snapshot.VX * Mathf.Sin(yaw) + snapshot.VZ * Mathf.Cos(yaw) >= 0f;
+                bool walking = snapshot.VX * snapshot.VX + snapshot.VZ * snapshot.VZ > 0.0025f;
+                clip = !walking ? (grabber ? _grabHoldClip : _grabbedHoldClip)
+                    : grabber ? (forward ? _grabWalkForwardClip : _grabWalkBackwardClip)
+                    : forward ? _grabbedWalkForwardClip : _grabbedWalkBackwardClip;
+                duration = DefenseConfig.GrabHoldTicks;
+                loop = true;
+            }
+            else return false;
+
+            if (clip == null) return false;
+            time = Mathf.Max(0, duration - snapshot.StateTicks) * SlopArena.Shared.Simulation.TickDt;
+            if (snapshot.State == ActionState.Thrown && !snapshot.IsGrounded)
+                time = Mathf.Min(time, (DefenseConfig.ThrownLandingTicks - 2) * SlopArena.Shared.Simulation.TickDt);
+            time = loop && clip.length > 0f ? time % clip.length : Mathf.Min(time, clip.length);
+            return true;
         }
 
         /// <summary>Sample a recorded Shared state without Play Mode audio or movement effects.</summary>
@@ -747,15 +806,10 @@ namespace SlopArena.Client.Entities
             clip = null;
             time = 0f;
             if (_animancer == null || _charDef == null) return false;
-            if (snapshot.State is ActionState.GrabAttempt or ActionState.Throwing)
+            if (snapshot.State is ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed
+                or ActionState.Throwing or ActionState.Thrown)
             {
-                LoadSharedAnimations();
-                clip = snapshot.State == ActionState.GrabAttempt ? _grabClip : _throwClip;
-                if (clip == null) return false;
-                int duration = snapshot.State == ActionState.GrabAttempt
-                    ? DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks + DefenseConfig.GrabWhiffRecoveryTicks
-                    : DefenseConfig.ThrowReleaseTicks;
-                time = clip.length * Mathf.Clamp01((duration - snapshot.StateTicks) / (float)duration);
+                return TryResolveGrabAnimation(in snapshot, out clip, out time);
             }
             else
             {
@@ -790,7 +844,6 @@ namespace SlopArena.Client.Entities
                 }
                 else if (snapshot.State == ActionState.Crouching) id = _charDef.CrouchAnim;
                 else if (snapshot.State == ActionState.Sliding) id = _charDef.SlideAnim;
-                else if (snapshot.State == ActionState.Grabbed) id = _charDef.IdleAnim;
                 else if (!snapshot.IsGrounded) id = snapshot.VY > 0f ? _charDef.JumpAnim : _charDef.FallAnim;
                 else id = snapshot.VX * snapshot.VX + snapshot.VZ * snapshot.VZ > _runSpeedThreshold * _runSpeedThreshold
                     ? _charDef.RunAnim : _charDef.IdleAnim;
@@ -968,10 +1021,13 @@ namespace SlopArena.Client.Entities
                 // Normal movement: snap directly (60Hz is fast enough)
                 transform.position = targetPos;
             }
-            UpdateAirDodgeFeedback(state, targetPos);
-            if (!stockTransition)
-                EmitMovementFeedback(state, targetPos);
-            UpdateRespawnInvincibility(state, targetPos);
+            if (Application.isPlaying)
+            {
+                UpdateAirDodgeFeedback(state, targetPos);
+                if (!stockTransition)
+                    EmitMovementFeedback(state, targetPos);
+                UpdateRespawnInvincibility(state, targetPos);
+            }
 
             transform.rotation = Quaternion.Euler(0f, state.FacingYaw * Mathf.Rad2Deg, 0f);
             // Death flash blink
@@ -1535,24 +1591,22 @@ namespace SlopArena.Client.Entities
                 ClearLandingLagPresentation();
             }
 
-            if (state.State is ActionState.GrabAttempt or ActionState.Throwing)
+            if (state.State is ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed
+                or ActionState.Throwing or ActionState.Thrown)
             {
                 _jumpArcActive = false;
-                var clip = state.State == ActionState.GrabAttempt ? _grabClip : _throwClip;
-                if (clip != null)
+                if (TryResolveGrabAnimation(in state, out var clip, out float time))
                 {
-                    int durationTicks = state.State == ActionState.GrabAttempt
-                        ? DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks
-                            + DefenseConfig.GrabWhiffRecoveryTicks
-                        : DefenseConfig.ThrowReleaseTicks;
                     var animation = _animancer.States.Current;
                     if (animation == null || animation.Clip != clip)
                         animation = _animancer.Play(clip, 0.05f);
                     // Replicated phase time owns the pose, including late snapshots,
                     // whiffs and rollback rewinds. No animation callback drives capture.
-                    animation.NormalizedTime = Mathf.Clamp01(
-                        (durationTicks - state.StateTicks) / (float)durationTicks);
+                    animation.Time = time;
                     animation.Speed = 0f;
+                    _currentAnimState = animation;
+                    _activeExtrapolator = null;
+                    _currentExtrapolationMode = ExtrapolationMode.None;
                     _animancer.Evaluate(0f);
                 }
                 UpdateAttackAccents(state, _lastComboStage);
@@ -1584,7 +1638,12 @@ namespace SlopArena.Client.Entities
                     {
                         float fadeDuration = _lastAnimState is ActionState.Crouching or ActionState.Sliding
                             ? 0f : 0.1f;
-                        _animancer.Play(loopClip, fadeDuration);
+                        var aimAnimation = _animancer.Play(loopClip, fadeDuration);
+                        // The same clip may have been sampled at zero speed by
+                        // the preceding attack (Bonk F) or a preview. Reused
+                        // Animancer states retain both time and speed.
+                        aimAnimation.Time = 0;
+                        aimAnimation.Speed = 1f;
                     }
                 }
                 else if (fixedAimHold)
@@ -2177,6 +2236,11 @@ namespace SlopArena.Client.Entities
         public Transform ResolvePresentationBone(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
+            if (name is "_weapon_hilt" or "_weapon_tip")
+            {
+                if (_weaponAttach == null) _weaponAttach = GetComponent<WeaponAttach>();
+                return _weaponAttach?.ResolveTrailAnchor(name);
+            }
             string rigName = name switch
             {
                 "bone.head" => "mixamorig:Head",

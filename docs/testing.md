@@ -1,6 +1,13 @@
 # Testing and Verification
 
-For gateway operations set `ORCA_TERMINAL_HANDLE` to your own runtime-issued terminal handle; the gateway verifies its incarnation and fails closed if it is missing or mismatched. Use the canonical gateway in [`docs/contributing/unity-cli.md`](contributing/unity-cli.md) and the [shared Editor coordination protocol](file:///home/binoui/Documents/projects/sloparena-workspace/docs/unity-editor-coordination.md). Wait for an independent lease; never inject work into an owner's batch. Runtime ownership status replaces historical Markdown ownership; blocked or unknown is not free.
+Live canonical Editor operations use the gateway in
+[Unity CLI](contributing/unity-cli.md) and the
+[shared Editor protocol](contributing/unity-editor-coordination.md).
+T3 Code uses its harness-injected thread/session identity. Wait for your own
+lease; blocked/unknown ownership is not free. Routine Steam release builds use
+[the isolated wrapper and CI flow](systems/release-pipeline.md), without a
+canonical Editor lease or shutdown. Dated verification records below are
+historical evidence, not a checklist to repeat for every release.
 
 ## Local iteration
 
@@ -15,7 +22,9 @@ preview is not persisted package verification.
 ## Integrated change
 
 Shared edits require focused behavioral coverage while iterating, then `dotnet build
-src/Shared/ --nologo` and `dotnet test tests/Shared.Tests/ --nologo` at delivery. Before a
+src/Shared/ --nologo` and `dotnet test tests/Shared.Tests/ --nologo` at delivery.
+When verification does not need the canonical Unity plugin copy, use
+`-p:SkipUnityPluginCopy=true`; this requires no Editor lease. Before a
 build that copies the Unity plugin, acquire your own bounded gateway hold; run the
 build from a separate shell while held, wait for import and compile settlement, then
 end the hold. Honor explicit source freezes; coordinate only concrete overlapping
@@ -30,6 +39,12 @@ from the documentation checker; no Shared build or Unity session is required for
 cleanup.
 
 ## Distributable demo
+
+For the routine Steam/VPS release, the isolated builder verifies client payloads
+and CI runs backend tests/image/deployment checks. Reuse those results; broaden
+or repeat only for a changed source, failure or unresolved concern. Exercise the
+packaged player path affected by the change and record any unexercised gameplay;
+unrelated historical Training/Solo/feature checks are not blanket release gates.
 
 Cook changed accepted packages, verify exact roster identities and all required payloads
 in fresh publish outputs, then build and exercise the packaged client/server
@@ -176,9 +191,9 @@ New observable behavior needs a behavioral test when existing coverage would not
 For a package change, observe status first: `held`/`releasing` means invoke a gateway command and let it wait for an independent lease; `blocked`/unknown means stop. `free`, settled, and zero active operations are availability observations, not a reservation. Each command independently acquires its lease.
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts status --project-path /home/binoui/Documents/projects/SlopArena/client/Unity
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.character.inspect --target <package>
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.character.cook --target <package>
+bun scripts/unity-editor-gateway.ts status --project-path client/Unity
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.character.inspect --target <package>
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.character.cook --target <package>
 ```
 
 For a rostered package, require a successful semantic result, valid inspect status,
@@ -204,13 +219,18 @@ The Bonk probe is not gameplay coverage. Record:
 package exist. The probe deliberately has no damage, timing, recovery, or capability
 contract to golden-test.
 
-The maintained FightGuy verifier requires `ORCA_TERMINAL_HANDLE` set to your own
-runtime-issued terminal handle. It acquires its own gateway lease and checks the
-native inspect result, ignoring the trailing ownership-status object:
+For a live FightGuy package inspection, use your own T3 gateway identity and
+check the native inspect result, ignoring the trailing ownership-status object:
 
 ```bash
-scripts/verify-fightguy-package.sh
+bun scripts/unity-editor-gateway.ts \
+  --project-path client/Unity -- \
+  sloparena.character.inspect --target fightguy
 ```
+
+Require native `success: true`, `status: valid` and `dirtyOrStale: false`.
+The older `scripts/verify-fightguy-package.sh` has a legacy terminal-identity
+precondition and is not a routine Steam release prerequisite.
 
 ### Ability Lab and Unity Training
 
@@ -247,11 +267,11 @@ command runner uses Shared simulation; never infer hit success from command
 success. A focused native pass can exercise these outcomes:
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.open --target fightguy
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent idle
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent shield
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 12 --opponent idle
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- sloparena.lab.run --action grab --ticks 60 --distance 0.7 --opponent idle
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.open --target fightguy
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent idle
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent shield
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 12 --opponent idle
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action grab --ticks 60 --distance 0.7 --opponent idle
 ```
 
 Inspect semantic `data.result.success` and diagnostics, plus actual

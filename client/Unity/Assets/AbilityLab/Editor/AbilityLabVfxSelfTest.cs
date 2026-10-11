@@ -21,7 +21,7 @@ public static class AbilityLabVfxSelfTest
         if (Application.isPlaying) throw new InvalidOperationException("Run VFX workflow checks in Edit Mode.");
         VerifyPlayback();
         VerifyWorkspaceStatus();
-        Debug.Log("[AbilityLabVfxSelfTest] Passed match/Lab lifetime parity, hitstop, interruption, replacement, rewind, disabled owner, missing bindings and draft-safe cook status.");
+        Debug.Log("[AbilityLabVfxSelfTest] Passed match/Lab lifetime parity, mobile aim, hitstop, interruption, replacement, rewind, disabled owner, missing bindings and draft-safe cook status.");
     }
 
     private static void VerifyPlayback()
@@ -72,6 +72,24 @@ public static class AbilityLabVfxSelfTest
             preview.SetSimulationFrame(new[] { cue }, 3, bindings, renderer, root.transform, history);
             Require(preview.ActiveInstanceCount == 1, "Backward scrubbing did not reconstruct the effect.");
             preview.Clear();
+
+            dispatcher.Clear();
+            dispatcher.Register(1, renderer, catalog);
+            var mobileAim = new[]
+            {
+                State(2, ActionState.Aiming), State(2, ActionState.Aiming),
+                State(3), State(4), State(0, ActionState.Idle),
+            };
+            for (int index = 0; index < mobileAim.Length; index++)
+            {
+                Present(mobileAim[index]);
+                dispatcher.Tick(index == 0 ? new[] { cue } : Array.Empty<TimelinePresentationEvent>());
+                int matchCount = bone.transform.childCount;
+                preview.SetSimulationFrame(new[] { cue }, (uint)(index + 1), bindings, renderer, root.transform, mobileAim);
+                Require(preview.ActiveInstanceCount == matchCount && matchCount == (index < 4 ? 1 : 0),
+                    "Mobile-aim effect was lost during its active phase, Hitstop, handoff or expiry.");
+                preview.Clear();
+            }
 
             foreach (var terminal in new[] { State(3, ActionState.Hitstun), State(3, sequence: 2) })
             {

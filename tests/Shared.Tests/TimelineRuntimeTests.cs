@@ -914,8 +914,11 @@ public sealed class TimelineRuntimeTests
                 { [1] = new() { TargetEntityId = 100, AimYaw = -9000 } };
             if (aimedHold)
             {
-                // Manki receives the cached manual aim on release.
-                sim.Tick(new() { [1] = new InputState { TargetEntityId = 100 } });
+                // A tap queues release through any authored minimum charge.
+                do
+                {
+                    sim.Tick(new() { [1] = new InputState { TargetEntityId = 100 } });
+                } while (sim.GetState(1).State == ActionState.Aiming);
             }
             float previousYaw = sim.GetState(1).FacingYaw;
             TestHelpers.AssertNear(MathF.PI / 30f, previousYaw);

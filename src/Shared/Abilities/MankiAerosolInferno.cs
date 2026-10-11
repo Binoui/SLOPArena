@@ -25,6 +25,7 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
         s.IsAiming = true;
         s.ComboStage = 0;
         s.AttackElapsedTicks = 0;
+        s.ChargeTicks = 0;
         s.VX = 0f;
         s.VY = 0f;
         s.VZ = 0f;
@@ -41,7 +42,17 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
             s.VY = 0f;
             s.VZ = 0f;
             s.FacingYaw = s.AimYaw;
-            if (input.IsAiming) return;
+            // A tap queues release, but cannot skip the authored minimum charge.
+            if (s.ChargeTicks < _parameters.MinimumChargeTicks)
+            {
+                s.ChargeTicks++;
+                return;
+            }
+            if (input.IsAiming)
+            {
+                if (s.ChargeTicks < _parameters.MaxChargeTicks) s.ChargeTicks++;
+                return;
+            }
 
             _released = true;
             s.State = ActionState.Attacking;
@@ -66,26 +77,40 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
     public override void OnEnd(ref CharacterState s)
     {
         s.IsAiming = false;
+        s.ChargeTicks = 0;
     }
 
     public override void OnCancel(ref CharacterState s)
     {
         s.IsAiming = false;
+        s.ChargeTicks = 0;
+    }
+
+    public PresentationPlacement ScaleFlamePresentation(ushort chargeTicks, PresentationPlacement placement)
+    {
+        var scale = _parameters.GetChargeTier(chargeTicks).ReachScale;
+        return placement with
+        {
+            LocalScaleX = placement.LocalScaleX * scale,
+            LocalScaleY = placement.LocalScaleY * scale,
+            LocalScaleZ = placement.LocalScaleZ * scale,
+        };
     }
 
     private void SpawnFlame(ref CharacterState s)
     {
+        var tier = _parameters.GetChargeTier(s.ChargeTicks);
         SpawnHitbox(ref s, new HitboxEvent
         {
             TriggerTick = _parameters.FireTriggerTick,
             DurationTicks = _parameters.HitboxDurationTicks,
             Shape = HitboxShape.Capsule,
-            Radius = _parameters.HitboxRadius,
+            Radius = _parameters.HitboxRadius * tier.ReachScale,
             OffY = _parameters.OffsetY,
-            OffZ = _parameters.OffsetZ,
-            EndOffZ = _parameters.EndOffsetZ,
-            BoneName = "mixamorig:RightHand",
-            Damage = _parameters.Damage,
+            // Keep the near edge anchored while the capsule grows forward.
+            OffZ = _parameters.OffsetZ - _parameters.HitboxRadius + _parameters.HitboxRadius * tier.ReachScale,
+            EndOffZ = _parameters.EndOffsetZ * tier.ReachScale,
+            Damage = tier.Damage,
             Knockback = new KnockbackData
             {
                 Profile = KnockbackProfile.Custom,

@@ -120,6 +120,7 @@ public sealed class BotMemory
 
     /// <summary>Named CPU difficulty selected for this bot.</summary>
     public CpuDifficulty Difficulty = CpuDifficulty.Normal;
+    internal CpuBehavior Behavior;
 
     /// <summary>Ticks remaining before a fresh attack/pressure decision.</summary>
     public int DecisionTicksRemaining;

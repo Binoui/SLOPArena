@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+import sync_agent_skills
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # These are the current instructional surfaces. ADRs, plans, research, generated
@@ -23,6 +25,7 @@ LIVING_DOCS = {
     Path("README.md"),
     Path("CONTRIBUTING.md"),
     Path("CONTEXT.md"),
+    Path("AGENTS.md"),
     Path(".omp/AGENTS.md"),
     Path("docs/README.md"),
     Path("docs/architecture-overview.md"),
@@ -38,8 +41,9 @@ LIVING_DOCS = {
     Path("docs/contributing/conventions.md"),
     Path("docs/contributing/quality.md"),
     Path("docs/contributing/unity-cli.md"),
-    Path(".omp/skills/sloparena-character-workflow/SKILL.md"),
-    Path(".omp/skills/sloparena-combat-engine/SKILL.md"),
+    Path("docs/contributing/agents.md"),
+    Path("docs/contributing/unity-editor-coordination.md"),
+    Path("skills/README.md"),
 }
 
 CANONICAL_PATHS = {
@@ -58,6 +62,9 @@ CANONICAL_PATHS = {
     "docs/testing.md",
     "docs/contributing/conventions.md",
     "docs/contributing/unity-cli.md",
+    "docs/contributing/agents.md",
+    "docs/contributing/unity-editor-coordination.md",
+    "AGENTS.md",
 }
 
 FORBIDDEN_CURRENT_TERMS = (
@@ -76,6 +83,8 @@ LEGACY_OR_WARNING = re.compile(
     r"\bno\b",
     re.IGNORECASE,
 )
+
+AUTHOR_PATH = re.compile(r"file:///|/(?:home|Users)/[^\s/`]+/|[A-Za-z]:[\\/]Users[\\/]")
 
 # Inline Markdown links. Reference-style links are intentionally outside this
 # check because their destinations are not recoverable without a full Markdown AST.
@@ -180,7 +189,43 @@ def is_historical(path: Path) -> bool:
         Path("docs/superpowers"),
         Path(".claude"),
     }
-    return any(path == directory or directory in path.parents for directory in historical_dirs)
+    return (
+        path.name == ".memlog.md"
+        or any(part.startswith("spec-") for part in path.parts)
+        or any(path == directory or directory in path.parents for directory in historical_dirs)
+    )
+
+
+def is_current_guide(path: Path) -> bool:
+    if is_historical(path):
+        return False
+    return (
+        path in LIVING_DOCS
+        or path == Path("CLAUDE.md")
+        or path.parts[:1] == ("skills",)
+        or path.parts[:2] in {(".omp", "skills"), ("docs", "contributing")}
+    )
+
+
+def check_portability(errors: list[str], files: list[Path]) -> None:
+    for source in files:
+        if not is_current_guide(source):
+            continue
+        for number, line in enumerate((ROOT / source).read_text(encoding="utf-8").splitlines(), 1):
+            if AUTHOR_PATH.search(line):
+                errors.append(f"{source}:{number}: author-specific filesystem path in current guidance")
+
+
+def check_skill_adapters(errors: list[str]) -> None:
+    if not any((ROOT / "skills").glob("*/SKILL.md")):
+        return
+    try:
+        drift = sync_agent_skills.sync(ROOT)
+    except (OSError, ValueError) as error:
+        errors.append(f"skill adapters: {error}")
+        return
+    if drift:
+        errors.append("stale skill adapters; run python3 tools/sync_agent_skills.py --write: " + ", ".join(drift))
 
 
 def resolve_link(source: Path, target: str) -> Path | None:
@@ -214,11 +259,7 @@ def check_links(errors: list[str], files: list[Path]) -> None:
 
 def check_forbidden_terms(errors: list[str], files: list[Path]) -> None:
     for source in files:
-        if not (
-            source in LIVING_DOCS
-            or source == Path("CLAUDE.md")
-            or (len(source.parts) >= 2 and source.parts[:2] == (".omp", "skills"))
-        ):
+        if not is_current_guide(source):
             continue
         lines = (ROOT / source).read_text(encoding="utf-8", errors="replace").splitlines()
         for line_number, line in enumerate(lines, 1):
@@ -246,6 +287,8 @@ def main() -> int:
         return 1
     check_links(errors, files)
     check_forbidden_terms(errors, files)
+    check_portability(errors, files)
+    check_skill_adapters(errors)
     check_quality_commands(errors, files)
     check_canonical_paths(errors)
     if errors:

@@ -142,7 +142,7 @@ The original Art prefab's mesh/material bindings are restored.
 | **Q** | Round Bomb | Lob round bomb in arc → explodes on impact | Poke / zone, aimable air + ground |
 | **E** | Jetpack Boost | Compression → ignition launch | 3 vulnerable startup ticks; 15 m/s vertical, normalized 3.5 m/s horizontal cap; 1.25m ignition sphere, 4 damage, 75° / 2+8 KB, 8 stun, 4 ticks; no ascent steering; air drift returns at apex |
 | **R** | Bazooka | Short cast → fire rocket in camera direction | FPS-style fire-and-forget. Projectile arcs, explodes on impact. Rocket jump (4 self-dmg) |
-| **F** | Aerosol Inferno | Hold aerosol can → release into a tall orange flame column | Hold-to-aim while stationary; camera yaw tracks facing; release attack fires after 18 ticks; 15 damage, 55° launch, 30 ticks stun |
+| **F** | Aerosol Inferno | Hold aerosol can → release into a tall orange flame column | 18-tick minimum charge while stationary; camera yaw tracks facing; queued release fires after 8 startup ticks; 44-tick flame window, five charge tiers (10–26 damage), 30° launch, 30 ticks stun |
 
 ## Local cooldown tuning — 2026-10-03
 
@@ -158,7 +158,7 @@ roster pins are unchanged.
 ## Design Notes
 - **E**: Jetpack Boost. On activation, Manki compresses for 3 vulnerable ticks while preserving vertical fall velocity and clearing horizontal velocity. On ignition, the authoritative simulation samples the current movement stick, normalizes it when above 0.001 magnitude, and launches at `VY=15` with horizontal speed `3.5` along that direction. A single owner-centered sphere (radius 1.25, damage 4, 75° angle, base 2, growth 8, stun 8, duration 4) resolves the ignition hit. The ascent is unsteerable; gravity is active immediately, and normal air drift/actions return when `VY <= 0`. Cooldown: 210 ticks. The move is a recovery move and aliases `air.E` to `ground.E`.
 - **R**: Bazooka (FPS-style). Short cast (20 ticks), fire a rocket projectile in camera direction (AimYaw/AimPitch). Projectile has gravity (15 m/s²), speed 40 m/s, max flight 45 ticks. Explodes on entity hit or ground contact with 3m AoE. CanHitOwner=true on explosion — aim at feet for rocket jump (4 self-damage, upward knockback). No rise, no hover, no hold-to-aim. 240 tick cooldown (4s).
-- **F**: Aerosol Inferno. Hold enters the loop animation and freezes horizontal movement. Manki follows camera yaw only; vertical aim is ignored. Release switches to the attack animation, then emits the right-hand aerosol VFX and forward flame hitbox at the authored 18-tick trigger. Cooldown: 600 ticks.
+- **F**: Aerosol Inferno. Hold enters the loop animation and freezes movement. An 18-tick minimum charge applies even to a tap; early release queues the shot, and a longer hold continues aiming until release. Manki follows camera yaw only; vertical aim is ignored. The firing phase starts the flame hitbox and VFX together at tick 8 and sustains both for 44 attack ticks through the 52-tick commitment. Charge tiers at 18/30/42/54/66 ticks select 10/14/18/22/26 damage and 0.6×/0.8×/1×/1.25×/1.5× flame size. Charge caps at 66 ticks but still waits for release. The facing-aligned capsule and flame grow together from 2.64 m to 6.6 m total length (0.84 m to 2.1 m diameter), anchored at the same near edge; the effect is independent of wrist rotation and ends on interruption. Cooldown: 600 ticks.
 
 ## Jetpack presentation — 2026-10-11
 
@@ -213,7 +213,7 @@ bindings remain unchanged; only presentation cues, placement and assets change.
 | Q / Round Bomb | `MankiLitBomb.prefab` retains the existing bomb mesh and scale, adding a small ember glow, fuse sparks and short smoke at the fuse tip. Both the held prop and moving bomb use this owned prefab. Existing contact explosions remain. |
 | E / Jetpack Boost | Retains the downward jet, embers, smoke and separate ignition burst from the first pass. |
 | R / Bazooka | `MankiBazookaMuzzle.prefab` emits at the existing tick-6 rocket trigger, with flame, sparks and smoke at the imported barrel tip. `MankiBazookaRocket.prefab` has a compact fiery core and world-space smoke/embers. The launcher remains visible through the firing motion. |
-| F / Aerosol Inferno | `MankiAerosolInferno.prefab` now uses a fuller orange flame stream, embers and smoke. Flame billboards and an owned material without soft-particle fading retain visibility from the gameplay camera. Its cue starts at the can nozzle, at right-hand local position `(0, 0.14, 0.385)`, retaining the tick-18 trigger and 28-tick presentation duration. |
+| F / Aerosol Inferno | `MankiAerosolInferno.prefab` uses a facing-aligned orange flame column, embers and smoke. Its full-volume ignition burst covers the capsule immediately, using the same charge-tier scale as the hitbox: 0.6× through 1.5× the 4.4 m by 1.4 m baseline. The world placement is relative to the firing event at `(0, 0.25, 0.55)`, independent of wrist rotation. Hitbox and VFX start on firing tick 8, last 44 attack ticks, and end on interruption. |
 
 `MankiWeaponAttachments.asset` is an owned copy of the existing attachment
 config. It preserves attachment positions and rotations, uses the lit bomb,

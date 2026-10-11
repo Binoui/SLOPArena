@@ -2,7 +2,7 @@
 
 **Status:** living guide
 **Scope:** static PVP stage concepts, gameplay readability, and presentation hierarchy
-**Implementation workflow:** [Stage authoring skill](../../.omp/skills/sloparena-stage-authoring/SKILL.md)
+**Implementation workflow:** [Stage authoring skill](../../skills/sloparena-stage-authoring/SKILL.md)
 
 **Current picker:** [Stage-select roster](stages/roster.md)
 
@@ -12,7 +12,7 @@ A SlopArena stage must be gameplay-ready before it becomes elaborate. It should 
 
 This guide supplies the design intent that each stage brief applies. It does not prescribe measurements, a universal floor shape, platform count, obstacle density, or one perimeter form. The game does not yet have enough PVP stage evidence to make those rules durable.
 
-The current implementation contract remains authoritative: PVP collision, ground, ledges, blast boundaries, and spawns come from baked Shared/server arena data. Unity stage content is presentation only. See the [Stage authoring skill](../../.omp/skills/sloparena-stage-authoring/SKILL.md) for the required source scene, prefab, bake, inspection, and human-review workflow.
+The current implementation contract remains authoritative: PVP collision, ground, ledges, blast boundaries, and spawns come from baked Shared/server arena data. Unity stage content is presentation only. See the [Stage authoring skill](../../skills/sloparena-stage-authoring/SKILL.md) for the required source scene, prefab, bake, inspection, and human-review workflow.
 
 ## One-sentence definition
 

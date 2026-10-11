@@ -1036,22 +1036,23 @@ public class ServerSimulationTests
     }
 
     [Fact]
-    public void GrabWhiffCommitsSevenStartupThreeActiveAndEighteenRecoveryTicks()
+    public void GrabWhiffCompletesAuthoredAnimationAfterContactWindow()
     {
         var def = MakeTestDef();
         var sim = new ServerSimulation(TestHelpers.TestArena());
         sim.RegisterEntity(1, def, GroundedState(1, def));
         var inputs = new Dictionary<ulong, InputState> { [1] = new() { GrabPressed = true } };
         sim.Tick(inputs);
-        Assert.Equal((ushort)28, sim.GetState(1).StateTicks);
+        Assert.Equal((ushort)(DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks
+            + DefenseConfig.GrabWhiffRecoveryTicks), sim.GetState(1).StateTicks);
         inputs[1] = new InputState { Jump = true, ActiveSlot = AbilitySlots.Slot1 };
         for (int i = 0; i < 10; i++)
         {
             sim.Tick(inputs);
             Assert.Equal(ActionState.GrabAttempt, sim.GetState(1).State);
         }
-        Assert.Equal((ushort)18, sim.GetState(1).StateTicks);
-        for (int i = 0; i < 17; i++) sim.Tick(inputs);
+        Assert.Equal(DefenseConfig.GrabWhiffRecoveryTicks, sim.GetState(1).StateTicks);
+        for (int i = 0; i < DefenseConfig.GrabWhiffRecoveryTicks - 1; i++) sim.Tick(inputs);
         Assert.Equal(ActionState.GrabAttempt, sim.GetState(1).State);
         sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
         Assert.NotEqual(ActionState.GrabAttempt, sim.GetState(1).State);
@@ -1095,7 +1096,7 @@ public class ServerSimulationTests
 
         var attacker = sim.GetState(1);
         var victim = sim.GetState(2);
-        Assert.Equal(ActionState.Throwing, attacker.State);
+        Assert.Equal(ActionState.Grabbing, attacker.State);
         Assert.Equal(ActionState.Grabbed, victim.State);
         Assert.NotEqual(0ul, attacker.InteractionId);
         Assert.Equal(attacker.InteractionId, victim.InteractionId);
@@ -1108,10 +1109,10 @@ public class ServerSimulationTests
         var capturedPositions = (attacker.PX, attacker.PY, attacker.PZ, victim.PX, victim.PY, victim.PZ);
 
 
-        for (int i = 0; i < DefenseConfig.ThrowReleaseTicks - 1; i++)
+        for (int i = 0; i < DefenseConfig.GrabHoldTicks + DefenseConfig.ThrowReleaseTicks - 1; i++)
         {
             sim.Tick(inputs);
-            if (i == 0)
+            if (i == DefenseConfig.GrabHoldTicks - 1)
                 Assert.Equal((byte)DefenseInteractionPhase.Throwing, sim.GetState(1).InteractionPhase);
             Assert.Equal(interactionId, sim.GetState(1).InteractionId);
             Assert.Equal(interactionId, sim.GetState(2).InteractionId);
@@ -1123,8 +1124,8 @@ public class ServerSimulationTests
 
         attacker = sim.GetState(1);
         victim = sim.GetState(2);
-        Assert.Equal(ActionState.Idle, attacker.State);
-        Assert.Equal(ActionState.Hitstun, victim.State);
+        Assert.Equal(ActionState.Throwing, attacker.State);
+        Assert.Equal(ActionState.Thrown, victim.State);
         Assert.Equal(6, victim.DamagePercent);
         Assert.Equal(0ul, attacker.InteractionId);
         Assert.Equal(0ul, victim.InteractionId);
@@ -1153,7 +1154,8 @@ public class ServerSimulationTests
         };
         sim.Tick(inputs);
         inputs[1] = default;
-        for (int i = 0; i < DefenseConfig.GrabStartupTicks + DefenseConfig.ThrowReleaseTicks - 1; i++)
+        for (int i = 0; i < DefenseConfig.GrabStartupTicks + DefenseConfig.GrabHoldTicks
+            + DefenseConfig.ThrowReleaseTicks - 1; i++)
             sim.Tick(inputs);
         var victim = sim.GetState(2);
         Assert.Equal(ActionState.Grabbed, victim.State);
@@ -1262,7 +1264,7 @@ public class ServerSimulationTests
         inputs[1] = inputs[2] = default;
         for (int i = 0; i < DefenseConfig.GrabStartupTicks; i++) sim.Tick(inputs);
         Assert.Equal(2ul, sim.GetState(3).InteractionPartnerId);
-        Assert.Equal(ActionState.Throwing, sim.GetState(2).State);
+        Assert.Equal(ActionState.Grabbing, sim.GetState(2).State);
         Assert.Equal(ActionState.GrabAttempt, sim.GetState(1).State);
     }
 

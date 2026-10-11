@@ -1067,6 +1067,7 @@
       "behavior": "chargeAttack",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "aimAnimationId": "anim.ki-shot-loop",
       "hitPresentationId": "presentation.fightguy.empowered.hit",
       "cooldownTicks": 120,
       "isRecoveryMove": false,
@@ -1101,7 +1102,7 @@
                   "tier3Ticks": 45,
                   "fireTriggerTick": 8,
                   "tier2Radius": 0.75,
-                  "tier3Radius": 1.0,
+                  "tier3Radius": 1,
                   "projectile": {
                     "launchOffsetX": 0,
                     "launchOffsetY": 1.2,
@@ -1142,8 +1143,7 @@
             ]
           }
         ]
-      },
-      "aimAnimationId": "anim.ki-shot-loop"
+      }
     },
     {
       "id": "ground.E",

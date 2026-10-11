@@ -118,4 +118,32 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 59558aa450723e16b8afe09733abb55b, type: 2}
     _extrapolation: 0
     _poseTrackId: pose.bonk.slide
-  _presentations: []
+  _presentations:
+  - _semanticId: presentation.bonk.steel.hit
+    _prefab: {fileID: 3149147115763953314, guid: e9e75777e90e461a58e8f15423afd384, type: 3}
+  - _semanticId: presentation.bonk.bash.hit
+    _prefab: {fileID: 3939395085170910799, guid: 2eeb5fc1313842da5af39d921d03e911, type: 3}
+  - _semanticId: presentation.bonk.normal.glint
+    _prefab: {fileID: 1374814300817248429, guid: c73bbea7794aac5c3a386cda358f7113, type: 3}
+  - _semanticId: presentation.bonk.normal.plant
+    _prefab: {fileID: 7487074691050578419, guid: 64f41a37467d530beac5cc22b30ffce9, type: 3}
+  - _semanticId: presentation.bonk.bash.brace
+    _prefab: {fileID: 8177764351932431851, guid: 1f16744a9187f610cb1e92f1d01f0b50, type: 3}
+  - _semanticId: presentation.bonk.bash.charge
+    _prefab: {fileID: 8971319239333944202, guid: b1668a44b22aaa4db875309434dbe94d, type: 3}
+  - _semanticId: presentation.bonk.slam.launch
+    _prefab: {fileID: 4627049086581531590, guid: e7b989b19b66e92f185bcbf1502efaed, type: 3}
+  - _semanticId: presentation.bonk.slam.air-launch
+    _prefab: {fileID: 8927869234706730574, guid: f2cf0ba64152504b080209d58e0b52f8, type: 3}
+  - _semanticId: presentation.bonk.slam.landing
+    _prefab: {fileID: 1236426330928721581, guid: 7f6040c959223756b9b1f7d22896c566, type: 3}
+  - _semanticId: presentation.bonk.slash.cut
+    _prefab: {fileID: 239623712099611573, guid: def7fbfdd34616ac0b6b01dbcff46601, type: 3}
+  - _semanticId: presentation.bonk.slash.heavy
+    _prefab: {fileID: 4293438040413557814, guid: 0cbb4faa70cb2a36cb2c6b13f92ee9e9, type: 3}
+  - _semanticId: presentation.bonk.storm.wind
+    _prefab: {fileID: 3430704171342964115, guid: a365c6b18ad7ca5269befda3490a7bd7, type: 3}
+  - _semanticId: presentation.bonk.storm.air-wind
+    _prefab: {fileID: 7450579461409076994, guid: f355bd2f5bfdbd0648aceb13ad1694fb, type: 3}
+  - _semanticId: presentation.bonk.storm.dust
+    _prefab: {fileID: 9050730634436919200, guid: d54459ecb377533dcb8c2bcb1277aa98, type: 3}

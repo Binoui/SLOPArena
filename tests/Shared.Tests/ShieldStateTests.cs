@@ -69,6 +69,32 @@ public class ShieldStateTests
         Assert.Equal(0f, shielding.FacingYaw);
     }
 
+    [Theory]
+    [InlineData(ActionState.Run)]
+    [InlineData(ActionState.Sliding)]
+    public void GrabOverridesMovementAndStopsHorizontalMomentum(ActionState action)
+    {
+        var initial = TestHelpers.PlayerState() with
+        {
+            PY = TestHelpers.GroundPY(TestHelpers.MankiDef),
+            State = action, VX = 7f, VZ = 3f, FacingYaw = 0.4f,
+        };
+        var sim = Make(initial);
+        var state = Tick(sim, new InputState { GrabPressed = true, MoveX = -1f, MoveY = 1f });
+
+        Assert.Equal(ActionState.GrabAttempt, state.State);
+        Assert.Equal(0f, state.VX);
+        Assert.Equal(0f, state.VZ);
+        Assert.Equal(initial.PX, state.PX);
+        Assert.Equal(initial.PZ, state.PZ);
+        Assert.Equal(initial.FacingYaw, state.FacingYaw);
+
+        state = Tick(sim, new InputState { MoveX = -1f, MoveY = 1f });
+        Assert.Equal(ActionState.GrabAttempt, state.State);
+        Assert.Equal(initial.PX, state.PX);
+        Assert.Equal(initial.PZ, state.PZ);
+    }
+
     [Fact]
     public void SameTickShieldAndJumpBrakeButEnterVulnerableJumpSquat()
     {

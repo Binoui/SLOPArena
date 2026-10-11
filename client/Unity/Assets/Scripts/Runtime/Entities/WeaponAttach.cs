@@ -35,6 +35,17 @@ namespace SlopArena.Client.Entities
         private float _previewTimelineSeconds = -1f;
         public bool HasSwordTrail { get; private set; }
 
+        /// <summary>Resolve the equipped blade anchors used by baked weapon presentation IDs.</summary>
+        public Transform ResolveTrailAnchor(string id)
+        {
+            Transform[] anchors = id == "_weapon_hilt" ? _hilts : id == "_weapon_tip" ? _tips : null;
+            if (anchors == null || _instances == null) return null;
+            for (int i = 0; i < anchors.Length; i++)
+                if (anchors[i] != null && _instances[i] != null && _instances[i].activeSelf)
+                    return anchors[i];
+            return null;
+        }
+
         public void Init(PlayerRenderer owner, WeaponAttachConfig config)
         {
             Cleanup();

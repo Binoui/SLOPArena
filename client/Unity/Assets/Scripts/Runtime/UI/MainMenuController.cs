@@ -31,6 +31,9 @@ namespace SlopArena.Client.UI
             _context.Q<Button>("menu-online")!.clicked += () => FrontendController.StartMode(GameMode.PvP);
             _context.Q<Button>("menu-solo")!.clicked += () => FrontendController.StartMode(GameMode.Solo);
             _context.Q<Button>("menu-training")!.clicked += () => FrontendController.StartMode(GameMode.Training);
+            var discordButton = _context.Q<Button>("menu-discord")!;
+            discordButton.clicked += OpenDiscord;
+            _context.AddReleaseAction(() => discordButton.clicked -= OpenDiscord);
             MenuNavigation.Configure(_context, _context.Q<Button>("menu-online"), ReturnToMainMenu);
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
@@ -58,6 +61,11 @@ namespace SlopArena.Client.UI
             _artwork = null;
         }
 
+
+        private static void OpenDiscord()
+        {
+            Application.OpenURL("https://discord.gg/VvfaxDCF6Z");
+        }
 
         private static void ReturnToMainMenu()
         {

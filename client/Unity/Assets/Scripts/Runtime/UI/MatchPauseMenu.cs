@@ -25,7 +25,6 @@ namespace SlopArena.Client.UI
         private Action? _onLeaveMatch;
         private VisualElement? _panel;
         private Button? _resumeButton;
-        private VisualElement? _leftSection;
         private SettingsOverlay? _settingsOverlay;
 
         /// <summary>True while the match menu owns local gameplay input.</summary>
@@ -123,17 +122,6 @@ namespace SlopArena.Client.UI
             else UiModalState.Pop();
         }
 
-        /// <summary>
-        /// Place an extra section (e.g. the Training settings panel) to the left of the
-        /// pause buttons. PvP never calls this, so the layout stays a centered box there.
-        /// </summary>
-        public void AttachSettingsSection(VisualElement section)
-        {
-            if (_leftSection == null || section == null) return;
-            _leftSection.style.display = DisplayStyle.Flex;
-            _leftSection.Add(section);
-        }
-
         private void BuildPanel(VisualElement root)
         {
             _panel = new VisualElement();
@@ -145,15 +133,6 @@ namespace SlopArena.Client.UI
             _panel.style.bottom = 0;
             _panel.style.alignItems = Align.Center;
             _panel.style.justifyContent = Justify.Center;
-
-            // Horizontal row: optional left section (Training settings) + pause box.
-            var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-
-            _leftSection = new VisualElement();
-            _leftSection.style.display = DisplayStyle.None;
-            row.Add(_leftSection);
 
             var box = new VisualElement();
             box.AddToClassList("match-pause-box");
@@ -178,8 +157,7 @@ namespace SlopArena.Client.UI
             box.Add(MakeButton("LEAVE MATCH", LeaveMatch));
             box.Add(MakeButton("QUIT GAME", QuitGame));
 
-            row.Add(box);
-            _panel.Add(row);
+            _panel.Add(box);
             root.Add(_panel);
             _panel.RegisterCallback<NavigationCancelEvent>(evt =>
             {

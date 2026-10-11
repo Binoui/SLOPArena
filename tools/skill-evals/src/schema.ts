@@ -24,7 +24,7 @@ export type SkillObservation = {
   provider?: string;
   /** Skills the user invoked by name (slash command in prompt, e.g. `/implement`). */
   explicitlyInvokedSkills?: string[];
-  /** Canonical skill names the agent actually loaded (`read` of `skill://<name>`). */
+  /** Canonical skill-read attempts (`tool_execution_start` for `skill://…`); success is not inferred. */
   loadedSkills: string[];
   toolsUsed?: string[];
   outcome?: Outcome;

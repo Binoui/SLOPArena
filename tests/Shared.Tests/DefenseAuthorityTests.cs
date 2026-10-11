@@ -22,6 +22,37 @@ public class DefenseAuthorityTests
         return sim;
     }
 
+    [Theory]
+    [InlineData(ActionState.Grabbing, ActionState.Grabbed)]
+    [InlineData(ActionState.Grabbed, ActionState.Grabbing)]
+    public void ConfirmedHoldKeepsBothRolesUnderServerAuthority(ActionState selfRole, ActionState partnerRole)
+    {
+        var sim = Match();
+        sim.Tick(new Dictionary<ulong, InputState> { [Self] = default });
+        var held = TestHelpers.PlayerState() with
+        {
+            State = selfRole, StateTicks = DefenseConfig.GrabHoldTicks,
+            InteractionId = 19, InteractionPartnerId = Other, InteractionTick = 1,
+            InteractionPhase = (byte)DefenseInteractionPhase.Captured,
+        };
+        var partner = held with { EntityId = Other, State = partnerRole, InteractionPartnerId = Self, PZ = 0.65f };
+        sim.IngestAuthoritativeBatch(new[] { Packet(Self, 1, held), Packet(Other, 1, partner) });
+        for (int tick = 0; tick < 10; tick++)
+            sim.Tick(new Dictionary<ulong, InputState> { [Self] = new InputState { MoveY = 1, ActiveSlot = AbilitySlots.F, Jump = true } });
+        Assert.Equal(selfRole, sim.GetState(Self).State);
+        Assert.Equal(held.PZ, sim.GetState(Self).PZ);
+        Assert.Equal(partnerRole, sim.GetState(Other).State);
+        Assert.Equal(held.InteractionId, sim.GetState(Other).InteractionId);
+
+        held.StateTicks = 170;
+        held.PZ = 0.2f;
+        partner.StateTicks = 170;
+        partner.PZ = 0.85f;
+        sim.IngestAuthoritativeBatch(new[] { Packet(Self, 10, held), Packet(Other, 10, partner) });
+        Assert.Equal(held.PZ, sim.GetState(Self).PZ);
+        Assert.Equal(partner.PZ, sim.GetState(Other).PZ);
+    }
+
     [Fact]
     public void ConfirmedCaptureInterruptsComplexLocalAttackAndWaitsForTerminal()
     {

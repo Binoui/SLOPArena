@@ -178,7 +178,7 @@ public sealed class AbilityLabSimulationController
                 // This is an observation of the resolved paired states, not a
                 // predicted release tick or an invented hitbox contact.
                 string kind = opponent.DamagePercent > previousOpponent.DamagePercent
-                    && opponent.State == ActionState.Hitstun ? "release" : "terminal";
+                    && opponent.State is (ActionState.Hitstun or ActionState.Thrown) ? "release" : "terminal";
                 interactions.Add(new AbilityLabScenarioInteraction(frame, matchTick, kind, previousActor.InteractionId));
             }
             events.AddRange(simulation.GetPresentationEvents(clear: true));

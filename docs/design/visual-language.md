@@ -89,8 +89,8 @@ fallback styles until an asset-distribution plan is agreed.
   difficulty buttons only for CPU. The active slot and its roster fighter
   share yellow emphasis; the inactive slot remains neutral. Returning from
   Stage Select preserves both fighters and difficulty. Training uses the
-  selected CPU fighter and difficulty while retaining its idle/heuristic
-  training controls and no-win match rule.
+  selected CPU fighter and difficulty, persistent Idle/Attack/Shield/Avoid
+  training controls, separate damage/position resets, and no-win match rule.
   Fighter cards use face-focused crops from the four character splash illustrations:
   quiet charcoal idle frames, a thicker yellow selected edge and brighter name
   strip, with both local-mode summaries echoing that selected treatment.

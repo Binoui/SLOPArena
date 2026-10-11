@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
-DEFAULT_UNITY = "/home/binoui/Unity/Hub/Editor/6000.0.78f1/Editor/Unity"
+DEFAULT_UNITY = str(Path.home() / "Unity/Hub/Editor/6000.0.78f1/Editor/Unity")
 VERSION_RE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-playtest\.[0-9]+\Z")
 REVISION_RE = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -376,7 +376,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--version", required=True, type=version_arg)
     result.add_argument("--source-revision", required=True, type=revision_arg)
     result.add_argument("--endpoint", required=True, type=endpoint_arg)
-    result.add_argument("--unity-editor", type=unity_path_arg, default=Path(DEFAULT_UNITY))
+    result.add_argument("--unity-editor", type=unity_path_arg,
+                        default=os.environ.get("UNITY_EDITOR", DEFAULT_UNITY))
     result.add_argument("--local-unity-project", type=Path,
                         help="Read ignored licensed dependencies from this checkout's client/Unity; never writes there")
     return result

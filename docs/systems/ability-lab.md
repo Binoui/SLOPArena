@@ -48,8 +48,8 @@ Use native commands first for gameplay setup and evidence; do not use `eval` to
 construct fighters or emulate gameplay.
 
 Use the [Unity CLI gateway](../contributing/unity-cli.md#pipeline-connection-and-shared-editor-leases),
-not raw `unity command`. Set `ORCA_TERMINAL_HANDLE` to your own runtime-issued
-handle first. Keep dependent open/run/inspect/preview/capture operations in one
+with your own caller identity under the
+[coordination protocol](../contributing/unity-editor-coordination.md). Keep dependent open/run/inspect/preview/capture operations in one
 `--batch` so another lease cannot change the workspace between them.
 These Edit Mode examples intentionally leave the Lab open with the selected
 package; add any task-required restoration to `restore` before invoking them.
@@ -77,8 +77,8 @@ opponent, a shield, a distant miss, and a Shared grab; outcomes are not forced:
 ```
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+bun scripts/unity-editor-gateway.ts \
+  --project-path client/Unity \
   --batch /tmp/ability-lab-scenarios.json
 ```
 
@@ -112,8 +112,8 @@ Capture frames into the ignored cache. Save this complete sequence as
 ```
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+bun scripts/unity-editor-gateway.ts \
+  --project-path client/Unity \
   --batch /tmp/ability-lab-grab-capture.json
 ```
 
@@ -334,16 +334,16 @@ Inspect is read-only and reports source status, canonical slots, hashes, stale r
 structured diagnostics:
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+bun scripts/unity-editor-gateway.ts \
+  --project-path client/Unity \
   -- sloparena.character.inspect --target fightguy
 ```
 
 Cook publishes only a validated package:
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+bun scripts/unity-editor-gateway.ts \
+  --project-path client/Unity \
   -- sloparena.character.cook --target fightguy
 ```
 

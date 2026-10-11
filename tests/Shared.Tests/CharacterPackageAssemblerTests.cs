@@ -12,6 +12,78 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    [Theory]
+    [InlineData(true, 18)]
+    [InlineData(false, 0)]
+    public void AerosolMinimumChargeRoundTripsSourceAndVerifiedCookedPackage(bool includeMinimum, int expected)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
+        string manifest = File.ReadAllText(Path.Combine(root, "package.json"));
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
+        if (!includeMinimum)
+            foreach (var slot in character["slots"]!.AsArray())
+                foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
+                    foreach (var operation in stage!["operations"]!.AsArray())
+                        if (operation!["capabilityId"]?.GetValue<string>() == "slop.internal.manki.aerosol-inferno.v1")
+                        {
+                            operation["parameters"]!.AsObject().Remove("minimumChargeTicks");
+                            operation["parameters"]!.AsObject().Remove("chargeTiers");
+                        }
+        var source = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
+        Assert.True(source.IsValid, string.Join("; ", source.Diagnostics));
+        var rewritten = CharacterPackageSourceCodec.Load(manifest,
+            CharacterPackageSourceCodec.SerializeCharacter(source.Source!.Character));
+        Assert.True(rewritten.IsValid, string.Join("; ", rewritten.Diagnostics));
+        var compiled = CharacterPackageCompiler.Compile(rewritten.Source!, CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var assembly = CharacterPackageAssembler.Assemble(BuildInput(package, Array.Empty<PackageDependencySource>(),
+            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>()));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
+        foreach (var slot in loaded.Package!.Definition.Slots.Where(slot => slot.Id is "ground.F" or "air.F"))
+        {
+            var capability = Assert.Single(slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+                .OfType<CookedStartCapabilityOperation>());
+            var parameters = Assert.IsType<CookedMankiAerosolInfernoCapabilityParameters>(capability.Parameters);
+            Assert.Equal((ushort)expected, parameters.MinimumChargeTicks);
+            if (includeMinimum)
+                Assert.Equal(new[]
+                {
+                    new MankiAerosolChargeTier(18, 10f, 0.6f), new MankiAerosolChargeTier(30, 14f, 0.8f),
+                    new MankiAerosolChargeTier(42, 18f, 1f), new MankiAerosolChargeTier(54, 22f, 1.25f),
+                    new MankiAerosolChargeTier(66, 26f, 1.5f),
+                }, parameters.ChargeTiers);
+            else
+            {
+                Assert.Null(parameters.ChargeTiers);
+                Assert.Equal(15f, parameters.GetChargeTier(120).Damage);
+                Assert.Equal(1f, parameters.GetChargeTier(120).ReachScale);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("chargeTicks", 18)]
+    [InlineData("damage", 9)]
+    [InlineData("reachScale", 0)]
+    public void AerosolRejectsInvalidChargeProgression(string field, float value)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
+        foreach (var slot in character["slots"]!.AsArray())
+            foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
+                foreach (var operation in stage!["operations"]!.AsArray())
+                    if (operation!["capabilityId"]?.GetValue<string>() == "slop.internal.manki.aerosol-inferno.v1")
+                        operation["parameters"]!["chargeTiers"]![1]![field] = JsonValue.Create(value);
+        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")), character.ToJsonString());
+        Assert.True(source.IsValid, string.Join("; ", source.Diagnostics));
+        var compiled = CharacterPackageCompiler.Compile(source.Source!, CharacterCookProfile.TrustedBuiltIn);
+        Assert.Null(compiled.CookedPackage);
+        Assert.Contains(compiled.Diagnostics, diagnostic => diagnostic.Code == "value.out-of-range"
+            && diagnostic.Path.Contains("chargeTiers"));
+    }
+
     [Fact]
     public void Assemble_IsDeterministic_AndVerifiesCanonicalTree()
     {

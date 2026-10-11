@@ -3,6 +3,13 @@ using System.Linq;
 
 namespace SlopArena.Shared.AI;
 
+public enum CpuBehavior
+{
+    Attack,
+    Shield,
+    Avoid,
+}
+
 /// <summary>
 /// Deterministic heuristic bot policy v1 (issue #148): approach the opponent, attack when the
 /// opponent is within the bot's (seeded-jittered) perceived range, pick from the move set with
@@ -398,15 +405,15 @@ public sealed class HeuristicBotPolicy
 
     public InputState Decide(in CharacterState self, in CharacterState target,
         CharacterDefinition def, Random rng, BotMemory memory, in ArenaDefinition arena,
-        BakedAnimationData? baked = null)
-        => DecideObserved(self, target, def, rng, memory, in arena, baked);
+        BakedAnimationData? baked = null, CpuBehavior behavior = CpuBehavior.Attack)
+        => DecideObserved(self, target, def, rng, memory, in arena, baked, behavior);
 
     private InputState DecideObserved(in CharacterState self, in CharacterState target,
         CharacterDefinition def, Random rng, BotMemory memory, in ArenaDefinition arena,
-        BakedAnimationData? baked)
+        BakedAnimationData? baked, CpuBehavior behavior = CpuBehavior.Attack)
     {
         memory.ObserveOpponent(target);
-        return Decide(self, def, rng, memory, in arena, baked);
+        return Decide(self, def, rng, memory, in arena, baked, behavior);
     }
 
     /// <summary>
@@ -422,8 +429,29 @@ public sealed class HeuristicBotPolicy
         => Decide(self, def, rng, memory, default, baked);
 
     public InputState Decide(in CharacterState self, CharacterDefinition def,
-        Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked = null)
+        Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked = null,
+        CpuBehavior behavior = CpuBehavior.Attack)
     {
+        var input = DecideAction(self, def, rng, memory, in arena, baked, behavior);
+        // Recovery is allowed to cross an edge. Ordinary grounded approach, retreat,
+        // and circling must stay on supported ground, including around stage holes.
+        if (self.IsGrounded && self.State != ActionState.LedgeHang
+            && !IsOffstage(self, in arena) && !input.Jump
+            && input.ActiveSlot == 0 && (input.MoveX != 0f || input.MoveY != 0f))
+            KeepMovementOnStage(ref input, self, def, in arena, memory);
+        return input;
+    }
+
+    private InputState DecideAction(in CharacterState self, CharacterDefinition def,
+        Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked,
+        CpuBehavior behavior)
+    {
+        if (memory.Behavior != behavior)
+        {
+            memory.ClearPlan();
+            memory.DecisionTicksRemaining = 0;
+            memory.Behavior = behavior;
+        }
         EnsureProfile(def, baked);
         EnsureRecoveryTargets(in arena, in def);
 
@@ -461,15 +489,22 @@ public sealed class HeuristicBotPolicy
 
         var input = new InputState();
         if (self.State == ActionState.Shielding)
-            return memory.TryGetDelayedOpponent(out var threat) && threat.IsThreatening
+            return behavior == CpuBehavior.Shield
+                || behavior == CpuBehavior.Attack
+                    && memory.TryGetDelayedOpponent(out var threat) && threat.IsThreatening
                 ? new InputState { ShieldHeld = true }
                 : default;
         if (!actionable)
             return input;
         if (TryBuildRecoveryInput(self, def, in arena, memory, out input))
             return input;
+        if (behavior == CpuBehavior.Shield)
+            return self.IsGrounded ? new InputState { ShieldHeld = true } : default;
         if (!memory.TryGetDelayedOpponent(out var target))
             return input;
+
+        if (behavior == CpuBehavior.Avoid)
+            return BuildAvoidInput(self, target, def, rng, memory, profile);
 
         if (memory.TryGetNewHit(out var hit))
         {
@@ -597,6 +632,76 @@ public sealed class HeuristicBotPolicy
         input.MoveX = -dz / dist * memory.StrafeDirection;
         input.MoveY = dx / dist * memory.StrafeDirection;
         return input;
+    }
+
+    private static InputState BuildAvoidInput(in CharacterState self, in CpuObservation target,
+        CharacterDefinition def, Random rng, BotMemory memory, in BotDifficultyProfile profile)
+    {
+        float dx = self.PX - target.PX;
+        float dz = self.PZ - target.PZ;
+        float distance = MathF.Sqrt(dx * dx + dz * dz);
+        float spacing = MathF.Max(5f, def.CapsuleRadius * 6f);
+        var input = new InputState();
+        if (distance >= spacing)
+            return input;
+        if (distance <= 0.001f)
+        {
+            dx = MathF.Sin(self.FacingYaw);
+            dz = MathF.Cos(self.FacingYaw);
+            distance = 1f;
+        }
+        input.MoveX = dx / distance;
+        input.MoveY = dz / distance;
+        if (!self.IsGrounded && target.IsThreatening && self.AirDodgesLeft > 0
+            && memory.DecisionTicksRemaining == 0)
+        {
+            memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
+            input.ShieldPressed = rng.NextDouble() < profile.DefenseChance;
+        }
+        return input;
+    }
+
+    private void KeepMovementOnStage(ref InputState input, in CharacterState self,
+        CharacterDefinition def, in ArenaDefinition arena, BotMemory memory)
+    {
+        if (!HasArenaBounds(arena)) return;
+        float lookahead = MathF.Max(0.75f, def.Movement.RunSpeed * 0.3f);
+        if (HasSafeMovement(self, def, in arena, input.MoveX, input.MoveY, lookahead)) return;
+        float x = input.MoveX, z = input.MoveY;
+        int side = memory.StrafeDirection == 0 ? 1 : memory.StrafeDirection;
+        if (HasSafeMovement(self, def, in arena, -z * side, x * side, lookahead))
+        {
+            input.MoveX = -z * side;
+            input.MoveY = x * side;
+        }
+        else if (HasSafeMovement(self, def, in arena, z * side, -x * side, lookahead))
+        {
+            memory.StrafeDirection = (sbyte)-side;
+            input.MoveX = z * side;
+            input.MoveY = -x * side;
+        }
+        else
+            input.MoveX = input.MoveY = 0f;
+    }
+
+    private bool HasSafeMovement(in CharacterState self, CharacterDefinition def,
+        in ArenaDefinition arena, float x, float z, float lookahead)
+    {
+        var destination = new RecoveryTarget(self.PX + x * lookahead, self.PY,
+            self.PZ + z * lookahead);
+        if (destination.X < arena.MinX + def.CapsuleRadius
+            || destination.X > arena.MaxX - def.CapsuleRadius
+            || destination.Z < arena.MinZ + def.CapsuleRadius
+            || destination.Z > arena.MaxZ - def.CapsuleRadius)
+            return false;
+        int steps = Math.Max(1, (int)MathF.Ceiling(lookahead / 0.5f));
+        for (int step = 1; step <= steps; step++)
+        {
+            float distance = lookahead * step / steps;
+            if (!HasSupportAt(self.PX + x * distance, self.PY, self.PZ + z * distance, in arena))
+                return false;
+        }
+        return HasTraversableRecoveryPath(self, destination, def, in arena);
     }
 
 

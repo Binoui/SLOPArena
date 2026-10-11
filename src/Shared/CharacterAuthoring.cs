@@ -348,7 +348,9 @@ public sealed record TargetedLeapCapabilityParameters(
     float LaunchVerticalSpeed,
     ushort LandingSeekTick,
     ushort RecoveryTicks,
-    HitboxSource Hitbox) : TypedCapabilityParameters;
+    HitboxSource Hitbox,
+    string LaunchPresentationId = "",
+    string LandingPresentationId = "") : TypedCapabilityParameters;
 public sealed record MankiRoundBombCapabilityParameters(
     ushort ThrowTriggerTick,
     float MaxRange,
@@ -398,6 +400,8 @@ public sealed record MankiBazookaCapabilityParameters(
     ushort RecoveryDuration,
     string ExplosionPresentationId = "") : TypedCapabilityParameters;
 
+public sealed record MankiAerosolChargeTier(ushort ChargeTicks, float Damage, float ReachScale);
+
 public sealed record MankiAerosolInfernoCapabilityParameters(
     ushort FireTriggerTick,
     ushort FireDurationTicks,
@@ -411,7 +415,9 @@ public sealed record MankiAerosolInfernoCapabilityParameters(
     float KnockbackBase,
     float KnockbackGrowth,
     ushort StunTicks,
-    byte HitGroup) : TypedCapabilityParameters;
+    byte HitGroup,
+    ushort MinimumChargeTicks = 0,
+    IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers = null) : TypedCapabilityParameters;
 
 public enum AuthoringAbilityBehavior : byte
 {

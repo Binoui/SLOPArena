@@ -1,5 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <!-- Home repeats the shell's mode routes as large actions beside its announcement board. -->
     <ui:VisualElement name="page-frag">
         <ui:VisualElement name="page-body" class="page-section menu-body-section">
             <ui:VisualElement class="menu-layout">
@@ -8,19 +7,20 @@
                     <ui:Button name="menu-solo" text="SOLO" class="menu-action menu-action--solo" />
                     <ui:Button name="menu-online" text="ONLINE" class="menu-action menu-action--online" />
                 </ui:VisualElement>
-                <ui:VisualElement name="menu-artwork-column" class="menu-artwork-column" picking-mode="Ignore">
-                    <ui:VisualElement name="menu-artwork" class="menu-artwork" picking-mode="Ignore">
-                        <ui:VisualElement class="menu-artwork-image" picking-mode="Ignore" />
-                        <ui:VisualElement class="menu-artwork-tape menu-artwork-tape--left" picking-mode="Ignore" />
-                        <ui:VisualElement class="menu-artwork-tape menu-artwork-tape--right" picking-mode="Ignore" />
+                <ui:VisualElement name="menu-artwork-column" picking-mode="Ignore" class="menu-artwork-column">
+                    <ui:VisualElement name="menu-artwork" picking-mode="Ignore" class="menu-artwork">
+                        <ui:VisualElement picking-mode="Ignore" class="menu-artwork-image" />
+                        <ui:VisualElement picking-mode="Ignore" class="menu-artwork-tape menu-artwork-tape--left" />
+                        <ui:VisualElement picking-mode="Ignore" class="menu-artwork-tape menu-artwork-tape--right" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="menu-info" class="menu-info">
                     <ui:Label text="ANNOUNCEMENTS" class="menu-info-heading" />
                     <ui:VisualElement name="menu-announcements" class="menu-announcements">
                         <ui:Label text="WELCOME TO THE PLAYTEST" class="menu-info-declaration" />
-                        <ui:Label text="Thanks for playing SlopArena." class="menu-info-copy" />
+                        <ui:Label text="Thank you for playing SlopArena !&#10;The game is still in early playtest. &#10;Feedback is appreciated ! &#10;Join the discord to get involved in the development ! :)" class="menu-info-copy" style="white-space: normal; height: 80px; width: 619px;" />
                     </ui:VisualElement>
+                    <ui:Button name="menu-discord" text="JOIN DISCORD" tooltip="Join the SlopArena community (opens in your browser)" class="btn-secondary menu-discord" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

@@ -2,6 +2,10 @@
 
 Canonical guidance is short and linked below. Dated plans, research, generated reports, handoffs, and accepted ADRs are preserved as project records; they are not automatically current implementation instructions.
 
+For release or log work, start directly with [Release Pipeline](systems/release-pipeline.md)
+or [sloparena-ops](../skills/sloparena-ops/SKILL.md). The Alfred home runbook is historical;
+current Steam operations use the VPS.
+
 ## Start here
 
 Read these in order:
@@ -18,7 +22,9 @@ Read these in order:
 | [Ability Architecture](systems/ability-architecture.md) | Cooked timelines, typed operations, capabilities, and interruption |
 | [Animation System](systems/animation-system.md) | Animancer playback, semantic bindings, and timing |
 | [Netcode Architecture](systems/netcode-architecture.md) | GameServer, prediction, reconciliation, and transport |
-| [Release Pipeline](systems/release-pipeline.md) | Build, packaging, and release flow |
+| [Release Pipeline](systems/release-pipeline.md) | Isolated client build, coordinated CI/VPS release and manual Steam activation |
+| [Operations skill](../skills/sloparena-ops/SKILL.md) | Match diagnostics, exact VPS process-log commands and readiness |
+| [Troubleshooting](systems/troubleshooting.md) | Current Steam startup, lag and admission investigation |
 | [Restricted local stack](../deploy/local/README.md) | Caddy/PostgreSQL/GameServer image-only integration without changing the home endpoint |
 | [Restricted VPS release](../deploy/vps/README.md) | Operator bootstrap, pinned deployment, rollback, and external ingress gates |
 | [Unity CLI](contributing/unity-cli.md) | Inspect/cook commands, Ability Lab agent commands, and live Editor verification |
@@ -78,6 +84,9 @@ an implementation or authoring guide.
 | Document | Use it for |
 | --- | --- |
 | [Art and asset conventions](contributing/conventions.md) | Visual direction, naming, licensing, and asset hygiene |
+| [Coding assistant setup](contributing/agents.md) | Shared instructions, skill discovery, checkouts, permissions, and manual handoffs |
+| [Editor coordination](contributing/unity-editor-coordination.md) | Caller identities, bounded leases, preservation, and recovery |
+| [Quality checks](contributing/quality.md) | Documentation, adapter, gateway, and applicable build/test commands |
 | [Unity CLI](contributing/unity-cli.md) | Package inspection/cooking, Ability Lab commands, and Editor checks |
 | [Repository contributing guide](../CONTRIBUTING.md) | Setup, rules, verification, and pull requests |
 | [Code of Conduct](../CODE_OF_CONDUCT.md) | Community standards |

@@ -1,26 +1,52 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/Resources/UI/TrainingSettingsPanel.uss?fileID=7433441132597879392&amp;guid=5a0a03e2b9a0899dfb6eb2ef33b6b3fb&amp;type=3#TrainingSettingsPanel" />
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="TrainingSettingsPanel.uss" />
     <ui:VisualElement name="ts-panel" class="ts-panel">
-        <ui:Label name="ts-title" class="ts-title" text="TRAINING SETTINGS" />
-        <ui:Toggle name="no-cd-toggle" class="ts-toggle" label="No ability cooldowns (player)" />
-        <ui:Label name="npc-difficulty-label" class="ts-label" text="CPU DIFFICULTY: NORMAL" />
-        <ui:VisualElement name="difficulty-buttons" class="ts-btn-row">
-            <ui:Button name="difficulty-easy" class="ts-btn ts-mode-btn" text="EASY" />
-            <ui:Button name="difficulty-normal" class="ts-btn ts-mode-btn" text="NORMAL" />
-            <ui:Button name="difficulty-hard" class="ts-btn ts-mode-btn" text="HARD" />
+        <ui:VisualElement class="ts-heading">
+            <ui:Label class="ts-title" text="TRAINING" />
+            <ui:Label name="ts-input-hint" class="ts-hint" text="ESC / START · ADJUST TRAINING" />
         </ui:VisualElement>
-        <ui:Label name="npc-mode-label" class="ts-label" text="NPC MODE: HEURISTIC" />
-        <ui:VisualElement name="mode-buttons" class="ts-btn-row">
-            <ui:Button name="mode-heuristic" class="ts-btn ts-mode-btn" text="HEURISTIC" />
-            <ui:Button name="mode-idle" class="ts-btn ts-mode-btn" text="IDLE" />
-        </ui:VisualElement>
-        <ui:VisualElement name="dmg-row" class="ts-row">
-            <ui:Label name="npc-damage-label" class="ts-label ts-dmg" text="NPC -%" />
-            <ui:Button name="dmg-minus" class="ts-btn" text="-10" />
-            <ui:Button name="dmg-plus" class="ts-btn" text="+10" />
-            <ui:Button name="dmg-reset" class="ts-btn" text="RESET 0" />
-        </ui:VisualElement>
-        <ui:Label name="roster-title" class="ts-label" text="NPCS" />
-        <ui:VisualElement name="roster-row" class="ts-btn-row ts-wrap" />
+        <ui:ScrollView name="ts-scroll" class="ts-scroll" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
+            <ui:VisualElement class="ts-section">
+                <ui:Label class="ts-label" text="BEHAVIOR" />
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="mode-idle" class="ts-btn ts-mode-btn" text="IDLE" />
+                    <ui:Button name="mode-attack" class="ts-btn ts-mode-btn" text="ATTACK" />
+                </ui:VisualElement>
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="mode-shield" class="ts-btn ts-mode-btn" text="SHIELD" />
+                    <ui:Button name="mode-avoid" class="ts-btn ts-mode-btn" text="AVOID" />
+                </ui:VisualElement>
+                <ui:Label name="npc-mode-description" class="ts-description" text="Stands still. Practice hits and combos." />
+            </ui:VisualElement>
+            <ui:VisualElement name="difficulty-section" class="ts-section">
+                <ui:Label class="ts-label" text="DIFFICULTY" />
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="difficulty-easy" class="ts-btn ts-grow" text="EASY" />
+                    <ui:Button name="difficulty-normal" class="ts-btn ts-grow" text="NORMAL" />
+                    <ui:Button name="difficulty-hard" class="ts-btn ts-grow" text="HARD" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ts-section">
+                <ui:VisualElement class="ts-damage-heading">
+                    <ui:Label class="ts-label" text="CPU DAMAGE" />
+                    <ui:Label name="npc-damage-label" class="ts-damage" text="0%" />
+                </ui:VisualElement>
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="dmg-minus" class="ts-btn ts-grow" text="−10%" />
+                    <ui:Button name="dmg-plus" class="ts-btn ts-grow" text="+10%" />
+                    <ui:Button name="dmg-reset" class="ts-btn ts-grow" text="ZERO" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ts-section">
+                <ui:Label class="ts-label" text="RESET ALL FIGHTERS" />
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="reset-damage" class="ts-btn ts-grow" text="DAMAGE" tooltip="Set player and all CPU damage to 0%. Keep positions." />
+                    <ui:Button name="reset-position" class="ts-btn ts-grow" text="POSITION" tooltip="Return all fighters to their spawns. Keep damage." />
+                </ui:VisualElement>
+                <ui:Button name="reset-all" class="ts-btn ts-reset-all" text="RESET BOTH" tooltip="Return all fighters to their spawns and set damage to 0%." />
+            </ui:VisualElement>
+            <ui:Toggle name="no-cd-toggle" class="ts-toggle" label="No player ability cooldowns" />
+            <ui:Toggle name="show-during-play" class="ts-toggle" label="Show during play" value="true" tooltip="The panel always remains visible while paused." />
+        </ui:ScrollView>
     </ui:VisualElement>
 </ui:UXML>

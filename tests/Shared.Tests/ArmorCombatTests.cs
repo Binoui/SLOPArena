@@ -235,7 +235,7 @@ public sealed class ArmorCombatTests
             sim.Tick(new Dictionary<ulong, InputState>());
 
         Assert.Equal(ActionState.Grabbed, sim.GetState(DefenderId).State);
-        Assert.Equal(ActionState.Throwing, sim.GetState(AttackerId).State);
+        Assert.Equal(ActionState.Grabbing, sim.GetState(AttackerId).State);
         Assert.Equal(sim.GetState(AttackerId).InteractionId, sim.GetState(DefenderId).InteractionId);
         Assert.False(armor.HasArmor);
         Assert.Null(sim.GetActiveAbility(DefenderId));

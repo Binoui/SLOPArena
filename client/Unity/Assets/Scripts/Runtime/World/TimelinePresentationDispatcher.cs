@@ -18,6 +18,7 @@ namespace SlopArena.Client.World
 
         internal static int LifetimeTicks(PresentationEventSource source)
             => source is PresentationEventSource.CapabilityExplosion or PresentationEventSource.HitContact
+                or PresentationEventSource.CapabilityLaunch or PresentationEventSource.CapabilityLanding
                 ? ExplosionPresentationLifetimeTicks
                 : DefaultPresentationLifetimeTicks;
 

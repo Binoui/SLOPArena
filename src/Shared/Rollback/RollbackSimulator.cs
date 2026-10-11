@@ -129,7 +129,7 @@ namespace SlopArena.Shared.Rollback
                 // present a one-sided pair; keep the newest bounded snapshot.
                 if (packet.EntityId != _selfId && state.InteractionId != 0 &&
                     state.InteractionPartnerId == _selfId &&
-                    (state.State == ActionState.Grabbed || state.State == ActionState.Throwing))
+                    (state.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing))
                 {
                     var self = _local.GetState();
                     if (self.InteractionId != state.InteractionId ||

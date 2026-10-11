@@ -1,50 +1,49 @@
-# SlopBot skills
+# SlopArena workflows
 
-SlopBot helps technical newcomers learn SlopArena and take a humanoid fighter from concept or existing assets to a verified persisted package and local play. It is a creator guide, not an asset generator or a general-purpose project coding agent.
+This is the maintained source for project development and creator skills. Public
+`docs/` owns project contracts; skills route a task to relevant docs and procedures.
+Read root [AGENTS.md](../AGENTS.md) before project work.
 
-## Load the bundle
+Codex discovers generated adapters in `.agents/skills/`; OMP uses `.omp/skills/`.
+Other file-capable assistants can read `skills/<name>/SKILL.md` directly. See
+[agent setup](../docs/contributing/agents.md) for checkout selection and discovery.
+Edit canonical files here, then run `python3 tools/sync_agent_skills.py --write`;
+CI checks adapter drift. Do not copy discovery adapters as standalone skills.
 
-Use all three skills:
+Skills do not install tools, acquire Editor ownership or authorize commits/pushes
+by being loaded. Explicit-only workflows retain invocation policy in `agents/`.
+Load only the workflow needed by the task; ordinary orientation is not a build or
+a full review. Some optional workflows require Blender, live Unity or operator access.
+Missing capabilities require a concrete handoff, not a fabricated success.
 
-| Skill | Responsibility |
+SlopBot remains a separate three-skill creator bundle with its own scope, progress
+and release acceptance: read [the SlopBot guide](slopbot/README.md). Development
+workflows below do not widen that creator bundle.
+
+| Workflow | Use |
 |---|---|
-| [slopbot](slopbot/SKILL.md) | Entry point, project orientation, guided/fast behavior, permissions, handoffs, and progress |
-| [slopbot-character](slopbot-character/SKILL.md) | Approved kit, asset integration, move authoring, iteration, and package/local-play acceptance |
-| [slopbot-animation](slopbot-animation/SKILL.md) | Existing-clip sourcing and bounded corrections with actual-character verification |
-
-Point your assistant's documented skill discovery at this repository's `skills/` directory, or copy these three complete skill directories into its documented skill location, keeping their names and referenced files. Use its documented reload/new-session procedure after changing discovery. SlopBot can load helpers through the skill loader or as sibling files; installing only the entry point leaves a missing-helper blocker.
-
-No installation is needed to try the local files: ask a file-capable assistant to **read `skills/slopbot/SKILL.md` from your clone and follow it**, giving the absolute checkout path. For example:
-
-> Read the SlopBot skill in my SlopArena clone and follow it. Use this clone as the game checkout. Guided mode: I have a rigged humanoid and some attack clips; help me identify the next step.
-
-For concise approved work, request **fast mode**. To continue later, give the project and the relevant `.slopbot/` record or ask to resume that character. Direct helper invocation must still load SlopBot's shared scope, permission and progress rules.
-
-## What you need
-
-- A skill/file-capable assistant for guidance and the selected SlopArena checkout for current documentation and source inspection. The installed skill directory is not the game checkout.
-- For character integration and playtesting, the current Unity/.NET prerequisites in [Contributing](../CONTRIBUTING.md) and actual supported access to the project/editor/runtime. A clean clone does not include all ignored licensed/local art; supply required assets legitimately.
-- A usable humanoid model/rig and real clips as you reach those steps. Model generation, rigging and clip sourcing may use external services, but users choose/provide access and confirm licenses. SlopBot does not require a particular asset vendor.
-- A supported clip editor or explicit user-operated handoff for bounded animation adaptation. An assistant being able to load skills does not imply Unity/Blender control, paid-service access, or Editor ownership.
-
-Missing tools produce a specific manual handoff or blocker. Required checks are not marked complete until real results can be inspected. Existing project operation/ownership rules apply; tool examples are not permission to bypass them.
-
-## Supported scope
-
-Guided mode explains project concepts as needed; fast mode reduces explanation. Both require bounded approval before mutations and keep the same verification gates. Neither authorizes installation/configuration, spending, unrelated/destructive work, commits/pushes or publication.
-
-The character path includes concept/kit decisions, model/rig/clip handoffs, import/binding, bounded existing-clip adaptation, Slop Editor move work, Training iteration and verified-package/local-play acceptance. Optional supplied/sourced splash art and VFX can be integrated and checked; original art/effect generation is not promised.
-
-The project guide locates current docs and explains the project. Stage/game-mode creation, general repairs/contributions, custom rigs, original motion/full model or rig authoring, engine extensions, online verification, deployment, and publication remain outside this release. Unsupported mechanics pause for a separate task; SlopBot does not silently change the character design.
-
-## Progress and proof
-
-Character progress lives in the selected clone's ignored `.slopbot/<goal-or-package>.md`, not the installed skills or a private BMAD workspace. The [progress contract](slopbot/references/progress.md) records approved choices, asset references, input-bound observations and the next blocker. Resume reconciles the record against actual changed files; old approval is not a tool lease, and old evidence is not automatically current.
-
-The finish is the complete approved kit with intentionally resolved required slots, valid real bindings, fresh accepted package payloads and exact local roster pins, then local gameplay using that persisted content. A transient editor draft, successful import, compiler result, or old cook alone is not completion.
-
-**Public-release gate:** the [release contract](slopbot/spec-slopbot-release/spec-slopbot-release.md) requires the next-character run to establish accepted-package/local-play completion. That gate has not been passed by implementing these skill files. The planned fifth-character video is a creation diary, not a tutorial; only the harness/tool path actually exercised may be claimed as verified. There is no independent-newcomer or all-harness execution certification.
-
-Guidance smoke checks exercised a relocated bundle, existing-package orientation, direct animation-helper loading, guided/fast permissions, manual asset/tool handoffs, and resume after a source change. They did not run Unity or complete a fighter.
-
-The [documentation map](../docs/README.md) remains the entry point for detailed project rules. SlopBot needs no BMAD installation, private skill catalog, private workspace scripts, or author-specific paths.
+| [blender-character-polish](blender-character-polish/SKILL.md) | Safely polish existing textured, rigged characters through Blender MCP. Use for mesh, normals, texture, material, accessory, skin-weight and deformation cleanup; candidate comparisons and game-asset handoff. Not animation authoring or Unity package integration. |
+| [branch-status](branch-status/SKILL.md) | Show status of all local feature branches vs main — commits ahead/behind, last message, open PR if any. Use only for requested branch inventory, branch switching/integration, or PR drafting. |
+| [code-review](code-review/SKILL.md) | Review SlopArena changes against project standards and the approved specification. |
+| [implement](implement/SKILL.md) | Implement SlopArena work from an approved spec or ticket. |
+| [movement-platform-fighter-3d](movement-platform-fighter-3d/SKILL.md) | SlopArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, Dash, ledges, server authority, and Smash-style percent. |
+| [orient](orient/SKILL.md) | Minimal read-only SlopArena session orientation: current demo goal, working-tree status, and relevant next action. Load technical references only for the current task. |
+| [sim-test](sim-test/SKILL.md) | Requested Shared tests with an optional filter; no Unity plugin copy. |
+| [sloparena-ability-lab](sloparena-ability-lab/SKILL.md) | Use when an agent needs native-first Ability Lab runs or scenarios against idle/shield opponents, Shared hit/block/miss/grab outcomes, recorded-frame preview or capture, or workspace diagnostics. |
+| [sloparena-animation-authoring](sloparena-animation-authoring/SKILL.md) | Author and safely import SlopArena character animation clips through Blender, Unity Humanoid import, package catalog binding, cooking, and real-surface verification. |
+| [sloparena-asset-selection](sloparena-asset-selection/SKILL.md) | Prepare verified Unity environment assets from a stage concept: deterministic catalog retrieval, diverse shortlist generation, safe Unitypackage materialization, prefab inspection, thumbnails, and contact-sheet evidence. |
+| [sloparena-build](sloparena-build/SKILL.md) | Verify SlopArena Unity compilation and affected runtime behavior through Unity CLI and com.unity.pipeline after Unity-facing changes or compiler errors; also use for runtime Unity screenshots, UI, HUD, and viewport tasks. Use docs/testing.md to distinguish local iteration from package publishing. |
+| [sloparena-build-export](sloparena-build-export/SKILL.md) | Releases the Windows Steam Playtest client and compatible VPS backends through an isolated local Unity build and GitHub Actions, with manual Steam activation. Use for release, publish or deploy requests; use sloparena-ops for read-only logs. |
+| [sloparena-character-workflow](sloparena-character-workflow/SKILL.md) | Package-native workflow for designing, authoring, cooking, validating, and previewing SlopArena characters. Covers Character Packages, asset catalogs, deterministic cooking, generated bindings, admission, hashes, and Ability Lab. |
+| [sloparena-combat-engine](sloparena-combat-engine/SKILL.md) | SlopArena server-authoritative combat: deterministic cooked timelines, typed operations, approved capabilities, hitbox/projectile resolution, interruption ownership, and legacy ServerAbility compatibility. |
+| [sloparena-entity-system](sloparena-entity-system/SKILL.md) | SlopArena entity identity, Shared hitbox processing, NPC input, bone attachments, and Unity presentation boundaries. |
+| [sloparena-finish-branch](sloparena-finish-branch/SKILL.md) | Verify and prepare a branch; perform only authorized commit, push and PR operations. |
+| [sloparena-kit-regression-testing](sloparena-kit-regression-testing/SKILL.md) | Use for explicit kit regression coverage, KitScenario or AssertGoldenScenario maintenance, REGENERATE_GOLDENS, and diagnosing failing golden diffs. Not for routine numerical move tuning, adding content alone, or Unity-only presentation changes; use docs/testing.md for those verification modes. |
+| [sloparena-move-data-report](sloparena-move-data-report/SKILL.md) | Record and report a character's move data — authored frame data (trigger/active/duration/IASA/landing lag), simulated per-hit trajectories with frame advantage, knockback shape, or a full eight-normal animation/hurtbox/role audit — via scripts/move-data.sh → tools/MoveDataReport. |
+| [sloparena-netcode](sloparena-netcode/SKILL.md) | SlopArena server-authoritative UDP netcode with Shared simulation, client prediction, rollback reconciliation, match content admission, and Unity bridges. |
+| [sloparena-ops](sloparena-ops/SKILL.md) | Investigates SlopArena Steam/VPS readiness, connection failures, lag and match logs. Use when the user asks for logs, reports frozen or snapping fighters, or asks whether the servers are up. Alfred is an explicitly selected historical alternative. |
+| [sloparena-stage-authoring](sloparena-stage-authoring/SKILL.md) | Author and maintain SlopArena PVP stages through separate authoritative collision baking and cosmetic Unity presentation, with fixed topology, asset provenance, structural inspection, and human PVP acceptance. |
+| [sloparena-stage-design](sloparena-stage-design/SKILL.md) | Interactive human+agent DESIGN phase for SlopArena PVP stages: visual composition, gray-box wireframing, and a locked Stage Design Brief. Use for stage design, stage wireframe, stage composition, design a stage, blockout, or 'what should the stage look like'. Production/baking/lighting work belongs to sloparena-stage-authoring. |
+| [slopbot](slopbot/SKILL.md) | Guide users through SlopArena project orientation, humanoid character creation, bounded adaptation of existing animation clips, and resuming character work. Use for SlopBot requests or help making a SlopArena fighter; not for stage/game-mode creation, unrelated coding, deployment, or publication. |
+| [slopbot-animation](slopbot-animation/SKILL.md) | Adapt an existing sourced humanoid animation clip within an approved scope, then verify its exact import, binding, and playback on the actual character. |
+| [slopbot-character](slopbot-character/SKILL.md) | Plan and complete an approved SlopArena humanoid character package using the project's existing character, Ability Lab, and acceptance workflows. |

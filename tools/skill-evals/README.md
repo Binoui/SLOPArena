@@ -1,13 +1,16 @@
 # Skill Evals (phase 1: observation corpus)
 
 Lightweight evaluation/observability for the agent skill system. Records which
-skills were actually loaded for real SlopArena operations, makes them browsable
+skill reads were attempted for real SlopArena operations, makes them browsable
 in Evalite, and lets you promote interesting cases into deterministic routing
 regression tests. Not a telemetry platform.
 
 ## Where skill-use information comes from
 
-The omp harness already writes structured per-line JSONL session logs:
+This importer currently supports OMP logs only; native Codex/T3 rollouts are not
+imported by this tool. Do not treat its corpus as a comparison across harnesses.
+
+The OMP harness already writes structured per-line JSONL session logs:
 
 ```
 ~/.omp/agent/sessions/<project-dir>/<timestamp>_<session-id>.jsonl
@@ -17,7 +20,8 @@ No live instrumentation. The importer consumes them:
 
 - `type:"session"` — session id, timestamp, cwd (repo), title
 - `type:"custom", customType:"tool_execution_start"` — every tool call with args;
-  `read` calls whose `args.path` starts with `skill://<name>` are skill loads
+  `read` calls whose `args.path` starts with `skill://<name>` are recorded skill-read attempts; `agent/` and `agents/` URI namespaces
+  are normalized to the skill name
 - `type:"message"` — user prompts (first real instruction becomes `prompt`),
   assistant messages carry `model`/`provider`
 
@@ -29,7 +33,7 @@ automatic loading.
 
 ```bash
 cd tools/skill-evals
-bun install          # once
+bun install          # once, after approval when an agent is installing tools
 
 bun run import       # scan omp session logs → data/observations.jsonl (idempotent)
 bun run list [text]  # quick triage table in the terminal
@@ -64,12 +68,17 @@ regression case automatically.
 {
   id, timestamp, prompt, title?, repo?, commit?, model?,
   explicitlyInvokedSkills?,   // slash-invoked by the user
-  loadedSkills,               // skill://<name> actually read by the agent
+  loadedSkills,               // skill-read attempts recorded at tool execution start
   toolsUsed?, outcome?,       // outcome: good | questionable | bad (optional)
   expectedSkills?,            // set by annotation; enables scoring
   forbiddenSkills?, notes?
 }
 ```
+
+All sessions with a real prompt are kept, including zero-skill sessions. Re-import
+with `--force` to backfill that baseline; manual labels/notes are preserved. Missing
+OMP logs leave existing observations untouched. Skill discovery uses this checkout
+and the current user's documented install locations, without author-specific paths.
 
 Prompts are capped at 2000 chars. No conversation dumps, no chain-of-thought.
 
@@ -90,7 +99,7 @@ was *recorded*. If a standalone routing hook ever exists, replace the `task` in
 
 Other limitations:
 
-- `loadedSkills` = skills actually read via `read skill://…` (the harness rule
+- `loadedSkills` = skill-read attempts observed at `tool_execution_start` via `read skill://…`; a failed read is not proven loading (the harness rule
   makes matching skills read their SKILL.md, but a skill that matched and wasn't
   read is invisible). System-prompt skill *descriptions* are not logged.
 - Subagent (task/eval) skill reads are logged in nested session files only.

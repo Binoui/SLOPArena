@@ -8,7 +8,7 @@ and creates/edits the GitHub release for the tag via `gh`.
 
 Runs in CI on tag push (.github/workflows/patch-notes.yml). The release
 itself is still cut manually via `gh release create` (see
-scripts/build-release.sh / .omp/skills/sloparena-build-export) -- this only
+scripts/build-release.sh / skills/sloparena-build-export) -- this only
 automates the notes content, overwriting whatever placeholder text the
 `--notes` flag passed at creation time.
 

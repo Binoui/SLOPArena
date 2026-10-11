@@ -216,6 +216,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -230,6 +231,9 @@
             "autoCancelAfterTicks": 0,
             "attackRange": 2,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.g1"
             ],
@@ -295,8 +299,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "air.1",
@@ -306,6 +309,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -320,6 +324,9 @@
             "autoCancelAfterTicks": 26,
             "attackRange": 1.75,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.a1"
             ],
@@ -431,8 +438,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "ground.2",
@@ -442,6 +448,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -456,6 +463,9 @@
             "autoCancelAfterTicks": 0,
             "attackRange": 0,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.g2"
             ],
@@ -521,8 +531,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "air.2",
@@ -532,6 +541,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -546,6 +556,9 @@
             "autoCancelAfterTicks": 33,
             "attackRange": 0,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.a2"
             ],
@@ -657,8 +670,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "ground.3",
@@ -668,6 +680,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -682,6 +695,9 @@
             "autoCancelAfterTicks": 0,
             "attackRange": 0,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.g3"
             ],
@@ -747,8 +763,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "air.3",
@@ -758,6 +773,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -772,6 +788,9 @@
             "autoCancelAfterTicks": 35,
             "attackRange": 0,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.a3"
             ],
@@ -837,8 +856,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "ground.4",
@@ -848,6 +866,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -862,6 +881,9 @@
             "autoCancelAfterTicks": 0,
             "attackRange": 0,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.g4"
             ],
@@ -947,8 +969,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "air.4",
@@ -958,6 +979,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
+      "hitPresentationId": "presentation.manki.normal.hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -972,6 +994,9 @@
             "autoCancelAfterTicks": 44,
             "attackRange": 0,
             "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
             "animationIds": [
               "anim.manki.a4"
             ],
@@ -1037,8 +1062,7 @@
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.manki.normal.hit"
+      }
     },
     {
       "id": "ground.A",
@@ -1289,7 +1313,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 18,
+                "endTick": 8,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -1304,9 +1328,37 @@
                 "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "fireTriggerTick": 18,
+                  "minimumChargeTicks": 18,
+                  "chargeTiers": [
+                    {
+                      "chargeTicks": 18,
+                      "damage": 10,
+                      "reachScale": 0.6
+                    },
+                    {
+                      "chargeTicks": 30,
+                      "damage": 14,
+                      "reachScale": 0.8
+                    },
+                    {
+                      "chargeTicks": 42,
+                      "damage": 18,
+                      "reachScale": 1
+                    },
+                    {
+                      "chargeTicks": 54,
+                      "damage": 22,
+                      "reachScale": 1.25
+                    },
+                    {
+                      "chargeTicks": 66,
+                      "damage": 26,
+                      "reachScale": 1.5
+                    }
+                  ],
+                  "fireTriggerTick": 8,
                   "fireDurationTicks": 52,
-                  "hitboxDurationTicks": 28,
+                  "hitboxDurationTicks": 44,
                   "hitboxRadius": 0.7,
                   "offsetY": 0.25,
                   "offsetZ": 1.25,
@@ -1321,22 +1373,21 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 18,
+                "tick": 8,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.aerosol-inferno.start",
                 "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.right-hand",
+                  "attachmentMode": "world",
                   "localPositionX": 0,
-                  "localPositionY": 0.14,
-                  "localPositionZ": 0.385,
-                  "localRotationX": 90,
+                  "localPositionY": 0.25,
+                  "localPositionZ": 0.55,
+                  "localRotationX": 0,
                   "localRotationY": 0,
                   "localRotationZ": 0,
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 28
+                  "durationTicks": 44
                 }
               }
             ]

@@ -92,4 +92,4 @@ Recorded measurements clarify the tradeoffs:
 
 Evidence locators: `manki-polish-d4dicc_i/02-textured-comparison.png`, `manki-jaw-finish-w4pemvsd/comparison-right.png`, `manki-slim-shoulders-1tqy44jw/01-volume-comparison.png`, `manki-finger-repair-u1dwghf3/repair-review.json`, `manki-hair-1trer59e/hair-review.json`, `manki-materials-q9ilcjeh/material-review.json`, `manki-unity-199/issue-handoff.txt`, and `manki-shoulder-repair-199/{issue-handoff,cook-handoff}.txt`, all beneath that local export directory.
 
-Reusable Blender implementation details remain in the [polish technical recipes](../../.omp/skills/blender-character-polish/references/technical-recipes.md). Manki-specific radii, weight formulas and tolerances are not defaults for another character.
+Reusable Blender implementation details remain in the [polish technical recipes](../../skills/blender-character-polish/references/technical-recipes.md). Manki-specific radii, weight formulas and tolerances are not defaults for another character.

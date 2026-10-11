@@ -20,7 +20,7 @@ public struct PresentationLifetime
     }
 
     public static bool IsCurrentAttack(ActionState state, byte sequence, byte eventSequence)
-        => state == ActionState.Attacking && sequence == eventSequence;
+        => (state is ActionState.Attacking or ActionState.Aiming) && sequence == eventSequence;
 
     public bool Advance(bool ownerAvailable, ActionState state, byte sequence, int attackTick)
     {

@@ -169,7 +169,38 @@ namespace SlopArena.Shared
             movementActionAccepted = false;
             if (s.InteractionId != 0
                 && s.State is (ActionState.Grabbed or ActionState.Throwing))
+            {
+                TickTimers(ref s);
                 return;
+            }
+            if (s.InteractionId != 0 && s.State == ActionState.Grabbing)
+            {
+                TickTimers(ref s);
+                (float dx, float dz) = GetInputDirection(input);
+                // Human movement arrives in world space, with camera azimuth in AimYaw.
+                // Recover the control axes: sideways steers, forward/back walks along
+                // the held pair's facing. Camera turns alone never rotate the pair.
+                float controlYaw = input.AimYaw * (MathF.PI / 18000f);
+                float side = dx * MathF.Cos(controlYaw) - dz * MathF.Sin(controlYaw);
+                float forward = dx * MathF.Sin(controlYaw) + dz * MathF.Cos(controlYaw);
+                int yaw = (int)MathF.Round(s.CapturedYaw
+                    + side * DefenseConfig.GrabTurnDegreesPerSecond * TickDt * 100f);
+                if (yaw > 18000) yaw -= 36000;
+                else if (yaw < -18000) yaw += 36000;
+                s.CapturedYaw = (short)yaw;
+                s.FacingYaw = s.AimYaw = yaw * (MathF.PI / 18000f);
+                float speed = forward * def.Movement.RunSpeed * DefenseConfig.GrabWalkSpeedRatio;
+                s.VX = MathF.Sin(s.FacingYaw) * speed;
+                s.VZ = MathF.Cos(s.FacingYaw) * speed;
+                s.VY = 0f;
+                MoveDefenseBody(ref s, def, arena);
+                return;
+            }
+            if (s.State == ActionState.Thrown)
+            {
+                ProcessThrown(ref s, def, arena);
+                return;
+            }
 
             var stats = def.Movement;
             bool wasGrounded = s.IsGrounded;   // airborne→grounded detection for the Rush reset
@@ -387,8 +418,8 @@ namespace SlopArena.Shared
 
 
 
+            // Grab takes priority over grounded movement and brakes existing momentum.
             if (input.GrabPressed && s.IsGrounded
-                && s.VX * s.VX + s.VZ * s.VZ <= 0.0025f
                 && CanAcceptDefenseAction(in s, def, blockStunLocked, verticalMotionOwned))
             {
                 StartGrabAttempt(ref s);
@@ -679,7 +710,8 @@ namespace SlopArena.Shared
                 s.StateTicks--;
                 if (s.StateTicks == 0 && s.State != ActionState.Idle &&
                     s.State is not (ActionState.Shielding or ActionState.ShieldDrop or
-                        ActionState.GrabAttempt or ActionState.AirDodgeMovement or
+                        ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed or
+                        ActionState.Throwing or ActionState.Thrown or ActionState.AirDodgeMovement or
                         ActionState.AirDodgeRecovery))
                     s.State = ActionState.Idle;
             }
@@ -710,7 +742,7 @@ namespace SlopArena.Shared
         }
         private static bool IsDefenseActionState(ActionState state)
             => state is ActionState.Shielding or ActionState.ShieldDrop or ActionState.GrabAttempt
-                or ActionState.Grabbed or ActionState.Throwing
+                or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
                 or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery;
 
         private static bool CanAcceptDefenseAction(in CharacterState state, CharacterDefinition def,
@@ -805,6 +837,54 @@ namespace SlopArena.Shared
             {
                 state.State = ActionState.Idle;
                 state.StateTicks = 0;
+            }
+            else if (state.State == ActionState.Throwing && state.InteractionId == 0 && state.StateTicks == 0)
+                state.State = ActionState.Idle;
+        }
+
+        private static void MoveDefenseBody(ref CharacterState state, CharacterDefinition def,
+            in ArenaDefinition arena)
+        {
+            MoveThroughStage(ref state, def, arena,
+                state.VX * TickDt, state.VY * TickDt, state.VZ * TickDt);
+            if (ArenaCollision.HasTriangles(arena)) return;
+
+            float surface = arena.Heightmap.Data != null
+                ? arena.Heightmap.Sample(state.PX, state.PZ) : arena.KillHeight + 1f;
+            float floor = surface + def.CapsuleHeight * 0.5f;
+            state.IsGrounded = surface > float.MinValue && state.PY <= floor + 0.0001f && state.VY <= 0f;
+            if (state.IsGrounded)
+            {
+                state.PY = floor;
+                state.VY = 0f;
+            }
+        }
+
+        private static void ProcessThrown(ref CharacterState state, CharacterDefinition def,
+            in ArenaDefinition arena)
+        {
+            TickTimers(ref state);
+            if (!state.IsGrounded)
+            {
+                state.KVY -= def.Movement.Gravity * TickDt;
+                state.VX = state.KVX; state.VY = state.KVY; state.VZ = state.KVZ;
+                MoveDefenseBody(ref state, def, arena);
+                if (state.IsGrounded)
+                {
+                    // Stage contact starts the final eight animation frames. Lower
+                    // platforms extend flight; higher ones cannot be passed through.
+                    state.StateTicks = DefenseConfig.ThrownRecoveryTicks;
+                    state.KVX = state.KVY = state.KVZ = 0f;
+                    state.VX = state.VY = state.VZ = 0f;
+                    state.HitstunTicks = 0;
+                    state.WasAirborneDuringKnockback = false;
+                    RefreshGroundResources(ref state, def.Movement);
+                }
+            }
+            else if (state.StateTicks == 0)
+            {
+                state.State = ActionState.Idle;
+                state.AnimLockTicks = 0;
             }
         }
 

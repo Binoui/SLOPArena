@@ -19,11 +19,12 @@ Official documentation:
 
 ## Standalone CLI
 
-The binary is installed at `~/.local/bin/unity`.
+Use your installed `unity` binary on PATH. For gateway calls, `UNITY_CLI_COMMAND`
+may name an explicit executable. Install or upgrade only with user authorization;
+inspection commands below do not require upgrading.
 
 ```bash
 unity --version
-unity upgrade
 unity auth status --format json
 unity editors --format json
 unity open client/Unity
@@ -35,27 +36,24 @@ command failure produces a nonzero exit code.
 
 ### Gateway baseline and upgrades
 
-The project-local ownership gateway uses Unity CLI `1.0.0-beta.6` and embedded
-`com.unity.pipeline` `0.5.0-exp.1`. On 2026-10-03, the canonical Editor passed
-31 gateway regressions, five native ownership tests, real caller contention and
-automatic release/restoration, retained-lease domain reload, and actual process
-restart/stale-token rejection. The [cutover receipt](file:///home/binoui/Documents/projects/sloparena-workspace/_bmad-output/editor-coordination/gateway-cutover-verification.json)
-records commands, lifecycle evidence and preservation limits. The planning workspace's
-[coordination protocol](file:///home/binoui/Documents/projects/sloparena-workspace/docs/unity-editor-coordination.md)
-now uses Pipeline runtime status, not Markdown assignments, as ownership authority.
-Ordinary agents wait for their own lease; no previous owner's response is required.
+The shipped [ownership gateway](../../scripts/unity-editor-gateway.ts) uses the
+installed Unity CLI without modifying it. The embedded Pipeline fork owns the
+lease protocol; see [Editor coordination](unity-editor-coordination.md).
+On 2026-10-03 its original gateway was exercised against the canonical Editor for
+native ownership, contention, restoration, reload and process-restart behavior.
+That historical baseline does not certify new caller setups or CLI versions.
+The repository includes mock regressions for admission, failure, restoration,
+interruption, caller identity and settled release.
 
-The gateway lives in the planning workspace at `scripts/unity-editor-gateway.ts`
-and invokes the installed CLI without modifying it. CLI and Pipeline upgrades
-are separate:
+CLI and Pipeline upgrades are separate:
 
 - **CLI:** compatibility depends on `command --runtime-path`, JSON output,
-  non-interactive/proxy flags, HTTP routes and native result shapes. Before
-  adopting a new version, run `node --test --test-concurrency=1
-  scripts/unity-editor-gateway.test.ts` from the planning workspace, then have
-  the owner exercise discovery, command execution, semantic failure,
-  restoration and automatic release using that actual CLI. Fixture tests alone
-  do not establish compatibility with a different installed binary.
+  non-interactive/proxy flags, HTTP routes and result shapes. Before adopting a
+  different version, run `node --test --test-concurrency=1
+  scripts/unity-editor-gateway.test.ts` from this repository with Node 22.18+.
+  Then exercise discovery, command execution, semantic failure, restoration and
+  release through your own lease using the actual installed CLI. Mock tests alone
+  do not establish live compatibility.
 - **Pipeline:** `client/Unity/Packages/com.unity.pipeline/` is a maintained local
   fork, based on upstream revision `17df0ac8d6533a8c22830c89dc85a24c01f30ade`.
   An upstream update must preserve and verify the ownership enforcement and
@@ -69,7 +67,11 @@ markers and live coordination plans are not disposable output.
 
 ## Pipeline connection and shared Editor leases
 
-Read the canonical [shared Editor protocol](file:///home/binoui/Documents/projects/sloparena-workspace/docs/unity-editor-coordination.md)
+This section governs live canonical Editor work. Routine Steam release builds
+use [the isolated local wrapper](../systems/release-pipeline.md), which does not
+operate the canonical Editor or require its lease/shutdown.
+
+Read the canonical [shared Editor protocol](unity-editor-coordination.md)
 before operating the main Editor. Each agent runs its own bounded gateway batch.
 The gateway waits for a busy Editor, atomically claims its own lease, executes,
 restores declared state, and releases only after actual work settles. Invoke it
@@ -89,27 +91,23 @@ The gateway uses the installed Unity CLI and the canonical project's
 `Library/Pipeline/.unity-pipeline-port`; never overwrite that descriptor or use
 raw `unity command --project-path` to bypass ownership.
 
-Use your own runtime-issued terminal handle from the injected session/task identity.
-Set `ORCA_TERMINAL_HANDLE` explicitly; the gateway confirms that exact handle and
-incarnation with Orca. Never infer your identity from an active pane or an unqualified
-`orca-ide terminal show`. Missing/mismatched/orphaned identity fails before acquisition.
-T3 Code sessions use their harness-injected `CODEX_THREAD_ID` and
-`CODEX_SESSION_ID` instead; the gateway records a namespaced `t3:<thread-id>`
-caller and retains the same lease, settlement and release protocol.
+Use your own identity under the [caller protocol](unity-editor-coordination.md#caller-and-commands):
+Orca's verified terminal, T3's runtime Codex IDs, native Codex IDs, or a distinct
+launcher-configured agent/session pair. Missing/invalid identity fails before claim;
+never borrow another caller's identity or infer it from an active pane.
 
 For the examples below, define this local shell helper once; it is not an installed
 alias and does not modify shell configuration:
 
 ```bash
-export ORCA_TERMINAL_HANDLE='<your-own-runtime-issued-terminal-handle>'
 editor() {
-  bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-    --project-path /home/binoui/Documents/projects/SlopArena/client/Unity -- "$@"
+  bun scripts/unity-editor-gateway.ts \
+    --project-path client/Unity -- "$@"
 }
 
 # Observation only: no lease and no Editor command.
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-  status --project-path /home/binoui/Documents/projects/SlopArena/client/Unity
+bun scripts/unity-editor-gateway.ts \
+  status --project-path client/Unity
 
 # Discovery is part of this agent's own lease.
 editor --query sloparena --detail compact
@@ -152,8 +150,8 @@ Keep open/run/inspect in one gateway batch. Save this as `/tmp/ability-lab-run.j
 ```
 
 ```bash
-bun /home/binoui/Documents/projects/sloparena-workspace/scripts/unity-editor-gateway.ts \
-  --project-path /home/binoui/Documents/projects/SlopArena/client/Unity \
+bun scripts/unity-editor-gateway.ts \
+  --project-path client/Unity \
   --batch /tmp/ability-lab-run.json
 ```
 
@@ -184,7 +182,7 @@ grab scenario; it does not inherit another action's options. Canonical actions
 without a matching run retain ordinary authoring preview.
 Keep open/run/preview/capture in one batch; see the
 [grab capture batch](../systems/ability-lab.md#agent-facing-workspace-commands)
-and the [charged-run recipe](../../.omp/skills/sloparena-ability-lab/SKILL.md#charged-run-and-recorded-capture).
+and the [charged-run recipe](../../skills/sloparena-ability-lab/SKILL.md#charged-run-and-recorded-capture).
 
 This scenario frame numbering differs from canonical authoring timeline
 preview: authoring cumulative ticks include the requested duration endpoint,
@@ -421,18 +419,13 @@ covers the operation.
 
 ## Skill sources
 
-- SlopArena operations use repository `.omp/skills/`, `docs/testing.md`, and this
-  document's gateway-owned Unity CLI/Pipeline commands.
-- Project skills require explicit `name` and nonempty `description` frontmatter.
-- This checkout excludes `bmad`, `bmad-*`, `bmod-*`, and `gds-*` in `.omp/config.yml`.
-  Planning workflows remain available when OMP is launched from `../sloparena-workspace`;
-  using its Unity gateway does not activate BMad in the game checkout.
-- `.agents/skills/unity-skills` is an ignored local installation; `.claude/skills/unity-skills`
-  points to it. The operational umbrella is excluded for this project because it requires
-  a conflicting REST route. Generic advisory skills remain available.
-- Do not modify `~/.omp/agent/skills`, ignored skill installations, or `skills-lock.json`
-  to repair a project override. Discovery is refreshed by a new OMP session, not by
-  re-reading a stale skill URI in the old session.
+Maintained SlopArena workflows live in repository `skills/`; generated `.agents/skills/`
+and `.omp/skills/` adapters expose the same source. See [agent setup](agents.md).
+Load relevant project guidance instead of an operational generic Unity skill that
+expects a conflicting REST/MCP route. Optional local advisory skills are not public
+workflow dependencies. Do not rewrite user-level installations to fix repository
+routing; refresh discovery using your assistant's supported reload/new-session path.
+
 ## Live Editor commands
 
 ```bash

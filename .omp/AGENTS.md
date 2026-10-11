@@ -1,44 +1,6 @@
-<!-- bmad:context -->
-<!-- Verified 2026-09-29 against 167d68586e139e9606acf089f203e9b0735d4049. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+# OMP project entry point
 
-## SlopArena
-
-SlopArena is a Unity 6 C# 3D platform fighter with a server-authoritative 60 Hz simulation. Prioritize the four-character friends demo and first remote feedback over platform expansion; follow `docs/plans/2026-09-05-playable-demo-reset.md`. Domain vocabulary lives in `CONTEXT.md`; the documentation map is `docs/README.md`.
-
-## Policy
-
-- Follow `.omp/RULES.md` for the approval boundary, installations, numeric choices, Shared authority, and the required Unity CLI/Pipeline route.
-- Preserve unrelated working-tree changes. Use Conventional Commits and one squash commit per branch when a commit is authorized.
-- For architecture changes, document options and get approval first. State the problem and intended change before editing; trace input → catalog/package → Shared simulation → state/event → Unity presentation when debugging.
-
-## Where things are
-
-- `src/Shared/` owns the compiler, cooked runtime model, deterministic simulation, codecs, and rollback primitives; its `netstandard2.1` build copies the Shared plugin into `client/Unity/Assets/Plugins/SlopArena.Shared/`.
-- `src/Server/` hosts the headless GameServer and match orchestration. The Master server is a separate repository for lobby/meta work; it does not simulate matches.
-- `client/Unity/Assets/Scripts/` owns input, presentation, networking, UI, and editor tooling. `client/Unity/Assets/AbilityLab/` owns package editing and authoritative preview. Shared coverage lives in `tests/Shared.Tests/`.
-- For new character work, read `docs/characters/adding-a-new-character.md`: edit `client/Unity/Assets/CharacterPackages/<package>/package.json` for identity/version/dependencies/license/attribution, `character.json` for gameplay and canonical slots, and `CharacterAssetCatalog.asset` for Unity bindings. `content-cooked/<package>/` is the immutable runtime result, not authoring source.
-- Use `docs/architecture-overview.md` for runtime boundaries, `docs/systems/ability-architecture.md` for cooked abilities, `docs/systems/combat-systems.md` for combat, and `docs/systems/netcode-architecture.md` for prediction/rollback.
-- For Unity Editor/Pipeline work, read `docs/contributing/unity-cli.md` and `/home/binoui/Documents/projects/sloparena-workspace/docs/unity-editor-coordination.md` before operating. Use the gateway with your own explicit `ORCA_TERMINAL_HANDLE`; wait for your own bounded runtime lease, never request insertion into another owner's batch. Historical Markdown ownership and active panes are not authority. For verification, read `docs/testing.md`.
-
-## Running and verifying
-
-- Choose the applicable mode in `docs/testing.md`: local iteration, integrated change, or distributable demo. Keep focused behavioral coverage and applicable Shared/Server/Unity/package checks; do not force a publishing cook or unrelated runtime checks for ordinary tuning.
-- For Unity-facing implementation, leave a short Test in Unity checklist in the gitignored root `TESTING-UNITY.md`. Editor operations use the approved canonical project through the gateway, not a worktree-local connection or unowned raw CLI. Worktree agents share the same runtime lease and honor source windows; never silently substitute main for an invalid explicit target.
-
-## Conventions that differ from defaults
-
-- Keep gameplay authority in Shared/GameServer: `ServerSimulation` runs on the server and on client local/prediction tracks. Training uses `LocalSimulationBridge`; PvP uses `RollbackSimulationBridge` with `LocalTrack`, `PredictedTrack`, and `RawTrack` as appropriate. Unity `PlayerRenderer` consumes state and semantic events; Unity physics, animation callbacks, VFX, and audio never decide damage, hit results, timing, or admission.
-- Keep `src/Shared/` free of Unity types and engine physics queries. Use deterministic math and existing `SpellResolver`/geometry APIs for collision. Represent gameplay durations in 60 Hz ticks, normally `ushort`; preserve server/client Shared equivalence and immutable match content.
-- New characters use the package-native path. The Shared compiler and Unity cook produce normalized runtime definitions, deterministic poses, generated client bindings, and a manifest; the Match Content Catalog pins package IDs, versions, dependencies, capability versions, and hashes. Raw authoring JSON is cook input, never the runtime contract.
-- Use the canonical 16-entry grid: ground and air variants of `1`, `2`, `3`, `4`, `A`, `E`, `R`, and `F`. Physical controls are adapters, not persisted move identity; use semantic package IDs and canonical slot projection, not a second mapping.
-- Author new abilities as fixed cooked timelines with ordered typed/versioned operations. Engine-owned deterministic primitives own movement, hitboxes, projectiles, damage, Knockback, Hitstun, Hitstop, Clash, Burst, timing locks, and presentation events. `ServerAbility` remains a Shared lifecycle seam for `CookedTimelineAbility` and trusted built-in capabilities—not the universal new-content model. Nilus and legacy character/slot factory dispatch have been removed.
-- Only the trusted built-in cook profile may admit FightGuy's temporary `slop.internal.*` capabilities; Workshop/package content cannot self-grant access. Each exception needs an owner and migration path.
-- Use `MonoBehaviour.Update`/`FixedUpdate` and Unity InputSystem APIs. Animancer plays semantic package bindings directly; do not give AnimatorController gameplay ownership.
-- Reuse existing infrastructure before adding abstractions.
-
-## Known pitfalls
-
-- FightGuy, Manki, Wibou, and Bonk are package-native roster characters; admission does not prove kit completeness or player acceptance. Nilus, the Compatibility preview tab, and the old LMB combo classes are retired. Do not recreate a legacy character execution path.
-- Warp is not a current gameplay contract. Do not add or document Warp mechanics as new behavior; use current movement, targeting, Dash, and recovery rules in `CONTEXT.md` and `docs/systems/combat-systems.md`.
-
-<!-- /bmad:context -->
+Read and follow root [AGENTS.md](../AGENTS.md). Maintained workflows live in
+[skills/](../skills/README.md); `.omp/skills/` contains generated discovery adapters.
+[Agent setup](../docs/contributing/agents.md) explains discovery and checkout selection.
+Keep project policy in the shared sources rather than here.

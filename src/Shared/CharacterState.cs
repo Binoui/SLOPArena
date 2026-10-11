@@ -36,13 +36,13 @@ namespace SlopArena.Shared
         public ulong InteractionId;
         /// <summary>Paired fighter entity ID; zero means no partner.</summary>
         public ulong InteractionPartnerId;
-        /// <summary>Authoritative tick at which the current interaction was captured.</summary>
+        /// <summary>Authoritative start tick of the current capture or throw phase.</summary>
         public uint InteractionTick;
         /// <summary>Last terminal interaction ID; zero means no terminal result recorded.</summary>
         public ulong LastTerminalInteractionId;
         /// <summary>Authoritative tick at which the last terminal interaction was committed.</summary>
         public uint InteractionTerminalTick;
-        /// <summary>Forward-facing snapshot in signed degrees × 100, captured when the grab is accepted.</summary>
+        /// <summary>Pair heading in signed degrees × 100; steered during the hold, frozen when throwing starts.</summary>
         public short CapturedYaw;
         /// <summary>Match lifecycle state (Waiting, Countdown, Playing, Ended).</summary>
         public MatchState MatchState;

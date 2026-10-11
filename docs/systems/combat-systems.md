@@ -134,59 +134,59 @@ ownership controls, ten-cycle resource routes and 1,152 finite response scenario
 `aerialAccepted` and `slideStartTick` to distinguish a full aerial/slide route from
 interruption or a crouched landing. These are scenario measurements, not balance proof.
 
-### Ground grab and forward throw
+### Ground grab, held movement, and forward throw
 
-Grab commits to 7 startup, 3 front-only active, and 18 whiff-recovery ticks.
-It snapshots facing on acceptance, including when leaving an unstunned shield;
-block stun prevents admission. Cooked per-character `captureGeometry` defines the
-short forward volume and restraint anchors. Hurtbox overlap and stage collision
-determine capture; neither target lock nor Unity animation moves the victim.
-Reciprocal active grabs clash with 10 recovery ticks. An accepted damaging hit
-resolves before capture and interrupts a linked pair before its release.
+Grab uses C on keyboard (rebindable) or LB+RT on controller. It takes priority
+over grounded movement, brakes horizontal momentum, and snapshots facing.
+`GrabAttempt` commits to 7 startup, 3 front-only active, and 36 whiff-recovery
+ticks; the 46-tick total matches the 23-frame `grab.fbx` at 30 fps. Block stun
+prevents admission. Cooked per-character `captureGeometry` defines the forward
+volume and restraint anchors. Hurtbox overlap and stage collision determine
+capture. Reciprocal active grabs clash with 10 recovery ticks; damaging contact
+resolves before capture and can interrupt either side of a linked pair.
 
-Forward reach is tuned for close frontal shield punishes after block response,
-not automatic capture of every blocked attack. Authored reach is 1.7 m for Manki,
-1.8 m for FightGuy/Wibou, and 1.9 m for Bonk; width, height, anchors and timing are
-unchanged. Spaced hits and sufficiently early recovery/IASA still permit escape.
-Existing vertical hurtbox coverage still applies, including low and airborne poses.
-Editor development matches consume source tuning; persisted matches receive it only
-after the accepted cook/verify/roster-refresh boundary.
+Successful capture enters `Grabbing` for the grabber and `Grabbed` for the victim.
+The grabber walks forward/backward along its facing at 25% of run speed. Sideways
+movement input (Q/D or the stick's horizontal axis) rotates the pair at 60°/second
+instead of strafing. Camera azimuth recovers the original control axes from the
+world-space movement input; camera rotation alone does not turn the pair. The
+victim faces the same direction, away from the grabber, follows its restraint
+anchor, and cannot move, jump, attack, or shield independently. Stage collision
+limits both bodies; movement or rotation that would pull the victim through a wall is stopped.
+Any attack-slot press from the grabber starts the throw, including an empty or
+cooling-down slot, without activating or buffering that ability. Otherwise the
+throw starts automatically after 180 simulation ticks (three seconds).
 
-In the Editor, enable Scene or Game **Gizmos** to see the cooked forward grab box
-while `GrabAttempt` runs: yellow startup, orange active contact, gray whiff
-recovery. `PlayerRenderer` places it using Shared position and captured facing;
-it does not add a Unity collider or change targeting.
+The shared animation config binds the paired clips independently of character
+package catalogs. `grab_idle_a`/`grab_idle_b` play while stationary;
+`Grab_Walk_F_A`/`Grab_Walk_F_B` and `Grab_Walk_B_A`/`Grab_Walk_B_B` play during
+forward and backward held movement. Velocity is evaluated against captured facing,
+so the victim's movement input cannot select its animation. Shared state ticks
+sample each clip, including recorded previews and rollback rewinds; animation
+callbacks never decide movement, capture, damage, or release.
 
-Unity plays the shared `grab.fbx` during `GrabAttempt` and switches directly to
-the shared `throw.fbx` on capture. Both clips are non-looping and are bound once
-in `Resources/AnimationConfigs/Shared_AnimConfig.asset`, independently of each
-character's package animation catalog. Playback samples the replicated remaining
-phase ticks: the 28-tick attempt or 12-tick throw. Whiffs return to locomotion,
-Hitstop freezes the pose, and rollback can rewind it; no grab-idle/hold clip or
-animation event decides capture, damage, or release. Grab uses C on keyboard
-(rebindable) or LB+RT on controller.
-The Edit Mode menu **Tools → SlopArena → Tests → Grab Animation Presentation**
-checks tick sampling, replay/Hitstop, attack cancellation cleanup, direct throw,
-release, and Hitstun interruption on an isolated rig without changing the open scene.
+A throw starts `throw.fbx` for the grabber and `Grab_Throw_B.fbx` for the victim
+on the same clock. Both clips are authored at 30 fps. At frame 11 (22 simulation
+ticks), the server releases the pair, deals 6 damage, and enters `Thrown` for
+the victim. The grabber finishes its 29-frame clip in `Throwing`, retaining 36
+recovery ticks after release. Horizontal launch retains ordinary percent, weight,
+and match-tuning scaling with base 5 and growth 26; the vertical arc is timed for
+landing at victim frame 34 (68 ticks after throw start) on level ground. The
+victim completes eight more frames of grounded recovery, through frame 42.
+Stage collision remains authoritative: a higher or lower landing surface starts
+the frame-34 landing segment at actual ground contact. A missing or invalid
+partner, damage, or death ends the interaction without an extra throw.
 
-Capture restrains both fighters for 12 ticks. The automatic forward throw deals
-6 damage and launches at 30° along the captured facing, using the ordinary
-weight/percent/DI knockback path with base 5 and growth 26 (FightGuy's
-non-finisher forward sweeping/double kick tuning). The grabber then has 12
-recovery ticks. Release is targeted, not an area hit; missing or invalid partners
-unlink without throwing. Training and the GameServer use the same Shared rules;
-online prediction waits for the authoritative paired outcome.
+Training and the GameServer share these rules. Online local prediction waits for
+authoritative capture and release; detached throw recovery and thrown flight can
+be reconstructed from replicated fields. Protocol version 8 preserves all older
+state wire values and adds `Grabbing` (20) and `Thrown` (21).
 
-Initial throw launch report (hypothetical light weight 50, heavy weight 150;
-the four admitted packages currently author weight 100). Values are initial
-velocity magnitude after global 0.17 launch scaling, before DI or decay:
-
-| Victim pre-throw % | Light 50 | Heavy 150 |
-| ---: | ---: | ---: |
-| 0 | 7.516 | 4.510 |
-| 50 | 10.463 | 6.278 |
-| 100 | 13.410 | 8.046 |
-| 150 | 16.356 | 9.814 |
+Scene/Game **Gizmos** show the cooked forward box during `GrabAttempt`: yellow
+startup, orange active contact, gray whiff recovery. The Edit Mode menu
+**Tools → SlopArena → Tests → Grab Animation Presentation** checks held loops,
+both walk directions and roles, throw frame 11, victim landing frame 34, recorded
+poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
 
 ## Damage and hit response
 

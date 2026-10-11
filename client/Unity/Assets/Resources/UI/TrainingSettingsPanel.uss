@@ -1,68 +1,99 @@
 .ts-panel {
     width: 300px;
-    padding: 14px 16px 16px 16px;
+    max-height: 100%;
+    min-height: 0;
+    margin-top: 36px;
+    flex-shrink: 1;
+    padding: 12px 14px 10px 14px;
     flex-direction: column;
-    background-color: rgba(27, 26, 24, 0.98);
+    background-color: rgba(27, 26, 24, 0.94);
     border-width: 2px;
     border-color: #161513;
-    border-bottom-width: 5px;
+    border-bottom-width: 4px;
     border-bottom-color: #7b7872;
+}
+
+.ts-panel:disabled { opacity: 1; }
+
+.ts-panel--editing {
+    border-color: #ffcc22;
+    background-color: rgba(27, 26, 24, 0.98);
+}
+
+.ts-heading {
+    flex-shrink: 0;
+    margin-bottom: 10px;
 }
 
 .ts-title {
     font-size: 20px;
-    letter-spacing: 0;
     -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
-    -unity-text-align: middle-center;
     color: #f0eee8;
-    margin-bottom: 12px;
 }
 
-.ts-toggle {
-    font-size: 14px;
-    color: #f0eee8;
-    margin-bottom: 12px;
+.ts-hint {
+    font-size: 10px;
+    color: #b7b4ad;
+    margin-top: 3px;
+}
+
+.ts-panel--editing .ts-hint { color: #ffcc22; }
+
+.ts-scroll {
+    min-height: 0;
+    flex-shrink: 1;
+}
+
+.ts-section {
+    flex-shrink: 0;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: #484640;
 }
 
 .ts-label {
-    font-size: 13px;
+    font-size: 11px;
     letter-spacing: 1px;
     -unity-font-style: bold;
-    color: #f0eee8;
+    color: #b7b4ad;
+    margin-bottom: 6px;
+}
+
+.ts-description {
+    font-size: 12px;
+    color: #dad7d0;
+    white-space: normal;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.ts-damage-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 4px;
 }
 
-.ts-dmg {
-    flex-grow: 1;
-    min-width: 0;
-    white-space: nowrap;
-}
-
-.ts-row {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 12px;
+.ts-damage {
+    font-size: 22px;
+    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
+    color: #ffcc22;
 }
 
 .ts-btn-row {
     flex-direction: row;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-}
-
-.ts-wrap {
-    flex-wrap: wrap;
 }
 
 .ts-btn {
     height: 30px;
-    padding-left: 8px;
-    padding-right: 8px;
-    margin-right: 6px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    letter-spacing: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    font-size: 11px;
     -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
     color: #1b1a18;
@@ -73,6 +104,13 @@
     -unity-text-align: middle-center;
 }
 
+.ts-grow,
+.ts-mode-btn {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+}
+
 .ts-btn:hover,
 .ts-btn:focus {
     background-color: #1b1a18;
@@ -80,23 +118,37 @@
     border-color: #ffcc22;
 }
 
-.ts-mode-btn.active {
+.ts-btn.active,
+.ts-btn.active:disabled {
     background-color: #ffcc22;
     color: #1b1a18;
+    border-color: #161513;
 }
 
-.ts-mode-btn.active:focus {
-    border-color: #f0eee8;
-}
-
-.ts-btn:active { translate: 0 3px; }
+.ts-btn.active:focus { border-color: #f0eee8; }
+.ts-btn:active { translate: 0 2px; }
 
 .ts-btn:disabled {
     opacity: 1;
-    background-color: #252422;
-    color: #b7b4ad;
-    border-color: #7b7872;
+    background-color: #dad7d0;
+    color: #68655f;
+    border-color: #161513;
     translate: 0 0;
+}
+
+.ts-panel--editing .ts-btn:disabled {
+    background-color: #252422;
+    color: #7b7872;
+}
+
+.ts-reset-all { margin-right: 4px; }
+
+.ts-toggle {
+    font-size: 12px;
+    color: #f0eee8;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
 }
 
 .ts-toggle .unity-toggle__input {

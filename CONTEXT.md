@@ -286,11 +286,11 @@ An opponent rendered from received state rather than local re-simulation while i
 _Avoid_: unpredicted entity, fallback display, snap-only entity
 
 **Predictable ActionState**:
-An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt and the forward air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction.
+An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery, Thrown flight/recovery and the forward air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction.
 _Avoid_: safe state, simple state, movement state
 
 **Complex ActionState**:
-An action requiring private ability/resolver state or paired server authority. Attacking, Hitstun, LedgeHang, Grabbed and Throwing render from authoritative state; the self track uses a targeted barrier for confirmed capture or block contact instead of replaying through a coupled interval. The retired `Warping` numeric value remains reserved for wire compatibility.
+An action requiring private ability/resolver state or paired server authority. Attacking, Hitstun, LedgeHang and linked Grabbing/Grabbed/Throwing render from authoritative state; the self track uses a targeted barrier for confirmed capture or block contact instead of replaying through a coupled interval. The retired `Warping` numeric value remains reserved for wire compatibility.
 _Avoid_: unsafe state, hard state, ability state
 
 

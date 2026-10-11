@@ -114,7 +114,8 @@ namespace SlopArena.Shared.Rollback
             if (staleInteraction) return;
 
             bool coupled = authoritative.InteractionId != 0 &&
-                (authoritative.State == ActionState.Grabbed ||
+                (authoritative.State == ActionState.Grabbing ||
+                 authoritative.State == ActionState.Grabbed ||
                  authoritative.State == ActionState.Throwing);
             bool contact = authoritative.BlockStunTicks != 0 ||
                 authoritative.BlockHitstopKind != 0;
@@ -129,6 +130,13 @@ namespace SlopArena.Shared.Rollback
                 CorrectionCount++;
                 return;
             }
+
+            // Ordinary reconciliation cannot rebuild an attack's live ability from
+            // wire fields after local recovery. Wait for a subsequent authority state
+            // rather than install an attack or aim state with no matching runtime.
+            // Coupled/contact barriers above still own their authoritative outcomes.
+            if (authoritative.State is ActionState.Attacking or ActionState.Aiming)
+                return;
 
             // Hitstop carries live ability/queued-launch state not represented in the
             // packet. Never reconstruct from an authoritative frozen snapshot.

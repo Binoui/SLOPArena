@@ -307,9 +307,14 @@ public sealed class CookedTimelineAbility : ServerAbility
                     StartCapability(ref s, def, capability, flattenedOperationIndex);
                     break;
                 case CookedEmitPresentationOperation presentation:
+                    var placement = presentation.Placement;
+                    if (presentation.PresentationId == "presentation.manki.aerosol-inferno.start")
+                        foreach (var activeCapability in _capabilities)
+                            if (activeCapability is MankiAerosolInferno aerosol)
+                                placement = aerosol.ScaleFlamePresentation(s.ChargeTicks, placement);
                     PresentationSink?.Invoke(new TimelinePresentationEvent(0, s.EntityId, presentation.OperationIndex, presentation.PresentationId, PresentationAttackSequence, PresentationEventSource.Timeline, s.PX, s.PY, s.PZ, s.FacingYaw)
                     {
-                        Placement = presentation.Placement,
+                        Placement = placement,
                     });
                     break;
                 case CookedCompleteTimelineOperation:

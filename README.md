@@ -19,7 +19,7 @@ SlopArena combines:
 
 Each kit has a canonical **16-entry grid**: grounded and aerial variants for normals `1`, `2`, `3`, `4` and specials `A`, `E`, `R`, `F`. `LMB` and `RMB` are not persisted move identities; physical controls map to the canonical slots through the client input layer.
 
-Solo always uses the heuristic CPU at the selected difficulty; Training starts with an idle dummy and exposes its AI mode in the pause-menu training settings.
+Solo uses an attacking CPU at the selected difficulty. Training starts with one idle CPU and keeps its controls visible on the HUD. Press Escape or controller Start to adjust Idle, Attack, Shield, or Avoid behavior, difficulty, and damage, or reset damage and positions. Turn off “Show during play” to hide the panel during gameplay; it always appears while paused.
 
 ### Gamepad controls
 
@@ -139,3 +139,7 @@ Thank you to the artists and developers behind the assets and tools used here. S
 ## AI usage
 
 SlopArena uses agent-assisted development and generated art as practical tools. Contributions remain reviewed project work: determinism, licensing, gameplay correctness, and maintainability matter more than how an asset or patch was produced.
+
+Coding assistants use the same public [project instructions](AGENTS.md) and
+[task workflows](skills/README.md). See [agent setup](docs/contributing/agents.md)
+for Codex, OMP, Claude Code and direct-file use.

@@ -23,6 +23,10 @@ namespace SlopArena.Shared
         Throwing = 16,
         // Wire code 17 is reserved to preserve the phase wire codes.
         AirDodgeMovement = 18,
-        AirDodgeRecovery = 19
+        AirDodgeRecovery = 19,
+        /// <summary>Grounded capture hold; the grabber can walk until requesting a throw.</summary>
+        Grabbing = 20,
+        /// <summary>Released victim's throw flight and landing recovery.</summary>
+        Thrown = 21
     }
 }

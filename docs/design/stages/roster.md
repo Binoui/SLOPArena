@@ -1,6 +1,6 @@
 # Stage-select roster
 
-The stage picker currently offers five PVP maps:
+The stage picker currently offers six PVP maps:
 
 | Stage | Current assessment |
 | --- | --- |
@@ -9,6 +9,7 @@ The stage picker currently offers five PVP maps:
 | Slop Pit | Acceptable |
 | After Hours | Acceptable |
 | [Last Stop](last_stop.md) | New first pass; maintainer playtest pending |
+| [Log Off](log_off.md) | New playable first pass; maintainer playtest pending |
 
 Training remains available only in training mode.
 

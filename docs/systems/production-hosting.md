@@ -1,9 +1,16 @@
-# Production Hosting — Mini PC ("alfred") Runbook
+# Historical home hosting — Alfred
 
-Self-hosted SlopArena backend: master server + PostgreSQL + dedicated game
-server, running in Docker on the Debian 12 mini PC. All traffic is served via
-Cloudflare Tunnel (outbound-only — no inbound 80/443, which the Bbox router
-blocks below port 1024 anyway).
+This records the 2026-08-02 Alfred home setup. The current Steam Playtest uses
+the VPS and [coordinated release pipeline](release-pipeline.md); use
+[the VPS runbook](../../deploy/vps/README.md) for current logs and operations.
+Alfred's commands/paths below are historical and have not been revalidated for
+the current release. Follow them only for an explicitly selected home target,
+after checking its current homelab configuration.
+
+The historical backend ran Master, PostgreSQL and GameServer in Docker on a
+Debian 12 mini PC. Master HTTPS used outbound Cloudflare Tunnel; gameplay used
+router-forwarded raw UDP and private match control. This topology does not
+describe the Steam-only VPS.
 
 > **Broken?** See `docs/systems/troubleshooting.md` first — it is the
 diagnostic playbook for every failure mode below (UFW drops, stale

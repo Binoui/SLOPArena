@@ -75,6 +75,20 @@ public sealed class PresentationEventPacketTests
         Assert.False(PresentationEventPacket.TryDeserialize(overlong, out _));
     }
 
+    [Theory]
+    [InlineData(PresentationEventSource.CapabilityLaunch)]
+    [InlineData(PresentationEventSource.CapabilityLanding)]
+    public void LeapPhaseEventsSurviveNetworkTransport(PresentationEventSource source)
+    {
+        var packet = new PresentationEventPacket(83, 7, 0, "presentation.bonk.slam.landing",
+            3, source, 1.25f, 0f, 4f, 0.5f);
+        var bytes = new byte[packet.WireSize];
+        packet.Serialize(bytes);
+
+        Assert.True(PresentationEventPacket.TryDeserialize(bytes, out var decoded));
+        Assert.Equal(packet.ToEvent(), decoded!.Value.ToEvent());
+    }
+
     [Fact]
     public void RollbackDeduplicatesPredictionAndLateConfirmation()
     {

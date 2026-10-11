@@ -3,7 +3,7 @@
  *
  * Consumes the harness's own session logs; no live instrumentation.
  * Idempotent: sessions already present in observations.jsonl are skipped.
- * Only sessions with at least one skill read or explicit skill invocation are kept.
+ * Keep sessions with no skill reads too, so routing comparisons have a baseline.
  *
  * Usage:
  *   bun run src/import.ts             # import sessions whose cwd mentions SlopArena
@@ -12,12 +12,13 @@
  */
 import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { basename, join, dirname } from "node:path";
+import { basename, join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import type { SkillObservation } from "./schema";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = resolve(here, "../../..");
 const OUT = join(here, "..", "data", "observations.jsonl");
 const SESSIONS_ROOT = join(homedir(), ".omp", "agent", "sessions");
 const PROMPT_CAP = 2000;
@@ -25,9 +26,10 @@ const PROMPT_CAP = 2000;
 type AnyRec = Record<string, any>;
 
 /** `skill://name/…` → canonical skill name `name`. */
-function canonicalSkillName(path: string): string | null {
+export function canonicalSkillName(path: string): string | null {
   if (!path.startsWith("skill://")) return null;
-  return path.slice("skill://".length).split("/")[0] || null;
+  const parts = path.slice("skill://".length).split("/");
+  return (parts[0] === "agent" || parts[0] === "agents" ? parts[1] : parts[0]) || null;
 }
 
 /** Known skill names across all install locations — used to detect explicit `/name` invocations. */
@@ -36,9 +38,11 @@ function knownSkillNames(): Set<string> {
   const roots = [
     join(homedir(), ".agents", "skills"),
     join(homedir(), ".omp", "agent", "skills"),
-    "/home/binoui/Documents/projects/SlopArena/.omp/skills",
-    "/home/binoui/Documents/projects/SlopArena/.agents/skills/unity-skills",
-    "/home/binoui/Documents/projects/SlopArena/.claude/skills",
+    join(PROJECT_ROOT, "skills"),
+    join(PROJECT_ROOT, ".omp", "skills"),
+    join(PROJECT_ROOT, ".agents", "skills"),
+    join(PROJECT_ROOT, ".agents", "skills", "unity-skills", "skills"),
+    join(PROJECT_ROOT, ".claude", "skills"),
   ];
   for (const root of roots) {
     if (!existsSync(root)) continue;
@@ -58,7 +62,7 @@ function gitHeadAt(cwd: string, isoTimestamp: string): string | undefined {
       execFileSync(
         "git",
         ["-C", cwd, "log", "-1", "--format=%H", `--before=${isoTimestamp}`],
-        { encoding: "utf8", timeout: 5000 },
+        { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"] },
       ).trim() || undefined
     );
   } catch {
@@ -66,7 +70,7 @@ function gitHeadAt(cwd: string, isoTimestamp: string): string | undefined {
   }
 }
 
-function parseSessionFile(file: string, skills: Set<string>): SkillObservation | null {
+export function parseSessionFile(file: string, skills: Set<string>): SkillObservation | null {
   const lines = readFileSync(file, "utf8").split("\n").filter(Boolean);
   let session: AnyRec | null = null;
   let prompt: string | undefined;
@@ -87,7 +91,7 @@ function parseSessionFile(file: string, skills: Set<string>): SkillObservation |
     } else if (ev.type === "custom" && ev.customType === "tool_execution_start") {
       const d = ev.data ?? {};
       if (d.toolName) tools.add(d.toolName);
-      const skill = d.args?.path ? canonicalSkillName(d.args.path) : null;
+      const skill = d.toolName === "read" && d.args?.path ? canonicalSkillName(d.args.path) : null;
       if (skill) loaded.add(skill);
     } else if (ev.type === "message" && ev.message?.role === "user") {
       const texts: string[] = (ev.message.content ?? [])
@@ -123,38 +127,41 @@ function parseSessionFile(file: string, skills: Set<string>): SkillObservation |
   };
 }
 
-const args = process.argv.slice(2);
-const all = args.includes("--all");
-const force = args.includes("--force");
-
-mkdirSync(dirname(OUT), { recursive: true });
-const existing: SkillObservation[] = existsSync(OUT)
-  ? readFileSync(OUT, "utf8")
-      .split("\n")
-      .filter(Boolean)
-      .map((l) => JSON.parse(l))
-  : [];
-const byId = new Map(existing.map((o) => [o.id, o]));
-
-const skills = knownSkillNames();
-
-for (const projectDir of readdirSync(SESSIONS_ROOT, { withFileTypes: true })) {
-  if (!projectDir.isDirectory()) continue;
-  if (!all && !projectDir.name.includes("SlopArena")) continue;
-  const dir = join(SESSIONS_ROOT, projectDir.name);
-  for (const f of readdirSync(dir)) {
-    if (!f.endsWith(".jsonl")) continue;
-    const obs = parseSessionFile(join(dir, f), skills);
-    if (!obs) continue;
-    const had = byId.has(obs.id);
-    if (had && !force) continue;
-    if (obs.loadedSkills.length === 0 && !obs.explicitlyInvokedSkills?.length) {
-      if (force) byId.delete(obs.id); // stale entry no longer qualifies
-      continue;
+export function importSessions(options: {
+  sessionsRoot?: string; output?: string; all?: boolean; force?: boolean; skills?: Set<string>;
+} = {}): number {
+  const sessionsRoot = options.sessionsRoot ?? SESSIONS_ROOT;
+  const output = options.output ?? OUT;
+  const existing: SkillObservation[] = existsSync(output)
+    ? readFileSync(output, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line))
+    : [];
+  if (!existsSync(sessionsRoot)) return existing.length;
+  const byId = new Map(existing.map(observation => [observation.id, observation]));
+  const skills = options.skills ?? knownSkillNames();
+  for (const projectDir of readdirSync(sessionsRoot, { withFileTypes: true })) {
+    if (!projectDir.isDirectory()) continue;
+    if (!options.all && !projectDir.name.includes("SlopArena")) continue;
+    const dir = join(sessionsRoot, projectDir.name);
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith(".jsonl")) continue;
+      const observation = parseSessionFile(join(dir, file), skills);
+      if (!observation) continue;
+      const previous = byId.get(observation.id);
+      if (previous && !options.force) continue;
+      // Re-import measured fields without discarding manually assigned labels/notes.
+      byId.set(observation.id, { ...previous, ...observation });
     }
-    byId.set(obs.id, obs);
   }
+  mkdirSync(dirname(output), { recursive: true });
+  writeFileSync(output, [...byId.values()].map(observation => JSON.stringify(observation)).join("\n") + "\n");
+  return byId.size;
 }
 
-writeFileSync(OUT, [...byId.values()].map((o) => JSON.stringify(o)).join("\n") + "\n");
-console.log(`wrote ${byId.size} observation(s)`);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (!existsSync(SESSIONS_ROOT)) {
+    console.log("No OMP session directory found; no observations changed.");
+  } else {
+    const args = process.argv.slice(2);
+    console.log(`wrote ${importSessions({ all: args.includes("--all"), force: args.includes("--force") })} observation(s)`);
+  }
+}

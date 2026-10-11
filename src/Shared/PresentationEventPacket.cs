@@ -225,7 +225,9 @@ public readonly struct PresentationEventPacket
         => source == PresentationEventSource.Timeline
             || source == PresentationEventSource.CapabilityExplosion
             || source == PresentationEventSource.BlockContact
-            || source == PresentationEventSource.HitContact;
+            || source == PresentationEventSource.HitContact
+            || source == PresentationEventSource.CapabilityLaunch
+            || source == PresentationEventSource.CapabilityLanding;
 
     private static void ValidateTransform(float value, string name)
     {
