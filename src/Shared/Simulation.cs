@@ -68,23 +68,6 @@ namespace SlopArena.Shared
         public const float FlightGravity = 14f;
         public const float FlightFriction = 10f;
 
-        // ADR-0019 balance pass (2026-08-17, melee-shape adoption): velocity-only scale on
-        // the damage/weight formula. Hitstun is computed from the UNSCALED magnitude so combo
-        // timing (stun vs IASA, the combo matrix) is preserved while launch distance shrinks.
-        // Tune with tools/MoveDataReport: scripts/move-data.sh fightguy (or --kbm model presets).
-        // 1.0 = raw formula.
-        // Shipped values = the melee-soft profile (issue #149, 2026-08-18): stun 0.45×mag, no
-        // floor — 0% hits barely stun (no free true combos; combos emerge with damage %) — and
-        // KV ×0.17 (launch reads as a pop, not a glide). A/B-validated vs melee/melee-hot: all
-        // free true-combo edges removed at a slightly softer launch than the raw melee shape.
-        public static float KbScaleFactor = 0.17f;
-
-        // KB-tuning lab knobs (read by the move-data tool's --kbm presets). Hitstun ticks =
-        // StunCoefficient × (raw magnitude + MagBonus), min 1 — MagBonus is the Melee-style
-        // "+18 floor" lever (damage-independent stun at low %), StunCoefficient the
-        // stun-per-launch ratio.
-        public static float HitstunStunCoefficient = 0.45f;
-        public static float HitstunMagBonus = 0f;
         private const byte MaxAirDodges = 1;
 
         /// <summary>
@@ -174,7 +157,8 @@ namespace SlopArena.Shared
             out bool movementActionAccepted,
             DownActionTuning tuning,
             bool verticalMotionOwned,
-            float gravityMultiplier = 1f)
+            float gravityMultiplier = 1f,
+            CombatTuning? combatTuning = null)
         {
             _lastDownAdmissionReason = null;
             ordinaryActionOpportunity = false;
@@ -243,14 +227,14 @@ namespace SlopArena.Shared
                     if (s.QueuedKBResolvedForce)
                     {
                         ApplyKnockbackForce(ref s, s.QueuedKBDirX, s.QueuedKBDirZ,
-                            s.QueuedKBAngle, s.QueuedKBForce, s.QueuedKBStun);
+                            s.QueuedKBAngle, s.QueuedKBForce, s.QueuedKBStun, combatTuning);
                         ApplyFixedHitstun(ref s, s.QueuedKBFixedHitstunTicks, s.QueuedKBStunGate);
                     }
                     else if (!s.QueuedKBZero && (s.QueuedKBBase != 0f || s.QueuedKBGrowth != 0f || s.QueuedKBDamage != 0f || s.QueuedKBStun > 0))
                     {
                         ApplyKnockback(ref s, s.QueuedKBDirX, s.QueuedKBDirZ, s.QueuedKBAngle,
                             s.QueuedKBBase, s.QueuedKBGrowth, s.QueuedKBDamage,
-                            s.QueuedKBStun, def.Weight);
+                            s.QueuedKBStun, def.Weight, combatTuning: combatTuning);
                         ApplyFixedHitstun(ref s, s.QueuedKBFixedHitstunTicks, s.QueuedKBStunGate);
                         ApplyCrouchBrace(ref s, queuedCrouchBrace, tuning.CrouchLaunchMultiplier);
                     }
@@ -1823,8 +1807,9 @@ namespace SlopArena.Shared
         /// </summary>
         public static void ApplyKnockback(ref CharacterState s, float dirX, float dirZ,
             sbyte angleDeg, float baseKB, float growthKB, float damage,
-            ushort stunTicks, float weight, bool applyScale = true)
+            ushort stunTicks, float weight, bool applyScale = true, CombatTuning? combatTuning = null)
         {
+            var tuning = combatTuning ?? CombatTuning.Default;
             ClearMovementInterruptionFlags(ref s);
             s.ClearStartupAimCorrection();
             s.LandingLagTicks = 0;
@@ -1841,7 +1826,7 @@ namespace SlopArena.Shared
             if (s.KVY > 0f)
                 s.IsGrounded = false;
 
-            // Hitstun from the UNSCALED magnitude (KbScaleFactor below scales velocity only).
+            // Hitstun uses the unscaled magnitude; tuning scales velocity separately below.
             float kbMagnitude = MathF.Sqrt(
                 (s.KVX * s.KVX) + (s.KVY * s.KVY) + (s.KVZ * s.KVZ));
             if (stunTicks > 0 && kbMagnitude > 0f)
@@ -1850,9 +1835,9 @@ namespace SlopArena.Shared
                 // analog): they take the stun coefficient but NOT the +MagBonus launch floor,
                 // so yanks don't over-pull (drag outlasting the reel). Damage launches (scaled)
                 // carry the floor — that's the Melee "+18" combo lever.
-                float stunMag = applyScale ? kbMagnitude + HitstunMagBonus : kbMagnitude;
+                float stunMag = applyScale ? kbMagnitude + tuning.HitstunMagnitudeBonus : kbMagnitude;
                 s.HitstunTicks = (ushort)Math.Clamp(
-                    (int)(HitstunStunCoefficient * stunMag), 1, ushort.MaxValue);
+                    (int)(tuning.HitstunCoefficient * stunMag), 1, ushort.MaxValue);
                 s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 :
                     s.HitstunTicks <= 50 ? (byte)1 : (byte)2;
                 s.State = ActionState.Hitstun;
@@ -1864,13 +1849,13 @@ namespace SlopArena.Shared
                 s.State = ActionState.Idle;
             }
 
-            // Velocity-only scale (KbScaleFactor) — launch distance, not hitstun.
+            // Velocity-only scale affects launch distance after hitstun is calculated.
             // applyScale:false is for fixed tools (grabs) that opt out of the hit-KB balance.
             if (applyScale)
             {
-                s.KVX *= KbScaleFactor;
-                s.KVY *= KbScaleFactor;
-                s.KVZ *= KbScaleFactor;
+                s.KVX *= tuning.KnockbackScale;
+                s.KVY *= tuning.KnockbackScale;
+                s.KVZ *= tuning.KnockbackScale;
             }
 
             s.AirTimeTicks = 0;
@@ -1882,8 +1867,9 @@ namespace SlopArena.Shared
 
         /// <summary>Apply a fully resolved launch force supplied by an ability hook.</summary>
         public static void ApplyKnockbackForce(ref CharacterState s, float dirX, float dirZ,
-            sbyte angleDeg, float force, ushort stunTicks)
+            sbyte angleDeg, float force, ushort stunTicks, CombatTuning? combatTuning = null)
         {
+            var tuning = combatTuning ?? CombatTuning.Default;
             ClearMovementInterruptionFlags(ref s);
             s.ClearStartupAimCorrection();
             s.LandingLagTicks = 0;
@@ -1902,7 +1888,7 @@ namespace SlopArena.Shared
                 // "+18" damage-launch lever, and applying it to pulls made yanks over-pull
                 // (drag outlasting the reel and carrying the victim through the caster).
                 s.HitstunTicks = (ushort)Math.Clamp(
-                    (int)(HitstunStunCoefficient * magnitude), 1, ushort.MaxValue);
+                    (int)(tuning.HitstunCoefficient * magnitude), 1, ushort.MaxValue);
                 s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 : s.HitstunTicks <= 50 ? (byte)1 : (byte)2;
                 s.State = ActionState.Hitstun;
             }

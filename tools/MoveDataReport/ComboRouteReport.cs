@@ -34,13 +34,16 @@ internal static partial class ComboRouteReport
         public MatchContentEntry Defender { get; }
         public ArenaDefinition Arena { get; }
         public SimulationIdentity Identity { get; }
-        public Context(MatchContentEntry attacker, MatchContentEntry? defender = null, ArenaDefinition? arena = null)
+        public CombatTuning CombatTuning { get; }
+        public Context(MatchContentEntry attacker, MatchContentEntry? defender = null, ArenaDefinition? arena = null,
+            CombatTuning? combatTuning = null)
         {
             Attacker = attacker;
             Defender = defender ?? attacker;
             Arena = arena ?? Program.BuildArena();
             ValidateHeightmap(Arena.Heightmap);
-            Identity = CurrentSimulationIdentity();
+            CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
+            Identity = CurrentSimulationIdentity(CombatTuning);
         }
         public static Context FightGuy() => new(Program.ResolveEntry("fightguy"));
     }
@@ -254,7 +257,7 @@ internal static partial class ComboRouteReport
         ValidateReplay(context, replay);
         var di = generatedDi == null ? (0f, 0f) : DiVector(generatedDi);
         var generated = generatedDi == null ? null : new InputState[replay.DefenderInputs.Length];
-        var sim = new ServerSimulation(replay.Arena);
+        var sim = new ServerSimulation(replay.Arena, combatTuning: context.CombatTuning);
         sim.RegisterEntity(AttackerId, context.Attacker.Definition, replay.InitialAttacker, context.Attacker.BakedAnimation);
         sim.RegisterEntity(DefenderId, context.Defender.Definition, replay.InitialDefender, context.Defender.BakedAnimation);
         var inputs = new Dictionary<ulong, InputState>(2);
@@ -410,10 +413,7 @@ internal static partial class ComboRouteReport
     {
         if (replay.SchemaVersion != 1 || replay.Rule != "stock-3-stop-on-death") throw new InvalidDataException("Unsupported replay schema/rule.");
         if (replay.AttackerContent != context.Attacker.Identity || replay.DefenderContent != context.Defender.Identity
-            || replay.Simulation != context.Identity
-            || context.Identity.KnockbackScale != Simulation.KbScaleFactor
-            || context.Identity.HitstunCoefficient != Simulation.HitstunStunCoefficient
-            || context.Identity.HitstunBonus != Simulation.HitstunMagBonus)
+            || replay.Simulation != context.Identity)
             throw new InvalidDataException("Replay content or simulation build/tuning identity differs from the current context.");
         if (replay.AttackerInputs == null || replay.DefenderInputs == null || replay.Actions == null
             || replay.AttackerInputs.Length < 1 || replay.AttackerInputs.Length > MaxHorizon
@@ -466,8 +466,8 @@ internal static partial class ComboRouteReport
             || !float.IsFinite(input.WarpTargetX) || !float.IsFinite(input.WarpTargetZ) || !float.IsFinite(input.WarpSpeed)
             || !float.IsFinite(input.WarpAttackRange)) throw new InvalidDataException("Invalid replay input.");
     }
-    private static SimulationIdentity CurrentSimulationIdentity() => new(SharedHash, ToolHash,
-        Simulation.KbScaleFactor, Simulation.HitstunStunCoefficient, Simulation.HitstunMagBonus);
+    private static SimulationIdentity CurrentSimulationIdentity(CombatTuning tuning) => new(SharedHash, ToolHash,
+        tuning.KnockbackScale, tuning.HitstunCoefficient, tuning.HitstunMagnitudeBonus);
     private static string AssemblyHash(string path)
     {
         using var input = File.OpenRead(path);

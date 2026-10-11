@@ -11,6 +11,34 @@ public sealed class ComboRouteReportTests
     private const ulong AttackerId = ComboRouteReport.AttackerId;
     private const ulong DefenderId = ComboRouteReport.DefenderId;
 
+    [Theory]
+    [InlineData("base", 9)]
+    [InlineData("floor30", 25)]
+    public void Execute_UsesContextTuningForHitstopLaunch(string profile, ushort expectedStun)
+    {
+        var kit = CreateKit((0, HitTimeline(new[] { 0 }, duration: 20, baseKnockback: 20f)));
+        var context = ContextFor(kit, TuningProfiles.Get(profile));
+        var replay = CreateReplay(context, 16, 101.6f, (0, "ground.1"));
+
+        var outcome = ComboRouteReport.Execute(context, replay, captureFrames: true).Outcome;
+
+        Assert.Single(outcome.Contacts);
+        Assert.Equal(expectedStun, outcome.Frames.First(frame => frame.Defender.Hitstun > 0).Defender.Hitstun);
+    }
+
+    [Fact]
+    public void Execute_RejectsReplayFromDifferentTuningContext()
+    {
+        var kit = CreateKit((0, HitTimeline(new[] { 0 }, duration: 20, baseKnockback: 20f)));
+        var baseline = ContextFor(kit);
+        var candidate = ContextFor(kit, TuningProfiles.Get("floor30"));
+        var replay = CreateReplay(baseline, 16, 101.6f, (0, "ground.1"));
+        string expected = ComboRouteReport.OutcomeHash(ComboRouteReport.Execute(baseline, replay).Outcome);
+
+        Assert.Throws<InvalidDataException>(() => ComboRouteReport.Execute(candidate, replay));
+        Assert.Equal(expected, ComboRouteReport.OutcomeHash(ComboRouteReport.Execute(baseline, replay).Outcome));
+    }
+
     [Fact]
     public void Execute_ReportsMovingNormalActivationAndItsContactProvenance()
     {
@@ -505,8 +533,8 @@ public sealed class ComboRouteReportTests
         });
     }
 
-    private static ComboRouteReport.Context ContextFor(MatchContentEntry kit)
-        => new(kit, kit, TestHelpers.TestArena());
+    private static ComboRouteReport.Context ContextFor(MatchContentEntry kit, CombatTuning? tuning = null)
+        => new(kit, kit, TestHelpers.TestArena(), tuning);
 
     private static ComboRouteReport.Replay CreateReplay(ComboRouteReport.Context context, int horizon,
         float defenderZ, params (int Tick, string Slot)[] actions)
