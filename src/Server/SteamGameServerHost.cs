@@ -27,6 +27,29 @@ public static class SteamGameplayInputCodec
     }
 }
 
+/// <summary>Routes startup controls from an authenticated, match-bound Steam connection.</summary>
+public static class SteamGameplayControlRouter
+{
+    public static bool TryHandle(ReadOnlySpan<byte> frame, ulong boundEntityId, bool reliable,
+        Func<NetplayControlPacket, bool> tryMarkReady)
+    {
+        if (!reliable || boundEntityId == 0 || frame.Length != 1 + NetplayControlPacket.Size ||
+            frame[0] != SteamGameplayWire.Control ||
+            !NetplayControlPacket.TryDeserialize(frame.Slice(1), out var control) ||
+            control.EntityId != boundEntityId)
+            return false;
+
+        // Admission already binds the Steam peer; MatchInstance keeps sending its
+        // baseline and clock while waiting. Bootstrap retries must not mark it Ready.
+        return control.Kind switch
+        {
+            NetplayControlKind.Bootstrap => true,
+            NetplayControlKind.Ready => tryMarkReady(control),
+            _ => false
+        };
+    }
+}
+
 public sealed class SteamGameServerHost : IAsyncDisposable
 {
     private const int MaxMessageBytes = 1024;
@@ -329,9 +352,8 @@ public sealed class SteamGameServerHost : IAsyncDisposable
 
         if (frame[0] == SteamGameplayWire.Control)
         {
-            if (!reliable || !NetplayControlPacket.TryDeserialize(frame.Slice(1), out var control) ||
-                control.Kind != NetplayControlKind.Ready || control.EntityId != connection.EntityId ||
-                _orchestrator?.TryMarkSteamReady(connection.MatchId, connection.Id, control) != true)
+            if (!SteamGameplayControlRouter.TryHandle(frame, connection.EntityId, reliable,
+                control => _orchestrator?.TryMarkSteamReady(connection.MatchId, connection.Id, control) == true))
                 EndConnection(connection, "Invalid or spoofed Steam control frame", closeNative: true);
             return;
         }

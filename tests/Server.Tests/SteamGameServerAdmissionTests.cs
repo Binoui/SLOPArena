@@ -41,6 +41,129 @@ public class SteamGameServerAdmissionTests
         var ready = new NetplayControlPacket(NetplayControlKind.Ready, entityId, match.ServerTick, match.StartTick);
         Assert.True(match.TryMarkSteamReady(connectionId, ready));
     }
+
+    private static byte[] ControlFrame(NetplayControlKind kind, ulong entityId, uint tick = 0, uint startTick = 0)
+    {
+        var frame = new byte[1 + NetplayControlPacket.Size];
+        frame[0] = SteamGameplayWire.Control;
+        new NetplayControlPacket(kind, entityId, tick, startTick).Serialize(frame.AsSpan(1));
+        return frame;
+    }
+
+    [Fact]
+    public void SteamStartupControlsRejectSpoofedUnreliableAndMalformedFrames()
+    {
+        bool readyCalled = false;
+        bool MarkReady(NetplayControlPacket _) { readyCalled = true; return true; }
+
+        foreach (var kind in new[] { NetplayControlKind.Bootstrap, NetplayControlKind.Ready })
+        {
+            var valid = ControlFrame(kind, 1);
+            Assert.False(SteamGameplayControlRouter.TryHandle(valid, 1, false, MarkReady));
+            Assert.False(SteamGameplayControlRouter.TryHandle(valid, 0, true, MarkReady));
+            Assert.False(SteamGameplayControlRouter.TryHandle(valid, 2, true, MarkReady));
+            Assert.False(SteamGameplayControlRouter.TryHandle(valid.AsSpan(0, valid.Length - 1), 1, true, MarkReady));
+            Assert.False(SteamGameplayControlRouter.TryHandle(new byte[valid.Length + 1], 1, true, MarkReady));
+            valid[2] = unchecked((byte)(NetplayControlPacket.Version + 1));
+            Assert.False(SteamGameplayControlRouter.TryHandle(valid, 1, true, MarkReady));
+        }
+        var unknownKind = ControlFrame(NetplayControlKind.Bootstrap, 1);
+        unknownKind[1] = byte.MaxValue;
+        Assert.False(SteamGameplayControlRouter.TryHandle(unknownKind, 1, true, MarkReady));
+        var wrongEnvelope = ControlFrame(NetplayControlKind.Ready, 1);
+        wrongEnvelope[0] = SteamGameplayWire.Input;
+        Assert.False(SteamGameplayControlRouter.TryHandle(wrongEnvelope, 1, true, MarkReady));
+        Assert.False(SteamGameplayControlRouter.TryHandle(Array.Empty<byte>(), 1, true, MarkReady));
+        Assert.False(SteamGameplayControlRouter.TryHandle(ControlFrame(NetplayControlKind.Clock, 1), 1, true, MarkReady));
+        Assert.False(readyCalled, "Rejected startup frames must not reach match readiness.");
+    }
+
+    [Fact]
+    public void SteamReadyRetainsConnectionAndAuthoritativeClockValidation()
+    {
+        var clock = new TestClock(DateTimeOffset.Parse("2026-10-11T15:00:00Z"));
+        var match = NewSteamMatch(Guid.NewGuid().ToString("D"), LoadCatalog(), clock,
+            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
+                new MatchPlayer(1002, CharacterClass.Manki, 2) }, clock.GetUtcNow().AddSeconds(60));
+        Assert.True(match.TryBindSteamPlayer(1001, 11, ContentHash, out _, out _, out _));
+        Assert.True(match.TryBindSteamPlayer(1002, 22, ContentHash, out _, out _, out _));
+
+        bool Deliver(long connectionId, byte[] frame) =>
+            SteamGameplayControlRouter.TryHandle(frame, 1, true,
+                control => match.TryMarkSteamReady(connectionId, control));
+
+        Assert.False(Deliver(22, ControlFrame(NetplayControlKind.Ready, 1)));
+        Assert.False(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1, tick: 1)));
+        Assert.False(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1, startTick: 1)));
+        Assert.False(match.TryQueueSteamInput(11, 1, default));
+        Assert.True(Deliver(11, ControlFrame(NetplayControlKind.Bootstrap, 1)));
+        Assert.False(match.TryQueueSteamInput(11, 1, default));
+        Assert.True(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1)));
+        Assert.True(match.TryQueueSteamInput(11, 1, default));
+    }
+
+    [Fact]
+    public async Task SteamBootstrapBeforeReadyPreservesBothConnectionsAndStartsCountdown()
+    {
+        var clock = new TestClock(DateTimeOffset.Parse("2026-10-11T15:00:00Z"));
+        var baselines = new[]
+        {
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously),
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        var receivedEntities = new[] { new HashSet<ulong>(), new HashSet<ulong>() };
+        var countdown = new TaskCompletionSource<uint>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_court",
+            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
+                new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            LoadCatalog(), _ => { }, admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
+            contentHash: ContentHash,
+            steamSend: (_, recipient, frame, _) =>
+            {
+                if (frame[0] != SteamGameplayWire.State) return;
+                var packet = ServerEntityPacket.Deserialize(frame.AsSpan(1));
+                int index = (int)recipient - 1;
+                receivedEntities[index].Add(packet.EntityId);
+                if (receivedEntities[index].Count == 2) baselines[index].TrySetResult(true);
+                if (packet.State.MatchState == MatchState.Countdown) countdown.TrySetResult(packet.Tick);
+            }, clock: clock);
+
+        bool Deliver(long connectionId, ulong entityId, byte[] frame) =>
+            SteamGameplayControlRouter.TryHandle(frame, entityId, reliable: true,
+                control => match.TryMarkSteamReady(connectionId, control));
+
+        match.Start();
+        try
+        {
+            Assert.True(match.TryBindSteamPlayer(1001, 11, ContentHash, out _, out _, out _));
+            Assert.True(match.TryBindSteamPlayer(1002, 22, ContentHash, out _, out _, out _));
+            Assert.True(Deliver(11, 1, ControlFrame(NetplayControlKind.Bootstrap, 1)),
+                "The first client's normal Bootstrap would disconnect it before readiness.");
+            Assert.True(Deliver(22, 2, ControlFrame(NetplayControlKind.Bootstrap, 2)),
+                "The second client's normal Bootstrap would disconnect it before readiness.");
+            await Task.WhenAll(baselines.Select(x => x.Task)).WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.False(match.HasStartedCountdown);
+            Assert.Equal(0u, match.ServerTick);
+            Assert.False(match.TryQueueSteamInput(11, 1, default));
+            Assert.False(match.TryQueueSteamInput(22, 1, default));
+
+            Assert.True(Deliver(11, 1, ControlFrame(NetplayControlKind.Ready, 1)));
+            Assert.True(Deliver(11, 1, ControlFrame(NetplayControlKind.Bootstrap, 1)));
+            Assert.True(Deliver(11, 1, ControlFrame(NetplayControlKind.Ready, 1)));
+            Assert.False(match.HasStartedCountdown);
+            Assert.True(Deliver(22, 2, ControlFrame(NetplayControlKind.Bootstrap, 2)));
+            Assert.True(Deliver(22, 2, ControlFrame(NetplayControlKind.Ready, 2)));
+            Assert.True(await countdown.Task.WaitAsync(TimeSpan.FromSeconds(2)) > 0,
+                "Both peers completed the startup handshake but the authoritative countdown did not advance.");
+            Assert.True(match.HasStartedCountdown);
+        }
+        finally
+        {
+            match.Stop();
+            Assert.True(SpinWait.SpinUntil(() => !match.IsRunning, 2000));
+        }
+    }
+
     [Fact]
     public void SteamInputCodecRejectsEntitySpoofAndAcceptsOnlyTheBoundSlot()
     {

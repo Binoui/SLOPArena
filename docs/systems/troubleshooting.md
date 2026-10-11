@@ -38,6 +38,29 @@ timeout 8 bash -c 'echo > /dev/tcp/<public-ip>/7777' && echo "public OK" # hairp
 tail -40 ~/.local/share/Steam/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/LocalLow/SlopArena/SlopArena/Player.log
 ```
 
+## Steam match loads but both fighters freeze before countdown
+
+If `Player.log` repeatedly reports `[NetworkClient] Steam connection closed:
+Invalid or spoofed Steam control frame` while `[PvP]` stays at `serverTick=0`,
+check the Steam startup control handler before changing clock estimation.
+The client sends reliable Bootstrap requests after admission until it receives
+the server Clock acknowledgement. Rejecting Bootstrap as though only Ready were
+valid disconnects the peer before the full-roster readiness barrier can complete.
+
+The bound Steam handler must accept Bootstrap idempotently without marking the
+player Ready; `MatchInstance` already sends baseline and clock controls to bound
+peers. Ready still requires the same connection, entity and authoritative clock
+validation. Unreliable, malformed, wrong-version, spoofed and client-sent Clock
+frames remain invalid. The server fix uses the existing protocol and requires
+a deployed GameHost update; editing this checkout does not repair a running VPS.
+
+Run the startup regression and rejection checks with:
+
+```bash
+dotnet test tests/Server.Tests/Server.Tests.csproj --nologo -p:SkipUnityPluginCopy=true \
+  --filter 'FullyQualifiedName~SteamBootstrapBeforeReady|FullyQualifiedName~SteamStartupControls|FullyQualifiedName~SteamReadyRetains'
+```
+
 ## Projectile aim diverges after camera turns
 
 Yaw is a circular direction, not a value to saturate at the signed-short limit.
