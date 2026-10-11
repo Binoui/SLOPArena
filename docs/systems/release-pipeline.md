@@ -32,7 +32,8 @@ gh workflow run release-playtest.yml --ref main -f "version=$version"
 The local wrapper creates a fresh isolated checkout and runs the installed Unity
 `6000.0.78f1` using the workstation's existing Hub activation. It does not activate
 a license, copy into the open canonical Editor, or require Unity credentials in
-GitHub. The producer verifies authoring freshness and package admission, then
+GitHub. The launcher selects Windows before importing assets so platform-sensitive
+dependency hashes match the Windows cook. The producer verifies authoring freshness and package admission, then
 regenerates each roster character's Unity animation catalog from its verified
 staged `client.bindings` before building the player. The generated catalogs live
 under `Assets/Resources/Generated/CharacterPackages/`; they are required client

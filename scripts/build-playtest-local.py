@@ -319,7 +319,9 @@ def run(args: argparse.Namespace) -> dict:
 
     unity_log = evidence / "unity.log"
     launcher_log = evidence / "unity-launcher.log"
-    unity_command = [str(editor), "-batchmode", "-quit", "-projectPath", str(project.resolve()),
+    # Platform-sensitive dependency hashes must be computed for the player target.
+    unity_command = [str(editor), "-batchmode", "-quit", "-buildTarget", "Win64",
+                     "-projectPath", str(project.resolve()),
                      "-executeMethod", "PlaytestReleaseBuilder.Build",
                      "-releaseVersion", args.version,
                      "-releaseSourceRevision", args.source_revision,
