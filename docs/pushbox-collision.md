@@ -2,7 +2,7 @@
 
 ## Problem
 
-Player hurtboxes currently exist only for attack hit detection. `ServerSimulation` moves each entity independently, then builds animation-driven hurtboxes for `SpellResolver`; no system prevents two players from occupying the same horizontal space or passing through one another.
+Player hurtboxes serve attack hit detection. `ServerSimulation` resolves stable fighter pushboxes after movement and ability ticks, then builds animation-driven hurtboxes for `SpellResolver`. Pushboxes prevent fighters from occupying the same horizontal body space.
 
 Hurtboxes must remain attack geometry. Using animated limb hurtboxes as body collision would make movement depend on animation pose and would let an extended arm or weapon push another fighter.
 
@@ -41,15 +41,15 @@ The first implementation uses horizontal circle separation. It does not attempt 
 
 ## Tick order
 
-`ServerSimulation.Tick()` becomes:
+The relevant phases of `ServerSimulation.Tick()` are:
 
 1. pre-tick ability activation
 2. target lock
 3. independent movement simulation for every entity
-4. pushbox resolution for every entity pair
-5. warp-arrival processing
-6. hurtbox construction
-7. attack hit resolution
+4. ability ticks and landing movement cleanup
+5. pushbox resolution for every entity pair
+6. low-posture admission/settlement and hurtbox construction
+7. attack hit resolution and coupled grab interactions
 8. projectile explosions
 9. blast/death processing
 
@@ -81,7 +81,9 @@ Pushbox correction must not:
 - use Unity physics or client-only state;
 - run against eliminated spectators.
 
-Warp/reposition movement is the exception. A warp ability must be able to reach its authored endpoint and must not become trapped behind a pushbox. Warp movement remains authoritative; pushbox resolution must either skip an entity while `WarpSpeed > 0` or treat that entity as non-movable for the correction. The implementation should use the existing warp state rather than adding an ability-specific flag.
+The charged directional dash can explicitly phase through fighter pushboxes while
+its traversal capability owns motion. `ServerAbility.IgnoresFighterPushboxes`
+expresses that policy. The retired automatic warp runtime has no pushbox exception.
 
 ## Boundary behavior
 
@@ -98,7 +100,7 @@ Add shared simulation tests covering observable behavior:
 5. Vertical separation prevents horizontal pushbox correction.
 6. Airborne fighters are also separated when their vertical spans overlap.
 7. Knockback vertical velocity and hitstun remain unchanged after pushbox correction.
-8. A warp entity is not blocked by pushbox correction.
+8. A charged directional dash phases only while its traversal capability owns motion.
 9. Eliminated entities do not participate.
 10. Attack hurtbox results remain independent of pushbox geometry.
 

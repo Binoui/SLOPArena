@@ -143,38 +143,20 @@ namespace SlopArena.Shared
         }
 
         /// <summary>
-        /// Remove an active hitbox owned by ownerId that matches the predicate,
-        /// queue its explosion (if any), and return true. Useful for manual
-        /// detonation of deployable abilities (mines, traps, etc.).
-        /// </summary>
-        public bool RemoveHitbox(ulong ownerId, Func<Hitbox, bool> predicate)
-        {
-            for (int i = _hitboxes.Count - 1; i >= 0; i--)
-            {
-                var hb = _hitboxes[i];
-                if (!hb.Active || hb.OwnerId != ownerId) continue;
-                if (!predicate(hb)) continue;
-
-                if (hb.Explosion.HasValue)
-                    _pendingExplosions.Add((hb.X, hb.Y, hb.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
-                        hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));
-                OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
-                _hitboxes.RemoveAt(i);
-                return true;
-            }
-            return false;
-        }
-        /// <summary>
         /// Remove every active hitbox owned by one ability activation without firing
         /// projectile explosions. Used when the owning ability is cancelled before its
         /// effects are allowed to linger. A hit-history filter removes only that group.
+        /// Gameplay cancellation preserves launched projectiles; snapshot replacement removes them.
         /// </summary>
-        internal void RemoveOwnedHitboxes(ulong ownerId, ulong activationId, HashSet<ulong>? hitEntities = null)
+        internal void RemoveOwnedHitboxes(ulong ownerId, ulong activationId, HashSet<ulong>? hitEntities = null,
+            bool preserveProjectiles = false)
         {
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
             {
                 var hb = _hitboxes[i];
                 if (!hb.Active || hb.OwnerId != ownerId || hb.ActivationId != activationId)
+                    continue;
+                if (preserveProjectiles && !hb.CancelWithAbility)
                     continue;
                 if (hitEntities != null && !ReferenceEquals(hb.HitEntities, hitEntities))
                     continue;
@@ -298,21 +280,8 @@ namespace SlopArena.Shared
                 if (hb.Gravity > 0f)
                     hb.VY -= hb.Gravity * Simulation.TickDt;
 
-                // Zone hitboxes pulse on an interval and survive contact; everything
-                // else keeps the legacy one-hit-then-die behaviour.
-                // Pulse count is NOT a damage guarantee: hitThisTick is shared across
-                // every hitbox in the tick and hitboxes are walked newest-to-oldest, so a
-                // pulse whose target was already claimed by another hitbox is simply lost.
-                // A one-hit hitbox stays active and retries next tick; a zone cannot retry
-                // until its next pulse, a full RehitIntervalTicks later.
-                bool isZone = hb.RehitIntervalTicks > 0;
-                // IgnoresEntities opts out of the body scan entirely; it still ages, expires
-                // and queues its explosion below. See Hitbox.IgnoresEntities.
-                bool pulse = !hb.IgnoresEntities
-                    && (!isZone || (hb.AgeTicks % hb.RehitIntervalTicks == 0));
-
                 List<EntityData> candidates = entities;
-                if (pulse && entities.Count > 1)
+                if (entities.Count > 1)
                 {
                     bool hasShield = false;
                     foreach (var entity in entities)
@@ -329,120 +298,115 @@ namespace SlopArena.Shared
                     }
                 }
 
-                if (pulse)
+                // Check collision against each entity
+                foreach (var entity in candidates)
                 {
-                    // Check collision against each entity
-                    foreach (var entity in candidates)
+                    if (!entity.Active) continue;
+                    if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
+                    if (hitThisTick.Contains(entity.Id)) continue;
+                    if (entity.InvincibilityTicks > 0) continue;
+                    bool hit = false;
+                    float dist = 0f, dx = 0f, dy = 0f, dz = 0f;
+                    float hitX = 0f, hitY = 0f, hitZ = 0f;
+
+                    bool shieldSweep = entity.ShieldSurface && hb.Shape == HitboxShape.Sphere
+                        && SweptShieldContact(in hb, in entity, prevX, prevY, prevZ,
+                            out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ);
+
+                    if (shieldSweep)
                     {
-                        if (!entity.Active) continue;
-                        if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
-                        if (hitThisTick.Contains(entity.Id)) continue;
-                        if (entity.InvincibilityTicks > 0) continue;
-                        bool hit = false;
-                        float dist = 0f, dx = 0f, dy = 0f, dz = 0f;
-                        float hitX = 0f, hitY = 0f, hitZ = 0f;
-
-                        bool shieldSweep = entity.ShieldSurface && hb.Shape == HitboxShape.Sphere
-                            && SweptShieldContact(in hb, in entity, prevX, prevY, prevZ,
-                                out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ);
-
-                        if (shieldSweep)
+                        hit = true;
+                    }
+                    else if (hb.Shape == HitboxShape.Capsule || entity.Shape == HitboxShape.Capsule)
+                    {
+                        hit = CapsuleCollision(hb, entity, out dist, out dx, out dy, out dz,
+                            out hitX, out hitY, out hitZ);
+                    }
+                    else
+                    {
+                        // Sphere-sphere (original)
+                        dx = entity.PosX - hb.X;
+                        dy = entity.PosY - hb.Y;
+                        dz = entity.PosZ - hb.Z;
+                        float distSq = (dx * dx) + (dy * dy) + (dz * dz);
+                        float combinedRadius = hb.Radius + entity.Radius;
+                        if (distSq <= combinedRadius * combinedRadius)
                         {
+                            dist = MathF.Sqrt(distSq);
                             hit = true;
-                        }
-                        else if (hb.Shape == HitboxShape.Capsule || entity.Shape == HitboxShape.Capsule)
-                        {
-                            hit = CapsuleCollision(hb, entity, out dist, out dx, out dy, out dz,
-                                out hitX, out hitY, out hitZ);
-                        }
-                        else
-                        {
-                            // Sphere-sphere (original)
-                            dx = entity.PosX - hb.X;
-                            dy = entity.PosY - hb.Y;
-                            dz = entity.PosZ - hb.Z;
-                            float distSq = (dx * dx) + (dy * dy) + (dz * dz);
-                            float combinedRadius = hb.Radius + entity.Radius;
-                            if (distSq <= combinedRadius * combinedRadius)
+                            if (dist > 0.001f)
                             {
-                                dist = MathF.Sqrt(distSq);
-                                hit = true;
-                                if (dist > 0.001f)
-                                {
-                                    float invDist = 1f / dist;
-                                    hitX = hb.X + dx * invDist * hb.Radius;
-                                    hitY = hb.Y + dy * invDist * hb.Radius;
-                                    hitZ = hb.Z + dz * invDist * hb.Radius;
-                                }
-                                else
-                                {
-                                    hitX = hb.X;
-                                    hitY = hb.Y;
-                                    hitZ = hb.Z;
-                                }
+                                float invDist = 1f / dist;
+                                hitX = hb.X + dx * invDist * hb.Radius;
+                                hitY = hb.Y + dy * invDist * hb.Radius;
+                                hitZ = hb.Z + dz * invDist * hb.Radius;
+                            }
+                            else
+                            {
+                                hitX = hb.X;
+                                hitY = hb.Y;
+                                hitZ = hb.Z;
                             }
                         }
+                    }
 
-                        if (hit && entity.ShieldSurface && !shieldSweep)
-                            ShieldSurfaceContact(in hb, in entity, prevX, prevY, prevZ,
-                                dist, dx, dy, dz, out hitX, out hitY, out hitZ);
+                    if (hit && entity.ShieldSurface && !shieldSweep)
+                        ShieldSurfaceContact(in hb, in entity, prevX, prevY, prevZ,
+                            dist, dx, dy, dz, out hitX, out hitY, out hitZ);
 
-                        if (hit)
+                    if (hit)
+                    {
+                        // One-hit-per-opponent: skip entities this hitbox already tagged.
+                        if (hb.HitsMultipleOpponents && hb.HitEntities!.Contains(entity.Id))
+                            continue;
+
+                        // Calculate knockback direction (normalized, no force multiplier)
+                        float dirXNorm = dist > 0.001f ? (dx / dist) : 0f;
+                        float dirZNorm = dist > 0.001f ? (dz / dist) : 0f;
+
+                        // Adaptive auto-angle: derive the launch pitch from the hitbox→victim
+                        // displacement instead of a fixed constant. dx/dz are the horizontal
+                        // hitbox→victim vector; the vertical reference is the victim's hurtbox
+                        // CENTER (midpoint of its capsule), matching Melee's 361° auto-angle —
+                        // a grounded victim sends flat, an airborne one pops.
+                        sbyte launchAngle = hb.KnockbackAngle;
+                        if (launchAngle == KnockbackData.AdaptiveAngle)
                         {
-                            // One-hit-per-opponent: skip entities this hitbox already tagged.
-                            if (hb.HitsMultipleOpponents && hb.HitEntities!.Contains(entity.Id))
-                                continue;
-
-                            // Calculate knockback direction (normalized, no force multiplier)
-                            float dirXNorm = dist > 0.001f ? (dx / dist) : 0f;
-                            float dirZNorm = dist > 0.001f ? (dz / dist) : 0f;
-
-                            // Adaptive auto-angle: derive the launch pitch from the hitbox→victim
-                            // displacement instead of a fixed constant. dx/dz are the horizontal
-                            // hitbox→victim vector; the vertical reference is the victim's hurtbox
-                            // CENTER (midpoint of its capsule), matching Melee's 361° auto-angle —
-                            // a grounded victim sends flat, an airborne one pops.
-                            sbyte launchAngle = hb.KnockbackAngle;
-                            if (launchAngle == KnockbackData.AdaptiveAngle)
-                            {
-                                float refY = (entity.PosY + entity.EndY) * 0.5f;
-                                launchAngle = ComputeAdaptiveAngle(dx, refY - hb.Y, dz);
-                            }
-
-                            results.Add(new HitResult
-                            {
-                                TargetEntityId = entity.Id,
-                                OwnerEntityId = hb.OwnerId,
-                                AttackSlot = hb.AttackSlot,
-                                ActivationId = hb.ActivationId,
-                                Airborne = hb.ActivationAirborne,
-                                Damage = hb.Damage,
-                                AttackSequence = hb.AttackSequence,
-                                DirX = dirXNorm,
-                                KnockbackAngle = launchAngle,
-                                KnockbackDirection = hb.KnockbackDirection,
-                                FixedHitstunTicks = hb.FixedHitstunTicks,
-                                DirZ = dirZNorm,
-                                BaseKnockback = hb.BaseKnockback,
-                                KnockbackGrowth = hb.KnockbackGrowth,
-                                StunTicks = hb.StunTicks,
-                                FreezesOwner = hb.FreezesOwner,
-                                HitX = hitX,
-                                HitY = hitY,
-                                HitZ = hitZ,
-                            });
-
-                            hitThisTick.Add(entity.Id);
-                            if (hb.HitsMultipleOpponents)
-                            {
-                                hb.HitEntities!.Add(entity.Id);
-                                continue;   // tag every opponent once, expire at DurationTicks
-                            }
-                            if (isZone)
-                                continue;   // zone survives and keeps scanning other entities
-                            hb.Active = false; // one-hit per hitbox (projectiles)
-                            break;
+                            float refY = (entity.PosY + entity.EndY) * 0.5f;
+                            launchAngle = ComputeAdaptiveAngle(dx, refY - hb.Y, dz);
                         }
+
+                        results.Add(new HitResult
+                        {
+                            TargetEntityId = entity.Id,
+                            OwnerEntityId = hb.OwnerId,
+                            AttackSlot = hb.AttackSlot,
+                            ActivationId = hb.ActivationId,
+                            Airborne = hb.ActivationAirborne,
+                            Damage = hb.Damage,
+                            AttackSequence = hb.AttackSequence,
+                            DirX = dirXNorm,
+                            KnockbackAngle = launchAngle,
+                            KnockbackDirection = hb.KnockbackDirection,
+                            FixedHitstunTicks = hb.FixedHitstunTicks,
+                            DirZ = dirZNorm,
+                            BaseKnockback = hb.BaseKnockback,
+                            KnockbackGrowth = hb.KnockbackGrowth,
+                            StunTicks = hb.StunTicks,
+                            FreezesOwner = hb.FreezesOwner,
+                            HitX = hitX,
+                            HitY = hitY,
+                            HitZ = hitZ,
+                        });
+
+                        hitThisTick.Add(entity.Id);
+                        if (hb.HitsMultipleOpponents)
+                        {
+                            hb.HitEntities!.Add(entity.Id);
+                            continue;   // tag every opponent once, expire at DurationTicks
+                        }
+                        hb.Active = false; // one-hit per hitbox (projectiles)
+                        break;
                     }
                 }
 

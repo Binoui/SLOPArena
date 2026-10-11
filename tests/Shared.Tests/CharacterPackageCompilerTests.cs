@@ -260,37 +260,85 @@ public sealed class CharacterPackageCompilerTests
         Assert.Equal("anim.fightguy.slide", runtime.SlideAnim);
     }
     [Fact]
-    public void StageTargetingMetadata_SurvivesCompileAndRemainsDeterministic()
+    public void StageAttackRange_SurvivesCompileAndRemainsDeterministic()
     {
         CharacterCompileResult result = CompileCharacter(character =>
         {
             character["slots"]![0]!["allowSlideCarry"] = false;
             var stage = (JsonObject)character["slots"]![0]!["timeline"]!["stages"]![0]!;
             stage["attackRange"] = 3.5;
-            stage["warpRange"] = 4.25;
-            stage["useTargetLock"] = false;
-            stage["rotateTowardTarget"] = true;
-            stage["trackingStrength"] = 0.4;
         });
         Assert.NotNull(result.CookedPackage);
         var stageResult = result.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.1").Timeline.Stages.Single();
         Assert.Equal(3.5f, stageResult.AttackRange);
-        Assert.Equal(4.25f, stageResult.WarpRange);
+        Assert.Equal(0f, stageResult.WarpRange);
         Assert.False(stageResult.UseTargetLock);
-        Assert.True(stageResult.RotateTowardTarget);
-        Assert.Equal(0.4f, stageResult.TrackingStrength);
+        Assert.False(stageResult.RotateTowardTarget);
+        Assert.Equal(0f, stageResult.TrackingStrength);
 
         CharacterCompileResult repeated = CompileCharacter(character =>
         {
             character["slots"]![0]!["allowSlideCarry"] = false;
             var stage = (JsonObject)character["slots"]![0]!["timeline"]!["stages"]![0]!;
             stage["attackRange"] = 3.5;
-            stage["warpRange"] = 4.25;
-            stage["useTargetLock"] = false;
-            stage["rotateTowardTarget"] = true;
-            stage["trackingStrength"] = 0.4;
         });
         Assert.Equal(result.CookedPackage.CanonicalBytes, repeated.CookedPackage!.CanonicalBytes);
+    }
+
+    [Theory]
+    [InlineData("warpRange", "4.25")]
+    [InlineData("useTargetLock", "true")]
+    [InlineData("rotateTowardTarget", "true")]
+    [InlineData("trackingStrength", "0.4")]
+    public void RetiredStageTargeting_IsRejected(string field, string value)
+    {
+        var result = CompileCharacter(character =>
+        {
+            character["slots"]![0]!["timeline"]!["stages"]![0]![field] = JsonNode.Parse(value);
+        });
+        AssertError(result, "timeline.targeting.retired");
+    }
+
+    [Fact]
+    public void CookedBoneGeometryAgreesAcrossProjectionRuntimeAndCpuReach()
+    {
+        var compiled = CompileCharacter(character =>
+        {
+            character["hurtboxBoneDefs"]![1]!["boneId"] = "bone.spine";
+            var operations = character["slots"]![0]!["timeline"]!["stages"]![0]!["operations"]!.AsArray();
+            var hit = operations.Single(op => op!["kind"]!.GetValue<string>() == "spawnHitbox")!["hitbox"]!;
+            hit["startBoneId"] = "bone.spine";
+            hit["endBoneId"] = "bone.left-hand";
+        });
+        Assert.NotNull(compiled.CookedPackage);
+        var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
+        var slot = def.GetCookedSlotAbility(AbilitySlots.Slot1, false)!;
+        var authored = slot.Timeline.Stages[0].Operations.OfType<CookedSpawnHitboxOperation>().Single();
+        var projected = Assert.Single(def.Slot1!.Stages[0].HitboxEvents);
+        Assert.Equal("mixamorig:Spine2", projected.BoneName);
+        Assert.Equal("mixamorig:LeftHand", projected.EndBoneName);
+        var baked = new BakedAnimationData
+        {
+            BoneNames = new[] { "mixamorig:Spine2", "mixamorig:LeftHand" },
+            Animations = new[]
+            {
+                new BakedAnimationData.BakedAnim
+                {
+                    Name = slot.Timeline.Stages[0].AnimationIds.Single(), FrameCount = 1,
+                    Frames = new[] { new[] { 0f, 0f, 4f, 0f, 0f, 6f } },
+                },
+            },
+        };
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) }, baked);
+        sim.ActivateAbility(1, new SlopArena.Shared.Abilities.CookedTimelineAbility(slot, def.Slot1.AnimationNames!), 2, def);
+        for (int tick = 0; tick < authored.Tick; tick++)
+            sim.TickAbilities(new());
+
+        var hitbox = Assert.Single(sim.Resolver.GetActiveHitboxes());
+        TestHelpers.AssertNear(4f * def.HurtboxBoneScale + authored.Hitbox.OffsetZ, hitbox.Z);
+        TestHelpers.AssertNear(6f * def.HurtboxBoneScale + authored.Hitbox.EndOffsetZ, hitbox.EndZ);
+        Assert.True(SlopArena.Shared.AI.HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, false, baked) >= hitbox.EndZ);
     }
     [Fact]
     public void Wibou_Package_CooksCanonicalSlotsAttachmentsSpreadAndChargePool()

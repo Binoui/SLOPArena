@@ -1,4 +1,4 @@
-> ⚠️ **DEPRECATED / SUPERSEDED** — Contents are stale. Superseded. Its `Scripts/Combat/TargetLockSystem.cs` does not exist; warp/soft-lock lives in `ServerSimulation.ProcessTargetLock` + `Simulation.ProcessWarp` with `AttackRange`/`WarpRange` on `AttackStage` (`src/Shared/AttackData.cs`). See `docs/systems/combat-systems.md` and `docs/systems/hitbox-system.md`.
+> ⚠️ **DEPRECATED / SUPERSEDED** — Contents are historical. Its `Scripts/Combat/TargetLockSystem.cs` does not exist, and the dormant automatic warp and per-stage tracking runtime was deleted in the 2026-10-11 simulation cleanup. Current target lock remains in `ServerSimulation.ProcessTargetLock`. See [Combat Systems](combat-systems.md) and [Ability Architecture](ability-architecture.md).
 
 # Range-Based Combat System
 

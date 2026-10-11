@@ -67,6 +67,9 @@ namespace SlopArena.Shared
 
         public bool Active;
 
+        /// <summary>Melee windows are removed on interruption; launched projectiles keep travelling.</summary>
+        public bool CancelWithAbility;
+
         /// <summary>
         /// Gravity applied each tick (m/s²). 0 = no gravity (default for melee hitboxes).
         /// </summary>
@@ -81,17 +84,9 @@ namespace SlopArena.Shared
         /// <summary>If true, this hitbox can hit the entity that spawned it.</summary>
         public bool CanHitOwner;
 
-        /// <summary>If true, this hit freezes the owner too (melee contact, ADR-0012). Projectiles, zones, and explosions leave false — the receiver freezes alone (ADR-0012).</summary>
+        /// <summary>If true, this hit freezes the owner too (melee contact). Projectiles and explosions freeze the receiver alone.</summary>
         public bool FreezesOwner;
 
-        /// <summary>
-        /// 0 = one-hit-then-die (projectiles). &gt; 0 = lingering zone: tests collisions
-        /// only when AgeTicks % RehitIntervalTicks == 0, hits every overlapping entity on
-        /// that pulse, and survives until DurationTicks expires.
-        /// The expiry path is unchanged, so a zone carrying an Explosion still queues it once
-        /// when the zone times out — leave Explosion null if the zone should not burst on death.
-        /// </summary>
-        public ushort RehitIntervalTicks;
         /// <summary>
         /// True = hit each opponent once and persist until the window expires (Melee-style
         /// melee hitboxes). False = die on first contact (projectiles). Uses HitEntities.
@@ -105,17 +100,6 @@ namespace SlopArena.Shared
         /// </summary>
         public HashSet<ulong>? HitEntities;
 
-        /// <summary>
-        /// If true this hitbox never scans bodies: no HitResult, no damage, no knockback, and
-        /// crucially no <c>Active = false</c> on contact, so it keeps travelling and still
-        /// reaches <see cref="SpellResolver.CheckGroundCollision"/>. For a projectile whose
-        /// payload is its <see cref="Explosion"/> rather than its impact, the
-        /// default one-hit behaviour would otherwise strand the explosion at the pre-move
-        /// mid-air position and hand the clipped entity a free ability-cancel via
-        /// <c>ApplyKnockback</c>'s zero-magnitude else branch.
-        /// Aging, expiry, explosion queueing and ground collision are all unaffected.
-        /// </summary>
-        public bool IgnoresEntities;
 
         /// <summary>True = owner-following melee hitbox; resolves bone or root-relative offsets each tick.</summary>
         public bool TracksBone;

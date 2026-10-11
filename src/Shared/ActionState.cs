@@ -9,7 +9,7 @@ namespace SlopArena.Shared
         Attacking = 4,
         // Wire code 5 is reserved.
         JumpSquat = 6,
-        Warping = 7,
+        Warping = 7, // Reserved retired state; keep the numeric wire value.
         /// <summary>Hold-to-aim phase (Wibou E): ability active, movement unlocked, jump/dash blocked.</summary>
         Aiming = 8,
         Run = 9,

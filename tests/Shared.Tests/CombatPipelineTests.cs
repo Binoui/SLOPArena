@@ -213,7 +213,7 @@ public class CombatPipelineTests
             Radius = 1f, Shape = HitboxShape.Sphere,
             Damage = 0f, BaseKnockback = 10f, KnockbackGrowth = 0f,
             KnockbackAngle = 45, StunTicks = 20, DurationTicks = 1,
-            OwnerId = 1, RehitIntervalTicks = 0,
+            OwnerId = 1,
         });
 
         sim.Tick(new()

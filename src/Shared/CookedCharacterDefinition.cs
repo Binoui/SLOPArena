@@ -263,6 +263,7 @@ public sealed class CookedStage
     public ushort AutoCancelBeforeTicks { get; }
     public ushort AutoCancelAfterTicks { get; }
     public float AttackRange { get; }
+    /// <summary>Reserved cooked targeting fields. Only zero/false is admitted by this runtime.</summary>
     public float WarpRange { get; }
     public bool UseTargetLock { get; }
     public bool RotateTowardTarget { get; }

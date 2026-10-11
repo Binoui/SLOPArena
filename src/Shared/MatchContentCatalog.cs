@@ -67,7 +67,7 @@ public sealed class MatchContentEntry
         LegacySelector = legacySelector;
         Identity = identity ?? throw new ArgumentNullException(nameof(identity));
         DisplayName = displayName ?? throw new ArgumentNullException(nameof(displayName));
-        Definition = MatchContentInternals.CloneDefinition(definition ?? throw new ArgumentNullException(nameof(definition)));
+        Definition = (definition ?? throw new ArgumentNullException(nameof(definition))).DeepClone();
         BakedAnimation = MatchContentInternals.CloneBaked(bakedAnimation);
         CookedCharacterPackage = cookedCharacterPackage;
     }
@@ -117,12 +117,12 @@ public sealed class MatchContentCatalogBuilder
         if (manifest.SchemaVersion != BuiltInRosterManifest.CurrentSchemaVersion)
             diagnostics.Add(Error("catalog.manifest.schema", "manifest.schemaVersion", "Unsupported roster manifest schema."));
         ValidateManifest(manifest, diagnostics);
-        var byPackage = new Dictionary<string, MatchContentEntry>(StringComparer.Ordinal);
+        var byPackage = new Dictionary<string, (BuiltInRosterEntry Roster, CookedCharacterPackageLoadResult Loaded)>(StringComparer.Ordinal);
         var bySelector = new HashSet<CharacterClass>();
         foreach (var roster in manifest.Entries)
         {
             if (!bySelector.Add(roster.Selector)) diagnostics.Add(Error("catalog.selector.duplicate", roster.Selector.ToString(), "Duplicate roster selector."));
-            if (!IsStablePackageId(roster.PackageId) || !byPackage.TryAdd(roster.PackageId, null!))
+            if (!IsStablePackageId(roster.PackageId) || !byPackage.TryAdd(roster.PackageId, default))
             {
                 if (byPackage.ContainsKey(roster.PackageId)) diagnostics.Add(Error("catalog.package.duplicate", roster.PackageId, "Duplicate package ID."));
                 continue;
@@ -134,15 +134,17 @@ public sealed class MatchContentCatalogBuilder
                 continue;
             }
             if (!IdentityMatches(roster.Requirement, loaded.Identity, roster.PackageId, diagnostics)) continue;
-            byPackage[roster.PackageId] = new MatchContentEntry(new ContentHandle(1), roster.Selector, loaded.Identity, loaded.Package.Definition.DisplayName, loaded.ToCharacterDefinition(roster.Selector), loaded.BakedAnimation, loaded.Package);
+            byPackage[roster.PackageId] = (roster, loaded);
         }
         if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error)) return new(null, diagnostics);
-        var ordered = byPackage.Values.OrderBy(x => x.Identity.PackageId, StringComparer.Ordinal).ToList();
+        var ordered = byPackage.Values.OrderBy(x => x.Roster.PackageId, StringComparer.Ordinal).ToList();
         var entries = new List<MatchContentEntry>(ordered.Count);
         for (ushort i = 0; i < ordered.Count; i++)
         {
             var x = ordered[i];
-            entries.Add(new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.LegacySelector, x.Identity, x.DisplayName, x.Definition, x.BakedAnimation, x.CookedCharacterPackage));
+            entries.Add(new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.Roster.Selector,
+                x.Loaded.Identity, x.Loaded.Package!.Definition.DisplayName,
+                x.Loaded.ToCharacterDefinition(x.Roster.Selector), x.Loaded.BakedAnimation, x.Loaded.Package));
         }
         return new MatchContentCatalogBuildResult(new MatchContentCatalog(entries), diagnostics);
     }
@@ -237,44 +239,6 @@ public static class BuiltInRosterManifestCodec
 internal static class MatchContentInternals
 {
     public static string Sha256(byte[] bytes) { using var sha = SHA256.Create(); return string.Concat(sha.ComputeHash(bytes).Select(x => x.ToString("x2"))); }
-    public static CharacterDefinition CloneDefinition(CharacterDefinition source)
-    {
-        string json = CharacterContentSerializer.Serialize(source.Class.ToString().ToLowerInvariant(), source);
-        var clone = CharacterContentSerializer.Load(json);
-        clone.CaptureGeometry = source.CaptureGeometry;
-        if (source.CookedSlots != null)
-            clone.CookedSlots = new ReadOnlyCollection<CookedSlotDefinition>(new List<CookedSlotDefinition>(source.CookedSlots));
-        for (int i = 0; i < AbilitySlots.Count; i++)
-        {
-            CopyAbility(source.GetSlotAbility(i), clone.GetSlotAbility(i));
-            CopyAbility(source.GetSlotAbility(i, true), clone.GetSlotAbility(i, true));
-        }
-        return clone;
-    }
-
-    private static void CopyAbility(AbilitySpec? source, AbilitySpec? target)
-    {
-        if (source == null || target == null) return;
-        target.AimMovement = source.AimMovement;
-        target.ChargeHoldTicks = source.ChargeHoldTicks;
-        target.AnimSpeed = source.AnimSpeed;
-        target.SpecialEffectKeys = source.SpecialEffectKeys == null ? null : (string[])source.SpecialEffectKeys.Clone();
-        target.AnimationNames = source.AnimationNames == null ? null : (string[])source.AnimationNames.Clone();
-        target.BoneTrails = source.BoneTrails == null ? null : (BoneTrailDef[])source.BoneTrails.Clone();
-        target.Stages = CloneStages(source.Stages);
-        target.ChargedStages = source.ChargedStages == null ? null : CloneStages(source.ChargedStages);
-    }
-
-    private static AttackStage[] CloneStages(AttackStage[] source)
-    {
-        var copy = (AttackStage[])source.Clone();
-        for (int i = 0; i < copy.Length; i++)
-        {
-            copy[i].HitboxEvents = source[i].HitboxEvents == null ? Array.Empty<HitboxEvent>() : (HitboxEvent[])source[i].HitboxEvents.Clone();
-            copy[i].BoneTrails = source[i].BoneTrails == null ? null : (BoneTrailDef[])source[i].BoneTrails.Clone();
-        }
-        return copy;
-    }
     public static BakedAnimationData? CloneBaked(BakedAnimationData? source)
     {
         if (source == null) return null;

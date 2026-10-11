@@ -43,7 +43,7 @@ public class FightGuyAbilityTests
     }
 
     [Fact]
-    public void FightGuyKiShot_HitDoesNotMarkTarget()
+    public void FightGuyKiShot_DamagesTargetOnce()
     {
         var sim = TestHelpers.MakeSim();
         var def = TestHelpers.FightGuyDef;
@@ -61,8 +61,6 @@ public class FightGuyAbilityTests
             sim.Tick(new() { { 1, default }, { 100, default } });
         var target = sim.GetState(100);
         Assert.Equal((ushort)6, target.DamagePercent);
-        Assert.Equal((byte)0, target.StatusFlags);
-        Assert.Equal((ushort)0, target.StatusRemainingTicks);
     }
 
     // ── R (FightGuyCycloneKick) ──
@@ -77,6 +75,28 @@ public class FightGuyAbilityTests
         var t0 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5), 1);
         Assert.Equal(ActionState.Attacking, t0.State);
         Assert.Equal((byte)5, t0.AttackSlot);
+    }
+
+    [Fact]
+    public void FightGuyCycloneKick_InterruptionClearsDynamicHitboxes()
+    {
+        var sim = TestHelpers.MakeSim();
+        var state = TestHelpers.PlayerState();
+        state.PY = GroundPY;
+        TestHelpers.RegisterPlayer(sim, TestHelpers.FightGuyDef, state);
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.R) } });
+        for (int tick = 0; tick < 30 && sim.Resolver.GetActiveHitboxes().Count == 0; tick++)
+            sim.Tick(new() { { 1, default } });
+        Assert.NotEmpty(sim.Resolver.GetActiveHitboxes());
+
+        state = sim.GetState(1);
+        state.State = ActionState.Hitstun;
+        state.HitstunTicks = 20;
+        sim.SetState(1, state);
+        sim.TickAbilities(new());
+
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        Assert.Equal(ActionState.Hitstun, sim.GetState(1).State);
     }
 
 
@@ -229,32 +249,6 @@ public class FightGuyAbilityTests
         Assert.True(punchContacts > 0, "the entry must connect with the punch flurry");
         Assert.Equal(1, kickContacts);
         Assert.True(launched, "only the foot finisher should launch the victim outward");
-    }
-
-    // ── Status ──
-
-    [Fact]
-    public void Status_TicksDownAndClears()
-    {
-        var s = new CharacterState { EntityId = 1, PX = 0, PY = 5f, PZ = 0, IsGrounded = false, State = ActionState.Idle, JumpsLeft = 2, AirDodgesLeft = 1, StatusFlags = (1 << 2), StatusRemainingTicks = 10 };
-        var sim = TestHelpers.MakeSim();
-        sim.RegisterEntity(1, TestHelpers.EngineDef, s);
-        for (int i = 0; i < 10; i++) TestHelpers.TickDefault(sim, 1);
-        var a = sim.GetState(1);
-        Assert.Equal(0u, a.StatusRemainingTicks);
-        Assert.Equal((byte)0, a.StatusFlags);
-    }
-
-    [Fact]
-    public void StatusFlags_DoesNotClearPrematurely()
-    {
-        var s = new CharacterState { EntityId = 1, PX = 0, PY = 5f, PZ = 0, IsGrounded = false, State = ActionState.Idle, JumpsLeft = 2, AirDodgesLeft = 1, StatusFlags = (1 << 2), StatusRemainingTicks = 10 };
-        var sim = TestHelpers.MakeSim();
-        sim.RegisterEntity(1, TestHelpers.EngineDef, s);
-        for (int i = 0; i < 5; i++) TestHelpers.TickDefault(sim, 1);
-        var a = sim.GetState(1);
-        Assert.Equal(5u, a.StatusRemainingTicks);
-        Assert.Equal((byte)(1 << 2), a.StatusFlags);
     }
 
     // ── Bone-attached hitbox ──

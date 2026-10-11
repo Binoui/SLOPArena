@@ -2,13 +2,6 @@ using System.Collections.Generic;
 
 namespace SlopArena.Shared
 {
-    /// <summary>
-    /// Pure C# ability specification — the single source of truth for an ability.
-    /// Instantiated directly in legacy character snapshots or projected from cooked packages.
-    ///
-    /// The server reads Stages/HitboxEvents/CooldownTicks from this.
-    /// The client wraps this in an Ability subclass for input/indicators.
-    /// </summary>
     public enum AimMode : byte
     {
         None,            // No aim input; camera free, cursor locked
@@ -47,6 +40,10 @@ namespace SlopArena.Shared
         public float R, G, B, A;
     }
 
+    /// <summary>
+    /// Compatibility projection for ability input, presentation, and pose geometry.
+    /// Admitted gameplay executes the cooked timeline and its typed capabilities.
+    /// </summary>
     public class AbilitySpec
     {
         public AbilityBehavior Behavior = AbilityBehavior.MeleeCombo;
@@ -65,11 +62,6 @@ namespace SlopArena.Shared
         public string Description = "";
         /// <summary>Resource filename (without extension) under Resources/Icons/{CharacterClass}/. Null/empty = no icon.</summary>
         public string? IconName;
-        /// <summary>
-        /// DEPRECATED: No longer used since slot-based mapping.
-        /// Factory now maps by (CharacterClass, slot) instead of global typeId.
-        /// </summary>
-        public byte AbilityTypeId;
         /// <summary>0 = no cooldown</summary>
         public ushort CooldownTicks;
         /// <summary>
@@ -87,12 +79,7 @@ namespace SlopArena.Shared
         /// flag — momentum-preserve is an aerial property.
         /// </summary>
         public bool PreserveMomentumOnStart;
-        public AttackStage[] Stages;
-        /// <summary>Hold-to-charge variant. Triggers after ChargeHoldTicks.</summary>
-        public AttackStage[]? ChargedStages;
-        public ushort ChargeHoldTicks;
-        /// <summary>Special effects (hitbox spawning VFX, projectiles). Keys in AbilityRegistry.</summary>
-        public string[]? SpecialEffectKeys;
+        public AttackStage[] Stages = System.Array.Empty<AttackStage>();
         /// <summary>Animation name per combo stage.</summary>
         public string[]? AnimationNames;
         /// <summary>Optional bone trail VFX. Enabled during this ability's active period.</summary>
@@ -102,5 +89,20 @@ namespace SlopArena.Shared
         /// <summary>Named float parameters for server-side abilities (e.g., "backflip_damage").</summary>
         public Dictionary<string, float> Params = new();
 
+        internal AbilitySpec DeepClone()
+        {
+            var clone = (AbilitySpec)MemberwiseClone();
+            clone.Params = new Dictionary<string, float>(Params, Params.Comparer);
+            clone.AnimationNames = (string[]?)AnimationNames?.Clone();
+            clone.BoneTrails = (BoneTrailDef[]?)BoneTrails?.Clone();
+            clone.Stages = (AttackStage[])Stages.Clone();
+            for (int i = 0; i < clone.Stages.Length; i++)
+            {
+                clone.Stages[i].HitboxEvents = (HitboxEvent[]?)Stages[i].HitboxEvents?.Clone()
+                    ?? System.Array.Empty<HitboxEvent>();
+                clone.Stages[i].BoneTrails = (BoneTrailDef[]?)Stages[i].BoneTrails?.Clone();
+            }
+            return clone;
+        }
     }
 }

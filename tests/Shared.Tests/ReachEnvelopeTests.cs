@@ -16,17 +16,20 @@ public class ReachEnvelopeTests
     {
         var def = new CharacterDefinition
         {
-            Slot1 = new AbilitySpec
+            CookedSlots = new[]
             {
-                Stages = new[]
-                {
-                    new AttackStage
+                new CookedSlotDefinition(0, "ground.1", false, "reach", "", "",
+                    AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+                    new CookedTimeline(new[]
                     {
-                        DurationTicks = duration,
-                        LungeForce = lunge,
-                        HitboxEvents = new[] { new HitboxEvent { OffX = 2f, OffZ = offsetZ, Radius = radius } },
-                    },
-                },
+                        new CookedStage(duration, 0, 0, 0, 0, Array.Empty<string>(), new CookedTimelineOperation[]
+                        {
+                            new CookedForwardLungeOperation(0, AuthoringUnit.MetersPerSecond, lunge, 18),
+                            new CookedSpawnHitboxOperation(0, AuthoringUnit.Meters,
+                                new CookedHitbox(AuthoringHitboxShape.Sphere, radius,
+                                    2, 0, offsetZ, 0, 0, 0, null, null, 1, 0, 0, 0, 0, 1, true, 0)),
+                        }),
+                    })),
             },
         };
 
@@ -38,6 +41,19 @@ public class ReachEnvelopeTests
     {
         var def = new CharacterDefinition();
 
+        Assert.Equal(0f, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, airborne: false));
+    }
+
+    [Fact]
+    public void ForwardReach_UnadmittedLegacyMove_ReturnsZero()
+    {
+        var def = new CharacterDefinition
+        {
+            Slot1 = new AbilitySpec
+            {
+                Stages = new[] { new AttackStage { HitboxEvents = new[] { new HitboxEvent { OffZ = 10, Radius = 1 } } } },
+            },
+        };
         Assert.Equal(0f, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, airborne: false));
     }
 

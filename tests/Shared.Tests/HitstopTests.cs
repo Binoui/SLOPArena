@@ -16,7 +16,7 @@ namespace SlopArena.Shared.Tests;
 ///     hitstun) is deferred to freeze expiry.
 ///   - The attacker's ability ticks and AnimLockTicks/AttackElapsedTicks
 ///     pause symmetrically (no free combo extension).
-///   - Projectile/zone hits freeze the receiver only.
+///   - Projectile hits freeze the receiver only.
 ///
 /// Tick accounting: ResolveHits runs AFTER SimulateMovement within a tick, so
 /// a freeze set at the end of tick N is decremented on ticks N+1..N+F, the
@@ -40,32 +40,31 @@ public class HitstopTests
         Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4, null));
         Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4, null));
 
-        // Integration: a RehitIntervalTicks zone rehits the still-frozen victim —
-        // the second pulse applies a full fresh freeze.
+        // Separate hit windows can hit a still-frozen victim and refresh the full freeze.
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         var def = TestHelpers.EngineDef;
         var npc = TestHelpers.NpcState(0f, 2.2f);
         npc.PY = Gpy;
         sim.RegisterEntity(100, def, npc);
 
-        // Zone at the NPC, pulse every 3 ticks, damage 4 (F = 7, discounted 3).
-        sim.Resolver.Spawn(new Hitbox
+        var hitbox = new Hitbox
         {
             X = 0f, Y = Gpy, Z = 2.2f,
             Radius = 1.2f,
             Damage = 4f,
-            DurationTicks = 30,
-            RehitIntervalTicks = 3,
+            DurationTicks = 1,
             OwnerId = 0,
-        });
+        };
+        sim.Resolver.Spawn(hitbox);
 
-        sim.Tick(new() { { 100, default } });       // tick 1: first pulse (AgeTicks 0)
+        sim.Tick(new() { { 100, default } });       // tick 1: first contact
         Assert.Equal((ushort)7, sim.GetState(100).HitstopTicks);
         sim.Tick(new() { { 100, default } });       // tick 2
         Assert.Equal((ushort)6, sim.GetState(100).HitstopTicks);
         sim.Tick(new() { { 100, default } });       // tick 3
         Assert.Equal((ushort)5, sim.GetState(100).HitstopTicks);
-        sim.Tick(new() { { 100, default } });       // tick 4: second pulse (AgeTicks 3) — still frozen → full fresh freeze
+        sim.Resolver.Spawn(hitbox);
+        sim.Tick(new() { { 100, default } });       // tick 4: next hit while frozen
         Assert.Equal((ushort)7, sim.GetState(100).HitstopTicks);
     }
 

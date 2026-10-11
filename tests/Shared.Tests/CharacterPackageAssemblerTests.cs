@@ -159,6 +159,31 @@ public sealed class CharacterPackageAssemblerTests
         Assert.Contains(loaded.Diagnostics, x => x.Code == "package.compatibility.unsupported");
         Assert.Null(loaded.Package);
     }
+
+    [Theory]
+    [InlineData("warpRange", "4.25")]
+    [InlineData("useTargetLock", "true")]
+    [InlineData("rotateTowardTarget", "true")]
+    [InlineData("trackingStrength", "0.4")]
+    public void CookedLoader_RejectsRetiredTargetingInVerifiedPayload(string field, string value)
+    {
+        var package = Compile();
+        var runtime = JsonNode.Parse(Encoding.UTF8.GetString(package.CanonicalBytes))!;
+        runtime["character"]!["slots"]![0]!["timeline"]!["stages"]![0]![field] = JsonNode.Parse(value);
+        var modified = new CookedCharacterPackage(package.Metadata, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var assembled = CharacterPackageAssembler.Assemble(BuildInput(modified,
+            Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements,
+            Array.Empty<CharacterDiagnostic>()));
+        Assert.True(assembled.IsValid, string.Join("; ", assembled.Diagnostics.Select(x => x.Message)));
+
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembled);
+
+        Assert.False(loaded.IsValid);
+        Assert.Null(loaded.Package);
+        Assert.Contains(loaded.Diagnostics, diagnostic => diagnostic.Code == "package.targeting.retired");
+    }
+
     [Fact]
     public void Verify_RejectsMissingExtraAndTamperedPayloads()
     {

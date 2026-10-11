@@ -94,7 +94,7 @@ operations. Define damage, hitboxes, recovery, movement, and capability values o
 approved kit specification.
 
 `allowSlideCarry` defaults false. Only grounded normals 1–4 may opt in, without aiming,
-recovery designation, positive warp range, SetVelocity, ForwardLunge, SetAimState or
+recovery designation, SetVelocity, ForwardLunge, SetAimState or
 StartCapability operations. Conflicts fail compilation with
 `slot.slide-carry.motion-conflict`; aliases inherit the resolved target value.
 

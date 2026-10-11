@@ -94,6 +94,11 @@ public static class CookedCharacterPackageLoader
                     d.Add(Error("package.capability.unsupported", c.CapabilityId, "Cooked capability is not supported by this runtime."));
             }
             var package=RuntimeParser.Parse(copied[CharacterPackageAssembler.RuntimePath]);
+            foreach (var slot in package.Definition.Slots)
+            foreach (var stage in slot.Timeline.Stages)
+                if (stage.WarpRange != 0f || stage.UseTargetLock || stage.RotateTowardTarget || stage.TrackingStrength != 0f)
+                    d.Add(Error("package.targeting.retired", slot.Id,
+                        "Cooked automatic warp and per-stage target tracking are retired."));
             ValidateCapabilityOperations(package.Definition, d);
             ValidateChargedDirectionalDashes(package.Definition, m.RuntimeApiMin, d);
             ValidateArmorAndFixedHitstun(package.Definition, m.RuntimeApiMin, d);
