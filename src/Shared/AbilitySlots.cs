@@ -30,8 +30,5 @@ namespace SlopArena.Shared
         /// <summary>Number of move slots (0-10 slot indices, ActiveSlot values 1-11).</summary>
         public const int Count = 11;
 
-        /// <summary>Slot count supported by the HUD cooldown bars (slots 0-5 — the six
-        /// currently-data-bearing slots; expanded when the kit tickets add moves to 6-10).</summary>
-        public const int HudSlotCount = 6;
     }
 }

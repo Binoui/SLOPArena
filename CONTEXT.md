@@ -42,15 +42,15 @@ A per-entity bool (client-side) tracking whether the JumpArc clip is currently p
 _Avoid_: isAscending, wasAscending, jump state
 
 **Warp**:
-~~Deprecated — removed by ADR-0015 (timing-model pivot).~~ The auto-dash during attack initiation that moved the entity toward the target at SprintSpeed. Machinery remains dormant in code (re-enable = set `WarpRange > 0`); not part of the game.
+~~Deprecated — removed by ADR-0015 (timing-model pivot).~~ The auto-dash during attack initiation that moved the entity toward the target at SprintSpeed. Its dormant runtime machinery was deleted in the 2026-10-11 simulation cleanup. The compiler and cooked loader reject attempts to enable it.
 _Avoid_: (no longer used)
 
 **WarpRange**:
-~~Deprecated — ADR-0015.~~ The per-attack trigger distance for Warp. All stages now set 0.
+~~Deprecated — ADR-0015.~~ The per-attack trigger distance for Warp. The source/cooked field remains reserved at zero for content compatibility; it has no runtime behavior.
 _Avoid_: (no longer used)
 
 **WarpCone**:
-~~Deprecated — ADR-0015.~~ The 120° forward-facing cone within which Warp could target. Superseded by soft-lock + tracking rotation as the aim-assist.
+~~Deprecated — ADR-0015.~~ The 120° forward-facing cone within which Warp could target. Legacy stage tracking was also deleted; current aim correction belongs to its explicit cooked operation.
 _Avoid_: (no longer used)
 
 **ShortHop**:
@@ -290,7 +290,7 @@ An action whose movement can be reproduced from confirmed state and exact input 
 _Avoid_: safe state, simple state, movement state
 
 **Complex ActionState**:
-An action requiring private ability/resolver state or paired server authority. Attacking, Hitstun, Warping, LedgeHang, Grabbed and Throwing render from authoritative state; the self track uses a targeted barrier for confirmed capture or block contact instead of replaying through a coupled interval.
+An action requiring private ability/resolver state or paired server authority. Attacking, Hitstun, LedgeHang, Grabbed and Throwing render from authoritative state; the self track uses a targeted barrier for confirmed capture or block contact instead of replaying through a coupled interval. The retired `Warping` numeric value remains reserved for wire compatibility.
 _Avoid_: unsafe state, hard state, ability state
 
 

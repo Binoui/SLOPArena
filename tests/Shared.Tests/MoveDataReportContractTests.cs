@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using Xunit;
 using SlopArena.MoveDataReport;
 
@@ -61,14 +62,39 @@ public sealed class MoveDataReportContractTests
         var first = Build().Report;
         var second = Build().Report;
 
-        static string WithoutTimestamp(Program.ReportData report)
+        Assert.Equal(WithoutTimestamp(first), WithoutTimestamp(second));
+    }
+
+    [Fact]
+    public async Task DifferentProfilesProduceStableReportsWhenRunConcurrently()
+    {
+        static Program.ReportData BuildProfile(string profile)
         {
-            var node = JsonNode.Parse(Program.ToJson(report))!.AsObject();
-            node.Remove("generatedAt");
-            return node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            var def = TestHelpers.FightGuyDef;
+            var hit = Program.CollectHits(def).Single(h => !h.Slot.Air && h.Slot.Slot == 2 && h.HitIndex == 0);
+            return Program.BuildReport(def, new() { hit }, new[] { 0, 60 }, null, false, true,
+                combatTuning: TuningProfiles.Get(profile));
         }
 
-        Assert.Equal(WithoutTimestamp(first), WithoutTimestamp(second));
+        var baseline = BuildProfile("base");
+        var candidate = BuildProfile("floor30");
+        Assert.NotEqual(baseline.Moves[0].Trajectories[0].LaunchVelocityZ,
+            candidate.Moves[0].Trajectories[0].LaunchVelocityZ);
+        Assert.NotEqual(baseline.Moves[0].Trajectories[0].HitstunExpiryTick,
+            candidate.Moves[0].Trajectories[0].HitstunExpiryTick);
+        var concurrent = await Task.WhenAll(
+            Task.Run(() => BuildProfile("base")),
+            Task.Run(() => BuildProfile("floor30")));
+
+        Assert.Equal(WithoutTimestamp(baseline), WithoutTimestamp(concurrent[0]));
+        Assert.Equal(WithoutTimestamp(candidate), WithoutTimestamp(concurrent[1]));
+    }
+
+    private static string WithoutTimestamp(Program.ReportData report)
+    {
+        var node = JsonNode.Parse(Program.ToJson(report))!.AsObject();
+        node.Remove("generatedAt");
+        return node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
     [Fact]

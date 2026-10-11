@@ -67,6 +67,12 @@ require runtime API `1.3.0`; older supported content remains admitted.
 
 Authoring does not contain arbitrary branches, expressions, or transition predicates. Hold/release and other variable-duration behavior lives in bounded engine capabilities. Ground/air aliases are expanded by the compiler and do not exist as runtime dispatch rules.
 
+Legacy stage targeting fields remain reserved in source and cooked content:
+`warpRange` and `trackingStrength` must be zero, and `useTargetLock` and
+`rotateTowardTarget` must be false. Both compilation and cooked loading reject
+non-default values. Current target lock, startup aim correction, and authored
+lunge/dash/leap movement use their own supported mechanisms.
+
 `slop.ability.targeted-leap.v1` is a public, bounded stateful lifecycle:
 policy-controlled aim/release, clamped target-relative ballistic flight, no-landing
 timeout, and a landing-triggered pose seek, ordinary typed hitbox and recovery.
@@ -133,6 +139,17 @@ while its authored cooldown is pending.
 ## Interruption and lifecycle ownership
 
 The generic runtime owns interruption. Hitstun, death, Burst, a new ability, and simulation-owned overrides cancel active timelines/capabilities through the cancellation path. Natural completion uses the completion path. Both paths must deterministically clear or preserve the state they own; authored timelines must not rely on a cleanup branch that may never execute.
+
+`ServerSimulation` owns shared exit cleanup and cooldown application. Gameplay
+interruption removes activation-owned melee windows, clears armor, startup aim
+correction, and slide carry, and lets launched projectiles continue. Authoritative state replacement
+also removes the active activation's projectiles and discards cancellation callbacks'
+state writes so the incoming snapshot remains exact.
+
+Cooked hitboxes and semantic bone IDs pass through one runtime conversion shared
+by timeline execution, capability hitboxes, compatibility projection, and CPU reach.
+The projected `AbilitySpec` remains needed for input, presentation, and pose geometry.
+Capabilities such as Wibou E/F must not execute the projected hitbox events again.
 
 A presentation event contains stable match-tick/entity/operation identity. Clients resolve its semantic asset ID and deduplicate it across prediction and rollback. Presentation never feeds back into simulation.
 

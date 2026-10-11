@@ -116,8 +116,8 @@ public class KnockbackPhysicsDataTests
             Assert.True(f.Landed, $"{f.Profile}@{f.Percent}% never settled (flew off the 200x200 heightmap?)");
 
             float rawMag = (f.Base + f.Growth * (f.Percent * 0.01f + 1f)) * 200f / (Def.Weight + 100f);
-            // KbScaleFactor scales launch velocity only; hitstun derives from the raw magnitude.
-            TestHelpers.AssertNear(rawMag * Simulation.KbScaleFactor, f.LaunchSpeed, 0.01f);
+            // KnockbackScale scales launch velocity only; hitstun derives from the raw magnitude.
+            TestHelpers.AssertNear(rawMag * CombatTuning.Default.KnockbackScale, f.LaunchSpeed, 0.01f);
 
             // Hitstun = trunc(StunCoefficient · (3D magnitude + MagBonus)), same float path as
             // Simulation.ApplyKnockback (magnitude * cos/sin, then sqrt) — replicating it
@@ -127,7 +127,7 @@ public class KnockbackPhysicsDataTests
             float mag3 = MathF.Sqrt(MathF.Pow(rawMag * MathF.Cos(rad), 2f)
                 + MathF.Pow(rawMag * MathF.Sin(rad), 2f));
             int expectedHitstun = Math.Clamp(
-                (int)(Simulation.HitstunStunCoefficient * (mag3 + Simulation.HitstunMagBonus)), 1, ushort.MaxValue);
+                (int)(CombatTuning.Default.HitstunCoefficient * (mag3 + CombatTuning.Default.HitstunMagnitudeBonus)), 1, ushort.MaxValue);
             Assert.Equal(expectedHitstun, f.HitstunTicks);
 
             Assert.True(f.TotalDistance >= f.DistanceAtHitstunEnd - 0.01f,

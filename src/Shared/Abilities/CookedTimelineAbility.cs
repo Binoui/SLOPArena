@@ -331,15 +331,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             {
                 if (CurrentStage.Operations[i] is not CookedSpawnHitboxOperation hit) continue;
                 var cooked = hit.Hitbox;
-                var evt = new HitboxEvent
-                {
-                    Shape = cooked.Shape == AuthoringHitboxShape.Capsule ? HitboxShape.Capsule : HitboxShape.Sphere,
-                    Radius = cooked.Radius,
-                    OffX = cooked.OffsetX, OffY = cooked.OffsetY, OffZ = cooked.OffsetZ,
-                    EndOffX = cooked.EndOffsetX, EndOffY = cooked.EndOffsetY, EndOffZ = cooked.EndOffsetZ,
-                    BoneName = RuntimeBoneId(cooked.StartBoneId),
-                    EndBoneName = RuntimeBoneId(cooked.EndBoneId),
-                };
+                var evt = CookedCharacterRuntimeAdapter.ToHitboxEvent(cooked, hit.Tick);
                 // Cache the first swing's active poses relative to the lunge origin.
                 _lungeReach = new Hitbox[Math.Max(1, (int)cooked.DurationTicks)];
                 var pose = s;
@@ -394,36 +386,7 @@ public sealed class CookedTimelineAbility : ServerAbility
 
 
     private void SpawnCookedHitbox(ref CharacterState s, CookedHitbox cooked)
-    {
-        SpawnHitbox(ref s, new HitboxEvent
-        {
-            TriggerTick = _stageTick,
-            DurationTicks = cooked.DurationTicks,
-            Shape = cooked.Shape == AuthoringHitboxShape.Capsule ? HitboxShape.Capsule : HitboxShape.Sphere,
-            Radius = cooked.Radius,
-            OffX = cooked.OffsetX,
-            OffY = cooked.OffsetY,
-            OffZ = cooked.OffsetZ,
-            EndOffX = cooked.EndOffsetX,
-            EndOffY = cooked.EndOffsetY,
-            EndOffZ = cooked.EndOffsetZ,
-            BoneName = RuntimeBoneId(cooked.StartBoneId),
-            EndBoneName = RuntimeBoneId(cooked.EndBoneId),
-            Damage = cooked.Damage,
-            Knockback = new KnockbackData
-            {
-                Profile = KnockbackProfile.Custom,
-                Angle = (sbyte)cooked.Angle,
-                BaseKnockback = cooked.BaseKnockback,
-                KnockbackGrowth = cooked.KnockbackGrowth,
-            },
-            StunTicks = cooked.StunTicks,
-            FixedHitstunTicks = cooked.FixedHitstunTicks,
-            Interruptible = cooked.Interruptible,
-            HitGroup = cooked.HitGroup,
-            KnockbackDirection = cooked.KnockbackDirection,
-        });
-    }
+        => SpawnHitbox(ref s, CookedCharacterRuntimeAdapter.ToHitboxEvent(cooked, _stageTick));
 
     private void StartCapability(ref CharacterState s, CharacterDefinition def, CookedStartCapabilityOperation operation, int flattenedOperationIndex)
     {
@@ -483,18 +446,4 @@ public sealed class CookedTimelineAbility : ServerAbility
         }
         _capabilities.Clear();
     }
-    internal static string? RuntimeBoneId(string? value)
-        => value switch
-        {
-            "bone.head" => "mixamorig:Head",
-            "bone.hips" => "mixamorig:Hips",
-            "bone.spine" => "mixamorig:Spine2",
-            "bone.right-hand" => "mixamorig:RightHand",
-            "bone.left-hand" => "mixamorig:LeftHand",
-            "bone.right-foot" => "mixamorig:RightFoot",
-            "bone.left-foot" => "mixamorig:LeftFoot",
-            null => null,
-            _ => value,
-        };
-
 }

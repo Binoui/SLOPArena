@@ -296,6 +296,9 @@ public static class CharacterPackageCompiler
             if (stage.AttackRange < 0f) d.Error("value.out-of-range", $"character.slots[{index}].timeline.attackRange", "Attack range must be non-negative.");
             if (stage.WarpRange < 0f) d.Error("value.out-of-range", $"character.slots[{index}].timeline.warpRange", "Warp range must be non-negative.");
             if (stage.TrackingStrength < 0f || stage.TrackingStrength > 1f) d.Error("value.out-of-range", $"character.slots[{index}].timeline.trackingStrength", "Tracking strength must be between 0 and 1.");
+            if (stage.WarpRange != 0f || stage.UseTargetLock || stage.RotateTowardTarget || stage.TrackingStrength != 0f)
+                d.Error("timeline.targeting.retired", $"character.slots[{index}].timeline",
+                    "Automatic warp and per-stage target tracking are retired. Use authored movement and startup aim correction.");
             if (stage.Operations.Count > CookedBudget.MaxOperationsPerStage) d.Error("budget.exceeded", "character.slots[" + index + "].timeline", "Stage operation budget exceeded.");
             foreach (var lunge in stage.Operations.OfType<ForwardLungeOperationSource>()
                 .Where(operation => operation.StopInAttackRange))

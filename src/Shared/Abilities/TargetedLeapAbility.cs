@@ -156,34 +156,7 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         if (_hitboxSpawned)
             return;
         _hitboxSpawned = true;
-        var hitbox = _parameters.Hitbox;
-        SpawnHitbox(ref s, new HitboxEvent
-        {
-            Shape = hitbox.Shape == AuthoringHitboxShape.Capsule ? HitboxShape.Capsule : HitboxShape.Sphere,
-            Radius = hitbox.Radius,
-            OffX = hitbox.OffsetX,
-            OffY = hitbox.OffsetY,
-            OffZ = hitbox.OffsetZ,
-            EndOffX = hitbox.EndOffsetX,
-            EndOffY = hitbox.EndOffsetY,
-            EndOffZ = hitbox.EndOffsetZ,
-            BoneName = CookedTimelineAbility.RuntimeBoneId(hitbox.StartBoneId),
-            EndBoneName = CookedTimelineAbility.RuntimeBoneId(hitbox.EndBoneId),
-            Damage = hitbox.Damage,
-            Knockback = new KnockbackData
-            {
-                Profile = KnockbackProfile.Custom,
-                Angle = (sbyte)hitbox.Angle,
-                BaseKnockback = hitbox.BaseKnockback,
-                KnockbackGrowth = hitbox.KnockbackGrowth,
-            },
-            StunTicks = hitbox.StunTicks,
-            FixedHitstunTicks = hitbox.FixedHitstunTicks,
-            DurationTicks = hitbox.DurationTicks,
-            Interruptible = hitbox.Interruptible,
-            HitGroup = hitbox.HitGroup,
-            KnockbackDirection = hitbox.KnockbackDirection,
-        });
+        SpawnHitbox(ref s, CookedCharacterRuntimeAdapter.ToHitboxEvent(_parameters.Hitbox));
     }
 
     public override void OnEnd(ref CharacterState s)
@@ -204,7 +177,6 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         s.VX = 0f;
         s.VY = 0f;
         s.VZ = 0f;
-        Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);
         s.AttackSlot = 0;
         s.ComboStage = 0;
         s.AttackElapsedTicks = 0;

@@ -74,6 +74,7 @@ namespace SlopArena.Shared.Abilities
                 OwnerId = s.EntityId,
                 AttackSlot = (byte)(Slot + 1),
                 FreezesOwner = freezesOwner,
+                CancelWithAbility = true,
                 HitsMultipleOpponents = true,
                 HitEntities = _hitEntities,
             });

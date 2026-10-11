@@ -979,10 +979,7 @@ public sealed class HeuristicBotPolicy
     private bool IsChargePoolExhausted(in CharacterState state, byte slot, bool air)
     {
         var cooked = _profileDefinition!.GetCookedSlotAbility(slot, air);
-        var legacy = _profileDefinition.GetSlotAbility(slot - 1, air);
-        int maxCharges = cooked?.ChargePool?.MaxCharges
-            ?? (legacy?.Params != null && legacy.Params.TryGetValue("max_charges", out var max)
-                ? (int)max : 0);
+        int maxCharges = cooked?.ChargePool?.MaxCharges ?? 0;
         return maxCharges > 0 && state.ChargeStockSpent >= maxCharges;
     }
 
@@ -1015,7 +1012,7 @@ public sealed class HeuristicBotPolicy
                         case CookedSpawnHitboxOperation hitbox:
                             startup = Math.Min(startup, operationTick);
                             functional = true;
-                            var evt = ToHitboxEvent(hitbox.Hitbox, operationTick);
+                            var evt = CookedCharacterRuntimeAdapter.ToHitboxEvent(hitbox.Hitbox, operationTick);
                             float poseReach = PoseForwardReach(def, evt, activeSlot, airborne,
                                 animationNames, (byte)stageIndex, baked);
                             hitReach = MathF.Max(hitReach,
@@ -1076,7 +1073,7 @@ public sealed class HeuristicBotPolicy
                             {
                                 float distance = dash.GetDashDistance(AimHoldTicks);
                                 forwardTravel = MathF.Max(forwardTravel, distance);
-                                var finisher = ToHitboxEvent(dash.FinisherHitbox, dash.FinisherSeekTick);
+                                var finisher = CookedCharacterRuntimeAdapter.ToHitboxEvent(dash.FinisherHitbox, dash.FinisherSeekTick);
                                 hitReach = MathF.Max(hitReach, distance + PoseForwardReach(def, finisher,
                                     activeSlot, airborne, animationNames, (byte)stageIndex, baked));
                             }
@@ -1099,49 +1096,8 @@ public sealed class HeuristicBotPolicy
             return functional;
         }
 
-        var spec = def.GetSlotAbility(activeSlot - 1, airborne);
-        if (spec?.Stages is not { Length: > 0 })
-        {
-            candidate = default;
-            return false;
-        }
-
-        var legacyStage = spec.Stages[0];
-        bool legacyFunctional = legacyStage.HitboxEvents is { Length: > 0 }
-            || legacyStage.LungeForce != 0f
-            || legacyStage.MoveX != 0f || legacyStage.MoveY != 0f || legacyStage.MoveZ != 0f
-            || spec.SpecialEffectKeys is { Length: > 0 };
-        float legacyReach = 0f, legacyDamage = 0f;
-        if (legacyStage.HitboxEvents != null)
-            foreach (var evt in legacyStage.HitboxEvents)
-            {
-                legacyReach = MathF.Max(legacyReach,
-                    PoseForwardReach(def, evt, activeSlot, airborne,
-                        spec.AnimationNames ?? Array.Empty<string>(), 0, baked));
-                legacyDamage += MathF.Max(0f, evt.Damage);
-            }
-        float lungeDuration = spec.Params != null
-            && spec.Params.TryGetValue("lunge_duration", out var duration)
-                ? duration : legacyStage.DurationTicks;
-        float legacyMovement = legacyStage.LungeForce * MathF.Min(0.3f, lungeDuration / 60f)
-            + MathF.Sqrt(legacyStage.MoveX * legacyStage.MoveX + legacyStage.MoveZ * legacyStage.MoveZ)
-                * legacyStage.DurationTicks / 60f;
-        candidate = new MoveCandidate(activeSlot, legacyReach + MathF.Max(0f, legacyMovement),
-            legacyDamage, legacyFunctional, legacyDamage > 0f, legacyMovement != 0f,
-            spec.AimMode != AimMode.None || spec.Behavior is AbilityBehavior.AimedProjectile
-                or AbilityBehavior.DirectionalDash or AbilityBehavior.ChargeAttack,
-            spec.IsRecoveryMove, FirstHitTick(legacyStage),
-            commitmentTicks: legacyStage.DurationTicks);
-        return legacyFunctional;
-    }
-
-
-    private static ushort FirstHitTick(AttackStage stage)
-    {
-        if (stage.HitboxEvents is not { Length: > 0 }) return 0;
-        ushort first = ushort.MaxValue;
-        foreach (var evt in stage.HitboxEvents) first = Math.Min(first, evt.TriggerTick);
-        return first == ushort.MaxValue ? (ushort)0 : first;
+        candidate = default;
+        return false;
     }
 
     private static float PoseForwardReach(CharacterDefinition def, in HitboxEvent evt,
@@ -1156,28 +1112,6 @@ public sealed class HeuristicBotPolicy
         return MathF.Max(0f, reach);
     }
 
-    private static HitboxEvent ToHitboxEvent(CookedHitbox hitbox, int triggerTick)
-        => new()
-        {
-            Shape = hitbox.Shape == AuthoringHitboxShape.Capsule ? HitboxShape.Capsule : HitboxShape.Sphere,
-            Radius = hitbox.Radius,
-            OffX = hitbox.OffsetX,
-            OffY = hitbox.OffsetY,
-            OffZ = hitbox.OffsetZ,
-            EndOffX = hitbox.EndOffsetX,
-            EndOffY = hitbox.EndOffsetY,
-            EndOffZ = hitbox.EndOffsetZ,
-            BoneName = hitbox.StartBoneId,
-            EndBoneName = hitbox.EndBoneId,
-            TriggerTick = (ushort)Math.Clamp(triggerTick, 0, ushort.MaxValue),
-            DurationTicks = hitbox.DurationTicks,
-            Damage = hitbox.Damage,
-            FixedHitstunTicks = hitbox.FixedHitstunTicks,
-            StunTicks = hitbox.StunTicks,
-            Interruptible = hitbox.Interruptible,
-            HitGroup = hitbox.HitGroup,
-            KnockbackDirection = hitbox.KnockbackDirection,
-        };
     private static float DirectForwardReach(in HitboxEvent evt)
         => MathF.Max(evt.OffZ, evt.EndOffZ) + evt.Radius;
     private static bool IsSupportedCapability(CookedCapabilityParameters parameters)

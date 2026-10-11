@@ -65,7 +65,6 @@ public sealed class ShieldBlockTests
         float zOffset = 0f,
         bool freezesOwner = false,
         bool multipleOpponents = false,
-        ushort rehitInterval = 0,
         ushort duration = 20) => new()
     {
         X = defender.PX + xOffset,
@@ -87,7 +86,6 @@ public sealed class ShieldBlockTests
         AttackSlot = 1,
         FreezesOwner = freezesOwner,
         HitsMultipleOpponents = multipleOpponents,
-        RehitIntervalTicks = rehitInterval,
     };
 
     private static Dictionary<ulong, InputState> ShieldInput() => new()
@@ -127,7 +125,6 @@ public sealed class ShieldBlockTests
             blocked.BlockEventIdentity);
         Assert.Equal((ushort)5, defender.BlockStunTicks);
         Assert.Equal((ushort)437, defender.DamagePercent);
-        Assert.Equal((byte)0, defender.StatusFlags);
         Assert.Equal(0, hook.HitCalls);
         Assert.Equal((byte)1, ownerState.ChargeStockSpent);
         Assert.Equal(ActionState.Shielding, defender.State);
@@ -135,7 +132,6 @@ public sealed class ShieldBlockTests
         Assert.Equal(ServerSimulation.ComputeHitstopTicks(5f, def.GetSlotAbility(2, false)), blocked.HitstopTicks);
         Assert.Equal(blocked.HitstopTicks, defender.HitstopTicks);
         Assert.Equal(blocked.HitstopTicks, ownerState.HitstopTicks);
-        Assert.False(defender.QueuedKVOverride);
         Assert.Equal((ushort)0, defender.QueuedKBStun);
         Assert.False(defender.SdiApplied);
         Assert.InRange(defender.PX, 0.099f, 0.101f);
@@ -450,17 +446,20 @@ public sealed class ShieldBlockTests
     }
 
     [Fact]
-    public void ZoneBlocksOnlyOnItsAuthoredRehitCadence()
+    public void SeparateHitWindowsRefreshShieldContactAndFeedback()
     {
         var sim = CreateSimulation(out _);
         var defender = sim.GetState(DefenderId);
-        sim.Resolver.Spawn(Contact(
-            in defender, activationId: 202, rehitInterval: 3, duration: 7));
 
         var ticks = new List<uint>();
         var feedbackKeys = new List<PresentationEventKey>();
         for (int i = 0; i < 7; i++)
         {
+            if (i % 3 == 0)
+            {
+                defender = sim.GetState(DefenderId);
+                sim.Resolver.Spawn(Contact(in defender, activationId: 202, duration: 1));
+            }
             sim.Tick(ShieldInput());
             ticks.AddRange(sim.LastTickHits.Where(hit => hit.Blocked).Select(hit => hit.MatchTick));
             feedbackKeys.AddRange(sim.GetPresentationEvents(clear: true).Select(evt => evt.Key));
@@ -657,7 +656,6 @@ public sealed class ShieldBlockTests
         {
             HitCalls++;
             attacker.ChargeStockSpent = 0;
-            target.StatusFlags = byte.MaxValue;
             damage = 99f;
             knockbackForce = 99f;
         }

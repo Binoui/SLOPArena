@@ -1,4 +1,6 @@
 using System;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Xunit;
 using SlopArena.Shared.AI;
 
@@ -26,44 +28,46 @@ public class TuningProfileTests
         };
     }
 
-    private static MatchRecord Run(int seed, int maxTicks = 2000)
-        => SelfPlayMatch.Run(Def, KillArena(), seed, TestHelpers.LoadBakedData(Def), maxTicks);
+    private static MatchRecord Run(string profile, int seed = 20260817, int maxTicks = 1500)
+        => SelfPlayMatch.Run(Def, KillArena(), seed, TestHelpers.LoadBakedData(Def), maxTicks,
+            combatTuning: TuningProfiles.Get(profile));
 
-    /// <summary>Run under a profile and restore the base profile afterwards.</summary>
-    private static void WithProfile(string name, Action body)
-    {
-        TuningProfiles.Apply(name);
-        try { body(); }
-        finally { TuningProfiles.Apply("base"); }
-    }
-
+    private static string Trace(MatchRecord record)
+        => JsonSerializer.Serialize(record, new JsonSerializerOptions { IncludeFields = true });
 
     [Fact]
-    public void TryApplyUnknown_ReturnsFalse_AndDoesNotMutate()
+    public void UnknownProfileFailsWithoutChangingExistingTuning()
     {
-        TuningProfiles.Apply("base");
-        float before = Simulation.HitstunStunCoefficient;
-        Assert.False(TuningProfiles.TryApply("nope"));
-        Assert.Equal(before, Simulation.HitstunStunCoefficient);
-        Assert.Throws<ArgumentException>(() => TuningProfiles.Apply("nope"));
+        var candidate = TuningProfiles.Get("floor30");
+        Assert.False(TuningProfiles.TryGet("nope", out var fallback));
+        Assert.Same(CombatTuning.Default, fallback);
+        Assert.Same(candidate, TuningProfiles.Get("FLOOR30"));
+        Assert.Throws<ArgumentException>(() => TuningProfiles.Get("nope"));
+    }
+
+    [Theory]
+    [InlineData("base")]
+    [InlineData("floor30")]
+    public void SameSeed_SameProfile_ReproducesMatchBitForBit(string profile)
+    {
+        Assert.Equal(Trace(Run(profile)), Trace(Run(profile)));
     }
 
     [Fact]
-    public void SameSeed_SameProfile_ReproducesMatchBitForBit()
+    public async Task DifferentProfilesRunConcurrentlyWithoutChangingTheirTraces()
     {
-        WithProfile("base", () =>
-        {
-            var a = Run(20260817, maxTicks: 1500);
-            var b = Run(20260817, maxTicks: 1500);
+        var baseline = Run("base");
+        var candidate = Run("floor30");
+        Assert.NotEmpty(baseline.Hits);
+        Assert.NotEmpty(candidate.Hits);
+        Assert.NotEqual(Trace(baseline), Trace(candidate));
 
-            Assert.Equal(a.DurationTicks, b.DurationTicks);
-            Assert.Equal(a.WinnerEntityId, b.WinnerEntityId);
-            Assert.Equal(a.Entity1Deaths, b.Entity1Deaths);
-            Assert.Equal(a.Entity2Deaths, b.Entity2Deaths);
-            Assert.Equal(a.Swings.Count, b.Swings.Count);
-            Assert.Equal(a.Hits.Count, b.Hits.Count);
-            Assert.Equal(a.Combos.Select(c => c.Hits).ToArray(), b.Combos.Select(c => c.Hits).ToArray());
-        });
+        var concurrent = await Task.WhenAll(
+            Task.Run(() => Run("base")),
+            Task.Run(() => Run("floor30")));
+
+        Assert.Equal(Trace(baseline), Trace(concurrent[0]));
+        Assert.Equal(Trace(candidate), Trace(concurrent[1]));
     }
 
 }

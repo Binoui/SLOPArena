@@ -58,7 +58,7 @@ g1 Low Kick is FightGuy's combo hub (jab-jab, anti-air conversions, aerial links
 
 **Fixed tools excluded from the floor**: `ApplyKnockback(applyScale:false)`, `ApplyKnockbackForce`, and the `QueuedKVOverride` (OnHitEntity) path take `k·magnitude` WITHOUT `floorMag` — grabs/yanks are Melee's `weight_set_knockback` analog, and the floor made Nilus's yank over-pull (drag outliving the reel, carrying the victim through the caster).
 
-The tuning knobs live as statics (`Simulation.HitstunStunCoefficient`, `HitstunMagBonus`, `KbScaleFactor`) and are swept by the tool: `scripts/move-data.sh fightguy --truecombos --kbm <model>` (`base|old|stunx18|kv70|stun16kv11|floor30`).
+The tuning knobs originally lived as statics (`Simulation.HitstunStunCoefficient`, `HitstunMagBonus`, `KbScaleFactor`). Since 2026-10-11, profiles resolve to immutable `CombatTuning` owned by each simulation; the values and formulas are unchanged. The tool still selects profiles with `scripts/move-data.sh fightguy --truecombos --kbm <model>` (`base|old|stunx18|kv70|stun16kv11|floor30|melee|melee-hot|melee-soft`). See [Combat Systems](../systems/combat-systems.md#damage-and-hit-response) for the current API.
 
 ### 2b. Balance re-landing — melee-soft (2026-08-19, issue #149)
 

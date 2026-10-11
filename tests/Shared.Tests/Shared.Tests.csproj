@@ -26,9 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Serialize test collections: TuningProfileTests mutates the process-global sim KB
-         knobs (Simulation.HitstunStunCoefficient etc.), which races any parallel collection
-         reading them. The suite runs in ~1s either way. -->
+    <!-- Combat tuning is match-owned; collections can run concurrently. Bound worker count
+         so hosts with many cores do not start hundreds of content-loading tests at once. -->
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>

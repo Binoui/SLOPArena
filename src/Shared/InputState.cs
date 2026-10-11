@@ -62,7 +62,7 @@ namespace SlopArena.Shared
         /// <summary>Client's selected target entity ID (0=none). Computed from screen-center proximity.</summary>
         public byte TargetEntityId;
 
-        /// <summary>Warp target position (local-only, not networked).</summary>
+        /// <summary>Retired local warp metadata retained for recorded-input compatibility; ignored by gameplay.</summary>
         public float WarpTargetX, WarpTargetZ;
         public float WarpSpeed;
         public float WarpAttackRange;

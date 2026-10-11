@@ -207,6 +207,18 @@ launch appears when the window expires. Grabs bypass armor.
 
 Visual hit reactions, VFX, audio, and camera effects are presentation only. Damage and state transitions occur in Shared simulation.
 
+Each `ServerSimulation` owns immutable [CombatTuning](../../src/Shared/CombatTuning.cs).
+Shipped defaults are launch velocity ×0.17, hitstun coefficient 0.45, and magnitude
+bonus 0. Damage-formula hitstun uses unscaled magnitude plus the bonus; fixed-force
+launches omit the velocity scale and bonus. Immediate hits, launches deferred by
+Hitstop, and throws all use the owning simulation's settings.
+
+Diagnostic profiles resolve with `TuningProfiles.Get(name)` or `TryGet(name, out tuning)`;
+pass the result as `combatTuning` to `ServerSimulation`, `SelfPlayMatch.Run`, or
+`MoveDataReport.Program.BuildReport`. Profile lookup does not mutate global settings.
+Production and predicted simulations use `CombatTuning.Default`; lab profiles are
+local analysis inputs and are not negotiated by the match protocol.
+
 ## Duration locks and interruption
 
 A Duration Lock prevents action during an authored move commitment. The engine owns interruption:

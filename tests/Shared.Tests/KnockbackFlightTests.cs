@@ -180,9 +180,10 @@ public class KnockbackFlightTests
     {
         var state = Launch(45, 12f, 30, altitude: 10f);
         state.HitstopTicks = 6;
-        state.QueuedKVOverride = true;
-        state.QueuedKVY = state.KVY;
-        state.QueuedKVZ = state.KVZ;
+        state.QueuedKBResolvedForce = true;
+        state.QueuedKBDirZ = 1f;
+        state.QueuedKBAngle = 45;
+        state.QueuedKBForce = 12f;
         state.QueuedKBStun = 1;
         float launchY = state.PY;
         float impulse = state.KVY;

@@ -95,22 +95,6 @@ namespace SlopArena.Shared
         /// </summary>
         public float MoveX, MoveY, MoveZ;
 
-        /// <summary>Distance where auto-dash triggers (e.g., 12m)</summary>
-        public float AttackRange;
-        public float WarpRange;
-        /// <summary>
-        /// Warp drives the entity toward target at RunSpeed (constant velocity).
-        /// See Simulation.ProcessWarp for the implementation.
-        /// </summary>
-        public bool UseTargetLock;     // true = use soft lock system for this attack
-        /// <summary>
-        /// true = auto-rotate toward target during attack
-        /// </summary>
-        public bool RotateTowardTarget;
-        /// <summary>
-        /// 0-1: rotation lerp toward target per frame (0.8 = strong tracking)
-        /// </summary>
-        public float TrackingStrength;
         /// <summary>Optional bone trail VFX for this stage. If null, falls back to AbilitySpec.BoneTrails.</summary>
         public BoneTrailDef[]? BoneTrails;
     }
@@ -130,12 +114,6 @@ namespace SlopArena.Shared
         public ushort DurationTicks;
         /// <summary>If true, this explosion can hit its spawner (mine jump, etc.).</summary>
         public bool CanHitOwner;
-        /// <summary>
-        /// Propagated to Hitbox.RehitIntervalTicks.
-        /// 0 = normal one-hit explosion. &gt; 0 = the explosion becomes a lingering zone that
-        /// pulses every N ticks and survives contact until its DurationTicks expires.
-        /// </summary>
-        public ushort RehitIntervalTicks;
         /// <summary>Optional semantic presentation emitted when this explosion is spawned.</summary>
         public string ExplosionPresentationId;
         /// <summary>Attack sequence captured by the originating capability activation.</summary>

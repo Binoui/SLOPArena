@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 #nullable enable
 
@@ -98,6 +99,36 @@ namespace SlopArena.Shared
         {
             var clone = (CharacterDefinition)MemberwiseClone();
             clone.HurtboxBoneDefs = defs;
+            return clone;
+        }
+
+        /// <summary>Copy mutable match data while sharing immutable cooked values.</summary>
+        internal CharacterDefinition DeepClone()
+        {
+            var clone = (CharacterDefinition)MemberwiseClone();
+            clone.HurtboxCapsules = (HurtboxCapsule[]?)HurtboxCapsules?.Clone();
+            clone.HurtboxBoneDefs = (HurtboxBoneDef[]?)HurtboxBoneDefs?.Clone();
+            clone.ClipOverrides = (AnimationClipConfig[]?)ClipOverrides?.Clone();
+            clone.CookedSlots = CookedSlots == null ? null
+                : new ReadOnlyCollection<CookedSlotDefinition>(new List<CookedSlotDefinition>(CookedSlots));
+            clone.Slot1 = Slot1?.DeepClone();
+            clone.Slot2 = Slot2?.DeepClone();
+            clone.Slot3 = Slot3?.DeepClone();
+            clone.Slot4 = Slot4?.DeepClone();
+            clone.Slot5 = Slot5?.DeepClone();
+            clone.A = A?.DeepClone();
+            clone.E = E?.DeepClone();
+            clone.R = R?.DeepClone();
+            clone.F = F?.DeepClone();
+            clone.AirSlot1 = AirSlot1?.DeepClone();
+            clone.AirSlot2 = AirSlot2?.DeepClone();
+            clone.AirSlot3 = AirSlot3?.DeepClone();
+            clone.AirSlot4 = AirSlot4?.DeepClone();
+            clone.AirSlot5 = AirSlot5?.DeepClone();
+            clone.AirA = AirA?.DeepClone();
+            clone.AirE = AirE?.DeepClone();
+            clone.AirR = AirR?.DeepClone();
+            clone.AirF = AirF?.DeepClone();
             return clone;
         }
 

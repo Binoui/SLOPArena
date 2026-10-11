@@ -64,7 +64,7 @@ internal static class Program
             return 1;
         }
         foreach (var p in new[] { baseProfile, candProfile })
-            if (!TuningProfiles.TryApply(p))
+            if (!TuningProfiles.TryGet(p, out _))
             {
                 Console.Error.WriteLine($"unknown tuning profile '{p}' " +
                     $"(expected one of: {string.Join(", ", TuningProfiles.Profiles.Select(x => x.Name))})");
@@ -91,24 +91,21 @@ internal static class Program
         var hits = MoveData.CollectHits(def);
         var arena = SelfPlay.BuildKillArena();
 
-        // Both runs in one process, sim knobs switched between them. Same seed on both
-        // sides → match variance cancels; the diff isolates the tuning change.
-        TuningProfiles.Apply(baseProfile);
-        var baseMove = MoveData.BuildReport(def, hits, pcts, baked, graph, di);
+        // Independent immutable settings let both sides share a process without switching globals.
+        var baseTuning = TuningProfiles.Get(baseProfile);
+        var candTuning = TuningProfiles.Get(candProfile);
+        var baseMove = MoveData.BuildReport(def, hits, pcts, baked, graph, di, combatTuning: baseTuning);
         var baseRecords = new List<MatchRecord>(matches);
-        for (int m = 0; m < matches; m++) baseRecords.Add(SelfPlayMatch.Run(def, arena, seed + m, baked));
+        for (int m = 0; m < matches; m++) baseRecords.Add(SelfPlayMatch.Run(def, arena, seed + m, baked, combatTuning: baseTuning));
         var baseTelemetry = SelfPlay.Aggregate(entry, baseRecords, seed);
         Console.Error.WriteLine($"baseline {TuningProfiles.Describe(baseProfile)} — " +
             $"move report + {matches} matches (seed {seed}) done");
 
-        TuningProfiles.Apply(candProfile);
-        var candMove = MoveData.BuildReport(def, hits, pcts, baked, graph, di);
+        var candMove = MoveData.BuildReport(def, hits, pcts, baked, graph, di, combatTuning: candTuning);
         var candRecords = new List<MatchRecord>(matches);
-        for (int m = 0; m < matches; m++) candRecords.Add(SelfPlayMatch.Run(def, arena, seed + m, baked));
+        for (int m = 0; m < matches; m++) candRecords.Add(SelfPlayMatch.Run(def, arena, seed + m, baked, combatTuning: candTuning));
         var candTelemetry = SelfPlay.Aggregate(entry, candRecords, seed);
         Console.Error.WriteLine($"candidate {TuningProfiles.Describe(candProfile)} done");
-
-        TuningProfiles.Apply(baseProfile); // leave the shipped tuning in place
 
         // ── Structured diff (no physics re-run; deterministic) ──
         var baseTree = JsonNode.Parse(JsonSerializer.Serialize(baseMove, JsonOpts))!;
