@@ -21,6 +21,46 @@ public class CookedAimHoldTests
     private static InputState HoldInput(bool aiming, short aimYaw = 0, short aimPitch = 0, ushort aimDistance = 0)
         => new() { IsAiming = aiming, AimYaw = aimYaw, AimPitch = aimPitch, AimDistance = aimDistance };
 
+    [Theory]
+    [InlineData((ushort)3)]
+    [InlineData((ushort)17)]
+    public void Manki_Q_FiresAtCookedThrowTrigger(ushort triggerTick)
+    {
+        var def = TestHelpers.MankiDef;
+        var slots = def.CookedSlots!.ToArray();
+        var slot = slots[4]; // ground.A
+        var stage = slot.Timeline.Stages[0];
+        slots[4] = new CookedSlotDefinition(slot.Ordinal, slot.Id, slot.IsAir, slot.Name,
+            slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks,
+            slot.IsRecoveryMove, slot.PreserveMomentumOnStart, new CookedTimeline(new[]
+            {
+                new CookedStage(stage.DurationTicks, stage.IasaTicks, stage.LandingLagTicks,
+                    stage.AutoCancelBeforeTicks, stage.AutoCancelAfterTicks, stage.AnimationIds,
+                    stage.Operations.Select(op => op is CookedStartCapabilityOperation capability
+                        ? new CookedStartCapabilityOperation(capability.Tick, capability.Unit,
+                            capability.CapabilityId, capability.CapabilityVersion,
+                            ((CookedMankiRoundBombCapabilityParameters)capability.Parameters)
+                                with { ThrowTriggerTick = triggerTick })
+                        : op).ToArray()),
+            }), aimMovement: slot.AimMovement);
+        def.CookedSlots = slots;
+        var sim = MakeSim(def);
+        TestHelpers.TickHold(sim, new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true, AimDistance = 400 }, 10);
+        sim.Tick(new() { [1] = default });
+        Assert.Equal((ushort)0, sim.GetState(1).AttackElapsedTicks);
+
+        for (int tick = 1; tick < triggerTick; tick++)
+        {
+            sim.Tick(new() { [1] = default });
+            Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        }
+        sim.Tick(new() { [1] = default });
+
+        var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes());
+        Assert.Equal(AbilitySlots.A, bomb.AttackSlot);
+        Assert.True(bomb.Explosion.HasValue);
+    }
+
     [Fact]
     public void Manki_Q_HoldsWhileAiming_NoProjectileDuringHold()
     {

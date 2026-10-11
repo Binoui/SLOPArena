@@ -102,7 +102,6 @@ public class HitstunRehitAnimationTests
             StunTicks = stun,
             DurationTicks = 1,
             OwnerId = 0,
-            RehitIntervalTicks = 0,
         };
 
     private static void Tick(ServerSimulation sim, Tracker tracker)

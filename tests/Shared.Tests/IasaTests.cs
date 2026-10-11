@@ -549,4 +549,68 @@ public class IasaTests
         Assert.Empty(sim.LastTickHits);
     }
 
+    [Theory]
+    [InlineData("movement")]
+    [InlineData("ability")]
+    [InlineData("hitstun")]
+    [InlineData("shield")]
+    [InlineData("death")]
+    [InlineData("snapshot")]
+    public void CancellationClearsMeleeAndPreservesLaunchedProjectiles(string exit)
+    {
+        var def = MakeIasaHitboxDef();
+        var slots = def.CookedSlots!.ToArray();
+        slots[0] = TestSlot(0, "ground.1", Slot1Duration, Slot1Iasa,
+            slots[0].Timeline.Stages[0].Operations.Single(),
+            new CookedSpawnProjectileOperation(0, AuthoringUnit.MetersPerSecond,
+                new CookedProjectile(0, 4, 0, 10, 0, .2f, 5, 30, 2, 3, 10, 60)));
+        def.CookedSlots = slots;
+        var arena = TestHelpers.TestArena();
+        arena.KillTop = 20;
+        var sim = TestHelpers.MakeSim(arena);
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) });
+        TestHelpers.TickN(sim, TestHelpers.Input(AbilitySlots.Slot1), Slot1Iasa);
+        Assert.Equal(2, sim.Resolver.GetActiveHitboxes().Count);
+        var activationId = sim.GetLastActivationId(1);
+
+        switch (exit)
+        {
+            case "movement":
+                sim.Tick(new() { [1] = TestHelpers.Input(moveY: 1) });
+                break;
+            case "ability":
+                sim.Tick(new() { [1] = TestHelpers.Input(AbilitySlots.Slot2) });
+                Assert.NotEqual(activationId, sim.GetLastActivationId(1));
+                break;
+            case "shield":
+                sim.Tick(new() { [1] = new InputState { ShieldHeld = true } });
+                Assert.Equal(ActionState.Shielding, sim.GetState(1).State);
+                break;
+            case "hitstun":
+                sim.SetState(1, sim.GetState(1) with { State = ActionState.Hitstun, HitstunTicks = 20 });
+                sim.Tick(new());
+                break;
+            case "death":
+                sim.SetState(1, sim.GetState(1) with { PY = 25, IsGrounded = false });
+                sim.Tick(new());
+                Assert.Single(sim.LastTickDeaths);
+                break;
+            case "snapshot":
+                var snapshot = TestHelpers.PlayerState() with { PY = 5, State = ActionState.Hitstun, HitstunTicks = 20 };
+                sim.ApplyAuthoritativeState(1, snapshot);
+                Assert.Equal(snapshot, sim.GetState(1));
+                break;
+        }
+
+        if (exit == "snapshot")
+            Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        else
+        {
+            var projectile = Assert.Single(sim.Resolver.GetActiveHitboxes());
+            Assert.Equal(activationId, projectile.ActivationId);
+            Assert.Equal(5f, projectile.Damage);
+            Assert.False(projectile.CancelWithAbility);
+        }
+    }
+
 }

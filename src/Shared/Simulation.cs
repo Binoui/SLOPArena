@@ -199,8 +199,7 @@ namespace SlopArena.Shared
                 && !HasKnockback(s)
                 && s.State != ActionState.LedgeHang
                 && s.State != ActionState.JumpSquat
-                && !IsDefenseActionState(s.State)
-                && s.WarpSpeed <= 0f;
+                && !IsDefenseActionState(s.State);
 
 
             // Preserve the last committed aim when a neutral input omits aim data.
@@ -241,39 +240,7 @@ namespace SlopArena.Shared
                 if (s.HitstopTicks == 0)
                 {
                     bool queuedCrouchBrace = s.QueuedCrouchBrace;
-                    if (s.QueuedKVOverride)
-                    {
-                        // OnHitEntity rewrote the launch at connect (NetherGrasp yank):
-                        // restore the exact snapshot — KV was untouched during the freeze.
-                        s.KVX = s.QueuedKVX; s.KVY = s.QueuedKVY; s.KVZ = s.QueuedKVZ;
-                        float kvMag = MathF.Sqrt(
-                            (s.KVX * s.KVX) + (s.KVY * s.KVY) + (s.KVZ * s.KVZ));
-                        if (s.QueuedKBStun > 0 && kvMag > 0f)
-                        {
-                            // OnHitEntity rewrote the launch (NetherGrasp yank — a fixed
-                            // tool): like applyScale:false, it takes the stun coefficient
-                            // but NOT the +MagBonus launch floor, so yanks don't over-pull.
-                            s.HitstunTicks = (ushort)Math.Clamp(
-                                (int)(HitstunStunCoefficient * kvMag), 1, ushort.MaxValue);
-                            s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 :
-                                s.HitstunTicks <= 50 ? (byte)1 : (byte)2;
-                            s.State = ActionState.Hitstun;
-                        }
-                        else
-                        {
-                            s.HitstunTicks = 0;
-                            s.State = ActionState.Idle;
-                        }
-                        if (s.KVY > 0f) s.IsGrounded = false;
-                        s.AirTimeTicks = 0;
-                        s.DashDurationTicks = 0;
-                        s.AirDodgeRecoveryTicks = 0;
-                        s.StateTicks = 0;
-                        s.WasAirborneDuringKnockback = !s.IsGrounded;
-                        s.InPostHitstunFlight = false;
-                        ApplyFixedHitstun(ref s, s.QueuedKBFixedHitstunTicks, s.QueuedKBStunGate);
-                    }
-                    else if (s.QueuedKBResolvedForce)
+                    if (s.QueuedKBResolvedForce)
                     {
                         ApplyKnockbackForce(ref s, s.QueuedKBDirX, s.QueuedKBDirZ,
                             s.QueuedKBAngle, s.QueuedKBForce, s.QueuedKBStun);
@@ -297,10 +264,8 @@ namespace SlopArena.Shared
                     if (!s.QueuedArmorHitstop)
                         ApplyDirectionalInfluence(ref s);
                     s.SdiApplied = false;
-                    s.QueuedKVOverride = false;
                     s.QueuedKBZero = false;
                     s.QueuedCrouchBrace = false;
-                    s.QueuedKVX = 0f; s.QueuedKVY = 0f; s.QueuedKVZ = 0f;
                     s.QueuedKBDirX = 0f; s.QueuedKBDirZ = 0f; s.QueuedKBAngle = 0;
                     s.QueuedKBFixedHitstunTicks = 0;
                     s.QueuedKBStunGate = 0;
@@ -418,25 +383,10 @@ namespace SlopArena.Shared
             }
 
             bool wasLedgeHang = s.State == ActionState.LedgeHang;
-            // 4. Warp processing: velocity override during any state
-            if (s.WarpSpeed > 0f)
-            {
-                bool warpComplete = ProcessWarp(ref s, def, arena);
-                if (warpComplete)
-                {
-                    // Warp arrival: velocity cleared, WarpSpeed=0.
-                    // Let the ability continue — lunge and hitboxes are still pending.
-                    // TickAbilities (called after SimulateTick) handles the rest.
-                }
-            }
-            // Only process state machine if not warping
-            else
-            {
-                if (s.State is ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery)
-                    ProcessDefenseAirDodge(ref s, stats);
-                else if (s.State == ActionState.LedgeHang)
-                    ProcessLedgeHang(ref s, stats, input, arena, def);
-            }
+            if (s.State is ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery)
+                ProcessDefenseAirDodge(ref s, stats);
+            else if (s.State == ActionState.LedgeHang)
+                ProcessLedgeHang(ref s, stats, input, arena, def);
             if (wasLedgeHang && s.State == ActionState.JumpSquat)
             {
                 movementActionAccepted = true;
@@ -630,24 +580,11 @@ namespace SlopArena.Shared
                 s.AimYaw = s.FacingYaw;
             }
 
-            // 7b. Charge ticks for aimed projectile abilities (Manki Q, FightGuy Q).
-            // ServerAbility subclasses read s.ChargeTicks to check max hold duration.
-            if ((s.State is ActionState.Attacking or ActionState.Aiming) && s.AttackSlot > 0 && s.ChargeTicks < ushort.MaxValue)
-            {
-                var spec = def.GetSlotAbility(s.AttackSlot - 1, !s.IsGrounded);
-                if (spec != null && spec.Behavior == AbilityBehavior.AimedProjectile)
-                {
-                    if (input.IsAiming && s.ChargeTicks < spec.ChargeHoldTicks)
-                        s.ChargeTicks++;
-                }
-            }
-            
             if (canFastFallEdge && !movementActionAccepted && !verticalMotionOwned
                 && s.HitstopTicks == 0 && s.HitstunTicks == 0 && !blockStunLocked
-                && !HasKnockback(s) && s.WarpSpeed <= 0f
+                && !HasKnockback(s)
                 && s.State != ActionState.LedgeHang
                 && s.State != ActionState.JumpSquat
-                && s.State != ActionState.Warping
                 && !IsDefenseActionState(s.State))
             {
                 s.IsFastFalling = true;
@@ -828,13 +765,6 @@ namespace SlopArena.Shared
             }
 
 
-            // Status timer
-            if (s.StatusRemainingTicks > 0)
-            {
-                s.StatusRemainingTicks--;
-                if (s.StatusRemainingTicks == 0)
-                    s.StatusFlags = 0;  // clear all statuses when timer expires
-            }
         }
         private static bool IsDefenseActionState(ActionState state)
             => state is ActionState.Shielding or ActionState.ShieldDrop or ActionState.GrabAttempt
@@ -847,7 +777,7 @@ namespace SlopArena.Shared
             if (verticalMotionOwned || blockStunLocked || state.HitstunTicks > 0 || state.HitstopTicks > 0
                 || HasKnockback(state) || HasQueuedLaunch(state)
                 || state.AnimLockTicks > 0 && !IsIasaUnlocked(state, def)
-                || state.LandingLagTicks > 0 || state.WarpSpeed > 0f)
+                || state.LandingLagTicks > 0)
                 return false;
 
             return state.State is ActionState.Idle or ActionState.Run or ActionState.Crouching
@@ -860,7 +790,7 @@ namespace SlopArena.Shared
                 && state.State is (ActionState.Idle or ActionState.Run)
                 && state.AttackSlot == 0 && state.AnimLockTicks == 0
                 && state.LandingLagTicks == 0 && state.HitstunTicks == 0
-                && state.HitstopTicks == 0 && state.WarpSpeed <= 0f
+                && state.HitstopTicks == 0
                 && !HasKnockback(state) && !HasQueuedLaunch(state);
 
         private static void ClearDefenseAttackState(ref CharacterState state)
@@ -1454,7 +1384,6 @@ namespace SlopArena.Shared
                 && s.HitstunTicks == 0
                 && s.AnimLockTicks == 0
                 && s.LandingLagTicks == 0
-                && s.WarpSpeed <= 0f
                 && !s.IsAiming
                 && !HasKnockback(s);
         }
@@ -1808,9 +1737,7 @@ namespace SlopArena.Shared
             ApplyVelocityDeadZone(ref s);
             s.LastDirX = dirX;
             s.LastDirZ = dirZ;
-            // Facing follows movement direction — even under target lock, which only
-            // steers facing during attacks (per-stage RotateTowardTarget, ADR-0018 /
-            // issue #127). Only reached with movement input (early-return above).
+            // Facing follows movement direction. Startup attack correction is timeline-owned.
             s.FacingYaw = MathF.Atan2(dirX, dirZ);
         }
 
@@ -1854,46 +1781,6 @@ namespace SlopArena.Shared
             s.QueuedCrouchBrace = false;
             s.InPostHitstunFlight = false;
         }
-
-        // ── ATTACK PROCESSING ──
-        // Removed: ProcessAttack() — all ability execution now handled by ServerAbility lifecycle
-
-        // Removed: StartAttackFromSlot() — ability activation is now handled by ServerSimulation pre-sim phase
-
-        /// <summary>
-        /// Process warping state: sets velocity toward warp target each tick.
-        /// Position update and collision are handled by main SimulateTick loop.
-        /// Returns true if warp completed (arrived at target), false if still warping.
-        /// </summary>
-        private static bool ProcessWarp(ref CharacterState s, CharacterDefinition def, ArenaDefinition arena)
-        {
-            float dx = s.WarpTargetX - s.PX;
-            float dz = s.WarpTargetZ - s.PZ;
-            float distSq = dx * dx + dz * dz;
-            float attackRangeSq = s.WarpAttackRange * s.WarpAttackRange;
-
-            // Close enough → warp complete
-            if (distSq <= attackRangeSq)
-            {
-                s.WarpSpeed = 0f;
-                s.VX = 0f;
-                s.VZ = 0f;
-                return true;
-            }
-
-            // Set velocity toward target: constant speed at RunSpeed
-            // (auto-run feel — matched to character movement speed)
-            float dist = MathF.Sqrt(distSq);
-            s.VX = (dx / dist) * def.Movement.RunSpeed;
-            s.VZ = (dz / dist) * def.Movement.RunSpeed;
-            s.FacingYaw = MathF.Atan2(dx, dz);
-
-            // Position update and collision handled by main SimulateTick loop (steps 5-7)
-            // Gravity is applied by ApplyGravity() (step 5)
-
-            return false; // still warping
-        }
-
 
         /// <summary>
         /// Apply jump force. Consumes one jump if available.
@@ -2033,7 +1920,7 @@ namespace SlopArena.Shared
         }
 
         private static bool HasQueuedLaunch(CharacterState s)
-            => s.QueuedKBZero || s.QueuedKBBase != 0f || s.QueuedKBGrowth != 0f || s.QueuedKVOverride || s.QueuedKBStun > 0;
+            => s.QueuedKBZero || s.QueuedKBBase != 0f || s.QueuedKBGrowth != 0f || s.QueuedKBStun > 0;
 
 
         /// <summary>

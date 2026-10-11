@@ -164,12 +164,8 @@ namespace SlopArena.Shared
         public bool QueuedArmorHitstop;
         /// <summary>True when the hit's OnHitEntity supplied a complete direct launch force.</summary>
         public bool QueuedKBResolvedForce;
-        /// <summary>True when the hit's OnHitEntity rewrote the launch velocity directly.</summary>
-        public bool QueuedKVOverride;
         /// <summary>True when the resolved hit intentionally has zero launch magnitude.</summary>
         public bool QueuedKBZero;
-        /// <summary>Final knockback velocity snapshot taken after OnHitEntity (see QueuedKVOverride).</summary>
-        public float QueuedKVX, QueuedKVY, QueuedKVZ;
         /// <summary>Hitstun animation tier: 0=small, 1=medium, 2=hard. Set at hit time.</summary>
         public byte HitstunLevel;
         /// <summary>
@@ -218,15 +214,6 @@ namespace SlopArena.Shared
         /// <summary>True while player is holding an aim-to-fire ability (RMB charge, Q throw).</summary>
         public bool IsAiming;
 
-        /// <summary>
-        /// Warp active flag. > 0 = currently warping toward target.
-        /// Velocity is set to RunSpeed (constant) in ProcessWarp.
-        /// Set to 0 by ProcessWarp on arrival (within AttackRange).
-        /// </summary>
-        public float WarpTargetX;
-        public float WarpTargetZ;
-        public float WarpSpeed;
-        public float WarpAttackRange;  // stop warping when this close
         /// <summary>
         /// ── Rush / ledge ──
         /// </summary>
@@ -307,11 +294,6 @@ namespace SlopArena.Shared
                 case AbilitySlots.A: Cooldown10 = ticks; break;
             }
         }
-        /// <summary>
-        /// ── Status effects (Marked, Slowed, etc.) ──
-        /// </summary>
-        public byte StatusFlags;           // bitfield, see StatusType enum
-        public ushort StatusRemainingTicks; // shared countdown for all statuses; 0 = no active status
     }
     /// <summary>Paired grab/capture/throw phase replicated as part of CharacterState.</summary>
     public enum DefenseInteractionPhase : byte

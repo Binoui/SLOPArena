@@ -1,7 +1,7 @@
 # Melee Model Netcode Impact — CharacterState Fields, Packet Layout, Rollback Safety
 
 > Feeds: final ADR ticket (#142), DI/SDI design tickets (#133/#134). Companion to
-> [`melee-knockback-model.md`](../../../SlopArena/docs/research/melee-knockback-model.md)
+> [`melee-knockback-model.md`](melee-knockback-model.md)
 > (the design source for items 1-5 below) and issue #128 (the design map). SlopArena
 > file refs are relative to the repo root (`src/Shared/…`); Melee refs are relative
 > to `melee-decomp/src/melee/`. Claims marked [verified] were read in the decompiled

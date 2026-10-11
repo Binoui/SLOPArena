@@ -118,6 +118,34 @@ public class WibouAbilityTests
         Assert.True(MathF.Abs(s.PZ) < 0.1f, $"recovery must not home toward target +Z, got PZ={s.PZ:F2}");
     }
 
+    [Theory]
+    [InlineData(AbilitySlots.E, 19, false)]
+    [InlineData(AbilitySlots.F, 14, false)]
+    [InlineData(AbilitySlots.F, 60, false)]
+    [InlineData(AbilitySlots.E, 19, true)]
+    [InlineData(AbilitySlots.F, 14, true)]
+    [InlineData(AbilitySlots.F, 60, true)]
+    public void SpecialSpawnsEachAuthoredHitboxOnce(byte slot, int triggerTick, bool airborne)
+    {
+        var def = Def;
+        var sim = TestHelpers.MakeSim();
+        var player = TestHelpers.PlayerState() with
+        {
+            PY = GroundPY + (airborne ? 10f : 0f),
+            IsGrounded = !airborne,
+        };
+        sim.RegisterEntity(1, def, player, TestHelpers.LoadBakedData(def));
+        var authored = Assert.Single(def.GetCookedSlotAbility(slot, airborne)!.Timeline.Stages[0]
+            .Operations.OfType<CookedSpawnHitboxOperation>().Where(op => op.Tick == triggerTick));
+
+        TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: slot), triggerTick);
+
+        var hitbox = Assert.Single(sim.Resolver.GetActiveHitboxes());
+        Assert.Equal(slot, hitbox.AttackSlot);
+        Assert.Equal(authored.Hitbox.Damage, hitbox.Damage);
+        Assert.Equal(authored.Hitbox.HitGroup, hitbox.SourceEvent.HitGroup);
+    }
+
 
     // ── F: blade flurry deals damage ──
 

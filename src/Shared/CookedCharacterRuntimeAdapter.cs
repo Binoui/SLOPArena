@@ -48,15 +48,67 @@ public static class CookedCharacterRuntimeAdapter
     private static void SetAirAbility(CharacterDefinition d, int ordinal, AbilitySpec a) { switch (ordinal) { case 0: d.AirSlot1=a; break; case 1: d.AirSlot2=a; break; case 2: d.AirSlot3=a; break; case 3: d.AirSlot4=a; break; case 4: d.AirA=a; break; case 5: d.AirE=a; break; case 6: d.AirR=a; break; case 7: d.AirF=a; break; } }
     private static AttackStage ToAttackStage(CookedStage stage)
     {
-        var result = new AttackStage { DurationTicks=stage.DurationTicks, IasaTicks=stage.IasaTicks, LandingLagTicks=stage.LandingLagTicks, AutoCancelBeforeTicks=stage.AutoCancelBeforeTicks, AutoCancelAfterTicks=stage.AutoCancelAfterTicks, AttackRange=stage.AttackRange, WarpRange=stage.WarpRange, UseTargetLock=stage.UseTargetLock, RotateTowardTarget=stage.RotateTowardTarget, TrackingStrength=stage.TrackingStrength, HitboxEvents=Array.Empty<HitboxEvent>() };
+        var result = new AttackStage
+        {
+            DurationTicks = stage.DurationTicks,
+            IasaTicks = stage.IasaTicks,
+            LandingLagTicks = stage.LandingLagTicks,
+            AutoCancelBeforeTicks = stage.AutoCancelBeforeTicks,
+            AutoCancelAfterTicks = stage.AutoCancelAfterTicks,
+        };
         var events = new List<HitboxEvent>();
         foreach (var operation in stage.Operations)
+        {
             if (operation is CookedSpawnHitboxOperation hit)
+                events.Add(ToHitboxEvent(hit.Hitbox, hit.Tick));
+            else if (operation is CookedSetVelocityOperation velocity)
             {
-                var h=hit.Hitbox; events.Add(new HitboxEvent { TriggerTick=hit.Tick, DurationTicks=h.DurationTicks, Shape=(HitboxShape)h.Shape, Radius=h.Radius, OffX=h.OffsetX, OffY=h.OffsetY, OffZ=h.OffsetZ, EndOffX=h.EndOffsetX, EndOffY=h.EndOffsetY, EndOffZ=h.EndOffsetZ, BoneName=RuntimeBoneId(h.StartBoneId), EndBoneName=RuntimeBoneId(h.EndBoneId), Damage=h.Damage, Knockback=new KnockbackData { Profile=KnockbackProfile.Custom, Angle=(sbyte)Math.Clamp(h.Angle,-90,90), BaseKnockback=h.BaseKnockback, KnockbackGrowth=h.KnockbackGrowth }, KnockbackDirection=h.KnockbackDirection, StunTicks=h.StunTicks, FixedHitstunTicks=h.FixedHitstunTicks, Interruptible=h.Interruptible, HitGroup=h.HitGroup });
+                result.MoveX = velocity.X;
+                result.MoveY = velocity.Y;
+                result.MoveZ = velocity.Z;
             }
-            else if (operation is CookedSetVelocityOperation velocity) { result.MoveX=velocity.X; result.MoveY=velocity.Y; result.MoveZ=velocity.Z; }
-        result.HitboxEvents=events.ToArray(); return result;
-}
-    private static string? RuntimeBoneId(string? value) => value switch { "bone.head"=>"mixamorig:Head", "bone.hips"=>"mixamorig:Hips", "bone.right-hand"=>"mixamorig:RightHand", "bone.left-hand"=>"mixamorig:LeftHand", "bone.right-foot"=>"mixamorig:RightFoot", "bone.left-foot"=>"mixamorig:LeftFoot", null=>null, _=>value };
+        }
+        result.HitboxEvents = events.ToArray();
+        return result;
+    }
+
+    internal static HitboxEvent ToHitboxEvent(CookedHitbox hitbox, int triggerTick = 0)
+        => new()
+        {
+            TriggerTick = (ushort)Math.Clamp(triggerTick, 0, ushort.MaxValue),
+            DurationTicks = hitbox.DurationTicks,
+            Shape = (HitboxShape)hitbox.Shape,
+            Radius = hitbox.Radius,
+            OffX = hitbox.OffsetX, OffY = hitbox.OffsetY, OffZ = hitbox.OffsetZ,
+            EndOffX = hitbox.EndOffsetX, EndOffY = hitbox.EndOffsetY, EndOffZ = hitbox.EndOffsetZ,
+            BoneName = RuntimeBoneId(hitbox.StartBoneId),
+            EndBoneName = RuntimeBoneId(hitbox.EndBoneId),
+            Damage = hitbox.Damage,
+            Knockback = new KnockbackData
+            {
+                Profile = KnockbackProfile.Custom,
+                Angle = (sbyte)hitbox.Angle,
+                BaseKnockback = hitbox.BaseKnockback,
+                KnockbackGrowth = hitbox.KnockbackGrowth,
+            },
+            KnockbackDirection = hitbox.KnockbackDirection,
+            StunTicks = hitbox.StunTicks,
+            FixedHitstunTicks = hitbox.FixedHitstunTicks,
+            Interruptible = hitbox.Interruptible,
+            HitGroup = hitbox.HitGroup,
+        };
+
+    internal static string? RuntimeBoneId(string? value)
+        => value switch
+        {
+            "bone.head" => "mixamorig:Head",
+            "bone.hips" => "mixamorig:Hips",
+            "bone.spine" => "mixamorig:Spine2",
+            "bone.right-hand" => "mixamorig:RightHand",
+            "bone.left-hand" => "mixamorig:LeftHand",
+            "bone.right-foot" => "mixamorig:RightFoot",
+            "bone.left-foot" => "mixamorig:LeftFoot",
+            null => null,
+            _ => value,
+        };
 }

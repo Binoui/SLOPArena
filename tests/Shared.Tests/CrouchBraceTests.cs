@@ -213,7 +213,8 @@ public sealed class CrouchBraceTests
         {
             sim.Resolver.Spawn(new Hitbox
             {
-                X = 0f, Y = 1f, Z = 0f,
+                // Land beside the target so the explosion, rather than direct contact, connects.
+                X = 1.2f, Y = 1f, Z = 0f,
                 VY = -20f,
                 Gravity = 36f,
                 Radius = .2f,
@@ -225,7 +226,6 @@ public sealed class CrouchBraceTests
                 StunTicks = 18,
                 DurationTicks = 120,
                 OwnerId = Attacker,
-                IgnoresEntities = true,
                 Explosion = new ProjectileExplosion
                 {
                     Radius = 1.5f,

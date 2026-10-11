@@ -221,35 +221,13 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
         s.ChargeTicks = 0;
         if (ownsDashVelocity && s.State != ActionState.Hitstun && s.HitstunTicks == 0 && !Simulation.HasKnockback(s))
             s.VX = s.VZ = 0f;
-        Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);
     }
 
     private static HitboxEvent ToEvent(CookedHitbox hitbox, ushort durationTicks, float damage)
-        => new()
+        => CookedCharacterRuntimeAdapter.ToHitboxEvent(hitbox) with
         {
             DurationTicks = durationTicks,
-            Shape = hitbox.Shape == AuthoringHitboxShape.Capsule ? HitboxShape.Capsule : HitboxShape.Sphere,
-            Radius = hitbox.Radius,
-            OffX = hitbox.OffsetX,
-            OffY = hitbox.OffsetY,
-            OffZ = hitbox.OffsetZ,
-            EndOffX = hitbox.EndOffsetX,
-            EndOffY = hitbox.EndOffsetY,
-            EndOffZ = hitbox.EndOffsetZ,
-            BoneName = CookedTimelineAbility.RuntimeBoneId(hitbox.StartBoneId),
-            EndBoneName = CookedTimelineAbility.RuntimeBoneId(hitbox.EndBoneId),
             Damage = damage,
-            Knockback = new KnockbackData
-            {
-                Profile = KnockbackProfile.Custom,
-                Angle = (sbyte)hitbox.Angle,
-                BaseKnockback = hitbox.BaseKnockback,
-                KnockbackGrowth = hitbox.KnockbackGrowth,
-            },
-            StunTicks = hitbox.StunTicks,
-            FixedHitstunTicks = hitbox.FixedHitstunTicks,
-            Interruptible = hitbox.Interruptible,
             HitGroup = 0,
-            KnockbackDirection = hitbox.KnockbackDirection,
         };
 }

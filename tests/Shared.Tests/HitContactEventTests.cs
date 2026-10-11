@@ -90,7 +90,6 @@ public sealed class HitContactEventTests
     [Theory]
     [InlineData("shield")]
     [InlineData("invincible")]
-    [InlineData("counter")]
     [InlineData("miss")]
     public void RejectedOrBlockedConfiguredContactEmitsNoHitContact(string outcome)
     {
@@ -102,8 +101,6 @@ public sealed class HitContactEventTests
             victim.InvincibilityTicks = 3;
             sim.SetState(VictimId, victim);
         }
-        if (outcome == "counter")
-            sim.ActivateAbility(VictimId, new CounterAbility(), (byte)(AbilitySlots.Slot1 - 1), def);
         if (outcome != "miss")
             sim.Resolver.Spawn(Contact(in victim));
         else
@@ -164,15 +161,4 @@ public sealed class HitContactEventTests
         Assert.Equal(authoritative, Assert.Single(sim.DrainPresentationEvents()));
     }
 
-    private sealed class CounterAbility : ServerAbility
-    {
-        public override void OnStart(ref CharacterState state, CharacterDefinition def)
-        {
-            state.State = ActionState.Attacking;
-            state.AnimLockTicks = 60;
-        }
-        public override void Tick(ref CharacterState state, ref InputState input, CharacterDefinition def) { }
-        public override bool TryCounter(ref CharacterState defender, ref CharacterState attacker,
-            CharacterDefinition attackerDef, float incomingDamage) => true;
-    }
 }

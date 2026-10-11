@@ -12,8 +12,8 @@ namespace SlopArena.Shared.Abilities
     ///   OnEnd    → called on NATURAL completion only (NOT on interrupt)
     ///
     /// Interruption (hitstun, death, state override):
-    ///   Simulation drops the instance without calling OnEnd.
-    ///   Velocity/state is preserved (momentum-granting abilities work correctly).
+    ///   Simulation calls OnCancel, clears owned melee effects, and retires the instance.
+    ///   Launched projectiles may continue after gameplay interruption.
     /// </summary>
     public abstract class ServerAbility
     {
@@ -90,8 +90,7 @@ namespace SlopArena.Shared.Abilities
 
         /// <summary>
         /// Called when this ability's hitbox connects with a target entity.
-        /// Override to apply status effects, conditional damage, or other
-        /// hit-time effects (e.g., FightGuy R mark consumption).
+        /// Override for hit-time effects such as charge refunds or rocket-jump self damage.
         /// </summary>
         public virtual void OnHitEntity(ref CharacterState attacker, ref CharacterState target,
             CharacterDefinition attackerDef, CharacterDefinition targetDef,
@@ -101,17 +100,11 @@ namespace SlopArena.Shared.Abilities
         /// <summary>Called when one of this activation's hitboxes contacts an active shield.</summary>
         public virtual void OnShieldBlock(ref CharacterState attacker, ref CharacterState defender) { }
 
-        /// <summary>Target-side counter hook with the launched attacker's definition.</summary>
-        public virtual bool TryCounter(ref CharacterState defender, ref CharacterState attacker,
-            CharacterDefinition attackerDef, float incomingDamage)
-        {
-            return false;
-        }
         // ── Metadata (set by factory after construction) ──
 
-        /// <summary>Which ability slot (0-5).</summary>
+        /// <summary>Zero-based wire ability slot.</summary>
         public byte Slot { get; set; }
-        /// <summary>Cooldown in ticks. Applied by EndAbility on natural completion.</summary>
+        /// <summary>Cooldown in ticks. Applied by ServerSimulation when the activation exits.</summary>
         public ushort Cooldown { get; set; }
 
         /// <summary>
@@ -226,6 +219,7 @@ namespace SlopArena.Shared.Abilities
                 ActivationAirborne = AirborneAtStart,
                 AttackSequence = PresentationAttackSequence,
                 FreezesOwner = true,
+                CancelWithAbility = true,
                 HitsMultipleOpponents = true,
                 HitEntities = sharedHitEntities ??= new HashSet<ulong>(),
                 TracksBone = tracksBone,
@@ -298,17 +292,5 @@ namespace SlopArena.Shared.Abilities
             s.AttackSlot = 0; // signal to simulation that ability ended
         }
 
-        /// <summary>
-        /// Read a named float parameter from the ability spec.
-        /// Returns fallback if the key is not found.
-        /// </summary>
-        protected float GetParam(CharacterDefinition def, string key, float fallback = 0f)
-        {
-            // Slot is 0-based, but GetSlotAbility expects 0-based slot index
-            var spec = def.GetSlotAbility(Slot, airborne: false);
-            if (spec?.Params != null && spec.Params.TryGetValue(key, out float val))
-                return val;
-            return fallback;
-        }
     }
 }
