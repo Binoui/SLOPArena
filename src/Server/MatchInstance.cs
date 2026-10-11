@@ -106,6 +106,7 @@ namespace SlopArena.Server
 			_steamSend = steamSend;
 			_steamMatchGuid = steamSend is null ? Guid.Empty : Guid.Parse(matchId);
 			_clock = clock ?? TimeProvider.System;
+			Diagnostics = new MatchDiagnostics(matchId, arenaName, steamSend is null ? "development-udp" : "steam-p2p", _clock);
 			_contentHandleMap = contentHandleMap;
 			_rule = new StockMatchRule(maxStocks);
 
@@ -123,6 +124,12 @@ namespace SlopArena.Server
 		/// <summary>True while the match loop is active.</summary>
 		public bool IsRunning => _running;
 		public string MatchId => _matchId;
+		public MatchDiagnostics Diagnostics { get; }
+		private void Log(string message)
+		{
+			Diagnostics.Log(_serverTick, message);
+			Console.WriteLine($"[Match:{_matchId}] {message}");
+		}
 		public bool HasStartedCountdown => _matchState != MatchState.Waiting;
 		public uint ServerTick => _serverTick;
 		public uint StartTick => _startTick;
@@ -146,6 +153,8 @@ namespace SlopArena.Server
 				Guid.TryParse(_matchId, out var matchGuid))
 				_onMatchCancelled?.Invoke(matchGuid, cancellationReason);
 			_running = false;
+			Diagnostics.Log(_serverTick, cancellationReason is null ? "Stop requested." : $"Canceled: {cancellationReason}");
+			Diagnostics.Complete();
 			try { _udpServer?.Close(); } catch { }
 		}
 
@@ -209,6 +218,8 @@ namespace SlopArena.Server
 				slot.MissingInputTicks = 0;
 				slot.Disconnected = false;
 				entityId = slot.EntityId;
+				Diagnostics.RecordPeer(slot.EntityId, true);
+				Log($"Entity {slot.EntityId} Steam connection admitted.");
 				denialCode = 0;
 				return true;
 			}
@@ -229,6 +240,8 @@ namespace SlopArena.Server
 						slot.Queue.Clear();
 						slot.LastInput = default;
 						slot.LastInputConnectionId = 0;
+						Diagnostics.RecordPeer(slot.EntityId, false);
+						Log($"Entity {slot.EntityId} Steam connection closed.");
 						return;
 					}
 			}
@@ -274,12 +287,14 @@ namespace SlopArena.Server
 		}
 		private void Run()
 		{
-			Console.WriteLine($"[Match:{_matchId}] Starting on port {_port} ({_slots.Count} players)");
+			Log($"Starting on port {_port} ({_slots.Count} players)");
 
 			var arenaOpt = ArenaRegistry.Get(_arenaName);
 			if (!arenaOpt.HasValue)
 			{
 				Console.WriteLine($"[Match:{_matchId}] Unknown arena '{_arenaName}' — aborting match.");
+				Diagnostics.Log(_serverTick, "Arena unavailable; match aborted.", "error");
+				Diagnostics.Complete();
 				if (_steamSend is not null) Stop("content_unavailable");
 				_onMatchEnd(_port);
 				if (_steamSend is not null && Guid.TryParse(_matchId, out var arenaFailureMatchId))
@@ -297,7 +312,7 @@ namespace SlopArena.Server
 				// Respawn at the same distributed spawn point as initial spawn (issue #37).
 				var respawnSpawn = PickSpawn(i);
 				_sim.SetRespawnPosition(slot.EntityId, respawnSpawn.X, respawnSpawn.Y, respawnSpawn.Z, respawnSpawn.Yaw);
-				Console.WriteLine($"[Match:{_matchId}] Slot {i}: entity {slot.EntityId} = {slot.CharacterClass}");
+				Log($"Slot {i}: entity {slot.EntityId} = {slot.CharacterClass}");
 			}
 
 			if (_steamSend is null)
@@ -306,20 +321,23 @@ namespace SlopArena.Server
 				{
 					_udpServer = new UdpClient(_port);
 					_udpServer.Client.Blocking = false;
-					Console.WriteLine($"[Match:{_matchId}] Listening on UDP {_port}, waiting for {_slots.Count} players...");
+					Log($"Listening on UDP {_port}, waiting for {_slots.Count} players...");
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"[Match:{_matchId}] Error binding port {_port}: {ex.Message}");
+					Diagnostics.Log(_serverTick, "Gameplay port binding failed.", "error");
+					Diagnostics.Complete();
 					_onMatchEnd(_port);
 					return;
 				}
 			}
 			else
-				Console.WriteLine($"[Match:{_matchId}] Waiting for Steam joins ({_slots.Count} players).");
+				Log($"Waiting for Steam joins ({_slots.Count} players).");
 
 			var stopwatch = Stopwatch.StartNew();
 			double nextTickTime = 0;
+			double nextDiagnosticTime = 5000;
 			const double tickDurationMs = 1000.0 / 60.0;
 
 			while (_running)
@@ -338,7 +356,7 @@ namespace SlopArena.Server
 					{
 						_matchState = MatchState.Countdown;
 						_countdownTicks = CountdownDuration;
-						Console.WriteLine($"[Match:{_matchId}] All {_slots.Count} players ready — countdown started!");
+						Log($"All {_slots.Count} players ready — countdown started!");
 					}
 					if (_steamSend is not null && _matchState is MatchState.Countdown or MatchState.Playing)
 					{
@@ -366,14 +384,24 @@ namespace SlopArena.Server
 								slot.Disconnected = true;
 								slot.ReadyConnectionId = 0;
 								slot.Queue.Clear();
-								Console.WriteLine($"[Match:{_matchId}] Player (entity {slot.EntityId}) disconnected — entity goes idle.");
+								Log($"Player (entity {slot.EntityId}) disconnected — entity goes idle.");
+								Diagnostics.RecordPeer(slot.EntityId, false);
 							}
 						}
 					}
 					Tick();
 					nextTickTime += tickDurationMs;
 
-					if (currentTime > nextTickTime + tickDurationMs * 10)
+					bool reset = currentTime > nextTickTime + tickDurationMs * 10;
+					Diagnostics.RecordTick(_serverTick, stopwatch.Elapsed.TotalMilliseconds - currentTime,
+						Math.Max(0, currentTime - (nextTickTime - tickDurationMs)), reset);
+					if (currentTime >= nextDiagnosticTime)
+					{
+						var metrics = Diagnostics.Snapshot();
+						Log(FormattableString.Invariant($"Timing: mean={metrics.MeanTickMilliseconds:F2}ms max={metrics.MaxTickMilliseconds:F2}ms delayMax={metrics.MaxScheduleDelayMilliseconds:F2}ms slowTicks={metrics.SlowTicks} resets={metrics.ScheduleResets}"));
+						nextDiagnosticTime = currentTime + 5000;
+					}
+					if (reset)
 						nextTickTime = currentTime;
 				}
 				else
@@ -387,7 +415,8 @@ namespace SlopArena.Server
 			}
 
 			try { _udpServer?.Close(); } catch { }
-			Console.WriteLine($"[Match:{_matchId}] Stopped.");
+			Log("Stopped.");
+			Diagnostics.Complete();
 			_onMatchEnd(_port);
 			if (_steamSend is not null && Guid.TryParse(_matchId, out var matchGuid))
 				_onSteamMatchEnd?.Invoke(matchGuid);
@@ -552,12 +581,16 @@ namespace SlopArena.Server
 				catch (SocketException ex)
 				{
 					if (ex.SocketErrorCode != SocketError.WouldBlock)
+					{
 						Console.WriteLine($"[Match:{_matchId}] Socket error: {ex.Message}");
+						Diagnostics.ReportError(_serverTick, "Gameplay socket receive failed.");
+					}
 					break;
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"[Match:{_matchId}] Receive error: {ex.Message}");
+					Diagnostics.ReportError(_serverTick, "Gameplay receive failed.");
 					break;
 				}
 			}
@@ -585,7 +618,7 @@ namespace SlopArena.Server
 				{
 					_matchState = MatchState.Playing;
 					_startTick = _serverTick + 1;
-					Console.WriteLine($"[Match:{_matchId}] GO!");
+					Log("GO!");
 				}
 				SendState();
 				return;
@@ -595,7 +628,7 @@ namespace SlopArena.Server
 			{
 				if (--_postMatchTicks == 0)
 				{
-					Console.WriteLine($"[Match:{_matchId}] Post-match complete — stopping.");
+					Log("Post-match complete — stopping.");
 					_running = false;
 				}
 				else SendState();
@@ -658,9 +691,9 @@ namespace SlopArena.Server
 				_winnerEntityId = outcome.WinnerEntityId;
 				_matchResultPacket = BuildMatchResultPacket(outcome);
 				_postMatchTicks = PostMatchDuration;
-				Console.WriteLine(outcome.IsSharedVictory
-					? $"[Match:{_matchId}] Shared victory — all players eliminated simultaneously."
-					: $"[Match:{_matchId}] Winner: {_winnerEntityId}");
+				Log(outcome.IsSharedVictory
+					? "Shared victory — all players eliminated simultaneously."
+					: $"Winner: {_winnerEntityId}");
 
 				if (_onMatchResult != null && Guid.TryParse(_matchId, out var matchGuid))
 				{
@@ -818,6 +851,7 @@ namespace SlopArena.Server
 			catch (Exception ex)
 			{
 				Console.WriteLine($"[Match:{_matchId}] Send error: {ex.Message}");
+				Diagnostics.ReportError(_serverTick, "Gameplay send failed.");
 			}
 		}
 		private void SendNetplayControl(PlayerSlot slot, NetplayControlKind kind)

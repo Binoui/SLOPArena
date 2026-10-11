@@ -213,6 +213,16 @@ public sealed class SteamGameServerHost : IAsyncDisposable
             long now = Stopwatch.GetTimestamp();
             if (now >= nextAuthCheck)
             {
+                foreach (var peer in _connections.Values)
+                {
+                    SteamNetConnectionRealTimeStatus_t health = default;
+                    SteamNetConnectionRealTimeLaneStatus_t lane = default;
+                    if (peer.Bound && peer.Connected &&
+                        SteamGameServerNetworkingSockets.GetConnectionRealTimeStatus(peer.Handle, ref health, 0, ref lane) == EResult.k_EResultOK)
+                        _orchestrator?.RecordSteamHealth(peer.MatchId, peer.EntityId,
+                            health.m_nPing >= 0 ? health.m_nPing : null,
+                            health.m_flConnectionQualityLocal, health.m_flConnectionQualityRemote);
+                }
                 _authenticationReady =
                     SteamGameServerNetworkingSockets.GetAuthenticationStatus(out _) ==
                         ESteamNetworkingAvailability.k_ESteamNetworkingAvailability_Current &&

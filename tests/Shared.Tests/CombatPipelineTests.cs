@@ -44,25 +44,20 @@ public class CombatPipelineTests
     // countdown). The client uses this to detect re-hits and restart
     // animation from frame 0.
     //
-    // Mirrors PlayerRenderer.UpdateAnimationState re-hit detection (fixed):
-    //   newHit = !(wasInHitstun && lastTicks > 0 && currentTicks == lastTicks - 1)
-    // ResolveHits OVERWRITES HitstunTicks with the new hit's raw StunTicks, which
-    // can be LOWER than the remaining countdown (weaker follow-up), so any tick
-    // that is not the natural 1-tick countdown is a new hit.
-    private static bool IsReHit(bool wasInHitstun, ushort lastTicks, ushort currentTicks)
-        => !(wasInHitstun && lastTicks > 0 && currentTicks == lastTicks - 1);
-
     [Theory]
-    [InlineData(false, 0,  20,  true,  "Fresh hit (was idle)")]
-    [InlineData(true,  32, 31,  false, "Normal countdown: 32→31")]
-    [InlineData(true,  31, 32,  true,  "Re-hit reset: 31→32")]
-    [InlineData(true,  32, 32,  true,  "Re-hit same value: 32→32")]
-    [InlineData(true,  48, 96,  true,  "Re-hit higher value: 48→96")]
-    [InlineData(true,  32, 16,  true,  "Re-hit lower value: 32→16")]
-    public void ReHit_ClientDetectionLogic_Correct(bool wasInHitstun, ushort lastTicks,
+    [InlineData(false, 0, 1, 20, true, "Fresh hit")]
+    [InlineData(true, 1, 1, 31, false, "Normal countdown")]
+    [InlineData(true, 1, 1, 32, false, "Repeated snapshot")]
+    [InlineData(true, 1, 1, 16, false, "Skipped snapshots")]
+    [InlineData(true, 1, 2, 32, true, "Same-duration re-hit")]
+    [InlineData(true, 1, 2, 16, true, "Shorter re-hit")]
+    public void ReHit_ClientDetectionLogic_Correct(bool wasInHitstun, ushort presentedSequence, ushort sequence,
         ushort currentTicks, bool expectedNewHit, string desc)
     {
-        bool result = IsReHit(wasInHitstun, lastTicks, currentTicks);
+        var state = new CharacterState { State = ActionState.Hitstun,
+            HitstunTicks = currentTicks, HitReactionSequence = sequence };
+        bool result = HitstunPresentation.ShouldRestart(
+            wasInHitstun ? ActionState.Hitstun : ActionState.Idle, presentedSequence, state);
         if (result != expectedNewHit)
             Assert.Fail($"{desc}: expected {expectedNewHit} but got {result}");
     }

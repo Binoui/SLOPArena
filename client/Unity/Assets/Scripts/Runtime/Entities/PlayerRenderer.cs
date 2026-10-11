@@ -613,6 +613,7 @@ namespace SlopArena.Client.Entities
         private CharacterState _lastState;
         private bool _jumpArcActive;
         private ActionState _lastAnimState;
+        private ushort _presentedHitReactionSequence;
         private byte _lastAttackSlot;
         private byte _lastComboStage;
         private int _deathFlashTicks;
@@ -1376,18 +1377,12 @@ namespace SlopArena.Client.Entities
                     2 => _charDef.HitHardAnim,
                     _ => _charDef.HitSmallAnim
                 };
-                // Re-hit detection: restart the clip on first entry into hitstun OR
-                // whenever HitstunTicks does not follow the natural 1-tick countdown.
-                // ResolveHits OVERWRITES HitstunTicks with the new hit's raw StunTicks,
-                // so a re-hit while the victim is mid-hitstun can send it DOWN (shorter-
-                // stun follow-up); the old ">= last" check missed those and the clip
-                // played only once per string.
+                // Raw opponent snapshots may repeat or skip ticks. Reaction identity
+                // distinguishes actual re-hits, including shorter-stun follow-ups.
                 _jumpArcActive = false;
 
-                bool naturalCountdown = _lastAnimState == ActionState.Hitstun
-                    && _lastState.HitstunTicks > 0
-                    && state.HitstunTicks == _lastState.HitstunTicks - 1;
-                bool newHit = !naturalCountdown;
+                bool newHit = HitstunPresentation.ShouldRestart(
+                    _lastAnimState, _presentedHitReactionSequence, state);
                 if (newHit)
                     ClearTumble();
                 else if (_inHitstunAnim
@@ -1409,6 +1404,7 @@ namespace SlopArena.Client.Entities
                         hsState.Speed = hsAnimSpeed;
                         _lastHitstunAnimName = hitName;
                         _inHitstunAnim = true;
+                        _presentedHitReactionSequence = state.HitReactionSequence;
                         _hitstunAnimStartTime = Time.time;
                         _hitstunAnimLength = clip.length / hsAnimSpeed;
                         // DIAG: hitstun clip restart — which clip, why, and the

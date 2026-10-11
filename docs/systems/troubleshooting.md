@@ -168,3 +168,25 @@ cd ~/Documents/projects/SlopArena
 #         unzip + grep -rl "localhost:5000" .                                      # nothing
 # publish: gh release create v0.2.0-demo.1 build/release/SlopArena-0.2.0-demo.1.zip --title ... --notes ...
 ```
+
+## PvP jerks during hits after startup succeeds
+
+The 2026-10-11 two-player Steam match completed normally but the opponent's
+hit animation logged 440 repeated restarts without a new hitstun entry. Protocol 6
+omitted HitstunTicks from CharacterStatePacket, leaving raw opponent states at zero;
+the renderer's one-tick-countdown test also treated repeated/skipped snapshots as
+new hits. Protocol 7 carries the timer and an authoritative HitReactionSequence.
+New launches advance the sequence; rendering restarts only on entry or a changed
+sequence. Replicated HitstunTicks also enables existing position smoothing.
+
+In MasterConsole select Matches → a match → Pull match logs. Inspect tick work
+against the 16.67 ms budget, scheduling delays/resets, timestamped Steam RTT and
+connection-quality estimates. Download the snapshot when needed. Retention is
+GameHost process-local: active matches plus 50 ended matches, 256 recent events
+per match, lost on restart. A missing/expired log is not evidence of a clean match.
+These are safe structured match records, not a dump of raw process/authentication
+logs. Client FPS/frame time and prediction correction counts remain uncollected.
+
+Regression coverage uses the real snapshot codec and the production presentation
+policy, including repeated/skipped frames, shorter re-hits and hitstop. Release
+all protocol participants together; protocol 6 clients cannot join protocol 7 hosts.

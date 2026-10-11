@@ -156,6 +156,10 @@ public class SteamGameServerAdmissionTests
             Assert.True(await countdown.Task.WaitAsync(TimeSpan.FromSeconds(2)) > 0,
                 "Both peers completed the startup handshake but the authoritative countdown did not advance.");
             Assert.True(match.HasStartedCountdown);
+            var diagnostics = match.Diagnostics.Snapshot();
+            Assert.Contains(diagnostics.Events, entry => entry.Message.Contains("countdown started"));
+            Assert.Equal(2, diagnostics.Peers.Count);
+            Assert.All(diagnostics.Peers, peer => Assert.True(peer.Connected));
         }
         finally
         {

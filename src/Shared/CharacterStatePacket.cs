@@ -40,6 +40,8 @@ namespace SlopArena.Shared
         public MatchState MatchState;
         /// <summary>Hitstun animation tier: 0=small, 1=medium, 2=hard.</summary>
         public byte HitstunLevel;
+        public ushort HitstunTicks;
+        public ushort HitReactionSequence;
         /// <summary>Aim pitch in radians, from server authority.</summary>
         public float AimPitch;
         /// <summary>Match death counter (stock counter: stocks = maxStocks - Deaths). Issue #37.</summary>
@@ -106,7 +108,7 @@ namespace SlopArena.Shared
         public bool AttackCorrectionActive;
         public bool AttackCorrectionOwned;
         /// <summary>Fixed state, target lock, startup correction and protocol version.</summary>
-        public const int Size = 182;
+        public const int Size = 186;
 
         /// <summary>Convert from CharacterState to serializable packet.</summary>
         public static CharacterStatePacket FromState(CharacterState s, uint tick = 0)
@@ -130,6 +132,8 @@ namespace SlopArena.Shared
                 AttackSequence = s.AttackSequence,
                 MatchState = s.MatchState,
                 HitstunLevel = s.HitstunLevel,
+                HitstunTicks = s.HitstunTicks,
+                HitReactionSequence = s.HitReactionSequence,
                 AimPitch = s.AimPitch,
                 Deaths = s.Deaths,
                 DamagePercent = s.DamagePercent,
@@ -211,6 +215,8 @@ namespace SlopArena.Shared
                 FacingYaw = FacingYaw,
                 MatchState = MatchState,
                 HitstunLevel = HitstunLevel,
+                HitstunTicks = HitstunTicks,
+                HitReactionSequence = HitReactionSequence,
                 AimPitch = AimPitch,
                 Deaths = Deaths,
                 DamagePercent = DamagePercent,
@@ -354,6 +360,8 @@ namespace SlopArena.Shared
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(176, 4), BitConverter.SingleToInt32Bits(AttackPosePitch));
             buffer[180] = (byte)((AttackCorrectionActive ? 1 : 0) | (AttackCorrectionOwned ? 2 : 0));
             buffer[181] = AttackCorrectionTargetDeaths;
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(182, 2), HitstunTicks);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(184, 2), HitReactionSequence);
         }
 
         public static CharacterStatePacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -439,6 +447,8 @@ namespace SlopArena.Shared
             packet.AttackCorrectionActive = (buffer[180] & 1) != 0;
             packet.AttackCorrectionOwned = (buffer[180] & 2) != 0;
             packet.AttackCorrectionTargetDeaths = buffer[181];
+            packet.HitstunTicks = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(182, 2));
+            packet.HitReactionSequence = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(184, 2));
             return packet;
         }
 
@@ -464,6 +474,8 @@ namespace SlopArena.Shared
             s.FacingYaw = FacingYaw;
             s.MatchState = MatchState;
             s.HitstunLevel = HitstunLevel;
+            s.HitstunTicks = HitstunTicks;
+            s.HitReactionSequence = HitReactionSequence;
             s.AimPitch = AimPitch;
             s.Deaths = Deaths;
             s.DamagePercent = DamagePercent;

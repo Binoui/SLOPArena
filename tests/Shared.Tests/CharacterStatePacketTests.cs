@@ -5,6 +5,20 @@ namespace SlopArena.Shared.Tests;
 public class CharacterStatePacketTests
 {
     [Fact]
+    public void HitstunTimerSurvivesNetworkSnapshotAndAuthoritativeCorrection()
+    {
+        var state = new CharacterState { State = ActionState.Hitstun, HitstunTicks = 28 };
+        var bytes = new byte[CharacterStatePacket.Size];
+        CharacterStatePacket.FromState(state).Serialize(bytes);
+        var packet = CharacterStatePacket.Deserialize(bytes);
+        Assert.Equal(state.HitstunTicks, packet.ToState().HitstunTicks);
+        var history = new CharacterState { HitstunTicks = 99, AttackElapsedTicks = 17 };
+        packet.ApplyTo(ref history);
+        Assert.Equal(state.HitstunTicks, history.HitstunTicks);
+        Assert.Equal((ushort)17, history.AttackElapsedTicks);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesAllFields()
     {
         // Arrange: a CharacterState with every PvP-relevant field set to non-default values
@@ -375,6 +389,7 @@ public class CharacterStatePacketTests
 
         // A pre-defense protocol-v1 payload has the old size and must not be accepted.
         Assert.Throws<ArgumentException>(() => CharacterStatePacket.Deserialize(buffer.AsSpan(0, 114)));
+        Assert.Throws<ArgumentException>(() => CharacterStatePacket.Deserialize(buffer.AsSpan(0, 182)));
 
         var wrongVersion = (byte[])buffer.Clone();
         wrongVersion[163] = 3;

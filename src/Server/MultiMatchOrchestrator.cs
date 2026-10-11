@@ -23,6 +23,7 @@ namespace SlopArena.Server
 
         public bool ContentReady { get; }
         public bool IsVps => _config.IsVps;
+        public MatchDiagnosticsStore Diagnostics { get; } = new();
         public string? CatalogHash => Volatile.Read(ref _catalogHash);
 
         public MultiMatchOrchestrator(ServerConfig config, SteamGameServerHost? steamHost = null)
@@ -126,6 +127,7 @@ namespace SlopArena.Server
                         error = $"Match {matchId} is already active.";
                         return false;
                     }
+                    Diagnostics.Add(match.Diagnostics);
                     match.Start();
                     port = SteamMatchDescriptor.GameplayVirtualPort;
                     Console.WriteLine($"[Orchestrator] Steam match {matchId} assigned ({_steamMatches.Count}/{_config.MaxConcurrentMatches}) — {roster.Count} players");
@@ -146,6 +148,7 @@ namespace SlopArena.Server
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (_activeMatches.TryAdd(candidate, match))
                     {
+                        Diagnostics.Add(match.Diagnostics);
                         match.Start();
                         port = candidate;
                         Console.WriteLine($"[Orchestrator] Match {matchId} assigned to UDP {port} ({_activeMatches.Count}/{_config.MaxConcurrentMatches}) — {roster.Count} players");
@@ -177,6 +180,12 @@ namespace SlopArena.Server
         {
             if (_steamMatches.TryGetValue(matchId, out var match))
                 match.DisconnectSteamPlayer(connectionId);
+        }
+
+        public void RecordSteamHealth(Guid matchId, ulong entityId, int? ping, float receiveQuality, float sendQuality)
+        {
+            if (_steamMatches.TryGetValue(matchId, out var match))
+                match.Diagnostics.RecordPeer(entityId, true, ping, receiveQuality, sendQuality);
         }
 
         public bool AbortMatch(Guid matchId)

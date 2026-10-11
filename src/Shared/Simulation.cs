@@ -1813,6 +1813,7 @@ namespace SlopArena.Shared
                 s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 :
                     s.HitstunTicks <= 50 ? (byte)1 : (byte)2;
                 s.State = ActionState.Hitstun;
+                s.HitReactionSequence = unchecked((ushort)(s.HitReactionSequence + 1));
             }
             else
             {
@@ -1863,6 +1864,7 @@ namespace SlopArena.Shared
                     (int)(tuning.HitstunCoefficient * magnitude), 1, ushort.MaxValue);
                 s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 : s.HitstunTicks <= 50 ? (byte)1 : (byte)2;
                 s.State = ActionState.Hitstun;
+                s.HitReactionSequence = unchecked((ushort)(s.HitReactionSequence + 1));
             }
             else
             {

@@ -149,6 +149,8 @@ namespace SlopArena.Shared
         /// </summary>
         /// <summary>Remaining no-input lock ticks after hitstun begins (ADR-0012 renamed the comment — hitstop is the freeze).</summary>
         public ushort HitstunTicks;
+        /// <summary>Changes when an authoritative launch starts a new hit reaction.</summary>
+        public ushort HitReactionSequence;
         /// <summary>Remaining hitstop freeze ticks (ADR-0012). While > 0 the entity is frozen: no state machine, no physics, no timer decrement, no ability ticking.</summary>
         public ushort HitstopTicks;
         /// <summary>Queued launch payload, set at hit connect (ResolveHits), applied at freeze expiry (SimulateTick gate). Server + local-sim only — NOT on the wire.</summary>

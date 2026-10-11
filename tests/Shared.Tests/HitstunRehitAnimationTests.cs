@@ -19,11 +19,8 @@ namespace SlopArena.Shared.Tests;
 /// therefore misses shorter-stun follow-ups: the hitstun clip plays once and
 /// never restarts for the rest of the string.
 ///
-/// The fixed rule: restart whenever the stream is NOT the natural 1-tick
-/// countdown. Client code cannot run in Shared.Tests, so <see cref="FixedDetectRehit"/>
-/// below is a line-for-line mirror of the renderer's fixed logic and
-/// <see cref="LegacyDetectRehit"/> mirrors the pre-fix logic — the mirrors pin
-/// the contract and the legacy one documents the bug.
+/// The production presentation policy uses an authoritative reaction sequence.
+/// Repeated and skipped network snapshots must not restart the same reaction.
 /// ═══════════════════════════════════════════════════════════════════════
 /// </summary>
 public class HitstunRehitAnimationTests
@@ -35,16 +32,6 @@ public class HitstunRehitAnimationTests
     private static bool LegacyDetectRehit(ActionState lastAnimState, CharacterState last, CharacterState cur)
         => lastAnimState != ActionState.Hitstun || cur.HitstunTicks >= last.HitstunTicks;
 
-    /// Fixed logic: restart on first entry or any tick that is not the natural
-    /// 1-tick countdown (a new hit resets HitstunTicks up, down, or equal).
-    private static bool FixedDetectRehit(ActionState lastAnimState, CharacterState last, CharacterState cur)
-    {
-        bool naturalCountdown = lastAnimState == ActionState.Hitstun
-            && last.HitstunTicks > 0
-            && cur.HitstunTicks == last.HitstunTicks - 1;
-        return !naturalCountdown;
-    }
-
     /// Replicates PlayerRenderer.ApplyServerState/UpdateAnimationState's
     /// hitstun path: freeze ticks (HitstopTicks > 0) change nothing
     /// animation-wise, hitstun ticks are compared against the previous applied
@@ -55,6 +42,7 @@ public class HitstunRehitAnimationTests
         public CharacterState LastState = default;
         public int LegacyRestarts;
         public int FixedRestarts;
+        public ushort PresentedSequence;
 
         public void Apply(CharacterState s)
         {
@@ -66,7 +54,11 @@ public class HitstunRehitAnimationTests
             if (s.State == ActionState.Hitstun)
             {
                 if (LegacyDetectRehit(LastAnimState, LastState, s)) LegacyRestarts++;
-                if (FixedDetectRehit(LastAnimState, LastState, s)) FixedRestarts++;
+                if (HitstunPresentation.ShouldRestart(LastAnimState, PresentedSequence, s))
+                {
+                    FixedRestarts++;
+                    PresentedSequence = s.HitReactionSequence;
+                }
                 LastAnimState = ActionState.Hitstun;
             }
             else
@@ -75,6 +67,33 @@ public class HitstunRehitAnimationTests
             }
             LastState = s;
         }
+    }
+
+    [Fact]
+    public void NetworkSnapshotsRepeatAndSkipWithoutRestartingButRealRehitRestarts()
+    {
+        var tracker = new Tracker();
+        CharacterState Decode(ushort timer, ushort sequence, ushort freeze = 0)
+        {
+            var state = new CharacterState { State = ActionState.Hitstun,
+                HitstunTicks = timer, HitReactionSequence = sequence, HitstopTicks = freeze };
+            var bytes = new byte[CharacterStatePacket.Size];
+            CharacterStatePacket.FromState(state).Serialize(bytes);
+            return CharacterStatePacket.Deserialize(bytes).ToState();
+        }
+
+        tracker.Apply(Decode(30, 1));
+        for (int i = 0; i < 8; i++) tracker.Apply(Decode(30, 1));
+        tracker.Apply(Decode(26, 1));
+        tracker.Apply(Decode(20, 1));
+        Assert.Equal(1, tracker.FixedRestarts);
+        tracker.Apply(Decode(12, 2, freeze: 3));
+        Assert.Equal(1, tracker.FixedRestarts);
+        tracker.Apply(Decode(12, 2));
+        tracker.Apply(Decode(12, 2));
+        Assert.Equal(2, tracker.FixedRestarts);
+        tracker.Apply(Decode(12, 3)); // Same duration is still a new reaction.
+        Assert.Equal(3, tracker.FixedRestarts);
     }
 
     // ── Fixture: NPC at origin, hits come from spawned hitboxes ──

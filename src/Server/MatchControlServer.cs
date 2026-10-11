@@ -201,6 +201,22 @@ namespace SlopArena.Server
                 return;
             }
             string? path = ctx.Request.Url?.AbsolutePath;
+            const string diagnosticsPrefix = "/match/diagnostics/";
+            if (ctx.Request.HttpMethod == "GET" && path?.StartsWith(diagnosticsPrefix, StringComparison.Ordinal) == true)
+            {
+                ctx.Response.Headers["Cache-Control"] = "no-store";
+                // Diagnostics always require the private credential, including development.
+                if (_controlKey is null || !IsAuthorized(ctx.Request.Headers["Authorization"], _controlKey))
+                { ctx.Response.StatusCode = 401; return; }
+                if (!Guid.TryParseExact(path[diagnosticsPrefix.Length..], "D", out var matchId) || matchId == Guid.Empty)
+                { ctx.Response.StatusCode = 404; return; }
+                var diagnostics = _orchestrator.Diagnostics.Get(matchId);
+                if (diagnostics is null) { ctx.Response.StatusCode = 404; return; }
+                ctx.Response.ContentType = "application/json";
+                await ctx.Response.OutputStream.WriteAsync(JsonSerializer.SerializeToUtf8Bytes(diagnostics,
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+                return;
+            }
             bool abort = path == "/match/abort";
             if (ctx.Request.HttpMethod != "POST" || path != "/match/start" && !abort)
             {

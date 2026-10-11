@@ -1,5 +1,17 @@
 # SlopArena Netcode & Simulation Architecture
 
+## Hit reaction snapshots — protocol 7
+
+The Steam PvP playtest exposed repeated opponent hit-reaction restarts: raw network
+states omitted HitstunTicks, so presentation received zero and treated unchanged
+snapshots as new hits. Protocol 7 appends the authoritative HitstunTicks and
+HitReactionSequence. Both launch paths advance the sequence once when a new
+hit reaction begins; hitstop and ordinary countdown leave it unchanged.
+PlayerRenderer uses the production Shared presentation policy to restart on
+entry or a changed reaction identity, including shorter re-hits. Repeated/skipped
+snapshots keep the same animation and the replicated timer enables position smoothing.
+Release client, GameHost and Master together; protocol 6 peers are rejected.
+
 ## Startup-correction protocol cutover verification — 2026-10-04
 
 - Shared authoritative snapshots now carry the captured correction target, initial yaw, committed pose pitch, active/owned flags and captured target deaths; protocol 6 retains this state layout and packet sizing.
@@ -188,7 +200,7 @@ Tick():
   6. SendState() — broadcast to all connected clients
      → For each client:
        → For each entity (all rostered players):
-      → Packet: entityId(8) + tick(4) + CharacterStatePacket(182) + hasInput(1) + InputState(22) = up to 217B
+      → Packet: entityId(8) + tick(4) + CharacterStatePacket(186) + hasInput(1) + InputState(22) = up to 221B
          → tick = _serverTick (echoed back)
          → hasInput/InputState = the input the server consumed for that entity
            that tick, or the no-input marker (issue #80 — input relay)
@@ -223,7 +235,7 @@ Send packet: entityId(8) + tick(4) + InputState(22) = 34 bytes
 | 18     | byte    | TargetEntityId  | Client-selected target (0 = none)  |
 | 19     | byte    | flags2          | bit0: JumpHeld, bit1: FaceToCamera, bit2: ToggleLock, bit3: DownPressed, bit4: ShieldHeld, bit5: ShieldPressed, bit6: GrabPressed, bit7: RetargetPressed |
 | 20     | byte    | LockMode        | `0=Never`, `1=Always`, `2=OnHit` |
-| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 6` |
+| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 7` |
 
 `ShieldHeld` is the per-tick physical hold used for grounded shield. `ShieldPressed` is a
 fresh logical edge and the sole airborne dodge input; the simulation accepts it only while
@@ -237,19 +249,19 @@ not backward-compatible partial decoding.
 ### 4b. Server → Client (per entity)
 
 ```
-Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(182) + hasInput(1) + InputState(22) = up to 217 bytes
+Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(186) + hasInput(1) + InputState(22) = up to 221 bytes
 
 [0..7]      entityId          (ulong)
 [8..11]     tick              (uint)       ← echoes client's tick number
-[12..193]   CharacterStatePacket (182 bytes) — fixed state payload; see §4b table below
-[194]       hasInput          (byte)       ← exactly 0 or 1
-[195..216]  InputState       (22 bytes)   ← present iff hasInput == 1
+[12..197]   CharacterStatePacket (186 bytes) — fixed state payload; see §4b table below
+[198]       hasInput          (byte)       ← exactly 0 or 1
+[199..220]  InputState       (22 bytes)   ← present iff hasInput == 1
 
 **The relay section** carries the exact input consumed for that entity/tick. A missing
 exact server input may extend prior held input but clears one-shot `DownPressed`,
 `ShieldPressed`, and `GrabPressed`; `ShieldHeld` remains latched. `hasInput = 0` denotes
-no consumed input and is not a truncated relay. The envelope must be exactly 195 bytes
-for marker 0 or 217 bytes for marker 1; mismatches are rejected. The client discards
+no consumed input and is not a truncated relay. The envelope must be exactly 199 bytes
+for marker 0 or 221 bytes for marker 1; mismatches are rejected. The client discards
 malformed/incompatible state datagrams without ending its receive loop. Codec owner:
 `src/Shared/ServerEntityPacket.cs`.
 
@@ -259,7 +271,7 @@ InputState is 22 bytes. `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
 versus airborne dodge from authoritative state; client-side chord binding emits
 `GrabPressed` and removes a competing defense edge without clearing the physical hold.
 
-**CharacterStatePacket layout (182 bytes):**
+**CharacterStatePacket layout (186 bytes):**
 | Offset | Type    | Field                       | Notes                              |
 |--------|---------|-----------------------------|------------------------------------|
 | 0-3    | uint    | TickNumber                  | Echoed client tick (for matching)  |
@@ -315,17 +327,19 @@ versus airborne dodge from authoritative state; client-side chord binding emits
 | 151-152| short   | CapturedYaw                  | Grab facing snapshot, signed degrees × 100 |
 | 153-154| ushort  | AirDodgeRecoveryTicks        | Grounded commitment left after an air-dodge landing |
 | 155-162| ulong   | TargetEntityId               | Sticky selected target for deterministic lock reconstruction |
-| 163    | byte    | ProtocolVersion              | `SimulationProtocol.Version = 6` |
+| 163    | byte    | ProtocolVersion              | `SimulationProtocol.Version = 7` |
 | 164-171| ulong   | AttackCorrectionTargetId     | Single target captured for this activation |
 | 172-175| float   | AttackCorrectionStartYaw     | Initial attack-facing yaw (radians) |
 | 176-179| float   | AttackPosePitch              | Authoritative startup correction pose pitch (radians) |
 | 180    | byte    | AttackCorrectionFlags        | bit0: correction active; bit1: correction owned by activation |
 | 181    | byte    | AttackCorrectionTargetDeaths | Captured target death count; invalidates a respawned target |
+| 182-183| ushort  | HitstunTicks | Remaining authoritative hit reaction ticks |
+| 184-185| ushort  | HitReactionSequence | Changes for each new hit reaction; repeated snapshots keep it |
 
-**Packet sizes:** `CharacterStatePacket` is 182 bytes. `ServerEntityPacket` is 194 bytes
-before its mandatory relay marker, 195 bytes without input and 217 bytes with input.
-Input is 22 bytes. Non-v6 state/input payloads are rejected. Steam admission also
-uses protocol version 6; coordinate Master `protocolVersion` with GameServer and clients.
+**Packet sizes:** `CharacterStatePacket` is 186 bytes. `ServerEntityPacket` is 198 bytes
+before its mandatory relay marker, 199 bytes without input and 221 bytes with input.
+Input is 22 bytes. Non-v7 state/input payloads are rejected. Steam admission also
+uses protocol version 7; coordinate Master `protocolVersion` with GameServer and clients.
 
 **The server sends ALL states to every client.** Clients ignore the ones that don't concern them. No routing overhead.
 
