@@ -58,6 +58,15 @@ kit:
 
 Wibou's character accent is **Matrix/hacker green**, shared by sword VFX and ability-icon blades/arcs. The current weapon config's trail GUID resolves to `CFXR4 Sword Trail TECH (360 Thick)`, inheriting `(360 Spiral)` with base RGB `(0.5673758, 1, 0.41134745)`; its flat 8-bit icon equivalent is **`#91FF69`**. The particle/material HDR boost is not reproduced as UI glow. This replaces the undecided foxfire accent in the historical concept below; it does not approve a model/costume redesign.
 
+The 2026-10-11 trail pass reduces `wibou_weapon.asset`'s `TrailBladeWidth`
+from `0.8` to `0.6`. Both foreground and background ribbons cover the outer
+60% of the blade, giving a 25% narrower band with the same tip trajectory.
+The green TECH pattern, glints, dissolve and 0.12-second mesh history remain
+the existing style. Blade attachment transforms, gameplay, animations and
+cooked poses are unchanged. This setting applies to every sword swing,
+including aerials and specials. Adjust it in Ability Lab under
+**Assets → Weapon trails → Blade width**.
+
 Grounded-normal icon readings: **G1 forward-reaching downward sweep; G2 forward-reaching rising sweep; G3 vertical rising swing; G4 downward hit**. Icons simplify the dominant active portion, omitting return hooks that imply a different action. All selected poses/paths remain inside their authored hitbox windows. Full active-only blade/hitbox measurements remain separate and must not be replaced by these cropped art compositions.
 
 The four transparent 512px icon samples, 50px-interior/70px-frame previews, and source/tick/color provenance are under `.impeccable/review/wibou-grounded-blade-icons-20261002/`. Artwork is individually fitted to a 448px safe area inside each 512px export, preserving proportions: about 44px on its long edge at native HUD size, with a small margin and no slot enlargement. Measurement plots retain their common scale; icon framing is not a reach comparison. These are inspected art samples, not yet wired runtime icons. Shared gameplay, existing VFX assets, normal/special category frames, damage-tier colors, and global menu colors are unchanged.

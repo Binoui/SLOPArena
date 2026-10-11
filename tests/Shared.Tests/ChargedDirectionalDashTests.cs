@@ -87,6 +87,33 @@ public sealed class ChargedDirectionalDashTests
     }
 
     [Fact]
+    public void FinisherLaunchCannotBeReplacedByALateTraversalHitDuringHitstop()
+    {
+        var sim = MakeSim();
+        RegisterTarget(sim, 0f, 5.6f);
+        var target = sim.GetState(2);
+        target.DamagePercent = 120;
+        sim.SetState(2, target);
+        BeginCharge(sim, 45, aimYaw: 0);
+        Tick(sim, default);
+        var hits = new List<SpellResolver.HitResult>(sim.LastTickHits);
+        bool sawLaunch = false;
+        for (int tick = 0; tick < 160; tick++)
+        {
+            Tick(sim, default);
+            hits.AddRange(sim.LastTickHits);
+            target = sim.GetState(2);
+            sawLaunch |= target.HitstunTicks > 0 && target.KVY > 0f;
+        }
+
+        var targetHits = hits.Where(hit => hit.TargetEntityId == 2 && !hit.Blocked).ToArray();
+        Assert.Contains(targetHits, hit => hit.Damage == 12f);
+        Assert.True(sawLaunch, "A connected finisher must launch after hitstop.");
+        int finisher = Array.FindIndex(targetHits, hit => hit.Damage == 12f);
+        Assert.DoesNotContain(targetHits.Skip(finisher + 1), hit => hit.Damage == 1f);
+    }
+
+    [Fact]
     public void TraversalReachesLaterOpponentsAfterEarlierContactsPauseTravel()
     {
         var sim = MakeSim();

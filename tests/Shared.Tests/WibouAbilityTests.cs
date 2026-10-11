@@ -101,6 +101,32 @@ public class WibouAbilityTests
     }
 
     [Fact]
+    public void RisingSlashConnectsWithAirborneVictimAndRefundsItsRecoveryCharge()
+    {
+        var sim = SimWithPlayer(out _);
+        var victim = TestHelpers.NpcState(0f, 4f);
+        victim.PY = GroundPY + 4f;
+        victim.IsGrounded = false;
+        victim.DamagePercent = 120;
+        sim.RegisterEntity(100, Def, victim, TestHelpers.LoadBakedData(Def));
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.E) }, { 100, default } });
+        Assert.Equal(1, sim.GetState(1).ChargeStockSpent);
+
+        bool connected = false;
+        bool launched = false;
+        for (int tick = 0; tick < 100; tick++)
+        {
+            sim.Tick(new() { { 1, default }, { 100, default } });
+            connected |= sim.LastTickHits.Any(hit => hit.TargetEntityId == 100 && !hit.Blocked);
+            var state = sim.GetState(100);
+            launched |= state.HitstunTicks > 0 && state.KVY > 0f;
+            if (connected) Assert.Equal(0, sim.GetState(1).ChargeStockSpent);
+        }
+        Assert.True(connected, "The recovery slash should connect with an airborne victim in its path.");
+        Assert.True(launched, "The connected recovery slash should retain an upward launch.");
+    }
+
+    [Fact]
     public void E_RecoveryUsesCameraDirection_NotTargetDirection()
     {
         var sim = SimWithPlayer(out _);

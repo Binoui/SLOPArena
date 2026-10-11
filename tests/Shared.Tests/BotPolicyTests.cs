@@ -1031,11 +1031,21 @@ public class BotPolicyTests
     public void AerialAttack_RejectsOutwardMomentumDuringLock_ButAllowsInwardMomentum()
     {
         var arena = LungeArena();
-        var self = OnlyCyclone(25f, 0f);
-        self.SetCooldown(AbilitySlots.R, 999);
-        self.SetCooldown(AbilitySlots.A, 0);
-        self.IsGrounded = false;
-        self.PY = 3f;
+        var def = TestHelpers.EngineDef;
+        var slots = System.Linq.Enumerable.ToArray(def.CookedSlots!);
+        slots[12] = new CookedSlotDefinition(12, "air.A", true, "Momentum projectile", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, true,
+            new CookedTimeline(new[]
+            {
+                new CookedStage(45, 0, 0, 0, 0, Array.Empty<string>(),
+                    new CookedTimelineOperation[]
+                    {
+                        new CookedSpawnProjectileOperation(8, AuthoringUnit.Ticks,
+                            new CookedProjectile(0, 0, 0, 20, 0, .5f, 6, 30, 3, 5, 12, 60)),
+                    }),
+            }));
+        def.CookedSlots = slots;
+        var self = TestHelpers.PlayerState(z: 25f) with { IsGrounded = false, PY = 3f };
         var target = Opponent(z: 28f);
         var policy = new HeuristicBotPolicy();
         int safeShots = 0;
@@ -1044,16 +1054,56 @@ public class BotPolicyTests
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             self.VZ = 17f;
-            var outward = policy.Decide(self, target, Def, new Random(seed), memory, arena);
+            var outward = policy.Decide(self, target, def, new Random(seed), memory, arena);
             Assert.NotEqual(AbilitySlots.A, outward.ActiveSlot);
 
             memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             self.VZ = -17f;
-            var inward = policy.Decide(self, target, Def, new Random(seed), memory, arena);
+            var inward = policy.Decide(self, target, def, new Random(seed), memory, arena);
             if (inward.ActiveSlot == AbilitySlots.A) safeShots++;
         }
         Assert.True(safeShots > 0, "Safe inherited momentum must not disable aerial attacks.");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void KiShot_BotChargesReleasesAndFiresOnGroundAndInAir(bool airborne)
+    {
+        var def = TestHelpers.FightGuyDef;
+        var self = Self(20f, 20f);
+        LockNonAimSlots(ref self);
+        self.IsGrounded = !airborne;
+        if (airborne) self.PY += 5f;
+        var target = Opponent(20f, 25f);
+        var policy = new HeuristicBotPolicy();
+        BotMemory? selectedMemory = null;
+        InputState initial = default;
+        for (int seed = 0; seed < 32; seed++)
+        {
+            var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
+            Prime(memory, target);
+            initial = policy.Decide(self, target, def, new Random(seed), memory);
+            if (initial.ActiveSlot != AbilitySlots.A) continue;
+            selectedMemory = memory;
+            break;
+        }
+        Assert.NotNull(selectedMemory);
+        Assert.True(initial.IsAiming);
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, self);
+        var held = TestHelpers.TickN(sim, initial, 1);
+        Assert.Equal(ActionState.Aiming, held.State);
+        bool released = false;
+        for (int tick = 0; tick < 90 && sim.Resolver.GetActiveHitboxes().Count == 0; tick++)
+        {
+            var input = policy.Decide(sim.GetState(1), target, def, new Random(0), selectedMemory!);
+            var state = TestHelpers.TickN(sim, input, 1);
+            released |= state.State == ActionState.Attacking && !state.IsAiming;
+        }
+        Assert.True(released);
+        Assert.Single(sim.Resolver.GetActiveHitboxes());
     }
 
 }

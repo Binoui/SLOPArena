@@ -118,6 +118,17 @@ explicit kit requirement and setup. Normal targeting tests must respect authored
 acquisition range, bounded turn, and startup cutoff rather than require every move
 to snap immediately toward any selected target.
 
+2026-10-11 release preflight corrections: the bot now projects charged-projectile
+capabilities into its damage/reach/startup/travel model. Ki Shot coverage exercises
+held charge, release and projectile creation on ground and in air; inherited-momentum
+safety uses an explicit engine projectile fixture rather than Ki Shot's charge policy.
+The focused checks passed 73 tests with one skip; the full Shared suite passed 1,692
+tests with zero failures and two skips. A standalone saved-source simulation observed
+bot release at tick 13 and one projectile at tick 21 in both ground and airborne runs;
+the momentum probe rejected all 32 outward attacks and allowed 29 inward attacks.
+The Shared build passed with `SkipUnityPluginCopy=true`; this is source-only evidence,
+not plugin refresh, native cook freshness, packaged-player or multiplayer acceptance.
+
 Kit contact scenarios must run through their authored active windows, not a fixed
 short tick budget. Check apex release on the observed ascent-to-descent transition.
 Cross-up whiffs must pass the opponent's actual position with nonzero momentum

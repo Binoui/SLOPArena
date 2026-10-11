@@ -93,8 +93,9 @@ clip; the firing timeline retains `anim.ki-shot`. Native catalog binding, packag
 cook/verification and roster refresh passed on 2026-10-11. Runtime visual checks
 covered Manki; a live FightGuy charge playtest remains pending.
 
-Shared aims from the launch position toward the current server-selected target's
-torso, falling back to the nearest eligible opponent
+Shared turns the fighter toward the target at launch, then aims from the launch
+position toward that server-selected target's torso, falling back to the nearest
+eligible opponent
 within 20 m horizontally. With no eligible target, the shot fires level along
 combat facing. It does not home after launch.
 

@@ -17,10 +17,13 @@ MonoBehaviour:
     BoneName: mixamorig:RightHand
     Prefab: {fileID: 6437906074995376065, guid: 87ac572e2fcf1f6a483cf4403c62e8cf, type: 3}
     PositionOffset: {x: -0.11, y: 0.48, z: -0.45}
+    HasFirePhaseOverride: 0
+    FirePositionOffset: {x: 0, y: 0, z: 0}
+    FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: -35.1, y: 6.64, z: 0}
     HideAfterTicks: 0
     TrailStylePrefab: {fileID: 8864774438797504383, guid: 8930475ac43a2a74d8b6dc1da64b9426, type: 3}
     HitboxMotionTime: 0.12
-    TrailBladeWidth: 0.8
+    TrailBladeWidth: 0.6
     TrailHiltAnchor: bladeHilt
     TrailTipAnchor: bladeEnd

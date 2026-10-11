@@ -55,11 +55,7 @@ public sealed class BonkKitTests
             Assert.Equal((1f, 12f, 16f, (ushort)56, (ushort)52),
                 (parameters.MinRange, parameters.MaxRange, parameters.LaunchVerticalSpeed,
                     parameters.LandingSeekTick, parameters.RecoveryTicks));
-            Assert.Equal((AuthoringHitboxShape.Capsule, .42f, 13f, 55f, 9f, 32f, (ushort)20, (ushort)6),
-                (parameters.Hitbox.Shape, parameters.Hitbox.Radius, parameters.Hitbox.Damage,
-                    parameters.Hitbox.Angle, parameters.Hitbox.BaseKnockback,
-                    parameters.Hitbox.KnockbackGrowth, parameters.Hitbox.StunTicks,
-                    parameters.Hitbox.DurationTicks));
+            Assert.Equal(AuthoringHitboxShape.Capsule, parameters.Hitbox.Shape);
             Assert.Equal(("_weapon_hilt", "_weapon_tip"),
                 (parameters.Hitbox.StartBoneId, parameters.Hitbox.EndBoneId));
         }

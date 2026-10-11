@@ -1312,7 +1312,7 @@
                   "offsetZ": 1.25,
                   "endOffsetZ": 3,
                   "damage": 15,
-                  "knockbackAngle": 55,
+                  "knockbackAngle": 30,
                   "knockbackBase": 12,
                   "knockbackGrowth": 20,
                   "stunTicks": 30,

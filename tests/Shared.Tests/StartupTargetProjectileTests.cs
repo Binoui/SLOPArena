@@ -30,6 +30,7 @@ public sealed class StartupTargetProjectileTests
         Assert.Equal(characterClass == CharacterClass.FightGuy ? ActionState.Aiming : ActionState.Attacking, sim.GetState(1).State);
         Assert.Equal(characterClass == CharacterClass.FightGuy, sim.GetState(1).IsAiming);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        TestHelpers.AssertNear(player.FacingYaw, sim.GetState(1).FacingYaw);
         input.ActiveSlot = 0;
         input.IsAiming = false;
         if (characterClass == CharacterClass.FightGuy)
@@ -38,6 +39,7 @@ public sealed class StartupTargetProjectileTests
         {
             sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
+            TestHelpers.AssertNear(player.FacingYaw, sim.GetState(1).FacingYaw);
         }
         target = sim.GetState(100);
         target.PX = 8f;
@@ -50,6 +52,8 @@ public sealed class StartupTargetProjectileTests
         var shot = shots.OrderBy(x => MathF.Abs(x.VZ)).First();
         Assert.True(shot.VX > 0f && MathF.Abs(shot.VZ) < .01f, $"expected launch-time target, got {shot.VX},{shot.VY},{shot.VZ}");
         Assert.True(shot.VY > 0f, "target's elevated launch-time position should produce upward pitch");
+        TestHelpers.AssertNear(MathF.PI / 2f, sim.GetState(1).FacingYaw);
+        TestHelpers.AssertNear(sim.GetState(1).FacingYaw, MathF.Atan2(shot.VX, shot.VZ));
         float vx = shot.VX;
         float vz = shot.VZ;
         sim.SetState(100, target with { PX = -8f });
@@ -57,6 +61,7 @@ public sealed class StartupTargetProjectileTests
         var continued = sim.Resolver.GetActiveHitboxes().OrderBy(x => MathF.Abs(x.VZ)).First();
         TestHelpers.AssertNear(vx, continued.VX);
         TestHelpers.AssertNear(vz, continued.VZ);
+        TestHelpers.AssertNear(MathF.PI / 2f, sim.GetState(1).FacingYaw);
     }
 
     [Theory]
@@ -81,6 +86,7 @@ public sealed class StartupTargetProjectileTests
         var shot = shots.OrderBy(x => MathF.Abs(x.VZ)).First();
         Assert.True(shot.VX > 0f && MathF.Abs(shot.VZ) < 0.01f);
         Assert.InRange(shot.VY, -.02f, .02f);
+        TestHelpers.AssertNear(player.FacingYaw, sim.GetState(1).FacingYaw);
 
         var cancelled = TestHelpers.MakeSim();
         cancelled.RegisterEntity(1, def, player);

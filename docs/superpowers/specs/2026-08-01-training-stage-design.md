@@ -1,10 +1,16 @@
 # Training Box Stage — Design Spec
 
 **Date:** 2026-08-01
-**Status:** Current presentation is the quiet practice lab pass of 2026-10-11; earlier rebuild notes and the original tutorial below are historical.
+**Status:** Current stage uses the quiet practice lab presentation and two-wall gameplay boundary of 2026-10-11; earlier rebuild notes and the original tutorial below are historical.
 **Owner:** binoui (new to Unity — spec doubles as a build tutorial)
 
-## Quiet practice lab — 2026-10-11
+## Two-wall gameplay boundary — 2026-10-11
+
+- Training has solid north/east walls and open south/west edges. The cosmetic prefab already showed this corner; the authoritative source still contained four walls, including disabled objects that the baker intentionally includes. Remove unwanted source geometry rather than merely disabling its renderer or GameObject.
+- Removed the south/west source walls and enabled the retained north/east source walls. Native rebake/inspection match: 72 collision triangles, four unchanged spawns, SHA-256 `43bc4a534bfb5230407968a70148562a00642bb92af599d8614255b709232eb8`. Floor/platform geometry, blast bounds and the practice-lab presentation are preserved.
+- Regression coverage checks capsule exits through both open edges, blocking by both retained walls, and actual Shared knockback deaths through west/south for all four fighters. Before the correction, all 16 open-edge/kill cases failed; afterward, the 24 Training cases and 160 existing arena/collision/blast-zone cases pass. Evidence: `.stage-authoring-cache/training/two-walls-20261011/`. A live Editor match was not run for this boundary correction.
+
+## Quiet practice lab presentation — 2026-10-11 (before the boundary correction)
 
 - Cosmetic refinement of the existing room: warm mid-grey measurement floor, muted sage platforms, softer ambient fill, shallow wall panels, diffuser strips, an observation window, storage panels and `SLOP ARENA / TRAINING` signage. North/east markers, a thin floor perimeter and origin ticks help orientation without cluttering the fight floor.
 - The existing metre grid, stronger 5 m lines and red axes remain. Larger platform labels show 1.0, 2.0 and 3.5 m; top numbers identify the three blocks. Paint surfaces have a small offset to remove grid flicker.

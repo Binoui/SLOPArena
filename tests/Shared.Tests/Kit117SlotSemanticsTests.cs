@@ -1,4 +1,5 @@
 using Xunit;
+using System.Linq;
 using SlopArena.Shared;
 
 namespace SlopArena.Shared.Tests;
@@ -68,15 +69,28 @@ public class Kit117SlotSemanticsTests
     // ── Shared abilities in the air ──
 
     [Fact]
-    public void KiShot_Shared_ActivatesWhileAirborne()
+    public void KiShot_Shared_ChargesThenFiresWhileAirborne()
     {
         var sim = TestHelpers.MakeSim();
         TestHelpers.RegisterPlayer(sim, Def, AirborneState());
 
-        var t0 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 11, aiming: true), 1);
-        Assert.Equal(ActionState.Attacking, t0.State);
-        Assert.Equal((byte)11, t0.AttackSlot);
-        Assert.False(t0.IsAiming);
+        var held = TestHelpers.TickHold(sim, TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true), 3);
+        Assert.Equal(ActionState.Aiming, held.State);
+        Assert.Equal(AbilitySlots.A, held.AttackSlot);
+        Assert.True(held.IsAiming);
+        Assert.False(held.IsGrounded);
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
+
+        var released = TestHelpers.TickDefault(sim, 1);
+        Assert.Equal(ActionState.Attacking, released.State);
+        Assert.False(released.IsAiming);
+        var charge = Assert.IsType<CookedChargedProjectileCapabilityParameters>(
+            Def.GetCookedSlotAbility(AbilitySlots.A, true)!.Timeline.Stages
+                .SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>()
+                .Single(operation => operation.Parameters is CookedChargedProjectileCapabilityParameters).Parameters);
+        TestHelpers.TickDefault(sim, charge.FireTriggerTick);
+        Assert.Single(sim.Resolver.GetActiveHitboxes());
+        Assert.False(sim.GetState(1).IsGrounded);
     }
 
     // ── E-slot Rising Dragon ──

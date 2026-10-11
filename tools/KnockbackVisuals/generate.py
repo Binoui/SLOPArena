@@ -31,8 +31,9 @@ def load_comparison(before, after_pattern):
                                  p['inHitstun']] for p in t['points']]}
                     for t in [a, b]
                 ]
-            moves.append({'label': old['label'], 'slot': old['slot'],
-                          'hit': old['hitIndex'], 'trajectories': entries})
+            moves.append({'label': new['label'], 'slot': old['slot'],
+                          'hit': old['hitIndex'], 'trajectories': entries,
+                          'changed': old.get('frame') != new.get('frame')})
         result[character] = moves
     return result
 

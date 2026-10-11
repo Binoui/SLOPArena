@@ -160,6 +160,9 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
     private void SpawnFinisher(ref CharacterState s)
     {
         _finisherSpawned = true;
+        // The launch belongs to the finisher from this point. A late traversal
+        // contact during its Hitstop would replace the victim's queued launch.
+        RemoveTraversalHitbox(ref s);
         s.AttackElapsedTicks = _parameters.FinisherSeekTick;
         SpawnHitbox(ref s, ToEvent(_parameters.FinisherHitbox,
             _parameters.FinisherHitbox.DurationTicks,
@@ -168,11 +171,7 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
 
     private void StopDash(ref CharacterState s, bool clearHitboxes)
     {
-        if (_traversalHitEntities != null)
-        {
-            Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId, _traversalHitEntities);
-            _traversalHitEntities = null;
-        }
+        RemoveTraversalHitbox(ref s);
         if (clearHitboxes)
             Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);
 
@@ -182,6 +181,13 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
         s.AnimLockTicks = _parameters.RecoveryTicks;
         if (!_finisherSpawned && s.AttackElapsedTicks >= _parameters.FinisherSeekTick)
             s.AttackElapsedTicks = (ushort)(_parameters.FinisherSeekTick - 1);
+    }
+
+    private void RemoveTraversalHitbox(ref CharacterState s)
+    {
+        if (_traversalHitEntities == null) return;
+        Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId, _traversalHitEntities);
+        _traversalHitEntities = null;
     }
 
     private void TickRecovery(ref CharacterState s)

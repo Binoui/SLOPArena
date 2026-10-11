@@ -138,6 +138,9 @@ internal static class Program
 
     internal static int Main(string[] args)
     {
+        if (args.Contains("--knockback-audit"))
+            return KnockbackAuditReport.Run(args);
+
         if (args.Contains("--route-search") || args.Contains("--route-replay"))
             return ComboRouteReport.Run(args);
 
