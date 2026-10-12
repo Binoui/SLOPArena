@@ -359,6 +359,12 @@ A database restore does not undo schema migrations or reissue credentials. Resto
 
 ### Match diagnostics
 
+The hosted owner console at
+`https://master-test.sloparena.barakaslurp.fr/console/` uses password login and a
+backend-managed Master key. See [Hosted owner console](../../docs/systems/owner-console.md)
+for its independent deployment and access boundary. The local path below remains
+available for development and authorized agent automation.
+
 The local MasterConsole at `http://127.0.0.1:4173` reaches Master through the
 existing private SSH forward on `127.0.0.1:18080`. Its code/run instructions live
 in the separate `SlopArena-console` checkout. If starting a tunnel, resolve the

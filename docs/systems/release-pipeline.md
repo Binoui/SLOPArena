@@ -40,9 +40,11 @@ requires clean source and `HEAD` equal to `--source-revision`. It refuses an
 existing publish-ready archive; do not overwrite an old artifact or move its tag.
 If game `main` changes before workflow dispatch, select/build the new approved
 snapshot with a new version; the action rejects a client for a different commit.
-MasterConsole is a separate local application/repository. Publish its approved
-source when it changes and run that version locally; this workflow builds the
-game and Master backends, not a public console or website.
+MasterConsole is a separate application/repository with an independent container
+image and authenticated gateway. Publish and deploy its approved source through
+the console workflow; see [Hosted owner console](owner-console.md). Local mode
+remains available for development. This workflow builds game and Master backends;
+it does not deploy the console or a website.
 
 ## 2. Build the Windows client locally
 

@@ -23,6 +23,7 @@ Read these in order:
 | [Animation System](systems/animation-system.md) | Animancer playback, semantic bindings, and timing |
 | [Netcode Architecture](systems/netcode-architecture.md) | GameServer, prediction, reconciliation, and transport |
 | [Release Pipeline](systems/release-pipeline.md) | Isolated client build, coordinated CI/VPS release and manual Steam activation |
+| [Hosted owner console](systems/owner-console.md) | Independent console deployment, owner password login and private Master access |
 | [Operations skill](../skills/sloparena-ops/SKILL.md) | Match diagnostics, exact VPS process-log commands and readiness |
 | [Troubleshooting](systems/troubleshooting.md) | Current Steam startup, lag and admission investigation |
 | [Restricted local stack](../deploy/local/README.md) | Caddy/PostgreSQL/GameServer image-only integration without changing the home endpoint |

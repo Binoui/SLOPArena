@@ -11,6 +11,7 @@ services:
       MASTER_TEST_HOST: ${MASTER_TEST_HOST:?set the public Master hostname}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /var/lib/sloparena/private/console-caddy:/etc/caddy/console:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:

@@ -14,5 +14,6 @@ http://{$MASTER_TEST_HOST} {
 {$MASTER_TEST_HOST} {
 	@ownerConsole path_regexp ownerConsole (?i)^/owner(?:/|$)
 	respond @ownerConsole "Not found" 404
+	import /etc/caddy/console/*.caddy
 	reverse_proxy master:8080
 }
