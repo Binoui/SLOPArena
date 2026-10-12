@@ -125,6 +125,19 @@ on landing at frame 91 and recovered at frame 143 despite whiffing. Recorded
 frame captures show the airborne hold and distinct impact/follow-through poses;
 Training and human feel acceptance remain unverified.
 
+## Grounded hit coverage
+
+The 2026-10-12 hitbox retune broadens ground.3's blade capsule to 0.65 m
+and lowers both endpoints to -0.35 m. Ground R's first slash keeps its
+0.5 m radius and lowers both endpoints to -0.15 m. The finisher and
+aerial variants retain their existing geometry.
+
+The sampled idle-target grid connects ground.3 against Manki at 1.5 m
+directly ahead and both ground R contacts through 3 m. These are sampled
+spacing bounds, not exact reach limits. Seven R positions at +50/+60°
+lose one contact while still hitting; moving-target and Training feel
+acceptance remain separate from the automated coverage check.
+
 ## Special roles — provisional tuning
 
 Q maps to canonical `ground.A` / `air.A`, not normal slot `3`.
