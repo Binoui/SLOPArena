@@ -3,7 +3,7 @@ key: log_off
 status: locked
 locked: 2026-10-11
 approved_by: maintainer
-approval_scope: rendered footprint and woodland composition; continue implementation and add background detail
+approval_scope: rendered footprint and woodland composition; background detail, memorable woodland landmark and fuller tree groups
 runtime_camera_review: pending
 blockout:
   - .stage-authoring-cache/log_off/design/design-top.png
@@ -25,7 +25,8 @@ passed. The saved gray study is
 
 ## Personality
 
-Tiny fighters turn an ancient split tree stump into a woodland chase playground.
+Tiny fighters turn an ancient split tree stump into a woodland chase playground,
+beside a crooked treehouse whose sign says “OFFLINE”.
 
 ## Fight premise
 
@@ -75,11 +76,33 @@ additional platforms: its route choice must justify the map by itself.
    quieter, with clusters separated by open ground. Ground every addition on
    its actual host. Preserve the stump, lighting intent, routes and recovery
    space; all elevated background bounds stay beyond the side blast planes.
+8. **Offline forest hideout:** on 2026-10-13 the maintainer requested a more
+   memorable background after reviewing the detail pass. Give the quieter
+   northern clearing one crooked treehouse in an ancient, branching tree,
+   with a blue roof, timber balcony and a winding blue stream beside it.
+   From yaw 180° it occupies the left background third, above the empty recovery
+   space, and gives the woodland a recognizable destination. Quarter-turn and
+   intermediate views reveal its depth, roots, branches and supported balcony;
+   it is a complete volume, not a facade aimed at one camera.
+9. **Forest depth:** compose small fir groups and low vegetation along the stream
+   banks and beside the existing groves. Bring some supporting silhouettes
+   nearer the edge of the clearing, while keeping their whole bounds beyond
+   the blast planes. The southern woodland stays less architectural, with open
+   gaps and the previous hills behind it. The hideout is the only background
+   landmark; the fighting stump stays the clearest foreground shape.
+10. **Fuller woodland:** after approving the house and river, the maintainer
+    requested more trees and simple scenery on 2026-10-13. Fill the broad gaps
+    with uneven fir groups at near, middle and far distances, varying their
+    heights. From yaw 180°, strengthen the left bank and right background while
+    leaving a clear opening toward the treehouse and blue stream. At yaw 0°,
+    give the southern hills a fuller tree line; side views gain staggered groves
+    beyond the recovery space. A few larger rocks and leafy bushes anchor the
+    groups. Reuse the accepted forest assets; no further small detail is needed.
 
 **Busy here / empty here:** the split and its two lips carry the route decision.
 Keep the connected southern floor, landing shoulders, and all immediate recovery
-space empty. Later woodland detail belongs in distant clusters, separated by
-quieter ground and sky.
+space empty. Fill the outer woodland in uneven clusters, separated by quieter
+ground and sky; keep an opening toward the house and along the river.
 
 ## Negative decisions
 
@@ -87,7 +110,7 @@ quieter ground and sky.
 - No raised bark rim, stump clutter, or decorative obstacle on a route.
 - No bridge filling the split; it must remain a real opening in the proposed shell.
 - No moving geometry, wind, bounce pads, hazards, or automatic ledge rescue.
-- No second hero landmark or uniformly dense ring of background trees.
+- One background hideout; no competing landmark or uniformly dense tree ring.
 - No background geometry through the blast corridor or false safe surface below
   the split.
 - Preserve the approved footprint and 3-unit crossing when adding presentation
@@ -99,6 +122,11 @@ Production direction: warm afternoon daylight, honey-brown cut wood, darker chun
 bark, and restrained mossy greens. The fight floor remains clearer than the
 surrounding woodland. The current blockout uses one neutral gray material and one
 study light; its renders judge shape and scale.
+
+After approving the fuller woodland, the maintainer requested more grass texture
+on 2026-10-13. Give the existing ground a quiet grass grain, irregular green
+patches and soft earthy tones beneath the tree groups. Keep the riverbank finish
+coherent with the clearing and hills, without bright speckles or new geometry.
 
 ## Camera vantages
 
@@ -151,3 +179,12 @@ These occupy irregular ground patches beside the distant groves, outside the
 27-unit guard square. Inspect the existing Fantasy Forest pack for those roles.
 Original mushroom clusters and terrain volumes stay stage-authored; the hills
 begin beyond the existing grove feet and remain quiet supporting silhouettes.
+
+The memorable-background pass uses original treehouse, guardian-tree and stream
+geometry, plus the already inspected trees, rocks and understory. Its target host
+is the northern forest ground near X=-25, Z=82. Place the roof and sign where
+the normal Training camera can show them clear of the HUD. Original timber
+surfaces reuse the accepted wood palette; the muted blue roof and stream supply
+a cool accent.
+The treehouse, root mass, banks, fir groups and stream must clear the 27-unit guard
+square, and every ground contact or attachment must have a measured host.
