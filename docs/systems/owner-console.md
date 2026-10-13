@@ -10,7 +10,9 @@ The console lives in the separate `SlopArena-console` repository. Its image,
 Compose project and release receipt are independent of the Steam client and
 Master/GameHost pair. The console image workflow tests local and hosted access,
 packages a pinned Node 24 LTS runtime and runs a real Caddy authentication smoke
-test before publishing the immutable image digest.
+test after an image archive round trip before publishing the immutable image
+digest. Private delivery uses the Actions image archive, verified against its
+receipt checksum and image content ID, without VPS registry credentials.
 
 ## Runtime boundary
 
@@ -32,14 +34,15 @@ ports, Steam admission and gameplay authority are unaffected.
 ## Provisioning and updates
 
 Use the console repository's `deploy/deploy.py` with its exact CI image/source
-receipt in an authenticated operator sudo session. First provisioning asks for
+receipt and checksum-pinned archive in an authenticated operator sudo session.
+First provisioning asks for
 an owner password through a masked terminal prompt, hashes it with Caddy via
 stdin, copies the existing Master key privately and starts the separate console.
 It validates Caddy before applying the gateway. Adding Caddy's configuration
 mount requires a Caddy recreation and a fresh zero-active-match gate. Later
 console updates preserve the mount and reload Caddy gracefully.
 
-The procedure checks registry digest/source labels, nonroot container health,
+The procedure checks archive checksum, image content ID/source labels, nonroot container health,
 anonymous/wrong-password refusal, authenticated observation and public Master
 owner exclusion. It retains private runtime state and sanitized release receipts
 under `/var/lib/sloparena-console`, preserves the previous configuration on
