@@ -54,6 +54,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Art and asset conventions](contributing/conventions.md) | 3D character rendering, asset production, naming, licensing, and hygiene |
 | [Credits](../CREDITS.md) | Public thank-you and creator links |
 | [Asset source and license notes](assets/credits-and-licenses.md) | Internal provenance and release checks |
+| [Contributor input inventory](assets/contributor-inputs.md) | Catalog dependencies, local-only asset families and provenance gaps |
 | [Visual presentation baseline](visual-baseline.md) | Repeatable gameplay-camera evidence for visual comparisons |
 
 ## Character authoring
@@ -88,7 +89,13 @@ an implementation or authoring guide.
 | [Coding assistant setup](contributing/agents.md) | Shared instructions, skill discovery, checkouts, permissions, and manual handoffs |
 | [Editor coordination](contributing/unity-editor-coordination.md) | Caller identities, bounded leases, preservation, and recovery |
 | [Quality checks](contributing/quality.md) | Documentation, adapter, gateway, and applicable build/test commands |
+| [Project tools](../tools/README.md) | Maintained .NET build set, reports, diagnostics, and research boundaries |
+| [Contributor cleanup plan](plans/2026-10-13-contributor-cleanup.md) | Bounded cleanup batches and pending Unity decisions |
 | [Unity CLI](contributing/unity-cli.md) | Package inspection/cooking, Ability Lab commands, and Editor checks |
+| [Unity tools](contributing/unity-tools.md) | Supported menu groups and package self-test preservation |
+| [Unity contributor setup](contributing/unity-setup.md) | Dependency owners, local inputs and offline catalog preflight |
+| [Unity dependency ownership](plans/2026-10-13-unity-dependency-ownership.md) | Implemented managed dependency consolidation and proposed Pipeline fork route |
+| [Workshop creator/reference target](plans/2026-10-13-public-reference-kit.md) | Deferred Editor-first authoring, Ability Lab/Training and package publication scope |
 | [Repository contributing guide](../CONTRIBUTING.md) | Setup, rules, verification, and pull requests |
 | [Code of Conduct](../CODE_OF_CONDUCT.md) | Community standards |
 

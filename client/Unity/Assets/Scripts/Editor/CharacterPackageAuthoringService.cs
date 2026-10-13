@@ -79,7 +79,7 @@ public sealed class CharacterPackageAuthoringService
                 AssetDatabase.CreateFolder(parent, packageId);
             }
             AssetDatabase.CreateAsset(catalog, catalogPath);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(catalog);
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             if (AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(catalogPath) == null)
                 throw new InvalidOperationException("Unity did not import the new CharacterAssetCatalog asset.");
@@ -815,7 +815,7 @@ public sealed class CharacterPackageAuthoringService
         {
             string catalogPath = NormalizeProjectAssetPath(packageRoot + "/CharacterAssetCatalog.asset");
             EditorUtility.SetDirty(catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(catalog);
             AssetDatabase.Refresh();
             if (!string.IsNullOrEmpty(catalogPath))
                 AssetDatabase.ImportAsset(catalogPath, ImportAssetOptions.ForceSynchronousImport);

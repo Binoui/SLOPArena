@@ -38,7 +38,7 @@ body:
     attributes:
       label: Design Fit
       options:
-        - label: This aligns with the game's PvP-first, classless, open-source philosophy
+        - label: I have described how this fits the four-character platform-fighter demo and its counterplay.
   - type: checkboxes
     id: contribution
     attributes:

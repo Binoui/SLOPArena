@@ -59,9 +59,12 @@ CLI and Pipeline upgrades are separate:
   An upstream update must preserve and verify the ownership enforcement and
   lifecycle changes; replacing the folder with stock Pipeline loses them.
 
-Keep the embedded package's source, assembly definitions, required DLLs,
-Unity metadata, tests and license versioned with the package manifest/lock.
-Only upstream repository metadata is ignored. Connection descriptors/tokens
+The current checkout versions the embedded source, assembly definitions, required
+DLLs, metadata, tests and licence. Its upstream-source publication permission is
+unresolved; the [ownership proposal](../plans/2026-10-13-unity-dependency-ownership.md)
+records a verified upstream base, reconstruction and licensing options. Preserve
+the canonical fork and its GUIDs until an approved migration passes ownership
+and lifecycle checks. Connection descriptors/tokens
 under `Library/`, temporary files and logs remain local; referenced verification
 markers and live coordination plans are not disposable output.
 

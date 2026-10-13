@@ -234,6 +234,13 @@ precondition and is not a routine Steam release prerequisite.
 
 ### Ability Lab and Unity Training
 
+Package persistence self-tests use the preservation scope described in
+[Unity tools](contributing/unity-tools.md). Run in Edit Mode with the affected assets saved;
+the scope restores original sources, bindings, cooked/generated output and the
+recook queue on success or exception. **Tools/SlopArena/Tests/Package Fixture
+Restoration** verifies that guarantee using a disposable package and injected
+failure. Package tests still require their actual source/binding prerequisites.
+
 For VFX workflow changes, run **Tools/SlopArena/Tests/Ability Lab VFX Workflow**
 in Edit Mode with a valid FightGuy package. Inspect the Console for its explicit
 passed message; menu execution alone does not prove the check passed. The check

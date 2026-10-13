@@ -5,7 +5,7 @@
       "args": [
         "-lsp",
         "-s",
-        ".omp/SlopArena.sln"
+        "SlopArena.sln"
       ],
       "fileTypes": [
         ".cs"

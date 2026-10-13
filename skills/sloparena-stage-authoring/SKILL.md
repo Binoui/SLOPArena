@@ -61,7 +61,7 @@ Cosmetic-only maintenance that does not change composition (for example, replaci
 
 Use the gateway directly: `held`/`releasing` waits for your own lease; `blocked`/unknown means stop. Do not message the Editor owner or collect blanket acknowledgments. For source conflicts and plugin-copying Shared builds, follow the [shared protocol](../../docs/contributing/unity-editor-coordination.md) and [build gate](../sloparena-build/SKILL.md); plugin copies still require your own bounded hold.
 
-The repository provides the typed bake and inspect commands below. Use them instead of the legacy `Tools/SlopArena/Bake Arena...` editor menu:
+The repository provides the typed bake and inspect commands below. Use them instead of the `Tools/SlopArena/Legacy/Bake Arena...` editor menu:
 
 ```bash
 bun scripts/unity-editor-gateway.ts status --project-path client/Unity

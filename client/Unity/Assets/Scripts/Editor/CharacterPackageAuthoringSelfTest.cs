@@ -10,7 +10,19 @@ using SlopArena.Client.Tools;
 
 public static class CharacterPackageAuthoringSelfTest
 {
+    [MenuItem("Tools/SlopArena/Tests/Character Package Authoring")]
     public static void RunFightGuyAuthoringSelfTest()
+    {
+        using (var fixture = new CharacterPackageSelfTestScope("fightguy", "bonk"))
+        {
+            fixture.PrepareCookedPackage("fightguy");
+            fixture.PrepareCookedPackage("bonk");
+            RunAuthoringChecks();
+        }
+        UnityEngine.Debug.Log("[SlopArena] Character package authoring self-test passed; fixture restored.");
+    }
+
+    private static void RunAuthoringChecks()
     {
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
         string rosterPath = Path.Combine(UnityCharacterAssetCooker.ProjectRoot(), "..", "..", "content-cooked/roster/manifest.json");
@@ -28,7 +40,9 @@ public static class CharacterPackageAuthoringSelfTest
             initial.Provenance.CookStatus == "Valid",
             "Inspection did not expose verified provenance and cook metadata.");
         Require(initial.Slots.Count == CharacterPackageCompiler.CanonicalSlotIds.Count, "Inspection did not return all canonical slots.");
-        Require(initial.Slots[0].Id == "ground.1" && initial.Slots[0].Name == "Low Kick" && initial.Slots[0].StageCount == 1,
+        var firstSourceSlot = initial.Source.Character.Slots.First(slot => slot.Id == "ground.1");
+        Require(initial.Slots[0].Id == "ground.1" && initial.Slots[0].Name == firstSourceSlot.Name &&
+            initial.Slots[0].StageCount == firstSourceSlot.Timeline.Stages.Count,
             "Inspection returned incorrect ground.1 metadata.");
 
         CharacterPackageCookResult directCook = service.Cook("fightguy");
@@ -51,13 +65,6 @@ public static class CharacterPackageAuthoringSelfTest
         CharacterPackageVerificationResult verified = service.Verify("fightguy");
         Require(verified.Success && verified.Plan != null && verified.Plan.DryRun && verified.Inspection.Rostered,
             "Read-only package verification did not pass without changing roster state.");
-        CharacterPackageBindingResult foreign = service.Bind(
-            "bonk",
-            "anim.run",
-            "Assets/CharacterPackages/fightguy/Animations/fightguy_run.anim");
-        Require(!foreign.Success && foreign.Dependency != null && foreign.Dependency.Classification == "foreign",
-            "Foreign package binding was not rejected by the domain boundary.");
-
         CharacterPackageInspectionResult commandInspect = SlopArenaCharacterCommands.Inspect("fightguy");
         Require(commandInspect.Success && commandInspect.PackageId == directCook.PackageId && commandInspect.SourceHash == directCook.SourceHash,
             "Inspect command did not delegate to the service result.");
@@ -108,20 +115,17 @@ public static class CharacterPackageAuthoringSelfTest
         {
             File.WriteAllBytes(characterPath, originalCharacter);
             AssetDatabase.Refresh();
-            CharacterPackageCookResult restored = service.Cook("fightguy");
-            Require(restored.Success, "Could not restore FightGuy after authoring self-test.");
         }
         RunBonkProbeSelfTest();
         RunPackageGenericPostprocessorSelfTest();
         RunIsolatedPackageBoundarySelfTest();
-        UnityEngine.Debug.Log("[SlopArena] Character package authoring self-test passed.");
     }
 
     private static void RunIsolatedPackageBoundarySelfTest()
     {
         string packageId = "authoring-test-" + DateTime.UtcNow.Ticks.ToString("x");
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
-        CharacterPackageCreateResult created = service.NewPackage(packageId, "Authoring Test");
+        CharacterPackageCreateResult created = service.NewPackage(packageId, "Authoring Test", "Self-test", "MIT", "Self-test fixture");
         Require(created.Success, "Isolated package creation failed.");
         try
         {
@@ -129,6 +133,13 @@ public static class CharacterPackageAuthoringSelfTest
             Require(inspection.Success && inspection.PackageId == packageId && !inspection.Rostered &&
                 inspection.Slots.Count == CanonicalSlotProjection.All.Count,
                 "New package did not open as an unrostered canonical package.");
+            string foreignClipPath = "Assets/CharacterPackages/" + packageId + "/foreign.anim";
+            AssetDatabase.CreateAsset(new UnityEngine.AnimationClip(), foreignClipPath);
+            CharacterPackageBindingResult foreign = service.Bind("bonk", "anim.run", foreignClipPath);
+            Require(!foreign.Success && foreign.Dependency?.Classification == "foreign" &&
+                foreign.Dependency.SourcePackageId == packageId &&
+                foreign.Diagnostics.Any(diagnostic => diagnostic.Code == "asset-catalog.dependency.foreign"),
+                "Foreign package binding was not rejected by the domain boundary.");
         }
         finally
         {
@@ -145,20 +156,32 @@ public static class CharacterPackageAuthoringSelfTest
             "Bonk package was not discovered by ID.");
         Require(inspection.Status == "valid" && !inspection.DirtyOrStale &&
             inspection.Slots.Count == CanonicalSlotProjection.All.Count &&
-            inspection.Slots.All(slot => slot.Present && slot.StageCount == 1),
+            inspection.Slots.All(slot => slot.Present && slot.StageCount > 0),
             "Bonk probe did not resolve valid canonical package content.");
         Require(!inspection.Diagnostics.Any(x => x.Code == "asset-catalog.clip.missing"),
             "Bonk shared semantic bindings unexpectedly reported missing clips.");
         var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>("Assets/CharacterPackages/bonk/CharacterAssetCatalog.asset");
-        var moveBindings = catalog.Bindings.Where(binding => binding != null && binding.SemanticId.StartsWith("anim.bonk.", StringComparison.Ordinal)).ToList();
-        Require(moveBindings.Count == CanonicalSlotProjection.All.Count && moveBindings.Select(binding => binding.SemanticId).Distinct(StringComparer.Ordinal).Count() == moveBindings.Count,
-            "Bonk move slots do not have independent semantic IDs.");
+        var moveIds = new HashSet<string>(inspection.Source.Character.Slots
+            .SelectMany(slot => slot.Timeline.Stages).SelectMany(stage => stage.AnimationIds), StringComparer.Ordinal);
+        var moveBindings = catalog.Bindings.Where(binding => binding != null && moveIds.Contains(binding.SemanticId)).ToList();
+        Require(moveBindings.Count == moveIds.Count && moveIds.SetEquals(moveBindings.Select(binding => binding.SemanticId)) &&
+            moveIds.Contains("anim.bonk.a1") && moveIds.Contains("anim.bonk.a3"),
+            "Bonk authored move animation IDs did not resolve to unique catalog bindings.");
         var beforeMoveClips = moveBindings.ToDictionary(binding => binding.SemanticId, binding => binding.Clip, StringComparer.Ordinal);
-        Require(service.Bind("bonk", "anim.bonk.a1", "Assets/Art/Characters/bonk/Animations/bonk_a_3.FBX").Success &&
-            moveBindings.Where(binding => binding.SemanticId != "anim.bonk.a1").All(binding => binding.Clip == beforeMoveClips[binding.SemanticId]),
-            "Bonk move binding replacement changed unrelated moves.");
-        Require(service.Bind("bonk", "anim.bonk.a1", "Assets/Art/Characters/bonk/Animations/bonk_a_1.FBX").Success,
-            "Bonk move binding fixture could not be restored.");
+        try
+        {
+            Require(service.Bind("bonk", "anim.bonk.a1", AssetDatabase.GetAssetPath(beforeMoveClips["anim.bonk.a3"])).Success &&
+                moveBindings.Where(binding => binding.SemanticId != "anim.bonk.a1").All(binding => binding.Clip == beforeMoveClips[binding.SemanticId]),
+                "Bonk move binding replacement changed unrelated moves.");
+        }
+        finally
+        {
+            // A contributor may have selected a different clip. Restore that
+            // exact binding, not the historical bonk_a_1 fixture.
+            catalog.Bindings.First(binding => binding.SemanticId == "anim.bonk.a1").Clip = beforeMoveClips["anim.bonk.a1"];
+            Require(CharacterPackageAuthoringService.PersistCatalog("Assets/CharacterPackages/bonk", catalog,
+                out _, out _, out _), "Bonk original binding could not be restored.");
+        }
         CharacterPackageCookResult cook = service.Cook("bonk");
         Require(cook.Success && !string.IsNullOrEmpty(cook.CookedContentHash) && !string.IsNullOrEmpty(cook.PackageHash),
             "Bonk probe did not cook with independent move bindings.");
@@ -196,16 +219,15 @@ public static class CharacterPackageAuthoringSelfTest
         int slotIndex = source.Character.Slots.ToList().FindIndex(x => x.Id == "ground.1");
         if (slotIndex < 0) throw new InvalidDataException("FightGuy ground.1 source slot is missing.");
         CharacterSlotSource slot = source.Character.Slots[slotIndex];
-        CharacterStageSource stage = slot.Timeline.Stages[0];
-        var invalidOperation = stage.Operations[0] switch
-        {
-            SpawnHitboxOperationSource hitbox => hitbox with { Tick = stage.DurationTicks },
-            _ => throw new InvalidDataException("FightGuy ground.1 first operation is not a hitbox.")
-        };
+        int stageIndex = slot.Timeline.Stages.ToList().FindIndex(stage => stage.Operations.Any(operation => operation is SpawnHitboxOperationSource));
+        if (stageIndex < 0) throw new InvalidDataException("FightGuy ground.1 has no hitbox for the invalid-source test.");
+        CharacterStageSource stage = slot.Timeline.Stages[stageIndex];
+        int operationIndex = stage.Operations.ToList().FindIndex(operation => operation is SpawnHitboxOperationSource);
+        var invalidOperation = ((SpawnHitboxOperationSource)stage.Operations[operationIndex]) with { Tick = stage.DurationTicks };
         var operations = stage.Operations.ToList();
-        operations[0] = invalidOperation;
+        operations[operationIndex] = invalidOperation;
         var stages = slot.Timeline.Stages.ToList();
-        stages[0] = stage with { Operations = operations };
+        stages[stageIndex] = stage with { Operations = operations };
         var slots = source.Character.Slots.ToList();
         slots[slotIndex] = slot with { Timeline = new CharacterTimelineSource(stages) };
         return CharacterPackageSourceCodec.SerializeCharacter(source.Character with { Slots = slots });

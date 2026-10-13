@@ -11,8 +11,11 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabPackageSelfTest
 {
+    [MenuItem("Tools/SlopArena/Tests/Ability Lab Package Editing")]
     public static void RunPackageEditorSelfTest()
     {
+        using var fixture = new CharacterPackageSelfTestScope("fightguy", "bonk");
+        fixture.PrepareCookedPackage("fightguy");
         string packageId = "selftest-" + Guid.NewGuid().ToString("N").Substring(0, 8);
         string root = "Assets/CharacterPackages/" + packageId;
         string full = Path.Combine(UnityCharacterAssetCooker.ProjectRoot(), root);
@@ -126,13 +129,13 @@ public static class AbilityLabPackageSelfTest
             int catalogSampleRate = workspace.Catalog.SampleRate;
             workspace.Catalog.SampleRate = 30;
             EditorUtility.SetDirty(workspace.Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(workspace.Catalog);
             if (workspace.SavePackage() ||
                 !workspace.Diagnostics.Any(x => x.Code == "workspace.conflict" && x.Path.EndsWith("CharacterAssetCatalog.asset", StringComparison.Ordinal)))
                 throw new InvalidOperationException("External catalog conflict was not blocked before source writes.");
             workspace.Catalog.SampleRate = catalogSampleRate;
             EditorUtility.SetDirty(workspace.Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(workspace.Catalog);
             if (!workspace.ReloadPackage()) throw new InvalidOperationException("Catalog conflict cleanup could not reload FightGuy.");
             statusBefore = File.ReadAllBytes(statusPath);
             var catalogRig = workspace.Catalog.Rig;

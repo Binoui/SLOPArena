@@ -2,6 +2,13 @@
 
 The public-facing thank-you and creator links live in [CREDITS.md](../../CREDITS.md). This document tracks source evidence, attribution wording, and release checks. Update the public credits when a creator or pack is identified; keep uncertainty and packaging work here rather than in the thank-you.
 
+The [contributor input inventory](contributor-inputs.md) records actual catalog,
+scene and Resources availability. See the
+[Pipeline fork proposal](../plans/2026-10-13-unity-dependency-ownership.md#pipeline-fork-and-upstream-licence)
+for its upstream licence, original contribution provenance and unresolved source
+publication route. Neither the fork nor vendor asset adaptations acquire MIT
+rights from the root project licence.
+
 | Source | Evidence and credit | Release check |
 | --- | --- | --- |
 | Grruzam sword and fighter animations | [Powerful Sword Pack](https://assetstore.unity.com/packages/3d/animations/powerful-sword-pack-great-sword-katana-183324) and [Fighter Pack](https://assetstore.unity.com/packages/3d/animations/fighter-pack-can-be-used-with-my-other-packs-201900) are both published by Grruzam. Kistu's [source notes](../characters/wibou.md#grounded-animation-correction--2026-09-15) name `M_katana_Blade` clips; imported Kistu/Bonk FBX files preserve the pack's source paths. [Wibou](../../client/Unity/Assets/CharacterPackages/wibou/CharacterAssetCatalog.asset) and [FightGuy](../../client/Unity/Assets/CharacterPackages/fightguy/CharacterAssetCatalog.asset) bind edited clips. A partial local `Assets/~AnimationPacks/FighterAnimations/` copy i…

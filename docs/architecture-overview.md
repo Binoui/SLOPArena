@@ -126,10 +126,10 @@ Edit `src/Server/` or the Unity network bridge only after tracing the authoritat
 ## Quick commands
 
 ```bash
-dotnet build src/Shared/ --nologo
-dotnet test tests/Shared.Tests/ --nologo
-dotnet build src/Server/ --nologo
-dotnet run --project src/Server/
+dotnet build src/Shared/ --nologo -p:SkipUnityPluginCopy=true
+dotnet test tests/Shared.Tests/ --nologo -p:SkipUnityPluginCopy=true
+dotnet build src/Server/ --nologo -p:SkipUnityPluginCopy=true
+dotnet run --project src/Server/ -p:SkipUnityPluginCopy=true -- src/Server/server.json
 ```
 
 Package commands:

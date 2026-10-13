@@ -269,7 +269,7 @@ public sealed class AbilityLabPackageWorkspace
                     Prefab = x.Prefab,
                 }).ToArray();
             EditorUtility.SetDirty(Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(Catalog);
             PushUndo(prior);
             AbilityLab.Instance?.SetSourceDocument(result.Source);
             AbilityLab.Instance?.SetPresentationBindings(Catalog.Presentations);
@@ -521,7 +521,7 @@ public sealed class AbilityLabPackageWorkspace
             UnityEditor.Undo.RecordObject(Catalog, "Replace character catalog rig");
             Catalog.Rig = rig;
             EditorUtility.SetDirty(Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(Catalog);
             PushUndo(prior);
             MarkCatalogEdited();
             SceneView.RepaintAll();
@@ -584,7 +584,7 @@ public sealed class AbilityLabPackageWorkspace
                     new CharacterAssetCatalog.PresentationBinding { SemanticId = semanticId, Prefab = prefab },
                 }).ToArray();
             EditorUtility.SetDirty(Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(Catalog);
             PushUndo(prior);
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
             IsDirty = true;
@@ -619,7 +619,7 @@ public sealed class AbilityLabPackageWorkspace
                     : binding)
                 .ToArray();
             EditorUtility.SetDirty(Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(Catalog);
             PushUndo(prior);
             MarkCatalogEdited();
             SceneView.RepaintAll();
@@ -1016,7 +1016,7 @@ public sealed class AbilityLabPackageWorkspace
             Catalog.Bindings = CloneBindings(snapshot.Catalog.Bindings);
             Catalog.Presentations = ClonePresentations(snapshot.Catalog.Presentations);
             EditorUtility.SetDirty(Catalog);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(Catalog);
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
             AbilityLab.Instance?.SetPresentationBindings(Catalog.Presentations);
         }

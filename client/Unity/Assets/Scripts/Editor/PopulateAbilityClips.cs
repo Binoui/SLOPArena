@@ -8,28 +8,28 @@ using SlopArena.Client.Animation;
 /// Editor tool: populate a CharacterAnimationConfig's AbilityClips list
 /// by matching clip names against animation names in an animation folder.
 ///
-/// Usage: Window > SlopArena > Populate Ability Clips
-///        or right-click a CharacterAnimationConfig asset → Populate Ability Clips
+/// Usage: Tools > SlopArena > Legacy > Populate Ability Clips
+///        or right-click a CharacterAnimationConfig asset → SlopArena > Legacy > Populate Ability Clips
 /// </summary>
 public class PopulateAbilityClips : EditorWindow
 {
     [SerializeField] private CharacterAnimationConfig _config;
     [SerializeField] private DefaultAsset _animFolder;
 
-    [MenuItem("Window/SlopArena/Populate Ability Clips")]
+    [MenuItem("Tools/SlopArena/Legacy/Populate Ability Clips")]
     public static void ShowWindow()
     {
         var w = GetWindow<PopulateAbilityClips>("Populate Ability Clips");
         w.minSize = new Vector2(400, 140);
     }
 
-    [MenuItem("Assets/Populate Ability Clips", true)]
+    [MenuItem("Assets/SlopArena/Legacy/Populate Ability Clips", true)]
     private static bool ValidateSelection()
     {
         return Selection.activeObject is CharacterAnimationConfig;
     }
 
-    [MenuItem("Assets/Populate Ability Clips")]
+    [MenuItem("Assets/SlopArena/Legacy/Populate Ability Clips")]
     private static void PopulateFromSelection()
     {
         var config = Selection.activeObject as CharacterAnimationConfig;
@@ -112,9 +112,6 @@ public class PopulateAbilityClips : EditorWindow
         // Find all AnimationClips in the folder
         var pool = new Dictionary<string, AnimationClip>(System.StringComparer.OrdinalIgnoreCase);
 
-        // Clear existing list to prevent duplicates on re-run
-        config.AbilityClips.Clear();
-
         string[] guids = AssetDatabase.FindAssets("t:AnimationClip", new[] { folderPath });
         foreach (var g in guids)
         {
@@ -135,6 +132,10 @@ public class PopulateAbilityClips : EditorWindow
             return;
         }
 
+        // Validate first: an empty folder must not erase the existing bindings.
+        Undo.RecordObject(config, "Populate legacy ability clips");
+        config.AbilityClips.Clear();
+
         // Match by name — no hardcoded list, just add everything that matches a clip.
         // The clip names already match the AnimationNames in the ability specs.
         int added = 0;
@@ -151,7 +152,7 @@ public class PopulateAbilityClips : EditorWindow
         }
 
         EditorUtility.SetDirty(config);
-        AssetDatabase.SaveAssets();
+        AssetDatabase.SaveAssetIfDirty(config);
 
         Debug.Log($"[PopulateAbilityClips] {config.name}: added {added} clips from {folderPath}");
         EditorUtility.DisplayDialog("Done", $"{config.name}: {added} clips added to AbilityClips.", "OK");

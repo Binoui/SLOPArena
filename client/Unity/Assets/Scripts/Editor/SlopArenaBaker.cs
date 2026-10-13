@@ -12,7 +12,7 @@ using SlopArena.Client.Entities;
 /// Bakes skeleton bone positions per animation frame into a .bin file.
 /// Replaces the Godot headless_bake.gd script.
 ///
-/// Usage: Tools -> SlopArena -> Bake Skeleton...
+/// Usage: Tools -> SlopArena -> Legacy -> Bake Skeleton...
 /// Select a character prefab (FBX model with Animator), this will sample all animations
 /// at each frame and write bone positions to a .bin file.
 ///
@@ -36,7 +36,7 @@ public class SlopArenaBaker : EditorWindow
     private string _outputPath = "data/";
     private float _sampleRate = 60f;
 
-    [MenuItem("Tools/SlopArena/Bake Skeleton...")]
+    [MenuItem("Tools/SlopArena/Legacy/Bake Skeleton...")]
     public static void ShowWindow()
     {
         GetWindow<SlopArenaBaker>("Bake Skeleton");
@@ -386,7 +386,7 @@ public class SlopArenaBaker : EditorWindow
         }
     }
 
-    [MenuItem("Tools/SlopArena/Bake All Characters")]
+    [MenuItem("Tools/SlopArena/Legacy/Bake All Skeletons")]
     public static void BakeAllCharacters()
     {
         float sampleRate = 60f;

@@ -93,7 +93,7 @@ internal static class CharacterAnimationCatalogGenerator
         if (File.Exists(fullTemp)) AssetDatabase.DeleteAsset(tempPath);
         AssetDatabase.CreateAsset(generated, tempPath);
         EditorUtility.SetDirty(generated);
-        AssetDatabase.SaveAssets();
+        AssetDatabase.SaveAssetIfDirty(generated);
         AssetDatabase.ImportAsset(tempPath, ImportAssetOptions.ForceSynchronousImport);
         return tempPath;
     }
@@ -122,7 +122,7 @@ internal static class CharacterAnimationCatalogGenerator
         {
             string error = AssetDatabase.MoveAsset(tempPath, normalized);
             if (!string.IsNullOrEmpty(error)) throw new InvalidOperationException(error);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(AssetDatabase.LoadAssetAtPath<CharacterAnimationCatalog>(normalized));
             AssetDatabase.Refresh();
             if (AssetDatabase.LoadAssetAtPath<CharacterAnimationCatalog>(normalized) == null)
                 throw new InvalidOperationException("Generated catalog did not import.");

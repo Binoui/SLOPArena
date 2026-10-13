@@ -16,7 +16,7 @@ PluginImporter:
       settings:
         Exclude Editor: 1
     Editor:
-      enabled: 0
+      enabled: 1
       settings:
         DefaultValueInitialized: true
     WindowsStoreApps:

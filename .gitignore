@@ -256,6 +256,7 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !docs/design/references/sloparena-visual-identity/visual-reference-study.png
 !client/Unity/Assets/UI/SplashArt/*.png
 !client/Unity/Assets/UI/MenuGear.png
+!client/Unity/Assets/UI/SlopArenaIcon.png
 !client/Unity/Assets/UI/SelectionCheck.png
 !client/Unity/Assets/UI/HUDNormalDiamond.png
 !client/Unity/Assets/UI/HUDSpecialDiamond.png
@@ -376,6 +377,9 @@ __pycache__/
 # Local UI review evidence; design contracts remain versioned.
 /.impeccable/review/
 /.impeccable/critique/
+/.impeccable/mocks/
+/.impeccable/plates/
+/.impeccable/questions/
 
 # Local promo renders and composition workspaces
 /brag-output*/
@@ -383,6 +387,9 @@ __pycache__/
 # Runtime UI artwork shipped with the pre-match screens.
 !client/Unity/Assets/Resources/UI/Portraits/*.png
 !client/Unity/Assets/Resources/UI/Stages/*.png
+
+# Original shipping move illustrations; raw animation/vendor inputs stay ignored.
+!client/Unity/Assets/Resources/UI/AbilityCards/**/*.png
 
 # Table Manners preview depends on the locally installed Cozy Interior pack.
 client/Unity/Assets/Resources/UI/Stages/table_manners.png

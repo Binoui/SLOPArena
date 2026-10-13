@@ -111,9 +111,11 @@ foreach (int n in new[] { 1, 2, 3, 4 })
             }
         Log($"PHASE g{n} shift={phase} hits={hits}/30 positions={string.Join(';', positions)}");
     }
-// Hold each input separately after a whiff to distinguish IASA from full recovery.
+// Probe current grounded movement/jump recovery after a whiff. The historical
+// Dash wire bit is ignored; air dodge is an airborne defense action, not a
+// grounded recovery option.
 foreach (int n in new[] { 1, 2, 3, 4 })
-    foreach (string action in new[] { "move", "dash", "jump" })
+    foreach (string action in new[] { "move", "jump" })
     {
         var def = bonk.Definition; byte slot = (byte)(n switch { 1 => 3, 2 => 7, 3 => 8, _ => 9 });
         var sim = new ServerSimulation(arena);
@@ -121,9 +123,9 @@ foreach (int n in new[] { 1, 2, 3, 4 })
         var input = new Dictionary<ulong, InputState>(); int unlocked = -1;
         for (int t = 0; t < 130; t++)
         {
-            input[1] = new InputState { ActiveSlot = t == 0 ? slot : (byte)0, MoveY = t > 0 ? 1f : 0f, Dash = t > 0 && action == "dash", Jump = t > 0 && action == "jump", JumpHeld = action == "jump" };
+            input[1] = new InputState { ActiveSlot = t == 0 ? slot : (byte)0, MoveY = t > 0 && action == "move" ? 1f : 0f, Jump = t > 0 && action == "jump", JumpHeld = action == "jump" };
             sim.Tick(input); var s = sim.GetState(1);
-            if (t > 0 && (action == "move" ? Math.Abs(s.PZ - 100) > .001 : action == "dash" ? s.State == ActionState.Dashing : s.State == ActionState.JumpSquat)) { unlocked = t; break; }
+            if (t > 0 && (action == "move" ? Math.Abs(s.PZ - 100) > .001 : s.State == ActionState.JumpSquat)) { unlocked = t; break; }
         }
         Log($"RECOVERY g{n} {action} firstTick={unlocked}");
     }

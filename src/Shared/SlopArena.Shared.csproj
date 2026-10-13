@@ -12,48 +12,20 @@
     <Authors>Binoui</Authors>
     <Description>Shared data types for SlopArena — pure C#, no Unity dependencies</Description>
     <RepositoryUrl>https://github.com/Binoui/SlopArena</RepositoryUrl>
-    <!-- Copy the full NuGet dependency closure into the output dir so the
-         CopyToUnity target can ship it to Assets/Plugins for the Unity client.
-         Library projects don't copy deps to output by default. -->
+    <!-- Keep standalone .NET outputs complete. Unity's third-party managed
+         inputs are versioned separately in Assets/Plugins/NuGet. -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Shared uses System.Text.Json (LobbyPayloadCodec). The SignalR.Client
-         reference below is NOT used by Shared code — it is a carrier so the
-         CopyToUnity target ships the full SignalR transitive closure into
-         Assets/Plugins for the Unity-side LobbyClient.cs (issue #33, ADR-0004).
-         Versions pinned to the set recorded in the master-server lobby work. -->
+    <!-- Shared uses JSON codecs but has no SignalR or Unity dependency. -->
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.15" />
-  </ItemGroup>
-
-  <!-- DLLs Unity already ships in its own runtime API-compat surface. Copying
-       the NuGet versions alongside Unity's causes duplicate-type
-       TypeLoadExceptions, so the closure-copy target skips them. Verify by
-       compiling in Unity: a "duplicate type" error on a DLL = add it here. -->
-  <ItemGroup>
-    <UnityProvidedBcl Include="
-        System.Buffers.dll;
-        System.Memory.dll;
-        System.Numerics.Vectors.dll;
-        System.Runtime.CompilerServices.Unsafe.dll;
-        System.Threading.Tasks.Extensions.dll" />
   </ItemGroup>
 
   <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(SkipUnityPluginCopy)' != 'true'">
-    <!-- Ship the Shared DLL + the full restored dependency closure (SignalR
-         client + System.Text.Json + transitives) into Assets/Plugins so
-         Unity's Assembly-CSharp can resolve LobbyClient.cs (issue #33,
-         ADR-0004). CopyLocalLockFileAssemblies forces the closure into
-         $(TargetDir); we exclude the BCL DLLs Unity already ships or you get
-         duplicate-type TypeLoadExceptions. Verify in Unity: a "duplicate
-         type" error on a DLL = add it to UnityProvidedBcl. -->
-    <ItemGroup>
-      <UnityPluginAssemblies Include="$(TargetDir)*.dll"
-        Exclude="@(UnityProvidedBcl->'$(TargetDir)%(Identity)')" />
-    </ItemGroup>
-    <Copy SourceFiles="@(UnityPluginAssemblies)"
+    <!-- NuGet owns Unity's third-party assemblies; do not export that closure
+         from Shared. This target never prunes a contributor's plugin folder. -->
+    <Copy SourceFiles="$(TargetDir)$(TargetName).dll"
           DestinationFolder="$(MSBuildProjectDirectory)/../../client/Unity/Assets/Plugins/SlopArena.Shared"
           SkipUnchangedFiles="true" />
     <!-- Debug symbols for Shared only (deps' pdbs are noise in Unity). -->

@@ -14,6 +14,7 @@ public static class EditorDevelopmentContentSelfTest
     [MenuItem("Tools/SlopArena/Tests/Editor Development Content")]
     public static void Run()
     {
+        using var fixture = new CharacterPackageSelfTestScope("fightguy");
         var resolver = LocalContentResolver.CreateForMode(LocalContentMode.Development);
         string repositoryRoot = Path.GetFullPath(Path.Combine(resolver.ProjectRoot, "..", ".."));
         string packageRoot = Path.Combine(resolver.ProjectRoot, "Assets", "CharacterPackages", "fightguy");

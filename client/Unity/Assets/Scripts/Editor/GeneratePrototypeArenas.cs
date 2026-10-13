@@ -42,7 +42,7 @@ public static class GeneratePrototypeArenas
         }
     }
 
-    [MenuItem("Tools/SlopArena/Generate Prototype Arenas")]
+    [MenuItem("Tools/SlopArena/Prototypes/Generate Arenas")]
     public static void GenerateAll()
     {
         EnsureFolder("Assets/Art/Stages", "GeneratedPrototypes");

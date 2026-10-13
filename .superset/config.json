@@ -1,10 +1,10 @@
 {
   "setup": [
-    "dotnet restore",
-    "dotnet build src/Shared/ --nologo"
+    "dotnet restore SlopArena.sln",
+    "dotnet build SlopArena.sln --nologo -p:SkipUnityPluginCopy=true"
   ],
   "teardown": [],
   "run": [
-    "dotnet run --project src/Server/SlopArena.Server.csproj"
+    "dotnet run --project src/Server/SlopArena.Server.csproj -p:SkipUnityPluginCopy=true -- src/Server/server.json"
   ]
 }

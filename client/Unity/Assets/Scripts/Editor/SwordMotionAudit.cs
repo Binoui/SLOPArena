@@ -15,10 +15,10 @@ public static class SwordMotionAudit
 {
     private const float SampleRate = 60f;
 
-    [MenuItem("Tools/SlopArena/Sword Motion Audit/Wibou")]
+    [MenuItem("Tools/SlopArena/Diagnostics/Sword Motion Audit/Wibou")]
     private static void AuditWibou() => Run("wibou");
 
-    [MenuItem("Tools/SlopArena/Sword Motion Audit/Bonk")]
+    [MenuItem("Tools/SlopArena/Diagnostics/Sword Motion Audit/Bonk")]
     private static void AuditBonk() => Run("bonk");
 
     private static void Run(string packageId)

@@ -5,7 +5,7 @@ using UnityEditor;
 
 public class SetupArenaLighting : EditorWindow
 {
-    [MenuItem("Tools/Setup Arena Lighting")]
+    [MenuItem("Tools/SlopArena/Prototypes/Setup Arena Lighting")]
     public static void Execute()
     {
         // Find and destroy existing directional lights

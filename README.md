@@ -47,21 +47,33 @@ git clone https://github.com/Binoui/SlopArena.git
 cd SlopArena
 ```
 
-Install Unity `6000.0.78f1` and .NET SDK 8. Open `client/Unity/` in Unity Hub and press Play for the local training flow.
-
-Build the simulation and run its tests from the repository root:
-
-```bash
-dotnet build src/Shared/ --nologo
-dotnet test tests/Shared.Tests/ --nologo
-dotnet build src/Server/ --nologo
-```
-
-Run the headless GameServer locally:
+Install .NET SDK 8 to work on the simulation, server, or C# tools. A clean clone
+supports these checks without Unity or the local art installation:
 
 ```bash
-dotnet run --project src/Server/
+dotnet build SlopArena.sln --nologo -p:SkipUnityPluginCopy=true
+dotnet test SlopArena.sln --no-build --nologo -p:SkipUnityPluginCopy=true
 ```
+
+The root solution also supports ordinary C# IDE navigation. See the
+[tool inventory](tools/README.md) for the maintained command-line tools.
+
+The Unity client requires Unity `6000.0.78f1`, the separately installed
+Animancer package, and exact local rig/animation/presentation assets. A stock
+clone cannot compile and play the complete client. Follow the
+[Unity setup instructions](CONTRIBUTING.md#unity-client-and-authoring) before
+opening the project; Shared must be built for Unity after those prerequisites
+are available.
+
+Run the development GameServer from the repository root:
+
+```bash
+dotnet run --project src/Server/ -p:SkipUnityPluginCopy=true -- src/Server/server.json
+```
+
+Its development configuration expects a local Master server for registration.
+See the [local stack](deploy/local/README.md) for the separate Master checkout
+and integration setup.
 
 Explore the [knockback visual comparison](tools/KnockbackVisuals/README.md) to watch saved before/after trajectories for all four fighters. Run `python3 tools/KnockbackVisuals/serve.py` and open http://localhost:8765/, or open the standalone HTML directly in a browser.
 

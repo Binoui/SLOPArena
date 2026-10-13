@@ -8,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report! The more detail you provide, the faster we can fix it.
+        Include the game build or source revision and enough detail to reproduce the problem.
   - type: textarea
     id: description
     attributes:
@@ -46,25 +46,40 @@ body:
     id: mode
     attributes:
       label: Mode
-      description: Were you running in sandbox or server mode?
+      description: Where did the problem occur?
       options:
-        - Sandbox (local)
-        - Server (multiplayer)
-        - Both
+        - Training or Solo
+        - Online match (PvP)
+        - Ability Lab or authoring tools
+        - Frontend or settings
+        - Shared or server tools/tests
+        - Several modes
     validations:
       required: true
   - type: input
-    id: godot_version
+    id: revision
     attributes:
-      label: Godot Version
-      description: e.g., 4.6.1
+      label: Game build or source revision
+      description: Steam Playtest build/version or Git commit; say unknown if unavailable.
     validations:
       required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system
+      description: Include the version and whether you used the packaged game or Unity Editor.
+    validations:
+      required: true
+  - type: input
+    id: unity_version
+    attributes:
+      label: Unity Editor version
+      description: For Editor/authoring problems; the project uses 6000.0.78f1. Leave blank for packaged-game reports.
   - type: textarea
     id: logs
     attributes:
       label: Relevant Logs / Screenshots
-      description: Copy any relevant output from the Godot console, or attach screenshots.
+      description: Attach relevant Player.log, Unity Console, server/test output, or screenshots. Remove tokens, credentials, and other private data.
       render: shell
   - type: checkboxes
     id: terms

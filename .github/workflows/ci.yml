@@ -15,10 +15,10 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet build src/Shared/ --nologo
-      - run: dotnet test tests/Shared.Tests/ --nologo
-      - run: dotnet build src/Server/ --nologo
-      - run: dotnet test tests/Server.Tests/ --nologo
+      - name: Build maintained .NET projects and tools
+        run: dotnet build SlopArena.sln --nologo -p:SkipUnityPluginCopy=true
+      - name: Test Shared and Server
+        run: dotnet test SlopArena.sln --no-build --nologo -p:SkipUnityPluginCopy=true
   agent-tools:
     runs-on: ubuntu-latest
     timeout-minutes: 3

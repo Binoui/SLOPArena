@@ -11,10 +11,47 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
     private static bool _processing;
     private static double _dueTime;
     private static int _queueRequestCount;
+    private static int _selfTestDepth;
 
     internal static bool Pending => _pending;
     internal static int QueueRequestCount => _queueRequestCount;
     internal static IReadOnlyCollection<string> PendingPackages => _pendingPackages;
+
+    // Self-tests may exercise explicit queue requests, but imports and later
+    // Editor frames must not publish those requests after the fixture is restored.
+    internal static IDisposable PreserveQueueForSelfTest()
+    {
+        if (_processing) throw new InvalidOperationException("A package cook is already processing.");
+        return new SelfTestQueueScope();
+    }
+
+    private sealed class SelfTestQueueScope : IDisposable
+    {
+        private readonly string[] _packages = _pendingPackages.ToArray();
+        private readonly bool _wasPending = _pending;
+        private readonly double _due = _dueTime;
+        private readonly int _requests = _queueRequestCount;
+        private bool _disposed;
+
+        internal SelfTestQueueScope()
+        {
+            _selfTestDepth++;
+            EditorApplication.update -= ProcessQueue;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            ResetQueueRequestCount();
+            foreach (string packageId in _packages) _pendingPackages.Add(packageId);
+            _pending = _wasPending;
+            _dueTime = _due;
+            _queueRequestCount = _requests;
+            _selfTestDepth--;
+            if (_selfTestDepth == 0 && _pending) EditorApplication.update += ProcessQueue;
+        }
+    }
 
     internal static void ResetQueueRequestCount()
     {
@@ -30,6 +67,7 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
         string[] movedAssets,
         string[] movedFromAssetPaths)
     {
+        if (_selfTestDepth > 0) return;
         var changed = new List<string>();
         changed.AddRange(importedAssets ?? Array.Empty<string>());
         changed.AddRange(deletedAssets ?? Array.Empty<string>());
@@ -54,7 +92,7 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
         foreach (var packageId in _pendingPackages.ToArray())
             service.MarkStale(packageId);
         EditorApplication.update -= ProcessQueue;
-        EditorApplication.update += ProcessQueue;
+        if (_selfTestDepth == 0) EditorApplication.update += ProcessQueue;
     }
 
     internal static IReadOnlyList<string> FindAffectedPackages(IEnumerable<string> paths)
@@ -95,7 +133,7 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
 
     private static void ProcessQueue()
     {
-        if (!_pending || _processing || EditorApplication.timeSinceStartup < _dueTime) return;
+        if (_selfTestDepth > 0 || !_pending || _processing || EditorApplication.timeSinceStartup < _dueTime) return;
         _processing = true;
         try
         {

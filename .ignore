@@ -1,13 +1,3 @@
-/.godot
-/Shared
-/Server
-/textures
-/.github
-/addons
+# Gitignored build outputs and local assets are already excluded by ripgrep.
+# Keep project source, tests, and CI visible to repository-wide searches.
 /.git
-/assets
-/Pro Magic Pack
-/tests
-/Saved
-/Intermediate
-/.vscode
