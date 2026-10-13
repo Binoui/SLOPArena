@@ -9,8 +9,8 @@ using SlopArena.Client.World;
 namespace SlopArena.Client.UI
 {
     /// <summary>
-    /// Training controls stay in the same HUD position during play and pause. Pause
-    /// owns mouse access; hiding the readout during play never hides paused controls.
+    /// Training keeps a compact behavior readout during play. Pause expands the
+    /// controls in the same position and owns mouse access.
     /// </summary>
     public class TrainingSettingsPanel : MonoBehaviour
     {
@@ -21,7 +21,9 @@ namespace SlopArena.Client.UI
         private Label _damageLabel;
         private Label _modeDescription;
         private Label _inputHint;
-        private bool _showDuringPlay = true;
+        private Label _summaryMode;
+        private ScrollView _controls;
+        private bool _showDuringPlay;
         private readonly Dictionary<NpcAiMode, Button> _modeButtons = new();
         private readonly Dictionary<CpuDifficulty, Button> _difficultyButtons = new();
 
@@ -43,6 +45,7 @@ namespace SlopArena.Client.UI
             _root.style.bottom = 180;
             _root.style.width = 300;
             _panel = _root.Q<VisualElement>("ts-panel");
+            _controls = _panel.Q<ScrollView>("ts-scroll");
             BindControls();
             // Added above the pause cover so the panel keeps its position and stays
             // usable while paused. Settings dialogs added later still cover it.
@@ -66,6 +69,7 @@ namespace SlopArena.Client.UI
             _damageLabel = _panel.Q<Label>("npc-damage-label");
             _modeDescription = _panel.Q<Label>("npc-mode-description");
             _inputHint = _panel.Q<Label>("ts-input-hint");
+            _summaryMode = _panel.Q<Label>("ts-summary-mode");
 
             foreach (NpcAiMode mode in Enum.GetValues(typeof(NpcAiMode)))
             {
@@ -117,9 +121,11 @@ namespace SlopArena.Client.UI
         private void RefreshVisibility()
         {
             bool paused = MatchPauseMenu.Active is { IsPaused: true };
-            _root.style.display = paused || _showDuringPlay ? DisplayStyle.Flex : DisplayStyle.None;
+            bool expanded = paused || _showDuringPlay;
+            _controls.style.display = expanded ? DisplayStyle.Flex : DisplayStyle.None;
             _panel.SetEnabled(paused);
             _panel.EnableInClassList("ts-panel--editing", paused);
+            _panel.EnableInClassList("ts-panel--compact", !expanded);
             _inputHint.text = paused ? "PAUSED · ADJUST TRAINING" : "ESC / START · ADJUST TRAINING";
         }
 
@@ -128,6 +134,9 @@ namespace SlopArena.Client.UI
         public void RefreshSelection()
         {
             if (_panel == null) return;
+            _summaryMode.text = _match.CurrentNpcMode.ToString().ToUpperInvariant();
+            if (_match.CurrentNpcMode is NpcAiMode.Attack or NpcAiMode.Avoid)
+                _summaryMode.text += $" · {_match.CurrentNpcDifficulty.ToString().ToUpperInvariant()}";
             foreach (var pair in _modeButtons)
                 pair.Value.EnableInClassList("active", pair.Key == _match.CurrentNpcMode);
             foreach (var pair in _difficultyButtons)

@@ -15,6 +15,27 @@
 
 .ts-panel:disabled { opacity: 1; }
 
+.ts-panel--compact {
+    border-bottom-color: #ffcc22;
+}
+
+.ts-panel--compact .ts-heading {
+    margin-bottom: 0;
+}
+
+.ts-title-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ts-summary-mode {
+    margin-left: 8px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    color: #ffcc22;
+}
+
 .ts-panel--editing {
     border-color: #ffcc22;
     background-color: rgba(27, 26, 24, 0.98);

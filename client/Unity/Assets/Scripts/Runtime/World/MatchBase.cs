@@ -277,14 +277,14 @@ namespace SlopArena.Client.World
 
         /// <summary>
         /// Instantiate the global ground-shadow indicator (ADR-0018 / issue #127):
-        /// one neutral ring pinned to the arena floor under every renderer.
+        /// one quiet ground marker pinned to the arena floor under every renderer.
         /// </summary>
         protected void SetupLockIndicator(PlayerRenderer[] renderers, ArenaDefinition arena)
         {
             var go = new GameObject("LockTargetIndicator");
             go.transform.SetParent(transform, false);
             var indicator = go.AddComponent<TargetIndicator>();
-            indicator.Init(Bridge.GetState, renderers, arena);
+            indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId);
         }
 
 

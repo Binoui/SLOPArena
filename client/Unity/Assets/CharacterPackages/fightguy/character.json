@@ -669,8 +669,8 @@
     },
     {
       "id": "ground.3",
-      "name": "Sweeping Kick",
-      "description": "Sweeping Kick",
+      "name": "High Kick",
+      "description": "High Kick",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",

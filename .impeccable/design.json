@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-15T00:00:00Z",
+  "generatedAt": "2026-10-13T18:42:32Z",
   "title": "Design System: SlopArena",
   "extensions": {
     "characterPalettes": {
@@ -44,31 +44,67 @@
         "role": "neutral",
         "displayName": "Ink",
         "canonical": "#1B1A18",
-        "tonalRamp": ["#F0EEE8", "#7B7872", "#252422", "#1B1A18", "#161513"]
+        "tonalRamp": [
+          "#F0EEE8",
+          "#7B7872",
+          "#252422",
+          "#1B1A18",
+          "#161513"
+        ]
       },
       "paper": {
         "role": "neutral",
         "displayName": "Paper",
         "canonical": "#F0EEE8",
-        "tonalRamp": ["#FFFFFF", "#F0EEE8", "#D8D3C9", "#A8A39B"]
+        "tonalRamp": [
+          "#FFFFFF",
+          "#F0EEE8",
+          "#D8D3C9",
+          "#A8A39B"
+        ]
       },
       "action-yellow": {
         "role": "primary",
         "displayName": "Action Yellow",
         "canonical": "#FFCC22",
-        "tonalRamp": ["#FFF0A8", "#FFD95C", "#FFCC22", "#B88600"]
+        "tonalRamp": [
+          "#FFF0A8",
+          "#FFD95C",
+          "#FFCC22",
+          "#B88600"
+        ]
       },
       "combat-orange": {
         "role": "secondary",
         "displayName": "Combat Orange",
         "canonical": "#E05C2A",
-        "tonalRamp": ["#FFB09A", "#FF7650", "#E05C2A", "#8E2E18"]
+        "tonalRamp": [
+          "#FFB09A",
+          "#FF7650",
+          "#E05C2A",
+          "#8E2E18"
+        ]
       },
       "online-green": {
         "role": "tertiary",
         "displayName": "Online Green",
         "canonical": "#4CDD88",
-        "tonalRamp": ["#B9F6D1", "#79EBA7", "#4CDD88", "#238A4D"]
+        "tonalRamp": [
+          "#B9F6D1",
+          "#79EBA7",
+          "#4CDD88",
+          "#238A4D"
+        ]
+      },
+      "hud-ink": {
+        "role": "neutral",
+        "displayName": "HUD Ink",
+        "purpose": "Paired move ticket outlines, normal names, and special fields."
+      },
+      "hud-special-blue": {
+        "role": "secondary",
+        "displayName": "HUD Special Blue",
+        "purpose": "Shared special seam, special cooldown bar, and READY tag; separate from character-local artwork."
       }
     },
     "typographyMeta": {
@@ -79,6 +115,26 @@
       "label": {
         "displayName": "Utility Label",
         "purpose": "Short useful status, roster-role, binding, and technical metadata; ordinary sans remains preferred for dense Settings, chat messages, and HUD readouts."
+      },
+      "hud-move-name": {
+        "displayName": "HUD Hover Name",
+        "purpose": "Fixed grounded move name in the runtime hover label; utility sans12bold, hidden until pointer enter."
+      },
+      "hud-modifier": {
+        "displayName": "HUD Modifier",
+        "purpose": "Live LB/RB lettering in the small modifier cue, utility sans18bold."
+      },
+      "hud-target-number": {
+        "displayName": "Locked Target Number",
+        "purpose": "Bold utility damage number in the optional locked-target readout."
+      },
+      "hud-target-number-wide": {
+        "displayName": "Locked Target Wide Number",
+        "purpose": "Smaller utility number at damage values of 1000 and above, retaining the same fixed readout."
+      },
+      "hud-target-percent": {
+        "displayName": "Locked Target Percent Unit",
+        "purpose": "Smaller bold percent unit beside the damage number; offset down without increasing the host."
       }
     },
     "shadows": [
@@ -102,13 +158,23 @@
       {
         "name": "hud-feedback",
         "value": "0.12s–0.18s",
-        "purpose": "Brief scale, translate, opacity, and color feedback for combat readouts."
+        "purpose": "Brief press and damage feedback; one 0.42-second READY tab and a 1.15-second KO/OUT stock-loss stamp attached to its fighter card."
+      },
+      {
+        "name": "hud-move-activation",
+        "value": "0.15s",
+        "purpose": "Accepted semantic activation presses its action artwork; repeated same-slot activations retrigger it. Reduced flashing suppresses scaling/translation."
+      },
+      {
+        "name": "hud-move-ready",
+        "value": "0.42s",
+        "purpose": "One READY tag after cooldown expiry; no repeating icon flash."
       }
     ],
     "breakpoints": [],
     "narrative": {
       "northStar": "Low-poly underground toy-fight-club, with DIY internet-game energy",
-      "overview": "Scavenged low-poly fight-club forms and curated asset-pack collage. Cool first, joke second; slightly crappy on purpose, extremely readable. Frontend pages are paper-led using the user-authored FrontendPaperBackground.png, continuing behind the transparent top bar with readable control-local paper backing and ink borders. Separate ink foreground/dark-field roles remain. Home has left modes, a larger aspect-fitted framed poster at center, and right announcements. Chat is an absolute user-sized bottom-left overlay with paper frame/tabs and grouped Hide/Resize, no maximize; dimensions never rebalance underlying layout. Fighter/stage participants and Player/CPU controls sit bottom middle/right, leaving bottom-left clear by default. Settings uses paper outer framing/categories and calm dark utility fields. Gameplay HUD uses portrait-led fight cards with explicit lives, clipped-square slots inside the orange/blue diamonds, printed keyboard tabs, and a bracket/pointer target marker independent of its optional overhead percentage. Percentages share the existing damage tiers; identity and target accents remain functional. No 3D arena, gameplay, transport, creator/Ability Lab, or website redesign; connected-room acceptance remains unverified.",
+      "overview": "Scavenged low-poly fight-club forms and curated asset-pack collage. Cool first, joke second; slightly crappy on purpose, extremely readable. Frontend pages are paper-led using the user-authored FrontendPaperBackground.png, continuing behind the transparent top bar with readable control-local paper backing and ink borders. Separate ink foreground/dark-field roles remain. Home has left modes, a larger aspect-fitted framed poster at center, and right announcements. Chat is an absolute user-sized bottom-left overlay with paper frame/tabs and grouped Hide/Resize, no maximize; dimensions never rebalance underlying layout. Fighter/stage participants and Player/CPU controls sit bottom middle/right, leaving bottom-left clear by default. Settings uses paper outer framing/categories and calm dark utility fields. Gameplay HUD uses larger 330×120 portrait-led fight cards with explicit lives, one adjacent KO/OUT stock-loss stamp, four continuous Paper/Ink move tickets exposing all eight moves in 1/A–2/R–3/E–4/F order, live ground/air names, a shared effective-modifier connector, brief READY tags, and printed keyboard prompts, and an independent target marker. Training defaults to a compact behavior/shortcut readout that expands on pause. Percentages share the existing damage tiers; identity and target accents remain functional. No 3D arena, gameplay, transport, creator/Ability Lab, or website redesign; connected-room acceptance remains unverified.",
       "keyCharacteristics": [
         "Underground fight-club energy with DIY internet-game construction.",
         "Chunky low-poly silhouettes and curated asset-pack collage, harmonized through scale, lighting, material response, palette/value hierarchy, and composition rather than a universal shader.",
@@ -117,6 +183,11 @@
         "Dry self-aware copy that never obscures status."
       ],
       "rules": [
+        {
+          "name": "The Ground Anchor Rule",
+          "body": "Keep a small, steady, open-centre floor cue under each fighter; strengthen its outline as the feet lift, and hide it without supporting floor. A soft contact shadow is a functional depth exception, not a default panel treatment.",
+          "section": "components"
+        },
         {
           "name": "The One Accent Rule",
           "body": "Action Yellow (#FFCC22) and retained local orange may both exist on a screen, but one accent owns each region.",
@@ -131,6 +202,16 @@
           "name": "The Declaration Rule",
           "body": "Give each composition one loud phrase. Supporting labels are smaller, quieter, and useful.",
           "section": "typography"
+        },
+        {
+          "name": "The Pair-and-Project Rule",
+          "body": "Keep all eight semantic moves visible, preserve each normal/special relationship, and let current gameplay state select the move names and artwork. Physical controls remain adapters rather than a second move identity.",
+          "section": "components"
+        },
+        {
+          "name": "The Target Clearance Rule",
+          "body": "Keep the locked-target host above the highest projected head, capsule, or enabled body/accessory/weapon mesh edge, with a 10 px logical gap below the host. Keep horizontal alignment on the fighter root and preserve the anchor when overhead damage is hidden.",
+          "section": "components"
         }
       ],
       "dos": [
@@ -143,6 +224,63 @@
         "Don't rotate dense information or required actions.",
         "Don't use color as the only status indicator."
       ]
+    },
+    "fighterGroundMarker": {
+      "platform": "Unity desktop world-space URP presentation",
+      "sources": [
+        "client/Unity/Assets/Scripts/Runtime/Combat/TargetIndicator.cs",
+        "client/Unity/Assets/Resources/Shaders/FighterGroundMarker.shader",
+        "client/Unity/Assets/Scripts/Runtime/World/MatchBase.cs",
+        "client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs"
+      ],
+      "shape": "Four anti-aliased Paper arcs with dark edging, open centre, soft radial contact shadow, and a short Action Yellow notch for the local fighter; other renderers remain neutral.",
+      "geometry": "0.8904 m visible outer outline diameter on a 1.2 m horizontal quad; floor offset 0.025 m. The outline never expands or rotates.",
+      "projection": "Current renderer X/Z projected onto the baked ArenaHeightmap. Hidden without valid floor or when capsule feet are more than 0.1 m below the sampled platform; not a predicted landing point.",
+      "visibility": "Grounded outline alpha 0.12; airborne alpha rises smoothly toward 0.95 as capsule-foot height increases from 0.05 to 0.75 m. No pulse or glow.",
+      "shadow": "Soft radial shader shadow is a functional ground-depth exception. Normalized shadow radius changes from 0.75 to 0.92 and peak alpha from 0.28 to 0.16 with airborne visibility.",
+      "integration": "One shared material per TargetIndicator, destroyed on teardown. Training/Solo includes the local fighter at initial setup and roster rebuild; existing PvP renderer coverage remains. Target-lock and aimed-destination cues remain separate.",
+      "evidence": ".impeccable/review/ground-marker-20261013/verification.json and native-final/: nine actual Unity Training captures, all four fighters, ground/air/early-jump/landing/ledge views at 1920×1080 and 1366×768. Zero current shader, C#, or runtime errors.",
+      "limitations": "Connected PvP, packaged-player rendering, physical controls, and NPC roster rebuild remain unverified."
+    },
+    "hudMoveDeck": {
+      "platform": "Unity desktop UI Toolkit",
+      "sources": [
+        "client/Unity/Assets/UI/HUD.uxml",
+        "client/Unity/Assets/UI/HUD.uss",
+        "client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs"
+      ],
+      "shape": "Four continuous angular Paper/Ink tickets, thin Ink outline, 6 px normal top rule, and one 5 px shared special seam. Art has no separate icon-box frame.",
+      "pairing": [
+        "1/A",
+        "2/R",
+        "3/E",
+        "4/F"
+      ],
+      "projection": "All eight controls stay visible. Grounded names and artwork are fixed through ground/air transitions; active availability, cooldowns and accepted-use feedback follow simulation state. Names appear in a runtime hover label, not permanent fields.",
+      "layout": "576 logical-unit icon strip: four136×104 paired fields,52-unit tiers,8-unit gaps,18-unit bottom margin. About30% of1920-wide viewport; 67%less ticket area than the preceding880×208 deck. Centered by default, shift/scale only for portrait clearance.",
+      "bindings": "Controller normal headers share effective face buttons with lower specials. The common connector shows the effective modifier plus sign; shoulders use live LB/RB lettering. Keyboard retains both effective normal and special tabs, including physical number-row digits on AZERTY.",
+      "states": "Holding the actual modifier highlights the connector field, seam, and special names in Action Yellow. Chat input, binding capture, Settings, and pause suppress held feedback. Accepted activations press artwork, cooldowns show seconds plus a 4 px bar, and completion shows one READY tag. Reduced flashing suppresses scaling and translation while retaining status.",
+      "artwork": "47 UI-only native-alpha sprites for all four fighters, including distinct airborne normals. Each embeds its exact generation prompt; imported maximum texture size is 256. FightGuy ground 3 depicts High Kick and uses the corrected authored name. Original icons remain as fallback.",
+      "evidence": ".impeccable/review/paired-hud-20261013/mini-verification.json and mini-fixed/. Native grounded/airborne legend stability, remaps, cooldown/READY, runtime hover and viewport checks; controlled specimens are labelled.",
+      "nativeGateException": "The HTML plate-reference scan cannot resolve Resources.LoadAll<Sprite>; .impeccable/build/state.json remains hero/open. Native evidence is recorded separately; no web tool pass is claimed."
+    },
+    "targetLockIndicator": {
+      "platform": "Unity desktop UI Toolkit screen-space presentation",
+      "sources": [
+        "client/Unity/Assets/Scripts/Runtime/Combat/TargetLockIndicator.cs",
+        "client/Unity/Assets/UI/HUD.uxml",
+        "client/Unity/Assets/UI/HUD.uss"
+      ],
+      "hostToken": "hud-target-lock",
+      "readoutToken": "hud-target-readout",
+      "shape": "Flat square HUD Ink tag with bold utility damage number and smaller percent unit above the unchanged red brackets/pointer; no heavy border or text outline.",
+      "numberRule": "Use hud-target-number, switching to hud-target-number-wide at 1000 and above. The hud-target-percent unit has a 2 px left gap and sits 3 logical pixels lower. Both labels share HUDManager.DamageColor and the existing white/orange/red thresholds.",
+      "anchor": "Cache head and renderer references on target change. Choose the highest valid screen projection of head plus 0.2 m, capsule top, and eight bounds corners of enabled active MeshRenderer/SkinnedMeshRenderer body, accessory, and weapon geometry. Exclude particle and line/trail renderers. Keep horizontal alignment on the fighter root and place the host bottom 10 logical pixels above the projection using actual panel conversion.",
+      "states": "Hiding overhead damage removes only the readout while retaining host bounds and anchor. Existing opacity and UI-scale settings remain. Behind-camera targets hide and recover when projection is valid; missing head/mesh data falls back to the capsule. Clear/unlock hides the host, and initial 65535% values populate correctly.",
+      "evidence": ".impeccable/review/target-ui-20261013/verification.json and source-and-captures.json: matching current sources, 15 actual Training captures in review-fix/, all four fighters, idle/hit/airborne poses, Shared values 0/40/90/97/100/107%, both native viewports, UI100/UI140, opacity20/100, and hidden damage. Minimum recorded visible-geometry clearance is 9.346191 logical pixels. Zero native compile/runtime errors.",
+      "review": "Final scored fix disposition: ship. The bounded Bonk helmet/raised-club clearance finding is resolved at UI100, UI140, and with damage hidden; other roster clearances are retained. This records the scoped fix review.",
+      "restoration": "Clean stopped Frontend, free settled lease, overhead damage OFF, UI100, target opacity100.",
+      "limitations": "Connected PvP, packaged-player rendering, and physical controls remain untested. Native C#/UI Toolkit geometry creates no new raster or provenance assets."
     }
   },
   "components": [
@@ -169,6 +307,20 @@
       "description": "Compact ink strip for live status, roster metadata, and technical labels.",
       "html": "<span class=\"ds-status-pill\">LIVE ROSTER // 4 CHARACTERS</span>",
       "css": ".ds-status-pill { display:inline-block; background:#17131B; color:#F0EEE8; padding:8px 12px; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; border-left:8px solid #FFCC22; }"
+    },
+    {
+      "name": "Paired Move Ticket",
+      "kind": "custom",
+      "refersTo": "hud-move-ticket",
+      "description": "Small fixed paired icon fields; names appear only on hover."
+    },
+    {
+      "name": "Locked Target Readout",
+      "kind": "custom",
+      "refersTo": "hud-target-lock",
+      "description": "Optional flat damage tag above the unchanged red lock glyph; hidden damage keeps the same host. This snippet translates the native geometry for the design panel.",
+      "html": "<div class=\"ds-target-lock ds-target-lock--visible ds-target-lock--low\" role=\"img\" aria-label=\"Locked target at 0 percent damage\"><span class=\"ds-target-readout\"><span class=\"ds-target-number\">0</span><span class=\"ds-target-percent\">%</span></span><svg class=\"ds-target-marker\" viewBox=\"0 0 42 26\" aria-hidden=\"true\"><path d=\"M1.5 15V1.5H10M32 1.5H40.5V15\" fill=\"none\" stroke=\"#EF4444\" stroke-width=\"3\"/><rect x=\"8\" y=\"12\" width=\"15\" height=\"4\" transform=\"rotate(45 15.5 14)\" fill=\"#EF4444\"/><rect x=\"19\" y=\"12\" width=\"15\" height=\"4\" transform=\"rotate(-45 26.5 14)\" fill=\"#EF4444\"/></svg></div>",
+      "css": ".ds-target-lock { position:relative; display:none; width:100px; height:58px; pointer-events:none; } .ds-target-lock--visible { display:flex; } .ds-target-readout { position:absolute; left:12px; right:12px; top:0; height:28px; padding:0 6px; display:flex; justify-content:center; align-items:center; background:#1B1A18; color:#F0EEE8; } .ds-target-number,.ds-target-percent { flex-shrink:0; margin:0; padding:0; font-family:sans-serif; font-weight:700; text-align:center; } .ds-target-number { font-size:22px; } .ds-target-number--wide { font-size:18px; } .ds-target-percent { margin-left:2px; font-size:12px; transform:translateY(3px); } .ds-target-marker { position:absolute; left:29px; bottom:0; width:42px; height:26px; } .ds-target-lock--damage-hidden .ds-target-readout { display:none; } .ds-target-lock--low .ds-target-readout { color:#FFFFFF; } .ds-target-lock--orange .ds-target-readout { color:#F97316; } .ds-target-lock--red .ds-target-readout { color:#EF4444; }"
     }
   ]
 }

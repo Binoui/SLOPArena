@@ -13,11 +13,11 @@ namespace SlopArena.Client.UI
     /// Combat HUD, rebuilt on UI Toolkit.
     ///
     /// Player cards are built from the roster, so 1v1 and 2/3/4-player matches
-    /// adapt without per-count UXML variants. Kit diamonds use effective Input
+    /// adapt without per-count UXML variants. Paired move cards use effective Input
     /// System bindings; cooldown data remains read-only.
     ///
-    /// Juice: cooldown-ready pulse (1.15x / 0.15s) + white flash,
-    /// and a damage-taken hit-flash on the card percent.
+    /// Fight cards, brief cooldown-ready stamps, and stock-loss broadcasts stay
+    /// attached to their readouts rather than covering the fight.
     /// </summary>
     public class HUDManager : MonoBehaviour
     {
@@ -50,12 +50,31 @@ namespace SlopArena.Client.UI
             public Label Damage = null!;
             public VisualElement[] StockIcons = Array.Empty<VisualElement>();
             public Label StockCountLabel = null!;
-            public Label StockToast = null!;
+            public VisualElement StockToast = null!;
+            public Label StockToastTitle = null!;
+            public Label StockToastDetail = null!;
             public float StockToastTimer;
+            public float StockToastDuration;
             public Color TierColor = Color.white;
+            public Color IdentityColor;
+            public bool HasState;
             public ushort PrevDamage;
             public int PrevStocks = -1;
             public float HitFlashTimer;
+        }
+
+        private readonly struct SlotArtwork
+        {
+            public readonly Texture2D Texture;
+            public readonly Sprite Sprite;
+            public readonly Color Tint;
+
+            public SlotArtwork(Texture2D texture, Sprite sprite, Color tint)
+            {
+                Texture = texture;
+                Sprite = sprite;
+                Tint = tint;
+            }
         }
 
         private sealed class ActionSlot
@@ -65,29 +84,36 @@ namespace SlopArena.Client.UI
             public readonly Label Timer;
             public readonly Label Key;
             public readonly Image Button;
-            public readonly VisualElement Flash;
-            public readonly VisualElement Icon;
-            public Texture2D GroundIcon;
-            public Texture2D AirIcon;
-            public Texture2D DisplayedIcon;
+            public readonly Label Ready;
+            public readonly Label MoveName;
+            public readonly Image Icon;
+            public SlotArtwork Artwork;
+            public SlotArtwork DisplayedIcon;
+            public string DisplayName;
+            public bool GroundAvailable;
+            public bool AirAvailable;
             public ushort MaxCooldown;
             public ushort PrevCooldown;
             public float PulseTimer;
             public float UsedTimer;
-            public float FlashTimer;
             public bool Locked;
 
-            public ActionSlot(VisualElement root, string cooldownName, string timerName, string keyName, string flashName)
+            public ActionSlot(VisualElement root, string cooldownName, string timerName, string keyName)
             {
                 Root = root;
                 Cooldown = root.Q<VisualElement>(cooldownName);
                 Timer = root.Q<Label>(timerName);
+                Timer.style.display = DisplayStyle.None;
                 Key = root.Q<Label>(keyName);
                 Button = root.Q<Image>(root.name + "-button");
                 Button.scaleMode = ScaleMode.ScaleToFit;
-                Flash = root.Q<VisualElement>(flashName);
-                Icon = root.Q<VisualElement>(root.name + "-icon");
-                Icon.style.backgroundImage = StyleKeyword.None;
+                Ready = root.Q<Label>(root.name + "-ready")
+                    ?? new Label("READY") { name = root.name + "-ready" };
+                Ready.AddToClassList("slot-ready");
+                if (Ready.parent == null) root.Add(Ready);
+                MoveName = root.Q<Label>(root.name + "-name");
+                Icon = root.Q<Image>(root.name + "-icon");
+                Icon.scaleMode = ScaleMode.ScaleToFit;
             }
         }
 
@@ -106,7 +132,8 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>
-        /// The kit diamonds' ability slots, in doc §2 order: normals 1–4 then specials A/E/R/F.
+        /// Canonical projection order: normals 1–4 then specials A/E/R/F.
+        /// UXML pairs 1/A, 2/R, 3/E, 4/F to match the existing input adapter.
         /// SlotIndex is the AbilitySlots/cooldown index (key "1" = 2 … key "A" = 10).
         /// LMB/RMB remain utility controls, and the former extra key position is outside the
         /// canonical action grid, so neither is shown as an ability slot.
@@ -127,6 +154,12 @@ namespace SlopArena.Client.UI
         private const int MaxStockIcons = 8;
 
         private const float JuiceDuration = 0.15f;
+        private const float ReadyDuration = 0.42f;
+
+        private static readonly Color MoveInk = new Color32(27, 26, 24, 255);
+        private static readonly Color MovePaper = new Color32(240, 238, 232, 255);
+        private static readonly Color MoveOrange = new Color32(224, 92, 42, 255);
+        private static readonly Color MoveBlue = new Color32(57, 169, 255, 255);
 
         private static readonly Color[] BadgeColors;
         private static readonly Color OrangeDamage;
@@ -151,7 +184,15 @@ namespace SlopArena.Client.UI
         private int _maxStocks;
         private CharacterDefinition _charDef;
         private VisualElement _billboardLayer;
-        private VisualElement _kitDiamonds;
+        private VisualElement _moveDeck;
+        private VisualElement _movePairs;
+        private Label _moveTooltip;
+        private VisualElement _modifierPrompt;
+        private Image _modifierButton;
+        private Label _modifierKey;
+        private bool _modifierHeld;
+        private bool _moveDeckRightAligned;
+        private float _moveDeckScale = -1f;
         public VisualElement TargetingRoot
             => _uiDocument != null
                 ? _uiDocument.rootVisualElement.Q<VisualElement>("target-lock-indicator")
@@ -166,9 +207,10 @@ namespace SlopArena.Client.UI
         private int _seenBindingRevision = -1;
         private bool _showGamepadPrompts;
 
-        // AttackSlot (1-based ActiveSlot) is the authoritative "just cast" signal for
-        // abilities — it fires on press for every slot, including 0-cooldown normals.
+        // AttackSequence also catches repeated casts of the same slot, including
+        // zero-cooldown normals with no idle frame between activations.
         private byte _prevAttackSlot;
+        private byte _prevAttackSequence;
 
         /// <summary>
         /// Initialize the HUD.
@@ -205,7 +247,8 @@ namespace SlopArena.Client.UI
             _networkStatsLabel.style.unityTextAlign = TextAnchor.UpperRight;
             root.Add(_networkStatsLabel);
             _billboardLayer = root.Q<VisualElement>("player-billboard");
-            _kitDiamonds = root.Q<VisualElement>("kit-diamonds");
+            // Preserve the named inspection anchor used by native UI commands.
+            _moveDeck = root.Q<VisualElement>("kit-diamonds");
 
             // Rebuild player panels from the roster (badge color by roster position).
             _billboardLayer?.Clear();
@@ -220,17 +263,27 @@ namespace SlopArena.Client.UI
                 _billboardLayer?.Add(billboard.Root);
             }
 
-            SetupKitDiamonds();
+            SetupMoveDeck();
 
-            if (_kitDiamonds != null)
-                _kitDiamonds.style.display = _localEntityId != 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_moveDeck != null)
+                _moveDeck.style.display = _localEntityId != 0 ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
-        private void SetupKitDiamonds()
+        private void SetupMoveDeck()
         {
             if (_uiDocument == null) return;
             var root = _uiDocument.rootVisualElement;
-
+            _movePairs = root.Q<VisualElement>("move-pairs");
+            _moveTooltip = root.Q<Label>("move-tooltip");
+            _modifierPrompt = root.Q<VisualElement>("special-modifier-prompt");
+            _modifierButton = root.Q<Image>("special-modifier-button");
+            _modifierButton.scaleMode = ScaleMode.ScaleToFit;
+            _modifierKey = root.Q<Label>("special-modifier-key");
+            foreach (var ticket in _moveDeck.Query<VisualElement>(className: "move-pair").ToList())
+            {
+                ticket.generateVisualContent -= DrawMoveTicket;
+                ticket.generateVisualContent += DrawMoveTicket;
+            }
 
             _abilitySlots = new ActionSlot[AbilitySlotDefs.Length];
             for (int i = 0; i < AbilitySlotDefs.Length; i++)
@@ -238,16 +291,37 @@ namespace SlopArena.Client.UI
                 var d = AbilitySlotDefs[i];
                 _abilitySlots[i] = new ActionSlot(
                     root.Q<VisualElement>(d.Name),
-                    $"{d.Name}-cooldown", $"{d.Name}-timer", $"{d.Name}-key", $"{d.Name}-flash");
+                    $"{d.Name}-cooldown", $"{d.Name}-timer", $"{d.Name}-key");
+                var slot = _abilitySlots[i];
+                slot.Root.userData = slot;
+                slot.Root.UnregisterCallback<PointerEnterEvent>(OnMovePointerEnter);
+                slot.Root.UnregisterCallback<PointerLeaveEvent>(OnMovePointerLeave);
+                slot.Root.RegisterCallback<PointerEnterEvent>(OnMovePointerEnter);
+                slot.Root.RegisterCallback<PointerLeaveEvent>(OnMovePointerLeave);
             }
 
             UpdateBindingPrompts();
+        }
+
+        private void OnMovePointerEnter(PointerEnterEvent evt)
+        {
+            if (_moveTooltip == null || evt.currentTarget is not VisualElement { userData: ActionSlot slot }) return;
+            _moveTooltip.text = slot.DisplayName;
+            float center = _movePairs.WorldToLocal(slot.Root.worldBound.center).x;
+            _moveTooltip.style.left = Mathf.Clamp(center - 120f, 0f, Mathf.Max(0f, _movePairs.contentRect.width - 240f));
+            _moveTooltip.style.display = DisplayStyle.Flex;
+        }
+
+        private void OnMovePointerLeave(PointerLeaveEvent evt)
+        {
+            if (_moveTooltip != null) _moveTooltip.style.display = DisplayStyle.None;
         }
 
         private void UpdateBindingPrompts()
         {
             _showGamepadPrompts = HumanInputActions.LastUsedGamepad && Gamepad.current != null;
             _seenBindingRevision = HumanInputActions.BindingRevision;
+            _moveDeck.EnableInClassList("controller-prompts", _showGamepadPrompts);
             string group = _showGamepadPrompts ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardGroup;
 
             for (int i = 0; i < _abilitySlots.Length; i++)
@@ -278,6 +352,22 @@ namespace SlopArena.Client.UI
                         ? label : InputPromptAtlas.KeyboardDisplayLabel(path, label);
                 }
             }
+
+            string modifierPath = BindingPath("SpecialModifier", HumanInputActions.GamepadGroup);
+            string shoulderLabel = modifierPath?.EndsWith("/leftShoulder", StringComparison.OrdinalIgnoreCase) == true
+                ? "LB" : modifierPath?.EndsWith("/rightShoulder", StringComparison.OrdinalIgnoreCase) == true
+                    ? "RB" : null;
+            var modifierGlyph = default(InputPromptAtlas.Glyph);
+            bool hasModifier = _showGamepadPrompts &&
+                (_promptAtlas ??= new InputPromptAtlas()).TryXbox(modifierPath, out modifierGlyph);
+            bool showModifierGlyph = hasModifier && shoulderLabel == null;
+            _modifierButton.style.display = showModifierGlyph ? DisplayStyle.Flex : DisplayStyle.None;
+            _modifierKey.style.display = showModifierGlyph ? DisplayStyle.None : DisplayStyle.Flex;
+            _modifierKey.text = _showGamepadPrompts
+                ? shoulderLabel ?? HumanInputActions.BindingLabel("SpecialModifier", HumanInputActions.GamepadGroup)
+                : "SPECIALS";
+            if (hasModifier) SetPromptImage(_modifierButton, modifierGlyph);
+            _modifierPrompt.EnableInClassList("keyboard-modifier", !_showGamepadPrompts);
         }
 
         private static string BindingPath(string action, string group)
@@ -338,16 +428,24 @@ namespace SlopArena.Client.UI
             damage.AddToClassList("overhead-damage");
             copy.Add(damage);
 
-            var panel = new OverheadPanel { Root = root, Damage = damage };
+            var panel = new OverheadPanel { Root = root, Damage = damage, IdentityColor = identityColor };
             AddStocks(panel, copy);
             root.Add(copy);
 
-            var stockToast = new Label();
+            var stockToast = new VisualElement();
             stockToast.AddToClassList("stock-toast-player");
             stockToast.style.display = DisplayStyle.None;
-            stockToast.style.borderLeftColor = identityColor;
+            stockToast.style.borderBottomColor = identityColor;
+            var stockTitle = new Label("KO");
+            stockTitle.AddToClassList("stock-toast-title");
+            var stockDetail = new Label();
+            stockDetail.AddToClassList("stock-toast-detail");
+            stockToast.Add(stockTitle);
+            stockToast.Add(stockDetail);
             root.Add(stockToast);
             panel.StockToast = stockToast;
+            panel.StockToastTitle = stockTitle;
+            panel.StockToastDetail = stockDetail;
             return panel;
         }
 
@@ -396,6 +494,7 @@ namespace SlopArena.Client.UI
         public void SetCharacterDefinition(CharacterDefinition def)
         {
             _charDef = def;
+            if (_moveTooltip != null) _moveTooltip.style.display = DisplayStyle.None;
             bool isGrounded = _getState == null || _localEntityId == 0 || _getState(_localEntityId).IsGrounded;
 
             if (_abilitySlots == null || _abilitySlots.Length == 0) return;
@@ -413,32 +512,49 @@ namespace SlopArena.Client.UI
                 slot.Locked = grounded == null && airborne == null;
                 slot.Root.EnableInClassList("locked", slot.Locked);
 
-                slot.GroundIcon = LoadSlotIcon(grounded ?? airborne, airborne: false);
-                slot.AirIcon = LoadSlotIcon(airborne, airborne: true);
-                SetSlotIcon(slot, isGrounded ? slot.GroundIcon : slot.AirIcon);
+                bool normal = i < 4;
+                slot.GroundAvailable = grounded != null;
+                slot.AirAvailable = airborne != null;
+                // The HUD is a stable control legend, even when the active move is aerial.
+                var displayAbility = grounded ?? airborne;
+                slot.DisplayName = MoveLabel(displayAbility);
+                slot.Artwork = LoadSlotIcon(displayAbility, normal);
+                SetSlotPresentation(slot, isGrounded);
             }
 
         }
 
-        private Texture2D LoadSlotIcon(AbilitySpec spec, bool airborne)
+        private static string MoveLabel(AbilitySpec spec)
+            => spec != null && !string.IsNullOrWhiteSpace(spec.Name)
+                ? spec.Name.ToUpperInvariant() : "UNAVAILABLE";
+
+        private SlotArtwork LoadSlotIcon(AbilitySpec spec, bool normal)
         {
-            if (spec == null || string.IsNullOrEmpty(spec.IconName)) return null;
+            if (spec == null || string.IsNullOrEmpty(spec.IconName)) return default;
             string path = $"Icons/{_charDef.Class}/";
-            if (airborne)
-            {
-                var variant = Resources.Load<Texture2D>($"{path}Air/{spec.IconName}");
-                if (variant != null) return variant;
-            }
-            return Resources.Load<Texture2D>(path + spec.IconName);
+            string cardPath = $"UI/AbilityCards/{_charDef.Class}/";
+            var tint = normal ? MoveInk : Color.white;
+            var cardIcons = Resources.LoadAll<Sprite>(cardPath + spec.IconName);
+            if (cardIcons.Length > 0) return new SlotArtwork(null, cardIcons[0], Color.white);
+            return new SlotArtwork(Resources.Load<Texture2D>(path + spec.IconName), null, tint);
         }
 
-        private static void SetSlotIcon(ActionSlot slot, Texture2D texture)
+        private static void SetSlotPresentation(ActionSlot slot, bool grounded)
         {
-            if (slot.DisplayedIcon == texture) return;
-            slot.DisplayedIcon = texture;
-            slot.Icon.style.backgroundImage = texture != null
-                ? new StyleBackground(texture)
-                : new StyleBackground(StyleKeyword.None);
+            string name = slot.DisplayName;
+            if (slot.MoveName.text != name)
+            {
+                slot.MoveName.text = name;
+                slot.MoveName.EnableInClassList("long-move-name", name.Length > 18);
+            }
+            slot.Root.EnableInClassList("locked", grounded ? !slot.GroundAvailable : !slot.AirAvailable);
+            var artwork = slot.Artwork;
+            if (slot.DisplayedIcon.Texture == artwork.Texture &&
+                slot.DisplayedIcon.Sprite == artwork.Sprite && slot.DisplayedIcon.Tint == artwork.Tint) return;
+            slot.DisplayedIcon = artwork;
+            if (artwork.Sprite != null) slot.Icon.sprite = artwork.Sprite;
+            else slot.Icon.image = artwork.Texture;
+            slot.Icon.tintColor = artwork.Tint;
         }
 
         /// <summary>Apply damage % + stocks to one scoreboard card.</summary>
@@ -448,9 +564,10 @@ namespace SlopArena.Client.UI
             panel.TierColor = DamageColor(dmg);
             if (dmg != panel.PrevDamage)
                 panel.Damage.text = $"{dmg}%";
-            if (dmg > panel.PrevDamage && !ClientSettingsService.Instance.ReducedFlashing)
+            if (panel.HasState && dmg > panel.PrevDamage && !ClientSettingsService.Instance.ReducedFlashing)
                 panel.HitFlashTimer = JuiceDuration;
             panel.PrevDamage = (ushort)dmg;
+            panel.HasState = true;
 
             if (_maxStocks > 0)
             {
@@ -478,20 +595,20 @@ namespace SlopArena.Client.UI
                 seconds / 1.5f, centerInCamera: true);
         }
 
-        public void ShowStockToast(ulong entityId, string text, Color identityColor, float seconds = 1.15f)
+        public void ShowStockToast(ulong entityId, string text, float seconds = 1.15f)
         {
             if (!_billboardPanels.TryGetValue(entityId, out var panel) || panel.StockToast == null)
                 return;
 
-            panel.StockToast.text = text;
-            panel.StockToastTimer = Mathf.Max(0.01f, seconds);
-            var bounds = panel.Root.worldBound;
-            _textVfx?.Show(text,
-                new Vector2(bounds.xMax + 70f, Screen.height - bounds.yMin - bounds.height * 0.5f),
-                0.7f, identityColor, Color.white, seconds);
+            bool eliminated = _maxStocks > 0 && _getState != null && _getState(entityId).Deaths >= _maxStocks;
+            panel.StockToastTitle.text = eliminated ? "OUT" : "KO";
+            panel.StockToastDetail.text = text;
+            panel.StockToastTimer = panel.StockToastDuration = Mathf.Max(0.01f, seconds);
+            panel.StockToast.EnableInClassList("stock-toast-player--out", eliminated);
             panel.StockToast.style.display = DisplayStyle.Flex;
             panel.StockToast.style.opacity = 1f;
-            panel.StockToast.style.borderLeftColor = identityColor;
+            panel.StockToast.style.scale = new Scale(Vector2.one);
+            panel.StockToast.style.borderBottomColor = panel.IdentityColor;
         }
 
         public void SetCamera(UnityEngine.Camera camera)
@@ -511,7 +628,7 @@ namespace SlopArena.Client.UI
 
             foreach (var kv in _billboardPanels)
                 UpdatePanel(kv.Value, _getState(kv.Key));
-            // Kit diamonds — local player only.
+            // Paired move deck — local player only; no ground/air selector.
             if (_localEntityId != 0)
             {
                 var state = _getState(_localEntityId);
@@ -520,16 +637,15 @@ namespace SlopArena.Client.UI
                 for (int i = 0; i < _abilitySlots.Length; i++)
                 {
                     var slot = _abilitySlots[i];
-                    SetSlotIcon(slot, state.IsGrounded ? slot.GroundIcon : slot.AirIcon);
+                    SetSlotPresentation(slot, state.IsGrounded);
                     if (slot.Locked) continue;
                     UpdateCooldownSlot(slot, state.GetCooldown((byte)(AbilitySlotDefs[i].SlotIndex + 1)));
                 }
 
-                // Consumed feedback: pulse the slot the instant its action starts.
-                // Abilities pulse on the AttackSlot transition (0→cast — fires at press
-                // for 0-cooldown normals too).
+                // Accepted activations drive feedback, including consecutive
+                // activations of the same slot.
                 byte castSlot = state.AttackSlot;
-                if (castSlot != _prevAttackSlot)
+                if (castSlot != _prevAttackSlot || state.AttackSequence != _prevAttackSequence)
                 {
                     if (castSlot != 0)
                     {
@@ -543,6 +659,7 @@ namespace SlopArena.Client.UI
                         }
                     }
                     _prevAttackSlot = castSlot;
+                    _prevAttackSequence = state.AttackSequence;
                 }
             }
         }
@@ -550,6 +667,8 @@ namespace SlopArena.Client.UI
         /// <summary>Quick shrink-and-spring pulse — visual "spent" feedback for a used action.</summary>
         private void PulseConsumed(ActionSlot s)
         {
+            s.PulseTimer = 0f;
+            s.Root.RemoveFromClassList("ready-pulse");
             s.UsedTimer = JuiceDuration;
             s.Root.EnableInClassList("used-pulse", true);
         }
@@ -559,10 +678,12 @@ namespace SlopArena.Client.UI
             bool onCooldown = cooldown > 0;
 
             s.Cooldown.style.display = onCooldown ? DisplayStyle.Flex : DisplayStyle.None;
+            s.Timer.style.display = onCooldown ? DisplayStyle.Flex : DisplayStyle.None;
+            s.Root.EnableInClassList("on-cooldown", onCooldown);
             if (onCooldown)
             {
                 float frac = s.MaxCooldown > 0 ? Mathf.Clamp01(cooldown / (float)s.MaxCooldown) : 1f;
-                s.Cooldown.style.scale = new Scale(new Vector2(1f, frac));
+                s.Cooldown.style.scale = new Scale(new Vector2(frac, 1f));
                 s.Timer.text = $"{(cooldown / 60f):0.0}s";
             }
             else
@@ -570,13 +691,16 @@ namespace SlopArena.Client.UI
                 s.Timer.text = "";
             }
 
-            // Cooldown ready (was on cooldown, now 0) → pulse + flash (spec §3.2).
+            // One short readiness stamp; no repeated pulse or white icon flash.
             if (s.PrevCooldown > 0 && cooldown == 0)
             {
-                s.PulseTimer = JuiceDuration;
-                s.FlashTimer = JuiceDuration;
+                s.PulseTimer = ReadyDuration;
                 s.Root.EnableInClassList("ready-pulse", true);
-                s.Flash.EnableInClassList("active", true);
+            }
+            else if (onCooldown)
+            {
+                s.PulseTimer = 0f;
+                s.Root.RemoveFromClassList("ready-pulse");
             }
             // NOTE: no "consumed" pulse here — cooldown only moves at ability END, not
             // press, so this would fire ~1 move later. Press feedback is driven from the
@@ -594,11 +718,91 @@ namespace SlopArena.Client.UI
                  _showGamepadPrompts != (HumanInputActions.LastUsedGamepad && Gamepad.current != null)))
                 UpdateBindingPrompts();
             UpdateNetworkStats();
+            UpdateModifierFeedback();
+            FitMoveDeck();
 
             for (int i = 0; i < _abilitySlots.Length; i++) TickSlotJuice(_abilitySlots[i], dt);
 
             foreach (var panel in _billboardPanels.Values)
                 TickPanelJuice(panel, dt);
+        }
+
+        private void UpdateModifierFeedback()
+        {
+            if (_moveDeck == null) return;
+            bool held = _showGamepadPrompts && HumanInputActions.Get("SpecialModifier").IsPressed() &&
+                !ChatInputGate.SuppressGameplay && !HumanInputActions.IsCapturing &&
+                !(SettingsOverlay.Active is { IsOpen: true }) &&
+                !(MatchPauseMenu.Active is { IsPaused: true });
+            if (held == _modifierHeld) return;
+            _modifierHeld = held;
+            _moveDeck.EnableInClassList("modifier-held", held);
+        }
+
+        private void FitMoveDeck()
+        {
+            if (_moveDeck == null || _movePairs == null || _moveDeck.panel == null) return;
+            float width = _moveDeck.resolvedStyle.width;
+            if (float.IsNaN(width) || width <= 0f) return;
+            const float preferredWidth = 576f;
+            bool rightAligned = _billboardLayer != null && _billboardLayer.childCount > 0 &&
+                _moveDeck.worldBound.yMin < _billboardLayer.worldBound.yMax + 20f &&
+                (width - preferredWidth) * 0.5f < _billboardLayer.worldBound.xMax + 20f;
+            float availableWidth = rightAligned
+                ? width - _billboardLayer.worldBound.xMax - 38f
+                : width - 96f;
+            float scale = Mathf.Clamp(availableWidth / preferredWidth, 0.5f, 1f);
+            if (rightAligned != _moveDeckRightAligned)
+            {
+                _moveDeckRightAligned = rightAligned;
+                _moveDeck.style.justifyContent = rightAligned ? Justify.FlexEnd : Justify.Center;
+                _moveDeck.style.paddingRight = rightAligned ? 18f : 0f;
+            }
+            if (Mathf.Abs(scale - _moveDeckScale) > 0.001f)
+            {
+                _moveDeckScale = scale;
+                _movePairs.style.scale = new Scale(Vector2.one * scale);
+            }
+        }
+
+        private static void DrawMoveTicket(MeshGenerationContext context)
+        {
+            float width = context.visualElement.contentRect.width;
+            float height = context.visualElement.contentRect.height;
+            float seam = height * 0.5f;
+            var painter = context.painter2D;
+            painter.lineWidth = 2f;
+            painter.strokeColor = MoveInk;
+            painter.fillColor = MovePaper;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(16, 2));
+            painter.LineTo(new Vector2(width - 2, 2));
+            painter.LineTo(new Vector2(width - 14, seam - 16));
+            painter.LineTo(new Vector2(width - 2, seam));
+            painter.LineTo(new Vector2(2, seam));
+            painter.LineTo(new Vector2(2, seam - 16));
+            painter.ClosePath();
+            painter.Fill();
+            painter.Stroke();
+
+            painter.fillColor = MoveInk;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(2, seam));
+            painter.LineTo(new Vector2(width - 2, seam));
+            painter.LineTo(new Vector2(width - 14, height - 18));
+            painter.LineTo(new Vector2(width - 28, height - 2));
+            painter.LineTo(new Vector2(16, height - 2));
+            painter.LineTo(new Vector2(2, height - 18));
+            painter.ClosePath();
+            painter.Fill();
+            painter.Stroke();
+
+            painter.lineWidth = 6f;
+            painter.strokeColor = MoveOrange;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(16, 4));
+            painter.LineTo(new Vector2(width - 3, 4));
+            painter.Stroke();
         }
 
         private void UpdateNetworkStats()
@@ -630,10 +834,17 @@ namespace SlopArena.Client.UI
             bool flashing = panel.HitFlashTimer > 0f && !ClientSettingsService.Instance.ReducedFlashing;
             if (panel.HitFlashTimer > 0f) panel.HitFlashTimer -= dt;
             panel.Damage.style.color = flashing ? Color.white : panel.TierColor;
+            panel.Damage.EnableInClassList("damage-hit", flashing);
 
             if (panel.StockToastTimer > 0f)
             {
                 panel.StockToastTimer -= dt;
+                float elapsed = panel.StockToastDuration - panel.StockToastTimer;
+                float scale = elapsed < 0.1f ? Mathf.Lerp(0.88f, 1.04f, elapsed / 0.1f)
+                    : elapsed < 0.18f ? Mathf.Lerp(1.04f, 1f, (elapsed - 0.1f) / 0.08f) : 1f;
+                panel.StockToast.style.scale = new Scale(Vector2.one *
+                    (ClientSettingsService.Instance.ReducedFlashing ? 1f : scale));
+                panel.StockToast.style.opacity = Mathf.Clamp01(panel.StockToastTimer / 0.18f);
                 if (panel.StockToastTimer <= 0f)
                 {
                     panel.StockToast.style.opacity = 0f;
@@ -644,6 +855,7 @@ namespace SlopArena.Client.UI
 
         private static void TickSlotJuice(ActionSlot s, float dt)
         {
+            s.Root.EnableInClassList("quiet-feedback", ClientSettingsService.Instance.ReducedFlashing);
             if (s.PulseTimer > 0f)
             {
                 s.PulseTimer -= dt;
@@ -653,11 +865,6 @@ namespace SlopArena.Client.UI
             {
                 s.UsedTimer -= dt;
                 s.Root.EnableInClassList("used-pulse", s.UsedTimer > 0f);
-            }
-            if (s.FlashTimer > 0f)
-            {
-                s.FlashTimer -= dt;
-                s.Flash.EnableInClassList("active", s.FlashTimer > 0f);
             }
         }
 

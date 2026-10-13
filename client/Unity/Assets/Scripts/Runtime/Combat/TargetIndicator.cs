@@ -7,8 +7,9 @@ using UnityEngine;
 namespace SlopArena.Client.Combat
 {
     /// <summary>
-    /// Neutral spatial floor rings, one per player entity. Pinned to the arena heightmap
-    /// surface so position stays readable while airborne; hidden off-grid. Selection and
+    /// Small broken floor rings and contact shadows, one per player entity. Pinned to the
+    /// arena heightmap so position stays readable while airborne; hidden without floor.
+    /// The local fighter has a yellow notch. Selection and
     /// lock feedback moved to TargetLockIndicator (targeting pass 1). The launch
     /// trajectory remains editor gizmos only, never gameplay.
     /// </summary>
@@ -20,17 +21,22 @@ namespace SlopArena.Client.Combat
             public readonly ulong EntityId;
             public readonly Transform Transform;
             public readonly MeshRenderer Mesh;
+            public readonly Color Accent;
 
-            public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh)
+            public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh, Color accent)
             {
                 Renderer = renderer;
                 EntityId = renderer != null ? renderer.EntityId : 0;
                 Transform = transform;
                 Mesh = mesh;
+                Accent = accent;
             }
         }
-        private const float RingHeightAboveFloor = 0.05f;
-        private static readonly Color White = new Color(1f, 1f, 1f, 0.5f);
+        private const float RingHeightAboveFloor = 0.025f;
+        private static readonly Color Paper = new Color(240f / 255f, 238f / 255f, 232f / 255f);
+        private static readonly Color LocalAccent = new Color(1f, 204f / 255f, 34f / 255f);
+        private static readonly int AirborneProperty = Shader.PropertyToID("_Airborne");
+        private static readonly int AccentProperty = Shader.PropertyToID("_Accent");
         /// <summary>Min knockback speed that counts as a launch (State == Hitstun).</summary>
         private const float LaunchSpeedThreshold = 0.05f;
         /// <summary>Max ticks to forward-simulate a launch (mirrors AbilityLab, ~40s).</summary>
@@ -40,17 +46,22 @@ namespace SlopArena.Client.Combat
         private Func<ulong, CharacterState> _getState;
         private ArenaHeightmap _heightmap;
         private ArenaDefinition _arena;
+        private Material _markerMaterial;
+        private MaterialPropertyBlock _markerProperties;
 
         // Per-ring indicator state, indexed identically to _rings.
         private List<(Vector3 pos, char phase)>[] _arcPoints = Array.Empty<List<(Vector3 pos, char phase)>>();
         private bool[] _wasLaunched = Array.Empty<bool>();
         private bool[] _arcActive = Array.Empty<bool>();
 
-        public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers, ArenaDefinition arena)
+        public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers,
+            ArenaDefinition arena, ulong localEntityId = 0)
         {
             _getState = getState;
             _heightmap = arena.Heightmap;
             _arena = arena;
+            _markerMaterial = new Material(Resources.Load<Shader>("Shaders/FighterGroundMarker"));
+            _markerProperties = new MaterialPropertyBlock();
 
             _rings = new Ring[renderers?.Length ?? 0];
             _arcPoints = new List<(Vector3, char)>[_rings.Length];
@@ -60,24 +71,24 @@ namespace SlopArena.Client.Combat
             for (int i = 0; i < _rings.Length; i++)
             {
                 var renderer = renderers[i];
-                var ringGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                ringGO.name = "GroundShadowRing";
+                var ringGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                ringGO.name = "FighterGroundMarker";
                 ringGO.transform.SetParent(transform, false);
-                ringGO.transform.localScale = new Vector3(1.2f, 0.04f, 1.2f);
+                ringGO.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                ringGO.transform.localScale = new Vector3(1.2f, 1.2f, 1f);
                 ringGO.transform.localPosition = Vector3.zero;
-                Destroy(ringGO.GetComponent<CapsuleCollider>());
+                Destroy(ringGO.GetComponent<MeshCollider>());
                 var mr = ringGO.GetComponent<MeshRenderer>();
-                var mat = new Material(Shader.Find("Sprites/Default"));
-                mat.color = White;
-                mr.sharedMaterial = mat;
+                mr.sharedMaterial = _markerMaterial;
                 mr.receiveShadows = false;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                _rings[i] = new Ring(renderer, ringGO.transform, mr);
+                Color accent = renderer != null && renderer.EntityId == localEntityId ? LocalAccent : Paper;
+                _rings[i] = new Ring(renderer, ringGO.transform, mr, accent);
                 ringGO.SetActive(false);
             }
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             if (_getState == null || _rings.Length == 0) return;
 
@@ -94,9 +105,12 @@ namespace SlopArena.Client.Combat
 
                 Vector3 pos = renderer.transform.position;
                 float floorY = _heightmap.Sample(pos.x, pos.z);
-                if (floorY <= float.MinValue / 2f)
+                // Renderer roots are at capsule centre, not at the fighter's feet.
+                float heightAboveFloor = pos.y - floorY - renderer.CapsuleHeight * 0.5f;
+                if (float.IsNaN(floorY) || float.IsInfinity(floorY)
+                    || floorY <= float.MinValue / 2f || heightAboveFloor < -0.1f)
                 {
-                    // Off the heightmap grid (knocked out of the arena) — no floor to pin to.
+                    // No supporting floor beneath this fighter, including below a platform.
                     ring.Transform.gameObject.SetActive(false);
                     _arcActive[i] = false;
                     continue;
@@ -105,8 +119,19 @@ namespace SlopArena.Client.Combat
                 ring.Transform.gameObject.SetActive(true);
                 ring.Transform.position = new Vector3(pos.x, floorY + RingHeightAboveFloor, pos.z);
                 var state = _getState(ring.EntityId);
+                float airborne = state.IsGrounded ? 0f
+                    : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.05f, 0.75f, heightAboveFloor));
+                _markerProperties.SetFloat(AirborneProperty, airborne);
+                _markerProperties.SetColor(AccentProperty, ring.Accent);
+                ring.Mesh.SetPropertyBlock(_markerProperties);
                 UpdateLaunchArc(i, ring, state);
             }
+        }
+
+        private void OnDestroy()
+        {
+            if (_markerMaterial != null)
+                Destroy(_markerMaterial);
         }
 
 

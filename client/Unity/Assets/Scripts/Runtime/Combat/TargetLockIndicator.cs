@@ -6,8 +6,8 @@ using UnityEngine.UIElements;
 namespace SlopArena.Client.Combat
 {
     /// <summary>
-    /// Stable screen-space locked-target readout. It uses the same character-center anchor
-    /// as the overhead HUD and performs no selection, range, physics, or gameplay queries.
+    /// Screen-space locked-target readout above the presented fighter and weapon.
+    /// Performs no selection, range, physics, or gameplay queries.
     /// </summary>
     public sealed class TargetLockIndicator : MonoBehaviour
     {
@@ -15,13 +15,17 @@ namespace SlopArena.Client.Combat
         private const string DamageHiddenClass = "damage-hidden";
 
         [Header("Framing")]
-        [SerializeField] private float _paddingPx = 55f;
+        [SerializeField] private float _paddingPx = 10f;
+        private const float HeadClearanceWorld = 0.2f;
 
         private VisualElement _root;
         private Label? _damage;
-        private ushort _damagePercent = ushort.MaxValue;
+        private Label? _percent;
+        private int _damagePercent = -1;
         private UnityEngine.Camera _camera;
         private PlayerRenderer _target;
+        private Transform _targetHead;
+        private Renderer[] _targetRenderers = System.Array.Empty<Renderer>();
         private float _authoredOpacity = 1f;
         private ClientSettingsService _settings;
 
@@ -30,7 +34,11 @@ namespace SlopArena.Client.Combat
             if (_settings != null) _settings.Changed -= ApplySettings;
             _root = root;
             _damage = root?.Q<Label>("target-lock-damage");
-            _damagePercent = ushort.MaxValue;
+            _percent = root?.Q<Label>("target-lock-percent");
+            _damagePercent = -1;
+            _target = null;
+            _targetHead = null;
+            _targetRenderers = System.Array.Empty<Renderer>();
             _camera = camera;
             _settings = ClientSettingsService.Instance;
             _authoredOpacity = root != null ? root.resolvedStyle.opacity : 1f;
@@ -43,6 +51,12 @@ namespace SlopArena.Client.Combat
         public void SetTarget(PlayerRenderer target, bool locked, ushort damagePercent)
         {
             if (_root == null) return;
+            if (target != _target)
+            {
+                _targetHead = target != null ? target.ResolvePresentationBone("bone.head") : null;
+                _targetRenderers = target != null ? target.GetComponentsInChildren<Renderer>(true)
+                    : System.Array.Empty<Renderer>();
+            }
             _target = target;
             if (target == null || !locked)
             {
@@ -52,8 +66,11 @@ namespace SlopArena.Client.Combat
 
             if (_damage != null && damagePercent != _damagePercent)
             {
-                _damage.text = $"{damagePercent}%";
-                _damage.style.color = HUDManager.DamageColor(damagePercent);
+                _damage.text = damagePercent.ToString();
+                _damage.style.fontSize = damagePercent >= 1000 ? 18f : 22f;
+                var color = HUDManager.DamageColor(damagePercent);
+                _damage.style.color = color;
+                if (_percent != null) _percent.style.color = color;
                 _damagePercent = damagePercent;
             }
 
@@ -63,6 +80,8 @@ namespace SlopArena.Client.Combat
         public void Clear(bool immediate = false)
         {
             _target = null;
+            _targetHead = null;
+            _targetRenderers = System.Array.Empty<Renderer>();
             HideImmediate();
         }
 
@@ -73,18 +92,45 @@ namespace SlopArena.Client.Combat
             var cam = _camera != null ? _camera : FindRenderCamera();
             if (cam == null || _root.panel == null) return;
 
-            Vector3 world = _target.transform.position;
+            // A fixed pixel offset from the body centre overlaps tall/nearby fighters.
+            // Keep the horizontal anchor stable, then clear the projected visible silhouette.
+            Vector3 world = _target.transform.position + Vector3.up * (_target.CapsuleHeight * 0.5f);
             Vector3 screenPoint = cam.WorldToScreenPoint(world);
             if (screenPoint.z <= 0.001f || !float.IsFinite(screenPoint.x) || !float.IsFinite(screenPoint.y))
+            {
+                _root.style.visibility = Visibility.Hidden;
                 return;
+            }
 
-            Vector2 panelPoint = RuntimePanelUtils.ScreenToPanel(_root.panel, new Vector2(screenPoint.x, screenPoint.y));
-            float panelHeight = _root.panel.visualTree.layout.height;
+            if (_targetHead != null)
+                RaiseAbove(cam, _targetHead.position + Vector3.up * HeadClearanceWorld, ref screenPoint);
+            foreach (var renderer in _targetRenderers)
+            {
+                // Body/accessory/weapon geometry counts; trails and particles do not.
+                if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy
+                    || (renderer is not SkinnedMeshRenderer && renderer is not MeshRenderer)) continue;
+                Bounds bounds = renderer.bounds;
+                Vector3 min = bounds.min, max = bounds.max;
+                for (int corner = 0; corner < 8; corner++)
+                    RaiseAbove(cam, new Vector3((corner & 1) == 0 ? min.x : max.x,
+                        (corner & 2) == 0 ? min.y : max.y, (corner & 4) == 0 ? min.z : max.z), ref screenPoint);
+            }
+
+            Vector2 panelPoint = RuntimePanelUtils.ScreenToPanel(_root.panel,
+                new Vector2(screenPoint.x, Screen.height - screenPoint.y));
             float rootWidth = _root.resolvedStyle.width;
             float rootHeight = _root.resolvedStyle.height;
             if (!float.IsFinite(rootWidth) || !float.IsFinite(rootHeight) || rootWidth <= 0f || rootHeight <= 0f) return;
+            _root.style.visibility = Visibility.Visible;
             _root.style.left = panelPoint.x - rootWidth * 0.5f;
-            _root.style.top = panelHeight - panelPoint.y - _paddingPx - rootHeight;
+            _root.style.top = panelPoint.y - _paddingPx - rootHeight;
+        }
+
+        private static void RaiseAbove(UnityEngine.Camera camera, Vector3 world, ref Vector3 anchor)
+        {
+            Vector3 projected = camera.WorldToScreenPoint(world);
+            if (projected.z > 0.001f && float.IsFinite(projected.y))
+                anchor.y = Mathf.Max(anchor.y, projected.y);
         }
 
         private void ApplySettings()

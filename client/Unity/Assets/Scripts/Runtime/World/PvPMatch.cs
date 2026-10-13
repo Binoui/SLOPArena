@@ -459,7 +459,7 @@ namespace SlopArena.Client.World
                 return;
 
             _lastPresentedDeaths[entityId] = state.Deaths;
-            _hudManager?.ShowStockToast(entityId, $"{PlayerLabel(entityId)}  -1 STOCK", PlayerColor(entityId));
+            _hudManager?.ShowStockToast(entityId, $"{PlayerLabel(entityId)} · −1 LIFE");
         }
 
         private string PlayerLabel(ulong entityId)
@@ -470,20 +470,6 @@ namespace SlopArena.Client.World
                 if (opponent.EntityId == entityId)
                     return $"P{entityId}";
             return $"P{entityId}";
-        }
-
-        private Color PlayerColor(ulong entityId)
-        {
-            int index = entityId == PlayerEntityId
-                ? 0
-                : MatchConfig.Opponents.FindIndex(p => p.EntityId == entityId) + 1;
-            return index switch
-            {
-                1 => new Color(0.918f, 0.345f, 0.165f),
-                2 => new Color(0.231f, 0.51f, 0.965f),
-                3 => new Color(0.133f, 0.773f, 0.451f),
-                _ => new Color(0.984f, 0.749f, 0.141f),
-            };
         }
 
         private System.Collections.IEnumerator ShowCountdownPresentation()

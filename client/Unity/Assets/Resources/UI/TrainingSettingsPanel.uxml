@@ -2,7 +2,10 @@
     <Style src="TrainingSettingsPanel.uss" />
     <ui:VisualElement name="ts-panel" class="ts-panel">
         <ui:VisualElement class="ts-heading">
-            <ui:Label class="ts-title" text="TRAINING" />
+            <ui:VisualElement class="ts-title-row">
+                <ui:Label class="ts-title" text="TRAINING" />
+                <ui:Label name="ts-summary-mode" class="ts-summary-mode" text="IDLE" />
+            </ui:VisualElement>
             <ui:Label name="ts-input-hint" class="ts-hint" text="ESC / START · ADJUST TRAINING" />
         </ui:VisualElement>
         <ui:ScrollView name="ts-scroll" class="ts-scroll" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
@@ -46,7 +49,7 @@
                 <ui:Button name="reset-all" class="ts-btn ts-reset-all" text="RESET BOTH" tooltip="Return all fighters to their spawns and set damage to 0%." />
             </ui:VisualElement>
             <ui:Toggle name="no-cd-toggle" class="ts-toggle" label="No player ability cooldowns" />
-            <ui:Toggle name="show-during-play" class="ts-toggle" label="Show during play" value="true" tooltip="The panel always remains visible while paused." />
+            <ui:Toggle name="show-during-play" class="ts-toggle" label="Keep controls visible during play" value="false" tooltip="Pause always expands the controls. During play a compact behavior readout remains visible." />
         </ui:ScrollView>
     </ui:VisualElement>
 </ui:UXML>

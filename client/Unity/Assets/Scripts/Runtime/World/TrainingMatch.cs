@@ -392,7 +392,7 @@ namespace SlopArena.Client.World
             if (solo)
                 _hudManager?.ShowMatchCallout("READY", 2f);
             SetupAimHandler(playerDef);
-            SetupLockIndicator(_npcs.Select(n => n.Renderer).ToArray(), arena);
+            SetupLockIndicator(new[] { _playerRenderer }.Concat(_npcs.Select(n => n.Renderer)).ToArray(), arena);
             _lockIndicator = FindFirstObjectByType<TargetIndicator>();
             // Training controls remain visible on the HUD throughout practice.
             if (MatchConfig.Mode == GameMode.Training)
@@ -411,7 +411,7 @@ namespace SlopArena.Client.World
             SetupHUD(_playerDef, HudExtraPlayers());
             if (_lockIndicator != null)
                 Destroy(_lockIndicator.gameObject);
-            SetupLockIndicator(_npcs.Select(n => n.Renderer).ToArray(), _arenaDef);
+            SetupLockIndicator(new[] { _playerRenderer }.Concat(_npcs.Select(n => n.Renderer)).ToArray(), _arenaDef);
             _lockIndicator = FindFirstObjectByType<TargetIndicator>();
         }
 
@@ -590,12 +590,12 @@ namespace SlopArena.Client.World
                 if (soloPlayer.Deaths > _lastSoloPlayerDeaths)
                 {
                     _lastSoloPlayerDeaths = soloPlayer.Deaths;
-                    _hudManager?.ShowStockToast(PlayerEntityId, "YOU  -1 STOCK", Color.yellow);
+                    _hudManager?.ShowStockToast(PlayerEntityId, "YOU · −1 LIFE");
                 }
                 if (soloNpc.Deaths > _lastSoloNpcDeaths)
                 {
                     _lastSoloNpcDeaths = soloNpc.Deaths;
-                    _hudManager?.ShowStockToast(NpcEntityId, "CPU  -1 STOCK", Color.cyan);
+                    _hudManager?.ShowStockToast(NpcEntityId, "CPU · −1 LIFE");
                 }
             }
 
