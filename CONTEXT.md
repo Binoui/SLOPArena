@@ -259,6 +259,28 @@ _Avoid_: public Room, dedicated Room, hosted lobby
 The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Character Select → Stage Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
 _Avoid_: physical-server lobby flow, automatic rematch
 
+## Replays & Spectating
+
+**Replay**:
+A saved recording of a Match's authoritative gameplay that a player can watch again for personal review or share with a bug report.
+_Avoid_: video capture, rollback re-simulation
+
+**Replay Library**:
+A player's recent Matches, with access to available Replays and explanations for unavailable recordings. It remains accessible during later game launches.
+_Avoid_: replay folder
+
+**Partial Replay**:
+A Replay covering only a recorded portion of a Match, such as a cancelled Match or a recording stopped at its resource limit. A Match can finish normally while its Replay remains partial.
+_Avoid_: completed Replay, crash recovery
+
+**Replay Share Link**:
+A single unlisted link for a Match's Replay that any of its participants can create or revoke. Anyone holding an active link can retrieve that Replay.
+_Avoid_: public replay listing, Match invite
+
+**Live Spectator**:
+A person watching an ongoing Match without having entered its fighter Roster. An eliminated fighter watching the remainder of their own Match is a different role.
+_Avoid_: eliminated fighter, replay viewer
+
 ## Prediction & Rollback
 
 **ConfirmedTick**:
@@ -270,7 +292,7 @@ The span of ticks between ConfirmedTick and the currently rendered tick, replaye
 _Avoid_: rewind window, prediction buffer, lag window
 
 **InputRelay**:
-The server broadcasting each entity's consumed InputState — or an explicit no-input marker when the server had nothing to consume for it that tick (empty queue → drop → `default(InputState)`) — alongside its state packet, so every client can replay opponents' exact inputs *and omissions* during re-simulation. Feeds PredictedTrack's replay; LocalTrack uses the player's own true input buffer instead.
+The GameHost's broadcast of per-fighter input data alongside authoritative Match state for opponent prediction. It is separate from Replay recording.
 _Avoid_: input forwarding, input piggyback, input echo
 
 **LocalTrack**:

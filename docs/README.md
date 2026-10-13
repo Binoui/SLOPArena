@@ -22,6 +22,8 @@ Read these in order:
 | [Ability Architecture](systems/ability-architecture.md) | Cooked timelines, typed operations, capabilities, and interruption |
 | [Animation System](systems/animation-system.md) | Animancer playback, semantic bindings, and timing |
 | [Netcode Architecture](systems/netcode-architecture.md) | GameServer, prediction, reconciliation, and transport |
+| [Replay v1 design](plans/2026-10-13-replay-v1-design.md) | Personal-review/bug-report scope, playback and delivery contract, parity gate and spectator extension |
+| [Replay v1 implementation spec](spec-replay-v1/spec-replay-v1.md) | Draft recording/API contracts, parallel ownership and verification gates; proposed storage revision |
 | [Release Pipeline](systems/release-pipeline.md) | Isolated client build, coordinated CI/VPS release and manual Steam activation |
 | [Hosted owner console](systems/owner-console.md) | Independent console deployment, owner password login and private Master access |
 | [Operations skill](../skills/sloparena-ops/SKILL.md) | Match diagnostics, exact VPS process-log commands and readiness |
@@ -37,6 +39,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | Document | Use it for |
 | --- | --- |
 | [Combat Systems](systems/combat-systems.md) | Universal 8-normal/4-special model and combat mechanics |
+| [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown and moving-platform directions; proposed rules and open decisions |
 | [Hitbox System](systems/hitbox-system.md) | Hitbox, hurtbox, and collision geometry |
 | [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, and Combo Influence design |
 | [Ability Lab](systems/ability-lab.md) | Package editing, authoritative preview, and agent-facing workspace commands |
@@ -113,6 +116,7 @@ The current package and creator-content direction is defined by these accepted r
 - [ADR-0029: Character authoring and cooking](adr/0029-character-authoring-and-cooking.md)
 - [ADR-0030: Ability Lab canonical slot projection](adr/0030-ability-lab-canonical-slot-projection.md)
 - [ADR-0031: Character asset dependency classification](adr/0031-character-asset-dependency-classification.md)
+- [ADR-0033: GameHost input Replays with compatible Shared playback](adr/0033-gamehost-input-replays-with-shared-playback.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 
