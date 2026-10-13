@@ -9,10 +9,22 @@ using UnityEngine;
 /// <summary>Run with the producer injected into an Editor assembly; never builds a player.</summary>
 public static class PlaytestReleaseBuilderSelfTest
 {
+    public static void RunBatch()
+    {
+        string repository = Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
+        var roster = JObject.Parse(File.ReadAllText(Path.Combine(repository, "content-cooked/roster/manifest.json")));
+        foreach (var entry in roster["entries"])
+            Run(Path.Combine(repository, "content-cooked", (string)entry["packageId"], "client.bindings"));
+        Debug.Log("PLAYTEST_RELEASE_SELFTEST_OK");
+    }
+
     public static string[] Run(string bindingPath)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             throw new InvalidOperationException("Catalog regression requires Edit Mode.");
+        VerifyDependencyDiff();
+        Refuses(() => PlaytestReleaseBuilder.Build());
+        Refuses(() => PlaytestReleaseBuilder.DiagnoseCook());
         string id = "playtest-catalog-test-" + Guid.NewGuid().ToString("N");
         string contentRoot = Path.Combine(Path.GetTempPath(), id);
         string assetRoot = "Assets/Resources/Generated/CharacterPackages/" + id;
@@ -57,11 +69,30 @@ public static class PlaytestReleaseBuilderSelfTest
         }
     }
 
+    public static void VerifyDependencyDiff()
+    {
+        var expected = JArray.Parse(@"[{""Kind"":""asset"",""Identity"":""Assets/shared/tumble.fbx"",
+            ""Guid"":""rig"",""DependencyHash"":""warm"",""MetaHash"":""same"",""ImporterSettings"":""same""}]");
+        var observed = (JArray)expected.DeepClone();
+        if (PlaytestReleaseBuilder.CompareDependencies(expected, observed).Count != 0)
+            throw new InvalidOperationException("Identical dependencies produced a correction.");
+        observed[0]["DependencyHash"] = "cold";
+        var changes = PlaytestReleaseBuilder.CompareDependencies(expected, observed);
+        if (changes.Count != 1 || ((JObject)changes[0]["fields"]).Count != 1 ||
+            (string)changes[0]["fields"]["DependencyHash"]["expected"] != "warm" ||
+            (string)changes[0]["fields"]["DependencyHash"]["observed"] != "cold")
+            throw new InvalidOperationException("Cold-import dependency mismatch was not isolated.");
+        observed[0]["MetaHash"] = "changed";
+        if (PlaytestReleaseBuilder.CompareDependencies(expected, observed)[0]["fields"]["MetaHash"] == null)
+            throw new InvalidOperationException("Changed importer metadata was omitted.");
+    }
+
     private static void Refuses(Action action)
     {
         try { action(); }
         catch (InvalidDataException) { return; }
         catch (InvalidOperationException) { return; }
+        catch (ArgumentException) { return; }
         throw new Exception("Invalid client catalog was accepted.");
     }
 }

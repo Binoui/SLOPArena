@@ -41,6 +41,84 @@ class CandidateError(release.ReleaseError):
     pass
 
 
+class DeploymentFailure(release.ReleaseError):
+    def __init__(self, receipt: dict[str, Any]) -> None:
+        self.receipt = receipt
+        super().__init__("deployment failed; sanitized receipt retained")
+
+
+PUBLIC_STAGES = {
+    "unknown",
+    "receiver_preflight", "offhost_backup", "backup_freshness", "candidate_validation",
+    "host_registration", "deployment_verification", "idle_registration", "docker_context",
+    "compose_config", "pre_replacement_logs", "application_readiness", "pg_dump_backup",
+    "schema_compatibility", "restore_previous_release", "stop_writers", "start_release_services",
+    "run_schema_migration", "restore_previous_services", "firewall_preflight", "pull_images",
+    "verify_images", "start_postgres", "postgres_readiness", "current_schema", "dns_preflight",
+    "base_compose_config", "check_migration_history", "docker_context_inspect", "docker_context_show",
+    "ensure_postgres", "read_migration_history", "start_rollback_services",
+}
+
+FAILURE_CODES = {"schema_migration_failed", "application_not_ready", "registration_unavailable",
+                 "backup_failed", "command_failed", "deployment_refused"}
+
+
+def validate_failure(receipt: Any, release_id: str) -> dict:
+    fields = {"release_id", "outcome", "failed_stage", "reason_code", "active_release", "recovery",
+              "failure_during_migration", "schema_after", "observed_at"}
+    if not isinstance(receipt, dict) or set(receipt) != fields:
+        raise CandidateError("failure receipt has unknown or missing fields")
+    if (receipt["release_id"] != release_id or receipt["outcome"] != "failure"
+            or receipt["failed_stage"] not in PUBLIC_STAGES or receipt["reason_code"] not in FAILURE_CODES
+            or type(receipt["failure_during_migration"]) is not bool
+            or not isinstance(receipt["observed_at"], str) or len(receipt["observed_at"]) > 64
+            or _parse_time(receipt["observed_at"]) is None):
+        raise CandidateError("failure receipt identity, stage or reason is invalid")
+    recovery_state = receipt["recovery"]
+    if (not isinstance(recovery_state, dict) or set(recovery_state) != {"status", "release_id"}
+            or recovery_state["status"] not in {"restored", "failed", "not_attempted"}):
+        raise CandidateError("failure receipt recovery is invalid")
+    for identity in (receipt["active_release"], recovery_state["release_id"]):
+        if identity is not None and (not isinstance(identity, str) or not RELEASE_ID.fullmatch(identity)):
+            raise CandidateError("failure receipt contains an invalid release identity")
+    schema = receipt["schema_after"]
+    if schema is not None and (not isinstance(schema, str) or len(schema) > 128 or not release.MIGRATION_ID.fullmatch(schema)):
+        raise CandidateError("failure receipt schema is invalid")
+    return receipt
+
+
+def public_failure(candidate: dict, event: dict, target: Path, error: Exception) -> dict:
+    """Project only known identities/enums; exception text and commands stay private."""
+    stage = event.get("failed_stage") or event.get("stage")
+    stage = stage if stage in PUBLIC_STAGES else "unknown"
+    code = ("schema_migration_failed" if event.get("failure_during_migration") is True else
+            "application_not_ready" if stage == "application_readiness" else
+            "registration_unavailable" if stage in ("idle_registration", "host_registration") else
+            "backup_failed" if stage in ("offhost_backup", "backup_freshness") else
+            "command_failed" if isinstance(error, release.CommandFailure) else "deployment_refused")
+    active_id = None
+    try:
+        active = release.active_manifest(target)
+        if active and isinstance(active.get("release_id"), str) and RELEASE_ID.fullmatch(active["release_id"]):
+            active_id = active["release_id"]
+    except Exception:
+        pass
+    recovery = event.get("recovery")
+    status = recovery.get("status") if isinstance(recovery, dict) else None
+    status = status if status in ("restored", "failed") else "not_attempted"
+    recovered_id = recovery.get("release_id") if isinstance(recovery, dict) else None
+    if not isinstance(recovered_id, str) or not RELEASE_ID.fullmatch(recovered_id):
+        recovered_id = None
+    schema = event.get("schema_after")
+    if not isinstance(schema, str) or len(schema) > 128 or not release.MIGRATION_ID.fullmatch(schema):
+        schema = None
+    return {"release_id": candidate["release_id"], "outcome": "failure", "failed_stage": stage,
+            "reason_code": code, "active_release": active_id,
+            "recovery": {"status": status, "release_id": recovered_id},
+            "failure_during_migration": event.get("failure_during_migration") is True,
+            "schema_after": schema, "observed_at": release.now()}
+
+
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -370,6 +448,16 @@ def _ensure_root_state(target: Path) -> None:
 
 
 def deploy_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
+    event = {"event_id": uuid.uuid4().hex, "operation": "ci_deploy",
+             "release_id": candidate["release_id"], "started_at": release.now(),
+             "steps": [], "stage": "receiver_preflight"}
+    try:
+        return _deploy_candidate(candidate, event)
+    except Exception as exc:
+        raise DeploymentFailure(public_failure(candidate, event, STATE_DIR, exc)) from exc
+
+
+def _deploy_candidate(candidate: dict[str, Any], event: dict) -> dict[str, Any]:
     if os.geteuid() != 0:
         raise release.ReleaseError("receiver must run as root")
     if STATE_DIR.is_symlink():
@@ -397,6 +485,7 @@ def deploy_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
             target / "releases" / f"{candidate['release_id']}.json",
             release.json_bytes(initial_manifest),
         )
+    event["stage"] = "offhost_backup"
     backup_started = run_offhost_backup()
 
     env = trusted_docker_env(target)
@@ -408,14 +497,8 @@ def deploy_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         if active is None:
             raise release.ReleaseError("active VPS release disappeared during backup")
         require_endpoint(candidate, active)
+        event["stage"] = "backup_freshness"
         backup = require_fresh_backup(target, active, backup_started)
-        event: dict[str, Any] = {
-            "event_id": uuid.uuid4().hex,
-            "operation": "ci_deploy",
-            "release_id": candidate["release_id"],
-            "started_at": release.now(),
-            "steps": [],
-        }
         try:
             release.ensure_local_docker(event, env)
             require_active_vps_profile(event, target, active, env)
@@ -449,10 +532,12 @@ def deploy_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
                 release.deploy(event, args, target, manifest, env)
             require_active_vps_profile(event, target, manifest, env, candidate["catalog_hash"])
 
+            event["stage"] = "deployment_verification"
             services = verify_ready(target, target / "release.env", env)
             _, current_schema = release.current_migration(
                 event, target, target / "release.env", None, env
             )
+            event["stage"] = "host_registration"
             registration = registration_until_fresh(target, target / "release.env", env)
             if not already_active:
                 event["schema_after"] = current_schema
@@ -494,6 +579,10 @@ def main() -> int:
         return 0
     try:
         receipt = deploy_candidate(candidate)
+    except DeploymentFailure as exc:
+        print(json.dumps(exc.receipt, indent=2, sort_keys=True))
+        print("release request failed; sanitized failure receipt returned", file=sys.stderr)
+        return 1
     except CandidateError as exc:
         print(f"candidate rejected: {exc}", file=sys.stderr)
         return 1

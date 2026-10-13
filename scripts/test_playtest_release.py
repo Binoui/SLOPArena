@@ -2,6 +2,8 @@
 import copy
 import importlib.util
 import io
+import json
+import os
 from pathlib import Path
 import tarfile
 import tempfile
@@ -103,6 +105,47 @@ class DeploymentReceiptTests(unittest.TestCase):
         self.result["registration"]["hosts"][0]["fresh"] = False
         with self.assertRaises(release.ReleaseError):
             release.verify_deployment(self.candidate, self.result)
+
+    def invoke_receiver(self, output, response, public_error=None):
+        args = SimpleNamespace(candidate=output.parent / "candidate.json", output=output)
+        args.candidate.write_text(json.dumps(self.candidate))
+        environment = {"PLAYTEST_SSH_PRIVATE_KEY": "test-private-key", "PLAYTEST_SSH_KNOWN_HOSTS": "test-host-key",
+                       "PLAYTEST_SSH_HOST": "host.example.com", "PLAYTEST_SSH_USER": "ci", "PLAYTEST_SSH_PORT": "22"}
+        with (mock.patch.dict(os.environ, environment),
+              mock.patch.object(release.subprocess, "run", return_value=response),
+              mock.patch.object(release.urllib.request, "urlopen", side_effect=public_error) as ready):
+            with self.assertRaises(release.ReleaseError):
+                release.deploy(args)
+        return json.loads(output.read_text()), ready
+
+    def test_nonzero_receiver_returns_failure_stage_and_recovery_receipt(self):
+        failure = {"release_id": self.candidate["release_id"], "outcome": "failure",
+                   "failed_stage": "application_readiness", "reason_code": "application_not_ready",
+                   "active_release": "previous", "recovery": {"status": "restored", "release_id": "previous"},
+                   "failure_during_migration": False, "schema_after": self.result["schema"],
+                   "observed_at": "2026-10-13T21:00:00+00:00"}
+        with tempfile.TemporaryDirectory() as directory:
+            receipt, ready = self.invoke_receiver(Path(directory) / "release.json",
+                SimpleNamespace(returncode=1, stdout=json.dumps(failure).encode()))
+        self.assertEqual(receipt["deployment"]["failed_stage"], "application_readiness")
+        self.assertEqual(receipt["deployment"]["recovery"]["status"], "restored")
+        self.assertFalse(receipt["steamDefaultActivated"])
+        ready.assert_not_called()
+
+    def test_legacy_or_private_failure_output_becomes_ambiguous_without_leaking_output(self):
+        for response in (b"", b'{"private_log":"private password"}'):
+            with tempfile.TemporaryDirectory() as directory:
+                receipt, _ = self.invoke_receiver(Path(directory) / "release.json",
+                    SimpleNamespace(returncode=1, stdout=response))
+            self.assertEqual(receipt["deployment"]["outcome"], "unknown")
+            self.assertNotIn("private password", json.dumps(receipt))
+
+    def test_successful_backend_receipt_survives_failed_public_https_check(self):
+        with tempfile.TemporaryDirectory() as directory:
+            receipt, _ = self.invoke_receiver(Path(directory) / "release.json",
+                SimpleNamespace(returncode=0, stdout=json.dumps(self.result).encode()), OSError("HTTPS unavailable"))
+        self.assertEqual(receipt["deployment"]["outcome"], "success")
+        self.assertFalse(receipt["publicReadinessVerified"])
 
 
 class EnvironmentPolicyTests(unittest.TestCase):

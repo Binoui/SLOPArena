@@ -8,7 +8,7 @@ specific to this environment.
 
 ## Routine release and investigation
 
-- Release: use [the isolated client build and coordinated GitHub Actions workflow](../../docs/systems/release-pipeline.md). Steam default activation stays manual after VPS readiness.
+- Release: use [the resumable controller, isolated client build and coordinated CI workflow](../../docs/systems/release-pipeline.md). Steam default activation stays manual after VPS readiness.
 - Match lag or frozen fighters: start with [MasterConsole diagnostics](#match-diagnostics), then the [two bounded process-log commands](#noninteractive-agent-log-access).
 - Readiness: public `/ready` plus a fresh private MasterConsole server heartbeat. Full image/schema/backup status needs an authenticated operator sudo session.
 - CI connectivity failure: **Check Playtest VPS** (`check-playtest-vps.yml`) checks the protected tunnel and refusal boundaries; it neither fetches match logs nor checks application readiness.

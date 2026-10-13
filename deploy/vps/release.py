@@ -778,6 +778,7 @@ def deploy(event: dict[str, Any], args: argparse.Namespace, target: Path, manife
             raise ReleaseError(f"release {manifest['release_id']} does not support current schema {current_schema!r}")
         capture_logs(event, target, db_env, override, env)
         if previous is not None:
+            event["stage"] = "idle_registration"
             require_idle_registration(target, db_env, override, env)
         disrupted = True
         compose_action(event, target, db_env, override, env, "stop_writers", ["stop", "-t", "30", "master", "game"])

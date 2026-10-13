@@ -15,6 +15,8 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import playtest_protocol
 
 ROOT = Path(__file__).resolve().parents[1]
 APP_ID = 5325920
@@ -24,6 +26,7 @@ VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-playtest\.[0-9]+")
 PAYLOADS = ("manifest.json", "character.runtime.json", "poses.bin", "client.bindings")
 MASTER_REPOSITORY = "Binoui/SlopArena-MasterServer"
 GAME_REPOSITORY = "Binoui/SlopArena"
+CONTROLLER_CONTRACT_VERSION = 1
 
 
 class ReleaseError(RuntimeError):
@@ -97,12 +100,17 @@ def check_environments(_args) -> None:
 def resolve(args) -> None:
     validate_version(args.version)
     validate_revision(args.source_revision)
+    if getattr(args, "expected_source_revision", ""):
+        require(args, args.source_revision == validate_revision(args.expected_source_revision),
+                "Game main moved after preparation; do not dispatch a different source snapshot")
     master_main = validate_revision(gh_json(f"repos/{MASTER_REPOSITORY}/git/ref/heads/main")["object"]["sha"])
     master = validate_revision(args.master_revision) if args.master_revision else master_main
     if master != master_main:
         comparison = gh_json(f"repos/{MASTER_REPOSITORY}/compare/{master}...{master_main}")
         require(master, comparison.get("status") in ("ahead", "identical"),
                 "Master source must be an approved main ancestor")
+    compatibility = playtest_protocol.verify_github(gh_json, args.source_revision, master)
+    write_json(ROOT / "build/playtest/protocol.json", compatibility)
     release_id = f"steam-playtest-{args.run_id}"
     require(release_id, re.fullmatch(r"[1-9][0-9]{0,19}", args.run_id) is not None, "Invalid GitHub run identity")
     require(args.migration_from, not args.migration_from or re.fullmatch(r"[A-Za-z0-9_]+", args.migration_from),
@@ -466,17 +474,54 @@ def deploy(args) -> None:
                    "-o", "StrictHostKeyChecking=yes", "-o", f"UserKnownHostsFile={hosts}", "-o", "ConnectTimeout=15",
                    f"{user}@{host}", "sloparena-release"]
         environment = {k: v for k, v in os.environ.items() if k not in ("PLAYTEST_SSH_PRIVATE_KEY", "PLAYTEST_SSH_KNOWN_HOSTS")}
-        result = subprocess.run(command, input=json.dumps(candidate).encode(), stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL, env=environment, timeout=5400)
-        require(result, result.returncode == 0, "Restricted VPS deployment failed; inspect private host release events, not raw logs")
-    require(result.stdout, len(result.stdout) <= 131072, "Oversized VPS response")
-    receipt = json.loads(result.stdout)
-    verify_deployment(candidate, receipt)
-    with urllib.request.urlopen(candidate["master_endpoint"] + "/ready", timeout=20) as response:
-        require(response, response.status == 200, "Public Master readiness failed")
-    write_json(args.output, {"candidate": candidate, "deployment": receipt,
-                             "steamDefaultActivated": False, "manualPromotionUrl": f"https://partner.steamgames.com/apps/builds/{APP_ID}"})
+        try:
+            result = subprocess.run(command, input=json.dumps(candidate).encode(), stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL, env=environment, timeout=5400)
+        except (OSError, subprocess.TimeoutExpired):
+            write_json(args.output, deployment_envelope(candidate, ambiguous_failure(candidate)))
+            raise ReleaseError("VPS response is unavailable; ambiguous failure receipt retained; reconcile before retrying")
+        if result.returncode:
+            failure = ambiguous_failure(candidate)
+            if len(result.stdout) <= 131072:
+                try:
+                    from ci_release import validate_failure
+                    failure = validate_failure(json.loads(result.stdout, object_pairs_hook=_unique_pairs), candidate["release_id"])
+                except (ValueError, TypeError, KeyError, RuntimeError):
+                    pass
+            write_json(args.output, deployment_envelope(candidate, failure))
+            raise ReleaseError(f"VPS {failure['failed_stage']}: {failure['reason_code']}; recovery {failure['recovery']['status']}; receipt: {args.output}")
+    try:
+        require(result.stdout, len(result.stdout) <= 131072, "Oversized VPS response")
+        receipt = json.loads(result.stdout, object_pairs_hook=_unique_pairs)
+        verify_deployment(candidate, receipt)
+    except (ValueError, TypeError, KeyError, RuntimeError):
+        write_json(args.output, deployment_envelope(candidate, ambiguous_failure(candidate)))
+        raise ReleaseError("VPS response was malformed or mismatched; ambiguous receipt retained")
+    envelope = deployment_envelope(candidate, receipt)
+    envelope["publicReadinessVerified"] = False
+    write_json(args.output, envelope)
+    try:
+        with urllib.request.urlopen(candidate["master_endpoint"] + "/ready", timeout=20) as response:
+            require(response, response.status == 200, "Public Master readiness failed")
+    except (OSError, RuntimeError):
+        raise ReleaseError("Backend receipt retained, but public HTTPS readiness is unverified; do not activate Steam")
+    envelope["publicReadinessVerified"] = True
+    write_json(args.output, envelope)
     print(f"VPS {candidate['release_id']} verified. Set Steam BuildID {candidate['steam']['build_id']} live manually.")
+
+
+def deployment_envelope(candidate: dict, result: dict) -> dict:
+    return {"candidate": candidate, "deployment": result, "steamDefaultActivated": False,
+            "manualPromotionUrl": f"https://partner.steamgames.com/apps/builds/{APP_ID}"}
+
+
+def ambiguous_failure(candidate: dict) -> dict:
+    from datetime import datetime, timezone
+    return {"release_id": candidate["release_id"], "outcome": "unknown", "failed_stage": "transport",
+            "reason_code": "response_unavailable", "active_release": None,
+            "recovery": {"status": "unknown", "release_id": None},
+            "failure_during_migration": False, "schema_after": None,
+            "observed_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
 def parser() -> argparse.ArgumentParser:
@@ -489,6 +534,7 @@ def parser() -> argparse.ArgumentParser:
     source.add_argument("--master-revision", default="")
     source.add_argument("--migration-from", default="")
     source.add_argument("--run-id", required=True)
+    source.add_argument("--expected-source-revision", default="")
     source.set_defaults(function=resolve)
     for name in ("verify-client", "upload", "assemble"):
         command = commands.add_parser(name)

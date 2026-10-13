@@ -17,23 +17,33 @@ The routine flow is:
 
 1. Select the approved published game `main` commit, a full approved Master SHA
    reachable from its `main`, and a new `0.2.0-playtest.N` version.
-2. From a clean game checkout, run `scripts/build-playtest-local.py` with that
-   exact game SHA and the approved HTTPS endpoint. If the canonical checkout is
-   dirty, create a separate clean worktree and point `--local-unity-project` at
-   the canonical project's ignored licensed inputs. Preserve unrelated edits.
-3. Publish the verified archive as `playtest-client-<version>` at that exact SHA,
-   then dispatch `release-playtest.yml` from the matching game `main` commit,
-   passing `version` and the pinned `master_revision`.
-4. Follow the exact run. It verifies the client, tests/publishes pinned backend
-   images, uploads the Steam depot, and deploys through the protected
-   `playtest-vps` job. Use existing release authorization to approve that job
-   when the GitHub account and environment policy permit it.
-5. Download the sanitized upload/deployment receipts. Require successful VPS
-   readiness and fresh Steam host registration before manual Steam activation.
+2. Run `scripts/release.py prepare` with the version, exact source pins, explicit
+   Master checkout and approved HTTPS endpoint. Read its source/protocol/input
+   summary; do not substitute a different explicitly selected checkout.
+3. Run `scripts/release.py run` under the existing release authorization. It
+   creates a clean checkout, builds/verifies/publishes the client, dispatches one
+   correlated workflow, retains receipts and approves the protected VPS job when
+   the account/environment policy permits. Preserve unrelated canonical edits.
+4. Use `status` and `resume` on that version after interruption. Reuse completed
+   steps and the exact run ID; never dispatch the latest run by assumption.
+   `status --refresh` is read-only against CI and does not approve deployment.
+5. Require successful VPS readiness/fresh registration before Steam activation.
+   Failed deployments retain sanitized stage/recovery receipts. After resolving
+   the cause, `resume --retry-deploy` is limited to a proven safe failed deploy
+   job; unknown host state requires reconciliation. Retain the successful upload.
 6. The operator selects the receipt's BuildID on **default**, previews the change,
    chooses **Set Build Live Now**, accepts any browser confirmation and completes
-   any mobile confirmation in Steam. Confirm the resulting branch/manifest,
-   rather than treating the click or an open confirmation as completion.
+   any mobile confirmation in Steam. Run `verify-live` to observe the exact
+   resulting branch/manifest. Record the packaged two-account countdown/match/
+   rematch separately with `record-player-test`; CI does not mark it passed.
+
+The selected published game SHA must contain the controller-compatible producer
+and workflow. Existing historical receipts are retained, not implicitly adopted.
+For cook mismatch, `release.py cook` produces a cold Win64 report and reviewable
+correction without a player build or publication. Review/publish source fixes
+under their own authorization, then prepare a new version; never silently replace
+an existing candidate's cooked artifacts. Low-level commands remain documented
+for manual fallback.
 
 Steam Playtest AppID is **5325920**, depot **5325921**. Build, image publication,
 Steam upload, VPS deployment and default activation are separate outcomes.

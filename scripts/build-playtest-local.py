@@ -213,7 +213,8 @@ def project_is_open(project: Path) -> bool:
     return False
 
 
-def stage_local_dependencies(local_project: Path, checkout: Path, evidence: Path) -> None:
+def licensed_inputs(local_project: Path) -> tuple[Path, dict[str, str]]:
+    """Fingerprint the same allowed inputs used by the producer, without copying."""
     local_project = local_project.resolve(strict=True)
     source_root = Path(run_capture(["git", "rev-parse", "--show-toplevel"], local_project,
                                    "Local Unity dependency source is not a Git checkout").strip()).resolve()
@@ -238,15 +239,24 @@ def stage_local_dependencies(local_project: Path, checkout: Path, evidence: Path
             continue
         if not source.resolve().is_relative_to(local_project):
             raise BuildError(f"Local dependency resolves outside the supplied project: {name}")
-        destination = checkout / relative
+        hashes[name] = hashlib.sha256(source.read_bytes()).hexdigest()
+    return source_root, hashes
+
+
+def stage_local_dependencies(local_project: Path, checkout: Path, evidence: Path) -> None:
+    source_root, hashes = licensed_inputs(local_project)
+    for name, before in hashes.items():
+        source = source_root / name
+        destination = checkout / name
         if destination.exists() or destination.is_symlink():
             raise BuildError(f"Local dependency would replace committed source: {name}")
-        before = hashlib.sha256(source.read_bytes()).hexdigest()
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
         if hashlib.sha256(destination.read_bytes()).hexdigest() != before:
             raise BuildError(f"Local dependency changed while copying: {name}")
-        hashes[name] = before
+    _, after = licensed_inputs(local_project)
+    if hashes != after:
+        raise BuildError("Licensed inputs changed while staging; prepare a new input snapshot")
     (evidence / "local-dependencies.json").write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
     reject_project_symlinks(checkout / "client/Unity")
 
@@ -265,6 +275,14 @@ def run(args: argparse.Namespace) -> dict:
         raise BuildError("Publish-ready archive already exists; use a new version rather than overwrite it")
     evidence = evidence_parent / attempt
     evidence.mkdir(mode=0o700)
+    args.evidence_directory = evidence
+    unity_version = re.search(r"m_EditorVersion:\s*(\S+)", (root / "client/Unity/ProjectSettings/ProjectVersion.txt").read_text()).group(1)
+    if editor.parent.parent.name != unity_version:
+        raise BuildError(f"Installed Unity must match pinned project version {unity_version}")
+    (evidence / "environment.json").write_text(json.dumps({
+        "sourceRevision": args.source_revision, "unityVersion": unity_version,
+        "buildTarget": "Win64", "unityEditor": str(editor), "version": args.version,
+    }, indent=2) + "\n")
     stage = build_root / (".playtest-local-" + attempt)
     stage.mkdir(mode=0o700)
     owner_file = stage / ".owner"
@@ -295,6 +313,14 @@ def run(args: argparse.Namespace) -> dict:
         raise BuildError("Isolated Unity project is already open in an Editor; refusing batchmode")
 
     stage_local_dependencies(args.local_unity_project or canonical_project, checkout, evidence)
+    if args.cook_baseline and args.cook_baseline.is_dir():
+        baseline = checkout / "build/playtest/accepted-cook-status"
+        baseline.mkdir(parents=True)
+        for source in args.cook_baseline.glob("*.json"):
+            if source.is_symlink() or re.fullmatch(r"[a-z][a-z0-9.-]*\.json", source.name) is None:
+                raise BuildError("Invalid advisory cook-status snapshot")
+            json.loads(source.read_text())
+            shutil.copy2(source, baseline / source.name)
 
     shared_log = evidence / "shared-build.log"
     run_logged(["dotnet", "build", "src/Shared/", "--configuration", "Release", "--nologo"], checkout,
@@ -322,12 +348,32 @@ def run(args: argparse.Namespace) -> dict:
     # Platform-sensitive dependency hashes must be computed for the player target.
     unity_command = [str(editor), "-batchmode", "-quit", "-buildTarget", "Win64",
                      "-projectPath", str(project.resolve()),
-                     "-executeMethod", "PlaytestReleaseBuilder.Build",
+                     "-executeMethod", "PlaytestReleaseBuilder.DiagnoseCook" if args.diagnose_cook else "PlaytestReleaseBuilder.Build",
                      "-releaseVersion", args.version,
                      "-releaseSourceRevision", args.source_revision,
                      "-releaseMasterEndpoint", args.endpoint,
                      "-logFile", str(unity_log)]
-    run_logged(unity_command, checkout, launcher_log, "Running installed licensed Unity batchmode without activation arguments")
+    try:
+        run_logged(unity_command, checkout, launcher_log, "Running installed licensed Unity batchmode without activation arguments")
+    except BuildError:
+        report = checkout / "build/playtest/cook-verification.json"
+        if report.is_file():
+            shutil.copy2(report, evidence / "cook-verification.json")
+        raise
+    if args.diagnose_cook:
+        diagnostics = checkout / "build/playtest/cook-diagnostics"
+        if not (diagnostics / "cook.json").is_file():
+            raise BuildError("Diagnostic cook did not produce its complete roster report")
+        shutil.copytree(diagnostics, evidence / "cook-diagnostics")
+        patch = subprocess.run(["git", "diff", "--binary", "--", "content-cooked"], cwd=checkout,
+                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
+        (evidence / "cook-correction.patch").write_bytes(patch.stdout)
+        handoff = {"version": args.version, "sourceRevision": args.source_revision,
+                   "result": "diagnostic-cook", "report": str(evidence / "cook-diagnostics/cook.json"),
+                   "correctionPatch": str(evidence / "cook-correction.patch"),
+                   "isolatedRoot": checkout_path, "isolatedSourceRemoved": False}
+        (evidence / "handoff.json").write_text(json.dumps(handoff, indent=2) + "\n")
+        return handoff
     if not unity_log.is_file() or f"PLAYTEST_RELEASE_BUILD_OK version={args.version} source={args.source_revision}" not in unity_log.read_text(encoding="utf-8", errors="replace"):
         raise BuildError(f"Unity did not report a successful real player build; see {unity_log} and {launcher_log}")
     if not client_receipt.is_file() or not release.is_dir():
@@ -380,6 +426,10 @@ def parser() -> argparse.ArgumentParser:
                         default=os.environ.get("UNITY_EDITOR", DEFAULT_UNITY))
     result.add_argument("--local-unity-project", type=Path,
                         help="Read ignored licensed dependencies from this checkout's client/Unity; never writes there")
+    result.add_argument("--diagnose-cook", action="store_true",
+                        help="Produce a cold Win64 cook report and reviewable correction; never builds or publishes a client")
+    result.add_argument("--cook-baseline", type=Path,
+                        help="Optional advisory dependency snapshots for automatic diffs; never an admission authority")
     return result
 
 
@@ -389,6 +439,11 @@ def main() -> int:
         print(json.dumps(run(args), indent=2, sort_keys=True))
         return 0
     except (BuildError, OSError) as exc:
+        if getattr(args, "evidence_directory", None):
+            (args.evidence_directory / "failure.json").write_text(json.dumps({
+                "result": "failed", "version": args.version, "sourceRevision": args.source_revision,
+                "reason": str(exc), "publishReady": False,
+            }, indent=2) + "\n")
         print(f"Local playtest build failed: {exc}", file=sys.stderr)
         return 1
 

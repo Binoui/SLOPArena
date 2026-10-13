@@ -12,6 +12,10 @@ jobs:
         run: |
           python3 -m unittest discover -s tools -p 'test_*.py'
           python3 tools/check_docs.py
+      - name: Test release preparation, resuming and receiver boundaries
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+          python3 -m unittest discover -s deploy/vps -p 'test_*.py'
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'

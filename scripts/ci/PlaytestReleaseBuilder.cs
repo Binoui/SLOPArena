@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SlopArena.Client.Animation;
 using SlopArena.Shared;
 using UnityEditor;
@@ -29,8 +30,8 @@ public static class PlaytestReleaseBuilder
     /// <summary>Unity -executeMethod entrypoint. Throws on every incomplete or invalid release build.</summary>
     public static void Build()
     {
-        if (!Application.isBatchMode)
-            throw new InvalidOperationException("Playtest release builds are permitted only in Unity batch mode.");
+        if (!Application.isBatchMode || EditorUserBuildSettings.activeBuildTarget != BuildTarget.StandaloneWindows64)
+            throw new InvalidOperationException("Playtest release builds require an isolated batchmode Win64 import.");
 
         string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         string repositoryRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", ".."));
@@ -154,6 +155,104 @@ public static class PlaytestReleaseBuilder
         }
     }
 
+    /// <summary>Fresh Win64 diagnostic cook in a disposable project; no player or release archive.</summary>
+    public static void DiagnoseCook()
+    {
+        if (!Application.isBatchMode || EditorUserBuildSettings.activeBuildTarget != BuildTarget.StandaloneWindows64)
+            throw new InvalidOperationException("Cook certification requires an isolated batchmode Win64 import.");
+        string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        string repositoryRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", ".."));
+        RequireSourceRevision(repositoryRoot, RequiredArgument("-releaseSourceRevision"));
+        BuiltInRosterManifest roster = ReadRoster(repositoryRoot);
+        var authoring = new CharacterPackageAuthoringService(projectRoot);
+        var rows = new List<object>();
+        bool failed = false;
+        foreach (BuiltInRosterEntry entry in roster.Entries)
+        {
+            string packageRoot = Path.Combine(repositoryRoot, "content-cooked", entry.PackageId);
+            var previous = PayloadNames.ToDictionary(name => name, name => File.ReadAllBytes(Path.Combine(packageRoot, name)));
+            CharacterPackageCookResult cooked = authoring.Cook(entry.PackageId);
+            CharacterPackageVerificationResult verified = authoring.Verify(entry.PackageId);
+            failed |= !cooked.Success || !verified.Success;
+            string copy = Path.Combine(repositoryRoot, "build/playtest/cook-diagnostics/content-cooked", entry.PackageId);
+            Directory.CreateDirectory(copy);
+            foreach (string name in PayloadNames)
+                File.Copy(Path.Combine(packageRoot, name), Path.Combine(copy, name), false);
+            rows.Add(new
+            {
+                packageId = entry.PackageId,
+                success = cooked.Success && verified.Success,
+                sourceHash = cooked.SourceHash,
+                runtimeAndPosesUnchanged = previous[CharacterPackageAssembler.RuntimePath].SequenceEqual(File.ReadAllBytes(Path.Combine(copy, CharacterPackageAssembler.RuntimePath))) &&
+                                          previous[CharacterPackageAssembler.PosePath].SequenceEqual(File.ReadAllBytes(Path.Combine(copy, CharacterPackageAssembler.PosePath))),
+                payloads = PayloadNames.Select(name => new { path = name, unchanged = previous[name].SequenceEqual(File.ReadAllBytes(Path.Combine(copy, name))) }).ToArray(),
+                dependencies = DependencyReport(projectRoot, entry.PackageId,
+                    (string)JObject.Parse(Encoding.UTF8.GetString(previous[CharacterPackageAssembler.ManifestPath]))["sourceHash"]),
+                diagnostics = cooked.Diagnostics.Concat(verified.Diagnostics).ToArray(),
+            });
+        }
+        string rosterCopy = Path.Combine(repositoryRoot, "build/playtest/cook-diagnostics/content-cooked/roster");
+        Directory.CreateDirectory(rosterCopy);
+        File.Copy(Path.Combine(repositoryRoot, "content-cooked/roster/manifest.json"), Path.Combine(rosterCopy, "manifest.json"));
+        WriteCookReport(projectRoot, "cook-diagnostics/cook.json", rows, !failed);
+        if (failed) throw new InvalidDataException("Cold Win64 cook certification failed; inspect the complete roster report.");
+        Debug.Log("PLAYTEST_COLD_COOK_OK");
+    }
+
+    private static object DependencyReport(string projectRoot, string packageId, string acceptedSourceHash = null)
+    {
+        string packageRoot = "Assets/CharacterPackages/" + packageId;
+        var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(packageRoot + "/CharacterAssetCatalog.asset");
+        var current = catalog == null ? Array.Empty<CharacterCookDependencyRecord>() :
+            CharacterCookDependencyTracker.Collect(packageRoot, catalog, Array.Empty<CharacterCookAnimationDefinition>()).ToArray();
+        string baseline = Path.GetFullPath(Path.Combine(projectRoot, "../../build/playtest/accepted-cook-status", packageId + ".json"));
+        var status = File.Exists(baseline) ? JObject.Parse(File.ReadAllText(baseline)) : null;
+        if (acceptedSourceHash == null)
+            acceptedSourceHash = (string)JObject.Parse(File.ReadAllText(Path.GetFullPath(Path.Combine(projectRoot,
+                "../../content-cooked", packageId, "manifest.json"))))["sourceHash"];
+        var prior = status != null && (string)status["CookedSourceHash"] == acceptedSourceHash
+            ? status["Dependencies"] as JArray : null;
+        var observed = JArray.FromObject(current);
+        return new { baselineAvailable = prior != null, changes = prior == null ? new JArray() : CompareDependencies(prior, observed), current = observed };
+    }
+
+    internal static JArray CompareDependencies(JArray expected, JArray observed)
+    {
+        var allowed = new HashSet<string>(new[] { "source", "catalog", "catalog-meta", "asset", "importer", "toolchain" }, StringComparer.Ordinal);
+        Dictionary<string, JObject> Rows(JArray items) => items.OfType<JObject>()
+            .Where(item => allowed.Contains((string)item["Kind"]))
+            .ToDictionary(item => (string)item["Kind"] + "|" + (string)item["Identity"] + "|" + (string)item["Guid"], item => item, StringComparer.Ordinal);
+        var left = Rows(expected);
+        var right = Rows(observed);
+        var changes = new JArray();
+        foreach (string key in left.Keys.Union(right.Keys).OrderBy(value => value, StringComparer.Ordinal))
+        {
+            left.TryGetValue(key, out var before);
+            right.TryGetValue(key, out var after);
+            var fields = new JObject();
+            foreach (string field in new[] { "DependencyHash", "MetaHash", "ImporterSettings" })
+                if (!JToken.DeepEquals(before?[field], after?[field]))
+                    fields[field] = new JObject { ["expected"] = before?[field]?.DeepClone(), ["observed"] = after?[field]?.DeepClone() };
+            if (fields.Count > 0)
+                changes.Add(new JObject { ["identity"] = key, ["fields"] = fields });
+        }
+        return changes;
+    }
+
+    private static void WriteCookReport(string projectRoot, string relative, IEnumerable<object> rows, bool success)
+    {
+        string path = Path.GetFullPath(Path.Combine(projectRoot, "../../build/playtest", relative));
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        File.WriteAllText(path, JsonConvert.SerializeObject(new
+        {
+            success,
+            unityVersion = Application.unityVersion,
+            buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString(),
+            packages = rows.ToArray(),
+            baselineAuthority = "Local cook status is advisory; committed payloads and native verification decide acceptance.",
+        }, Formatting.Indented), new UTF8Encoding(false));
+    }
+
     internal static string SerializeReceipt(string version, string sourceRevision, string masterEndpoint,
         PackageVerification packaged, string sharedHash, string steamHash, string buildResult, int errors, int warnings)
     {
@@ -255,20 +354,36 @@ public static class PlaytestReleaseBuilder
     {
         var authoring = new CharacterPackageAuthoringService(projectRoot);
         var rows = new List<PackageIdentityRow>(roster.Entries.Count);
+        var reports = new List<object>();
+        var failures = new List<string>();
         foreach (BuiltInRosterEntry entry in roster.Entries)
         {
             CharacterPackageVerificationResult verified = authoring.Verify(entry.PackageId);
+            reports.Add(new
+            {
+                packageId = entry.PackageId,
+                success = verified.Success,
+                expectedSourceHash = verified.Inspection?.CookedSourceHash,
+                observedSourceHash = verified.Plan?.SourceHash,
+                expectedPackageHash = entry.Requirement.PackageHash,
+                observedPackageHash = verified.Plan?.PackageHash,
+                dependencies = DependencyReport(projectRoot, entry.PackageId),
+                diagnostics = verified.Diagnostics,
+            });
             if (!verified.Success || verified.Inspection == null || verified.Plan == null || !verified.Plan.DryRun ||
                 !verified.Inspection.Rostered || !string.Equals(verified.Inspection.RosterSelector, entry.Selector.ToString(), StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.PackageId, entry.PackageId, StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.CookedContentHash, entry.Requirement.CookedContentHash, StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.PackageHash, entry.Requirement.PackageHash, StringComparison.Ordinal) ||
                 !string.Equals(verified.Inspection.Provenance?.Version, entry.Requirement.Version, StringComparison.Ordinal))
-                throw new InvalidDataException("Authoring freshness/deterministic-cook verification failed for " + entry.PackageId + ": " +
-                    string.Join("; ", verified.Diagnostics.Select(x => x.Code + " " + x.Path + ": " + x.Message)));
-            rows.Add(new PackageIdentityRow(entry.Selector.ToString(), entry.PackageId, entry.Requirement.Version,
-                verified.Plan.SourceHash, verified.Plan.CookedContentHash, verified.Plan.PackageHash));
+                failures.Add(entry.PackageId + ": " + string.Join("; ", verified.Diagnostics.Select(x => x.Code + " " + x.Path + ": " + x.Message)));
+            else
+                rows.Add(new PackageIdentityRow(entry.Selector.ToString(), entry.PackageId, entry.Requirement.Version,
+                    verified.Plan.SourceHash, verified.Plan.CookedContentHash, verified.Plan.PackageHash));
         }
+        WriteCookReport(projectRoot, "cook-verification.json", reports, failures.Count == 0);
+        if (failures.Count != 0)
+            throw new InvalidDataException("Authoring freshness/deterministic-cook verification failed: " + string.Join("; ", failures));
         return rows.OrderBy(x => x.packageId, StringComparer.Ordinal).ToArray();
     }
 

@@ -133,6 +133,47 @@ class CandidateStateTests(unittest.TestCase):
             ci_release.require_endpoint(supplied, {"runtime": {"master_test_host": "master-test.example.com"}})
 
 
+class FailureReceiptTests(unittest.TestCase):
+    def test_receipt_reports_rollback_without_private_error_output(self):
+        event = {"stage": "application_readiness", "schema_after": "20260925000000_InitialSchema",
+                 "recovery": {"status": "restored", "release_id": "previous", "error": "private password"}}
+        error = release.CommandFailure("probe", 1, "private password")
+        with patch.object(release, "active_manifest", return_value={"release_id": "previous"}):
+            receipt = ci_release.public_failure(candidate(), event, Path("/unused"), error)
+        ci_release.validate_failure(receipt, candidate()["release_id"])
+        self.assertEqual(receipt["reason_code"], "application_not_ready")
+        self.assertEqual(receipt["active_release"], "previous")
+        self.assertEqual(receipt["recovery"]["status"], "restored")
+        self.assertNotIn("private password", json.dumps(receipt))
+
+    def test_nonzero_receiver_exit_still_returns_sanitized_receipt(self):
+        receipt = ci_release.public_failure(candidate(), {}, Path("/missing"), RuntimeError("secret"))
+        with (patch.object(sys, "argv", ["ci_release.py"]),
+              patch.object(ci_release, "read_candidate", return_value=candidate()),
+              patch.object(ci_release, "deploy_candidate", side_effect=ci_release.DeploymentFailure(receipt)),
+              patch("sys.stdout", new_callable=io.StringIO) as output,
+              patch("sys.stderr", new_callable=io.StringIO)):
+            code = ci_release.main()
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output.getvalue())["outcome"], "failure")
+        self.assertNotIn("secret", output.getvalue())
+
+    def test_failure_receipt_refuses_foreign_identity_and_private_fields(self):
+        receipt = ci_release.public_failure(candidate(), {}, Path("/missing"), RuntimeError("secret"))
+        with self.assertRaises(ci_release.CandidateError):
+            ci_release.validate_failure(receipt, "another-release")
+        receipt["private_log"] = "secret"
+        with self.assertRaises(ci_release.CandidateError):
+            ci_release.validate_failure(receipt, candidate()["release_id"])
+
+    def test_unknown_stage_never_becomes_a_pre_replacement_proof(self):
+        with patch.object(release, "active_manifest", return_value={"release_id": "previous"}):
+            receipt = ci_release.public_failure(candidate(), {"stage": "private-unknown-stage"},
+                                                Path("/unused"), RuntimeError("private detail"))
+        self.assertEqual(receipt["failed_stage"], "unknown")
+        self.assertNotIn("private", json.dumps(receipt))
+
+
 class OffhostBackupTests(unittest.TestCase):
     def test_deployment_requires_fresh_success_for_current_active_release(self):
         with tempfile.TemporaryDirectory() as tmp:

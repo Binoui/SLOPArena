@@ -1,16 +1,118 @@
 # Steam Playtest release
 
 The current release target is the Windows Steam Playtest client and the VPS
-Master/GameHost pair. Build the client with `scripts/build-playtest-local.py`,
-then run **Release Steam Playtest** (`release-playtest.yml`). Steam default
-activation is a manual operator step. There is no shared-Editor or IDE tool
-prerequisite for this release flow.
+Master/GameHost pair. Use `scripts/release.py` to prepare and resume a release.
+It wraps `scripts/build-playtest-local.py` and **Release Steam Playtest**
+(`release-playtest.yml`). Steam default activation remains a manual operator
+step. There is no shared-Editor or IDE tool prerequisite for this release flow.
 
 Read-only status and match-log requests use
 [sloparena-ops](../../skills/sloparena-ops/SKILL.md) and
 [the VPS log runbook](../../deploy/vps/README.md#operations-and-credentials).
 [Testing and Verification](../testing.md) describes applicable checks;
 its dated results are historical evidence, not a checklist to repeat.
+
+## Release controller
+
+The [approved controller design](../adr/0034-resumable-playtest-release-controller.md)
+keeps one durable record at `build/playtest/<version>/candidate.json`. Prepare
+from the selected game checkout; the Master checkout and approved source pins
+are explicit. Omitting a revision selects that repository's published main;
+it does not include dirty files or create/push a source commit.
+
+```bash
+python3 scripts/release.py prepare --version "$version" \
+  --game-revision "$game_revision" \
+  --master-root "$master_root" --master-revision "$master_revision"
+python3 scripts/release.py run --version "$version"
+```
+
+`prepare` checks the protocol declarations from both exact source revisions,
+Unity version/module availability and the allowed licensed input fingerprint.
+`run` checks documentation/source completeness in its own clean checkout,
+builds and verifies the client, publishes
+it, dispatches a workflow with a durable request identity, follows that exact
+run, downloads its receipts and approves its protected deployment when the
+current account is permitted. It does not change canonical tracked files.
+The selected game commit must contain the controller-compatible workflow and
+producer; publish the tooling changes through the normal source process first.
+
+Status reads the local record without waiting for a running controller. Refresh
+reads CI and retains its sanitized receipts but does not approve a deployment:
+
+```bash
+python3 scripts/release.py status --version "$version"
+python3 scripts/release.py status --version "$version" --refresh --json
+python3 scripts/release.py resume --version "$version"
+```
+
+`run`/`resume` wait up to one hour for CI, stopping for a required reviewer or
+Steam handoff. `--no-wait` returns after dispatch/reconciliation; later `resume`
+continues. An interrupted local builder is not duplicated while its recorded
+process is alive. An uncertain dispatch is reconciled by its request identity,
+never blindly sent again. Completed build/publication/upload steps are retained.
+
+After resolving the failure cause, `resume --retry-deploy` requests only the
+failed deploy job. It requires a sanitized receipt proving restoration or a
+pre-replacement refusal, a known prior active release and no failed migration.
+The original client/upload and candidate are retained. Unknown transport/host
+state requires reconciliation; a different source snapshot requires a new
+candidate. Historical agent-written records remain evidence and are not
+implicitly converted into controller authorization/state.
+
+Retry uses GitHub's [job retry API](https://docs.github.com/en/rest/actions/workflow-runs#re-run-a-job-from-a-workflow-run).
+The deploy job has no downstream upload job. A cached response for the old
+attempt is not treated as the retry finishing; an uncertain retry stays pending
+until reconciled. A definite HTTP rejection can be retried after its prerequisite
+is fixed. Partial GitHub client publication can upload the missing verified asset
+without recreating its tag or overwriting another asset.
+
+The controller presents the exact BuildID/manifest and manual steps once the
+compatible backend receipt succeeds. After the operator activates Steam:
+
+```bash
+python3 scripts/release.py verify-live --version "$version"
+```
+
+This uses installed SteamCMD with anonymous login and requires both default's
+BuildID and depot manifest to match. It appends a separate observation, preserving
+CI receipts. Credentials and confirmations stay in Steamworks/Steam.
+
+For startup, protocol or netcode changes, use two updated Steam accounts to
+exercise countdown, match and rematch. Capture MasterConsole diagnostics. Record
+the exercised result against the exact uploaded BuildID:
+
+```bash
+python3 scripts/release.py record-player-test --version "$version" \
+  --outcome passed --build-id "$build_id" --countdown-passed \
+  --match-id "$match_id" --rematch-id "$rematch_id" \
+  --diagnostics "$match_diagnostics" --diagnostics "$rematch_diagnostics"
+```
+
+Use `--outcome failed --notes "observed failure"` for a failed player test.
+Diagnostic exports are optional retained evidence; the record explicitly says
+whether they were supplied. Deployment and Steam activation never mark player
+acceptance passed. The CLI does not commit, push, install, activate Steam or
+deploy the owner console. The remaining sections describe its maintained
+primitives and the manual fallback.
+
+### Cold Windows cook diagnostics
+
+Every release verifies accepted cooks in a fresh Win64 import before player
+compilation. A failure retains a complete roster report, expected/observed hashes,
+and dependency changes when a matching advisory local cook snapshot is available.
+Local Library status is diagnostic evidence, not a replacement for verification.
+
+```bash
+python3 scripts/release.py cook --version "$version"
+```
+
+This performs a native cook/verification in another disposable Windows project,
+retains corrected payloads and `cook-correction.patch`, and builds/uploads no
+player. Review the correction, follow the normal cook/source commit and push
+boundary, then prepare a new version from the corrected published SHA. The
+subsequent independent fresh release import must reproduce those exact accepted
+artifacts. Do not silently adopt the diagnostic output into an existing release.
 
 ## 1. Select the source
 
@@ -155,6 +257,14 @@ curl --fail --silent --show-error --max-time 10 \
 service readiness, registration, exact Steam identity and the promotion URL.
 Require that successful compatible backend result before activating Steam.
 `/health`, a published image or an uploaded client alone is insufficient.
+
+Updated restricted receivers also return `release.json` on a failed operation:
+the allowlisted failure stage/reason, prior active release and rollback outcome
+are available through the existing CI channel. Private commands, raw exceptions
+and credentials stay on the host. An old receiver, malformed response or failed
+SSH transport produces an explicitly ambiguous receipt and cannot authorize a
+retry. Updating the installed root-owned receiver remains a separate operator
+maintenance action through the VPS runbook.
 
 ## 5. Activate Steam default by hand
 
