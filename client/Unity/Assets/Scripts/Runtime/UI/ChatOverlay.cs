@@ -150,6 +150,7 @@ namespace SlopArena.Client.UI
         private void OnDisable()
         {
             FinishResize();
+            UnbindSession();
             SceneManager.sceneLoaded -= OnSceneLoaded;
             FrontendController.PageChanged -= OnFrontendPageChanged;
             if (_expanded)
@@ -158,15 +159,23 @@ namespace SlopArena.Client.UI
 
         private void OnDestroy()
         {
-            if (_session != null)
-            {
-                _session.Changed -= OnSessionChanged;
-                _session.ConversationHistoryTrimmed -= OnConversationHistoryTrimmed;
-            }
+            UnbindSession();
             if (_instance == this)
                 _instance = null;
             _root?.RemoveFromHierarchy();
             ChatInputGate.End();
+        }
+
+        private void UnbindSession()
+        {
+            // Event fields remain managed objects after Unity destroys a publisher.
+            // Unity's overloaded null check would skip unsubscribe during a scene retry.
+            if (_session is not null)
+            {
+                _session.Changed -= OnSessionChanged;
+                _session.ConversationHistoryTrimmed -= OnConversationHistoryTrimmed;
+            }
+            _session = null;
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -450,7 +459,7 @@ namespace SlopArena.Client.UI
 
         private void OnSessionChanged()
         {
-            if (!isActiveAndEnabled || _suppressDraftChanged)
+            if (this == null || !isActiveAndEnabled || _suppressDraftChanged)
                 return;
             RenderSession();
         }

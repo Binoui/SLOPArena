@@ -95,6 +95,7 @@ namespace SlopArena.Client.UI
                 if (baked == null) continue;
                 var arenaOpt = ArenaBinaryFormat.LoadFromFile(baked);
                 if (arenaOpt is not ArenaDefinition arenaDef) continue;
+                if (arenaDef.Purpose != ArenaPurpose.PvP) continue;
                 if (arenaDef.CollisionTriangles == null || arenaDef.CollisionTriangles.Length == 0) continue;
                 if (Resources.Load<GameObject>($"Stages/{arena.Name}") == null) continue;
 

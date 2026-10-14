@@ -53,11 +53,49 @@ Cosmetic-only maintenance that does not change composition (for example, replaci
 
 ## Scope and availability
 
-- Stages are PVP content only.
+- The PVP workflow below covers normal multiplayer stages. Approved solo Arcade
+  fixtures use the focused bake contract described under Arcade foundation stages.
 - Every accepted selectable stage currently supports **2–4 players**. The present selection/server path has no per-stage capacity admission, so a stage with fewer than four valid spawns is unsafe.
 - `static` is the only currently available variant.
 - `hazard`, `moving-geometry`, and special-mode variants must be declared explicitly in the stage brief, name their required authoritative capability, and fail closed until that Shared/server capability exists. Never approximate them with Unity-only scripts or decorative animation.
 - The normal human PVP review is external to the repository. Agents must not drive it or claim that it passed.
+
+## Arcade foundation stages
+
+The approved [Arcade design](../../docs/design/arcade.md) and
+[ADR-0037](../../docs/adr/0037-arcade-shared-objects-and-unified-stage-artifact.md)
+extend the same bake pipeline with explicit solo stage purpose. A solo prototype
+uses its approved Arcade scope and locked fixture brief; the 2–4-player PVP design
+and human-review requirements apply to normal PVP stages.
+
+For the [Phase 1 ball lab](../../docs/design/arcade-phase-1.md) and
+[Phase 2 Slopball court](../../docs/design/arcade-phase-2.md), AuthoringAids may
+contain one `ArcadeStageAuthoring` component and its empty BallSpawn child marker.
+The component is cook input only. It compiles an immutable profile and allowed
+fighter package IDs into the same `.arena` artifact as geometry. No runtime
+Unity component or raw JSON decides ball behavior.
+
+Slopball additionally compiles its fixed-seed shot profile, net/floor planes and
+serve gap into typed section v2. The static net is baked ball collision and is
+excluded from the fighter/projectile ground heightmap. Shared validates serve
+arcs against the court. Section v1 ball labs preserve their existing bytes.
+
+Arcade sources require one grounded `Spawn_01`; normal sources retain four empty
+spawn markers. Other scripts/components remain rejected by the source validator.
+Arcade heightmaps/ground checks use upward-facing surfaces so the inward-facing
+ceiling of a closed court is not interpreted as ground.
+
+The writer emits v6 for an Arcade section and preserves byte-identical v5 exports
+for ordinary stages. Readers retain v1–v5 support. Arcade-only stages are excluded
+by normal stage selection and PvP admission, even when discovered in the same
+arena directory.
+
+`sloparena.arcade.phase1.prepare` creates missing original primitive source/visual
+assets and the dedicated test scene, then calls the maintained stage baker.
+Its ignored Resources prefab can be recreated through that command. Inspect the
+result with `sloparena.stage.inspect`; keep captures/reports under the normal
+gitignored cache. Human acceptance is solo play/camera/ball feel, recorded separately
+from structural inspection and PVP acceptance.
 
 Use the gateway directly: `held`/`releasing` waits for your own lease; `blocked`/unknown means stop. Do not message the Editor owner or collect blanket acknowledgments. For source conflicts and plugin-copying Shared builds, follow the [shared protocol](../../docs/contributing/unity-editor-coordination.md) and [build gate](../sloparena-build/SKILL.md); plugin copies still require your own bounded hold.
 

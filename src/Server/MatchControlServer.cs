@@ -135,7 +135,7 @@ namespace SlopArena.Server
                     return new StartOutcome(0, null, "Invalid or expired development match admission.");
 
                 var arena = string.IsNullOrEmpty(request.ArenaName) ? _defaultArena : request.ArenaName;
-                if (!ArenaRegistry.Get(arena).HasValue)
+                if (!ArenaRegistry.GetPvP(arena).HasValue)
                     return new StartOutcome(0, null, $"Unknown arena '{arena}'.");
                 if (steam && (!_orchestrator.TryRefreshCatalogHash(out _) ||
                     !string.Equals(request.CatalogHash, _orchestrator.CatalogHash, StringComparison.Ordinal) ||

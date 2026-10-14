@@ -62,9 +62,9 @@ namespace SlopArena.EditorTools
             MainThreadRequired = true,
             Tags = new[] { "frontend/ui" })]
         public static async Task<SlopArenaUiNavigateResult> Navigate(
-            [CliArg("page", "FrontendPage name: Home, FighterSelect, StageSelect, Results, ServerBrowser, LobbyRoom.")]
+            [CliArg("page", "FrontendPage name: Home, FighterSelect, StageSelect, Results, ServerBrowser, LobbyRoom, ArcadeSelect.")]
             string page = null,
-            [CliArg("mode", "GameMode name: Training, Solo, PvP. Returns through Home when the current page requires it.")]
+            [CliArg("mode", "GameMode name: Training, Solo, PvP, Arcade. Returns through Home when the current page requires it.")]
             string mode = null,
             [CliArg("step", "Advance one frame while paused and wait for it to complete.")]
             bool step = false)

@@ -35,6 +35,7 @@ public static class PlaytestReleaseBuilder
 
         string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         string repositoryRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", ".."));
+        using var timing = new NativeTimings(repositoryRoot);
         string version = RequiredArgument("-releaseVersion");
         string sourceRevision = RequiredArgument("-releaseSourceRevision");
         string masterEndpoint = RequiredArgument("-releaseMasterEndpoint");
@@ -72,16 +73,22 @@ public static class PlaytestReleaseBuilder
         BuildReport report = null;
         try
         {
-            SnapshotAndClearStaging(streamingAssets, tempRoot, snapshots);
-            StageContent(repositoryRoot, streamingAssets);
+            using (timing.Measure("content-staging"))
+            {
+                SnapshotAndClearStaging(streamingAssets, tempRoot, snapshots);
+                StageContent(repositoryRoot, streamingAssets);
+            }
             // Check exact payloads before Unity generates import-only .meta files.
             PackageVerification staged = VerifyPackagedContent(Path.Combine(streamingAssets, "content-cooked"));
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
             BuiltInRosterManifest roster = ReadRoster(repositoryRoot);
-            IReadOnlyList<PackageIdentityRow> verifiedRows = VerifyAuthoringRoster(projectRoot, roster);
-            RequireSameIdentities(verifiedRows, staged.Identities, "staged cooked content");
-            GenerateClientCatalogs(Path.Combine(streamingAssets, "content-cooked"), staged);
+            using (timing.Measure("cook-verification"))
+            {
+                IReadOnlyList<PackageIdentityRow> verifiedRows = VerifyAuthoringRoster(projectRoot, roster);
+                RequireSameIdentities(verifiedRows, staged.Identities, "staged cooked content");
+                GenerateClientCatalogs(Path.Combine(streamingAssets, "content-cooked"), staged);
+            }
             string sharedSourceHash = Sha256(Path.Combine(projectRoot, "Assets", "Plugins", "SlopArena.Shared", "SlopArena.Shared.dll"));
             string steamSourceHash = Sha256(ResolveSteamNativeSource(projectRoot, target));
 
@@ -99,7 +106,9 @@ public static class PlaytestReleaseBuilder
                 target = target,
                 options = BuildOptions.None,
             };
-            report = BuildPipeline.BuildPlayer(options);
+            using (timing.Measure("player-build"))
+                report = BuildPipeline.BuildPlayer(options);
+            timing.CaptureBuildSteps(report);
             if (report == null || report.summary.result != BuildResult.Succeeded || report.summary.totalErrors != 0)
                 throw new InvalidOperationException("Windows player build failed: result=" + (report == null ? "no report" : report.summary.result.ToString()) +
                     ", errors=" + (report == null ? "unknown" : report.summary.totalErrors.ToString()) + ".");
@@ -155,6 +164,20 @@ public static class PlaytestReleaseBuilder
         }
     }
 
+    /// <summary>Certify committed cooks in an isolated Win64 project without building a player.</summary>
+    public static void CertifyCook()
+    {
+        if (!Application.isBatchMode || EditorUserBuildSettings.activeBuildTarget != BuildTarget.StandaloneWindows64)
+            throw new InvalidOperationException("Cook certification requires an isolated batchmode Win64 import.");
+        string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        string repository = Path.GetFullPath(Path.Combine(project, "../.."));
+        using var timing = new NativeTimings(repository);
+        using var phase = timing.Measure("cook-certification");
+        RequireSourceRevision(repository, RequiredArgument("-releaseSourceRevision"));
+        VerifyAuthoringRoster(project, ReadRoster(repository));
+        Debug.Log("PLAYTEST_COOK_CERTIFIED");
+    }
+
     /// <summary>Fresh Win64 diagnostic cook in a disposable project; no player or release archive.</summary>
     public static void DiagnoseCook()
     {
@@ -162,6 +185,8 @@ public static class PlaytestReleaseBuilder
             throw new InvalidOperationException("Cook certification requires an isolated batchmode Win64 import.");
         string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         string repositoryRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", ".."));
+        using var timing = new NativeTimings(repositoryRoot);
+        using var cookTiming = timing.Measure("diagnostic-cook");
         RequireSourceRevision(repositoryRoot, RequiredArgument("-releaseSourceRevision"));
         BuiltInRosterManifest roster = ReadRoster(repositoryRoot);
         var authoring = new CharacterPackageAuthoringService(projectRoot);
@@ -246,11 +271,80 @@ public static class PlaytestReleaseBuilder
         File.WriteAllText(path, JsonConvert.SerializeObject(new
         {
             success,
+            verifiedAtUtc = DateTime.UtcNow.ToString("O"),
             unityVersion = Application.unityVersion,
             buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString(),
+            sourceRevision = OptionalArgument("-releaseSourceRevision"),
+            packagesManifestSha256 = Sha256(Path.Combine(projectRoot, "Packages/manifest.json")),
+            packageLockSha256 = Sha256(Path.Combine(projectRoot, "Packages/packages-lock.json")),
             packages = rows.ToArray(),
             baselineAuthority = "Local cook status is advisory; committed payloads and native verification decide acceptance.",
         }, Formatting.Indented), new UTF8Encoding(false));
+    }
+
+    private sealed class NativeTimings : IDisposable
+    {
+        private readonly string _path;
+        private readonly string _enteredAtUtc = DateTime.UtcNow.ToString("O");
+        private readonly List<Phase> _phases = new List<Phase>();
+        private object[] _buildSteps = Array.Empty<object>();
+
+        public NativeTimings(string repositoryRoot)
+        {
+            _path = Path.Combine(repositoryRoot, "build/playtest/native-timings.json");
+            Save();
+        }
+
+        public IDisposable Measure(string name)
+        {
+            var phase = new Phase(name, Save);
+            _phases.Add(phase);
+            Save();
+            return phase;
+        }
+
+        public void CaptureBuildSteps(BuildReport report)
+        {
+            _buildSteps = report == null ? Array.Empty<object>() : report.steps.Select(step => (object)new
+            {
+                phase = step.name,
+                durationSeconds = step.duration.TotalSeconds,
+            }).ToArray();
+            Save();
+        }
+
+        private void Save()
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path));
+            string temporary = _path + ".tmp";
+            File.WriteAllText(temporary, JsonConvert.SerializeObject(new
+            {
+                schemaVersion = 1, enteredAtUtc = _enteredAtUtc, phases = _phases,
+                buildSteps = _buildSteps, buildStepsMayOverlap = true,
+            }, Formatting.Indented));
+            if (File.Exists(_path)) File.Replace(temporary, _path, null);
+            else File.Move(temporary, _path);
+        }
+
+        public void Dispose() => Save();
+
+        private sealed class Phase : IDisposable
+        {
+            public string phase;
+            public string startedAtUtc = DateTime.UtcNow.ToString("O");
+            public string finishedAtUtc;
+            public double? durationSeconds;
+            private readonly System.Diagnostics.Stopwatch _watch = System.Diagnostics.Stopwatch.StartNew();
+            private readonly Action _save;
+
+            public Phase(string name, Action save) { phase = name; _save = save; }
+            public void Dispose()
+            {
+                durationSeconds = _watch.Elapsed.TotalSeconds;
+                finishedAtUtc = DateTime.UtcNow.ToString("O");
+                _save();
+            }
+        }
     }
 
     internal static string SerializeReceipt(string version, string sourceRevision, string masterEndpoint,

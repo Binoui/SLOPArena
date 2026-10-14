@@ -289,7 +289,7 @@ namespace SlopArena.Server
 		{
 			Log($"Starting on port {_port} ({_slots.Count} players)");
 
-			var arenaOpt = ArenaRegistry.Get(_arenaName);
+			var arenaOpt = ArenaRegistry.GetPvP(_arenaName);
 			if (!arenaOpt.HasValue)
 			{
 				Console.WriteLine($"[Match:{_matchId}] Unknown arena '{_arenaName}' — aborting match.");

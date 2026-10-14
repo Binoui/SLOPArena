@@ -76,7 +76,8 @@ namespace SlopArena.Server
                 error = "Steam game-server listener or match deadline unavailable.";
                 return false;
             }
-            if (steamTransport && !ArenaRegistry.Get(arenaName).HasValue)
+            if (ArenaRegistry.Get(arenaName) is ArenaDefinition selectedArena && selectedArena.Purpose == ArenaPurpose.Arcade
+                || steamTransport && !ArenaRegistry.GetPvP(arenaName).HasValue)
             {
                 error = $"Arena '{arenaName}' is unavailable.";
                 return false;

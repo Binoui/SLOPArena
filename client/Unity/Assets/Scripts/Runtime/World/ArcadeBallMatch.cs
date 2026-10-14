@@ -1,0 +1,221 @@
+using System;
+using System.Collections.Generic;
+using SlopArena.Client.Combat;
+using SlopArena.Client.Camera;
+using SlopArena.Client.Simulation;
+using SlopArena.Client.UI;
+using SlopArena.Client.Input;
+using SlopArena.Shared;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace SlopArena.Client.World
+{
+    /// <summary>Common local ball rendering/input; challenge authority stays in the Shared simulation.</summary>
+    public abstract class ArcadeBallMatch : MatchBase
+    {
+        protected abstract string StageKey { get; }
+        public const string FighterSessionKey = "SlopArena.ArcadeBallLab.Fighter";
+        [SerializeField] private CharacterClass _characterOverride = CharacterClass.None;
+        [SerializeField] private CombatFeedback _combatFeedback;
+        [SerializeField] private ProjectileVFXManager _projectileVFX;
+        private LocalSimulationBridge _bridge;
+        protected override ISimulationBridge Bridge => _bridge;
+        private Transform _ballView;
+        private Material _ballMaterial;
+        private uint _tick, _attackContacts;
+        private InputState? _probeInput;
+        private bool _restarting;
+        public ServerSimulation Simulation => _bridge?.InternalSim;
+        public uint SimulationTick => _tick;
+        public bool Ready => _bridge != null && _ballView != null && _playerDef != null;
+        public bool ProbeInputActive => _probeInput.HasValue;
+        public event Action<uint> ProbeTickCompleted;
+        public void SetProbeInput(InputState? input)
+        {
+            if (_probeInput.HasValue && !input.HasValue) _inputController?.RequireReleaseBeforeHumanInput();
+            _probeInput = input;
+        }
+
+        protected override void OnMatchStart()
+        {
+            MatchConfig.ClearActiveMatch();
+            MatchConfig.Mode = GameMode.Arcade;
+            MatchConfig.ArenaName = StageKey;
+            string path = BakedContentPaths.ResolveArena(StageKey);
+            var loaded = path != null ? ArenaBinaryFormat.LoadFromFile(path) : null;
+            if (loaded is not ArenaDefinition arena || arena.Arcade == null || arena.SpawnPoints.Length != 1)
+            {
+                Debug.LogError("[Arcade] Prepare and bake this Arcade court before playing.");
+                enabled = false;
+                return;
+            }
+            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            {
+                Debug.LogError("[Arcade] Local content catalog failed: " + failure);
+                enabled = false;
+                return;
+            }
+            var selectedClass = _characterOverride != CharacterClass.None ? _characterOverride : MatchConfig.PlayerClass;
+#if UNITY_EDITOR
+            if (_characterOverride == CharacterClass.None && Enum.TryParse<CharacterClass>(
+                    UnityEditor.SessionState.GetString(FighterSessionKey, selectedClass.ToString()), out var editorChoice))
+                selectedClass = editorChoice;
+#endif
+            var entry = catalog.Resolve(selectedClass);
+            if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
+            {
+                Debug.LogError("[Arcade] Fighter is not admitted by this court profile.");
+                enabled = false;
+                return;
+            }
+            ClientSession.InstallLocalMatchCatalog(catalog);
+            MatchConfig.PlayerClass = selectedClass;
+            MatchConfig.PlayerPackageId = entry.Identity.PackageId;
+            _playerDef = entry.Definition;
+            _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
+            if (!SetupPlayerRenderer(entry, arena)) { enabled = false; return; }
+            // Closed court walls render inward; an outside orbit sees through their
+            // backs. Its camera must not be pushed into the fighter by the shell.
+            SpawnStageVisual(arena, cameraObstruction: arena.Arcade.Slopball == null);
+            var spawn = arena.SpawnPoints[0];
+            _bridge.RegisterEntity(PlayerEntityId, _playerDef, new CharacterState
+            {
+                PX = spawn.X, PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw, AimYaw = spawn.Yaw,
+                JumpsLeft = _playerDef.Movement.MaxJumps, AirDodgesLeft = 1,
+            }, entry.BakedAnimation);
+            _bridge.SetRespawnPosition(PlayerEntityId, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
+            _playerRenderer.transform.SetPositionAndRotation(new(spawn.X, spawn.Y, spawn.Z),
+                Quaternion.Euler(0f, spawn.Yaw * Mathf.Rad2Deg, 0f));
+            if (_combatFeedback == null) _combatFeedback = gameObject.AddComponent<CombatFeedback>();
+            _combatFeedback.SetSimulation(_bridge);
+            if (_projectileVFX == null) _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
+            _projectileVFX.SetSimulation(_bridge.InternalSim);
+            SetupHUD(_playerDef);
+            SetupCamera(); SetupAimHandler(_playerDef);
+            _inputController.RequireReleaseBeforeHumanInput();
+            CreateBallView(); PresentBall();
+            OnBallMatchReady(entry, arena);
+        }
+
+        protected virtual void OnBallMatchReady(MatchContentEntry entry, ArenaDefinition arena) { }
+        protected virtual void OnChallengeTick() { }
+        protected virtual void OnAttemptStopped() { }
+
+        protected virtual void Update()
+        {
+            if (!Ready || IsPaused || _restarting) return;
+            if (!ChatInputGate.SuppressShortcuts && Keyboard.current?.backspaceKey.wasPressedThisFrame == true)
+            {
+                if (_bridge.InternalSim.Slopball.HasValue) RestartAttempt();
+                else { _bridge.InternalSim.ResetArcadeBall(); PresentBall(); }
+            }
+            if (_bridge.InternalSim.Slopball is SlopballState challenge && (challenge.Ended || challenge.Phase == SlopballPhase.Countdown))
+            { _inputController.RequireReleaseBeforeHumanInput(); return; }
+            _inputController.Poll();
+        }
+
+        protected override void OnMatchFixedUpdate()
+        {
+            if (!Ready || IsPaused || _restarting) return;
+            if (_bridge.InternalSim.Slopball is SlopballState ended && ended.Ended)
+            { OnChallengeTick(); ProbeTickCompleted?.Invoke(_tick); return; }
+            byte slot = _inputController.ConsumePendingSlotPress();
+            var owner = _bridge.GetState(PlayerEntityId);
+            var aim = _aimHandler != null ? _aimHandler.Evaluate(owner, slot, _playerDef, _inputController) : AimContext.None;
+            _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
+            var camera = _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main;
+            byte target = 0;
+            if (_bridge.InternalSim.ArcadeBall is ArcadeBallState ball && ball.Active && camera != null)
+            {
+                Vector3 point = new(ball.Position.X, ball.Position.Y, ball.Position.Z);
+                Vector3 screen = camera.WorldToScreenPoint(point);
+                float dx = point.x - owner.PX, dz = point.z - owner.PZ;
+                if (screen.z > 0f && dx * dx + dz * dz <= 400f)
+                    target = ServerSimulation.ArcadeBallTargetInputId;
+            }
+            var (input, _, _) = _inputController.BuildInputState(_cameraMount,
+                _playerRenderer.transform.eulerAngles.y, isNPC: false, pendingSlotPress: slot,
+                aimCtx: aim, canMove: null, targetEntityId: target);
+            _bridge.Tick(new Dictionary<ulong, InputState> { [PlayerEntityId] = _probeInput ?? input });
+            _tick = _bridge.InternalSim.SimulationTick;
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId));
+            PresentBall();
+            foreach (var hit in _bridge.LastTickHits)
+                if (hit.TargetEntityId == _bridge.InternalSim.ArcadeBall!.Value.EntityId) _attackContacts++;
+            _combatFeedback?.OnTick();
+            UpdateSwordTrailsFromResolver(_bridge.InternalSim.Resolver);
+            PresentTimelineEvents();
+            owner = _bridge.GetState(PlayerEntityId);
+            var presented = _bridge.InternalSim.ArcadeBall!.Value;
+            bool selected = presented.Active && owner.TargetEntityId == presented.EntityId;
+            _aimHandler?.UpdateObjectTargetPresentation(owner, selected ? _ballView : null,
+                presented.Radius, (ushort)presented.DamagePercent);
+            if (owner.LockOn && selected) _cameraMount?.SetLockFocus(_playerRenderer.transform, _ballView.position);
+            else _cameraMount?.ClearLockFocus(_playerRenderer.transform);
+            OnChallengeTick();
+            ProbeTickCompleted?.Invoke(_tick);
+        }
+
+        private void CreateBallView()
+        {
+            var view = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            view.name = "Arcade Ball Presentation";
+            view.layer = LayerMask.NameToLayer("Ignore Raycast");
+            view.transform.SetParent(transform, false);
+            Destroy(view.GetComponent<Collider>());
+            _ballView = view.transform;
+            _ballMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            _ballMaterial.SetColor("_BaseColor", new Color(1f, .76f, .12f));
+            _ballMaterial.SetColor("_EmissionColor", new Color(.6f, .25f, .02f));
+            _ballMaterial.EnableKeyword("_EMISSION");
+            view.GetComponent<MeshRenderer>().sharedMaterial = _ballMaterial;
+        }
+        private void PresentBall()
+        {
+            var ball = _bridge.InternalSim.ArcadeBall!.Value;
+            _ballView.gameObject.SetActive(ball.Active);
+            _ballView.position = new(ball.Position.X, ball.Position.Y, ball.Position.Z);
+            _ballView.localScale = Vector3.one * (ball.Radius * 2f);
+        }
+
+        protected override void OnGUI()
+        {
+            base.OnGUI();
+            if (Ready && !IsPaused && !_restarting) DrawChallengeHUD(_bridge.InternalSim.ArcadeBall!.Value);
+        }
+
+        protected abstract void DrawChallengeHUD(ArcadeBallState ball);
+        protected uint AttackContacts => _attackContacts;
+        protected string FighterName => _playerDef.DisplayName;
+
+        public void RestartAttempt()
+        {
+            if (_restarting || !Ready || !_bridge.InternalSim.Slopball.HasValue) return;
+            _restarting = true;
+            _bridge.InternalSim.StopSlopball();
+            OnAttemptStopped();
+            _inputController.RequireReleaseBeforeHumanInput();
+            // Reloading the dedicated scene destroys its fighter, resolver, queued effects and
+            // presentation together. The challenge captures its earned result before unload.
+#if UNITY_EDITOR
+            UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(gameObject.scene.path,
+                new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Single));
+#else
+            UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.path);
+#endif
+        }
+
+        protected override void LeaveMatch()
+        {
+            _bridge?.InternalSim.StopSlopball();
+            MatchConfig.ClearActiveMatch();
+            FrontendController.Show(FrontendPage.Home);
+        }
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (_ballMaterial != null) Destroy(_ballMaterial);
+        }
+    }
+}

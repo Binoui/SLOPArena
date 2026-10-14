@@ -24,6 +24,8 @@ namespace SlopArena.Client.Combat
         private int _damagePercent = -1;
         private UnityEngine.Camera _camera;
         private PlayerRenderer _target;
+        private Transform _objectTarget;
+        private float _objectRadius;
         private Transform _targetHead;
         private Renderer[] _targetRenderers = System.Array.Empty<Renderer>();
         private float _authoredOpacity = 1f;
@@ -37,6 +39,7 @@ namespace SlopArena.Client.Combat
             _percent = root?.Q<Label>("target-lock-percent");
             _damagePercent = -1;
             _target = null;
+            _objectTarget = null;
             _targetHead = null;
             _targetRenderers = System.Array.Empty<Renderer>();
             _camera = camera;
@@ -51,6 +54,7 @@ namespace SlopArena.Client.Combat
         public void SetTarget(PlayerRenderer target, bool locked, ushort damagePercent)
         {
             if (_root == null) return;
+            _objectTarget = null;
             if (target != _target)
             {
                 _targetHead = target != null ? target.ResolvePresentationBone("bone.head") : null;
@@ -64,6 +68,24 @@ namespace SlopArena.Client.Combat
                 return;
             }
 
+            ShowDamage(damagePercent);
+        }
+
+        /// <summary>Object framing only; identity, eligibility and selection come from Shared.</summary>
+        public void SetObjectTarget(Transform target, float radius, bool locked, ushort damagePercent)
+        {
+            if (_root == null) return;
+            if (_objectTarget != target)
+                _targetRenderers = target != null ? target.GetComponentsInChildren<Renderer>(true)
+                    : System.Array.Empty<Renderer>();
+            _target = null; _targetHead = null;
+            _objectTarget = target; _objectRadius = radius;
+            if (target == null || !locked) { HideImmediate(); return; }
+            ShowDamage(damagePercent);
+        }
+
+        private void ShowDamage(ushort damagePercent)
+        {
             if (_damage != null && damagePercent != _damagePercent)
             {
                 _damage.text = damagePercent.ToString();
@@ -80,6 +102,7 @@ namespace SlopArena.Client.Combat
         public void Clear(bool immediate = false)
         {
             _target = null;
+            _objectTarget = null;
             _targetHead = null;
             _targetRenderers = System.Array.Empty<Renderer>();
             HideImmediate();
@@ -87,14 +110,16 @@ namespace SlopArena.Client.Combat
 
         private void LateUpdate()
         {
-            if (_root == null || _target == null || !_root.ClassListContains(VisibleClass)) return;
+            if (_root == null || (_target == null && _objectTarget == null) || !_root.ClassListContains(VisibleClass)) return;
 
             var cam = _camera != null ? _camera : FindRenderCamera();
             if (cam == null || _root.panel == null) return;
 
             // A fixed pixel offset from the body centre overlaps tall/nearby fighters.
             // Keep the horizontal anchor stable, then clear the projected visible silhouette.
-            Vector3 world = _target.transform.position + Vector3.up * (_target.CapsuleHeight * 0.5f);
+            Vector3 world = _target != null
+                ? _target.transform.position + Vector3.up * (_target.CapsuleHeight * 0.5f)
+                : _objectTarget.position + Vector3.up * _objectRadius;
             Vector3 screenPoint = cam.WorldToScreenPoint(world);
             if (screenPoint.z <= 0.001f || !float.IsFinite(screenPoint.x) || !float.IsFinite(screenPoint.y))
             {

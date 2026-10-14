@@ -5,6 +5,7 @@
                 <ui:VisualElement class="menu-actions">
                     <ui:Button name="menu-training" text="TRAINING" class="menu-action menu-action--training" />
                     <ui:Button name="menu-solo" text="SOLO" class="menu-action menu-action--solo" />
+                    <ui:Button name="menu-arcade" text="ARCADE" class="menu-action menu-action--arcade" />
                     <ui:Button name="menu-online" text="ONLINE" class="menu-action menu-action--online" />
                 </ui:VisualElement>
                 <ui:VisualElement name="menu-artwork-column" picking-mode="Ignore" class="menu-artwork-column">

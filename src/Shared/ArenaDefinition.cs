@@ -126,6 +126,10 @@ namespace SlopArena.Shared
     [Serializable]
     public struct ArenaDefinition
     {
+        /// <summary>Optional cooked Arcade section; older ordinary stages remain PvP.</summary>
+        public ArcadeStageDefinition? Arcade;
+        public readonly ArenaPurpose Purpose => Arcade == null ? ArenaPurpose.PvP : ArenaPurpose.Arcade;
+
         /// <summary>
         /// machine-readable key
         /// </summary>
@@ -1022,6 +1026,13 @@ namespace SlopArena.Shared
             foreach (var a in _loaded)
                 if (a.Name == name) return a;
             return null;
+        }
+
+        /// <summary>Normal match admission must reject solo-only stage artifacts.</summary>
+        public static ArenaDefinition? GetPvP(string name)
+        {
+            var arena = Get(name);
+            return arena.HasValue && arena.Value.Purpose == ArenaPurpose.PvP ? arena : null;
         }
     }
 }

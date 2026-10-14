@@ -1,0 +1,185 @@
+using System;
+using System.Collections.Generic;
+
+namespace SlopArena.Shared
+{
+    public enum SlopballPhase : byte { WaitingServe, Live, Missed, Stopped, Countdown }
+    public enum SlopballEventKind : byte { Served, Received, Redirected, Returned, ReServe, Missed, Stopped }
+    public readonly struct SlopballEvent
+    {
+        public readonly SlopballEventKind Kind;
+        public readonly ulong BallId, Returns;
+        public readonly float ContactTime;
+        public SlopballEvent(SlopballEventKind kind, ulong ballId, ulong returns, float time)
+        { Kind = kind; BallId = ballId; Returns = returns; ContactTime = time; }
+    }
+    public readonly struct SlopballState
+    {
+        public readonly SlopballPhase Phase;
+        public readonly ulong Returns;
+        public readonly ushort ServeInTicks;
+        public readonly ushort CountdownTicks;
+        public readonly bool Received, ReturnArmed;
+        public readonly SlopballShot Shot;
+        public readonly float Difficulty;
+        public bool Ended => Phase == SlopballPhase.Missed || Phase == SlopballPhase.Stopped;
+        public SlopballState(SlopballPhase phase, ulong returns, ushort serveInTicks, bool received,
+            bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0)
+        { Phase = phase; Returns = returns; ServeInTicks = serveInTicks; Received = received;
+            ReturnArmed = returnArmed; Shot = shot; Difficulty = difficulty; CountdownTicks = countdownTicks; }
+    }
+
+    /// <summary>Solo challenge rules and chronological goals; normal fighter simulation continues between shots.</summary>
+    internal sealed class SlopballSimulation
+    {
+        private enum TraceKind : byte { Floor, Receive, Body, Clear }
+        private readonly struct Trace
+        {
+            public readonly TraceKind Kind;
+            public readonly float Time;
+            public readonly ArcadePoint Position;
+            public Trace(TraceKind kind, float time, ArcadePoint position) { Kind = kind; Time = time; Position = position; }
+        }
+        private readonly SlopballDefinition _rules;
+        private readonly ArcadeBallDefinition _ballDefinition;
+        private readonly List<Trace> _trace = new();
+        private readonly List<SlopballEvent> _events = new();
+        private SlopballPhase _phase = SlopballPhase.WaitingServe;
+        private ulong _returns;
+        private ushort _serveIn;
+        private ushort _countdown;
+        private bool _received, _armed, _attacked;
+        private int _cursor;
+        private SlopballShot _shot;
+        public IReadOnlyList<SlopballEvent> Events => _events;
+        public SlopballState State => new(_phase, _returns, _serveIn, _received, _armed, _shot,
+            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown);
+
+        public SlopballSimulation(SlopballDefinition rules, ArcadeBallDefinition definition, ArcadeBallSimulation ball)
+        {
+            _rules = rules; _ballDefinition = definition;
+            _shot = rules.CreateShot(definition, 0); _serveIn = rules.ServeGapTicks;
+            ball.Retire();
+        }
+
+        public void BeginCountdown(ArcadeBallSimulation ball, ushort ticks)
+        {
+            if (ticks == 0 || ticks > 600) throw new ArgumentOutOfRangeException(nameof(ticks));
+            if (_phase != SlopballPhase.WaitingServe || _returns != 0)
+                throw new InvalidOperationException("A countdown requires a clean Slopball attempt.");
+            _phase = SlopballPhase.Countdown; _countdown = ticks; _serveIn = 0;
+            ball.Retire();
+        }
+
+        public bool BeginTick(ArcadeBallSimulation ball)
+        {
+            _events.Clear(); _trace.Clear(); _cursor = 0; _attacked = false;
+            if (State.Ended) return false;
+            if (_phase == SlopballPhase.Countdown)
+            {
+                if (--_countdown == 0) Serve(ball);
+                // Go launches from the untouched spawn. Gameplay starts on the next
+                // tick, after the input adapter has discarded pre-Go edges.
+                return false;
+            }
+            if (_phase == SlopballPhase.WaitingServe && --_serveIn == 0)
+                Serve(ball);
+            return true;
+        }
+
+        private void Serve(ArcadeBallSimulation ball)
+        {
+            ball.Reset(_shot.Spawn, _shot.Velocity);
+            _received = _armed = false; _phase = SlopballPhase.Live;
+            Emit(SlopballEventKind.Served, ball, 0f);
+        }
+
+        public void PlanMotion(ArcadeBallSimulation ball)
+        {
+            if (_phase != SlopballPhase.Live) return;
+            float receiveZ = _rules.NetZ - _rules.NetHalfThickness - ball.State.Radius;
+            float clearZ = _rules.NetZ + _rules.NetHalfThickness + ball.State.Radius;
+            foreach (var segment in ball.Path)
+            {
+                if (!_received && segment.Start.Z <= receiveZ) _trace.Add(new(TraceKind.Receive, segment.StartTime, segment.Start));
+                AddCrossing(segment, receiveZ, positive: false, TraceKind.Receive);
+                AddCrossing(segment, clearZ, positive: true, TraceKind.Clear);
+            }
+            foreach (var contact in ball.Contacts)
+            {
+                if (contact.Body) _trace.Add(new(TraceKind.Body, contact.Time, contact.Position));
+                else if (contact.NormalY > .5f && contact.Position.Y <= _rules.FloorY + ball.State.Radius + .001f)
+                    _trace.Add(new(TraceKind.Floor, contact.Time, contact.Position));
+            }
+            _trace.Sort((a, b) => { int time = a.Time.CompareTo(b.Time); return time != 0 ? time : a.Kind.CompareTo(b.Kind); });
+            bool received = _received, armed = _armed;
+            foreach (var item in _trace)
+            {
+                if (item.Kind == TraceKind.Receive) received = true;
+                if (item.Kind == TraceKind.Body && received) armed = true;
+                if (item.Kind == TraceKind.Floor || item.Kind == TraceKind.Clear && received && armed
+                        && item.Position.Y - ball.State.Radius >= _rules.NetTop)
+                {
+                    // A terminal boundary wins ties; projectiles never consume a retired ball
+                    // later in this tick. An earlier attack invalidates this provisional future.
+                    ball.ClipCollisionPath(MathF.Max(0f, item.Time - .000001f));
+                    break;
+                }
+            }
+        }
+
+        public bool BeforeAttack(ArcadeBallSimulation ball, float time, bool playerContact = true)
+        {
+            CommitThrough(ball, time);
+            if (_phase != SlopballPhase.Live) return false;
+            _attacked = true;
+            if (_received && playerContact) { _armed = true; Emit(SlopballEventKind.Redirected, ball, time); }
+            return true;
+        }
+
+        public void FinishTick(ArcadeBallSimulation ball)
+        { if (!_attacked) CommitThrough(ball, 1f); }
+
+        public void Stop(ArcadeBallSimulation ball)
+        {
+            if (State.Ended) return;
+            _phase = SlopballPhase.Stopped; ball.Retire(); Emit(SlopballEventKind.Stopped, ball, 1f);
+        }
+
+        private void CommitThrough(ArcadeBallSimulation ball, float time)
+        {
+            while (_phase == SlopballPhase.Live && _cursor < _trace.Count && _trace[_cursor].Time <= time)
+            {
+                var item = _trace[_cursor++];
+                if (item.Kind == TraceKind.Receive && !_received)
+                { _received = true; Emit(SlopballEventKind.Received, ball, item.Time); }
+                else if (item.Kind == TraceKind.Body && _received)
+                { _armed = true; Emit(SlopballEventKind.Redirected, ball, item.Time); }
+                else if (item.Kind == TraceKind.Floor)
+                {
+                    ball.RetireAt(item.Position);
+                    if (item.Position.Z <= _rules.NetZ)
+                    { _phase = SlopballPhase.Missed; Emit(SlopballEventKind.Missed, ball, item.Time); }
+                    else { Schedule(); Emit(SlopballEventKind.ReServe, ball, item.Time); }
+                }
+                else if (item.Kind == TraceKind.Clear && _received && _armed
+                    && item.Position.Y - ball.State.Radius >= _rules.NetTop)
+                {
+                    if (_returns == ulong.MaxValue) throw new InvalidOperationException("Slopball counter exhausted.");
+                    _returns++; ball.RetireAt(item.Position);
+                    _shot = _rules.CreateShot(_ballDefinition, _returns);
+                    Schedule(); Emit(SlopballEventKind.Returned, ball, item.Time);
+                }
+            }
+        }
+        private void Schedule() { _phase = SlopballPhase.WaitingServe; _serveIn = _rules.ServeGapTicks; }
+        private void Emit(SlopballEventKind kind, ArcadeBallSimulation ball, float time)
+            => _events.Add(new(kind, ball.State.EntityId, _returns, time));
+        private void AddCrossing(SphereMotionSegment segment, float z, bool positive, TraceKind kind)
+        {
+            if (positive ? segment.Start.Z >= z || segment.End.Z < z : segment.Start.Z <= z || segment.End.Z > z) return;
+            float time = segment.StartTime + (segment.EndTime - segment.StartTime) * (z - segment.Start.Z) / (segment.End.Z - segment.Start.Z);
+            _trace.Add(new(kind, time, segment.Sample(time)));
+        }
+    }
+}

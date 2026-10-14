@@ -99,6 +99,9 @@ namespace SlopArena.Shared.Abilities
             ref float damage, ref float knockbackForce)
         {
         }
+        /// <summary>Accepted nonfighter contact; owner effects do not require a fake fighter target.</summary>
+        public virtual void OnHitObject(ref CharacterState attacker, CharacterDefinition attackerDef,
+            ref float damage, ref float knockbackForce) { }
         /// <summary>Called when one of this activation's hitboxes contacts an active shield.</summary>
         public virtual void OnShieldBlock(ref CharacterState attacker, ref CharacterState defender) { }
 

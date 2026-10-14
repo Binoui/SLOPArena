@@ -69,6 +69,48 @@ it does not bootstrap a new contributor. The isolated release wrapper likewise
 uses an already provisioned, entitled checkout. Neither is evidence that a stock
 clone has all Unity inputs.
 
+## Copying an existing private asset installation
+
+For another development machine, [`unity_asset_bundle.py`](../../tools/unity_asset_bundle.py)
+exports the installed inputs from a provisioned checkout:
+
+```bash
+python3 tools/unity_asset_bundle.py export artifacts/device-setup/SlopArena-local-assets.zip
+```
+
+The ZIP contains ignored files under `client/Unity/Assets/` and `Packages/`,
+including Animancer, adapted clips, rigs, materials, audio, stage art and their
+available `.meta` files. This follows the release wrapper's local-input boundary,
+with additional exclusions for original installer archives, scratch files, preview
+scenes, generated content, staged server payloads and import/build caches. Tracked
+source stays in Git. Companion metadata that Git does not yet track is included;
+tracked metadata and character catalogs are recorded as compatibility checks.
+
+Copy the ZIP and the generated `unity_asset_bundle.py` beside it to the laptop.
+Clone the repository there, keep its Unity project closed, and run from the clone
+root (adjust the archive/script paths to where you copied them):
+
+```bash
+python3 /path/to/unity_asset_bundle.py import /path/to/SlopArena-local-assets.zip --dry-run
+python3 /path/to/unity_asset_bundle.py import /path/to/SlopArena-local-assets.zip
+dotnet build src/Shared/ --nologo
+python3 tools/check_unity_setup.py
+```
+
+The helper needs Git and Python 3.9 or newer, with no additional Python packages.
+It verifies every archived file before importing, preserves identical existing
+files, and stops on conflicting local assets, changed tracked inputs or symlinked
+destinations. It never replaces tracked source. The adjacent `.manifest.json`
+lists every asset and its SHA-256; `.zip.sha256` verifies the transferred ZIP.
+The manifest records the source commit. Matching a bundle's catalog and metadata
+inputs does not require an identical branch tip, so later unrelated source changes
+can still use the same bundle.
+
+Keep these bundles private: they contain the locally installed purchased assets.
+They transfer an existing installation; they do not install the Editor or .NET,
+rebuild Shared, or establish that the complete client compiles and plays on the
+new machine. Repeat the export after local assets change.
+
 ## Evidence and changes
 
 Keep pack/source versions, creator and licence evidence in

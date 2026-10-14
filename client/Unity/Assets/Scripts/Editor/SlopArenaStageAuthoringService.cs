@@ -250,7 +250,9 @@ public sealed class SlopArenaStageAuthoringService
             result.CollisionTriangleCount = arena.CollisionTriangles?.Length ?? 0;
             result.SpawnCount = arena.SpawnPoints?.Length ?? 0;
             if (result.CollisionTriangleCount == 0) Add(result.Diagnostics, "ARENA_NO_COLLISION_TRIANGLES", result.ArenaPath);
-            if (arena.SpawnPoints == null || arena.SpawnPoints.Length < 4)
+            if (arena.Purpose == ArenaPurpose.Arcade && (arena.SpawnPoints == null || arena.SpawnPoints.Length != 1))
+                Add(result.Diagnostics, "ARCADE_SPAWN_COUNT", "Arcade stages require one valid player start.");
+            if (arena.Purpose == ArenaPurpose.PvP && (arena.SpawnPoints == null || arena.SpawnPoints.Length < 4))
                 Add(result.Diagnostics, "ARENA_FEWER_THAN_FOUR_SPAWNS", "Selectable stages require four valid spawn points.");
         }
 
@@ -828,6 +830,13 @@ public sealed class SlopArenaStageAuthoringService
         Transform geometry = root.transform.Find("GameplayGeometry");
         Transform spawns = root.transform.Find("SpawnPoints");
         Transform aids = root.transform.Find("AuthoringAids");
+        var arcadeSource = aids != null ? aids.GetComponent<SlopArena.Client.World.ArcadeStageAuthoring>() : null;
+        ArcadeStageDefinition arcade = null;
+        if (arcadeSource != null)
+        {
+            try { arcade = arcadeSource.Compile(); }
+            catch (ArgumentException ex) { Add(build.Diagnostics, "ARCADE_PROFILE_INVALID", ex.Message); }
+        }
         Transform killPlaneMarker = aids != null ? aids.Find("KillPlane") : null;
         if (geometry == null) Add(build.Diagnostics, "GAMEPLAY_GEOMETRY_MISSING", "Missing GameplayGeometry child.");
         if (spawns == null) Add(build.Diagnostics, "SPAWN_CONTAINER_MISSING", "Missing SpawnPoints child.");
@@ -847,6 +856,7 @@ public sealed class SlopArenaStageAuthoringService
         foreach (Component component in root.GetComponentsInChildren<Component>(true))
         {
             if (component is Transform || component is MeshFilter || component is MeshRenderer) continue;
+            if (component == arcadeSource) continue;
             Add(build.Diagnostics, "SOURCE_COMPONENT_UNSUPPORTED", component.GetType().Name + " on " + component.gameObject.name);
         }
 
@@ -908,9 +918,13 @@ public sealed class SlopArenaStageAuthoringService
         if (triangles.Count == 0) Add(build.Diagnostics, "SOURCE_NO_COLLISION_TRIANGLES", "GameplayGeometry must contain readable mesh triangles.");
 
         var spawnTransforms = spawns.Cast<Transform>().ToArray();
-        if (spawnTransforms.Length != 4) Add(build.Diagnostics, "SPAWN_COUNT", "SpawnPoints must contain exactly Spawn_01 through Spawn_04.");
+        int expectedSpawnCount = arcadeSource != null ? 1 : 4;
+        if (spawnTransforms.Length != expectedSpawnCount)
+            Add(build.Diagnostics, "SPAWN_COUNT", arcadeSource != null
+                ? "Arcade SpawnPoints must contain exactly Spawn_01."
+                : "SpawnPoints must contain exactly Spawn_01 through Spawn_04.");
         var spawnPoints = new List<SpawnPoint>();
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < expectedSpawnCount; i++)
         {
             string expectedName = "Spawn_" + (i + 1).ToString("00");
             Transform marker = spawnTransforms.FirstOrDefault(x => x.name == expectedName);
@@ -923,7 +937,7 @@ public sealed class SlopArenaStageAuthoringService
             if (marker.childCount != 0 || marker.GetComponents<Component>().Length != 1)
                 Add(build.Diagnostics, "SPAWN_MARKER_NOT_EMPTY", expectedName);
             float surfaceY;
-            if (!TrySurfaceY(triangles, marker.position.x, marker.position.z, out surfaceY) ||
+            if (!TrySurfaceY(triangles, marker.position.x, marker.position.z, out surfaceY, arcadeSource != null) ||
                 Mathf.Abs(marker.position.y - (surfaceY + SpawnBodyHalfHeight)) > SpawnGroundTolerance)
                 Add(build.Diagnostics, "SPAWN_NOT_GROUNDED", expectedName);
             spawnPoints.Add(new SpawnPoint
@@ -935,7 +949,7 @@ public sealed class SlopArenaStageAuthoringService
             });
         }
 
-        if (build.Diagnostics.Count > 0 || triangles.Count == 0 || spawnPoints.Count != 4) return build;
+        if (build.Diagnostics.Count > 0 || triangles.Count == 0 || spawnPoints.Count != expectedSpawnCount) return build;
         float killHeight = minY - 10f;
         if (killPlaneMarker != null)
         {
@@ -950,11 +964,20 @@ public sealed class SlopArenaStageAuthoringService
         int gridWidth = Mathf.CeilToInt((maxX - minX) / HeightmapCellSize) + 1;
         int gridHeight = Mathf.CeilToInt((maxZ - minZ) / HeightmapCellSize) + 1;
         var heightData = Enumerable.Repeat(float.MinValue, gridWidth * gridHeight).ToArray();
-        foreach (CollisionTriangle triangle in triangles) RasterizeTriangle(triangle, minX, minZ, gridWidth, gridHeight, heightData);
+        foreach (CollisionTriangle triangle in triangles)
+        {
+            // The net is ball collision, never a player landing platform or projectile ground.
+            if (arcade?.Slopball is SlopballDefinition rules
+                && Mathf.Abs(triangle.AZ - rules.NetZ) <= rules.NetHalfThickness + .001f
+                && Mathf.Abs(triangle.BZ - rules.NetZ) <= rules.NetHalfThickness + .001f
+                && Mathf.Abs(triangle.CZ - rules.NetZ) <= rules.NetHalfThickness + .001f) continue;
+            RasterizeTriangle(triangle, minX, minZ, gridWidth, gridHeight, heightData, arcadeSource != null);
+        }
         float highestSurface = heightData.Where(x => x > float.MinValue / 2f).DefaultIfEmpty(killHeight + 10f).Max();
         var arena = new ArenaDefinition
         {
             Name = stage,
+            Arcade = arcade,
             DisplayName = DisplayName(stage),
             PreviewColor = "#24374d",
             KillHeight = killHeight,
@@ -980,12 +1003,16 @@ public sealed class SlopArenaStageAuthoringService
             }
         };
         arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
+        try { arcade?.Slopball?.ValidateCourt(in arena); }
+        catch (ArgumentException exception)
+        { Add(build.Diagnostics, "SLOPBALL_PROFILE_INVALID", exception.Message); return build; }
         build.Arena = arena;
         build.HasArena = true;
         return build;
     }
 
-    private static void RasterizeTriangle(CollisionTriangle triangle, float minX, float minZ, int gridWidth, int gridHeight, float[] heightData)
+    private static void RasterizeTriangle(CollisionTriangle triangle, float minX, float minZ, int gridWidth, int gridHeight, float[] heightData,
+        bool upwardOnly = false)
     {
         float tMinX = Mathf.Min(triangle.AX, Mathf.Min(triangle.BX, triangle.CX));
         float tMaxX = Mathf.Max(triangle.AX, Mathf.Max(triangle.BX, triangle.CX));
@@ -1000,6 +1027,7 @@ public sealed class SlopArenaStageAuthoringService
         Vector3 v2 = new Vector3(triangle.CX, triangle.CY, triangle.CZ);
         Vector3 normal = Vector3.Cross(v1 - v0, v2 - v0).normalized;
         if (Mathf.Abs(normal.y) < 0.001f) return;
+        if (upwardOnly && normal.y <= 0f) return;
         for (int z = cellZ0; z <= cellZ1; z++)
         for (int x = cellX0; x <= cellX1; x++)
         {
@@ -1014,7 +1042,8 @@ public sealed class SlopArenaStageAuthoringService
         }
     }
 
-    private static bool TrySurfaceY(List<CollisionTriangle> triangles, float x, float z, out float surfaceY)
+    private static bool TrySurfaceY(List<CollisionTriangle> triangles, float x, float z, out float surfaceY,
+        bool upwardOnly = false)
     {
         surfaceY = float.MinValue;
         bool found = false;
@@ -1023,6 +1052,7 @@ public sealed class SlopArenaStageAuthoringService
             Vector3 a = new Vector3(triangle.AX, triangle.AY, triangle.AZ);
             Vector3 b = new Vector3(triangle.BX, triangle.BY, triangle.BZ);
             Vector3 c = new Vector3(triangle.CX, triangle.CY, triangle.CZ);
+            if (upwardOnly && Vector3.Cross(b - a, c - a).y <= 0f) continue;
             if (!PointInTriangleXZ(a, b, c, x, z)) continue;
             float denominator = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
             if (Mathf.Abs(denominator) < 0.000001f) continue;
@@ -1128,7 +1158,8 @@ public sealed class SlopArenaStageAuthoringService
 
     private static int TriangleCount(Renderer renderer)
     {
-        Mesh mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh : renderer.GetComponent<MeshFilter>()?.sharedMesh;
+        Mesh mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh
+            : renderer.TryGetComponent<MeshFilter>(out var filter) && filter != null ? filter.sharedMesh : null;
         return mesh == null ? 0 : mesh.triangles.Length / 3;
     }
 

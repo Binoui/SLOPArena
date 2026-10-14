@@ -96,10 +96,71 @@ acceptance passed. The CLI does not commit, push, install, activate Steam or
 deploy the owner console. The remaining sections describe its maintained
 primitives and the manual fallback.
 
+### Timings and opt-in import reuse
+
+`status` reports durable elapsed time for controller attempts, producer stages and
+native cook/player work. Completed builds retain `timings.json` and
+`native-timings.json`; GitHub job durations and queue time are separate from
+Steam operator wait. Polling/resume preserves starts, and retries have separate
+attempts. Historical records without measured starts do not acquire invented
+durations. Native BuildReport steps can overlap and must not be summed.
+
+Cold builds remain the default. To opt into the release-owned local cache:
+
+```bash
+python3 scripts/release.py prepare --version "$version" \
+  --game-revision "$game_revision" \
+  --master-root "$master_root" --master-revision "$master_revision" \
+  --use-build-cache
+python3 scripts/release.py run --version "$version"
+```
+
+With no compatible snapshot, the first build imports cold and seeds the cache
+after successful verification and packaging. Subsequent compatible builds reuse
+it. The choice is pinned when preparing the candidate; omitting the flag keeps
+the build cold. Cache reuse shortens local import/build work; CI, upload and
+manual Steam activation remain separate stages.
+
+The selected published source must include the updated producer. The cache lives
+under ignored `build/.playtest-import-cache/`, is private to the operator, copies
+settled Library snapshots into independent projects, verifies snapshot bytes,
+and keeps at most two compatibility snapshots. Unity version, host/target,
+package/settings and licensed input hashes determine compatibility; an ordinary
+source commit does not invalidate the entire cache. Changed tracked assets and
+scripts remain Unity import dependencies. Changed licensed inputs cause a miss.
+Invalid snapshots fall back to cold import. Every hit still runs native package,
+catalog and player verification. Cache evidence is in each attempt's `cache.json`.
+
+For accepted character changes, a valid authoring cook is local evidence. Its
+advisory status and inspect provenance now identify the cook target and Unity
+version; status also records package manifest/lock hashes. A warm Windows Editor
+is not proof that a fresh Windows import reproduces its artifact fingerprints.
+For character or cook changes, verify the committed cooks independently before
+building a player:
+
+```bash
+python3 scripts/release.py certify-cook --version "$version"
+```
+
+Certification always imports cold, produces no player/archive, retains the native
+report and licensed input fingerprint, and leaves the release build pending. With
+the opt-in cache prepared, a successful certification seeds a settled snapshot
+for the subsequent build. A failure retains the dependency report; use `cook`
+below to produce a reviewable correction. A different source or licensed input
+snapshot still requires preparation of a new candidate. Successful full builds
+also retain `cook-verification.json` and `cook-certification.json`.
+Routine releases already verify committed cooks during the build; they do not
+need a separate `certify-cook` run.
+
+The [timing/cache decision](../adr/0035-release-timing-and-import-cache.md)
+records the approval and default. Native benchmark results are documented in
+[the import investigation](../testing/release-import-cache.md).
+
 ### Cold Windows cook diagnostics
 
-Every release verifies accepted cooks in a fresh Win64 import before player
-compilation. A failure retains a complete roster report, expected/observed hashes,
+Every release verifies accepted cooks in its isolated Win64 project before player
+compilation, including when import caching is enabled. Diagnostic cooks always
+import cold. A failure retains a complete roster report, expected/observed hashes,
 and dependency changes when a matching advisory local cook snapshot is available.
 Local Library status is diagnostic evidence, not a replacement for verification.
 
@@ -111,7 +172,7 @@ This performs a native cook/verification in another disposable Windows project,
 retains corrected payloads and `cook-correction.patch`, and builds/uploads no
 player. Review the correction, follow the normal cook/source commit and push
 boundary, then prepare a new version from the corrected published SHA. The
-subsequent independent fresh release import must reproduce those exact accepted
+subsequent independent release verification must reproduce those exact accepted
 artifacts. Do not silently adopt the diagnostic output into an existing release.
 
 ## 1. Select the source

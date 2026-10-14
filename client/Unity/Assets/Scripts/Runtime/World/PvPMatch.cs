@@ -115,6 +115,11 @@ namespace SlopArena.Client.World
                 ClientSession.RejectMatchStart($"Baked arena could not be loaded: {arenaPath}");
                 return;
             }
+            if (arena.Purpose != ArenaPurpose.PvP)
+            {
+                ClientSession.RejectMatchStart("Solo Arcade stages cannot run as PvP matches.");
+                return;
+            }
             Debug.Log($"[PvPMatch] Loaded arena: {arenaPath}");
 
             SlopArena.Shared.Simulation.OnDebugLog = msg => Debug.Log(msg);

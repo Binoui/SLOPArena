@@ -10,7 +10,7 @@ namespace SlopArena.Shared
     ///
     /// Format:
     ///   Magic:  "AREN" (0x4E455241)
-    ///   Version: uint32 (1, 2, 3, 4, or 5)
+    ///   Version: uint32 (1 through 6; ordinary stages continue writing 5)
     ///   Name:        uint32 len + UTF8 bytes
     ///   DisplayName: uint32 len + UTF8 bytes
     ///   PreviewColor: uint32 len + UTF8 bytes
@@ -23,6 +23,7 @@ namespace SlopArena.Shared
     ///     OriginX(float), OriginZ(float), DataLength(int), then Data[] floats
     ///   [Version 2+]: TriangleCount: uint32
     ///     For each: AX, AY, AZ, BX, BY, BZ, CX, CY, CZ (9 × float32)
+    ///   [Version 6]: Arcade section byte length and typed section bytes
     /// <summary>
     /// Version history:
     ///   1 = Initial format: platforms, spawns, bounds. No triangle collision.
@@ -32,18 +33,23 @@ namespace SlopArena.Shared
     ///   5 = Added side/top blast lines (KillTop, KillMinX/MaxX, KillMinZ/MaxZ) after KillHeight.
     ///       0 in a v5 file means "auto" (derived from bounds/heightmap at resolve time);
     ///       v4 files carry no lines and resolve the same way.
+    ///   6 = Embedded Arcade metadata. Plain stages retain byte-identical v5 exports.
     /// </summary>
 
     public static class ArenaBinaryFormat
     {
         private const uint Magic = 0x4E455241; // "AREN"
-        private const uint Version = 5;
+        private const uint Version = 6;
 
         /// <summary>
         /// Serialize an ArenaDefinition to a byte array.
         /// </summary>
         public static byte[] Serialize(ArenaDefinition arena)
         {
+            arena.Arcade?.Slopball?.ValidateCourt(in arena);
+            byte[]? arcade = arena.Arcade != null ? ArcadeStageBinaryFormat.Serialize(arena.Arcade) : null;
+            if (arcade != null && (arena.SpawnPoints == null || arena.SpawnPoints.Length != 1))
+                throw new ArgumentException("An Arcade stage needs exactly one authored player start.");
             // Calculate size upfront
             int size = 4 + 4; // magic + version
             size += 4 + Encoding.UTF8.GetByteCount(arena.Name ?? "");
@@ -70,13 +76,14 @@ namespace SlopArena.Shared
             int triCount = arena.CollisionTriangles?.Length ?? 0;
             size += 4; // count
             size += triCount * 9 * 4; // 9 floats per triangle
+            if (arcade != null) size += 4 + arcade.Length;
 
             var buffer = new byte[size];
             int pos = 0;
 
             // Magic + Version
             BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(pos), Magic); pos += 4;
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(pos), Version); pos += 4;
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(pos), arcade != null ? Version : 5u); pos += 4;
 
             // Name
             WriteString(buffer, ref pos, arena.Name ?? "");
@@ -146,6 +153,11 @@ namespace SlopArena.Shared
                 BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(pos), BitConverter.SingleToInt32Bits(t.CZ)); pos += 4;
             }
 
+            if (arcade != null)
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(pos), arcade.Length); pos += 4;
+                arcade.CopyTo(buffer, pos);
+            }
             return buffer;
         }
 
@@ -207,6 +219,7 @@ namespace SlopArena.Shared
             // Spawns
             if (pos + 4 > data.Length) return null;
             int spawnCount = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos)); pos += 4;
+            if (spawnCount < 0 || spawnCount > (data.Length - pos) / 16) return null;
             arena.SpawnPoints = new SpawnPoint[spawnCount];
             for (int i = 0; i < spawnCount; i++)
             {
@@ -228,7 +241,7 @@ namespace SlopArena.Shared
                 float hmOriginX = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos))); pos += 4;
                 float hmOriginZ = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos))); pos += 4;
                 int hmDataLen = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos)); pos += 4;
-                if (pos + hmDataLen * 4 > data.Length) return null;
+                if (hmDataLen < 0 || hmDataLen > (data.Length - pos) / 4) return null;
                 var hmData = new float[hmDataLen];
                 for (int i = 0; i < hmDataLen; i++)
                 {
@@ -267,9 +280,22 @@ namespace SlopArena.Shared
                 arena.CollisionTriangles = null;
             }
 
+            if (version >= 6)
+            {
+                if (pos + 4 > data.Length) return null;
+                int length = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos)); pos += 4;
+                if (length <= 0 || length > 8192 || length != data.Length - pos) return null;
+                var section = new byte[length];
+                Array.Copy(data, pos, section, 0, length);
+                arena.Arcade = ArcadeStageBinaryFormat.Deserialize(section);
+                if (arena.Arcade == null || arena.SpawnPoints.Length != 1) return null;
+            }
+
             // The grid is derived at load time, not serialized. Direct match loads
             // need the same broadphase as registry loads.
             arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
+            try { arena.Arcade?.Slopball?.ValidateCourt(in arena); }
+            catch (ArgumentException) { return null; }
             return arena;
         }
 

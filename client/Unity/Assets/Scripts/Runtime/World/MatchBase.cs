@@ -199,11 +199,11 @@ namespace SlopArena.Client.World
         /// under a "Stage" root. Gameplay collision comes from the baked .arena.
         /// A Unity mesh mirrors those triangles only for camera obstruction queries.
         /// </summary>
-        protected void SpawnStageVisual(ArenaDefinition arena)
+        protected void SpawnStageVisual(ArenaDefinition arena, bool cameraObstruction = true)
         {
             var stageRoot = new GameObject("Stage");
             var triangles = arena.CollisionTriangles;
-            if (triangles != null && triangles.Length > 0)
+            if (cameraObstruction && triangles != null && triangles.Length > 0)
             {
                 var vertices = new Vector3[triangles.Length * 3];
                 var indices = new int[triangles.Length * 6];

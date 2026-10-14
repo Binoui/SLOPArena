@@ -171,7 +171,7 @@ namespace SlopArena.Client.UI
 
         private static Button MakeButton(string label, Action onClick)
         {
-            var btn = new Button(onClick) { text = label };
+            var btn = new Button(onClick) { text = label, name = "pause-" + label.ToLowerInvariant().Replace(' ', '-') };
             btn.AddToClassList("match-pause-action");
             btn.style.width = 240;
             btn.style.height = 46;

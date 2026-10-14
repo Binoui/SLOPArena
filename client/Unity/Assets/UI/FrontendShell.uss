@@ -844,6 +844,7 @@
 }
 
 .menu-action--solo,
+.menu-action--arcade,
 .menu-action--training { background-color: var(--shell-paper); }
 
 .menu-action--online:hover,
@@ -854,6 +855,8 @@
 
 .menu-action--solo:hover,
 .menu-action--solo:focus,
+.menu-action--arcade:hover,
+.menu-action--arcade:focus,
 .menu-action--training:hover,
 .menu-action--training:focus {
     background-color: var(--shell-action);

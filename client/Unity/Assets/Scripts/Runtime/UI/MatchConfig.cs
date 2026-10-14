@@ -5,7 +5,7 @@ using SlopArena.Shared.AI;
 
 namespace SlopArena.Client.UI
 {
-    public enum GameMode { Training, Solo, PvP }
+    public enum GameMode { Training, Solo, PvP, Arcade }
     public enum MatchTransport { None, DevelopmentUdp, SteamP2P }
 
     public static class MatchConfig

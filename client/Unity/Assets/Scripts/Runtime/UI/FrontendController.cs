@@ -14,7 +14,8 @@ namespace SlopArena.Client.UI
         StageSelect,
         Results,
         ServerBrowser,
-        LobbyRoom
+        LobbyRoom,
+        ArcadeSelect
     }
 
     /// <summary>
@@ -24,7 +25,7 @@ namespace SlopArena.Client.UI
     /// navigation. Gameplay scenes stay separate: the frontend unloads for a
     /// match and is recreated on return through a pending page.
     ///
-    /// All six page fragments mount into the stable FrontendShell hosts once
+    /// All page fragments mount into the stable FrontendShell hosts once
     /// per activation through a per-activation <see cref="FrontendPageContext"/>.
     /// Navigation retains sole ownership of routing, pending returns and gameplay handoff.
     /// </summary>
@@ -38,6 +39,7 @@ namespace SlopArena.Client.UI
         [SerializeField] private GameObject _resultsPage = null!;
         [SerializeField] private GameObject _serverBrowserPage = null!;
         [SerializeField] private GameObject _lobbyRoomPage = null!;
+        [SerializeField] private GameObject _arcadePage = null!;
         [SerializeField] private FrontendShellView? _shell;
         [SerializeField] private VisualTreeAsset? _homeFragment;
         [SerializeField] private VisualTreeAsset? _fighterSelectFragment;
@@ -45,6 +47,7 @@ namespace SlopArena.Client.UI
         [SerializeField] private VisualTreeAsset? _resultsFragment;
         [SerializeField] private VisualTreeAsset? _serverBrowserFragment;
         [SerializeField] private VisualTreeAsset? _lobbyRoomFragment;
+        [SerializeField] private VisualTreeAsset? _arcadeFragment;
 
         private FrontendShellIdentityView? _identity;
         private FrontendFocusRouter? _focusRouter;
@@ -144,6 +147,7 @@ namespace SlopArena.Client.UI
             if (UiModalState.Presented || _current == FrontendPage.Home)
                 return;
             if (_current == FrontendPage.ServerBrowser
+                || _current == FrontendPage.ArcadeSelect
                 || (_current == FrontendPage.FighterSelect
                     && MatchConfig.Mode is GameMode.Solo or GameMode.Training))
                 _currentContext?.InvokeBackAction();
@@ -151,7 +155,7 @@ namespace SlopArena.Client.UI
 
         private bool CanSwitchMode() =>
             _identity is { ModeGateClosed: false }
-            && (_current is FrontendPage.Home or FrontendPage.ServerBrowser
+            && (_current is FrontendPage.Home or FrontendPage.ServerBrowser or FrontendPage.ArcadeSelect
                 || (_current is FrontendPage.FighterSelect or FrontendPage.StageSelect
                     && MatchConfig.Mode is GameMode.Solo or GameMode.Training));
 
@@ -178,7 +182,8 @@ namespace SlopArena.Client.UI
                 return;
             MatchConfig.Mode = mode;
             MatchConfig.IsHost = mode != GameMode.PvP;
-            Show(mode == GameMode.PvP ? FrontendPage.ServerBrowser : FrontendPage.FighterSelect);
+            Show(mode == GameMode.Arcade ? FrontendPage.ArcadeSelect
+                : mode == GameMode.PvP ? FrontendPage.ServerBrowser : FrontendPage.FighterSelect);
         }
 
         private void RenderNavigation()
@@ -188,6 +193,7 @@ namespace SlopArena.Client.UI
             bool canSwitchMode = CanSwitchMode();
             bool canReturnHome = _currentContext?.BackAction != null
                 && (_current == FrontendPage.ServerBrowser
+                    || _current == FrontendPage.ArcadeSelect
                     || (_current == FrontendPage.FighterSelect
                         && MatchConfig.Mode is GameMode.Solo or GameMode.Training));
             _navHome?.SetEnabled(home || canReturnHome);
@@ -197,6 +203,7 @@ namespace SlopArena.Client.UI
             _currentContext?.Q<Button>("menu-online")?.SetEnabled(canPlay);
             _currentContext?.Q<Button>("menu-solo")?.SetEnabled(canPlay);
             _currentContext?.Q<Button>("menu-training")?.SetEnabled(canPlay);
+            _currentContext?.Q<Button>("menu-arcade")?.SetEnabled(canPlay);
 
             bool inSetupOrResults = _current is FrontendPage.FighterSelect or FrontendPage.StageSelect
                 or FrontendPage.Results;
@@ -252,6 +259,7 @@ namespace SlopArena.Client.UI
             _resultsPage?.SetActive(false);
             _serverBrowserPage?.SetActive(false);
             _lobbyRoomPage?.SetActive(false);
+            _arcadePage?.SetActive(false);
 
             // Fragments come down and the departing context releases while
             // its elements are still attached (release actions may close
@@ -272,6 +280,7 @@ namespace SlopArena.Client.UI
                 FrontendPage.Results => _resultsFragment,
                 FrontendPage.ServerBrowser => _serverBrowserFragment,
                 FrontendPage.LobbyRoom => _lobbyRoomFragment,
+                FrontendPage.ArcadeSelect => _arcadeFragment,
                 _ => null
             };
             if (fragment == null)
@@ -316,6 +325,7 @@ namespace SlopArena.Client.UI
             FrontendPage.Results => _resultsPage,
             FrontendPage.ServerBrowser => _serverBrowserPage,
             FrontendPage.LobbyRoom => _lobbyRoomPage,
+            FrontendPage.ArcadeSelect => _arcadePage,
             _ => null!
         };
     }

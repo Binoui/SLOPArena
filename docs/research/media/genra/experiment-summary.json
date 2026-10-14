@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-14",
+  "project": "SlopArena",
+  "upstream": "https://github.com/MacPaw/GenRA",
+  "upstreamCommit": "5f4ffb8ac846f91265c48e8bb65d702dca11b7a1",
+  "provider": "Custom Codex CLI adapter using existing ChatGPT authentication",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "medium",
+  "automaticExampleSelection": false,
+  "motionReferences": [
+    "Existing same-rig jump",
+    "Existing same-rig fall"
+  ],
+  "rigBones": 66,
+  "rigMeshes": 10,
+  "timingHz": 60,
+  "durationTicks": 62,
+  "contactTick": 23,
+  "activeTicksInclusive": [
+    23,
+    30
+  ],
+  "iasaTick": 57,
+  "rootTravelMeters": 0,
+  "modelJobs": [
+    {
+      "kind": "generation",
+      "elapsedSeconds": 354.01
+    },
+    {
+      "kind": "focused refinement",
+      "elapsedSeconds": 210.76
+    }
+  ],
+  "maximumSecondsPerModelJob": 600,
+  "transportRetries": 0,
+  "modelJobsMayContainMultipleInternalModelTurns": true,
+  "shownResult": "Generation + focused model refinement + manual six-joint leg correction",
+  "manualCorrection": {
+    "additionalGenRAModelJobs": 0,
+    "editableJoints": 6,
+    "editableTicksInclusive": [
+      7,
+      38
+    ],
+    "changedDenseRotationSamples": 190,
+    "upperBodyUSDWorldMatricesExact": true
+  },
+  "unity": {
+    "version": "6000.0.78f1",
+    "clipFps": 60,
+    "clipDurationSeconds": 1.0333333,
+    "bakedFrameCount": 62,
+    "playbackSpeed": 1.0,
+    "boundToGameplay": false
+  },
+  "scope": "Standalone actual-prefab animation study; game jump/fall trajectory is not simulated in the clips. Gameplay/contact acceptance is pending.",
+  "media": [
+    {
+      "file": "manki-aerial-gameplay.mp4",
+      "bytes": 119851,
+      "sha256": "13e7deb5fef53e3b0f2ee16d788c3e65bf41e4e4f53c30eed0417145f03a2cc1"
+    },
+    {
+      "file": "manki-aerial-side.mp4",
+      "bytes": 108735,
+      "sha256": "d1580ced31b3254343adfe620d2ad57802d29e99c57994429b34b895d9e93f0e"
+    },
+    {
+      "file": "manki-concept.png",
+      "bytes": 1696642,
+      "sha256": "098597972ad5b35a77fa31370ceb37fc2e7fd9e6dcc7a168fdf2c63313c07808"
+    },
+    {
+      "file": "manki-leg-correction.jpg",
+      "bytes": 32268,
+      "sha256": "195aec80a2f8ef5262a858cc3e1620697adbb5b62be78df53c5ba1a0743df5cb"
+    }
+  ]
+}

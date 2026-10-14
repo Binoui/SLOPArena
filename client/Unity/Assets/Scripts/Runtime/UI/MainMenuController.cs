@@ -31,6 +31,7 @@ namespace SlopArena.Client.UI
             _context.Q<Button>("menu-online")!.clicked += () => FrontendController.StartMode(GameMode.PvP);
             _context.Q<Button>("menu-solo")!.clicked += () => FrontendController.StartMode(GameMode.Solo);
             _context.Q<Button>("menu-training")!.clicked += () => FrontendController.StartMode(GameMode.Training);
+            _context.Q<Button>("menu-arcade")!.clicked += () => FrontendController.StartMode(GameMode.Arcade);
             var discordButton = _context.Q<Button>("menu-discord")!;
             discordButton.clicked += OpenDiscord;
             _context.AddReleaseAction(() => discordButton.clicked -= OpenDiscord);

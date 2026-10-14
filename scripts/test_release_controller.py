@@ -90,6 +90,7 @@ class PrepareTests(unittest.TestCase):
                 controller.playtest_protocol.GAME_FILES[1]: "public const int CurrentProtocolVersion = SimulationProtocol.Version;",
                 controller.playtest_protocol.MASTER_FILE: f"public const int Protocol = {self.master_protocol};",
                 "scripts/playtest-release.py": f"CONTROLLER_CONTRACT_VERSION = {self.contract}\n",
+                "scripts/build-playtest-local.py": 'add_argument("--build-cache")',
                 "client/Unity/ProjectSettings/ProjectVersion.txt": "m_EditorVersion: 6000.0.78f1",
                 "content-cooked/roster/manifest.json": '{"entries":[{"packageId":"fightguy"}]}'}
             return values[path]
@@ -104,6 +105,14 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(prepared["configuration"]["licensedInputsHash"], controller.digest(self.inputs))
         self.assertEqual(prepared["steps"]["build"]["status"], "pending")
         self.assertEqual(controller.read_state(self.path), prepared)
+
+    def test_cache_choice_is_explicit_and_bound_to_the_prepared_candidate(self):
+        self.args.use_build_cache = True
+        prepared = controller.prepare(self.args, self.root, self.path)
+        self.assertEqual(prepared["configuration"]["buildCache"], str(self.root / "build/.playtest-import-cache"))
+        self.args.use_build_cache = False
+        with self.assertRaisesRegex(controller.ControllerError, "another snapshot"):
+            controller.prepare(self.args, self.root, self.path)
 
     def test_pair_mismatch_refuses_before_unity_or_licensed_input_work(self):
         self.master_protocol = 7

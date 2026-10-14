@@ -39,6 +39,13 @@ The routine flow is:
 
 The selected published game SHA must contain the controller-compatible producer
 and workflow. Existing historical receipts are retained, not implicitly adopted.
+Cold builds remain the default. `prepare --use-build-cache` explicitly pins opt-in
+release-owned import reuse; every cache hit still runs native verification. For
+character or cook changes, use `certify-cook` to verify committed cooks with a cold
+Windows import before player compilation. Routine releases already verify cooks
+in the build and do not require separate certification. Successful certification
+can seed that prepared cache. Timings retain
+separate attempts, native stages, CI jobs and Steam operator wait.
 For cook mismatch, `release.py cook` produces a cold Win64 report and reviewable
 correction without a player build or publication. Review/publish source fixes
 under their own authorization, then prepare a new version; never silently replace

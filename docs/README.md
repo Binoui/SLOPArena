@@ -39,7 +39,13 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | Document | Use it for |
 | --- | --- |
 | [Combat Systems](systems/combat-systems.md) | Universal 8-normal/4-special model and combat mechanics |
-| [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown and moving-platform directions; proposed rules and open decisions |
+| [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown, solo arcade and moving-platform directions; proposed rules and open decisions |
+| [Solo Arcade feature brief](design/arcade.md) | Approved Slopball and FightGuy Course scope, rules, offline entry and personal records |
+| [Solo Arcade implementation plan](design/arcade-implementation.md) | Focused Shared objects, unified stage migration, Slopball-first delivery and verification handoff |
+| [Arcade Phase 1](design/arcade-phase-1.md) | Ball/contact foundation, test-court launch steps and verification status |
+| [Arcade Phase 2](design/arcade-phase-2.md) | Playable Slopball, court/shot rules, launch steps and native verification |
+| [Arcade Phase 3](design/arcade-phase-3.md) | Offline menu, locked starts, results/retry and compatible local personal bests |
+| [Solo Arcade interview log](design/arcade-interview.md) | Seven resolved question rounds and inspected runtime/kit constraints |
 | [Hitbox System](systems/hitbox-system.md) | Hitbox, hurtbox, and collision geometry |
 | [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, and Combo Influence design |
 | [Ability Lab](systems/ability-lab.md) | Package editing, authoritative preview, and agent-facing workspace commands |
@@ -104,7 +110,7 @@ an implementation or authoring guide.
 
 ## Accepted ADRs
 
-The current package and creator-content direction is defined by these accepted records:
+Accepted records for current gameplay, runtime and content decisions include:
 
 - [ADR-0022: Workshop-first content architecture](adr/0022-workshop-first-content-architecture.md)
 - [ADR-0023: Built-in content API](adr/0023-built-in-content-api.md)
@@ -117,6 +123,8 @@ The current package and creator-content direction is defined by these accepted r
 - [ADR-0030: Ability Lab canonical slot projection](adr/0030-ability-lab-canonical-slot-projection.md)
 - [ADR-0031: Character asset dependency classification](adr/0031-character-asset-dependency-classification.md)
 - [ADR-0033: GameHost input Replays with compatible Shared playback](adr/0033-gamehost-input-replays-with-shared-playback.md)
+- [ADR-0036: Arcade PvP kit parity and legal fall resets](adr/0036-arcade-pvp-kit-parity-and-legal-fall-resets.md)
+- [ADR-0037: Arcade Shared objects and unified stage artifact](adr/0037-arcade-shared-objects-and-unified-stage-artifact.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 
@@ -124,6 +132,9 @@ Older accepted ADRs remain the decision record for the mechanics they cover. If 
 
 The `research/` directory contains design analysis and external references, including:
 
+- [Development timeline for a vlog](research/2026-10-14-development-timeline.md) — May–October 2026 milestones, original agent conversations, historical code, and local footage pointers.
+- [Downloads source guide for the vlog](research/2026-10-14-downloads-source-guide.md) — original planning exports, character art, earlier demo builds, and AI-video speaker notes.
+- [Tools and models timeline](research/2026-10-14-tools-and-models-timeline.md) — Antigravity, Warp, Hermes, OMP, Orca, Codex and T3 transitions, exact recorded models, and art/animation tools.
 - [Melee frame data](research/melee-frame-data.md)
 - [Melee frame analysis](research/melee-frame-analysis.md)
 - [Melee Knockback model](research/melee-knockback-model.md)

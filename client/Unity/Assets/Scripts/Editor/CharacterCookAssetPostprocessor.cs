@@ -67,7 +67,9 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
         string[] movedAssets,
         string[] movedFromAssetPaths)
     {
-        if (_selfTestDepth > 0) return;
+        // Isolated certification/release imports must only verify committed cooks.
+        // Explicit batchmode Cook commands remain the publication boundary.
+        if (_selfTestDepth > 0 || UnityEngine.Application.isBatchMode) return;
         var changed = new List<string>();
         changed.AddRange(importedAssets ?? Array.Empty<string>());
         changed.AddRange(deletedAssets ?? Array.Empty<string>());
