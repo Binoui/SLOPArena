@@ -260,7 +260,15 @@ namespace SlopArena.Client.UI
         }
 
         private void OnApplicationQuit() { StopRumble(); Save(); }
-        private void OnDestroy() { StopRumble(); if (_instance == this) _instance = null; }
+        private void OnDestroy()
+        {
+            StopRumble();
+            // Panel assets survive Editor Play Mode teardown. Restore their base
+            // values so the next settings owner cannot compound the previous scale.
+            foreach (var panel in _panelBaseScales)
+                if (panel.Key != null) panel.Key.scale = panel.Value;
+            if (_instance == this) _instance = null;
+        }
 
         private void Load()
         {

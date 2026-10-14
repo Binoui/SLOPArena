@@ -5,8 +5,205 @@
     pointer-events: none;
 }
 
+/* Solo's start is printed like a fight poster, above the fighters. */
+.solo-countdown {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.solo-countdown-anchor {
+    position: absolute;
+    left: 50%;
+    top: 32%;
+    translate: -50% -50%;
+    width: 480px;
+    height: 190px;
+    align-items: center;
+    justify-content: center;
+}
+
+.solo-countdown-stamp {
+    width: 268px;
+    height: 84px;
+    background-color: #F0EEE8;
+    border-width: 2px;
+    border-color: #1B1A18;
+    transform-origin: center;
+}
+
+.solo-countdown-title,
+.solo-countdown-print {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 0;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-text-align: middle-center;
+    font-size: 48px;
+    white-space: nowrap;
+}
+
+.solo-countdown-title {
+    color: #1B1A18;
+}
+
+.solo-countdown-print {
+    color: #E05C2A;
+    translate: 3px 3px;
+}
+
+.solo-countdown--number .solo-countdown-stamp {
+    width: 148px;
+    height: 156px;
+}
+
+.solo-countdown--number .solo-countdown-title,
+.solo-countdown--number .solo-countdown-print {
+    font-size: 122px;
+}
+
+.solo-countdown--start .solo-countdown-stamp {
+    width: 468px;
+    height: 106px;
+    background-color: #FFCC22;
+    border-width: 3px;
+}
+
+.solo-countdown--start .solo-countdown-title,
+.solo-countdown--start .solo-countdown-print {
+    font-size: 48px;
+}
+
 
 /* Multiplayer-safe left stack: one stable row per roster member. */
+.solo-end {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.solo-end-anchor {
+    position: absolute;
+    left: 50%;
+    top: 32%;
+    translate: -50% -50%;
+    width: 640px;
+    height: 240px;
+    align-items: center;
+    justify-content: center;
+}
+
+.solo-end-poster {
+    width: 640px;
+    height: 226px;
+    flex-direction: row;
+    align-items: center;
+    rotate: -3deg;
+    transform-origin: center;
+}
+
+.solo-end-portrait-slip {
+    width: 166px;
+    height: 198px;
+    margin-right: 14px;
+    padding: 8px 8px 5px 8px;
+    background-color: #F0EEE8;
+    border-width: 2px;
+    border-color: #1B1A18;
+    rotate: 4deg;
+}
+
+.solo-end-portraits {
+    height: 150px;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.solo-end-portrait {
+    width: 144px;
+    height: 150px;
+}
+
+.solo-end-other-portrait {
+    display: none;
+    width: 72px;
+    height: 150px;
+}
+
+.solo-end-name {
+    margin: 4px 0 0 0;
+    padding: 0;
+    font-size: 22px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-text-align: middle-center;
+    color: #1B1A18;
+    white-space: nowrap;
+}
+
+.solo-end-declaration {
+    width: 460px;
+    height: 226px;
+    padding: 8px 14px 12px 14px;
+    background-color: #FFCC22;
+    border-width: 3px;
+    border-color: #1B1A18;
+}
+
+.solo-end-headline {
+    height: 156px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.solo-end-title,
+.solo-end-print {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 68px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-text-align: middle-left;
+    white-space: normal;
+}
+
+.solo-end-title { color: #1B1A18; }
+.solo-end-print { color: #E05C2A; translate: 3px 3px; }
+
+.solo-end-outcome {
+    height: 38px;
+    flex-shrink: 0;
+    margin: 3px 0 0 0;
+    padding: 0 8px;
+    background-color: #1B1A18;
+    color: #F0EEE8;
+    font-size: 26px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+}
+
+.solo-end--shared .solo-end-declaration { background-color: #F0EEE8; }
+.solo-end--shared .solo-end-portraits { height: 140px; }
+.solo-end--shared .solo-end-portrait { width: 72px; height: 140px; }
+.solo-end--shared .solo-end-other-portrait { display: flex; height: 140px; }
+.solo-end--shared .solo-end-name { font-size: 14px; height: 34px; white-space: normal; }
+
 .player-billboard {
     position: absolute;
     left: 18px;

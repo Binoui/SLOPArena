@@ -46,6 +46,12 @@ GUID inputs without operating Unity. Run `python3 tools/check_unity_setup.py`,
 optionally with `--root /path/to/checkout --json`. See
 [Unity setup](../docs/contributing/unity-setup.md) for scope and provisioning.
 
+[`unity_asset_bundle.py`](unity_asset_bundle.py) exports ignored Unity inputs and
+their metadata to a private ZIP for another development machine. Its importer
+verifies checksums and tracked metadata, and preserves conflicting laptop files.
+See the [private installation transfer](../docs/contributing/unity-setup.md#copying-an-existing-private-asset-installation)
+for commands; Git and Python 3.9 or newer are sufficient.
+
 `research/flight-sweep/` is a historical experiment outside the maintained solution;
 build/run it explicitly if that research is relevant. Generated visual reports
 and archived investigations remain evidence for their source snapshot.

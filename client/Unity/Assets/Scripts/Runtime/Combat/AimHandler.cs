@@ -109,6 +109,10 @@ namespace SlopArena.Client.Combat
             _targetLockIndicator.SetTarget(target, localState.LockOn, targetDamagePercent);
         }
 
+        public void UpdateObjectTargetPresentation(CharacterState localState, Transform target,
+            float radius, ushort damagePercent)
+            => _targetLockIndicator?.SetObjectTarget(target, radius, localState.LockOn, damagePercent);
+
         /// <summary>
         /// Immediate lifecycle reset (death/stock reset, match end, teardown, re-Init):
         /// clears every view, restores camera mode, and clears cached aim state.

@@ -1,0 +1,42 @@
+.arcade-header { flex-direction: row; align-items: center; padding: 12px; }
+.arcade-header .flow-header-copy { margin-left: 18px; }
+.arcade-header .flow-title { font-size: 34px; margin-top: 2px; margin-bottom: 2px; }
+.arcade-header .flow-subtitle { font-size: 14px; margin-top: 4px; }
+.arcade-header .flow-eyebrow { font-size: 12px; }
+.frontend-shell--compact .arcade-header .flow-eyebrow,
+.frontend-shell--compact .arcade-header .flow-subtitle { display: none; }
+.frontend-shell--compact .arcade-header .flow-title { font-size: 28px; margin-top: 0; }
+.arcade-body { flex-grow: 1; min-height: 0; padding: 16px; }
+.arcade-scroll { flex-grow: 1; }
+.arcade-layout { flex-direction: row; padding-bottom: 8px; }
+.arcade-challenge { width: 30%; min-width: 230px; padding: 22px; margin-right: 24px; background-color: rgb(255, 204, 34); color: rgb(23, 19, 27); border-left-width: 6px; border-left-color: rgb(23, 19, 27); }
+.arcade-challenge-title { font-size: 38px; -unity-font-style: bold; margin-bottom: 14px; }
+.arcade-copy { white-space: normal; font-size: 16px; margin-top: 12px; }
+.arcade-roster { flex-grow: 1; }
+.arcade-fighters { flex-direction: row; flex-wrap: wrap; margin-top: 16px; }
+.arcade-fighters .char-card { width: 22%; min-width: 100px; min-height: 0; height: 160px; flex-shrink: 0; margin-right: 10px; margin-bottom: 12px; }
+.arcade-fighters .char-portrait { flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.arcade-fighters .char-card-name { font-size: 13px; }
+.frontend-shell--compact .arcade-challenge { min-width: 200px; padding: 16px; margin-right: 16px; }
+.frontend-shell--compact .arcade-challenge-title { font-size: 30px; }
+.frontend-shell--compact .arcade-fighters .char-card { height: 126px; }
+.arcade-fighter-name { font-size: 26px; -unity-font-style: bold; margin-top: 10px; }
+.arcade-summary { justify-content: center; padding: 12px; }
+.arcade-best { font-size: 19px; -unity-font-style: bold; }
+.arcade-feedback { white-space: normal; font-size: 13px; margin-top: 8px; }
+.arcade-archive { max-height: 110px; }
+.arcade-actions { justify-content: center; }
+.slopball-live { position: absolute; right: 18px; top: 76px; width: 265px; padding: 12px; background-color: rgba(13, 13, 20, 0.86); color: rgb(240, 238, 232); border-left-width: 4px; border-left-color: rgb(255, 204, 34); }
+.arcade-eyebrow { font-size: 12px; -unity-font-style: bold; letter-spacing: 1px; }
+.slopball-count { font-size: 27px; -unity-font-style: bold; margin-top: 4px; }
+.slopball-cue { font-size: 14px; white-space: normal; margin-top: 6px; margin-bottom: 8px; }
+.slopball-controls { font-size: 10px; margin-top: 10px; }
+.arcade-result-overlay { position: absolute; left: 0; right: 0; top: 0; bottom: 0; align-items: center; justify-content: center; background-color: rgba(13, 13, 20, 0.65); }
+.arcade-result-card { width: 480px; max-width: 90%; padding: 24px; background-color: rgb(240, 238, 232); color: rgb(23, 19, 27); border-left-width: 8px; border-left-color: rgb(255, 204, 34); }
+.arcade-result-heading { font-size: 32px; -unity-font-style: bold; }
+.arcade-result-score { font-size: 82px; -unity-font-style: bold; }
+.arcade-result-best { font-size: 22px; -unity-font-style: bold; white-space: normal; margin-top: 18px; }
+.arcade-result-improvement { font-size: 16px; white-space: normal; margin-top: 10px; }
+.arcade-result-actions { flex-direction: row; margin-top: 22px; }
+.arcade-result-button { flex-grow: 1; height: 52px; margin-right: 8px; background-color: rgb(255, 204, 34); color: rgb(23, 19, 27); font-size: 17px; -unity-font-style: bold; border-radius: 0; border-width: 2px; border-color: rgb(23, 19, 27); }
+.arcade-result-button:focus, .arcade-result-button:hover { background-color: rgb(23, 19, 27); color: rgb(255, 204, 34); border-color: rgb(255, 204, 34); }

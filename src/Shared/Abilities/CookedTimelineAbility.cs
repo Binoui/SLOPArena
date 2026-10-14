@@ -231,6 +231,12 @@ public sealed class CookedTimelineAbility : ServerAbility
         for (var i = 0; i < _capabilities.Count; i++)
             _capabilities[i].OnShieldBlock(ref attacker, ref defender);
     }
+    public override void OnHitObject(ref CharacterState attacker, CharacterDefinition attackerDef,
+        ref float damage, ref float knockbackForce)
+    {
+        for (var i = 0; i < _capabilities.Count; i++)
+            _capabilities[i].OnHitObject(ref attacker, attackerDef, ref damage, ref knockbackForce);
+    }
 
     private void UpdateStartupAimCorrection(ref CharacterState s)
     {

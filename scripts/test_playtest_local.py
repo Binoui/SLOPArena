@@ -1,5 +1,6 @@
 """Local producer input snapshots must survive clean-checkout and cache differences."""
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -58,3 +59,27 @@ class LicensedInputTests(unittest.TestCase):
                 str(self.root), "a" * 40, "", "b" * 40 + "\trefs/heads/main"]):
             with self.assertRaisesRegex(producer.BuildError, "published"):
                 producer.check_source(self.root, "a" * 40, "0.2.0-playtest.42")
+
+
+class CertificationEvidenceTests(unittest.TestCase):
+    def test_successful_native_proof_is_pinned_and_failed_or_mismatched_proof_is_only_retained(self):
+        cases = ({}, {"success": False}, {"buildTarget": "StandaloneLinux64"},
+                 {"sourceRevision": "b" * 40}, {"unityVersion": "different"}, {"packages": []})
+        for changes in cases:
+            with self.subTest(changes=changes), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                evidence = root / "evidence"
+                evidence.mkdir()
+                (evidence / "local-dependencies.json").write_text('{"clip":"hash"}')
+                report = root / "native.json"
+                report.write_text(json.dumps({"success": True, "buildTarget": "StandaloneWindows64",
+                    "unityVersion": "6000.0.78f1", "sourceRevision": "a" * 40,
+                    "packages": [{"packageId": "manki", "success": True}], **changes}))
+                producer.retain_cook_evidence(report, evidence, SimpleNamespace(source_revision="a" * 40),
+                                              "6000.0.78f1", {"status": "disabled"}, accepted_source_unchanged=True)
+                self.assertTrue((evidence / "cook-verification.json").exists())
+                self.assertEqual((evidence / "cook-certification.json").exists(), not bool(changes))
+                (evidence / "cook-certification.json").unlink(missing_ok=True)
+                producer.retain_cook_evidence(report, evidence, SimpleNamespace(source_revision="a" * 40),
+                                              "6000.0.78f1", {"status": "disabled"})
+                self.assertFalse((evidence / "cook-certification.json").exists())

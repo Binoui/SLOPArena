@@ -5,7 +5,7 @@ using SlopArena.Shared.Abilities;
 
 namespace SlopArena.Shared
 {
-	public class ServerSimulation
+	public partial class ServerSimulation
 	{
 		private readonly ArenaDefinition _arena;
 		private readonly Dictionary<ulong, CharacterState> _states = new();
@@ -106,6 +106,15 @@ namespace SlopArena.Shared
 			_rule = rule ?? new StockMatchRule(3);
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
+			if (arena.Arcade != null)
+            {
+                _arcadeBall = new ArcadeBallSimulation(arena.Arcade.Ball, in arena);
+                if (arena.Arcade.Slopball is SlopballDefinition rules)
+                {
+                    rules.ValidateCourt(in arena);
+                    _slopball = new SlopballSimulation(rules, arena.Arcade.Ball, _arcadeBall);
+                }
+            }
 		}
 
 		// ── Hitstop tuning (ADR-0012). Game-wide defaults; per-ability overrides via
@@ -127,6 +136,10 @@ namespace SlopArena.Shared
 
 		public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
 		{
+            if (_slopball != null && _states.Count > 0 && !_states.ContainsKey(id))
+                throw new ArgumentException("Solo Slopball admits one fighter.", nameof(id));
+			if (_arcadeBall != null && (id == ArcadeBallSimulation.TargetInputId || id >= ArcadeBallSimulation.FirstEntityId))
+				throw new ArgumentException("Arcade reserves the ball target alias and object identity range.", nameof(id));
 			_defs[id] = def;
 			initialState.EntityId = id;
 			_states[id] = initialState;
@@ -1627,12 +1640,11 @@ namespace SlopArena.Shared
 			float maxRange, out float distanceSquared)
 		{
 			distanceSquared = 0f;
-			if (targetId == selfId || !_states.TryGetValue(targetId, out var target)
-				|| !_defs.ContainsKey(targetId) || _rule.IsEliminated(target))
+			if (targetId == selfId || !TryGetCombatTargetPosition(targetId, out var target))
 				return false;
 
-			float dx = target.PX - selfX;
-			float dz = target.PZ - selfZ;
+			float dx = target.X - selfX;
+			float dz = target.Z - selfZ;
 			distanceSquared = dx * dx + dz * dz;
 			return distanceSquared <= maxRange * maxRange;
 		}
@@ -1642,15 +1654,15 @@ namespace SlopArena.Shared
 		{
 			ulong closest = 0;
 			float best = maxRange * maxRange;
-			foreach (var kvp in _states)
+			foreach (ulong targetId in CombatTargetIds())
 			{
-				if (!IsEligibleEnemy(selfId, kvp.Key, selfX, selfZ, maxRange, out float distanceSquared))
+				if (!IsEligibleEnemy(selfId, targetId, selfX, selfZ, maxRange, out float distanceSquared))
 					continue;
 				if (closest == 0 || distanceSquared < best
-					|| distanceSquared == best && kvp.Key < closest)
+					|| distanceSquared == best && targetId < closest)
 				{
 					best = distanceSquared;
-					closest = kvp.Key;
+					closest = targetId;
 				}
 			}
 			outDist = MathF.Sqrt(best);
@@ -1662,7 +1674,7 @@ namespace SlopArena.Shared
 
 		private ulong ResolveClientTarget(ulong selfId, float selfX, float selfZ, in InputState input)
 		{
-			ulong selected = input.TargetEntityId;
+			ulong selected = ResolveObjectTargetAlias(input.TargetEntityId);
 			return selected != 0 && IsEligibleEnemy(selfId, selected, selfX, selfZ,
 				LockRangeMeters, out _) ? selected : 0;
 		}
@@ -1678,9 +1690,9 @@ namespace SlopArena.Shared
 			if (targetId == 0)
 				return;
 
-			var target = _states[targetId];
-			float dx = target.PX - state.PX;
-			float dz = target.PZ - state.PZ;
+			TryGetCombatTargetPosition(targetId, out var target);
+			float dx = target.X - state.PX;
+			float dz = target.Z - state.PZ;
 			if (dx * dx + dz * dz > 0.000001f)
 				yaw = MathF.Atan2(dx, dz);
 			state.FacingYaw = yaw;
@@ -1690,7 +1702,7 @@ namespace SlopArena.Shared
 			dz -= -launchOffsetX * sinYaw + launchOffsetZ * cosYaw;
 			if (dx * dx + dz * dz > 0.000001f)
 				yaw = MathF.Atan2(dx, dz);
-			float targetY = target.PY + _defs[targetId].CapsuleHeight * .25f;
+			float targetY = CombatTargetAimY(targetId, target.Y);
 			pitch = MathF.Atan2(targetY - state.PY - launchOffsetY, MathF.Sqrt(dx * dx + dz * dz));
 		}
 
@@ -1700,26 +1712,26 @@ namespace SlopArena.Shared
 			state.AttackCorrectionStartYaw = state.FacingYaw;
 			state.AttackPosePitch = 0f;
 			ulong preferred = state.LockOn && !input.ToggleLock && !input.RetargetPressed
-				? state.TargetEntityId : input.TargetEntityId;
+				? state.TargetEntityId : ResolveObjectTargetAlias(input.TargetEntityId);
 			ulong targetId = 0;
 			float bestDistance = float.MaxValue;
 			if (!input.RetargetPressed && IsStartupCorrectionTarget(state, preferred, operation, acquire: true, out _))
 				targetId = preferred;
 			else
 			{
-				foreach (var candidate in _states)
+				foreach (ulong candidate in CombatTargetIds())
 				{
-					if (!IsStartupCorrectionTarget(state, candidate.Key, operation, acquire: true, out float distance))
+					if (!IsStartupCorrectionTarget(state, candidate, operation, acquire: true, out float distance))
 						continue;
-					if (targetId == 0 || distance < bestDistance || distance == bestDistance && candidate.Key < targetId)
+					if (targetId == 0 || distance < bestDistance || distance == bestDistance && candidate < targetId)
 					{
-						targetId = candidate.Key;
+						targetId = candidate;
 						bestDistance = distance;
 					}
 				}
 			}
 			state.AttackCorrectionTargetId = targetId;
-			state.AttackCorrectionTargetDeaths = targetId != 0 ? _states[targetId].Deaths : (byte)0;
+			state.AttackCorrectionTargetDeaths = CombatTargetDeaths(targetId);
 			state.AttackCorrectionActive = targetId != 0;
 		}
 
@@ -1732,16 +1744,16 @@ namespace SlopArena.Shared
 				state.AttackCorrectionActive = false;
 				return;
 			}
-			var target = _states[state.AttackCorrectionTargetId];
-			if (target.Deaths != state.AttackCorrectionTargetDeaths)
+			TryGetCombatTargetPosition(state.AttackCorrectionTargetId, out var target);
+			if (CombatTargetDeaths(state.AttackCorrectionTargetId) != state.AttackCorrectionTargetDeaths)
 			{
 				state.AttackCorrectionActive = false;
 				return;
 			}
 			if (!applyPose)
 				return;
-			float dx = target.PX - state.PX;
-			float dz = target.PZ - state.PZ;
+			float dx = target.X - state.PX;
+			float dz = target.Z - state.PZ;
 			float horizontalSquared = dx * dx + dz * dz;
 			const float radiansPerDegree = MathF.PI / 180f;
 			float targetYaw = horizontalSquared > 0.000001f ? MathF.Atan2(dx, dz) : state.FacingYaw;
@@ -1754,7 +1766,7 @@ namespace SlopArena.Shared
 			{
 				float sourceHipY = _defs[state.EntityId].BoneYToWorldY(state.PY, 0f);
 				// A size-scaled upper-body reference; animation cannot move the aim point.
-				float targetTorsoY = target.PY + _defs[target.EntityId].CapsuleHeight * .25f;
+				float targetTorsoY = CombatTargetAimY(state.AttackCorrectionTargetId, target.Y);
 				float targetPitch = Math.Clamp(MathF.Atan2(targetTorsoY - sourceHipY, MathF.Sqrt(horizontalSquared)),
 					-operation.MaxPitchDegrees * radiansPerDegree, operation.MaxPitchDegrees * radiansPerDegree);
 				float pitchStep = operation.PitchDegreesPerSecond * radiansPerDegree / 60f;
@@ -1771,15 +1783,15 @@ namespace SlopArena.Shared
 				distanceSquared = 0f;
 				return false;
 			}
-			var target = _states[targetId];
-			float dy = target.PY - state.PY;
+			TryGetCombatTargetPosition(targetId, out var target);
+			float dy = target.Y - state.PY;
 			distanceSquared += dy * dy;
 			if (distanceSquared > operation.AcquisitionRange * operation.AcquisitionRange)
 				return false;
 			if (!acquire)
 				return true;
-			float dx = target.PX - state.PX;
-			float dz = target.PZ - state.PZ;
+			float dx = target.X - state.PX;
+			float dz = target.Z - state.PZ;
 			return dx * dx + dz * dz <= 0.000001f
 				|| MathF.Abs(CorrectionAngleDelta(MathF.Atan2(dx, dz) - state.FacingYaw))
 					<= operation.AcquisitionHalfAngleDegrees * (MathF.PI / 180f);
@@ -1900,6 +1912,7 @@ namespace SlopArena.Shared
 					entityList.AddRange(BuildEntitiesFromState(state, def, null!, "idle", 0, id));
 				}
 			}
+			if (_arcadeBall != null && _arcadeBall.State.Active) entityList.Add(_arcadeBall.CollisionTarget);
 			_lastEntityList = entityList;
 			return entityList;
 		}
@@ -1919,7 +1932,7 @@ namespace SlopArena.Shared
 			_shieldSurfaceEntities.Clear();
 			foreach (var hurtbox in hurtboxes)
 			{
-				if (_states[hurtbox.Id].State != ActionState.Shielding)
+				if (!_states.TryGetValue(hurtbox.Id, out var shieldState) || shieldState.State != ActionState.Shielding)
 				{
 					_attackEntities.Add(hurtbox);
 					continue;
@@ -2084,7 +2097,7 @@ namespace SlopArena.Shared
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
 			LastTickAttackEntities = attackEntities;
-			var hits = _spellResolver.Tick(attackEntities);
+			var hits = _spellResolver.Tick(attackEntities, orderMovingTargetContacts: _slopball != null);
 			for (int i = 0; i < hits.Count; i++)
 			{
 				var contact = hits[i];
@@ -2096,6 +2109,11 @@ namespace SlopArena.Shared
 			int hitContactOperationIndex = 0;
 			foreach (var hit in hits)
 			{
+				if (_arcadeBall != null && hit.TargetEntityId == _arcadeBall.State.EntityId)
+				{
+					ResolveArcadeBallHit(hit, inputs, hitContactOperationIndex++);
+					continue;
+				}
 				if (!_states.TryGetValue(hit.TargetEntityId, out var targetState)) continue;
 				bool attackerExists = _states.TryGetValue(hit.OwnerEntityId, out var attackerState);
 
@@ -2544,6 +2562,9 @@ namespace SlopArena.Shared
 				_lastTickTouchdowns.Clear();
 				_settledCrouchCandidates.Clear();
 				_damagedThisTick.Clear();
+                if (_slopball != null && !_slopball.BeginTick(_arcadeBall!))
+                { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                if (_slopball != null) inputs = GateSlopballStartInput(inputs);
 				_tick++;
 				if (PredictCoupledInteractions && HasCoupledInteraction())
 					UpdateCoupledInteractions(releaseDue: false, inputs);
@@ -2553,16 +2574,20 @@ namespace SlopArena.Shared
 				ProcessTargetLock(inputs);
 
 				SimulateMovement(inputs);
+                ConstrainSlopballFighters();
 				// Grab contact is committed after ordinary damage has interrupted candidates.
 
 				AdmitLowLandings(inputs);
 				// Settlement is finalized after all movement, ability, lag, and pushbox work,
 				// but before hurtbox construction and hit resolution.
 				FinalizeSettledCrouch();
+				_arcadeBall?.Step(in _arena, _states, _defs);
+                if (_slopball != null) _slopball.PlanMotion(_arcadeBall!);
 
 				var entityList = BuildHurtboxList();
 
 				ResolveHits(entityList, inputs);
+                if (_slopball != null) _slopball.FinishTick(_arcadeBall!);
 				ResolveGrabAttempts();
 				if (PredictCoupledInteractions && HasCoupledInteraction())
 					UpdateCoupledInteractions(releaseDue: true, inputs);

@@ -99,6 +99,8 @@ namespace SlopArena.Shared
             public bool Blocked;
             /// <summary>Authoritative simulation tick used by the stable block feedback key.</summary>
             public uint MatchTick;
+            /// <summary>Contact fraction within the tick, including moving Arcade spheres.</summary>
+            public float ContactTime;
             public BlockEventIdentity BlockEventIdentity =>
                 new(MatchTick, OwnerEntityId, ActivationId, TargetEntityId);
         }
@@ -128,6 +130,8 @@ namespace SlopArena.Shared
             /// <summary>Shared shield collision surface, distinct from body/grab hurtboxes.</summary>
             public bool ShieldSurface;
             public bool Active;
+            /// <summary>Continuous sphere path; null retains the ordinary fighter path.</summary>
+            public IReadOnlyList<SphereMotionSegment>? MotionPath;
         }
 
         /// <summary>
@@ -258,10 +262,11 @@ namespace SlopArena.Shared
         /// Returns all hits this tick (one per entity, first hitbox to connect wins).
         /// Already-hit entities in this tick are skipped (no double-hit).
         /// </summary>
-        public List<HitResult> Tick(List<EntityData> entities)
+        public List<HitResult> Tick(List<EntityData> entities, bool orderMovingTargetContacts = false)
         {
             var results = new List<HitResult>();
             var hitThisTick = new HashSet<ulong>();
+            if (orderMovingTargetContacts) OrderMovingTargetContacts(entities);
 
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
             {
@@ -308,12 +313,20 @@ namespace SlopArena.Shared
                     bool hit = false;
                     float dist = 0f, dx = 0f, dy = 0f, dz = 0f;
                     float hitX = 0f, hitY = 0f, hitZ = 0f;
+                    float contactTime = 1f;
+                    float movingTargetY = entity.PosY;
 
                     bool shieldSweep = entity.ShieldSurface && hb.Shape == HitboxShape.Sphere
                         && SweptShieldContact(in hb, in entity, prevX, prevY, prevZ,
                             out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ);
 
-                    if (shieldSweep)
+                    if (entity.MotionPath != null)
+                    {
+                        hit = MovingSphereContact(in hb, in entity, prevX, prevY, prevZ,
+                            out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ,
+                            out contactTime, out movingTargetY);
+                    }
+                    else if (shieldSweep)
                     {
                         hit = true;
                     }
@@ -372,7 +385,7 @@ namespace SlopArena.Shared
                         sbyte launchAngle = hb.KnockbackAngle;
                         if (launchAngle == KnockbackData.AdaptiveAngle)
                         {
-                            float refY = (entity.PosY + entity.EndY) * 0.5f;
+                            float refY = entity.MotionPath != null ? movingTargetY : (entity.PosY + entity.EndY) * 0.5f;
                             launchAngle = ComputeAdaptiveAngle(dx, refY - hb.Y, dz);
                         }
 
@@ -397,6 +410,7 @@ namespace SlopArena.Shared
                             HitX = hitX,
                             HitY = hitY,
                             HitZ = hitZ,
+                            ContactTime = contactTime,
                         });
 
                         hitThisTick.Add(entity.Id);
@@ -404,6 +418,14 @@ namespace SlopArena.Shared
                         {
                             hb.HitEntities!.Add(entity.Id);
                             continue;   // tag every opponent once, expire at DurationTicks
+                        }
+                        if (entity.MotionPath != null)
+                        {
+                            // Detached explosion/removal events originate at the actual
+                            // swept impact, rather than the projectile's start or overshoot.
+                            prevX += (hb.X - prevX) * contactTime;
+                            prevY += (hb.Y - prevY) * contactTime;
+                            prevZ += (hb.Z - prevZ) * contactTime;
                         }
                         hb.Active = false; // one-hit per hitbox (projectiles)
                         break;
@@ -427,6 +449,106 @@ namespace SlopArena.Shared
             }
 
             return results;
+        }
+
+        private void OrderMovingTargetContacts(List<EntityData> entities)
+        {
+            EntityData? moving = null;
+            foreach (var entity in entities)
+                if (entity.Active && entity.MotionPath != null) { moving = entity; break; }
+            if (!moving.HasValue) return;
+            var target = moving.Value;
+            var ordered = new List<(Hitbox Box, int Order, float Time)>(_hitboxes.Count);
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var original = _hitboxes[i]; var predicted = original;
+                predicted.X += predicted.VX * Simulation.TickDt;
+                predicted.Y += predicted.VY * Simulation.TickDt;
+                predicted.Z += predicted.VZ * Simulation.TickDt;
+                float time = float.PositiveInfinity;
+                if (original.Active && (original.CanHitOwner || original.OwnerId != target.Id)
+                    && (!original.HitsMultipleOpponents || !original.HitEntities!.Contains(target.Id)))
+                    if (MovingSphereContact(in predicted, in target, original.X, original.Y, original.Z,
+                        out _, out _, out _, out _, out _, out _, out _, out float candidateTime, out _)) time = candidateTime;
+                ordered.Add((original, i, time));
+            }
+            // Tick iterates backwards. Equal-time contacts preserve its ordinary insertion priority.
+            ordered.Sort((a, b) => { int time = b.Time.CompareTo(a.Time); return time != 0 ? time : a.Order.CompareTo(b.Order); });
+            _hitboxes.Clear(); foreach (var item in ordered) _hitboxes.Add(item.Box);
+        }
+
+        private static bool MovingSphereContact(in Hitbox hb, in EntityData entity,
+            float prevX, float prevY, float prevZ, out float dist,
+            out float dx, out float dy, out float dz, out float hitX, out float hitY, out float hitZ,
+            out float contactTime, out float targetY)
+        {
+            dist = dx = dy = dz = hitX = hitY = hitZ = targetY = 0f;
+            contactTime = 1f;
+            float hvx = hb.X - prevX, hvy = hb.Y - prevY, hvz = hb.Z - prevZ;
+            foreach (var segment in entity.MotionPath!)
+            {
+                float span = segment.EndTime - segment.StartTime;
+                float sx = prevX + hvx * segment.StartTime - segment.Start.X;
+                float sy = prevY + hvy * segment.StartTime - segment.Start.Y;
+                float sz = prevZ + hvz * segment.StartTime - segment.Start.Z;
+                float vx = hvx * span - (segment.End.X - segment.Start.X);
+                float vy = hvy * span - (segment.End.Y - segment.Start.Y);
+                float vz = hvz * span - (segment.End.Z - segment.Start.Z);
+                float t = 0f;
+                bool contact = false;
+                if (hb.Shape == HitboxShape.Sphere)
+                {
+                    float radius = hb.Radius + entity.Radius;
+                    float c = sx * sx + sy * sy + sz * sz - radius * radius;
+                    float a = vx * vx + vy * vy + vz * vz;
+                    if (c <= 0f) contact = true;
+                    else if (a > 0.00000001f)
+                    {
+                        float b = sx * vx + sy * vy + sz * vz;
+                        float discriminant = b * b - a * c;
+                        if (discriminant >= 0f)
+                        {
+                            t = (-b - MathF.Sqrt(discriminant)) / a;
+                            contact = t >= 0f && t <= 1f;
+                        }
+                    }
+                }
+                else
+                {
+                    // The moving sphere versus a melee capsule uses the existing
+                    // closest-segment primitive with conservative advancement.
+                    float speed = MathF.Sqrt(vx * vx + vy * vy + vz * vz);
+                    float lengthX = hb.EndX - hb.X, lengthY = hb.EndY - hb.Y, lengthZ = hb.EndZ - hb.Z;
+                    float lengthSq = lengthX * lengthX + lengthY * lengthY + lengthZ * lengthZ;
+                    for (int iteration = 0; iteration < 64 && t <= 1f; iteration++)
+                    {
+                        float px = -sx - vx * t, py = -sy - vy * t, pz = -sz - vz * t;
+                        float projection = lengthSq > 0.000001f
+                            ? Math.Clamp((px * lengthX + py * lengthY + pz * lengthZ) / lengthSq, 0f, 1f) : 0f;
+                        float cx = px - lengthX * projection, cy = py - lengthY * projection, cz = pz - lengthZ * projection;
+                        float gap = MathF.Sqrt(cx * cx + cy * cy + cz * cz) - hb.Radius - entity.Radius;
+                        if (gap <= 0.0001f) { contact = true; break; }
+                        if (speed <= 0.000001f) break;
+                        t += gap / speed;
+                    }
+                }
+                if (!contact) continue;
+                contactTime = segment.StartTime + span * t;
+                var point = segment.Sample(contactTime);
+                var sample = entity;
+                sample.PosX = sample.EndX = point.X;
+                sample.PosY = sample.EndY = point.Y;
+                sample.PosZ = sample.EndZ = point.Z;
+                var attack = hb;
+                float atX = prevX + hvx * contactTime, atY = prevY + hvy * contactTime, atZ = prevZ + hvz * contactTime;
+                attack.EndX += atX - attack.X; attack.EndY += atY - attack.Y; attack.EndZ += atZ - attack.Z;
+                attack.X = atX; attack.Y = atY; attack.Z = atZ;
+                targetY = point.Y;
+                // Reuse the contact-point calculation at the conservative sweep boundary.
+                CapsuleCollision(attack, sample, out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ);
+                return true;
+            }
+            return false;
         }
 
         private static bool SweptShieldContact(in Hitbox hb, in EntityData shield,

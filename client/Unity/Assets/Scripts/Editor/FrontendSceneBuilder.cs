@@ -8,7 +8,7 @@ using SlopArena.Client.UI;
 /// <summary>
 /// One-shot builder for the single frontend scene (ADR-0032; issues #210,
 /// #212, #219, #221). Creates Assets/Scenes/Frontend.unity with the stable
-/// FrontendShell document and the six page hosts. Every page is a fragment
+/// FrontendShell document and the seven page hosts. Every page is a fragment
 /// source: the shell clones the page's fragment into its hosts on every
 /// activation through a per-activation <see cref="FrontendPageContext"/>.
 /// Run through the Unity CLI Pipeline, e.g.
@@ -28,6 +28,7 @@ public static class FrontendSceneBuilder
         ("ResultsPage", "Assets/UI/Results.uxml", typeof(ResultsUI)),
         ("ServerBrowserPage", "Assets/UI/ServerBrowser.uxml", typeof(ServerBrowserUI)),
         ("LobbyRoomPage", "Assets/UI/LobbyRoom.uxml", typeof(LobbyRoomUI)),
+        ("ArcadePage", "Assets/UI/Arcade.uxml", typeof(ArcadeSelectController)),
     };
 
     private static readonly string[] RemovedScenes =
@@ -85,6 +86,7 @@ public static class FrontendSceneBuilder
         shellSerialized.FindProperty("_resultsPage").objectReferenceValue = pageObjects[3];
         shellSerialized.FindProperty("_serverBrowserPage").objectReferenceValue = pageObjects[4];
         shellSerialized.FindProperty("_lobbyRoomPage").objectReferenceValue = pageObjects[5];
+        shellSerialized.FindProperty("_arcadePage").objectReferenceValue = pageObjects[6];
         shellSerialized.FindProperty("_shell").objectReferenceValue = shellView;
         for (int i = 0; i < Pages.Length; i++)
         {
@@ -96,6 +98,7 @@ public static class FrontendSceneBuilder
                 3 => "_resultsFragment",
                 4 => "_serverBrowserFragment",
                 5 => "_lobbyRoomFragment",
+                6 => "_arcadeFragment",
                 _ => throw new System.InvalidOperationException($"Unexpected page index {i}.")
             };
             shellSerialized.FindProperty(fragmentField).objectReferenceValue =

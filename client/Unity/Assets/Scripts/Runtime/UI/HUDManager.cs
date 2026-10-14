@@ -199,6 +199,8 @@ namespace SlopArena.Client.UI
                 : null;
         private Label _networkStatsLabel;
         private NetworkClient _networkClient;
+        private SoloCountdownView _soloCountdown;
+        private SoloEndCardView _soloEndCard;
 
         private readonly Dictionary<ulong, OverheadPanel> _billboardPanels = new();
 
@@ -233,6 +235,8 @@ namespace SlopArena.Client.UI
             }
 
             var root = _uiDocument.rootVisualElement;
+            _soloCountdown = new SoloCountdownView(root);
+            _soloEndCard = new SoloEndCardView(root);
             if (_textVfx == null)
                 _textVfx = gameObject.AddComponent<MatchTextVFX>();
             var cam = UnityEngine.Camera.main ?? FindFirstObjectByType<UnityEngine.Camera>();
@@ -595,6 +599,15 @@ namespace SlopArena.Client.UI
                 seconds / 1.5f, centerInCamera: true);
         }
 
+        public void ShowSoloCountdown(string text, float seconds)
+            => _soloCountdown?.Show(text, seconds);
+
+        public void ShowSoloEnding(bool playerWon, bool sharedVictory, CharacterClass player, CharacterClass cpu)
+        {
+            _soloCountdown?.Clear();
+            _soloEndCard?.Show(playerWon, sharedVictory, player, cpu);
+        }
+
         public void ShowStockToast(ulong entityId, string text, float seconds = 1.15f)
         {
             if (!_billboardPanels.TryGetValue(entityId, out var panel) || panel.StockToast == null)
@@ -713,6 +726,8 @@ namespace SlopArena.Client.UI
         private void Update()
         {
             float dt = Time.unscaledDeltaTime;
+            _soloCountdown?.Tick(Time.deltaTime);
+            _soloEndCard?.Tick(dt);
             if (_abilitySlots.Length > 0 &&
                 (_seenBindingRevision != HumanInputActions.BindingRevision ||
                  _showGamepadPrompts != (HumanInputActions.LastUsedGamepad && Gamepad.current != null)))
@@ -725,6 +740,12 @@ namespace SlopArena.Client.UI
 
             foreach (var panel in _billboardPanels.Values)
                 TickPanelJuice(panel, dt);
+        }
+
+        private void OnDisable()
+        {
+            _soloCountdown?.Clear();
+            _soloEndCard?.Clear();
         }
 
         private void UpdateModifierFeedback()

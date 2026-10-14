@@ -295,6 +295,7 @@ namespace SlopArena.Client.UI
                 FrontendPage.Results => "RESULTS",
                 FrontendPage.ServerBrowser => "ONLINE // SERVER BROWSER",
                 FrontendPage.LobbyRoom => "ONLINE // ROOM",
+                FrontendPage.ArcadeSelect => "ARCADE // SOLO CHALLENGES",
                 _ => string.Empty
             });
         }

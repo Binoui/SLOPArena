@@ -24,6 +24,7 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import playtest_protocol
+import playtest_timing
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = playtest_protocol.GAME_REPOSITORY
@@ -141,6 +142,8 @@ def save(path, state):
 
 
 def mark(path, state, step, status, **evidence):
+    playtest_timing.transition(state["steps"][step], status, now(),
+                              evidence.get("runAttempt", state["steps"][step].get("runAttempt")))
     state["steps"][step].update(status=status, observedAtUtc=now(), **evidence)
     save(path, state)
 
@@ -208,6 +211,11 @@ def prepare(args, root, path):
                      "localUnityProject": str(local_project), "unityEditor": str(editor),
                      "unityVersion": match.group(1), "licensedInputsHash": digest(inputs),
                      "migrationFrom": args.migration_from}
+    if getattr(args, "use_build_cache", False):
+        source_producer = git(root, "show", f"{game_revision}:scripts/build-playtest-local.py")
+        if '"--build-cache"' not in source_producer:
+            raise ControllerError("Selected source lacks opt-in import caching; publish the updated producer first")
+        configuration["buildCache"] = str(root / "build/.playtest-import-cache")
     if args.migration_from and not re.fullmatch(r"[A-Za-z0-9_]+", args.migration_from):
         raise ControllerError("Migration source must be an explicit migration ID")
     if path.exists():
@@ -229,7 +237,7 @@ def prepare(args, root, path):
         if baseline.is_file() and not baseline.is_symlink():
             atomic_json(path.parent / "environment/accepted-cook-status" / (package + ".json"),
                         coordinator.read_json(baseline))
-    state = {"schemaVersion": 1, "configuration": configuration, "configurationHash": digest(configuration),
+    state = {"schemaVersion": 1, "timingSchemaVersion": 1, "configuration": configuration, "configurationHash": digest(configuration),
              "compatibility": compatibility, "createdAtUtc": now(), "updatedAtUtc": now(),
              "steps": {name: {"status": "pending"} for name in STEPS},
              "playerAcceptance": {"status": "not-exercised", "reports": []}}
@@ -278,7 +286,7 @@ def retain_attempts(source, destination_parent):
             os.replace(completed, destination)
 
 
-def run_builder(path, state, checkout, *, cook=False):
+def run_builder(path, state, checkout, *, cook=False, certify=False):
     config = state["configuration"]
     if not state["steps"]["build"].get("sourceChecksPassed"):
         check_log = path.parent / ("source-checks-" + uuid.uuid4().hex[:8] + ".log")
@@ -299,14 +307,18 @@ def run_builder(path, state, checkout, *, cook=False):
             "--cook-baseline", str(path.parent / "environment/accepted-cook-status")]
     if cook:
         argv.append("--diagnose-cook")
-    log_path = path.parent / (("cook-" if cook else "build-") + uuid.uuid4().hex[:8] + ".log")
+    if certify:
+        argv.append("--certify-cook")
+    if not cook and config.get("buildCache"):
+        argv += ["--build-cache", config["buildCache"]]
+    log_path = path.parent / (("cook-" if cook else "certify-" if certify else "build-") + uuid.uuid4().hex[:8] + ".log")
     with os.fdopen(os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as log:
         process = subprocess.Popen(argv, cwd=checkout, stdin=subprocess.DEVNULL,
                                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         operation = {"pid": process.pid, "processIdentity": process_identity(process.pid),
                      "checkout": str(checkout), "log": str(log_path)}
-        if cook:
-            state["cookOperation"] = operation
+        if cook or certify:
+            state["cookOperation" if cook else "certificationOperation"] = operation
             save(path, state)
         else:
             mark(path, state, "build", "running", **operation)
@@ -320,16 +332,20 @@ def run_builder(path, state, checkout, *, cook=False):
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
-            if not cook:
+            if not cook and not certify:
                 mark(path, state, "build", "interrupted")
             raise
     # Always retain settled attempt logs, including failed or interrupted builds.
     source = checkout / "build/playtest" / config["version"]
     retain_attempts(source, path.parent)
+    timings = sorted(path.parent.glob("20*/timings.json"))
+    if timings:
+        state["steps"]["build"]["timingEvidence"] = str(timings[-1])
+        save(path, state)
     if code:
-        if not cook:
+        if not cook and not certify:
             mark(path, state, "build", "failed", reason="local_build_failed")
-        raise ControllerError(f"Local {'cook' if cook else 'build'} failed; inspect {log_path}")
+        raise ControllerError(f"Local {'cook' if cook else 'certification' if certify else 'build'} failed; inspect {log_path}")
     return source
 
 
@@ -512,6 +528,29 @@ def reconcile(path, state, *, approve=False):
         return
     mark(path, state, "workflow", run["status"], conclusion=run.get("conclusion"),
          runAttempt=run.get("run_attempt", 1), url=run["html_url"])
+    if state.get("timingSchemaVersion") == 1:
+        try:
+            jobs = api(f"repos/{REPOSITORY}/actions/runs/{run['id']}/jobs?filter=latest&per_page=100")["jobs"]
+        except ControllerError:
+            # Metrics availability is not an authorization or deployment prerequisite.
+            jobs = []
+            state["steps"]["workflow"]["timingObservation"] = "unavailable"
+        rows = []
+        for job in jobs:
+            row = {key: job.get(key) for key in ("id", "name", "status", "conclusion", "started_at", "completed_at")}
+            if row["started_at"] and row["completed_at"]:
+                row["durationSeconds"] = playtest_timing.seconds(row["started_at"], row["completed_at"])
+            rows.append(row)
+        if rows:
+            state["steps"]["workflow"]["timingObservation"] = "observed"
+            state["steps"]["workflow"].setdefault("ciAttempts", {})[str(run.get("run_attempt", 1))] = rows
+        first = min((row["started_at"] for row in rows if row["started_at"]), default=None)
+        if first and run.get("created_at") and run.get("run_attempt", 1) == 1:
+            state["steps"]["workflow"]["initialQueueSeconds"] = playtest_timing.seconds(run["created_at"], first)
+        elif first and step.get("retryRequestedAtUtc"):
+            state["steps"]["workflow"].setdefault("retryQueueSeconds", {})[str(run["run_attempt"])] = (
+                playtest_timing.seconds(step["retryRequestedAtUtc"], first))
+        save(path, state)
     for leaf, directory in receipts(path, run):
         candidate_path = directory / "candidate-public.json"
         if not candidate_path.is_file():
@@ -623,6 +662,8 @@ def execute(args, root, path, state):
                 or deployment["status"] == "waiting-for-reviewer" or time.monotonic() >= deadline):
             break
         time.sleep(15)
+    if deployment["status"] == "completed" and state["steps"]["steam"]["status"] == "pending":
+        mark(path, state, "steam", "awaiting-activation")
 
 
 def parse_appinfo(text):
@@ -715,6 +756,28 @@ def diagnose_cook(root, path, state):
     save(path, state)
 
 
+def certify_cook(root, path, state):
+    config = state["configuration"]
+    tooling = git(root, "show", f"{config['gameRevision']}:scripts/build-playtest-local.py")
+    if '"--certify-cook"' not in tooling:
+        raise ControllerError("Selected source lacks native cook certification; publish the updated producer first")
+    operation = state.get("certificationOperation", {})
+    pid = operation.get("pid")
+    identity = process_identity(pid) if pid else None
+    if identity is not None and (operation.get("processIdentity") is None or identity == operation["processIdentity"]):
+        raise ControllerError("The recorded certification is still running; do not start another")
+    checkout = ensure_checkout(root, path, state, cook=True)
+    source = run_builder(path, state, checkout, certify=True)
+    handoffs = [value for value in source.glob("20*/handoff.json")
+                if coordinator.read_json(value).get("result") == "cook-certified"]
+    if len(handoffs) != 1:
+        raise ControllerError("Certification did not produce one settled native report")
+    retained = path.parent / handoffs[0].parent.name
+    state["cookCertification"] = {"report": str(retained / "cook-certification.json"),
+                                "timings": str(retained / "timings.json"), "observedAtUtc": now()}
+    save(path, state)
+
+
 def record_player_test(args, path, state):
     if state["steps"]["steam"]["status"] != "completed":
         raise ControllerError("Player acceptance requires an observed live candidate")
@@ -741,17 +804,58 @@ def record_player_test(args, path, state):
     save(path, state)
 
 
+def build_progress(state):
+    build = state["steps"]["build"]
+    if build["status"] == "running" and build.get("checkout"):
+        checkout = Path(build["checkout"])
+        active = checkout / "build/playtest" / state["configuration"]["version"] / "active-attempt.json"
+        if active.is_file() and not active.is_symlink():
+            metadata = coordinator.read_json(active)
+            evidence = Path(metadata["evidence"])
+            if evidence.resolve().is_relative_to(checkout.resolve()):
+                timing_file = evidence / "timings.json"
+                if timing_file.is_file() and not timing_file.is_symlink():
+                    report = coordinator.read_json(timing_file)
+                    native = Path(metadata.get("nativeTimingReport", evidence / "native-timings.json"))
+                    if native.resolve().is_relative_to(checkout.resolve()) and native.is_file() and not native.is_symlink():
+                        report["native"] = coordinator.read_json(native)
+                    return report
+    retained = build.get("timingEvidence")
+    if retained and Path(retained).is_file() and not Path(retained).is_symlink():
+        return coordinator.read_json(Path(retained))
+    return {}
+
+
 def summary(state):
     config = state["configuration"]
     lines = [config["version"], f"Game: {config['gameRevision']}", f"Master: {config['masterRevision']}",
              f"Protocol: {state['compatibility']['game_protocol']} (both pinned sources)"]
-    lines += [f"{name}: {state['steps'][name]['status']}" for name in STEPS]
+    for name in STEPS:
+        step = state["steps"][name]
+        elapsed = playtest_timing.summary(step)
+        lines.append(f"{name}: {step['status']}" + (f" — {elapsed}" if elapsed else ""))
+    progress = build_progress(state)
+    for phase in progress.get("phases", []):
+        native = progress.get("native", {}).get("phases", []) if phase["phase"] == "unity" else []
+        current = next((row for row in native if not row.get("finishedAtUtc")), phase)
+        duration = current.get("durationSeconds")
+        if duration is None:
+            duration = playtest_timing.seconds(current["startedAtUtc"], playtest_timing.utc_now())
+        lines.append(f"  {current['phase']}: {int(duration) // 60}m {int(duration) % 60:02d}s" +
+                     (" elapsed" if current.get("finishedAtUtc") is None else ""))
     if state["steps"]["build"].get("log") and state["steps"]["build"]["status"] in ("failed", "interrupted"):
         lines.append("Build evidence: " + state["steps"]["build"]["log"])
     lines.append("player acceptance: " + state["playerAcceptance"]["status"])
     workflow = state["steps"]["workflow"]
     if workflow.get("url"):
         lines.append("CI: " + workflow["url"])
+    if workflow.get("initialQueueSeconds") is not None:
+        lines.append(f"  initial queue: {int(workflow['initialQueueSeconds'])}s")
+    jobs = workflow.get("ciAttempts", {}).get(str(workflow.get("runAttempt")), [])
+    for job in jobs:
+        if job.get("durationSeconds") is not None:
+            duration = int(job["durationSeconds"])
+            lines.append(f"  {job['name']}: {duration // 60}m {duration % 60:02d}s")
     deployment = state["steps"]["deployment"]
     if deployment["status"] == "completed" and state["steps"]["steam"]["status"] != "completed":
         steam = state["steps"]["upload"]["candidate"]["steam"]
@@ -783,7 +887,7 @@ def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--root", type=Path, default=ROOT, help="Explicit selected game checkout")
     commands = result.add_subparsers(dest="action", required=True)
-    for name in ("prepare", "run", "resume", "status", "verify-live", "cook", "record-player-test"):
+    for name in ("prepare", "run", "resume", "status", "verify-live", "cook", "certify-cook", "record-player-test"):
         action = commands.add_parser(name)
         action.add_argument("--version", required=True, type=producer.version_arg)
         action.add_argument("--json", action="store_true", help="Print the durable record")
@@ -795,6 +899,8 @@ def parser():
             action.add_argument("--local-unity-project", type=Path)
             action.add_argument("--unity-editor", type=producer.unity_path_arg, default=producer.DEFAULT_UNITY)
             action.add_argument("--migration-from", default="")
+            action.add_argument("--use-build-cache", action="store_true",
+                                help="Opt in to the release-owned Unity import cache; cold builds remain the default")
         elif name in ("run", "resume"):
             action.add_argument("--no-wait", action="store_true", help="Return after dispatch/reconciliation")
             action.add_argument("--wait-timeout", type=int, default=3600)
@@ -838,6 +944,8 @@ def main():
                     verify_live(args, path, state)
                 elif args.action == "cook":
                     diagnose_cook(root, path, state)
+                elif args.action == "certify-cook":
+                    certify_cook(root, path, state)
                 elif args.action == "record-player-test":
                     record_player_test(args, path, state)
         print(json.dumps(state, indent=2) if args.json else summary(state))

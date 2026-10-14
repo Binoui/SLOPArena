@@ -51,6 +51,24 @@ typography:
     fontFamily: "Unity UI default sans-serif"
     fontSize: "12px"
     fontWeight: 700
+  hud-countdown-word:
+    fontFamily: "Archivo Black"
+    fontSize: "48px"
+  hud-countdown-number:
+    fontFamily: "Archivo Black"
+    fontSize: "122px"
+  hud-end-headline:
+    fontFamily: "Archivo Black"
+    fontSize: "68px"
+  hud-end-outcome:
+    fontFamily: "Archivo Black"
+    fontSize: "26px"
+  hud-end-winner:
+    fontFamily: "Archivo Black"
+    fontSize: "22px"
+  hud-end-shared-name:
+    fontFamily: "Archivo Black"
+    fontSize: "14px"
 rounded:
   none: "0px"
 spacing:
@@ -106,6 +124,49 @@ components:
     padding: "0px 6px"
     width: "76px"
     height: "28px"
+  hud-countdown-ready:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.hud-ink}"
+    typography: "{typography.hud-countdown-word}"
+    rounded: "{rounded.none}"
+    width: "268px"
+    height: "84px"
+  hud-countdown-number:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.hud-ink}"
+    typography: "{typography.hud-countdown-number}"
+    rounded: "{rounded.none}"
+    width: "148px"
+    height: "156px"
+  hud-countdown-start:
+    backgroundColor: "{colors.action-yellow}"
+    textColor: "{colors.hud-ink}"
+    typography: "{typography.hud-countdown-word}"
+    rounded: "{rounded.none}"
+    width: "468px"
+    height: "106px"
+  hud-end-declaration:
+    backgroundColor: "{colors.action-yellow}"
+    textColor: "{colors.hud-ink}"
+    typography: "{typography.hud-end-headline}"
+    rounded: "{rounded.none}"
+    padding: "8px 14px 12px 14px"
+    width: "460px"
+    height: "226px"
+  hud-end-shared-declaration:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.hud-ink}"
+    typography: "{typography.hud-end-headline}"
+    rounded: "{rounded.none}"
+    padding: "8px 14px 12px 14px"
+    width: "460px"
+    height: "226px"
+  hud-end-outcome:
+    backgroundColor: "{colors.hud-ink}"
+    textColor: "{colors.paper}"
+    typography: "{typography.hud-end-outcome}"
+    padding: "0px 8px"
+    height: "38px"
 ---
 
 # Design System: SlopArena
@@ -255,6 +316,26 @@ Paired move tickets use continuous angular Paper/Ink fields with cut corners and
 ### Navigation
 
 Navigation stays stable: the current persistent Training/Solo/Online tabs and flow-specific Back/Leave paths are implementation evidence, not a decorative collage. Preserve predictable routes and active-session guards; this visual direction does not approve a navigation redesign. Labels remain short, uppercase, and explicit.
+
+### Solo Start Stamps
+
+Solo presents one Archivo declaration at a time: a Paper READY strip, square Paper 3/2/1 stamps, then a wider Action Yellow SLOP IT OUT. Use the countdown word and number roles, square HUD Ink borders, and a hard Combat Orange print duplicate offset `3px` down and right. The temporary stamps do not intercept input or veil the arena.
+
+A fixed `480×190` logical anchor starts at 32% of HUD height. Live parent geometry fits the stamps to available space and keeps them clear of player cards. Authored tilt stays static: READY/start −4°, 3 −7°, 2 +4°, and 1 −3°. Each lands over roughly `120ms`, then clears through a `0.16s` fade and `18px` right slide. Reduced flashing removes scale, slide, and fade while retaining tilt, lettering, and beats; pause freezes visible age with the Solo timer. Reused clicks sharpen before the existing heavier start impact, all on the UI mixer bus.
+
+**The Solo Beat Rule.** Let the existing Solo timer own each start beat; fit one crisp stamp clear of player cards, keep its words visible with reduced flashing, and clear the final declaration while play proceeds.
+
+The existing admission delay remains 300 ticks: READY holds for two seconds; 3/2/1 begin at 180/120/60 remaining ticks; SLOP IT OUT begins at zero and clears after `0.72s` while gameplay runs. Native Solo on Log Off is recorded in `.impeccable/review/solo-countdown-20261014/verification.json`, `source-and-captures.json`, and `native-final/`: 22 valid captures across 1920×1080 UI100, 1366×768 UI100/UI140, and reduced flashing show complete lettering and card/deck clearance. The scoped finish review is **ship**, with zero shipping compile/runtime errors. Native audio playback and routing were observed; physical output, connected PvP, and packaged-player behavior remain unverified.
+
+### Solo Finish Poster
+
+Solo closes with SLOP SETTLED. on an Action Yellow declaration and a Paper winner portrait slip. An Ink/Paper outcome strip says YOU WIN! or CPU WINS!; the portrait and name come from the actual Solo result. Shared victory instead uses a Paper DOUBLE K.O.! declaration, SHARED VICTORY, and both existing roster portraits. Shared names use two explicit lines in the shared-name role, a `34px` field, and a `140px` portrait row so the longest FightGuy/FightGuy pairing remains readable. The end headline, outcome, and winner roles keep declaration and identification distinct.
+
+The two-part `640×226` poster has a `166×198` portrait slip, `14px` gap, and square `460×226` declaration. Its `640×240` logical anchor sits at 32% of HUD height; live parent geometry fits and shifts it right to clear player cards, reserving entrance scale and tilted corners. The poster tilts −3° and the slip +4°. The headline's hard orange duplicate sits `3px` down/right. One brief scale/vertical slam settles into a readable hold; reduced flashing keeps the fitted static poster. The ending clears any start stamp, ignores picking, leaves the arena visible, and clears at two seconds. The existing Results coroutine still waits two seconds. The heavier reused impact plays on the UI bus at pitch `0.82`; physical output has not been auditioned.
+
+**The Solo Finish Rule.** Let the existing Solo result own the ending; pair one completion declaration with the factual outcome and winning portrait/name, show both fighters for shared victory, and retain the two-second Results handoff.
+
+Current evidence: `.impeccable/review/solo-end-20261014/verification.json`, `source-and-captures.json`, and `review-fix/`. All six shipping source hashes and 17 capture hashes match. Fifteen labelled native Training presentation fixtures cover outcome branches, 1920×1080/1366×768, UI100/UI140, reduced flashing, all four portraits, and the longest shared names. Two actual Solo captures show ordinary movement causing three natural falls, Shared CPU victory, and settled Results; observed handoff of about `2.35s` includes frontend settling after the unchanged two-second delay. The full review required the shared-name fit correction; `fix-verdict.md` records **ship** for that fix only, rather than a fresh whole-surface review. Shipping compile and console have zero errors; the helper was removed and Editor/settings/config/viewport/prior Results restored. No new rasters were introduced. Natural local win/shared outcomes, physical audio, packaged-player behavior, and connected PvP remain untested.
 
 ### Fighter Ground Markers
 

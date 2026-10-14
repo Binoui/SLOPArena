@@ -390,7 +390,7 @@ namespace SlopArena.Client.World
             // Shared camera + aim setup
             SetupCamera();
             if (solo)
-                _hudManager?.ShowMatchCallout("READY", 2f);
+                _hudManager?.ShowSoloCountdown("READY", 2f);
             SetupAimHandler(playerDef);
             SetupLockIndicator(new[] { _playerRenderer }.Concat(_npcs.Select(n => n.Renderer)).ToArray(), arena);
             _lockIndicator = FindFirstObjectByType<TargetIndicator>();
@@ -472,10 +472,10 @@ namespace SlopArena.Client.World
             if (MatchConfig.Mode == GameMode.Solo && _soloCountdownTicks > 0)
             {
                 _soloCountdownTicks--;
-                if (_soloCountdownTicks == 180) _hudManager?.ShowMatchCallout("1", 1f);
-                else if (_soloCountdownTicks == 120) _hudManager?.ShowMatchCallout("2", 1f);
-                else if (_soloCountdownTicks == 60) _hudManager?.ShowMatchCallout("3", 1f);
-                else if (_soloCountdownTicks == 0) _hudManager?.ShowMatchCallout("SLOP IT OUT", 1f);
+                if (_soloCountdownTicks == 180) _hudManager?.ShowSoloCountdown("3", 1f);
+                else if (_soloCountdownTicks == 120) _hudManager?.ShowSoloCountdown("2", 1f);
+                else if (_soloCountdownTicks == 60) _hudManager?.ShowSoloCountdown("1", 1f);
+                else if (_soloCountdownTicks == 0) _hudManager?.ShowSoloCountdown("SLOP IT OUT", 0.72f);
                 return;
             }
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
@@ -648,10 +648,7 @@ namespace SlopArena.Client.World
                 0,
                 entries);
             ClientSession.SetLocalMatchResults(results);
-            var winner = playerFirst ? "YOU" : "CPU";
-            _hudManager?.ShowMatchCallout(
-                results.SharedVictory ? "DOUBLE K.O.!" : $"{winner} WINS!",
-                1.4f);
+            _hudManager?.ShowSoloEnding(playerFirst, results.SharedVictory, MatchConfig.PlayerClass, MatchConfig.SoloBotClass);
             StartCoroutine(LoadSoloResults());
         }
 

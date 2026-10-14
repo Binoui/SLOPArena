@@ -1194,6 +1194,11 @@ public sealed class CharacterPackageAuthoringService
         var status = new CharacterCookStatus
         {
             State = "Valid",
+            CookedAtUtc = DateTime.UtcNow.ToString("O"),
+            CookTarget = EditorUserBuildSettings.activeBuildTarget.ToString(),
+            CookUnityVersion = Application.unityVersion,
+            CookPackagesManifestHash = FileHash(Path.Combine(_projectRoot, "Packages/manifest.json")),
+            CookPackageLockHash = FileHash(Path.Combine(_projectRoot, "Packages/packages-lock.json")),
             SourceHash = assembled.SourceHash,
             CurrentSourceHash = assembled.SourceHash,
             CookedSourceHash = assembled.SourceHash,
@@ -1213,6 +1218,13 @@ public sealed class CharacterPackageAuthoringService
         string path = Path.Combine(_projectRoot, CharacterCookOutput.For(packageId).IntermediateDirectory, CharacterCookOutput.For(packageId).StatusFileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, JsonUtility.ToJson(status, true));
+    }
+
+    private static string FileHash(string path)
+    {
+        if (!File.Exists(path)) return "";
+        using var hash = SHA256.Create();
+        return BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(path))).Replace("-", "").ToLowerInvariant();
     }
 
 
@@ -1525,6 +1537,8 @@ public sealed class CharacterPackageProvenance
     [JsonProperty("unityDependencies")] public IReadOnlyList<CharacterPackageUnityDependency> UnityDependencies { get; }
     [JsonProperty("warnings")] public IReadOnlyList<CharacterPackageDiagnosticResult> Warnings { get; }
     [JsonProperty("cookStatus")] public string CookStatus { get; }
+    [JsonProperty("cookTarget")] public string CookTarget { get; }
+    [JsonProperty("cookUnityVersion")] public string CookUnityVersion { get; }
     [JsonProperty("cookStatusDiagnostics")] public IReadOnlyList<CharacterPackageDiagnosticResult> CookStatusDiagnostics { get; }
 
     private CharacterPackageProvenance(
@@ -1560,6 +1574,8 @@ public sealed class CharacterPackageProvenance
             .Select(dependency => new CharacterPackageUnityDependency(dependency)).ToArray();
         Warnings = manifest.Warnings.ToArray();
         CookStatus = status?.State ?? "Unknown";
+        CookTarget = status?.CookTarget ?? "";
+        CookUnityVersion = status?.CookUnityVersion ?? "";
         CookStatusDiagnostics = (status?.Diagnostics ?? new List<CharacterCookStatusDiagnostic>())
             .Select(diagnostic => new CharacterPackageDiagnosticResult(diagnostic.Severity, diagnostic.Code, diagnostic.Path, diagnostic.Message))
             .ToArray();
@@ -1980,6 +1996,12 @@ public sealed class CharacterPackageDiagnosticResult
 public sealed class CharacterCookStatus
 {
     public string State = "Unknown";
+    // Advisory authoring provenance, separate from the immutable runtime hash contract.
+    public string CookedAtUtc = "";
+    public string CookTarget = "";
+    public string CookUnityVersion = "";
+    public string CookPackagesManifestHash = "";
+    public string CookPackageLockHash = "";
     public string SourceHash = "";
     public string CurrentSourceHash = "";
     public string CookedSourceHash = "";

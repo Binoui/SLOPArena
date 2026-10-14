@@ -1,7 +1,8 @@
 # Game mode exploration
 
-**Status:** exploratory design notes, 2026-10-13. These record the maintainer's
-preferred directions and proposed rules to try; they are not an implementation
+**Status:** exploratory design notes, started 2026-10-13; solo arcade direction
+added 2026-10-14. These record the maintainer's preferred directions and proposed
+rules to try; they are not an implementation
 specification or a claim of supported features. The
 [friends demo](../plans/2026-09-05-playable-demo-reset.md) remains the current
 delivery baseline.
@@ -22,6 +23,10 @@ movement, kits and Knockback through new objectives and distinctive map geometry
   map with more movement choices should support that chase.
 - **Moving platforms:** add gameplay geometry and personality to current maps as
   well as considering it for the new modes.
+- **Solo arcade:** small replayable minigames with personal records, offering a
+  low-stress way to explore kits and movement beyond Training or CPU fights.
+  Slopball and combined Character Courses are the selected initial solo release.
+  Their records are balls returned and time to complete the course.
 
 Rules below are design proposals. No capture duration, score target, map size,
 player maximum or ball-speed value has been selected.
@@ -92,6 +97,39 @@ ball trajectories. The dedicated court must make floor contacts, camp ownership
 and rebound paths clear from the gameplay camera; walls and the ceiling need
 presentation that preserves the view of the ball and fighters.
 
+## Solo arcade
+
+The [Solo Arcade feature brief](arcade.md) now consolidates the selected solo
+release: **Slopball for all four fighters plus one FightGuy Character Course**.
+It supersedes earlier wall-only returns and separate obstacle/target challenges.
+The [resolved interview](arcade-interview.md) preserves the design decisions.
+
+Slopball uses a sender and net in an enclosed neutral sports court. Receive a
+ball in the player half, redirect it and clear the net back into the sender half
+to score one return, including banks and passive body trick shots. A fresh ball
+follows after a fixed gap. Unlimited juggling, per-shot percent and a seeded,
+capped difficulty ramp reward experimentation. A player-side floor miss ends
+the attempt; earned returns also count on voluntary stop or retry.
+
+FightGuy's pilot merges traversal and targets in serene mountains with martial-arts
+rooftops, pole tops, static rope bridges and floating islands. Break every required
+target and reach the finish; aim for a first clean completion in 1–2 minutes.
+Checkpoints provide optional cumulative-progress saves. Falls preserve broken
+targets and continue the timer, with normal PvP respawn and legal cooldown-refresh
+routes. Geometry encourages useful moves; any valid solution counts.
+
+Both challenges use normal kits and orbit/ability-aim cameras, a dedicated offline
+Arcade entry, opt-in mechanic tips, quick retry and persistent local personal bests.
+Archive incompatible gameplay records while preserving cosmetic compatibility.
+Enjoying Arcade itself is a valid goal; later trying stock PvP is optional.
+
+The selected architecture is focused Shared ball/target support with challenge
+data bundled into an expanded baked stage artifact. **Slopball is the first
+playable Arcade slice**, then the Course; see the
+[implementation plan](arcade-implementation.md). This preparation does not
+reorder the immediate first-working-online-match priority. Additional courses,
+multiplayer volleyball, medals and leaderboards are later scopes.
+
 ## Crown
 
 The match rhythm is **claim → escape → intercept → steal → escape again**.
@@ -141,10 +179,56 @@ simulation support; cosmetic Unity animation alone does not supply it. Objective
 state, team rules, the ball and crown also need Shared/GameServer authority and
 matching client presentation.
 
-Implementation architecture options and approval belong to a later design step.
-These notes do not select a new framework or authorize an architecture change.
+Multiplayer-mode architecture options and approval belong to a later design step.
+Solo Arcade's selected foundation is documented in its own implementation plan;
+these broader notes do not select a general framework.
 
-## Useful first experiments
+## Proposed multiplayer delivery sequence
+
+**Current observation, 2026-10-13:** the maintainer reports that an online match
+has never worked yet, and connection problems remain unresolved. First remote
+play is therefore the immediate milestone. Multiplayer mode appeal and player
+retention are hypotheses to test after players can reach a working match. Solo
+arcade appeal can be tested through the local simulation independently.
+
+1. **Complete a remote stock match and rematch.** Use current characters, an
+   existing stage and the packaged join flow. Two players on different networks
+   must be able to join, move and fight, reach KO/respawn and results, then start
+   another match. Diagnose the actual failing connection
+   step and fix its blockers. This milestone proves a usable starting point;
+   broader four-player reliability still needs its own check.
+2. **Get the first small friend session.** Use the working build to observe
+   joining, combat readability and another-round interest. Record concrete
+   failures and what players enjoyed. An early session supplies evidence while
+   the game is still rough; it does not require a finished casual-mode offering.
+3. **Build one bounded capture mode experiment.** Give free-for-all and teams
+   equal priority. Use one existing static map or a simple route graybox,
+   unlimited respawns, full-capture scoring and zone relocation. Resolve the
+   necessary architecture options before implementation. Keep the four-or-more
+   player direction and scope the additional capacity work explicitly.
+4. **Test capture with mixed-skill friends.** Exercise the actual four-player
+   online mode, including team play, and expand the capacity test when more
+   players are supported. Check whether players understand the goal, feel useful,
+   stay involved and choose another round. Fix the problems that prevent that
+   experience, then invite more small groups to play the tested offering.
+5. **Choose the next addition from observed play.** Crown can reuse objective
+   infrastructure and route-map work. Volleyball keeps its dedicated ball/court
+   experiment; moving platforms keep their separate movement/collision scope.
+   Their order should follow player interest and the remaining technical risk.
+
+Connection and match-breaking failures take priority whenever they prevent a
+session. Once players can complete and repeat matches, casual-mode experiments
+can proceed alongside fixes found in those sessions. Reliability work should
+have observable acceptance criteria so it does not become an indefinite polish
+phase.
+
+The audience hypothesis is that a clear objective and continuous participation
+will make the shared fighting mechanics enjoyable to more people. Measure
+voluntary return in either casual modes or stock fights. Players who prefer a
+casual mode are a successful audience in their own right; trying stock later is
+an optional outcome.
+
+## Mode-specific experiments
 
 1. Exercise capture scoring and contested progress in both free-for-all and teams
    on simple geometry before investing in a finished map.
@@ -153,6 +237,9 @@ These notes do not select a new framework or authorize an architecture change.
 3. Test ball response and rally escalation on a dedicated simple court.
 4. Prove one moving-platform behavior, then choose current maps where it improves
    play. Its place in the implementation order depends on the architecture review.
+5. Follow the selected solo Arcade sequence: prove Slopball across the roster,
+   then the static FightGuy Course, with personal bests and quick retry. Test
+   whether each challenge is enjoyable and repeated attempts visibly improve.
 
 Observe whether players understand the objective, encounter others frequently,
 find useful roles across skill levels, and voluntarily want another round.

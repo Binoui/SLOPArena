@@ -168,6 +168,14 @@ unity command --project-path client/Unity \
   sloparena.character.cook --target <package> --format json
 ```
 
+Authoring inspect/cook records the Editor target and Unity version; this remains
+local authoring evidence. For character or cook changes before a Windows release,
+use the isolated
+[`release.py certify-cook` gate](../systems/release-pipeline.md#timings-and-opt-in-import-reuse)
+against the prepared source. It verifies committed cooks before player compilation
+and retains the native report and input fingerprint. If it differs, review the
+cold cook correction rather than committing another warm Editor fingerprint.
+
 A successful cook atomically produces exactly these payloads under
 `content-cooked/<package>/`:
 

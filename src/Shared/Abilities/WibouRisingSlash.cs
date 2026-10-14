@@ -66,6 +66,12 @@ public sealed class WibouRisingSlash : ServerAbility
     public override void OnHitEntity(ref CharacterState attacker, ref CharacterState target,
         CharacterDefinition attackerDef, CharacterDefinition targetDef,
         ref float damage, ref float knockbackForce)
+        => RefundCharge(ref attacker);
+
+    public override void OnHitObject(ref CharacterState attacker, CharacterDefinition attackerDef,
+        ref float damage, ref float knockbackForce) => RefundCharge(ref attacker);
+
+    private static void RefundCharge(ref CharacterState attacker)
     {
         if (attacker.ChargeStockSpent > 0)
         {

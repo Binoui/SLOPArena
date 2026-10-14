@@ -185,6 +185,53 @@ _Avoid_: CPU level, 1–9 scale
 A character's grounded and aerial normals and specials, identified by the canonical Slot grid. Universal mechanics such as Shield, Grab, air dodge, and Combo Influence are not part of the Character Kit.
 _Avoid_: control scheme
 
+## Arcade
+
+**Arcade**:
+Solo minigames played with a selected fighter's movement and Character Kit, offering repeatable challenges and records to beat.
+_Avoid_: Training (when referring to an Arcade challenge), CPU fight
+
+**Arcade Attempt**:
+One run of a selected Arcade challenge from its clean start until completion, failure, voluntary stop or retry. Pausing preserves the same attempt; a full retry begins a new one.
+_Avoid_: PvP Match (when referring to an Arcade run)
+
+**Personal Best** (Arcade):
+The player's highest recorded Slopball Return count or fastest completed Character Course time for a given challenge, fighter and compatible gameplay, saved locally.
+_Avoid_: match standing, stock score
+
+**Slopball**:
+A solo Arcade ball-return challenge played in an enclosed court divided by a net, using the fighter's attacks, projectiles, movement and Body Deflections.
+Its sender launches a fresh ball after each successful return.
+_Avoid_: solo volleyball (when referring specifically to Slopball)
+
+**Slopball Return**:
+A successful Slopball shot where a ball received in the player half is redirected by the player's attack, projectile or Body Deflection and clears the net into the sender half, including via wall or ceiling rebounds. Each ball yields one return.
+_Avoid_: hit (when counting completed Slopball returns)
+
+**Body Deflection** (Slopball):
+A passive rebound from the fighter's body that redirects the ball without adding speed or damaging or launching the fighter. It can complete a Slopball Return.
+_Avoid_: attack (when referring to passive ball-body contact)
+
+**Slopball Serve**:
+A fresh ball launched by the Slopball sender for the player to return.
+_Avoid_: rally (when referring to an individual served ball)
+
+**Slopball Percent**:
+The ball's accumulated damage during a Slopball Serve, increasing its response to later attacks. Each fresh ball starts at zero percent.
+_Avoid_: fighter damage (when referring to damage accumulated by the ball)
+
+**Character Course**:
+A character-specific Arcade challenge combining traversal and attack targets. It is completed by breaking every required target and reaching the finish.
+_Avoid_: obstacle run, break-the-targets mode (when referring to the combined challenge)
+
+**Course Target**:
+A floating objective required for completing a Character Course, broken by one damaging attack or projectile hit without blocking fighter movement.
+_Avoid_: CPU Opponent, bot (when referring to a Course Target)
+
+**Course Checkpoint**:
+A progress marker activated by reaching it after clearing every required target up to that point in the route. It supplies a fall-respawn location; visiting every checkpoint is not required to finish the Character Course.
+_Avoid_: save point (when referring to a checkpoint within an attempt)
+
 ## PvP / Multiplayer
 
 **ServerBrowser**:

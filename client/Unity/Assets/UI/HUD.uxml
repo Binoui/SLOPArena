@@ -1,6 +1,34 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/HUD.uss?fileID=7433441132597879392&amp;guid=82c4820ef1cdb99f79947584a2b83902&amp;type=3#HUD" />
     <ui:VisualElement name="hud-root" class="hud-root">
+        <ui:VisualElement name="solo-countdown" class="solo-countdown" picking-mode="Ignore">
+            <ui:VisualElement name="solo-countdown-anchor" class="solo-countdown-anchor" picking-mode="Ignore">
+                <ui:VisualElement name="solo-countdown-stamp" class="solo-countdown-stamp" picking-mode="Ignore">
+                    <ui:Label name="solo-countdown-print" class="solo-countdown-print" picking-mode="Ignore" />
+                    <ui:Label name="solo-countdown-title" class="solo-countdown-title" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="solo-end" class="solo-end" picking-mode="Ignore">
+            <ui:VisualElement name="solo-end-anchor" class="solo-end-anchor" picking-mode="Ignore">
+                <ui:VisualElement name="solo-end-poster" class="solo-end-poster" picking-mode="Ignore">
+                    <ui:VisualElement class="solo-end-portrait-slip" picking-mode="Ignore">
+                        <ui:VisualElement class="solo-end-portraits" picking-mode="Ignore">
+                            <ui:Image name="solo-end-portrait" class="solo-end-portrait" picking-mode="Ignore" />
+                            <ui:Image name="solo-end-other-portrait" class="solo-end-other-portrait" picking-mode="Ignore" />
+                        </ui:VisualElement>
+                        <ui:Label name="solo-end-name" class="solo-end-name" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="solo-end-declaration" picking-mode="Ignore">
+                        <ui:VisualElement class="solo-end-headline" picking-mode="Ignore">
+                            <ui:Label name="solo-end-print" class="solo-end-print" picking-mode="Ignore" />
+                            <ui:Label name="solo-end-title" class="solo-end-title" picking-mode="Ignore" />
+                        </ui:VisualElement>
+                        <ui:Label name="solo-end-outcome" class="solo-end-outcome" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:VisualElement name="target-lock-indicator" class="target-lock">
             <ui:VisualElement name="target-lock-readout" class="target-lock-readout">
                 <ui:Label name="target-lock-damage" class="target-lock-damage" />

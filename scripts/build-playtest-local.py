@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -14,6 +15,10 @@ import sys
 import time
 from pathlib import Path
 from urllib.parse import urlsplit
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import playtest_cache
+import playtest_timing
 
 DEFAULT_UNITY = str(Path.home() / "Unity/Hub/Editor/6000.0.78f1/Editor/Unity")
 VERSION_RE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-playtest\.[0-9]+\Z")
@@ -73,16 +78,16 @@ def run_capture(command: list[str], cwd: Path, failure: str) -> str:
     return result.stdout
 
 
-def run_logged(command: list[str], cwd: Path, log_path: Path, label: str) -> None:
+def run_logged(command: list[str], cwd: Path, log_path: Path, label: str, *, timeline=None, phase=None) -> None:
     try:
-        with log_path.open("x", encoding="utf-8") as log:
+        with (timeline.stage(phase or log_path.stem) if timeline else nullcontext()), log_path.open("x", encoding="utf-8") as log:
             log.write(label + "\n")
             result = subprocess.run(command, cwd=cwd, stdin=subprocess.DEVNULL,
                                     stdout=log, stderr=subprocess.STDOUT, check=False)
+            if result.returncode:
+                raise BuildError(f"{label} exited with status {result.returncode}; see {log_path}")
     except OSError as exc:
         raise BuildError(f"Could not run {label}; see {log_path}") from exc
-    if result.returncode:
-        raise BuildError(f"{label} exited with status {result.returncode}; see {log_path}")
 
 
 def check_editor(editor_arg: Path) -> Path:
@@ -261,6 +266,29 @@ def stage_local_dependencies(local_project: Path, checkout: Path, evidence: Path
     reject_project_symlinks(checkout / "client/Unity")
 
 
+def retain_cook_evidence(report, evidence, args, unity_version, cache_report, *, accepted_source_unchanged=False):
+    if not report.is_file():
+        return
+    shutil.copy2(report, evidence / "cook-verification.json")
+    verification = json.loads(report.read_text())
+    rows = verification.get("packages", [])
+    certified = (accepted_source_unchanged and verification.get("success") is True and rows and all(row.get("success") is True for row in rows)
+                 and verification.get("buildTarget") == "StandaloneWindows64"
+                 and verification.get("unityVersion") == unity_version
+                 and verification.get("sourceRevision") == args.source_revision)
+    if certified:
+        playtest_timing.atomic_json(evidence / "cook-certification.json", {
+            "schemaVersion": 1, "sourceRevision": args.source_revision,
+            "unityVersion": unity_version, "buildTarget": "StandaloneWindows64",
+            "licensedInputsHash": playtest_cache.fingerprint(json.loads((evidence / "local-dependencies.json").read_text())),
+            "verificationReportSha256": hashlib.sha256(report.read_bytes()).hexdigest(),
+            "packages": [{key: row.get(key) for key in ("packageId", "expectedSourceHash", "expectedPackageHash", "success")}
+                         for row in rows],
+            "importCache": cache_report, "verifiedAtUtc": verification.get("verifiedAtUtc"),
+            "authority": "Native verification of the committed payloads; authoring status remains advisory.",
+        })
+
+
 def run(args: argparse.Namespace) -> dict:
     root = Path(__file__).resolve().parents[1]
     editor = check_editor(args.unity_editor)
@@ -276,6 +304,8 @@ def run(args: argparse.Namespace) -> dict:
     evidence = evidence_parent / attempt
     evidence.mkdir(mode=0o700)
     args.evidence_directory = evidence
+    timeline = playtest_timing.Timeline(evidence / "timings.json")
+    playtest_timing.atomic_json(evidence_parent / "active-attempt.json", {"attempt": attempt, "evidence": str(evidence)})
     unity_version = re.search(r"m_EditorVersion:\s*(\S+)", (root / "client/Unity/ProjectSettings/ProjectVersion.txt").read_text()).group(1)
     if editor.parent.parent.name != unity_version:
         raise BuildError(f"Installed Unity must match pinned project version {unity_version}")
@@ -289,11 +319,14 @@ def run(args: argparse.Namespace) -> dict:
     owner_file.write_text(attempt + "\n", encoding="ascii")
     checkout = stage / "source"
     checkout_path = str(checkout.resolve())
+    playtest_timing.atomic_json(evidence_parent / "active-attempt.json", {
+        "attempt": attempt, "evidence": str(evidence),
+        "nativeTimingReport": str(checkout / "build/playtest/native-timings.json")})
 
     run_logged(["git", "clone", "--no-hardlinks", "--no-checkout", str(root), str(checkout)], root,
-               evidence / "clone.log", "Cloning approved source into a fresh isolated checkout")
+               evidence / "clone.log", "Cloning approved source into a fresh isolated checkout", timeline=timeline)
     run_logged(["git", "checkout", "--detach", args.source_revision], checkout,
-               evidence / "checkout.log", "Pinning isolated checkout to approved source")
+               evidence / "checkout.log", "Pinning isolated checkout to approved source", timeline=timeline)
     isolated_head = run_capture(["git", "rev-parse", "HEAD"], checkout, "Could not verify isolated checkout revision").strip()
     if isolated_head != args.source_revision:
         raise BuildError("Isolated checkout revision differs from the approved source revision")
@@ -312,7 +345,26 @@ def run(args: argparse.Namespace) -> dict:
     if project_is_open(project):
         raise BuildError("Isolated Unity project is already open in an Editor; refusing batchmode")
 
-    stage_local_dependencies(args.local_unity_project or canonical_project, checkout, evidence)
+    with timeline.stage("licensed-inputs"):
+        stage_local_dependencies(args.local_unity_project or canonical_project, checkout, evidence)
+    cache = None
+    cache_inputs = None
+    cache_report = {"status": "disabled"}
+    if getattr(args, "build_cache", None):
+        if args.diagnose_cook:
+            raise BuildError("Diagnostic cooks require a cold import; omit --build-cache")
+        if any(Path(args.build_cache).resolve().is_relative_to(path.resolve()) for path in
+               (project, canonical_project, args.local_unity_project or canonical_project)):
+            raise BuildError("Import cache must live outside the Unity projects")
+        with timeline.stage("cache-restore"):
+            try:
+                cache = playtest_cache.ImportCache(args.build_cache)
+            except ValueError as exc:
+                raise BuildError(str(exc)) from exc
+            cache_inputs = playtest_cache.compatibility(project, unity_version,
+                json.loads((evidence / "local-dependencies.json").read_text()))
+            cache_report = {"status": "seed-only"} if args.certify_cook else cache.restore(project, cache_inputs)
+    playtest_timing.atomic_json(evidence / "cache.json", cache_report)
     if args.cook_baseline and args.cook_baseline.is_dir():
         baseline = checkout / "build/playtest/accepted-cook-status"
         baseline.mkdir(parents=True)
@@ -324,7 +376,7 @@ def run(args: argparse.Namespace) -> dict:
 
     shared_log = evidence / "shared-build.log"
     run_logged(["dotnet", "build", "src/Shared/", "--configuration", "Release", "--nologo"], checkout,
-               shared_log, "Building Shared and copying its plugin closure only into the isolated Unity project")
+               shared_log, "Building Shared and copying its plugin closure only into the isolated Unity project", timeline=timeline)
 
     producer = checkout / "scripts/ci/PlaytestReleaseBuilder.cs"
     editor_assets = project / "Assets/Editor"
@@ -348,18 +400,28 @@ def run(args: argparse.Namespace) -> dict:
     # Platform-sensitive dependency hashes must be computed for the player target.
     unity_command = [str(editor), "-batchmode", "-quit", "-buildTarget", "Win64",
                      "-projectPath", str(project.resolve()),
-                     "-executeMethod", "PlaytestReleaseBuilder.DiagnoseCook" if args.diagnose_cook else "PlaytestReleaseBuilder.Build",
+                     "-executeMethod", ("PlaytestReleaseBuilder.DiagnoseCook" if args.diagnose_cook else
+                                        "PlaytestReleaseBuilder.CertifyCook" if args.certify_cook else "PlaytestReleaseBuilder.Build"),
                      "-releaseVersion", args.version,
                      "-releaseSourceRevision", args.source_revision,
                      "-releaseMasterEndpoint", args.endpoint,
                      "-logFile", str(unity_log)]
+    accepted_source_unchanged = False
     try:
-        run_logged(unity_command, checkout, launcher_log, "Running installed licensed Unity batchmode without activation arguments")
-    except BuildError:
+        run_logged(unity_command, checkout, launcher_log, "Running installed licensed Unity batchmode without activation arguments",
+                   timeline=timeline, phase="unity")
+        if not args.diagnose_cook:
+            run_capture(["git", "diff", "--exit-code", args.source_revision, "--", "content-cooked"], checkout,
+                        "Native import rewrote committed cooked content; certification/build refuses implicit publication")
+            accepted_source_unchanged = True
+    finally:
         report = checkout / "build/playtest/cook-verification.json"
-        if report.is_file():
-            shutil.copy2(report, evidence / "cook-verification.json")
-        raise
+        retain_cook_evidence(report, evidence, args, unity_version, cache_report,
+                             accepted_source_unchanged=accepted_source_unchanged)
+        native = checkout / "build/playtest/native-timings.json"
+        if native.is_file():
+            shutil.copy2(native, evidence / "native-timings.json")
+            timeline.native(json.loads(native.read_text()))
     if args.diagnose_cook:
         diagnostics = checkout / "build/playtest/cook-diagnostics"
         if not (diagnostics / "cook.json").is_file():
@@ -374,6 +436,26 @@ def run(args: argparse.Namespace) -> dict:
                    "isolatedRoot": checkout_path, "isolatedSourceRemoved": False}
         (evidence / "handoff.json").write_text(json.dumps(handoff, indent=2) + "\n")
         return handoff
+    if args.certify_cook:
+        if not (evidence / "cook-certification.json").is_file():
+            raise BuildError("Native Windows certification did not verify the committed cooks")
+        if cache:
+            if project_is_open(project):
+                raise BuildError("Certification Editor has not closed; refusing cache snapshot")
+            with timeline.stage("cache-store"):
+                try:
+                    cache_report["store"] = cache.store(project, cache_inputs, args.source_revision)
+                except (OSError, ValueError):
+                    cache_report["store"] = {"status": "failed", "reason": "snapshot_unavailable"}
+                playtest_timing.atomic_json(evidence / "cache.json", cache_report)
+        handoff = {"version": args.version, "sourceRevision": args.source_revision,
+                   "result": "cook-certified", "report": str(evidence / "cook-certification.json"),
+                   "isolatedSourceRemoved": True}
+        if owner_file.read_text().strip() != attempt or stage.is_symlink():
+            raise BuildError("Certification source ownership changed")
+        shutil.rmtree(stage)
+        playtest_timing.atomic_json(evidence / "handoff.json", handoff)
+        return handoff
     if not unity_log.is_file() or f"PLAYTEST_RELEASE_BUILD_OK version={args.version} source={args.source_revision}" not in unity_log.read_text(encoding="utf-8", errors="replace"):
         raise BuildError(f"Unity did not report a successful real player build; see {unity_log} and {launcher_log}")
     if not client_receipt.is_file() or not release.is_dir():
@@ -383,11 +465,11 @@ def run(args: argparse.Namespace) -> dict:
     run_logged(coordinator + ["verify-client", "--client", "build/playtest/client.json",
                               "--version", args.version, "--source-revision", args.source_revision,
                               "--endpoint", args.endpoint], checkout, evidence / "verify-client.log",
-               "Verifying isolated client receipt and packaged bytes")
+               "Verifying isolated client receipt and packaged bytes", timeline=timeline)
     run_logged(coordinator + ["pack-client", "--client", str(checkout), "--version", args.version,
                               "--source-revision", args.source_revision, "--endpoint", args.endpoint,
                               "--output", str(archive)], checkout, evidence / "pack-client.log",
-               "Packing the source-pinned client archive with the existing coordinator CLI")
+               "Packing the source-pinned client archive with the existing coordinator CLI", timeline=timeline)
     if not archive.is_file() or archive.stat().st_size == 0:
         raise BuildError("Coordinator did not create a non-empty client archive")
 
@@ -395,6 +477,16 @@ def run(args: argparse.Namespace) -> dict:
     output_evidence = evidence / "release" / release.name
     output_evidence.parent.mkdir()
     shutil.copytree(release, output_evidence)
+
+    if cache:
+        with timeline.stage("cache-store"):
+            if project_is_open(project):
+                raise BuildError("Cannot snapshot a Library while its Editor is running")
+            try:
+                cache_report["store"] = cache.store(project, cache_inputs, args.source_revision)
+            except (OSError, ValueError):
+                cache_report["store"] = {"status": "failed", "reason": "snapshot_unavailable"}
+            playtest_timing.atomic_json(evidence / "cache.json", cache_report)
 
     if owner_file.read_text(encoding="ascii").strip() != attempt or stage.is_symlink():
         raise BuildError("Task-owned isolated source marker changed; refusing to remove staging")
@@ -426,10 +518,15 @@ def parser() -> argparse.ArgumentParser:
                         default=os.environ.get("UNITY_EDITOR", DEFAULT_UNITY))
     result.add_argument("--local-unity-project", type=Path,
                         help="Read ignored licensed dependencies from this checkout's client/Unity; never writes there")
-    result.add_argument("--diagnose-cook", action="store_true",
+    cook_mode = result.add_mutually_exclusive_group()
+    cook_mode.add_argument("--diagnose-cook", action="store_true",
                         help="Produce a cold Win64 cook report and reviewable correction; never builds or publishes a client")
+    cook_mode.add_argument("--certify-cook", action="store_true",
+                          help="Cold native verification of committed Windows cooks, without a player or archive; optionally seeds the cache")
     result.add_argument("--cook-baseline", type=Path,
                         help="Optional advisory dependency snapshots for automatic diffs; never an admission authority")
+    result.add_argument("--build-cache", type=Path,
+                        help="Opt-in private release Library cache outside the isolated project; native verification still runs")
     return result
 
 
