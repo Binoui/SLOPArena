@@ -132,9 +132,6 @@ Older accepted ADRs remain the decision record for the mechanics they cover. If 
 
 The `research/` directory contains design analysis and external references, including:
 
-- [Development timeline for a vlog](research/2026-10-14-development-timeline.md) — May–October 2026 milestones, original agent conversations, historical code, and local footage pointers.
-- [Downloads source guide for the vlog](research/2026-10-14-downloads-source-guide.md) — original planning exports, character art, earlier demo builds, and AI-video speaker notes.
-- [Tools and models timeline](research/2026-10-14-tools-and-models-timeline.md) — Antigravity, Warp, Hermes, OMP, Orca, Codex and T3 transitions, exact recorded models, and art/animation tools.
 - [Melee frame data](research/melee-frame-data.md)
 - [Melee frame analysis](research/melee-frame-analysis.md)
 - [Melee Knockback model](research/melee-knockback-model.md)

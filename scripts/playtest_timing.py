@@ -8,6 +8,14 @@ import time
 import uuid
 
 
+# Linux monotonic timestamps survive controller restarts, but not a reboot.
+# Elsewhere, keep measurements scoped to this process instead of comparing clocks.
+try:
+    CLOCK_ID = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+except OSError:
+    CLOCK_ID = uuid.uuid4().hex
+
+
 def utc_now():
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
@@ -52,25 +60,37 @@ def transition(step, status, timestamp, attempt=None):
         # A first observation of an already finished external operation has no measured start.
         return
     else:
-        current = {"startedAtUtc": timestamp, "status": status, "attempt": attempt}
+        current = {"startedAtUtc": timestamp, "status": status, "attempt": attempt,
+                   "startedMonotonicSeconds": time.monotonic(), "clockId": CLOCK_ID}
         history.append(current)
     current["status"] = status
     if status in TERMINAL:
-        current.update(finishedAtUtc=timestamp,
-                       durationSeconds=seconds(current["startedAtUtc"], timestamp))
+        current["finishedAtUtc"] = timestamp
+        elapsed = monotonic_elapsed(current)
+        if elapsed is not None:
+            current["durationSeconds"] = elapsed
 
 
-def summary(step, timestamp=None):
+def monotonic_elapsed(row):
+    if row.get("clockId") != CLOCK_ID or "startedMonotonicSeconds" not in row:
+        return None
+    return max(0, time.monotonic() - row["startedMonotonicSeconds"])
+
+
+def summary(step):
     history = step.get("timingAttempts", [])
     if not history:
         return ""
     current = history[-1]
     elapsed = current.get("durationSeconds")
+    if elapsed is None and not current.get("finishedAtUtc"):
+        elapsed = monotonic_elapsed(current)
     if elapsed is None:
-        elapsed = seconds(current["startedAtUtc"], timestamp or utc_now())
-    rounded = int(elapsed)
-    result = f"{rounded // 60}m {rounded % 60:02d}s"
-    if not current.get("finishedAtUtc"):
+        result = "duration unavailable"
+    else:
+        rounded = int(elapsed)
+        result = f"{rounded // 60}m {rounded % 60:02d}s"
+    if elapsed is not None and not current.get("finishedAtUtc"):
         result += " elapsed"
     if len(history) > 1:
         result += f" (attempt {len(history)})"

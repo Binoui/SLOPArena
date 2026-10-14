@@ -57,6 +57,7 @@ namespace SlopArena.Client.UI
                 SlopballPhase.Countdown => "Start from here. Release held controls.",
                 SlopballPhase.WaitingServe => $"Next serve in {state.ServeInTicks / 60f:0.0}s",
                 _ => !state.Received ? "Receive on your side."
+                    : state.ClearedNet ? "Land it on the launcher side!"
                     : !state.ReturnArmed ? "Hit the ball, then clear the net." : "Clear the net. Banks count!",
             };
             _ball.text = ball.Active ? $"BALL {ball.DamagePercent:0}%  ·  UNLIMITED TOUCHES" : "";

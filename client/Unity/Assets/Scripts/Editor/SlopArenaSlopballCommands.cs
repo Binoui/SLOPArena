@@ -32,8 +32,8 @@ namespace SlopArena.EditorTools
             {
                 Mesh shell = MeshAsset(DirectoryPath + "/CourtShell.asset", Room());
                 Mesh net = MeshAsset(DirectoryPath + "/Net.asset", Net());
-                Mesh playerFloor = MeshAsset(DirectoryPath + "/PlayerFloor.asset", Plane(-6, 0));
-                Mesh senderFloor = MeshAsset(DirectoryPath + "/SenderFloor.asset", Plane(0, 6));
+                Mesh playerFloor = MeshAsset(DirectoryPath + "/PlayerFloor.asset", Plane(-30, 0));
+                Mesh senderFloor = MeshAsset(DirectoryPath + "/SenderFloor.asset", Plane(0, 30));
                 Material wall = MaterialAsset("Shell", new Color(.13f, .19f, .26f), false);
                 Material player = MaterialAsset("Player", new Color(.12f, .3f, .39f), false);
                 Material sender = MaterialAsset("Sender", new Color(.27f, .19f, .34f), false);
@@ -46,6 +46,62 @@ namespace SlopArena.EditorTools
             }
             finally { if (original.IsValid() && original.isLoaded) SceneManager.SetActiveScene(original); }
             return new SlopArenaStageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Bake(SlopballMatch.ArenaKey);
+        }
+
+        [CliCommand("sloparena.arcade.slopball.retune", "Apply the approved larger court and easier ball profile, rebuild its original presentation, and bake.",
+            MainThreadRequired = true, Tags = new[] { "arcade", "authoring/stage" })]
+        public static SlopArenaStageBakeResult Retune()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Retune Slopball in Edit Mode.");
+            var original = SceneManager.GetActiveScene();
+            var source = SceneManager.GetSceneByPath(SourcePath);
+            bool opened = !source.IsValid() || !source.isLoaded;
+            if (!opened && source.isDirty) throw new InvalidOperationException("Save the Slopball source draft before retuning.");
+            try
+            {
+                var shell = ReplaceMesh(DirectoryPath + "/CourtShell.asset", Room());
+                ReplaceMesh(DirectoryPath + "/Net.asset", Net());
+                var playerFloor = ReplaceMesh(DirectoryPath + "/PlayerFloor.asset", Plane(-30, 0));
+                var senderFloor = ReplaceMesh(DirectoryPath + "/SenderFloor.asset", Plane(0, 30));
+                if (opened) source = EditorSceneManager.OpenScene(SourcePath, OpenSceneMode.Additive);
+                try
+                {
+                    var root = source.GetRootGameObjects().Single(x => x.name == "Stage_slopball");
+                    var config = root.GetComponentInChildren<ArcadeStageAuthoring>();
+                    ApplyShotProfile(config);
+                    config.BallSpawn.localPosition = new(0, 2.3f, 6);
+                    root.transform.Find("SpawnPoints/Spawn_01").localPosition = new(0, .85f, -6);
+                    EditorSceneManager.MarkSceneDirty(source);
+                    EditorSceneManager.SaveScene(source);
+                }
+                finally { if (opened) EditorSceneManager.CloseScene(source, true); }
+                CreateVisual(shell, playerFloor, senderFloor,
+                    MaterialAsset("Shell", new Color(.13f, .19f, .26f), false),
+                    MaterialAsset("Player", new Color(.12f, .3f, .39f), false),
+                    MaterialAsset("Sender", new Color(.27f, .19f, .34f), false),
+                    MaterialAsset("Lines", new Color(.36f, .9f, 1f), true),
+                    MaterialAsset("NetTape", new Color(1f, .85f, .32f), true));
+                AssetDatabase.SaveAssets();
+            }
+            finally { if (original.IsValid() && original.isLoaded) SceneManager.SetActiveScene(original); }
+            return new SlopArenaStageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Bake(SlopballMatch.ArenaKey);
+        }
+
+        private static void ApplyShotProfile(ArcadeStageAuthoring config)
+        {
+            config.GameplayRevision = 2;
+            config.InitialVelocity = Vector3.zero; config.Radius = .65f; config.Gravity = 2;
+            config.Restitution = 1; config.LaunchScale = 2.4f;
+            config.EasyFlightTicks = 180; config.HardFlightTicks = 108;
+            config.LandingMinZ = -8; config.LandingMaxZ = -5;
+        }
+
+        private static Mesh ReplaceMesh(string path, Mesh proposed)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null) { AssetDatabase.CreateAsset(proposed, path); return proposed; }
+            EditorUtility.CopySerialized(proposed, existing);
+            Object.DestroyImmediate(proposed); EditorUtility.SetDirty(existing); return existing;
         }
 
         [MenuItem("Tools/SlopArena/Arcade/Phase 2/Prepare Slopball")]
@@ -95,13 +151,12 @@ namespace SlopArena.EditorTools
                 netObject.AddComponent<MeshFilter>().sharedMesh = net;
                 var spawns = Child(root.transform, "SpawnPoints");
                 var spawn = Child(spawns.transform, "Spawn_01"); spawn.tag = "SpawnPoint";
-                spawn.transform.localPosition = new(0, .85f, -3.6f);
+                spawn.transform.localPosition = new(0, .85f, -6);
                 var aids = Child(root.transform, "AuthoringAids");
-                var marker = Child(aids.transform, "BallSpawn"); marker.transform.localPosition = new(0, 2.3f, 3);
+                var marker = Child(aids.transform, "BallSpawn"); marker.transform.localPosition = new(0, 2.3f, 6);
                 var config = aids.AddComponent<ArcadeStageAuthoring>();
                 config.ProfileId = "slopball_v1"; config.Slopball = true; config.BallSpawn = marker.transform;
-                config.InitialVelocity = Vector3.zero; config.Radius = .3f; config.Gravity = 8;
-                config.Restitution = 1; config.LaunchScale = 2.4f;
+                ApplyShotProfile(config);
                 EditorSceneManager.SaveScene(scene, SourcePath);
             }
             finally { EditorSceneManager.CloseScene(scene, true); }
@@ -117,16 +172,16 @@ namespace SlopArena.EditorTools
                 Surface(root.transform, "CourtShell", shell, wall);
                 Surface(root.transform, "PlayerHalf", playerFloor, player);
                 Surface(root.transform, "SenderHalf", senderFloor, sender);
-                Line(root.transform, "Floor perimeter", line, new[] { new Vector3(-6, .025f, -6), new(-6, .025f, 6), new(6, .025f, 6), new(6, .025f, -6), new(-6, .025f, -6) }, .04f);
-                Line(root.transform, "Net top", tape, new[] { new Vector3(-6, 1.1f, 0), new(6, 1.1f, 0) }, .075f);
-                Line(root.transform, "Net foot", tape, new[] { new Vector3(-6, .02f, 0), new(6, .02f, 0) }, .03f);
-                for (float x = -6; x <= 6; x += .5f) Line(root.transform, "Net strand", line, new[] { new Vector3(x, 0, 0), new(x, 1.1f, 0) }, .018f);
-                for (float y = .25f; y < 1.1f; y += .25f) Line(root.transform, "Net row", line, new[] { new Vector3(-6, y, 0), new(6, y, 0) }, .018f);
-                foreach (float x in new[] { -6f, 6f }) foreach (float z in new[] { -6f, 6f })
-                    Line(root.transform, "Court corner", line, new[] { new Vector3(x, 0, z), new(x, 6, z) }, .025f);
+                Line(root.transform, "Floor perimeter", line, new[] { new Vector3(-30, .025f, -30), new(-30, .025f, 30), new(30, .025f, 30), new(30, .025f, -30), new(-30, .025f, -30) }, .04f);
+                Line(root.transform, "Net top", tape, new[] { new Vector3(-30, 1.1f, 0), new(30, 1.1f, 0) }, .075f);
+                Line(root.transform, "Net foot", tape, new[] { new Vector3(-30, .02f, 0), new(30, .02f, 0) }, .03f);
+                for (float x = -30; x <= 30; x += .5f) Line(root.transform, "Net strand", line, new[] { new Vector3(x, 0, 0), new(x, 1.1f, 0) }, .018f);
+                for (float y = .25f; y < 1.1f; y += .25f) Line(root.transform, "Net row", line, new[] { new Vector3(-30, y, 0), new(30, y, 0) }, .018f);
+                foreach (float x in new[] { -30f, 30f }) foreach (float z in new[] { -30f, 30f })
+                    Line(root.transform, "Court corner", line, new[] { new Vector3(x, 0, z), new(x, 30, z) }, .025f);
                 var launcher = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 launcher.name = "Ball Sender"; launcher.transform.SetParent(root.transform, false);
-                launcher.transform.localPosition = new(0, 1.1f, 3); launcher.transform.localScale = new(.25f, 1.1f, .25f);
+                launcher.transform.localPosition = new(0, 1.1f, 6); launcher.transform.localScale = new(.25f, 1.1f, .25f);
                 launcher.GetComponent<MeshRenderer>().sharedMaterial = tape; Object.DestroyImmediate(launcher.GetComponent<Collider>());
                 var light = Child(root.transform, "LocalLighting").AddComponent<Light>();
                 light.type = LightType.Directional; light.intensity = 1.2f; light.transform.rotation = Quaternion.Euler(40, -25, 0);
@@ -157,24 +212,24 @@ namespace SlopArena.EditorTools
             material.SetColor("_BaseColor", color); AssetDatabase.CreateAsset(material, path); return material;
         }
         private static Mesh Plane(float minZ, float maxZ)
-        { var vertices = new List<Vector3>(); var indices = new List<int>(); Quad(vertices, indices, new(-6, .012f, minZ), new(-6, .012f, maxZ), new(6, .012f, maxZ), new(6, .012f, minZ)); return Mesh(vertices, indices); }
+        { var vertices = new List<Vector3>(); var indices = new List<int>(); Quad(vertices, indices, new(-30, .012f, minZ), new(-30, .012f, maxZ), new(30, .012f, maxZ), new(30, .012f, minZ)); return Mesh(vertices, indices); }
         private static Mesh Room()
         {
             var v = new List<Vector3>(); var i = new List<int>();
-            Quad(v, i, new(-6, 0, -6), new(-6, 0, 6), new(6, 0, 6), new(6, 0, -6));
-            Quad(v, i, new(-6, 6, -6), new(6, 6, -6), new(6, 6, 6), new(-6, 6, 6));
-            Quad(v, i, new(-6, 0, -6), new(-6, 6, -6), new(-6, 6, 6), new(-6, 0, 6));
-            Quad(v, i, new(6, 0, -6), new(6, 0, 6), new(6, 6, 6), new(6, 6, -6));
-            Quad(v, i, new(-6, 0, -6), new(6, 0, -6), new(6, 6, -6), new(-6, 6, -6));
-            Quad(v, i, new(-6, 0, 6), new(-6, 6, 6), new(6, 6, 6), new(6, 0, 6));
+            Quad(v, i, new(-30, 0, -30), new(-30, 0, 30), new(30, 0, 30), new(30, 0, -30));
+            Quad(v, i, new(-30, 30, -30), new(30, 30, -30), new(30, 30, 30), new(-30, 30, 30));
+            Quad(v, i, new(-30, 0, -30), new(-30, 30, -30), new(-30, 30, 30), new(-30, 0, 30));
+            Quad(v, i, new(30, 0, -30), new(30, 0, 30), new(30, 30, 30), new(30, 30, -30));
+            Quad(v, i, new(-30, 0, -30), new(30, 0, -30), new(30, 30, -30), new(-30, 30, -30));
+            Quad(v, i, new(-30, 0, 30), new(-30, 30, 30), new(30, 30, 30), new(30, 0, 30));
             return Mesh(v, i);
         }
         private static Mesh Net()
         {
             var v = new List<Vector3>(); var i = new List<int>();
-            Quad(v, i, new(-6, 0, -.05f), new(6, 0, -.05f), new(6, 1.1f, -.05f), new(-6, 1.1f, -.05f));
-            Quad(v, i, new(-6, 0, .05f), new(-6, 1.1f, .05f), new(6, 1.1f, .05f), new(6, 0, .05f));
-            Quad(v, i, new(-6, 1.1f, -.05f), new(6, 1.1f, -.05f), new(6, 1.1f, .05f), new(-6, 1.1f, .05f));
+            Quad(v, i, new(-30, 0, -.05f), new(30, 0, -.05f), new(30, 1.1f, -.05f), new(-30, 1.1f, -.05f));
+            Quad(v, i, new(-30, 0, .05f), new(-30, 1.1f, .05f), new(30, 1.1f, .05f), new(30, 0, .05f));
+            Quad(v, i, new(-30, 1.1f, -.05f), new(30, 1.1f, -.05f), new(30, 1.1f, .05f), new(-30, 1.1f, .05f));
             return Mesh(v, i);
         }
         private static void Quad(List<Vector3> v, List<int> i, Vector3 a, Vector3 b, Vector3 c, Vector3 d)

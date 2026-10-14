@@ -45,5 +45,9 @@ native cook/build steps and GitHub job timings. Resume preserves start times;
 retries are distinct attempts. Report operator wait separately from native and
 CI work. Historical records without timings remain readable, without fabricated
 durations. Wall timestamps correlate evidence; local durations use monotonic
-clocks. Source checks, isolated builds, protocol/image/backup guards and manual
+clocks. Controller attempts retain their monotonic start and boot identity so
+same-boot resumes preserve elapsed time. After a reboot, or for an older attempt
+without that start, report duration as unavailable instead of deriving it from
+wall timestamps. Existing recorded durations remain readable. Source checks,
+isolated builds, protocol/image/backup guards and manual
 Steam activation retain their existing boundaries.

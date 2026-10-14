@@ -23,6 +23,9 @@ namespace SlopArena.Client.World
         protected override ISimulationBridge Bridge => _bridge;
         private Transform _ballView;
         private Material _ballMaterial;
+        private LineRenderer _groundRing;
+        private Material _groundMaterial;
+        private float _ballFloorY;
         private uint _tick, _attackContacts;
         private InputState? _probeInput;
         private bool _restarting;
@@ -94,6 +97,7 @@ namespace SlopArena.Client.World
             SetupHUD(_playerDef);
             SetupCamera(); SetupAimHandler(_playerDef);
             _inputController.RequireReleaseBeforeHumanInput();
+            _ballFloorY = arena.Arcade.Slopball?.FloorY ?? arena.Heightmap.Sample(spawn.X, spawn.Z);
             CreateBallView(); PresentBall();
             OnBallMatchReady(entry, arena);
         }
@@ -170,6 +174,26 @@ namespace SlopArena.Client.World
             _ballMaterial.SetColor("_EmissionColor", new Color(.6f, .25f, .02f));
             _ballMaterial.EnableKeyword("_EMISSION");
             view.GetComponent<MeshRenderer>().sharedMaterial = _ballMaterial;
+            if (_bridge.InternalSim.Slopball.HasValue)
+            {
+                var marker = new GameObject("Ball Ground Indicator");
+                marker.transform.SetParent(transform, false);
+                _groundRing = marker.AddComponent<LineRenderer>();
+                _groundMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                _groundMaterial.SetColor("_BaseColor", new Color(1f, .85f, .25f));
+                _groundRing.sharedMaterial = _groundMaterial;
+                _groundRing.useWorldSpace = false; _groundRing.loop = true;
+                _groundRing.positionCount = 48;
+                _groundRing.startWidth = _groundRing.endWidth = .06f;
+                _groundRing.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _groundRing.receiveShadows = false;
+                float radius = _bridge.InternalSim.ArcadeBall.Value.Radius;
+                for (int i = 0; i < _groundRing.positionCount; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / _groundRing.positionCount;
+                    _groundRing.SetPosition(i, new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius));
+                }
+            }
         }
         private void PresentBall()
         {
@@ -177,6 +201,13 @@ namespace SlopArena.Client.World
             _ballView.gameObject.SetActive(ball.Active);
             _ballView.position = new(ball.Position.X, ball.Position.Y, ball.Position.Z);
             _ballView.localScale = Vector3.one * (ball.Radius * 2f);
+            if (_groundRing != null)
+            {
+                _groundRing.gameObject.SetActive(ball.Active);
+                // This is the ball's footprint on the baked flat court, not a physics
+                // query or a promised future landing position after another rebound.
+                _groundRing.transform.position = new(ball.Position.X, _ballFloorY + .035f, ball.Position.Z);
+            }
         }
 
         protected override void OnGUI()
@@ -216,6 +247,7 @@ namespace SlopArena.Client.World
         {
             base.OnDestroy();
             if (_ballMaterial != null) Destroy(_ballMaterial);
+            if (_groundMaterial != null) Destroy(_groundMaterial);
         }
     }
 }

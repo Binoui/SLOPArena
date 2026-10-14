@@ -144,7 +144,7 @@ Transform:
   m_GameObject: {fileID: 273936261}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.85, z: -3.6}
+  m_LocalPosition: {x: 0, y: 0.85, z: -6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -196,7 +196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ProfileId: slopball_v1
-  GameplayRevision: 1
+  GameplayRevision: 2
   AllowedPackageIds:
   - fightguy
   - manki
@@ -204,8 +204,8 @@ MonoBehaviour:
   - bonk
   BallSpawn: {fileID: 1473869062}
   InitialVelocity: {x: 0, y: 0, z: 0}
-  Radius: 0.3
-  Gravity: 8
+  Radius: 0.65
+  Gravity: 2
   Restitution: 1
   LaunchScale: 2.4
   Slopball: 1
@@ -215,13 +215,13 @@ MonoBehaviour:
   FloorY: 0
   Seed: 1337
   ServeGapTicks: 45
-  EasyFlightTicks: 108
-  HardFlightTicks: 72
+  EasyFlightTicks: 180
+  HardFlightTicks: 108
   FlightJitterTicks: 6
   RampReturns: 40
   LandingHalfWidth: 2.2
-  LandingMinZ: -5
-  LandingMaxZ: -3
+  LandingMinZ: -8
+  LandingMaxZ: -5
 --- !u!1 &378581754
 GameObject:
   m_ObjectHideFlags: 0
@@ -320,7 +320,7 @@ Transform:
   m_GameObject: {fileID: 1473869061}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.3, z: 3}
+  m_LocalPosition: {x: 0, y: 2.3, z: 6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -10,7 +10,7 @@ public static class ArcadeRecordCompatibility
 {
     // Bump for Shared primitive/capability/rule changes that alter Arcade comparability.
     // Data changes below are detected automatically; UI, art, audio and VFX are excluded.
-    public const uint RulesRevision = 1;
+    public const uint RulesRevision = 2;
     public const ushort SlopballCountdownTicks = 180;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,

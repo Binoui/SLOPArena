@@ -22,7 +22,7 @@ the original Editor settings afterward. See the Phase 1 handoff for the evidence
 and remaining human checks.
 
 [Phase 2](arcade-phase-2.md) now supplies the Slopball profile, deterministic serves,
-receive/redirect/clear ordering, chronological floor misses, fresh/same-shot gaps,
+receive/redirect/clear/landing ordering, chronological floor misses, fresh/same-shot gaps,
 the fighter half constraint, a neutral enclosed court and a local playable runner.
 All four native cooked-kit probes produced a valid return; retry and pause passed.
 The Phase 2 handoff records that slice's prototype flow.
@@ -260,7 +260,7 @@ Intentional fall/cooldown-reset routes are legal and have no extra penalty.
    fighter behavior. Small target fixtures may test this seam; the first playable
    Arcade challenge remains Slopball.
 2. **Slopball first playable.** Build the neutral court greybox, moving ball,
-   player constraint, receive/contact/clear ordering, percent, rebounds, fresh/same
+   player constraint, receive/contact/clear/landing ordering, percent, rebounds, fresh/same
    shot scheduling and capped fixed profile. Play every roster kit and establish
    that returning/juggling is enjoyable before finished environment work.
 3. **Arcade replay loop.** Add offline menu entry, clean countdown, pause, stable

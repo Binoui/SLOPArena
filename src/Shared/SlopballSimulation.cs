@@ -19,14 +19,14 @@ namespace SlopArena.Shared
         public readonly ulong Returns;
         public readonly ushort ServeInTicks;
         public readonly ushort CountdownTicks;
-        public readonly bool Received, ReturnArmed;
+        public readonly bool Received, ReturnArmed, ClearedNet;
         public readonly SlopballShot Shot;
         public readonly float Difficulty;
         public bool Ended => Phase == SlopballPhase.Missed || Phase == SlopballPhase.Stopped;
         public SlopballState(SlopballPhase phase, ulong returns, ushort serveInTicks, bool received,
-            bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0)
+            bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0, bool clearedNet = false)
         { Phase = phase; Returns = returns; ServeInTicks = serveInTicks; Received = received;
-            ReturnArmed = returnArmed; Shot = shot; Difficulty = difficulty; CountdownTicks = countdownTicks; }
+            ReturnArmed = returnArmed; Shot = shot; Difficulty = difficulty; CountdownTicks = countdownTicks; ClearedNet = clearedNet; }
     }
 
     /// <summary>Solo challenge rules and chronological goals; normal fighter simulation continues between shots.</summary>
@@ -48,12 +48,12 @@ namespace SlopArena.Shared
         private ulong _returns;
         private ushort _serveIn;
         private ushort _countdown;
-        private bool _received, _armed, _attacked;
+        private bool _received, _armed, _cleared, _attacked;
         private int _cursor;
         private SlopballShot _shot;
         public IReadOnlyList<SlopballEvent> Events => _events;
         public SlopballState State => new(_phase, _returns, _serveIn, _received, _armed, _shot,
-            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown);
+            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared);
 
         public SlopballSimulation(SlopballDefinition rules, ArcadeBallDefinition definition, ArcadeBallSimulation ball)
         {
@@ -90,7 +90,7 @@ namespace SlopArena.Shared
         private void Serve(ArcadeBallSimulation ball)
         {
             ball.Reset(_shot.Spawn, _shot.Velocity);
-            _received = _armed = false; _phase = SlopballPhase.Live;
+            _received = _armed = _cleared = false; _phase = SlopballPhase.Live;
             Emit(SlopballEventKind.Served, ball, 0f);
         }
 
@@ -112,13 +112,9 @@ namespace SlopArena.Shared
                     _trace.Add(new(TraceKind.Floor, contact.Time, contact.Position));
             }
             _trace.Sort((a, b) => { int time = a.Time.CompareTo(b.Time); return time != 0 ? time : a.Kind.CompareTo(b.Kind); });
-            bool received = _received, armed = _armed;
             foreach (var item in _trace)
             {
-                if (item.Kind == TraceKind.Receive) received = true;
-                if (item.Kind == TraceKind.Body && received) armed = true;
-                if (item.Kind == TraceKind.Floor || item.Kind == TraceKind.Clear && received && armed
-                        && item.Position.Y - ball.State.Radius >= _rules.NetTop)
+                if (item.Kind == TraceKind.Floor)
                 {
                     // A terminal boundary wins ties; projectiles never consume a retired ball
                     // later in this tick. An earlier attack invalidates this provisional future.
@@ -160,15 +156,21 @@ namespace SlopArena.Shared
                     ball.RetireAt(item.Position);
                     if (item.Position.Z <= _rules.NetZ)
                     { _phase = SlopballPhase.Missed; Emit(SlopballEventKind.Missed, ball, item.Time); }
+                    else if (_received && _armed && _cleared)
+                    {
+                        if (_returns == ulong.MaxValue) throw new InvalidOperationException("Slopball counter exhausted.");
+                        _returns++;
+                        _shot = _rules.CreateShot(_ballDefinition, _returns);
+                        Schedule(); Emit(SlopballEventKind.Returned, ball, item.Time);
+                    }
                     else { Schedule(); Emit(SlopballEventKind.ReServe, ball, item.Time); }
                 }
                 else if (item.Kind == TraceKind.Clear && _received && _armed
                     && item.Position.Y - ball.State.Radius >= _rules.NetTop)
                 {
-                    if (_returns == ulong.MaxValue) throw new InvalidOperationException("Slopball counter exhausted.");
-                    _returns++; ball.RetireAt(item.Position);
-                    _shot = _rules.CreateShot(_ballDefinition, _returns);
-                    Schedule(); Emit(SlopballEventKind.Returned, ball, item.Time);
+                    // Crossing is only eligibility. The ball remains hittable and can
+                    // bounce back into the player's half until either floor ends the shot.
+                    _cleared = true;
                 }
             }
         }

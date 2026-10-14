@@ -46,12 +46,13 @@ goals, returns, re-serves, the fighter half constraint and terminal state. Unity
 reads snapshots/events and presents the fighter, ball and counter. Ball and
 projectile motion advance in the existing single resolver pass.
 
-An attack before a provisional floor/clear boundary invalidates that later motion
+An attack before a provisional floor boundary invalidates that later motion
 because the hit changes the launch. The path exposed to collision excludes contacts
 after a terminal boundary; floor contact wins ties. Competing attacks use the
 earliest ball contact, preserving ordinary insertion priority for equal times.
 
-Each valid clear scores once, retires the ball and schedules a fresh shot. An
+After the first playtest, crossing stays live. A received, redirected ball must
+clear the net and land on the sender floor to score once and schedule a fresh shot. An
 uncredited sender-floor landing schedules the identical shot with a fresh identity
 and zero percent. Neither transition refreshes the fighter or clears ordinary
 projectiles; they keep their normal commitments, cooldowns and lifetimes. A full
@@ -59,7 +60,7 @@ retry destroys the old scene/simulation/presentation and starts the seed again.
 
 The static court uses original meshes/materials. Its inward-facing surfaces allow
 outside orbit views. Slopball omits the camera-only collision mirror that otherwise
-pushes the camera into the fighter inside the small closed room; Shared collision
+pushes the camera into the fighter inside the closed room; Shared collision
 is unchanged. Normal Training/PvP and the Phase 1 lab keep their camera obstruction
 behavior. The prototype stores a useful normal orbit radius in its own scene.
 

@@ -61,12 +61,13 @@ A valid return follows this order:
 1. The ball enters the player half.
 2. The player redirects it with an attack, projectile or passive Body Deflection.
 3. It clears the net into the sender half, including via wall or ceiling rebounds.
+4. It lands on the sender-side floor. Crossing alone stays live and scores nothing.
 
 Each ball scores at most once. There is no touch limit: setups, combos, juggling
 and recovery saves are allowed. Early projectile interceptions can affect a serve,
 but cannot arm or score a return before the ball has entered the player half.
 
-Ball contact with the player-side floor before a valid return ends the attempt.
+Ball contact with the player-side floor ends the attempt, even after clearing the net.
 Net contact rebounds and stays live. An uncredited ball reaching the sender-side
 floor is retired and re-served as the same authored shot: no score, no sequence or
 difficulty advance, a new ball identity and zero percent, after the same fixed gap.

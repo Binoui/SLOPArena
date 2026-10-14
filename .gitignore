@@ -384,6 +384,11 @@ __pycache__/
 # Local promo renders and composition workspaces
 /brag-output*/
 
+# Personal vlog research and local Downloads/session source pointers.
+/docs/research/2026-10-14-development-*
+/docs/research/2026-10-14-downloads-source-guide.*
+/docs/research/2026-10-14-tools-and-models*
+
 # Runtime UI artwork shipped with the pre-match screens.
 !client/Unity/Assets/Resources/UI/Portraits/*.png
 !client/Unity/Assets/Resources/UI/Stages/*.png

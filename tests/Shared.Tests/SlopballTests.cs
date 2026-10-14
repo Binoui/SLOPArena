@@ -101,10 +101,16 @@ public class SlopballTests
         ReceiveAndArm(arena, ball, rules);
         ball.Reset(new(5.5f, 3, -1), new(120, 0, 120));
         Advance(rules, ball, arena);
+        Assert.Equal(0UL, rules.State.Returns);
+        Assert.Equal(SlopballPhase.Live, rules.State.Phase);
+        Assert.True(rules.State.ClearedNet);
+        Assert.True(ball.State.Active);
+        Assert.Contains(ball.Contacts, c => c.Position.X >= 5.699f);
+        ball.Reset(new(0, .35f, 2), new(0, -120, 0));
+        Advance(rules, ball, arena);
         Assert.Equal(1UL, rules.State.Returns);
         Assert.Equal(SlopballPhase.WaitingServe, rules.State.Phase);
         Assert.Single(rules.Events.Where(e => e.Kind == SlopballEventKind.Returned));
-        Assert.Contains(ball.Contacts, c => c.Position.X >= 5.699f);
         for (int i = 0; i < 10; i++) Advance(rules, ball, arena);
         Assert.Equal(1UL, rules.State.Returns);
     }
@@ -157,9 +163,61 @@ public class SlopballTests
         rules.BeginTick(ball);
         ball.Step(arena, new Dictionary<ulong, CharacterState> { [1] = body }, new Dictionary<ulong, CharacterDefinition> { [1] = def });
         rules.PlanMotion(ball); rules.FinishTick(ball);
+        Assert.Equal(0UL, rules.State.Returns);
+        Assert.True(rules.State.ClearedNet);
+        Assert.Equal(SlopballPhase.Live, rules.State.Phase);
+        ball.Reset(new(0, .35f, 2), new(0, -120, 0));
+        Advance(rules, ball, arena);
         Assert.Equal(1UL, rules.State.Returns);
         Assert.Equal(0f, ball.State.DamagePercent);
         Assert.Equal(0, body.DamagePercent);
+    }
+
+    [Fact]
+    public void ClearedBallCanReturnToPlayerHalfAndItsFloorStillEndsAttempt()
+    {
+        var (arena, ball, rules) = Fixture();
+        ReceiveAndArm(arena, ball, rules);
+        ball.Reset(new(0, 3, -1), new(0, 0, 120));
+        Advance(rules, ball, arena);
+        Assert.True(rules.State.ClearedNet);
+        Assert.Equal(0UL, rules.State.Returns);
+        Assert.Equal(SlopballPhase.Live, rules.State.Phase);
+        // A sender-wall bank can cross back. Clearing is not a completed return.
+        ball.Reset(new(0, .35f, -2), new(0, -120, 0));
+        Advance(rules, ball, arena);
+        Assert.Equal(SlopballPhase.Missed, rules.State.Phase);
+        Assert.Equal(0UL, rules.State.Returns);
+    }
+
+    [Fact]
+    public void ProjectileCanHitAfterClearButNotAfterSenderFloor()
+    {
+        var (arena, ball, rules) = Fixture();
+        ReceiveAndArm(arena, ball, rules);
+        ball.Reset(new(0, 3, -1), new(0, 0, 120));
+        rules.BeginTick(ball);
+        ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
+        rules.PlanMotion(ball);
+        Assert.True(rules.BeforeAttack(ball, .95f));
+        Assert.True(rules.State.ClearedNet);
+        Assert.True(ball.State.Active);
+        rules.FinishTick(ball);
+        ball.Reset(new(0, .35f, 2), new(0, -120, 240));
+        rules.BeginTick(ball);
+        ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
+        rules.PlanMotion(ball);
+        var resolver = new SpellResolver();
+        resolver.Spawn(new Hitbox { OwnerId = 1, X = 0, Y = 1.2f, Z = 3, Radius = .2f, Shape = HitboxShape.Sphere, Damage = 10, DurationTicks = 30 });
+        Assert.Empty(resolver.Tick(new() { ball.CollisionTarget }, orderMovingTargetContacts: true));
+        Assert.Single(resolver.GetActiveHitboxes());
+        rules.FinishTick(ball);
+        Assert.Equal(1UL, rules.State.Returns);
+        Serve(rules, ball);
+        Assert.False(rules.State.ClearedNet);
+        Assert.False(rules.State.ReturnArmed);
+        Assert.False(rules.State.Received);
+        Assert.Equal(0f, ball.State.DamagePercent);
     }
 
     [Fact]

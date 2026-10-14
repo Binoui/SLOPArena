@@ -14,7 +14,7 @@
             <ui:VisualElement class="arcade-challenge">
                 <ui:Label text="SLOPBALL" class="arcade-challenge-title" />
                 <ui:Label text="RECEIVE. RETURN. REPEAT." class="flow-eyebrow" />
-                <ui:Label text="Send the ball over the net. Wall banks and combos count. Your first floor hit ends the run." class="arcade-copy" />
+                <ui:Label text="Send the ball over the net and land it on the launcher side. Wall banks and combos count. Your first floor hit ends the run." class="arcade-copy" />
                 <ui:Label text="One court. All four fighters. A fresh challenge every serve." class="arcade-copy" />
             </ui:VisualElement>
             <ui:VisualElement class="arcade-roster">

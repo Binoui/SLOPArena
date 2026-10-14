@@ -102,7 +102,7 @@ public sealed class ArcadeReplayTests
         string hash = ArcadeRecordCompatibility.Slopball(arena, entry);
         Assert.Equal(64, hash.Length);
         Assert.Equal(hash, ArcadeRecordCompatibility.Slopball(arena, entry));
-        Assert.NotEqual(hash, ArcadeRecordCompatibility.Slopball(arena, entry, rulesRevision: 2));
+        Assert.NotEqual(hash, ArcadeRecordCompatibility.Slopball(arena, entry, rulesRevision: ArcadeRecordCompatibility.RulesRevision + 1));
         Assert.NotEqual(hash, ArcadeRecordCompatibility.Slopball(arena, entry, tuning: new CombatTuning(.2f)));
     }
 
