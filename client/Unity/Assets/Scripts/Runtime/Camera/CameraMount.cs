@@ -53,7 +53,11 @@ namespace SlopArena.Client.Camera
                 gameObject.AddComponent<CameraObstruction>();
             // Clamp pitch so camera stays above the stage floor level
             if (_orbital != null)
+            {
                 _orbital.VerticalAxis.Range = new Vector2(0f, 45f);
+                _orbital.VerticalAxis.Wrap = false;
+                SetCameraPitchDeg(_orbital.VerticalAxis.Value);
+            }
         }
         
         /// <summary>
@@ -118,7 +122,7 @@ namespace SlopArena.Client.Camera
                 var settings = ClientSettingsService.Instance;
                 delta *= settings.CameraInputGain;
                 _orbital.HorizontalAxis.Value += delta.x * (settings.InvertCameraHorizontal ? -1f : 1f);
-                _orbital.VerticalAxis.Value -= delta.y * (settings.InvertCameraVertical ? -1f : 1f);
+                SetCameraPitchDeg(GetCameraPitchDeg() - delta.y * (settings.InvertCameraVertical ? -1f : 1f));
 
                 float zoom = HumanInputActions.Zoom.ReadValue<float>();
                 if (Mathf.Abs(zoom) > 0.001f)
@@ -198,12 +202,12 @@ namespace SlopArena.Client.Camera
         /// </summary>
         public void OrbitFrozen(Vector2 deltaDeg)
         {
-            if (_mode != CameraMode.Frozen) return;
+            if (_mode != CameraMode.Frozen || _orbital == null) return;
             var settings = ClientSettingsService.Instance;
             deltaDeg *= settings.CameraInputGain;
             _frozenYaw += deltaDeg.x * (settings.InvertCameraHorizontal ? -1f : 1f);
             _frozenPitch -= deltaDeg.y * (settings.InvertCameraVertical ? -1f : 1f);
-            _frozenPitch = Mathf.Clamp(_frozenPitch, -60f, 60f);
+            _frozenPitch = _orbital.VerticalAxis.ClampValue(_frozenPitch);
         }
 
 
@@ -247,7 +251,7 @@ namespace SlopArena.Client.Camera
         {
             if (_orbital == null) return;
             _orbital.HorizontalAxis.Value = target.eulerAngles.y;
-            _orbital.VerticalAxis.Value = 15f;
+            SetCameraPitchDeg(15f);
         }
 
 
@@ -265,7 +269,8 @@ namespace SlopArena.Client.Camera
         public void SetCameraPitchDeg(float pitchDeg)
         {
             if (_orbital != null)
-                _orbital.VerticalAxis.Value = pitchDeg;
+                // Spherical orbit uses Value directly, so Range alone cannot prevent a flip.
+                _orbital.VerticalAxis.Value = _orbital.VerticalAxis.ClampValue(pitchDeg);
         }
 
         public float GetCameraPitchDeg()

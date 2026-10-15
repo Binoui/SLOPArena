@@ -300,3 +300,15 @@
     border-bottom-color: rgb(255, 112, 103);
     color: rgb(255, 154, 145);
 }
+
+.arcade-mode-art--course { background-color: rgb(46, 76, 65); justify-content: center; align-items: center; padding: 16px; }
+.course-card-route { color: rgb(244, 232, 190); white-space: normal; font-size: 22px; -unity-font-style: bold; -unity-text-align: middle-center; }
+.course-time { font-size: 30px; color: rgb(255, 204, 34); -unity-font-style: bold; margin-top: 8px; margin-bottom: 8px; }
+.course-results { position: absolute; left: 25%; right: 25%; top: 24%; padding: 28px; background-color: rgb(23, 19, 27); color: rgb(240, 238, 232); border-top-width: 5px; border-top-color: rgb(255, 204, 34); }
+.course-results .arcade-mode-title { color: rgb(240, 238, 232); }
+.course-actions { flex-direction: row; margin-top: 16px; }
+.course-actions Button { flex-grow: 1; margin-right: 8px; min-height: 52px; font-size: 18px; -unity-font-style: bold; color: rgb(23, 19, 27); border-width: 2px; border-color: rgb(23, 19, 27); border-radius: 0; }
+.course-actions .btn-primary { background-color: rgb(255, 204, 34); }
+.course-actions .btn-secondary { background-color: rgb(240, 238, 232); }
+.course-actions Button:hover, .course-actions Button:focus { border-color: rgb(224, 92, 42); }
+#arcade-course-tips { margin-top: 10px; margin-bottom: 10px; }

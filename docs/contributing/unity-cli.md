@@ -95,9 +95,10 @@ The gateway uses the installed Unity CLI and the canonical project's
 raw `unity command --project-path` to bypass ownership.
 
 Use your own identity under the [caller protocol](unity-editor-coordination.md#caller-and-commands):
-Orca's verified terminal, T3's runtime Codex IDs, native Codex IDs, or a distinct
-launcher-configured agent/session pair. Missing/invalid identity fails before claim;
-never borrow another caller's identity or infer it from an active pane.
+Orca's verified terminal, a distinct launcher-configured agent/session pair, or the
+session IDs your agent runtime injects (Codex, Claude Code; inside or outside T3).
+Missing/invalid identity fails before claim; never borrow another caller's identity
+or infer it from an active pane.
 
 For the examples below, define this local shell helper once; it is not an installed
 alias and does not modify shell configuration:
@@ -512,6 +513,12 @@ Verified result:
 ```json
 {"unity":"6000.0.78f1","playing":false}
 ```
+
+**Reload hazard:** after editing C# (including Editor scripts), run `recompile` as its
+own command first and check errors before any `eval`/`eval_file` that calls
+`AssetDatabase.Refresh` or imports assets. Otherwise the refresh starts an uncorrelated
+compile, the domain reload lands during a later command, and Pipeline marks the lease
+`blocked` (completion unknown) until an explicitly authorized Editor restart.
 
 Use `eval_file` only when a genuinely novel probe needs more code than an inline
 expression. First check the relevant native and SlopArena command schemas. Keep

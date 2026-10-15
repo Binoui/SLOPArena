@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { identityFromT3, identityFromCodex, identityFromLauncher, identityFromEnvironment, run } from './unity-editor-gateway.ts';
+import { identityFromT3, identityFromCodex, identityFromClaude, identityFromLauncher, identityFromEnvironment, run } from './unity-editor-gateway.ts';
 
 test('native Codex and launcher identities are distinct and require complete session IDs', async () => {
   const session = '01a127c6-bae8-7792-b662-4d0aab865c4b';
@@ -19,11 +19,29 @@ test('native Codex and launcher identities are distinct and require complete ses
   for (const agent of [' ', 't3:other', '../owner', 'agent\nowner'])
     assert.throws(() => identityFromLauncher({ ...launcher, SLOPARENA_AGENT_ID: agent }), /Launcher caller requires/);
   await assert.rejects(identityFromEnvironment({}), /identity is required/);
-  await assert.rejects(identityFromEnvironment({ ...launcher, T3CODE_CLI_PATH: '/fixture/t3' }), /T3 caller requires/);
+  // An explicit launcher pair is provider-neutral: it applies inside the T3 harness too.
+  assert.deepEqual(await identityFromEnvironment({ ...launcher, T3CODE_CLI_PATH: '/fixture/t3' }), identityFromLauncher(launcher));
+  await assert.rejects(identityFromEnvironment({ ...launcher, SLOPARENA_AGENT_SESSION_ID: 'not-a-session', T3CODE_CLI_PATH: '/fixture/t3' }), /Launcher caller requires/);
   // Explicit Orca identity must never fall back to another source after failure.
   await assert.rejects(identityFromEnvironment({ ...launcher, ORCA_TERMINAL_HANDLE: ' ' }), /ORCA_TERMINAL_HANDLE is required/);
   // Launchers may support runners that expose only a Codex thread ID.
   assert.deepEqual(await identityFromEnvironment({ ...launcher, CODEX_THREAD_ID: codex.CODEX_THREAD_ID }), identityFromLauncher(launcher));
+});
+
+test('runtime agent adapters are provider-agnostic inside and outside the T3 harness', async () => {
+  const session = 'ebb23d78-afe3-463f-99d8-2f987f4b0902';
+  const claude = { CLAUDE_CODE_SESSION_ID: session };
+  const expected = { terminalHandle: `claude:${session}`, incarnationId: session };
+  assert.deepEqual(identityFromClaude(claude), expected);
+  assert.deepEqual(await identityFromEnvironment(claude), expected);
+  // T3 hosts several runtimes; its markers no longer imply Codex-only IDs.
+  assert.deepEqual(await identityFromEnvironment({ ...claude, T3CODE_CLI_PATH: '/fixture/t3' }), expected);
+  assert.deepEqual(await identityFromEnvironment({ ...claude, T3_MCP_BEARER_TOKEN: 't3-secret-fixture' }), expected);
+  for (const value of ['', ' ', 'not-a-session', `${session}\nowner`])
+    await assert.rejects(identityFromEnvironment({ CLAUDE_CODE_SESSION_ID: value, T3CODE_CLI_PATH: '/fixture/t3' }), /Claude Code caller requires/);
+  // A selected runtime never falls back to a different runtime after failing validation.
+  await assert.rejects(identityFromEnvironment({ ...claude, CODEX_THREAD_ID: 'term-other', T3CODE_CLI_PATH: '/fixture/t3' }), /T3 caller requires/);
+  await assert.rejects(identityFromEnvironment({ T3CODE_CLI_PATH: '/fixture/t3' }), /T3 caller requires runtime-injected agent session IDs/);
 });
 
 test('T3 identity uses namespaced runtime thread and session IDs without exposing its bearer', () => {
@@ -325,7 +343,7 @@ test('a missing runtime caller identity fails before claim or command', async ()
   const f = await fixture(), previousHandle = process.env.ORCA_TERMINAL_HANDLE;
   const previousT3Bearer = process.env.T3_MCP_BEARER_TOKEN;
   const previousT3Cli = process.env.T3CODE_CLI_PATH;
-  const identityKeys = ['CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'SLOPARENA_AGENT_ID', 'SLOPARENA_AGENT_SESSION_ID'];
+  const identityKeys = ['CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'CLAUDE_CODE_SESSION_ID', 'SLOPARENA_AGENT_ID', 'SLOPARENA_AGENT_SESSION_ID'];
   const previousIds = identityKeys.map(key => process.env[key]);
   for (const key of identityKeys) delete process.env[key];
   delete process.env.ORCA_TERMINAL_HANDLE;

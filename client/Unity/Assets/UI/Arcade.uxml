@@ -9,7 +9,7 @@
                 <ui:VisualElement class="arcade-mode-browser">
                     <ui:Label text="CHOOSE A MODE" class="arcade-section-label" />
                     <ui:ScrollView name="arcade-modes" class="arcade-mode-gallery arcade-mode-gallery--single" horizontal-scroller-visibility="Hidden">
-                        <ui:Button name="arcade-mode-slopball" class="arcade-mode-card arcade-mode-card--selected" tooltip="Selected mode: Slopball">
+                        <ui:Button name="arcade-mode-slopball" class="arcade-mode-card arcade-mode-card--selected" tooltip="Slopball">
                             <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
                                 <ui:VisualElement class="arcade-mode-heading">
                                     <ui:Label text="SLOPBALL" class="arcade-mode-title" />
@@ -19,10 +19,23 @@
                             </ui:VisualElement>
                             <ui:VisualElement class="arcade-mode-art arcade-mode-art--slopball" picking-mode="Ignore" />
                         </ui:Button>
+                        <ui:Button name="arcade-mode-course" class="arcade-mode-card" tooltip="FightGuy's timed sanctuary course">
+                            <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
+                                <ui:VisualElement class="arcade-mode-heading">
+                                    <ui:Label text="SANCTUARY COURSE" class="arcade-mode-title" />
+                                    <ui:VisualElement class="arcade-mode-check" />
+                                </ui:VisualElement>
+                                <ui:Label text="Break every target. Reach the shrine. Beat your time." class="arcade-mode-rule" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="arcade-mode-art arcade-mode-art--course" picking-mode="Ignore">
+                                <ui:Label text="ROOFS. POLES.&#10;FLOATING ISLANDS." class="course-card-route" />
+                                <ui:Label text="FIGHTGUY" class="arcade-section-label" />
+                            </ui:VisualElement>
+                        </ui:Button>
                     </ui:ScrollView>
                 </ui:VisualElement>
                 <ui:VisualElement name="arcade-setup" class="arcade-setup">
-                    <ui:Label text="SLOPBALL" class="arcade-selected-mode" />
+                    <ui:Label name="arcade-selected-mode" text="SLOPBALL" class="arcade-selected-mode" />
                     <ui:Label text="CHOOSE YOUR FIGHTER" class="arcade-section-label" />
                     <ui:VisualElement name="arcade-roster" class="arcade-roster">
                         <ui:VisualElement name="arcade-fighters" class="arcade-fighters" />
@@ -35,6 +48,7 @@
                         </ui:Foldout>
                         <ui:Label name="arcade-feedback" class="arcade-feedback" />
                     </ui:VisualElement>
+                    <ui:Toggle name="arcade-course-tips" text="MOVEMENT TIPS" value="false" />
                     <ui:VisualElement class="arcade-launch-row">
                         <ui:Button name="arcade-play" text="PLAY SLOPBALL" class="btn-primary" />
                     </ui:VisualElement>

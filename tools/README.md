@@ -67,3 +67,9 @@ paths are described in [Unity CLI](../docs/contributing/unity-cli.md),
 [character authoring](../docs/characters/adding-a-new-character.md).
 See [Unity tools](../docs/contributing/unity-tools.md) for menu groups and package
 test input/output preservation.
+
+Original procedural environment art lives under [blender/](blender/README.md).
+The retained FightGuy Sanctuary generator includes reusable mesh construction,
+rock/scenery generation, ambient-occlusion baking, Unity FBX export and camera
+preview techniques. Its reuse guide identifies stage-specific assumptions; these
+Python art tools are separate from the .NET solution above.

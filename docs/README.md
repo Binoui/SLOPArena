@@ -45,6 +45,8 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Arcade Phase 1](design/arcade-phase-1.md) | Ball/contact foundation, test-court launch steps and verification status |
 | [Arcade Phase 2](design/arcade-phase-2.md) | Playable Slopball, court/shot rules, launch steps and native verification |
 | [Arcade Phase 3](design/arcade-phase-3.md) | Offline menu, locked starts, results/retry and compatible local personal bests |
+| [Arcade Phase 4](design/arcade-phase-4.md) | FightGuy Sanctuary greybox, targets, checkpoints, timed completion and course records |
+| [Arcade Phase 5](design/arcade-phase-5.md) | Cloudtop first-crossing art, wider course spacing, local asset sources and verification |
 | [Solo Arcade interview log](design/arcade-interview.md) | Seven resolved question rounds and inspected runtime/kit constraints |
 | [Hitbox System](systems/hitbox-system.md) | Hitbox, hurtbox, and collision geometry |
 | [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, and Combo Influence design |
@@ -60,11 +62,15 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | --- | --- |
 | [Visual language](design/visual-language.md) | Graphic identity, UI composition, palette, typography, motion, and presentation voice |
 | [Stage concepts](design/stage-concepts.md) | Gameplay-first PVP stage concepts, readability, topology, and background hierarchy |
+| [Traversal courses](design/traversal-courses.md) | Solo course interviews, ordinary/ability route choices, jump calibration and repeatable tuning |
+| [Course replay and capture](testing/course-replay.md) | Scenario/input files, tick-based screenshots, observed checks and Editor restoration |
 | [Art and asset conventions](contributing/conventions.md) | 3D character rendering, asset production, naming, licensing, and hygiene |
 | [Credits](../CREDITS.md) | Public thank-you and creator links |
 | [Asset source and license notes](assets/credits-and-licenses.md) | Internal provenance and release checks |
 | [Contributor input inventory](assets/contributor-inputs.md) | Catalog dependencies, local-only asset families and provenance gaps |
 | [Visual presentation baseline](visual-baseline.md) | Repeatable gameplay-camera evidence for visual comparisons |
+| [3D visual-production process proposal](plans/2026-10-15-3d-visual-production-process.md) | Stage-first plan for design, Blender production, material-accurate review, reuse and targeted model/VFX work |
+| [AI 3D workflow research](research/2026-10-15-ai-3d-production-workflows.md) | Revision-pinned study of gamedev-skills and OhMyGame, including transferable practices and implementation limits |
 
 ## Character authoring
 

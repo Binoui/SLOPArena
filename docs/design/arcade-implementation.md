@@ -1,10 +1,10 @@
 # Solo Arcade implementation plan
 
-**Status:** Approved; ready for implementation handoff — 2026-10-14. The maintainer
-confirmed runtime scope, unified stage authoring, Slopball-first delivery and the
-pilot course route. Phases 1–3 are implemented with a temporary
-Editor domain-reload workaround. The full challenge release and human acceptance
-remain future work.
+**Status:** Approved architecture; Phases 1–4 implemented and Phase 5 in progress —
+2026-10-15. The maintainer confirmed runtime scope, unified stage authoring,
+Slopball-first delivery and the revised pilot course route. Native verification
+uses a temporary Editor domain-reload workaround. The full challenge release and
+human acceptance remain future work.
 
 The [feature brief](arcade.md) owns gameplay and UX. The first release contains
 Slopball for all four fighters and one FightGuy Character Course. The first
@@ -32,7 +32,16 @@ stable results, full retry/selection and persistent personal bests per fighter.
 Gameplay fingerprints archive incompatible bests while cosmetic changes preserve
 comparison. Native menu/scored-run, pause, retry, voluntary stop, storage and roster
 entry checks passed. Its handoff records layout verification and remaining human
-checks. Course markers/content remain Phase 4.
+checks. [Phase 4](arcade-phase-4.md) supplies the FightGuy Sanctuary greybox,
+normal-kit target contacts, cumulative checkpoints, legal falls, whole-run timing,
+completion/retry UI and compatible local course records. Final integrated evidence
+and remaining human acceptance live in that handoff.
+
+[Phase 5](arcade-phase-5.md) begins with the selected Cloudtop Sanctuary treatment
+for the first R crossing and central pavilion. Following playable review, the
+approved spacing revision spreads the winding course about 25% wider/deeper with
+varied jumps while retaining that sample. The remaining route stays greybox.
+For future maps, use the reusable [traversal-course guide](traversal-courses.md).
 
 ## Baseline before Phase 1
 
@@ -235,12 +244,16 @@ clean completion target is 1–2 minutes. The approved authoring route is:
 
 | Area | Geometry and routing | Learning opportunity |
 | --- | --- | --- |
-| Training courtyard | Broad landings, practice rooftops and target lanes | Basic/charged attacks, projectile reach and jumping |
-| Pole garden | Supported pole tops and static rope bridges; forgiving main route and narrower shortcut | ShortHop, air control and landing precision |
-| Floating terraces | Rising island steps and separate lateral gaps | E for height, R for travel and normal cooldown pacing |
-| Roof descent and finish shrine | Descending roofs/pads, remaining targets and visible finish | FastFall once ordinary descent resumes and efficient routing |
+| Courtyard and west broken bridge | Shared target approach; broad jump → R crossing versus a four-jump pole detour | Short hop, long double-jump transfer, running jump and landing precision |
+| North rising terraces | Height/diagonal ledges versus jump → E, then a shared upper landing | Full/double jumps, E for height and normal cooldown pacing |
+| East summit | Island detour versus the single advanced jump → E → R crossing | Longer double jumps and a tighter combined-ability landing |
+| Roof descent and finish shrine | Four descending offset roofs return to the starting courtyard | Forward/sideways transfers, descent control and efficient routing |
 
-This is the approved authoring direction; coordinates and traversal need validation.
+The [stage brief](stages/fightguy_sanctuary.design.md) owns the current approved
+layout; the [production contract](stages/fightguy_sanctuary.md) names its artifacts
+and verification path. Phase 5 records current reachability evidence; human
+spacing/difficulty acceptance remains separate. Required targets occupy shared
+approaches/landings so neither branch is mandatory merely to clear its targets.
 No rope climbing/swinging, pole attachment or moving platforms are needed.
 FightGuy E supplies height; R holds vertical motion at zero during travel and
 cannot be treated as freely descending/jumpable motion. Tune from native gameplay,

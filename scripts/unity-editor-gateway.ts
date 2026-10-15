@@ -91,48 +91,62 @@ async function identityFromOrca(handle: string, orcaPath = process.env.ORCA_CLI_
   return { terminalHandle: terminal.handle, incarnationId: terminal.incarnationId };
 }
 
-// T3's Codex harness injects these IDs into this caller's process. Namespace its
-// handle so it can never impersonate an Orca terminal; the existing lease/token
-// protocol remains responsible for exclusive ownership and settled release.
+// Caller identity is configured or runtime-attested, never inferred from an active pane.
+// Precedence: a verified Orca terminal; an explicit launcher pair for any agent; then a
+// runtime-injected agent session (one adapter per agent runtime). The T3 harness hosts
+// several runtimes, so its markers only select the `t3:` namespace for Codex threads.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function hasT3Harness(env: NodeJS.ProcessEnv): boolean {
   return Boolean(env.T3_MCP_BEARER_TOKEN || env.T3CODE_CLI_PATH?.trim());
 }
 
 export function identityFromT3(env: NodeJS.ProcessEnv): Identity {
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const thread = env.CODEX_THREAD_ID;
   const session = env.CODEX_SESSION_ID;
-  if (!hasT3Harness(env) || !thread || !session || !uuid.test(thread) || !uuid.test(session))
+  if (!hasT3Harness(env) || !thread || !session || !UUID.test(thread) || !UUID.test(session))
     throw new Error('T3 caller requires runtime-injected CODEX_THREAD_ID and CODEX_SESSION_ID in the T3 harness.');
   return { terminalHandle: `t3:${thread.toLowerCase()}`, incarnationId: session.toLowerCase() };
 }
 
 export function identityFromCodex(env: NodeJS.ProcessEnv): Identity {
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const thread = env.CODEX_THREAD_ID, session = env.CODEX_SESSION_ID;
-  if (!thread || !session || !uuid.test(thread) || !uuid.test(session))
+  if (!thread || !session || !UUID.test(thread) || !UUID.test(session))
     throw new Error('Codex caller requires runtime-injected CODEX_THREAD_ID and CODEX_SESSION_ID.');
   return { terminalHandle: `codex:${thread.toLowerCase()}`, incarnationId: session.toLowerCase() };
 }
 
+export function identityFromClaude(env: NodeJS.ProcessEnv): Identity {
+  const session = env.CLAUDE_CODE_SESSION_ID;
+  if (!session || !UUID.test(session))
+    throw new Error('Claude Code caller requires a runtime-injected UUID CLAUDE_CODE_SESSION_ID.');
+  return { terminalHandle: `claude:${session.toLowerCase()}`, incarnationId: session.toLowerCase() };
+}
+
 export function identityFromLauncher(env: NodeJS.ProcessEnv): Identity {
   const agent = env.SLOPARENA_AGENT_ID, session = env.SLOPARENA_AGENT_SESSION_ID;
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!agent || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/.test(agent) || !session || !uuid.test(session))
+  if (!agent || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/.test(agent) || !session || !UUID.test(session))
     throw new Error('Launcher caller requires SLOPARENA_AGENT_ID and a UUID SLOPARENA_AGENT_SESSION_ID assigned to this agent session.');
   return { terminalHandle: `agent:${agent}`, incarnationId: session.toLowerCase() };
 }
 
+// Add another agent runtime here: detect its own injected variables, then validate them.
+const AGENT_RUNTIMES: { present: (env: NodeJS.ProcessEnv) => boolean; identity: (env: NodeJS.ProcessEnv) => Identity }[] = [
+  { present: env => env.CODEX_THREAD_ID !== undefined || env.CODEX_SESSION_ID !== undefined,
+    identity: env => hasT3Harness(env) ? identityFromT3(env) : identityFromCodex(env) },
+  { present: env => env.CLAUDE_CODE_SESSION_ID !== undefined, identity: identityFromClaude },
+];
+
 export async function identityFromEnvironment(env: NodeJS.ProcessEnv, orcaPath?: string, signal?: AbortSignal): Promise<Identity> {
   if (env.ORCA_TERMINAL_HANDLE !== undefined)
     return identityFromOrca(env.ORCA_TERMINAL_HANDLE, orcaPath, signal);
-  if (hasT3Harness(env))
-    return identityFromT3(env);
   if (env.SLOPARENA_AGENT_ID !== undefined || env.SLOPARENA_AGENT_SESSION_ID !== undefined)
     return identityFromLauncher(env);
-  if (env.CODEX_THREAD_ID !== undefined || env.CODEX_SESSION_ID !== undefined)
-    return identityFromCodex(env);
-  throw new Error('A verified Orca identity, runtime Codex identity, or launcher-configured agent session identity is required. See docs/contributing/unity-editor-coordination.md.');
+  const runtime = AGENT_RUNTIMES.find(candidate => candidate.present(env));
+  if (runtime) return runtime.identity(env);
+  if (hasT3Harness(env))
+    throw new Error('T3 caller requires runtime-injected agent session IDs (Codex or Claude Code) or a launcher-configured SLOPARENA_AGENT_ID/SLOPARENA_AGENT_SESSION_ID pair.');
+  throw new Error('A verified Orca identity, runtime agent session identity (Codex or Claude Code), or launcher-configured agent session identity is required. See docs/contributing/unity-editor-coordination.md.');
 }
 
 async function callerIdentity(orcaPath?: string, signal?: AbortSignal): Promise<Identity> {

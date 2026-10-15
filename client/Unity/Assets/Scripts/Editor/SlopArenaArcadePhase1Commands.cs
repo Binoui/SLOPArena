@@ -248,7 +248,7 @@ namespace SlopArena.EditorTools
                 SceneManager.SetActiveScene(scene);
                 var training = scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<TrainingMatch>(true)).Single();
                 var original = new SerializedObject(training);
-                var match = (ArcadeBallMatch)training.gameObject.AddComponent(matchType);
+                var match = (MatchBase)training.gameObject.AddComponent(matchType);
                 if (matchType == typeof(SlopballMatch))
                     foreach (var root in scene.GetRootGameObjects())
                         foreach (var orbit in root.GetComponentsInChildren<Unity.Cinemachine.CinemachineOrbitalFollow>(true))

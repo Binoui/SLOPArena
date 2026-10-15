@@ -1,8 +1,12 @@
 # Solo Arcade feature brief
 
-**Status:** Approved; ready for implementation handoff — 2026-10-14. The maintainer
-confirmed the consolidated brief, mountain route and implementation plan. Feature
-preparation is complete; implementation and human acceptance remain future work.
+**Status:** Approved scope; implementation and iteration ongoing — 2026-10-15.
+The maintainer confirmed the consolidated brief, mountain route and implementation plan.
+[Phases 1–4](arcade-implementation.md#implementation-progress) are implemented;
+the [FightGuy Course](arcade-phase-4.md) is playable. [Phase 5](arcade-phase-5.md)
+includes the Cloudtop first-crossing art sample and the approved wider spacing
+revision of the same winding route.
+Full-course polish and human acceptance remain ahead.
 
 ## Purpose and first release
 
@@ -137,18 +141,24 @@ reference is World of Warcraft's
 [Peak of Serenity monk setting](https://worldofwarcraft.blizzard.com/en-us/news/23310980);
 this is a chosen course identity, not established FightGuy home-stage lore.
 
-The following four-part layout is the approved authoring direction. Exact geometry
-and traversal remain to be validated; there are no mandatory move gates:
+Following the 2026-10-15 playable review, the approved layout winds up around a
+visible sanctuary and descends back toward the starting courtyard. Three signature
+forks are separated by simpler transitions. There are no mandatory move gates:
 
 | Area | Main route and faster alternatives | Learning opportunity |
 | --- | --- | --- |
-| Training courtyard | Broad landing pads, practice roofs and target lanes | Basic attacks, charged/projectile reach and readable routing |
-| Pole garden | Supported pole tops and static rope bridges; narrower shortcut | ShortHop, air control and precision landings |
-| Floating terraces | Rising steps and separate lateral island gaps | E for height, R for travel and routing around normal cooldowns |
-| Roof descent and finish shrine | Descending roofs/pads, remaining targets and visible finish | FastFall after committed move motion ends and efficient target routing |
+| Courtyard and broken bridge | A broad direct crossing using jump → R, or three to four exposed pole jumps | A forgiving introduction to R as movement; read both routes before takeoff |
+| Rising terraces | Jump → E skips a climb through offset ledges | Height, air control and changing direction |
+| Summit crossing | One advanced jump → E → R crossing, or a narrow island detour | Combining height and distance with a more precise landing |
+| Roof descent and finish courtyard | Staggered descending roofs return toward the start | Braking, sideways transfers and deliberate landings |
 
-All traversal surfaces are static in this release. Rope bridges are ordinary
-supported walkable surfaces; hanging ropes can be scenery. Poles are jumped onto.
+Required targets occupy shared approaches, landings and connecting surfaces;
+players can clear them from solid footing after either branch. Hitting a target
+during arrival can save time. No required target forces a risky branch or a return
+to skipped geometry. Target placement can be tuned after the overall layout.
+
+All traversal surfaces are static in this release. Bridges and galleries are
+ordinary supported walkable surfaces; hanging ropes can be scenery. Poles are jumped onto.
 No climbing, swinging or pole-attachment mechanic is part of the course.
 
 Avoid mandatory empty cooldown waits: provide traversal, targets or another valid
@@ -211,7 +221,7 @@ Implementation is ready for human review when:
 - Slopball follows receive/contact/clear ordering, one score per ball, harmless
   body rebounds, live net contacts and fresh random serves after every floor landing.
 - Every roster fighter can play the shared capped profile using its normal kit.
-- The Course supports a forgiving main route and faster valid solutions, cumulative
+- The Course supports a readable ordinary-jump route and faster ability crossings, cumulative
   checkpoint prerequisites, persistent targets and legal fall-reset routes.
 - Starts, pause, automatic continuation and full restarts preserve the specified timing.
 - Records survive restart/stop/retry, archive incompatible gameplay and retain

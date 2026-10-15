@@ -950,6 +950,12 @@ public sealed class SlopArenaStageAuthoringService
         }
 
         if (build.Diagnostics.Count > 0 || triangles.Count == 0 || spawnPoints.Count != expectedSpawnCount) return build;
+        if (arcade?.Course is CharacterCourseDefinition course)
+            foreach (var checkpoint in course.Checkpoints)
+                if (!TrySurfaceY(triangles, checkpoint.Respawn.X, checkpoint.Respawn.Z, out float ground, true)
+                    || Mathf.Abs(checkpoint.Respawn.Y - (ground + SpawnBodyHalfHeight)) > SpawnGroundTolerance)
+                    Add(build.Diagnostics, "COURSE_CHECKPOINT_NOT_GROUNDED", checkpoint.Id);
+        if (build.Diagnostics.Count > 0) return build;
         float killHeight = minY - 10f;
         if (killPlaneMarker != null)
         {

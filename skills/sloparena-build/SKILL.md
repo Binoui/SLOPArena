@@ -33,6 +33,11 @@ For package move preview, scrubbing, capture, or diagnostics, route through the
 [Ability Lab skill](../sloparena-ability-lab/SKILL.md) and
 [Unity CLI reference](../../docs/contributing/unity-cli.md).
 
+For saved Character Course input replays and tick/camera screenshots, use the
+[course replay runner](../../docs/testing/course-replay.md). It handles bounded
+input chunks, fresh captures, isolated records and owned Editor restoration;
+do not recreate its setup/capture flow with temporary eval scripts.
+
 ## Local iteration
 
 Use the existing Editor development content and exercise the affected Ability Lab or

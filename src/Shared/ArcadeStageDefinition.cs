@@ -42,24 +42,33 @@ namespace SlopArena.Shared
     }
 
     /// <summary>
-    /// Immutable focused Arcade metadata embedded in the baked arena. Phase 1 owns
-    /// the ball playground; challenge scoring and Course markers are later slices.
+    /// Immutable focused Arcade metadata embedded in the baked arena.
     /// </summary>
     public sealed class ArcadeStageDefinition
     {
         public string ProfileId { get; }
         public uint GameplayRevision { get; }
         public IReadOnlyList<string> AllowedPackageIds { get; }
-        public ArcadeBallDefinition Ball { get; }
+        public ArcadeBallDefinition? Ball { get; }
         public SlopballDefinition? Slopball { get; }
+        public CharacterCourseDefinition? Course { get; }
 
         public ArcadeStageDefinition(string profileId, uint gameplayRevision,
             IReadOnlyList<string> allowedPackageIds, ArcadeBallDefinition ball, SlopballDefinition? slopball = null)
+            : this(profileId, gameplayRevision, allowedPackageIds, ball, slopball, null) { }
+
+        public static ArcadeStageDefinition ForCourse(string profileId, uint gameplayRevision,
+            IReadOnlyList<string> allowedPackageIds, CharacterCourseDefinition course)
+            => new(profileId, gameplayRevision, allowedPackageIds, null, null, course);
+
+        private ArcadeStageDefinition(string profileId, uint gameplayRevision,
+            IReadOnlyList<string> allowedPackageIds, ArcadeBallDefinition? ball, SlopballDefinition? slopball,
+            CharacterCourseDefinition? course)
         {
             if (string.IsNullOrWhiteSpace(profileId) || Encoding.UTF8.GetByteCount(profileId) > 256
-                || gameplayRevision == 0 || ball == null
+                || gameplayRevision == 0 || (ball == null) == (course == null)
                 || allowedPackageIds == null || allowedPackageIds.Count == 0 || allowedPackageIds.Count > 16)
-                throw new ArgumentException("Arcade needs a profile, gameplay revision, ball and allowed packages.");
+                throw new ArgumentException("Arcade needs a profile, gameplay revision, ball or course and allowed packages.");
             var packages = new string[allowedPackageIds.Count];
             var unique = new HashSet<string>(StringComparer.Ordinal);
             for (int i = 0; i < packages.Length; i++)
@@ -70,7 +79,7 @@ namespace SlopArena.Shared
                 packages[i] = id;
             }
             ProfileId = profileId; GameplayRevision = gameplayRevision;
-            AllowedPackageIds = Array.AsReadOnly(packages); Ball = ball; Slopball = slopball;
+            AllowedPackageIds = Array.AsReadOnly(packages); Ball = ball; Slopball = slopball; Course = course;
         }
 
         public bool AllowsPackage(string packageId)
@@ -84,22 +93,38 @@ namespace SlopArena.Shared
     /// <summary>Bounded typed section inside arena v6; not a separate runtime artifact.</summary>
     internal static class ArcadeStageBinaryFormat
     {
-        private const ushort SectionVersion = 4;
+        private const ushort SectionVersion = 5;
 
         public static byte[] Serialize(ArcadeStageDefinition stage)
         {
             using var stream = new MemoryStream();
             using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-            ushort version = stage.Slopball is { } varied && (varied.SpawnHalfWidth > 0f || varied.SpawnHalfDepth > 0f)
-                ? SectionVersion : stage.Ball.LinearDrag > 0f ? (ushort)3 : stage.Slopball == null ? (ushort)1 : (ushort)2;
+            ushort version = stage.Course != null ? SectionVersion
+                : stage.Slopball is { } varied && (varied.SpawnHalfWidth > 0f || varied.SpawnHalfDepth > 0f)
+                ? (ushort)4 : stage.Ball!.LinearDrag > 0f ? (ushort)3 : stage.Slopball == null ? (ushort)1 : (ushort)2;
             writer.Write(version);
             WriteString(writer, stage.ProfileId); writer.Write(stage.GameplayRevision);
             writer.Write((byte)stage.AllowedPackageIds.Count);
             foreach (string package in stage.AllowedPackageIds) WriteString(writer, package);
-            WritePoint(writer, stage.Ball.Spawn); WritePoint(writer, stage.Ball.InitialVelocity);
-            writer.Write(stage.Ball.Radius); writer.Write(stage.Ball.Gravity);
-            writer.Write(stage.Ball.Restitution); writer.Write(stage.Ball.LaunchScale);
-            if (version >= 3) { writer.Write(stage.Ball.LinearDrag); writer.Write(stage.Slopball != null); }
+            if (stage.Course is { } course)
+            {
+                writer.Write((byte)course.Targets.Count);
+                foreach (var target in course.Targets)
+                { WriteString(writer, target.Id); WritePoint(writer, target.Position); writer.Write(target.Radius); }
+                writer.Write((byte)course.Checkpoints.Count);
+                foreach (var checkpoint in course.Checkpoints)
+                {
+                    WriteString(writer, checkpoint.Id); WriteVolume(writer, checkpoint.Volume);
+                    WritePoint(writer, checkpoint.Respawn); writer.Write(checkpoint.RespawnYaw); writer.Write(checkpoint.RequiredTargetCount);
+                }
+                WriteVolume(writer, course.Finish);
+                return stream.ToArray();
+            }
+            var ball = stage.Ball!;
+            WritePoint(writer, ball.Spawn); WritePoint(writer, ball.InitialVelocity);
+            writer.Write(ball.Radius); writer.Write(ball.Gravity);
+            writer.Write(ball.Restitution); writer.Write(ball.LaunchScale);
+            if (version >= 3) { writer.Write(ball.LinearDrag); writer.Write(stage.Slopball != null); }
             if (stage.Slopball is SlopballDefinition rules)
             {
                 writer.Write(rules.NetZ); writer.Write(rules.NetHalfThickness); writer.Write(rules.NetTop); writer.Write(rules.FloorY);
@@ -118,13 +143,28 @@ namespace SlopArena.Shared
                 using var stream = new MemoryStream(bytes, false);
                 using var reader = new BinaryReader(stream, Encoding.UTF8, true);
                 ushort version = reader.ReadUInt16();
-                if (version != 1 && version != 2 && version != 3 && version != SectionVersion) return null;
+                if (version < 1 || version > SectionVersion) return null;
                 string profile = ReadString(reader);
                 uint revision = reader.ReadUInt32();
                 int count = reader.ReadByte();
                 if (count == 0 || count > 16) return null;
                 var packages = new string[count];
                 for (int i = 0; i < count; i++) packages[i] = ReadString(reader);
+                if (version == 5)
+                {
+                    int targetCount = reader.ReadByte();
+                    if (targetCount == 0 || targetCount > CharacterCourseDefinition.MaxTargets) return null;
+                    var targets = new CourseTargetDefinition[targetCount];
+                    for (int i = 0; i < targets.Length; i++) targets[i] = new(ReadString(reader), ReadPoint(reader), reader.ReadSingle());
+                    int checkpointCount = reader.ReadByte();
+                    if (checkpointCount > 32) return null;
+                    var checkpoints = new CourseCheckpointDefinition[checkpointCount];
+                    for (int i = 0; i < checkpoints.Length; i++) checkpoints[i] = new(ReadString(reader), ReadVolume(reader),
+                        ReadPoint(reader), reader.ReadSingle(), reader.ReadUInt16());
+                    var course = new CharacterCourseDefinition(targets, checkpoints, ReadVolume(reader));
+                    if (stream.Position != stream.Length) return null;
+                    return ArcadeStageDefinition.ForCourse(profile, revision, packages, course);
+                }
                 var spawn = ReadPoint(reader); var velocity = ReadPoint(reader);
                 float radius = reader.ReadSingle(), gravity = reader.ReadSingle();
                 float restitution = reader.ReadSingle(), launchScale = reader.ReadSingle();
@@ -153,6 +193,9 @@ namespace SlopArena.Shared
 
         private static void WritePoint(BinaryWriter writer, ArcadePoint point)
         { writer.Write(point.X); writer.Write(point.Y); writer.Write(point.Z); }
+        private static void WriteVolume(BinaryWriter writer, ArcadeVolume volume)
+        { WritePoint(writer, volume.Center); WritePoint(writer, volume.HalfSize); }
+        private static ArcadeVolume ReadVolume(BinaryReader reader) => new(ReadPoint(reader), ReadPoint(reader));
         private static ArcadePoint ReadPoint(BinaryReader reader)
             => new(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
         private static void WriteString(BinaryWriter writer, string value)

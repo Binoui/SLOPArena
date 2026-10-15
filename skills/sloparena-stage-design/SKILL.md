@@ -1,6 +1,6 @@
 ---
 name: sloparena-stage-design
-description: "Interactive human+agent DESIGN phase for SlopArena PVP stages: visual composition, gray-box wireframing, and a locked Stage Design Brief. Use for stage design, stage wireframe, stage composition, design a stage, blockout, or 'what should the stage look like'. Production/baking/lighting work belongs to sloparena-stage-authoring."
+description: "Design SlopArena PvP stages and solo Arcade traversal courses with focused interviews, route/composition sketches, graybox review and a Stage Design Brief. Use for new layouts, jump/shortcut design or substantial composition revisions. Implementation and baking belong to sloparena-stage-authoring."
 metadata: {"category": "game-dev"}
 ---
 
@@ -10,24 +10,27 @@ For live Editor commands, use your own caller identity and bounded gateway lease
 
 ## 1. Purpose and boundary
 
-This skill is the interactive, conversational workflow for designing one stage's visual composition. It produces exactly two deliverables:
+This skill is the interactive workflow for one stage's layout and visual composition. It produces:
 
 - a locked Stage Design Brief at `docs/design/stages/<key>.design.md`, and
-- approved gray-box blockout screenshots in `.stage-authoring-cache/<key>/design/`.
+- gray-box blockout screenshots in `.stage-authoring-cache/<key>/design/`, identifying which the user has reviewed and which remain implementation evidence.
 
 It must NOT run `sloparena.stage.bake`, `sloparena.stage.inspect`, asset-selection or provenance work, material authoring, or lighting polish. Those belong to [`sloparena-stage-authoring`](../sloparena-stage-authoring/SKILL.md), which begins only after LOCK (section 5). Unity blockout content is limited to gray-box primitives or simple original massing meshes (coasts, ridges, banks, building volumes), with no Colliders and at most one temporary light. Persist generated meshes and the neutral gray material as valid assets/sub-assets. No detailed surfacing or imported prop dressing in this phase.
 
 ## 2. Inputs
 
 - [`docs/design/stage-concepts.md`](../../docs/design/stage-concepts.md) is required reading and must be read first. It exists and defines the design contract.
+- **Choose the stage purpose before applying topology rules.** Normal PvP uses Stage Concepts' combat-floor and 2–4-player criteria. Solo Arcade traversal courses also use [`docs/design/traversal-courses.md`](../../docs/design/traversal-courses.md): interview about journey, challenge rhythm, ordinary/ability branches, jump variety, objectives/checkpoints and scale before building. Preserve existing answers; do not turn Sanctuary's three forks or specific abilities into universal requirements. Its solo acceptance path replaces PvP acceptance, not the Shared collision/presentation boundary.
 - The typed production commands `sloparena.stage.bake` and `sloparena.stage.inspect` exist at the paths documented by [`sloparena-stage-authoring`](../sloparena-stage-authoring/SKILL.md); this design workflow must not run them.
-- For an existing stage: the gameplay-shell section of `docs/design/stages/<key>.md` and the baked arena are fixed constraints. The design may re-mass cosmetics, but never proposes new collision, spawns, or boundaries — those require the production skill's gameplay path.
+- For an existing stage's cosmetic-only pass: the gameplay-shell section of `docs/design/stages/<key>.md` and the baked arena are fixed constraints. Re-mass cosmetics within those constraints; collision, spawn or boundary changes require an explicitly scoped layout revision and the production skill's gameplay path.
 - **Blast-plane clearance (the ONE background rule).** The bake derives kill planes from the collision mesh: side planes at mesh bounds ± `ArenaCollision.SideBlastMargin` (10), kill height at minY − 10, top blast at highest surface + 20. The corridor between the planes is player-death space — an ejected fighter flies through it until crossing a plane. Background geometry must not intersect that corridor: nothing an ejected player would visibly pass through, no surface at landable height inside it. The `sloparena.stage.design-capture` command draws translucent red kill-plane walls and reports the planes as numbers, so this is checkable per iteration. It is fine that the stage limit itself reads softly; it is never fine for players to fly through terrain when ejected.
 - **Platform reachability rule of thumb (shell design).** Calibrate against the roster reference character, not intuition: read `jumpForce`/`gravity`/`airJumpVMultiplier` from `content-cooked/<character>/character.runtime.json` (FightGuy reference: single-jump apex ≈ 2.0, double-jump apex ≈ 3.3; `src/Shared/AI/MovementProbe.cs` computes exact per-character metrics). Level-1 platform: top ≈ single apex (one well-timed jump, trivial with double). Level-2 platform: top above double apex — unattainable from the floor even with a double jump, close enough that a character's body grazes it; reachable with a double jump from a level-1 platform. Reference implementation (industrial_rooftop HVAC decks): L1 top 2.01, L2 top 4.43.
 - **Gray-box captures judge massing only; prop placement is arithmetic + numeric verification.** Flat captures cannot reveal whether a window sits on a building's face or floats 2 units off it. Two concrete traps, both observed: (1) parenting a prop to a scaled cube multiplies the child's local position/scale by the parent's scale — windows landed at x=−180; either compute WORLD positions from the parent's renderer bounds (`face ± halfProp + embed`) or divide local values by parent scale; (2) destroying objects while iterating the transform skips entries — collect targets into a list first. Standard recipe: place props in world space computed from the building's bounds (window center = face ± (propHalfDepth − embed)), then verify with a bounds dump (every prop overlaps its host on the two tangent axes and protrudes on the face axis) — never by trusting the yaw captures.
-- **If the shell itself is the problem** (layout, routes, boundary shape feel boring or unjustified), that is a gameplay change, not a cosmetic re-mass. Design the shell concept conversationally first — fight premise, named route purposes, spawn plan, ASCII top-down — then implement it through the production skill's gameplay path (collision scene → bake → ArenaShipping tests → human PVP review), and only then run this visual design session on the new shell.
+- **If the shell itself is the problem** (layout, routes, boundary shape feel boring or unjustified), that is a gameplay change, not a cosmetic re-mass. Design the shell concept conversationally first — premise, named route purposes, spawn plan, top-down sketch — then implement it through the production skill's gameplay path (collision scene → bake → affected arena/course tests → the purpose-appropriate human review). Establish the route before extending its art; approved art may be retained through later targeted geometry tuning.
 
 Early layout talk should prefer terminal-ASCII wireframes. They are throwaway thinking tools, not deliverables.
+
+For courses, show each fork's approach, ordinary detour, ability crossing and common landing together. Check that required target placement preserves the intended choice. Calibrate short/full/running/double jumps with the actual kit through the production path; a visually large gap or an apex estimate alone does not establish difficulty. For an approved spacing revision, tune gaps individually and record protected landmarks rather than uniformly scaling the scene.
 
 ### Geometry before dressing
 
@@ -108,7 +111,7 @@ Iterate visual massing with throwaway scripts, then capture with the typed desig
    5. Could a player mistake background for a safe route? If they try it, do they cleanly blast rather than collide with visible terrain?
    6. Which gray-box forms must survive into production, and which are placeholders for real assets?
 
-   This is a visual-design review, not the production workflow's external 2–4-player PVP acceptance. It establishes presentation readability before LOCK; it does not prove final gameplay usability.
+   This is a visual-design review, not the production workflow's external 2–4-player PVP acceptance. For a solo course, ask whether the takeoff, landing, branches and next destination read clearly and whether the intended jump differences feel distinct. A scripted route completion does not answer those human questions. The solo implementation-authorization exception in section 5 does not claim this review passed.
 
 5. Asset edits may cause a reload/connection gap. Keep dependent operations in the same bounded gateway batch and let it reconcile known work before release. Observe ownership through gateway `status`; blocked or uncertain completion requires reconciliation, not replaying `eval_file`, capture, or another mutation to obtain an acknowledgment.
 
@@ -126,14 +129,27 @@ Include a "busy here / empty here" zoning statement.
 
 ## 5. LOCK protocol
 
-The session ends by:
+For normal PvP visual design, use the full sign-off/review sequence below. For an
+approved solo Arcade course, an explicit instruction to implement a concrete
+route or bounded revision may lock that implementation intent before the user
+plays the exact new geometry. Record the approved scope and keep playable visual,
+controller and difficulty acceptance explicitly pending. Do not label unseen
+captures approved. Reuse that authorization for implementation, baking and
+verification; do not ask for a second ceremonial sign-off or a fresh interview
+for every gap adjustment. A new unresolved design choice still needs the user's
+input. This exception does not change normal PvP acceptance.
+
+The normal PvP design session ends by:
 
 1. Reading the numbered decisions back to the user for explicit sign-off.
 2. Confirming that the user completed the in-game visual-design review in section 3 and that its observations are resolved or explicitly accepted.
 3. Writing the Stage Design Brief per section 6, front matter `status: locked` and `locked:` dated, only after that sign-off.
 4. Stating that production (`sloparena-stage-authoring`) may now run.
 
-"Locked" means the brief plus the screenshots. It does not replace the later external human PVP acceptance.
+For the normal PvP sequence, "locked" means the brief plus reviewed screenshots.
+For the approved solo path, distinguish the locked implementation scope from
+pending human review in the brief. Neither replaces purpose-appropriate human
+playability acceptance.
 
 ## 6. Stage Design Brief format
 

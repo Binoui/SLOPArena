@@ -26,6 +26,7 @@ namespace SlopArena.Client.Combat
         private PlayerRenderer _target;
         private Transform _objectTarget;
         private float _objectRadius;
+        private bool _showDamage = true;
         private Transform _targetHead;
         private Renderer[] _targetRenderers = System.Array.Empty<Renderer>();
         private float _authoredOpacity = 1f;
@@ -54,6 +55,7 @@ namespace SlopArena.Client.Combat
         public void SetTarget(PlayerRenderer target, bool locked, ushort damagePercent)
         {
             if (_root == null) return;
+            _showDamage = true;
             _objectTarget = null;
             if (target != _target)
             {
@@ -72,7 +74,7 @@ namespace SlopArena.Client.Combat
         }
 
         /// <summary>Object framing only; identity, eligibility and selection come from Shared.</summary>
-        public void SetObjectTarget(Transform target, float radius, bool locked, ushort damagePercent)
+        public void SetObjectTarget(Transform target, float radius, bool locked, ushort? damagePercent)
         {
             if (_root == null) return;
             if (_objectTarget != target)
@@ -80,12 +82,15 @@ namespace SlopArena.Client.Combat
                     : System.Array.Empty<Renderer>();
             _target = null; _targetHead = null;
             _objectTarget = target; _objectRadius = radius;
+            _showDamage = damagePercent.HasValue;
             if (target == null || !locked) { HideImmediate(); return; }
-            ShowDamage(damagePercent);
+            if (damagePercent.HasValue) ShowDamage(damagePercent.Value);
+            else { ApplySettings(); _root.EnableInClassList(VisibleClass, true); }
         }
 
         private void ShowDamage(ushort damagePercent)
         {
+            ApplySettings();
             if (_damage != null && damagePercent != _damagePercent)
             {
                 _damage.text = damagePercent.ToString();
@@ -162,7 +167,7 @@ namespace SlopArena.Client.Combat
         {
             if (_root == null) return;
             _root.style.opacity = _authoredOpacity * (_settings != null ? _settings.TargetOpacity : 1f);
-            _root.EnableInClassList(DamageHiddenClass, _settings != null && !_settings.ShowOverheadDamage);
+            _root.EnableInClassList(DamageHiddenClass, !_showDamage || _settings != null && !_settings.ShowOverheadDamage);
         }
 
         private void HideImmediate()
