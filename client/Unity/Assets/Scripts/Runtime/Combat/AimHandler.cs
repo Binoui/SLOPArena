@@ -110,7 +110,7 @@ namespace SlopArena.Client.Combat
         }
 
         public void UpdateObjectTargetPresentation(CharacterState localState, Transform target,
-            float radius, ushort damagePercent)
+            float radius, ushort? damagePercent)
             => _targetLockIndicator?.SetObjectTarget(target, radius, localState.LockOn, damagePercent);
 
         /// <summary>

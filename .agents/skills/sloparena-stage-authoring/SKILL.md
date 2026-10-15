@@ -1,6 +1,6 @@
 ---
 name: sloparena-stage-authoring
-description: "Author and maintain SlopArena PVP stages through separate authoritative collision baking and cosmetic Unity presentation, with fixed topology, asset provenance, structural inspection, and human PVP acceptance."
+description: "Implement SlopArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes and source-to-bake verification."
 metadata: {"category": "game-dev"}
 ---
 

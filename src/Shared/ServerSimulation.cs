@@ -106,15 +106,17 @@ namespace SlopArena.Shared
 			_rule = rule ?? new StockMatchRule(3);
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
-			if (arena.Arcade != null)
+			if (arena.Arcade?.Ball is ArcadeBallDefinition ball)
             {
-                _arcadeBall = new ArcadeBallSimulation(arena.Arcade.Ball, in arena);
+                _arcadeBall = new ArcadeBallSimulation(ball, in arena);
                 if (arena.Arcade.Slopball is SlopballDefinition rules)
                 {
                     rules.ValidateCourt(in arena);
-                    _slopball = new SlopballSimulation(rules, arena.Arcade.Ball, _arcadeBall);
+                    _slopball = new SlopballSimulation(rules, ball, _arcadeBall);
                 }
             }
+            if (arena.Arcade?.Course is CharacterCourseDefinition course)
+            { course.ValidateArena(in arena); _course = new CharacterCourseSimulation(course); }
 		}
 
 		// ── Hitstop tuning (ADR-0012). Game-wide defaults; per-ability overrides via
@@ -136,8 +138,10 @@ namespace SlopArena.Shared
 
 		public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
 		{
-            if (_slopball != null && _states.Count > 0 && !_states.ContainsKey(id))
-                throw new ArgumentException("Solo Slopball admits one fighter.", nameof(id));
+            if ((_slopball != null || _course != null) && _states.Count > 0 && !_states.ContainsKey(id))
+                throw new ArgumentException("Solo Arcade challenges admit one fighter.", nameof(id));
+			if (_course != null && id >= CharacterCourseSimulation.FirstInputAlias)
+				throw new ArgumentException("Course target aliases and object identities are reserved.", nameof(id));
 			if (_arcadeBall != null && (id == ArcadeBallSimulation.TargetInputId || id >= ArcadeBallSimulation.FirstEntityId))
 				throw new ArgumentException("Arcade reserves the ball target alias and object identity range.", nameof(id));
 			_defs[id] = def;
@@ -1913,6 +1917,7 @@ namespace SlopArena.Shared
 				}
 			}
 			if (_arcadeBall != null && _arcadeBall.State.Active) entityList.Add(_arcadeBall.CollisionTarget);
+            if (_course != null) entityList.AddRange(_course.CollisionTargets());
 			_lastEntityList = entityList;
 			return entityList;
 		}
@@ -2112,6 +2117,11 @@ namespace SlopArena.Shared
 				if (_arcadeBall != null && hit.TargetEntityId == _arcadeBall.State.EntityId)
 				{
 					ResolveArcadeBallHit(hit, inputs, hitContactOperationIndex++);
+					continue;
+				}
+				if (_course != null && _course.TryIndex(hit.TargetEntityId, out int courseTarget))
+				{
+					ResolveCourseTargetHit(hit, courseTarget, inputs, hitContactOperationIndex++);
 					continue;
 				}
 				if (!_states.TryGetValue(hit.TargetEntityId, out var targetState)) continue;
@@ -2564,7 +2574,12 @@ namespace SlopArena.Shared
 				_damagedThisTick.Clear();
                 if (_slopball != null && !_slopball.BeginTick(_arcadeBall!))
                 { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
-                if (_slopball != null) inputs = GateSlopballStartInput(inputs);
+                if (_course != null && !_course.BeginTick())
+                { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                if (_slopball != null || _course != null) inputs = GateArcadeStartInput(inputs);
+                ArcadePoint coursePrevious = default;
+                if (_course != null)
+                    foreach (var state in _states.Values) coursePrevious = new(state.PX, state.PY, state.PZ);
 				_tick++;
 				if (PredictCoupledInteractions && HasCoupledInteraction())
 					UpdateCoupledInteractions(releaseDue: false, inputs);
@@ -2596,6 +2611,7 @@ namespace SlopArena.Shared
 				ProcessProjectileExplosions();
 
 				CheckBlastDeaths();
+                FinishCourseTick(coursePrevious);
 			}
 			finally
 			{

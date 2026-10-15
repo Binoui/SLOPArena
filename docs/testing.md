@@ -38,6 +38,20 @@ refresh boundary before delivery. Documentation/tooling-only edits use the Pytho
 from the documentation checker; no Shared build or Unity session is required for this
 cleanup.
 
+### Stage and Arcade course tuning
+
+Geometry/marker-only tuning uses the maintained stage bake/inspect path and
+focused `ArenaShipping` coverage; Character Courses also use `CharacterCourse`
+coverage and both complete ordinary/ability routes against the actual bake.
+Use the [course replay runner](testing/course-replay.md) for saved inputs, named
+captures and observed result checks. Verify normal Arcade menu entry separately.
+Art-only changes
+preserve gameplay hashes and use inspection plus affected camera views without
+rebaking. Read [Traversal Courses](design/traversal-courses.md) for jump
+counterexamples, chunked native replay and isolated records. Shared/server source
+changes still follow the integrated checks above; scripted runs do not establish
+human/controller acceptance. No cook or player build is implied by local map tuning.
+
 ## Distributable demo
 
 For the routine Steam/VPS release, the isolated builder verifies client payloads

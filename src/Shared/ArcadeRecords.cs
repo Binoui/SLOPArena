@@ -47,18 +47,35 @@ public sealed class ArcadeRecordBook
     {
         key.Validate();
         if (key.ChallengeId != "slopball") throw new ArgumentException("This result must be a Slopball return count.");
+        return Bank(key, returns, provenance, achievedUtc, lowerIsBetter: false);
+    }
+
+    /// <summary>Only an immutable completed Shared attempt can supply an eligible course time.</summary>
+    public ArcadeRecordUpdate BankCourse(ArcadeRecordKey key, CharacterCourseState result,
+        ArcadeRecordProvenance provenance, DateTime achievedUtc)
+    {
+        key.Validate();
+        if (key.ChallengeId != "character-course" || result.Phase != CharacterCoursePhase.Completed
+            || result.ElapsedTicks == 0 || result.TotalTargets == 0 || result.BrokenTargets != result.TotalTargets)
+            throw new ArgumentException("Course records require all targets and a completed timed run.");
+        return Bank(key, result.ElapsedTicks, provenance, achievedUtc, lowerIsBetter: true);
+    }
+
+    private ArcadeRecordUpdate Bank(ArcadeRecordKey key, ulong value,
+        ArcadeRecordProvenance provenance, DateTime achievedUtc, bool lowerIsBetter)
+    {
         if (provenance == null) throw new ArgumentNullException(nameof(provenance));
         ulong? previous = Best(key);
         for (int i = 0; i < _records.Count; i++)
             if (_records[i].Key.SameChallenge(key))
                 _records[i] = _records[i] with { Archived = _records[i].Key != key };
-        bool improved = !previous.HasValue || returns > previous.Value;
+        bool improved = !previous.HasValue || (lowerIsBetter ? value < previous.Value : value > previous.Value);
         if (improved)
         {
             _records.RemoveAll(x => x.Key == key);
-            _records.Add(new(key, returns, achievedUtc.ToUniversalTime().ToString("O"), provenance, false));
+            _records.Add(new(key, value, achievedUtc.ToUniversalTime().ToString("O"), provenance, false));
         }
-        return new(previous, Math.Max(previous ?? 0, returns), improved);
+        return new(previous, improved ? value : previous!.Value, improved);
     }
 
     public string Serialize()

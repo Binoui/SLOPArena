@@ -1,6 +1,6 @@
 ---
 name: sloparena-stage-authoring
-description: "Author and maintain SlopArena PVP stages through separate authoritative collision baking and cosmetic Unity presentation, with fixed topology, asset provenance, structural inspection, and human PVP acceptance."
+description: "Implement SlopArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes and source-to-bake verification."
 metadata: {"category": "game-dev"}
 ---
 
@@ -8,7 +8,10 @@ For live Editor commands, use your own caller identity and bounded gateway lease
 
 # SlopArena Stage Authoring
 
-Use this skill for new PVP stages, gameplay changes, and cosmetic stage presentation. It is an implementation workflow, not a concept-design guide.
+Use this skill for new PvP stages, approved solo Arcade fixtures, gameplay changes
+and cosmetic stage presentation. It is an implementation workflow, not a
+concept-design guide. For traversal courses, also read
+[`docs/design/traversal-courses.md`](../../docs/design/traversal-courses.md).
 
 Read [`docs/design/stage-concepts.md`](../../docs/design/stage-concepts.md) before substantive work. That canonical page exists and is required input for topology, readability, and balance intent.
 
@@ -35,7 +38,11 @@ Unity MatchBase.SpawnStageVisual
 cosmetic rendering, local lighting, presentation only
 ```
 
-`src/Shared/ArenaDefinition.cs` is the authoritative PVP stage contract. It owns collision triangles, heightmap, bounds, blast lines, and spawn points. `Simulation` uses it for grounding, ledges, and collision; `ServerSimulation` resolves blast deaths and respawns; `MatchInstance` loads it on the dedicated server.
+Solo Arcade uses the same baked arena through `LocalSimulationBridge` and its
+dedicated match runner; it does not require a dedicated-server course session.
+Embedded challenge data remains Shared authority, not a runtime Unity component.
+
+`src/Shared/ArenaDefinition.cs` is the authoritative stage contract. It owns collision triangles, heightmap, bounds, blast lines, and spawn points. `Simulation` uses it for grounding, ledges, and collision; `ServerSimulation` resolves blast deaths and respawns; `MatchInstance` loads it on the dedicated server for PvP.
 
 `client/Unity/Assets/Resources/Stages/<key>.prefab` is cosmetic. `MatchBase.SpawnStageVisual` loads it dynamically under the runtime Stage root. Unity scene colliders, physics, animation, and presentation must not decide PVP results.
 
@@ -55,7 +62,7 @@ Cosmetic-only maintenance that does not change composition (for example, replaci
 
 - The PVP workflow below covers normal multiplayer stages. Approved solo Arcade
   fixtures use the focused bake contract described under Arcade foundation stages.
-- Every accepted selectable stage currently supports **2–4 players**. The present selection/server path has no per-stage capacity admission, so a stage with fewer than four valid spawns is unsafe.
+- Every normal PvP stage currently supports **2–4 players**. The present PvP selection/server path has no per-stage capacity admission, so a PvP stage with fewer than four valid spawns is unsafe. Approved solo Arcade fixtures instead require one grounded start and purpose-based exclusion from PvP.
 - `static` is the only currently available variant.
 - `hazard`, `moving-geometry`, and special-mode variants must be declared explicitly in the stage brief, name their required authoritative capability, and fail closed until that Shared/server capability exists. Never approximate them with Unity-only scripts or decorative animation.
 - The normal human PVP review is external to the repository. Agents must not drive it or claim that it passed.
@@ -83,6 +90,16 @@ Shared shot origin between serves. Readers retain v1/v2 with zero drag and v1–
 with fixed origins. Unchanged profiles retain their existing serialized bytes.
 The static net is baked ball collision and is excluded from the fighter/projectile
 ground heightmap. Shared validates serve arcs against the court.
+
+Character Courses compile typed section v5 inside the same arena v6 artifact.
+`ArcadeStageAuthoring.CharacterCourse` selects targets, checkpoints with sensor
+volumes/respawns and cumulative target prerequisites, and a finish volume instead
+of a ball/Slopball profile. Markers must be empty children under AuthoringAids;
+Shared validates identities, volumes and prerequisites, while the baker also
+checks grounded checkpoint respawns and blast-bound placement. Keep IDs stable
+when moving markers. Ball sections v1–v4 retain their existing serialization.
+See the [Sanctuary production contract](../../docs/design/stages/fightguy_sanctuary.md)
+and [Phase 4 commands](../../docs/design/arcade-phase-4.md#authoring-and-native-commands).
 
 Arcade sources require one grounded `Spawn_01`; normal sources retain four empty
 spawn markers. Other scripts/components remain rejected by the source validator.
@@ -161,7 +178,7 @@ The file uses YAML front matter plus explanatory Markdown. It is a human product
 The front matter and body together bind:
 
 - immutable key and mutable display name;
-- PVP target, including 2–4-player support;
+- explicit purpose: normal PvP with 2–4-player support, or approved solo Arcade with its allowed fighter packages and challenge;
 - declared variant and, when non-static, the required authoritative capability and blocked state;
 - competitive intent: `competitive`, `mixed`, or `playful`; and the gameplay intent plus applicable Stage Concepts criteria;
 - platform, traversability, spawn, and derived-boundary plan;
@@ -199,8 +216,8 @@ Rules:
 
 - `GameplayGeometry` contains static `MeshFilter` collision geometry only. Unity Terrain is out of scope.
 - No `MeshFilter` may exist outside `GameplayGeometry` anywhere under `Stage_<key>`.
-- `SpawnPoints` contains empty GameObjects tagged `SpawnPoint`, named in strict order `Spawn_01` through `Spawn_04`.
-- All four spawn markers must resolve onto authoritative gameplay ground after baking.
+- `SpawnPoints` contains empty GameObjects tagged `SpawnPoint`: strict `Spawn_01` through `Spawn_04` for normal PvP, or one `Spawn_01` for approved solo Arcade.
+- Every required spawn marker must resolve onto authoritative gameplay ground after baking.
 - `AuthoringAids` may contain non-mesh editor aids only. It must not contain decorative meshes, cosmetic prefabs, Terrain, or hidden visual references.
 - Do not put art references under disabled objects: the current baker ingests descendant meshes and cannot safely distinguish dressing.
 - The source root transform is position `(0,0,0)`, identity rotation, and scale `(1,1,1)`.
@@ -233,7 +250,7 @@ This prefab is reviewed as art and presentation. It is never a substitute for co
 0. Read the locked Stage Design Brief at `docs/design/stages/<key>.design.md` and quote its numbered decisions at the top of the production report. The design brief's decisions outrank this production brief's prose.
 1. Confirm `docs/design/stage-concepts.md` exists and applies to the stage.
 2. Create or update `docs/design/stages/<key>.md` with its YAML front matter and production contract.
-3. Confirm the stage is static, PVP-only, and supports all 2–4-player matches. A non-static declaration blocks on the missing authoritative capability.
+3. Confirm purpose and static topology. Normal PvP supports all 2–4-player matches; approved solo Arcade uses its grounded start and compiled challenge markers. A non-static declaration blocks on a missing authoritative capability.
 4. For newly referenced external visual assets, produce and accept an asset-selection workset before introducing them to the prefab.
 
 ### 2. Author collision separately
@@ -241,7 +258,7 @@ This prefab is reviewed as art and presentation. It is never a substitute for co
 1. Create or edit the fixed collision source scene.
 2. Preserve the `Stage_<key>` hierarchy and source-root identity transform.
 3. Put only static mesh collision under `GameplayGeometry`.
-4. Place `Spawn_01` through `Spawn_04` as tagged empty markers under `SpawnPoints`.
+4. Place the purpose-appropriate tagged empty spawn markers under `SpawnPoints`; compile Arcade challenge markers/settings under `AuthoringAids`.
 5. Keep all decorative presentation out of the source scene.
 
 Do not make collision geometry from the cosmetic prefab, copy arbitrary vendor mesh hierarchies into the bake source, or rely on disabled visual objects to avoid baking.
@@ -258,9 +275,43 @@ Do not make collision geometry from the cosmetic prefab, copy arbitrary vendor m
 
 For existing-stage passes, record a baseline for the protected collision source, `.arena`, accepted visual roots, materials, and atmosphere. An additive request means add the agreed roots, not rebuild accepted scenery. Compare protected data after saving; report any intended exception explicitly.
 
+For a polish pass, also capture current gameplay views first, name the three most visible defects, and fix one representative slice in Unity before propagating its treatment. Recapture the same views to compare before/after. A pass that changes masses, landmark or lighting intent updates the locked brief through the design skill first.
+
 Verify placement numerically as well as visually: sample the actual support mesh under each prop footprint, check foundation contact/embedding, and keep island/building dressing parented to its own region without changing world poses. Bounds are a clearance broad phase; check actual triangles where bounds overlap the forbidden corridor, including relevant LODs. A visually convincing screenshot alone cannot prove grounding or clearance.
 
 Repeat the full-orbit and low-view capture after surfacing and dressing. Inspect all frames for rear-face gaps, hovering foundations, sawtooth material boundaries, repeated islands, and false landable routes. Preserve open water/sky rather than filling every gap. Record structural metrics and remaining human review separately; renders do not establish performance or PVP acceptance.
+
+For routine tuning that preserves accepted art/composition, recheck the affected
+gameplay-camera vantages and numeric constraints. Repeat the broad orbit review
+when topology, occlusion, backdrop or overall composition changes materially;
+do not repeat asset procurement or every capture pass for an isolated value edit.
+Course spacing changes keep source, presentation, targets/checkpoints/respawns,
+finish and route cues aligned. Use the existing targeted relayout seam when
+available; a greybox rebuild can discard accepted art.
+
+#### Procedural presentation and visual review
+
+Original presentation can be generated from Python in headless Blender
+(`blender -b --factory-startup --python ...`). The
+[procedural environment kit](../../tools/blender/README.md) lists what the FightGuy
+Sanctuary generator offers for reuse (mesh, rock and surface helpers, AO bake, FBX
+export, footprint/corridor/camera-envelope checks, Blender previews and the
+`SlopArena/StageVertexLit` shader) and which parts are Sanctuary-specific. Copy only
+the needed pieces into `tools/blender/<key>/` and keep existing generators rebuilding.
+Read the authoritative source scene, never the prefab, and leave any interactive
+Blender (MCP) session alone unless asked.
+
+Iterate: Blender previews from gameplay-like vantages (about a 20 m orbit, 40° FOV)
+for fast fixes, then apply inside your own lease and judge real gameplay captures.
+Name each defect, repair its source and recapture. Structural inspection replaces
+materials, so it cannot judge appearance: use the
+[course replay runner](../../docs/testing/course-replay.md) for courses, or the
+Training-based [visual baseline scene](../../docs/visual-baseline.md) with
+`sloparena.capture.game-view --source screen` for PvP arenas.
+
+Generate outside `Assets/`, then copy and import within your lease. After any C# edit,
+run `recompile` on its own before an asset refresh or import step; see the
+[reload hazard](../../docs/contributing/unity-cli.md#live-c-evaluation).
 
 ### 4. Bake and inspect
 
@@ -276,7 +327,7 @@ Inspection must reject or fail the report for:
 
 - missing/misnamed source scene or `Stage_<key>` root;
 - MeshFilters outside `GameplayGeometry`, Terrain, or invalid source transforms;
-- missing, unordered, untagged, non-grounded, or fewer than four spawn markers;
+- missing, unordered, untagged or non-grounded required spawn markers (four for normal PvP, one for approved solo Arcade), or invalid compiled challenge markers;
 - unreadable/stale/mismatched `.arena`, missing collision triangles, or derived geometry inconsistent with the source;
 - absent `Resources/Stages/<key>.prefab` or visual-root transform mismatch;
 - any cosmetic Collider;
@@ -288,7 +339,7 @@ It captures six deterministic global views—top, front, back, left, right, and 
 
 ### 5. Agent preflight
 
-For every new stage and every gameplay change, run the established structural preflight before requesting human PVP review:
+For every new stage and every gameplay change, run the applicable structural preflight before requesting purpose-appropriate human review:
 
 ```bash
 dotnet build src/Shared/ --nologo -p:SkipUnityPluginCopy=true
@@ -302,17 +353,34 @@ bun scripts/unity-editor-gateway.ts --project-path client/Unity -- get_console_l
 
 Also run the typed bake and inspect commands above. Review the six captures and the inspection report. The preflight must prove the source/baked/prefab relationship, but it does not prove human playability.
 
+For a Character Course gameplay change, include focused `CharacterCourse` coverage
+with `ArenaShipping`, plus affected Server Arcade admission coverage if changing
+purpose/serialization/admission. Prove both full ordinary and ability routes with
+the real kit, targets, saves and finish; use negative single-jump cases when a
+double-jump requirement is part of the design. Then verify the affected native
+Arcade path. The [course guide](../../docs/design/traversal-courses.md) explains
+chunked replay, isolated records and the boundary between scripted and human play.
+Do not force a Unity recompile for geometry/material-only edits if the Editor is
+already compiled and imports are settled; follow [testing.md](../../docs/testing.md)
+for actual C#/Shared/package changes. Dated evidence is not a blanket checklist
+to repeat for unrelated tuning.
+
 Then run the brief-conformance self-check: for each numbered decision in the design brief, output one line `PASS` or `DEVIATION: <decision N> — <what differs and why>`. Deviations are reported to the user for accept/reject — never silently fixed, never silently accepted.
 
 If the stage changes Shared/server source beyond baked data, run the project-required Shared/server contract tests for those code changes as well. Do not suppress unrelated current suite failures; report their existing cause separately.
 
-### 6. External human PVP acceptance
+### 6. Purpose-appropriate human acceptance
+
+For approved solo Arcade courses, the maintainer reviews both traversal choices,
+route readability, camera/aim, checkpoints/retry and controller difficulty through
+the normal Arcade flow. Report that acceptance separately from scripted completion
+and player-build verification. The multiplayer review below applies to normal PvP.
 
 After the agent preflight, a human performs the normal PVP host/lobby/character-select/stage-select flow. Agents do not perform this step and must not say it passed.
 
 The human reviewer uses qualitative judgment for whether the stage is usable, sufficiently open, and not too crowded. They must exercise at least the 2-player and 4-player roster extremes, including spawn behavior, movement through the layout, edges, platforms, ledge recovery, blast boundaries, and combat space. Evidence and approval live only in the external tracker by decision; the stage brief contains no link or status record.
 
-A stage is not ready for acceptance while the human PVP review is missing or failed, even if all automated checks pass.
+A normal PvP stage is not ready for acceptance while the human PvP review is missing or failed, even if all automated checks pass.
 
 ## Explicit non-goals
 
@@ -333,13 +401,13 @@ A stage is not ready for acceptance while the human PVP review is missing or fai
 - [ ] Key is immutable lowercase `snake_case`; display name is separate.
 - [ ] Source scene, cosmetic prefab, and `.arena` use the fixed paths.
 - [ ] Collision scene has the named root hierarchy; meshes only under `GameplayGeometry`.
-- [ ] Four ordered `SpawnPoint` markers bake onto valid ground.
+- [ ] Purpose-appropriate ordered `SpawnPoint` markers bake onto valid ground: four for normal PvP, one for approved solo Arcade; Arcade markers compile and remain excluded from PvP.
 - [ ] Cosmetic prefab is identity-aligned, has local lighting as needed, and has zero Colliders.
 - [ ] Newly referenced external assets have asset-selection workset evidence; original authored meshes/materials are persisted and inspected.
 - [ ] Static variant is accepted; unsupported variants are blocked on explicit authoritative capability work.
 - [ ] Typed bake and inspect tools exist and both succeed.
 - [ ] Inspection report and six overlay captures are written to local cache and reviewed.
-- [ ] Shared/server build and relevant arena tests pass; Unity recompiles with no current errors.
-- [ ] External human PVP review passed at 2 and 4 players. Agents have not claimed that result without human evidence.
+- [ ] Applicable builds and arena/course tests pass; Unity compilation/imports are settled with no current errors; affected native behavior is checked.
+- [ ] Human acceptance is reported accurately: 2/4-player PvP review for normal stages, solo traversal/gamefeel review for courses. Pending review is not claimed passed.
 - [ ] Locked Stage Design Brief exists and was followed.
 - [ ] Brief-conformance table reported.

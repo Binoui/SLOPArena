@@ -1,6 +1,6 @@
 ---
 name: sloparena-stage-design
-description: "Interactive human+agent DESIGN phase for SlopArena PVP stages: visual composition, gray-box wireframing, and a locked Stage Design Brief. Use for stage design, stage wireframe, stage composition, design a stage, blockout, or 'what should the stage look like'. Production/baking/lighting work belongs to sloparena-stage-authoring."
+description: "Design SlopArena PvP stages and solo Arcade traversal courses with focused interviews, route/composition sketches, graybox review and a Stage Design Brief. Use for new layouts, jump/shortcut design or substantial composition revisions. Implementation and baking belong to sloparena-stage-authoring."
 metadata: {"category": "game-dev"}
 ---
 

@@ -47,7 +47,9 @@ namespace SlopArena.Shared
         public static byte[] Serialize(ArenaDefinition arena)
         {
             arena.Arcade?.Slopball?.ValidateCourt(in arena);
+            arena.Arcade?.Course?.ValidateArena(in arena);
             byte[]? arcade = arena.Arcade != null ? ArcadeStageBinaryFormat.Serialize(arena.Arcade) : null;
+            if (arcade?.Length > 8192) throw new ArgumentException("Arcade metadata exceeds the bounded stage section.");
             if (arcade != null && (arena.SpawnPoints == null || arena.SpawnPoints.Length != 1))
                 throw new ArgumentException("An Arcade stage needs exactly one authored player start.");
             // Calculate size upfront
@@ -294,7 +296,7 @@ namespace SlopArena.Shared
             // The grid is derived at load time, not serialized. Direct match loads
             // need the same broadphase as registry loads.
             arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
-            try { arena.Arcade?.Slopball?.ValidateCourt(in arena); }
+            try { arena.Arcade?.Slopball?.ValidateCourt(in arena); arena.Arcade?.Course?.ValidateArena(in arena); }
             catch (ArgumentException) { return null; }
             return arena;
         }

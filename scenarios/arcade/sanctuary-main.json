@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "stage": "fightguy_sanctuary",
+  "fighter": "fightguy",
+  "inputs": "sanctuary-main.inputs.json",
+  "captures": [
+    {
+      "tick": 604,
+      "name": "first-gap",
+      "camera": {
+        "yaw": 0,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 697,
+      "name": "pole-landing",
+      "camera": {
+        "yaw": 340,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 4228,
+      "name": "roof-descent",
+      "camera": {
+        "yaw": 205,
+        "pitch": 35
+      }
+    },
+    {
+      "tick": 5399,
+      "name": "complete",
+      "camera": {
+        "yaw": 0,
+        "pitch": 25
+      }
+    }
+  ],
+  "expect": {
+    "completed": true,
+    "targets": 20,
+    "falls": 0,
+    "checkpoints": 3
+  }
+}

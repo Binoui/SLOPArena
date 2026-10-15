@@ -12,13 +12,23 @@ public static class ArcadeRecordCompatibility
     // Data changes below are detected automatically; UI, art, audio and VFX are excluded.
     public const uint RulesRevision = 3;
     public const ushort SlopballCountdownTicks = 180;
+    public const ushort CourseCountdownTicks = 180;
+    public const uint CourseRulesRevision = 1;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)
+        => Fingerprint(arena, fighter, rulesRevision, tuning, course: false);
+
+    public static string Course(in ArenaDefinition arena, MatchContentEntry fighter,
+        uint rulesRevision = CourseRulesRevision, CombatTuning? tuning = null)
+        => Fingerprint(arena, fighter, rulesRevision, tuning, course: true);
+
+    private static string Fingerprint(in ArenaDefinition arena, MatchContentEntry fighter,
+        uint rulesRevision, CombatTuning? tuning, bool course)
     {
         var stage = arena.Arcade ?? throw new ArgumentException("An Arcade stage is required.");
-        if (stage.Slopball == null || !stage.AllowsPackage(fighter.Identity.PackageId))
-            throw new ArgumentException("This Slopball profile does not admit the fighter.");
+        if ((course ? stage.Course == null : stage.Slopball == null) || !stage.AllowsPackage(fighter.Identity.PackageId))
+            throw new ArgumentException("This Arcade profile does not admit the fighter.");
         var c = fighter.CookedCharacterPackage?.Definition
             ?? throw new ArgumentException("Records require a cooked fighter.");
         var d = fighter.Definition;
@@ -42,11 +52,22 @@ public static class ArcadeRecordCompatibility
             return new { animation.FrameCount, Frames = frames };
         }
         tuning ??= CombatTuning.Default;
+        // Retain the original Slopball projection bytes: adding Course must not archive ball records.
         var gameplay = new
         {
             ProjectionVersion = 1, RulesRevision = rulesRevision, Simulation.TickDt,
             Combat = new { tuning.KnockbackScale, tuning.HitstunCoefficient, tuning.HitstunMagnitudeBonus },
-            Stage = new
+            Stage = course ? (object)new
+            {
+                stage.ProfileId, stage.GameplayRevision, stage.Course, CountdownTicks = CourseCountdownTicks,
+                arena.KillHeight, arena.KillTop, arena.KillMinX, arena.KillMaxX, arena.KillMinZ, arena.KillMaxZ,
+                arena.MinX, arena.MaxX, arena.MinZ, arena.MaxZ,
+                Starts = arena.SpawnPoints.Select(x => new { x.X, x.Y, x.Z, x.Yaw }).ToArray(),
+                Collision = arena.CollisionTriangles.Select(x => new
+                    { x.AX, x.AY, x.AZ, x.BX, x.BY, x.BZ, x.CX, x.CY, x.CZ }).ToArray(),
+                Ground = new { arena.Heightmap.Width, arena.Heightmap.Height, arena.Heightmap.CellSize,
+                    arena.Heightmap.OriginX, arena.Heightmap.OriginZ, arena.Heightmap.Data },
+            } : new
             {
                 stage.ProfileId, stage.GameplayRevision, Ball = stage.Ball, ShotProfile = stage.Slopball,
                 arena.KillHeight, arena.KillTop, arena.KillMinX, arena.KillMaxX, arena.KillMinZ, arena.KillMaxZ,

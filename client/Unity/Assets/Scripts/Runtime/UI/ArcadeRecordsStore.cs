@@ -42,6 +42,19 @@ namespace SlopArena.Client.UI
         public ArcadeRecordUpdate Bank(ArcadeRecordKey key, ulong returns, ArcadeRecordProvenance provenance)
         {
             var update = Book.BankSlopball(key, returns, provenance, DateTime.UtcNow);
+            Save();
+            return update;
+        }
+
+        public ArcadeRecordUpdate BankCourse(ArcadeRecordKey key, CharacterCourseState result, ArcadeRecordProvenance provenance)
+        {
+            var update = Book.BankCourse(key, result, provenance, DateTime.UtcNow);
+            Save();
+            return update;
+        }
+
+        private void Save()
+        {
             try
             {
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
@@ -58,7 +71,6 @@ namespace SlopArena.Client.UI
             }
             catch (Exception e) when (e is IOException || e is InvalidDataException || e is UnauthorizedAccessException)
             { Feedback = "Your record is kept for this session, but could not be saved to disk."; }
-            return update;
         }
     }
 }

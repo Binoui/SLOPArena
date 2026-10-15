@@ -1,0 +1,6 @@
+{
+ "generator": "tools/blender/fightguy_sanctuary/build.py",
+ "source": "client/Unity/Assets/Stages/fightguy_sanctuary/fightguy_sanctuary.unity",
+ "sourceSha256": "13aa63d354367187a4992096599bd616f1aec83a6c899ac5a2db8a90e2d57711",
+ "problems": 0
+}

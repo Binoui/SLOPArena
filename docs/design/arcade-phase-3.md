@@ -5,7 +5,8 @@ Human controller and gamefeel acceptance remains separate from native checks.
 
 Arcade is now a main-menu mode. Choose Slopball and a fighter, start from a clean
 locked countdown, and play continuously with fresh random serves. A small
-combo counter and persistent best provide light feedback. Character Course content remains Phase 4.
+combo counter and persistent best provide light feedback.
+[Phase 4](arcade-phase-4.md) supplies the FightGuy Character Course.
 
 ## Play
 

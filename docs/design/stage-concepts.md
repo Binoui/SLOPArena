@@ -6,6 +6,10 @@
 
 **Current picker:** [Stage-select roster](stages/roster.md)
 
+For solo Arcade traversal maps, use [Traversal Courses](traversal-courses.md)
+alongside this guide's readability, functional-silhouette and background principles.
+The PvP topology and multiplayer review criteria below remain specific to PvP.
+
 ## Purpose
 
 A SlopArena stage must be gameplay-ready before it becomes elaborate. It should give fighters clear, authoritative space to move, fight, recover, and respawn, then use art to make that space feel specific rather than empty.
