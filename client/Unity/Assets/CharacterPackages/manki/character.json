@@ -767,8 +767,8 @@
     },
     {
       "id": "air.3",
-      "name": "High Kick",
-      "description": "High Kick",
+      "name": "Double Fist Slam",
+      "description": "Overhead double-fist aerial strike",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -781,11 +781,11 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 51,
-            "iasaTicks": 48,
-            "landingLagTicks": 9,
+            "durationTicks": 62,
+            "iasaTicks": 57,
+            "landingLagTicks": 12,
             "autoCancelBeforeTicks": 6,
-            "autoCancelAfterTicks": 35,
+            "autoCancelAfterTicks": 44,
             "attackRange": 0,
             "warpRange": 0,
             "useTargetLock": false,
@@ -799,7 +799,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 16,
+                "endTick": 23,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -809,7 +809,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 16,
+                "tick": 23,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
@@ -820,14 +820,14 @@
                   "endOffsetX": 0,
                   "endOffsetY": 0,
                   "endOffsetZ": 0,
-                  "startBoneId": "bone.right-foot",
+                  "startBoneId": "bone.right-hand",
                   "endBoneId": null,
                   "damage": 8,
                   "angle": 65,
                   "baseKnockback": 5,
                   "knockbackGrowth": 26,
                   "stunTicks": 20,
-                  "durationTicks": 7,
+                  "durationTicks": 8,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -835,12 +835,12 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 16,
+                "tick": 23,
                 "unit": "ticks",
-                "presentationId": "presentation.manki.normal.sweep",
+                "presentationId": "presentation.manki.normal.heavy",
                 "placement": {
                   "attachmentMode": "bone",
-                  "boneId": "bone.right-foot",
+                  "boneId": "bone.right-hand",
                   "localPositionX": 0,
                   "localPositionY": 0.1,
                   "localPositionZ": 0.14,

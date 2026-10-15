@@ -19,11 +19,11 @@ namespace SlopArena.Shared
         private bool _slopballInputReleaseRequired;
 
         /// <summary>Admit a clean solo attempt; countdown ticks do not advance fighters or cooldowns.</summary>
-        public void BeginSlopballAttempt(ushort countdownTicks)
+        public void BeginSlopballAttempt(ushort countdownTicks, uint? sessionSeed = null)
         {
             if (_slopball == null || _tick != 0 || _states.Count != 1)
                 throw new InvalidOperationException("Slopball must begin from a clean single-fighter simulation.");
-            _slopball.BeginCountdown(_arcadeBall!, countdownTicks);
+            _slopball.BeginCountdown(_arcadeBall!, countdownTicks, sessionSeed);
             _slopballInputReleaseRequired = true;
         }
 

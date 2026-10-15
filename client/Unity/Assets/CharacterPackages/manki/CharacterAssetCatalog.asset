@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _packageId: manki
   _catalogSchemaVersion: 1
-  _rig: {fileID: 3272137664510204803, guid: 62c2019b4ee5201929da356261f122ec, type: 3}
+  _rig: {fileID: 1650919673510772908, guid: 0890c4e22da851fcfa32c40d129990e0, type: 3}
   _weaponConfig: {fileID: 11400000, guid: fd9406611d16ba894bbf8f7ebce5c78d, type: 2}
   _sampleRate: 60
   _bindings:
@@ -99,7 +99,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.manki.a2
   - _semanticId: anim.manki.a3
-    _clip: {fileID: 7400000, guid: 2148b431df9caf16ca41e5f065325f65, type: 2}
+    _clip: {fileID: 7400000, guid: a587509a2037139298921e8ad4ae2dc4, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.a3
   - _semanticId: anim.manki.a4

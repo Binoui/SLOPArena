@@ -137,6 +137,10 @@ client/Unity/Assets/Resources/Generated/CharacterPackages/
 /client/Unity/Assets/Temp/pipeline-screenshots.meta
 client/Unity/Assets/Shared/*.runtimeconfig.json
 
+# Optional TextMesh Pro samples; runtime fonts, materials and shaders stay visible.
+/client/Unity/Assets/TextMesh Pro/Examples & Extras/
+/client/Unity/Assets/TextMesh Pro/Examples & Extras.meta
+
 # Embedded Pipeline is versioned source; omit only upstream repository metadata.
 /client/Unity/Packages/com.unity.pipeline/CLAUDE.md
 /client/Unity/Packages/com.unity.pipeline/CLAUDE.md.meta
@@ -249,12 +253,15 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Project-authored static Down poses are package source, not imported animation packs.
 !client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_crouch.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_crouch.anim
+# Original project-authored GenRA aerial promoted from the bounded experiment.
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_air3_double_fist.anim
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
 !client/Unity/Assets/CharacterPackages/wibou/Animations/wibou_crouch.anim
 *.png
 # Approved project documentation reference, not imported game art.
 !docs/design/references/sloparena-visual-identity/visual-reference-study.png
 !client/Unity/Assets/UI/SplashArt/*.png
+!client/Unity/Assets/UI/Arcade/SlopballPoster.png
 !client/Unity/Assets/UI/MenuGear.png
 !client/Unity/Assets/UI/SlopArenaIcon.png
 !client/Unity/Assets/UI/SelectionCheck.png

@@ -32,13 +32,15 @@ namespace SlopArena.Client.UI
             grid.Clear();
             var style = Resources.Load<StyleSheet>("UI/Arcade");
             foreach (var root in _context.OwnedRoots) if (style != null) root.styleSheets.Add(style);
+            var modes = _context.Q<ScrollView>("arcade-modes");
+            modes.EnableInClassList("arcade-mode-gallery--single", modes.contentContainer.childCount == 1);
             var path = BakedContentPaths.ResolveArena(SlopballMatch.ArenaKey);
             var loaded = path == null ? null : ArenaBinaryFormat.LoadFromFile(path);
             if (loaded is not ArenaDefinition arena || arena.Arcade?.Slopball == null
                 || Resources.Load<GameObject>("Stages/slopball") == null
                 || !ClientSession.TryBuildLocalMatchCatalog(out _catalog, out var failure) || _catalog == null)
             {
-                _context.Q<Label>("arcade-feedback").text = "Slopball content is unavailable. Return to the menu.";
+                SetFeedback("Slopball content is unavailable. Return to the menu.");
                 start.SetEnabled(false);
                 MenuNavigation.Configure(_context, back, leave, start);
                 return;
@@ -56,10 +58,14 @@ namespace SlopArena.Client.UI
                 if (texture != null) portrait.style.backgroundImage = new StyleBackground(texture);
                 var name = new Label(entry.DisplayName.ToUpperInvariant()); name.AddToClassList("char-card-name");
                 button.Add(portrait); button.Add(name); grid.Add(button);
+                var check = new VisualElement { pickingMode = PickingMode.Ignore };
+                check.AddToClassList("char-card-check");
+                button.Add(check);
             }
             _selected = _catalog.Resolve(MatchConfig.PlayerClass) != null ? MatchConfig.PlayerClass : CharacterClass.FightGuy;
             Select(_selected);
-            MenuNavigation.Configure(_context, grid.Children().OfType<Button>().FirstOrDefault() ?? back, leave, start);
+            MenuNavigation.Configure(_context, grid.Q<Button>("arcade-fighter-" + _selected)
+                ?? grid.Children().OfType<Button>().FirstOrDefault() ?? back, leave, start);
         }
 
         private void Select(CharacterClass fighter)
@@ -71,8 +77,7 @@ namespace SlopArena.Client.UI
             MatchConfig.PlayerPackageId = entry.Identity.PackageId;
             foreach (var button in _context.Q<VisualElement>("arcade-fighters").Children())
                 button.EnableInClassList("char-card--selected", button.name == "arcade-fighter-" + fighter);
-            _context.Q<Label>("arcade-fighter-name").text = entry.DisplayName.ToUpperInvariant();
-            _context.Q<Label>("arcade-fighter-description").text = MenuRoster.Description(fighter);
+            _context.Q<Label>("arcade-best-fighter").text = entry.DisplayName.ToUpperInvariant() + " · PERSONAL BEST";
             try
             {
                 _key = new("slopball", _arena.Arcade.ProfileId, entry.Identity.PackageId,
@@ -80,7 +85,7 @@ namespace SlopArena.Client.UI
                 var store = ArcadeRecordsStore.Instance;
                 var best = store.Book.Best(_key);
                 _context.Q<Label>("arcade-best").text = best.HasValue
-                    ? $"PERSONAL BEST  {best} {(best == 1 ? "RETURN" : "RETURNS")}" : "SET YOUR FIRST PERSONAL BEST";
+                    ? $"{best} {(best == 1 ? "RETURN" : "RETURNS")}" : "NO BEST YET";
                 var archive = _context.Q<VisualElement>("arcade-archive");
                 archive.Clear();
                 foreach (var record in store.Book.Records.Where(x => x.Key.ChallengeId == _key.ChallengeId
@@ -88,15 +93,22 @@ namespace SlopArena.Client.UI
                     && x.Key != _key).OrderByDescending(x => x.AchievedUtc))
                     archive.Add(new Label($"{record.Value} returns · {record.AchievedUtc.Substring(0, 10)}"));
                 _context.Q<Foldout>("arcade-older-bests").style.display = archive.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
-                _context.Q<Label>("arcade-feedback").text = store.Feedback ?? "";
+                SetFeedback(store.Feedback);
                 _context.Q<Button>("arcade-play").SetEnabled(true);
             }
             catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
             {
-                _context.Q<Label>("arcade-feedback").text = "This fighter's Arcade record profile is unavailable.";
+                SetFeedback("This fighter's Arcade record profile is unavailable. Choose another fighter.");
                 _context.Q<Button>("arcade-play").SetEnabled(false);
                 Debug.LogError("[Arcade] " + e.Message);
             }
+        }
+
+        private void SetFeedback(string message)
+        {
+            var label = _context.Q<Label>("arcade-feedback");
+            label.text = message ?? "";
+            label.style.display = string.IsNullOrWhiteSpace(message) ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         private void Launch()

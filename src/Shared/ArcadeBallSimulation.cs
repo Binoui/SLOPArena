@@ -121,7 +121,9 @@ namespace SlopArena.Shared
                 _path.Add(new(0f, 1f, new(_x, _y, _z), new(_x, _y, _z)));
                 return;
             }
-            _vy -= _definition.Gravity * Simulation.TickDt;
+            float retention = _definition.VelocityRetention;
+            _vx *= retention; _vz *= retention;
+            _vy = _vy * retention - _definition.Gravity * Simulation.TickDt;
             float time = 0f;
             for (int bounce = 0; bounce < 16 && time < 1f; bounce++)
             {

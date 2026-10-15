@@ -646,6 +646,10 @@
 .frontend-shell--home .shell-lower-row { display: none; }
 .frontend-shell--home .shell-page-lower-host { display: none; }
 
+/* Arcade keeps its mode browser and launch controls together in the body. */
+.frontend-shell--arcade .shell-header-host { background-color: rgba(0, 0, 0, 0); }
+.frontend-shell--arcade .shell-lower-row { display: none; }
+
 /* ── Presenter sizing inside the absolute overlay ──────────────────────
    The chat presenter keeps its own stylesheet. The shell cell's size, the
    top bar height and the outer spacing are applied from
@@ -833,32 +837,14 @@
     border-bottom-width: 8px;
     border-right-width: 6px;
     border-color: rgb(13, 13, 20);
+    background-color: var(--shell-paper);
     color: var(--shell-canvas);
     font-size: 27px;
     -unity-text-align: middle-left;
 }
 
-.menu-action--online {
-    background-color: var(--shell-action);
-    color: var(--shell-canvas);
-}
-
-.menu-action--solo,
-.menu-action--arcade,
-.menu-action--training { background-color: var(--shell-paper); }
-
-.menu-action--online:hover,
-.menu-action--online:focus {
-    background-color: var(--shell-paper);
-    border-color: var(--shell-canvas);
-}
-
-.menu-action--solo:hover,
-.menu-action--solo:focus,
-.menu-action--arcade:hover,
-.menu-action--arcade:focus,
-.menu-action--training:hover,
-.menu-action--training:focus {
+.menu-action:hover,
+.menu-action:focus {
     background-color: var(--shell-action);
     border-color: var(--shell-canvas);
 }
@@ -927,8 +913,9 @@
     margin-right: 16px;
 }
 .frontend-shell--compact .menu-action {
-    min-height: 70px;
-    margin-bottom: 8px;
+    /* Four actions must clear the default chat overlay, including 140% UI scale. */
+    min-height: 50px;
+    margin-bottom: 6px;
     font-size: 22px;
 }
 .frontend-shell--compact .menu-info {

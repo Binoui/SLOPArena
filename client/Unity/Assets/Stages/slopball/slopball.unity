@@ -196,7 +196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ProfileId: slopball_v1
-  GameplayRevision: 2
+  GameplayRevision: 6
   AllowedPackageIds:
   - fightguy
   - manki
@@ -205,9 +205,10 @@ MonoBehaviour:
   BallSpawn: {fileID: 1473869062}
   InitialVelocity: {x: 0, y: 0, z: 0}
   Radius: 0.65
-  Gravity: 2
-  Restitution: 1
+  Gravity: 6
+  Restitution: 0.8
   LaunchScale: 2.4
+  LinearDrag: 0.35
   Slopball: 1
   NetZ: 0
   NetHalfThickness: 0.05
@@ -215,13 +216,15 @@ MonoBehaviour:
   FloorY: 0
   Seed: 1337
   ServeGapTicks: 45
-  EasyFlightTicks: 180
+  EasyFlightTicks: 138
   HardFlightTicks: 108
-  FlightJitterTicks: 6
+  FlightJitterTicks: 30
   RampReturns: 40
-  LandingHalfWidth: 2.2
-  LandingMinZ: -8
-  LandingMaxZ: -5
+  LandingHalfWidth: 6
+  LandingMinZ: -14
+  LandingMaxZ: -2.5
+  SpawnHalfWidth: 8
+  SpawnHalfDepth: 1
 --- !u!1 &378581754
 GameObject:
   m_ObjectHideFlags: 0

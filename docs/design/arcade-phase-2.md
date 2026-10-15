@@ -58,11 +58,12 @@ and zero percent. Neither transition refreshes the fighter or clears ordinary
 projectiles; they keep their normal commitments, cooldowns and lifetimes. A full
 retry destroys the old scene/simulation/presentation and starts the seed again.
 
-The static court uses original meshes/materials. Its inward-facing surfaces allow
-outside orbit views. Slopball omits the camera-only collision mirror that otherwise
-pushes the camera into the fighter inside the closed room; Shared collision
-is unchanged. Normal Training/PvP and the Phase 1 lab keep their camera obstruction
-behavior. The prototype stores a useful normal orbit radius in its own scene.
+The static court uses original meshes/materials. Slopball now retains the same
+camera-only collision mirror as normal stages, keeping orbit and aim views inside
+the enclosed room. If the camera retracts into the local fighter, that camera
+temporarily hides the fighter's renderers to keep the court visible. Their flags
+are restored after rendering; Shared state is unaffected. The prototype stores a
+useful normal orbit radius in its own scene.
 
 Repeated scene loads exposed a stale ChatOverlay event callback. Its disable/destroy
 paths now detach managed session handlers even when Unity has destroyed the

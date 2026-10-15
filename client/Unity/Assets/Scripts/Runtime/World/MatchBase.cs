@@ -199,6 +199,8 @@ namespace SlopArena.Client.World
         /// under a "Stage" root. Gameplay collision comes from the baked .arena.
         /// A Unity mesh mirrors those triangles only for camera obstruction queries.
         /// </summary>
+        protected Transform StageVisual { get; private set; }
+
         protected void SpawnStageVisual(ArenaDefinition arena, bool cameraObstruction = true)
         {
             var stageRoot = new GameObject("Stage");
@@ -239,6 +241,7 @@ namespace SlopArena.Client.World
                 return;
             }
             var visual = Instantiate(prefab, stageRoot.transform);
+            StageVisual = visual.transform;
             visual.transform.localPosition = Vector3.zero;
             visual.transform.localRotation = Quaternion.identity;
         }

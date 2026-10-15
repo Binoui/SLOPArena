@@ -80,7 +80,8 @@ namespace SlopArena.EditorTools
             return new { success = true, page = FrontendController.CurrentPage.ToString(),
                 scene = SceneManager.GetActiveScene().path, ready = match?.Ready ?? false,
                 tick = match?.SimulationTick, phase = state?.Phase.ToString(), countdownTicks = state?.CountdownTicks,
-                returns = state?.Returns, resultReturns = match?.ResultReturns, result = match?.Result,
+                returns = state?.Returns, savedBest = match?.SavedBest, recordUpdate = match?.LastRecordUpdate,
+                bestStreak = state?.BestStreak, sessionSeed = state?.SessionSeed, shotIndex = state?.Shot.Index,
                 recordsFile = ArcadeRecordsStore.Instance.Path, recordFeedback = ArcadeRecordsStore.Instance.Feedback };
         }
     }

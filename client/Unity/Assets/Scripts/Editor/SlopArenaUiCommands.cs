@@ -103,9 +103,15 @@ namespace SlopArena.EditorTools
                         $"Unknown mode '{mode}'. Valid: {string.Join(", ", Enum.GetNames(typeof(GameMode)))}.");
                 if (!FrontendController.IsFrontendActive)
                     throw new InvalidOperationException("Frontend scene is not active; use --page Home first.");
-                expectedPage = targetMode == GameMode.PvP ? FrontendPage.ServerBrowser : FrontendPage.FighterSelect;
-                string modeButton = targetMode == GameMode.Training ? "shell-nav-training"
-                    : targetMode == GameMode.Solo ? "shell-nav-offline" : "shell-nav-online";
+                expectedPage = targetMode == GameMode.Arcade ? FrontendPage.ArcadeSelect
+                    : targetMode == GameMode.PvP ? FrontendPage.ServerBrowser : FrontendPage.FighterSelect;
+                string modeButton = targetMode switch
+                {
+                    GameMode.Training => "shell-nav-training",
+                    GameMode.Solo => "shell-nav-offline",
+                    GameMode.Arcade => "shell-nav-arcade",
+                    _ => "shell-nav-online"
+                };
                 var submitted = await Click(modeButton, step);
                 stepped = submitted.Stepped;
             }

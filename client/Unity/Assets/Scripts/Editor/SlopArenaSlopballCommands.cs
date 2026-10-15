@@ -32,8 +32,8 @@ namespace SlopArena.EditorTools
             {
                 Mesh shell = MeshAsset(DirectoryPath + "/CourtShell.asset", Room());
                 Mesh net = MeshAsset(DirectoryPath + "/Net.asset", Net());
-                Mesh playerFloor = MeshAsset(DirectoryPath + "/PlayerFloor.asset", Plane(-30, 0));
-                Mesh senderFloor = MeshAsset(DirectoryPath + "/SenderFloor.asset", Plane(0, 30));
+                Mesh playerFloor = MeshAsset(DirectoryPath + "/PlayerFloor.asset", Plane(-20, 0));
+                Mesh senderFloor = MeshAsset(DirectoryPath + "/SenderFloor.asset", Plane(0, 20));
                 Material wall = MaterialAsset("Shell", new Color(.13f, .19f, .26f), false);
                 Material player = MaterialAsset("Player", new Color(.12f, .3f, .39f), false);
                 Material sender = MaterialAsset("Sender", new Color(.27f, .19f, .34f), false);
@@ -61,8 +61,8 @@ namespace SlopArena.EditorTools
             {
                 var shell = ReplaceMesh(DirectoryPath + "/CourtShell.asset", Room());
                 ReplaceMesh(DirectoryPath + "/Net.asset", Net());
-                var playerFloor = ReplaceMesh(DirectoryPath + "/PlayerFloor.asset", Plane(-30, 0));
-                var senderFloor = ReplaceMesh(DirectoryPath + "/SenderFloor.asset", Plane(0, 30));
+                var playerFloor = ReplaceMesh(DirectoryPath + "/PlayerFloor.asset", Plane(-20, 0));
+                var senderFloor = ReplaceMesh(DirectoryPath + "/SenderFloor.asset", Plane(0, 20));
                 if (opened) source = EditorSceneManager.OpenScene(SourcePath, OpenSceneMode.Additive);
                 try
                 {
@@ -89,18 +89,26 @@ namespace SlopArena.EditorTools
 
         private static void ApplyShotProfile(ArcadeStageAuthoring config)
         {
-            config.GameplayRevision = 2;
-            config.InitialVelocity = Vector3.zero; config.Radius = .65f; config.Gravity = 2;
-            config.Restitution = 1; config.LaunchScale = 2.4f;
-            config.EasyFlightTicks = 180; config.HardFlightTicks = 108;
-            config.LandingMinZ = -8; config.LandingMaxZ = -5;
+            config.GameplayRevision = 6;
+            config.InitialVelocity = Vector3.zero; config.Radius = .65f; config.Gravity = 6;
+            config.Restitution = .8f; config.LaunchScale = 2.4f; config.LinearDrag = .35f;
+            config.EasyFlightTicks = 138; config.HardFlightTicks = 108;
+            config.FlightJitterTicks = 30; config.LandingHalfWidth = 6;
+            config.LandingMinZ = -14; config.LandingMaxZ = -2.5f;
+            config.SpawnHalfWidth = 8; config.SpawnHalfDepth = 1;
         }
 
         private static Mesh ReplaceMesh(string path, Mesh proposed)
         {
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing == null) { AssetDatabase.CreateAsset(proposed, path); return proposed; }
-            EditorUtility.CopySerialized(proposed, existing);
+            // Mesh setters invalidate Unity's cached render buffers as well as the
+            // serialized data. CopySerialized alone can leave the old room visible.
+            existing.Clear();
+            existing.vertices = proposed.vertices;
+            existing.triangles = proposed.triangles;
+            existing.normals = proposed.normals;
+            existing.bounds = proposed.bounds;
             Object.DestroyImmediate(proposed); EditorUtility.SetDirty(existing); return existing;
         }
 
@@ -124,7 +132,7 @@ namespace SlopArena.EditorTools
         public static object Open([CliArg("fighter", "fightguy, manki, wibou or bonk.")] string fighter = "fightguy")
             => SlopArenaArcadePhase1Commands.OpenBallScene(ScenePath, SlopballMatch.ArenaKey, fighter);
 
-        [CliCommand("sloparena.arcade.slopball.run", "Apply bounded normal semantic inputs to live Slopball; reports actual contacts/goals and stops at a miss.",
+        [CliCommand("sloparena.arcade.slopball.run", "Apply bounded normal semantic inputs to live Slopball; reports actual contacts/goals across automatic fresh serves.",
             MainThreadRequired = true, Tags = new[] { "arcade", "simulation" })]
         public static Task<object> Run([CliArg("steps", "Existing Training step JSON, at most 600 Shared ticks.", Required = true)] string steps,
             [CliArg("from-go", "Wait through the real countdown with neutral input before applying steps.")] bool fromGo = false)
@@ -172,13 +180,13 @@ namespace SlopArena.EditorTools
                 Surface(root.transform, "CourtShell", shell, wall);
                 Surface(root.transform, "PlayerHalf", playerFloor, player);
                 Surface(root.transform, "SenderHalf", senderFloor, sender);
-                Line(root.transform, "Floor perimeter", line, new[] { new Vector3(-30, .025f, -30), new(-30, .025f, 30), new(30, .025f, 30), new(30, .025f, -30), new(-30, .025f, -30) }, .04f);
-                Line(root.transform, "Net top", tape, new[] { new Vector3(-30, 1.1f, 0), new(30, 1.1f, 0) }, .075f);
-                Line(root.transform, "Net foot", tape, new[] { new Vector3(-30, .02f, 0), new(30, .02f, 0) }, .03f);
-                for (float x = -30; x <= 30; x += .5f) Line(root.transform, "Net strand", line, new[] { new Vector3(x, 0, 0), new(x, 1.1f, 0) }, .018f);
-                for (float y = .25f; y < 1.1f; y += .25f) Line(root.transform, "Net row", line, new[] { new Vector3(-30, y, 0), new(30, y, 0) }, .018f);
-                foreach (float x in new[] { -30f, 30f }) foreach (float z in new[] { -30f, 30f })
-                    Line(root.transform, "Court corner", line, new[] { new Vector3(x, 0, z), new(x, 30, z) }, .025f);
+                Line(root.transform, "Floor perimeter", line, new[] { new Vector3(-20, .025f, -20), new(-20, .025f, 20), new(20, .025f, 20), new(20, .025f, -20), new(-20, .025f, -20) }, .04f);
+                Line(root.transform, "Net top", tape, new[] { new Vector3(-20, 1.1f, 0), new(20, 1.1f, 0) }, .075f);
+                Line(root.transform, "Net foot", tape, new[] { new Vector3(-20, .02f, 0), new(20, .02f, 0) }, .03f);
+                for (float x = -20; x <= 20; x += .5f) Line(root.transform, "Net strand", line, new[] { new Vector3(x, 0, 0), new(x, 1.1f, 0) }, .018f);
+                for (float y = .25f; y < 1.1f; y += .25f) Line(root.transform, "Net row", line, new[] { new Vector3(-20, y, 0), new(20, y, 0) }, .018f);
+                foreach (float x in new[] { -20f, 20f }) foreach (float z in new[] { -20f, 20f })
+                    Line(root.transform, "Court corner", line, new[] { new Vector3(x, 0, z), new(x, 20, z) }, .025f);
                 var launcher = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 launcher.name = "Ball Sender"; launcher.transform.SetParent(root.transform, false);
                 launcher.transform.localPosition = new(0, 1.1f, 6); launcher.transform.localScale = new(.25f, 1.1f, .25f);
@@ -186,6 +194,7 @@ namespace SlopArena.EditorTools
                 var light = Child(root.transform, "LocalLighting").AddComponent<Light>();
                 light.type = LightType.Directional; light.intensity = 1.2f; light.transform.rotation = Quaternion.Euler(40, -25, 0);
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                SlopballClubPresentation.Finish();
             }
             finally { Object.DestroyImmediate(root); EditorSceneManager.CloseScene(scene, true); }
         }
@@ -212,24 +221,24 @@ namespace SlopArena.EditorTools
             material.SetColor("_BaseColor", color); AssetDatabase.CreateAsset(material, path); return material;
         }
         private static Mesh Plane(float minZ, float maxZ)
-        { var vertices = new List<Vector3>(); var indices = new List<int>(); Quad(vertices, indices, new(-30, .012f, minZ), new(-30, .012f, maxZ), new(30, .012f, maxZ), new(30, .012f, minZ)); return Mesh(vertices, indices); }
+        { var vertices = new List<Vector3>(); var indices = new List<int>(); Quad(vertices, indices, new(-20, .012f, minZ), new(-20, .012f, maxZ), new(20, .012f, maxZ), new(20, .012f, minZ)); return Mesh(vertices, indices); }
         private static Mesh Room()
         {
             var v = new List<Vector3>(); var i = new List<int>();
-            Quad(v, i, new(-30, 0, -30), new(-30, 0, 30), new(30, 0, 30), new(30, 0, -30));
-            Quad(v, i, new(-30, 30, -30), new(30, 30, -30), new(30, 30, 30), new(-30, 30, 30));
-            Quad(v, i, new(-30, 0, -30), new(-30, 30, -30), new(-30, 30, 30), new(-30, 0, 30));
-            Quad(v, i, new(30, 0, -30), new(30, 0, 30), new(30, 30, 30), new(30, 30, -30));
-            Quad(v, i, new(-30, 0, -30), new(30, 0, -30), new(30, 30, -30), new(-30, 30, -30));
-            Quad(v, i, new(-30, 0, 30), new(-30, 30, 30), new(30, 30, 30), new(30, 0, 30));
+            Quad(v, i, new(-20, 0, -20), new(-20, 0, 20), new(20, 0, 20), new(20, 0, -20));
+            Quad(v, i, new(-20, 20, -20), new(20, 20, -20), new(20, 20, 20), new(-20, 20, 20));
+            Quad(v, i, new(-20, 0, -20), new(-20, 20, -20), new(-20, 20, 20), new(-20, 0, 20));
+            Quad(v, i, new(20, 0, -20), new(20, 0, 20), new(20, 20, 20), new(20, 20, -20));
+            Quad(v, i, new(-20, 0, -20), new(20, 0, -20), new(20, 20, -20), new(-20, 20, -20));
+            Quad(v, i, new(-20, 0, 20), new(-20, 20, 20), new(20, 20, 20), new(20, 0, 20));
             return Mesh(v, i);
         }
         private static Mesh Net()
         {
             var v = new List<Vector3>(); var i = new List<int>();
-            Quad(v, i, new(-30, 0, -.05f), new(30, 0, -.05f), new(30, 1.1f, -.05f), new(-30, 1.1f, -.05f));
-            Quad(v, i, new(-30, 0, .05f), new(-30, 1.1f, .05f), new(30, 1.1f, .05f), new(30, 0, .05f));
-            Quad(v, i, new(-30, 1.1f, -.05f), new(30, 1.1f, -.05f), new(30, 1.1f, .05f), new(-30, 1.1f, .05f));
+            Quad(v, i, new(-20, 0, -.05f), new(20, 0, -.05f), new(20, 1.1f, -.05f), new(-20, 1.1f, -.05f));
+            Quad(v, i, new(-20, 0, .05f), new(-20, 1.1f, .05f), new(20, 1.1f, .05f), new(20, 0, .05f));
+            Quad(v, i, new(-20, 1.1f, -.05f), new(20, 1.1f, -.05f), new(20, 1.1f, .05f), new(-20, 1.1f, .05f));
             return Mesh(v, i);
         }
         private static void Quad(List<Vector3> v, List<int> i, Vector3 a, Vector3 b, Vector3 c, Vector3 d)

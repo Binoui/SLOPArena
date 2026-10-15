@@ -17,6 +17,7 @@ namespace SlopArena.Client.World
         public float Gravity = 12f;
         [Range(0f, 1f)] public float Restitution = .95f;
         public float LaunchScale = .3f;
+        [Range(0f, 5f)] public float LinearDrag;
         [Header("Optional Slopball challenge")]
         public bool Slopball;
         public float NetZ;
@@ -32,6 +33,8 @@ namespace SlopArena.Client.World
         public float LandingHalfWidth = 2.2f;
         public float LandingMinZ = -5f;
         public float LandingMaxZ = -3f;
+        [Min(0f)] public float SpawnHalfWidth;
+        [Min(0f)] public float SpawnHalfDepth;
 
         public ArcadeStageDefinition Compile()
         {
@@ -42,10 +45,10 @@ namespace SlopArena.Client.World
             return new ArcadeStageDefinition(ProfileId, GameplayRevision, AllowedPackageIds,
                 new ArcadeBallDefinition(new(position.x, position.y, position.z),
                     new(InitialVelocity.x, InitialVelocity.y, InitialVelocity.z),
-                    Radius, Gravity, Restitution, LaunchScale),
+                    Radius, Gravity, Restitution, LaunchScale, LinearDrag),
                 Slopball ? new SlopballDefinition(NetZ, NetHalfThickness, NetTop, FloorY, Seed,
                     ServeGapTicks, EasyFlightTicks, HardFlightTicks, FlightJitterTicks, RampReturns,
-                    LandingHalfWidth, LandingMinZ, LandingMaxZ) : null);
+                    LandingHalfWidth, LandingMinZ, LandingMaxZ, SpawnHalfWidth, SpawnHalfDepth) : null);
         }
     }
 }

@@ -75,10 +75,14 @@ The component is cook input only. It compiles an immutable profile and allowed
 fighter package IDs into the same `.arena` artifact as geometry. No runtime
 Unity component or raw JSON decides ball behavior.
 
-Slopball additionally compiles its fixed-seed shot profile, net/floor planes and
-serve gap into typed section v2. The static net is baked ball collision and is
-excluded from the fighter/projectile ground heightmap. Shared validates serve
-arcs against the court. Section v1 ball labs preserve their existing bytes.
+Slopball additionally compiles its deterministic shot profile, net/floor planes and
+serve gap into typed section v2. Section v3 adds authored linear ball drag and
+an explicit optional Slopball payload. Section v4 adds optional launcher spawn
+half-width/depth around the empty ball marker; the visible launcher follows the
+Shared shot origin between serves. Readers retain v1/v2 with zero drag and v1–v3
+with fixed origins. Unchanged profiles retain their existing serialized bytes.
+The static net is baked ball collision and is excluded from the fighter/projectile
+ground heightmap. Shared validates serve arcs against the court.
 
 Arcade sources require one grounded `Spawn_01`; normal sources retain four empty
 spawn markers. Other scripts/components remain rejected by the source validator.

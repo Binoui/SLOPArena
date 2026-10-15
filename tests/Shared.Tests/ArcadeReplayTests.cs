@@ -107,6 +107,30 @@ public sealed class ArcadeReplayTests
     }
 
     [Fact]
+    public void AirResistanceChangesTheGameplayComparisonKey()
+    {
+        var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        string original = ArcadeRecordCompatibility.Slopball(arena, entry);
+        var s = arena.Arcade!; var b = s.Ball;
+        arena.Arcade = new(s.ProfileId, s.GameplayRevision, s.AllowedPackageIds,
+            new(b.Spawn, b.InitialVelocity, b.Radius, b.Gravity, b.Restitution, b.LaunchScale, .5f), s.Slopball);
+        Assert.NotEqual(original, ArcadeRecordCompatibility.Slopball(arena, entry));
+    }
+
+    [Fact]
+    public void LauncherAreaChangesTheGameplayComparisonKeyWithoutARevisionBump()
+    {
+        var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        string original = ArcadeRecordCompatibility.Slopball(arena, entry);
+        var s = arena.Arcade!; var r = s.Slopball!;
+        arena.Arcade = new(s.ProfileId, s.GameplayRevision, s.AllowedPackageIds, s.Ball,
+            new(r.NetZ, r.NetHalfThickness, r.NetTop, r.FloorY, r.Seed, r.ServeGapTicks,
+                r.EasyFlightTicks, r.HardFlightTicks, r.FlightJitterTicks, r.RampReturns,
+                r.LandingHalfWidth, r.LandingMinZ, r.LandingMaxZ, 4, r.SpawnHalfDepth));
+        Assert.NotEqual(original, ArcadeRecordCompatibility.Slopball(arena, entry));
+    }
+
+    [Fact]
     public void CosmeticPresentationAndProvenanceChangesKeepComparisonWhileGameplayAndPosesSeparateIt()
     {
         var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);

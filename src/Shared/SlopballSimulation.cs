@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SlopArena.Shared
 {
-    public enum SlopballPhase : byte { WaitingServe, Live, Missed, Stopped, Countdown }
+    public enum SlopballPhase : byte { WaitingServe, Live, Stopped, Countdown }
     public enum SlopballEventKind : byte { Served, Received, Redirected, Returned, ReServe, Missed, Stopped }
     public readonly struct SlopballEvent
     {
@@ -16,17 +16,20 @@ namespace SlopArena.Shared
     public readonly struct SlopballState
     {
         public readonly SlopballPhase Phase;
-        public readonly ulong Returns;
+        public readonly ulong Returns, BestStreak;
+        public readonly uint SessionSeed;
         public readonly ushort ServeInTicks;
         public readonly ushort CountdownTicks;
         public readonly bool Received, ReturnArmed, ClearedNet;
         public readonly SlopballShot Shot;
         public readonly float Difficulty;
-        public bool Ended => Phase == SlopballPhase.Missed || Phase == SlopballPhase.Stopped;
+        public bool Ended => Phase == SlopballPhase.Stopped;
         public SlopballState(SlopballPhase phase, ulong returns, ushort serveInTicks, bool received,
-            bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0, bool clearedNet = false)
+            bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0, bool clearedNet = false,
+            ulong bestStreak = 0, uint sessionSeed = 0)
         { Phase = phase; Returns = returns; ServeInTicks = serveInTicks; Received = received;
-            ReturnArmed = returnArmed; Shot = shot; Difficulty = difficulty; CountdownTicks = countdownTicks; ClearedNet = clearedNet; }
+            ReturnArmed = returnArmed; Shot = shot; Difficulty = difficulty; CountdownTicks = countdownTicks; ClearedNet = clearedNet;
+            BestStreak = bestStreak; SessionSeed = sessionSeed; }
     }
 
     /// <summary>Solo challenge rules and chronological goals; normal fighter simulation continues between shots.</summary>
@@ -45,7 +48,8 @@ namespace SlopArena.Shared
         private readonly List<Trace> _trace = new();
         private readonly List<SlopballEvent> _events = new();
         private SlopballPhase _phase = SlopballPhase.WaitingServe;
-        private ulong _returns;
+        private ulong _returns, _bestStreak, _shotIndex;
+        private uint _seed;
         private ushort _serveIn;
         private ushort _countdown;
         private bool _received, _armed, _cleared, _attacked;
@@ -53,20 +57,24 @@ namespace SlopArena.Shared
         private SlopballShot _shot;
         public IReadOnlyList<SlopballEvent> Events => _events;
         public SlopballState State => new(_phase, _returns, _serveIn, _received, _armed, _shot,
-            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared);
+            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared, _bestStreak, _seed);
 
         public SlopballSimulation(SlopballDefinition rules, ArcadeBallDefinition definition, ArcadeBallSimulation ball)
         {
             _rules = rules; _ballDefinition = definition;
+            _seed = rules.Seed;
             _shot = rules.CreateShot(definition, 0); _serveIn = rules.ServeGapTicks;
             ball.Retire();
         }
 
-        public void BeginCountdown(ArcadeBallSimulation ball, ushort ticks)
+        public void BeginCountdown(ArcadeBallSimulation ball, ushort ticks, uint? sessionSeed = null)
         {
             if (ticks == 0 || ticks > 600) throw new ArgumentOutOfRangeException(nameof(ticks));
-            if (_phase != SlopballPhase.WaitingServe || _returns != 0)
+            if (_phase != SlopballPhase.WaitingServe || _returns != 0 || _shotIndex != 0)
                 throw new InvalidOperationException("A countdown requires a clean Slopball attempt.");
+            if (sessionSeed == 0) throw new ArgumentOutOfRangeException(nameof(sessionSeed));
+            _seed = sessionSeed ?? _rules.Seed;
+            _shot = _rules.CreateShot(_ballDefinition, 0, 0, _seed);
             _phase = SlopballPhase.Countdown; _countdown = ticks; _serveIn = 0;
             ball.Retire();
         }
@@ -155,12 +163,15 @@ namespace SlopArena.Shared
                 {
                     ball.RetireAt(item.Position);
                     if (item.Position.Z <= _rules.NetZ)
-                    { _phase = SlopballPhase.Missed; Emit(SlopballEventKind.Missed, ball, item.Time); }
+                    {
+                        Emit(SlopballEventKind.Missed, ball, item.Time);
+                        _returns = 0; Schedule();
+                    }
                     else if (_received && _armed && _cleared)
                     {
                         if (_returns == ulong.MaxValue) throw new InvalidOperationException("Slopball counter exhausted.");
                         _returns++;
-                        _shot = _rules.CreateShot(_ballDefinition, _returns);
+                        _bestStreak = Math.Max(_bestStreak, _returns);
                         Schedule(); Emit(SlopballEventKind.Returned, ball, item.Time);
                     }
                     else { Schedule(); Emit(SlopballEventKind.ReServe, ball, item.Time); }
@@ -174,7 +185,13 @@ namespace SlopArena.Shared
                 }
             }
         }
-        private void Schedule() { _phase = SlopballPhase.WaitingServe; _serveIn = _rules.ServeGapTicks; }
+        private void Schedule()
+        {
+            if (_shotIndex == ulong.MaxValue) throw new InvalidOperationException("Slopball shot sequence exhausted.");
+            _shotIndex++;
+            _shot = _rules.CreateShot(_ballDefinition, _shotIndex, _returns, _seed);
+            _phase = SlopballPhase.WaitingServe; _serveIn = _rules.ServeGapTicks;
+        }
         private void Emit(SlopballEventKind kind, ArcadeBallSimulation ball, float time)
             => _events.Add(new(kind, ball.State.EntityId, _returns, time));
         private void AddCrossing(SphereMotionSegment segment, float z, bool positive, TraceKind kind)

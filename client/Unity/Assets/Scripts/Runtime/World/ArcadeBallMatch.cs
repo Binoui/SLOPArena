@@ -8,6 +8,7 @@ using SlopArena.Client.Input;
 using SlopArena.Shared;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 namespace SlopArena.Client.World
 {
@@ -29,6 +30,8 @@ namespace SlopArena.Client.World
         private uint _tick, _attackContacts;
         private InputState? _probeInput;
         private bool _restarting;
+        private Renderer[] _closeCameraRenderers;
+        private bool[] _originalForceRenderingOff;
         public ServerSimulation Simulation => _bridge?.InternalSim;
         public uint SimulationTick => _tick;
         public bool Ready => _bridge != null && _ballView != null && _playerDef != null;
@@ -78,9 +81,8 @@ namespace SlopArena.Client.World
             _playerDef = entry.Definition;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
             if (!SetupPlayerRenderer(entry, arena)) { enabled = false; return; }
-            // Closed court walls render inward; an outside orbit sees through their
-            // backs. Its camera must not be pushed into the fighter by the shell.
-            SpawnStageVisual(arena, cameraObstruction: arena.Arcade.Slopball == null);
+            // Enclosed courts also need the baked stage's camera-only obstruction.
+            SpawnStageVisual(arena);
             var spawn = arena.SpawnPoints[0];
             _bridge.RegisterEntity(PlayerEntityId, _playerDef, new CharacterState
             {
@@ -96,6 +98,15 @@ namespace SlopArena.Client.World
             _projectileVFX.SetSimulation(_bridge.InternalSim);
             SetupHUD(_playerDef);
             SetupCamera(); SetupAimHandler(_playerDef);
+            if (arena.Arcade.Slopball != null)
+            {
+                _closeCameraRenderers = _playerRenderer.GetComponentsInChildren<Renderer>(true);
+                _originalForceRenderingOff = new bool[_closeCameraRenderers.Length];
+                for (int i = 0; i < _closeCameraRenderers.Length; i++)
+                    _originalForceRenderingOff[i] = _closeCameraRenderers[i].forceRenderingOff;
+                RenderPipelineManager.beginCameraRendering += BeginCameraRendering;
+                RenderPipelineManager.endCameraRendering += EndCameraRendering;
+            }
             _inputController.RequireReleaseBeforeHumanInput();
             _ballFloorY = arena.Arcade.Slopball?.FloorY ?? arena.Heightmap.Sample(spawn.X, spawn.Z);
             CreateBallView(); PresentBall();
@@ -105,6 +116,42 @@ namespace SlopArena.Client.World
         protected virtual void OnBallMatchReady(MatchContentEntry entry, ArenaDefinition arena) { }
         protected virtual void OnChallengeTick() { }
         protected virtual void OnAttemptStopped() { }
+
+        private void BeginCameraRendering(ScriptableRenderContext context, UnityEngine.Camera camera)
+        {
+            if (camera != _cameraMount?.RenderCamera || _closeCameraRenderers == null) return;
+            bool insideModel = false;
+            for (int i = 0; i < _closeCameraRenderers.Length; i++)
+            {
+                var renderer = _closeCameraRenderers[i];
+                if (renderer == null) continue;
+                _originalForceRenderingOff[i] = renderer.forceRenderingOff;
+                if (!renderer.enabled || !renderer.gameObject.activeInHierarchy
+                    || renderer is not (MeshRenderer or SkinnedMeshRenderer)) continue;
+                var bounds = renderer.bounds;
+                bounds.Expand((camera.nearClipPlane + .15f) * 2f);
+                insideModel |= bounds.Contains(camera.transform.position);
+            }
+            // A wall can retract the camera into the local fighter. Hide its renderers
+            // for this camera only, keeping the court readable without changing state.
+            if (insideModel)
+                foreach (var renderer in _closeCameraRenderers)
+                    if (renderer != null) renderer.forceRenderingOff = true;
+        }
+
+        private void EndCameraRendering(ScriptableRenderContext context, UnityEngine.Camera camera)
+        {
+            if (camera != _cameraMount?.RenderCamera) return;
+            RestoreCameraRenderers();
+        }
+
+        private void RestoreCameraRenderers()
+        {
+            if (_closeCameraRenderers == null) return;
+            for (int i = 0; i < _closeCameraRenderers.Length; i++)
+                if (_closeCameraRenderers[i] != null)
+                    _closeCameraRenderers[i].forceRenderingOff = _originalForceRenderingOff[i];
+        }
 
         protected virtual void Update()
         {
@@ -147,7 +194,9 @@ namespace SlopArena.Client.World
             PresentBall();
             foreach (var hit in _bridge.LastTickHits)
                 if (hit.TargetEntityId == _bridge.InternalSim.ArcadeBall!.Value.EntityId) _attackContacts++;
+            _projectileVFX?.OnTick();
             _combatFeedback?.OnTick();
+            _hudManager?.Refresh();
             UpdateSwordTrailsFromResolver(_bridge.InternalSim.Resolver);
             PresentTimelineEvents();
             owner = _bridge.GetState(PlayerEntityId);
@@ -245,6 +294,9 @@ namespace SlopArena.Client.World
         }
         protected override void OnDestroy()
         {
+            RenderPipelineManager.beginCameraRendering -= BeginCameraRendering;
+            RenderPipelineManager.endCameraRendering -= EndCameraRendering;
+            RestoreCameraRenderers();
             base.OnDestroy();
             if (_ballMaterial != null) Destroy(_ballMaterial);
             if (_groundMaterial != null) Destroy(_groundMaterial);

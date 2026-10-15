@@ -54,6 +54,7 @@ namespace SlopArena.Client.UI
         private Button? _navHome;
         private Button? _navTraining;
         private Button? _navOffline;
+        private Button? _navArcade;
         private Button? _navOnline;
         private ChatSession? _navSession;
 
@@ -135,10 +136,12 @@ namespace SlopArena.Client.UI
             _navHome = bar?.Q<Button>("shell-wordmark");
             _navTraining = bar?.Q<Button>("shell-nav-training");
             _navOffline = bar?.Q<Button>("shell-nav-offline");
+            _navArcade = bar?.Q<Button>("shell-nav-arcade");
             _navOnline = bar?.Q<Button>("shell-nav-online");
             if (_navHome != null) _navHome.clicked += NavigateHome;
             if (_navTraining != null) _navTraining.clicked += () => NavigateMode(GameMode.Training);
             if (_navOffline != null) _navOffline.clicked += () => NavigateMode(GameMode.Solo);
+            if (_navArcade != null) _navArcade.clicked += () => NavigateMode(GameMode.Arcade);
             if (_navOnline != null) _navOnline.clicked += () => NavigateMode(GameMode.PvP);
         }
 
@@ -164,6 +167,7 @@ namespace SlopArena.Client.UI
             if (!CanSwitchMode() || UiModalState.Presented)
                 return;
             if ((_current == FrontendPage.ServerBrowser && mode == GameMode.PvP)
+                || (_current == FrontendPage.ArcadeSelect && mode == GameMode.Arcade)
                 || (_current is FrontendPage.FighterSelect or FrontendPage.StageSelect
                     && MatchConfig.Mode == mode))
                 return;
@@ -199,6 +203,7 @@ namespace SlopArena.Client.UI
             _navHome?.SetEnabled(home || canReturnHome);
             _navTraining?.SetEnabled(canSwitchMode);
             _navOffline?.SetEnabled(canSwitchMode);
+            _navArcade?.SetEnabled(canSwitchMode);
             _navOnline?.SetEnabled(canSwitchMode);
             _currentContext?.Q<Button>("menu-online")?.SetEnabled(canPlay);
             _currentContext?.Q<Button>("menu-solo")?.SetEnabled(canPlay);
@@ -211,8 +216,11 @@ namespace SlopArena.Client.UI
                 || (inSetupOrResults && MatchConfig.Mode == GameMode.PvP);
             bool training = inSetupOrResults && MatchConfig.Mode == GameMode.Training;
             bool offline = inSetupOrResults && MatchConfig.Mode == GameMode.Solo;
+            bool arcade = _current == FrontendPage.ArcadeSelect
+                || (inSetupOrResults && MatchConfig.Mode == GameMode.Arcade);
             _navTraining?.EnableInClassList("shell-nav-tab--selected", training);
             _navOffline?.EnableInClassList("shell-nav-tab--selected", offline);
+            _navArcade?.EnableInClassList("shell-nav-tab--selected", arcade);
             _navOnline?.EnableInClassList("shell-nav-tab--selected", online);
         }
 

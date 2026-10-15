@@ -286,6 +286,7 @@ namespace SlopArena.Client.UI
             _root?.EnableInClassList("frontend-shell--home", page == FrontendPage.Home);
             _root?.EnableInClassList("frontend-shell--stage", page == FrontendPage.StageSelect);
             _root?.EnableInClassList("frontend-shell--fighters", page == FrontendPage.FighterSelect);
+            _root?.EnableInClassList("frontend-shell--arcade", page == FrontendPage.ArcadeSelect);
             ApplyDensityGeometry();
             SetPageContext(page switch
             {

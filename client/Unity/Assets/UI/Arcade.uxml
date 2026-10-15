@@ -2,39 +2,44 @@
     <ui:VisualElement name="page-frag">
         <ui:VisualElement name="page-header" class="page-section frag-header arcade-header">
             <ui:Button name="btn-back" text="BACK" class="btn-back" />
-            <ui:VisualElement class="flow-header-copy">
-                <ui:Label text="PLAY FOR YOUR OWN RECORD" class="flow-eyebrow" />
-                <ui:Label text="ARCADE" class="flow-title" />
-                <ui:Label text="Explore a kit. Find a trick. Beat your best." class="flow-subtitle" />
-            </ui:VisualElement>
+            <ui:Label text="ARCADE" class="arcade-page-title" />
         </ui:VisualElement>
         <ui:VisualElement name="page-body" class="page-section arcade-body">
-            <ui:ScrollView name="arcade-scroll" class="arcade-scroll" horizontal-scroller-visibility="Hidden">
             <ui:VisualElement class="arcade-layout">
-            <ui:VisualElement class="arcade-challenge">
-                <ui:Label text="SLOPBALL" class="arcade-challenge-title" />
-                <ui:Label text="RECEIVE. RETURN. REPEAT." class="flow-eyebrow" />
-                <ui:Label text="Send the ball over the net and land it on the launcher side. Wall banks and combos count. Your first floor hit ends the run." class="arcade-copy" />
-                <ui:Label text="One court. All four fighters. A fresh challenge every serve." class="arcade-copy" />
+                <ui:VisualElement class="arcade-mode-browser">
+                    <ui:Label text="CHOOSE A MODE" class="arcade-section-label" />
+                    <ui:ScrollView name="arcade-modes" class="arcade-mode-gallery arcade-mode-gallery--single" horizontal-scroller-visibility="Hidden">
+                        <ui:Button name="arcade-mode-slopball" class="arcade-mode-card arcade-mode-card--selected" tooltip="Selected mode: Slopball">
+                            <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
+                                <ui:VisualElement class="arcade-mode-heading">
+                                    <ui:Label text="SLOPBALL" class="arcade-mode-title" />
+                                    <ui:VisualElement class="arcade-mode-check" />
+                                </ui:VisualElement>
+                                <ui:Label text="Land the ball beyond the net. A miss resets your combo." class="arcade-mode-rule" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="arcade-mode-art arcade-mode-art--slopball" picking-mode="Ignore" />
+                        </ui:Button>
+                    </ui:ScrollView>
+                </ui:VisualElement>
+                <ui:VisualElement name="arcade-setup" class="arcade-setup">
+                    <ui:Label text="SLOPBALL" class="arcade-selected-mode" />
+                    <ui:Label text="CHOOSE YOUR FIGHTER" class="arcade-section-label" />
+                    <ui:VisualElement name="arcade-roster" class="arcade-roster">
+                        <ui:VisualElement name="arcade-fighters" class="arcade-fighters" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="arcade-record-panel">
+                        <ui:Label name="arcade-best-fighter" class="arcade-best-fighter" />
+                        <ui:Label name="arcade-best" class="arcade-best" />
+                        <ui:Foldout name="arcade-older-bests" text="PAST VERSIONS" value="false">
+                            <ui:ScrollView name="arcade-archive" class="arcade-archive" />
+                        </ui:Foldout>
+                        <ui:Label name="arcade-feedback" class="arcade-feedback" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="arcade-launch-row">
+                        <ui:Button name="arcade-play" text="PLAY SLOPBALL" class="btn-primary" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="arcade-roster">
-                <ui:Label text="CHOOSE YOUR FIGHTER" class="flow-eyebrow" />
-                <ui:VisualElement name="arcade-fighters" class="arcade-fighters" />
-                <ui:Label name="arcade-fighter-name" class="arcade-fighter-name" />
-                <ui:Label name="arcade-fighter-description" class="arcade-copy" />
-            </ui:VisualElement>
-            </ui:VisualElement>
-            </ui:ScrollView>
-        </ui:VisualElement>
-        <ui:VisualElement name="page-summary" class="page-section arcade-summary">
-            <ui:Label name="arcade-best" class="arcade-best" />
-            <ui:Foldout name="arcade-older-bests" text="OLDER BESTS" value="false">
-                <ui:ScrollView name="arcade-archive" class="arcade-archive" />
-            </ui:Foldout>
-            <ui:Label name="arcade-feedback" class="arcade-feedback" />
-        </ui:VisualElement>
-        <ui:VisualElement name="page-actions" class="page-section arcade-actions">
-            <ui:Button name="arcade-play" text="PLAY SLOPBALL" class="btn-primary" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

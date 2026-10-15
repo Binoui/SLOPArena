@@ -12,7 +12,7 @@ mechanics happens through play. Arcade works without an online match or account.
 
 | Challenge | Initial roster and content | Result |
 | --- | --- | --- |
-| Slopball | All four fighters; one shared neutral arcade sports court | Number of successful returns before a miss or voluntary stop |
+| Slopball | All four fighters; one shared underground sports club court | Continuous ball play; a small return-combo counter and local best |
 | Character Course | FightGuy only; one mountain martial-arts sanctuary | Time to break every required target and reach the finish |
 
 The longer-term course goal is one map per character. The first release proves
@@ -48,10 +48,13 @@ that ball, adds one return, then automatically schedules another shot after a
 short fixed gap. Fighter position, commitments, cooldowns and ordinary
 attack/projectile lifetimes continue between shots.
 
-The initial profile uses one fixed seed. Retries and separate new attempts start
-with the same learnable sequence. Direction and speed vary within that sequence.
-Difficulty increases with completed returns, reaches a challenging maximum and
-continues there. All four fighters share the same profile and progression;
+Each practice session receives a fresh random seed, and every fresh serve varies
+its launcher position, direction, angle and flight time within safe receiving bounds.
+The visible launcher repositions during the gap before firing. The first court uses
+X ±8 and Z 5..7 at a constant height, with balls still landing in the receiving region. Restarting draws
+a new sequence. Shared remains deterministic for a supplied session seed and shot
+index. The shot index continues across misses; combo count controls the gentle
+capped difficulty progression, resetting to the easy range on a miss. All four fighters share the same profile and progression;
 playtesting must establish that its serves are readable and playable for every kit.
 
 ### Return and failure rules
@@ -67,11 +70,13 @@ Each ball scores at most once. There is no touch limit: setups, combos, juggling
 and recovery saves are allowed. Early projectile interceptions can affect a serve,
 but cannot arm or score a return before the ball has entered the player half.
 
-Ball contact with the player-side floor ends the attempt, even after clearing the net.
-Net contact rebounds and stays live. An uncredited ball reaching the sender-side
-floor is retired and re-served as the same authored shot: no score, no sequence or
-difficulty advance, a new ball identity and zero percent, after the same fixed gap.
-Only player-side floor contact is a gameplay miss.
+Ball contact with the player-side floor resets the combo and difficulty, even
+after clearing the net. It quietly schedules a fresh random ball after the normal
+short gap. There is no failure screen, forced retry, countdown or fighter reset.
+Movement, cooldowns and existing projectiles continue. The session best stays intact.
+Net contact rebounds and stays live. An uncredited sender-floor landing also sends
+a fresh random ball, without advancing or resetting the combo. Every fresh ball has
+a new identity and zero percent. Only player-side floor contact resets the combo.
 
 There is no shot deadline. Keeping a ball live while experimenting or waiting for
 normal cooldowns is legal. Invalid or trapped technical states must be prevented
@@ -79,7 +84,12 @@ by court/profile validation and collision handling, not a hidden gameplay timeou
 
 ### Ball response
 
-Between contacts the ball follows gravity-driven arcs. Damaging hits build its
+Between contacts the ball follows gravity-driven arcs with linear air resistance.
+The current profile uses gravity 6 with quicker opening serves, short/deep landing
+targets and a wider lateral fan. It uses drag .35 per second (roughly half of free-flight velocity
+remaining after two seconds, excluding gravity) and restitution .8 on room/net
+surfaces. Body contacts keep their harmless direction-only reflection. Serves solve
+the same discrete damped motion so shots still reach their receiving region. Damaging hits build its
 percent during that shot and use the move's direction and relative strength to
 launch it. Percent strengthens later attack responses; incoming serve speed is
 controlled separately by the shot profile.
@@ -89,7 +99,10 @@ damage or Knockback to the fighter. The body has the same physical shape in ever
 stance, including Shield and dodge; neither provides a larger or powered deflection.
 A body bank over the net can score as a trick shot after reception.
 
-The court must clearly show the floor, halves, net and ball. Its sports identity
+The court must clearly show the floor, halves, net and ball. The approved finish
+is a playful underground sports club: warm concrete, teal padding with coral/mint
+accents, warm fixtures, sparse court graphics and one smiling-ball club sign.
+Its shared sports identity
 is shared by the roster, independent of FightGuy's mountain course.
 
 ## FightGuy Character Course
@@ -153,14 +166,16 @@ with a brief locked countdown. No movement, charging or buffered combat advantag
 is possible before Go. The Course timer or first Slopball serve starts at Go.
 
 Pause freezes simulation, ball motion, course time and kit timers. Paused attempts
-remain eligible for records. Results show the current result, compatible personal
-best and improvement, with quick Retry or return to challenge selection. A full
+remain eligible for records. Slopball keeps a small combo/best line on the HUD;
+ball play is the focus. Misses never open a results overlay. The Course can show
+completion results and a quick Retry or return to challenge selection. A full
 retry clears the entire attempt, including projectiles, queued effects, targets,
 checkpoint, shot sequence and pending input.
 
 Persist personal bests locally, separately from online identity and settings resets:
 
-- Slopball keeps earned returns on a floor miss, voluntary stop or retry.
+- Slopball saves the highest return combo on a miss, voluntary stop or restart;
+  multiple combos are never added together.
 - Course time is eligible only after all required targets and the finish.
 - Compare records by challenge/profile, fighter and compatible gameplay.
 - Archive incompatible older bests when meaningful map, rules, shot-profile or
@@ -194,11 +209,11 @@ Implementation is ready for human review when:
 - Both challenges can be entered, paused, completed/stopped and retried offline
   without account or match allocation.
 - Slopball follows receive/contact/clear ordering, one score per ball, harmless
-  body rebounds, live net contacts and identical same-shot neutral re-serves.
+  body rebounds, live net contacts and fresh random serves after every floor landing.
 - Every roster fighter can play the shared capped profile using its normal kit.
 - The Course supports a forgiving main route and faster valid solutions, cumulative
   checkpoint prerequisites, persistent targets and legal fall-reset routes.
-- Starts, pause, terminal results and full retries preserve the specified timing.
+- Starts, pause, automatic continuation and full restarts preserve the specified timing.
 - Records survive restart/stop/retry, archive incompatible gameplay and retain
   compatibility across cosmetic changes.
 - Normal PvP contacts/kits and existing stage loading/freshness remain correct.

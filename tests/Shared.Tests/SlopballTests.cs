@@ -6,6 +6,105 @@ namespace SlopArena.Shared.Tests;
 public class SlopballTests
 {
     [Fact]
+    public void VariedDampedServesCoverBothDirectionsAndDifferentArcsWhileStayingReceivable()
+    {
+        var arena = VariedCourt(); var profile = arena.Arcade!; var rules = profile.Slopball!;
+        rules.ValidateCourt(arena);
+        float minYaw = float.MaxValue, maxYaw = float.MinValue, minPitch = float.MaxValue, maxPitch = float.MinValue;
+        int shortShots = 0, deepShots = 0;
+        float minSpawnX = 999, maxSpawnX = -999, minSpawnZ = 999, maxSpawnZ = -999;
+        for (ulong i = 0; i < 1024; i++)
+        {
+            uint seed = unchecked((uint)(i + 1) * 2654435761u);
+            var shot = rules.CreateShot(profile.Ball, i, Math.Min(i, rules.RampReturns), seed);
+            Assert.Equal(shot, rules.CreateShot(profile.Ball, i, Math.Min(i, rules.RampReturns), seed));
+            Assert.InRange(shot.Spawn.X, -8, 8);
+            Assert.InRange(shot.Spawn.Z, 5, 7);
+            Assert.Equal(profile.Ball.Spawn.Y, shot.Spawn.Y);
+            minSpawnX = MathF.Min(minSpawnX, shot.Spawn.X); maxSpawnX = MathF.Max(maxSpawnX, shot.Spawn.X);
+            minSpawnZ = MathF.Min(minSpawnZ, shot.Spawn.Z); maxSpawnZ = MathF.Max(maxSpawnZ, shot.Spawn.Z);
+            float yaw = MathF.Atan2(shot.Velocity.X, -shot.Velocity.Z) * 180 / MathF.PI;
+            float pitch = MathF.Atan2(shot.Velocity.Y, MathF.Sqrt(shot.Velocity.X * shot.Velocity.X + shot.Velocity.Z * shot.Velocity.Z)) * 180 / MathF.PI;
+            minYaw = MathF.Min(minYaw, yaw); maxYaw = MathF.Max(maxYaw, yaw);
+            minPitch = MathF.Min(minPitch, pitch); maxPitch = MathF.Max(maxPitch, pitch);
+            var ball = new ArcadeBallSimulation(profile.Ball, arena); ball.Reset(shot.Spawn, shot.Velocity);
+            bool crossed = false, landed = false;
+            for (int tick = 0; tick < shot.FlightTicks + 2; tick++)
+            {
+                ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
+                crossed |= ball.State.Position.Z < -rules.NetHalfThickness - profile.Ball.Radius;
+                if (ball.Contacts.Any(c => c.NormalY > .5f && c.Position.Y < rules.FloorY + profile.Ball.Radius + .001f))
+                {
+                    var point = ball.Contacts.First(c => c.NormalY > .5f).Position;
+                    Assert.InRange(point.X, -rules.LandingHalfWidth - .005f, rules.LandingHalfWidth + .005f);
+                    Assert.InRange(point.Z, rules.LandingMinZ - .005f, rules.LandingMaxZ + .005f);
+                    if (point.Z > -5) shortShots++;
+                    if (point.Z < -11) deepShots++;
+                    landed = true; break;
+                }
+            }
+            Assert.True(crossed); Assert.True(landed);
+        }
+        Assert.True(minSpawnX < -6 && maxSpawnX > 6 && minSpawnZ < 5.25f && maxSpawnZ > 6.75f);
+        Assert.True(minYaw < -20 && maxYaw > 20);
+        Assert.True(maxPitch - minPitch > 30);
+        Assert.True(shortShots >= 10 && deepShots >= 10);
+        Assert.Equal(ArenaBinaryFormat.Serialize(arena), ArenaBinaryFormat.Serialize(ArenaBinaryFormat.Deserialize(ArenaBinaryFormat.Serialize(arena))!.Value));
+    }
+
+    [Fact]
+    public void RandomLauncherBoundsRoundTripWhileLegacyProfilesKeepFixedOrigins()
+    {
+        var profile = VariedCourt().Arcade!;
+        var bytes = ArcadeStageBinaryFormat.Serialize(profile);
+        Assert.Equal(4, BinaryPrimitives.ReadUInt16LittleEndian(bytes));
+        var loaded = ArcadeStageBinaryFormat.Deserialize(bytes)!;
+        Assert.Equal(8, loaded.Slopball!.SpawnHalfWidth);
+        Assert.Equal(1, loaded.Slopball.SpawnHalfDepth);
+        Assert.Equal(bytes, ArcadeStageBinaryFormat.Serialize(loaded));
+        for (int length = 0; length < bytes.Length; length++)
+            Assert.Null(ArcadeStageBinaryFormat.Deserialize(bytes[..length]));
+        var legacy = Court().Arcade!;
+        for (ulong i = 0; i < 128; i++)
+            Assert.Equal(legacy.Ball.Spawn, legacy.Slopball!.CreateShot(legacy.Ball, i).Spawn);
+        var r = profile.Slopball!;
+        SlopballDefinition Bounds(float width, float depth) => new(r.NetZ, r.NetHalfThickness, r.NetTop, r.FloorY,
+            r.Seed, r.ServeGapTicks, r.EasyFlightTicks, r.HardFlightTicks, r.FlightJitterTicks,
+            r.RampReturns, r.LandingHalfWidth, r.LandingMinZ, r.LandingMaxZ, width, depth);
+        Assert.Throws<ArgumentException>(() => Bounds(-1, 1));
+        Assert.Throws<ArgumentException>(() => Bounds(8, float.NaN));
+        foreach (var bounds in new[] { Bounds(20, 1), Bounds(8, 6), Bounds(8, 20) })
+        {
+            var arena = VariedCourt();
+            arena.Arcade = new(profile.ProfileId, profile.GameplayRevision, profile.AllowedPackageIds, profile.Ball, bounds);
+            Assert.Throws<ArgumentException>(() => ArenaBinaryFormat.Serialize(arena));
+        }
+    }
+
+    internal static ArenaDefinition VariedCourt()
+    {
+        var arena = Court();
+        arena.MinX = arena.MinZ = -20; arena.MaxX = arena.MaxZ = 20;
+        arena.Heightmap = new() { Width = 41, Height = 41, CellSize = 1, OriginX = -20, OriginZ = -20, Data = new float[1681] };
+        for (int i = 0; i < arena.CollisionTriangles.Length; i++)
+        {
+            var t = arena.CollisionTriangles[i];
+            static float Side(float x) => MathF.Abs(x) == 6 ? MathF.CopySign(20, x) : x;
+            static float Roof(float y) => y == 6 ? 20 : y;
+            t.AX = Side(t.AX); t.AZ = Side(t.AZ); t.AY = Roof(t.AY);
+            t.BX = Side(t.BX); t.BZ = Side(t.BZ); t.BY = Roof(t.BY);
+            t.CX = Side(t.CX); t.CZ = Side(t.CZ); t.CY = Roof(t.CY);
+            arena.CollisionTriangles[i] = t;
+        }
+        arena.SpawnPoints = new[] { new SpawnPoint { Y = .85f, Z = -6 } };
+        arena.Arcade = new("varied_slopball", 6, arena.Arcade!.AllowedPackageIds,
+            new(new(0, 2.3f, 6), default, .65f, 6, .8f, 2.4f, .35f),
+            new(0, .05f, 1.1f, 0, 1337, 45, 138, 108, 30, 40, 6, -14, -2.5f, 8, 1));
+        arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(arena);
+        return arena;
+    }
+
+    [Fact]
     public void StageRoundTripPinsProfileAndKeepsPhaseOneSectionReadable()
     {
         var arena = Court();
@@ -41,25 +140,104 @@ public class SlopballTests
     }
 
     [Fact]
-    public void UntouchedServeEntersPlayerHalfThenItsFirstFloorEndsAttempt()
+    public void UntouchedServeResetsTheComboAndAutomaticallyContinues()
     {
         var sim = new ServerSimulation(Court(), NoWinMatchRule.Instance);
-        bool received = false;
-        for (int i = 0; i < 300 && !sim.Slopball!.Value.Ended; i++)
+        bool received = false, missed = false;
+        for (int i = 0; i < 300 && !missed; i++)
         {
             sim.Tick(new());
             received |= sim.LastTickSlopballEvents.Any(e => e.Kind == SlopballEventKind.Received);
+            missed |= sim.LastTickSlopballEvents.Any(e => e.Kind == SlopballEventKind.Missed);
         }
-        Assert.True(received);
-        Assert.Equal(SlopballPhase.Missed, sim.Slopball!.Value.Phase);
+        Assert.True(received); Assert.True(missed);
+        Assert.False(sim.Slopball!.Value.Ended);
+        Assert.Equal(SlopballPhase.WaitingServe, sim.Slopball!.Value.Phase);
         Assert.Equal(0UL, sim.Slopball.Value.Returns);
         Assert.False(sim.ArcadeBall!.Value.Active);
         uint tick = sim.SimulationTick;
-        sim.Tick(new()); Assert.Equal(tick, sim.SimulationTick);
+        var previous = sim.Slopball.Value.Shot;
+        sim.Tick(new()); Assert.Equal(tick + 1, sim.SimulationTick);
+        for (int i = 1; i < 45; i++) sim.Tick(new());
+        Assert.Equal(SlopballPhase.Live, sim.Slopball.Value.Phase);
+        Assert.True(sim.ArcadeBall.Value.Active);
+        Assert.Equal(previous, sim.Slopball.Value.Shot);
     }
 
     [Fact]
-    public void SenderFloorReServesIdenticalShotWithFreshIdentityAndContinuedResources()
+    public void MissKeepsTheBestComboWhileResettingDifficultyAndAdvancingTheShotSequence()
+    {
+        var (arena, ball, rules) = Fixture();
+        for (int i = 0; i < 2; i++)
+        {
+            ReceiveAndArm(arena, ball, rules);
+            ball.Reset(new(0, 3, -1), new(0, 0, 120)); Advance(rules, ball, arena);
+            ball.Reset(new(0, .35f, 2), new(0, -120, 0)); Advance(rules, ball, arena);
+            Serve(rules, ball);
+        }
+        Assert.Equal(2UL, rules.State.Returns);
+        Assert.Equal(2UL, rules.State.BestStreak);
+        var shot = rules.State.Shot;
+        ball.Reset(new(0, .35f, -2), new(0, -120, 0)); Advance(rules, ball, arena);
+        Assert.Equal(2UL, Assert.Single(rules.Events.Where(e => e.Kind == SlopballEventKind.Missed)).Returns);
+        Assert.Equal(0UL, rules.State.Returns);
+        Assert.Equal(2UL, rules.State.BestStreak);
+        Assert.Equal(0f, rules.State.Difficulty);
+        Assert.Equal(shot.Index + 1, rules.State.Shot.Index);
+        Assert.NotEqual(shot.Velocity, rules.State.Shot.Velocity);
+        Assert.False(rules.State.Ended);
+        Serve(rules, ball);
+        Assert.Equal(SlopballPhase.Live, rules.State.Phase);
+        Assert.Equal(0f, ball.State.DamagePercent);
+        rules.Stop(ball);
+        Assert.Equal(2UL, rules.State.BestStreak);
+    }
+
+    [Fact]
+    public void MissKeepsFighterPositionCooldownsAndExistingProjectiles()
+    {
+        var sim = new ServerSimulation(Court(), NoWinMatchRule.Instance);
+        var player = TestHelpers.PlayerState(); player.PX = 4; player.PZ = -3;
+        player.SetCooldown(AbilitySlots.E, 600);
+        sim.RegisterEntity(1, TestHelpers.EngineDef, player);
+        sim.Resolver.Spawn(new Hitbox { OwnerId = 1, X = -4, Y = 3, Z = -4, VX = .1f,
+            Radius = .05f, Shape = HitboxShape.Sphere, DurationTicks = 1000 });
+        for (int i = 0; i < 250; i++)
+        {
+            sim.Tick(new());
+            if (sim.LastTickSlopballEvents.Any(e => e.Kind == SlopballEventKind.Missed)) break;
+        }
+        Assert.Contains(sim.LastTickSlopballEvents, e => e.Kind == SlopballEventKind.Missed);
+        var state = sim.GetState(1); uint tick = sim.SimulationTick;
+        Assert.Equal(4f, state.PX);
+        Assert.Equal((ushort)(600 - tick), state.GetCooldown(AbilitySlots.E));
+        int age = Assert.Single(sim.Resolver.GetActiveHitboxes()).AgeTicks;
+        sim.Tick(new() { [1] = new InputState { MoveX = 1 } });
+        Assert.True(sim.GetState(1).PX > state.PX);
+        Assert.Equal(state.GetCooldown(AbilitySlots.E) - 1, sim.GetState(1).GetCooldown(AbilitySlots.E));
+        Assert.Equal(age + 1, Assert.Single(sim.Resolver.GetActiveHitboxes()).AgeTicks);
+        Assert.Equal(tick + 1, sim.SimulationTick);
+    }
+
+    [Fact]
+    public void SessionSeedsVaryTheFirstServeButStillAllowDeterministicReplay()
+    {
+        ServerSimulation Make(uint seed)
+        {
+            var sim = new ServerSimulation(VariedCourt(), NoWinMatchRule.Instance);
+            sim.RegisterEntity(1, TestHelpers.EngineDef, TestHelpers.PlayerState() with { PZ = -6 });
+            sim.BeginSlopballAttempt(3, seed);
+            for (int i = 0; i < 3; i++) sim.Tick(new());
+            return sim;
+        }
+        var first = Make(123); var replay = Make(123); var other = Make(456);
+        Assert.Equal(123u, first.Slopball!.Value.SessionSeed);
+        Assert.Equal(first.Slopball.Value.Shot, replay.Slopball!.Value.Shot);
+        Assert.NotEqual(first.Slopball.Value.Shot.Velocity, other.Slopball!.Value.Shot.Velocity);
+    }
+
+    [Fact]
+    public void UncreditedSenderFloorSendsAFreshRandomShotWithoutAdvancingTheCombo()
     {
         var arena = Court(); var ball = new ArcadeBallSimulation(arena.Arcade!.Ball, arena);
         var rules = new SlopballSimulation(arena.Arcade.Slopball!, arena.Arcade.Ball, ball);
@@ -69,10 +247,12 @@ public class SlopballTests
         Advance(rules, ball, arena);
         Assert.Equal(SlopballPhase.WaitingServe, rules.State.Phase);
         Assert.Equal(0UL, rules.State.Returns);
-        Assert.Equal(shot, rules.State.Shot);
+        Assert.NotEqual(shot.Velocity, rules.State.Shot.Velocity);
+        Assert.Equal(shot.Index + 1, rules.State.Shot.Index);
+        var next = rules.State.Shot;
         Serve(rules, ball);
         Assert.NotEqual(id, ball.State.EntityId);
-        Assert.Equal(shot.Velocity, ball.State.Velocity);
+        Assert.Equal(next.Velocity, ball.State.Velocity);
         Assert.Equal(0f, ball.State.DamagePercent);
     }
 
@@ -123,7 +303,7 @@ public class SlopballTests
         // Floor at t~.02, net crossing above the net only after its floor rebound.
         ball.Reset(new(0, .35f, -1), new(0, -120, 100));
         Advance(rules, ball, arena);
-        Assert.Equal(SlopballPhase.Missed, rules.State.Phase);
+        Assert.Equal(SlopballPhase.WaitingServe, rules.State.Phase);
         Assert.Equal(0UL, rules.State.Returns);
 
         (arena, ball, rules) = Fixture();
@@ -150,7 +330,7 @@ public class SlopballTests
         Assert.Empty(resolver.Tick(new() { ball.CollisionTarget }, orderMovingTargetContacts: true));
         Assert.Single(resolver.GetActiveHitboxes());
         rules.FinishTick(ball);
-        Assert.Equal(SlopballPhase.Missed, rules.State.Phase);
+        Assert.Equal(SlopballPhase.WaitingServe, rules.State.Phase);
     }
 
     [Fact]
@@ -174,7 +354,7 @@ public class SlopballTests
     }
 
     [Fact]
-    public void ClearedBallCanReturnToPlayerHalfAndItsFloorStillEndsAttempt()
+    public void ClearedBallCanReturnToPlayerHalfAndItsFloorResetsTheCombo()
     {
         var (arena, ball, rules) = Fixture();
         ReceiveAndArm(arena, ball, rules);
@@ -186,7 +366,7 @@ public class SlopballTests
         // A sender-wall bank can cross back. Clearing is not a completed return.
         ball.Reset(new(0, .35f, -2), new(0, -120, 0));
         Advance(rules, ball, arena);
-        Assert.Equal(SlopballPhase.Missed, rules.State.Phase);
+        Assert.Equal(SlopballPhase.WaitingServe, rules.State.Phase);
         Assert.Equal(0UL, rules.State.Returns);
     }
 

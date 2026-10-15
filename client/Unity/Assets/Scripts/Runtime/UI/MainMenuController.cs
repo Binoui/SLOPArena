@@ -35,7 +35,7 @@ namespace SlopArena.Client.UI
             var discordButton = _context.Q<Button>("menu-discord")!;
             discordButton.clicked += OpenDiscord;
             _context.AddReleaseAction(() => discordButton.clicked -= OpenDiscord);
-            MenuNavigation.Configure(_context, _context.Q<Button>("menu-online"), ReturnToMainMenu);
+            MenuNavigation.Configure(_context, _context.Q<Button>("menu-training"), ReturnToMainMenu);
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
             _artworkColumn?.RegisterCallback<GeometryChangedEvent>(FitArtwork);

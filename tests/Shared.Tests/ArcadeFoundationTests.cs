@@ -7,6 +7,75 @@ namespace SlopArena.Shared.Tests;
 public class ArcadeFoundationTests
 {
     [Fact]
+    public void DragSlowsFreeFlightWithoutChangingDirectionOrRunningDuringHitstop()
+    {
+        var arena = Court(new(0, 2, 0), new(1, 1, 1));
+        var profile = arena.Arcade!;
+        var definition = new ArcadeBallDefinition(profile.Ball.Spawn, profile.Ball.InitialVelocity, .3f, 0, .8f, 1, .35f);
+        var ball = new ArcadeBallSimulation(definition, arena);
+        var players = new Dictionary<ulong, CharacterState>(); var definitions = new Dictionary<ulong, CharacterDefinition>();
+        for (int i = 0; i < 120; i++) ball.Step(arena, players, definitions);
+        Assert.InRange(ball.State.Velocity.X, .49f, .51f);
+        Assert.Equal(ball.State.Velocity.X, ball.State.Velocity.Y);
+        Assert.Equal(ball.State.Velocity.X, ball.State.Velocity.Z);
+        Assert.Equal(0f, ball.State.DamagePercent);
+        ball.Hit(new() { KnockbackAngle = 0 }, 0, 1, 1, 0, 5);
+        for (int i = 0; i < 5; i++) ball.Step(arena, players, definitions);
+        Assert.Equal(1f, ball.State.Velocity.X);
+        ball.Step(arena, players, definitions);
+        Assert.InRange(ball.State.Velocity.X, .99f, .999f);
+    }
+
+    [Fact]
+    public void WallsLoseReboundEnergyWhileBodiesOnlyRedirectTheDampedMotion()
+    {
+        var arena = Court(new(5.5f, 2, 0), new(120, 0, 0));
+        var definition = new ArcadeBallDefinition(arena.Arcade!.Ball.Spawn, arena.Arcade.Ball.InitialVelocity, .3f, 0, .8f, 1);
+        var ball = new ArcadeBallSimulation(definition, arena);
+        var empty = new Dictionary<ulong, CharacterState>();
+        var definitions = new Dictionary<ulong, CharacterDefinition> { [1] = TestHelpers.EngineDef };
+        ball.Step(arena, empty, definitions);
+        Assert.Equal(-96f, ball.State.Velocity.X, 3);
+        definition = new(new(-1.2f, .75f, 0), new(60, 0, 0), .3f, 0, .8f, 1, .35f);
+        ball = new(definition, arena); var free = new ArcadeBallSimulation(definition, arena);
+        var body = TestHelpers.PlayerState(); body.PY = TestHelpers.EngineDef.CapsuleHeight * .5f;
+        ball.Step(arena, new Dictionary<ulong, CharacterState> { [1] = body }, definitions);
+        free.Step(arena, empty, definitions);
+        Assert.True(ball.State.Velocity.X < 0);
+        Assert.Equal(free.State.Velocity.X, -ball.State.Velocity.X, 3);
+        Assert.Equal(0, body.DamagePercent);
+    }
+
+    [Fact]
+    public void DragProfileRoundTripsAndLegacySectionsKeepTheirOriginalBytes()
+    {
+        var profile = Court(new(0, 2, 0), new(1, 0, 0)).Arcade!;
+        var rulesProfile = SlopballTests.Court().Arcade!;
+        foreach (var stage in new[] { profile, rulesProfile })
+        {
+            var legacy = ArcadeStageBinaryFormat.Serialize(stage);
+            Assert.Equal(stage.Slopball == null ? 1 : 2, BinaryPrimitives.ReadUInt16LittleEndian(legacy));
+            var old = ArcadeStageBinaryFormat.Deserialize(legacy)!;
+            Assert.Equal(0f, old.Ball.LinearDrag);
+            Assert.Equal(legacy, ArcadeStageBinaryFormat.Serialize(old));
+            var b = stage.Ball;
+            var damped = new ArcadeStageDefinition(stage.ProfileId, stage.GameplayRevision, stage.AllowedPackageIds,
+                new(b.Spawn, b.InitialVelocity, b.Radius, b.Gravity, .8f, b.LaunchScale, .35f), stage.Slopball);
+            var bytes = ArcadeStageBinaryFormat.Serialize(damped);
+            Assert.Equal(3, BinaryPrimitives.ReadUInt16LittleEndian(bytes));
+            var loaded = ArcadeStageBinaryFormat.Deserialize(bytes)!;
+            Assert.Equal(.35f, loaded.Ball.LinearDrag);
+            Assert.Equal(.8f, loaded.Ball.Restitution);
+            Assert.Equal(stage.Slopball?.Seed, loaded.Slopball?.Seed);
+            Assert.Equal(bytes, ArcadeStageBinaryFormat.Serialize(loaded));
+            for (int length = 0; length < bytes.Length; length++)
+                Assert.Null(ArcadeStageBinaryFormat.Deserialize(bytes[..length]));
+        }
+        Assert.Throws<ArgumentException>(() => new ArcadeBallDefinition(default, default, .3f, 0, 1, 1, float.NaN));
+        Assert.Throws<ArgumentException>(() => new ArcadeBallDefinition(default, default, .3f, 0, 1, 1, -1));
+    }
+
+    [Fact]
     public void ArcadeStageRoundTripContainsOneStartAndImmutableBallProfile()
     {
         var arena = Court(new(1f, 2f, 3f), new(4f, 5f, 6f));

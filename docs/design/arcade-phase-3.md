@@ -4,8 +4,8 @@
 Human controller and gamefeel acceptance remains separate from native checks.
 
 Arcade is now a main-menu mode. Choose Slopball and a fighter, start from a clean
-locked countdown, receive/return balls, and compare the result with a persistent
-personal best. Character Course content remains Phase 4.
+locked countdown, and play continuously with fresh random serves. A small
+combo counter and persistent best provide light feedback. Character Course content remains Phase 4.
 
 ## Play
 
@@ -20,11 +20,11 @@ resources, cooldowns and gameplay ticks stay fixed. Go launches the first ball
 immediately; held controls must be released before gameplay input is accepted.
 The existing Solo stamp presentation and audio remain presentation only.
 
-The HUD shows returns, the receive/redirect objective and ball percent. A floor
-miss freezes the earned result and shows the current count, compatible personal
-best and improvement. **RETRY** starts a full clean attempt; **ARCADE** returns to
-selection. **Backspace** also retries during play. **Escape/Start** uses normal
-local pause; **Leave Match** banks earned returns and returns to Arcade.
+The HUD keeps the ball-play cue prominent, with combo/best in smaller text.
+A floor miss resets the combo and sends a new random ball after the short gap;
+no results screen interrupts movement or normal kit cooldowns. **Backspace**
+starts a fresh practice session with a new seed. **Escape/Start** uses normal
+local pause; **Leave Match** saves the session best and returns to Arcade.
 
 The existing normal Editor Play Mode domain-reload stall remains. For local
 Editor verification, temporarily enable Enter Play Mode options and disable
@@ -41,7 +41,7 @@ content through the maintained preparer, and adds the gameplay scene to builds.
 Records live in `arcade-records.json` under Unity's `Application.persistentDataPath`,
 separately from settings and online identity. Each best is keyed by challenge,
 profile, stable fighter package ID and gameplay fingerprint. Failure, voluntary
-exit, retry and application/scene teardown preserve the verified return count;
+exit, restart and application/scene teardown preserve the session’s highest combo;
 cancelling before Go creates no record. Pausing preserves record eligibility.
 
 A lower run never replaces a better one. A new gameplay category archives earlier
@@ -89,7 +89,7 @@ Repeated Editor Play Mode checks also exposed shared panel scales surviving
 teardown. The settings owner now restores its base panel values on destruction,
 preventing UI scale from accumulating across Play Mode entries.
 
-## Verification
+## Initial Phase 3 verification (historical survival flow)
 
 Ten focused replay/record cases and thirteen Slopball cases passed. Full Shared:
 1,857 passed, two existing skips. Full Server: 35 passed. The Shared plugin was
@@ -130,3 +130,123 @@ The exported player and physical controller/audio have not been exercised in thi
 slice. Human play must still judge the shared shot profile, camera framing and
 returning/juggling feel across the roster. Those acceptance/polish goals remain
 Phase 5; implementation of the FightGuy Course remains Phase 4.
+
+
+## Second playtest follow-up — 2026-10-15
+
+The court is now 40×40 units with a 20-unit ceiling, reducing all three expanded
+room dimensions by a factor of 1.5. Ball size, gravity, opening serves, the net and
+fighter spawn remain at their accepted playtest values. The stage profile revision
+advances to 3; older records remain archived under their prior gameplay category.
+
+Arcade was binding the normal projectile-effects manager and HUD but omitted
+`ProjectileVFXManager.OnTick()` and `HUDManager.Refresh()` after simulation ticks.
+The common ball match now calls both, matching Training. This restores travelling
+projectile visuals and live cooldown overlays/timers without changing kit rules.
+The stage retune command also uses Mesh setters to invalidate render buffers when
+resizing existing original assets; serialized geometry and visible geometry agree.
+
+Native menu-to-Slopball verification found the FightGuy projectile configuration
+loaded and one live Ki Shot visual. The cooldown overlay showed 93 ticks / 1.6s
+at 78% fill, then counted down to 61 ticks / 1.0s. Observed Game View captures are
+under `tmp/slopball-feedback/`; Unity compilation and runtime errors are clean.
+
+
+## Continuous ball play — 2026-10-15
+
+Playtest direction now favors a relaxed ball playground. Every new session uses a
+fresh seed supplied to Shared; every fresh ball varies direction and arc. Misses
+reset the small combo counter and difficulty, preserve the session best, and
+schedule another random ball while fighter movement and kit state continue.
+The failure/result overlay is removed. Bests remain local background feedback.
+
+The stage profile adds .35 linear drag, .8 restitution, a wider receiving fan and
+±24 ticks of flight-time variation. Launch strength/direction and percent still
+come from normal fighter moves. The serve solver accounts for discrete drag and
+gravity. Typed Arcade section v3 stores drag; v1/v2 keep zero drag and their bytes.
+Rules revision 3 separates these casual-play records from earlier survival runs.
+
+Reference: [Akaneia v0.8 release notes](https://github.com/akaneia/akaneia-build/releases/tag/0.8)
+confirm volleyball and a solo auto-return mode. The public repository contains
+build/project data; its README requires extracting runtime files from the patched
+ISO. No readable ball-physics source was found in its public file tree. Our tuning
+and implementation are in the existing Shared ball and stage-profile seams.
+
+
+## Heavier ball and short/deep serves — 2026-10-15
+
+Stage profile revision 5 raises ball gravity from 2 to 6 while retaining radius .65,
+linear drag .35, restitution .8 and the existing move launch response. Opening
+flight time is 138 ticks (previously 180), ramping to 108, with ±30 ticks of arc
+variation. Landing targets now span X ±6 and Z −14..−2.5, mixing drops just behind
+the net with deeper balls instead of the previous narrow Z −9..−5.5 band.
+The damped serve solver and continuous playground flow remain unchanged.
+
+The focused Shared check covers 128 independent seeded shots: both sides exceed
+20° yaw, pitch spans more than 30°, at least ten short and ten deep balls appear,
+and every actual swept ball trajectory clears the net and lands in its authored
+receiving region. Human playtesting still decides the desired weight and pace.
+
+
+## Random launcher origins — 2026-10-15
+
+Stage profile revision 6 chooses a new sender position per fresh serve: X ±8 and
+Z 5..7 at the existing 2.3-unit ball height. The narrow depth band preserves
+clearance for the fastest short balls. Shared's deterministic shot solver uses
+the chosen origin when aiming at the existing receiving region; session seeds,
+shot index, continuous play and all ball tuning remain as above. The cosmetic
+launcher repositions during the serve gap and remains at that origin while the
+ball is live. Typed section v4 stores the optional spawn bounds; older section
+versions retain fixed origins and their existing serialized bytes.
+
+Verification: 1,024 independent seeded swept trajectories clear the net and land
+inside the receiving region. Full Shared suite: 1,869 passed, two existing skips.
+Native recompile/bake/inspection passed; four distinct live serve origins matched
+the visible launcher throughout observed ticks, and three misses preserved play.
+Restart varied the session seed; console had zero errors. Original Editor state
+was restored and player records were isolated. Native evidence:
+`/tmp/sloparena-launcher-runtime-result.json`,
+`tmp/slopball-launcher/random-origins.png`. Existing high-ball camera framing
+remains a separate polish issue.
+
+
+## Underground club finish — 2026-10-15
+
+The user approved the room composition and its concrete, teal padding, warm
+fixtures and court graphics. The finished cosmetic prefab adds one Slopball
+club sign, a roof grid and a compact dressed sender. Static glyph meshes reuse
+the existing project font resource. Generated meshes, textures and materials are
+persisted in the cosmetic prefab; `sloparena.arcade.slopball.finish` reapplies the
+finish, and the existing missing-prefab/retune path includes it.
+
+The source scene, collision meshes and baked arena retain their pre-art hashes.
+Native compilation and structural inspection pass with no missing references,
+unsupported shaders or cosmetic Colliders. Full interior orbit/low captures and
+the normal gameplay camera were reviewed. The final live check observed four
+distinct serve origins and three natural misses with continuous movement, then
+a fresh restart; console errors were zero. Player records were isolated and
+Editor state restored. Existing high-ball camera framing remains separate from
+this cosmetic pass.
+
+The follow-up playful finish brightens the concrete and sports-floor palette,
+mixes coral/mint bays into the teal padding, adds a winking ball and
+"HIT BALL FEEL GOOD" motto to the existing sign, and gives the sender a face.
+These are presentation changes within the accepted composition. Reapplying the
+builder preserves generated asset names so material reuse remains stable. Native
+compilation, repeat application, structural inspection and live play passed;
+full orbit/low views and the normal gameplay camera were reviewed. The final
+play check retained automatic serves after misses and a fresh restart seed.
+
+## Camera wall correction — 2026-10-15
+
+Slopball now builds the existing camera-only collision mirror from the baked
+court, so normal orbit and aiming retract inside its walls. At very close range,
+the local fighter's renderers are hidden for that camera's render and their
+original flags restored afterward. This keeps the fighter mesh from filling the
+screen when the camera has little room behind it.
+
+Native checks covered 30 orbit/aim poses at both rear corners and the net, with
+3,104 rendered frames and no room/near-plane crossings. All four fighters hid
+in the close view and became visible again after moving away. Runtime consoles
+were clean after the separately recorded Editor layout error on Play entry.
+The source scene, baked court and presentation prefab retain their hashes.
