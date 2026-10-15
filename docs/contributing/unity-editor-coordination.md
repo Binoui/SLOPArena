@@ -15,29 +15,35 @@ project is `client/Unity`, and the shipped gateway is `scripts/unity-editor-gate
 
 ## Caller and commands
 
-Use your own identity; do not copy an existing owner's identifiers. Supported sources:
+Use your own identity; do not copy an existing owner's identifiers. The gateway is
+provider-agnostic: any agent can run it, and identity comes from one of these sources:
 
 - **Orca:** supply your runtime-issued `ORCA_TERMINAL_HANDLE`. The gateway verifies
   that exact handle/incarnation with `orca-ide`; missing, mismatched or orphaned
   identity fails before claim. `ORCA_CLI_COMMAND` may point at your installed binary.
-- **T3 Code with Codex:** use injected `CODEX_THREAD_ID` and `CODEX_SESSION_ID` plus
-  the injected `T3CODE_CLI_PATH` or `T3_MCP_BEARER_TOKEN` marker. Both IDs must be UUIDs.
-  The gateway records `t3:<thread-id>` and the session incarnation; the bearer is
-  never used as owner identity. Missing runtime IDs fail without fallback.
-- **Native Codex:** when the runner supplies both runtime UUIDs above, the gateway
-  records `codex:<thread-id>` without needing a T3 or Orca installation.
-- **Other assistants or runners without both IDs:** the launcher/operator assigns
+- **Launcher-configured pair (any assistant or runner):** the launcher/operator assigns
   `SLOPARENA_AGENT_ID` (1–100 ASCII letters/digits/dots/underscores/hyphens, starting
   with a letter/digit) and `SLOPARENA_AGENT_SESSION_ID` (a fresh UUID per launched
   session). Keep the pair stable within that session and distinct from other agents.
   The gateway records `agent:<id>`. This is configured identity, not independent
-  harness attestation. The authenticated Pipeline descriptor and lease token still
-  govern command admission and release. Never reuse another session's pair.
+  harness attestation. Never reuse another session's pair.
+- **Runtime-injected agent session:** without the sources above, the gateway uses the
+  IDs an agent runtime injects into its own process:
+  - **Codex:** `CODEX_THREAD_ID` and `CODEX_SESSION_ID` (both UUIDs) record
+    `codex:<thread-id>`, or `t3:<thread-id>` inside the T3 harness (its
+    `T3CODE_CLI_PATH` or `T3_MCP_BEARER_TOKEN` marker); the bearer is never identity.
+  - **Claude Code:** a UUID `CLAUDE_CODE_SESSION_ID` records `claude:<session-id>`,
+    with or without T3.
 
-An explicit Orca identity is verified first and never falls back after failure.
-T3 identity is next and requires its runtime IDs. Outside those harnesses, an
-explicit launcher pair takes precedence over native Codex IDs. Incomplete or
-invalid selected identity fails closed. No identity is guessed from the active pane.
+  A new runtime is one adapter in the gateway's `AGENT_RUNTIMES` list with tests.
+  The authenticated Pipeline descriptor and lease token still govern command
+  admission and release for every source.
+
+An explicit Orca identity is verified first and never falls back after failure. An
+explicit launcher pair comes next and applies in every harness. A runtime is selected
+by its own variables; incomplete or invalid selected identity fails closed instead of
+trying another source. Inside T3 without runtime IDs or a launcher pair, the gateway
+fails before claim. No identity is guessed from the active pane.
 The installed Unity CLI must be on PATH, or `UNITY_CLI_COMMAND` can name its executable.
 Use Bun to run the gateway; Node 22.18+ can also run this TypeScript file directly.
 Tool installation requires the existing project approval boundary.

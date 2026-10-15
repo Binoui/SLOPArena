@@ -58,8 +58,9 @@ need a separate Shared build: their project reference already builds the tested 
 Live Editor automation requires Bun, the installed Unity CLI and the embedded
 Pipeline package. Use the shipped `scripts/unity-editor-gateway.ts`, your own caller
 identity, and an explicit approved project. The [Unity CLI guide](unity-cli.md) and
-[coordination protocol](unity-editor-coordination.md) describe Orca, T3/Codex and
-launcher-configured identities. Routine isolated release builds use their release
+[coordination protocol](unity-editor-coordination.md) describe the provider-agnostic
+caller identities: Orca, launcher-configured pairs, and runtime-injected Codex or
+Claude Code session IDs. Routine isolated release builds use their release
 wrapper instead. Tool installation still requires user approval.
 
 ## Maintaining workflows
