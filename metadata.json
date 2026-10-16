@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01M53CQSGMZT6E4D8TV8XSRNA9",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    ".githooks/post-commit",
+    ".githooks/pre-push",
+    ".gitignore",
+    ".omp/lsp.json",
+    "client/Unity/Assets/Library/bonk-marker-alignment.png.meta",
+    "client/Unity/Assets/Scripts/Editor/SlopArenaStageAuthoringService.cs",
+    "client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs",
+    "client/Unity/Assets/Scripts/Runtime/World/ArenaAtmosphere.cs",
+    "client/Unity/Assets/Stages/last_stop/PlatformCollision.asset",
+    "client/Unity/Assets/Stages/last_stop/PlatformCollision.asset.meta",
+    "client/Unity/Assets/Stages/last_stop/last_stop.unity",
+    "client/Unity/Assets/Temp/wibou-tech-sword-trail.png.meta",
+    "client/Unity/Assets/UI/HUD.uss",
+    "client/Unity/Assets/UI/HUD.uxml",
+    "content-cooked/manki/client.bindings",
+    "content-cooked/manki/manifest.json",
+    "content-cooked/roster/manifest.json",
+    "data/arenas/last_stop.arena",
+    "docs/design/stages/last_stop.md",
+    "docs/design/stages/roster.md",
+    "tests/Shared.Tests/LastStopArenaTests.cs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 254,
+    "cache_creation_tokens": 426875,
+    "cache_read_tokens": 32034397,
+    "output_tokens": 253149,
+    "api_call_count": 128
+  }
+}
