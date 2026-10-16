@@ -1,4 +1,0 @@
-# Only export the addon folder and essential files
-addons/godot_ai export-include
-LICENSE export-include
-README.md export-include

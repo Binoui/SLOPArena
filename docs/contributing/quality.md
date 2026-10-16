@@ -1,16 +1,15 @@
 # Code Quality and Verification
 
-Use these commands from the repository root. There is no repository Makefile or
-project pre-commit quality hook. The existing `.githooks` handle session logs and
-commit messages rather than project build/style checks. Do not rely on `make build`,
-`make check`, `make format`, `make clean`, or `make test`.
+Use these commands from the repository root. There is no repository Makefile and
+no project Git hook. Do not rely on `make build`, `make check`, `make format`,
+`make clean`, or `make test`.
 
 ## Applicable checks
 
 The CI workflow runs documentation checks, builds every maintained .NET project
 in the root solution (including the C# tools), and runs Shared/Server tests on
-push to `main` and on pull requests. Research projects outside the solution remain
-on-demand. These are the available project verification commands:
+push to `main` and on pull requests. These are the available project
+verification commands:
 
 ```bash
 python3 -m unittest discover -s tools -p 'test_*.py'

@@ -52,9 +52,10 @@ verifies checksums and tracked metadata, and preserves conflicting laptop files.
 See the [private installation transfer](../docs/contributing/unity-setup.md#copying-an-existing-private-asset-installation)
 for commands; Git and Python 3.9 or newer are sufficient.
 
-`research/flight-sweep/` is a historical experiment outside the maintained solution;
-build/run it explicitly if that research is relevant. Generated visual reports
-and archived investigations remain evidence for their source snapshot.
+The historical `research/flight-sweep/` experiment has been removed; restore it
+with `git checkout d98c6c26 -- research/flight-sweep` if that research becomes
+relevant. Generated visual reports and archived investigations remain evidence
+for their source snapshot.
 
 Add a new maintained C# tool to `SlopArena.sln` and this inventory so CI compiles
 it. Document its inputs and output directory. Keep exploratory projects outside
