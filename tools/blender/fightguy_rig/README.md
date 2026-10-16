@@ -21,7 +21,9 @@ blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightgu
 4. Edit `Build` in `unity_import.eval.cs`, then run it through the gateway
    (`eval_file`, absolute path). It replaces `fightguy.fbx` in place (GUID, prefab
    overrides and the catalog `_rig` stay valid), creates the material from the one the
-   old model rendered with, regenerates the Avatar skeleton from the new T-pose and
+   old model rendered with and sets its Base Color to 0.45 (the v2 texture is far lighter
+   than the old one; 0.8 made him the brightest fighter by 2–3×), regenerates the Avatar
+   skeleton from the new T-pose and
    re-applies the saved 34-bone mapping (body plus thumb/index). Compare the reported
    `before`/`after` `humanScale`. Importing the model persists a cook of every package;
    afterwards run `sloparena.character.verify --target fightguy` and

@@ -75,6 +75,11 @@ if (mat == null)
 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(Tex);
 if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
 if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
+// The v2 texture is far lighter than the old one; 0.45 (maintainer's pick) keeps him near the roster's
+// brightness. MatchVisualStyle carries _BaseColor into the match shader.
+var tint = new Color(0.45f, 0.45f, 0.45f, 1f);
+if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tint);
+if (mat.HasProperty("_Color")) mat.SetColor("_Color", tint);
 EditorUtility.SetDirty(mat);
 AssetDatabase.SaveAssetIfDirty(mat);
 report["materialFrom"] = oldMat != null ? AssetDatabase.GetAssetPath(oldMat) : null;
