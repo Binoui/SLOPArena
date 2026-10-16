@@ -492,6 +492,75 @@ public sealed class BonkKitTests
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
     }
 
+    [Theory]
+    [InlineData(2.2f, false, true)]
+    [InlineData(2.2f, true, true)]
+    [InlineData(8f, false, false)]
+    public void BonkAir2_CookedSwordPathHitsBlocksAndMisses(float distance, bool shielding, bool expectContact)
+    {
+        var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+        var def = content.Definition;
+        var baked = content.BakedAnimation;
+        Assert.NotNull(baked);
+        var sim = TestHelpers.MakeSim();
+        // A low aerial should meet a standing opponent. The Lab's default aerial
+        // starts a full capsule height above its grounded dummy and passes over it.
+        var actor = TestHelpers.PlayerState(x: 20f, z: 10f) with
+        {
+            PY = TestHelpers.GroundPY(def) + 0.25f,
+            IsGrounded = false,
+        };
+        var target = TestHelpers.NpcState(x: 20f, z: 10f + distance) with
+        {
+            PY = TestHelpers.GroundPY(def),
+            FacingYaw = MathF.PI,
+        };
+        sim.RegisterEntity(1, def, actor, baked);
+        sim.RegisterEntity(100, def, target, baked);
+        var hits = new List<SpellResolver.HitResult>();
+        ushort maxBlockStun = 0;
+        for (int tick = 0; tick < 90; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState>
+            {
+                [1] = new() { ActiveSlot = tick == 0 ? AbilitySlots.Slot2 : AbilitySlots.None },
+                [100] = new()
+                {
+                    FacingYaw = -18000,
+                    ShieldHeld = shielding,
+                    ShieldPressed = shielding && tick == 0,
+                },
+            });
+            hits.AddRange(sim.LastTickHits.Where(hit => hit.OwnerEntityId == 1 && hit.TargetEntityId == 100));
+            maxBlockStun = Math.Max(maxBlockStun, sim.GetState(100).BlockStunTicks);
+        }
+
+        if (expectContact)
+        {
+            var hit = Assert.Single(hits);
+            Assert.Equal(AbilitySlots.Slot2, hit.AttackSlot);
+            Assert.Equal(shielding, hit.Blocked);
+            if (shielding)
+            {
+                Assert.Equal(0f, hit.Damage);
+                Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+                Assert.True(maxBlockStun > 0);
+            }
+            else
+            {
+                Assert.True(hit.Damage > 0);
+                Assert.True(sim.GetState(100).DamagePercent > 0);
+            }
+        }
+        else
+        {
+            Assert.Empty(hits);
+            Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+        }
+        Assert.Equal(ActionState.Idle, sim.GetState(1).State);
+        Assert.Null(sim.GetActiveAbility(1));
+    }
+
     private static CharacterCompileResult CompileBonk()
     {
         var result = CharacterPackageCompiler.Compile(

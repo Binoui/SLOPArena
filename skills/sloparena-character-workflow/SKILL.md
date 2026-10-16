@@ -72,6 +72,12 @@ exact admitted roster pins before treating it as an accepted package.
 
 ## Workflow
 
+For new or substantially reworked move motion, follow the
+[animation user review checkpoint](../sloparena-animation-authoring/SKILL.md#user-review-before-move-integration)
+before writing candidate-dependent move data or replacing its live clip binding.
+Kit planning and package scaffolding may come first; keep proposed move values in
+planning notes until the unbound actual-character animation is accepted.
+
 ### 1. Design the kit
 
 Define the fighter's role, counterplay, movement profile, eight normals, four specials, recovery choice, and presentation needs. Author timing in 60 Hz ticks. Prefer engine-owned deterministic primitives and fixed timelines over bespoke simulation code.

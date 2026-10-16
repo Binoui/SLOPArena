@@ -21,6 +21,9 @@ blender -b --factory-startup --python tools/blender/<key>/build.py -- \
   --out /tmp/<key>-generated --report .stage-authoring-cache/<key>/<pass> --preview
 ```
 
+Character rigs follow the same rule: [manki_rig](manki_rig/README.md) rebuilds
+Manki's Unity rig from a Mixamo-rigged FBX.
+
 ## Shared kit
 
 [`stagekit/`](stagekit/__init__.py) holds the code every generator uses. Stage

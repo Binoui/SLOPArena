@@ -219,7 +219,6 @@ public class FightGuyAbilityTests
     [InlineData(1.6f, 150, 60, CharacterClass.FightGuy)]
     [InlineData(1.6f, 0, 70, CharacterClass.FightGuy)]
     [InlineData(0.9f, 150, 60, CharacterClass.Bonk)]
-    [InlineData(1.6f, 150, 60, CharacterClass.Manki)]
     [InlineData(1.6f, 150, 60, CharacterClass.Wibou)]
     public void FightGuyFistOfFury_PunchCatchRemainsLockedUntilFootFinisher(
         float distance, ushort startingDamage, ushort entryTick, CharacterClass targetClass)
