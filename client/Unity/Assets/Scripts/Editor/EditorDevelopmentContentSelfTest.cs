@@ -86,11 +86,68 @@ public static class EditorDevelopmentContentSelfTest
             Require(SameSnapshot(SnapshotDirectory(Path.Combine(repositoryRoot, "content-cooked", "fightguy")), cookedSnapshot) &&
                 File.ReadAllBytes(generatedPath).SequenceEqual(generatedSnapshot),
                 "Invalid Editor Play compilation modified persisted cooked content.");
+
+            RequireUninstalledClipUsesCommittedPoses(characterPath, originalCharacter, loaded.Source);
+            Require(SameSnapshot(SnapshotDirectory(Path.Combine(repositoryRoot, "content-cooked", "fightguy")), cookedSnapshot) &&
+                File.ReadAllBytes(generatedPath).SequenceEqual(generatedSnapshot),
+                "Editor Play without an installed clip modified persisted cooked content.");
         }
         finally
         {
             File.WriteAllBytes(characterPath, originalCharacter);
             CookedCharacterClientAssetResolver.ClearEditorDevelopmentCatalogs();
+        }
+    }
+
+    // ADR-0038: a bound clip that is not installed degrades to the committed pose data,
+    // while an edit that changes pose baking still needs the clips.
+    private static void RequireUninstalledClipUsesCommittedPoses(
+        string characterPath, byte[] originalCharacter, CharacterPackageSource source)
+    {
+        var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(
+            "Assets/CharacterPackages/fightguy/CharacterAssetCatalog.asset");
+        Require(catalog != null, "FightGuy asset catalog is missing.");
+        var binding = catalog.Bindings.First(x => x != null && x.Clip != null);
+        var installedClip = binding.Clip;
+        File.WriteAllBytes(characterPath, originalCharacter);
+        try
+        {
+            binding.Clip = null; // in memory only; the fixture re-imports the asset
+            Require(ClientSession.TryBuildLocalMatchCatalog(out var placeholderCatalog, out var placeholderFailure) &&
+                placeholderCatalog != null,
+                placeholderFailure ?? "Editor development catalog failed with an uninstalled clip.");
+            var entry = placeholderCatalog.Resolve(CharacterClass.FightGuy);
+            Require(entry?.CookedCharacterPackage != null && entry.BakedAnimation != null,
+                "Editor development catalog did not use the committed pose data.");
+            Require(CookedCharacterClientAssetResolver.TryResolve(
+                    entry.Identity,
+                    entry.CookedCharacterPackage,
+                    out CharacterAnimationCatalog animations,
+                    out var rig,
+                    out _,
+                    out var resolveFailure) && rig != null &&
+                animations.Animations.Any(x => x.SemanticId == binding.SemanticId && x.Clip == null),
+                resolveFailure ?? "The uninstalled clip did not become a null catalog entry.");
+
+            var rebakeSource = source with
+            {
+                Character = source.Character with
+                {
+                    Presentation = source.Character.Presentation with
+                    {
+                        VisualScale = source.Character.Presentation.VisualScale + 0.1f
+                    }
+                }
+            };
+            File.WriteAllText(characterPath, CharacterPackageSourceCodec.SerializeCharacter(rebakeSource.Character), Encoding.UTF8);
+            Require(!ClientSession.TryBuildLocalMatchCatalog(out var rebakeCatalog, out var rebakeFailure) && rebakeCatalog == null &&
+                rebakeFailure != null && rebakeFailure.Contains("asset-catalog.pose.rebake-required", StringComparison.Ordinal),
+                "A pose-bake edit without the clip did not fail with asset-catalog.pose.rebake-required: " + rebakeFailure);
+        }
+        finally
+        {
+            binding.Clip = installedClip;
+            File.WriteAllBytes(characterPath, originalCharacter);
         }
     }
 

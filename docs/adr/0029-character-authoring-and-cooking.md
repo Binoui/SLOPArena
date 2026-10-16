@@ -1,6 +1,7 @@
 # ADR-0029: Character Authoring and Cooking Pipeline
 
 **Status:** Accepted — 2026-08-26  
+**Amended by ADR-0038** (2026-10-16): Editor play and Ability Lab preview reuse the committed pose data when bound clips, presentation prefabs or weapon prefabs are not installed; see [ADR-0038](0038-editor-play-without-installed-clips.md).  
 **Deciders:** @Binoui  
 **Related:** ADR-0022 (Workshop-First Content Architecture), ADR-0023 (Built-In Content API), ADR-0024 (Creator Gameplay Primitives), ADR-0025 (Workshop Packages), ADR-0026 (Workshop Multiplayer), ADR-0027 (ModKit and Preview), ADR-0028 (Built-In Compatibility)
 

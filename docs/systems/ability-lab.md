@@ -236,10 +236,14 @@ discovery and native-command-first routing.
    then the repository `content-cooked` directory. It never depends on the process working
    directory.
 5. Authoritative persisted preview requires a verified cooked manifest, runtime definition, pose
-   payload, generated animation catalog, and rig. Missing or invalid content shows
-   `Preview unavailable` with structured code, path, and message diagnostics. It never
-   falls back to FightGuy or legacy content. A source-only package such as Bonk is therefore
-   discoverable but has no authoritative preview.
+   payload, animation catalog, and rig. In the Editor, a missing generated catalog (fresh
+   clones never have one) is rebuilt from the package's committed `client.bindings`. Bound
+   animation clips that are not installed stay empty: those moves keep their hitboxes and
+   hurtboxes from the cooked poses but don't animate, and the console warns once per move
+   ([ADR-0038](../adr/0038-editor-play-without-installed-clips.md)). Missing or invalid
+   content shows `Preview unavailable` with structured code, path, and message diagnostics.
+   It never falls back to FightGuy or legacy content. A source-only package such as Bonk is
+   therefore discoverable but has no authoritative preview.
 6. With a valid package preview, scrub the stopped timeline at tick `0` or later. Edit Mode
    refreshes the existing renderer, baked bones, hurtboxes, and hitboxes in SceneView.
 7. `SAVE + COOK` remains the only persistence path and the only way to produce authoritative
@@ -247,7 +251,10 @@ discovery and native-command-first routing.
    last valid artifact, generated cache, and status.
 8. Editor Training and Solo Play have a separate `edit → Play` path. They compile the current
    source and semantic assets in memory into the existing cooked runtime/catalog types. Invalid
-   source blocks match start; it never falls back to a persisted cooked package.
+   source blocks match start; it never falls back to a persisted cooked package. When the only
+   problems are bound clips, presentation prefabs or weapon prefabs that are not installed,
+   the current source plays with the committed pose data instead, unless the edit changes
+   how poses are baked ([ADR-0038](../adr/0038-editor-play-without-installed-clips.md)).
 
 The compact toolbar status has this precedence: `No package → Unsaved → Cooking… → Cook
 failed → Stale → Cooked`. Clicking status opens the structured diagnostics panel. Hashes and

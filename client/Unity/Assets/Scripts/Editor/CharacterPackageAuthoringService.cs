@@ -476,10 +476,25 @@ public sealed class CharacterPackageAuthoringService
     {
         package = null;
         animationCatalog = null;
-        if (!TryPrepareCook(target, out _, out _, out var assembly, out var preparationDiagnostics))
+        bool usesCommittedPoses = false;
+        if (!TryPrepareCook(target, out var context, out _, out var assembly, out var preparationDiagnostics))
         {
-            diagnostics = preparationDiagnostics;
-            return false;
+            // Clips or presentation prefabs that are not installed (a fresh clone, or
+            // unshared licensed packs) degrade to the committed pose data instead of
+            // blocking play (ADR-0038). Any other error still fails closed.
+            var errors = preparationDiagnostics.Where(x => x.Severity == CharacterDiagnosticSeverity.Error).ToList();
+            if (context == null || errors.Count == 0 || !errors.All(UnityCharacterAssetCooker.IsMissingPresentationAsset))
+            {
+                diagnostics = preparationDiagnostics;
+                return false;
+            }
+            if (!TryAssembleWithCommittedPoses(context, out assembly, out var fallbackDiagnostics))
+            {
+                diagnostics = preparationDiagnostics.Concat(fallbackDiagnostics).ToList();
+                return false;
+            }
+            preparationDiagnostics = fallbackDiagnostics;
+            usesCommittedPoses = true;
         }
 
         var allDiagnostics = new List<CharacterDiagnostic>(preparationDiagnostics);
@@ -491,20 +506,122 @@ public sealed class CharacterPackageAuthoringService
             return false;
         }
 
-        try
+        if (usesCommittedPoses)
         {
-            animationCatalog = CharacterAnimationCatalogGenerator.Create(assembly.BindingBytes);
+            if (!CharacterAnimationCatalogGenerator.TryCreateAllowingMissingPresentation(
+                    assembly.BindingBytes, out animationCatalog, out string catalogError))
+            {
+                allDiagnostics.Add(Error("asset-catalog.binding.invalid", "bindings.json", catalogError));
+                diagnostics = allDiagnostics;
+                return false;
+            }
+            allDiagnostics.Add(new CharacterDiagnostic(
+                CharacterDiagnosticSeverity.Warning,
+                CommittedPosesDiagnosticCode,
+                CookedPath(context.PackageId),
+                $"{CharacterAnimationCatalogGenerator.CountMissingClips(animationCatalog)} animation clip(s) and " +
+                $"{CharacterAnimationCatalogGenerator.CountMissingPresentationPrefabs(animationCatalog)} presentation prefab(s) are not installed. " +
+                "Playing with the committed pose data: hitboxes work, but those moves won't animate. Cooking still needs the clips."));
         }
-        catch (Exception ex)
+        else
         {
-            allDiagnostics.Add(Error("asset-catalog.binding.invalid", "bindings.json", ex.Message));
-            diagnostics = allDiagnostics;
-            return false;
+            try
+            {
+                animationCatalog = CharacterAnimationCatalogGenerator.Create(assembly.BindingBytes);
+            }
+            catch (Exception ex)
+            {
+                allDiagnostics.Add(Error("asset-catalog.binding.invalid", "bindings.json", ex.Message));
+                diagnostics = allDiagnostics;
+                return false;
+            }
         }
 
         package = loaded;
         diagnostics = allDiagnostics;
         return true;
+    }
+
+    /// <summary>Warning code reported when Editor play reuses committed pose data (ADR-0038).</summary>
+    public const string CommittedPosesDiagnosticCode = "presentation.committed-poses";
+
+    private bool TryAssembleWithCommittedPoses(
+        PackageContext package,
+        out CharacterPackageAssemblyResult assembly,
+        out List<CharacterDiagnostic> diagnostics)
+    {
+        assembly = null;
+        diagnostics = new List<CharacterDiagnostic>();
+        string directory = Path.Combine(RepositoryRoot(), "content-cooked", package.PackageId);
+        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        try
+        {
+            foreach (string name in new[] { CharacterPackageAssembler.ManifestPath, CharacterPackageAssembler.RuntimePath, CharacterPackageAssembler.PosePath, CharacterPackageAssembler.BindingPath })
+                files[name] = File.ReadAllBytes(Path.Combine(directory, name));
+        }
+        catch (Exception ex)
+        {
+            diagnostics.Add(Error("package.files.missing", CookedPath(package.PackageId),
+                "No committed cooked package to play without the animation clips: " + ex.Message));
+            return false;
+        }
+
+        string sourceHash, version, cookedContentHash, packageHash;
+        try
+        {
+            using var manifest = JsonDocument.Parse(files[CharacterPackageAssembler.ManifestPath]);
+            var root = manifest.RootElement;
+            sourceHash = root.GetProperty("sourceHash").GetString() ?? "";
+            version = root.GetProperty("version").GetString() ?? "";
+            cookedContentHash = root.GetProperty("cookedContentHash").GetString() ?? "";
+            packageHash = root.GetProperty("packageHash").GetString() ?? "";
+        }
+        catch (Exception ex)
+        {
+            diagnostics.Add(Error("package.manifest.invalid", CookedPath(package.PackageId), ex.Message));
+            return false;
+        }
+
+        // Loading verifies every payload hash, so the poses are exactly what was cooked.
+        var committed = CookedCharacterPackageLoader.LoadFiles(
+            files, new MatchContentPackageRequirement(package.PackageId, version, cookedContentHash, packageHash));
+        AddUnique(diagnostics, committed.Diagnostics);
+        if (!committed.IsValid || committed.Package == null)
+            return false;
+
+        CharacterAssetCookResult cooked;
+        try
+        {
+            cooked = UnityCharacterAssetCooker.CookWithCommittedPoses(
+                package.ProjectRelativeRoot,
+                ProfileFor(package.PackageId),
+                committed.Package,
+                files[CharacterPackageAssembler.PosePath],
+                files[CharacterPackageAssembler.BindingPath],
+                sourceHash);
+        }
+        catch (Exception ex)
+        {
+            diagnostics.Add(Error("asset-catalog.schema", "cook", ex.Message));
+            return false;
+        }
+        AddUnique(diagnostics, cooked.Diagnostics);
+        if (cooked.CookedPackage == null || cooked.HasErrors)
+            return false;
+
+        try
+        {
+            // The assembler checks that the committed bindings and poses still cover
+            // every animation and presentation the current source requires.
+            assembly = CharacterPackageAssembler.Assemble(UnityCharacterAssetCooker.BuildPackageInput(cooked));
+            AddUnique(diagnostics, assembly.Diagnostics);
+        }
+        catch (Exception ex)
+        {
+            diagnostics.Add(Error("package.assembly.failed", "assembly", ex.Message));
+            return false;
+        }
+        return assembly.IsValid;
     }
 
     private bool TryPrepareCook(

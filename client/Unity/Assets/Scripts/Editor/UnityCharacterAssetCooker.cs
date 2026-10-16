@@ -220,6 +220,84 @@ public static class UnityCharacterAssetCooker
         };
     }
 
+    /// <summary>
+    /// True for diagnostics that only mean a bound animation clip, presentation prefab
+    /// or weapon prefab is not installed in this checkout. Such packages can still run in Editor
+    /// play from their committed pose data (ADR-0038); every other error stays fatal.
+    /// </summary>
+    internal static bool IsMissingPresentationAsset(CharacterDiagnostic diagnostic)
+        => diagnostic.Code is "asset-catalog.clip.missing" or "asset-catalog.presentation.missing" or "asset-catalog.weapon.missing";
+
+    /// <summary>
+    /// Compiles the current gameplay source and pairs it with the committed pose and
+    /// binding payloads instead of re-sampling clips (ADR-0038). Used only for Editor
+    /// play and preview when clips or presentation prefabs are not installed; the
+    /// result is never published. Fails when the source changes an input the pose
+    /// baker uses, because the committed poses would no longer match.
+    /// </summary>
+    internal static CharacterAssetCookResult CookWithCommittedPoses(
+        string packageRoot,
+        CharacterCookProfile profile,
+        CookedCharacterPackage committedPackage,
+        byte[] committedPoseBytes,
+        byte[] committedBindingBytes,
+        string committedSourceHash)
+    {
+        var diagnostics = new List<CharacterDiagnostic>();
+        string packageJson = File.ReadAllText(ResolveFile(packageRoot, "package.json"));
+        string characterJson = File.ReadAllText(ResolveFile(packageRoot, "character.json"));
+        CharacterCompileResult compiled = CharacterPackageCompiler.Compile(packageJson, characterJson, profile);
+        diagnostics.AddRange(compiled.Diagnostics);
+        if (compiled.CookedPackage == null || compiled.HasErrors)
+            return Failure(diagnostics, compiled.CookedPackage);
+        PackageMetadata packageMetadata = ReadPackageMetadata(packageJson, characterJson, diagnostics);
+
+        CookedCharacterDefinition current = compiled.CookedPackage.Definition;
+        CookedCharacterDefinition committed = committedPackage.Definition;
+        void RequireUnchanged(bool unchanged, string path)
+        {
+            if (!unchanged)
+                diagnostics.Add(Error("asset-catalog.pose.rebake-required", path,
+                    "This edit changes how poses are baked, so it needs the animation clips to cook. Ask someone with the clips to cook it."));
+        }
+        RequireUnchanged(current.Presentation.VisualScale == committed.Presentation.VisualScale, "character.presentation.visualScale");
+        RequireUnchanged(current.Presentation.HurtboxBoneScale == committed.Presentation.HurtboxBoneScale, "character.presentation.hurtboxBoneScale");
+        RequireUnchanged(current.Presentation.ModelYOffset == committed.Presentation.ModelYOffset, "character.presentation.modelYOffset");
+        RequireUnchanged(current.Presentation.Crouch == committed.Presentation.Crouch, "character.presentation.crouch");
+        RequireUnchanged(current.Presentation.Slide == committed.Presentation.Slide, "character.presentation.slide");
+        RequireUnchanged(current.CapsuleHeight == committed.CapsuleHeight, "character.capsuleHeight");
+        RequireUnchanged(current.HipHeight == committed.HipHeight, "character.hipHeight");
+        try
+        {
+            var baked = BakedAnimationData.LoadFromBin(committedPoseBytes);
+            foreach (string attachmentId in current.AttachmentBoneIds)
+                if (Array.IndexOf(baked.BoneNames, attachmentId) < 0)
+                    diagnostics.Add(Error("asset-catalog.attachment.missing", "character.attachmentBoneIds", $"Attachment '{attachmentId}' is missing from the committed pose payload."));
+        }
+        catch (Exception ex)
+        {
+            diagnostics.Add(Error("asset-catalog.pose.invalid", "poses.bin", ex.Message));
+        }
+        if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
+            return Failure(diagnostics, compiled.CookedPackage);
+
+        return new CharacterAssetCookResult
+        {
+            CookedPackage = compiled.CookedPackage,
+            PoseBytes = committedPoseBytes,
+            BindingBytes = committedBindingBytes,
+            PackageDependencies = packageMetadata.Dependencies,
+            CapabilityRequirements = current.CapabilityRequirements
+                .Select(x => new CookedCapabilityRequirement(x.CapabilityId, x.CapabilityVersion)).ToArray(),
+            Creator = packageMetadata.Creator,
+            License = packageMetadata.License,
+            Attribution = packageMetadata.Attribution,
+            AuthoringSchemaVersion = packageMetadata.AuthoringSchemaVersion,
+            SourceHash = committedSourceHash,
+            Diagnostics = diagnostics,
+        };
+    }
+
     internal static string ResolveFile(string packageRoot, string fileName)
     {
         string root = packageRoot;
@@ -530,7 +608,7 @@ public static class UnityCharacterAssetCooker
             return;
         }
         if (entry.Prefab == null)
-            diagnostics.Add(Error("asset-catalog.weapon.invalid", "catalog.weaponConfig.entries", "Weapon entry prefab is missing."));
+            diagnostics.Add(Error("asset-catalog.weapon.missing", "catalog.weaponConfig.entries", "Weapon entry prefab is missing."));
         if (catalog.Rig == null || !catalog.Rig.GetComponentsInChildren<Transform>(true).Any(x => x.name == entry.BoneName))
             diagnostics.Add(Error("asset-catalog.rig.incompatible", "catalog.rig", $"Weapon config bone is missing: {entry.BoneName}."));
         if (GlobalObjectId.GetGlobalObjectIdSlow(catalog.WeaponConfig).ToString().Length == 0)

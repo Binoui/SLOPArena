@@ -384,8 +384,8 @@ namespace SlopArena.Client.Tools
             var result = _simulationPreviewer.RunScenario(Def, Baked, options, BasePosition(), FacingYaw);
             bool airborne = CanonicalSlotProjection.TryGet(options.Action, out var scenarioAddress) && scenarioAddress.IsAirborne;
             foreach (var frame in result.Frames)
-                if (!_previewRenderer.CanPlayScrubbedState(frame.Actor, airborne)
-                    || !_dummyRenderer.CanPlayScrubbedState(frame.Opponent, false))
+                if (!CanPoseOrClipNotInstalled(_previewRenderer, frame.Actor, airborne)
+                    || !CanPoseOrClipNotInstalled(_dummyRenderer, frame.Opponent, false))
                     throw new InvalidOperationException($"Scenario animation binding is unavailable at frame {frame.FrameIndex}.");
             var priorCursor = CaptureTimelineCursor();
             try
@@ -468,9 +468,14 @@ namespace SlopArena.Client.Tools
             _previewRenderer.EnsureModel();
             _dummyRenderer.EnsureModel();
             _dummyRenderer.gameObject.SetActive(ShowDummy);
-            if (!_previewRenderer.PlayScrubbedState(frame.Actor, airborne, frame.ActorPoseTicks)
-                || !_dummyRenderer.PlayScrubbedState(frame.Opponent, false, frame.OpponentPoseTicks))
+            bool actorPosed = _previewRenderer.PlayScrubbedState(frame.Actor, airborne, frame.ActorPoseTicks);
+            bool actorClipNotInstalled = !actorPosed && _previewRenderer.LastAnimationClipNotInstalled;
+            bool opponentPosed = _dummyRenderer.PlayScrubbedState(frame.Opponent, false, frame.OpponentPoseTicks);
+            bool opponentClipNotInstalled = !opponentPosed && _dummyRenderer.LastAnimationClipNotInstalled;
+            if ((!actorPosed && !actorClipNotInstalled) || (!opponentPosed && !opponentClipNotInstalled))
                 throw new InvalidOperationException($"Scenario pose has a missing animation binding at frame {ScenarioFrame}.");
+            if (actorClipNotInstalled || opponentClipNotInstalled)
+                WarnClipNotInstalledOnce();
             _weaponAttach?.SetPreviewState(frame.Actor.AttackSlot, frame.Actor.AttackElapsedTicks,
                 frame.Actor.State == ActionState.Attacking);
             _weaponAttach?.SetHitboxTrailActive(frame.ActiveSwordHitboxSeconds >= 0f);
@@ -1571,7 +1576,13 @@ namespace SlopArena.Client.Tools
                         && _previewRenderer.TrySampleBakedWeaponPath(previewState, Airborne, out _, out _);
                     if (!bakedWeaponPose &&
                         !_previewRenderer.PlayScrubbedState(previewState, Airborne, simulationTick))
-                        throw new InvalidOperationException($"Authoring pose has a missing animation binding at tick {simulationTick}.");
+                    {
+                        if (!_previewRenderer.LastAnimationClipNotInstalled)
+                            throw new InvalidOperationException($"Authoring pose has a missing animation binding at tick {simulationTick}.");
+                        // The clip is bound but not installed in this checkout (ADR-0038):
+                        // keep the model's pose; the overlays come from cooked pose data.
+                        WarnClipNotInstalledOnce();
+                    }
                     _weaponAttach?.SetPreviewState(
                         previewState.AttackSlot, previewState.AttackElapsedTicks,
                         previewState.State == ActionState.Attacking);
@@ -1593,6 +1604,21 @@ namespace SlopArena.Client.Tools
             if (ShowDummy) _dummyWeaponAttach?.RefreshPresentation();
             QueueEditorRefresh();
         }
+        private readonly HashSet<string> _clipNotInstalledWarnings = new HashSet<string>(StringComparer.Ordinal);
+
+        // A bound clip that is not installed (ADR-0038) still lets the scenario run:
+        // its outcome and overlays come from the Shared simulation and cooked poses.
+        private static bool CanPoseOrClipNotInstalled(PlayerRenderer renderer, in CharacterState state, bool airborne)
+            => renderer.CanPlayScrubbedState(state, airborne) || renderer.LastAnimationClipNotInstalled;
+
+        private void WarnClipNotInstalledOnce()
+        {
+            string key = $"{SelectedPackageId}/{SelectedSlotId}";
+            if (_clipNotInstalledWarnings.Add(key))
+                Debug.LogWarning($"[AbilityLab] {key}: the animation clip is not installed in this checkout. " +
+                    "Hitboxes and hurtboxes still come from the cooked pose data; the model keeps its pose.");
+        }
+
         private void RefreshPhasePose()
         {
             if (!TryResolvePhaseAnimation(

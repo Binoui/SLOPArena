@@ -14,6 +14,8 @@ public static class EditorDevelopmentContentProvider
     static EditorDevelopmentContentProvider()
     {
         ClientSession.RegisterEditorDevelopmentContentProvider(TryBuild);
+        CookedCharacterClientAssetResolver.RegisterEditorBindingCatalogFactory(
+            CharacterAnimationCatalogGenerator.TryCreateAllowingMissingPresentation);
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
     }
 
@@ -81,6 +83,10 @@ public static class EditorDevelopmentContentProvider
                 var package = packages[transientCatalogs[i].PackageId];
                 CookedCharacterClientAssetResolver.RegisterEditorDevelopmentCatalog(package.Identity, transientCatalogs[i]);
             }
+
+            foreach (var placeholder in diagnostics.Where(x =>
+                         x.Code == CharacterPackageAuthoringService.CommittedPosesDiagnosticCode))
+                Debug.LogWarning($"[EditorContent] {placeholder.Path}: {placeholder.Message}");
 
             catalog = built.Catalog;
             return true;

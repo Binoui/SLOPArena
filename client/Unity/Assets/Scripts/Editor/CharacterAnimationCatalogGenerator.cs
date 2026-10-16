@@ -8,7 +8,39 @@ using SlopArena.Client.Animation;
 
 internal static class CharacterAnimationCatalogGenerator
 {
+    /// <summary>
+    /// Editor play and preview only (ADR-0038): builds a catalog whose uninstalled
+    /// clips and presentation prefabs are null entries, so the fighter keeps its
+    /// hitboxes and only those moves stop animating. The rig and weapon config must
+    /// still resolve. Publishing keeps using the strict <see cref="Create(byte[])"/>.
+    /// </summary>
+    internal static bool TryCreateAllowingMissingPresentation(
+        byte[] bindingBytes, out CharacterAnimationCatalog catalog, out string error)
+    {
+        try
+        {
+            catalog = Create(bindingBytes, allowMissingPresentation: true);
+            error = "";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            catalog = null;
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    internal static int CountMissingClips(CharacterAnimationCatalog catalog)
+        => Array.FindAll(catalog.Animations, entry => entry != null && entry.Clip == null).Length;
+
+    internal static int CountMissingPresentationPrefabs(CharacterAnimationCatalog catalog)
+        => Array.FindAll(catalog.Presentations, entry => entry != null && entry.Prefab == null).Length;
+
     internal static CharacterAnimationCatalog Create(byte[] bindingBytes)
+        => Create(bindingBytes, allowMissingPresentation: false);
+
+    private static CharacterAnimationCatalog Create(byte[] bindingBytes, bool allowMissingPresentation)
     {
         if (bindingBytes == null || bindingBytes.Length == 0) throw new InvalidOperationException("Binding payload is empty.");
         using JsonDocument document = JsonDocument.Parse(bindingBytes);
@@ -26,7 +58,8 @@ internal static class CharacterAnimationCatalogGenerator
             if (!GlobalObjectId.TryParse(objectIdText, out GlobalObjectId objectId))
                 throw new InvalidOperationException($"Invalid clip global object ID: {objectIdText}");
             var clip = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(objectId) as AnimationClip;
-            if (clip == null) throw new InvalidOperationException($"Could not resolve clip global object ID: {objectIdText}");
+            if (clip == null && !allowMissingPresentation)
+                throw new InvalidOperationException($"Could not resolve clip global object ID: {objectIdText}");
             entries.Add(new CharacterAnimationCatalog.AnimationEntry
             {
                 SemanticId = element.GetProperty("semanticId").GetString() ?? "",
@@ -46,7 +79,7 @@ internal static class CharacterAnimationCatalogGenerator
                 if (!GlobalObjectId.TryParse(objectIdText, out GlobalObjectId objectId))
                     throw new InvalidOperationException($"Invalid presentation prefab global object ID: {objectIdText}");
                 var prefab = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(objectId) as GameObject;
-                if (prefab == null)
+                if (prefab == null && !allowMissingPresentation)
                     throw new InvalidOperationException($"Could not resolve presentation prefab global object ID: {objectIdText}");
                 presentationEntries.Add(new CharacterAnimationCatalog.PresentationEntry
                 {
