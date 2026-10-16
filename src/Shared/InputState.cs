@@ -78,6 +78,25 @@ namespace SlopArena.Shared
         /// </remarks>
         public const int Size = 22;
 
+        /// <summary>
+        /// The held part of this input with every one-tick press edge cleared. The GameServer
+        /// uses it for a missing tick, the client for catch-up ticks and prediction for
+        /// speculative opponent ticks, so all three must stay identical.
+        /// </summary>
+        public InputState WithoutEdges()
+        {
+            var held = this;
+            held.Jump = false;
+            held.DownPressed = false;
+            held.ShieldPressed = false;
+            held.GrabPressed = false;
+            held.FaceToCamera = false;
+            held.ToggleLock = false;
+            held.RetargetPressed = false;
+            held.ActiveSlot = 0;
+            return held;
+        }
+
         public void Write(Span<byte> buf)
         {
             if (buf.Length < Size)

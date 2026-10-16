@@ -107,8 +107,14 @@ namespace SlopArena.Shared
         public byte AttackCorrectionTargetDeaths;
         public bool AttackCorrectionActive;
         public bool AttackCorrectionOwned;
-        /// <summary>Fixed state, target lock, startup correction and protocol version.</summary>
-        public const int Size = 186;
+        /// <summary>Elapsed ticks of the active attack; drives remote trails, accents and swing audio.</summary>
+        public ushort AttackElapsedTicks;
+        /// <summary>Held charge of the active charged ability; drives remote charge visuals.</summary>
+        public ushort ChargeTicks;
+        /// <summary>Knockback velocity; launch presentation and predicted post-hitstun flight.</summary>
+        public float KnockbackVelocityX, KnockbackVelocityY, KnockbackVelocityZ;
+        /// <summary>Fixed state, target lock, startup correction, protocol version and remote presentation timers.</summary>
+        public const int Size = 202;
 
         /// <summary>Convert from CharacterState to serializable packet.</summary>
         public static CharacterStatePacket FromState(CharacterState s, uint tick = 0)
@@ -192,9 +198,16 @@ namespace SlopArena.Shared
                 AttackCorrectionTargetDeaths = s.AttackCorrectionTargetDeaths,
                 AttackCorrectionActive = s.AttackCorrectionActive,
                 AttackCorrectionOwned = s.AttackCorrectionOwned,
+                // Ability timers only mean something while an ability runs; a stale value
+                // after recovery must not make otherwise identical snapshots differ.
+                AttackElapsedTicks = s.State is ActionState.Attacking or ActionState.Aiming ? s.AttackElapsedTicks : (ushort)0,
+                ChargeTicks = s.State is ActionState.Attacking or ActionState.Aiming ? s.ChargeTicks : (ushort)0,
+                KnockbackVelocityX = s.KVX,
+                KnockbackVelocityY = s.KVY,
+                KnockbackVelocityZ = s.KVZ,
             };
         }
- 
+
         public CharacterState ToState()
         {
             return new CharacterState
@@ -275,6 +288,11 @@ namespace SlopArena.Shared
                 AttackCorrectionTargetDeaths = AttackCorrectionTargetDeaths,
                 AttackCorrectionActive = AttackCorrectionActive,
                 AttackCorrectionOwned = AttackCorrectionOwned,
+                AttackElapsedTicks = AttackElapsedTicks,
+                ChargeTicks = ChargeTicks,
+                KVX = KnockbackVelocityX,
+                KVY = KnockbackVelocityY,
+                KVZ = KnockbackVelocityZ,
             };
         }
 
@@ -362,6 +380,11 @@ namespace SlopArena.Shared
             buffer[181] = AttackCorrectionTargetDeaths;
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(182, 2), HitstunTicks);
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(184, 2), HitReactionSequence);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(186, 2), AttackElapsedTicks);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(188, 2), ChargeTicks);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(190, 4), BitConverter.SingleToInt32Bits(KnockbackVelocityX));
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(194, 4), BitConverter.SingleToInt32Bits(KnockbackVelocityY));
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(198, 4), BitConverter.SingleToInt32Bits(KnockbackVelocityZ));
         }
 
         public static CharacterStatePacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -449,6 +472,11 @@ namespace SlopArena.Shared
             packet.AttackCorrectionTargetDeaths = buffer[181];
             packet.HitstunTicks = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(182, 2));
             packet.HitReactionSequence = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(184, 2));
+            packet.AttackElapsedTicks = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(186, 2));
+            packet.ChargeTicks = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(188, 2));
+            packet.KnockbackVelocityX = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(190, 4)));
+            packet.KnockbackVelocityY = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(194, 4)));
+            packet.KnockbackVelocityZ = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(198, 4)));
             return packet;
         }
 
@@ -458,7 +486,8 @@ namespace SlopArena.Shared
         /// non-wire field at its default), this preserves everything ApplyTo doesn't touch —
         /// used by LocalTrack (ADR-0011), which must patch its own full-fidelity self state
         /// with the server's authoritative wire fields without clobbering fields the wire
-        /// doesn't carry (e.g. attack elapsed ticks, knockback velocity).
+        /// doesn't carry (e.g. the queued launch payload, directional influence, charge stock)
+        /// or the live ability timers it carries only for remote presentation.
         /// </summary>
         public void ApplyTo(ref CharacterState s)
         {
@@ -525,6 +554,11 @@ namespace SlopArena.Shared
             s.AttackCorrectionTargetDeaths = AttackCorrectionTargetDeaths;
             s.AttackCorrectionActive = AttackCorrectionActive;
             s.AttackCorrectionOwned = AttackCorrectionOwned;
+            // AttackElapsedTicks and ChargeTicks are carried for remote presentation only;
+            // the self track's live ability owns its own timers.
+            s.KVX = KnockbackVelocityX;
+            s.KVY = KnockbackVelocityY;
+            s.KVZ = KnockbackVelocityZ;
         }
     }
 }

@@ -17,6 +17,9 @@ public sealed record SteamMatchDescriptor(
     public const int CurrentProtocolVersion = SimulationProtocol.Version;
     public const int GameplayVirtualPort = 0;
     public const string Transport = "steam-p2p";
+    /// <summary>Longest admission window a GameHost accepts. Clients time out locally from
+    /// receipt instead of comparing the absolute deadline with a possibly skewed PC clock.</summary>
+    public const int MaximumAdmissionWindowSeconds = 65;
 
     public static string HashContent(MatchContentHandleMap content) =>
         MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(content)));

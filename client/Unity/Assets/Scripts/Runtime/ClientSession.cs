@@ -409,12 +409,13 @@ namespace SlopArena.Client
 
         private static bool IsValidSteamDescriptor(Shared.SteamMatchDescriptor descriptor, out string failure)
         {
-            failure = "Steam match descriptor is invalid or expired.";
+            failure = "Steam match descriptor is invalid.";
+            // The admission deadline is not compared with this PC's clock: a skewed clock
+            // would reject every match. The GameHost denies expired joins authoritatively.
             if (descriptor.MatchId == Guid.Empty ||
                 descriptor.ServerSteamId == 0 ||
                 descriptor.VirtualPort != Shared.SteamMatchDescriptor.GameplayVirtualPort ||
                 descriptor.ProtocolVersion != Shared.SteamMatchDescriptor.CurrentProtocolVersion ||
-                descriptor.AdmissionExpiresAtUtc <= DateTimeOffset.UtcNow ||
                 !IsLowerSha256(descriptor.ContentHash))
                 return false;
             failure = string.Empty;

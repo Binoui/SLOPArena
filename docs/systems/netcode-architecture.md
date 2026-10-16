@@ -1,5 +1,63 @@
 # SLOPArena Netcode & Simulation Architecture
 
+## Smooth online play — protocol 9
+
+The 2026-10-16 Steam playtest had a clean network (about 10 ms RTT, no loss, healthy
+GameHost ticks) yet felt laggy and showed opponent animations missing. The causes were
+client pacing and presentation, so protocol 9 changes how time advances and what
+snapshots carry. Release client, GameHost and Master together; protocol 8 peers are rejected.
+
+- **Paced prediction.** `NetplayClock.StepsForUpdate` advances local prediction one tick
+  per fixed update. A `TickPacer` absorbs ±1 tick of frontier jitter and corrects
+  persistent drift one extra or skipped step at a time; it catches up immediately only
+  when four or more ticks behind and runs at half speed when far ahead. Previously each
+  update jumped to a wall-clock target, producing many 0/2-tick updates per second on
+  any refresh rate other than an exact 60 Hz.
+- **Clock estimate.** The server/local offset is the best Clock sample in a two-second
+  window, so a delayed sample or stale latency reading expires instead of accumulating.
+- **Adaptive lead.** Clock controls report, per peer, the minimum input slack (ticks
+  between arrival and consumption; 1 means just in time) and late input datagrams since
+  the previous Clock. A late report raises the lead at once (rate-limited for 0.5 s);
+  four seconds of slack of three or more lower it. The lead stays between 2 and 12 ticks.
+- **Redundant inputs.** Each uplink datagram is an `InputBundle` carrying the newest
+  simulated tick and up to five preceding ticks, including catch-up ticks. A lost
+  datagram no longer drops a press, and the GameServer consumes exactly what the client
+  predicted. Duplicate ticks replace each other in the server's tick buffer.
+- **Opponent prediction.** `PredictedTrack` reseeds every tracked opponent from its own
+  confirmed snapshot (an opponent missing from a batch is not extrapolated twice), holds
+  relayed inputs through `InputState.WithoutEdges` (the same rule the GameServer and the
+  bridge use, so no relayed press is replayed), and advances one tick per local tick
+  between batches.
+- **Raw playout.** Complex-state opponents play back received snapshots on a clock that
+  advances one tick per local tick, an adaptive 1–4 ticks behind the newest server tick,
+  so bunched arrival no longer stalls or skips them. Logic (the self mirror, interaction
+  barriers) still uses the newest snapshot; coupled interactions bypass the delay.
+- **Event identity.** `LocalTrack` replays rewind the simulation tick, so the local
+  player's predicted presentation events keep the server's tick and deduplicate against
+  the authoritative copy instead of playing twice.
+- **Remote presentation fields.** Snapshots now carry the attack elapsed ticks, held
+  charge and knockback velocity. Remote trails, accents, swing audio, charge visuals,
+  launch effects and post-hitstun flight prediction use them. Ability timers serialize
+  as zero outside Attacking/Aiming, and `ApplyTo` leaves the self track's live ability
+  timers alone.
+- **Transport.** Clients send inputs and controls without Nagle delay and read Steam
+  messages at the start of each fixed update, stamping Clock samples with Steam's arrival
+  time. The GameHost wakes its Steam loop when a match finishes a tick and flushes each
+  connection after the drain instead of polling every 8 ms behind a 5 ms Nagle timer.
+- **Presentation.** PvP and Training renderers interpolate between fixed steps, and
+  authoritative corrections or prediction-track switches ease out over a few steps
+  instead of snapping. Teleports and respawns still snap.
+- **Robustness.** A match-loop exception now cancels only that match with the
+  `match_failed` reason instead of terminating the process. Oversized projectile
+  snapshots are capped, and unencodable presentation events are dropped with a
+  diagnostic. A stale Ready across the countdown/GO edge is ignored rather than treated
+  as spoofing. Clients time out admission locally instead of comparing the descriptor
+  deadline with a possibly skewed PC clock.
+- **Diagnostics.** Every five seconds the GameHost logs `Inputs entity N: bundles late
+  early held neutral minSlack` per peer during play. The client logs `[Netplay]` with
+  skipped/extra-step updates, lead, ticks ahead, corrections, raw playout delay and
+  starvation, ping and frame time.
+
 ## Hit reaction snapshots — protocol 7
 
 The Steam PvP playtest exposed repeated opponent hit-reaction restarts: raw network
@@ -200,7 +258,7 @@ Tick():
   6. SendState() — broadcast to all connected clients
      → For each client:
        → For each entity (all rostered players):
-      → Packet: entityId(8) + tick(4) + CharacterStatePacket(186) + hasInput(1) + InputState(22) = up to 221B
+      → Packet: entityId(8) + tick(4) + CharacterStatePacket(202) + hasInput(1) + InputState(22) = up to 237B
          → tick = _serverTick (echoed back)
          → hasInput/InputState = the input the server consumed for that entity
            that tick, or the no-input marker (issue #80 — input relay)
@@ -214,12 +272,18 @@ Tick():
 ### 4a. Client → Server
 
 ```
-Send packet: entityId(8) + tick(4) + InputState(22) = 34 bytes
+Send datagram (InputBundle): entityId(8) + newestTick(4) + count(1) + count × InputState(22)
+                             = 35..145 bytes (count 1..6)
 
-[0..7]   entityId        (ulong)
-[8..11]  tick            (uint)       ← local client frame counter
-[12..33] InputState (22 bytes)
+[0..7]    entityId        (ulong)
+[8..11]   newestTick      (uint)       ← tick of the last input
+[12]      count           (byte)       ← 1..InputBundle.MaxInputs (6)
+[13..]    InputState × count, oldest first, consecutive ticks ending at newestTick
 ```
+
+Every simulated tick's input is sent, including catch-up ticks, and repeated in the next
+datagrams, so the GameServer consumes exactly what the client predicted and a lost
+datagram does not drop a press. Steam prefixes the bundle with the `Input` kind byte.
 
 **InputState layout (22 bytes):**
 | Offset | Type    | Field           | Notes                              |
@@ -235,33 +299,33 @@ Send packet: entityId(8) + tick(4) + InputState(22) = 34 bytes
 | 18     | byte    | TargetEntityId  | Client-selected target (0 = none)  |
 | 19     | byte    | flags2          | bit0: JumpHeld, bit1: FaceToCamera, bit2: ToggleLock, bit3: DownPressed, bit4: ShieldHeld, bit5: ShieldPressed, bit6: GrabPressed, bit7: RetargetPressed |
 | 20     | byte    | LockMode        | `0=Never`, `1=Always`, `2=OnHit` |
-| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 7` |
+| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 9` |
 
 `ShieldHeld` is the per-tick physical hold used for grounded shield. `ShieldPressed` is a
 fresh logical edge and the sole airborne dodge input; the simulation accepts it only while
 airborne. `GrabPressed` is also a one-tick edge. A completed controller grab chord consumes
 the competing defense edge without clearing the physical hold.
 
-Total: 34 bytes (8 + 4 + 22). Validate the exact envelope and supported version before
-endpoint registration or reconnect/countdown side effects. This is a coordinated cutover,
-not backward-compatible partial decoding.
+Validate the exact envelope, input count and supported version before endpoint
+registration or reconnect/countdown side effects. This is a coordinated cutover, not
+backward-compatible partial decoding.
 
 ### 4b. Server → Client (per entity)
 
 ```
-Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(186) + hasInput(1) + InputState(22) = up to 221 bytes
+Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(202) + hasInput(1) + InputState(22) = up to 237 bytes
 
 [0..7]      entityId          (ulong)
 [8..11]     tick              (uint)       ← echoes client's tick number
-[12..197]   CharacterStatePacket (186 bytes) — fixed state payload; see §4b table below
-[198]       hasInput          (byte)       ← exactly 0 or 1
-[199..220]  InputState       (22 bytes)   ← present iff hasInput == 1
+[12..213]   CharacterStatePacket (202 bytes) — fixed state payload; see §4b table below
+[214]       hasInput          (byte)       ← exactly 0 or 1
+[215..236]  InputState       (22 bytes)   ← present iff hasInput == 1
 
 **The relay section** carries the exact input consumed for that entity/tick. A missing
 exact server input may extend prior held input but clears one-shot `DownPressed`,
 `ShieldPressed`, and `GrabPressed`; `ShieldHeld` remains latched. `hasInput = 0` denotes
-no consumed input and is not a truncated relay. The envelope must be exactly 199 bytes
-for marker 0 or 221 bytes for marker 1; mismatches are rejected. The client discards
+no consumed input and is not a truncated relay. The envelope must be exactly 215 bytes
+for marker 0 or 237 bytes for marker 1; mismatches are rejected. The client discards
 malformed/incompatible state datagrams without ending its receive loop. Codec owner:
 `src/Shared/ServerEntityPacket.cs`.
 
@@ -271,7 +335,7 @@ InputState is 22 bytes. `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
 versus airborne dodge from authoritative state; client-side chord binding emits
 `GrabPressed` and removes a competing defense edge without clearing the physical hold.
 
-**CharacterStatePacket layout (186 bytes):**
+**CharacterStatePacket layout (202 bytes):**
 | Offset | Type    | Field                       | Notes                              |
 |--------|---------|-----------------------------|------------------------------------|
 | 0-3    | uint    | TickNumber                  | Echoed client tick (for matching)  |
@@ -327,7 +391,7 @@ versus airborne dodge from authoritative state; client-side chord binding emits
 | 151-152| short   | CapturedYaw                  | Grab facing snapshot, signed degrees × 100 |
 | 153-154| ushort  | AirDodgeRecoveryTicks        | Grounded commitment left after an air-dodge landing |
 | 155-162| ulong   | TargetEntityId               | Sticky selected target for deterministic lock reconstruction |
-| 163    | byte    | ProtocolVersion              | `SimulationProtocol.Version = 7` |
+| 163    | byte    | ProtocolVersion              | `SimulationProtocol.Version = 9` |
 | 164-171| ulong   | AttackCorrectionTargetId     | Single target captured for this activation |
 | 172-175| float   | AttackCorrectionStartYaw     | Initial attack-facing yaw (radians) |
 | 176-179| float   | AttackPosePitch              | Authoritative startup correction pose pitch (radians) |
@@ -335,11 +399,16 @@ versus airborne dodge from authoritative state; client-side chord binding emits
 | 181    | byte    | AttackCorrectionTargetDeaths | Captured target death count; invalidates a respawned target |
 | 182-183| ushort  | HitstunTicks | Remaining authoritative hit reaction ticks |
 | 184-185| ushort  | HitReactionSequence | Changes for each new hit reaction; repeated snapshots keep it |
+| 186-187| ushort  | AttackElapsedTicks | Active attack time for remote presentation; 0 outside Attacking/Aiming |
+| 188-189| ushort  | ChargeTicks | Held charge for remote charge visuals; 0 outside Attacking/Aiming |
+| 190-201| float×3 | KnockbackVelocityX/Y/Z | Knockback velocity; launch presentation and predicted flight |
 
-**Packet sizes:** `CharacterStatePacket` is 186 bytes. `ServerEntityPacket` is 198 bytes
-before its mandatory relay marker, 199 bytes without input and 221 bytes with input.
-Input is 22 bytes. Non-v7 state/input payloads are rejected. Steam admission also
-uses protocol version 7; coordinate Master `protocolVersion` with GameServer and clients.
+**Packet sizes:** `CharacterStatePacket` is 202 bytes. `ServerEntityPacket` is 214 bytes
+before its mandatory relay marker, 215 bytes without input and 237 bytes with input.
+Input is 22 bytes. Non-v9 state/input/control payloads are rejected. Steam admission also
+uses protocol version 9; coordinate Master `protocolVersion` with GameServer and clients.
+The 20-byte control frame appends the Clock input report: `InputSlack` (sbyte, 127 = no
+input since the previous Clock) and `LateInputs` (byte, saturating).
 
 **The server sends ALL states to every client.** Clients ignore the ones that don't concern them. No routing overhead.
 

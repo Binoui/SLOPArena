@@ -122,6 +122,16 @@ namespace SlopArena.Client.World
                 throw new InvalidOperationException("Capture input is owned by a Training command sequence.");
             _captureInputOverride = input;
         }
+        /// <summary>Interpolate fighters between fixed steps; capture tooling disables it for exact-step frames.</summary>
+        public void SetRenderInterpolation(bool enabled)
+        {
+            _renderInterpolation = enabled;
+            if (_playerRenderer != null) _playerRenderer.RenderInterpolation = enabled;
+            foreach (var npc in _npcs)
+                if (npc?.Renderer != null) npc.Renderer.RenderInterpolation = enabled;
+        }
+        private bool _renderInterpolation = true;
+
         public void ClearCaptureInput()
         {
             if (_captureInputSequenceOwner != null)
@@ -359,6 +369,7 @@ namespace SlopArena.Client.World
             // explicitly — otherwise its damage % has no overhead panel.
             if (!SetupPlayerRenderer(playerEntry, arena))
                 return;
+            _playerRenderer.RenderInterpolation = _renderInterpolation;
 
             // Player spawn
             var pSpawn = arena.SpawnPoints[0];
@@ -432,6 +443,7 @@ namespace SlopArena.Client.World
                 slot.Renderer = new GameObject($"Npc{slot.Id}").AddComponent<PlayerRenderer>();
             if (!SetupRenderer(slot.Renderer, _npcEntry, _arenaDef, slot.Id, false))
                 return false;
+            slot.Renderer.RenderInterpolation = _renderInterpolation;
             var spawn = slot.Spawn;
             slot.Renderer.transform.position = new Vector3(spawn.X, spawn.Y, spawn.Z);
             _bridge.RegisterEntity(slot.Id, slot.Def, new CharacterState

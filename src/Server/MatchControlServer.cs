@@ -117,7 +117,7 @@ namespace SlopArena.Server
                         request.ProtocolVersion != SteamMatchDescriptor.CurrentProtocolVersion ||
                         !Guid.TryParseExact(request.MatchId, "D", out matchGuid) || matchGuid == Guid.Empty ||
                         request.AdmissionExpiresAtUtc is not DateTimeOffset expiry ||
-                        expiry <= now || expiry > now.AddSeconds(65) ||
+                        expiry <= now || expiry > now.AddSeconds(SteamMatchDescriptor.MaximumAdmissionWindowSeconds) ||
                         !document.RootElement.TryGetProperty("admissionExpiresAtUtc", out var deadline) ||
                         deadline.ValueKind != JsonValueKind.String ||
                         deadline.GetString() is not string deadlineText ||
@@ -131,7 +131,7 @@ namespace SlopArena.Server
                     return new StartOutcome(0, null, "Development matches require the explicit UDP protocol.");
                 if (!steam && request.AdmissionExpiresAtUtc is { } developmentExpiry &&
                     (developmentExpiry <= DateTimeOffset.UtcNow ||
-                     developmentExpiry > DateTimeOffset.UtcNow.AddSeconds(65)))
+                     developmentExpiry > DateTimeOffset.UtcNow.AddSeconds(SteamMatchDescriptor.MaximumAdmissionWindowSeconds)))
                     return new StartOutcome(0, null, "Invalid or expired development match admission.");
 
                 var arena = string.IsNullOrEmpty(request.ArenaName) ? _defaultArena : request.ArenaName;

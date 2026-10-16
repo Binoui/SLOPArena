@@ -156,6 +156,9 @@ namespace SlopArena.Shared.Rollback
             _sim.SetState(_entityId, corrected);
             _history[idx] = (_history[idx].Tick, corrected, _history[idx].Input);
 
+            // Replay from the corrected tick so replayed and later ticks keep the server's
+            // tick numbers (presentation event keys dedupe against the authoritative copies).
+            _sim.SetTick(_history[idx].Tick);
             for (int i = idx + 1; i < _history.Count; i++)
             {
                 _sim.Tick(new Dictionary<ulong, InputState> { { _entityId, _history[i].Input } });

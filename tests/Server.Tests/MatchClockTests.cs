@@ -181,10 +181,8 @@ public class MatchClockTests
                 ToggleLock = true,
                 ActiveSlot = AbilitySlots.Slot1
             };
-            byte[] inputFrame = new byte[12 + InputState.Size];
-            BinaryPrimitives.WriteUInt64LittleEndian(inputFrame, firstEntity);
-            BinaryPrimitives.WriteUInt32LittleEndian(inputFrame.AsSpan(8), targetTick);
-            held.Write(inputFrame.AsSpan(12));
+            byte[] inputFrame = new byte[InputBundle.SizeFor(1)];
+            InputBundle.Write(inputFrame, firstEntity, targetTick, new[] { held });
             first.Send(inputFrame, inputFrame.Length, endpoint);
 
             deadline.Restart();

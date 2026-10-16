@@ -40,17 +40,18 @@ namespace SlopArena.Client.Network
         private bool _steamFailureReported;
         private bool _steamRemoteVerified;
         private long _steamAttemptStartedAt;
+        private long _steamAdmissionDeadline;
         private long _steamJoinSentAt;
         private long _steamNextReconnectAt;
         private long _steamNextPingAt;
         private double _steamReconnectDelaySeconds = 1;
         private readonly byte[] _steamReceiveFrame = new byte[MaxSteamFrameBytes];
-        private readonly byte[] _steamInputFrame = new byte[1 + 8 + 4 + InputState.Size];
+        private readonly byte[] _steamInputFrame = new byte[1 + InputBundle.MaxSize];
         private string _connectionFailure = string.Empty;
         private readonly byte[] _steamControlFrame = new byte[1 + NetplayControlPacket.Size];
         private readonly byte[] _udpControlFrame = new byte[NetplayControlPacket.Size];
         private long _nextBootstrapAt;
-        private readonly byte[] _udpInputFrame = new byte[8 + 4 + InputState.Size];
+        private readonly byte[] _udpInputFrame = new byte[InputBundle.MaxSize];
         private uint _latestServerStartTick;
         private int _readyGeneration = -1;
         private long _nextReadyAt;
@@ -269,6 +270,8 @@ namespace SlopArena.Client.Network
             _steamRemoteVerified = false;
             _steamReconnectDelaySeconds = 1;
             _steamAttemptStartedAt = Stopwatch.GetTimestamp();
+            _steamAdmissionDeadline = _steamAttemptStartedAt +
+                SteamMatchDescriptor.MaximumAdmissionWindowSeconds * Stopwatch.Frequency;
             _connectionFailure = string.Empty;
             _activeMatch = this;
             try
@@ -287,27 +290,29 @@ namespace SlopArena.Client.Network
 
         // ── Send / Receive ──
 
-        public void SendInput(InputState input, uint tick)
+        /// <summary>
+        /// Send the newest simulated inputs (oldest first, consecutive ticks ending at
+        /// <paramref name="newestTick"/>). Each datagram repeats recent ticks so one lost
+        /// datagram never drops a press; it leaves immediately instead of waiting for Nagle.
+        /// </summary>
+        public void SendInputs(uint newestTick, ReadOnlySpan<InputState> inputs)
         {
+            if (inputs.Length == 0) return;
             if (_transport == UI.MatchTransport.SteamP2P)
             {
                 if (!_steamAdmitted || !_hasSteamConnection || _steamSendBuffer == IntPtr.Zero || _steamResultReceived)
                     return;
                 _steamInputFrame[0] = SteamGameplayWire.Input;
-                BinaryPrimitives.WriteUInt64LittleEndian(_steamInputFrame.AsSpan(1, 8), _entityId);
-                BinaryPrimitives.WriteUInt32LittleEndian(_steamInputFrame.AsSpan(9, 4), tick);
-                input.Write(_steamInputFrame.AsSpan(13));
-                SendSteamFrame(_steamInputFrame, _steamInputFrame.Length, Constants.k_nSteamNetworkingSend_Unreliable);
+                int size = InputBundle.Write(_steamInputFrame.AsSpan(1), _entityId, newestTick, inputs);
+                SendSteamFrame(_steamInputFrame, 1 + size, Constants.k_nSteamNetworkingSend_UnreliableNoNagle);
                 return;
             }
             if (_transport != UI.MatchTransport.DevelopmentUdp || _udp == null) return;
 
-            BinaryPrimitives.WriteUInt64LittleEndian(_udpInputFrame.AsSpan(0, 8), _entityId);
-            BinaryPrimitives.WriteUInt32LittleEndian(_udpInputFrame.AsSpan(8, 4), tick);
-            input.Write(_udpInputFrame.AsSpan(12));
+            int udpSize = InputBundle.Write(_udpInputFrame, _entityId, newestTick, inputs);
             try
             {
-                _udp.Send(_udpInputFrame, _udpInputFrame.Length, _serverEp);
+                _udp.Send(_udpInputFrame, udpSize, _serverEp);
             }
             catch (Exception ex)
             {
@@ -364,7 +369,7 @@ namespace SlopArena.Client.Network
                 if (!_steamAdmitted || !_hasSteamConnection || _steamResultReceived) return;
                 _steamControlFrame[0] = SteamGameplayWire.Control;
                 packet.Serialize(_steamControlFrame.AsSpan(1));
-                SendSteamFrame(_steamControlFrame, _steamControlFrame.Length, Constants.k_nSteamNetworkingSend_Reliable);
+                SendSteamFrame(_steamControlFrame, _steamControlFrame.Length, Constants.k_nSteamNetworkingSend_ReliableNoNagle);
                 return;
             }
             if (_transport != UI.MatchTransport.DevelopmentUdp || _udp == null) return;
@@ -374,12 +379,11 @@ namespace SlopArena.Client.Network
         }
 
 
-        private void EnqueueControl(ReadOnlySpan<byte> payload)
+        private void EnqueueControl(ReadOnlySpan<byte> payload, double receivedAtSeconds)
         {
             if (!NetplayControlPacket.TryDeserialize(payload, out var packet)) return;
-            double now = MonotonicSeconds;
             double rtt = LastPingMilliseconds ?? 0;
-            _controlQueue.Enqueue(new ControlFrame(packet, now, rtt));
+            _controlQueue.Enqueue(new ControlFrame(packet, receivedAtSeconds, rtt));
             if (packet.Kind == NetplayControlKind.Clock && packet.EntityId == _entityId)
                 _clockReceived = true;
         }
@@ -509,7 +513,7 @@ namespace SlopArena.Client.Network
 
                     if (buf.Length == NetplayControlPacket.Size)
                     {
-                        EnqueueControl(buf);
+                        EnqueueControl(buf, MonotonicSeconds);
                         continue;
                     }
                     if (buf.Length != ServerEntityPacket.NoInputSize &&
@@ -550,7 +554,9 @@ namespace SlopArena.Client.Network
             }
 
             long now = Stopwatch.GetTimestamp();
-            if (!_steamEverAdmitted && DateTimeOffset.UtcNow >= descriptor.AdmissionExpiresAtUtc)
+            // Local monotonic deadline from receipt: a skewed PC clock must not reject a
+            // live match. The GameHost still enforces the authoritative admission deadline.
+            if (!_steamEverAdmitted && now >= _steamAdmissionDeadline)
             {
                 FailSteamTransport("Steam match admission expired before joining.");
                 return;
@@ -653,7 +659,7 @@ namespace SlopArena.Client.Network
                 FailSteamTransport($"Steam join descriptor is invalid: {exception.Message}");
                 return;
             }
-            if (SendSteamFrame(frame, frame.Length, Constants.k_nSteamNetworkingSend_Reliable))
+            if (SendSteamFrame(frame, frame.Length, Constants.k_nSteamNetworkingSend_ReliableNoNagle))
             {
                 _steamJoinSent = true;
                 _steamJoinSentAt = Stopwatch.GetTimestamp();
@@ -680,6 +686,10 @@ namespace SlopArena.Client.Network
                 return;
             }
 
+            // Convert Steam's receive timestamps to our monotonic clock so clock samples
+            // carry their real arrival time, not the frame that happened to read them.
+            double readAt = MonotonicSeconds;
+            long steamNow = count > 0 ? SteamNetworkingUtils.GetLocalTimestamp().m_SteamNetworkingMicroseconds : 0;
             for (int i = 0; i < count; i++)
             {
                 IntPtr pointer = SteamMessages[i];
@@ -691,8 +701,10 @@ namespace SlopArena.Client.Network
                     var message = Marshal.PtrToStructure<SteamNetworkingMessage_t>(pointer);
                     if (message.m_cbSize < 1 || message.m_cbSize > _steamReceiveFrame.Length)
                         continue;
+                    long ageMicroseconds = steamNow - message.m_usecTimeReceived.m_SteamNetworkingMicroseconds;
+                    double receivedAt = readAt - Math.Clamp(ageMicroseconds, 0L, 1_000_000L) / 1_000_000d;
                     Marshal.Copy(message.m_pData, _steamReceiveFrame, 0, message.m_cbSize);
-                    ProcessSteamFrame(_steamReceiveFrame.AsSpan(0, message.m_cbSize));
+                    ProcessSteamFrame(_steamReceiveFrame.AsSpan(0, message.m_cbSize), receivedAt);
                 }
                 catch (Exception exception)
                 {
@@ -705,7 +717,17 @@ namespace SlopArena.Client.Network
             }
         }
 
-        private void ProcessSteamFrame(ReadOnlySpan<byte> frame)
+        /// <summary>
+        /// Read pending match messages now. Called at the start of each fixed update so the
+        /// simulation consumes the freshest snapshots instead of those read last frame.
+        /// </summary>
+        public void PollTransport()
+        {
+            if (_transport == UI.MatchTransport.SteamP2P && _hasSteamConnection && _steamAdmitted)
+                ReceiveSteamMessages();
+        }
+
+        private void ProcessSteamFrame(ReadOnlySpan<byte> frame, double receivedAtSeconds)
         {
             if (frame.Length < 1)
                 return;
@@ -737,7 +759,7 @@ namespace SlopArena.Client.Network
             if (frame[0] == SteamGameplayWire.Control)
             {
                 if (payload.Length == NetplayControlPacket.Size)
-                    EnqueueControl(payload);
+                    EnqueueControl(payload, receivedAtSeconds);
                 return;
             }
             switch (frame[0])
