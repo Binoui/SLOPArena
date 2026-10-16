@@ -94,9 +94,11 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Get the local-space position of a bone at a specific animation frame.
+        /// <paramref name="boneIndex"/> indexes <see cref="BoneNames"/> (bake order);
+        /// resolve it with <see cref="FindBoneIndex"/>.
         /// Returns true if found. Positions are (x, y, z).
         /// </summary>
-        public bool GetBonePosition(string animName, int frameIndex, int boneDefIndex, out float x, out float y, out float z)
+        public bool GetBonePosition(string animName, int frameIndex, int boneIndex, out float x, out float y, out float z)
         {
             x = y = z = 0;
 
@@ -110,7 +112,7 @@ namespace SlopArena.Shared
                     if (frameIndex >= fc) frameIndex = fc - 1;
 
                     int stride = BoneNames.Length * 3;
-                    int baseIdx = boneDefIndex * 3;
+                    int baseIdx = boneIndex * 3;
                     if (baseIdx + 2 < stride)
                     {
                         x = Animations[a].Frames[frameIndex][baseIdx];
@@ -155,6 +157,19 @@ namespace SlopArena.Shared
         {
             for (int i = 0; i < Animations.Length; i++)
                 if (Animations[i].Name == name)
+                    return i;
+            return -1;
+        }
+
+        /// <summary>
+        /// Find bone index by name, or -1. Bones keep bake order, which is independent
+        /// of hurtbox definition order, so callers resolve bones by name.
+        /// </summary>
+        public int FindBoneIndex(string name)
+        {
+            if (BoneNames == null) return -1;
+            for (int i = 0; i < BoneNames.Length; i++)
+                if (BoneNames[i] == name)
                     return i;
             return -1;
         }

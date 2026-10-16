@@ -147,7 +147,7 @@ public class SlopArenaBaker : EditorWindow
         }
 
 
-        // Bone order MUST match HurtboxBoneDefs index order:
+        // Bake order (hurtbox and hitbox bones resolve by name, not by index):
         //   0=Head, 1=Spine2(UpperChest), 2=Hips, 3=RightHand, 4=LeftHand,
         //   5=RightFoot, 6=LeftFoot, 7=RightToes, 8=LeftToes
         var humanBones = new[]

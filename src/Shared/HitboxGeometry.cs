@@ -119,10 +119,10 @@ public static class HitboxGeometry
         }
 
     /// <summary>
-    /// Resolve a baked point's world position for a bone name: scan the bake's
-    /// BoneNames (HurtboxBoneDefs as a legacy fallback), project the current
-    /// AttackElapsedTicks to a baked frame via the stage duration, and transform
-    /// the baked Hips-relative position to world space (scale + facing yaw + Y remap).
+    /// Resolve a baked point's world position for a bone name: find it in the bake's
+    /// BoneNames, project the current AttackElapsedTicks to a baked frame via the
+    /// stage duration, and transform the baked Hips-relative position to world space
+    /// (scale + facing yaw + Y remap).
     /// <paramref name="scale"/> is HurtboxBoneScale for ordinary bone hitboxes, but 1.0
     /// for weapon-anchored ones (synthetic `_` points are baked at visual scale).
     /// Returns false (caller falls back) when the bone, animation, or def is missing.
@@ -138,24 +138,9 @@ public static class HitboxGeometry
 
         // The bake holds exactly the bones the baker wrote (SlopArenaBaker's curated
         // mixamorig list: head/spine2/hips/hands/feet/toes, plus synthetic points
-        // like _weapon_tip); GetBonePosition indexes BoneNames directly.
-        // HurtboxBoneDefs lookup is kept as a legacy fallback for defs whose bones
-        // aren't present in the bake.
-        int bi = -1;
-        if (baked.BoneNames != null)
-        {
-            for (int i = 0; i < baked.BoneNames.Length; i++)
-            {
-                if (string.Equals(baked.BoneNames[i], boneName, StringComparison.Ordinal)) { bi = i; break; }
-            }
-        }
-        if (bi < 0 && def.HurtboxBoneDefs != null)
-        {
-            for (int i = 0; i < def.HurtboxBoneDefs.Length; i++)
-            {
-                if (def.HurtboxBoneDefs[i].BoneName == boneName) { bi = i; break; }
-            }
-        }
+        // like _weapon_tip); GetBonePosition indexes BoneNames directly. HurtboxBoneDefs
+        // order is unrelated to bake order, so a bone the bake lacks has no position.
+        int bi = baked.FindBoneIndex(boneName);
         if (bi < 0) return false;
 
         string targetAnim = animationNames != null && animationNames.Length > animIndex

@@ -104,6 +104,7 @@ public static class CookedCharacterRuntimeAdapter
             "bone.head" => "mixamorig:Head",
             "bone.hips" => "mixamorig:Hips",
             "bone.spine" => "mixamorig:Spine2",
+            "bone.spine2" => "mixamorig:Spine2",
             "bone.right-hand" => "mixamorig:RightHand",
             "bone.left-hand" => "mixamorig:LeftHand",
             "bone.right-foot" => "mixamorig:RightFoot",

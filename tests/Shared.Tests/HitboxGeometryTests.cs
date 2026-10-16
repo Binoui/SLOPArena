@@ -222,6 +222,28 @@ public class HitboxGeometryTests
     }
 
     [Fact]
+    public void BoneNameOnlyInHurtboxDefs_FallsBackToEntityOffset()
+    {
+        // Hurtbox defs are not a bone index table: a def naming a bone the bake lacks
+        // must not borrow the baked bone at the def's index (here Hips).
+        var baked = BakedAnimationData.LoadFromBin(BuildTestBin(
+            new[] { "mixamorig:Hips" },
+            new[] { ("attack", 1) },
+            (f, bone, axis) => axis == 1 ? 0.4f : 0f));
+        var def = BoneDef();
+        def.HurtboxBoneDefs = new[] { new HurtboxBoneDef("mixamorig:Head", 0, 0, 0, 0.22f) };
+        var s = new CharacterState { PX = 0f, PY = 2f, PZ = 0f, FacingYaw = 0f };
+        var evt = new HitboxEvent { BoneName = "mixamorig:Head", OffZ = 0.5f };
+
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
+            out float wx, out float wy, out float wz, out _, out _, out _);
+
+        Assert.Equal(0f, wx, 5);
+        Assert.Equal(2f, wy, 5); // the Hips bone would give 2 - 0.75 + 0.5 + 0.4 = 2.15
+        Assert.Equal(0.5f, wz, 5);
+    }
+
+    [Fact]
     public void EndBoneName_AnchorsCapsuleEndAtSecondPoint()
     {
         // 1-frame bake: RightHand at (0, 0.9, 0.1), _weapon_tip at (0, 0.9, 1.6).
