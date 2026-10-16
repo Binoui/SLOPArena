@@ -58,6 +58,7 @@ The local Cartoon FX adaptations `FightGuyCycloneSpiral`, `FightGuyEmpoweredHit`
 
 ## Repository and commits
 
+- Write the game's name as **SLOPArena** (shorthand **SLOPA**, not SA) in player-facing text, docs, comments, log prefixes, Editor menus and shader names. Code identifiers keep the C# spelling `SlopArena` (namespaces, types, files, assemblies), and commands, skills and environment variables stay `sloparena`/`SLOPARENA`.
 - Keep source filenames and semantic IDs consistent and descriptive.
 - Do not commit generated Unity library state, local vendor assets, or transient reports unless a task explicitly makes an artifact canonical.
 - Use one focused squash commit per branch and the repository's Conventional Commit format:
