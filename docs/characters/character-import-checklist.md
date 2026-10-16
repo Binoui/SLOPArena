@@ -13,6 +13,7 @@
 - [ ] Import the rig as Humanoid when appropriate; inspect the Avatar before binding clips.
 - [ ] Reject invalid orientation, scale, root motion, required-bone, or non-finite-pose diagnostics.
 - [ ] Bind every required semantic animation ID to its exact intended imported clip.
+- [ ] Set **Import Materials** to None on animation-only FBX sources. Otherwise Unity resolves their embedded texture names against unrelated project textures, and the cook source hash differs between your Editor and the isolated release import.
 - [ ] Assign one unique deterministic pose-track ID to each semantic binding.
 - [ ] Confirm unresolved bindings report diagnostics; never fall back to another character.
 
