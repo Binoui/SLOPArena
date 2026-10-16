@@ -9,8 +9,8 @@ namespace SlopArena.Shared;
 /// The JSON file is a FULL replacement of CharacterDefinition.HurtboxBoneDefs and
 /// lives next to the baked skeleton data. It is loaded at entity registration:
 /// when present and valid it wins over the C# defs; absent or malformed → C# defs
-/// unchanged. Bone order in the file MUST match the baked array order — the pose
-/// resolver (GetBonePosition) indexes bones by position, not by name.
+/// unchanged. The pose resolver pairs each def with its baked bone by name;
+/// ValidateOrder still requires the file to list bones in bake order.
 /// </summary>
 public static class HurtboxOverride
 {
@@ -107,9 +107,8 @@ public static class HurtboxOverride
     /// True when the def list matches the baked bone array's hurtbox bones: same
     /// names in the same order for the first defs.Length entries. The bake may carry
     /// MORE named points than hurtbox defs (e.g. the synthetic _weapon_tip appended
-    /// last by the baker) — hurtbox/pose indexing is by hurtbox-def index (0..N-1),
-    /// so extra trailing baked points are fine. An out-of-order override would
-    /// silently attach hurtboxes to the wrong bones, hence the prefix match.
+    /// last by the baker), so extra trailing baked points are fine. Hurtboxes resolve
+    /// bones by name, so this prefix match is stricter than the simulation needs.
     /// </summary>
     public static bool ValidateOrder(HurtboxBoneDef[] defs, BakedAnimationData baked)
     {

@@ -261,7 +261,7 @@ To avoid this mismatch, standard basic melee combos must always utilize rapid-ac
 - `BoneOffX/Y/Z` (float): Local offset applied after bone position is resolved. Follows the same facing-yaw rotation convention as `OffX/Y/Z` (X=right, Z=forward).
 
 **Spawning behavior:**
-- When `BoneName != null`, the bone-index is looked up from `CharacterDefinition.HurtboxBoneDefs[]`. The bone's world position is resolved from `BakedAnimationData` (the same `.bin` file used for hurtbox positions).
+- When `BoneName != null`, the bone is looked up by name in `BakedAnimationData.BoneNames` (the same baked pose data used for hurtbox positions). A name the bake lacks falls back to entity-relative `OffX/Y/Z`.
 - The `EndOffX/Y/Z` capsule-end fields still apply — they are rotated by facing yaw relative to the bone position, allowing capsule-shaped bone-attached hitboxes.
 - `Damage`, `BaseKnockback`, `KnockbackGrowth`, `Radius`, `StunTicks`, `Interruptible` — all unchanged.
 
@@ -370,9 +370,11 @@ if (_bakedData.TryGetValue(id, out var baked) && def.HurtboxBoneDefs?.Length > 0
 
     int frame = _animFrames[id];  // 1 tick = 1 frame at 60fps
 
-    for (int bi = 0; bi < def.HurtboxBoneDefs.Length; bi++)
+    foreach (var hbd in def.HurtboxBoneDefs)
     {
-        if (!baked.GetBonePosition(targetAnim, frame, bi,
+        // Defs and baked bones are ordered independently: pair them by name.
+        int bi = baked.FindBoneIndex(hbd.BoneName);
+        if (bi < 0 || !baked.GetBonePosition(targetAnim, frame, bi,
             out float bx, out float by, out float bz))
             continue;
 

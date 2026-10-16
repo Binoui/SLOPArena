@@ -476,10 +476,13 @@ namespace SlopArena.Shared
 					float yaw = state.FacingYaw;
 					float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
 					float scale = def.HurtboxBoneScale;
-					for (int bi = 0; bi < def.HurtboxBoneDefs.Length; bi++)
+					for (int i = 0; i < def.HurtboxBoneDefs.Length; i++)
 					{
-						var hbd = def.HurtboxBoneDefs[bi];
-						if (!baked.GetBonePosition(targetAnim, animFrame, bi, out float bx, out float by, out float bz)) continue;
+						var hbd = def.HurtboxBoneDefs[i];
+						// Pair by name: cooked defs are sorted by bone ID while the bake
+						// keeps its own bone order (issue #282).
+						int bi = baked.FindBoneIndex(hbd.BoneName);
+						if (bi < 0 || !baked.GetBonePosition(targetAnim, animFrame, bi, out float bx, out float by, out float bz)) continue;
 						bx *= scale; by *= scale; bz *= scale;
 						float wx = px + ((bx * cos) + (bz * sin));
 						float wy = def.BoneYToWorldY(py, by);
