@@ -4,15 +4,33 @@ namespace SlopArena.Shared.Rollback
 {
     /// <summary>
     /// Composes LocalTrack (self), PredictedTrack (opponents in a Predictable ActionState),
-    /// and RawTrack (opponents in a Complex ActionState — just the latest received state,
-    /// no simulation) into one entity-addressable surface (ADR-0011). Shape matches
-    /// ISimulationBridge deliberately — RollbackSimulationBridge (Task 7) is a thin wrapper.
+    /// and RawTrack (opponents in a Complex ActionState — received states, no simulation)
+    /// into one entity-addressable surface (ADR-0011). Shape matches ISimulationBridge
+    /// deliberately — RollbackSimulationBridge (Task 7) is a thin wrapper.
+    ///
+    /// RawTrack presentation plays received snapshots back on a playout clock that advances
+    /// one tick per local tick, a small adaptive delay behind the newest server tick, so
+    /// bunched packet arrival does not stall or skip raw opponents. Logic consumers (the
+    /// self track's opponent mirror, interaction barriers) use the newest snapshot.
     /// </summary>
     public sealed class RollbackSimulator
     {
+        public const uint MinimumRawPlayoutDelay = 1;
+        public const uint MaximumRawPlayoutDelay = 4;
+        private const uint RawPlayoutResyncTicks = 8;
+        private const uint RawPlayoutHealthyTicksBeforeShrink = 300;
+        private const int RawHistoryCapacity = 64;
+
         private readonly LocalTrack _local;
         private readonly PredictedTrack _predicted;
         private readonly Dictionary<ulong, CharacterState> _rawTrackLatest = new();
+        private readonly Dictionary<ulong, List<(uint Tick, CharacterState State)>> _rawHistory = new();
+        private readonly TickPacer _rawPacer = new();
+        private uint _rawNewestTick;
+        private uint _rawPlayoutTick;
+        private bool _rawPlayoutSeeded;
+        private uint _rawPlayoutDelay = 2;
+        private uint _rawHealthyTicks;
         private readonly Dictionary<ulong, CharacterDefinition> _defs = new();
         private readonly Dictionary<ulong, BakedAnimationData?> _baked = new();
         private readonly ulong _selfId;
@@ -34,6 +52,11 @@ namespace SlopArena.Shared.Rollback
 
         public int CorrectionCount => _local.CorrectionCount;
         public uint LastFrontierTicks => _predicted.LastFrontierTicks;
+        public uint LocalTick => _localTick;
+        /// <summary>Ticks between the newest server snapshot and the raw playout clock.</summary>
+        public uint RawPlayoutDelay => _rawPlayoutDelay;
+        /// <summary>Times raw playout caught up with the newest snapshot and had to hold.</summary>
+        public int RawPlayoutStarvations { get; private set; }
 
         public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
         {
@@ -59,12 +82,15 @@ namespace SlopArena.Shared.Rollback
         {
             foreach (var id in _defs.Keys)
                 if (id != _selfId)
-                    _local.SyncOpponentMirror(id, _defs[id], GetState(id));
+                    _local.SyncOpponentMirror(id, _defs[id], GetLogicState(id));
 
             var input = inputs.TryGetValue(_selfId, out var i) ? i : default;
             _local.Tick(input);
             _localTick++;
             Publish(_local.DrainPresentationEvents());
+            _predicted.AdvanceTo(_localTick);
+            Publish(_predicted.DrainPresentationEvents());
+            AdvanceRawPlayout();
             if (_futureSelf is ServerEntityPacket future && future.Tick <= _localTick)
             {
                 _futureSelf = null;
@@ -109,14 +135,17 @@ namespace SlopArena.Shared.Rollback
                         localReconciled = true;
                     }
                     else if (state.InteractionId == 0 &&
-                        GetState(packet.EntityId).InteractionId == terminalId)
+                        GetLogicState(packet.EntityId).InteractionId == terminalId)
                     {
                         _predicted.StopTracking(packet.EntityId);
                         state.EntityId = packet.EntityId;
-                        _rawTrackLatest[packet.EntityId] = state;
+                        // A terminal outcome supersedes newer-ticked capture snapshots.
+                        SetRaw(packet.EntityId, packet.Tick, state, replaceHistory: true);
                     }
                 }
 
+                if (packet.Tick > _rawNewestTick)
+                    _rawNewestTick = packet.Tick;
                 if (_latestPacketTick.TryGetValue(packet.EntityId, out uint last) &&
                     packet.Tick <= last) continue;
                 _latestPacketTick[packet.EntityId] = packet.Tick;
@@ -164,7 +193,7 @@ namespace SlopArena.Shared.Rollback
                             _pendingCompanions.Remove(state.InteractionPartnerId);
                             _predicted.StopTracking(companion.EntityId);
                             companionState.EntityId = companion.EntityId;
-                            _rawTrackLatest[companion.EntityId] = companionState;
+                            SetRaw(companion.EntityId, companion.Tick, companionState);
                         }
                     }
                     continue;
@@ -175,12 +204,13 @@ namespace SlopArena.Shared.Rollback
                 {
                     predictable.Add(packet);
                     _rawTrackLatest.Remove(packet.EntityId);
+                    _rawHistory.Remove(packet.EntityId);
                 }
                 else
                 {
                     _predicted.StopTracking(packet.EntityId);
                     state.EntityId = packet.EntityId;
-                    _rawTrackLatest[packet.EntityId] = state;
+                    SetRaw(packet.EntityId, packet.Tick, state);
                 }
             }
             if (predictable.Count > 0)
@@ -200,11 +230,98 @@ namespace SlopArena.Shared.Rollback
         public void ReconcileSelf(ServerEntityPacket packet)
             => IngestAuthoritativeBatch(new[] { packet });
 
+        /// <summary>Presentation state: self prediction, predicted opponents, or raw playout.</summary>
         public CharacterState GetState(ulong id)
         {
             if (id == _selfId) return _local.GetState();
             if (_predicted.IsTracking(id)) return _predicted.GetState(id);
+            if (_rawHistory.TryGetValue(id, out var history) && history.Count > 0)
+                return RawDisplayState(history);
             return _rawTrackLatest.TryGetValue(id, out var s) ? s : default;
+        }
+
+        /// <summary>Newest authoritative or predicted state, without raw playout delay.</summary>
+        public CharacterState GetLogicState(ulong id)
+        {
+            if (id == _selfId) return _local.GetState();
+            if (_predicted.IsTracking(id)) return _predicted.GetState(id);
+            return _rawTrackLatest.TryGetValue(id, out var s) ? s : default;
+        }
+
+        private void SetRaw(ulong id, uint tick, CharacterState state, bool replaceHistory = false)
+        {
+            _rawTrackLatest[id] = state;
+            if (!_rawHistory.TryGetValue(id, out var history))
+                _rawHistory[id] = history = new List<(uint Tick, CharacterState State)>();
+            if (replaceHistory)
+                history.Clear();
+            int index = history.Count;
+            while (index > 0 && history[index - 1].Tick >= tick)
+                index--;
+            if (index < history.Count && history[index].Tick == tick)
+                history[index] = (tick, state);
+            else
+                history.Insert(index, (tick, state));
+            if (history.Count > RawHistoryCapacity)
+                history.RemoveAt(0);
+        }
+
+        private CharacterState RawDisplayState(List<(uint Tick, CharacterState State)> history)
+        {
+            var newest = history[history.Count - 1].State;
+            // Coupled interactions stay paired with the self track's newest authoritative state.
+            if (newest.InteractionId != 0 || !_rawPlayoutSeeded)
+                return newest;
+            for (int i = history.Count - 1; i >= 0; i--)
+                if (history[i].Tick <= _rawPlayoutTick)
+                    return history[i].State;
+            return history[0].State;
+        }
+
+        /// <summary>Advance raw playout one tick per local tick toward newest-minus-delay.</summary>
+        private void AdvanceRawPlayout()
+        {
+            if (_rawNewestTick == 0)
+                return;
+            uint target = _rawNewestTick > _rawPlayoutDelay ? _rawNewestTick - _rawPlayoutDelay : 0;
+            if (!_rawPlayoutSeeded)
+            {
+                _rawPlayoutTick = target;
+                _rawPlayoutSeeded = true;
+                return;
+            }
+            long error = (long)target - ((long)_rawPlayoutTick + 1);
+            if (error >= RawPlayoutResyncTicks || error <= -(long)RawPlayoutResyncTicks)
+            {
+                _rawPlayoutTick = target;
+                _rawPacer.Reset();
+            }
+            else
+                _rawPlayoutTick += _rawPacer.Steps(_rawPlayoutTick, target, 2);
+
+            if (_rawPlayoutTick > _rawNewestTick)
+            {
+                _rawPlayoutTick = _rawNewestTick;
+                RawPlayoutStarvations++;
+                _rawHealthyTicks = 0;
+                if (_rawPlayoutDelay < MaximumRawPlayoutDelay)
+                    _rawPlayoutDelay++;
+            }
+            else if (++_rawHealthyTicks >= RawPlayoutHealthyTicksBeforeShrink)
+            {
+                _rawHealthyTicks = 0;
+                if (_rawPlayoutDelay > MinimumRawPlayoutDelay)
+                    _rawPlayoutDelay--;
+            }
+
+            foreach (var history in _rawHistory.Values)
+            {
+                int keep = 0;
+                while (keep + 1 < history.Count && history[keep + 1].Tick <= _rawPlayoutTick)
+                    keep++;
+                if (keep > 0)
+                    history.RemoveRange(0, keep);
+            }
         }
 
         public Dictionary<ulong, CharacterState> GetAllStates()

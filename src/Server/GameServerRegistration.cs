@@ -257,7 +257,8 @@ namespace SlopArena.Server
 
         public void QueueMatchCancellation(Guid matchId, string reason)
         {
-            if (matchId == Guid.Empty || reason is not ("unfilled" or "absent" or "host_restart" or "host_shutdown" or "content_unavailable"))
+            if (matchId == Guid.Empty || reason is not ("unfilled" or "absent" or "host_restart" or "host_shutdown" or "content_unavailable"
+                    or MatchInstance.MatchFailedReason))
                 return;
             _pendingReports.TryAdd(matchId, new PendingReport(matchId, null, reason));
             _ = DrainPendingReportsAsync(CancellationToken.None);

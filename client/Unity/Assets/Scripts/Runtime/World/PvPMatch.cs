@@ -219,6 +219,7 @@ namespace SlopArena.Client.World
                     DamagePercent = 0,
                 };
                 _bridge.RegisterEntity(opp.EntityId, def, initialState, opponentEntry.BakedAnimation);
+                renderer.RenderInterpolation = true;
                 renderer.ApplyServerState(initialState);
             }
             _opponentArray = new List<PlayerRenderer>(_opponentRenderers.Values).ToArray();
@@ -244,6 +245,7 @@ namespace SlopArena.Client.World
                 DamagePercent = 0,
             };
             _bridge.RegisterEntity(PlayerEntityId, playerDef, initialPlayerState, playerEntry.BakedAnimation);
+            _playerRenderer.RenderInterpolation = true;
             _playerRenderer.ApplyServerState(initialPlayerState);
             _lastPresentedDeaths.Clear();
             _lastPresentedDeaths[PlayerEntityId] = 0;
@@ -306,6 +308,7 @@ namespace SlopArena.Client.World
         protected override void OnMatchFixedUpdate()
         {
             if (_bridge == null || _playerRenderer == null) return;
+            _networkClient.PollTransport();
             int connectionGeneration = _networkClient.ConnectionGeneration;
             if (connectionGeneration != _observedConnectionGeneration)
             {
@@ -313,7 +316,11 @@ namespace SlopArena.Client.World
                 _clockAcknowledgedGeneration = -1;
                 _bridge.ResetInitialStates();
             }
+            // Authoritative corrections and track switches move fighters without time
+            // passing; hand exactly that displacement to presentation to smooth out.
+            CaptureDisplayedPositions();
             _bridge.PumpNetwork();
+            ApplyCorrectionSmoothing();
             foreach (var frame in _bridge.LastControlFrames)
                 if (frame.Packet.EntityId == PlayerEntityId &&
                     frame.Packet.Kind == NetplayControlKind.Clock)
@@ -414,6 +421,50 @@ namespace SlopArena.Client.World
                 var ps = _bridge.GetState(PlayerEntityId);
                 Debug.Log($"[PvP] tick={_tick} connected={_networkClient.IsServerConnected} " +
                           $"pos=({ps.PX:F1},{ps.PY:F2},{ps.PZ:F1}) serverTick={_networkClient.LastServerTick}");
+            }
+            if (_tick % NetplayStatsIntervalTicks == 0 && matchState == MatchState.Playing)
+            {
+                var stats = _bridge.TakeStats(NetworkClient.MonotonicSeconds);
+                int corrections = stats.Corrections - _loggedCorrections;
+                _loggedCorrections = stats.Corrections;
+                Debug.Log(FormattableString.Invariant(
+                    $"[Netplay] updates={stats.Updates} skipped={stats.SkippedUpdates} extraSteps={stats.ExtraStepUpdates} ") +
+                    FormattableString.Invariant(
+                    $"lead={stats.LeadTicks}({stats.LeadBonus:+0;-0;0}) ahead={stats.AheadOfServerTicks} corrections={corrections} ") +
+                    FormattableString.Invariant(
+                    $"rawDelay={stats.RawPlayoutDelay} rawStarved={stats.RawStarvations} ping={_networkClient.LastPingMilliseconds?.ToString("F0") ?? "?"}ms ") +
+                    FormattableString.Invariant($"frameMs={Time.smoothDeltaTime * 1000f:F1}"));
+            }
+        }
+
+        private const int NetplayStatsIntervalTicks = 300;
+        private int _loggedCorrections;
+        private readonly Dictionary<ulong, Vector3> _displayedBeforePump = new();
+
+        private void CaptureDisplayedPositions()
+        {
+            _displayedBeforePump.Clear();
+            if (_bridge.AuthoritativeMatchState != MatchState.Playing) return;
+            var self = _bridge.GetState(PlayerEntityId);
+            _displayedBeforePump[PlayerEntityId] = new Vector3(self.PX, self.PY, self.PZ);
+            foreach (var id in _opponentRenderers.Keys)
+            {
+                var state = _bridge.GetState(id);
+                _displayedBeforePump[id] = new Vector3(state.PX, state.PY, state.PZ);
+            }
+        }
+
+        private void ApplyCorrectionSmoothing()
+        {
+            foreach (var (id, before) in _displayedBeforePump)
+            {
+                var state = _bridge.GetState(id);
+                var delta = new Vector3(state.PX, state.PY, state.PZ) - before;
+                var renderer = id == PlayerEntityId
+                    ? _playerRenderer
+                    : _opponentRenderers.TryGetValue(id, out var opponent) ? opponent : null;
+                if (renderer != null)
+                    renderer.AddVisualCorrection(delta);
             }
         }
 

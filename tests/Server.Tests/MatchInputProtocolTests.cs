@@ -41,10 +41,8 @@ public class MatchInputProtocolTests
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         byte[] Input(ulong id)
         {
-            var bytes = new byte[12 + InputState.Size];
-            BinaryPrimitives.WriteUInt64LittleEndian(bytes, id);
-            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), 1);
-            new InputState { Down = true, DownPressed = true }.Write(bytes.AsSpan(12));
+            var bytes = new byte[InputBundle.SizeFor(1)];
+            InputBundle.Write(bytes, id, 1, new[] { new InputState { Down = true, DownPressed = true } });
             return bytes;
         }
         ServerEntityPacket AwaitState(UdpClient client, byte[]? repeat = null)
@@ -71,7 +69,7 @@ public class MatchInputProtocolTests
             var sentinelBootstrap = Control(NetplayControlKind.Bootstrap, 2);
             sentinel.Send(sentinelBootstrap, sentinelBootstrap.Length, endpoint);
             var invalid = Input(1);
-            rejected.Send(invalid, invalid.Length - 1, endpoint); // old 20-byte input
+            rejected.Send(invalid, invalid.Length - 1, endpoint); // truncated bundle
             invalid[^1] = 99;
             rejected.Send(invalid, invalid.Length, endpoint); // unsupported version
             var oversized = new byte[invalid.Length + 1];
@@ -155,10 +153,8 @@ public class MatchInputProtocolTests
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         void Send(UdpClient client, ulong entity, uint tick, InputState input)
         {
-            var frame = new byte[12 + InputState.Size];
-            BinaryPrimitives.WriteUInt64LittleEndian(frame, entity);
-            BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(8), tick);
-            input.Write(frame.AsSpan(12));
+            var frame = new byte[InputBundle.SizeFor(1)];
+            InputBundle.Write(frame, entity, tick, new[] { input });
             client.Send(frame, frame.Length, endpoint);
         }
         void SendControl(UdpClient client, NetplayControlKind kind, ulong entity, uint tick = 0, uint startTick = 0)

@@ -78,6 +78,8 @@ public class SteamGameServerAdmissionTests
         Assert.False(readyCalled, "Rejected startup frames must not reach match readiness.");
     }
 
+    private static InputState[] OneInput(InputState input = default) => new[] { input };
+
     [Fact]
     public void SteamReadyRetainsConnectionAndAuthoritativeClockValidation()
     {
@@ -88,18 +90,21 @@ public class SteamGameServerAdmissionTests
         Assert.True(match.TryBindSteamPlayer(1001, 11, ContentHash, out _, out _, out _));
         Assert.True(match.TryBindSteamPlayer(1002, 22, ContentHash, out _, out _, out _));
 
+        // The host routes each frame with its connection's bound entity.
         bool Deliver(long connectionId, byte[] frame) =>
-            SteamGameplayControlRouter.TryHandle(frame, 1, true,
+            SteamGameplayControlRouter.TryHandle(frame, connectionId == 11 ? 1UL : 2UL, true,
                 control => match.TryMarkSteamReady(connectionId, control));
 
-        Assert.False(Deliver(22, ControlFrame(NetplayControlKind.Ready, 1)));
-        Assert.False(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1, tick: 1)));
-        Assert.False(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1, startTick: 1)));
-        Assert.False(match.TryQueueSteamInput(11, 1, default));
+        Assert.False(Deliver(22, ControlFrame(NetplayControlKind.Ready, 1)));            // spoofed entity closes
+        // An early or stale Ready (e.g. sent across the countdown/GO edge) is ignored,
+        // not treated as spoofing, and never marks the peer Ready.
+        Assert.True(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1, tick: 1)));
+        Assert.True(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1, startTick: 1)));
+        Assert.False(match.TryQueueSteamInput(11, 1, OneInput()));
         Assert.True(Deliver(11, ControlFrame(NetplayControlKind.Bootstrap, 1)));
-        Assert.False(match.TryQueueSteamInput(11, 1, default));
+        Assert.False(match.TryQueueSteamInput(11, 1, OneInput()));
         Assert.True(Deliver(11, ControlFrame(NetplayControlKind.Ready, 1)));
-        Assert.True(match.TryQueueSteamInput(11, 1, default));
+        Assert.True(match.TryQueueSteamInput(11, 1, OneInput()));
     }
 
     [Fact]
@@ -144,8 +149,8 @@ public class SteamGameServerAdmissionTests
             await Task.WhenAll(baselines.Select(x => x.Task)).WaitAsync(TimeSpan.FromSeconds(2));
             Assert.False(match.HasStartedCountdown);
             Assert.Equal(0u, match.ServerTick);
-            Assert.False(match.TryQueueSteamInput(11, 1, default));
-            Assert.False(match.TryQueueSteamInput(22, 1, default));
+            Assert.False(match.TryQueueSteamInput(11, 1, OneInput()));
+            Assert.False(match.TryQueueSteamInput(22, 1, OneInput()));
 
             Assert.True(Deliver(11, 1, ControlFrame(NetplayControlKind.Ready, 1)));
             Assert.True(Deliver(11, 1, ControlFrame(NetplayControlKind.Bootstrap, 1)));
@@ -171,16 +176,18 @@ public class SteamGameServerAdmissionTests
     [Fact]
     public void SteamInputCodecRejectsEntitySpoofAndAcceptsOnlyTheBoundSlot()
     {
-        var frame = new byte[1 + 8 + 4 + InputState.Size];
+        var frame = new byte[1 + InputBundle.SizeFor(2)];
         frame[0] = SteamGameplayWire.Input;
-        BinaryPrimitives.WriteUInt64LittleEndian(frame.AsSpan(1, 8), 41);
-        BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(9, 4), 17);
-        new InputState { Down = true }.Write(frame.AsSpan(13));
+        InputBundle.Write(frame.AsSpan(1), 41, 17, new[] { new InputState { Jump = true }, new InputState { Down = true } });
+        var inputs = new InputState[InputBundle.MaxInputs];
 
-        Assert.False(SteamGameplayInputCodec.TryParse(frame, 42, out _, out _));
-        Assert.True(SteamGameplayInputCodec.TryParse(frame, 41, out uint tick, out var input));
+        Assert.False(SteamGameplayInputCodec.TryParse(frame, 42, out _, inputs, out _));
+        Assert.False(SteamGameplayInputCodec.TryParse(frame.AsSpan(0, frame.Length - 1), 41, out _, inputs, out _));
+        Assert.True(SteamGameplayInputCodec.TryParse(frame, 41, out uint tick, inputs, out int count));
         Assert.Equal(17u, tick);
-        Assert.True(input.Down);
+        Assert.Equal(2, count);
+        Assert.True(inputs[0].Jump);
+        Assert.True(inputs[1].Down);
     }
 
     [Fact]
@@ -201,8 +208,8 @@ public class SteamGameServerAdmissionTests
         Assert.True(second.TryBindSteamPlayer(2001, 22, ContentHash, out ulong secondEntity, out _, out _));
         MarkSteamReady(first, 11, firstEntity);
         MarkSteamReady(second, 22, secondEntity);
-        Assert.False(first.TryQueueSteamInput(22, 1, default));
-        Assert.True(second.TryQueueSteamInput(22, 1, default));
+        Assert.False(first.TryQueueSteamInput(22, 1, OneInput()));
+        Assert.True(second.TryQueueSteamInput(22, 1, OneInput()));
 
         Assert.False(first.TryBindSteamPlayer(1001, 33, ContentHash, out _, out _, out byte denial));
         Assert.Equal((byte)5, denial);
@@ -239,10 +246,10 @@ public class SteamGameServerAdmissionTests
             Assert.True(reconnected,
                 $"Same-account reconnect denied: code={denial}, countdown={match.HasStartedCountdown}, running={match.IsRunning}.");
             Assert.Equal(11L, replaced);
-            Assert.False(match.TryQueueSteamInput(11, match.ServerTick + 1, default));
-            Assert.False(match.TryQueueSteamInput(33, match.ServerTick + 1, default));
+            Assert.False(match.TryQueueSteamInput(11, match.ServerTick + 1, OneInput()));
+            Assert.False(match.TryQueueSteamInput(33, match.ServerTick + 1, OneInput()));
             MarkSteamReady(match, 33, 1);
-            Assert.True(match.TryQueueSteamInput(33, match.ServerTick + 1, default));
+            Assert.True(match.TryQueueSteamInput(33, match.ServerTick + 1, OneInput()));
         }
         finally
         {
@@ -336,7 +343,7 @@ public class SteamGameServerAdmissionTests
             for (uint i = 0; i < 120; i++)
             {
                 Assert.True(match.TryQueueSteamInput(11, nextTick++,
-                    i == 0 ? new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true } : default));
+                    OneInput(i == 0 ? new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true } : default)));
                 Thread.Sleep(16);
             }
             var packet = await spawned.Task.WaitAsync(TimeSpan.FromSeconds(3));
@@ -347,7 +354,7 @@ public class SteamGameServerAdmissionTests
             for (uint i = 0; i < 80; i++)
             {
                 Assert.True(match.TryQueueSteamInput(11, nextTick++,
-                    i == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default));
+                    OneInput(i == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default)));
                 Thread.Sleep(16);
             }
             await swordActive.Task.WaitAsync(TimeSpan.FromSeconds(3));

@@ -18,23 +18,24 @@ The GameServer validates the exact Match Content Catalog before simulation. Clie
 
 The packet formats are defined by the `Size` constants and serializer implementations in `src/Shared/`:
 
-- `InputState.Size` is the client input payload size;
+- `InputState.Size` is the client input payload size; uplink datagrams are `InputBundle`s
+  repeating the newest simulated ticks, so a lost datagram never drops a press;
 - `CharacterStatePacket.Size` is the authoritative state payload size;
 - `ServerEntityPacket` wraps entity ID, tick, state, and optional InputRelay data.
 
 When changing a wire field, update the corresponding size constant and every serializer/deserializer, then run codec tests. Do not copy packet byte counts into general gameplay documentation; they are implementation contracts and can change with accepted protocol work.
 
-InputRelay carries the input consumed for an entity/tick, including the explicit no-input marker. This lets PredictedTrack replay the same input omissions as the GameServer.
+InputRelay carries the input consumed for an entity/tick, including the explicit no-input marker. This lets PredictedTrack replay the same input omissions as the GameServer. Held input on the server, the bridge's catch-up ticks and the prediction frontier all use `InputState.WithoutEdges`; keep them identical.
 
 ## Client flow
 
 `TrainingMatch` uses `LocalSimulationBridge`. `PvPMatch` uses `RollbackSimulationBridge`:
 
 1. `InputController.Poll()` produces the current `InputState`.
-2. The bridge advances the local player's `LocalTrack` and sends input through `NetworkClient`.
+2. The bridge advances the local player's `LocalTrack` one paced tick per fixed update (`NetplayClock.StepsForUpdate`) and sends every simulated tick through `NetworkClient`.
 3. Received `ServerEntityPacket` values reconcile the self track and feed opponent packets into `RollbackSimulator`.
 4. Predictable opponent states rebuild from `ConfirmedTick` and replay InputRelay through the rollback window.
-5. Complex/raw states render the latest authoritative packet without speculative gameplay.
+5. Complex/raw states play back authoritative packets on the raw playout clock (one tick per local tick, a small adaptive delay behind the newest packet) without speculative gameplay; logic uses the newest packet.
 6. `PlayerRenderer.ApplyServerState` renders state; it never decides gameplay.
 
 Training and PvP therefore share the same Shared simulation contract while using different transport/composition seams.

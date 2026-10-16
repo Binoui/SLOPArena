@@ -10,11 +10,19 @@ public enum NetplayControlKind : byte
     Clock = 3,
 }
 
-/// <summary>Fixed-size, versioned startup and authoritative-clock control frame.</summary>
-public readonly record struct NetplayControlPacket(NetplayControlKind Kind, ulong EntityId, uint Tick, uint StartTick)
+/// <summary>
+/// Fixed-size, versioned startup and authoritative-clock control frame. Clock frames also
+/// report how early this peer's inputs reached the GameServer since the previous Clock:
+/// <see cref="InputSlack"/> is the smallest number of ticks between arrival and consumption
+/// (<see cref="NoInputSlack"/> when none arrived) and <see cref="LateInputs"/> counts
+/// datagrams whose newest input arrived after its tick had been simulated.
+/// </summary>
+public readonly record struct NetplayControlPacket(NetplayControlKind Kind, ulong EntityId, uint Tick, uint StartTick,
+    sbyte InputSlack = 127, byte LateInputs = 0)
 {
     public const byte Version = SimulationProtocol.Version;
-    public const int Size = 18;
+    public const int Size = 20;
+    public const sbyte NoInputSlack = 127;
 
     public bool IsValid => EntityId != 0 && Kind is >= NetplayControlKind.Bootstrap and <= NetplayControlKind.Clock;
 
@@ -27,6 +35,8 @@ public readonly record struct NetplayControlPacket(NetplayControlKind Kind, ulon
         BinaryPrimitives.WriteUInt64LittleEndian(destination.Slice(2, 8), EntityId);
         BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(10, 4), Tick);
         BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(14, 4), StartTick);
+        destination[18] = unchecked((byte)InputSlack);
+        destination[19] = LateInputs;
     }
 
     public static bool TryDeserialize(ReadOnlySpan<byte> source, out NetplayControlPacket packet)
@@ -38,7 +48,9 @@ public readonly record struct NetplayControlPacket(NetplayControlKind Kind, ulon
         var value = new NetplayControlPacket((NetplayControlKind)source[0],
             BinaryPrimitives.ReadUInt64LittleEndian(source.Slice(2, 8)),
             BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(10, 4)),
-            BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(14, 4)));
+            BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(14, 4)),
+            unchecked((sbyte)source[18]),
+            source[19]);
         if (!value.IsValid) return false;
         packet = value;
         return true;

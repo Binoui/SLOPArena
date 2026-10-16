@@ -863,6 +863,9 @@ namespace SlopArena.Client.Entities
             transform.SetPositionAndRotation(
                 new Vector3(snapshot.PX, snapshot.PY + _modelYOffset, snapshot.PZ),
                 Quaternion.Euler(0f, snapshot.FacingYaw * Mathf.Rad2Deg, 0f));
+            _hasInterpolationTarget = false;
+            _simulatedPosition = transform.position;
+            _visualCorrection = Vector3.zero;
             var animation = _animancer.Play(clip, 0f);
             animation.Time = clip.isLooping ? time : Mathf.Min(time, clip.length);
             animation.Speed = 0f;
@@ -993,6 +996,41 @@ namespace SlopArena.Client.Entities
                 _sfxSource.PlayOneShot(clip);
         }
 
+        /// <summary>
+        /// Draw the fighter between fixed simulation steps instead of jumping once per step,
+        /// for matches that apply state from FixedUpdate. Adds at most one step of display delay.
+        /// </summary>
+        public bool RenderInterpolation { get; set; }
+        private Vector3 _simulatedPosition;
+        private Vector3 _visualCorrection;
+        private Vector3 _interpolateFrom, _interpolateTo;
+        private Quaternion _interpolateFromRotation = Quaternion.identity, _interpolateToRotation = Quaternion.identity;
+        private bool _hasInterpolationTarget;
+        private const float CorrectionDecayPerStep = 0.8f;
+        private const float MaxSmoothedCorrection = 3f;
+
+        /// <summary>
+        /// The simulation moved this fighter by <paramref name="delta"/> without time passing
+        /// (authoritative correction or prediction-track switch). Keep it drawn where it was
+        /// and ease the difference out over a few steps; teleports still snap.
+        /// </summary>
+        public void AddVisualCorrection(Vector3 delta)
+        {
+            if (!_hasAppliedState || delta.sqrMagnitude < 1e-8f) return;
+            _visualCorrection -= delta;
+            if (_visualCorrection.sqrMagnitude > MaxSmoothedCorrection * MaxSmoothedCorrection)
+                _visualCorrection = Vector3.zero;
+        }
+
+        private void Update()
+        {
+            if (!RenderInterpolation || !_hasInterpolationTarget) return;
+            float alpha = Mathf.Clamp01((Time.time - Time.fixedTime) / Time.fixedDeltaTime);
+            transform.SetPositionAndRotation(
+                Vector3.LerpUnclamped(_interpolateFrom, _interpolateTo, alpha),
+                Quaternion.Slerp(_interpolateFromRotation, _interpolateToRotation, alpha));
+        }
+
         public void ApplyServerState(CharacterState state)
         {
             Vector3 targetPos = new Vector3(state.PX, state.PY + _modelYOffset, state.PZ);
@@ -1012,15 +1050,32 @@ namespace SlopArena.Client.Entities
                 _sfxSource.PlayOneShot(_jumpSfx);
             EmitSwordHitboxSfx(state);
 
-            if (state.HitstunTicks > 0)
+            if (!_hasAppliedState || stockTransition)
             {
-                transform.position = Vector3.Lerp(transform.position, targetPos, 0.6f);
+                _simulatedPosition = targetPos;
+                _visualCorrection = Vector3.zero;
             }
+            else if (state.HitstunTicks > 0)
+                _simulatedPosition = Vector3.Lerp(_simulatedPosition, targetPos, 0.6f);
             else
+                _simulatedPosition = targetPos;   // Normal movement follows the simulation exactly.
+            _visualCorrection *= CorrectionDecayPerStep;
+            if (_visualCorrection.sqrMagnitude < 1e-6f)
+                _visualCorrection = Vector3.zero;
+            Vector3 drawnPosition = _simulatedPosition + _visualCorrection;
+            Quaternion drawnRotation = Quaternion.Euler(0f, state.FacingYaw * Mathf.Rad2Deg, 0f);
+            if (RenderInterpolation && Application.isPlaying)
             {
-                // Normal movement: snap directly (60Hz is fast enough)
-                transform.position = targetPos;
+                bool snap = !_hasInterpolationTarget || stockTransition;
+                _interpolateFrom = snap ? drawnPosition : _interpolateTo;
+                _interpolateFromRotation = snap ? drawnRotation : _interpolateToRotation;
+                _interpolateTo = drawnPosition;
+                _interpolateToRotation = drawnRotation;
+                _hasInterpolationTarget = true;
+                drawnPosition = _interpolateFrom;
+                drawnRotation = _interpolateFromRotation;
             }
+            transform.position = drawnPosition;
             if (Application.isPlaying)
             {
                 UpdateAirDodgeFeedback(state, targetPos);
@@ -1029,7 +1084,7 @@ namespace SlopArena.Client.Entities
                 UpdateRespawnInvincibility(state, targetPos);
             }
 
-            transform.rotation = Quaternion.Euler(0f, state.FacingYaw * Mathf.Rad2Deg, 0f);
+            transform.rotation = drawnRotation;
             // Death flash blink
             if (_deathFlashTicks > 0)
             {

@@ -82,6 +82,11 @@ public class CharacterStatePacketTests
             InteractionTick = 0x31323334,
             InteractionTerminalTick = 0x41424344,
             CapturedYaw = -12345,
+            AttackElapsedTicks = 23,
+            ChargeTicks = 41,
+            KVX = 3.5f,
+            KVY = 7.25f,
+            KVZ = -1.5f,
         };
 
         // Act: FromState → Serialize → Deserialize → ToState
@@ -151,6 +156,11 @@ public class CharacterStatePacketTests
         Assert.Equal(original.InteractionTick, restored.InteractionTick);
         Assert.Equal(original.InteractionTerminalTick, restored.InteractionTerminalTick);
         Assert.Equal(original.CapturedYaw, restored.CapturedYaw);
+        Assert.Equal(original.AttackElapsedTicks, restored.AttackElapsedTicks);
+        Assert.Equal(original.ChargeTicks, restored.ChargeTicks);
+        Assert.Equal(original.KVX, restored.KVX);
+        Assert.Equal(original.KVY, restored.KVY);
+        Assert.Equal(original.KVZ, restored.KVZ);
     }
 
 
@@ -186,16 +196,20 @@ public class CharacterStatePacketTests
             StateTicks = 900,
             ShieldDropTicks = 300,
             InteractionId = 90,
-            AttackElapsedTicks = 500, // NOT carried by CharacterStatePacket — must survive
+            AttackElapsedTicks = 500, // carried for remote presentation; the live self timer survives
             AirTimeTicks = 999,       // IS carried — must be overwritten
             QueuedKBDirX = 3.5f,      // NOT carried (queued launch payload, ADR-0012) — must survive
+            ChargeStockSpent = 2,     // NOT carried — must survive
             HitstopTicks = 0,         // IS carried — must be overwritten
         };
         var packet = CharacterStatePacket.FromState(new CharacterState
         {
             PX = 42f,
+            State = ActionState.Attacking,
             StateTicks = 7,
             AirTimeTicks = 7,
+            AttackElapsedTicks = 11,
+            KVY = 4f,
             HitstopTicks = 9,
             ShieldDropTicks = 4,
             InteractionId = 12,
@@ -229,8 +243,11 @@ public class CharacterStatePacketTests
         Assert.Equal(15u, target.InteractionTick);
         Assert.Equal(16u, target.InteractionTerminalTick);
         Assert.Equal((short)1700, target.CapturedYaw);
-        Assert.Equal((ushort)500, target.AttackElapsedTicks); // non-wire field preserved
+        Assert.Equal((ushort)500, target.AttackElapsedTicks); // live self ability timer preserved
+        Assert.Equal((ushort)11, packet.ToState().AttackElapsedTicks); // remote presentation copy
+        Assert.Equal(4f, target.KVY);                        // wire field overwritten (protocol 9)
         Assert.Equal(3.5f, target.QueuedKBDirX);             // non-wire field preserved
+        Assert.Equal((byte)2, target.ChargeStockSpent);      // non-wire field preserved
     }
 
     [Fact]
@@ -392,6 +409,8 @@ public class CharacterStatePacketTests
         // A pre-defense protocol-v1 payload has the old size and must not be accepted.
         Assert.Throws<ArgumentException>(() => CharacterStatePacket.Deserialize(buffer.AsSpan(0, 114)));
         Assert.Throws<ArgumentException>(() => CharacterStatePacket.Deserialize(buffer.AsSpan(0, 182)));
+        // Protocol 8 snapshots stopped before the remote presentation timers.
+        Assert.Throws<ArgumentException>(() => CharacterStatePacket.Deserialize(buffer.AsSpan(0, 186)));
 
         var wrongVersion = (byte[])buffer.Clone();
         wrongVersion[163] = 3;

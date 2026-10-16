@@ -104,8 +104,11 @@ public sealed class PresentationEventPacketTests
     }
 
     [Fact]
-    public void PredictedOpponentReplayEmitsAndSuppressesLateConfirmation()
+    public void PredictedOpponentNeverReplaysARelayedPressAndAcceptsTheServerEventOnce()
     {
+        // A relayed press on a predictable snapshot was rejected by the GameServer
+        // (an accepted press yields an Attacking snapshot). Prediction must not start
+        // that ability on its frontier; the authoritative event still arrives once.
         var def = TestHelpers.EngineDef;
         var slots = System.Linq.Enumerable.ToArray(def.CookedSlots!);
         slots[6] = new CookedSlotDefinition(6, "ground.R", false, "Replay fixture", "", "",
@@ -141,11 +144,14 @@ public sealed class PresentationEventPacketTests
                 Input = new InputState { ActiveSlot = 5 },
             },
         });
-        var predicted = Assert.Single(sim.DrainPresentationEvents());
-        Assert.Equal(2UL, predicted.EntityId);
-        Assert.Equal(PresentationEventSource.Timeline, predicted.Source);
-        Assert.Equal("presentation.test.replay", predicted.PresentationId);
-        sim.IngestPresentationEvent(predicted);
+        Assert.Empty(sim.DrainPresentationEvents());
+        Assert.NotEqual(ActionState.Attacking, sim.GetState(2).State);
+
+        var authoritative = new TimelinePresentationEvent(10, 2, 0, "presentation.test.replay", 1,
+            PresentationEventSource.Timeline, 10f, 0f, 0f, 0f);
+        sim.IngestPresentationEvent(authoritative);
+        Assert.Equal(authoritative, Assert.Single(sim.DrainPresentationEvents()));
+        sim.IngestPresentationEvent(authoritative);
         Assert.Empty(sim.DrainPresentationEvents());
     }
 

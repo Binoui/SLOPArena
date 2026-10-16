@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SlopArena.Shared;
 using SlopArena.Shared.Rollback;
@@ -10,6 +11,9 @@ namespace SlopArena.Client.Simulation
     /// continuously (LocalTrack); opponents predict while in a Predictable ActionState
     /// (PredictedTrack) and render raw from the server otherwise (RawTrack). Replaces
     /// NetworkSimulationBridge for PvPMatch — Training keeps LocalSimulationBridge.
+    ///
+    /// Local prediction advances one tick per fixed update (paced toward the clock's
+    /// frontier) and every simulated tick's input is sent, repeated in the next datagrams.
     /// </summary>
     public class RollbackSimulationBridge : ISimulationBridge
     {
@@ -23,9 +27,12 @@ namespace SlopArena.Client.Simulation
         private InputState _lastAppliedInput;
         private bool _hasBufferedInput;
         private readonly NetplayClock _clock = new();
+        private readonly InputState[] _recentInputs = new InputState[InputBundle.MaxInputs];
+        private int _recentCount;
         private readonly List<NetworkClient.ControlFrame> _lastControlFrames = new();
         private readonly List<SpellResolver.HitResult> _lastTickHits = new();
         private readonly List<TimelinePresentationEvent> _lastTickPresentationEvents = new();
+        private int _windowUpdates, _windowSkipped, _windowExtra;
         public MatchResultPacket? LatestMatchResult { get; private set; }
         public MatchState AuthoritativeMatchState { get; private set; } = MatchState.Waiting;
         public IReadOnlyList<NetworkClient.ControlFrame> LastControlFrames => _lastControlFrames;
@@ -43,6 +50,17 @@ namespace SlopArena.Client.Simulation
         public int CorrectionCount => _core.CorrectionCount;
         public uint LastFrontierTicks => _core.LastFrontierTicks;
 
+        /// <summary>Pacing and transport health since the previous call (for the periodic log line).</summary>
+        public NetplayStats TakeStats(double nowSeconds)
+        {
+            var stats = new NetplayStats(_windowUpdates, _windowSkipped, _windowExtra,
+                _clock.LeadTicks, _clock.LeadBonus,
+                _clock.IsSeeded ? (long)_tick - _clock.EstimateTick(nowSeconds) : 0,
+                _core.RawPlayoutDelay, _core.RawPlayoutStarvations, _core.CorrectionCount);
+            _windowUpdates = _windowSkipped = _windowExtra = 0;
+            return stats;
+        }
+
         public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
             => _core.RegisterEntity(id, def, initialState, baked);
         public bool HasInitialState(ulong entityId) => _receivedInitialStates.Contains(entityId);
@@ -56,6 +74,7 @@ namespace SlopArena.Client.Simulation
                 var control = frame.Packet;
                 if (control.EntityId != _selfId || control.Kind != NetplayControlKind.Clock)
                     continue;
+                _clock.ObserveInputTiming(control.InputSlack, control.LateInputs, frame.ReceivedAtSeconds);
                 if (!_clock.Observe(control.Tick, control.StartTick, frame.ReceivedAtSeconds, frame.RoundTripMilliseconds) ||
                     _timelineSeeded || control.StartTick == 0)
                     continue;
@@ -67,6 +86,7 @@ namespace SlopArena.Client.Simulation
                 {
                     _tick = baselineTick;
                     _timelineSeeded = true;
+                    _clock.ResetPacing();
                 }
             }
 
@@ -105,28 +125,40 @@ namespace SlopArena.Client.Simulation
             _bufferedInput = latest;
             _hasBufferedInput = true;
 
-            uint desiredTick = _clock.DesiredLocalTick(nowSeconds);
-            uint steps = _clock.CatchUpSteps(_tick, nowSeconds);
+            uint steps = _clock.StepsForUpdate(_tick, nowSeconds);
+            _windowUpdates++;
+            if (steps == 0) _windowSkipped++;
+            else if (steps > 1) _windowExtra++;
             for (uint i = 0; i < steps; i++)
             {
-                uint nextTick = _tick + 1;
-                bool atFrontier = nextTick == desiredTick;
-                InputState input = atFrontier
-                    ? _bufferedInput
-                    : WithoutEdges(_lastAppliedInput);
+                // Catch-up ticks hold the previous controls; the newest tick carries any presses.
+                bool newest = i == steps - 1;
+                InputState input = newest ? _bufferedInput : _lastAppliedInput.WithoutEdges();
                 inputs[_selfId] = input;
                 _core.Tick(inputs);
-                _tick = nextTick;
+                _tick++;
                 _lastTickHits.AddRange(_core.LastTickHits);
+                RememberSent(input);
 
-                if (atFrontier)
+                if (newest)
                 {
-                    _client.SendInput(input, nextTick);
-                    _lastAppliedInput = WithoutEdges(input);
+                    _lastAppliedInput = input.WithoutEdges();
                     _bufferedInput = default;
                     _hasBufferedInput = false;
                 }
             }
+            if (steps > 0)
+                _client.SendInputs(_tick, _recentInputs.AsSpan(0, _recentCount));
+        }
+
+        private void RememberSent(InputState input)
+        {
+            if (_recentCount == _recentInputs.Length)
+            {
+                Array.Copy(_recentInputs, 1, _recentInputs, 0, _recentInputs.Length - 1);
+                _recentCount--;
+            }
+            _recentInputs[_recentCount++] = input;
         }
 
         private static InputState MergeBufferedEdges(InputState previous, InputState latest)
@@ -142,24 +174,38 @@ namespace SlopArena.Client.Simulation
             return latest;
         }
 
-        private static InputState WithoutEdges(InputState input)
-        {
-            input.Jump = false;
-            input.DownPressed = false;
-            input.ShieldPressed = false;
-            input.GrabPressed = false;
-            input.FaceToCamera = false;
-            input.ToggleLock = false;
-            input.RetargetPressed = false;
-            input.ActiveSlot = 0;
-            return input;
-        }
- 
-
         public CharacterState GetState(ulong id) => _core.GetState(id);
         public Dictionary<ulong, CharacterState> GetAllStates() => _core.GetAllStates();
         public IReadOnlyList<TimelinePresentationEvent> LastTickPresentationEvents => _lastTickPresentationEvents;
         public SpellResolver? Resolver => _core.Resolver;
         public IReadOnlyList<SpellResolver.HitResult> LastTickHits => _lastTickHits;
+    }
+
+    /// <summary>One window of online pacing and transport health.</summary>
+    public readonly struct NetplayStats
+    {
+        public NetplayStats(int updates, int skippedUpdates, int extraStepUpdates, uint leadTicks, int leadBonus,
+            long aheadOfServerTicks, uint rawPlayoutDelay, int rawStarvations, int corrections)
+        {
+            Updates = updates;
+            SkippedUpdates = skippedUpdates;
+            ExtraStepUpdates = extraStepUpdates;
+            LeadTicks = leadTicks;
+            LeadBonus = leadBonus;
+            AheadOfServerTicks = aheadOfServerTicks;
+            RawPlayoutDelay = rawPlayoutDelay;
+            RawStarvations = rawStarvations;
+            Corrections = corrections;
+        }
+
+        public int Updates { get; }
+        public int SkippedUpdates { get; }
+        public int ExtraStepUpdates { get; }
+        public uint LeadTicks { get; }
+        public int LeadBonus { get; }
+        public long AheadOfServerTicks { get; }
+        public uint RawPlayoutDelay { get; }
+        public int RawStarvations { get; }
+        public int Corrections { get; }
     }
 }

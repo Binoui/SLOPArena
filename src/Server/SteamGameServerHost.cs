@@ -11,18 +11,18 @@ namespace SlopArena.Server;
 /// <summary>Owns the process-wide Steam game-server login, listener, and all match connections.</summary>
 public static class SteamGameplayInputCodec
 {
-    public static bool TryParse(ReadOnlySpan<byte> frame, ulong boundEntityId, out uint tick, out InputState input)
+    /// <summary>Parse an input-bundle frame from the bound entity; <paramref name="inputs"/> needs MaxInputs slots.</summary>
+    public static bool TryParse(ReadOnlySpan<byte> frame, ulong boundEntityId, out uint newestTick,
+        Span<InputState> inputs, out int count)
     {
-        tick = 0;
-        input = default;
-        if (boundEntityId == 0 || frame.Length != 1 + 8 + 4 + InputState.Size ||
-            frame[0] != SteamGameplayWire.Input ||
-            BinaryPrimitives.ReadUInt64LittleEndian(frame.Slice(1, 8)) != boundEntityId)
+        newestTick = 0;
+        count = 0;
+        if (boundEntityId == 0 || frame.Length < 1 + InputBundle.HeaderSize || frame[0] != SteamGameplayWire.Input ||
+            !InputBundle.TryRead(frame.Slice(1), out ulong entityId, out uint newest, inputs, out int read) ||
+            entityId != boundEntityId)
             return false;
-        try { input = InputState.Deserialize(frame.Slice(13, InputState.Size)); }
-        catch (ArgumentException) { return false; }
-        catch (InvalidDataException) { return false; }
-        tick = BinaryPrimitives.ReadUInt32LittleEndian(frame.Slice(9, 4));
+        newestTick = newest;
+        count = read;
         return true;
     }
 }
@@ -41,12 +41,18 @@ public static class SteamGameplayControlRouter
 
         // Admission already binds the Steam peer; MatchInstance keeps sending its
         // baseline and clock while waiting. Bootstrap retries must not mark it Ready.
-        return control.Kind switch
+        // A well-formed Ready for an older start tick (sent across the countdown/GO edge)
+        // is stale, not spoofed: ignore it and let the peer answer the current Bootstrap.
+        switch (control.Kind)
         {
-            NetplayControlKind.Bootstrap => true,
-            NetplayControlKind.Ready => tryMarkReady(control),
-            _ => false
-        };
+            case NetplayControlKind.Bootstrap:
+                return true;
+            case NetplayControlKind.Ready:
+                tryMarkReady(control);
+                return true;
+            default:
+                return false;
+        }
     }
 }
 
@@ -67,6 +73,11 @@ public sealed class SteamGameServerHost : IAsyncDisposable
     private readonly ConcurrentDictionary<Guid, byte> _closeQueued = new();
     private readonly IntPtr[] _messages = new IntPtr[MessagesPerConnectionPerPoll];
     private readonly byte[] _receiveFrame = new byte[MaxMessageBytes];
+    private readonly InputState[] _inputBundle = new InputState[InputBundle.MaxInputs];
+    private readonly HashSet<HSteamNetConnection> _pendingFlush = new();
+    /// <summary>Wakes the Steam loop as soon as a match has queued a tick's frames.</summary>
+    private readonly SemaphoreSlim _outboundSignal = new(0, 1);
+    private const int LoopIdleMilliseconds = 2;
     private Callback<SteamServersConnected_t>? _loginSuccess;
     private Callback<SteamServerConnectFailure_t>? _loginFailure;
     private Callback<SteamNetConnectionStatusChangedCallback_t>? _connectionStatus;
@@ -198,6 +209,14 @@ public sealed class SteamGameServerHost : IAsyncDisposable
         }
     }
 
+    /// <summary>Called by a match after queuing a tick's frames; safe from any thread.</summary>
+    public void SignalOutbound()
+    {
+        if (_outboundSignal.CurrentCount != 0) return;
+        try { _outboundSignal.Release(); }
+        catch (SemaphoreFullException) { }
+    }
+
     public void CloseMatch(Guid matchId)
     {
         if (matchId != Guid.Empty && _closeQueued.TryAdd(matchId, 0))
@@ -235,7 +254,9 @@ public sealed class SteamGameServerHost : IAsyncDisposable
             ProcessIncomingMessages();
             ProcessOutbound(_reliableOutbound, reliable: true, ref _reliableOutboundCount);
             ProcessOutbound(_unreliableOutbound, reliable: false, ref _unreliableOutboundCount);
-            try { await Task.Delay(8, cancellationToken); }
+            FlushPendingConnections();
+            // Wake immediately when a match queues a tick; otherwise poll inputs every few ms.
+            try { await _outboundSignal.WaitAsync(LoopIdleMilliseconds, cancellationToken); }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { break; }
         }
     }
@@ -357,6 +378,7 @@ public sealed class SteamGameServerHost : IAsyncDisposable
             connection.EntityId = entityId;
             _entityConnections[(matchId, entityId)] = connection;
             SendControl(connection.Handle, SteamGameplayWire.CreateAck(entityId), reliable: true);
+            _pendingFlush.Add(connection.Handle);
             return;
         }
 
@@ -368,17 +390,19 @@ public sealed class SteamGameServerHost : IAsyncDisposable
             return;
         }
 
-        if (reliable || !SteamGameplayInputCodec.TryParse(frame, connection.EntityId, out uint tick, out var input))
+        if (reliable || !SteamGameplayInputCodec.TryParse(frame, connection.EntityId, out uint newestTick,
+                _inputBundle, out int count))
         {
             EndConnection(connection, "Invalid or spoofed Steam input frame", closeNative: true);
             return;
         }
-        _orchestrator?.TryQueueSteamInput(connection.MatchId, connection.Id, tick, input);
+        _orchestrator?.TryQueueSteamInput(connection.MatchId, connection.Id, newestTick, _inputBundle.AsSpan(0, count));
     }
 
     private void Deny(Connection connection, byte reason)
     {
         SendControl(connection.Handle, new[] { SteamGameplayWire.Deny, reason }, reliable: true);
+        _pendingFlush.Add(connection.Handle);
         connection.DeniedAt = Stopwatch.GetTimestamp();
     }
 
@@ -403,7 +427,21 @@ public sealed class SteamGameServerHost : IAsyncDisposable
                 connection.MatchId != item.MatchId || connection.EntityId != item.EntityId)
                 continue;
             SendControl(connection.Handle, item.Frame, reliable);
+            _pendingFlush.Add(connection.Handle);
         }
+    }
+
+    /// <summary>
+    /// Frames queue with Steam's Nagle timer so one tick coalesces into few datagrams;
+    /// flushing after each drain sends them immediately instead of 5 ms later.
+    /// </summary>
+    private void FlushPendingConnections()
+    {
+        if (_pendingFlush.Count == 0) return;
+        foreach (var handle in _pendingFlush)
+            if (_connections.ContainsKey(handle))
+                SteamGameServerNetworkingSockets.FlushMessagesOnConnection(handle);
+        _pendingFlush.Clear();
     }
 
     private void ProcessMatchClosures()
@@ -474,5 +512,6 @@ public sealed class SteamGameServerHost : IAsyncDisposable
         _connectionStatus?.Dispose();
         _loginFailure?.Dispose();
         _loginSuccess?.Dispose();
+        _outboundSignal.Dispose();
     }
 }

@@ -43,6 +43,8 @@ namespace SlopArena.Client.World
 
         private IEnumerator RunCapturePass()
         {
+            // Baselines capture exact simulation steps, not interpolated in-between frames.
+            _match.SetRenderInterpolation(false);
             SetupNeutral();
             yield return SettleAndCapture("vb-01-neutral-spacing");
 
@@ -85,6 +87,7 @@ namespace SlopArena.Client.World
                 "respawn", 360);
             Capture("vb-09-respawn");
             yield return null;
+            _match.SetRenderInterpolation(true);
         }
 
         private IEnumerator CaptureHit(byte slot, ushort damage, string file, System.Action<float> connectedAt)

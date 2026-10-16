@@ -120,7 +120,7 @@ namespace SlopArena.Server
                         match = new MatchInstance(0, matchId, arenaName, roster, catalog,
                             _ => { }, maxStocks, ReportMatchResult, OnSteamMatchEnd, ReportMatchCancellation,
                             admissionDeadlineUtc, contentHash, _steamHost!.SendToMatchEntity,
-                            contentHandleMap: content);
+                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (!_steamMatches.TryAdd(matchGuid, match))
@@ -171,8 +171,8 @@ namespace SlopArena.Server
                 match.TryBindSteamPlayer(steamId, connectionId, contentHash, out entityId, out replacedConnectionId, out denialCode);
         }
 
-        public bool TryQueueSteamInput(Guid matchId, long connectionId, uint tick, InputState input) =>
-            _steamMatches.TryGetValue(matchId, out var match) && match.TryQueueSteamInput(connectionId, tick, input);
+        public bool TryQueueSteamInput(Guid matchId, long connectionId, uint newestTick, ReadOnlySpan<InputState> inputs) =>
+            _steamMatches.TryGetValue(matchId, out var match) && match.TryQueueSteamInput(connectionId, newestTick, inputs);
 
         public bool TryMarkSteamReady(Guid matchId, long connectionId, NetplayControlPacket control) =>
             _steamMatches.TryGetValue(matchId, out var match) && match.TryMarkSteamReady(connectionId, control);

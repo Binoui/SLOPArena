@@ -887,6 +887,7 @@ namespace SlopArena.Client.Network
 
             string? value = reason.GetString();
             return value is "unfilled" or "absent" or "host_restart" or "host_shutdown" or "content_unavailable" or "host_unavailable"
+                    or "match_failed"
                 ? new MatchAbortedNotification(matchId, value)
                 : null;
         }

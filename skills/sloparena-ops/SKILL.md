@@ -33,7 +33,9 @@ Do not restart a healthy GameHost or interrupt a match to investigate lag.
 4. Correlate the snapshot with the GameHost and client logs below. Tick overruns
    suggest server work/scheduling; poor peer measurements suggest transport.
    Normal server measurements do not rule out client frame pacing, prediction or
-   hit presentation. Client FPS and prediction correction counts are not collected.
+   hit presentation. During play the GameHost logs `Inputs entity N:` lines (late,
+   held and neutral ticks, minimum slack) and the client `Player.log` has `[Netplay]`
+   lines (skipped/extra-step updates, lead, corrections, raw playout, frame time).
 
 Diagnostics retain active matches and the last 50 ended matches, with 256 recent
 events per match. GameHost restart loses them. A `410` means a known match has
