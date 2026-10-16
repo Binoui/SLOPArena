@@ -184,7 +184,7 @@ state wire values and adds `Grabbing` (20) and `Thrown` (21).
 
 Scene/Game **Gizmos** show the cooked forward box during `GrabAttempt`: yellow
 startup, orange active contact, gray whiff recovery. The Edit Mode menu
-**Tools → SlopArena → Tests → Grab Animation Presentation** checks held loops,
+**Tools → SLOPArena → Tests → Grab Animation Presentation** checks held loops,
 both walk directions and roles, throw frame 11, victim landing frame 34, recorded
 poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
 

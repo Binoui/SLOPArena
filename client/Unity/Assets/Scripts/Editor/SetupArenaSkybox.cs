@@ -3,7 +3,7 @@ using UnityEditor;
 
 public class SetupArenaSkybox : EditorWindow
 {
-    [MenuItem("Tools/SlopArena/Prototypes/Setup Arena Skybox")]
+    [MenuItem("Tools/SLOPArena/Prototypes/Setup Arena Skybox")]
     public static void Execute()
     {
         string exrPath = "Assets/Scenes/Arena_Offline/ReflectionProbe-0.exr";

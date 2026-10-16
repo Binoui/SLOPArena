@@ -39,7 +39,7 @@ public static class CharacterAssetCookerSelfTest
         }
     }
 
-    [MenuItem("Tools/SlopArena/Tests/Weapon Marker Poses")]
+    [MenuItem("Tools/SLOPArena/Tests/Weapon Marker Poses")]
     public static void RunWeaponMarkerSelfTest()
     {
         var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>("Assets/CharacterPackages/bonk/CharacterAssetCatalog.asset");
@@ -132,7 +132,7 @@ public static class CharacterAssetCookerSelfTest
                 + context.CapsuleHeight * 0.5f - context.HipHeight) / context.HurtboxBoneScale,
             rootLocalPosition.z * context.VisualScale / context.HurtboxBoneScale);
 
-    [MenuItem("Tools/SlopArena/Tests/Character Asset Cooker")]
+    [MenuItem("Tools/SLOPArena/Tests/Character Asset Cooker")]
     public static void RunFightGuySelfTest()
     {
         using (var fixture = new CharacterPackageSelfTestScope("fightguy"))

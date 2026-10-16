@@ -38,7 +38,7 @@ enable Enter Play Mode options and disable **Reload Domain** before pressing
 Play. The native checks used `DisableDomainReload`; they restored the original
 settings afterward. A player build has not been verified for this phase.
 
-1. Select **Tools → SlopArena → Arcade → Phase 1 → Prepare Test Court** if the
+1. Select **Tools → SLOPArena → Arcade → Phase 1 → Prepare Test Court** if the
    original cosmetic prefab is missing. Preparation creates missing assets and
    bakes the current source without rewriting the normal offline/PvP scenes.
 2. Select **Open FightGuy**, **Open Manki**, **Open Wibou** or **Open Bonk** in that

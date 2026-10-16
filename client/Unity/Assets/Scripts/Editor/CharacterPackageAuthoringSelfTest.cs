@@ -10,7 +10,7 @@ using SlopArena.Client.Tools;
 
 public static class CharacterPackageAuthoringSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Character Package Authoring")]
+    [MenuItem("Tools/SLOPArena/Tests/Character Package Authoring")]
     public static void RunFightGuyAuthoringSelfTest()
     {
         using (var fixture = new CharacterPackageSelfTestScope("fightguy", "bonk"))

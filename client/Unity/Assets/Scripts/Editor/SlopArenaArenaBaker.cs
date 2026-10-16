@@ -14,7 +14,7 @@ using SlopArena.Shared;
 ///   - SpawnPoint[] from tagged "SpawnPoint" GameObjects
 ///   - KillHeight from manual field
 /// 
-/// Usage: Tools → SlopArena → Legacy → Bake Arena...
+/// Usage: Tools → SLOPArena → Legacy → Bake Arena...
 /// Select the root GameObject containing all arena meshes, set name/spawns, bake.
 /// </summary>
 public class SlopArenaArenaBaker : EditorWindow
@@ -39,7 +39,7 @@ public class SlopArenaArenaBaker : EditorWindow
     private float _maxZ = 25f;
     private string _outputDir = "../../data/arenas";
     private bool _autoBounds = true;
-    [MenuItem("Tools/SlopArena/Legacy/Bake Arena...")]
+    [MenuItem("Tools/SLOPArena/Legacy/Bake Arena...")]
     public static void ShowWindow()
     {
         GetWindow<SlopArenaArenaBaker>("Bake Arena");

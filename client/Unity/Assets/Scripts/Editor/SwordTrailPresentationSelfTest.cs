@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 public static class SwordTrailPresentationSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Sword Trail Presentation")]
+    [MenuItem("Tools/SLOPArena/Tests/Sword Trail Presentation")]
     public static void Run()
     {
         if (Application.isPlaying)

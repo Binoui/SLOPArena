@@ -115,7 +115,7 @@ floating-point evaluation. Cooked poses and runtime gameplay JSON are
 
 Cook, inspect, verify and roster refresh pass; Manki is current and Lab is paused
 on ground `4`, tick 10, with no animation diagnostics. The final console also
-contains an unrelated `SlopArena/StageNeon` shader error for undeclared `SampleSH`
+contains an unrelated `SLOPArena/StageNeon` shader error for undeclared `SampleSH`
 at `Assets/Shaders/SlopArenaStageNeon.shader:152`; this animation correction does
 not claim a clean whole-project console.
 

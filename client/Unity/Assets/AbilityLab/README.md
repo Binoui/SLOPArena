@@ -6,7 +6,7 @@ Ability Lab is SLOPArena's internal fighter/move authoring and debugging environ
 
 ## Usage
 
-Open `Tools → SlopArena → Ability Lab` from any scene. The window automatically creates one private preview scene with its own rig, camera and lighting; the saved Lab scene and **Create Lab Rig** button are no longer needed. Preview objects stay outside your open scene and are cleaned up on close, script reload and entry into Play Mode. Select a source package from `Assets/CharacterPackages`; the selector shows its display name and package ID while persisting only the package ID. FightGuy opens as `fightguy` with Ground `1` selected.
+Open `Tools → SLOPArena → Ability Lab` from any scene. The window automatically creates one private preview scene with its own rig, camera and lighting; the saved Lab scene and **Create Lab Rig** button are no longer needed. Preview objects stay outside your open scene and are cleaned up on close, script reload and entry into Play Mode. Select a source package from `Assets/CharacterPackages`; the selector shows its display name and package ID while persisting only the package ID. FightGuy opens as `fightguy` with Ground `1` selected.
 
 The preview is rooted. It loads the last verified cooked package from staged `Application.streamingAssetsPath/content-cooked` or the repository `content-cooked` directory, in that order. It never depends on the process working directory and never cooks when the window opens. In Edit Mode, stop playback at tick `0`, use the timeline slider or bounded `−1`/`+1` controls, and inspect the embedded viewport, baked bones, hurtboxes, and hitboxes. Right-drag orbits, middle-drag pans, and scrolling zooms the private preview camera.
 

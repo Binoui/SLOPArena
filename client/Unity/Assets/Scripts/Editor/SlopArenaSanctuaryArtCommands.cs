@@ -22,7 +22,7 @@ namespace SlopArena.EditorTools
         private const int Stone = 0, StoneLight = 1, StoneDark = 2, Grout = 3, Jade = 4,
             Wood = 5, WoodLight = 6, WoodDark = 7, Terra = 8, Iron = 9, Gold = 10, Cloud = 11, CloudShade = 12;
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 5/Apply Cloudtop First Crossing")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 5/Apply Cloudtop First Crossing")]
         private static void ApplyMenu() => Apply();
 
         [CliCommand("sloparena.arcade.course.art-sample", "Apply the approved Cloudtop first-crossing presentation to the existing sanctuary prefab; preserve baked gameplay.",

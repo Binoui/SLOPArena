@@ -78,7 +78,7 @@ This makes the Arena_Offline scene self-contained — no menu flow dependency.
 
 ## Baking
 
-`Tools > SlopArena > Bake Arena...` → select arena root → set name → bake
+`Tools > SLOPArena > Bake Arena...` → select arena root → set name → bake
 
 Produces: `data/arenas/<name>.arena` (binary format: magic "AREN" + version + all collision data)
 

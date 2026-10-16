@@ -1,7 +1,7 @@
 // Presentation-only stage surface: vertex-colour albedo (baked AO included), optional
 // atlas multiply, triplanar detail grit and gentle cloth/foliage wind. Vertex alpha
 // masks both effects: detail strength and wind weight. Gameplay never reads this geometry.
-Shader "SlopArena/StageVertexLit"
+Shader "SLOPArena/StageVertexLit"
 {
     Properties
     {

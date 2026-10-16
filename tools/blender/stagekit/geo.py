@@ -7,8 +7,8 @@ each vertex back on the same Unity coordinate (verified: Blender (x, y, z)
 imports as Unity (-x, z, -y)).
 
 Vertex alpha is a mask whose meaning the material's shader decides:
-SlopArena/StageVertexLit reads it as the triplanar-detail amount (`detail`) or, on
-cloth, the wind weight; SlopArena/StageNeon reads it as the glow amount. A face
+SLOPArena/StageVertexLit reads it as the triplanar-detail amount (`detail`) or, on
+cloth, the wind weight; SLOPArena/StageNeon reads it as the glow amount. A face
 without an explicit material uses its mesh's first material slot.
 
 Optional per-corner animation channels (exported as extra UV maps with

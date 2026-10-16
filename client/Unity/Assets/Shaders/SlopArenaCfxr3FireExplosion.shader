@@ -1,4 +1,4 @@
-Shader "SlopArena/Particles/CFXR3 Fire Explosion"
+Shader "SLOPArena/Particles/CFXR3 Fire Explosion"
 {
     Properties
     {

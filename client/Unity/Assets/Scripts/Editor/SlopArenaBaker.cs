@@ -12,7 +12,7 @@ using SlopArena.Client.Entities;
 /// Bakes skeleton bone positions per animation frame into a .bin file.
 /// Replaces the Godot headless_bake.gd script.
 ///
-/// Usage: Tools -> SlopArena -> Legacy -> Bake Skeleton...
+/// Usage: Tools -> SLOPArena -> Legacy -> Bake Skeleton...
 /// Select a character prefab (FBX model with Animator), this will sample all animations
 /// at each frame and write bone positions to a .bin file.
 ///
@@ -36,7 +36,7 @@ public class SlopArenaBaker : EditorWindow
     private string _outputPath = "data/";
     private float _sampleRate = 60f;
 
-    [MenuItem("Tools/SlopArena/Legacy/Bake Skeleton...")]
+    [MenuItem("Tools/SLOPArena/Legacy/Bake Skeleton...")]
     public static void ShowWindow()
     {
         GetWindow<SlopArenaBaker>("Bake Skeleton");
@@ -64,7 +64,7 @@ public class SlopArenaBaker : EditorWindow
         if ((model != null && model.name.IndexOf("fightguy", StringComparison.OrdinalIgnoreCase) >= 0) ||
             (animConfig != null && animConfig.name.IndexOf("fightguy", StringComparison.OrdinalIgnoreCase) >= 0))
         {
-            Debug.LogError("[SlopArenaBaker] FightGuy is owned by CharacterAssetCatalog; use Tools/SlopArena/Cook FightGuy.");
+            Debug.LogError("[SlopArenaBaker] FightGuy is owned by CharacterAssetCatalog; use Tools/SLOPArena/Cook FightGuy.");
             return;
         }
 
@@ -386,7 +386,7 @@ public class SlopArenaBaker : EditorWindow
         }
     }
 
-    [MenuItem("Tools/SlopArena/Legacy/Bake All Skeletons")]
+    [MenuItem("Tools/SLOPArena/Legacy/Bake All Skeletons")]
     public static void BakeAllCharacters()
     {
         float sampleRate = 60f;

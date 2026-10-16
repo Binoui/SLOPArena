@@ -11,7 +11,7 @@ namespace SlopArena.EditorTools
 {
     public static class SlopArenaUiLayoutSelfTest
     {
-        [MenuItem("Tools/SlopArena/Tests/Named UI Layout Inspection")]
+        [MenuItem("Tools/SLOPArena/Tests/Named UI Layout Inspection")]
         private static async void RunMenu()
         {
             try { Debug.Log(JsonConvert.SerializeObject(await Run())); }

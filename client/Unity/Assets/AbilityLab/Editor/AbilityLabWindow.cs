@@ -252,7 +252,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         if (_uiReady) UpdateTimelineControls();
     }
 
-    [MenuItem("Tools/SlopArena/Ability Lab")]
+    [MenuItem("Tools/SLOPArena/Ability Lab")]
     public static void Open() => GetWindow<AbilityLabWindow>("Ability Lab");
 
     private void OnEnable()

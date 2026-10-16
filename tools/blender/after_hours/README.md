@@ -13,7 +13,7 @@ FBX and an apply command. Two parts are specific to this stage:
 - `layout.py` keeps the approved broad-roof `SPEC` and reads the baked
   `data/arenas/after_hours.arena` (the roof is a mesh, not boxes). A normal build
   refuses to run unless the arena's tops, walls, spawns and blast planes match `SPEC`.
-- `SlopArena/StageNeon` is an unlit night shader with a glow mask and per-vertex
+- `SLOPArena/StageNeon` is an unlit night shader with a glow mask and per-vertex
   animation channels exported as extra UV maps (`stagekit/geo.py` documents them):
   blinking, pulsing, chasing and flickering signs, slow window changes and looping
   traffic. Nothing animated needs a script. The match camera's ACES grade and bloom

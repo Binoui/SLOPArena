@@ -49,8 +49,8 @@ update `AfterHoursArenaTests`, then regenerate and reapply the art.
 All presentation is original procedural art from `tools/blender/after_hours`
 ([guide](../../../tools/blender/after_hours/README.md)): one vertex-coloured FBX with
 baked AO, a billboard/screen atlas and a detail texture. The roof and club tower use
-`SlopArena/StageVertexLit`; the city, signs, sky and traffic use the new
-`SlopArena/StageNeon` shader, whose per-vertex channels animate signs, windows,
+`SLOPArena/StageVertexLit`; the city, signs, sky and traffic use the new
+`SLOPArena/StageNeon` shader, whose per-vertex channels animate signs, windows,
 traffic and trains without scripts. `sloparena.stage.art-after-hours` verifies the
 generator stamp against the source-scene and arena hashes, imports the art, sets the
 materials, a six-light night rig and the stage atmosphere, and removes earlier art

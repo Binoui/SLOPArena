@@ -10,7 +10,7 @@ namespace SlopArena.Client.Input;
 public static class DefenseInputEdgesSelfTest
 {
 #if UNITY_EDITOR
-    [MenuItem("Tools/SlopArena/Tests/Defense Input Edges")]
+    [MenuItem("Tools/SLOPArena/Tests/Defense Input Edges")]
 #endif
     public static void Run()
     {

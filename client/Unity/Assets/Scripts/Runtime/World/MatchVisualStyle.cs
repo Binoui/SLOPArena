@@ -64,10 +64,10 @@ namespace SlopArena.Client.World
 
         private void ApplyCharacterMaterials()
         {
-            var shader = Shader.Find("SlopArena/GraphicCharacter");
+            var shader = Shader.Find("SLOPArena/GraphicCharacter");
             if (shader == null)
             {
-                Debug.LogWarning("[MatchVisualStyle] SlopArena/GraphicCharacter shader not found.");
+                Debug.LogWarning("[MatchVisualStyle] SLOPArena/GraphicCharacter shader not found.");
                 return;
             }
 

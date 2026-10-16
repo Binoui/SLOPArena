@@ -13,7 +13,7 @@ public sealed class CharacterAssetCatalogEditor : EditorWindow
     private List<CharacterDiagnostic> _diagnostics = new List<CharacterDiagnostic>();
     private CharacterCookStatus _status;
 
-    [MenuItem("Tools/SlopArena/Authoring/Character Asset Catalog")]
+    [MenuItem("Tools/SLOPArena/Authoring/Character Asset Catalog")]
     public static void ShowWindow() => GetWindow<CharacterAssetCatalogEditor>("Character Asset Catalog");
 
     private void OnEnable() { }

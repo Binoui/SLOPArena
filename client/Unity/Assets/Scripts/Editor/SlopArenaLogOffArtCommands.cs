@@ -37,7 +37,7 @@ namespace SlopArena.EditorTools
         // Distant or emissive objects neither cast nor receive shadows.
         private static readonly HashSet<string> Unshadowed = new() { "Sky", "Fireflies", "Far Forest", "Camp Glow", "Canopy" };
 
-        [MenuItem("Tools/SlopArena/Stages/Apply Log Off Campsite Art")]
+        [MenuItem("Tools/SLOPArena/Stages/Apply Log Off Campsite Art")]
         private static void ApplyMenu() => Apply();
 
         [CliCommand("sloparena.stage.art-log-off",
@@ -183,8 +183,8 @@ namespace SlopArena.EditorTools
 
         private static Dictionary<string, Material> MakeMaterials()
         {
-            var lit = Shader.Find("SlopArena/StageVertexLit") ?? throw new InvalidOperationException("Shader SlopArena/StageVertexLit is missing.");
-            var neon = Shader.Find("SlopArena/StageNeon") ?? throw new InvalidOperationException("Shader SlopArena/StageNeon is missing.");
+            var lit = Shader.Find("SLOPArena/StageVertexLit") ?? throw new InvalidOperationException("Shader SLOPArena/StageVertexLit is missing.");
+            var neon = Shader.Find("SLOPArena/StageNeon") ?? throw new InvalidOperationException("Shader SLOPArena/StageNeon is missing.");
             var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(AtlasPath);
             var top = AssetDatabase.LoadAssetAtPath<Texture2D>(TopPath);
             var detail = AssetDatabase.LoadAssetAtPath<Texture2D>(DetailPath);

@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 
 public static class GrabAnimationPresentationSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Grab Animation Presentation")]
+    [MenuItem("Tools/SLOPArena/Tests/Grab Animation Presentation")]
     public static void Run()
     {
         if (Application.isPlaying)

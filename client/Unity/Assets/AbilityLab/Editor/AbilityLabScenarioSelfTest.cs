@@ -9,7 +9,7 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabScenarioSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab Scenario Outcomes")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Scenario Outcomes")]
     public static void Run()
     {
         var definition = Fixture();

@@ -36,7 +36,7 @@ namespace SlopArena.EditorTools
         // Roots of the previous hand-built pass; the generated city replaces them.
         private static readonly string[] SupersededRoots = { "PlayableRoof", "City", "SpawnMarkers", "WarmRoofFill", "CoolRoofFill" };
 
-        [MenuItem("Tools/SlopArena/Stages/Apply After Hours Neon Art")]
+        [MenuItem("Tools/SLOPArena/Stages/Apply After Hours Neon Art")]
         private static void ApplyMenu() => Apply();
 
         [CliCommand("sloparena.stage.art-after-hours",
@@ -206,7 +206,7 @@ namespace SlopArena.EditorTools
             var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             if (material == null)
             {
-                material = new Material(Shader.Find("SlopArena/StageNeon")) { name = "AfterHoursFightNight" };
+                material = new Material(Shader.Find("SLOPArena/StageNeon")) { name = "AfterHoursFightNight" };
                 AssetDatabase.CreateAsset(material, materialPath);
             }
             material.SetTexture("_BaseMap", texture); material.SetColor("_BaseColor", Color.white);
@@ -267,8 +267,8 @@ namespace SlopArena.EditorTools
 
         private static Dictionary<string, Material> MakeMaterials()
         {
-            var lit = Shader.Find("SlopArena/StageVertexLit") ?? throw new InvalidOperationException("Shader SlopArena/StageVertexLit is missing.");
-            var neon = Shader.Find("SlopArena/StageNeon") ?? throw new InvalidOperationException("Shader SlopArena/StageNeon is missing.");
+            var lit = Shader.Find("SLOPArena/StageVertexLit") ?? throw new InvalidOperationException("Shader SLOPArena/StageVertexLit is missing.");
+            var neon = Shader.Find("SLOPArena/StageNeon") ?? throw new InvalidOperationException("Shader SLOPArena/StageNeon is missing.");
             var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(AtlasPath);
             var detail = AssetDatabase.LoadAssetAtPath<Texture2D>(DetailPath);
             Material Make(string file, Shader shader, Action<Material> configure)

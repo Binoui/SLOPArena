@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class SteamRoomJoinSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Room Steam Join")]
+    [MenuItem("Tools/SLOPArena/Tests/Room Steam Join")]
     public static void Run()
     {
         var roomId = Guid.Parse("12345678-90ab-cdef-1234-567890abcdef");

@@ -33,7 +33,7 @@ Editor verification, temporarily enable Enter Play Mode options and disable
 or a player-build setting.
 
 On an art checkout missing the local Resources court prefab, run **Tools →
-SlopArena → Arcade → Phase 3 → Prepare menu and Slopball**. Preparation preserves
+SLOPArena → Arcade → Phase 3 → Prepare menu and Slopball**. Preparation preserves
 the existing frontend, adds its Arcade page, recreates missing original Slopball
 content through the maintained preparer, and adds the gameplay scene to builds.
 

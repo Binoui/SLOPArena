@@ -13,7 +13,7 @@ namespace SlopArena.Client.Editor
 {
     public static class SlopArenaSceneSetup
     {
-        [MenuItem("Tools/SlopArena/Prototypes/Rebuild Offline Scene")]
+        [MenuItem("Tools/SLOPArena/Prototypes/Rebuild Offline Scene")]
         public static void CreateOfflineScene()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);

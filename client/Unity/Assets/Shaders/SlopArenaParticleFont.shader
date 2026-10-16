@@ -1,4 +1,4 @@
-Shader "SlopArena/Particles/Font"
+Shader "SLOPArena/Particles/Font"
 {
     Properties
     {

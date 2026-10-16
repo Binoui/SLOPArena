@@ -11,7 +11,7 @@ using SlopArena.Shared;
 
 public static class EditorDevelopmentContentSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Editor Development Content")]
+    [MenuItem("Tools/SLOPArena/Tests/Editor Development Content")]
     public static void Run()
     {
         using var fixture = new CharacterPackageSelfTestScope("fightguy");

@@ -28,7 +28,7 @@ Use **ARCADE → SANCTUARY COURSE → PLAY COURSE** from the normal Frontend.
 The [Phase 4 handoff](arcade-phase-4.md#play) describes the existing Editor domain
 reload workaround and course controls.
 
-The first sample is rebuilt through **Tools → SlopArena → Arcade → Phase 5 →
+The first sample is rebuilt through **Tools → SLOPArena → Arcade → Phase 5 →
 Apply Cloudtop First Crossing**, or through an owned gateway batch:
 
 ```bash
@@ -43,7 +43,7 @@ bake. Reconstructing the Phase 4 greybox with `--rebuild true` resets presentati
 apply this sample again afterward.
 
 To apply the approved spacing to an existing prepared course, use **Tools →
-SlopArena → Arcade → Phase 5 → Apply Wider Course Spacing**, or:
+SLOPArena → Arcade → Phase 5 → Apply Wider Course Spacing**, or:
 
 ```bash
 bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.arcade.course.relayout

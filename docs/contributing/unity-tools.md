@@ -1,7 +1,7 @@
 # Unity tools and self-tests
 
-The primary package UI remains **Tools → SlopArena → Ability Lab**. The other
-project menus now share **Tools → SlopArena** and make their purpose explicit:
+The primary package UI remains **Tools → SLOPArena → Ability Lab**. The other
+project menus now share **Tools → SLOPArena** and make their purpose explicit:
 
 | Menu | Purpose |
 | --- | --- |

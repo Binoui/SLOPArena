@@ -31,12 +31,12 @@ namespace SlopArena.EditorTools
         private const string DetailPath = ArtPath + "/SanctuaryDetail.png";
         private const string RootName = "Himalayan Sanctuary";
         private const string SupersededSample = "Cloudtop First Crossing";
-        private const string ShaderName = "SlopArena/StageVertexLit";
+        private const string ShaderName = "SLOPArena/StageVertexLit";
         // Gameplay cues stay owned by the course greybox presentation.
         private static readonly string[] CueNames = { "Checkpoint 1", "Checkpoint 2", "Checkpoint 3", "Finish", "Route Arrow" };
         private static readonly string[] BackdropObjects = { "Backdrop Peaks", "Backdrop Spires", "Mountain Floor", "Cloud Sea" };
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 5/Apply Himalayan Sanctuary Art")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 5/Apply Himalayan Sanctuary Art")]
         private static void ApplyMenu() => Apply();
 
         [CliCommand("sloparena.arcade.course.art-himalaya",

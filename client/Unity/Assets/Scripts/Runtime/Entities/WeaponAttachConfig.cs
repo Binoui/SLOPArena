@@ -52,7 +52,7 @@ namespace SlopArena.Client.Entities
     /// Place in Resources/WeaponConfigs/ named after the CharacterClass enum value
     /// (e.g. Resources/WeaponConfigs/Manki.asset).
     /// </summary>
-    [CreateAssetMenu(fileName = "NewWeaponAttachConfig", menuName = "SlopArena/Weapon Attach Config")]
+    [CreateAssetMenu(fileName = "NewWeaponAttachConfig", menuName = "SLOPArena/Weapon Attach Config")]
     public class WeaponAttachConfig : ScriptableObject
     {
         public WeaponEntry[] Entries = System.Array.Empty<WeaponEntry>();

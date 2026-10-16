@@ -415,7 +415,7 @@ public static class AbilityLabFrontendSelfTest
         }
     }
 
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab Frontend")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Frontend")]
     public static void Run()
     {
         using var preservation = new CharacterPackageSelfTestScope("fightguy", "bonk", "manki", "wibou");

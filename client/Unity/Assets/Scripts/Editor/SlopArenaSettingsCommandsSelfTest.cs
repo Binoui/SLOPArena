@@ -6,7 +6,7 @@ namespace SlopArena.EditorTools
 {
     public static class SlopArenaSettingsCommandsSelfTest
     {
-        [MenuItem("Tools/SlopArena/Tests/Supported Settings Command Validation")]
+        [MenuItem("Tools/SLOPArena/Tests/Supported Settings Command Validation")]
         public static void Run()
         {
             RequireValid("{\"uiScale\":80,\"targetOpacity\":20,\"screenShake\":0,\"showOverheadDamage\":false,\"reducedFlashing\":true}");
