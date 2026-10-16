@@ -1,4 +1,4 @@
-# SlopArena Stage Authoring POC Debrief
+# SLOPArena Stage Authoring POC Debrief
 
 **Status:** Reference report for designing a future stage-authoring skill. This document does not implement that skill and does not define a new runtime stage contract.
 
@@ -6,7 +6,7 @@
 
 This report records what the Tropical Festival stage POC taught us about importing third-party environment assets, composing a readable fighting arena, separating art from gameplay, configuring lighting, and reviewing a scene from multiple 3D views.
 
-The intended reader is the author of a future skill that can turn a stage concept and an asset source into a reviewable SlopArena stage.
+The intended reader is the author of a future skill that can turn a stage concept and an asset source into a reviewable SLOPArena stage.
 
 ## Existing repository constraints
 
@@ -491,6 +491,6 @@ A warning such as high triangle count is not automatically a failure, but it mus
 
 ## Bottom line
 
-The POC confirmed that the asset packs can support a good SlopArena stage, but the difficult part is not prefab placement. The difficult part is a repeatable boundary between imported art, authored gameplay geometry, camera readability, and technical validation.
+The POC confirmed that the asset packs can support a good SLOPArena stage, but the difficult part is not prefab placement. The difficult part is a repeatable boundary between imported art, authored gameplay geometry, camera readability, and technical validation.
 
 The future skill should therefore be a **stage review and authoring pipeline**, not a prefab spawner. Its defining feature should be the standardized multi-view evidence pack: gameplay camera, front/three-quarter views, side, top, collision, bounds, lighting, and material diagnostics. That evidence will make a stage genuinely 3D-ready and will expose failures that a single attractive screenshot cannot.

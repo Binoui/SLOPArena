@@ -17,7 +17,7 @@ public static class PlaytestReleaseBuilder
 {
     private const string VersionPattern = @"\A[0-9]+\.[0-9]+\.[0-9]+-playtest\.[0-9]+\z";
     private const string RevisionPattern = @"\A[0-9a-f]{40}\z";
-    private const string ExecutableName = "SlopArena.exe";
+    private const string ExecutableName = "SLOPArena.exe";
     private static readonly string[] StagedRoots = { "Server", "arenas", "data", "content", "content-cooked" };
     private static readonly string[] PayloadNames =
     {
@@ -47,10 +47,10 @@ public static class PlaytestReleaseBuilder
             !string.Equals(masterEndpoint, SlopArena.Client.ClientSession.DefaultMasterServerUrl, StringComparison.Ordinal))
             throw new InvalidOperationException("Release Master endpoint must exactly match the existing HTTPS ClientSession.DefaultMasterServerUrl.");
 
-        string expectedOutput = Path.Combine(repositoryRoot, "build", "release", "SlopArena-" + version);
-        string outputPath = ResolveBoundedArgument(repositoryRoot, OptionalArgument("-releaseOutput") ?? Path.Combine("build", "release", "SlopArena-" + version));
+        string expectedOutput = Path.Combine(repositoryRoot, "build", "release", "SLOPArena-" + version);
+        string outputPath = ResolveBoundedArgument(repositoryRoot, OptionalArgument("-releaseOutput") ?? Path.Combine("build", "release", "SLOPArena-" + version));
         if (!PathsEqual(outputPath, expectedOutput))
-            throw new InvalidOperationException("Release output must be build/release/SlopArena-<version> inside the isolated checkout.");
+            throw new InvalidOperationException("Release output must be build/release/SLOPArena-<version> inside the isolated checkout.");
         string expectedReceipt = Path.Combine(repositoryRoot, "build", "playtest", "client.json");
         string receiptPath = ResolveBoundedArgument(repositoryRoot, OptionalArgument("-releaseReceipt") ?? Path.Combine("build", "playtest", "client.json"));
         if (!PathsEqual(receiptPath, expectedReceipt))
@@ -113,7 +113,7 @@ public static class PlaytestReleaseBuilder
                 throw new InvalidOperationException("Windows player build failed: result=" + (report == null ? "no report" : report.summary.result.ToString()) +
                     ", errors=" + (report == null ? "unknown" : report.summary.totalErrors.ToString()) + ".");
 
-            string dataPath = Path.Combine(outputPath, "SlopArena_Data");
+            string dataPath = Path.Combine(outputPath, "SLOPArena_Data");
             RemoveDeveloperArtifacts(outputPath);
             VerifyStreamingTree(dataPath);
             string packagedContentRoot = Path.Combine(dataPath, "StreamingAssets", "content-cooked");
@@ -356,7 +356,7 @@ public static class PlaytestReleaseBuilder
             ["sourceRevision"] = sourceRevision,
             ["catalogHash"] = packaged.CatalogHash,
             ["masterEndpoint"] = masterEndpoint,
-            ["outputRelativePath"] = "build/release/SlopArena-" + version,
+            ["outputRelativePath"] = "build/release/SLOPArena-" + version,
             ["packageIdentities"] = packaged.Identities,
             ["sharedSha256"] = sharedHash,
             ["steamApi64Sha256"] = steamHash,

@@ -34,10 +34,10 @@ def git(root, *args):
 def checkout(root):
     root = root.expanduser().resolve(strict=True)
     if Path(git(root, "rev-parse", "--show-toplevel").decode().strip()).resolve() != root:
-        raise ValueError("--root must be the SlopArena repository root, not client/Unity.")
+        raise ValueError("--root must be the SLOPArena repository root, not client/Unity.")
     for name in ("src/Shared/SlopArena.Shared.csproj", "tests/Shared.Tests/Shared.Tests.csproj"):
         if not (root / name).is_file():
-            raise ValueError(f"Not a SlopArena checkout: missing {name}")
+            raise ValueError(f"Not a SLOPArena checkout: missing {name}")
     return root
 
 
@@ -236,7 +236,7 @@ def main():
     for name in ("export", "import"):
         command = subcommands.add_parser(name)
         command.add_argument("archive", type=Path, help="Private ZIP archive path")
-        command.add_argument("--root", type=Path, default=Path.cwd(), help="SlopArena repository root")
+        command.add_argument("--root", type=Path, default=Path.cwd(), help="SLOPArena repository root")
         if name == "import":
             command.add_argument("--dry-run", action="store_true", help="Verify archive and destination without writing")
     args = parser.parse_args()

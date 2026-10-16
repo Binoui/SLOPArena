@@ -1,12 +1,12 @@
 ---
 name: sloparena-netcode
-description: "SlopArena server-authoritative UDP netcode with Shared simulation, client prediction, rollback reconciliation, match content admission, and Unity bridges."
+description: "SLOPArena server-authoritative UDP netcode with Shared simulation, client prediction, rollback reconciliation, match content admission, and Unity bridges."
 metadata: {"triggers": ["sloparena netcode", "server-authoritative", "rollback", "udp client server", "client-side prediction", "match manager", "apply server state"]}
 ---
 
-# SlopArena Netcode
+# SLOPArena Netcode
 
-SlopArena has three server-like layers:
+SLOPArena has three server-like layers:
 
 - **Master server** — separate repository; owns ServerBrowser, LobbyRoom, character selection, and results.
 - **GameServer** — this repository's `src/Server/` process; owns match orchestration, UDP transport, and authoritative match ticks.

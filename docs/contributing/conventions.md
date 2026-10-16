@@ -1,4 +1,4 @@
-# SlopArena Art and Asset Conventions
+# SLOPArena Art and Asset Conventions
 
 This document covers character art, imported assets, animation bindings, and repository hygiene. For the game's graphic identity, follow the [Visual Language](../design/visual-language.md); for stage composition, follow [Stage Concepts](../design/stage-concepts.md). Gameplay authority belongs in [Architecture Overview](../architecture-overview.md) and [Combat Systems](../systems/combat-systems.md).
 
@@ -10,7 +10,7 @@ Readability comes first: a fighter's silhouette, pose, weapon, and attack tell m
 
 Use each character's approved brief and preserve its identity. There is no universal pixel-art, three-tone shader, or outline requirement. Harmonization may improve a weaker existing treatment, but this approved direction does not assert that existing assets have already been restyled. Avoid realism, hyperdetail, and generic generated gloss as default goals; AI assistance is a production method, not the visual identity.
 
-Stages share an improvised fighting premise, not one mandatory environment palette. Rooftops, industrial junk, strange pools, night cities, and a child's tabletop may all belong. Keep play space legible, background contrast subordinate, and landmarks purposeful; grime and generic graffiti alone do not create SlopArena.
+Stages share an improvised fighting premise, not one mandatory environment palette. Rooftops, industrial junk, strange pools, night cities, and a child's tabletop may all belong. Keep play space legible, background contrast subordinate, and landmarks purposeful; grime and generic graffiti alone do not create SLOPArena.
 
 ### Reusable production before bespoke replacement
 

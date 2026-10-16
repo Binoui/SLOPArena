@@ -1,4 +1,4 @@
-# SlopArena Master Server
+# SLOPArena Master Server
 
 > **Status:** Deployed 2026-08-01 (issue [#28](https://github.com/Binoui/SlopArena/issues/28)) — foundation for the [PvP Demo](../plans/2026-08-01-pvp-roadmap-v2.md) epic.
 > **Repo:** https://github.com/Binoui/SlopArena-MasterServer

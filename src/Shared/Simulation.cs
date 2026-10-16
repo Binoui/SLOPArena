@@ -1722,7 +1722,7 @@ namespace SlopArena.Shared
                 }
                 else if (runSpeed > stats.RunSpeed)
                 {
-                    // SA Dash → Run coast
+                    // SLOPA Dash → Run coast
                     float friction = stats.GroundFriction * TickDt;
                     s.VX = MoveToward(s.VX, dirX * stats.RunSpeed, friction);
                     s.VZ = MoveToward(s.VZ, dirZ * stats.RunSpeed, friction);

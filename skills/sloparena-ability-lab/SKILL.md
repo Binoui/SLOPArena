@@ -5,7 +5,7 @@ metadata: {"category": "game-dev"}
 ---
 For live Editor commands, use your own caller identity and bounded gateway lease from the [Unity CLI guide](../../docs/contributing/unity-cli.md) and [coordination protocol](../../docs/contributing/unity-editor-coordination.md). Run project commands from the selected checkout. Busy ownership waits in the gateway; blocked or unknown status requires recovery.
 
-# SlopArena Ability Lab
+# SLOPArena Ability Lab
 
 Use native typed Pipeline commands for workspace inspection and real Shared
 two-fighter runs. Do not use `eval` or temporary C# to construct gameplay.

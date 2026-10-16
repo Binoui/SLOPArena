@@ -3,7 +3,7 @@ name: sloparena-kit-regression-testing
 description: "Use for explicit kit regression coverage, KitScenario or AssertGoldenScenario maintenance, REGENERATE_GOLDENS, and diagnosing failing golden diffs. Not for routine numerical move tuning, adding content alone, or Unity-only presentation changes; use docs/testing.md for those verification modes."
 ---
 
-# SlopArena Kit Regression Testing
+# SLOPArena Kit Regression Testing
 
 `tests/Shared.Tests/` has a deterministic scenario harness (`KitScenario` + `ScenarioRunner`) for the real `ServerSimulation.Tick()`. It accepts sparse per-tick inputs, initial state, an optional arena and default-input NPC, and returns mid-run and final states. `KitScenarioTests` supports focused behavioral assertions and optional JSON goldens under `tests/Shared.Tests/Golden/`.
 

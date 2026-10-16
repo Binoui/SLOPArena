@@ -6,13 +6,13 @@
 
 ## Context
 
-Workshop content must be able to use SlopArena-provided animations, VFX, SFX, materials, and other capabilities without receiving the Unity assets that implement them. Direct references to `Assets/...` paths, prefab names, vendors, or package layouts would make published content fragile and could expose licensed source assets.
+Workshop content must be able to use SLOPArena-provided animations, VFX, SFX, materials, and other capabilities without receiving the Unity assets that implement them. Direct references to `Assets/...` paths, prefab names, vendors, or package layouts would make published content fragile and could expose licensed source assets.
 
 Official content also currently has compile-time identity and factory-oriented registration. A Workshop-first architecture requires official and community definitions to resolve through one runtime content model without recompiling the game for every creator package.
 
 ## Decision
 
-SlopArena exposes built-in resources through a SlopArena-owned, additive Built-In Content API. Public references use semantic IDs such as:
+SLOPArena exposes built-in resources through a SLOPArena-owned, additive Built-In Content API. Public references use semantic IDs such as:
 
 ```text
 slop.anim.fall.default.v1
@@ -27,7 +27,7 @@ A built-in ID identifies a documented capability contract, not a Unity asset. Wo
 - An incompatible semantic change receives a new versioned public ID.
 - IDs are additive and are not silently repurposed.
 - Deprecated IDs remain resolvable for their supported compatibility window or cause content validation to fail; they do not silently fall back to another capability.
-- The registry is owned and governed by SlopArena. Creators may consume published IDs but do not redefine the `slop.*` namespace.
+- The registry is owned and governed by SLOPArena. Creators may consume published IDs but do not redefine the `slop.*` namespace.
 - The registry resolves both official and Workshop definitions through a dynamic runtime content registry. Match-local entity/content IDs refer to loaded definitions without requiring a game rebuild.
 - Missing, deprecated, or incompatible required IDs fail content validation before simulation starts.
 

@@ -4,7 +4,7 @@ Status: design approved on 2026-09-20; runtime implementation not authorized by 
 
 ## Goal and visual direction
 
-Make SlopArena feel like one connected place while players prepare and finish matches. Persistent social presence is the primary outcome, not merely removing chat overlap. This is a flow/social rework, not a final visual redesign.
+Make SLOPArena feel like one connected place while players prepare and finish matches. Persistent social presence is the primary outcome, not merely removing chat overlap. This is a flow/social rework, not a final visual redesign.
 
 Preserve the fight-poster identity in [the visual language](../design/visual-language.md) and [DESIGN.md](../../DESIGN.md), permitting targeted evolution of typography, density, decoration and composition. Shared framing must keep primary actions readable and outside the reserved social region. Do not introduce a large permanent navigation sidebar.
 

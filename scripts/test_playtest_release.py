@@ -206,13 +206,13 @@ class ClientIntakeTests(unittest.TestCase):
 
     def test_refuses_traversal_links_duplicates_and_extra_paths(self):
         cases = (
-            [("build/playtest/client.json", "file"), ("build/release/SlopArena-" + self.version, "dir"),
-             ("build/release/SlopArena-" + self.version + "/../../outside", "file")],
+            [("build/playtest/client.json", "file"), ("build/release/SLOPArena-" + self.version, "dir"),
+             ("build/release/SLOPArena-" + self.version + "/../../outside", "file")],
             [("build/playtest/client.json", "file"), ("build/playtest/client.json", "file"),
-             ("build/release/SlopArena-" + self.version, "dir")],
-            [("build/playtest/client.json", "file"), ("build/release/SlopArena-" + self.version, "dir"),
-             ("build/release/SlopArena-" + self.version + "/link", "link")],
-            [("build/playtest/client.json", "file"), ("build/release/SlopArena-" + self.version, "dir"),
+             ("build/release/SLOPArena-" + self.version, "dir")],
+            [("build/playtest/client.json", "file"), ("build/release/SLOPArena-" + self.version, "dir"),
+             ("build/release/SLOPArena-" + self.version + "/link", "link")],
+            [("build/playtest/client.json", "file"), ("build/release/SLOPArena-" + self.version, "dir"),
              ("extra/file", "file")],
         )
         for entries in cases:
@@ -232,7 +232,7 @@ class ClientIntakeTests(unittest.TestCase):
 
     def test_corrupt_download_digest_refuses_before_extraction(self):
         args = SimpleNamespace(version=self.version, source_revision=self.revision, endpoint=self.endpoint)
-        filename = f"SlopArena-{self.version}.tar.gz"
+        filename = f"SLOPArena-{self.version}.tar.gz"
         with tempfile.TemporaryDirectory() as root, \
              mock.patch.object(release, "ROOT", Path(root)), \
              mock.patch.object(release, "gh_release_json", return_value={

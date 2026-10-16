@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reduce manual friction in the SlopArena development loop — auto-build Shared DLL on edit, protect binary assets, add focused sim-test shortcut, and add branch/PR skill — so DeepSeek V4 and other models can operate confidently without memorizing every manual step.
+**Goal:** Reduce manual friction in the SLOPArena development loop — auto-build Shared DLL on edit, protect binary assets, add focused sim-test shortcut, and add branch/PR skill — so DeepSeek V4 and other models can operate confidently without memorizing every manual step.
 
 **Architecture:** Three independent delivery slices: (1) OMP hooks in `.claude/settings.json`, (2) two new skills in `.omp/skills/`, (3) minor `scripts/` helper. No new dependencies.
 
@@ -102,7 +102,7 @@
   ```markdown
   ---
   name: sim-test
-  description: Run SlopArena Shared.Tests with an optional filter. Rebuilds Shared DLL first. Usage — user types "/sim-test" or "/sim-test knockback" or "/sim-test MankiKit". Call this whenever testing sim behavior after a Shared change.
+  description: Run SLOPArena Shared.Tests with an optional filter. Rebuilds Shared DLL first. Usage — user types "/sim-test" or "/sim-test knockback" or "/sim-test MankiKit". Call this whenever testing sim behavior after a Shared change.
   disable-model-invocation: true
   ---
 
@@ -222,7 +222,7 @@ call. It also knows your squash-merge convention.
   Format a squash-merge PR body:
   - Title: derive from the feature name and the commits
   - Body sections: **What**, **Why**, **Testing** (mention which `dotnet test` filter to run)
-  - Use the SlopArena convention: server-authoritative changes note which Shared files changed
+  - Use the SLOPArena convention: server-authoritative changes note which Shared files changed
 
   ## Step 3: If user asks to create the PR
 

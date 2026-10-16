@@ -1,6 +1,6 @@
 ---
 name: sim-test
-description: "Run requested SlopArena Shared.Tests with an optional filter, without copying a plugin into Unity."
+description: "Run requested SLOPArena Shared.Tests with an optional filter, without copying a plugin into Unity."
 metadata: {"invocation": "explicit"}
 ---
 

@@ -21,7 +21,7 @@ The map's timing arc ([#128](https://github.com/Binoui/SlopArena/issues/128)): I
 
 - **Normals = 0 cooldown — policy locked.** Commitment + IASA is the only gate (Melee-faithful: Melee normals have no cooldowns). Current data already reflects this.
 - **No charge normals** — charge mechanics are **specials-only** (user: charge belongs on specials). **Post-decision (2026-08-13): the RMB is removed as an attack slot entirely** — it is the camera-lock toggle (ADR-0018), no attack. The `ChargeAttack` ability classes are kept as scaffolding for a future special; the RMB/AirRMB specs and tests are deleted.
-- **Special cooldowns kept** — the deliberate SA deviation (60-600 tick resource gating, keyboard-friendly; Melee specials have none).
+- **Special cooldowns kept** — the deliberate SLOPA deviation (60-600 tick resource gating, keyboard-friendly; Melee specials have none).
 
 ### 3. Landing lag + auto-cancel ([#139])
 

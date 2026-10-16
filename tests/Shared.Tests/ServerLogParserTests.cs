@@ -26,7 +26,7 @@ public class ServerLogParserTests
     [Fact]
     public void TryParseServerId_RegistrationShape_ReturnsGuid()
     {
-        var line = "[Registration] Registered as 'SlopArena Local Dev' (ID: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee, IP: 127.0.0.1)";
+        var line = "[Registration] Registered as 'SLOPArena Local Dev' (ID: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee, IP: 127.0.0.1)";
 
         bool ok = ServerLogParser.TryParseServerId(line, out var id);
 

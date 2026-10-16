@@ -1,4 +1,4 @@
-# SlopArena <version> — release notes
+# SLOPArena <version> — release notes
 
 ## What's new
 
@@ -6,7 +6,7 @@
 
 ## Online
 
-- Official servers: SlopArena EU #1 (operated; always available for Join)
+- Official servers: SLOPArena EU #1 (operated; always available for Join)
 
 ## How to play
 

@@ -263,7 +263,7 @@ internal static class Program
         sb.AppendLine();
         sb.AppendLine("Melee values: docs/research/melee-movement-audit.md (SSBWiki \\[community\\]; derived frame counts transfer 1:1 — 60 f/s = 60 ticks/s). Absolute speeds don't transfer (u/f vs m/s), timings and ratios do.");
         sb.AppendLine();
-        sb.AppendLine("| metric | SlopArena (measured) | Melee reference | read |");
+        sb.AppendLine("| metric | SLOPArena (measured) | Melee reference | read |");
         sb.AppendLine("|---|---|---|---|");
         foreach (var r in rows)
             sb.AppendLine($"| {r.Label} | {r.Sa} | {r.Melee} | {r.Read} |");
@@ -292,8 +292,8 @@ internal static class Program
             new("Short/full jump force", Rng("{0:F2}", ratio), "≈ 0.58 (derived)", "Melee-shaped (0.7 was the pre-audit value)"),
             new("Fast fall / fall", Rng("{0:F2}", ff), "1.14–1.26 (Fox 3.4/2.8 … Puff 1.6/1.3)", "Melee-shaped, adopted (audit §3.4)"),
             new("Air speed / run", Rng("{0:F2}", ar), "0.38 Fox – 0.5 Marth – 1.23 Puff", "upper-mid band — air slower than ground, Melee norm"),
-            new("Stop from run", Rng("{0:F2} s", stop), "Fox 27.5 f, Marth 30 f, Puff 12 f", "SA brakes faster than Fox/Marth"),
-            new("Reversal (cruise→cruise)", Rng("{0:F2} s", rev), "direction-change pivot", "SA pivot 2–3× slower"),
+            new("Stop from run", Rng("{0:F2} s", stop), "Fox 27.5 f, Marth 30 f, Puff 12 f", "SLOPA brakes faster than Fox/Marth"),
+            new("Reversal (cruise→cruise)", Rng("{0:F2} s", rev), "direction-change pivot", "SLOPA pivot 2–3× slower"),
         };
     }
 
@@ -346,7 +346,7 @@ internal static class Program
 
         sb.AppendLine("<h2>Melee comparison</h2>");
         sb.AppendLine("<div class=\"meta\">Melee values: docs/research/melee-movement-audit.md (SSBWiki [community]; derived frame counts transfer 1:1 — 60 f/s = 60 ticks/s). Absolute speeds don't transfer (u/f vs m/s), timings and ratios do.</div>");
-        sb.AppendLine("<table><tr><th>metric</th><th>SlopArena (measured)</th><th>Melee reference</th><th>read</th></tr>");
+        sb.AppendLine("<table><tr><th>metric</th><th>SLOPArena (measured)</th><th>Melee reference</th><th>read</th></tr>");
         foreach (var r in MeleeRows(all))
             sb.AppendLine($"<tr><td>{Escape(r.Label)}</td><td>{r.Sa}</td><td style=\"text-align:left\">{Escape(r.Melee)}</td><td style=\"text-align:left\">{Escape(r.Read)}</td></tr>");
         sb.AppendLine("</table>");

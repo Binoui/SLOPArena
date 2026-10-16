@@ -2,7 +2,7 @@
 
 # Range-Based Combat System
 
-Complete implementation of Range-based combat (Range-Based) inspired combat mechanics for SlopArena.
+Complete implementation of Range-based combat (Range-Based) inspired combat mechanics for SLOPArena.
 
 ## 🎯 Overview
 

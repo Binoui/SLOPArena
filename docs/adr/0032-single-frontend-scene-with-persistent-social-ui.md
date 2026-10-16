@@ -4,7 +4,7 @@ status: accepted
 
 # One frontend scene with independent persistent social UI
 
-Consolidate SlopArena's Home, ServerBrowser, LobbyRoom, Fighter Select, Stage Select and Results into one frontend scene with explicit page lifecycles, replacing scene-per-page navigation. Keep gameplay scenes separate: unload the frontend during gameplay and recreate it on return, while social/session state and presentation survive independently. This deliberately includes lifecycle migration in the flow/social rework so navigation has one explicit owner; later styling changes remain independent of navigation and scene topology.
+Consolidate SLOPArena's Home, ServerBrowser, LobbyRoom, Fighter Select, Stage Select and Results into one frontend scene with explicit page lifecycles, replacing scene-per-page navigation. Keep gameplay scenes separate: unload the frontend during gameplay and recreate it on return, while social/session state and presentation survive independently. This deliberately includes lifecycle migration in the flow/social rework so navigation has one explicit owner; later styling changes remain independent of navigation and scene topology.
 
 ## Considered alternatives
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy and roll back pinned SlopArena VPS releases using a local Docker daemon."""
+"""Deploy and roll back pinned SLOPArena VPS releases using a local Docker daemon."""
 from __future__ import annotations
 
 import argparse

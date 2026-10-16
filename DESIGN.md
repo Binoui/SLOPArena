@@ -1,5 +1,5 @@
 ---
-name: SlopArena
+name: SLOPArena
 description: Bold DIY graphics for an unreleased low-poly underground toy-fight-club.
 colors:
   ink: "#17131B"
@@ -169,7 +169,7 @@ components:
     height: "38px"
 ---
 
-# Design System: SlopArena
+# Design System: SLOPArena
 
 **Authority and status:** [Visual Language](docs/design/visual-language.md) owns the shared identity; [Art and Asset Conventions](docs/contributing/conventions.md) own 3D presentation and assets. This document specifies the native approved target, mirrored by `.impeccable/design.json` and its surface brief. The unreleased solo-developed game is not on Steam. The player-facing identity rollout is implemented across Home, shared shell, fighter/stage selection, Results, browser/lobby, Settings, pause/Training controls, chat, and entry/confirmation dialogs. Gameplay HUD now combines portrait fight cards and prominent lives with four paired move tickets displaying all eight moves, plus an independent target marker with optional damage. Functional colors and gameplay authority remain. Creator/Ability Lab tools, website migration, connected-room acceptance, and release-copy changes are not claimed.
 
@@ -177,7 +177,7 @@ components:
 
 **Creative North Star: "Low-poly underground toy-fight-club, with DIY internet-game energy."**
 
-SlopArena's interface and imagery feel like an improvised fighting world assembled from scavenged pieces: chunky low-poly forms, exaggerated silhouettes, and a curated collage of assets. “Toy” describes that construction metaphor, not a requirement for literal plastic or cute styling. Slightly crappy on purpose, but extremely readable.
+SLOPArena's interface and imagery feel like an improvised fighting world assembled from scavenged pieces: chunky low-poly forms, exaggerated silhouettes, and a curated collage of assets. “Toy” describes that construction metaphor, not a requirement for literal plastic or cute styling. Slightly crappy on purpose, but extremely readable.
 
 **Cool first, joke second.** Treat the website as the strongest existing graphic reference, not a fully approved implementation. Use authored asymmetry, hard edges, and controlled print offsets to create personality without compromising stable interaction geometry or clear player actions.
 
@@ -266,7 +266,7 @@ Do not rotate dense paragraphs, settings controls, or critical status. Rotation 
 
 ## Elevation & Depth
 
-**Poster layering** is the depth model. SlopArena does not depend on soft ambient card shadows or glossy glass. Depth comes from a dark field, pasted paper blocks, thick borders, offset title shadows, clipped character portraits, overlapping bursts, and short state translations. At rest, surfaces are mostly flat; physicality appears through hard edges and deliberate misregistration.
+**Poster layering** is the depth model. SLOPArena does not depend on soft ambient card shadows or glossy glass. Depth comes from a dark field, pasted paper blocks, thick borders, offset title shadows, clipped character portraits, overlapping bursts, and short state translations. At rest, surfaces are mostly flat; physicality appears through hard edges and deliberate misregistration.
 
 ### Shadow Vocabulary
 - **Offset title shadow:** Hard orange or deep-ink duplicate behind a display declaration; creates poster print depth.

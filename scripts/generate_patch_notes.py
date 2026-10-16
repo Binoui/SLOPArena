@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate patch notes for a tagged SlopArena release.
+"""Generate patch notes for a tagged SLOPArena release.
 
 Parses Conventional Commit subjects between the previous and new `v*` tag
 into a factual changelog (New / Fixed / Changed; docs/chore/test collapsed
@@ -111,7 +111,7 @@ def deepseek_blurb(version: str, sections: dict[str, list[dict]], api_key: str) 
 
     prompt = (
         "You write short patch-note intros for an indie 3D platform fighter "
-        "(SlopArena), in the style of League of Legends patch notes: one "
+        "(SLOPArena), in the style of League of Legends patch notes: one "
         "voicey paragraph (2-4 sentences) giving context/theme for the "
         "patch. Do not invent facts, numbers, or specifics beyond the list "
         "below -- stay thematic and high-level. Plain prose only, no "
@@ -164,7 +164,7 @@ def main() -> None:
     sections, internal, unparsed = bucket(subjects)
     blurb = deepseek_blurb(version, sections, api_key)
 
-    lines = [f"# SlopArena {version} — patch notes", "", blurb, ""]
+    lines = [f"# SLOPArena {version} — patch notes", "", blurb, ""]
     for name in ("New", "Fixed", "Changed"):
         if sections[name]:
             lines += [f"## {name}", ""]
@@ -186,7 +186,7 @@ def main() -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines))
 
-    title = f"SlopArena {version}"
+    title = f"SLOPArena {version}"
     existing = subprocess.run(
         ["gh", "release", "view", new_tag], cwd=ROOT, capture_output=True
     )

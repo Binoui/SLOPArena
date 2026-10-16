@@ -1,6 +1,6 @@
-# Contributing to SlopArena
+# Contributing to SLOPArena
 
-SlopArena welcomes code, gameplay design, art, documentation, and playtesting contributions. All project communication and code use English. Read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
+SLOPArena welcomes code, gameplay design, art, documentation, and playtesting contributions. All project communication and code use English. Read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ## Development setup
 

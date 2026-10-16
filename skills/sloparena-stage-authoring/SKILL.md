@@ -1,12 +1,12 @@
 ---
 name: sloparena-stage-authoring
-description: "Implement SlopArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes (including procedural Blender stage art and gameplay-camera views) and source-to-bake verification."
+description: "Implement SLOPArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes (including procedural Blender stage art and gameplay-camera views) and source-to-bake verification."
 metadata: {"category": "game-dev"}
 ---
 
 For live Editor commands, use your own caller identity and bounded gateway lease from the [Unity CLI guide](../../docs/contributing/unity-cli.md) and [coordination protocol](../../docs/contributing/unity-editor-coordination.md). Run project commands from the selected checkout. Busy ownership waits in the gateway; blocked or unknown status requires recovery.
 
-# SlopArena Stage Authoring
+# SLOPArena Stage Authoring
 
 Use this skill for new PvP stages, approved solo Arcade fixtures, gameplay changes
 and cosmetic stage presentation. It is an implementation workflow, not a

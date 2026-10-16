@@ -4,7 +4,7 @@ description: "Record and report a character's move data — authored frame data 
 metadata: {"triggers": ["frame data", "move data", "frame advantage", "knockback shape", "record frame data", "true combo", "combo graph", "combo density", "DI escape", "directional influence", "normal audit", "character normal audit", "kit audit", "animation hitbox audit", "hurtbox timing"]}
 ---
 
-# SlopArena Move Data Report
+# SLOPArena Move Data Report
 
 `scripts/move-data.sh` wraps `tools/MoveDataReport` (dotnet console, `net8.0`). It runs the **real shared sim**
 (`ServerSimulation` + `Simulation.ApplyKnockback`, ADR-0019 flight law) for a character's Custom-knockback

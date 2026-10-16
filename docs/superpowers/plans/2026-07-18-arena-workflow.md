@@ -6,7 +6,7 @@
 
 **Architecture:** Already done — CharacterClass.None, TrainingMatch overrides, hardcoded arena entry, asset copies. Remaining work is Unity-side scene assembly.
 
-**Tech Stack:** Unity 6 URP, ProBuilder, SlopArena ArenaBaker tool
+**Tech Stack:** Unity 6 URP, ProBuilder, SLOPArena ArenaBaker tool
 
 ## Global Constraints
 

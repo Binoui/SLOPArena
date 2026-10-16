@@ -1,7 +1,7 @@
 # Frame Data Reference — DKO-style Values
 
 > Extracted from manual frame counting of DKO gameplay footage.
-> All values in frames at 60fps. Use as tuning reference for SlopArena.
+> All values in frames at 60fps. Use as tuning reference for SLOPArena.
 > Cross-ref: `docs/research/dko-mechanics.md`, `Shared/CharacterDefinition.cs` (SelfLockTicks, ChainWindowTicks)
 
 ---

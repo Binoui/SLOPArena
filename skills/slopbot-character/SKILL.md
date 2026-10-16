@@ -1,11 +1,11 @@
 ---
 name: slopbot-character
-description: Plan and complete an approved SlopArena humanoid character package using the project's existing character, Ability Lab, and acceptance workflows.
+description: Plan and complete an approved SLOPArena humanoid character package using the project's existing character, Ability Lab, and acceptance workflows.
 ---
 
 # SlopBot Character
 
-Use this helper for the character work owned by the selected SlopArena checkout. The entry skill `slopbot` owns approvals, interaction mode, selected checkout, and the small `.slopbot/<package-or-goal>.md` progress record. If invoked directly, first load those shared instructions from the harness skill loader or sibling `../slopbot/SKILL.md`; if unavailable, stop rather than bypassing them. Resolve every project document below from the user's selected checkout, never from this installed helper's directory or an author's workspace path. Work only within the approved character scope; a missing tool means an explicit user handoff or blocker, not a claim of action.
+Use this helper for the character work owned by the selected SLOPArena checkout. The entry skill `slopbot` owns approvals, interaction mode, selected checkout, and the small `.slopbot/<package-or-goal>.md` progress record. If invoked directly, first load those shared instructions from the harness skill loader or sibling `../slopbot/SKILL.md`; if unavailable, stop rather than bypassing them. Resolve every project document below from the user's selected checkout, never from this installed helper's directory or an author's workspace path. Work only within the approved character scope; a missing tool means an explicit user handoff or blocker, not a claim of action.
 
 ## Establish the agreed character and assets
 

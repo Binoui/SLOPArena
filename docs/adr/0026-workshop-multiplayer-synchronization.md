@@ -6,7 +6,7 @@
 
 ## Context
 
-SlopArena is server-authoritative and runs a shared deterministic simulation. If community fighters or stages participate in online matches, every client and the GameServer must use the same package bytes, dependency graph, built-in capability versions, and compatible runtime schema. A client-side mod or a package name without exact verification is insufficient.
+SLOPArena is server-authoritative and runs a shared deterministic simulation. If community fighters or stages participate in online matches, every client and the GameServer must use the same package bytes, dependency graph, built-in capability versions, and compatible runtime schema. A client-side mod or a package name without exact verification is insufficient.
 
 The target platform is Steam Workshop. The project should remain open to any package that satisfies the deterministic and safety boundary, rather than requiring manual gameplay approval for every creator item.
 

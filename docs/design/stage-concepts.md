@@ -1,4 +1,4 @@
-# SlopArena Stage Concepts
+# SLOPArena Stage Concepts
 
 **Status:** living guide
 **Scope:** static PVP stage concepts, gameplay readability, and presentation hierarchy
@@ -12,7 +12,7 @@ The PvP topology and multiplayer review criteria below remain specific to PvP.
 
 ## Purpose
 
-A SlopArena stage must be gameplay-ready before it becomes elaborate. It should give fighters clear, authoritative space to move, fight, recover, and respawn, then use art to make that space feel specific rather than empty.
+A SLOPArena stage must be gameplay-ready before it becomes elaborate. It should give fighters clear, authoritative space to move, fight, recover, and respawn, then use art to make that space feel specific rather than empty.
 
 This guide supplies the design intent that each stage brief applies. It does not prescribe measurements, a universal floor shape, platform count, obstacle density, or one perimeter form. The game does not yet have enough PVP stage evidence to make those rules durable.
 
@@ -61,7 +61,7 @@ Personality comes from the relationship between the fight and the place: scale, 
 
 ### Competitive intent is a spectrum
 
-SlopArena stages do not all pursue the same degree of competitive neutrality. Each stage brief declares its intended position on this spectrum:
+SLOPArena stages do not all pursue the same degree of competitive neutrality. Each stage brief declares its intended position on this spectrum:
 
 | Intent | Topology priority |
 | --- | --- |

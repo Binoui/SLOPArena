@@ -1,4 +1,4 @@
-# SlopArena — Menu & UI Flow Design
+# SLOPArena — Menu & UI Flow Design
 **Date:** 2026-07-09
 **Status:** Approved
 
@@ -6,7 +6,7 @@
 
 ## Goal
 
-Add a complete front-end UI flow to SlopArena: main menu, lobby, character select, and stage select. Both training and multiplayer go through the same character/stage select screens. No more hardcoded Inspector values for character or arena.
+Add a complete front-end UI flow to SLOPArena: main menu, lobby, character select, and stage select. Both training and multiplayer go through the same character/stage select screens. No more hardcoded Inspector values for character or arena.
 
 ---
 

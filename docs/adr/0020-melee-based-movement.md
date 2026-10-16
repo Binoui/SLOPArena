@@ -13,9 +13,9 @@ The map's movement arc ([#128](https://github.com/Binoui/SlopArena/issues/128)):
 
 ### 1. Terminology (locked)
 
-- **SA Dash = the Shift-triggered burst** — a *mechanic*, the shield substitute (SA has no shields): a wavedash-like quick dodge/approach, not a locomotion tier. Redesigned (v2, [#136]): short burst (2-10 m per character), **grounded dash hard-stops** on expiry while **aerial dash preserves momentum** (approach tool), and **i-frames cover only the start** (`DashInvincibilityTicks` = 4) — dodging through is timing-tight.
+- **SLOPA Dash = the Shift-triggered burst** — a *mechanic*, the shield substitute (SLOPA has no shields): a wavedash-like quick dodge/approach, not a locomotion tier. Redesigned (v2, [#136]): short burst (2-10 m per character), **grounded dash hard-stops** on expiry while **aerial dash preserves momentum** (approach tool), and **i-frames cover only the start** (`DashInvincibilityTicks` = 4) — dodging through is timing-tight.
 - Melee's "dash" (locomotion tier between walk and run) is **NOT adopted under that name**. The new locomotion tier is called **Run**.
-- The reversal-free burst at the start of a Run is called **Rush**; the turn-lag reversal at Run cruise is called **Turnaround**. Both keep "dash" reserved for the SA mechanic.
+- The reversal-free burst at the start of a Run is called **Rush**; the turn-lag reversal at Run cruise is called **Turnaround**. Both keep "dash" reserved for the SLOPA mechanic.
 - Keeping the terms distinct in all docs/ADRs.
 
 ### 2. Ground movement ([#136])
@@ -39,7 +39,7 @@ The map's movement arc ([#128](https://github.com/Binoui/SlopArena/issues/128)):
 - **Ledge hang adopted, full kit deferred** (user: "not sure if we want full kit yet but we probably should have some sort of ledge hang").
 - New **`LedgeHang` ActionState**: grab via the existing `TryLedgeSnap` geometry (0.8m cardinal search, ≤2.5m below the edge), **invincible 4-8 ticks on grab**, **full refresh on re-grab** (Melee-faithful; no anti-plank — small arenas make planking self-defeating; an Ultimate-style refresh cooldown is a balance-pass lever).
 - **No auto-getup — hang until you act** (Melee; stalling is the edgeguarder's punish window).
-- **Grab gate = actionable AND not flying** (`HitstunTicks == 0 && !HasKnockback`, unchanged): SA deliberately does NOT adopt Melee's tumble auto-grab ("lucky ledge grab") — in free-camera 3D a flight grab from an off-screen angle reads as random; recovery must let the flight decay (ADR-0019 §6) before the ledge is available.
+- **Grab gate = actionable AND not flying** (`HitstunTicks == 0 && !HasKnockback`, unchanged): SLOPA deliberately does NOT adopt Melee's tumble auto-grab ("lucky ledge grab") — in free-camera 3D a flight grab from an off-screen angle reads as random; recovery must let the flight decay (ADR-0019 §6) before the ledge is available.
 - **The +5 auto-pop dies** — the hang replaces it (KV cleared, `VY = 0` on grab). Hang ≠ landing: excluded from landing-lag via the existing `VY <= 0` guard.
 - **Escapes now** (all existing keys, zero new inputs): **S = drop, jump = ledge jump, W = stand**.
 - **Getup attack + getup roll deferred** with the full-kit question → the landing/tech foundation (fog: missed-tech → knockdown → getup), the natural home for getup-state work.
@@ -47,7 +47,7 @@ The map's movement arc ([#128](https://github.com/Binoui/SlopArena/issues/128)):
 
 ## Considered Options
 
-- **Keep Melee's dash as a locomotion tier** — rejected by terminology lock: SA's Dash is a *mechanic*; Run takes the locomotion slot (#136).
+- **Keep Melee's dash as a locomotion tier** — rejected by terminology lock: SLOPA's Dash is a *mechanic*; Run takes the locomotion slot (#136).
 - **Dash-end hard stop vs friction coast** — initially friction coast (Q1=B), then **reversed in v2**: the dash became a wavedash-like burst, so the grounded dash hard-stops and only the aerial dash preserves momentum (#136).
 - **Multiplicative AirDrag vs linear friction** — multiplicative rejected: asymptotic tail never settles; linear friction + dead-zone snap lands cleanly (#137).
 - **Three-phase gravity ramp vs float-window-only** — the audit showed the ramp machinery mostly dead (recovery/post-hit only); Option A: float window for recovery/post-hit, ramp deleted (#137).

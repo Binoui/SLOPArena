@@ -1,16 +1,16 @@
-# SlopArena
+# SLOPArena
 
 **An open-source 3D platform fighter built around expressive movement, knockback, and compact hero-style kits.**
 
-SlopArena takes the platform-fighter fundamentals of movement, damage percent, recovery, edge pressure, and launching opponents off the stage, then gives each fighter a small set of distinctive specials and tools to play around.
+SLOPArena takes the platform-fighter fundamentals of movement, damage percent, recovery, edge pressure, and launching opponents off the stage, then gives each fighter a small set of distinctive specials and tools to play around.
 
 The goal is a game that is readable and competitive without taking itself too seriously: strong character identities, generous 3D hitboxes, expressive movement, and plenty of room for stupid things to happen.
 
-> **Current state:** SlopArena is preparing a playable friends demo with four admitted cooked demo-roster packages: FightGuy, Manki, Wibou, and Bonk. Package admission does not prove kit completeness or player acceptance. Character execution is cooked-only; Nilus and the old LMB combo compatibility path were retired on 2026-10-02. See the [playable friends demo reset](docs/plans/2026-09-05-playable-demo-reset.md) for current product work.
+> **Current state:** SLOPArena is preparing a playable friends demo with four admitted cooked demo-roster packages: FightGuy, Manki, Wibou, and Bonk. Package admission does not prove kit completeness or player acceptance. Character execution is cooked-only; Nilus and the old LMB combo compatibility path were retired on 2026-10-02. See the [playable friends demo reset](docs/plans/2026-09-05-playable-demo-reset.md) for current product work.
 
 ## The game
 
-SlopArena combines:
+SLOPArena combines:
 
 - camera-relative 8-direction movement, jump arcs, double jumps, fast-fall, ledges, and Dash;
 - Smash-style damage percent, Knockback, Hitstun, Hitstop, Combo Influence, Clash, and Burst;
@@ -150,7 +150,7 @@ Thank you to the artists and developers behind the assets and tools used here. S
 
 ## AI usage
 
-SlopArena uses agent-assisted development and generated art as practical tools. Contributions remain reviewed project work: determinism, licensing, gameplay correctness, and maintainability matter more than how an asset or patch was produced.
+SLOPArena uses agent-assisted development and generated art as practical tools. Contributions remain reviewed project work: determinism, licensing, gameplay correctness, and maintainability matter more than how an asset or patch was produced.
 
 Coding assistants use the same public [project instructions](AGENTS.md) and
 [task workflows](skills/README.md). See [agent setup](docs/contributing/agents.md)

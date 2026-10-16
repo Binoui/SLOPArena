@@ -4,7 +4,7 @@
 > and client progress is beyond several phases here.
 > See `docs/plans/2026-07-03-pvp-roadmap.md` for the current, audited roadmap.
 
-# SlopArena — Online PvP Implementation Roadmap
+# SLOPArena — Online PvP Implementation Roadmap
 
 > **Goal:** Build the full online PvP experience with 2 characters (Manki + FightGuy).
 > **Prerequisite:** Complete before starting new character design work.

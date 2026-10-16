@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Preview or upload a Windows release folder to the SlopArena Playtest depot.
+# Preview or upload a Windows release folder to the SLOPArena Playtest depot.
 # Usage: STEAM_BUILD_USER=name STEAMCMD=/path/to/steamcmd scripts/steam-playtest.sh <version> [--upload]
 set -euo pipefail
 
@@ -9,11 +9,11 @@ if [[ $# -lt 1 || $# -gt 2 || ( $# == 2 && $2 != --upload ) ]]; then
 fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CONTENT="$ROOT/build/release/SlopArena-$1"
+CONTENT="$ROOT/build/release/SLOPArena-$1"
 SCRIPT="$ROOT/build/steampipe/app_build_5325920.vdf"
 STEAMCMD="${STEAMCMD:-steamcmd}"
 
-if [[ ! -f "$CONTENT/SlopArena.exe" || ! -d "$CONTENT/SlopArena_Data" ]]; then
+if [[ ! -f "$CONTENT/SLOPArena.exe" || ! -d "$CONTENT/SLOPArena_Data" ]]; then
   echo "error: no extracted Windows release at $CONTENT; run scripts/build-release.sh $1 first" >&2
   exit 1
 fi
@@ -33,7 +33,7 @@ cat > "$SCRIPT" <<EOF
 "AppBuild"
 {
     "AppID" "5325920"
-    "Desc" "SlopArena Playtest $1"
+    "Desc" "SLOPArena Playtest $1"
     "Preview" "$PREVIEW"
     "ContentRoot" "$CONTENT"
     "BuildOutput" "$ROOT/build/steampipe/output"

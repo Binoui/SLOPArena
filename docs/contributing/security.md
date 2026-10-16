@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-SlopArena is a community-driven open-source game. We take security
+SLOPArena is a community-driven open-source game. We take security
 concerns seriously.
 
 If you discover a security vulnerability, please **do not open a public
@@ -38,7 +38,7 @@ When reporting, please include:
 3. Potential impact
 4. Suggested fix (if any)
 
-We appreciate your help keeping SlopArena safe for everyone!
+We appreciate your help keeping SLOPArena safe for everyone!
 
 ## Secret scanning
 

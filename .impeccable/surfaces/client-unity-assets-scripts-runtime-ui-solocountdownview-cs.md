@@ -7,7 +7,7 @@ related_targets: ["client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs", "clien
 
 # Solo start stamps
 
-Mode: Operate. Approved narrow extension inside the established SlopArena HUD. The audience enters a Solo fight from stage selection and needs to recognize the start without losing sight of the fighters or controls.
+Mode: Operate. Approved narrow extension inside the established SLOPArena HUD. The audience enters a Solo fight from stage selection and needs to recognize the start without losing sight of the fighters or controls.
 
 ## Direction contract — 2026-10-14
 

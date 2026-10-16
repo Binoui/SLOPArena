@@ -84,7 +84,7 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           path: |
-            build/release/SlopArena-${{ inputs.version }}/
+            build/release/SLOPArena-${{ inputs.version }}/
             build/playtest/client.json
             build/playtest/protocol.json
 

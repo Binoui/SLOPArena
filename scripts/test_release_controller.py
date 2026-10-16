@@ -142,6 +142,16 @@ class PrepareTests(unittest.TestCase):
             controller.prepare(self.args, self.root, self.path)
         self.assertFalse(self.path.exists())
 
+    def test_retained_client_archive_blocks_reuse_including_pre_rename_names(self):
+        for name in ("SLOPArena-0.2.0-playtest.42.tar.gz", "SlopArena-0.2.0-playtest.42.tar.gz"):
+            with self.subTest(name=name):
+                archive = self.path.parent / name
+                archive.write_bytes(b"client")
+                with self.assertRaisesRegex(controller.ControllerError, "immutable client"):
+                    controller.prepare(self.args, self.root, self.path)
+                archive.unlink()
+                self.assertFalse(self.path.exists())
+
 
 class ControllerTests(unittest.TestCase):
     def setUp(self):
@@ -173,7 +183,7 @@ class ControllerTests(unittest.TestCase):
                     self.fail("Second controller acquired the same release")
 
     def test_completed_build_reuses_archive_and_refuses_modified_bytes(self):
-        archive = self.path.parent / "SlopArena-0.2.0-playtest.42.tar.gz"
+        archive = self.path.parent / "SLOPArena-0.2.0-playtest.42.tar.gz"
         archive.write_bytes(b"verified archive")
         self.state["steps"]["build"].update(status="completed", sha256=controller.coordinator.checksum(archive))
         with mock.patch.object(controller, "run_builder") as builder:
@@ -203,7 +213,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.state["steps"]["build"]["reason"], "source_completeness_failed")
 
     def test_lost_publication_reply_is_adopted_without_creating_another_release(self):
-        archive = self.path.parent / "SlopArena-0.2.0-playtest.42.tar.gz"
+        archive = self.path.parent / "SLOPArena-0.2.0-playtest.42.tar.gz"
         archive.write_bytes(b"verified")
         sha = controller.coordinator.checksum(archive)
         self.state["steps"]["build"].update(archive=str(archive), sha256=sha)
@@ -217,7 +227,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.state["steps"]["publish"]["status"], "completed")
 
     def test_partial_publication_uploads_missing_own_asset_without_recreating_or_clobbering(self):
-        archive = self.path.parent / "SlopArena-0.2.0-playtest.42.tar.gz"
+        archive = self.path.parent / "SLOPArena-0.2.0-playtest.42.tar.gz"
         archive.write_bytes(b"verified")
         sha = controller.coordinator.checksum(archive)
         self.state["steps"]["build"].update(archive=str(archive), sha256=sha)

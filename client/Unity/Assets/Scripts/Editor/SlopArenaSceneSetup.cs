@@ -102,7 +102,7 @@ namespace SlopArena.Client.Editor
             // ── Save ──
             string path = "Assets/Scenes/Arena_Offline.unity";
             EditorSceneManager.SaveScene(scene, path);
-            Debug.Log($"[SlopArena] Offline scene created at {path}");
+            Debug.Log($"[SLOPArena] Offline scene created at {path}");
 
             var asset = AssetDatabase.LoadAssetAtPath<SceneAsset>(path);
             if (asset != null)

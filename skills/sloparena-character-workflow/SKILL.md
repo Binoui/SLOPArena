@@ -1,12 +1,12 @@
 ---
 name: sloparena-character-workflow
-description: "Package-native workflow for designing, authoring, cooking, validating, and previewing SlopArena characters. Covers Character Packages, asset catalogs, deterministic cooking, generated bindings, admission, hashes, and Ability Lab."
+description: "Package-native workflow for designing, authoring, cooking, validating, and previewing SLOPArena characters. Covers Character Packages, asset catalogs, deterministic cooking, generated bindings, admission, hashes, and Ability Lab."
 metadata: {"category": "game-dev"}
 ---
 
 For live Editor commands, use your own caller identity and bounded gateway lease from the [Unity CLI guide](../../docs/contributing/unity-cli.md) and [coordination protocol](../../docs/contributing/unity-editor-coordination.md). Run project commands from the selected checkout. Busy ownership waits in the gateway; blocked or unknown status requires recovery.
 
-# SlopArena Character Workflow
+# SLOPArena Character Workflow
 
 Use this skill when designing or implementing a playable character. The canonical authoring guide is [`docs/characters/adding-a-new-character.md`](../../docs/characters/adding-a-new-character.md). New characters are packages, not registry factories.
 

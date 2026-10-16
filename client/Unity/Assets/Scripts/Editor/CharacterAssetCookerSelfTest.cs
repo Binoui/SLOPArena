@@ -99,7 +99,7 @@ public static class CharacterAssetCookerSelfTest
                     }
                 }
             }
-            Debug.Log($"[SlopArena] Weapon marker poses passed: {animations.Length} clips, {frames} frames, both endpoints within 0.1mm.");
+            Debug.Log($"[SLOPArena] Weapon marker poses passed: {animations.Length} clips, {frames} frames, both endpoints within 0.1mm.");
         }
 
         finally
@@ -140,7 +140,7 @@ public static class CharacterAssetCookerSelfTest
             fixture.PrepareCookedPackage("fightguy");
             RunFightGuyChecks();
         }
-        Debug.Log("[SlopArena] FightGuy cooker self-test passed; fixture restored.");
+        Debug.Log("[SLOPArena] FightGuy cooker self-test passed; fixture restored.");
     }
 
     private static void RunFightGuyChecks()

@@ -2,7 +2,7 @@
 
 ## Public bundle and boundaries
 
-- `skills/slopbot/` is the public entry skill in the existing SlopArena repository. Its authoritative release contract is the sibling `spec-slopbot-release/` folder.
+- `skills/slopbot/` is the public entry skill in the existing SLOPArena repository. Its authoritative release contract is the sibling `spec-slopbot-release/` folder.
 - Required helper skills live alongside SlopBot under `skills/`. Select only helpers needed for character creation and orientation; publishing the entire `.omp/skills` catalog is outside scope.
 - Existing character-workflow, animation-authoring, Ability Lab, and applicable verification guidance are reuse candidates. Keep one authoritative technical source and update consumers when a selected source is relocated; do not maintain separate private/public copies that drift.
 - Required skills, references, and prerequisites must be discoverable from the public bundle and repository. Do not depend on private BMAD installation, private workspace scripts, machine-specific paths, or a named harness merely to provide guidance.

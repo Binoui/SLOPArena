@@ -4,7 +4,7 @@
 > **#137** ("Air movement: accel/friction, fast fall, jump model") on the "Melee-based feel
 > engine" design map (GitHub issue #128, Binoui/SlopArena).
 >
-> **Sources.** SlopArena: `src/Shared/Simulation.cs`, `src/Shared/CharacterDefinition.cs`,
+> **Sources.** SLOPArena: `src/Shared/Simulation.cs`, `src/Shared/CharacterDefinition.cs`,
 > per-character data under `src/Shared/Characters/`, ADRs in `docs/adr/`, prior research in
 > `docs/research/`. Melee: byte-perfect 1.02 decomp clone at `../melee-decomp`; all Melee file
 > refs below are relative to `melee-decomp/src/melee/`.
@@ -18,8 +18,8 @@
 > `[derived]`.
 >
 > **Units.** Melee constants are in the game's internal units per 60 Hz frame (`u/f`). The
-> ratios and derived *frame counts* transfer directly to SlopArena ticks; absolute unit
-> conversion does not. SlopArena values are m/s and ticks (1 tick = 1/60 s).
+> ratios and derived *frame counts* transfer directly to SLOPArena ticks; absolute unit
+> conversion does not. SLOPArena values are m/s and ticks (1 tick = 1/60 s).
 >
 > Scope matches the tickets: ground dash→run→pivot, air accel/friction, fast fall, jump
 > model, air dodge (wavedash explicitly out of scope), gravity, ground friction. Hitstun/
@@ -31,7 +31,7 @@
 
 ## 0. Roster snapshot
 
-SlopArena's four characters (`MovementStats`, `CharacterDefinition.cs:13-37`):
+SLOPArena's four characters (`MovementStats`, `CharacterDefinition.cs:13-37`):
 
 | Stat | Manki | FightGuy | Kistu | Nilus |
 |---|---|---|---|---|
@@ -61,7 +61,7 @@ Sources: `MankiData.cs:36-53`, `FightGuyData.cs:20-38`, `KistuData.cs:25-44`,
 (`Simulation.cs:91`).
 
 Reference Melee archetypes `[community]` (SSBWiki, NTSC; the four corners of the design
-space we want SlopArena's four characters to span):
+space we want SLOPArena's four characters to span):
 
 | Stat (u/f) | Fox (fast) | Marth (mobile) | Jigglypuff (floaty) | Bowser (heavy) |
 |---|---|---|---|---|
@@ -121,7 +121,7 @@ stick-scaled term); Marth/Bowser pages split base/additional.
   (`frames_to_change_direction_on_standing_turn`, `ftCo_Turn.c:70-75,92-104`).
 - Dash-dance = the pivot between two dashes; **there is no dash cooldown** in Melee.
 
-### 1.2 SlopArena today `[verified]`
+### 1.2 SLOPArena today `[verified]`
 
 - Dash input (`input.Dash`, Shift) → `StartDash` (`Simulation.cs:1030-1074`): velocity set
   to `dir · DashSpeed` (30-34 m/s), full-state invincibility for 15 ticks, per-character
@@ -138,7 +138,7 @@ stick-scaled term); Marth/Bowser pages split base/additional.
 
 ### 1.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | Dash start speed | `DashSpeed` 30-34 m/s (`Simulation.cs:1070`) | `dash_initial_velocity` 1.0-2.0 u/f (`ftCo_Dash.c:63`) |
 | Dash speed vs run | 30-34 vs sprint 12-15 → **2.2-2.5×** | 1.0-2.0 vs run 1.1-2.3 → **0.8-1.5×** (Jigglypuff's initial dash is *faster* than run: 1.4 vs 1.1) `[community]` |
@@ -148,12 +148,12 @@ stick-scaled term); Marth/Bowser pages split base/additional.
 | Run | instant snap to `SprintSpeed` after 12-tick hold (`Simulation.cs:911-921`) | accel `a·stick±b`, eased near target (`ftCo_Run.c:124-134`) |
 | Pivot | 6-tick friction slowdown + snap (`Simulation.cs:84,900-910`) | friction through velocity zero, facing flips at crossing (`ftCo_TurnRun.c:51-57,89-115`) |
 
-### 1.4 Melee-shaped SlopArena sketch (for #136)
+### 1.4 Melee-shaped SLOPArena sketch (for #136)
 
 Replace the dash/sprint pair with Melee's three-tier model, all pure sim-side:
 
 1. **Split `DashSpeed` into `DashInitialVelocity` (burst) + `RunSpeed` (sustained).**
-   First-pass at SlopArena scale: keep today's run speeds as `RunSpeed`
+   First-pass at SLOPArena scale: keep today's run speeds as `RunSpeed`
    (SprintSpeed 12-15), set `DashInitialVelocity ≈ 1.2-1.5 × RunSpeed` (Melee ratio
    1.16-1.5, Fox 1.9/2.2) instead of 30-34. Add `DashRunAccelerationA`/`B` (m/s²) and
    reuse `GroundFriction` as the traction term in the same
@@ -202,7 +202,7 @@ target = stick_x · air_drift_max
 - Air facing is stick-based; momentum from a dash carries into the air via
   `ground_to_air_jump_momentum_multiplier` (see §4).
 
-### 2.2 SlopArena today `[verified]`
+### 2.2 SLOPArena today `[verified]`
 
 `ProcessAirMovement` (`Simulation.cs:955-978`):
 
@@ -222,7 +222,7 @@ VX *= (1 - AirDrag · dt)                  // multiplicative drag, AirDrag = 0.2
 
 ### 2.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | Max air speed | `WalkSpeed` 9-11 m/s (`Simulation.cs:959-960`) | `air_drift_max` 0.8-1.35 u/f (`ftcommon.c:393`) |
 | Air speed / run | ~0.75-0.85 (walk/sprint) | 0.38 (Fox) to 1.23 (Jigglypuff) `[derived]` |
@@ -230,7 +230,7 @@ VX *= (1 - AirDrag · dt)                  // multiplicative drag, AirDrag = 0.2
 | Drag/friction | multiplicative `× (1-AirDrag·dt)` (`Simulation.cs:963-965`) | linear `aerial_friction` term in the accel helper (`ftcommon.c:355-370`) |
 | Air speed stat | none — reuses WalkSpeed | dedicated `air_drift_max` + global `air_max_horizontal_velocity` (`types.h:721,724`) |
 
-### 2.4 Melee-shaped SlopArena sketch (for #137)
+### 2.4 Melee-shaped SLOPArena sketch (for #137)
 
 1. **Add `AirSpeedMax` to `MovementStats`** (m/s), decoupled from WalkSpeed. First-pass
    spread: Manki 6.5, FightGuy 7.5, Kistu 8.5, Nilus 7.0 — ratios ~0.55-0.65 of run,
@@ -246,7 +246,7 @@ VX *= (1 - AirDrag · dt)                  // multiplicative drag, AirDrag = 0.2
 4. Keep the per-character `AirFriction` stat and use it as Melee's `aerial_friction`
    everywhere (also in the fixed-aim branch, which already uses it — `Simulation.cs:858-862`).
 5. Optional Melee lever: **momentum carry on jump** `ground_to_air_jump_momentum_multiplier`
-   (`types.h:711`, consumed at `ftCo_Jump.c:105`) — SlopArena already preserves dash
+   (`types.h:711`, consumed at `ftCo_Jump.c:105`) — SLOPArena already preserves dash
    momentum into the air (`Simulation.cs:1072-1073` keeps VX/VZ through squat), so this is
    a tuning constant, not new machinery.
 
@@ -267,7 +267,7 @@ VX *= (1 - AirDrag · dt)                  // multiplicative drag, AirDrag = 0.2
 - Fast fall is per-character: Fox 3.4, Marth 2.5, Jigglypuff 1.6, Bowser 2.4 u/f —
   only **1.14-1.26×** normal fall speed `[community]`.
 
-### 3.2 SlopArena today `[verified]`
+### 3.2 SLOPArena today `[verified]`
 
 - `input.Down` airborne (non-hitstun) multiplies **gravity** by `FastFallGravityMultiplier = 3`
   toward the `MaxFallSpeed` cap (`Simulation.cs:1244-1255`). It's a per-tick gate, not a
@@ -278,7 +278,7 @@ VX *= (1 - AirDrag · dt)                  // multiplicative drag, AirDrag = 0.2
 
 ### 3.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | Mechanism | `gravity × 3` toward cap (`Simulation.cs:1249`) | `VY = -fast_fall_velocity` each frame (`ftcommon.c:488-491`) |
 | Stat | none (global multiplier) | per-character `fast_fall_velocity` (`types.h:723`) |
@@ -286,7 +286,7 @@ VX *= (1 - AirDrag · dt)                  // multiplicative drag, AirDrag = 0.2
 | Gate | per-tick `input.Down` (`Simulation.cs:1248`) | latched on down-press while falling, `x88`/`x8C` window (`ftcommon.c:519-529`) |
 | During aerials | yes (`Simulation.cs:1245-1246`) | yes (`ftCo_AttackAir.c:192-193`) |
 
-### 3.4 Melee-shaped SlopArena sketch (for #137)
+### 3.4 Melee-shaped SLOPArena sketch (for #137)
 
 Add `FastFallSpeed` (m/s) to `MovementStats` (≈ 1.15-1.25 × `MaxFallSpeed`), and in
 `ApplyGravity` replace the multiplier with:
@@ -326,7 +326,7 @@ Frame math `[derived]` from `[community]` values: Fox full-hop apex 16.5 f, air 
 velocity ratio **0.58**. Marth full-hop air 57-59 f, short-hop air 36-38 f (wiki's own jump
 frame table confirms). Bowser short/full velocity ratio 0.58.
 
-### 4.2 SlopArena today `[verified]`
+### 4.2 SLOPArena today `[verified]`
 
 - Squat: `JumpSquatTicks` 4-6 (`Simulation.cs:344-347`), momentum preserved through the
   squat (`Simulation.cs:348` comment).
@@ -342,7 +342,7 @@ frame table confirms). Bowser short/full velocity ratio 0.58.
 
 ### 4.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | Squat | 4-6 t (`Simulation.cs:346`) | 3-8 f `[community]` — in range |
 | Short-hop trigger | release ≤ 5 t of press (`Simulation.cs:250`) | release during squat (`ftCo_KneeBend.c:53-64`) — same shape |
@@ -351,10 +351,10 @@ frame table confirms). Bowser short/full velocity ratio 0.58.
 | Double jump | same `JumpForce` + V snapped to `dir·WalkSpeed` (`Simulation.cs:351-360`) | weaker `× air_jump_v_multiplier` + `stick·air_jump_h_multiplier`, momentum-adding (`ftCo_JumpAerial.c:106-109`) |
 | Horizontal carry | momentum kept through squat, then air drift (`Simulation.cs:348`) | momentum scaled by `ground_to_air_jump_momentum_multiplier` (`ftCo_Jump.c:105`) |
 
-### 4.4 Melee-shaped SlopArena sketch (for #137)
+### 4.4 Melee-shaped SLOPArena sketch (for #137)
 
 1. **Add `ShortHopForce`** as its own stat instead of a multiplier; first-pass ≈ 0.58-0.62 ×
-   `JumpForce` (Melee 0.58 `[derived]`; today's 0.7 makes SlopArena short hops ~45% taller
+   `JumpForce` (Melee 0.58 `[derived]`; today's 0.7 makes SLOPArena short hops ~45% taller
    than Melee-relative). Keep the release-window trigger (already digital-optimal, ADR-0016).
 2. **Double jump becomes a separate impulse**: add `AirJumpVMultiplier` (~0.75-0.85) and
    `AirJumpHMultiplier` (~0.85) to `MovementStats`, applied in the air-jump branch
@@ -382,9 +382,9 @@ frame table confirms). Bowser short/full velocity ratio 0.58.
   `ftCo_LandingFallSpecial_Enter` with landing lag `p_ftCommonData->x344`), landing lag
   per character `[community]`.
 - Wavedash/waveland = air dodge into the ground (landing lag replaces the helpless fall) —
-  **ruled out of scope** for SlopArena per ticket #128.
+  **ruled out of scope** for SLOPArena per ticket #128.
 
-### 5.2 SlopArena today `[verified]`
+### 5.2 SLOPArena today `[verified]`
 
 `ActionState.AirDodging` **exists but is never entered**: the enum value
 (`ActionState.cs:10`), a no-op `ProcessAirDodge()` (`Simulation.cs:816-820`), the
@@ -398,7 +398,7 @@ invincibility, decel (`Simulation.cs:1030-1074`, `ProcessDash`).
 
 ### 5.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | State exists | enum + no-op + resource (`Simulation.cs:816-820`) | full FSM (`ftCo_EscapeAir.c`) |
 | Impulse | n/a (air dodge never entered; Shift = air dash at 30-34 m/s) | `escapeair_force` from stick, momentum halted (`ftCo_EscapeAir.c:33-45`) |
@@ -427,7 +427,7 @@ at `terminal_vel` (`ftcommon.c:483-486`, `ft_081B.c:1376-1378`). **No float wind
 ramp** — the arc is a pure parabola from the jump impulse. Aerial actions (including
 aerials) do not alter gravity.
 
-### 6.2 SlopArena today `[verified]`
+### 6.2 SLOPArena today `[verified]`
 
 Three-phase ramp (ADR-0001), `ApplyGravity` (`Simulation.cs:1217-1257`):
 `AirTimeTicks < FloatWindowTicks` → `AirFloatGravity`; `< FW+FallRampDuration` → lerp;
@@ -445,7 +445,7 @@ else full `Gravity`. **In practice the float window only fires for recovery move
 
 ### 6.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | Model | 3-phase float/ramp/full (`Simulation.cs:1221-1242`) | single `grav` + `terminal_vel` clamp (`ftcommon.c:483-486`) |
 | Gravity value | 34-36 m/s² | 0.064-0.23 u/f² `[community]` |
@@ -455,7 +455,7 @@ else full `Gravity`. **In practice the float window only fires for recovery move
 
 ### 6.4 Melee-shaped sketch (for #137 — decision point)
 
-Melee's shape is **single gravity + terminal cap**; SlopArena's ramp is a deliberate
+Melee's shape is **single gravity + terminal cap**; SLOPArena's ramp is a deliberate
 DKO-derived design (ADR-0001) that the float-reset change (issue #115) already narrowed to
 recovery moves. Two options, both Melee-compatible in feel:
 
@@ -483,18 +483,18 @@ recovery moves. Two options, both Melee-compatible in feel:
 speed it's a constant deceleration until the stop threshold. Stop time from run `[derived]`:
 Fox 2.2/0.08 ≈ 27.5 f, Marth 1.8/0.06 = 30 f, Jigglypuff 1.1/0.09 ≈ 12 f.
 
-### 7.2 SlopArena today `[verified]`
+### 7.2 SLOPArena today `[verified]`
 
 `GroundFriction` (14-16) applied as `MoveToward(V, 0, |V| · GroundFriction · dt)`
 (`Simulation.cs:846-848, 928-933`) — a **multiplicative/exponential** decay (per-tick
 fraction ≈ 14-16/60 ≈ 0.23-0.27, halving every ~2.6 t). From sprint to the dead zone
 (0.015, `Simulation.cs:91`) takes ≈ 22-25 t `[derived]`. Shape difference: Melee
-coasts linearly (constant m/s² bleed), SlopArena bleeds fast up front then asymptotes
+coasts linearly (constant m/s² bleed), SLOPArena bleeds fast up front then asymptotes
 (why the `VelocityDeadZone` exists, `Simulation.cs:88-91`).
 
 ### 7.3 Side-by-side
 
-| Aspect | SlopArena today | Melee |
+| Aspect | SLOPArena today | Melee |
 |---|---|---|
 | Stat | `GroundFriction` 14-16 (`Simulation.cs:929`) | `gr_friction` 0.06-0.09 u/f `[community]` |
 | Shape | exponential (`\|V\|·f·dt` fraction, `Simulation.cs:929-931`) | linear per-frame (`ftCo_Dash.c:155-158`) |
@@ -516,14 +516,14 @@ decays share one shape.
 
 ## 8. Ranked gaps (biggest first)
 
-1. **No run state / dash hard-stop + dash cooldown** (#136). SlopArena's dash is a
+1. **No run state / dash hard-stop + dash cooldown** (#136). SLOPArena's dash is a
    self-contained 0.25-0.3 s burst that ends in a full stop (`Simulation.cs:802-805`) and
    locks out for 0.73-1.0 s (`Simulation.cs:1047`). Melee's dash is the *entry* to run
    (accel toward `dash_run_terminal_velocity`, `inlines.h:137-146`) with **no cooldown** —
    the entire dash-dance/pivot layer (the biggest single ground-feel delta) is impossible
    today.
 2. **Dash magnitude**: 2.2-2.5× run vs Melee's 1.16-1.5× (initial dash 1.0-2.0 vs run
-   1.1-2.3) `[community]`. Dash in SlopArena is a teleport-ish burst; in Melee it's a
+   1.1-2.3) `[community]`. Dash in SLOPArena is a teleport-ish burst; in Melee it's a
    smooth ramp into run.
 3. **Air speed is coupled to walk + exponential drag** (#137). No `AirSpeedMax` stat
    (`Simulation.cs:959-960` reuses `WalkSpeed`), and `AirDrag` is multiplicative
@@ -556,7 +556,7 @@ fields; the netcode already carries the movement-resource fields these states ne
 
 ## 9. Verification & sources
 
-### SlopArena (repo root = `/home/binoui/Documents/projects/SlopArena`)
+### SLOPArena (repo root = `/home/binoui/Documents/projects/SlopArena`)
 
 | Claim | File:line |
 |---|---|
@@ -613,5 +613,5 @@ fields; the netcode already carries the movement-resource fields these states ne
 | Air dodge: anim 48-49 f (Mewtwo 39), intangible 4-29 (26 f), Peach/Zelda 4-19 (16 f); momentum halt + stick boost; helpless fall after | ssbwiki.com/Air_dodge — "In Super Smash Bros. Melee" tables |
 
 `[derived]` values (marked in text): jump apex/air-time frames from `v = √(2·g·h)`;
-stop-time frames `run/friction`; SlopArena apex ticks `JumpForce/Gravity`; exponential
+stop-time frames `run/friction`; SLOPArena apex ticks `JumpForce/Gravity`; exponential
 decay tick counts from `(1 - f·dt)^n`.

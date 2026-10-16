@@ -1,6 +1,6 @@
 # Move Data Report
 
-Telemetry tool for SlopArena move data: runs the **real shared sim** (ADR-0019 knockback + flight law)
+Telemetry tool for SLOPArena move data: runs the **real shared sim** (ADR-0019 knockback + flight law)
 for a character's Custom-knockback normal hitboxes at several victim damage percents, and prints authored
 frame data + simulated per-hit trajectories (with frame advantage) + a pipeline-parity safety check.
 

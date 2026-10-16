@@ -298,7 +298,7 @@ def run(args: argparse.Namespace) -> dict:
     build_root = root / "build"
     evidence_parent = root / "build/playtest" / args.version
     make_dirs_beneath(root, evidence_parent)
-    archive = evidence_parent / f"SlopArena-{args.version}.tar.gz"
+    archive = evidence_parent / f"SLOPArena-{args.version}.tar.gz"
     if archive.exists() or archive.is_symlink():
         raise BuildError("Publish-ready archive already exists; use a new version rather than overwrite it")
     evidence = evidence_parent / attempt
@@ -388,7 +388,7 @@ def run(args: argparse.Namespace) -> dict:
         raise BuildError("Unchanged scripts/ci/PlaytestReleaseBuilder.cs is missing or symlinked")
     shutil.copy2(producer, injected)
 
-    release = checkout / "build/release" / ("SlopArena-" + args.version)
+    release = checkout / "build/release" / ("SLOPArena-" + args.version)
     client_receipt = checkout / "build/playtest/client.json"
     if release.exists() or release.is_symlink() or client_receipt.exists() or client_receipt.is_symlink():
         raise BuildError("Isolated release output or receipt already exists; refusing to overwrite it")

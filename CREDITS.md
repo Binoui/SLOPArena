@@ -1,6 +1,6 @@
 # Credits
 
-Thank you to the creators whose work helps make SlopArena possible.
+Thank you to the creators whose work helps make SLOPArena possible.
 
 ## Art, animation, and UI
 
@@ -23,4 +23,4 @@ Thank you to the creators whose work helps make SlopArena possible.
 
 ## Music
 
-Music generated for SlopArena using [Google Gemini's Lyria](https://deepmind.google/models/lyria/).
+Music generated for SLOPArena using [Google Gemini's Lyria](https://deepmind.google/models/lyria/).

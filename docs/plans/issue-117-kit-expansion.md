@@ -4,7 +4,7 @@
 
 ## Current design contract
 
-SlopArena characters use two complementary attack layers:
+SLOPArena characters use two complementary attack layers:
 
 | Layer | Inputs | Variants | Purpose |
 |---|---|---|---|

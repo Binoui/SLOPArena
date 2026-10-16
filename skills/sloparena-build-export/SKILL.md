@@ -3,7 +3,7 @@ name: sloparena-build-export
 description: "Releases the Windows Steam Playtest client and compatible VPS backends through an isolated local Unity build and GitHub Actions, with manual Steam activation. Use for release, publish or deploy requests; use sloparena-ops for read-only logs."
 ---
 
-# SlopArena release
+# SLOPArena release
 
 ## Current flow
 

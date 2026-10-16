@@ -19,7 +19,7 @@ public static class CharacterPackageAuthoringSelfTest
             fixture.PrepareCookedPackage("bonk");
             RunAuthoringChecks();
         }
-        UnityEngine.Debug.Log("[SlopArena] Character package authoring self-test passed; fixture restored.");
+        UnityEngine.Debug.Log("[SLOPArena] Character package authoring self-test passed; fixture restored.");
     }
 
     private static void RunAuthoringChecks()

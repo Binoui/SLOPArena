@@ -204,7 +204,7 @@ reported a live draft with a stale workspace, not an accepted cooked package.
 The package is `client/Unity/Assets/CharacterPackages/bonk/`:
 
 - `package.json` — package identity and attribution (`bonk`, `0.0.0-dev`, Binoui, MIT,
-  SlopArena).
+  SLOPArena).
   `character.json` — authoritative gameplay source with the canonical sixteen slots.
   Eight normals use sword capsules from `_weapon_hilt` to `_weapon_tip`; A is Shoulder
   Bash, E is the targeted recovery slam, R is Charging Double Slash, and F is Blade Storm.

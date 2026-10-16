@@ -19,7 +19,7 @@ public sealed record HostedServerConfig
     public string DeploymentProfile => "development";
 
     /// <summary>Display name in the server browser (e.g. "Binoui's Server").</summary>
-    public string ServerName { get; init; } = "SlopArena Hosted";
+    public string ServerName { get; init; } = "SLOPArena Hosted";
 
     /// <summary>Region tag advertised to the master server.</summary>
     public string Region { get; init; } = "EU";

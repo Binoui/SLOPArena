@@ -1,10 +1,10 @@
 ---
 name: implement
-description: "Implement SlopArena work from an approved spec or ticket."
+description: "Implement SLOPArena work from an approved spec or ticket."
 metadata: {"invocation": "explicit"}
 ---
 
-Implement the approved SlopArena work. Loading this workflow does not expand scope.
+Implement the approved SLOPArena work. Loading this workflow does not expand scope.
 
 ## Plan and execution context
 

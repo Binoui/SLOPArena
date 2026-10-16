@@ -128,7 +128,7 @@ earlier versions remain in `finger-fix/before-*`. Reproduction applies
 ## Process change requested after acceptance
 
 The owner accepted the corrected result and requested animation review before
-creating the move in SlopArena data. Future new/reworked motion follows the
+creating the move in SLOPArena data. Future new/reworked motion follows the
 [maintained review checkpoint](../../skills/sloparena-animation-authoring/SKILL.md#user-review-before-move-integration).
 For a Head Slam candidate, show the unbound actual-Manki playback, its hand
 articulation and proposed impact/recovery clock first; user acceptance precedes

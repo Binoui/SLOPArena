@@ -1,9 +1,9 @@
 ---
 name: code-review
-description: "Review SlopArena changes against project standards and the approved specification."
+description: "Review SLOPArena changes against project standards and the approved specification."
 ---
 
-Review requested SlopArena changes for both project standards and approved behavior.
+Review requested SLOPArena changes for both project standards and approved behavior.
 Use independent reviewers when the user or an applicable workflow requests them.
 
 ## Snapshot and scope

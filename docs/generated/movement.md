@@ -59,7 +59,7 @@ What the numbers mean, per character (computed from the measured values above):
 
 Melee values: docs/research/melee-movement-audit.md (SSBWiki \[community\]; derived frame counts transfer 1:1 — 60 f/s = 60 ticks/s). Absolute speeds don't transfer (u/f vs m/s), timings and ratios do.
 
-| metric | SlopArena (measured) | Melee reference | read |
+| metric | SLOPArena (measured) | Melee reference | read |
 |---|---|---|---|
 | Jump squat | 6 t–4 t–4 t–5 t | 3–8 f (Fox 3, Marth 4, Puff 5, Bowser 8) | in Melee range |
 | Full-hop airtime | 0.53 s–0.63 s–0.68 s–0.67 s | Fox ~33 f, Marth 57–59 f | FG/Wibou ≈ Fox-fast, Manki ≈ Marth |
@@ -68,8 +68,8 @@ Melee values: docs/research/melee-movement-audit.md (SSBWiki \[community\]; deri
 | Fast fall / fall | 1.20–1.21–1.21–1.20 | 1.14–1.26 (Fox 3.4/2.8 … Puff 1.6/1.3) | Melee-shaped, adopted (audit §3.4) |
 | Air speed / run | 0.54–0.54–0.57–0.54 | 0.38 Fox – 0.5 Marth – 1.23 Puff | upper-mid band — air slower than ground, Melee norm |
 | Dash speed / run | 1.56–1.36–1.50–1.51 | 0.8–1.5× (initial dash vs run) | top of Melee band |
-| Stop from run | 0.32 s–0.38 s–0.40 s–0.35 s | Fox 27.5 f, Marth 30 f, Puff 12 f | SA brakes faster than Fox/Marth |
-| Reversal (cruise→cruise) | 0.55 s–0.62 s–0.67 s–0.60 s | dash-dance pivot ≈ 10–15 f between dashes | SA pivot 2–3× slower — no dash-dance (cooldown) |
+| Stop from run | 0.32 s–0.38 s–0.40 s–0.35 s | Fox 27.5 f, Marth 30 f, Puff 12 f | SLOPA brakes faster than Fox/Marth |
+| Reversal (cruise→cruise) | 0.55 s–0.62 s–0.67 s–0.60 s | dash-dance pivot ≈ 10–15 f between dashes | SLOPA pivot 2–3× slower — no dash-dance (cooldown) |
 | Dash cooldown | 44–60 t | none — dash-dance is core | the big deviation (ADR-0020 kept it) |
 
 

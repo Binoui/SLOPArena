@@ -191,7 +191,7 @@ The damage percentage determines knockback distance.
 
 ---
 
-## Summary: SlopArena Coverage
+## Summary: SLOPArena Coverage
 
 | Implemented | Partial | Not implemented |
 |---|---|---|

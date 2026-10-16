@@ -128,7 +128,7 @@ public sealed class SteamGameServerHost : IAsyncDisposable
 
         SteamGameServer.SetProduct("sloparena");
         SteamGameServer.SetModDir("sloparena");
-        SteamGameServer.SetGameDescription("SlopArena dedicated server");
+        SteamGameServer.SetGameDescription("SLOPArena dedicated server");
         SteamGameServer.SetDedicatedServer(true);
         SteamGameServer.LogOnAnonymous();
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the MVP backend for SlopArena: Master server with Steam auth, MMR-based 1v1 matchmaking, global chat (SignalR), and refactor the existing game server to support multi-match orchestration.
+**Goal:** Build the MVP backend for SLOPArena: Master server with Steam auth, MMR-based 1v1 matchmaking, global chat (SignalR), and refactor the existing game server to support multi-match orchestration.
 
 **Architecture:** Monolithic VPS-based approach with separate Master Server (ASP.NET Core + SignalR + Postgres) and Game Server (UDP multi-match orchestrator). Master assigns matched players to game server instances. Game server runs 10-15 concurrent matches in parallel threads.
 
@@ -2237,7 +2237,7 @@ if (config == null)
     return;
 }
 
-Console.WriteLine($"=== SlopArena Game Server ===");
+Console.WriteLine($"=== SLOPArena Game Server ===");
 Console.WriteLine($"Name: {config.ServerName}");
 Console.WriteLine($"Region: {config.Region}");
 Console.WriteLine($"Base Port: {config.BasePort}");

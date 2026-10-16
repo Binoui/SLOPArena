@@ -1,11 +1,11 @@
 ---
 name: sloparena-combat-engine
-description: "SlopArena server-authoritative combat: deterministic cooked timelines, typed operations, approved capabilities, hitbox/projectile resolution, interruption ownership, and legacy ServerAbility compatibility."
+description: "SLOPArena server-authoritative combat: deterministic cooked timelines, typed operations, approved capabilities, hitbox/projectile resolution, interruption ownership, and legacy ServerAbility compatibility."
 license: "MIT"
 metadata: {"omp": {"tags": ["sloparena", "combat", "hitbox", "netcode", "simulation", "projectiles", "explosions", "abilities"], "related_skills": ["sloparena-netcode", "sloparena-character-workflow"]}, "version": "4.0.0", "author": "OMP Agent"}
 ---
 
-# SlopArena Combat Engine
+# SLOPArena Combat Engine
 
 The Shared `ServerSimulation` is authoritative. The GameServer and client prediction consume the same immutable cooked character content. Unity renders state and semantic presentation events; it does not run a second gameplay FSM or resolve hits locally.
 

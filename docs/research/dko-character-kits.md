@@ -1,6 +1,6 @@
 # DKO (Divine Knockout) — Complete Character Kit Reference
 
-> Research doc for SlopArena inspiration. All data compiled from wikis, guides, and gameplay footage.
+> Research doc for SLOPArena inspiration. All data compiled from wikis, guides, and gameplay footage.
 > DKO was a 3rd-person platform fighter (3v3, ring-out kills) by Red Beard Games / Hi-Rez Studios.
 > Last updated: June 2026
 
@@ -325,7 +325,7 @@ All gods share:
 
 ---
 
-## Design Lessons for SlopArena
+## Design Lessons for SLOPArena
 
 1. **Small kits work:** 4 abilities + 2 attacks = room for depth without complexity
 2. **Every god has clear identity:** No overlap in role/function

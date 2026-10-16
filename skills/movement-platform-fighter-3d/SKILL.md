@@ -1,10 +1,10 @@
 ---
 name: movement-platform-fighter-3d
-description: "SlopArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, Dash, ledges, server authority, and Smash-style percent."
+description: "SLOPArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, Dash, ledges, server authority, and Smash-style percent."
 metadata: {"category": "game-dev", "tags": ["unity", "csharp", "platform-fighter", "movement", "combat"]}
 ---
 
-# SlopArena Movement and Platform-Fighter Fundamentals
+# SLOPArena Movement and Platform-Fighter Fundamentals
 
 Use this skill for movement, input, and universal combat changes. The authoritative implementation is `src/Shared/ServerSimulation.cs`; Unity gathers input and renders state. Read [`docs/architecture-overview.md`](../../docs/architecture-overview.md), [`docs/systems/combat-systems.md`](../../docs/systems/combat-systems.md), and [`CONTEXT.md`](../../CONTEXT.md) before changing settled mechanics.
 

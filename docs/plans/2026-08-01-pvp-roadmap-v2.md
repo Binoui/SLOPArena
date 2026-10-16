@@ -1,11 +1,11 @@
-# SlopArena — PvP Demo Roadmap (v2)
+# SLOPArena — PvP Demo Roadmap (v2)
 > **Historical execution plan.** Preserved as a dated decision/implementation record, not a current checklist. Current product work follows the [playable friends demo reset](2026-09-05-playable-demo-reset.md). Revalidate historical status claims against current code before reuse.
 
 
 > **Status:** Rewritten 2026-08-01. Replaces `2026-07-03-pvp-roadmap.md` (archived below as Appendix A).
 > **Goal:** Online PvP demo — 2-4 players, server browser, lobby room, stock mode, over UDP.
 > **ADRs:** [0003](../adr/0003-server-browser-over-matchmaking.md)–[0008](../adr/0008-lobby-room-match-flow.md) define the architecture.
-> **Repos:** SlopArena (this repo: client + game server + shared) · [SlopArena-MasterServer](https://github.com/Binoui/SlopArena-MasterServer) (matchmaking/meta API).
+> **Repos:** SLOPArena (this repo: client + game server + shared) · [SlopArena-MasterServer](https://github.com/Binoui/SlopArena-MasterServer) (matchmaking/meta API).
  
 **Post-demo architecture direction:** ADR-0022–ADR-0028 establish the Workshop-first
 content boundary, deterministic creator primitives, package compatibility, online
@@ -100,9 +100,9 @@ Fix blockers that prevent any PvP work. Each is small and independently verifiab
 |---|---|---|---|
 | **1.1** | `POST /auth/guest` endpoint on master server: generate temp SteamId (Guid), create User row, issue JWT. | MasterServer | `Program.cs`, `DTOs/`, `Data/Models/User.cs` |
 | **1.2** | `GET /servers` endpoint: list heartbeat-fresh (last beat < 15s), not-full game servers. | MasterServer | `Program.cs` |
-| **1.3** | Client auth flow: on launch, request guest JWT, store it, include as Bearer in all master server calls. | SlopArena | `Runtime/Network/MasterServerClient.cs` (new) |
-| **1.4** | Client server browser UI: query `GET /servers`, display list (name, region, players x/max, ping), join button. | SlopArena | `Runtime/UI/ServerBrowserUI.cs` (new), `UI/server-browser.uxml` (new) |
-| **1.5** | Wire server browser into menu flow: MainMenu → Server Browser → (join selected server's lobby). | SlopArena | `MainMenuUI.cs`, scene flow |
+| **1.3** | Client auth flow: on launch, request guest JWT, store it, include as Bearer in all master server calls. | SLOPArena | `Runtime/Network/MasterServerClient.cs` (new) |
+| **1.4** | Client server browser UI: query `GET /servers`, display list (name, region, players x/max, ping), join button. | SLOPArena | `Runtime/UI/ServerBrowserUI.cs` (new), `UI/server-browser.uxml` (new) |
+| **1.5** | Wire server browser into menu flow: MainMenu → Server Browser → (join selected server's lobby). | SLOPArena | `MainMenuUI.cs`, scene flow |
 
 **Verify:** Launch client → guest auth → server browser shows registered game servers → click join.
 
@@ -116,9 +116,9 @@ Fix blockers that prevent any PvP work. Each is small and independently verifiab
 |---|---|---|---|
 | **2.1** | `LobbyHub` SignalR hub on master server: `JoinLobby(serverId)`, `LeaveLobby()`, player list push, `HostStart()` → signals game server. | MasterServer | `Hubs/LobbyHub.cs` (new), `Program.cs` |
 | **2.2** | Match lifecycle bridge: master server → game server "start match" (HTTP or SignalR backchannel). Game server → master server "match ended" with results. | Both | `MultiMatchOrchestrator.cs`, `GameServerRegistration.cs` |
-| **2.3** | Client SignalR client: connect to `LobbyHub`, handle join/leave/start events. | SlopArena | `Runtime/Network/LobbyClient.cs` (new) |
-| **2.4** | Client lobby room UI: player list (2-4 slots), host "Start" button, leave button. Chat-ready placeholder. | SlopArena | `Runtime/UI/LobbyRoomUI.cs` (new), `UI/lobby-room.uxml` (new) |
-| **2.5** | Wire lobby into scene flow: Server Browser → join → Lobby Room → (host starts) → Char Select. | SlopArena | Scene management |
+| **2.3** | Client SignalR client: connect to `LobbyHub`, handle join/leave/start events. | SLOPArena | `Runtime/Network/LobbyClient.cs` (new) |
+| **2.4** | Client lobby room UI: player list (2-4 slots), host "Start" button, leave button. Chat-ready placeholder. | SLOPArena | `Runtime/UI/LobbyRoomUI.cs` (new), `UI/lobby-room.uxml` (new) |
+| **2.5** | Wire lobby into scene flow: Server Browser → join → Lobby Room → (host starts) → Char Select. | SLOPArena | Scene management |
 
 **Verify:** Two clients → both in lobby → both see each other in player list → host clicks Start → both transition to char select.
 
@@ -131,10 +131,10 @@ Fix blockers that prevent any PvP work. Each is small and independently verifiab
 | Task | What | Repo | Files |
 |---|---|---|---|
 | **3.1** | In-lobby character select via SignalR: each player picks, selection broadcasts to all. Lock-in. | MasterServer | `LobbyHub.cs` |
-| **3.2** | Client char select UI (multiplayer): grid of 4 chars, shows other players' picks, lock-in button. | SlopArena | `Runtime/UI/LobbyCharSelectUI.cs` (new/extend `CharSelectController.cs`) |
+| **3.2** | Client char select UI (multiplayer): grid of 4 chars, shows other players' picks, lock-in button. | SLOPArena | `Runtime/UI/LobbyCharSelectUI.cs` (new/extend `CharSelectController.cs`) |
 | **3.3** | Master server sends player list + character classes to game server at match start. | Both | `LobbyHub.cs`, `MultiMatchOrchestrator.cs`, `MatchInstance.cs` |
-| **3.4** | Game server reads character classes (not hardcoded Manki). Spawns entities with correct `CharacterClass`. | SlopArena | `MatchInstance.cs` |
-| **3.5** | Client connects to game server UDP on match start (using server IP:port from lobby). | SlopArena | `PvPMatch.cs`, `NetworkClient.cs` |
+| **3.4** | Game server reads character classes (not hardcoded Manki). Spawns entities with correct `CharacterClass`. | SLOPArena | `MatchInstance.cs` |
+| **3.5** | Client connects to game server UDP on match start (using server IP:port from lobby). | SLOPArena | `PvPMatch.cs`, `NetworkClient.cs` |
 
 **Verify:** Two clients → lobby → char select → both pick different characters → match starts → each client renders the correct character for each player.
 
@@ -146,11 +146,11 @@ Fix blockers that prevent any PvP work. Each is small and independently verifiab
 
 | Task | What | Repo | Files |
 |---|---|---|---|
-| **4.1** | Generalize `MatchInstance` from 2 to N players: dynamic entity IDs (1-4), per-player input queues, broadcast all states to all clients. | SlopArena | `MatchInstance.cs` |
-| **4.2** | Stock mode: `StockCount` per entity, decrement on KO, last-standing win check, eliminated players go spectating. | SlopArena | `MatchInstance.cs`, `Simulation.cs`, `CharacterState.cs` |
-| **4.3** | Client HUD for 2-4 players: damage % and stocks for all players, player-name labels. | SlopArena | `HUDManager.cs`, `HUD.uxml` |
-| **4.4** | Client renders 2-4 entities: all opponent renderers, not just one. | SlopArena | `PvPMatch.cs`, `EntityRegistry` |
-| **4.5** | Respawn logic for stock mode: respawn at available spawn point, brief invincibility. | SlopArena | `MatchInstance.cs`, `Simulation.cs` |
+| **4.1** | Generalize `MatchInstance` from 2 to N players: dynamic entity IDs (1-4), per-player input queues, broadcast all states to all clients. | SLOPArena | `MatchInstance.cs` |
+| **4.2** | Stock mode: `StockCount` per entity, decrement on KO, last-standing win check, eliminated players go spectating. | SLOPArena | `MatchInstance.cs`, `Simulation.cs`, `CharacterState.cs` |
+| **4.3** | Client HUD for 2-4 players: damage % and stocks for all players, player-name labels. | SLOPArena | `HUDManager.cs`, `HUD.uxml` |
+| **4.4** | Client renders 2-4 entities: all opponent renderers, not just one. | SLOPArena | `PvPMatch.cs`, `EntityRegistry` |
+| **4.5** | Respawn logic for stock mode: respawn at available spawn point, brief invincibility. | SLOPArena | `MatchInstance.cs`, `Simulation.cs` |
 
 **Verify:** 3 clients → lobby → char select → match → 3 characters visible → KOs decrement stocks → last player standing wins → results → back to lobby.
 
@@ -162,9 +162,9 @@ Fix blockers that prevent any PvP work. Each is small and independently verifiab
 
 | Task | What | Repo | Files |
 |---|---|---|---|
-| **5.1** | Unity spawns `ServerApp` as subprocess: pass config (port, master server URL), monitor process, graceful shutdown on quit. | SlopArena | `Runtime/Network/ServerHost.cs` (new) |
-| **5.2** | Host flow UI: "Host" button in server browser → starts server → registers with master → auto-join own lobby. | SlopArena | `ServerBrowserUI.cs`, `ServerHost.cs` |
-| **5.3** | Host connects to localhost for the match (same as any client, just 127.0.0.1). | SlopArena | `PvPMatch.cs` |
+| **5.1** | Unity spawns `ServerApp` as subprocess: pass config (port, master server URL), monitor process, graceful shutdown on quit. | SLOPArena | `Runtime/Network/ServerHost.cs` (new) |
+| **5.2** | Host flow UI: "Host" button in server browser → starts server → registers with master → auto-join own lobby. | SLOPArena | `ServerBrowserUI.cs`, `ServerHost.cs` |
+| **5.3** | Host connects to localhost for the match (same as any client, just 127.0.0.1). | SLOPArena | `PvPMatch.cs` |
 
 **Verify:** Client A clicks Host → appears in server browser → Client B joins → both in lobby → match plays.
 
@@ -176,9 +176,9 @@ Fix blockers that prevent any PvP work. Each is small and independently verifiab
 
 | Task | What | Repo | Files |
 |---|---|---|---|
-| **6.1** | Game server detects winner → signals master server with results. | SlopArena | `MatchInstance.cs`, `MultiMatchOrchestrator.cs` |
+| **6.1** | Game server detects winner → signals master server with results. | SLOPArena | `MatchInstance.cs`, `MultiMatchOrchestrator.cs` |
 | **6.2** | Master server pushes results to all clients via SignalR. | MasterServer | `LobbyHub.cs` |
-| **6.3** | Client results UI: winner display, stock counts, "Return to Lobby" (auto after delay). | SlopArena | `Runtime/UI/ResultsUI.cs` (new) |
+| **6.3** | Client results UI: winner display, stock counts, "Return to Lobby" (auto after delay). | SLOPArena | `Runtime/UI/ResultsUI.cs` (new) |
 | **6.4** | Game server resets to waiting-for-start state. Players return to lobby room. | Both | `MatchInstance.cs`, `LobbyHub.cs` |
 
 **Verify:** Match ends → results screen → all clients return to lobby → host can start another match.
@@ -228,7 +228,7 @@ Phase 7 (Prediction/Rollback)
 
 Two repos must agree on data shapes:
 
-| Contract | Master Server | SlopArena |
+| Contract | Master Server | SLOPArena |
 |---|---|---|
 | Guest auth response | `POST /auth/guest` → `{ token: string, steamId: string }` | `MasterServerClient.AuthGuest()` |
 | Server list item | `GET /servers` → `[{ id, name, ip, port, region, currentPlayers, maxPlayers, isOfficial }]` | `ServerBrowserUI` renders |

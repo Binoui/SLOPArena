@@ -20,7 +20,7 @@ namespace SlopArena.Server
                 return;
             }
 
-            Console.WriteLine("=== SlopArena Game Server ===");
+            Console.WriteLine("=== SLOPArena Game Server ===");
 
             // Load configuration
             string configPath = args.Length > 0 ? args[0] : "server.json";

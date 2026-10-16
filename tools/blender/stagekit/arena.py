@@ -1,4 +1,4 @@
-"""Read a baked SlopArena arena (the gameplay authority) without Unity (pure Python)."""
+"""Read a baked SLOPArena arena (the gameplay authority) without Unity (pure Python)."""
 from __future__ import annotations
 
 import hashlib

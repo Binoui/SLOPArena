@@ -6,7 +6,7 @@
 
 ## Context
 
-SlopArena's authoritative simulation runs in shared C# code on both the GameServer and the client. Rollback and online verification require community gameplay to produce the same result on every participating runtime. Arbitrary creator code would introduce security, determinism, versioning, and server-deployment problems.
+SLOPArena's authoritative simulation runs in shared C# code on both the GameServer and the client. Rollback and online verification require community gameplay to produce the same result on every participating runtime. Arbitrary creator code would introduce security, determinism, versioning, and server-deployment problems.
 
 Creators still need meaningful control over fighters and stages: movement, hitboxes, timing, projectiles, bursts, warps, VFX/SFX events, and other kit behavior. The boundary must provide expressive composition without making the authoritative simulation a general plugin host.
 
@@ -25,7 +25,7 @@ Examples of primitive categories include:
 - VFX/SFX event references;
 - stage geometry and spawn configuration.
 
-Primitive behavior ships with SlopArena and is identified by versioned contracts. Creators compose the available primitives; they do not add executable primitives to a Workshop package. Incompatible primitive behavior receives a new version rather than silently changing the meaning of existing content.
+Primitive behavior ships with SLOPArena and is identified by versioned contracts. Creators compose the available primitives; they do not add executable primitives to a Workshop package. Incompatible primitive behavior receives a new version rather than silently changing the meaning of existing content.
 
 The authoritative GameServer and the shared client simulation consume the same cooked deterministic representation. The server validates the representation before loading it. Validation covers schema compatibility, deterministic behavior constraints, approved asset types, resource limits, and simulation work budgets.
 
@@ -48,7 +48,7 @@ The ModKit may provide Unity inspectors, preview tools, and higher-level authori
 ## Consequences
 
 - New creator capabilities require engine work and a versioned primitive contract.
-- The primitive catalog becomes an important part of SlopArena's public creator API.
+- The primitive catalog becomes an important part of SLOPArena's public creator API.
 - Primitive parameters need explicit bounds and deterministic semantics.
 - The shared simulation remains the source of truth; client-only gameplay behavior is not a supported extension path.
 - Automated package validation must reject malformed, over-budget, or nondeterministic content before a match begins.

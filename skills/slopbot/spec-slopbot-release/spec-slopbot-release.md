@@ -11,12 +11,12 @@ sources: []
 
 ## Why
 
-SlopArena needs a public creator guide before broader public discussion of the project. SlopBot will help technical newcomers who already use development tools and AI coding assistants turn a humanoid character concept into a verified, locally playable fighter, while explaining the project and locating its documentation. Creating the fifth character supplies the first real workflow run and the subject of a creation-diary video.
+SLOPArena needs a public creator guide before broader public discussion of the project. SlopBot will help technical newcomers who already use development tools and AI coding assistants turn a humanoid character concept into a verified, locally playable fighter, while explaining the project and locating its documentation. Creating the fifth character supplies the first real workflow run and the subject of a creation-diary video.
 
 ## Capabilities
 
 - **CAP-1**
-  - **intent:** Users can discover SlopBot's supported journey, understand prerequisites, and navigate relevant SlopArena documentation.
+  - **intent:** Users can discover SlopBot's supported journey, understand prerequisites, and navigate relevant SLOPArena documentation.
   - **success:** A public-bundle session explains character creation and project orientation, identifies required or missing capabilities, and routes an out-of-scope request to documentation without starting unrelated implementation.
 - **CAP-2**
   - **intent:** Users can agree a humanoid character concept and complete kit, then obtain usable assets through explicit sourcing, generation, and rigging handoffs.
@@ -40,7 +40,7 @@ SlopArena needs a public creator guide before broader public discussion of the p
 ## Constraints
 
 - Target technical newcomers, not users who need general computing instruction; initially support humanoid fighters only.
-- Distribute SlopBot and only its required helpers under the SlopArena repository's public `skills/` tree. Users must not need BMAD, the private workspace, or the author's absolute paths.
+- Distribute SlopBot and only its required helpers under the SLOPArena repository's public `skills/` tree. Users must not need BMAD, the private workspace, or the author's absolute paths.
 - Guidance is harness-neutral for assistants able to load skills; execution is conditional on supported tools and permissions. Missing capabilities do not authorize a bypass or certify unexercised harnesses.
 - Reuse existing technical guidance and project tooling with one authoritative owner per instruction; packaging must not create a drifting private/public copy or expand into a new cross-harness integration layer.
 - Execute only approved bounded work. Guided and fast modes share permissions, runtime ownership requirements, and verification; installation, spending, publication, commits, and unrelated mutations need explicit permission.

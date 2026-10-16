@@ -9,7 +9,7 @@ Use this helper only for bounded adaptation of an existing, sourced humanoid cli
 
 ## Load shared instructions first
 
-On every direct invocation, load the SlopBot entry skill and its progress instructions through the harness skill loader, or read `../slopbot/SKILL.md` and the referenced `../slopbot/references/progress.md` from this public skills tree. Follow their selected-checkout, scope, mode, approval, tool/ownership, and resume rules. If either shared instruction is unavailable, stop before mutation; do not use this helper to bypass the entry skill. Resolve all project documentation below from the user's explicitly selected SlopArena checkout, never from this skill's installation path or a private workspace. Record observed decisions, evidence, and blockers in the entry skill's `.slopbot/<package-or-goal>.md` record; do not claim unperformed work.
+On every direct invocation, load the SlopBot entry skill and its progress instructions through the harness skill loader, or read `../slopbot/SKILL.md` and the referenced `../slopbot/references/progress.md` from this public skills tree. Follow their selected-checkout, scope, mode, approval, tool/ownership, and resume rules. If either shared instruction is unavailable, stop before mutation; do not use this helper to bypass the entry skill. Resolve all project documentation below from the user's explicitly selected SLOPArena checkout, never from this skill's installation path or a private workspace. Record observed decisions, evidence, and blockers in the entry skill's `.slopbot/<package-or-goal>.md` record; do not claim unperformed work.
 
 ## Scope and source safety
 

@@ -1,5 +1,5 @@
 [Unit]
-Description=SlopArena private CI SSH receiver
+Description=SLOPArena private CI SSH receiver
 Requires=ssh.service wg-quick@sloparena-ci.service
 After=ssh.service wg-quick@sloparena-ci.service
 

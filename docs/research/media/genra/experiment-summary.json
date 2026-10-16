@@ -1,6 +1,6 @@
 {
   "date": "2026-10-14",
-  "project": "SlopArena",
+  "project": "SLOPArena",
   "upstream": "https://github.com/MacPaw/GenRA",
   "upstreamCommit": "5f4ffb8ac846f91265c48e8bb65d702dca11b7a1",
   "provider": "Custom Codex CLI adapter using existing ChatGPT authentication",

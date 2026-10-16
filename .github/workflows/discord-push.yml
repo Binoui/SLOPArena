@@ -35,7 +35,7 @@ jobs:
             --arg server "${{ github.server_url }}" \
             --arg timestamp "${{ github.event.head_commit.timestamp }}" \
             '{
-              username: "SlopArena CI",
+              username: "SLOPArena CI",
               avatar_url: "https://raw.githubusercontent.com/Binoui/SlopArena/main/branding/icon_v7_pillars_discord.png",
               embeds: [{
                 title: "✦ New push to main",
