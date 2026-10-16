@@ -46,6 +46,12 @@ GUID inputs without operating Unity. Run `python3 tools/check_unity_setup.py`,
 optionally with `--root /path/to/checkout --json`. See
 [Unity setup](../docs/contributing/unity-setup.md) for scope and provisioning.
 
+[`check_asset_closure.py`](check_asset_closure.py) follows every reference from
+the given Unity assets and reports what a fresh clone would miss: files excluded by
+`.gitignore`, usually vendor packs, and references that no longer resolve. Run
+`python3 tools/check_asset_closure.py <asset or folder>` before un-ignoring or
+committing art; see [shipping original art](../docs/contributing/unity-setup.md#shipping-original-art).
+
 [`unity_asset_bundle.py`](unity_asset_bundle.py) exports ignored Unity inputs and
 their metadata to a private ZIP for another development machine. Its importer
 verifies checksums and tracked metadata, and preserves conflicting laptop files.

@@ -15,7 +15,8 @@ not turn local asset copies into redistributable source.
 | Pipeline | Tracked local fork of `com.unity.pipeline` `0.5.0-exp.1` | Preserve its ownership protocol on the canonical Editor; see the [fork proposal](../plans/2026-10-13-unity-dependency-ownership.md) |
 | Shared plugin | `src/Shared/SlopArena.Shared.csproj`, `CopyToUnity` | Generate it with this project closed, or under your own gateway lease |
 | Managed Unity dependencies | Tracked, pinned `Assets/Plugins/NuGet` snapshot | Preserve its inventory, checksums, notices and importer metadata; see its [README](../../client/Unity/Assets/Plugins/NuGet/README.md) |
-| Rigs, clips, derived effects, audio and environment inputs | Local assets referenced by catalogs, scenes and Resources | Provision exact assets and metadata from an authorized source; consult the [input inventory](../assets/contributor-inputs.md) |
+| Original fighter models, materials and textures | Files generated for this project under `Assets/Art/Characters/`, re-included one by one in `.gitignore` | Add them from a checkout with the local art; see [shipping original art](#shipping-original-art) |
+| Clips, derived effects, audio and environment inputs | Local assets referenced by catalogs, scenes and Resources | Provision exact assets and metadata from an authorized source; consult the [input inventory](../assets/contributor-inputs.md) |
 | Generated character catalogs and cook intermediates | Existing character cook services | Generate through the package workflow once its inputs are provisioned |
 
 The Shared copy target exports only `SlopArena.Shared.dll` and its PDB. NuGet
@@ -110,6 +111,40 @@ Keep these bundles private: they contain the locally installed purchased assets.
 They transfer an existing installation; they do not install the Editor or .NET,
 rebuild Shared, or establish that the complete client compiles and plays on the
 new machine. Repeat the export after local assets change.
+
+## Shipping original art
+
+Original models, materials and textures can move from local art into Git once
+everything they reference can be redistributed. Check an asset's dependencies
+from a checkout that has the local art installed, so that every reference
+resolves:
+
+```bash
+python3 tools/check_asset_closure.py client/Unity/Assets/Resources/Stages/log_off.prefab
+python3 tools/check_asset_closure.py --json client/Unity/Assets/Art/Characters/wibou/Models/wibou.fbx
+```
+
+The check follows GUID references through scenes, prefabs, materials, other
+text-serialized assets and `.meta` files. It reports each file as tracked,
+to-add, ignored (a fresh clone would miss it), registry or builtin (Unity
+provides it), or dangling (the reference is already broken). It only reads files
+and Git's ignore rules; it does not import, change or commit anything. It does not
+follow references stored in binary assets or shader `#include` paths.
+
+`.gitignore` keeps `Assets/Art/` local but re-includes the original fighter files
+one by one near the end of the file, because the same folders also hold animation
+packs, stock characters and old candidates. To ship more art, for example a stage
+once its vendor models are replaced:
+
+1. Run the check on the stage prefab or folder until no vendor files remain among
+   the ignored ones.
+2. Add a `!` rule for each remaining ignored project file, ending in `*` so that
+   its `.meta` file ships too.
+3. Run the check again: every file should be tracked or to-add. Stage those files
+   with `git add -- <paths>`; never use `git add -A` in a checkout with local art.
+
+GitHub warns above 50 MB per file and rejects files over 100 MB. Re-export large
+meshes or textures, or move art to Git LFS, before adding them.
 
 ## Evidence and changes
 
