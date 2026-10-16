@@ -29,7 +29,7 @@ public class MatchClockTests
         using var first = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var second = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var ended = new ManualResetEventSlim();
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All[0].Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All.First(arena => arena.Purpose == ArenaPurpose.PvP).Name,
             new[]
             {
                 new MatchPlayer(101, CharacterClass.FightGuy, 1),
