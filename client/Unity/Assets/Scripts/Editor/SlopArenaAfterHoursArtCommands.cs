@@ -29,6 +29,8 @@ namespace SlopArena.EditorTools
         private const string StampPath = ArtPath + "/AfterHoursNeon.layout.json";
         private const string AtlasPath = ArtPath + "/AfterHoursAtlas.png";
         private const string DetailPath = ArtPath + "/AfterHoursDetail.png";
+        private const string PosterPath = ArtPath + "/AfterHoursFightNight.png";
+        private const string PosterName = "After Hours Fight Night Billboard";
         private const string RootName = "After Hours Neon City";
         private const string LightsName = "Stage Lights";
         // Roots of the previous hand-built pass; the generated city replaces them.
@@ -115,6 +117,7 @@ namespace SlopArena.EditorTools
                 atmosphere.Configure(new Color(0.06f, 0.045f, 0.12f), new Color(0.42f, 0.36f, 0.62f), new Color(0.10f, 0.08f, 0.14f), 1f,
                     true, new Color(0.22f, 0.10f, 0.24f), 30f, 650f);
 
+                if (File.Exists(PosterPath)) InstallPoster(root);
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
@@ -123,6 +126,106 @@ namespace SlopArena.EditorTools
             return new { success = true, prefab = PrefabPath, root = RootName, model = ModelPath, sourceHash, arenaHash,
                 triangles = objects.Values.Sum(), objects, removedRoots = removed, prunedSubAssets = pruned,
                 gameplay = "unchanged; presentation only" };
+        }
+
+        [CliCommand("sloparena.stage.billboard-after-hours", "Replace only the existing After Hours arena screen face with the high-resolution roster poster; preserves its frame and gameplay.",
+            MainThreadRequired = true, Tags = new[] { "authoring/stage" })]
+        public static object ApplyBillboard()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || SceneManager.GetActiveScene().isDirty)
+                throw new InvalidOperationException("Apply the billboard in stopped Edit Mode with saved scenes.");
+            if (!File.Exists(PosterPath)) throw new InvalidOperationException("Missing " + PosterPath);
+            ConfigureTexture(PosterPath, true, TextureWrapMode.Clamp, 2048);
+            var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                var result = InstallPoster(root);
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                return result;
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        private static object InstallPoster(GameObject root)
+        {
+            // The named arena_tonight cell in textures.py: a 256 px screen at (1024,256)
+            // in the 2048 atlas, with its authored two-texel UV inset. Extract only those
+            // two triangles; retain the generated city, AO, frame and all other atlas cells.
+            const float u0 = 1026f / 2048f, u1 = 1278f / 2048f;
+            const float v0 = 1538f / 2048f, v1 = 1790f / 2048f;
+            bool InCell(Vector2 p) => p.x >= u0 - .00001f && p.x <= u1 + .00001f
+                && p.y >= v0 - .00001f && p.y <= v1 + .00001f;
+            var vertices = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var uv = new List<Vector2>();
+            Transform parent = null;
+            foreach (var filter in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.name == PosterName || filter.sharedMesh == null) continue;
+                var mesh = filter.sharedMesh;
+                var sourceUv = mesh.uv;
+                if (sourceUv.Length != mesh.vertexCount) continue;
+                var sourceVertices = mesh.vertices;
+                var sourceNormals = mesh.normals;
+                for (int sub = 0; sub < mesh.subMeshCount; sub++)
+                {
+                    int[] triangles = mesh.GetTriangles(sub);
+                    for (int i = 0; i < triangles.Length; i += 3)
+                    {
+                        if (!InCell(sourceUv[triangles[i]]) || !InCell(sourceUv[triangles[i + 1]]) || !InCell(sourceUv[triangles[i + 2]])) continue;
+                        if (parent != null && parent != filter.transform)
+                            throw new InvalidOperationException("More than one source mesh uses the arena screen cell.");
+                        parent = filter.transform;
+                        for (int k = 0; k < 3; k++)
+                        {
+                            int index = triangles[i + k];
+                            Vector3 normal = sourceNormals[index];
+                            vertices.Add(sourceVertices[index] + normal * .015f);
+                            normals.Add(normal);
+                            uv.Add(new Vector2((sourceUv[index].x - u0) / (u1 - u0), (sourceUv[index].y - v0) / (v1 - v0)));
+                        }
+                    }
+                }
+            }
+            if (vertices.Count != 6 || parent == null)
+                throw new InvalidOperationException($"Expected one two-triangle arena screen, found {vertices.Count / 3} triangles. Inspect the generated atlas before applying.");
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(PosterPath)
+                ?? throw new InvalidOperationException("Import the fight-night poster texture first.");
+            string meshPath = ArtPath + "/AfterHoursFightNightFace.asset";
+            var face = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            if (face == null) { face = new Mesh { name = PosterName }; AssetDatabase.CreateAsset(face, meshPath); }
+            face.Clear(); face.SetVertices(vertices); face.SetNormals(normals); face.SetUVs(0, uv);
+            // StageNeon reads these channels for light animation and traffic travel.
+            // Supply explicit steady/stationary values on this fixed poster face.
+            var stationary = Enumerable.Repeat(Vector2.zero, vertices.Count).ToArray();
+            for (int channel = 1; channel <= 3; channel++) face.SetUVs(channel, stationary);
+            face.colors = Enumerable.Repeat(Color.white, 6).ToArray();
+            face.triangles = Enumerable.Range(0, 6).ToArray(); face.RecalculateBounds();
+            EditorUtility.SetDirty(face);
+            string materialPath = ArtPath + "/AfterHoursFightNight.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("SlopArena/StageNeon")) { name = "AfterHoursFightNight" };
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            material.SetTexture("_BaseMap", texture); material.SetColor("_BaseColor", Color.white);
+            Night(material, glow: .75f, fog: 1f);
+            material.SetFloat("_TimeScale", 0f);
+            EditorUtility.SetDirty(material);
+            foreach (var old in root.GetComponentsInChildren<MeshFilter>(true).Where(x => x.name == PosterName).ToArray())
+                Object.DestroyImmediate(old.gameObject);
+            var poster = new GameObject(PosterName);
+            poster.transform.SetParent(parent, false);
+            poster.AddComponent<MeshFilter>().sharedMesh = face;
+            var renderer = poster.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off; renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            AssetDatabase.SaveAssets();
+            var center = renderer.bounds.center; var size = renderer.bounds.size;
+            return new { success = true, texture = PosterPath, resolution = new[] { texture.width, texture.height }, triangles = 2,
+                center = new[] { center.x, center.y, center.z }, size = new[] { size.x, size.y, size.z } };
         }
 
         private static void AddLight(Transform parent, string name, LightType type, Vector3 position, Quaternion rotation, Color color, float intensity, float range)

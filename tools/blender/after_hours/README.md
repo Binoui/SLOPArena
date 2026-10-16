@@ -60,3 +60,25 @@ source, the generated files and the apply command. Judge appearance from real
 gameplay-camera captures with the `sloparena.stage.views.*` batch in the
 [stage-authoring workflow](../../../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review);
 it handles the Play Mode setup and restores the Editor afterwards.
+
+## Fight-night billboard artwork
+
+The hero arena screen now uses the approved four-character fight-night poster at
+`Assets/Stages/after_hours/Presentation/Neon/AfterHoursFightNight.png`. It was
+generated from the project's existing roster portraits; the adjacent artwork JSON
+records the references and intent. The rest of the city's signs remain procedural.
+
+The 1254×1254 poster has its own texture/material so a close camera does not magnify
+the old 256×256 atlas cell. `sloparena.stage.billboard-after-hours` finds the two
+triangles belonging to `arena_tonight` in the generated atlas UVs, derives a matching
+poster face and installs it within the existing frame. It does not rebuild the FBX,
+alter the city, or write the authoritative scene/arena. The native mesh/material
+assets are reproducible through the command. Full `sloparena.stage.art-after-hours`
+also reinstalls the face when this poster PNG is present.
+
+The fixed poster explicitly supplies zero animation/travel UV channels to StageNeon
+and disables its material clock. This keeps the artwork rigid and steadily lit while
+the surrounding city retains its sign and traffic animation.
+
+Apply under your own bounded gateway lease, then judge it in Unity. Retain the PNG
+alongside the generated stage files when reconstructing the full art checkout.
