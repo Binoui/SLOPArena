@@ -18,8 +18,8 @@ asset changed neither source nor metadata and retained the canonical fingerprint
 Recorded FBX artifact dependency values also matched between contexts.
 
 This refutes a simple target mismatch and a fix that merely reimports that file.
-The remaining difference is in Unity's imported artifact identity; its precise
-internal cause is unresolved. Keep the cook/hash contract and native verification.
+The remaining difference is in Unity's imported artifact identity; the root
+cause is recorded below. Keep the cook/hash contract and native verification.
 The diagnostic reimport also demonstrated that the canonical dependency queue
 automatically recooks **all four** packages and can overwrite accepted cold
 Windows metadata with warm Editor fingerprints. Its nine metadata-only rewrites
@@ -29,6 +29,18 @@ committed cooked content. Normal authoring auto-cook behavior remains unchanged.
 Cold certification separates acceptance of committed Windows cooks from a warm
 Editor status. Authoring provenance now exposes the target/toolchain, while
 certification retains the source, licensed fingerprint and native report.
+
+### Root cause (2026-10-16)
+
+The canonical artifact's dependency list included
+`SourceAsset/GuidOfPathLocation` for `Assets/Art/Characters/fightguy/Textures/node_0_BaseColor.jpg`.
+The FBX imported materials through its material description, and Unity resolved
+the embedded `node_0_basecolor.jpg` reference by name to that unrelated local
+FightGuy texture, which isolated release projects do not contain. The local
+`tumble_drift.fbx.meta` now uses **Import Materials: None**, since the clip is
+animation-only. Its dependencies are its own source and meta hashes, importer and
+postprocessor versions and the pipeline default material, and the committed
+cooks carry that fingerprint (`be7cdd0877fdefe54fcd97aafd859c68`).
 
 ## Cache trial
 
