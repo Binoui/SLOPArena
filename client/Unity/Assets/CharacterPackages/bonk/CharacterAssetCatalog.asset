@@ -87,7 +87,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.a1
   - _semanticId: anim.bonk.a2
-    _clip: {fileID: 7400000, guid: 77953bc20a54ae983bb0612ee5862aa4, type: 2}
+    _clip: {fileID: 7400000, guid: a9cc09b2cba80652b85b96f51b9f8c0a, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.a2
   - _semanticId: anim.bonk.a3

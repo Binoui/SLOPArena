@@ -30,6 +30,13 @@ and cooked schema versions cannot be admitted without migration and a recook.
 
 ## 2. Validate and bind assets
 
+New or substantially reworked move animations go through the
+[animation user review checkpoint](../../skills/sloparena-animation-authoring/SKILL.md#user-review-before-move-integration)
+before their move data or live catalog bindings change. Prepare an unbound preview
+on the actual character, obtain animation acceptance, then integrate it below.
+For new in-house motion, use the maintained
+[GenRA animation workflow](genra-animation-workflow.md).
+
 For generated-model cleanup or an existing-model replacement, follow the
 [character model polish guide](character-model-polish.md) before final integration.
 It separates surface repairs from rig changes and defines visual, retargeting and

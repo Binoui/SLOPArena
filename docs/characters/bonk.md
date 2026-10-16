@@ -7,6 +7,20 @@ It exercises the authoritative Shared compiler, trusted built-in capability
 admission, cooked package loading, Character Select discovery, and match
 content admission. Avatar visual/pose review remains a release prerequisite.
 
+## Horizontal aerial — 2026-10-16
+
+Air Cleave (`air.2`, normal 2 while airborne) now uses the approved horizontal
+greatsword animation with torso, free-arm and leg motion. The sword arm reaches
+forward and turns the hand horizontally with the forearm. The package-owned
+native clip is bound as `anim.bonk.a2`, with the existing 53-tick duration,
+contact ticks 15–28 and IASA 45. Gameplay values are unchanged by this integration.
+
+The package was cooked, verified and refreshed in the roster. Actual Unity
+playback and sword anchors match the cooked pose track; focused Shared cases
+pass for a low aerial hit, shield block and out-of-range miss. See the
+[authoring and integration record](../research/2026-10-16-bonk-horizontal-aerial.md)
+for the approved revision and evidence.
+
 ## Combat presentation — 2026-10-11
 
 Bonk's package now has a cream, rust-red and charcoal steel treatment, with

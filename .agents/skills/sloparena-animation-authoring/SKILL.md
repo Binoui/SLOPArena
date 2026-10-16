@@ -1,6 +1,6 @@
 ---
 name: sloparena-animation-authoring
-description: "Author and safely import SlopArena character animation clips through Blender, Unity Humanoid import, package catalog binding, cooking, and real-surface verification."
+description: "Author SlopArena character animations with the GenRA/Blender workflow, actual-character review before move integration, Unity Humanoid import, package binding and cooking."
 metadata: {"category": "game-dev"}
 ---
 

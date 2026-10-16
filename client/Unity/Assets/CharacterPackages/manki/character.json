@@ -860,8 +860,8 @@
     },
     {
       "id": "ground.4",
-      "name": "Double Kick",
-      "description": "Double Kick",
+      "name": "Head Slam",
+      "description": "Brief wind-up, then drive the skull forward and down into the target.",
       "iconId": "icon.4",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -874,8 +874,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 69,
-            "iasaTicks": 64,
+            "durationTicks": 40,
+            "iasaTicks": 35,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -892,7 +892,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 12,
+                "endTick": 10,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -902,25 +902,25 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 12,
+                "tick": 10,
                 "unit": "meters",
                 "hitbox": {
-                  "shape": "capsule",
+                  "shape": "sphere",
                   "radius": 0.5,
                   "offsetX": 0,
-                  "offsetY": 0.1,
+                  "offsetY": 0,
                   "offsetZ": 0,
                   "endOffsetX": 0,
-                  "endOffsetY": 0.3,
-                  "endOffsetZ": 0.5,
-                  "startBoneId": "bone.left-foot",
-                  "endBoneId": "bone.right-foot",
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.head",
+                  "endBoneId": "bone.head",
                   "damage": 14,
                   "angle": 28,
                   "baseKnockback": 9,
                   "knockbackGrowth": 42,
                   "stunTicks": 26,
-                  "durationTicks": 8,
+                  "durationTicks": 5,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -928,42 +928,22 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 12,
+                "tick": 10,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.normal.heavy",
                 "placement": {
                   "attachmentMode": "bone",
-                  "boneId": "bone.right-foot",
+                  "boneId": "bone.head",
                   "localPositionX": 0,
-                  "localPositionY": 0.12,
-                  "localPositionZ": 0.12,
+                  "localPositionY": 0,
+                  "localPositionZ": 0.1,
                   "localRotationX": 0,
                   "localRotationY": 0,
                   "localRotationZ": 0,
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 10
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 12,
-                "unit": "ticks",
-                "presentationId": "presentation.manki.normal.sweep",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.left-foot",
-                  "localPositionX": 0,
-                  "localPositionY": 0.12,
-                  "localPositionZ": 0.12,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 0.6,
-                  "localScaleY": 0.6,
-                  "localScaleZ": 0.6,
-                  "durationTicks": 10
+                  "durationTicks": 8
                 }
               }
             ]
@@ -1005,7 +985,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 23,
+                "endTick": 5,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -1015,25 +995,25 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 23,
+                "tick": 5,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
                   "radius": 0.5,
                   "offsetX": 0,
                   "offsetY": 0,
-                  "offsetZ": 0.24,
+                  "offsetZ": -0.2,
                   "endOffsetX": 0,
                   "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.right-hand",
+                  "endOffsetZ": 0.2,
+                  "startBoneId": "bone.left-foot",
                   "endBoneId": null,
                   "damage": 13,
                   "angle": 25,
                   "baseKnockback": 8,
                   "knockbackGrowth": 42,
                   "stunTicks": 26,
-                  "durationTicks": 8,
+                  "durationTicks": 38,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1041,12 +1021,12 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 23,
+                "tick": 6,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.normal.heavy",
                 "placement": {
                   "attachmentMode": "bone",
-                  "boneId": "bone.right-hand",
+                  "boneId": "bone.left-foot",
                   "localPositionX": 0,
                   "localPositionY": 0.1,
                   "localPositionZ": 0.18,
@@ -1056,7 +1036,7 @@
                   "localScaleX": 0.9,
                   "localScaleY": 0.9,
                   "localScaleZ": 0.9,
-                  "durationTicks": 10
+                  "durationTicks": 38
                 }
               }
             ]
@@ -1378,6 +1358,7 @@
                 "presentationId": "presentation.manki.aerosol-inferno.start",
                 "placement": {
                   "attachmentMode": "world",
+                  "boneId": null,
                   "localPositionX": 0,
                   "localPositionY": 0.25,
                   "localPositionZ": 0.55,

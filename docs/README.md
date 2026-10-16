@@ -78,6 +78,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | --- | --- |
 | [Adding a Character](characters/adding-a-new-character.md) | Package source, asset catalog, cooking, and admission |
 | [Character import checklist](characters/character-import-checklist.md) | Asset import and presentation checklist |
+| [GenRA animation workflow](characters/genra-animation-workflow.md) | Repeated motion authoring, rig conversion, actual-character preview, user approval and move integration |
 | [Character model polish](characters/character-model-polish.md) | Directed post-generation repair, visual acceptance, rig-change boundaries, and Manki lessons |
 | [Kit design principles](characters/character-kit-design-principles.md) | Fighter roles, counterplay, and the canonical move grid |
 | [FightGuy reference](characters/fightguy.md) | First cooked package and runtime path |
