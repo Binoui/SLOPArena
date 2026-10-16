@@ -791,7 +791,12 @@ namespace SlopArena.Client.Entities
             }
             else return false;
 
-            if (clip == null) return false;
+            if (clip == null)
+            {
+                // Shared grab clips are local installation assets, not package bindings.
+                LastAnimationClipNotInstalled = true;
+                return false;
+            }
             time = Mathf.Max(0, duration - snapshot.StateTicks) * SlopArena.Shared.Simulation.TickDt;
             if (snapshot.State == ActionState.Thrown && !snapshot.IsGrounded)
                 time = Mathf.Min(time, (DefenseConfig.ThrownLandingTicks - 2) * SlopArena.Shared.Simulation.TickDt);
@@ -805,6 +810,7 @@ namespace SlopArena.Client.Entities
         {
             clip = null;
             time = 0f;
+            LastAnimationClipNotInstalled = false;
             if (_animancer == null || _charDef == null) return false;
             if (snapshot.State is ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed
                 or ActionState.Throwing or ActionState.Thrown)
@@ -885,11 +891,18 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
+        /// <summary>
+        /// True when the last animation lookup found a binding whose clip is not
+        /// installed in this checkout (ADR-0038), as opposed to a missing binding.
+        /// </summary>
+        public bool LastAnimationClipNotInstalled { get; private set; }
+
         private bool TryGetAnimation(
             string semanticId, out AnimationClip clip, out ExtrapolationMode extrapolation)
         {
             clip = null;
             extrapolation = ExtrapolationMode.None;
+            LastAnimationClipNotInstalled = false;
             if (_animationCatalog != null)
             {
                 foreach (var entry in _animationCatalog.Animations ?? Array.Empty<CharacterAnimationCatalog.AnimationEntry>())
@@ -898,6 +911,7 @@ namespace SlopArena.Client.Entities
                     {
                         clip = entry.Clip;
                         extrapolation = entry.Extrapolation;
+                        LastAnimationClipNotInstalled = clip == null;
                         return clip != null;
                     }
                 }

@@ -14,7 +14,10 @@ historical evidence, not a checklist to repeat for every release.
 Source or asset tuning uses the existing Editor development catalog and the affected
 Ability Lab or Training path. A source edit can be compiled in memory without changing
 `content-cooked`, generated animation catalogs, or roster pins. Invalid source blocks
-preview with diagnostics, not stale fallback. Recompile for changed C#/Shared plugin, or
+preview with diagnostics, not stale fallback. Animation clips that are not installed
+don't block it: those moves play from the committed pose data without animating, and
+cooking still needs the clips ([ADR-0038](adr/0038-editor-play-without-installed-clips.md)).
+Recompile for changed C#/Shared plugin, or
 when Unity requests compilation; do not force a project recompile for prose or every JSON
 numeric edit. Read current Unity errors and exercise the changed behavior. Local-only
 preview is not persisted package verification.

@@ -132,6 +132,7 @@ Accepted records for current gameplay, runtime and content decisions include:
 - [ADR-0033: GameHost input Replays with compatible Shared playback](adr/0033-gamehost-input-replays-with-shared-playback.md)
 - [ADR-0036: Arcade PvP kit parity and legal fall resets](adr/0036-arcade-pvp-kit-parity-and-legal-fall-resets.md)
 - [ADR-0037: Arcade Shared objects and unified stage artifact](adr/0037-arcade-shared-objects-and-unified-stage-artifact.md)
+- [ADR-0038: Editor play without installed animation clips](adr/0038-editor-play-without-installed-clips.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 

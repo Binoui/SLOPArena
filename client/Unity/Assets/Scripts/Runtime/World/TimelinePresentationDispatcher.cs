@@ -28,6 +28,7 @@ namespace SlopArena.Client.World
                 : LifetimeTicks(presentationEvent.Source);
 
         private readonly Dictionary<ulong, Entry> _entries = new();
+        private readonly HashSet<string> _notInstalledWarnings = new(System.StringComparer.Ordinal);
         private readonly List<ActivePresentation> _active = new();
         private readonly HashSet<PresentationEventKey> _seenEvents = new();
 
@@ -104,9 +105,16 @@ namespace SlopArena.Client.World
                 if (entry.Renderer == null || entry.Catalog == null) continue;
                 CharacterAnimationCatalog.PresentationEntry binding = FindBinding(
                     entry.Catalog.Presentations, presentationEvent.PresentationId);
-                if (binding?.Prefab == null)
+                if (binding == null)
                 {
                     Debug.LogError($"[Presentation] Missing binding '{presentationEvent.PresentationId}' for owner {presentationEvent.EntityId}.");
+                    continue;
+                }
+                if (binding.Prefab == null)
+                {
+                    // Bound but not installed in this checkout (ADR-0038): skip the effect.
+                    if (_notInstalledWarnings.Add(presentationEvent.PresentationId))
+                        Debug.LogWarning($"[Presentation] '{presentationEvent.PresentationId}' is not installed in this checkout; skipping the effect.");
                     continue;
                 }
                 bool attachedToAttack = presentationEvent.Source == PresentationEventSource.Timeline

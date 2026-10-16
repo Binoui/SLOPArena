@@ -31,6 +31,49 @@ namespace SlopArena.Client.Animation
 
         private static string EditorCatalogKey(string packageId, string sourceHash)
             => packageId + "\n" + sourceHash;
+
+        public delegate bool EditorBindingCatalogFactory(byte[] bindingBytes, out CharacterAnimationCatalog catalog, out string error);
+
+        private static EditorBindingCatalogFactory? editorBindingCatalogFactory;
+
+        /// <summary>Editor code registers how to build a catalog from client.bindings (ADR-0038).</summary>
+        public static void RegisterEditorBindingCatalogFactory(EditorBindingCatalogFactory factory)
+            => editorBindingCatalogFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+
+        /// <summary>
+        /// Editor only. Builds a transient catalog from the committed client.bindings of
+        /// an already verified package. Fresh clones have no generated catalogs, and may
+        /// lack the licensed clips; missing clips become null entries (ADR-0038).
+        /// </summary>
+        public static bool TryCreateEditorCatalogFromBindings(
+            MatchContentIdentity identity,
+            byte[] bindingBytes,
+            out CharacterAnimationCatalog catalog,
+            out string error)
+        {
+            catalog = null;
+            if (identity == null)
+            {
+                error = "Match content identity is required.";
+                return false;
+            }
+            if (editorBindingCatalogFactory == null)
+            {
+                error = "No Editor binding catalog factory is registered.";
+                return false;
+            }
+            if (!editorBindingCatalogFactory(bindingBytes, out catalog, out error))
+                return false;
+            if (catalog.PackageId != identity.PackageId || catalog.SourceHash != identity.SourceHash)
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                catalog = null;
+                error = $"Committed bindings do not match package '{identity.PackageId}'.";
+                return false;
+            }
+            RegisterEditorDevelopmentCatalog(identity, catalog);
+            return true;
+        }
 #endif
 
         public static bool TryResolve(

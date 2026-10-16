@@ -73,6 +73,7 @@ public static class AbilityLabPackagePreviewLoader
             return Unavailable(diagnostics);
         }
 
+        var previewDiagnostics = new List<CharacterDiagnostic>(loaded.Diagnostics);
         if (!CookedCharacterClientAssetResolver.TryResolve(
                 loaded.Identity,
                 loaded.Package,
@@ -80,10 +81,42 @@ public static class AbilityLabPackagePreviewLoader
                 out var rig,
                 out var bindingError))
         {
+#if UNITY_EDITOR
+            // Generated catalogs are gitignored, so fresh clones never have one. Build it
+            // from the committed bindings of the package verified above; clips that are not
+            // installed leave their moves unanimated, with overlays intact (ADR-0038).
+            string bindingPath = Path.Combine(resolution.RootPath, packageId, CharacterPackageAssembler.BindingPath);
+            byte[] bindingBytes;
+            try
+            {
+                bindingBytes = File.ReadAllBytes(bindingPath);
+            }
+            catch (Exception ex)
+            {
+                return Unavailable(new[] { Error("preview.binding.failed", bindingPath, $"{bindingError} {ex.Message}") });
+            }
+            if (!CookedCharacterClientAssetResolver.TryCreateEditorCatalogFromBindings(
+                    loaded.Identity, bindingBytes, out animationCatalog, out var committedError))
+            {
+                return Unavailable(new[]
+                {
+                    Error("preview.binding.failed", $"Generated/CharacterPackages/{packageId}", $"{bindingError} {committedError}"),
+                });
+            }
+            rig = animationCatalog.Rig;
+            int missingClips = Array.FindAll(animationCatalog.Animations, entry => entry != null && entry.Clip == null).Length;
+            if (missingClips > 0)
+                previewDiagnostics.Add(new CharacterDiagnostic(
+                    CharacterDiagnosticSeverity.Warning,
+                    "preview.clips.not-installed",
+                    bindingPath,
+                    $"{missingClips} animation clip(s) are not installed. Those moves show hitboxes and hurtboxes but don't animate."));
+#else
             return Unavailable(new[]
             {
                 Error("preview.binding.failed", $"Generated/CharacterPackages/{packageId}", bindingError),
             });
+#endif
         }
 
 #if UNITY_EDITOR
@@ -101,7 +134,7 @@ public static class AbilityLabPackagePreviewLoader
             rig,
             loaded.Identity,
             CanonicalSlotProjection.All,
-            loaded.Diagnostics);
+            previewDiagnostics);
     }
 
     private static AbilityLabPackagePreviewResult Unavailable(IReadOnlyList<CharacterDiagnostic> diagnostics)
