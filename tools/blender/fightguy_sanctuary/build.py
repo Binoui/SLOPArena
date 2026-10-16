@@ -21,14 +21,14 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.dirname(HERE))  # tools/blender: the shared stagekit
 
-import bpy  # noqa: E402
-from mathutils import Vector  # noqa: E402
+from stagekit import blender as kit  # noqa: E402
+from stagekit import checks, geo  # noqa: E402
 
 import architecture as A  # noqa: E402
 import dressing as D  # noqa: E402
 import flags  # noqa: E402
-import geo  # noqa: E402
 import layout as LAYOUT  # noqa: E402
 import palette as P  # noqa: E402
 import props  # noqa: E402
@@ -41,34 +41,8 @@ DEFAULT_REPORT = REPO / ".stage-authoring-cache/fightguy_sanctuary/himalaya"
 MATERIALS = ["SA_Stone", "SA_Gloss", "SA_Cloth", "SA_Foliage", "SA_Glow", "SA_Cloud"]
 SMOOTH_GROUPS = {"Mountain Floor", "Cloud Sea"}
 CAMERA_ENVELOPE = 30.0  # max orbit radius (20 m x 1.5 radial zoom)
-
-
-def intersects_corridor(vertices, corridor):
-    """Clip a convex face against the open blast box, including crossing edges.
-
-    Testing only vertices misses a large triangle spanning the whole corridor.
-    The tiny inset treats contact with the boundary as outside the forbidden box.
-    """
-    polygon = list(vertices)
-    for axis, low, high in ((0, corridor["minX"], corridor["maxX"]),
-                            (1, corridor["killY"], corridor["topY"]),
-                            (2, corridor["minZ"], corridor["maxZ"])):
-        for plane, sign in ((low + 1e-6, 1), (high - 1e-6, -1)):
-            if not polygon:
-                return False
-            clipped = []
-            previous = polygon[-1]
-            previous_distance = sign * (previous[axis] - plane)
-            for current in polygon:
-                distance = sign * (current[axis] - plane)
-                if (distance >= 0) != (previous_distance >= 0):
-                    t = previous_distance / (previous_distance - distance)
-                    clipped.append(tuple(a + t * (b - a) for a, b in zip(previous, current)))
-                if distance >= 0:
-                    clipped.append(current)
-                previous, previous_distance = current, distance
-            polygon = clipped
-    return bool(polygon)
+NO_AO = ("Cloud Sea", "Backdrop Peaks", "Prayer Flags", "Mountain Floor")
+TRIANGLE_BUDGET = 300_000  # planning target, reported only (performance is measured in Unity)
 
 
 def args():
@@ -442,7 +416,7 @@ class Build:
                         dx = max(course_lo[0] - x, x - course_hi[0], 0.0)
                         dz = max(course_lo[1] - z, z - course_hi[1], 0.0)
                         near = min(near, math.hypot(dx, dz))
-                crossing_faces = sum(intersects_corridor([m.verts[i] for i in face], C) for face in m.faces)
+                crossing_faces = sum(checks.intersects_corridor([m.verts[i] for i in face], C) for face in m.faces)
                 report["background"][owner] = {"insideCorridor": inside, "facesInsideCorridor": crossing_faces,
                                                "nearestCourseDistance": round(near, 2)}
                 if inside:
@@ -470,85 +444,6 @@ class Build:
 
 # -------------------------------------------------------------- Blender side
 
-def reset_scene():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    for name in MATERIALS:
-        bpy.data.materials.new(name)
-
-
-def build_objects(build):
-    col = bpy.context.scene.collection
-    objects = {}
-    for name, m in build.groups.items():
-        if not m.faces:
-            continue
-        objects[name] = geo.to_object(m, col, smooth=name in SMOOTH_GROUPS)
-    return objects
-
-
-def setup_cycles(samples):
-    sc = bpy.context.scene
-    sc.render.engine = "CYCLES"
-    prefs = bpy.context.preferences.addons["cycles"].preferences
-    for kind in ("OPTIX", "CUDA"):
-        try:
-            prefs.compute_device_type = kind
-            prefs.get_devices()
-            if any(d.type == kind for d in prefs.devices):
-                for d in prefs.devices:
-                    d.use = d.type == kind
-                sc.cycles.device = "GPU"
-                break
-        except Exception:
-            continue
-    sc.cycles.samples = samples
-    if sc.world is None:
-        sc.world = bpy.data.worlds.new("World")
-    sc.world.light_settings.distance = 2.2
-
-
-def bake_ao(objects, samples):
-    setup_cycles(samples)
-    targets = [o for n, o in objects.items() if n not in ("Cloud Sea", "Backdrop Peaks", "Prayer Flags", "Mountain Floor")]
-    for o in objects.values():
-        o.select_set(False)
-    for o in targets:
-        me = o.data
-        ao = me.color_attributes.new("AO", "FLOAT_COLOR", "CORNER")
-        me.color_attributes.active_color = ao
-        o.select_set(True)
-    bpy.context.view_layer.objects.active = targets[0]
-    t = time.time()
-    bpy.context.scene.render.bake.target = "VERTEX_COLORS"
-    bpy.ops.object.bake(type="AO")
-    import numpy as np
-    for o in targets:
-        me = o.data
-        n = len(me.loops)
-        col = np.empty(n * 4, dtype=np.float32)
-        ao = np.empty(n * 4, dtype=np.float32)
-        me.color_attributes["Col"].data.foreach_get("color_srgb", col)
-        me.color_attributes["AO"].data.foreach_get("color", ao)
-        a = ao.reshape(-1, 4)[:, 0]
-        factor = np.clip(0.30 + 0.70 * np.power(a, 1.15), 0.0, 1.0)
-        c = col.reshape(-1, 4)
-        c[:, :3] *= factor[:, None]
-        me.color_attributes["Col"].data.foreach_set("color_srgb", c.ravel())
-        me.color_attributes.remove(me.color_attributes["AO"])
-        me.color_attributes.active_color = me.color_attributes["Col"]
-    return round(time.time() - t, 1)
-
-
-def export(objects, path):
-    for o in bpy.context.scene.objects:
-        o.select_set(o.name in objects)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={"MESH"}, axis_forward="-Z", axis_up="Y",
-                             bake_space_transform=True, apply_scale_options="FBX_SCALE_ALL", mesh_smooth_type="FACE",
-                             colors_type="SRGB", prioritize_active_color=True, use_mesh_modifiers=True,
-                             add_leaf_bones=False, path_mode="STRIP", embed_textures=False, use_custom_props=False)
-
-
 def preview(build, objects, out_dir, atlas_path, views_filter):
     import preview as PV
     PV.render(build, objects, out_dir, atlas_path, views_filter)
@@ -571,25 +466,30 @@ def main():
     atlas_path = os.path.join(a.out, "SanctuaryAtlas.png")
     textures.atlas(atlas_path)
     textures.detail(os.path.join(a.out, "SanctuaryDetail.png"))
-    reset_scene()
-    objects = build_objects(b)
-    bake_seconds = None if a.no_bake else bake_ao(objects, a.samples)
+    kit.reset_scene(MATERIALS)
+    objects = kit.build_objects(b.groups, smooth=SMOOTH_GROUPS)
+    bake_seconds = None if a.no_bake else kit.bake_ao(objects, a.samples, ao_distance=2.2, floor=0.30, gamma=1.15, skip=NO_AO)
+    digest, object_digests = kit.digest(objects)
     if not a.no_export:
-        export(objects, os.path.join(a.out, "SanctuaryHimalaya.fbx"))
+        kit.export_fbx(objects, os.path.join(a.out, "SanctuaryHimalaya.fbx"))
         with open(os.path.join(a.out, "SanctuaryHimalaya.layout.json"), "w") as fh:
             json.dump({"generator": "tools/blender/fightguy_sanctuary/build.py", "source": data["source"],
-                       "sourceSha256": data["sourceSha256"], "problems": len(problems)}, fh, indent=1)
+                       "sourceSha256": data["sourceSha256"], "geometryDigest": digest, "problems": len(problems)}, fh, indent=1)
             fh.write("\n")
+    triangles = sum(g.triangle_count for g in b.groups.values())
     summary = {
         "source": data["source"], "sourceSha256": data["sourceSha256"], "corridor": data["corridor"],
         "objects": {n: {"triangles": b.groups[n].triangle_count, "vertices": len(b.groups[n].verts)} for n in objects},
-        "triangles": sum(g.triangle_count for g in b.groups.values()),
+        "triangles": triangles, "budget": checks.budget(triangles, TRIANGLE_BUDGET),
+        "geometryDigest": digest, "objectDigests": object_digests,
         "problems": problems, "checks": report, "aoBakeSeconds": bake_seconds,
         "buildSeconds": round(time.time() - t0, 1),
     }
     with open(os.path.join(a.report, "build-report.json"), "w") as fh:
         json.dump(summary, fh, indent=1)
-    print("SANCTUARY_BUILD", json.dumps({k: summary[k] for k in ("triangles", "problems", "aoBakeSeconds", "buildSeconds")}))
+    print("SANCTUARY_BUILD", json.dumps({k: summary[k] for k in ("triangles", "problems", "aoBakeSeconds", "buildSeconds", "geometryDigest")}))
+    if summary["budget"]["over"]:
+        print("  OVER BUDGET: %d triangles planned, %d built" % (TRIANGLE_BUDGET, triangles))
     if a.preview:
         preview(b, objects, os.path.join(a.report, "preview"), atlas_path, a.views)
 

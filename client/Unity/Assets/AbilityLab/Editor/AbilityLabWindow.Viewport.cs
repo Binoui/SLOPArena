@@ -16,6 +16,7 @@ public sealed partial class AbilityLabWindow
     private EventCallback<ChangeEvent<bool>>? _hitboxesChanged;
     private EventCallback<ChangeEvent<bool>>? _hurtboxesChanged;
     private EventCallback<ChangeEvent<bool>>? _motionChanged;
+    private bool _releasePreviewControl;
 
     private void BindMovesViewport()
     {
@@ -33,6 +34,7 @@ public sealed partial class AbilityLabWindow
         }
 
         _movesViewport.onGUIHandler = DrawMovesViewport;
+        _movesViewport.RegisterCallback<PointerUpEvent>(OnPreviewPointerUp, TrickleDown.TrickleDown);
         _hitboxesChanged = evt => SetSceneOverlay(hitboxes: evt.newValue);
         _hurtboxesChanged = evt => SetSceneOverlay(hurtboxes: evt.newValue);
         _motionChanged = evt => SetSceneOverlay(motion: evt.newValue);
@@ -47,11 +49,13 @@ public sealed partial class AbilityLabWindow
         if (_movesSceneStatus == null) return;
         if (!_workspace.HasPackage)
         {
-            _movesSceneStatus.text = "Select a package to view the scene.";
+            _movesSceneStatus.text = "Select a package to preview.";
         }
         else if (_lab == null)
         {
-            _movesSceneStatus.text = "No Ability Lab rig or preview camera. Open a package preview to view the scene.";
+            _movesSceneStatus.text = EditorApplication.isPlayingOrWillChangePlaymode
+                ? "Preview resumes in Edit Mode."
+                : "Preparing isolated preview…";
         }
         else if (_workspace.LiveDraftInvalid)
         {
@@ -105,7 +109,11 @@ public sealed partial class AbilityLabWindow
             _sceneHurtboxes.UnregisterValueChangedCallback(_hurtboxesChanged);
         if (_sceneMotion != null && _motionChanged != null)
             _sceneMotion.UnregisterValueChangedCallback(_motionChanged);
-        if (_movesViewport != null) _movesViewport.onGUIHandler = null;
+        if (_movesViewport != null)
+        {
+            _movesViewport.UnregisterCallback<PointerUpEvent>(OnPreviewPointerUp, TrickleDown.TrickleDown);
+            _movesViewport.onGUIHandler = null;
+        }
         ReleaseMovesViewportTarget();
         _movesViewport = null;
         _movesSceneStatus = null;
@@ -115,6 +123,7 @@ public sealed partial class AbilityLabWindow
         _hitboxesChanged = null;
         _hurtboxesChanged = null;
         _motionChanged = null;
+        _releasePreviewControl = false;
     }
 
     private void ReleaseMovesViewportTarget()
@@ -138,12 +147,17 @@ public sealed partial class AbilityLabWindow
 
     private void DrawMovesViewport()
     {
-        if (Event.current.type != EventType.Repaint || _movesViewport == null) return;
+        if (_movesViewport == null) return;
         var rect = _movesViewport.contentRect;
         if (rect.width <= 0f || rect.height <= 0f || !_workspace.HasPackage || _workspace.LiveDraftInvalid || _lab == null ||
             (!_lab.IsPackagePreview && !_lab.IsScenarioPreview && !_lab.PhasePreviewActive)) return;
         var camera = _lab.PreviewCamera;
         if (camera == null) return;
+        // Unity forwards mouse events to IMGUI containers beyond their visible
+        // bounds. A stale nearest handle must not consume toolbar/field clicks.
+        if (Event.current.type == EventType.MouseDown && !rect.Contains(Event.current.mousePosition)) return;
+        if (Event.current.isMouse && !rect.Contains(Event.current.mousePosition) && GUIUtility.hotControl == 0) return;
+        HandlePreviewCameraInput(rect);
         int width = Mathf.Max(1, Mathf.CeilToInt(rect.width * EditorGUIUtility.pixelsPerPoint));
         int height = Mathf.Max(1, Mathf.CeilToInt(rect.height * EditorGUIUtility.pixelsPerPoint));
         if (_movesViewportTarget == null || _movesViewportTarget.width != width || _movesViewportTarget.height != height)
@@ -162,6 +176,8 @@ public sealed partial class AbilityLabWindow
         Rect cameraRect = camera.rect;
         Rect pixelRect = camera.pixelRect;
         var active = RenderTexture.active;
+        bool repaint = Event.current.type == EventType.Repaint;
+        if (repaint) GL.PushMatrix();
         try
         {
             // The native Normal path renders into RenderTexture.active. Isolate that clear,
@@ -170,6 +186,12 @@ public sealed partial class AbilityLabWindow
             camera.aspect = width / (float)height;
             RenderTexture.active = _movesViewportTarget;
             Handles.DrawCamera(rect, camera, DrawCameraMode.Normal);
+            // Draw handles into the same local render target as the model so they
+            // share its projection and cannot paint outside the viewport.
+            camera.pixelRect = new Rect(0f, 0f, width, height);
+            Handles.SetCamera(camera);
+            RenderTexture.active = _movesViewportTarget;
+            DrawPreviewHandles();
         }
         finally
         {
@@ -178,7 +200,17 @@ public sealed partial class AbilityLabWindow
             camera.aspect = aspect;
             camera.rect = cameraRect;
             camera.pixelRect = pixelRect;
+            if (repaint) GL.PopMatrix();
+            if (_releasePreviewControl && repaint)
+            {
+                // IMGUIContainer owns a separate GUI state: release the native
+                // handle here, inside that state, as well as Toolkit capture.
+                _releasePreviewControl = false;
+                GUIUtility.hotControl = 0;
+                _movesViewport?.ReleasePointer(PointerId.mousePointerId);
+            }
         }
+        if (Event.current.type != EventType.Repaint) return;
         GUI.DrawTexture(rect, _movesViewportTarget, ScaleMode.StretchToFill, false);
         if (_lab.IsScenarioPreview && _lab.Scenario is { } scenario &&
             SlopArena.Shared.CanonicalSlotProjection.TryGet(scenario.Options.Action, out var address))
@@ -215,5 +247,53 @@ public sealed partial class AbilityLabWindow
                 }
             }
         }
+    }
+
+    private void HandlePreviewCameraInput(Rect rect)
+    {
+        var evt = Event.current;
+        int control = GUIUtility.GetControlID(FocusType.Passive);
+        switch (evt.GetTypeForControl(control))
+        {
+            case EventType.MouseDown when rect.Contains(evt.mousePosition) && (evt.button == 1 || evt.button == 2):
+                GUIUtility.hotControl = control;
+                evt.Use();
+                break;
+            case EventType.MouseDrag when GUIUtility.hotControl == control:
+                var delta = new Vector2(evt.delta.x, -evt.delta.y);
+                _lab!.AdjustCameraView(evt.button == 1 ? delta : Vector2.zero,
+                    evt.button == 2 ? delta : Vector2.zero, 0f);
+                _movesViewport?.MarkDirtyRepaint();
+                evt.Use();
+                break;
+            case EventType.MouseUp when GUIUtility.hotControl == control:
+                GUIUtility.hotControl = 0;
+                evt.Use();
+                break;
+            case EventType.ScrollWheel when rect.Contains(evt.mousePosition):
+                _lab!.AdjustCameraView(Vector2.zero, Vector2.zero, evt.delta.y * 0.1f);
+                _movesViewport?.MarkDirtyRepaint();
+                evt.Use();
+                break;
+            case EventType.ContextClick when rect.Contains(evt.mousePosition):
+                evt.Use();
+                break;
+        }
+    }
+
+    private void OnPreviewPointerUp(PointerUpEvent evt)
+    {
+        if (evt.button != 0 || (!_sceneRadiusEditing && !_scenePresentationEditing)) return;
+        // Let native handles release their IMGUI control before a source refresh
+        // rebuilds the selected controls and presentation objects.
+        _releasePreviewControl = true;
+        _movesViewport?.schedule.Execute(CommitPreviewHandleEdits);
+        _movesViewport?.MarkDirtyRepaint();
+    }
+
+    private void CommitPreviewHandleEdits()
+    {
+        if (_sceneRadiusEditing) CommitSceneRadius();
+        if (_scenePresentationEditing) CommitScenePresentation();
     }
 }

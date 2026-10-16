@@ -5,7 +5,7 @@ import math
 
 import dressing as D
 import flags
-import geo
+from stagekit import geo
 import palette as P
 import props
 

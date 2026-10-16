@@ -253,9 +253,12 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Project-authored static Down poses are package source, not imported animation packs.
 !client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_crouch.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_crouch.anim
-# Original project-authored GenRA aerial promoted from the bounded experiment.
+# Original project-authored Manki animations.
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_air3_double_fist.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_ground4_head_slam.anim
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
+# Approved project-authored Bonk horizontal aerial.
+!client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim
 !client/Unity/Assets/CharacterPackages/wibou/Animations/wibou_crouch.anim
 *.png
 # Approved project documentation reference, not imported game art.
@@ -302,6 +305,16 @@ client/Unity/Assets/Resources/InputPrompts.meta
 # Stage presentation prefabs (local licensed art dependencies)
 client/Unity/Assets/Resources/Stages/*.prefab
 client/Unity/Assets/Resources/Stages/*.prefab.meta
+
+# Rebuildable Log Off campsite art (source lives in tools/blender/log_off).
+client/Unity/Assets/Stages/log_off/Presentation.meta
+client/Unity/Assets/Stages/log_off/Presentation/Campsite/
+client/Unity/Assets/Stages/log_off/Presentation/Campsite.meta
+
+# Rebuildable Table Manners craft-room art (source lives in tools/blender/table_manners).
+client/Unity/Assets/Stages/table_manners/Presentation.meta
+client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom/
+client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom.meta
 
 # Local stage previews and Cozy Interior-derived table mesh.
 client/Unity/Assets/StageDesignPreviews/
@@ -399,13 +412,10 @@ __pycache__/
 # Runtime UI artwork shipped with the pre-match screens.
 !client/Unity/Assets/Resources/UI/Portraits/*.png
 !client/Unity/Assets/Resources/UI/Stages/*.png
+!client/Unity/Assets/Resources/UI/Stages/table_manners.png.meta
 
 # Original shipping move illustrations; raw animation/vendor inputs stay ignored.
 !client/Unity/Assets/Resources/UI/AbilityCards/**/*.png
-
-# Table Manners preview depends on the locally installed Cozy Interior pack.
-client/Unity/Assets/Resources/UI/Stages/table_manners.png
-client/Unity/Assets/Resources/UI/Stages/table_manners.png.meta
 
 # Last Stop preview depends on the locally installed Train Station pack.
 client/Unity/Assets/Resources/UI/Stages/last_stop.png

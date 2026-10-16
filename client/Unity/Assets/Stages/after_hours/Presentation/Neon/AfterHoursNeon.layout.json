@@ -1,0 +1,27 @@
+{
+ "generator": "tools/blender/after_hours/build.py",
+ "seed": 20261016,
+ "source": "client/Unity/Assets/Stages/after_hours/after_hours.unity",
+ "sourceSha256": "65556307885740296b61000d4d6e06b8a2f387591210a30784fa3a3f59938fb5",
+ "arena": "data/arenas/after_hours.arena",
+ "arenaSha256": "4c3bd540b9ed3af510976f4a14328c51617daab85a37f03d7c456ecaab5b8c5d",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "AH_Build",
+  "AH_Night",
+  "AH_Far",
+  "AH_Sky"
+ ],
+ "objects": [
+  "City Far",
+  "City Ground",
+  "City Mid",
+  "City Near",
+  "City Traffic",
+  "City Transit",
+  "Club Roof",
+  "Club Tower",
+  "Sky"
+ ],
+ "problems": 0
+}

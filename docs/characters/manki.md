@@ -131,6 +131,28 @@ weights and UVs. Renderer count stays **10**; material slots rise **10 → 12**
 through two additional body submeshes. Cooked `poses.bin` is unchanged.
 The original Art prefab's mesh/material bindings are restored.
 
+### Model — Manki 2 (2026-10-16)
+
+The catalog rig is now `Presentation/MankiRig.prefab`, a re-modelled Manki rigged in
+Mixamo and rebuilt with [`tools/blender/manki_rig`](../../tools/blender/manki_rig/README.md).
+Its local art lives in `Art/Characters/manki/{Models/Manki2.fbx, Textures/Manki2_BaseColor.png,
+Materials/Manki2_Body.mat}`.
+
+- **Size:** 1.32 m tall, scaled so its Humanoid scale (0.6194) matches the previous
+  rig. Feet stay grounded with the unchanged `modelYOffset`/`hipHeight`. Hurtboxes
+  follow the new skeleton: head about 7 cm lower, hips about 4 cm higher.
+- **Fingers:** thumb/index/middle/ring are Humanoid-mapped, so every clip's finger
+  muscles now show. Air 3 and the head slam carry finger muscles baked from their
+  authored poses.
+- **Deformation:** fist and arm controls match the previous rig, through skinned
+  finger copies and constraints.
+- **Tail:** five bones driven by the presentation-only `BoneChainSpring`.
+- **Texture:** a single 1024² colour map, without the previous rig's readability
+  materials.
+- **Backups:** the previous rigs (`MankiDeformRig`, `MankiVisualRig`) and their
+  `Readability/` assets are kept in `Presentation/Legacy/` and `Presentation/Readability/`.
+  To roll back, point the catalog `_rig` at `Legacy/MankiDeformRig.prefab`.
+
 ## Kit
 
 | Slot | Name | Visual | Mechanic |
@@ -310,6 +332,20 @@ Editor preferences byte for byte. The clean, stopped Ability Lab is left on
 `ground.4`, frame 13. General Play Mode reload instability remains unresolved;
 these cosmetic checks temporarily disabled domain reload and restored it.
 
+## Ground 4: Head Slam — 2026-10-16
+
+Ground `4` now uses a short backward load followed by a forward/downward head
+slam, with planted feet, trailing fists and recovery to idle. Contact is at
+tick 10, active ticks are 10–14, IASA is 35 and duration is 40. These values
+supersede the October 3 ground `4` timing above. The head-attached sphere
+replaces the foot capsule; damage 14 and the existing knockback/stun values
+are preserved. Its heavy swing cue follows the head, replacing both foot cues.
+
+The package-local animation uses the current Manki rig. Cook, roster admission,
+close hit/shield and distant whiff checks passed, along with seven focused Shared
+tests. See the [authoring and verification record](../research/2026-10-16-manki-ground4-head-slam.md)
+for the GenRA conversion path, playback comparison and remaining human feel check.
+
 ## Animation Inventory
 
 | Key | Animation | Maps to |
@@ -320,7 +356,7 @@ these cosmetic checks temporarily disabled domain reload and restored it.
 | `anim.manki.a2` | Air swing | Air `2` |
 | `anim.manki.g3` | Sweeping kick | Ground `3` |
 | `anim.manki.a3` | High kick | Air `3` |
-| `anim.manki.g4` | Double kick | Ground `4` |
+| `anim.manki.g4` | Head Slam | Ground `4` |
 | `anim.manki.a4` | Air smash | Air `4` |
 | `anim.manki.ga` | Round bomb | Ground `A` |
 | `anim.manki.ge` | Jetpack Boost | Ground `E` and Air `E` alias |

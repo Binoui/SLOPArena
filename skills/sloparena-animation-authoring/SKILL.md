@@ -1,6 +1,6 @@
 ---
 name: sloparena-animation-authoring
-description: "Author and safely import SLOPArena character animation clips through Blender, Unity Humanoid import, package catalog binding, cooking, and real-surface verification."
+description: "Author SLOPArena character animations with the GenRA/Blender workflow, actual-character review before move integration, Unity Humanoid import, package binding and cooking."
 metadata: {"category": "game-dev"}
 ---
 
@@ -13,11 +13,18 @@ For agent-driven move preview, timeline scrubbing, captures, or diagnostics, use
 [Ability Lab skill](../sloparena-ability-lab/SKILL.md) and
 [Unity CLI reference](../../docs/contributing/unity-cli.md).
 
+For new in-house motion, start with the maintained
+[GenRA animation workflow](../../docs/characters/genra-animation-workflow.md).
+It records rig preparation, conversion controls, both documented authorship routes,
+bounded repair and the candidate review handoff. Existing sourced clips and direct
+native-clip corrections keep the applicable import/verification path below.
+
 ## Authority
 
 ```text
-Blender source/action
-  -> imported FBX and Unity .meta importer settings
+Rig-aware keys / Blender source/action (GenRA workflow for new motion)
+  -> Unity candidate clip (FBX import or native .anim) and .meta settings
+  -> actual-character candidate preview and user approval
   -> CharacterAssetCatalog.asset semantic binding
   -> inspect/cook generated package artifacts
   -> Ability Lab / Training presentation
@@ -27,7 +34,33 @@ Blender source/action
 
 `CharacterAssetCatalog.asset` owns the clip reference. The embedded Unity clip `fileID` is part of that binding and can change after an FBX reimport.
 
-Raw FBX, Unity `.meta`, and catalog bindings are source. `content-cooked/` and generated animation catalogs are outputs; never hand-edit them.
+Blender/FBX source, native `.anim`, Unity `.meta`, and catalog bindings are source. `content-cooked/` and generated animation catalogs are outputs; never hand-edit them.
+
+## User review before move integration
+
+For new or substantially reworked move motion, get the user's approval of the
+concrete animation **before** creating or changing that move in `character.json`,
+replacing its live catalog binding, or cooking/admitting the candidate as accepted
+content. A request to make an animation for a slot, including permission to change
+move data, still includes this animation review checkpoint.
+
+1. Prepare an unbound candidate and complete the applicable authoring/import checks.
+   Preview it on the actual character through a transient instance or isolated
+   candidate asset. Show normal-speed side and gameplay views, with scrubbing or
+   slower playback when useful. Check anatomy yourself first; include a close view
+   of hands or other affected joints when the wider view hides their articulation.
+2. Present the candidate revision, preview and proposed contact/recovery clock, then
+   wait for the user to approve the animation. If gameplay retiming is authorized,
+   keep proposed values in candidate notes until this review, rather than editing
+   live move data to enable the preview. Apply feedback within the candidate and
+   present the revised result when it is ready.
+3. After acceptance, integrate the reviewed candidate within the authorized gameplay
+   scope, then run the applicable binding, cook and runtime checks below. Reuse
+   approval already given for that candidate; do not ask again for each command.
+
+This is one review before integration, not permission for every authoring pass.
+Bounded corrections to an already accepted animation retain their existing task
+authorization unless the user requests another checkpoint.
 
 ## Before authoring
 
@@ -48,7 +81,7 @@ export and reimport steps; retain actual-prefab, binding and applicable cook che
 4. Preserve a byte-identical FBX and `.meta` backup before reimporting. Do not overwrite a working source asset without a recovery copy.
 5. Define pose invariants: start/end neutral pose, no unapproved root translation, fire/active-frame silhouette, recoil/settle, and transition compatibility with the adjacent animation.
 
-Before editing, record a `tick | source frame | beat` plan using the actual playback mapping. Mark authoritative contact/fire events separately from optional presentation beats: entry, anticipation/load, compression, follow-through/recoil, settle, and handoff. Use only the beats that explain this move; short attacks, holds, loops, and airborne actions need not share a phase count. Fit presentation inside the gameplay envelope; never import generic attack durations or cancel-window percentages.
+Before editing, record a `tick | source frame | beat` plan using the actual playback mapping. Mark authoritative contact/fire events separately from optional presentation beats: entry, anticipation/load, compression, follow-through/recoil, settle, and handoff. Use only the beats that explain this move; short attacks, holds, loops, and airborne actions need not share a phase count. Fit presentation inside the gameplay envelope, or label an authorized proposed clock as provisional for user review; never import generic attack durations or cancel-window percentages.
 
 ## Blender authoring
 
@@ -67,7 +100,9 @@ Inspect the current action, frame range, FPS, relevant bones, and existing keys 
 3. **Interpolation:** interpolate only proven primary motion. Choose interpolation per channel and phase, preserving attack snap and pose contrast rather than uniformly smoothing everything. Inspect resulting trajectories for overshoot, foot sliding, root drift, and silhouette collapse; diagnose responsible curves before adding corrective keys.
 4. **Polish:** add overlap, drag, settling, secondary motion, and asymmetry only when primary motion and timing already read. Extra movement must support rather than compete with the gameplay event.
 
-A pass is accepted when its visible criteria are met; this is not a mandatory user approval gate. Make routine decisions within the approved move contract. Ask only for unresolved artistic direction or requested checkpoints.
+A pass is accepted internally when its visible criteria are met. Make routine decisions
+within the approved move contract; present the validated candidate at the user review
+checkpoint before move integration.
 
 ### Visual evidence and repair
 
@@ -104,6 +139,8 @@ Open and inspect the evidence. Existing keys, successful rendering/export, and s
 4. A Blender FBX export that fails this gate is not a valid delivery. Preserve the known-good source asset and diagnose the importer/rig contract first.
 
 ## Catalog cutover
+
+For new or substantially reworked motion, complete the user review checkpoint first.
 
 After the import, resolve the imported clip's current embedded `fileID` and update the corresponding `CharacterAssetCatalog.asset` semantic binding if it changed. A correct GUID with a stale `fileID` is an invalid binding.
 

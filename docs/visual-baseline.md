@@ -24,6 +24,12 @@ repeatable. Change only the serialized `TrainingMatch` arena override between
 simulation constants. Capture the results row from the existing `Results` scene after
 the normal match flow rather than adding a second results implementation.
 
+Stage art review (not baseline evidence) reuses this scene through the
+`sloparena.stage.views.*` commands in the
+[stage-authoring workflow](../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review):
+they set the arena override in memory, disable domain reload for Play Mode and
+restore the Editor afterwards, so the scene file is never edited.
+
 ## Capture matrix
 
 Each row is captured once in each stage (`Slop Court` and `After Hours`). Use the same camera conditions and fighter setup in both stages. For event rows, capture a short sequence (2 seconds before the event and 2 seconds after) and mark the event frame/time in the metadata.

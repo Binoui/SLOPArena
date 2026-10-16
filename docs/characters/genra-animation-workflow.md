@@ -1,0 +1,247 @@
+# GenRA animation workflow
+
+Use this workflow for new in-house character motion, including Manki's next moves.
+It is the maintained procedure behind the successful GenRA experiments and Head
+Slam. The [animation-authoring skill](../../skills/sloparena-animation-authoring/SKILL.md)
+owns the general import, review and package rules; this guide records the
+GenRA-specific preparation, conversion and repair steps.
+
+The sequence is **brief → actual rig and timing → author poses → GenRA processing
+→ actual-character preview → user approval → move integration and verification**.
+Candidate work stays unbound until animation approval. Proposed move data stays
+in notes until then, even when the task authorizes changing that data.
+
+## Tooling and authorship
+
+The working runs use GenRA revision
+[`5f4ffb8ac846f91265c48e8bb65d702dca11b7a1`](https://github.com/MacPaw/GenRA/tree/5f4ffb8ac846f91265c48e8bb65d702dca11b7a1).
+Keep that revision explicit when reusing the conversion baseline. The installed
+checkout and Python environment are recorded in the
+[initial experiment](../research/2026-10-14-genra-experiment.md); check their
+availability before starting. Tool installation still requires approval under
+[AGENTS.md](../../AGENTS.md).
+
+Two authoring routes have worked:
+
+- **Model-proposed poses:** the FightGuy and first Manki aerial runs used a
+  Codex-backed adapter to produce sparse joint-space keys, followed by GenRA's
+  parser, interpolation and USD writer. They used explicit same-rig references
+  with automatic example selection disabled.
+- **Poses authored in the current session:** Head Slam used rig-aware blocking,
+  numerical IK and controlled interpolation, then the same pinned GenRA parser
+  and USD writer. It made no additional provider or CLI model request.
+
+Record the route actually used. GenRA processing alone does not mean a separate
+model generated the motion. Reuse the task's authorized provider/tool route;
+do not silently switch providers or add model calls. For a separate generation
+or refinement request, record the selected model/settings, references, call and
+time limits, raw response and usage. Preserve failures rather than retrying
+without a bound. Never include credentials in prompts or evidence.
+
+The workflow is maintained here; executable helpers currently remain in the
+local per-run workspaces listed below. There is no repository-wide GenRA command
+or clean-clone setup yet. Check that the needed helpers exist, inspect their
+assumptions, and adapt them in a fresh workspace. Missing local tooling needs a
+concrete setup or handoff, not a claim that the pipeline ran.
+
+## 1. Capture the brief and clock
+
+Resolve the actual package, canonical slot, semantic animation ID, current
+catalog prefab, Avatar and adjacent idle/fall clips. A reference image describes
+the motion; the current rig and playback path determine how to author it.
+
+Record a short brief before posing. This is a task note, not a new package schema:
+
+```text
+Package / canonical slot / semantic animation ID:
+Motion and visual reference:
+Grounded or airborne; entry and recovery reference:
+Timing: fixed existing clock, or authorized provisional clock:
+Beats: entry, wind-up, contact, follow-through, recovery, endpoint:
+Root / foot-contact constraints:
+Permitted exaggeration and preserved regions:
+Authoring route and tool versions:
+Candidate revision / workspace / preview:
+User review: pending / accepted revision:
+```
+
+Read the actual source FPS, range, duration, baked frame count and runtime playback
+multiplier. Use the [tick-to-source mapping](../../skills/sloparena-animation-authoring/SKILL.md#before-authoring)
+to place contact and recovery; do not assume 1× playback. Keep authored gameplay
+time in 60 Hz ticks. When retiming is authorized, label the proposed clock
+provisional until the candidate is accepted; otherwise preserve the existing one.
+
+Create a fresh isolated workspace under `artifacts/` and candidate assets at new
+Unity paths. Record hashes and back up the affected source assets, importer
+metadata and live package bindings. Preserve the currently accepted version.
+Do not rerun an old experiment in place or edit live move data to enable a preview.
+All live Editor sampling/import/preview work follows the
+[Unity CLI guide](../contributing/unity-cli.md) and
+[Editor coordination protocol](../contributing/unity-editor-coordination.md), using
+this caller's own bounded gateway lease.
+
+## 2. Prepare the actual rig and prove conversion
+
+Use the real source rig, inverse bindposes, skin weights and current prefab.
+Preserve complete bone paths, parents and a reversible Unity/Blender/USD name map,
+including fingers, tail and helpers outside the Humanoid Avatar. Calibrate units,
+facing and axes from those bindposes; do not infer them from a generic rig or
+guessed Euler rotations.
+
+Before generating new motion, take a known same-rig clip through
+**Unity sampling → USD → Blender → ordinary FBX → Unity on the actual prefab**.
+Compare joint transforms and deformed skin at relevant times, including between
+original source frames where needed. Declare tolerances and required references
+before judging the control. Record warnings and failed controls explicitly.
+
+A conversion baseline can be reused when its source rig, Avatar, prefab/skin
+hierarchy, reference assets, converter revision and import/export settings still
+match. Record that match rather than rebuilding the whole proof for every move.
+Recheck conversion after changes to those inputs. Every new candidate still
+needs its own actual-character playback checks.
+
+Manki lessons from the retained runs:
+
+- The original rig has 66 joints; its Avatar maps 22. Plain Humanoid conversion
+  dropped motion on the other 44 finger, tail and helper joints.
+- USD sanitized `mixamorig:` to `mixamorig_`. Preserve the full path map rather
+  than relying on leaf names alone.
+- The measured mapping was Unity `(x,y,z)` to Blender `(-x,-z,y)` at metre scale.
+  This is a calibration result, not a universal preset.
+- The fall control passed its strict 1 mm skin threshold; the auxiliary jump
+  retained a 1.074 mm warning. Do not report both as a clean strict pass.
+- Temporary one-bone skinning for rigid attachments required an equivalence check
+  on the copy. It did not authorize changing the source rig.
+
+## 3. Author, process and repair motion
+
+Block the important poses on the measured rig, then add breakdowns and
+interpolation. Fit the requested wind-up, strike and recovery to the recorded
+clock. Keep the actor root fixed unless gameplay displacement is explicitly
+authorized; a permitted local pelvis shift is distinct from moving the actor.
+Grounded motions need foot-contact constraints; airborne motions need compatible
+fall/landing transitions rather than artificially planted feet.
+
+Use explicit same-rig references and retain the literal brief and effective
+settings. For model-proposed keys, disable automatic example selection unless
+deliberately included in the task. For either route, retain the authored keys
+and processed USD so that conversion errors can be separated from pose choices.
+
+Check limb lengths, anatomical knee/elbow directions, wrist orientation, finger
+curl and thumb opposition on the actual mesh. Numerical goals support those
+checks: the refined aerial reached its hand-height goal while bending the knees
+incorrectly, and Head Slam inherited reversed finger curl from an earlier pose.
+For current Manki, the corrected palm normal was hand-local +Z; inspect both
+hands rather than applying that sign to another rig.
+
+Use quaternion channels when Euler conversion introduces singularities. Head
+Slam's curled fingers exposed that failure. Preserve explicitly sampled times
+when preparing GenRA input: USD can omit constant samples, so materialize the
+expected channel times before parsing when necessary. Check the processed
+result against authored motion, duration, planted contacts and root constraints.
+If USD previews move to another directory, resolve their texture dependencies.
+
+Inspect complete timed playback as well as contact sheets. Fix the observed
+problem in a bounded pass, preserve accepted regions/channels, and retain the
+before/after comparison. Neither successful export nor one silhouette metric
+establishes animation quality.
+
+## 4. Convert and preview the unbound candidate
+
+Reuse the original valid Avatar where appropriate. Import through ordinary FBX,
+then retain any required unmapped FK curves in a Unity-native hybrid `.anim`.
+For a directly authored native clip, skip unnecessary FBX steps. Confirm the
+current clip GUID/fileID, curve paths, length, sample rate and baked frame count.
+
+For Manki's deformation rigs (`Presentation/MankiRig.prefab` and the legacy
+`Presentation/Legacy/MankiDeformRig.prefab`), fingers also have skin branches below
+`LeftFistDeform` and `RightFistDeform`. Supply matching curves to the original and
+copied paths, and reset the existing arm/fist deformation controls when the move
+does not use them. Plain Generic FK on a Humanoid Animator did not preserve the
+intended body playback. Direct scale curves on mapped Humanoid hands were also
+ignored; use existing unmapped deformation controls when authorized, rather than
+adding a new rig for each move.
+
+When building such controls into a new rig, keep every animated control off the
+path between two mapped Humanoid bones. Humanoid retargeting resets transforms
+between mapped bones (for example a fist control between `Hand` and mapped
+fingers) to their rest pose, so their curves bind but have no effect. Leave the
+mapped fingers under the hand as unskinned anchors, hang skinned finger copies
+under the fist control, and have the copies follow the anchors with
+`RotationConstraint`s.
+
+Validate through actual Animancer playback with the runtime root-motion setting.
+`AnimationClip.SampleAnimation` alone did not establish the same root extraction.
+Bake intended root channels into the pose and measure any constant Humanoid body
+origin correction against the actually playing idle/fall reference. Do not copy
+an old origin offset or hide a conversion error with client actor transforms.
+
+Check that imported floating-point duration has not added a baked frame or
+shifted contact under the runtime speed multiplier. The Manki runs needed tiny
+FBX timestamp corrections to recover the intended exact 60 Hz grid. Record that
+correction and verify the resulting clock; do not retime gameplay to conceal it.
+
+Prepare normal-speed side and gameplay-angle previews of the whole action,
+semantic pose sheets, and joint/hand close-ups when the wide view hides anatomy.
+Inspect foot drift, clipping, silhouette, contact timing, recovery, endpoint and
+interruption blends into idle/fall. Test reset of deformation inherited from
+adjacent moves. Candidate inspection must use the actual current character,
+not only the Blender rig.
+
+## 5. Obtain animation approval
+
+Follow the [user review checkpoint](../../skills/sloparena-animation-authoring/SKILL.md#user-review-before-move-integration).
+Present the candidate revision, actual-character preview and proposed
+contact/recovery clock. Wait for acceptance of that revision before changing
+`character.json`, the live catalog binding or accepted cooked content. Feedback
+returns to candidate repair and another preview.
+
+This is the animation acceptance gate. Internal authoring and technical checks
+continue under the task's existing authorization; acceptance is reused for the
+subsequent authorized integration steps.
+
+## 6. Integrate and verify
+
+Promote the accepted clip with its `.meta` into the character package, without
+dependencies on experiment assets. Bind its exact current identity in
+`CharacterAssetCatalog.asset`. Apply only authorized move-data changes using the
+canonical slot and approved clock. Follow the
+[character workflow](../../skills/sloparena-character-workflow/SKILL.md) for
+inspect/cook/verification and roster admission when applicable; never hand-edit
+`content-cooked/`.
+
+Choose verification using [testing.md](../testing.md). A changed clip can change
+pose-derived hitboxes even when gameplay JSON is unchanged. Check relevant
+contact, shield and whiff behavior through native Ability Lab/Shared scenarios
+when authoritative poses or move behavior change. For a bounded presentation
+repair, compare cooked poses and gameplay data before deciding whether earlier
+behavioral evidence remains applicable. Do not force broad engine tests or a
+recompile for an unchanged implementation.
+
+Inspect generated diffs: automatic cooking can refresh other packages' source
+hashes and roster pins. Report that scope and verify whether their runtime/pose
+payloads changed. Record the affected Unity checklist in `TESTING-UNITY.md`.
+
+## Evidence and working examples
+
+Keep a concise tracked result report and retain the detailed local run evidence:
+brief/clock, source hashes and backups, rig/name maps, conversion controls,
+authorship/settings/raw response when applicable, authored and processed motion,
+candidate identity, complete previews, repair comparisons, user acceptance and
+integration results. A fresh checkout must not need these local artifacts to
+play the accepted package clip.
+
+| Record | Useful precedent | Local workspace |
+| --- | --- | --- |
+| [FightGuy experiment](../research/2026-10-14-genra-experiment.md) | First conversion control and bounded model refinement | `artifacts/genra-20261014/` |
+| [Manki aerial experiment](../research/2026-10-14-genra-manki-aerial-experiment.md) | Full rig map, hybrid clip, runtime origin and timing | `artifacts/genra-manki-aerial-20261014/` |
+| [Manki leg correction](../research/2026-10-14-genra-manki-leg-correction.md) | Anatomical IK repair after a misleading pose metric | `artifacts/genra-manki-aerial-20261014/` |
+| [Manki air 3](../research/2026-10-15-manki-air3-double-fist.md) | Accepted package integration and existing deformation controls | `artifacts/manki-air3-integration-20261015/` |
+| [Manki Head Slam](../research/2026-10-16-manki-ground4-head-slam.md) | Current-session authorship, quaternion conversion and finger correction | `artifacts/manki-g4-head-slam-20261016/` |
+
+The aerial workspace's `README.md` indexes the reference/conversion/import
+helpers. Head Slam retains the later authoring and finger-repair passes. These
+scripts contain move-specific paths, clocks, protected hashes and duplicate-run
+guards; they are reference implementations, not generic commands to rerun for
+the next animation. Dated reports describe their original task state; this guide
+and the animation skill define the current process.

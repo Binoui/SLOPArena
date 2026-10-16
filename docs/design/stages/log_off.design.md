@@ -1,190 +1,123 @@
 ---
 key: log_off
 status: locked
-locked: 2026-10-11
+locked: 2026-10-16
 approved_by: maintainer
-approval_scope: rendered footprint and woodland composition; background detail, memorable woodland landmark and fuller tree groups
+approval_scope: selected split-and-fungus layout, logged-off campsite, and sunset campfire implementation
 runtime_camera_review: pending
 blockout:
-  - .stage-authoring-cache/log_off/design/design-top.png
-  - .stage-authoring-cache/log_off/design/design-north.png
-  - .stage-authoring-cache/log_off/design/design-east.png
-  - .stage-authoring-cache/log_off/design/design-south.png
-  - .stage-authoring-cache/log_off/design/design-west.png
+  - .ability-lab-cache/log-off-campsite-20261016/orbit/top.png
 ---
 
-# Log Off — split-stump design
+# Log Off — logged-off campsite
 
-The maintainer selected the concept, reviewed the native blockout views, and
-approved continuing with “very good keep going” on 2026-10-11. This locks the
-rendered footprint and proposed woodland composition for implementation. The
-maintainer's instruction authorizes that next step while the human in-game camera
-and PVP reviews remain pending; screenshot approval does not claim those reviews
-passed. The saved gray study is
-`Assets/StageDesignPreviews/log_off/LogOffBlockout.unity`.
+On 2026-10-16 the maintainer selected **Split + fungus shelves**, **Logged-off
+campsite**, and **Sunset campfire** from the rework options. Those choices authorize
+this bounded rework of the previous split-stump woodland. The implementation scope
+is decided; the new captures have not been approved by the maintainer. Human
+in-game camera and two/four-player PvP reviews remain pending.
 
 ## Personality
 
-Tiny fighters turn an ancient split tree stump into a woodland chase playground,
-beside a crooked treehouse whose sign says “OFFLINE”.
+Tiny fighters brawl on a camper's chopping stump while its owner has logged off beside the fire, leaving a phone with no service in the leaves.
 
 ## Fight premise
 
-One broad, continuous floor curves around a split opening from its northern edge.
-Cross the split with a running full jump to intercept or escape; stay grounded and
-chase around its southern tip to avoid committing to an aerial crossing. The floor
-around the tip remains the main combat space, with room for all four fighters.
-
-This is a static, playful PVP direction for 2–4 players. The first study has no
-additional platforms: its route choice must justify the map by itself.
+The broad stump top remains the main combat space. Jump the northern axe split to
+intercept an opponent, or follow the continuous ground route around its southern
+tip. Two bracket-fungus shelves below the east and west rim catch low flank exits
+and offer a lower position from which to return or ambush. North and south retain
+open knockout edges. The shelves are solid, static terrain, including their
+undersides; they are not pass-through platforms or automatic rescue surfaces.
 
 ## Composition decisions
 
-1. **Main stump:** from yaw 0° (camera on +Z, looking south), the two broad shoulders
-   occupy the left and right thirds. The split is visible through the center; the
-   connected fighting floor beyond its tip remains broad. A roughly 32-unit,
-   slightly irregular outline gives the stump a recognizable organic silhouette.
-2. **Shortcut:** the split opens toward +Z and narrows toward a tip slightly south
-   of the origin. At Z=6 the opening is 3 units wide. That is the initial crossing
-   to tune; the landing shoulders remain clear. At yaw 180° the ground route is
-   in the foreground, with the two shoulders and split behind it.
-3. **Ground route and spawns:** from yaw 90° or 270°, the split reads as a notch,
-   not a disconnected island. The lower half of the top stays uninterrupted.
-   Four inward-facing spawn ideas occupy X=±7, Z=±5; none starts in the split or
-   immediately next to its lips. Gray capsules in the preview scene show scale
-   only and are absent from the stage prefab.
-4. **Stump depth:** the sides and split walls continue from the floor at Y=0 to
-   Y=-10. Low views must show a solid trunk and an open vertical split, not a
-   thin floating plate, invisible wall, or apparent under-floor shortcut. These
-   are proposed shell dimensions; production must bake and verify them.
-5. **Later woodland:** after the route study, compose a warm forest clearing
-   around the stump. From yaw 0°, a distant cluster of tall trees should frame
-   the left third, with a lower, sparser group on the right and open sky between.
-   Yaw 180° should offer a quieter clearing, rather than an equally dense ring of
-   trees. Side views need separate, grounded silhouettes and deliberate gaps.
-   The first blockout does not add this scenery.
-6. **Scene world:** the stump belongs to an enormous tree rooted in forest ground
-   at or below the future lower death plane. Distant terrain and tree volumes
-   must stay outside the future fight/recovery corridor. Above it, open daylight
-   and separated canopy silhouettes sell scale. Do not place a cosmetic floor
-   underneath the split at a height where a player expects to survive.
-7. **Background detail:** the maintainer approved the woodland first pass and
-   requested more background detail on 2026-10-11. Add low understory and grass
-   around the existing grove feet, a few fallen logs and small flower/mushroom
-   patches, then gentle hills and separated tree silhouettes in the distance.
-   Give the tall left grove the richest dressing; the opposite clearing stays
-   quieter, with clusters separated by open ground. Ground every addition on
-   its actual host. Preserve the stump, lighting intent, routes and recovery
-   space; all elevated background bounds stay beyond the side blast planes.
-8. **Offline forest hideout:** on 2026-10-13 the maintainer requested a more
-   memorable background after reviewing the detail pass. Give the quieter
-   northern clearing one crooked treehouse in an ancient, branching tree,
-   with a blue roof, timber balcony and a winding blue stream beside it.
-   From yaw 180° it occupies the left background third, above the empty recovery
-   space, and gives the woodland a recognizable destination. Quarter-turn and
-   intermediate views reveal its depth, roots, branches and supported balcony;
-   it is a complete volume, not a facade aimed at one camera.
-9. **Forest depth:** compose small fir groups and low vegetation along the stream
-   banks and beside the existing groves. Bring some supporting silhouettes
-   nearer the edge of the clearing, while keeping their whole bounds beyond
-   the blast planes. The southern woodland stays less architectural, with open
-   gaps and the previous hills behind it. The hideout is the only background
-   landmark; the fighting stump stays the clearest foreground shape.
-10. **Fuller woodland:** after approving the house and river, the maintainer
-    requested more trees and simple scenery on 2026-10-13. Fill the broad gaps
-    with uneven fir groups at near, middle and far distances, varying their
-    heights. From yaw 180°, strengthen the left bank and right background while
-    leaving a clear opening toward the treehouse and blue stream. At yaw 0°,
-    give the southern hills a fuller tree line; side views gain staggered groves
-    beyond the recovery space. A few larger rocks and leafy bushes anchor the
-    groups. Reuse the accepted forest assets; no further small detail is needed.
+Camera bearings below name the camera's position around the stump: bearing 0° is
+on +Z looking south; bearing 180° is on -Z looking north toward the camp. Gameplay
+capture yaw instead names the direction the camera looks: capture yaw 0° looks
+north toward the camp.
 
-**Busy here / empty here:** the split and its two lips carry the route decision.
-Keep the connected southern floor, landing shoulders, and all immediate recovery
-space empty. Fill the outer woodland in uneven clusters, separated by quieter
-ground and sky; keep an opening toward the house and along the river.
+1. **Chopping stump:** from bearing 0°, the two shoulders frame the split in the
+   center; the connected southern combat floor lies beyond its tip. Reduce the
+   stump from roughly 32 to 29 units across, keeping an irregular organic outline,
+   an uncluttered flat top, and a 3-unit crossing at Z=6. Painted rings and hairline
+   cracks describe the wood without introducing physical lips.
+2. **Fungus shelves:** from bearings 90° and 270°, one broad bracket fungus sits
+   below the foreground rim. Its flat top is 1.5 units below the fighting floor,
+   projects about 4 units beyond the bark, and extends about 9 units along it.
+   Each shelf is a deliberate recovery/ambush position, reachable from the rim
+   with one full jump back up across the current roster. Clear banded tops and
+   rounded lips explain the landable silhouette; their undersides remain solid.
+3. **Spawns and recovery:** keep four inward-facing spawns at X=±7, Z=±5, with
+   diagonal opposites first. The bark and split walls continue to the lower death
+   plane. From low views, show a solid trunk and an open split, with no hidden
+   bridge, route under the top, or surviving forest floor.
+4. **Campsite landmark:** from bearing 180°, the tent fills the left background
+   third, fire occupies the middle distance, and a folding chair balances the
+   right. A lantern and enamel mug rest on a log seat; boots, backpack, woodpile
+   and an axe in a separate chopping round explain the camper's absence. The camp
+   replaces the old treehouse and vendor groves. It is the sole background hero,
+   built as complete volumes that also hold from side and intermediate views.
+5. **Forest and scale:** from all bearings, tree trunks as broad as buildings rise
+   into a high canopy, with giant ferns and grass beneath them. Separated near,
+   middle and far silhouettes establish an ant-scale forest, leaving an open
+   sunset window toward the west-southwest. The quieter southern view has a fallen
+   log and understory rather than another camp. Haze and canopy gaps carry depth.
+6. **Forest floor and joke:** at the bottom of low views, roots meet a forest floor
+   about 24 units below the stump rim, safely below the kill plane. Moss, litter,
+   mushrooms, pinecones and acorns describe that ground. A face-up phone south of
+   the stump reads NO SERVICE; the camp sign reads NO WI-FI / JUST LOGS. Neither
+   prop becomes a playable surface or a competing distant landmark.
+7. **Sunset:** the low warm sun and lavender ambient light keep the fighting
+   surface readable while campfire, lantern and tent glow begin to show. Sparse
+   fireflies and the fire animate through existing presentation shaders. Preserve
+   warm wood, muted greens, amber light and cool distant shadows without making
+   the fight as dark as a night stage.
+
+**Busy here / empty here:** detail belongs to the stump sides, forest floor and
+camp beyond the recovery space. Keep the stump top, split landing shoulders,
+shelf tops and immediate recovery corridor clear. Use uneven woodland density and
+an open western sky; do not surround the fight with equally loud landmarks.
 
 ## Negative decisions
 
-- No extra platform in the first blockout.
-- No raised bark rim, stump clutter, or decorative obstacle on a route.
-- No bridge filling the split; it must remain a real opening in the proposed shell.
-- No moving geometry, wind, bounce pads, hazards, or automatic ledge rescue.
-- One background hideout; no competing landmark or uniformly dense tree ring.
-- No background geometry through the blast corridor or false safe surface below
-  the split.
-- Preserve the approved footprint and 3-unit crossing when adding presentation
-  and baking gameplay collision.
+- No log stools or other obstacles on the main fighting floor.
+- No small raised bark rim, moss bump or decorative lip that blocks movement.
+- No bridge, decorative axe or prop through the lethal split.
+- No moving terrain, hazards, bounce pads, wind gameplay or automatic rescue.
+- No surviving old treehouse or second hero landmark.
+- No cosmetic Colliders, Rigidbody components or scripts that decide gameplay.
+- No solid background triangle inside the authoritative blast corridor, and no
+  apparently safe floor above the lower death plane.
+- No new vendor asset dependencies; use original procedural art and existing
+  project shaders.
 
 ## Palette & lighting
 
-Production direction: warm afternoon daylight, honey-brown cut wood, darker chunky
-bark, and restrained mossy greens. The fight floor remains clearer than the
-surrounding woodland. The current blockout uses one neutral gray material and one
-study light; its renders judge shape and scale.
-
-After approving the fuller woodland, the maintainer requested more grass texture
-on 2026-10-13. Give the existing ground a quiet grass grain, irregular green
-patches and soft earthy tones beneath the tree groups. Keep the riverbank finish
-coherent with the clearing and hills, without bright speckles or new geometry.
+Sunset campfire: honey and weathered brown wood, cream-and-russet turkey-tail
+fungi, subdued fern greens, an orange tent and dark teal chair. Amber fire and
+lantern light contrast with lavender sky light and rosy distant haze. The pale
+stump top and readable shelf lips take priority over glowing scenery.
 
 ## Camera vantages
 
-- Yaw 0°: look into the split and compare both shoulders.
-- Yaw 90° and 270°: check notch depth, landing space, and solid side walls.
-- Yaw 180°: confirm the broad connected ground route remains readable.
-- Elevated orbit: every 15° around the stump.
-- Low recovery views: every 45°, including a direct look into the split.
-- Top view: proposed footprint, four spawn ideas, and the continuous ground route.
+- Bearing 0°: into the split, both shoulders and the connected ground beyond it.
+- Bearing 180°: open foreground floor, split and campsite beyond.
+- Bearings 90° / 270°: each shelf, its attachment to the bark and return to the rim.
+- Intermediate bearings: full campsite volumes, tree separation and the sunset gap.
+- Elevated orbit: every 15°; low recovery views: every 45°.
+- Top: shell outline, shelf silhouettes, four spawns and continuous ground route.
+- Actual Training orbit: check materials, exposure, bloom, HUD and fighter contrast.
 
-## Movement basis and review
+## Authoritative placement
 
-The existing Shared `MovementProbe`, run against the current cooked roster on a
-flat probe arena, gives minimum running full-jump travel of approximately 5.67
-units. The proposed 3-unit crossing leaves room for a takeoff and landing margin.
-This is a sizing reference, not proof of a successful crossing on a baked stump.
-Receipts are under `.stage-authoring-cache/log_off/design/movement/`.
+The source scene remains `Assets/Stages/log_off/log_off.unity`; its existing mesh
+asset is rebuilt from `tools/blender/log_off/layout.py`. The baked arena owns
+collision and blast planes. Stump top is Y=0, shelves Y=-1.5, lower death plane
+Y=-10, upper death plane Y=20. Side planes are X=±28.5, Z approximately -23.88
+and +24.943. Spawn markers retain their existing positions and facings.
 
-The persisted original mesh contains 124 triangles. The geometry study checks its
-closed volume, exact top-area triangulation, empty split, connected southern floor,
-and four spawn ideas on that floor. Native camera review covers 24 elevated orbit
-views, eight low views, and three top/route close-ups in
-`.ability-lab-cache/log-off-design-20261011/pass-01/`.
-
-The initial typed design-capture command wrote the five front-matter gray views
-and reported `ARENA_MISSING`, as expected before baking. Its displayed blast planes
-were estimates from the visual bounds. The subsequent playable implementation is
-recorded in [Log Off](log_off.md); its baked arena now owns the actual boundaries.
-
-The rendered blockout approval carries forward into stage authoring. The next
-checks use the actual baked shell and Training camera; human two/four-player PVP
-acceptance remains separate and pending. Preserve the approved shape when
-replacing the gray study with art.
-
-## Woodland asset roles
-
-Use the bundle's forest assets for distant scenery only. Inspect three tree
-silhouettes and two rocks as a procurement shortlist, then place only what serves
-the composition. Tree hosts are grounded at Y=-10 in uneven distant groves, with
-their full bounds beyond the side blast planes and immediate recovery space.
-Allow roughly 12–25 units of tree height and separate canopy silhouettes; the
-right grove is lower and sparser than the left one. Rocks belong to those
-distant ground hosts, below the canopies. Original ground and stump surfaces stay
-stage-authored. No inspected asset gains gameplay collision.
-
-The background detail pass reuses those accepted trees and rocks. Missing roles
-are low leafy plants (roughly 0.5–2 units high), grass clumps (under 1.5 units),
-fallen logs (roughly 3–7 units long and under 2 units high), and small flowers.
-These occupy irregular ground patches beside the distant groves, outside the
-27-unit guard square. Inspect the existing Fantasy Forest pack for those roles.
-Original mushroom clusters and terrain volumes stay stage-authored; the hills
-begin beyond the existing grove feet and remain quiet supporting silhouettes.
-
-The memorable-background pass uses original treehouse, guardian-tree and stream
-geometry, plus the already inspected trees, rocks and understory. Its target host
-is the northern forest ground near X=-25, Z=82. Place the roof and sign where
-the normal Training camera can show them clear of the HUD. Original timber
-surfaces reuse the accepted wood palette; the muted blue roof and stream supply
-a cool accent.
-The treehouse, root mass, banks, fir groups and stream must clear the 27-unit guard
-square, and every ground contact or attachment must have a measured host.
+Original art is generated from the verified baked shell. Its report clips actual
+background triangles against the blast corridor, checks the nearby camera envelope,
+and verifies top, wall and shelf extents. The forest floor lies below the lethal
+space. Native inspection and rendered views remain separate from human acceptance.

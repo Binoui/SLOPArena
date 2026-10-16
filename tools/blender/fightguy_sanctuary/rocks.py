@@ -5,7 +5,7 @@ import math
 
 from mathutils import noise, Vector
 
-import geo
+from stagekit import geo
 import palette as P
 
 

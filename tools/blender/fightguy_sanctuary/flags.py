@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 
-import geo
+from stagekit import geo
 import palette as P
 
 # Atlas regions (UV, origin bottom-left), see textures.py

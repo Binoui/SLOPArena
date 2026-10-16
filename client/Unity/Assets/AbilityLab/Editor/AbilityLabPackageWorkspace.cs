@@ -15,6 +15,22 @@ namespace SlopArena.EditorTools;
 
 public sealed class AbilityLabPackageWorkspace
 {
+    internal AbilityLab? PreviewLab { get; private set; }
+
+    internal void BindPreviewLab(AbilityLab? lab)
+    {
+        PreviewLab = lab;
+        // A disposed rig releases its catalog snapshot. Recreate only presentation
+        // prerequisites when returning from Play Mode, retaining the draft and Undo.
+        if (lab != null && HasPackage && Preview?.IsAvailable == true && Preview.AnimationCatalog == null)
+            Preview = AbilityLabPackagePreviewLoader.Load(PackageId);
+        if (lab != null && HasPackage)
+        {
+            lab.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
+            lab.SetPresentationBindings(Catalog.Presentations);
+        }
+    }
+
     public string PackageRoot { get; private set; } = "";
     public PackageManifestSource Manifest { get; private set; } = null!;
     public CharacterAuthoringDocument Draft { get; private set; } = null!;
@@ -111,8 +127,8 @@ public sealed class AbilityLabPackageWorkspace
         Catalog = inspection.Catalog;
         _undo.Clear();
         _redo.Clear();
-        AbilityLab.Instance?.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
-        AbilityLab.Instance?.SetPresentationBindings(Catalog.Presentations);
+        PreviewLab?.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
+        PreviewLab?.SetPresentationBindings(Catalog.Presentations);
         LoadedDiskHash = ComputeDiskHash();
         LoadedCatalogFingerprint = ComputeCatalogFingerprint();
         IsDirty = false;
@@ -128,9 +144,9 @@ public sealed class AbilityLabPackageWorkspace
         SetDiagnostics(inspectionDiagnostics, inspection.Status == "valid" ? "Valid" : inspection.Status == "stale" ? "Stale" : "Failed");
         Preview = AbilityLabPackagePreviewLoader.Load(Manifest.PackageId);
         if (Preview.IsAvailable)
-            AbilityLab.Instance?.ApplyPackagePreview(Preview);
+            PreviewLab?.ApplyPackagePreview(Preview);
         else
-            AbilityLab.Instance?.ApplyPreviewUnavailable(Preview.Diagnostics);
+            PreviewLab?.ApplyPreviewUnavailable(Preview.Diagnostics);
 
         if (!Preview.IsAvailable)
         {
@@ -226,7 +242,7 @@ public sealed class AbilityLabPackageWorkspace
             LiveDraftPackage = null;
             LiveDraftInvalid = false;
             SetDiagnostics(loadedAssembly.Diagnostics.Concat(candidatePreview.Diagnostics), "Valid");
-            AbilityLab.Instance?.ApplyPackagePreview(candidatePreview);
+            PreviewLab?.ApplyPackagePreview(candidatePreview);
             return true;
         }
         catch (Exception ex)
@@ -271,8 +287,8 @@ public sealed class AbilityLabPackageWorkspace
             EditorUtility.SetDirty(Catalog);
             AssetDatabase.SaveAssetIfDirty(Catalog);
             PushUndo(prior);
-            AbilityLab.Instance?.SetSourceDocument(result.Source);
-            AbilityLab.Instance?.SetPresentationBindings(Catalog.Presentations);
+            PreviewLab?.SetSourceDocument(result.Source);
+            PreviewLab?.SetPresentationBindings(Catalog.Presentations);
             IsDirty = true;
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
             SetDiagnosticsWithoutNotify(result.Diagnostics, "Stale");
@@ -588,8 +604,8 @@ public sealed class AbilityLabPackageWorkspace
             PushUndo(prior);
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
             IsDirty = true;
-            AbilityLab.Instance?.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
-            AbilityLab.Instance?.SetPresentationBindings(Catalog.Presentations);
+            PreviewLab?.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
+            PreviewLab?.SetPresentationBindings(Catalog.Presentations);
             RefreshLiveDraft(new CharacterPackageSource(Manifest, Draft), Array.Empty<CharacterDiagnostic>());
             SceneView.RepaintAll();
             return true;
@@ -638,7 +654,7 @@ public sealed class AbilityLabPackageWorkspace
         LoadedCatalogFingerprint = CharacterPackageAuthoringService.ComputeCatalogFingerprint(Catalog);
         IsDirty = true;
         SetDiagnosticsWithoutNotify(_diagnostics, "Stale");
-        AbilityLab.Instance?.SetPresentationBindings(Catalog?.Presentations);
+        PreviewLab?.SetPresentationBindings(Catalog?.Presentations);
     }
     public bool TryResolveCanonicalSlot(string canonicalSlotId, out int explicitSourceSlotIndex, out CharacterSlotSource sourceSlot)
     {
@@ -936,7 +952,7 @@ public sealed class AbilityLabPackageWorkspace
 
     private void RefreshLiveDraft(CharacterPackageSource source, IReadOnlyList<CharacterDiagnostic> sourceDiagnostics)
     {
-        AbilityLab.Instance?.SetSourceDocument(source);
+        PreviewLab?.SetSourceDocument(source);
         var compiled = CharacterPackageCompiler.Compile(source, CharacterPackageAuthoringService.ProfileFor(PackageId));
         var diagnostics = new List<CharacterDiagnostic>(sourceDiagnostics ?? Array.Empty<CharacterDiagnostic>());
         diagnostics.AddRange(compiled.Diagnostics);
@@ -952,7 +968,7 @@ public sealed class AbilityLabPackageWorkspace
         LiveDraftInvalid = true;
         if (diagnostics.Count == 0)
             diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Error, "preview.compile.failed", "character", "Live package preview compilation failed."));
-        AbilityLab.Instance?.MarkPackageDraftInvalid();
+        PreviewLab?.MarkPackageDraftInvalid();
         SetDiagnostics(diagnostics, "Failed");
     }
 
@@ -1006,19 +1022,18 @@ public sealed class AbilityLabPackageWorkspace
             SceneView.RepaintAll();
             return;
         }
-        if (recordUnityUndo && Catalog != null)
-            UnityEditor.Undo.RecordObject(Catalog, "Ability Lab workspace undo");
         Manifest = snapshot.Source.Manifest;
         Draft = snapshot.Source.Character;
-        if (Catalog != null && snapshot.Catalog != null)
+        if (Catalog != null && snapshot.Catalog != null && !snapshot.Catalog.Matches(Catalog))
         {
+            if (recordUnityUndo) UnityEditor.Undo.RecordObject(Catalog, "Ability Lab workspace undo");
             Catalog.Rig = snapshot.Catalog.Rig;
             Catalog.Bindings = CloneBindings(snapshot.Catalog.Bindings);
             Catalog.Presentations = ClonePresentations(snapshot.Catalog.Presentations);
             EditorUtility.SetDirty(Catalog);
             AssetDatabase.SaveAssetIfDirty(Catalog);
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
-            AbilityLab.Instance?.SetPresentationBindings(Catalog.Presentations);
+            PreviewLab?.SetPresentationBindings(Catalog.Presentations);
         }
         IsDirty = true;
         RefreshLiveDraft(snapshot.Source, Array.Empty<CharacterDiagnostic>());
@@ -1150,6 +1165,15 @@ public sealed class AbilityLabPackageWorkspace
         public GameObject Rig { get; }
         public CharacterAssetCatalog.AnimationBinding[] Bindings { get; }
         public CharacterAssetCatalog.PresentationBinding[] Presentations { get; }
+
+        public bool Matches(CharacterAssetCatalog catalog)
+            => Rig == catalog.Rig &&
+               Bindings.Select(binding => (binding?.SemanticId, binding?.PoseTrackId, binding?.Clip, binding?.Extrapolation))
+                   .SequenceEqual((catalog.Bindings ?? Array.Empty<CharacterAssetCatalog.AnimationBinding>())
+                       .Select(binding => (binding?.SemanticId, binding?.PoseTrackId, binding?.Clip, binding?.Extrapolation))) &&
+               Presentations.Select(binding => (binding?.SemanticId, binding?.Prefab))
+                   .SequenceEqual((catalog.Presentations ?? Array.Empty<CharacterAssetCatalog.PresentationBinding>())
+                       .Select(binding => (binding?.SemanticId, binding?.Prefab)));
     }
 
     private bool Fail(string code, string path, string message) => SetFailure(code, path, message);

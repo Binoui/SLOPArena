@@ -1,0 +1,24 @@
+{
+  "title": "SLOPArena \u2014 After Hours fight night",
+  "generator": "OpenAI built-in image_gen",
+  "created": "2026-10-16",
+  "user_direction": "Fight-night poster with the four-character roster and a bold SLOPArena title",
+  "reference_assets": [
+    "Assets/Resources/UI/Portraits/FightGuy.png",
+    "Assets/Resources/UI/Portraits/Manki.png",
+    "Assets/Resources/UI/Portraits/Wibou.png",
+    "Assets/Resources/UI/Portraits/Bonk.png"
+  ],
+  "text": [
+    "SLOP",
+    "ARENA",
+    "TONIGHT",
+    "AFTER HOURS"
+  ],
+  "dimensions": [
+    1254,
+    1254
+  ],
+  "sha256": "e1b6d0792d6660cadca161bba57ea667114a12d7da9097c9b919d02092c3d5c7",
+  "intent": "Square poster face for the existing arena_tonight billboard, using ink, off-white, action yellow and the supplied roster portraits."
+}

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using SlopArena.Client.Animation;
 using SlopArena.Client.Entities;
+using SlopArena.Shared;
 using UnityEditor;
 using UnityEngine;
 using SlopArena.Client.Tools;
@@ -127,7 +128,8 @@ public static class AbilityLabScenarioCommandSelfTest
             if (!cross.Success || cross.Captures[0].Frame?.FrameIndex != 19
                 || !ReferenceEquals(beforeCross, lab.Scenario) || lab.ScenarioFrame != 12)
                 throw new InvalidOperationException("Default grab capture inherited another action's horizon or failed restoration.");
-            var grabRun = SlopArenaAbilityLabCommands.Run("grab", ticks: 24, distance: 0.7f);
+            int grabHorizon = DefenseConfig.GrabStartupTicks + DefenseConfig.GrabHoldTicks + DefenseConfig.ThrowReleaseTicks + 1;
+            var grabRun = SlopArenaAbilityLabCommands.Run("grab", ticks: grabHorizon, distance: 0.7f);
             if (!grabRun.Success || !grabRun.Scenario.Interactions.Any(observation => observation.Kind == "capture")
                 || !grabRun.Scenario.Interactions.Any(observation => observation.Kind == "release")
                 || !grabRun.Scenario.Frames.Any(frame => frame.Opponent.Damage > 0))

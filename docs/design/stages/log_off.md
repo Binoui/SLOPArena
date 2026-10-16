@@ -6,169 +6,118 @@ players: 2-4
 variant: static
 availability: provisional-human-camera-and-pvp-review-pending
 competitive_intent: playful
-topology: one broad split stump with a jump shortcut and a connected ground route
+topology: split chopping stump with two lower bracket-fungus shelves
 source_scene: client/Unity/Assets/Stages/log_off/log_off.unity
 baked_arena: data/arenas/log_off.arena
 cosmetic_prefab: client/Unity/Assets/Resources/Stages/log_off.prefab
-human_review:
-  owner: project maintainer
-  status: pending
 ---
 
 # Log Off
 
-Tiny fighters turn a giant split stump into a woodland chase playground. Jump
-across the northern split to intercept or escape, or stay grounded and run around
-its southern tip. Both shoulders join a broad fighting floor, with four clear
-inward-facing spawns and no additional platforms or hazards.
+Tiny fighters brawl on a camper's chopping stump at sunset. The axe split offers a
+jump shortcut, the southern floor keeps a continuous ground route, and two broad
+bracket-fungus shelves below the east and west rim offer recovery and ambush
+positions. An enormous tent, fire, chair and discarded phone give the forest its
+logged-off campsite identity.
 
-The [approved design](log_off.design.md) fixes the footprint and the 3-unit opening
-at the intended crossing. Its native blockout was approved for continued
-implementation on 2026-10-11. That approval carries forward while human in-game
-camera and two/four-player PVP reviews remain pending.
+The maintainer selected the layout, world and mood on 2026-10-16; the
+[design brief](log_off.design.md) records that implementation scope. This replaces
+the older 32-unit stump, vendor woodland and distant OFFLINE treehouse. Human
+in-game visual-design and two/four-player PvP acceptance remain separate from the
+automated evidence below.
 
-The trunk extends from the fighting floor to the lower blast plane. The split is
-open through that entire depth; it has no hidden bridge or safe cosmetic floor.
-Shared owns the baked collision, grounding, movement, recovery and blast deaths.
-The cosmetic shell uses the same vertex positions as the approved collision mesh,
-with original cut-wood rings, darker bark, exposed split grain and flat moss tint.
+## Gameplay shell
 
-A taller grove frames the left of the northern view, a smaller grove frames the
-right, and the opposite view opens onto the offline forest hideout. The forest ground
-meets the lower blast plane. The background detail pass adds nine irregular
-understory beds with leafy plants, grass, small flowers, fallen logs, rocks and
-original mushroom clusters. Four gentle terrain ridges carry separated distant
-tree groups. Their closed volumes meet the actual forest ground and extend below
-it; every tree is grounded on its own terrain host. Every scenery prop's full
-renderer bounds and every new background triangle clear the side blast planes
-and immediate recovery corridor. The distant sky, ground, materials and
-afternoon light belong to the presentation prefab.
-The prefab has no Colliders, Rigidbody components or gameplay scripts.
+The slightly irregular stump is approximately 29 units across, with its top at
+Y=0. The northern split is 3 units wide at Z=6 and tapers to a southern tip at
+Z=-1.4. It stays lethal through the trunk depth. Four inward-facing spawn markers
+retain X=±7, Z=±5 and center Y=0.85, ordered with diagonal opposites first.
 
-The memorable-background revision follows design decisions 8 and 9: “one crooked
-treehouse in an ancient, branching tree” and “small fir groups and low vegetation
-along the stream banks”. A broadleaf guardian tree carries a timber cabin with
-a muted blue gable roof, warm windows, a wraparound balcony, rope ladder and
-“OFFLINE” sign. Its roots meet the forest ground. A winding blue stream with
-closed banks, water highlights, stones and a small timber footbridge gives the
-clearing a second depth cue. Fir groups, bank plants and root mushrooms connect
-these original volumes to the accepted woodland assets. The house remains
-distant scenery; the stump stays the main fighting shape.
+Each fungus shelf is a closed solid with its top at Y=-1.5, reaching 4 units beyond
+the bark and extending 9 units along it. Shelf lips reach X=±18.5. A full-speed
+flank exit lands on the shelf; one full jump returns to the stump for each current
+roster fighter. Their undersides block movement, so recovery from below must route
+around them. North and south have no additional platforms. There are no hazards,
+pass-through surfaces or automatic rescue mechanics.
 
-The current cooked FightGuy, Manki, Wibou and Bonk definitions pass running full
-jumps across the split in both directions, a fully grounded route around its tip,
-stationary support at all four spawns, a lethal drop through the split and recovery
-onto either shoulder with one air jump from the upper split. The recovery check
-starts just below floor height; it does not promise recovery from every depth or
-combat launch. These are deterministic Shared checks, not human PVP acceptance.
+The source scene references the existing `LogOffCollision.asset`, rebuilt from
+`tools/blender/log_off/layout.py`. The normal stage baker produces 484 collision
+triangles and four spawns. Shared/GameServer and client prediction load the same
+`.arena`; Unity presentation does not decide collisions, landings or deaths.
 
-The focused Shared stage run passes 139 tests. Native stage inspection passes
-with matching source/baked hashes and valid mesh, material and shader references.
-Agent visual review covers 24 elevated orbit views, eight low views and three
-route/top views. Live UI verification finds the new thumbnail in Solo stage
-selection, selects Log Off for Training, loads the real stage and checks grounded
-participants plus a jump and landing through the typed Training input sequence.
-The HUD layout is valid and the final live check reports no console errors.
-The original clean, stopped Frontend scene, Play Mode options, Game View selection
-and match configuration are restored. Player-build performance and human PVP
-acceptance remain pending.
+| Boundary | Baked value |
+| --- | --- |
+| Left / right blast | X=-28.5 / +28.5 |
+| South / north blast | Z≈-23.88 / +24.943 |
+| Lower / upper death plane | Y=-10 / +20 |
 
-The maintainer approved the woodland first pass and requested more background
-detail on 2026-10-11. That cosmetic pass preserves the baked arena, collision
-source, original stump mesh/materials, light and every existing scenery object.
-Verification covers another full 24-angle elevated sweep, eight low views, three
-route/top views and a woodland close-up, followed by actual Training and stage
-selection captures. Numeric checks verify 158 new ground contacts, four closed
-terrain volumes, 96 grounded terrain perimeter vertices and an empty recovery
-corridor. These are structural and agent camera checks, not player acceptance or
-a rendering performance result. The prior 139-test Shared result remains the
-gameplay baseline; no gameplay source or arena data changed in this detail pass.
+## Presentation
 
-The maintainer requested a more memorable background on 2026-10-13. This revision
-preserves the collision source, baked arena, original stump, lighting and every
-existing scenery object. Native inspection passes. The new structural audit
-checks 50 ground contacts, embedded cabin features, balcony and ladder
-attachments, closed stream banks, grounded footbridge supports and background
-triangles outside the recovery guard square. Agent review covers the final
-24-angle elevated sweep, eight low views, top/route views and hideout close-ups.
-Actual Training shows the roof and sign clear of the HUD, loads the new scenery
-and passes standing plus jump/landing input. Stage selection shows the refreshed
-panoramic thumbnail. The final error console is empty; the clean stopped
-Frontend, Game View, Play Mode options and match configuration are restored.
-This cosmetic revision does not repeat the historical Shared gameplay tests or
-claim human PVP acceptance or player-build rendering performance.
+Original procedural meshes and textures replace `ApprovedStump`, `WoodlandWorld`
+and `WarmAfternoonSun` in the local Resources prefab. Painted wood rings follow
+the exact top outline; bark grooves recess into the walls. Cream-and-russet shelf
+bands describe the landable surfaces. The trunk flares into roots only below the
+kill plane, meeting a forest floor approximately 24 units beneath the rim.
 
-The subsequent fuller-woodland pass follows decision 10: “Fill the broad gaps
-with uneven fir groups at near, middle and far distances”. It adds larger tree
-groups around the existing clearing and hills, with a few boulders and leafy
-bushes at their feet. Heights and spacing vary; the opening toward the house
-and river remains clear. It uses only the accepted Fantasy Forest assets and
-material, without adding small decorative detail or changing the existing
-landforms, hideout, lighting or gameplay shell. Saved-prefab inspection and
-grounding/triangle-clearance audits pass. Agent review covers all 24 elevated
-views, eight low views, route/top views and the house close-up. Actual Training
-shows the denser forest with the sign and river visible and passes standing plus
-jump/landing input. The refreshed thumbnail is visible in stage selection;
-the final console is empty and the original stopped Frontend and runtime/editor
-settings are restored. Receipts are under
-`.stage-authoring-cache/log_off/fuller-woodland-20261013/`; final native images
-are under `.ability-lab-cache/log-off-fuller-woodland-20261013/final/`.
+The north campsite has an orange dome tent, folding chair, stone-ringed campfire,
+marshmallow sticks, lantern and enamel mug on a log seat, boots, backpack,
+woodpile, axe and NO WI-FI / JUST LOGS sign. The phone below the southern rim reads
+NO SERVICE. Giant fern fronds, grass, mushrooms, moss, leaf litter, acorns and
+pinecones establish the miniature scale; towering trunks, canopy and distant
+silhouettes surround the clearing while leaving the western sunset open.
 
-After approving the fuller woodland, the maintainer requested more grass texture.
-The original ground PNG now carries quiet painted grass marks, irregular green
-patches and soft earthy tones beneath the trees, with a coherent riverbank
-finish. Its existing GUID and shared ground-material bindings are preserved;
-the clearing, hills and understory use the same world-aligned surface. Mipmaps
-keep the grain quiet at a distance. This surface-only pass preserves the prefab,
-all geometry, placements, lighting, vendor assets and baked arena. Native import
-and stage inspection pass; agent review covers the full elevated/low sweep,
-a riverbank close-up and actual Training. The final console is empty and the
-original stopped Frontend and runtime/editor settings are restored. Texture,
-preservation and runtime receipts are under
-`.stage-authoring-cache/log_off/grass-surface-20261013/`; final native images are
-under `.ability-lab-cache/log-off-grass-20261013/final/`.
+The prefab owns its warm sun, three camp lights, stump fill and atmosphere. Fire
+flicker and firefly travel use existing shader channels. Surface values are tuned
+against native PvP captures; Training's additional scene lights produce a brighter
+result. The proposed light shafts are represented by canopy gaps and haze rather
+than volumetric beam geometry. Human visual review can accept or revise that
+presentation difference.
 
-Procurement follows the bundle's Fantasy Forest pack. The inspected workset uses
-Tree_01, Tree_02, Tree_03, Rock_01 and Rock_02, with catalog GUIDs checked against
-Unity and native thumbnail evidence reviewed before placement. Stage-owned URP
-material copies preserve the vendor palette texture and leave the vendor assets
-unchanged. The workset and inspection evidence are under
-`.asset-catalog-cache/log-off/`; gameplay, scene and placement receipts are under
-`.stage-authoring-cache/log_off/production/`.
+The generator checks actual background triangles against the blast corridor and
+keeps elevated scenery outside a 25-unit camera envelope. Tent hem, chair feet,
+boot soles and phone corners are placed using the actual rendered ground mesh,
+with 48 sampled support contacts. Other scenery retains its explicit ground and
+attachment hosts. The stage prefab contains no Colliders or gameplay-owning scripts.
 
-The additional inspected workset uses Plant_01–03, Grass_01–02, Log_01–02 and
-Flower_01–02 from that same pack, reusing the accepted stage material. Existing
-trees and rocks supply the other background roles. Procurement evidence is under
-`.asset-catalog-cache/log-off-background/`, detail/grounding/preservation receipts
-under `.stage-authoring-cache/log_off/background/`, and final native camera images
-under `.ability-lab-cache/log-off-design-20261011/background/final/`. Original
-terrain, ground-cover meshes and mushrooms live in
-`Assets/Stages/log_off/LogOffWoodlandDetails.asset`.
+## Rebuilding
 
-The hideout reuses those accepted trees, rocks, plants and grasses; it introduces
-no new external asset dependency. Original guardian-tree, cabin, roof, ladder,
-stream, bank and bridge meshes, materials and sign/roof textures live in
-`Assets/Stages/log_off/LogOffHideout.asset`. The local prefab adds them under
-`WoodlandWorld/OfflineHideout`. Structural, preservation and live runtime receipts
-are under `.stage-authoring-cache/log_off/landmark-20261013/`; final native camera
-images are under `.ability-lab-cache/log-off-landmark-20261013/final-v2/`.
+The [generator guide](../../../tools/blender/log_off/README.md) documents the build
+and native apply command. Generated FBX/textures and the Resources prefab remain
+local under the project's stage-art ignore rules. The generator source, original
+palette/textures, layout specification, Shared tests and editor apply command are
+kept in the repository. Source/arena hashes in the export stamp must match before
+art can be applied; application preserves the baked data and prefab GUID.
 
-The baked arena, original authoring meshes/textures and rendered stage thumbnail
-are versionable. The Resources prefab and licensed forest pack are local art
-assets ignored by Git. Reproducing the presentation requires that local art
-checkout; the `.arena` remains self-contained.
+## Verification — 2026-10-16
 
-## Test in Unity
+- Focused Log Off and ArenaShipping coverage: **244 passed, zero failures/skips**.
+  Checks cover both split crossings, the ground route, grounded spawns, lethal
+  drops, shelf landings/returns and bark contact across the current roster.
+- Shared and Server build successfully with `SkipUnityPluginCopy=true`, zero
+  warnings and errors. No Shared/server gameplay code changes were needed.
+- Native inspection passes: matching source/baked hashes, 484 collision triangles,
+  four spawns, 10 renderers, 93,740 imported visual triangles, six materials,
+  five local lights, zero cosmetic Colliders and valid mesh/material/shader references.
+  The generator reports 98,230 triangles before import and no clearance
+  violations; these are structural metrics, not measured player-build performance.
+- Agent review covers all 24 elevated orbit views, eight low recovery views and a
+  top view, plus all 10 composited gameplay-camera views using PvP lighting and
+  representative Training views. Native inspection's six global captures are
+  dominated by the distant sky bounds; the targeted orbit/top captures supply
+  the useful silhouette and alignment review.
+- Live Training executes 122 Shared ticks: both fighters stand on their spawn
+  ground, the player jumps, then returns grounded without death. This is a narrow
+  runtime smoke; the Shared tests cover shelf behavior across the full roster.
+- The stage-select thumbnail is refreshed from a native render with its GUID
+  preserved. The final Editor is stopped on the clean Frontend scene, original
+  Play Mode/Game View options restored, with an empty current error console and
+  free/settled gateway ownership. The collision scene and asset/prefab GUIDs remain
+  intact; art application preserves the new baked arena.
 
-1. Select Log Off in Training or Solo and confirm the rendered stump matches the
-   fighting floor. Try each roster character.
-2. Run a full jump across the split at its middle, then chase around the tip while
-   staying grounded. Check takeoff and landing readability from both shoulders.
-3. Rotate the normal game camera around the whole stage. Check the split, the
-   unobstructed southern floor, bark recovery views and distant tree silhouettes.
-   Check the hideout roof/sign, stream and footbridge as the camera moves; the
-   scenery should stay clear of fighters and the immediate recovery space.
-4. Recover against the inner walls, then fall through the split and confirm the
-   forest ground does not provide a surviving floor.
-5. Play two- and four-player matches. Review spacing, pursuit shortcuts, edge
-   pressure, camera visibility and combat readability before accepting the map.
+Receipts are local under `.stage-authoring-cache/log_off/campsite-20261016/`;
+full orbit images under `.ability-lab-cache/log-off-campsite-20261016/orbit/`;
+final gameplay views under `tmp/log-off-views/pass-02-pvp/` and
+`tmp/log-off-views/pass-02-training/`. The production report records decision
+conformance and the pending light-shaft difference. Human camera/gamefeel review,
+external two/four-player PvP acceptance and packaged-player performance remain
+unverified.
