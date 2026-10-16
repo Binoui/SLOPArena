@@ -1,5 +1,5 @@
 """Unity handoff export of the repaired Manki 2 rig with Manki's deformation controls.
-blender -b --factory-startup --python tools/blender/manki_rig/export_unity_rig.py -- <fixed.fbx> <out_dir> Manki2 1.18465
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/export_unity_rig.py -- <fixed.fbx> <out_dir> Manki2 1.18465
 The armature is named Manki_Rig so existing generic clip paths bind. Per side, adds
 <Side>UpperArmStretch / <Side>ForearmOffset / <Side>FistDeform with the parent's rest matrix, moves all of
 the Arm / ForeArm / Hand skin weights onto them. Mapped fingers stay under the hand as unskinned Humanoid

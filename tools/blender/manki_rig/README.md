@@ -9,12 +9,12 @@ to rebuild them. The previous rigs are kept under `Presentation/Legacy/`.
 ```bash
 # 1. Weld the mesh, smooth it, build a 5-bone tail chain from the tail geometry and keep
 #    4 influences per vertex.
-blender -b --factory-startup --python tools/blender/manki_rig/fix_rig.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- \
   manki_mixamo.fbx /tmp/manki-rig-fixed.fbx
 # 2. Unity export: rename the armature Manki_Rig, add the deformation controls, skinned
 #    finger copies and Tail1..Tail5, and scale ×1.18465 so the Humanoid scale matches
 #    the gameplay tuning (humanScale 0.6194, 1.32 m tall).
-blender -b --factory-startup --python tools/blender/manki_rig/export_unity_rig.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/export_unity_rig.py -- \
   /tmp/manki-rig-fixed.fbx /tmp/manki-rig-export Manki2 1.18465
 ```
 

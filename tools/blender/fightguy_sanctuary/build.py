@@ -1,6 +1,6 @@
 """Build the Himalayan FightGuy Sanctuary presentation in headless Blender.
 
-    blender -b --factory-startup --python tools/blender/fightguy_sanctuary/build.py -- \
+    blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightguy_sanctuary/build.py -- \
         [--out client/Unity/Assets/Stages/fightguy_sanctuary/Presentation/Himalaya] \
         [--report .stage-authoring-cache/fightguy_sanctuary/himalaya] [--preview] [--no-bake] [--no-export]
 
@@ -482,6 +482,7 @@ def main():
         "objects": {n: {"triangles": b.groups[n].triangle_count, "vertices": len(b.groups[n].verts)} for n in objects},
         "triangles": triangles, "budget": checks.budget(triangles, TRIANGLE_BUDGET),
         "geometryDigest": digest, "objectDigests": object_digests,
+        "meshHealth": kit.mesh_health(objects),
         "problems": problems, "checks": report, "aoBakeSeconds": bake_seconds,
         "buildSeconds": round(time.time() - t0, 1),
     }
@@ -490,6 +491,8 @@ def main():
     print("SANCTUARY_BUILD", json.dumps({k: summary[k] for k in ("triangles", "problems", "aoBakeSeconds", "buildSeconds", "geometryDigest")}))
     if summary["budget"]["over"]:
         print("  OVER BUDGET: %d triangles planned, %d built" % (TRIANGLE_BUDGET, triangles))
+    if summary["meshHealth"]["objects"]:
+        print("  MESH HEALTH", json.dumps(summary["meshHealth"]))
     if a.preview:
         preview(b, objects, os.path.join(a.report, "preview"), atlas_path, a.views)
 

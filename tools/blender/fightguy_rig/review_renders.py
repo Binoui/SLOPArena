@@ -1,6 +1,6 @@
 """Review renders of the built FightGuy rig with a given base-color texture (Blender approximation only;
 Unity's URP Lit look and real clips are verified separately).
-blender -b --factory-startup --python tools/blender/fightguy_rig/review_renders.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightguy_rig/review_renders.py -- \
     <build_dir>/FightGuy2_rig.blend <texture.png> <out_dir>"""
 import bpy, sys, os, math
 from mathutils import Vector

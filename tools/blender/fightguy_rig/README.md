@@ -9,12 +9,12 @@ records how to rebuild them.
 ```bash
 # 1. Bake the Mixamo T-pose take into the rest pose, add thumb chains, move the thumb skin
 #    off the index chain and scale to the old rig's rest-pose hip height.
-blender -b --factory-startup --python tools/blender/fightguy_rig/build_rig.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightguy_rig/build_rig.py -- \
   fightguy_mixamo.fbx <old fightguy.fbx> <build_dir> FightGuy2
 # 2. Paint 肉 on the back, the right wrap up to the elbow and a band-aid across the nose.
 python3 tools/blender/fightguy_rig/paint_texture.py <build_dir> FightGuy2
 # 3. Optional Blender review renders (front/back/face/arm/gameplay-distance).
-blender -b --factory-startup --python tools/blender/fightguy_rig/review_renders.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightguy_rig/review_renders.py -- \
   <build_dir>/FightGuy2_rig.blend <build_dir>/textures/FightGuy2_BaseColor.png <out_dir>
 ```
 

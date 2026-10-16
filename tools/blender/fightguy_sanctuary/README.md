@@ -14,7 +14,7 @@ dressing, props, flags, textures and preview here are specific to this Sanctuary
 Build with the installed Blender (including its bundled Python dependencies):
 
 ```bash
-blender -b --factory-startup --python tools/blender/fightguy_sanctuary/build.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightguy_sanctuary/build.py -- \
   --out /tmp/sanctuary-generated \
   --report .stage-authoring-cache/fightguy_sanctuary/himalaya/build --preview
 ```

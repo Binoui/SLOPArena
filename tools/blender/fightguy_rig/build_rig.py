@@ -1,5 +1,5 @@
 """Unity-ready FightGuy rig from a Mixamo auto-rig with index-only fingers.
-blender -b --factory-startup --python tools/blender/fightguy_rig/build_rig.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/fightguy_rig/build_rig.py -- \
     <mixamo.fbx> <old_rig.fbx> <out_dir> [name=FightGuy2]
 
 1. Bakes the Mixamo T-pose take into the rest/bind pose (Unity Humanoid expects a T-pose rest).

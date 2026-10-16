@@ -292,7 +292,7 @@ available; a greybox rebuild can discard accepted art.
 #### Procedural presentation and visual review
 
 Original presentation is generated from Python in headless Blender
-(`blender -b --factory-startup --python ...`) with the
+(`blender -b --factory-startup --python-exit-code 1 --python ...`) with the
 [procedural stage-art guide](../../tools/blender/README.md): the shared `stagekit`
 (mesh kit, AO bake, FBX export, corridor checks, arena reader, preview camera) and
 one folder per stage. FightGuy Sanctuary (a course on `SLOPArena/StageVertexLit`)

@@ -1,6 +1,6 @@
 """Build the Table Manners kids' craft-room presentation in headless Blender.
 
-    blender -b --factory-startup --python tools/blender/table_manners/build.py -- \
+    blender -b --factory-startup --python-exit-code 1 --python tools/blender/table_manners/build.py -- \
         [--out /tmp/table-manners-generated] [--report .stage-authoring-cache/table_manners/craft] \
         [--preview] [--views a,b] [--no-bake] [--no-export] [--spec-only]
 
@@ -262,6 +262,7 @@ def main():
         "objects": {n: {"triangles": b.groups[n].triangle_count, "vertices": len(b.groups[n].verts)} for n in objects},
         "triangles": triangles, "budget": checks.budget(triangles, TRIANGLE_BUDGET),
         "geometryDigest": digest, "objectDigests": object_digests,
+        "meshHealth": kit.mesh_health(objects),
         "problems": problems, "checks": report, "aoBakeSeconds": bake_seconds,
         "buildSeconds": round(time.time() - t0, 1),
     }
@@ -271,6 +272,8 @@ def main():
           "problems", len(problems))
     if summary["budget"]["over"]:
         print("  OVER BUDGET: %d triangles planned, %d built" % (TRIANGLE_BUDGET, triangles))
+    if summary["meshHealth"]["objects"]:
+        print("  MESH HEALTH", json.dumps(summary["meshHealth"]))
     for p in problems[:25]:
         print("  PROBLEM", p)
     if a.preview:

@@ -105,6 +105,28 @@ def export_fbx(objects, path):
                              add_leaf_bones=False, path_mode="STRIP", embed_textures=False, use_custom_props=False)
 
 
+def mesh_health(objects, min_area=1e-10):
+    """Count defects a render can hide: neighbouring faces wound in opposite directions
+    (one of them is culled in Unity), faces under `min_area` square metres and vertices
+    without faces. Open and overlapping meshes are intended, so this reports counts
+    rather than asserting zero. Lists only objects with a nonzero count."""
+    import bmesh
+    totals = {"flippedEdges": 0, "degenerateFaces": 0, "looseVerts": 0}
+    per_object = {}
+    for name in sorted(objects):
+        bm = bmesh.new()
+        bm.from_mesh(objects[name].data)
+        counts = {"flippedEdges": sum(1 for e in bm.edges if e.is_manifold and not e.is_contiguous),
+                  "degenerateFaces": sum(1 for f in bm.faces if f.calc_area() <= min_area),
+                  "looseVerts": sum(1 for v in bm.verts if not v.link_faces)}
+        bm.free()
+        for key, value in counts.items():
+            totals[key] += value
+        if any(counts.values()):
+            per_object[name] = counts
+    return {**totals, "objects": per_object}
+
+
 def digest(objects):
     """sha256 over the exported mesh data (positions, topology, materials, colours, UV maps),
     plus a short digest per object. Unchanged digests prove a kit refactor kept the art."""

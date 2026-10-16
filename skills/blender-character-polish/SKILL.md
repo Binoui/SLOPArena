@@ -26,7 +26,7 @@ Preserve skeleton hierarchy, rest transforms, bind pose and animation bindings b
 6. Deliver candidate path, textured comparisons, relevant motion evidence, checks performed and remaining defects. User approval promotes the next baseline.
 
 ## Evidence gates
-- Geometry: inspect topology, winding, degenerate faces, normals and joins in the changed region.
+- Geometry: inspect topology, winding, degenerate faces, normals and joins in the changed region. `mesh_health` in `tools/blender/stagekit/blender.py` counts opposite-wound neighbours, zero-area faces and loose vertices for any objects; compare original and candidate.
 - Skinning: inspect weights and extreme deformations; unchanged weights do not by themselves prove good motion.
 - Textures: inspect seams, stretching and transitions under matching lighting.
 - Appearance: include front, side/three-quarter and gameplay-size views as appropriate. A Blender gameplay-size approximation is not Unity verification.

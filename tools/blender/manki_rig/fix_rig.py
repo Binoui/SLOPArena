@@ -1,5 +1,5 @@
 """Weld + smooth + tail chain + 4-influence weights, then export.
-blender -b --factory-startup --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0]"""
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0]"""
 import bpy, bmesh, sys, os, math, json
 sys.path.insert(0, os.path.dirname(__file__))
 from tail_segment import find_tail_geo

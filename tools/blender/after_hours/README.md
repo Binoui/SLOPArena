@@ -30,7 +30,7 @@ billboards, screens, bulbs), `roof.py` (fight roof, risers, club tower),
 Build with the installed Blender:
 
 ```bash
-blender -b --factory-startup --python tools/blender/after_hours/build.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/after_hours/build.py -- \
   --out /tmp/after-hours-generated \
   --report .stage-authoring-cache/after_hours/neon --preview
 ```

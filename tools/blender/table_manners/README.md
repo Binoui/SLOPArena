@@ -16,7 +16,7 @@ Use the installed Blender with its Python/Pillow support. Generate outside Unity
 Assets directory; do not interrupt an interactive Blender session.
 
 ```bash
-blender -b --factory-startup --python tools/blender/table_manners/build.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/table_manners/build.py -- \
   --out /tmp/table-manners-generated \
   --report .stage-authoring-cache/table_manners/rebuild --preview
 ```

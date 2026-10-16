@@ -17,9 +17,13 @@ repair the art. Generated FBX/textures and the Resources prefab stay local and
 ignored; another art checkout rebuilds them from this source and the apply command.
 
 ```bash
-blender -b --factory-startup --python tools/blender/<key>/build.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/<key>/build.py -- \
   --out /tmp/<key>-generated --report .stage-authoring-cache/<key>/<pass> --preview
 ```
+
+Keep `--python-exit-code 1`: without it Blender exits 0 after an unexpected Python
+error, and a reused `--out` folder still holds the previous run's export, which the
+apply command accepts because its stamp checks only the scene and arena hashes.
 
 Character rigs follow the same rule: [manki_rig](manki_rig/README.md) rebuilds
 Manki's Unity rig from a Mixamo-rigged FBX.
@@ -34,7 +38,7 @@ not a universal generator; add to it only what a second stage actually needs.
 | Module | Provides |
 | --- | --- |
 | [geo.py](stagekit/geo.py) | Mesh kit in Unity coordinates: boxes, prisms, lathes, tubes, grids, map outlines, vertex colour and alpha masks, StageNeon animation channels, Blender conversion |
-| [blender.py](stagekit/blender.py) | Scene reset, objects, Cycles AO bake into vertex colours, FBX export with the Unity conventions, geometry digest |
+| [blender.py](stagekit/blender.py) | Scene reset, objects, Cycles AO bake into vertex colours, FBX export with the Unity conventions, geometry digest, mesh-health counts |
 | [checks.py](stagekit/checks.py) | Blast-corridor face clipping and the planned triangle budget |
 | [arena.py](stagekit/arena.py) | Reading a baked `.arena` (blast corridor, spawns, collision triangles) and file hashes |
 | [preview.py](stagekit/preview.py) | Eevee camera placement on a gameplay orbit |
@@ -44,6 +48,12 @@ a `geometryDigest` (in `build-report.json` and the export stamp). Rebuild every
 generator before and after a kit edit and compare: a changed digest is either an
 intended art change for that stage or a regression. For example, the first-corner
 face normal is load-bearing because Sanctuary's rock colouring branches on it.
+
+The report's `meshHealth` also counts defects a render can hide: neighbouring faces
+wound in opposite directions (Unity culls one), zero-area faces and loose vertices.
+Open and overlapping meshes are intended, so these are counts, not a gate; a new
+nonzero count deserves a look. Sanctuary's backdrop has one known inverted quad at
+the foot of a distant peak.
 
 ## Starting a new stage
 

@@ -7,7 +7,7 @@ required. See the [design decisions](../../../docs/design/stages/log_off.design.
 and [production contract](../../../docs/design/stages/log_off.md).
 
 ```bash
-blender -b --factory-startup --python tools/blender/log_off/build.py -- \
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/log_off/build.py -- \
   --out /tmp/log-off-generated \
   --report .stage-authoring-cache/log_off/campsite --preview
 ```
