@@ -1,6 +1,6 @@
 ---
 name: sloparena-stage-authoring
-description: "Implement SlopArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes and source-to-bake verification."
+description: "Implement SlopArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes (including procedural Blender stage art and gameplay-camera views) and source-to-bake verification."
 metadata: {"category": "game-dev"}
 ---
 
@@ -291,23 +291,57 @@ available; a greybox rebuild can discard accepted art.
 
 #### Procedural presentation and visual review
 
-Original presentation can be generated from Python in headless Blender
-(`blender -b --factory-startup --python ...`). The
-[procedural environment kit](../../tools/blender/README.md) lists what the FightGuy
-Sanctuary generator offers for reuse (mesh, rock and surface helpers, AO bake, FBX
-export, footprint/corridor/camera-envelope checks, Blender previews and the
-`SlopArena/StageVertexLit` shader) and which parts are Sanctuary-specific. Copy only
-the needed pieces into `tools/blender/<key>/` and keep existing generators rebuilding.
-Read the authoritative source scene, never the prefab, and leave any interactive
-Blender (MCP) session alone unless asked.
+Original presentation is generated from Python in headless Blender
+(`blender -b --factory-startup --python ...`) with the
+[procedural stage-art guide](../../tools/blender/README.md): the shared `stagekit`
+(mesh kit, AO bake, FBX export, corridor checks, arena reader, preview camera) and
+one folder per stage. FightGuy Sanctuary (a course on `SlopArena/StageVertexLit`)
+and After Hours (a PvP night city on `SlopArena/StageNeon`, animated without
+scripts) are the worked examples. Read the authoritative source scene or baked
+arena, never the prefab, and leave any interactive Blender (MCP) session alone
+unless asked.
 
-Iterate: Blender previews from gameplay-like vantages (about a 20 m orbit, 40° FOV)
-for fast fixes, then apply inside your own lease and judge real gameplay captures.
-Name each defect, repair its source and recapture. Structural inspection replaces
-materials, so it cannot judge appearance: use the
-[course replay runner](../../docs/testing/course-replay.md) for courses, or the
-Training-based [visual baseline scene](../../docs/visual-baseline.md) with
-`sloparena.capture.game-view --source screen` for PvP arenas.
+Work in this order; each step prevents a mistake made in an earlier pass:
+
+1. **Shell and budget first.** Check the art against the authoritative shell and
+   set the generator's planned `TRIANGLE_BUDGET` before building; distant scenery
+   needs level of detail and culling from the start, not afterwards.
+2. **Rough pass, then Unity.** After the first massing-and-lighting build, apply it
+   and capture gameplay views before detailing. Eevee previews (about the gameplay
+   orbit, 40° FOV) are for quick fixes only: the match camera's ACES grade and bloom
+   turn strong emission white and shift colour, so judge in Unity.
+3. **Capture without Play Mode stalls.** Use the `sloparena.stage.views.*` batch
+   below for PvP stages and the [course replay runner](../../docs/testing/course-replay.md)
+   for courses. Both disable domain reload before Play Mode; entering Play Mode with
+   a reload stalls this Editor and blocks the shared lease until a user-approved
+   restart. Do not improvise `editor_play` captures or setup scripts.
+4. **Name each defect, repair its source and recapture** the same views. Structural
+   inspection replaces materials, so it cannot judge appearance.
+5. **Kit edits keep other stages.** Build reports and stamps record a
+   `geometryDigest`; rebuild every generator and compare before and after a
+   `stagekit` change.
+
+```json
+{"commands": [
+  ["sloparena.stage.views.prepare", "--stage", "<key>"],
+  ["editor_play"],
+  ["sloparena.ui.viewport", "--width", "1920", "--height", "1080", "--gizmos", "off"],
+  ["sloparena.stage.views.capture", "--output", "tmp/<key>-views/pass-01", "--timeout", "120"],
+  ["get_console_logs", "--severity", "error", "--limit", "20"]],
+ "restore": [["sloparena.stage.views.stop"], ["sloparena.stage.views.restore"]]}
+```
+
+Run it with `bun scripts/unity-editor-gateway.ts --project-path client/Unity --batch
+<file>` from stopped Edit Mode with saved scenes and a Game View open. `prepare`
+saves the open scenes, selection, Play Mode options and Game View, disables domain
+reload and opens the Training-based [visual baseline scene](../../docs/visual-baseline.md)
+on the stage in memory. `capture` orbits the normal gameplay camera around the
+fighter at `Spawn_01` and writes one fresh composited PNG per view into a new
+directory: eight directions plus two high views by default, or
+`--views name:yaw:pitch,...` (at most 12 per call). If an unrelated Editor error
+triggers Error Pause, it resumes its own session and reports `editorPausesResumed`;
+the console step shows the cause. `stop` and `restore` return the Editor to its
+saved state.
 
 Generate outside `Assets/`, then copy and import within your lease. After any C# edit,
 run `recompile` on its own before an asset refresh or import step; see the

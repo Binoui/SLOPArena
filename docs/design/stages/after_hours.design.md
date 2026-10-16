@@ -3,107 +3,161 @@ key: after_hours
 status: draft
 approved_by: null
 direction_selected_by: maintainer
-direction_selected: 2026-10-10
+direction_selected: 2026-10-16
+layout_selected: broad club roof
+city_selected: neon downtown mix
 human_review: pending
-editor_import: complete
-provisional_production_authorized: 2026-10-10
-production_status: baked_review_pending
+production_status: neon_rebuild_review_pending
 blockout:
-  - .stage-authoring-cache/after_hours/design/rooftop-20261010/orbit-030.png
-  - .stage-authoring-cache/after_hours/design/rooftop-20261010/orbit-sheet.png
-  - .stage-authoring-cache/after_hours/design/rooftop-20261010/recovery-sheet.png
+  - .stage-authoring-cache/after_hours/neon-20261016/build/preview/
+  - tmp/after-hours-neon/pass-02/
 ---
 
-# After Hours Rooftop Nightclub — Draft
+# After Hours — Neon Rooftop Club
 
 ## Personality
 
 Four fighters turn an after-hours rooftop dance floor into the city's least sensible closing-time argument.
 
+## Direction
+
+On 2026-10-16 the maintainer asked to redo After Hours with the FightGuy Sanctuary
+techniques: a PvP map set on a rooftop in a living city with bright neons. The
+existing geometry was explicitly open to change, provided the result remains a
+good PvP map. From the presented options the maintainer selected the **broad roof**
+layout and the **neon downtown mix** (New York rooftops and water towers with dense
+Tokyo-style vertical signs, billboards and transit). The cross-shaped 2026-10-10
+version is superseded; see History.
+
 ## Composition decisions
 
-1. Retain the immutable `after_hours` key. The maintainer selected a rooftop nightclub above a city on 2026-10-10. From the study's default yaw 0°, the cross-shaped rooftop dominates the center and foreground; the club building sits in the background center, with smaller supporting silhouettes in the side thirds.
-2. Preserve the current cross footprint, main-floor top, two raised surfaces, and four spawn positions/facings. The center remains the main exchange space. The west/east raised surfaces become low performance risers: two existing high-ground choices, with neither a DJ booth nor equipment blocking their usable tops. Do not add a new platform or route merely to fit the nightclub theme.
-3. Implemented gameplay-shell change under the maintainer's provisional-production authorization: extend the existing cross footprint into continuous building walls down to the existing lower death plane. As with Splash Deck's hull, visible solid recovery walls have matching authoritative Shared collision. Preserve all existing blast planes. This change does not add wall jumps, climbing, adhesion, or automatic recovery.
-4. Below the lower death plane, a substantial building foundation and a street level establish that the roof belongs to a city. Above the fight, preserve open sky and clear camera space. No foreground canopy, lighting truss, wire, railing, bar, or tall prop occupies the fight/recovery corridor.
-5. One club building, with a rooftop setback, canopy volume and sign backing, explains the venue across the gap. At yaw 0° it is the supporting center landmark; at yaw 180° it moves behind the camera and the opposite low roofs/distant city take over. It must never obscure the arena in intermediate views. The first study iteration placed it too near the camera path; the revised study moves it beyond that path.
-6. At yaw 90° and 270°, apartment and service-building silhouettes establish different city neighborhoods in the middle distance. At yaw 180°, low roof volumes leave more sky and expose the distant skyline. Vary heights and spacing; keep alley gaps instead of evenly distributing equally loud towers around a ring.
-7. Busy here: a small amount of roof-edge construction and the distant club sign/window clusters. Empty here: the central cross, riser tops, spawn approaches, camera orbit and immediate recovery space. Later dressing belongs to the established building volumes and should remain visually quieter than the fighters.
-8. Surface intent: one readable roof plane with restrained seams, clear edges, and two distinct risers. Future surfacing should use charcoal roof/concrete materials with subdued magenta and cyan edge accents and warm club windows. The study is neutral gray; it does not establish final material or lighting quality.
-9. Reuse suitable accepted assets only after inspection, or author original stage-owned geometry. No imported environment asset is selected or introduced by this study. A new asset dependency requires the project's asset-selection workflow before production.
+From the default camera (behind a spawn, looking diagonally across the roof):
+
+1. **One broad club roof.** A 30 × 24 roof with 3 m chamfered corners fills the
+   center and foreground. It is the single main combat floor, in the pattern of
+   the best-rated maps (Table Manners, Splash Deck): even edge distances of 12–17 m
+   from the center and four diagonal spawns facing inward.
+2. **Two performance risers.** Equal 6 × 6 m, 1.5 m risers sit on the east and west
+   sides with a 1.5 m strip behind each. Every roster fighter reaches them with one
+   jump (measured single-jump apex 1.99–3.14 m), so they offer high ground and
+   escape options without walling off the center. The east riser is the DJ stage
+   (speaker faces, an LED equaliser facing the dance floor); the west riser is the
+   VIP bar (wood deck, a BAR sign facing the floor).
+3. **Closed recovery walls.** The roof outline continues as solid authoritative
+   walls down to the lower death plane, as on Splash Deck. They add no wall jump,
+   climbing, ledge grab or automatic recovery.
+4. **A flat, readable fight surface.** Slate pavers, a light coping band and a flush
+   magenta neon inlay outline every straight edge, with violet on the chamfers. A
+   flush 10 × 8 m LED dance floor pulses slowly at the center. Riser tops are flush
+   boards with LED borders. Nothing on the roof stands above a walkable top.
+5. **A calm wall under the edge.** Directly below the fight edge the tower has only
+   dark flashing and one neon line, so edge play stays readable. The club's name
+   hangs lower as 3D neon tube letters on the north and south faces, below the kill
+   plane, with one faulty flickering letter. A ROOFTOP blade sign on the north-east
+   corner and a bulb marquee at street level complete the club.
+6. **North: Neon Row, the busiest view.** Across the street (34 m and more), tall
+   facades carry the SLOP ARENA TONIGHT screen, an AFTER HOURS tube sign with a
+   chasing arrow pointing back at the club, the Slop Cola billboard, a HOTEL blade
+   sign, karaoke, and a corner tower wrapped in Manki Motors, Wibou, DJ-set and
+   Bonk Burger ads.
+7. **East: the elevated train.** Lower brick and concrete blocks carry a FightGuy
+   Gym rooftop billboard, LIVE and JAZZ signage and a rooftop string-light hangout.
+   A train occasionally passes on the elevated line below roof level.
+8. **South: the open view.** Quieter residential roofs with water towers lead to
+   the river and a lit suspension bridge with moving traffic, under the dusk glow.
+9. **West: the expressway.** Low rooftops (one hosts a rooftop party and an
+   After Hours poster billboard) sit in front of an elevated expressway whose car
+   lights stream past at eye level, with office towers beyond.
+10. **The scene world.** Below: streets 36 m down with sidewalks, crosswalks, lamps,
+    shopfronts with neon words, taxis and traffic, and the club podium. Above: open
+    dusk sky with stars and a moon. Far: a skyline of lit window bands with
+    aviation lights, a downtown cluster to the north-east and the river mouth south.
+11. **A living city, presentation only.** Traffic, trains, chase bulbs, blinking and
+    faulty neon, slow window changes, the pulsing dance floor and equaliser,
+    twinkling stars and aviation lights are animated in the StageNeon shader. No
+    script or timing owns gameplay.
+12. **Busy here / empty here.** Busy: the north and north-east signage wall and the
+    street canyon below. Empty: the roof surface (flush detail only), the air within
+    25 m of the roof (nothing higher than 2 m under the kill plane), the southern
+    river view and the sky.
+13. **Original procedural art.** Everything is generated by
+    `tools/blender/after_hours` with fictional, roster-themed brands. No vendor,
+    downloaded or real-brand assets are used.
 
 ## Gameplay shell
 
 ```text
-                  north arm
-                  +-------+
-                  |  S2   |
-        +---------+       +---------+
-        | west    |       | east    |
-        | riser   |S3   S4| riser   |
-        +---------+       +---------+
-                  |  S1   |
-                  +-------+
-                  south arm
-
-        authoritative solid building walls below the cross
+              north: Neon Row
+     /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+    |    S3 (-6, 5)        S2 (6, 5) |
+    | [BAR]   [ dance floor ]   [DJ] |   risers 6 x 6, top 1.5
+    |    S1 (-6,-5)        S4 (6,-5) |
+     \____________________________/
+          south: river and bridge
+   30 x 24 roof, 3 m chamfers, top y = 0; walls to the kill plane at y = -12
 ```
 
-The diagram is a topology sketch, not a coordinate source. The current `.arena` remains authoritative. The local `massing.json` records the proposed geometry and existing spawns; marker spheres in the study are location aids, not fighter capsules.
-
-The canonical collision source is now `Assets/Stages/after_hours/after_hours.unity`, with the standard `Stage_after_hours/GameplayGeometry`, `SpawnPoints`, and `AuthoringAids` hierarchy. A single closed cross extrusion replaces the overlapping thin floor boxes. The two riser volumes and four spawn markers preserve the previous layout. `AuthoringAids/KillPlane` is at the lowest shell vertex, preserving the existing lower death plane. Native bake and inspection pass. All six blast planes, floor bounds, and spawn poses match the previous arena within numerical tolerance; the deliberate gameplay change is the new recovery wall volume.
+`tools/blender/after_hours/layout.py` (`SPEC`) records the approved shell; the
+collision source scene is built from it and baked. The baked `.arena` remains the
+authority: roof x −15..15, z −12..12 (702 m²); risers x ±7.5..±13.5, z −3..3, top
+1.5; spawns (−6,−5) 45°, (6,5) 225°, (−6,5) 135°, (6,−5) 315°; blast planes
+x ±25, z ±22, top 21.5, kill −12 (`AuthoringAids/KillPlane`).
 
 ## Negative decisions
 
-- No new route, platform, hazard, moving geometry, or rooftop equipment that obstructs playable space.
-- No cosmetic-only building wall that recovering fighters can pass through.
-- No second hero landmark, identical towers in a ring, or scenery placed only for a preferred camera angle.
-- No solid background inside the blast/recovery corridor or apparent safe landing surface before a blast boundary.
-- No unrelated stage, vendor asset, movement tuning, or gameplay-rule change.
+- No props, railings, string lights, trusses or signs above the roof or riser tops,
+  and no new platform or route.
+- No background structure inside the blast corridor, and none within 25 m of the
+  roof above 2 m below the kill plane (the 15 m orbit camera plus the side margin).
+- No bright sign or busy pattern directly under the fight edge.
+- No moving geometry or hazard in gameplay space; animation is cosmetic and sits
+  below or beyond the corridor.
+- No second hero landmark competing with Neon Row, no vendor assets, no real brands.
+- Cyan and amber are fighter rim colours: keep them in the far city; the fight roof
+  uses magenta, pink and violet.
 
 ## Palette & lighting
 
-Late night, charcoal roofs, muted violet city atmosphere, warm window groups, restrained cyan and magenta venue accents. Keep fighters and usable edges brighter and easier to read than the skyline. Production will need actual gameplay-camera lighting review; neutral-gray renders do not verify this intent.
+Blue-hour night: an indigo-to-violet sky with a magenta and orange horizon glow,
+slate roof, magenta/pink/violet neon on the roof, warm windows, and cyan, amber,
+red and lime signs in the city. Stage-owned lights: dim moonlight, violet DJ and
+pink bar fills, a dance-floor glow, warm Neon Row spill from the north and cool
+river spill from the south. A violet haze softens distance; the far city keeps its
+lights through it. Fighters and edges stay brighter and clearer than the skyline.
 
 ## Camera vantages
 
-- Full orbit: 24 views at 15-degree intervals, covering all quarter turns and intermediate angles.
-- Low recovery: eight side/corner views at 45-degree intervals.
-- Top view for the cross footprint and riser/spawn relationships.
-- Later in-match review: center, both risers, four arms, concave corners, low recovery, and full yaw with actual fighters and zoom/pitch.
+- The four spawn views across the roof at default zoom.
+- Quarter turns at 10–20° pitch: north (Neon Row), east (train), south (river and
+  bridge), west (expressway), plus intermediate yaws.
+- High south-west (30°) and north-west views over the risers.
+- Low edge and recovery views from outside each side and corner.
+- Zoomed-out north-east view (stage-select thumbnail).
 
-The local `camera-poses.json` records each offline camera pose. The study uses an elevated orbit radius of 64, height 31, and target `(0, -2, 0)`; low views use radius 37, height -2, and target `(0, -4, 0)`. Blender rendering is not the Unity match camera.
+## Production and verification (2026-10-16)
 
-## Production evidence and remaining review
+- **Shell:** the collision source was rebuilt from `SPEC` (closed octagon mesh, two
+  risers, four spawns, kill-plane marker) and baked: 52 triangles, matching source
+  and baked hashes, clean inspection. `layout.py` verifies the baked arena strictly.
+- **Tests:** `AfterHoursArenaTests` covers the shell and 128 recovery cases (eight
+  walls and eight corners, four fighters, two depths); ArenaShipping passes; the
+  full Shared suite passes (1,889 passed, 2 existing skips); Server builds cleanly.
+- **Art:** the generator builds about 249k triangles with baked AO and zero
+  clearance problems; `sloparena.stage.art-after-hours` applied it with 9
+  renderers, 4 materials, 6 local lights and no Colliders. It removed the previous
+  hand-built roots and 118 orphaned sub-assets; the old cross mesh was deleted and
+  the stage-select thumbnail refreshed from a gameplay-camera capture.
+- **Captures:** real gameplay-camera views (Training-based `VisualBaselineCapture`,
+  in-memory arena override, domain reload disabled) are in
+  `tmp/after-hours-neon/pass-01` (first apply) and `pass-02` (current). They are
+  agent evidence, not human review.
+- **Pending:** the maintainer's in-game visual review, two- and four-player PvP
+  acceptance, recovery feel, performance measurement and the packaged build.
 
-The maintainer selected the rooftop nightclub direction, then explicitly authorized continuing without the skill's approval/access restrictions on 2026-10-10. Production remains provisional; this is not human visual/PVP acceptance.
+## History
 
-The offline study remains in `.stage-authoring-cache/after_hours/design/rooftop-20261010/`. It is superseded for presentation by the actual runtime prefab. Original meshes, a procedural concrete texture, materials, a flush dance-floor tile treatment, neon edge inlays, authored block-letter signage and window meshes form the production art; no new external asset dependency was introduced. The final facade sign is positioned below its original massing-study height to remain visible through the orbit.
-
-Native bake and final inspection pass with matching source/baked hashes, valid URP shaders/references, four spawns, two local lights and zero cosmetic Colliders. Final report: `.stage-authoring-cache/after_hours/rooftop-production-20261010/final-inspection.json`. Preservation receipt: `gameplay-preservation.json` in the same directory. Original arena/prefab backups and reproducible authoring scripts remain there.
-
-Actual Unity prefab captures are in `.ability-lab-cache/after-hours-rooftop-20261010/pass-02/`: 24 orbit views and eight low side/corner views. The orbit and low-view contact sheets were inspected; the floor and risers remain unobscured. These renders use an isolated temporary scene with preview directional lighting, not a human in-match review. The temporary scene was closed and the original scene/selection/lighting restored; an initial restoration compile error was corrected and restoration verified.
-
-Recovery testing exposed a Shared collision-grid insertion bug: a wall exactly on the maximum grid plane was omitted. `ArenaDefinition.ClampRange` now clamps both cell indices into the valid range. `AfterHoursArenaTests` guards maximum X/Z grid planes and verifies inward blocking/outward freedom for four roster capsules at all 12 wall segments and four recessed corners, at two depths. All 128 recovery cases pass. Focused arena checks pass; the full Shared suite passes with 1,489 passed and two existing skips. The updated Unity Shared DLL was built and copied while holding the Editor lease.
-
-T3 execution uses this Codex runtime's own thread/session identity through the gateway's explicit identity input, retaining acquisition, settlement and release; it does not borrow an Orca identity. No gateway source was changed.
-
-Human gameplay-camera, two/four-player PVP, packaged-player and performance review remain pending. Keep the brief draft until actual visual review/sign-off; further routine authoring is already authorized for this provisional rebuild.
-
-## Background detail pass — 2026-10-10
-
-The maintainer liked the rebuilt basis and requested more memorable details, especially in the background. The accepted fighting roof remains the visual anchor. Dressing now gives the surrounding blocks distinct identities:
-
-- A lower annex attached to the club carries a supported canopy, tables, chairs, planters, railings, warm string bulbs and a small terrace edge accent.
-- The west warehouse has original procedural brick surfacing, stone bands, fire escapes and a supported water tank placed clear of the existing roof equipment.
-- The east apartments have balconies and a large record mural. The opposite service roof carries ventilation equipment, a chimney and a satellite dish.
-- One distant tower has vertical facade ribs and a stepped crown. Quieter irregular blocks fill skyline gaps without another bright venue sign.
-- Sidewalks, crosswalks, parked cars/taxis and emissive lamp heads establish street scale below the arena. These fixtures add no real lights.
-
-New geometry is grouped into persistent mesh batches by district and material. It introduces no external art dependency, gameplay geometry, Collider, or additional local light. The current pass receipts are in `.stage-authoring-cache/after_hours/background-detail-20261010/`; actual prefab captures are in `.ability-lab-cache/after-hours-background-20261010/pass-03/`.
-
-Final inspection passes: 223 renderers, 17,132 cosmetic triangles, 23 materials, two local lights, no cosmetic Colliders and no missing mesh/material/shader references. All City renderer bounds clear the blast corridor. The `.arena`, collision source scene, source cross mesh and prefab GUID are byte-for-byte unchanged from the accepted basis. Persisted snapshots also preserve the non-City hierarchy, geometry, active material properties, lighting and atmosphere. Unity's import synchronizes the unused legacy `_Color` alias to `_BaseColor` on four original URP materials; the preservation comparison normalizes this alias and confirms no active-property change.
-
-All 24 elevated orbit and eight low recovery captures were reviewed after the final material import. The new emissive materials retain their emission keyword after reimport. The stage-selection thumbnail uses the final yaw-45 capture. Captures remain isolated Editor previews; live-match and performance review remain pending. Final restoration leaves one clean, stopped Frontend scene and free/settled Editor ownership.
-
-The final Play Mode smoke stalled during domain reload before frontend navigation/map loading. It produced no runtime acceptance evidence. The Editor scene backup and log were preserved locally, the stalled process exited after a graceful termination request, and Editor restart completed. Final audit confirms a clean, stopped Frontend scene, zero cosmetic Colliders, zero background bounds overlapping the blast corridor, and free/settled ownership. The stage-selection thumbnail was refreshed from the actual Unity prefab capture. Shared and Server builds passed with no warnings/errors. See `runtime-smoke.json` in the production cache for the final recovery state.
+The 2026-10-10 version (a 32 × 26 cross with 1.8 m risers, closed walls, a
+hand-built Unity-primitive roof and a dim city) is superseded. Its receipts remain
+in `.stage-authoring-cache/after_hours/rooftop-production-20261010/` and
+`background-detail-20261010/`; backups of its source scene, mesh, arena, prefab and
+thumbnail are in `.stage-authoring-cache/after_hours/neon-20261016/backup/`.

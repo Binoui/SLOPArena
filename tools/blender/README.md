@@ -1,40 +1,69 @@
 # Procedural environment art
 
-The [FightGuy Sanctuary generator](fightguy_sanctuary/README.md) is a retained,
-working example of original stage presentation built through Blender Python.
-Keep its construction source alongside the generated art: it records how to
-rebuild, vary and repair the environment, including its Unity export conventions.
+Stage presentation can be generated entirely from Python in headless Blender and
+applied in Unity by a stage-specific command. These generators show the approach:
 
-## Reuse guide
+- [FightGuy Sanctuary](fightguy_sanctuary/README.md): a solo course on Himalayan
+  rock pillars, shaded by `SlopArena/StageVertexLit`.
+- [After Hours](after_hours/README.md): a PvP rooftop in a night city whose signs,
+  windows and traffic animate in `SlopArena/StageNeon` without scripts.
+- [Log Off](log_off/README.md): a split chopping stump with fungus recovery shelves
+  in an ant-scale campsite at sunset, using both stage shaders.
+- [Table Manners](table_manners/README.md): a kids' craft table with a play-dough
+  cake in a bright bedroom, using original drawings and both stage shaders.
 
-| Starting point | Useful work to reuse | Existing assumptions to check |
-| --- | --- | --- |
-| [geo.py](fightguy_sanctuary/geo.py) | Mesh assembly, boxes, prisms, lathes, cylinders, curved lines, vertex colours and UVs | Unity world coordinates, face winding, `SA_*` material slots, atlas white patch and vertex-alpha masks |
-| [rocks.py](fightguy_sanctuary/rocks.py) | Rock supports, peaks, spires, pines, snow and clouds | Sanctuary palette and intended support/death-space relationships |
-| [dressing.py](fightguy_sanctuary/dressing.py) | Paving, masonry, planks and surface treatments | Several treatments and defaults belong to the monastery style |
-| [build.py](fightguy_sanctuary/build.py) | Ambient-occlusion bake, FBX export settings, footprint/corridor checks and source stamping | The `Build` composition, named surfaces, markers and scenery positions are Sanctuary-specific |
-| [preview.py](fightguy_sanctuary/preview.py) | Repeatable Blender camera renders for iteration | Camera vantages, lights, atlas interpretation and marker stand-ins are stage-specific; final review uses Unity |
-| [StageVertexLit shader](../../client/Unity/Assets/Shaders/SlopArenaStageVertexLit.shader) | Vertex-colour shading, atlas/detail texture, shadows, metallic-looking highlights and cosmetic wind | Vertex colour space, alpha masks and material setup must agree with the exported meshes |
+Keep each generator's source with its stage: it records how to rebuild, vary and
+repair the art. Generated FBX/textures and the Resources prefab stay local and
+ignored; another art checkout rebuilds them from this source and the apply command.
 
-Architecture, prayer props, cloth patterns, the rising-fist emblem and palette
-remain part of the Sanctuary's identity. Reuse them where the approved visual
-brief calls for them. Other stages can reuse the geometry/export techniques
-while developing their own architecture and motifs.
+```bash
+blender -b --factory-startup --python tools/blender/<key>/build.py -- \
+  --out /tmp/<key>-generated --report .stage-authoring-cache/<key>/<pass> --preview
+```
 
-For the next stage, start with this example and adapt the pieces actually needed
-in a separate stage folder. Keep Sanctuary rebuilds working. If a second stage
-demonstrates a useful shared implementation, propose that small extraction under
-the project's architecture-change policy; a universal generator or stable library
-API is not established by this example.
+## Shared kit
 
-Follow the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md):
-author presentation against the approved gameplay shell, preserve gameplay hashes
-for art-only changes, and inspect actual Unity views. The Sanctuary layout reader
-supports its current axis-aligned source boxes; arbitrary scenes need deliberate
-transform/mesh handling. Recheck coordinates, normals, scale, materials, actual
-background faces and camera clearance when adapting the pipeline.
+[`stagekit/`](stagekit/__init__.py) holds the code every generator uses. Stage
+folders keep what gives a stage its identity: layout reader, palette, motifs,
+textures, materials, preview views and lights. The kit is a small shared library,
+not a universal generator; add to it only what a second stage actually needs.
 
-Generate into an explicitly selected temporary directory first. Unity imports and
-application use the canonical Editor gateway and your own bounded lease. Generated
-FBX/textures and the ignored Resources prefab must be provisioned or rebuilt for
-another art checkout; keeping Python source alone does not provision that prefab.
+| Module | Provides |
+| --- | --- |
+| [geo.py](stagekit/geo.py) | Mesh kit in Unity coordinates: boxes, prisms, lathes, tubes, grids, map outlines, vertex colour and alpha masks, StageNeon animation channels, Blender conversion |
+| [blender.py](stagekit/blender.py) | Scene reset, objects, Cycles AO bake into vertex colours, FBX export with the Unity conventions, geometry digest |
+| [checks.py](stagekit/checks.py) | Blast-corridor face clipping and the planned triangle budget |
+| [arena.py](stagekit/arena.py) | Reading a baked `.arena` (blast corridor, spawns, collision triangles) and file hashes |
+| [preview.py](stagekit/preview.py) | Eevee camera placement on a gameplay orbit |
+
+Kit changes must not silently change existing art. Every build prints and records
+a `geometryDigest` (in `build-report.json` and the export stamp). Rebuild every
+generator before and after a kit edit and compare: a changed digest is either an
+intended art change for that stage or a regression. For example, the first-corner
+face normal is load-bearing because Sanctuary's rock colouring branches on it.
+
+## Starting a new stage
+
+1. Lock the gameplay shell first through the stage design and authoring skills.
+   PvP generators read the baked arena with `stagekit.arena` and check it against an
+   approved layout spec, as After Hours does; course generators may read the source
+   scene, as the Sanctuary does.
+2. Create `tools/blender/<key>/`, copy `build.py`, `preview.py` and any motif
+   modules from the closest example, then replace their content. Import the kit
+   (`from stagekit import geo`) rather than copying it.
+3. Set `TRIANGLE_BUDGET` before building and keep distant scenery cheap: use level
+   of detail and skip faces that can never be seen from the arena. Both examples
+   build 250–300k triangles. The report flags an overrun; Unity measures performance.
+4. Build the massing and key lighting, apply it in Unity and capture gameplay views
+   before detailing. Eevee previews are for quick iteration only; the match camera's
+   ACES grade and bloom decide how emission and colour read.
+5. Write the stage's apply command after `SlopArenaSanctuaryHimalayaCommands.cs` or
+   `SlopArenaAfterHoursArtCommands.cs`: verify the stamp against the source and arena
+   hashes, configure materials, lights and atmosphere, and replace only its own roots.
+
+Follow the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md)
+for gameplay safety, the bake and inspection, and `sloparena.stage.views.*`
+gameplay captures. Generate into an explicitly selected temporary directory; Unity
+imports and application use the canonical Editor gateway and your own bounded lease.
+Recheck coordinates, normals, scale, materials, background faces and camera
+clearance whenever a generator reads a new kind of shell.

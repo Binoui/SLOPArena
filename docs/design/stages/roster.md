@@ -4,12 +4,12 @@ The stage picker currently offers six PVP maps:
 
 | Stage | Current assessment |
 | --- | --- |
-| Table Manners | Best current map |
+| [Table Manners](table_manners.md) | Rebuilt 2026-10-16 as a kids' craft table with a centre cake; maintainer playtest pending |
 | Splash Deck | Good |
 | Slop Pit | Acceptable |
-| After Hours | Acceptable |
+| [After Hours](after_hours.md) | Rebuilt 2026-10-16 as a broad neon rooftop; maintainer playtest pending |
 | [Last Stop](last_stop.md) | New first pass; maintainer playtest pending |
-| [Log Off](log_off.md) | New playable first pass; maintainer playtest pending |
+| [Log Off](log_off.md) | Rebuilt 2026-10-16 as a split stump with fungus shelves and a sunset campsite; maintainer playtest pending |
 
 Training remains available only in training mode.
 

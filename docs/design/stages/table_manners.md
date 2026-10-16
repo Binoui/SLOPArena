@@ -6,42 +6,99 @@ players: 2-4
 variant: static
 availability: provisional-visual-and-gameplay-review-pending
 competitive_intent: mixed
-topology: round tabletop with four legs above the lower death plane
+topology: round craft table with a central cake riser and closed cloth recovery walls
 source_scene: client/Unity/Assets/Stages/table_manners/table_manners.unity
 baked_arena: data/arenas/table_manners.arena
 cosmetic_prefab: client/Unity/Assets/Resources/Stages/table_manners.prefab
 design_brief: docs/design/stages/table_manners.design.md
+art_source: tools/blender/table_manners
 human_review:
   owner: project maintainer
-  status: pending
+  process: normal host/lobby/character-select/stage-select flow with two and four players
 ---
 
 # Table Manners
 
-A new local stage built from the installed Cozy Interior pack: tiny fighters on a round coffee table in a giant living room. See the [design brief](table_manners.design.md) for composition and review intent.
+Tiny fighters brawl on a child's round craft table around a play-dough birthday
+cake. The maintainer selected the kids' craft-room setting, centre cake layout and
+floor-length tablecloth on 2026-10-16. The [design brief](table_manners.design.md)
+records the approved implementation scope and pending human visual/PvP reviews.
+It supersedes the former green coffee-table living room and its vendor art.
 
-The canonical scene has one static coffee-table mesh, four tagged spawn points and an empty lower-plane marker. The 276-triangle stage-owned table mesh preserves the vendor palette UVs while flattening the raised rim into the floor at Y=0. The same slab and legs render in the runtime prefab and bake into Shared collision. The table is about 31.86 units across; its lowest point and the room floor are at Y=-15.41453. Side blast lines resolve to approximately ±25.92942 and the upper line to Y=20. Spawns sit at X/Z=±5 and Y=0.85, facing inward.
+## Gameplay shell and intent
 
-The prefab adds wood flooring, warm walls, oversized seating, a lamp, plants, a console, shelving, a clock and a curtained window. Background renderer bounds clear the blast corridor; the room floor is at the lower plane. Two stage-owned local lights and an atmosphere component establish warm room lighting. Cosmetic objects contain no Colliders. The table owns gameplay through the baked mesh rather than Unity physics.
+The table is the main combat floor. Its central low cake creates a choice between
+circling to flank and jumping onto a contested high position; the surrounding
+floor remains the larger fight space. The cake is a solid static drum, not a
+pass-through platform. Four diagonal spawns face inward, with opposite corners
+first for two-player matches. Full cloth walls remove the former route beneath
+the slab and keep deep recovery on a clear outside face.
 
-Native bake/inspection pass with matching source/baked hashes, four spawns, 56 renderers, 26,618 cosmetic triangles, seven unique materials, two local lights and valid mesh/material/URP shader references. The focused Shared run passes 192 tests, including 49 tabletop height samples and 32 slab/under-edge checks across four roster capsules. These checks do not establish human game feel or measured rendering performance.
+The canonical source scene contains `Stage_table_manners`, `GameplayGeometry`,
+`SpawnPoints` and `AuthoringAids`. Original `TableMannersCraftTable.asset` and
+`TableMannersPlayDoughCake.asset` supply the sparse collision meshes; four empty,
+ordered `SpawnPoint` markers provide starts. The bake derives collision, heightmap,
+bounds and blast planes for Shared, GameServer and client prediction. The
+[layout reader](../../../tools/blender/table_manners/layout.py) verifies the baked
+triangles, spawn ordering/yaw and derived boundaries against the selected shell.
+No Unity Collider, animation or cosmetic effect owns gameplay.
 
-Authoring, inspection and preservation receipts live in `.stage-authoring-cache/table_manners/cozy-study-20261010/`. Final isolated Editor captures are in `.ability-lab-cache/table-manners-20261010/pass-03/`: 24 orbit and eight low views, with temporary posed roster rigs at package visual scales. The stage thumbnail uses the yaw-30 capture. Preview actors/cameras are removed and the original stopped scene restored after capture. Live-match, packaged-player and human PVP review remain pending.
+## Presentation and reproduction
 
-The Cozy Interior pack, runtime Resources prefab, derived `TableMannersCoffeeTable.asset`, rendered thumbnail and local stage-preview scenes are ignored along with their metadata. The canonical authoring scene and baked `.arena` remain versionable. The baked arena provides self-contained Shared collision; rebaking the authoring scene requires the local derivative mesh. Reproducing the visuals also requires the local prefab and installed pack. No pack scene or mesh is overwritten. A hash receipt records Unity serialization of the vendor glass material during import/save; this is not used to claim whole-pack byte preservation.
+Original headless Blender source lives in
+[`tools/blender/table_manners/`](../../../tools/blender/table_manners/README.md),
+using the shared stagekit. Gingham, flush paper drawings, stickers and glitter
+leave the functional tabletop readable. Layered play-dough and googly eyes explain
+the central platform. The distant bedroom has a bunk bed, art corner, block toys,
+train, chairs, bunting and balloons; the north window opens onto a garden and sky.
+Room-floor clutter is below the lower death plane, and distant furniture stays
+outside both the blast corridor and the checked camera envelope.
 
-## Room detail pass — 2026-10-10
+`SlopArenaTableMannersArtCommands` validates the generated source/arena hash stamp
+before mapping the materials and replacing the old presentation roots. The
+prefab stays identity-aligned, carries its own daylight and atmosphere, and uses
+StageVertexLit plus StageNeon. Animated decorations remain cosmetic. Stage-only
+PvP lighting and Training's extra scene lights need separate visual checks.
 
-The accepted basis now includes two seating rugs, three cushions, books and slippers, a forgotten controller, a tea/snack side table, filled shelves, a vintage camera and mantel clock, a teddy bear and floor toys, framed prints and photographs. The additions reuse the same inspected Cozy Interior pack and live under `OversizedLivingRoom/LivedInDetails`. Two new stage-owned material copies keep them quieter than the fight surface.
+The generated FBX/textures/materials and runtime Resources prefab are local and
+ignored; rebuild and apply them through the documented gateway workflow. Original
+collision mesh assets, source scene, generator source and baked arena are
+versionable. The old local room/source were backed up before replacement in
+`.stage-authoring-cache/table_manners/craft-20261016/backup/`. No vendor source
+asset is modified or required by the new presentation.
 
-Current native inspection passes with 112 renderers, 48,439 cosmetic triangles, nine materials, two local lights, zero Colliders, and valid mesh/material/URP shader references. A persisted snapshot preserves every original object outside the new detail group, including active materials, lighting, atmosphere and spawn markers; the comparison normalizes the unused legacy URP `_Color` alias. The baked arena, canonical collision scene, table mesh and prefab GUID remain byte-for-byte unchanged. No collision rebake, gameplay code change or new Shared regression run is needed for this cosmetic pass.
+## Verification and review
 
-Final captures are in `.ability-lab-cache/table-manners-detail-20261010/pass-03/`: 24 orbit and eight low views using temporary posed roster rigs. The thumbnail is refreshed from the yaw-30 view. Authoring, preservation and final-audit receipts live in `.stage-authoring-cache/table_manners/background-detail-20261010/`. The temporary preview is removed and the stopped Frontend restored after capture. These renders and structural checks do not replace a live PVP or performance review.
+The source shell was rebuilt, baked and inspected in the initial implementation.
+The subsequent art polish preserves source-scene, collision-mesh and arena hashes.
+Focused Shared coverage checks the baked shell, floor/cake heights, all roster
+capsules against cloth/cake sides, free outward recovery, and one-jump access to
+the cake. Shared and Server builds run with `SkipUnityPluginCopy=true`.
 
-## Room polish — 2026-10-10
+Local implementation evidence lives in
+`.stage-authoring-cache/table_manners/craft-20261016/`. The final inspection report
+there is the source of structural counts, renderer/material/light metrics and six
+shell-overlay views. Generated build reports record face clearance and geometry
+digests. These metrics and renders do not establish packaged-player performance.
 
-A further cosmetic iteration adds sage wall panelling and mouldings, layered silhouettes/sun/clouds behind the window, and a fringed rug and larger plant around the tea table. The additions use stage-owned meshes and six materials, plus the same installed pack for the rug and plant. Individual wall/material mesh batches preserve useful renderer bounds and keep all new geometry outside the fight/recovery corridor.
+Human visual review must include free camera orbit, standing on the cake, edge
+readability and low recovery views. External PvP acceptance must exercise two and
+four players, all spawns, floor/cake fighting, recovery, blast boundaries and
+respawns through the normal multiplayer flow. Agent verification does not perform
+or certify that review. The updated implementation remains provisional until the
+maintainer completes it.
 
-Current native inspection passes with 132 renderers, 51,948 cosmetic triangles, 15 materials, two local lights, zero Colliders and valid mesh/material/URP shader references. Persisted snapshots preserve the entire previously accepted prefab outside the new `OversizedLivingRoom/RoomPolish` group, with the same normalization of the unused `_Color` alias. The authoritative arena, source scene, table mesh, prefab GUID and vendor pack remain unchanged. Shared tests are not rerun for this cosmetic-only pass; native inspection, persistence and clearance checks are rerun.
 
-Receipts live in `.stage-authoring-cache/table_manners/polish-20261010/`. All 24 orbit and eight low views, plus two wider room portraits, are reviewed in `.ability-lab-cache/table-manners-polish-20261010/pass-01/`. The stage thumbnail uses the new yaw-30 capture. Preview objects are removed and the original clean, stopped Frontend restored. Live-match, packaged-player, human PVP and performance review remain pending.
+The final stage-only PvP and Training gameplay-camera passes are in
+`tmp/table-manners-craft/final-balanced-pvp/` and
+`tmp/table-manners-craft/final-balanced-scene/`. A separate native Training input
+sequence jumps from the floor and lands on the cake; its fresh cake-top frame is
+in `tmp/table-manners-craft/cake-native/`. The full intermediate-bearing and low
+Edit Mode sweep is in `.ability-lab-cache/table-manners-craft-20261016/orbit-final/`;
+it checks structure before the final isolated material-value adjustment. The
+production report records conformance for every numbered design decision and
+separates those checks from human acceptance. Native global inspection renders
+are framed by the far sky, so use the closer orbit and gameplay views to judge
+the tabletop. Final changes also fix the capture tool's requested-angle drift;
+the camera input component is suspended only within its own capture and restored
+on exit.

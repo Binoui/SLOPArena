@@ -321,6 +321,8 @@ Choose the capture path by surface:
 | Ability Lab action/scenario frames | `sloparena.lab.capture` |
 | Runtime menus, HUD, or gameplay including Screen Space - Overlay UI (Play Mode) | `sloparena.capture.game-view --source screen` |
 | Camera-only frame or Scene View | `sloparena.capture.game-view --source camera` or `--source scene` |
+| PvP stage art from the gameplay camera | `sloparena.stage.views.*` batch in the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review) |
+| Arcade course gameplay | [Course replay runner](../testing/course-replay.md) |
 
 The native Pipeline `screenshot` command is camera-only and does not capture composited
 Screen Space - Overlay UI. Its `--output` accepts an absolute path or a path relative to the
@@ -442,6 +444,13 @@ editor recompile_status
 editor editor_play
 editor editor_stop
 ```
+
+**Play Mode stall:** this Editor deadlocks when Play Mode is entered with a domain
+reload, and the lease stays `blocked` until a user-approved restart. Workflows that
+need Play Mode use the stage-views commands or the course replay runner, which save
+the Play Mode options, disable domain reload and restore everything afterwards.
+Before any other `editor_play`, set `EditorSettings.enterPlayModeOptions` to
+`DisableDomainReload` the same way and restore it after `editor_stop`.
 
 ## Agent-facing character authoring
 
