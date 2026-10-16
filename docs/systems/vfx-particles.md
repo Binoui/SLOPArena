@@ -213,7 +213,7 @@ Other messages can use the dynamic prefab fallback.
 The SLOPArena font material uses:
 
 ```text
-Shader "SlopArena/Particles/Font"
+Shader "SLOPArena/Particles/Font"
 ```
 
 Source: `client/Unity/Assets/Shaders/SlopArenaParticleFont.shader`.

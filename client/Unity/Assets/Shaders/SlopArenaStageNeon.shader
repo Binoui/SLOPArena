@@ -5,7 +5,7 @@
 //             [100,150) chase Hz-100 (one third on) | [150,200) slow toggle Hz-150 | < 0 flicker
 //   TEXCOORD2 (speed, along): m/s along the travel direction; rest position along it
 //   TEXCOORD3 (dir * loop):   horizontal direction scaled by the wrap length in metres
-Shader "SlopArena/StageNeon"
+Shader "SLOPArena/StageNeon"
 {
     Properties
     {

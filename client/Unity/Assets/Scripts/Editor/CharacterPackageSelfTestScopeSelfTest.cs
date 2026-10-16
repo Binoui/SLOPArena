@@ -8,7 +8,7 @@ using UnityEngine;
 
 public static class CharacterPackageSelfTestScopeSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Package Fixture Restoration")]
+    [MenuItem("Tools/SLOPArena/Tests/Package Fixture Restoration")]
     public static void Run()
     {
         CharacterPackageSelfTestScope.RequireSavedAssets();

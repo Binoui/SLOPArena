@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 
 public static class BonkFAnimationPresentationSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Bonk F Animation Presentation")]
+    [MenuItem("Tools/SLOPArena/Tests/Bonk F Animation Presentation")]
     public static void Run()
     {
         if (Application.isPlaying)

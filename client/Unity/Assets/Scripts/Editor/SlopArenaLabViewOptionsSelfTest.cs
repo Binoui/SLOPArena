@@ -6,7 +6,7 @@ namespace SlopArena.EditorTools
 {
     public static class SlopArenaLabViewOptionsSelfTest
     {
-        [MenuItem("Tools/SlopArena/Tests/Lab View Options")]
+        [MenuItem("Tools/SLOPArena/Tests/Lab View Options")]
         public static void Run()
         {
             Vector3 facing = Quaternion.Euler(0f, 37f, 0f) * Vector3.forward;

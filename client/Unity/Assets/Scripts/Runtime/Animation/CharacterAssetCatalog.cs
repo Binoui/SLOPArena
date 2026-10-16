@@ -4,7 +4,7 @@ using SlopArena.Shared;
 using SlopArena.Client.Entities;
 namespace SlopArena.Client.Animation
 {
-    [CreateAssetMenu(fileName = "CharacterAssetCatalog", menuName = "SlopArena/Character Asset Catalog")]
+    [CreateAssetMenu(fileName = "CharacterAssetCatalog", menuName = "SLOPArena/Character Asset Catalog")]
     public sealed class CharacterAssetCatalog : ScriptableObject
     {
         public const ushort SchemaVersion = 1;

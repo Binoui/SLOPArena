@@ -8,28 +8,28 @@ using SlopArena.Client.Animation;
 /// Editor tool: populate a CharacterAnimationConfig's AbilityClips list
 /// by matching clip names against animation names in an animation folder.
 ///
-/// Usage: Tools > SlopArena > Legacy > Populate Ability Clips
-///        or right-click a CharacterAnimationConfig asset → SlopArena > Legacy > Populate Ability Clips
+/// Usage: Tools > SLOPArena > Legacy > Populate Ability Clips
+///        or right-click a CharacterAnimationConfig asset → SLOPArena > Legacy > Populate Ability Clips
 /// </summary>
 public class PopulateAbilityClips : EditorWindow
 {
     [SerializeField] private CharacterAnimationConfig _config;
     [SerializeField] private DefaultAsset _animFolder;
 
-    [MenuItem("Tools/SlopArena/Legacy/Populate Ability Clips")]
+    [MenuItem("Tools/SLOPArena/Legacy/Populate Ability Clips")]
     public static void ShowWindow()
     {
         var w = GetWindow<PopulateAbilityClips>("Populate Ability Clips");
         w.minSize = new Vector2(400, 140);
     }
 
-    [MenuItem("Assets/SlopArena/Legacy/Populate Ability Clips", true)]
+    [MenuItem("Assets/SLOPArena/Legacy/Populate Ability Clips", true)]
     private static bool ValidateSelection()
     {
         return Selection.activeObject is CharacterAnimationConfig;
     }
 
-    [MenuItem("Assets/SlopArena/Legacy/Populate Ability Clips")]
+    [MenuItem("Assets/SLOPArena/Legacy/Populate Ability Clips")]
     private static void PopulateFromSelection()
     {
         var config = Selection.activeObject as CharacterAnimationConfig;

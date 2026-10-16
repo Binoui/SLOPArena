@@ -17,7 +17,7 @@ namespace SlopArena.EditorTools
     {
         public const string ScenePath = "Assets/Scenes/Arcade_Slopball.unity";
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 3/Prepare menu and Slopball")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 3/Prepare menu and Slopball")]
         [CliCommand("sloparena.arcade.phase3.prepare", "Add the Arcade page to the existing frontend and include its playable Slopball scene in builds.",
             MainThreadRequired = true, Tags = new[] { "arcade", "ui" })]
         public static object Prepare()

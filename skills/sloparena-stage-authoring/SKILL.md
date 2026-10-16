@@ -120,7 +120,7 @@ from structural inspection and PVP acceptance.
 
 Use the gateway directly: `held`/`releasing` waits for your own lease; `blocked`/unknown means stop. Do not message the Editor owner or collect blanket acknowledgments. For source conflicts and plugin-copying Shared builds, follow the [shared protocol](../../docs/contributing/unity-editor-coordination.md) and [build gate](../sloparena-build/SKILL.md); plugin copies still require your own bounded hold.
 
-The repository provides the typed bake and inspect commands below. Use them instead of the `Tools/SlopArena/Legacy/Bake Arena...` editor menu:
+The repository provides the typed bake and inspect commands below. Use them instead of the `Tools/SLOPArena/Legacy/Bake Arena...` editor menu:
 
 ```bash
 bun scripts/unity-editor-gateway.ts status --project-path client/Unity
@@ -295,8 +295,8 @@ Original presentation is generated from Python in headless Blender
 (`blender -b --factory-startup --python ...`) with the
 [procedural stage-art guide](../../tools/blender/README.md): the shared `stagekit`
 (mesh kit, AO bake, FBX export, corridor checks, arena reader, preview camera) and
-one folder per stage. FightGuy Sanctuary (a course on `SlopArena/StageVertexLit`)
-and After Hours (a PvP night city on `SlopArena/StageNeon`, animated without
+one folder per stage. FightGuy Sanctuary (a course on `SLOPArena/StageVertexLit`)
+and After Hours (a PvP night city on `SLOPArena/StageNeon`, animated without
 scripts) are the worked examples. Read the authoritative source scene or baked
 arena, never the prefab, and leave any interactive Blender (MCP) session alone
 unless asked.

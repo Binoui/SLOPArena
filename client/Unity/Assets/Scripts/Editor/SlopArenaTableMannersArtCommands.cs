@@ -36,7 +36,7 @@ namespace SlopArena.EditorTools
         // Large enclosing or distant surfaces would shade the whole room under the overhead key light.
         private static readonly HashSet<string> NoShadowCasters = new HashSet<string> { "Room Walls", "Ceiling", "Garden", "Garden Far", "Sky" };
 
-        [MenuItem("Tools/SlopArena/Stages/Apply Table Manners Craft Room Art")]
+        [MenuItem("Tools/SLOPArena/Stages/Apply Table Manners Craft Room Art")]
         private static void ApplyMenu() => Apply();
 
         [CliCommand("sloparena.stage.art-table-manners",
@@ -169,8 +169,8 @@ namespace SlopArena.EditorTools
 
         private static Dictionary<string, Material> MakeMaterials()
         {
-            var lit = Shader.Find("SlopArena/StageVertexLit") ?? throw new InvalidOperationException("Shader SlopArena/StageVertexLit is missing.");
-            var neon = Shader.Find("SlopArena/StageNeon") ?? throw new InvalidOperationException("Shader SlopArena/StageNeon is missing.");
+            var lit = Shader.Find("SLOPArena/StageVertexLit") ?? throw new InvalidOperationException("Shader SLOPArena/StageVertexLit is missing.");
+            var neon = Shader.Find("SLOPArena/StageNeon") ?? throw new InvalidOperationException("Shader SLOPArena/StageNeon is missing.");
             var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(AtlasPath);
             var detail = AssetDatabase.LoadAssetAtPath<Texture2D>(DetailPath);
             Material Make(string file, Shader shader, Action<Material> configure)

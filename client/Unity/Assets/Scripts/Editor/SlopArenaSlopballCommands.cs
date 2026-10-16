@@ -112,19 +112,19 @@ namespace SlopArena.EditorTools
             Object.DestroyImmediate(proposed); EditorUtility.SetDirty(existing); return existing;
         }
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 2/Prepare Slopball")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 2/Prepare Slopball")]
         private static void PrepareMenu()
         {
             var result = Prepare();
             if (!result.Success) throw new InvalidOperationException(string.Join("; ", result.Diagnostics.Select(x => x.Message)));
         }
-        [MenuItem("Tools/SlopArena/Arcade/Phase 2/Open FightGuy")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 2/Open FightGuy")]
         private static void FightGuy() => Open("fightguy");
-        [MenuItem("Tools/SlopArena/Arcade/Phase 2/Open Manki")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 2/Open Manki")]
         private static void Manki() => Open("manki");
-        [MenuItem("Tools/SlopArena/Arcade/Phase 2/Open Wibou")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 2/Open Wibou")]
         private static void Wibou() => Open("wibou");
-        [MenuItem("Tools/SlopArena/Arcade/Phase 2/Open Bonk")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 2/Open Bonk")]
         private static void Bonk() => Open("bonk");
 
         [CliCommand("sloparena.arcade.slopball.open", "Open the Slopball prototype with a normal roster fighter; press Play to begin.",

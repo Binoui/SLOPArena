@@ -15,7 +15,7 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabVfxSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab VFX Workflow")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab VFX Workflow")]
     public static void Run()
     {
         if (Application.isPlaying) throw new InvalidOperationException("Run VFX workflow checks in Edit Mode.");

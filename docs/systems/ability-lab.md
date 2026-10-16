@@ -7,7 +7,7 @@ an embedded preview. Package authoring and cooking remain in `AbilityLabPackageW
 
 ## Opening and preview ownership
 
-Open **Tools → SlopArena → Ability Lab** from any scene. The window automatically
+Open **Tools → SLOPArena → Ability Lab** from any scene. The window automatically
 owns one temporary Unity preview scene, with its fighter, optional opponent,
 camera and lights. Switching packages reuses that environment. Preview objects
 are excluded from the ordinary Scene/Game views and Hierarchy and cannot be
@@ -55,7 +55,7 @@ Preview effects are transient and are cleared before reload; Lab animation
 graphs are released at compilation start and before reload, including the
 inactive dummy's graph and rigs placed in a scene.
 
-Regression check: **Tools → SlopArena → Tests → Ability Lab VFX Workflow**.
+Regression check: **Tools → SLOPArena → Tests → Ability Lab VFX Workflow**.
 It checks match/preview lifetime parity and draft-safe status refresh without
 saving or cooking character content.
 
@@ -225,7 +225,7 @@ discovery and native-command-first routing.
 
 ## Package discovery and workflow
 
-1. Open `Tools → SlopArena → Ability Lab` with the Ability Lab scene component.
+1. Open `Tools → SLOPArena → Ability Lab` with the Ability Lab scene component.
 2. Select a source package from `Assets/CharacterPackages`. Discovery may show a source-only
    package by display name and stable package ID even when it has no cooked output or roster
    admission.

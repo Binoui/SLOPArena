@@ -13,7 +13,7 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabScenarioCommandSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab Scenario Commands")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Scenario Commands")]
     public static void Run()
     {
         if (EditorApplication.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode)

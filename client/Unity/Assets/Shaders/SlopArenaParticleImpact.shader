@@ -1,4 +1,4 @@
-Shader "SlopArena/Particles/Impact"
+Shader "SLOPArena/Particles/Impact"
 {
     Properties
     {

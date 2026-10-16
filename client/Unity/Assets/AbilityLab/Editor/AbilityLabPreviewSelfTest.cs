@@ -11,7 +11,7 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabPreviewSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab Preview Isolation")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Preview Isolation")]
     public static void Run() => Debug.Log(RunIsolation());
 
     public static string RunIsolation()

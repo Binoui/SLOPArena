@@ -13,7 +13,7 @@ namespace SlopArena.Client.Animation
     /// AnimationNames strings from AbilitySpec (e.g. "spell_q_start", "spell_r_loop").
     /// Adding a new character means creating a config asset and filling the list — no code changes.
     /// </summary>
-    [CreateAssetMenu(fileName = "NewCharacterAnimConfig", menuName = "SlopArena/Character Animation Config")]
+    [CreateAssetMenu(fileName = "NewCharacterAnimConfig", menuName = "SLOPArena/Character Animation Config")]
     public class CharacterAnimationConfig : ScriptableObject
     {
         [System.Serializable]

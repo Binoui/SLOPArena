@@ -1,4 +1,4 @@
-Shader "SlopArena/GraphicCharacter"
+Shader "SLOPArena/GraphicCharacter"
 {
     Properties
     {

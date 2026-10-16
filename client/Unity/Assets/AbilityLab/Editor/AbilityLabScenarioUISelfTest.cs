@@ -13,7 +13,7 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabScenarioUISelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab Scenario Controls")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Scenario Controls")]
     public static void Run()
     {
         var window = AbilityLabWindow.FindExistingForCommand();
@@ -69,7 +69,7 @@ public static class AbilityLabScenarioUISelfTest
         }
     }
 
-    [MenuItem("Tools/SlopArena/Tests/Charged Dash Scenario Controls")]
+    [MenuItem("Tools/SLOPArena/Tests/Charged Dash Scenario Controls")]
     public static void RunChargedDashScenarioChargeControlSelfTest()
     {
         var window = AbilityLabWindow.FindExistingForCommand();

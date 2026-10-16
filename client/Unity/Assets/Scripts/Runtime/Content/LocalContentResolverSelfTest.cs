@@ -13,7 +13,7 @@ namespace SlopArena.Client;
 public static class LocalContentResolverSelfTest
 {
 #if UNITY_EDITOR
-    [MenuItem("Tools/SlopArena/Tests/Local Content Resolver")]
+    [MenuItem("Tools/SLOPArena/Tests/Local Content Resolver")]
 #endif
     public static void Run()
     {

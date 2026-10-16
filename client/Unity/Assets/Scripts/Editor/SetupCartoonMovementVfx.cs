@@ -13,7 +13,7 @@ namespace SlopArena.Client.Editor
     {
         private const string Destination = "Assets/Resources/VFX/SlopArena";
 
-        [MenuItem("Tools/SlopArena/Prototypes/Setup Cartoon Movement VFX")]
+        [MenuItem("Tools/SLOPArena/Prototypes/Setup Cartoon Movement VFX")]
         public static void Setup()
         {
             string poofSource = FindPrefab("CFXR Magic Poof");

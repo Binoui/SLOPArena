@@ -10,7 +10,7 @@ namespace SlopArena.Client.Combat
         static ProjectileVFXConfigValidator()
             => EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
-        [MenuItem("Tools/SlopArena/Diagnostics/Validate Projectile VFX")]
+        [MenuItem("Tools/SLOPArena/Diagnostics/Validate Projectile VFX")]
         private static void ValidateFromMenu()
             => Validate(false);
 

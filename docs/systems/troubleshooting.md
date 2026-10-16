@@ -104,7 +104,7 @@ centidegrees; resolve an active ability's aim override before that conversion.
 For example, camera yaw 450° must arrive as 90°, not 327.67°. Pitch retains its
 separate ±90° clamp, and the packet layout does not change.
 
-Run `Tools/SlopArena/Tests/Training Sequence Parser` in the Editor for the human
+Run `Tools/SLOPArena/Tests/Training Sequence Parser` in the Editor for the human
 input/wire regression. For visual acceptance, hold Manki R (controller LB+X /
 Square), turn the aim camera through full rotations in both directions, and
 release: the rocket should follow the camera, including vertical aim. Updating

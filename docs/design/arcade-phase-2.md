@@ -18,7 +18,7 @@ The existing normal Play Mode domain-reload stall remains; temporarily enable
 Enter Play Mode options and disable **Reload Domain** for this prototype.
 Restore the original setting after playing.
 
-1. If the local cosmetic prefab is missing, select **Tools → SlopArena → Arcade →
+1. If the local cosmetic prefab is missing, select **Tools → SLOPArena → Arcade →
    Phase 2 → Prepare Slopball**. It creates missing original assets and bakes the source.
 2. Select **Open FightGuy**, **Open Manki**, **Open Wibou** or **Open Bonk** in that
    menu, then press Play.

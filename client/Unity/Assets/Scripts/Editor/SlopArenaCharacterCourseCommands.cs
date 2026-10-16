@@ -78,7 +78,7 @@ namespace SlopArena.EditorTools
             return result;
         }
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 4/Prepare FightGuy Course")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 4/Prepare FightGuy Course")]
         private static void PrepareMenu() => Prepare();
 
         [CliCommand("sloparena.arcade.course.prepare", "Create missing original sanctuary greybox assets, gameplay scene and course markers, then bake the unified stage.",
@@ -106,7 +106,7 @@ namespace SlopArena.EditorTools
             return new SlopArenaStageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Bake(CharacterCourseMatch.ArenaKey);
         }
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 5/Apply Wider Course Spacing")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 5/Apply Wider Course Spacing")]
         private static void RelayoutMenu() => Relayout();
 
         [CliCommand("sloparena.arcade.course.relayout", "Apply the approved wider course spacing to named source and presentation objects, retain the art sample, and rebake.",
@@ -188,7 +188,7 @@ namespace SlopArena.EditorTools
             return new { success = true, bake, retainedArtSample = hasArt, art };
         }
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 4/Open FightGuy Course")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 4/Open FightGuy Course")]
         private static void OpenMenu() => Open();
         [CliCommand("sloparena.arcade.course.open", "Open the FightGuy sanctuary course; press Play to begin.", MainThreadRequired = true, Tags = new[] { "arcade" })]
         public static object Open() => SlopArenaArcadePhase1Commands.OpenBallScene(ScenePath, CharacterCourseMatch.ArenaKey, "fightguy");

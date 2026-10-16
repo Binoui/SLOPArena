@@ -9,7 +9,7 @@ namespace SlopArena.EditorTools
 {
     public static class SlopArenaTrainingCommandsSelfTest
     {
-        [MenuItem("Tools/SlopArena/Tests/Training Sequence Parser")]
+        [MenuItem("Tools/SLOPArena/Tests/Training Sequence Parser")]
         public static void Run()
         {
             Require(SlopArenaTrainingCommands.ToWireYaw(Mathf.PI * 0.5f) == 9000

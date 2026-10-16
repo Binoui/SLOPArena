@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class RoomSteamPresenceSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Room Steam Presence")]
+    [MenuItem("Tools/SLOPArena/Tests/Room Steam Presence")]
     public static void Run()
     {
         var id = Guid.Parse("12345678-90ab-cdef-1234-567890abcdef");

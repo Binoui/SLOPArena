@@ -11,7 +11,7 @@ namespace SlopArena.EditorTools;
 
 public static class AbilityLabPackageSelfTest
 {
-    [MenuItem("Tools/SlopArena/Tests/Ability Lab Package Editing")]
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Package Editing")]
     public static void RunPackageEditorSelfTest()
     {
         using var fixture = new CharacterPackageSelfTestScope("fightguy", "bonk");

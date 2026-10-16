@@ -55,7 +55,7 @@ The existing Slopball categories and fingerprints are unchanged.
 ## Authoring and native commands
 
 On an art checkout missing the ignored presentation prefab, run **Tools →
-SlopArena → Arcade → Phase 4 → Prepare FightGuy Course**. Preparation creates
+SLOPArena → Arcade → Phase 4 → Prepare FightGuy Course**. Preparation creates
 missing original assets, the dedicated scene and its build entry, then uses the
 maintained stage baker. It preserves the current scene. `--rebuild true` is an
 explicit reconstruction of this generated greybox, including source geometry.

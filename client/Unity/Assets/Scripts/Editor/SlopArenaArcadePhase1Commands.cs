@@ -51,20 +51,20 @@ namespace SlopArena.EditorTools
             return new SlopArenaStageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Bake(ArcadeBallLabMatch.ArenaKey);
         }
 
-        [MenuItem("Tools/SlopArena/Arcade/Phase 1/Prepare Test Court")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 1/Prepare Test Court")]
         private static void PrepareMenu()
         {
             var result = Prepare();
             if (!result.Success) throw new InvalidOperationException(string.Join("; ", result.Diagnostics.Select(x => x.Message)));
             Debug.Log("[Arcade Phase 1] Test court prepared. Open a fighter playground from the Arcade menu.");
         }
-        [MenuItem("Tools/SlopArena/Arcade/Phase 1/Open FightGuy")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 1/Open FightGuy")]
         private static void OpenFightGuy() => Open("fightguy");
-        [MenuItem("Tools/SlopArena/Arcade/Phase 1/Open Manki")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 1/Open Manki")]
         private static void OpenManki() => Open("manki");
-        [MenuItem("Tools/SlopArena/Arcade/Phase 1/Open Wibou")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 1/Open Wibou")]
         private static void OpenWibou() => Open("wibou");
-        [MenuItem("Tools/SlopArena/Arcade/Phase 1/Open Bonk")]
+        [MenuItem("Tools/SLOPArena/Arcade/Phase 1/Open Bonk")]
         private static void OpenBonk() => Open("bonk");
 
         [CliCommand("sloparena.arcade.phase1.open", "Open the prepared Phase 1 playground in Edit Mode with a roster fighter selected; press Play to run.",

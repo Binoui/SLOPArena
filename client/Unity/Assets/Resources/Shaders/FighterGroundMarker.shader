@@ -1,4 +1,4 @@
-Shader "SlopArena/Fighter Ground Marker"
+Shader "SLOPArena/Fighter Ground Marker"
 {
     Properties
     {

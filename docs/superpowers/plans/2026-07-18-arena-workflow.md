@@ -66,7 +66,7 @@ The scene (`Scenes/Arena_Offline.unity`) needs an arena root with collision geom
 
 ### Task 5: Bake
 
-- `Tools > SlopArena > Bake Arena...`
+- `Tools > SLOPArena > Bake Arena...`
 - Arena Root: drag the arena root from Hierarchy into the field
 - Name: `colosseum`
 - Kill Height: `-10`

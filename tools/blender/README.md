@@ -4,9 +4,9 @@ Stage presentation can be generated entirely from Python in headless Blender and
 applied in Unity by a stage-specific command. These generators show the approach:
 
 - [FightGuy Sanctuary](fightguy_sanctuary/README.md): a solo course on Himalayan
-  rock pillars, shaded by `SlopArena/StageVertexLit`.
+  rock pillars, shaded by `SLOPArena/StageVertexLit`.
 - [After Hours](after_hours/README.md): a PvP rooftop in a night city whose signs,
-  windows and traffic animate in `SlopArena/StageNeon` without scripts.
+  windows and traffic animate in `SLOPArena/StageNeon` without scripts.
 - [Log Off](log_off/README.md): a split chopping stump with fungus recovery shelves
   in an ant-scale campsite at sunset, using both stage shaders.
 - [Table Manners](table_manners/README.md): a kids' craft table with a play-dough
