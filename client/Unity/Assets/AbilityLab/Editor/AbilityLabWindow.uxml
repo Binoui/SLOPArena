@@ -7,7 +7,6 @@
         <ui:DropdownField name="package-selector" class="package-selector" />
         <ui:Button name="package-status-toggle" text="No package" class="package-status-toggle" />
       </ui:VisualElement>
-      <ui:Button name="create-lab-rig" text="Create Lab Rig" />
       <ui:VisualElement class="toolbar-spacer" />
       <ui:Button name="toolbar-undo" text="Undo" />
       <ui:Button name="toolbar-redo" text="Redo" />
@@ -33,7 +32,7 @@
       <ui:TwoPaneSplitView name="moves-split" orientation="Horizontal" fixed-pane-index="1" fixed-pane-initial-dimension="340" class="moves-split">
         <ui:ScrollView name="move-scene-column" class="move-scene-column">
           <ui:VisualElement name="scene-toolbar" class="scene-toolbar">
-            <ui:Label text="Scene preview" class="scene-heading" />
+            <ui:Label text="Preview" class="scene-heading" />
             <ui:VisualElement class="scene-tools">
               <ui:Label name="scene-status" text="Preview unavailable" class="scene-status" />
               <ui:Toggle name="scene-hitboxes" label="Hitboxes" class="scene-toggle" />

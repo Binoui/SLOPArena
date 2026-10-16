@@ -369,7 +369,6 @@ public static class SlopArenaAbilityLabCommands
         var captures = new List<AbilityLabCommandCapture>(requestedTicks.Count);
         Exception? captureError = null;
         GameObject? captureCameraObject = null;
-        var excludedRenderers = new List<Renderer>();
         var offscreenSkins = new List<SkinnedMeshRenderer>();
         try
         {
@@ -403,8 +402,10 @@ public static class SlopArenaAbilityLabCommands
             lab.EnsureCamera();
             if (lab.PreviewCamera == null) throw new InvalidOperationException("Ability Lab has no camera to capture.");
             captureCameraObject = new GameObject("AbilityLabCaptureCamera") { hideFlags = HideFlags.HideAndDontSave };
+            captureCameraObject.transform.SetParent(lab.transform, false);
             camera = captureCameraObject.AddComponent<Camera>();
             camera.CopyFrom(lab.PreviewCamera);
+            camera.scene = lab.PreviewCamera.scene;
             camera.transform.rotation = lab.PreviewCamera.transform.rotation;
             camera.enabled = false;
             camera.cullingMask = ~0;
@@ -415,15 +416,6 @@ public static class SlopArenaAbilityLabCommands
             camera.ResetCullingMatrix();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.1f, 0.1f, 0.12f);
-            foreach (var renderer in Resources.FindObjectsOfTypeAll<Renderer>())
-            {
-                if (!renderer.gameObject.scene.IsValid() || !renderer.gameObject.scene.isLoaded ||
-                    !renderer.gameObject.activeInHierarchy || renderer.transform.IsChildOf(lab.transform) ||
-                    renderer.forceRenderingOff)
-                    continue;
-                excludedRenderers.Add(renderer);
-                renderer.forceRenderingOff = true;
-            }
 
             Directory.CreateDirectory(outputDirectory);
             if (!HasNoOutputSymlinks(outputDirectory, out outputError))
@@ -503,8 +495,6 @@ public static class SlopArenaAbilityLabCommands
         {
             foreach (var skin in offscreenSkins)
                 if (skin != null) skin.forceMatrixRecalculationPerRender = false;
-            foreach (var renderer in excludedRenderers)
-                if (renderer != null) renderer.forceRenderingOff = false;
             // Camera destruction can release SRP targets; unbind before destroying it.
             try { RenderTexture.active = oldActive; }
             catch (Exception ex) { captureError ??= ex; }

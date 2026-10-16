@@ -2,8 +2,27 @@
 
 Ability Lab is a package-first UI Toolkit editor shell for authoring and inspecting fighter
 packages. The shell owns selection, preview status, diagnostics, stage/tick controls, and
-SceneView guidance. Package authoring and cooking remain in `AbilityLabPackageWorkspace` and
+an embedded preview. Package authoring and cooking remain in `AbilityLabPackageWorkspace` and
 `CharacterPackageAuthoringService`.
+
+## Opening and preview ownership
+
+Open **Tools → SlopArena → Ability Lab** from any scene. The window automatically
+owns one temporary Unity preview scene, with its fighter, optional opponent,
+camera and lights. Switching packages reuses that environment. Preview objects
+are excluded from the ordinary Scene/Game views and Hierarchy and cannot be
+saved into the open scene. Closing the window, recompiling scripts or entering
+Play Mode releases the preview and its animation graphs; returning to Edit Mode
+recreates it. The saved `AbilityLab.unity` scene is no longer needed.
+
+The window uses its embedded viewport for camera navigation and placement
+handles. Right-drag orbits, middle-drag pans, and scrolling zooms. Package
+workspaces update their own preview rig rather than a scene singleton.
+
+This replaces the former **Create Lab Rig** workflow. Automatically opening the
+saved Lab scene would remove manual browsing but still interrupt scene editing;
+the isolated preview keeps the current scene, camera, lighting and save state
+untouched.
 
 ## VFX authoring
 
@@ -11,7 +30,7 @@ SceneView guidance. Package authoring and cooking remain in `AbilityLabPackageWo
    owned prefab to a presentation ID. Keep vendor source prefabs unchanged.
 2. In **Moves**, select a VFX timeline cue and edit its start tick, duration,
    attachment bone, position, rotation and scale. Scrub or play the move to inspect
-   it; Scene View handles edit the selected cue's placement.
+   it; viewport handles edit the selected cue's placement.
 3. Run **Scenario Controls** against an idle opponent, a shield and a distant
    opponent to compare hits, blocks and whiffs. Use **Save + Cook** when ready to
    persist the package.
