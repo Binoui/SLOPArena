@@ -3,12 +3,15 @@
   "checkpoint_id": "01M53CQSGMZT6E4D8TV8XSRNA9",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 7,
+  "checkpoints_count": 8,
   "files_touched": [
+    ".githooks/post-checkout",
     ".githooks/post-commit",
+    ".githooks/post-merge",
     ".githooks/pre-push",
     ".gitignore",
     ".omp/lsp.json",
+    "client/Unity/Assets/BOXOPHOBIC.meta",
     "client/Unity/Assets/Library/bonk-marker-alignment.png.meta",
     "client/Unity/Assets/Scripts/Editor/SlopArenaStageAuthoringService.cs",
     "client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs",
@@ -128,13 +131,20 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1278,
-    "cache_creation_tokens": 1888675,
-    "cache_read_tokens": 247331232,
-    "output_tokens": 1080459,
-    "api_call_count": 635
+    "input_tokens": 1464,
+    "cache_creation_tokens": 2174907,
+    "cache_read_tokens": 262015616,
+    "output_tokens": 1177571,
+    "api_call_count": 728
   }
 }
