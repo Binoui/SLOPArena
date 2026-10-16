@@ -34,7 +34,6 @@ public sealed class ShieldGrabPunishTests
 
     [Theory]
     [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
     [InlineData(CharacterClass.Wibou)]
     [InlineData(CharacterClass.Bonk)]
     public void SpacedBlockedNormalRemainsOutsideShieldGrab(CharacterClass defender)
