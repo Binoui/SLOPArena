@@ -97,10 +97,11 @@ async function fixture(commandPollLimit = 2, restartAfterCommand = false, reacqu
   const claimActivity = Promise.withResolvers<void>();
   const claimGate = Promise.withResolvers<void>();
   const busyPollActivity = Promise.withResolvers<void>();
+  const tokenWaiters: { token: string; resolve: () => void }[] = [];
   const secondBusyPollActivity = Promise.withResolvers<void>();
   const secondConflictActivity = Promise.withResolvers<void>();
-  const state: { owner: unknown; calls: Call[]; busy: boolean; busyState: 'held' | 'releasing'; claimAttempts: number; conflictOnNextClaim: boolean; sessionChangesOnNextConflict: boolean; sessionChangesOnSuccessfulClaim: boolean; invalidConflict: boolean; loseNextClaimResponse: boolean; statusOverride: Record<string, unknown> | null; evalToken: string; busyPolls: number; releaseCount: number; settlePolls: number; commandPolls: number; observedStates: string[]; commandAdmission: boolean[]; observedOwnerBatches: string[]; sessionId: string; batchId: string; packageArgument: string; claimActivity: Promise<void>; claimGate: Promise<void>; releaseClaim: () => void; signalDuringClaim: boolean; busyPollActivity: Promise<void>; secondBusyPollActivity: Promise<void>; secondConflictActivity: Promise<void>; testTerminalStatus?: string; testFailedCount?: number } = {
-    owner: null, calls: [], busy: false, busyState: 'held', claimAttempts: 0, conflictOnNextClaim: false, sessionChangesOnNextConflict: false, sessionChangesOnSuccessfulClaim: false, invalidConflict: false, loseNextClaimResponse: false, statusOverride: null, evalToken: bearer, busyPolls: 0, releaseCount: 0, settlePolls: 2, commandPolls: 0, observedStates: [], commandAdmission: [], observedOwnerBatches: [], sessionId: 'session-fixture', batchId: '', packageArgument: '', claimActivity: claimActivity.promise, claimGate: claimGate.promise, releaseClaim: () => claimGate.resolve(), signalDuringClaim: false, busyPollActivity: busyPollActivity.promise, secondBusyPollActivity: secondBusyPollActivity.promise, secondConflictActivity: secondConflictActivity.promise,
+  const state: { owner: unknown; calls: Call[]; busy: boolean; busyState: 'held' | 'releasing'; claimAttempts: number; conflictOnNextClaim: boolean; sessionChangesOnNextConflict: boolean; sessionChangesOnSuccessfulClaim: boolean; invalidConflict: boolean; loseNextClaimResponse: boolean; statusOverride: Record<string, unknown> | null; evalToken: string; busyPolls: number; releaseCount: number; settlePolls: number; commandPolls: number; observedStates: string[]; commandAdmission: boolean[]; observedOwnerBatches: string[]; sessionId: string; batchId: string; packageArgument: string; claimActivity: Promise<void>; claimGate: Promise<void>; releaseClaim: () => void; signalDuringClaim: boolean; busyPollActivity: Promise<void>; secondBusyPollActivity: Promise<void>; secondConflictActivity: Promise<void>; testTerminalStatus?: string; testFailedCount?: number; previousEvalToken?: string; lastClaimAuthorization?: string; tokenActivity: (token: string) => Promise<void> } = {
+    owner: null, calls: [], busy: false, busyState: 'held', claimAttempts: 0, conflictOnNextClaim: false, sessionChangesOnNextConflict: false, sessionChangesOnSuccessfulClaim: false, invalidConflict: false, loseNextClaimResponse: false, statusOverride: null, evalToken: bearer, busyPolls: 0, releaseCount: 0, settlePolls: 2, commandPolls: 0, observedStates: [], commandAdmission: [], observedOwnerBatches: [], sessionId: 'session-fixture', batchId: '', packageArgument: '', claimActivity: claimActivity.promise, claimGate: claimGate.promise, releaseClaim: () => claimGate.resolve(), signalDuringClaim: false, busyPollActivity: busyPollActivity.promise, secondBusyPollActivity: secondBusyPollActivity.promise, secondConflictActivity: secondConflictActivity.promise, tokenActivity: token => { const seen = Promise.withResolvers<void>(); tokenWaiters.push({ token, resolve: seen.resolve }); return seen.promise; },
   };
   const server = createServer(async (request, response) => {
     let bodyText = '';
@@ -109,7 +110,8 @@ async function fixture(commandPollLimit = 2, restartAfterCommand = false, reacqu
     const path = request.url || '';
     state.calls.push({ path, body });
     response.setHeader('content-type', 'application/json');
-    if (request.headers.authorization !== `Bearer ${state.evalToken}`) { response.statusCode = 401; response.end(JSON.stringify({ success: false, error: 'invalid bearer' })); return; }
+    for (const waiter of tokenWaiters) if (request.headers.authorization === `Bearer ${waiter.token}`) waiter.resolve();
+    if (request.headers.authorization !== `Bearer ${state.evalToken}` && !(state.previousEvalToken && request.headers.authorization === `Bearer ${state.previousEvalToken}`)) { response.statusCode = 401; response.end(JSON.stringify({ success: false, error: 'invalid bearer' })); return; }
     if (path === '/api/editor-ownership' && request.method === 'GET') {
       if (state.statusOverride) { response.end(JSON.stringify(state.statusOverride)); return; }
       let stateName = state.busy ? state.busyState : state.owner ? 'held' : 'free';
@@ -138,6 +140,7 @@ async function fixture(commandPollLimit = 2, restartAfterCommand = false, reacqu
     }
     if (path === '/api/editor-ownership/claim' && request.method === 'POST') {
       state.claimAttempts++;
+      state.lastClaimAuthorization = request.headers.authorization;
       claimActivity.resolve();
       if (state.signalDuringClaim) await claimGate.promise;
       if (state.loseNextClaimResponse) {
@@ -745,13 +748,20 @@ test('claim waiting re-reads the canonical descriptor after an Editor reload', a
     await f.state.busyPollActivity;
     const descriptorPath = join(f.project, 'Library', 'Pipeline', '.unity-pipeline-port');
     const current = JSON.parse(await readFile(descriptorPath, 'utf8')) as Record<string, unknown>;
+    // A reloaded Pipeline serves the new token before its descriptor names it; keep the old token valid
+    // until the gateway has switched, so no poll races the file rewrite.
+    const reloaded = f.state.tokenActivity('reloaded-pipeline-secret');
+    f.state.previousEvalToken = f.state.evalToken;
+    f.state.evalToken = 'reloaded-pipeline-secret';
     current.evalToken = 'reloaded-pipeline-secret';
     await writeFile(descriptorPath, JSON.stringify(current));
-    f.state.evalToken = 'reloaded-pipeline-secret';
+    await reloaded;
+    f.state.previousEvalToken = undefined;
     f.state.busy = false;
     const result = await pending;
     assert.equal('error' in result, false);
     assert.equal(f.state.claimAttempts, 2);
+    assert.equal(f.state.lastClaimAuthorization, 'Bearer reloaded-pipeline-secret');
     assert.equal(f.state.releaseCount, 1);
   } finally { process.exitCode = previousExit; await f.close(); }
 });
