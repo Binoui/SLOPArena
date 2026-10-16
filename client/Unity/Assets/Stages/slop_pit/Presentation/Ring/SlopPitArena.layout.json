@@ -1,0 +1,35 @@
+{
+ "generator": "tools/blender/slop_pit/build.py",
+ "seed": 20261016,
+ "source": "client/Unity/Assets/Stages/slop_pit/slop_pit.unity",
+ "sourceSha256": "aefdb06f683c006ac3ee1970580c71d75b408270ac4e3969b4d8d2aba47dc12f",
+ "arena": "data/arenas/slop_pit.arena",
+ "arenaSha256": "0c15fbb284e64597bf837d93ff313d7f920a9f749dfbc11eb07e3cce1bb77ff1",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "SP_Lit",
+  "SP_Floor",
+  "SP_Canvas",
+  "SP_Venue",
+  "SP_Haze"
+ ],
+ "shadowed": [
+  "Ring",
+  "Ringside Floor",
+  "Ring Tower"
+ ],
+ "objects": [
+  "Banners",
+  "Crowd",
+  "Fences",
+  "Haze",
+  "Pit",
+  "Ring",
+  "Ring Tower",
+  "Ringside Floor",
+  "Stands",
+  "Venue Glow"
+ ],
+ "geometryDigest": "45ca28d0eff8f743ea8b9b8886759c659c6308af855ab283fa7dee0a0c7a927f",
+ "problems": 0
+}

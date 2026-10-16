@@ -57,8 +57,9 @@ outside both the blast corridor and the checked camera envelope.
 `SlopArenaTableMannersArtCommands` validates the generated source/arena hash stamp
 before mapping the materials and replacing the old presentation roots. The
 prefab stays identity-aligned, carries its own daylight and atmosphere, and uses
-StageVertexLit plus StageNeon. Animated decorations remain cosmetic. Stage-only
-PvP lighting and Training's extra scene lights need separate visual checks.
+StageVertexLit plus StageNeon. Animated decorations remain cosmetic. Its
+`Stage Lights` rig is the only lighting in PvP and Training alike: Training switches
+its own scene lights off for a stage with that rig.
 
 The generated FBX/textures/materials and runtime Resources prefab are local and
 ignored; rebuild and apply them through the documented gateway workflow. Original

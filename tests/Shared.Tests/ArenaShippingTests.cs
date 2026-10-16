@@ -85,7 +85,7 @@ public class ArenaShippingTests
     {
         ArenaRegistry.LoadFromDirectory(Path.Combine(RepoRoot(), "data", "arenas"));
         Assert.Null(ArenaRegistry.Get("no-such-arena-xyz"));
-        Assert.True(ArenaRegistry.Get("slop_court").HasValue);
+        Assert.True(ArenaRegistry.Get("slop_pit").HasValue);
         Assert.True(ArenaRegistry.Get("splash_deck").HasValue);
         Assert.True(ArenaRegistry.Get("after_hours").HasValue);
         Assert.True(ArenaRegistry.Get("rec_center_roof").HasValue);
@@ -125,53 +125,6 @@ public class ArenaShippingTests
         Assert.True(lines.KillMaxZ > arena.MaxZ,
             $"{fileName}: max Z line {lines.KillMaxZ} not beyond mesh {arena.MaxZ}");
     }
-    public static IEnumerable<object[]> BargeRecoveryContacts()
-    {
-        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
-        foreach (var direction in new[] { (-1f, 0f), (1f, 0f), (0f, -1f), (0f, 1f), (-1f, -1f), (-1f, 1f), (1f, -1f), (1f, 1f) })
-        foreach (float height in new[] { -2f, -9f })
-            yield return new object[] { cls, direction.Item1, direction.Item2, height };
-    }
-
-    [Theory]
-    [MemberData(nameof(BargeRecoveryContacts))]
-    public void SplashDeck_RecoveryHullBlocksAirbornePassThrough(
-        CharacterClass cls, float outwardX, float outwardZ, float height)
-    {
-        var arena = ArenaBinaryFormat.LoadFromFile(
-            Path.Combine(RepoRoot(), "data", "arenas", "splash_deck.arena"))!.Value;
-        var def = TestHelpers.ResolveDef(cls);
-        float edgeX = outwardX < 0 ? arena.MinX : arena.MaxX;
-        float edgeZ = outwardZ < 0 ? arena.MinZ : arena.MaxZ;
-        var state = TestHelpers.PlayerState(
-            outwardX == 0 ? 0 : edgeX + outwardX,
-            outwardZ == 0 ? 0 : edgeZ + outwardZ);
-        state.PY = height;
-        state.IsGrounded = false;
-        state.AirTimeTicks = def.Movement.FloatWindowTicks;
-        state.State = ActionState.Attacking;
-        state.AnimLockTicks = 60;
-        state.VX = -outwardX * 120f;
-        state.VZ = -outwardZ * 120f;
-
-        Simulation.SimulateTick(ref state, def, default, arena, out _, out _, DownActionTuning.Default, false);
-
-        float dx = MathF.Max(arena.MinX - state.PX, MathF.Max(0, state.PX - arena.MaxX));
-        float dz = MathF.Max(arena.MinZ - state.PZ, MathF.Max(0, state.PZ - arena.MaxZ));
-        float distance = MathF.Sqrt(dx * dx + dz * dz);
-        Assert.InRange(distance, def.CapsuleRadius - 0.03f, def.CapsuleRadius + 0.05f);
-        Assert.False(state.IsGrounded);
-        Assert.InRange(state.PY, height - 0.1f, height + 0.01f);
-
-        state.VX = outwardX * 12f;
-        state.VZ = outwardZ * 12f;
-        Simulation.SimulateTick(ref state, def, default, arena, out _, out _, DownActionTuning.Default, false);
-        dx = MathF.Max(arena.MinX - state.PX, MathF.Max(0, state.PX - arena.MaxX));
-        dz = MathF.Max(arena.MinZ - state.PZ, MathF.Max(0, state.PZ - arena.MaxZ));
-        Assert.True(MathF.Sqrt(dx * dx + dz * dz) > distance + 0.1f,
-            $"{cls}: recovery hull trapped outward movement at ({state.PX:F3}, {state.PY:F3}, {state.PZ:F3}).");
-    }
-
     [Theory]
     [InlineData(CharacterClass.FightGuy, -7.5f, 1f)]
     [InlineData(CharacterClass.Manki, -7.5f, 1f)]
@@ -483,112 +436,6 @@ public class ArenaShippingTests
             Trace(cls, "service deck jump", landingTick + 20, inputs[1], final, "post-landing support"));
         Assert.True(landedX - final.PX >= 0.5f,
             $"{cls}: lower-deck movement after landing was insufficient; landedX={landedX:F3}, final={Trace(cls, "service deck jump", landingTick + 20, inputs[1], final, "post-landing travel")}");
-    }
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(1)]
-    public void SlopPit_FightGuyFullJump_LandsOnDiagonalPlatform(int direction)
-    {
-        var arena = ArenaBinaryFormat.LoadFromFile(
-            Path.Combine(RepoRoot(), "data", "arenas", "slop_pit.arena"))
-            ?? throw new InvalidOperationException("Slop Pit arena could not be loaded.");
-        var def = TestHelpers.FightGuyDef;
-        var state = TestHelpers.PlayerState(direction * 5.5f, direction * 8f);
-        state.PY = TestHelpers.GroundPY(def);
-        var sim = TestHelpers.MakeSim(arena);
-        sim.RegisterEntity(1, def, state);
-        var inputs = new Dictionary<ulong, InputState>();
-        bool airborne = false;
-
-        // Approach the inner edge rather than jumping into the underside from
-        // a spawn. A single held jump catches the rounded capsule on the lip,
-        // then continued movement settles the feet onto the platform top.
-        for (int tick = 0; tick < 80; tick++)
-        {
-            var current = sim.GetState(1);
-            inputs[1] = TestHelpers.Input(
-                moveX: direction * current.PX < 9f ? direction : 0f,
-                jump: tick == 0, jumpHeld: tick < 10);
-            sim.Tick(inputs);
-            airborne |= !sim.GetState(1).IsGrounded;
-        }
-
-        var landed = sim.GetState(1);
-        Assert.True(airborne, "The route must jump, not walk onto high ground.");
-        Assert.True(landed.IsGrounded, "The jump must end supported on the platform.");
-        Assert.InRange(landed.PY, TestHelpers.GroundPY(def, 2f) - 0.03f,
-            TestHelpers.GroundPY(def, 2f) + 0.03f);
-        Assert.InRange(direction * landed.PX, 7f, 13f);
-        Assert.InRange(direction * landed.PZ, 5.5f, 10.5f);
-    }
-
-    [Fact]
-    public void SlopPit_PerimeterWallsBlockEscapeAndPreserveKillHeight()
-    {
-        var arena = ArenaBinaryFormat.LoadFromFile(
-            Path.Combine(RepoRoot(), "data", "arenas", "slop_pit.arena"))!.Value;
-        Assert.Equal(-11f, arena.KillHeight, precision: 3);
-
-        var def = TestHelpers.FightGuyDef;
-        var edges = new[]
-        {
-            (StartX: 15f, StartZ: 0f, MoveX: 1f, MoveZ: 0f, UsesX: true, Direction: 1f, Limit: 16.5f),
-            (StartX: -15f, StartZ: 0f, MoveX: -1f, MoveZ: 0f, UsesX: true, Direction: -1f, Limit: 16.5f),
-            (StartX: 0f, StartZ: 12f, MoveX: 0f, MoveZ: 1f, UsesX: false, Direction: 1f, Limit: 13.5f),
-            (StartX: 0f, StartZ: -12f, MoveX: 0f, MoveZ: -1f, UsesX: false, Direction: -1f, Limit: 13.5f),
-        };
-
-        foreach (var edge in edges)
-        {
-            var state = TestHelpers.PlayerState(edge.StartX, edge.StartZ);
-            state.PY = TestHelpers.GroundPY(def);
-            state.IsGrounded = true;
-            var sim = TestHelpers.MakeSim(arena);
-            sim.RegisterEntity(1, def, state);
-            var inputs = new Dictionary<ulong, InputState>
-            {
-                [1] = TestHelpers.Input(moveX: edge.MoveX, moveY: edge.MoveZ)
-            };
-
-            for (int tick = 0; tick < 90; tick++) sim.Tick(inputs);
-
-            var final = sim.GetState(1);
-            float outwardPosition = edge.Direction * (edge.UsesX ? final.PX : final.PZ);
-            Assert.True(final.IsGrounded, $"Lost floor support at edge starting ({edge.StartX}, {edge.StartZ}).");
-            Assert.True(outwardPosition <= edge.Limit,
-                $"Crossed perimeter wall from ({edge.StartX}, {edge.StartZ}) to ({final.PX:F2}, {final.PZ:F2}).");
-            Assert.True(final.PY > arena.KillHeight, "Wall contact unexpectedly entered the blastzone.");
-        }
-    }
-
-    [Fact]
-    public void SlopPit_RisingPlatformContact_DoesNotLaunchFightGuy()
-    {
-        var arena = ArenaBinaryFormat.LoadFromFile(
-            Path.Combine(RepoRoot(), "data", "arenas", "slop_pit.arena"))!.Value;
-        var def = TestHelpers.FightGuyDef;
-        var state = TestHelpers.PlayerState(5.75f, 8f);
-        state.PY = TestHelpers.GroundPY(def);
-        var sim = TestHelpers.MakeSim(arena);
-        sim.RegisterEntity(1, def, state);
-        var inputs = new Dictionary<ulong, InputState>();
-        for (int tick = 0; tick < 140; tick++)
-        {
-            var before = sim.GetState(1);
-            inputs[1] = TestHelpers.Input(moveX: before.PX < 9f ? 1f : 0f,
-                jump: tick == 0, jumpHeld: tick < 10);
-            sim.Tick(inputs);
-            var after = sim.GetState(1);
-            if (tick > 8 && before.VY > 0f)
-                Assert.True(after.VY <= before.VY + 0.001f,
-                    $"tick={tick}: platform accelerated ascent {before.VY} -> {after.VY}");
-            Assert.True(after.PY <= TestHelpers.GroundPY(def, 2f) + 0.1f,
-                $"tick={tick}: launched above platform to {after.PY}");
-            if (after.VY > 0f && tick > 8)
-                Assert.True(after.AirTimeTicks >= def.Movement.FloatWindowTicks,
-                    $"tick={tick}: rising contact refreshed float");
-        }
     }
 
     private static ArenaDefinition LoadScifiCityDemo()

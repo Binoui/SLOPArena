@@ -143,7 +143,7 @@ Grass, stone, and sand describe the same continuous landform rather than disguis
 
 Check geometry before detail, then repeat after surfacing and dressing: full intermediate-yaw sweep, low recovery views, numeric support/contact checks, actual background-triangle clearance, and preservation of accepted content. A top-down view or one attractive shot cannot prove a 360° scene works.
 
-The `splash_deck` session's actual textured Edit Mode captures demonstrated this presentation approach; [the stage record](stages/splash_deck.md) records the local orbit, grounding, clearance, and preservation evidence. This is not human in-match/PVP acceptance, a performance result, or a new topology/balance standard. Keep those gates separate.
+The 2026-10-10 `splash_deck` barge sessions demonstrated this approach with textured Edit Mode captures. On 2026-10-16 the stage was rebuilt as a procedural fishing harbour that keeps the same principles: real coast geography, open water round the boat, subordinate landmarks and numeric clearance ([stage record](stages/splash_deck.md)). Neither is human in-match/PVP acceptance, a performance result, or a new topology/balance standard. Keep those gates separate.
 
 
 ## Learning loop

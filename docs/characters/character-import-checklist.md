@@ -12,6 +12,12 @@
 
 - [ ] Import the rig as Humanoid when appropriate; inspect the Avatar before binding clips.
 - [ ] Reject invalid orientation, scale, root motion, required-bone, or non-finite-pose diagnostics.
+- [ ] When replacing a character's model, scale the export so `Animator.humanScale` matches
+      the previous rig rather than its height. The body is placed relative to the renderer root
+      in `humanScale` units, so this keeps the feet grounded with the unchanged `modelYOffset`.
+      Then compare the idle hips-to-sole distance with `hipHeight`, and measure the lowest
+      skinned vertex against the floor in Training. Manki v3 sank 2.9 cm at matched height and
+      0.7 cm at matched scale; see [Manki](manki.md).
 - [ ] Bind every required semantic animation ID to its exact intended imported clip.
 - [ ] Set **Import Materials** to None on animation-only FBX sources. Otherwise Unity resolves their embedded texture names against unrelated project textures, and the cook source hash differs between your Editor and the isolated release import.
 - [ ] Assign one unique deterministic pose-track ID to each semantic binding.

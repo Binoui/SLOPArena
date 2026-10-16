@@ -1,6 +1,7 @@
-"""Weld + smooth + tail chain + 4-influence weights, then export.
-blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0]"""
+"""Weld + smooth + tail chain + 4-influence weights + fur normals, then export.
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0] [fur_normal_iterations=40|0]"""
 import bpy, bmesh, sys, os, math, json
+import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from tail_segment import find_tail_geo
 from mathutils import Vector
@@ -9,6 +10,7 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 src, dst = argv[:2]
 N = int(argv[2]) if len(argv) > 2 else 5
 SMOOTH = float(argv[3]) if len(argv) > 3 else 40.0
+FUR_ITERATIONS = int(argv[4]) if len(argv) > 4 else 40
 P = "mixamorig:"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=src)
@@ -107,7 +109,17 @@ for v in body.data.vertices:
     for gi, w in keep: body.vertex_groups[gi].add([v.index], w / s, "REPLACE")
 report["trimmed_over4"] = over
 
-# 7. export
+# 7. fur tufts get body-like normals so they do not read as dark speckles under the arena key light
+if FUR_ITERATIONS > 0:
+    from fur_normals import apply as fur_normals
+    img = next(n.image for sl in body.material_slots if sl.material and sl.material.use_nodes
+               for n in sl.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image)
+    iw, ih = img.size
+    px = np.empty(iw * ih * 4, np.float32)
+    img.pixels.foreach_get(px)
+    report["fur_normals"] = fur_normals(body.data, px.reshape(ih, iw, 4)[::-1, :, :3].astype(np.float64), FUR_ITERATIONS)
+
+# 8. export
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.fbx(filepath=dst, use_selection=True, object_types={"ARMATURE", "MESH"}, add_leaf_bones=False,
                          bake_anim=False, path_mode="COPY", embed_textures=True, mesh_smooth_type="OFF",

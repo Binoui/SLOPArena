@@ -87,6 +87,17 @@ private Master environment with the candidate catalog hash, preserving the old
 file and every other setting. Routine CI releases need no manual environment
 rewrite. Manual fallback requires the corresponding runbook steps.
 
+Online arenas are the exception: `Room__AdmittedArenas__*` is copied unchanged,
+and the online picker shows only Solo-roster stages
+(`StageSelectController.IsInStageSelectRoster`) that Master also admits. When a
+release changes that roster, add or remove the matching `Room__AdmittedArenas__N`
+entries in the active private Master environment during the operator sudo
+session before the deploy job runs, then confirm the Room snapshot's
+`admittedArenas` after readiness. Hidden stages need no admission. GameHost
+readiness checks its own packaged `slop_pit.arena`, not this pin. Client and
+GameHost arena bytes come from the same release commit; arena content has no
+separate online hash check.
+
 Credentials remain in private operator files/interfaces. Existing GitHub release
 secrets handle CI SteamCMD upload and restricted VPS access. Only renew failed
 credentials when needed; browser login and SteamCMD login are distinct. Do not

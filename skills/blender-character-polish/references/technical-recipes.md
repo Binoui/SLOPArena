@@ -44,3 +44,20 @@ Manki used a weld tolerance of 0.00001 in its mesh coordinates. Do not copy that
 Radially reshaping existing patch vertices plus improved normals looked better in clay, but textured lighting still exposed poor triangles and painted patches. The accepted repair replaced local shoulder topology and used local texture strips matched to the retained upper-arm boundary. It required seam/winding/degeneracy and weight checks plus posed renders. A subsequent approved pass reduced radial bulk while preserving the boundary.
 
 The ring positions, radii, bone-weight formulas and texture-strip dimensions were specific to Manki. Do not promote them to a generic shoulder reconstruction algorithm. Cleaner topology can still produce the wrong art direction: Manki's first reconstructed shoulders were too muscular.
+
+## Dark speckled fur at gameplay distance (Manki 2, 2026-10-16)
+Generated remeshes often model fur as small flat-shaded spikes. Under a near-vertical key light every facet that faces down or sideways goes dark, so the fur reads as dark speckled tips once the character is small on screen. Blender renders with a bright ambient did not show it; check in the target engine first. In Training, forcing sharper mips (texture `mipMapBias` −3) and turning off shadow receiving changed nothing, while diffused body-like normals on fur vertices removed it. `tools/blender/manki_rig/fur_normals.py` diffuses area-weighted vertex normals 40 times over the mesh edges and blends fur corners (orange texels) towards them; bones, weights and UVs stay identical.
+
+The A/B was done without importing anything: in a `sloparena.stage.views` session, `eval` swapped the live renderer's mesh copy or runtime material texture, which Play Mode discards.
+
+## Repainting a generated face (Manki 2, 2026-10-16)
+Rebaking from the generator's high-poly source does not help when its texture carries the defects (dirt, smeared mask, a lid painted like a wound). `tools/blender/manki_rig/face_paint.py` instead paints in an orthographic front view and projects back:
+- Render the head with a z-buffer and per-pixel triangle ids; take features that have geometry (brows) from triangle ids, not from colour, or the painted fringe survives and the ridge goes half skin-coloured.
+- Project cleaned regions only onto camera-facing texels, but thin features (lash line, mouth, nostrils) with a permissive facing/depth test, or the groove walls keep the old paint and the line breaks up.
+- Dilate edits into texels no triangle owns, using the same texel-centre rule as the projection. A polygon-fill coverage mask is wider and leaves hairline seams of old paint.
+- Preview with backface culling: without it, Blender showed the inside of the head through the wink's hairline slit.
+
+## Generated model rejected by Mixamo (Manki v3, 2026-10-16)
+Mixamo rejected a generator FBX with four embedded PBR maps and quad-dominant topology. It accepted a re-export with one triangulated mesh, one material and a single colour map beside the model, with transforms applied and feet at the origin (`tools/blender/manki_rig/mixamo_package.py`). The exact cause was not isolated. UVs survive Mixamo unchanged, so keep the generator's full-resolution colour map for the game and use the upload's map only as Mixamo's preview.
+
+Feature-placement tools tied to one mesh (face paint coordinates, tail detection thresholds) need re-checking for each regenerated model, even of the same design. v3's face sat differently in the same camera, its brows were painted correctly (so they are kept rather than repainted), and its club-shaped tail end confused a tip and root search tuned on Manki 2. Put per-model numbers in data (`face_profiles/*.json`) and regress the previous model's output byte for byte after each change.

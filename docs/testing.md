@@ -561,7 +561,7 @@ Do not claim a live runtime result from a build or static inspection alone.
 - Initial startup failed because production images require explicit
   `Room__AdmittedCharacters__*`, `Room__AdmittedArenas__*`, and
   `Room__CatalogHash`. Adding the approved Manki/FightGuy/Wibou/Bonk roster,
-  `slop_pit`/`slop_court`, and the exact catalog pin to the private Master
+  `slop_pit`/`slop_court` (Slop Court was removed on 2026-10-16), and the exact catalog pin to the private Master
   environment enabled a successful guarded roll-forward. Existing secrets
   were preserved; no public guest or gameplay UDP fallback was enabled.
 - The installed isolated recovery fixture also lacked mandatory Steam auth

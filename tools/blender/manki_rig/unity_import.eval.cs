@@ -3,10 +3,25 @@
 // (absolute path). Edit Src first. The Humanoid mapping and twist settings carry over from the current import.
 // Importing the model reimports Manki's catalog dependency, which persists a cook (see the character docs).
 const string Src = "/tmp/manki-rig-export/Manki2.fbx";
+const string SrcTexture = "/tmp/manki-rig-export/textures/Manki2_BaseColor.png";  // face_paint.py output (2048)
 const string Fbx = "Assets/Art/Characters/manki/Models/Manki2.fbx";
+const string Texture = "Assets/Art/Characters/manki/Textures/Manki2_BaseColor.png";
 const string PrefabPath = "Assets/CharacterPackages/manki/Presentation/MankiRig.prefab";
 var report = new Dictionary<string, object>();
 string root = System.IO.Path.GetDirectoryName(Application.dataPath);
+
+// Colour map first (same GUID, so Manki2_Body.mat keeps its reference). The default platform used to cap it
+// at 1024, which would silently halve the repainted face.
+System.IO.File.Copy(SrcTexture, System.IO.Path.Combine(root, Texture), true);
+AssetDatabase.ImportAsset(Texture, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+var ti = (TextureImporter)AssetImporter.GetAtPath(Texture);
+if (ti.maxTextureSize < 2048)
+{
+    ti.maxTextureSize = 2048;
+    ti.SaveAndReimport();
+}
+var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(Texture);
+report["texture"] = tex.width + "x" + tex.height + " " + tex.format;
 
 // The avatar keeps the skeleton captured at its first import; after replacing the FBX, regenerate it from
 // this model (empty description + auto mapping) and then re-apply the saved mapping.

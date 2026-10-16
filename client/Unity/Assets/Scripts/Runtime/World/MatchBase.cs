@@ -244,6 +244,13 @@ namespace SlopArena.Client.World
             StageVisual = visual.transform;
             visual.transform.localPosition = Vector3.zero;
             visual.transform.localRotation = Quaternion.identity;
+            // A stage whose art command built a "Stage Lights" rig is lit by that rig alone, as in
+            // Arena_PvP, which has no lights. Switch off the scene's own directional lights (Arena_Offline's
+            // key/fill/rim) so Training and Solo match PvP instead of stacking both and washing out.
+            if (visual.transform.Find("Stage Lights") != null)
+                foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                    if (light.type == LightType.Directional && !light.transform.IsChildOf(visual.transform))
+                        light.enabled = false;
         }
 
         protected void SetupHUD(CharacterDefinition def, IReadOnlyList<HUDManager.HudPlayer>? extraPlayers = null)

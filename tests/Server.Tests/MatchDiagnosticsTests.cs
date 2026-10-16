@@ -19,7 +19,7 @@ public class MatchDiagnosticsTests
     public void RepeatingTransportFailurePreservesLifecycleEventsAndReportsAgainLater()
     {
         var clock = new Clock();
-        var diagnostics = new MatchDiagnostics(Guid.NewGuid().ToString("D"), "slop_court", "steam-p2p", clock);
+        var diagnostics = new MatchDiagnostics(Guid.NewGuid().ToString("D"), "slop_pit", "steam-p2p", clock);
         diagnostics.Log(1, "GO!");
         for (uint tick = 2; tick < 400; tick++)
             diagnostics.ReportError(tick, "Gameplay send failed.");
@@ -38,7 +38,7 @@ public class MatchDiagnosticsTests
     {
         var store = new MatchDiagnosticsStore();
         var activeId = Guid.NewGuid();
-        var active = new MatchDiagnostics(activeId.ToString("D"), "slop_court", "steam-p2p");
+        var active = new MatchDiagnostics(activeId.ToString("D"), "slop_pit", "steam-p2p");
         store.Add(active);
         for (int i = 0; i < MatchDiagnostics.EventLimit + 8; i++) active.Log((uint)i, $"event {i}");
         var snapshot = store.Get(activeId)!;
@@ -46,11 +46,11 @@ public class MatchDiagnosticsTests
         Assert.Equal(8, snapshot.DroppedEvents);
         Assert.Equal("event 8", snapshot.Events[0].Message);
         var oldId = Guid.NewGuid();
-        var old = new MatchDiagnostics(oldId.ToString("D"), "slop_court", "steam-p2p");
+        var old = new MatchDiagnostics(oldId.ToString("D"), "slop_pit", "steam-p2p");
         old.Complete(); store.Add(old);
         for (int i = 0; i < MatchDiagnosticsStore.CompletedLimit; i++)
         {
-            var match = new MatchDiagnostics(Guid.NewGuid().ToString("D"), "slop_court", "steam-p2p");
+            var match = new MatchDiagnostics(Guid.NewGuid().ToString("D"), "slop_pit", "steam-p2p");
             match.Complete(); store.Add(match);
         }
         Assert.Null(store.Get(oldId));
@@ -60,7 +60,7 @@ public class MatchDiagnosticsTests
     [Fact]
     public void MeasurementsKeepServerWorkSeparateFromConnectionHealth()
     {
-        var diagnostics = new MatchDiagnostics(Guid.NewGuid().ToString("D"), "slop_court", "steam-p2p");
+        var diagnostics = new MatchDiagnostics(Guid.NewGuid().ToString("D"), "slop_pit", "steam-p2p");
         diagnostics.RecordTick(10, 2, 1, false);
         diagnostics.RecordTick(11, 24, 200, true);
         diagnostics.RecordPeer(2, true, 80, .98f, -1);
@@ -87,12 +87,12 @@ public class MatchDiagnosticsTests
         var orchestrator = new MultiMatchOrchestrator(new ServerConfig { Port = port, MaxConcurrentMatches = 1 });
         var id = Guid.NewGuid();
         var other = Guid.NewGuid();
-        var diagnostics = new MatchDiagnostics(id.ToString("D"), "slop_court", "steam-p2p");
+        var diagnostics = new MatchDiagnostics(id.ToString("D"), "slop_pit", "steam-p2p");
         diagnostics.Log(3, "GO!"); diagnostics.Complete(); orchestrator.Diagnostics.Add(diagnostics);
         var otherDiagnostics = new MatchDiagnostics(other.ToString("D"), "slop_pit", "steam-p2p");
         otherDiagnostics.Log(1, "Other match secret-free event"); orchestrator.Diagnostics.Add(otherDiagnostics);
         const string key = "match-control-test-key-0123456789abcdef";
-        using var control = new MatchControlServer(orchestrator, port, "slop_court", key);
+        using var control = new MatchControlServer(orchestrator, port, "slop_pit", key);
         control.Start();
         using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
         var route = $"/match/diagnostics/{id:D}";

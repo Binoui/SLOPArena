@@ -43,7 +43,7 @@ namespace SlopArena.Server
 
             var orchestrator = new MultiMatchOrchestrator(config, steamHost);
             steamHost?.AttachOrchestrator(orchestrator);
-            bool contentReady = orchestrator.ContentReady && ArenaRegistry.Get("slop_court").HasValue;
+            bool contentReady = orchestrator.ContentReady && ArenaRegistry.Get("slop_pit").HasValue;
             if (!contentReady)
             {
                 Console.WriteLine("[Content] Required cooked roster or default arena unavailable; readiness disabled.");
@@ -57,7 +57,7 @@ namespace SlopArena.Server
             orchestrator.ReportMatchCancellation = registration.QueueMatchCancellation;
 
             using var control = new MatchControlServer(orchestrator, config.Port,
-                defaultArena: "slop_court", controlKey: config.IsVps ? config.MatchControlKey : null,
+                defaultArena: "slop_pit", controlKey: config.IsVps ? config.MatchControlKey : null,
                 isReady: () => contentReady && registration.CanAdmitMatches, steamHost: steamHost);
             control.Start();
 

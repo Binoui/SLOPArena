@@ -68,10 +68,10 @@ silhouettes surround the clearing while leaving the western sunset open.
 
 The prefab owns its warm sun, three camp lights, stump fill and atmosphere. Fire
 flicker and firefly travel use existing shader channels. Surface values are tuned
-against native PvP captures; Training's additional scene lights produce a brighter
-result. The proposed light shafts are represented by canopy gaps and haze rather
-than volumetric beam geometry. Human visual review can accept or revise that
-presentation difference.
+against native PvP captures; Training matches them, because it switches its own
+scene lights off for a stage with a `Stage Lights` rig. The proposed light shafts
+are represented by canopy gaps and haze rather than volumetric beam geometry.
+Human visual review can accept or revise that presentation difference.
 
 The generator checks actual background triangles against the blast corridor and
 keeps elevated scenery outside a 25-unit camera envelope. Tent hem, chair feet,

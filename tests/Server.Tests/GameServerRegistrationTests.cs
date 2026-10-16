@@ -92,7 +92,7 @@ public class GameServerRegistrationTests
         });
         var orchestrator = new MultiMatchOrchestrator(config);
         var registration = new GameServerRegistration(config, orchestrator, handler, clock, () => TestHostSteamId);
-        using var control = new MatchControlServer(orchestrator, port, "slop_court",
+        using var control = new MatchControlServer(orchestrator, port, "slop_pit",
             isReady: () => registration.HasFreshRegistration);
         using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));

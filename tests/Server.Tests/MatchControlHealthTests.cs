@@ -18,7 +18,7 @@ public class MatchControlHealthTests
         var config = new ServerConfig { Port = port, MaxConcurrentMatches = 1 };
         var orchestrator = new MultiMatchOrchestrator(config);
         bool ready = false;
-        using var control = new MatchControlServer(orchestrator, port, "slop_court",
+        using var control = new MatchControlServer(orchestrator, port, "slop_pit",
             controlKey: "control-secret-0123456789abcdef01234567", isReady: () => ready);
         control.Start();
         using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
@@ -42,7 +42,7 @@ public class MatchControlHealthTests
         var orchestrator = new MultiMatchOrchestrator(new ServerConfig { Port = 19200, MaxConcurrentMatches = 1 });
         orchestrator.StopAcceptingMatches();
 
-        var admitted = orchestrator.TryAssignMatch("not-started", "slop_court",
+        var admitted = orchestrator.TryAssignMatch("not-started", "slop_pit",
             new[] { new MatchPlayer(1, CharacterClass.Manki, 1), new MatchPlayer(2, CharacterClass.FightGuy, 2) },
             3, null, null, out var port, out _, out _, out var error);
 

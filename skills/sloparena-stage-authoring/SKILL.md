@@ -150,13 +150,13 @@ Do not commit generated captures or reports. Human reviewers may attach them to 
 
 ## Required stage files
 
-Use one immutable lowercase `snake_case` key everywhere. For example, `slop_court`:
+Use one immutable lowercase `snake_case` key everywhere. For example, `slop_pit`:
 
 ```text
-docs/design/stages/slop_court.md
-client/Unity/Assets/Stages/slop_court/slop_court.unity
-client/Unity/Assets/Resources/Stages/slop_court.prefab
-data/arenas/slop_court.arena
+docs/design/stages/slop_pit.md
+client/Unity/Assets/Stages/slop_pit/slop_pit.unity
+client/Unity/Assets/Resources/Stages/slop_pit.prefab
+data/arenas/slop_pit.arena
 ```
 
 The key is immutable after acceptance. Change the display name in arena data and the brief, not the key. A new key is a deliberate migration, never a casual file rename.
@@ -237,7 +237,7 @@ Rules:
 - Its root transform is position `(0,0,0)`, identity rotation, and scale `(1,1,1)`.
 - It aligns with the authoritative source/baked coordinates with no offset, scale correction, or runtime alignment script.
 - It contains **no `Collider` components** anywhere. Decorative collision is prohibited, including trigger-only convenience colliders.
-- It owns stage-specific local lighting. The match scene supplies only global base lighting.
+- It owns stage-specific local lighting. Put a complete rig under a `Stage Lights` root: the match then switches off the scene's own directional lights, so the stage looks the same in Training, Solo and PvP. Without that root it also receives the match scene's base lighting (Training's key/fill/rim; Arena_PvP has none).
 - Imported references must resolve to valid assets. Newly referenced external environment assets need an approved asset-selection workset; original meshes/materials must be persisted as valid project assets or prefab sub-assets.
 - It must not carry scripts that adjudicate gameplay, movement, spawn, blast, collision, hazard, or platform behavior.
 
@@ -342,6 +342,21 @@ directory: eight directions plus two high views by default, or
 triggers Error Pause, it resumes its own session and reports `editorPausesResumed`;
 the console step shows the cause. `stop` and `restore` return the Editor to its
 saved state.
+
+With a `Stage Lights` rig the default `scene` lighting matches `--lighting pvp`:
+Training switches off its Key 0.7, Fill 0.4 and Rim 0.3 directional lights for that
+stage, and Arena_PvP has none, so one pass covers both. Without a rig, capture both:
+Training's lights give a lit surface roughly 2.5 times the light. Sample pixel values,
+because the ACES shoulder and bloom hide clipping. URP limits extra lights per renderer
+(Ultra 4, High 2, Medium 1), so carry the look with the key light, ambient and baked AO.
+
+`capture` orbits only the fighter at `Spawn_01`. For HUD-free thumbnails and
+recovery or below-edge views, add disabled named cameras inside the same Play Mode
+batch (copy the gameplay camera and its URP post-processing settings, hide the
+`UIDocument` roots), then capture each with `sloparena.capture.game-view --source
+camera --camera <name>`; `stop`/`restore` discards them. Slop Pit's
+[`review_cameras.eval.cs`](../../tools/blender/slop_pit/review_cameras.eval.cs) is a working example.
+Promote this into a typed command when a second stage needs it.
 
 Generate outside `Assets/`, then copy and import within your lease. After any C# edit,
 run `recompile` on its own before an asset refresh or import step; see the

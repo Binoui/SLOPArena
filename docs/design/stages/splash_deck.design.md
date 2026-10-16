@@ -1,131 +1,145 @@
 ---
 key: splash_deck
-status: draft
-approved_by: null
-provisional_production_authorized: 2026-10-10
-human_review: deferred_by_maintainer
-background_revision_authorized: 2026-10-10
-playable_presentation: maintainer_keep_unchanged
-production_status: baked_authoritative_visual_and_gameplay_review_pending
+status: locked
+locked: 2026-10-16
+approved_by: maintainer
+approval_scope: selected boat hull with the same fight, Mediterranean fishing harbour and sunny morning implementation
+runtime_camera_review: pending
 blockout:
-  - .stage-authoring-cache/splash_deck/design/barge-20261010/orbit-contact.png
-  - .stage-authoring-cache/splash_deck/design/barge-20261010/recovery-090.png
+  - tmp/splash-deck-harbour/tuned-pvp/
+  - .ability-lab-cache/splash-deck-harbour-20261016/orbit-01/
 ---
 
-# Moored Barge Stage Design Brief — Draft
+# Splash Deck — fishing boat in a harbour bay
+
+On 2026-10-16 the maintainer asked to rework Splash Deck with the procedural stage
+pipeline: the fight is on a boat in a bay. From the presented options they selected
+**Boat hull, same fight**, **Fishing harbour** and **Sunny morning**. Those choices
+authorize this bounded rework of the 2026-10-10 moored barge. The implementation scope
+is decided; the new captures have not been approved by the maintainer. Human in-game
+camera and two/four-player PvP reviews remain pending. The key `splash_deck` and the
+display name are unchanged.
 
 ## Personality
 
-Four fighters turn a moored tropical cargo barge into a dockside brawl.
+Four fighters brawl on a fishing boat anchored in a Mediterranean harbour, right under the wheelhouse's NO FIGHTING ON DECK sign.
+
+## Fight premise
+
+The barge's proven fight survives on a real boat. The broad teak deck is the main
+combat floor, with the same four diagonal spawns and facings. Two raised spots, one
+full jump high, keep their positions: the aft one is now a low wheelhouse and the
+forward one a fish-hold hatch. The deck gains a bow that narrows to a point ahead of
+the hatch and a square transom astern. The side edges stay 11 m from the centre line.
+The hull drops straight from the deck edge to the water, a solid recovery wall with no
+pocket beneath the deck, and falling into the water is the knockout. There is no
+rocking, buoyancy, swimming or moving collision.
 
 ## Composition decisions
 
-1. Retain the immutable `splash_deck` key, but replace the floating-boardwalk premise with a static moored barge. From the default camera, the fighting deck dominates the center; the barge itself is the hero landmark, not the distant village or a second sailing ship.
-2. Preserve the current broad main-floor footprint, floor height, four spawn positions and facings, and both raised surfaces. The left and right raised surfaces read as low cargo hatches and retain two side high-ground positions; the open center remains the main exchange space. No railing, mast, cabin, cargo pile, or new obstacle occupies a fighting or recovery route.
-3. Below the deck, the foreground and side edges reveal one continuous recovery-facing hull volume. Its outer walls meet the deck edge without an inset, overhang, recess, decorative opening, or narrow support arrangement that lets a recovering fighter drift beneath the floor. Every gameplay-significant hull surface must have matching baked Shared collision. This is an authoritative gameplay-shell change, not cosmetic dressing.
-4. Use a broad, squared working-barge silhouette rather than a sailing yacht: an uninterrupted deck lip, substantial sides, restrained timber construction, and readable bow/stern treatment within the functional silhouette. Production must not add a protruding visual bow, keel, or gunwale that suggests collision absent from the shell.
-5. The proposed recovery volume reaches the current lower death plane. Keep the current side/top/lower blast boundaries rather than silently increasing survival distance. The typed baker's validated `AuthoringAids/KillPlane` marker must coincide with the lowest hull vertex to preserve the lower plane; its default lowest-vertex-minus-ten derivation would otherwise move that plane downward.
-6. The village, palm beach, and harbor become distant port context around part of the barge. From the default camera they occupy the middle distance and side thirds; the ocean-facing yaw keeps open-water gaps between distant island silhouettes under decision 14. Preserve useful existing source assemblies, but remove the giant bare sand connectors and bank aprons rather than filling every camera angle. Keep all solid background land and props outside the blast/recovery corridor.
-7. Keep the existing ocean height and visual-only water exception. Below the waterline the hull still belongs to the authoritative recovery volume; water supplies no buoyancy, collision, landing surface, hazard, or swimming. Above the fight, open sky preserves visibility; farther away, quiet rooflines, palms, and harbor silhouettes establish the port.
-8. Busy here: the barge's construction and the distant port clusters. Empty here: the central fight routes, space immediately outside the deck edge, and open-water gaps. The ocean-facing view gains a quiet distant island chain under decision 14, not foreground clutter. Judge all of these through a complete camera orbit, not one preferred screenshot. Leave the vendor demo scene unmodified.
-9. Background-only revision approved by the maintainer: remove the generated connecting sand sheet entirely. Replace cut-out source ground patches with a coherent, volumetric harbor coast: village above the sheltered shore, lower harbor to one side, and a separate palm beach across the water. Land connections must be real sloping terrain, not flat sand fill.
-10. From the default and rotated views, a few rooflines identify the village, a compact working dock explains the moored background boats, and palms follow the banks rather than filling a display forest. Reuse existing inspected stage assets, reduce duplicate ships and loose display clutter, and ground every retained prop numerically on its host terrain or dock.
-11. Keep clear water immediately around the barge and every recovery side. The open-water yaw uses low distant islet silhouettes rather than another village or sailing-ship hero. Judge all intermediate yaw angles and low recovery views, not only the default view.
-12. Use rolling land, exposed stone banks, narrow beaches, and submerged foundations to make shore transitions three-dimensional. Quieter background greens and distance layers support the unchanged foreground; no new asset pack or vendor-source mutation.
-13. Improve the existing visual-only water surface without changing its height or adding gameplay, buoyancy, displacement collision, or new movement behavior. Preserve the complete playable presentation, canonical collision source, baked arena, spawn markers, and blast planes byte-for-byte or by protected-content fingerprint as appropriate.
-14. Island-chain addition approved by the maintainer: retain the accepted harbor coast, foreground and water treatment unchanged. Across the previously sparse ocean-facing quarter-turn and intermediate views, add a second distant layer with one taller rocky island, two low palm islands, and smaller reef silhouettes between them. Varied shapes and generous water gaps establish a larger tropical bay without a second hero landmark. Keep the immediate foreground/recovery ring empty; reuse resident props/materials and judge the complete orbit, including low side/corner views. Human in-match review remains deferred under the existing provisional-production authorization.
+Camera yaw below names the direction the gameplay camera looks: yaw 0° looks north
+(+Z), 90° east (+X, towards the bow and the bay mouth), 180° south and 270° west
+(towards the stern and the village). Coordinates are recorded separately by
+`tools/blender/splash_deck/layout.py` and `bay.py`.
 
-## Gameplay shell
+1. **Fishing boat.** From every yaw the deck fills the foreground and centre:
+   bleached teak planks running bow to stern, caulked seams, and a red margin board
+   that follows the authoritative outline. The parabolic bow and rounded-quarter
+   transom are the functional silhouette; the deck edge is a flush painted margin
+   with a small chamfer, not a rail.
+2. **Wheelhouse and fish hatch.** The aft raised spot is a white timber wheelhouse
+   with blue trim, windows on every side and the ship's wheel visible through a front
+   window. Its forward face carries the NO FIGHTING ON DECK sign towards the main
+   deck. SLOP 04 on its roof reads from the main deck. The forward raised spot is a
+   red-coamed fish-hold hatch with weathered boards, a heaped green net and a coiled
+   line painted flush on top. Both tops are flat and clear.
+3. **Painted hull to the water.** From side and recovery views, a luzzu-style hull
+   (gunwale cap, white bulwark band, yellow sheer strake, rub rail, cobalt planking,
+   portholes, painted bow eyes and SPLASH DECK on both bows and the transom) drops
+   straight from the deck edge to a white boot-top at the waterline. The painted
+   strakes dip towards midships and the boot-top rises at the bow, so the straight
+   deck edge reads as a curved boat. Nothing stands proud of the hull.
+4. **Flush working deck.** From higher pitches: rope coils, a flattened net with its
+   float line, a few fish and scales by the hatch, wet patches by the hatch and the
+   transom, scuppers and fairleads in the margin. All flush; nothing on a walkable
+   surface blocks or supports a fighter.
+5. **Village, the hero, to the west.** At yaw 270° pastel houses with shutters,
+   balconies and terracotta or flat roofs climb the hill above a straight stone quay.
+   The bell tower rises from the middle, and the striped PESCHERIA market awning and
+   small boats moored bow-in line the quay. Every house is a complete volume, so the
+   village holds from the north-west and south-west intermediate yaws.
+6. **Breakwater and lighthouse to the north-east.** At yaw 30°–60° a rubble
+   breakwater with a concrete walk and parapet runs out from the north shore. It ends
+   in a red-and-white lighthouse that closes the bay's north-east side. Small fishing
+   boats and a few yachts ride at moorings in the inner harbour behind it.
+7. **Olive hills and chapel to the south.** At yaw 180° rocky garrigue slopes with
+   outcrops rise to olive terraces and a white chapel with a terracotta dome, reached by
+   an avenue of cypresses. A small sandy cove with parasols sits in the south shore.
+8. **Bay mouth to the east.** At yaw 90°–120° the bay opens to the sea between the
+   lighthouse and a rocky southern headland with stone pines. The morning sun's glitter
+   path, yachts at anchor and under sail, and low hazy islands on the horizon fill the
+   view. The open water is intentional.
+9. **Water, sky and quiet movement.** Clear cobalt water around the boat turns
+   turquoise over the coastal shelves. Gentle shader swell, ripples, sun glitter and
+   foam lap the hull waterline and the shores. Gulls glide over the bay, clouds drift
+   inland, and awnings, laundry, trees and sails sway in the breeze. All movement is
+   cosmetic; the boat and all authoritative geometry are static.
+10. **Below, above and far away.** Below the deck there is only hull and water, and
+    the opaque sea hides everything under its surface. Above, open sky with a few
+    clouds and gulls stays clear of the camera envelope. Far away, the hills, headlands
+    and horizon islands complete every yaw.
 
-The intent is a solid recovery boundary using the existing movement and ledge rules. Wall contact does not add wall climbing, wall jumps, sticking, or automatic recovery.
-
-```text
-                 far deck edge / bow
-        +--------------------------------+
-        |         S3           S2        |
-        | [west hatch]    [east hatch]   |
-        |         S1           S4        |
-        +--------------------------------+
-                 near deck edge / stern
-
-        Continuous hull walls below every edge
-```
-
-The floor and raised surfaces stay in place. S1–S4 preserve the existing baked positions/facings; this diagram is a topology sketch, not a replacement coordinate source. The canonical source is now `Assets/Stages/splash_deck/splash_deck.unity`, with one closed main hull under `Stage_splash_deck/GameplayGeometry`, the two original raised volumes, four ordered spawn markers, and the validated lower kill-plane marker. The matching cosmetic hull is not the collision source.
+**Busy here / empty here:** detail belongs to the village and quay (west), the inner
+harbour and breakwater (north and north-east) and the southern hills. The deck's open
+centre, both raised tops, the water ring immediately around the hull, the bay mouth
+and the sky above the fight stay comparatively quiet.
 
 ## Negative decisions
 
-- No thin floating main floor, cosmetic-only recovery hull, or fighter pass-through through visible solid sides.
-- No sailing, rocking, moving platforms, buoyancy, Unity physics authority, water gameplay, wall climbing, or wall jumps.
-- No second hero landmark, route clutter, recovery-blocking rails, decorative colliders, or visual surfaces that falsely promise safe landing.
-- No solid background land or props inside the blast corridor; the visual-only ocean is the existing explicit exception.
-- No sand curtains, stretched terrain aprons, or mandatory land connection between every source neighborhood.
-- No wholesale vendor demo/terrain dump, new asset dependency, or vendor-scene modification.
+- No mast, rigging, railing, bulwark, crate, net drum, bucket or other raised prop on
+  a walkable surface; no roof clutter on the wheelhouse or hatch.
+- No fender, tyre, lifeboat, bowsprit, anchor or other gear standing proud of the
+  hull inside the blast corridor (decals at most 2.5 cm proud).
+- No pier, quay, buoy or moored boat within the camera envelope or blast corridor, and
+  no apparently safe surface near the hull. The visual-only sea is the one declared
+  exception inside the corridor, 0.6 m above the KO plane.
+- No rocking boat, buoyancy, swimming, water collision or moving geometry.
+- No second hero landmark: the bell tower and lighthouse stay subordinate to the boat.
+- No vendor (TropicalEnvironment) dependency; original procedural art on the project's
+  stage shaders plus the presentation-only `SLOPArena/StageWater`.
+- No cosmetic Colliders, Rigidbody components or gameplay scripts.
 
 ## Palette & lighting
 
-Warm afternoon timber, weathered working-boat surfaces, deep palm greens, muted blue ocean, and open sky. Production now embeds authored timber/paint textures and local warm fill in the stage prefab. Fighters and the deck lip should remain clearer than the distant port; this still requires the actual gameplay-camera review. Earlier gray-box renders test massing only.
+Sunny late morning. A crisp east-south-east sun at 36° lights the village front-on
+and puts a glitter path in the bay mouth. Blue sky light falls over warm ground bounce
+with a pale sea haze towards the horizon. The honey teak deck and its red margin carry
+the strongest value contrast in the frame. The boat is cobalt, white, yellow and red.
+The village is ochre, apricot, rose, lemon and white with terracotta roofs and green or
+blue shutters. The hills are dusty olive, garrigue and grey-ochre rock under dark
+cypress and stone pines. Stage-owned lighting must read in PvP without Training's
+extra lights.
 
 ## Camera vantages
 
-- Continuous full yaw from the main floor, including four quarter-turn views and intermediate angles.
-- Both cargo hatches, four spawn approaches, deck corners, and bow/stern views.
-- Low recovery views along each side and around each corner, checking continuous wall-to-lip alignment and no under-deck pockets.
-- Waterline and below-edge views, checking that solid hull geometry never becomes a cosmetic pass-through.
-- The real gameplay camera in Play Mode remains required for human review; isolated design renders do not satisfy it.
+- Actual gameplay camera from Spawn_01: eight directions and two higher views, under
+  stage-only PvP lighting and Training's scene lights.
+- The wheelhouse sign from the main deck; the hatch top from the deck and from above.
+- Low recovery views along each side, round the bow and the transom: continuous hull,
+  waterline foam, no under-deck pocket.
+- Full elevated orbit at 15° intervals and low views at 45° intervals.
+- Human free orbit from the deck, both raised tops, the bow tip and recovery positions
+  remains pending, followed by external two/four-player PvP acceptance.
 
-## Current evidence and production gate
+## History
 
-The maintainer approved the static boat direction and solid pillar-like recovery volume on 2026-10-10. This supersedes the previous cosmetic-only shoreline revision. The brief remains `draft`; approval to work is not a claim of completed in-game visual review or external PVP acceptance.
-
-The baseline live Unity probe found a 30 × 22 deck, floor top at 0, raised tops at 1.5, lowest baked collision vertex at −0.5, and lower death plane at −12. It found no recovery walls below −0.5 and no canonical collision source. Those were pre-implementation observations, not the current stage state.
-
-The isolated design prefab is `Assets/StageDesignPreviews/splash_deck/BargeBlockout.prefab`. It preserves the deck, raised surfaces, and four spawn markers and proposes uninterrupted hull sides down to −12. It deliberately contains zero Colliders and is not selected or loaded by the normal stage runtime. It is a functional massing study, not finished boat art or authoritative collision.
-
-The earlier isolated design pass produced 24 live Unity orbit views at 15-degree increments, four low side views, and a top view in `.stage-authoring-cache/splash_deck/design/barge-20261010/`. Its contact sheet was inspected; its report confirms production bytes were preserved during that design-only pass. Those captures do not show the subsequent production materials or prove in-match presentation.
-
-The earlier saved-preview smoke confirmed flush hull boundaries, bottom −12, valid references, and zero Colliders. Its ready/stopped/free Editor status describes that completed design-only pass, not the final production verification attempt.
-
-The production hull bottom is −12. The typed bake preserves the same lower plane through the validated kill-plane marker rather than deriving −22; no baker or gameplay mechanic was changed.
-
-The maintainer explicitly authorized playable implementation while away from the PC on 2026-10-10, deferring the normal pre-production human review. This is a bounded provisional-production exception for the approved static barge and solid recovery hull, not a completed LOCK review or external PVP acceptance. Keep the brief `draft` until the maintainer reviews the actual gameplay camera and recovery behavior. Proceed with the canonical collision source, bake, matching boat presentation, stage shipping coverage, and actual wall/ledge recovery scenarios; report automated evidence separately from the deferred human 2–4-player acceptance.
-
-## Provisional implementation evidence — 2026-10-10
-
-- Native bake and inspect passed: 36 collision triangles, four spawns, matching source/baked hashes, valid cosmetic mesh/material/shader references, zero cosmetic Colliders, one local light, and no diagnostics.
-- All six blast planes, main-floor X/Z bounds, and four spawn positions/facings are preserved. A triangle/rectangle intersection check found no solid background triangles inside the blast/recovery corridor; visual-only water remains the explicit exception.
-- The real Resources prefab now contains flush painted timber hull sides from −0.5 to −12 beneath the main deck, cargo-hatch treatments, lowered distant port assemblies, and restrained shoreline banks instead of tall sandy connecting skirts.
-- The old slab allowed all 64 airborne side/corner pass-through scenarios; the new hull blocks all 64. The permanent regression also verifies outward escape rather than trapping the fighter against the wall.
-- An executable Shared/ServerSimulation smoke returned all four fighters to the floor on 32 side/near-corner routes, starting at center Y=−1 with the full authored ordinary-air-jump budget. Every route rejects death/respawn as a false recovery. This is not automatic ledge grabbing, wall climbing, or guaranteed recovery from arbitrary depth: FightGuy's ordinary two-jump attempt from center Y=−2 was insufficient.
-- Full Shared coverage passed 1,357 tests with two skipped; the Server build passed with no warnings/errors. Shared compiled without copying unrelated plugin changes.
-- Production receipts are in `.stage-authoring-cache/splash_deck/barge-production-20261010/`; the implementation contract is [splash_deck.md](splash_deck.md).
-
-The earlier Play Mode attempt entered, then `sloparena.ui.navigate --mode Solo` timed out and left blocked/unsettled ownership. On 2026-10-10 the maintainer authorized recovery while away from the PC. Normal window close did not complete; SIGTERM exited the exact canonical Editor process, and the installed launcher reopened the same project. A fresh runtime session passed owned gateway commands and released free/settled with zero active operations. Frontend and stage source/prefab/arena hashes are unchanged; the Frontend scene is clean/stopped with no compile/reload in progress and an empty current native error console. The failing Play Mode path was not retried, so its underlying cause is not verified fixed.
-
-Eight focused actual-prefab camera renders now exist in `.ability-lab-cache/stage-barge-20261010/`: four high quarter-turn views and four low side/corner views. Original materials were retained with stage-authored atmosphere/local light and repository-style preview directional lighting. The contact sheet was inspected; these are Edit Mode asset views, not gameplay-camera or human PVP proof. The temporary capture scene was closed and Frontend restored.
-
-Those first production images exposed a rectangular hull silhouette and a wide flat sand apron. The maintainer subsequently accepted the playable presentation unchanged and authorized background-only decisions 9–13. The apron is removed by the following revision; the approved rectangular barge is deliberately retained. Human gameplay-camera/recovery and external 2–4-player PVP reviews remain deferred.
-
-## Background-only implementation evidence — 2026-10-10
-
-| Decision | Implemented evidence | Review limit |
-|---|---|---|
-| 9 — coherent harbor, no sand connector | Deleted `Quiet connected shoreline` and all three source terrain mats; authored one connected northern/eastern coast, separate palm island, and two distant islets. | Human composition approval remains deferred. |
-| 10 — curated, grounded dressing | Four houses on blended flat pads, spaced palm clusters, ten embedded rocks, four dockside cargo props, seven pier modules, two offshore boats. Each boat footprint has 169 positions tested against the actual terrain: no terrain or terrain below the visual waterline. | No live fighter readability or performance claim. |
-| 11 — full orbit and recovery clearance | Inspected 24 textured views at 15-degree increments and eight low side/corner views. Exact projected triangle/rectangle separation finds no solid-background intrusion into X ±25 / Z ±21. | Edit Mode asset-camera renders, not the running match camera. |
-| 12 — real shore slopes and quieter palette | Rolling terrain descends through stone banks and narrow, contour-clipped beach bands into submerged foundations. Background-only material clones mute the existing imported palette; no vendor asset or dependency changes. | Static authored landforms; not a terrain gameplay system. |
-| 13 — preserve accepted playable presentation | All 103 protected serialized objects and their linked meshes/materials/textures are unchanged; Frontend/source/arena byte hashes match. Only background water UVs, shading basis, material and original low-contrast ripple textures changed; surface vertices, triangles and height are retained. | No buoyancy, animated waves, movement changes, rebake or plugin copy. |
-
-Final native inspection passes with 36 collision triangles, four spawns, matching source/baked hashes, 195 cosmetic Renderers, valid references/URP shaders, zero cosmetic Colliders, one local light, and no diagnostics. Final actual-prefab captures: `.ability-lab-cache/stage-background-20261010/pass-04/`. Receipts and editable original texture inputs: `.stage-authoring-cache/splash_deck/background-20261010/`. The initial `authoring.json` precedes subsequent palette/placement/contour refinement; use `final-inspection.json`, `geometry-check.json`, and `preservation.json` for final state.
-
-The temporary capture scene is closed and clean Frontend restored, stopped; the gateway releases free/settled with zero operations. The last queried console has one earlier agent command-routing error, not an asset failure; it was not cleared. The earlier Play Mode hang remains unverified, and the brief stays `draft` until the explicitly deferred human review.
-
-## Outer-bay island chain evidence — 2026-10-10
-
-PASS: decision 14 — added one rocky ridge island, two low palm islands with eight resident-asset palms, and four smaller reef banks/tips. The accepted harbor, palm beach, original islets, barge, and water treatment are retained. No new material, texture, lighting, imported dependency, or runtime component was introduced; all seven new terrain meshes reuse the existing shore materials and contour-clipped beach transitions.
-
-Preservation checks compare every original serialized object against the accepted prefab backup: 1,033 objects are byte-identical; the remaining background-parent Transform differs only by appending the new chain root to its child list. All its other fields and the original child order are unchanged. Frontend, collision-source and arena byte hashes match. The projected-triangle check tests all solid background meshes, including LODs, and finds zero recovery/blast-rectangle intersections. All eight palm bases match their actual mesh grounding heights within 0.001 m.
-
-Inspected 24 textured 15-degree orbit views and eight low side/corner views in `.ability-lab-cache/stage-island-chain-20261010/pass-01/`. They show the new second-distance layer in the previously sparse ocean-facing views while retaining the harbor-facing composition. Native stage inspection passes with matching collision-source/baked hashes, four spawns, valid references/shaders, zero cosmetic Colliders, one local light and no diagnostics. Receipts and the accepted baseline backup are in `.stage-authoring-cache/splash_deck/island-chain-20261010/`; its `inspection.json` supersedes earlier render metrics.
-
-Capture restoration closed the temporary scene and restored clean Frontend. Final Editor status is ready/stopped with no compile/reload; the native error query returns zero entries, and ownership is free/settled with zero operations. No console clearing, rebake, plugin copy, Play Mode retry, release build, commit or push was performed. The views remain Edit Mode asset renders with preview directional lighting; live match-camera, human PVP, packaged-player and performance reviews remain deferred. The brief remains draft.
+- **2026-08 to 2026-09:** a floating boardwalk in a tropical vendor-asset demo scene.
+- **2026-10-10:** a static moored cargo barge (30 × 22 deck, two cargo hatches,
+  closed recovery hull to −12) with a TropicalEnvironment harbour, palm islands and an
+  outer island chain. Provisional production was authorized while the maintainer was
+  away; the brief stayed draft and the roster rated the fight "Good".
+- **2026-10-16:** this rework. It keeps the barge's spawns, facings, raised spots,
+  side edges and blast planes; adds the boat outline; and replaces every barge
+  presentation root with procedural art. Backups of the barge source scene, arena,
+  prefab, briefs and tests are in
+  `.stage-authoring-cache/splash_deck/fishing-harbour-20261016/backup/`.

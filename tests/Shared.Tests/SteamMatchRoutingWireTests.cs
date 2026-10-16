@@ -55,7 +55,7 @@ public sealed class SteamMatchRoutingWireTests
     public void SteamStart_RejectsDuplicateRosterOrMissingDeadline()
     {
         string json = $$"""
-            {"matchId":"11111111-2222-3333-4444-555555555555","arenaName":"slop_court","players":[{"steamId":76561198000000001,"characterClass":"Manki","entityId":1},{"steamId":76561198000000002,"characterClass":"Bonk","entityId":2}],"protocolVersion":{{SteamMatchDescriptor.CurrentProtocolVersion}},"virtualPort":0,"catalogHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","admissionExpiresAtUtc":"2026-09-26T12:00:00Z"}
+            {"matchId":"11111111-2222-3333-4444-555555555555","arenaName":"slop_pit","players":[{"steamId":76561198000000001,"characterClass":"Manki","entityId":1},{"steamId":76561198000000002,"characterClass":"Bonk","entityId":2}],"protocolVersion":{{SteamMatchDescriptor.CurrentProtocolVersion}},"virtualPort":0,"catalogHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","admissionExpiresAtUtc":"2026-09-26T12:00:00Z"}
             """;
         using var valid = JsonDocument.Parse(json);
         Assert.NotNull(MatchStartRequestCodec.TryParse(valid.RootElement));
@@ -84,7 +84,7 @@ public sealed class SteamMatchRoutingWireTests
         {
             serverId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
             matchId = Match,
-            arenaName = "slop_court",
+            arenaName = "slop_pit",
             players = new[]
             {
                 new { steamId = 76561198000000001L, name = "A", characterSelection = "FightGuy",

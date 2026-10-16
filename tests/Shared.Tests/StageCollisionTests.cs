@@ -358,6 +358,39 @@ public sealed class StageCollisionTests
             2f - Def.CapsuleHeight * 0.5f + 0.03f);
     }
 
+    [Fact]
+    public void RisingContactWithPlatformLip_DoesNotLaunchTheFighter()
+    {
+        // A solid 0.5 m thin platform whose top sits near FightGuy's single-jump apex.
+        // Jumping at its inner lip catches the rounded capsule; contact must never add
+        // upward speed, refresh the float window or pop the fighter above the top.
+        var def = TestHelpers.FightGuyDef;
+        var triangles = new List<CollisionTriangle> { Floor(0f, -20f, 40f, -20f, 20f), FloorOther(0f, -20f, 40f, -20f, 20f) };
+        triangles.AddRange(Box(7f, 13f, 1.5f, 2f, 5.5f, 10.5f));
+        var arena = FiniteArena(triangles.ToArray(), (0f, -20f, 40f, -20f, 20f), (2f, 7f, 13f, 5.5f, 10.5f));
+        var state = TestHelpers.PlayerState(5.75f, 8f);
+        state.PY = TestHelpers.GroundPY(def);
+        var sim = TestHelpers.MakeSim(arena);
+        sim.RegisterEntity(1, def, state);
+        var inputs = new Dictionary<ulong, InputState>();
+        for (int tick = 0; tick < 140; tick++)
+        {
+            var before = sim.GetState(1);
+            inputs[1] = TestHelpers.Input(moveX: before.PX < 9f ? 1f : 0f,
+                jump: tick == 0, jumpHeld: tick < 10);
+            sim.Tick(inputs);
+            var after = sim.GetState(1);
+            if (tick > 8 && before.VY > 0f)
+                Assert.True(after.VY <= before.VY + 0.001f,
+                    $"tick={tick}: platform accelerated ascent {before.VY} -> {after.VY}");
+            Assert.True(after.PY <= TestHelpers.GroundPY(def, 2f) + 0.1f,
+                $"tick={tick}: launched above platform to {after.PY}");
+            if (after.VY > 0f && tick > 8)
+                Assert.True(after.AirTimeTicks >= def.Movement.FloatWindowTicks,
+                    $"tick={tick}: rising contact refreshed float");
+        }
+    }
+
 [Fact]
 public void Knockback_DoesNotTunnelThroughThinWall()
 {
@@ -815,6 +848,32 @@ public void Knockback_DoesNotTunnelThroughThinWall()
             CX = maxX, CY = 1f, CZ = minZ,
         };
 
+
+    /// <summary>Closed box wound so that (B - A) x (C - A) points out of it.</summary>
+    private static CollisionTriangle[] Box(float minX, float maxX, float minY, float maxY, float minZ, float maxZ)
+    {
+        var p = new[]
+        {
+            (minX, minY, minZ), (maxX, minY, minZ), (maxX, minY, maxZ), (minX, minY, maxZ),
+            (minX, maxY, minZ), (maxX, maxY, minZ), (maxX, maxY, maxZ), (minX, maxY, maxZ),
+        };
+        var quads = new[] { (4, 7, 6, 5), (0, 1, 2, 3), (0, 4, 5, 1), (3, 2, 6, 7), (0, 3, 7, 4), (1, 5, 6, 2) };
+        var triangles = new List<CollisionTriangle>();
+        foreach (var (a, b, c, d) in quads)
+        {
+            triangles.Add(Triangle(p[a], p[b], p[c]));
+            triangles.Add(Triangle(p[a], p[c], p[d]));
+        }
+        return triangles.ToArray();
+    }
+
+    private static CollisionTriangle Triangle((float X, float Y, float Z) a, (float X, float Y, float Z) b, (float X, float Y, float Z) c)
+        => new()
+        {
+            AX = a.X, AY = a.Y, AZ = a.Z,
+            BX = b.X, BY = b.Y, BZ = b.Z,
+            CX = c.X, CY = c.Y, CZ = c.Z,
+        };
 
     private static CollisionTriangle WallX(float x, float minY, float maxY)
         => WallX(x, minY, maxY, -10f, 10f);

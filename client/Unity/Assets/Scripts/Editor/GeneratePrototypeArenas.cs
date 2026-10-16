@@ -49,7 +49,6 @@ public static class GeneratePrototypeArenas
     {
         EnsureFolder("Assets/Art/Stages", "GeneratedPrototypes");
 
-        GenerateSlopCourt();
         GenerateSplashDeck();
         GenerateRecCenterRoof();
         GeneratePicnicPanic();
@@ -57,45 +56,6 @@ public static class GeneratePrototypeArenas
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[PrototypeArenas] Generated and baked the prototype arenas without authoring scenes.");
-    }
-
-    private static void GenerateSlopCourt()
-    {
-        const string key = "slop_court";
-        var boxes = new[]
-        {
-            new Box("Main Court", new Vector3(0f, -0.25f, 0f), new Vector3(26f, 0.5f, 22f)),
-            new Box("West Wing", new Vector3(-15f, -0.25f, 0f), new Vector3(4f, 0.5f, 14f)),
-            new Box("East Wing", new Vector3(15f, -0.25f, 0f), new Vector3(4f, 0.5f, 14f)),
-        };
-        var spawns = CardinalSpawns(6f, 0.85f);
-
-        var teal = Mat(key, "Court", new Color(0.24f, 0.43f, 0.44f), 0.22f);
-        var yellow = Mat(key, "Trim", new Color(0.78f, 0.62f, 0.26f), 0.16f);
-        var coral = Mat(key, "Coral", new Color(0.62f, 0.31f, 0.28f), 0.12f);
-        var cream = Mat(key, "Cream", new Color(0.82f, 0.78f, 0.66f), 0.10f);
-        var navy = Mat(key, "Navy", new Color(0.10f, 0.20f, 0.24f), 0.25f);
-
-        var root = NewRoot("Slop Court");
-        root.AddComponent<ArenaAtmosphere>().Configure(
-            new Color(0.50f, 0.76f, 0.94f),
-            new Color(0.66f, 0.78f, 0.88f),
-            new Color(0.26f, 0.34f, 0.40f),
-            1.05f);
-        AddCollisionVisuals(root, boxes, teal);
-        AddChamferedCourtTrim(root, yellow);
-
-        for (int x = -8; x <= 8; x += 4)
-            Cube(root, $"Lane Mark {x}", new Vector3(x, 0.04f, 0f), new Vector3(0.16f, 0.05f, 19f), cream);
-        Cube(root, "Center Mark", new Vector3(0f, 0.055f, 0f), new Vector3(6f, 0.045f, 0.18f), coral);
-
-        Pavilion(root, new Vector3(-20f, 0f, 13f), navy, cream, coral);
-        Pavilion(root, new Vector3(20f, 0f, 13f), navy, cream, coral);
-        Scoreboard(root, new Vector3(0f, 5.5f, 17f), navy, coral);
-        Banners(root, 18.5f, coral, cream);
-        AddSpawnMarkers(root, spawns);
-
-        SaveAndBake(key, "Slop Court", "#35a4a8", root, boxes, spawns, -12f);
     }
 
     private static void GenerateSplashDeck()
@@ -284,17 +244,6 @@ public static class GeneratePrototypeArenas
         }
     }
 
-    private static void AddChamferedCourtTrim(GameObject root, Material material)
-    {
-        Cube(root, "North Trim", new Vector3(0f, 0.03f, 11.1f), new Vector3(26f, 0.5f, 0.35f), material);
-        Cube(root, "South Trim", new Vector3(0f, 0.03f, -11.1f), new Vector3(26f, 0.5f, 0.35f), material);
-        Cube(root, "West Outer Trim", new Vector3(-17.1f, 0.03f, 0f), new Vector3(0.35f, 0.5f, 14f), material);
-        Cube(root, "East Outer Trim", new Vector3(17.1f, 0.03f, 0f), new Vector3(0.35f, 0.5f, 14f), material);
-        foreach (int x in new[] { -1, 1 })
-        foreach (int z in new[] { -1, 1 })
-            Cube(root, "Corner Trim", new Vector3(x * 14.95f, 0.03f, z * 9.05f), new Vector3(5.7f, 0.5f, 0.35f), material, new Vector3(0f, x * z * 45f, 0f));
-    }
-
     private static void AddRectangleTrim(GameObject root, float width, float depth, Material material)
     {
         Cube(root, "North Trim", new Vector3(0f, 0.03f, depth * 0.5f), new Vector3(width + 0.5f, 0.5f, 0.35f), material);
@@ -310,24 +259,6 @@ public static class GeneratePrototypeArenas
         foreach (int x in new[] { -1, 1 })
         foreach (int z in new[] { -1, 1 })
             Cube(root, "Pavilion Post", center + new Vector3(x * 3.2f, 2.8f, z * 2.2f), new Vector3(0.25f, 4.7f, 0.25f), accent);
-    }
-
-    private static void Scoreboard(GameObject root, Vector3 center, Material frame, Material face)
-    {
-        Cube(root, "Scoreboard Post", center + Vector3.down * 2.5f, new Vector3(0.35f, 5f, 0.35f), frame);
-        Cube(root, "Scoreboard Frame", center, new Vector3(9f, 4f, 0.6f), frame);
-        Cube(root, "Scoreboard Face", center + Vector3.back * 0.34f, new Vector3(7.7f, 2.7f, 0.08f), face);
-    }
-
-    private static void Banners(GameObject root, float radius, Material first, Material second)
-    {
-        for (int i = 0; i < 10; i++)
-        {
-            float angle = i * Mathf.PI * 2f / 10f;
-            var position = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * 13.5f);
-            Cube(root, "Banner Pole", position + Vector3.up * 2f, new Vector3(0.12f, 4f, 0.12f), second);
-            Cube(root, "Banner", position + new Vector3(0f, 3.2f, 0f), new Vector3(1.2f, 1.1f, 0.1f), i % 2 == 0 ? first : second, new Vector3(0f, -angle * Mathf.Rad2Deg, 0f));
-        }
     }
 
     private static void Umbrella(GameObject root, Vector3 center, Material canopy, Material pole)
@@ -361,17 +292,6 @@ public static class GeneratePrototypeArenas
         light.intensity = intensity;
         light.range = range;
         light.shadows = LightShadows.None;
-    }
-
-    private static Spawn[] CardinalSpawns(float radius, float y)
-    {
-        return new[]
-        {
-            new Spawn(new Vector3(-radius, y, 0f), 90f),
-            new Spawn(new Vector3(radius, y, 0f), 270f),
-            new Spawn(new Vector3(0f, y, radius), 180f),
-            new Spawn(new Vector3(0f, y, -radius), 0f),
-        };
     }
 
     private static void AddSpawnMarkers(GameObject root, Spawn[] spawns)

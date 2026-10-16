@@ -15,7 +15,7 @@ namespace SlopArena.Client.World
         private const ulong NpcId = 100;
 
         [SerializeField] private TrainingMatch _match;
-        [SerializeField] private string _arenaKey = "slop_court";
+        [SerializeField] private string _arenaKey = "splash_deck";
         [SerializeField] private bool _runOnStart;
 
         private string OutputDirectory => Path.Combine(

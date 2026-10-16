@@ -75,19 +75,35 @@ def find_tail_geo(bm, deform, groups, bones, ds=0.02, min_len=0.2):
     from_centre = geodesic(bm, [centre], everything)
     cands = [v for v in bm.verts if dom(v) in ("RightUpLeg", "RightLeg", "LeftUpLeg", "LeftLeg") and seg_dist(v.co, leg_segs) > 0.12]
     tip = max(cands, key=lambda v: from_centre.get(v.index, 0))
+    # When the tail end hangs within reach of a leg (Manki v3's club), it is not a candidate and the pick above
+    # lands mid-tail; keep climbing away from the spine to the actual end.
+    while True:
+        nxt = max((e.other_vert(tip) for e in tip.link_edges), key=lambda v: from_centre.get(v.index, 0), default=None)
+        if nxt is None or from_centre.get(nxt.index, 0) <= from_centre.get(tip.index, 0):
+            break
+        tip = nxt
     g = geodesic(bm, [tip], everything)
     bins = {}
     for i, d in g.items(): bins.setdefault(int(d / ds), []).append(bm.verts[i].co)
-    counts, exts = [], []
-    s_root = None
+    stats = []
     for b in range(0, max(bins) + 1):
         pts = bins.get(b, [])
         c = sum(pts, Vector()) / len(pts) if pts else Vector()
-        ext = max((p - c).length for p in pts) if pts else 0.0
-        if b * ds >= min_len and counts:
-            mc = sorted(counts)[len(counts) // 2]; me = sorted(exts)[len(exts) // 2]
-            if len(pts) > 3 * max(mc, 2) and ext > 1.8 * me:
-                s_root = b * ds; break
-        if b >= 2: counts.append(len(pts)); exts.append(ext)
+        stats.append((len(pts), max((p - c).length for p in pts) if pts else 0.0))
+
+    def body_like(b):
+        # Many more vertices than a typical tail ring and wider than the shaft just before it. Width is compared
+        # with the last few rings, not everything since the tip: a club-shaped tip tuft (Manki v3) has wide rings.
+        counts = [n for n, _ in stats[2:b]]
+        if not counts: return False
+        recent = sorted(e for _, e in stats[max(2, b - 5):b])
+        mc = sorted(counts)[len(counts) // 2]; me = recent[len(recent) // 2]
+        return stats[b][0] > 3 * max(mc, 2) and stats[b][1] > 1.8 * me
+
+    s_root = None
+    for b in range(0, len(stats) - 2):
+        # three rings in a row must agree, so a thick section of the tail is not mistaken for the body
+        if b * ds >= min_len and all(body_like(b + k) for k in range(3)):
+            s_root = b * ds; break
     tail = {i for i, d in g.items() if d < s_root}
     return tail, g, s_root, tip

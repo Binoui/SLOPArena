@@ -51,7 +51,7 @@ namespace SlopArena.EditorTools
         [CliCommand("sloparena.stage.views.prepare", "Save Editor state, disable domain reload and open the Training-based baseline scene on a PvP stage.", MainThreadRequired = true, Tags = new[] { "stage", "capture" })]
         public static object Prepare(
             [CliArg("stage", "Baked PvP stage key with a Resources presentation prefab.", Required = true)] string stage,
-            [CliArg("lighting", "scene (default) keeps the baseline scene's key/fill/rim lights, as in Training; pvp disables them in memory, as Arena_PvP has no lights of its own and only the stage's lights and atmosphere remain.")] string lighting = "scene")
+            [CliArg("lighting", "scene (default) lights the stage as Training does: the baseline scene's key/fill/rim, which a stage with its own Stage Lights rig switches off when it spawns; pvp disables them in memory for every stage, as Arena_PvP has no lights of its own and only the stage's lights and atmosphere remain.")] string lighting = "scene")
         {
             if (!Regex.IsMatch(stage ?? "", "^[a-z][a-z0-9_]{0,99}$")) throw new ArgumentException("Invalid stage key.");
             lighting = string.IsNullOrWhiteSpace(lighting) ? "scene" : lighting.Trim().ToLowerInvariant();

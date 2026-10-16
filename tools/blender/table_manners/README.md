@@ -72,6 +72,7 @@ the tabletop. Shader animation moves only distant scenery and soft decorative
 cloth; gameplay geometry remains static.
 
 Review actual gameplay-camera views with `sloparena.stage.views.prepare --stage
-table_manners --lighting pvp`, then repeat with `--lighting scene` for Training's
-additional lights. Use the workflow's full prepare/play/capture/stop/restore batch.
+table_manners`. Training switches its own scene lights off for a stage with a
+`Stage Lights` rig, so one pass shows both Training and PvP lighting. Use the
+workflow's full prepare/play/capture/stop/restore batch.
 Agent captures and focused simulation tests do not establish human PvP acceptance.

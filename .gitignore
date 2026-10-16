@@ -257,6 +257,11 @@ client/Unity/Assets/Stages/table_manners/Presentation.meta
 client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom/
 client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom.meta
 
+# Rebuildable Splash Deck harbour art (source lives in tools/blender/splash_deck).
+client/Unity/Assets/Stages/splash_deck/Presentation.meta
+client/Unity/Assets/Stages/splash_deck/Presentation/Harbour/
+client/Unity/Assets/Stages/splash_deck/Presentation/Harbour.meta
+
 # Local stage previews and Cozy Interior-derived table mesh.
 client/Unity/Assets/StageDesignPreviews/
 client/Unity/Assets/StageDesignPreviews.meta

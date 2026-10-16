@@ -534,6 +534,14 @@ expression. First check the relevant native and SLOPArena command schemas. Keep
 task-specific assertions temporary; promote repeated setup/control operations into
 the existing typed command seam rather than rewriting them in each session.
 
+Two Unity behaviours have broken eval probes silently:
+
+- `GetComponent<T>() ?? AddComponent<T>()` never adds: a missing component is a
+  Unity fake-null object, not C# `null`. Compare with `== null` instead.
+- `Vector3.normalized` returns zero below a magnitude of about 1e-5. Sums of tiny
+  cross products (small triangles in metres) need scaling first, or the normals go
+  black.
+
 ## Migration notes
 
 Removed from the active project:

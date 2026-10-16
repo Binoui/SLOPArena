@@ -161,7 +161,7 @@ public class LobbyPayloadCodecTests
     public void TryParseMatchStarted_RejectsPushWithoutAnAdmittedTransport()
     {
         var json = """
-            {"serverId":"22222222-2222-2222-2222-222222222222","arenaName":"slop_court",
+            {"serverId":"22222222-2222-2222-2222-222222222222","arenaName":"slop_pit",
              "content":{"schemaVersion":1,"entries":[]},"players":[
                {"steamId":1,"name":"A","characterSelection":"Manki","lockedIn":true,"isHost":true,"entityId":1},
                {"steamId":2,"name":"B","characterSelection":"FightGuy","lockedIn":true,"isHost":false,"entityId":2}]}

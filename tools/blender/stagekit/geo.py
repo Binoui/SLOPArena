@@ -17,6 +17,7 @@ by StageNeon):
   Anim      (rate, phase)   rate 0 steady, > 0 blink in Hz, < 0 flicker; phase 0..1
   Travel    (speed, along)  metres per second along TravelDir; along = rest position
   TravelDir (dx, dz)        unit direction in the horizontal plane
+  Bob: Travel (height, Hz * 10 + phase) with TravelDir (0, 0) hops vertically (crowds)
 The StageNeon shader documents the full rate encoding (pulse, chase, window bands).
 """
 from __future__ import annotations

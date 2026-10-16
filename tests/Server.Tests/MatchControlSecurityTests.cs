@@ -24,10 +24,10 @@ public class MatchControlSecurityTests
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
         var orchestrator = new MultiMatchOrchestrator(config);
-        using var control = new MatchControlServer(orchestrator, port, "slop_court", "control-secret-0123456789abcdef01234567");
+        using var control = new MatchControlServer(orchestrator, port, "slop_pit", "control-secret-0123456789abcdef01234567");
         control.Start();
         using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
-        const string body = """{"matchId":"auth-check","arenaName":"slop_court","players":[{"steamId":1,"characterClass":"Manki","entityId":1},{"steamId":2,"characterClass":"FightGuy","entityId":2}]}""";
+        const string body = """{"matchId":"auth-check","arenaName":"slop_pit","players":[{"steamId":1,"characterClass":"Manki","entityId":1},{"steamId":2,"characterClass":"FightGuy","entityId":2}]}""";
         try
         {
             using var missing = await client.PostAsync("/match/start", new StringContent(body));
@@ -82,7 +82,7 @@ public class MatchControlSecurityTests
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
         var orchestrator = new MultiMatchOrchestrator(config);
-        using var control = new MatchControlServer(orchestrator, controlPort, "slop_court");
+        using var control = new MatchControlServer(orchestrator, controlPort, "slop_pit");
         control.Start();
         using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{controlPort}") };
         var matchA = Guid.NewGuid();
@@ -177,7 +177,7 @@ public class MatchControlSecurityTests
         JsonSerializer.Serialize(new
         {
             matchId = matchId.ToString("D"),
-            arenaName = "slop_court",
+            arenaName = "slop_pit",
             admissionExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(60),
             players = players.Select(player => new
             {

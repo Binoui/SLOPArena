@@ -5,6 +5,7 @@
 //             [100,150) chase Hz-100 (one third on) | [150,200) slow toggle Hz-150 | < 0 flicker
 //   TEXCOORD2 (speed, along): m/s along the travel direction; rest position along it
 //   TEXCOORD3 (dir * loop):   horizontal direction scaled by the wrap length in metres
+//   TEXCOORD3 = 0 with TEXCOORD2 (height, Hz * 10 + phase): bob, a vertical hop (crowds)
 Shader "SLOPArena/StageNeon"
 {
     Properties
@@ -45,11 +46,18 @@ Shader "SLOPArena/StageNeon"
 
         float StageTime() { return _Time.y * _TimeScale; }
 
-        // Looping travel along a horizontal lane centred on the world origin.
+        // Looping travel along a horizontal lane centred on the world origin, or, without a
+        // direction, a bouncing hop of travel.x metres at floor(travel.y) / 10 Hz.
         float3 StageTravel(float3 positionWS, float2 travel, float2 dirLoop)
         {
+            if (abs(travel.x) < 1e-4) return positionWS;
             float loop = length(dirLoop);
-            if (abs(travel.x) < 1e-4 || loop < 1e-3) return positionWS;
+            if (loop < 1e-3)
+            {
+                float hz = floor(travel.y) * 0.1;
+                positionWS.y += travel.x * abs(sin(3.14159265 * (StageTime() * hz + frac(travel.y))));
+                return positionWS;
+            }
             float2 dir = dirLoop / loop;
             float along = travel.y + travel.x * StageTime();
             float wrapped = along - loop * floor(along / loop + 0.5);

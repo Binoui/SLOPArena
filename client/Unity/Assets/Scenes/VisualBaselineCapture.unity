@@ -1409,7 +1409,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _match: {fileID: 2988542345828366013}
-  _arenaKey: slop_court
+  _arenaKey: splash_deck
   _runOnStart: 1
 --- !u!1001 &3217259389550734977
 PrefabInstance:

@@ -11,6 +11,11 @@ applied in Unity by a stage-specific command. These generators show the approach
   in an ant-scale campsite at sunset, using both stage shaders.
 - [Table Manners](table_manners/README.md): a kids' craft table with a play-dough
   cake in a bright bedroom, using original drawings and both stage shaders.
+- [Slop Pit](slop_pit/README.md): a raised fight ring over a pit of slop in an
+  underground venue whose crowd hops in `SLOPArena/StageNeon`'s bob channel.
+- [Splash Deck](splash_deck/README.md): a painted fishing boat anchored in a
+  Mediterranean harbour bay on a sunny morning, with a village, lighthouse and an
+  animated sea on the presentation-only `SLOPArena/StageWater` shader.
 
 Keep each generator's source with its stage: it records how to rebuild, vary and
 repair the art. Generated FBX/textures and the Resources prefab stay local and
@@ -42,6 +47,7 @@ not a universal generator; add to it only what a second stage actually needs.
 | [checks.py](stagekit/checks.py) | Blast-corridor face clipping and the planned triangle budget |
 | [arena.py](stagekit/arena.py) | Reading a baked `.arena` (blast corridor, spawns, collision triangles) and file hashes |
 | [preview.py](stagekit/preview.py) | Eevee camera placement on a gameplay orbit |
+| [noise.py](stagekit/noise.py) | Smooth value noise and fbm (numpy) for procedural textures and terrain |
 
 Kit changes must not silently change existing art. Every build prints and records
 a `geometryDigest` (in `build-report.json` and the export stamp). Rebuild every
@@ -69,10 +75,29 @@ the foot of a distant peak.
    build 250–300k triangles. The report flags an overrun; Unity measures performance.
 4. Build the massing and key lighting, apply it in Unity and capture gameplay views
    before detailing. Eevee previews are for quick iteration only; the match camera's
-   ACES grade and bloom decide how emission and colour read.
+   ACES grade and bloom decide how emission and colour read. Check PvP and Training
+   lighting: Training's arena adds three directional lights, so light walkable
+   surfaces (a ring canvas, a tablecloth) need headroom to stay below the bloom.
 5. Write the stage's apply command after `SlopArenaSanctuaryHimalayaCommands.cs` or
    `SlopArenaAfterHoursArtCommands.cs`: verify the stamp against the source and arena
    hashes, configure materials, lights and atmosphere, and replace only its own roots.
+
+### Pitfalls seen in generator passes
+
+- **Vertex AO greys large flat paint.** A wall beside a floor sees half the sky, so
+  a Cycles AO bake into a few corner vertices turns a whole white wall grey in Unity.
+  Leave large hand-painted surfaces (decks, hulls, cabins) out of the bake and paint
+  contact shade into their textures or bottom bands instead (Splash Deck's `NO_AO`).
+- **Fine noise aliases on coarse grids.** Terrain vertices several metres apart
+  cannot carry streaks a metre wide; per-vertex colour then smears into bright
+  stripes. Keep vertex-colour noise at or below the grid frequency and add real
+  geometry (outcrops, boulders) for rocky detail.
+- **Text and decals have a reading side.** Unity is left-handed: facing -X your
+  right is +Z. Decide where players stand when they read a sign or roof marking and
+  map the atlas U from that viewer's left to right (see `boat.py`'s `_wall_decal`).
+- **Visual water inside the corridor is a declared exception.** Give it its own
+  check role (flat at its level, just above the KO plane) rather than exempting the
+  whole background check.
 
 Follow the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md)
 for gameplay safety, the bake and inspection, and `sloparena.stage.views.*`

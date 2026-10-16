@@ -131,27 +131,40 @@ weights and UVs. Renderer count stays **10**; material slots rise **10 → 12**
 through two additional body submeshes. Cooked `poses.bin` is unchanged.
 The original Art prefab's mesh/material bindings are restored.
 
-### Model — Manki 2 (2026-10-16)
+### Model — Manki v3 (2026-10-16)
 
-The catalog rig is now `Presentation/MankiRig.prefab`, a re-modelled Manki rigged in
-Mixamo and rebuilt with [`tools/blender/manki_rig`](../../tools/blender/manki_rig/README.md).
-Its local art lives in `Art/Characters/manki/{Models/Manki2.fbx, Textures/Manki2_BaseColor.png,
-Materials/Manki2_Body.mat}`.
+The catalog rig is `Presentation/MankiRig.prefab`, rebuilt with
+[`tools/blender/manki_rig`](../../tools/blender/manki_rig/README.md) from a re-generated
+Manki (v3) rigged in Mixamo. It replaced Manki 2 the same day: same design, cleaner
+paint, a 4K source texture and smooth shading. The local art keeps the Manki 2 file names
+so the prefab, material and catalog GUIDs are unchanged:
+`Art/Characters/manki/{Models/Manki2.fbx, Textures/Manki2_BaseColor.png, Materials/Manki2_Body.mat}`.
 
-- **Size:** 1.32 m tall, scaled so its Humanoid scale (0.6194) matches the previous
-  rig. Feet stay grounded with the unchanged `modelYOffset`/`hipHeight`. Hurtboxes
-  follow the new skeleton: head about 7 cm lower, hips about 4 cm higher.
-- **Fingers:** thumb/index/middle/ring are Humanoid-mapped, so every clip's finger
-  muscles now show. Air 3 and the head slam carry finger muscles baked from their
-  authored poses.
-- **Deformation:** fist and arm controls match the previous rig, through skinned
-  finger copies and constraints.
-- **Tail:** five bones driven by the presentation-only `BoneChainSpring`.
-- **Texture:** a single 1024² colour map, without the previous rig's readability
-  materials.
-- **Backups:** the previous rigs (`MankiDeformRig`, `MankiVisualRig`) and their
-  `Readability/` assets are kept in `Presentation/Legacy/` and `Presentation/Readability/`.
-  To roll back, point the catalog `_rig` at `Legacy/MankiDeformRig.prefab`.
+- **Size:** export scale 1.24873, chosen so the Humanoid scale (0.6194) matches Manki 2.
+  Feet then stay grounded with the unchanged `modelYOffset`/`hipHeight` (lowest vertex
+  0.7 cm below the floor in Training idle; 2.9 cm at full height). v3 has longer legs, so
+  matching that scale makes him about 4% shorter: 1.26 m, head 0.82 m above the sole in
+  idle (Manki 2: 0.85 m).
+- **Hurtboxes:** follow the new skeleton. In idle, the hips sit 0.512 m above the sole
+  (`hipHeight` is 0.5) and the head is 3 cm lower than Manki 2's. Across all cooked
+  clips, bone positions moved 4.6 cm on average (p95 10.6 cm). `character.json` is
+  unchanged. Full Shared tests pass on the new cook.
+- **Fingers, deformation, tail:** as Manki 2: Humanoid-mapped thumb/index/middle/ring,
+  skinned finger copies with constraints under the fist controls, and a five-bone tail
+  driven by the presentation-only `BoneChainSpring`.
+- **Surface:** fur tufts get body-like normals, which stop them reading as dark speckled
+  tips under the near-vertical key light. The face is repainted on a 2048² colour map
+  (from v3's 4K map): the mask and skin are cleaned, the wink gets a skin-toned lid with
+  a lash line, and the mouth is redrawn. v3's painted brows and clean snout are kept.
+  See the rig README for why.
+- **Backups and rollback:** the Manki 2 assets that were live before v3 are in
+  `artifacts/manki2-polish-20261016/unity-backup/` (local); a Manki 2 rebuild with the
+  same fur and face fixes is in `artifacts/manki2-polish-20261016/staging/export/`. To
+  restore either, copy its FBX to `/tmp/manki-rig-export/Manki2.fbx` and its colour map
+  to `/tmp/manki-rig-export/textures/Manki2_BaseColor.png`, then run
+  `unity_import.eval.cs`, which regenerates the Avatar and constraints. The older rigs
+  (`MankiDeformRig`, `MankiVisualRig`) remain in `Presentation/Legacy/`: point the
+  catalog `_rig` at `Legacy/MankiDeformRig.prefab` to use them.
 
 ## Kit
 

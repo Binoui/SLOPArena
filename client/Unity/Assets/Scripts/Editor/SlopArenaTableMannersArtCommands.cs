@@ -105,9 +105,9 @@ namespace SlopArena.EditorTools
 
                 var lights = new GameObject(LightsName).transform;
                 lights.SetParent(root.transform, false);
-                // Arena_PvP has no lights of its own, so the stage carries its key: high daylight from the
-                // north window whose soft shadows fall close under the fighters. Training adds its own
-                // key/fill/rim on top (check both with sloparena.stage.views.prepare --lighting).
+                // The stage carries its key: high daylight from the north window whose soft shadows fall
+                // close under the fighters. Arena_PvP has no lights, and Training switches its own off for a
+                // stage with this rig, so these are the only lights in every mode.
                 AddLight(lights, "Window Sun", LightType.Directional, Vector3.zero, Quaternion.Euler(62f, 165f, 0f), new Color(1f, 0.94f, 0.84f), 0.95f, 0f, 0.55f);
                 AddLight(lights, "Window Glow", LightType.Point, new Vector3(0f, 18f, 56f), Quaternion.identity, new Color(1f, 0.92f, 0.80f), 1.6f, 75f);
                 AddLight(lights, "Lantern", LightType.Point, new Vector3(0f, 38f, 0f), Quaternion.identity, new Color(1f, 0.94f, 0.86f), 0.6f, 60f);

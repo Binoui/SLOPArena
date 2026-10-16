@@ -5,58 +5,88 @@ target: pvp
 players: 2-4
 variant: static
 authoritative_capability: null
-availability: human-pvp-review-pending
+availability: provisional-visual-and-gameplay-review-pending
 competitive_intent: mixed
-topology: open deck with diagonal equal platforms
+topology: raised central ring on a chamfered ringside floor with closed recovery walls
 source_scene: client/Unity/Assets/Stages/slop_pit/slop_pit.unity
 baked_arena: data/arenas/slop_pit.arena
 cosmetic_prefab: client/Unity/Assets/Resources/Stages/slop_pit.prefab
 design_brief: docs/design/stages/slop_pit.design.md
-preflight:
-  bake: "unity command --project-path client/Unity sloparena.stage.bake --stage slop_pit --format json"
-  inspect: "unity command --project-path client/Unity sloparena.stage.inspect --stage slop_pit --output .stage-authoring-cache/slop_pit/inspection.json --format json"
-  arena_tests: "dotnet test tests/Shared.Tests/ --nologo --filter FullyQualifiedName~ArenaShipping"
+art_source: tools/blender/slop_pit
 human_review:
   owner: project maintainer
-  process: external normal PVP host/lobby/character-select/stage-select review at 2 and 4 players
   status: pending
+  process: gameplay-camera orbit and recovery review, then normal PVP at 2 and 4 players
 ---
 
-# Slop Pit
+# Slop Pit — Underground Fight Ring
 
-## Fight premise
-
-A broad open deck gives fighters room to brawl, while four perimeter walls run from deck level down to the blast plane. Two equal diagonal platforms create simple high-ground choices without taking over the central fight.
+A raised ring is the main combat floor of an underground fight club. Fighters start
+in the ring; a knockout from it lands on the ringside floor, one full jump below,
+and the floor's solid walls drop to the KO line over a pit of glowing slop.
+Terraced stands packed with fans, a lighting rig and a SLOP PIT neon sign surround
+the pit beyond the blast corridor. The [design brief](slop_pit.design.md) holds the
+approved direction and the pending reviews.
 
 ## Gameplay shell
 
-The static shell is a 32×26 deck with bounds x −16..16 and z −13..13, top y=0, and bottom y=−1. Four continuous perimeter walls start at the deck surface and descend to the authored kill height y=−11; their wall collision prevents fighters from dropping beneath the deck. The kill height is fixed by the empty `AuthoringAids/KillPlane` marker.
+The canonical scene contains a closed octagonal floor mesh
+(`SlopPitRingsideFloor.asset`, 32 × 32 with 5 m chamfers, top y = 0, walls to
+y = −11), an open-bottomed ring mesh (`SlopPitRing.asset`, 16 × 16, top y = 1.2),
+four ordered/tagged spawn markers in the ring corners at (±5, ±5) facing its centre
+and an empty `AuthoringAids/KillPlane` at the lowest wall vertex. The baked arena
+gives side blast planes at x/z ±26, a top plane at 21.2 and the kill plane at −11.
+Keep the KillPlane marker aligned with the walls when rebaking.
 
-- Two solid thin platforms are 6×5, with top y=2 and bottom y=1.5.
-- Platform centers are (−10,−8) and (10,8), forming an equal diagonal pair.
-- Both platforms are intended as full-jump-accessible positional choices; the open center remains the primary combat space.
-- Four ordered deck spawns have X/Z positions (−5,−4), (5,4), (−5,4), and (5,−4). Each faces the deck center. Their marker centers use y=0.85 under the existing spawn-marker contract; the deck surface remains y=0.
-- Side blast boundaries remain derived from the baked collision shell; the authored kill-height marker preserves the current death plane while the walls extend down to it.
-- No hazards, moving geometry, decorative colliders, or client-owned gameplay behavior are part of the static variant.
+The walls are authoritative Shared collision: a fighter knocked off falls along a
+solid face and recovers with ordinary jumps and kit mobility. They add no climbing,
+wall jumping, sticking, ledge grab or automatic rescue. The ring's 1.2 m sides block
+movement below its top; every roster fighter reaches the top with one full jump.
 
-## Readability and balance intent
-
-This is a mixed-intent stage with a broad central fighting floor. The four perimeter walls make the stage read as a contained industrial pit rather than a floating deck; the equal diagonal platforms provide symmetric positional choices while preserving the central fight. Recovery and blast behavior remain subject to the pending external 2-player and 4-player PVP review.
+`tools/blender/slop_pit/layout.py` holds the approved `SPEC`. The art generator
+refuses to build unless the baked arena matches it. A shell change means: edit
+`SPEC`, rebuild the source scene from `python3 layout.py --unity-shell`, bake,
+update `SlopPitArenaTests`, then regenerate and reapply the art.
 
 ## Presentation
 
-The cosmetic prefab is `client/Unity/Assets/Resources/Stages/slop_pit.prefab`. The accepted low-poly presentation uses staggered steel plates, restrained rust repairs, hazard-striped fascia, shallow platform frames, four sparse service galleries, two static conveyors and a shallow scrap field. Four steel perimeter walls use the deck surface treatment and continue from the deck edge down to the kill plane. Cool blue-gray distance and warm gallery/deck-edge accents preserve a quiet center. No giant sign, crowds or moving lifts.
+All presentation is original procedural art from `tools/blender/slop_pit`
+([guide](../../../tools/blender/slop_pit/README.md)): one vertex-coloured FBX with
+baked AO, a ring-canvas texture, a floor texture, an atlas of posters, banners,
+skirts, hoarding and signs, and a detail texture. Poster and banner art crops the
+roster portraits in `Assets/Resources/UI/Portraits`; lettering uses the bundled
+Archivo Black and Space Mono. The ring, floor and tower use
+`SLOPArena/StageVertexLit` under the stage's own key and fill lights; the venue uses
+`SLOPArena/StageNeon`, whose bob channel makes the crowd hop without scripts.
+`sloparena.stage.art-slop-pit` verifies the generator stamp against the source-scene
+and arena hashes, imports the art, sets the materials, lights and atmosphere, and
+removes the previous factory roots. The prefab has no Colliders and no
+gameplay-owning components.
 
-The `LowPolyFPS6` scaffold and worklight prefabs were selected and inspected through `.asset-catalog-cache/slop-pit-reference/workset.json` and `inspection.json`. Vendor sources are unchanged. Stage-local primitive assemblies, palette materials and a hazard texture are embedded in the cosmetic prefab. Original Blender meshes under `Assets/Stages/slop_pit/Art/` provide folded panels, open pipes and crushed casings.
+Background geometry stays out of the blast corridor, and nothing within 15 m of the
+corridor rises above two metres under the kill plane, so the 15 m orbit camera cannot
+clip into scenery: the stands begin 41.5 m from the centre and only the slop and its
+junk lie inside, 13 m down. Ring and floor dressing is flush with the walkable tops,
+and wall dressing inside the corridor stands at most 2.5 cm proud. The Resources
+prefab and generated FBX/textures/materials stay local/ignored; rebuild them from
+the source.
 
-Per repository policy the licensed-art-dependent Resources prefab remains local/ignored and must accompany a complete art checkout. Its `.meta` and vendor dependencies must be preserved with it; the authoritative scene and arena alone cannot reproduce the visual stage. Our three original FBX meshes and their import metadata are tracked explicitly. Editable Blender source is retained locally at `.stage-authoring-cache/slop_pit/art-pass-03/scrap-source.blend`.
+## Verification
 
-Local iteration backups and captures are retained under `.stage-authoring-cache/slop_pit/art-pass-01/` through `art-pass-05/`. The accepted design is locked in the design brief. Stage assets remain cosmetic; moving platforms require a separate authoritative capability.
+- Native bake and inspection pass with matching source/baked hashes, four grounded
+  spawns, 10 renderers, 5 materials, 4 local lights, valid shaders/references and
+  zero cosmetic Colliders.
+- `SlopPitArenaTests` checks the baked shell, flat ring and floor heights, 128 recovery
+  cases, the ring sides, one-jump ring access and stepping out to ringside for all
+  four roster fighters; ArenaShipping and the full Shared suite pass; the Server
+  builds.
+- The generator's clearance report finds no problems; receipts are in
+  `.stage-authoring-cache/slop_pit/ring-20261016/` and gameplay-camera captures under
+  PvP and Training lighting in `tmp/slop-pit-ring/`.
 
-## Production contract
-
-The fixed authoritative source is `client/Unity/Assets/Stages/slop_pit/slop_pit.unity`; the typed bake writes `data/arenas/slop_pit.arena`; runtime presentation is discovered from the matching Resources prefab. The source scene must preserve the standard `Stage_slop_pit/GameplayGeometry`, `SpawnPoints`, and `AuthoringAids` hierarchy, with static gameplay meshes only under `GameplayGeometry`, four ordered tagged spawn markers, and an optional empty `AuthoringAids/KillPlane` transform. Without that marker, kill height remains derived as 10 units below the lowest geometry vertex; with it, its Y must exactly match the lowest geometry vertex and becomes the authoritative kill height.
-
-The maintainer accepted the static gameplay layout and final visual treatment on 2026-09-17. Bake/inspect pass with matching source/baked hashes and four grounded spawns. Shared/Server builds and focused ArenaShipping coverage passed during authoring, including both FightGuy full-jump platform approaches. Shared smoke verified stable spawns, open-edge falling, blast death and grounded respawn. Live Training selection and gameplay-camera views were exercised with zero current Unity errors. Packaged client/server verification, measured performance and external human PVP review at both 2 and 4 players remain pending; visual acceptance does not imply release readiness.
-The 2026-09-26 perimeter revision replaces open edges with four collision walls extending from the deck to the preserved kill height y=−11. Bake, inspect, and focused all-edge movement verification are required for this revision; external human PVP review at 2 and 4 players remains pending.
-The accepted 2-unit platforms are near the full-jump limit: approach the inner edge before jumping. Existing rounded capsule support catches the lip and settles onto the top; a direct diagonal jump from the spawn can hit the underside. Preserve this accepted height unless the user requests further tuning.
+The stage's key light, a warm overhead over the ring and two green slop lights carry
+PvP, where the arena scene has no lights. Training's arena adds three directional
+lights, so the ring canvas keeps headroom: tan in PvP, bright cream in Training. Human
+gameplay-camera, recovery-feel and two/four-player PVP review, measured rendering
+performance and packaged-player checks remain pending. These checks do not replace
+them.

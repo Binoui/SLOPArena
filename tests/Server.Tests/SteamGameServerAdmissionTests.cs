@@ -32,7 +32,7 @@ public class SteamGameServerAdmissionTests
     private static MatchInstance NewSteamMatch(string id, MatchContentCatalog catalog, TestClock clock,
         IReadOnlyList<MatchPlayer> roster, DateTimeOffset deadline,
         Action<Guid, string>? onCancel = null, Action<Guid, long>? onResult = null) =>
-        new(0, id, "slop_court", roster, catalog, _ => { }, onMatchResult: onResult,
+        new(0, id, "slop_pit", roster, catalog, _ => { }, onMatchResult: onResult,
             onMatchCancelled: onCancel, admissionDeadlineUtc: deadline, contentHash: ContentHash,
             steamSend: static (_, _, _, _) => { }, clock: clock);
 
@@ -113,7 +113,7 @@ public class SteamGameServerAdmissionTests
         };
         var receivedEntities = new[] { new HashSet<ulong>(), new HashSet<ulong>() };
         var countdown = new TaskCompletionSource<uint>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_court",
+        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_pit",
             new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
                 new MatchPlayer(1002, CharacterClass.Manki, 2) },
             LoadCatalog(), _ => { }, admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
@@ -258,7 +258,7 @@ public class SteamGameServerAdmissionTests
         var catalog = LoadCatalog();
         var matchId = Guid.NewGuid();
         var firstState = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var match = new MatchInstance(0, matchId.ToString("D"), "slop_court",
+        var match = new MatchInstance(0, matchId.ToString("D"), "slop_pit",
             new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
                 new MatchPlayer(1002, CharacterClass.Manki, 2) },
             catalog, _ => { }, admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
@@ -295,7 +295,7 @@ public class SteamGameServerAdmissionTests
         var removed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var swordActive = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var swordRemoved = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_court",
+        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_pit",
             new[] { new MatchPlayer(1001, CharacterClass.Wibou, 1),
                 new MatchPlayer(1002, CharacterClass.FightGuy, 2) },
             LoadCatalog(), _ => { }, contentHash: ContentHash,
@@ -408,7 +408,7 @@ public class SteamGameServerAdmissionTests
         var catalog = LoadCatalog();
         var canceled = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         int resultReports = 0;
-        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_court",
+        var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_pit",
             new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
                 new MatchPlayer(1002, CharacterClass.Manki, 2) }, catalog, _ => { },
             onMatchResult: (_, _) => Interlocked.Increment(ref resultReports),
