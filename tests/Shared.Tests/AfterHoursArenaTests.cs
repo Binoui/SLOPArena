@@ -29,22 +29,50 @@ public class AfterHoursArenaTests
         Assert.Equal(0, candidates[0]);
     }
 
+    // Broad club roof: 30 x 24 with 3 m chamfered corners (CCW in the X/Z plane).
+    private static readonly (float X, float Z)[] Roof =
+    {
+        (-12, -12), (12, -12), (15, -9), (15, 9), (12, 12), (-12, 12), (-15, 9), (-15, -9)
+    };
+
     public static IEnumerable<object[]> RecoveryContacts()
     {
-        // Every wall segment of the cross, plus its four recessed corners.
-        var contacts = new (float x, float z, float dx, float dz)[]
+        // Every wall's midpoint and every convex corner, approached along its outward normal.
+        var contacts = new List<(float x, float z, float dx, float dz)>();
+        for (int i = 0; i < Roof.Length; i++)
         {
-            (0, -13, 0, -1), (7, -10, 1, 0), (11.5f, -7, 0, -1),
-            (16, 0, 1, 0), (11.5f, 7, 0, 1), (7, 10, 1, 0),
-            (0, 13, 0, 1), (-7, 10, -1, 0), (-11.5f, 7, 0, 1),
-            (-16, 0, -1, 0), (-11.5f, -7, 0, -1), (-7, -10, -1, 0),
-            (-7, -7, -1, -1), (7, -7, 1, -1),
-            (7, 7, 1, 1), (-7, 7, -1, 1)
-        };
+            var a = Roof[i];
+            var b = Roof[(i + 1) % Roof.Length];
+            var prev = Roof[(i + Roof.Length - 1) % Roof.Length];
+            var (nx, nz) = OutwardNormal(a, b);
+            contacts.Add(((a.X + b.X) / 2, (a.Z + b.Z) / 2, nx, nz));
+            var (px, pz) = OutwardNormal(prev, a);
+            float length = MathF.Sqrt((nx + px) * (nx + px) + (nz + pz) * (nz + pz));
+            contacts.Add((a.X, a.Z, (nx + px) / length, (nz + pz) / length));
+        }
         foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
         foreach (var contact in contacts)
         foreach (float height in new[] { -2f, -9f })
             yield return new object[] { cls, contact.x, contact.z, contact.dx, contact.dz, height };
+    }
+
+    [Fact]
+    public void BakedShellMatchesTheBroadClubRoof()
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root, "data", "arenas", "after_hours.arena"))!.Value;
+        Assert.Equal((-15f, 15f, -12f, 12f), (arena.MinX, arena.MaxX, arena.MinZ, arena.MaxZ));
+        Assert.Equal(-12f, arena.KillHeight);
+        Assert.Equal(21.5f, arena.KillTop, 3);
+        Assert.Equal((-25f, 25f, -22f, 22f), (arena.KillMinX, arena.KillMaxX, arena.KillMinZ, arena.KillMaxZ));
+        var spawns = new[] { (-6f, -5f), (6f, 5f), (-6f, 5f), (6f, -5f) };
+        Assert.Equal(spawns.Length, arena.SpawnPoints.Length);
+        for (int i = 0; i < spawns.Length; i++)
+        {
+            Assert.Equal(spawns[i].Item1, arena.SpawnPoints[i].X, 3);
+            Assert.Equal(spawns[i].Item2, arena.SpawnPoints[i].Z, 3);
+            Assert.Equal(0.85f, arena.SpawnPoints[i].Y, 3);
+        }
     }
 
     [Theory]
@@ -79,14 +107,28 @@ public class AfterHoursArenaTests
             $"{cls}: wall trapped outward movement from ({edgeX},{edgeZ}) at height {height}.");
     }
 
+    private static (float X, float Z) OutwardNormal((float X, float Z) a, (float X, float Z) b)
+    {
+        float ex = b.X - a.X, ez = b.Z - a.Z;
+        float length = MathF.Sqrt(ex * ex + ez * ez);
+        return (ez / length, -ex / length);
+    }
+
     private static float DistanceToRoof(float x, float z)
     {
-        float DistanceToRectangle(float halfX, float halfZ)
+        bool inside = true;
+        float best = float.MaxValue;
+        for (int i = 0; i < Roof.Length; i++)
         {
-            float dx = MathF.Max(MathF.Abs(x) - halfX, 0);
-            float dz = MathF.Max(MathF.Abs(z) - halfZ, 0);
-            return MathF.Sqrt(dx * dx + dz * dz);
+            var a = Roof[i];
+            var b = Roof[(i + 1) % Roof.Length];
+            var (nx, nz) = OutwardNormal(a, b);
+            if ((x - a.X) * nx + (z - a.Z) * nz > 0) inside = false;
+            float ex = b.X - a.X, ez = b.Z - a.Z;
+            float t = Math.Clamp(((x - a.X) * ex + (z - a.Z) * ez) / (ex * ex + ez * ez), 0f, 1f);
+            float dx = x - (a.X + ex * t), dz = z - (a.Z + ez * t);
+            best = MathF.Min(best, MathF.Sqrt(dx * dx + dz * dz));
         }
-        return MathF.Min(DistanceToRectangle(16, 7), DistanceToRectangle(7, 13));
+        return inside ? 0f : best;
     }
 }

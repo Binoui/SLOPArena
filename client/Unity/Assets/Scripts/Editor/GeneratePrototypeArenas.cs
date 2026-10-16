@@ -8,8 +8,10 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// THROWAWAY LOOK-DEV GENERATOR. Builds five playable arena prefabs and bakes their
-/// authoritative collision data. Delete this tool after the layouts are accepted.
+/// THROWAWAY LOOK-DEV GENERATOR. Builds the remaining box-prototype arena prefabs and bakes
+/// their collision data. It skips any stage with an authoring scene under Assets/Stages:
+/// that scene is the gameplay authority (sloparena.stage.bake) and its art has its own source.
+/// Delete this tool after the layouts are accepted.
 /// </summary>
 public static class GeneratePrototypeArenas
 {
@@ -49,13 +51,12 @@ public static class GeneratePrototypeArenas
 
         GenerateSlopCourt();
         GenerateSplashDeck();
-        GenerateAfterHours();
         GenerateRecCenterRoof();
         GeneratePicnicPanic();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("[PrototypeArenas] Generated and baked five match arenas.");
+        Debug.Log("[PrototypeArenas] Generated and baked the prototype arenas without authoring scenes.");
     }
 
     private static void GenerateSlopCourt()
@@ -149,60 +150,6 @@ public static class GeneratePrototypeArenas
         AddSpawnMarkers(root, spawns);
 
         SaveAndBake(key, "Splash Deck", "#36bfd1", root, boxes, spawns, -12f);
-    }
-
-    private static void GenerateAfterHours()
-    {
-        const string key = "after_hours";
-        var boxes = new[]
-        {
-            new Box("East West Floor", new Vector3(0f, -0.25f, 0f), new Vector3(32f, 0.5f, 14f)),
-            new Box("North South Floor", new Vector3(0f, -0.25f, 0f), new Vector3(14f, 0.5f, 26f)),
-            new Box("West Stage", new Vector3(-10.5f, 0.9f, 0f), new Vector3(6f, 1.8f, 6f)),
-            new Box("East Stage", new Vector3(10.5f, 0.9f, 0f), new Vector3(6f, 1.8f, 6f)),
-        };
-        var spawns = new[]
-        {
-            new Spawn(new Vector3(0f, 0.85f, -5f), 0f),
-            new Spawn(new Vector3(0f, 0.85f, 5f), 180f),
-            new Spawn(new Vector3(-5f, 0.85f, 0f), 90f),
-            new Spawn(new Vector3(5f, 0.85f, 0f), 270f),
-        };
-
-        var floor = Mat(key, "Floor", new Color(0.12f, 0.17f, 0.25f), 0.28f);
-        var magenta = Mat(key, "Magenta", new Color(0.58f, 0.20f, 0.36f), 0.15f, new Color(0.10f, 0.005f, 0.025f));
-        var cyan = Mat(key, "Cyan", new Color(0.22f, 0.55f, 0.57f), 0.14f, new Color(0.005f, 0.09f, 0.10f));
-        var orange = Mat(key, "Orange", new Color(0.72f, 0.40f, 0.20f), 0.12f, new Color(0.12f, 0.025f, 0.005f));
-        var dark = Mat(key, "Skyline", new Color(0.035f, 0.04f, 0.08f), 0.30f);
-        var stall = Mat(key, "Stall", new Color(0.18f, 0.11f, 0.23f), 0.20f);
-
-        var root = NewRoot("After Hours");
-        root.AddComponent<ArenaAtmosphere>().Configure(
-            new Color(0.055f, 0.035f, 0.14f),
-            new Color(0.12f, 0.10f, 0.25f),
-            new Color(0.025f, 0.02f, 0.07f),
-            0.68f,
-            true,
-            new Color(0.055f, 0.035f, 0.14f),
-            30f,
-            85f);
-        AddCollisionVisuals(root, boxes, floor, new Dictionary<string, Material>
-        {
-            ["West Stage"] = cyan,
-            ["East Stage"] = orange,
-        });
-        AddCrossTrim(root, magenta);
-        FestivalStall(root, new Vector3(-19f, 0f, 12f), stall, cyan);
-        FestivalStall(root, new Vector3(19f, 0f, 12f), stall, orange);
-        FestivalStall(root, new Vector3(-19f, 0f, -12f), stall, orange);
-        FestivalStall(root, new Vector3(19f, 0f, -12f), stall, cyan);
-        Skyline(root, dark, cyan, orange);
-        LightStrings(root, cyan, orange);
-        AddSpawnMarkers(root, spawns);
-        AddPointLight(root, "Warm Festival Light", new Vector3(-8f, 7f, -5f), new Color(1f, 0.35f, 0.12f), 4.5f, 16f);
-        AddPointLight(root, "Cool Festival Light", new Vector3(8f, 7f, 5f), new Color(0.10f, 0.65f, 1f), 3.5f, 16f);
-
-        SaveAndBake(key, "After Hours", "#cf2877", root, boxes, spawns, -12f);
     }
 
     private static void GenerateRecCenterRoof()
@@ -356,20 +303,6 @@ public static class GeneratePrototypeArenas
         Cube(root, "West Trim", new Vector3(-width * 0.5f, 0.03f, 0f), new Vector3(0.35f, 0.5f, depth), material);
     }
 
-    private static void AddCrossTrim(GameObject root, Material material)
-    {
-        Cube(root, "North End", new Vector3(0f, 0.03f, 13.1f), new Vector3(14f, 0.55f, 0.4f), material);
-        Cube(root, "South End", new Vector3(0f, 0.03f, -13.1f), new Vector3(14f, 0.55f, 0.4f), material);
-        Cube(root, "East End", new Vector3(16.1f, 0.03f, 0f), new Vector3(0.4f, 0.55f, 14f), material);
-        Cube(root, "West End", new Vector3(-16.1f, 0.03f, 0f), new Vector3(0.4f, 0.55f, 14f), material);
-        foreach (int x in new[] { -1, 1 })
-        foreach (int z in new[] { -1, 1 })
-        {
-            Cube(root, "Cross X Edge", new Vector3(x * 11.5f, 0.03f, z * 7.1f), new Vector3(9f, 0.55f, 0.4f), material);
-            Cube(root, "Cross Z Edge", new Vector3(x * 7.1f, 0.03f, z * 10f), new Vector3(0.4f, 0.55f, 6f), material);
-        }
-    }
-
     private static void Pavilion(GameObject root, Vector3 center, Material structure, Material canopy, Material accent)
     {
         Cube(root, "Pavilion Base", center + Vector3.up * 0.55f, new Vector3(8f, 1.1f, 6f), structure);
@@ -417,36 +350,6 @@ public static class GeneratePrototypeArenas
         Sphere(root, "Beach Ball", center + new Vector3(-1.6f, 0.9f, -0.5f), Vector3.one * 1.4f, third);
     }
 
-    private static void FestivalStall(GameObject root, Vector3 center, Material body, Material accent)
-    {
-        Cube(root, "Stall Counter", center + Vector3.up * 1.1f, new Vector3(6f, 2.2f, 4f), body);
-        Cube(root, "Stall Roof", center + Vector3.up * 4.2f, new Vector3(7f, 0.5f, 5f), accent, new Vector3(0f, 0f, center.x > 0f ? 4f : -4f));
-        Cube(root, "Stall Sign", center + new Vector3(0f, 5.3f, -2.5f), new Vector3(4f, 1f, 0.2f), accent);
-    }
-
-    private static void Skyline(GameObject root, Material building, Material firstLight, Material secondLight)
-    {
-        for (int i = -5; i <= 5; i++)
-        {
-            float height = 6f + Mathf.Abs((i * 7 + 3) % 9);
-            var center = new Vector3(i * 7f, height * 0.5f - 2f, 32f);
-            Cube(root, "Skyline Building", center, new Vector3(5.5f, height, 5f), building);
-            Cube(root, "Skyline Window", center + new Vector3(0f, 0f, -2.55f), new Vector3(0.5f, 0.5f, 0.08f), i % 2 == 0 ? firstLight : secondLight);
-        }
-    }
-
-    private static void LightStrings(GameObject root, Material first, Material second)
-    {
-        foreach (int z in new[] { -1, 1 })
-        {
-            for (int i = -6; i <= 6; i++)
-            {
-                float sag = Mathf.Abs(i) * 0.10f;
-                Sphere(root, "Festival Bulb", new Vector3(i * 3f, 5.2f - sag, z * 16f), Vector3.one * 0.35f, i % 2 == 0 ? first : second);
-            }
-        }
-    }
-
     private static void AddPointLight(GameObject root, string name, Vector3 position, Color color, float intensity, float range)
     {
         var go = new GameObject(name);
@@ -486,6 +389,12 @@ public static class GeneratePrototypeArenas
 
     private static void SaveAndBake(string key, string displayName, string previewColor, GameObject visualRoot, Box[] boxes, Spawn[] spawns, float killHeight)
     {
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>($"Assets/Stages/{key}/{key}.unity") != null)
+        {
+            UnityEngine.Object.DestroyImmediate(visualRoot);
+            Debug.LogWarning($"[PrototypeArenas] Skipped {key}: its authoring scene is the gameplay authority; bake it with sloparena.stage.bake.");
+            return;
+        }
         string prefabPath = $"{PrefabRoot}/{key}.prefab";
         PrefabUtility.SaveAsPrefabAsset(visualRoot, prefabPath);
         UnityEngine.Object.DestroyImmediate(visualRoot);

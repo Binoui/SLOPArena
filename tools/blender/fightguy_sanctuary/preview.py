@@ -8,9 +8,9 @@ import math
 import os
 
 import bpy
-from mathutils import Vector
 
-import geo
+from stagekit.preview import B, gameplay_camera, render_views
+
 
 # name: (target xyz in Unity space, yaw deg (0 = looking north +Z), pitch deg, distance)
 VIEWS = {
@@ -31,10 +31,6 @@ VIEWS = {
 }
 
 KEY_LIGHT_DIR = (-0.0868, -0.9848, 0.1504)   # Arcade scene key light forward (Unity space)
-
-
-def B(p):
-    return Vector((-p[0], -p[2], p[1]))
 
 
 def _material(name, atlas):
@@ -142,26 +138,12 @@ def render(build, objects, out_dir, atlas_path, views_filter=""):
     fill = bpy.data.objects.new("Fill", fill_data)
     sc.collection.objects.link(fill)
     fill.rotation_euler = (B((0.4, -0.5, -0.75)) - B((0, 0, 0))).to_track_quat("-Z", "Y").to_euler()
-    cam_data = bpy.data.cameras.new("cam")
-    cam_data.lens_unit = "FOV"
-    cam_data.angle_y = math.radians(40)
-    cam_data.sensor_fit = "VERTICAL"
-    cam_data.clip_end = 2500
-    cam = bpy.data.objects.new("cam", cam_data)
-    sc.collection.objects.link(cam)
-    sc.camera = cam
+    cam = gameplay_camera(sc, clip_end=2500)
     fighter = _fighter(sc.collection)
     _markers(build, sc.collection)
-    chosen = [v for v in VIEWS if not views_filter or v in views_filter.split(",")]
-    for name in chosen:
-        target, yaw, pitch, dist = VIEWS[name]
-        y, p = math.radians(yaw), math.radians(pitch)
-        fwd = (math.sin(y) * math.cos(p), -math.sin(p), math.cos(y) * math.cos(p))
-        pos = tuple(target[i] - fwd[i] * dist for i in range(3))
-        cam.location = B(pos)
-        cam.rotation_euler = (B(target) - B(pos)).to_track_quat("-Z", "Y").to_euler()
+
+    def stand_in(name, target, dist):
         fighter.location = B((target[0], target[1] - 1.0 + 0.875, target[2]))
         fighter.hide_render = dist > 60
-        sc.render.filepath = os.path.join(out_dir, name + ".png")
-        bpy.ops.render.render(write_still=True)
-        print("PREVIEW", sc.render.filepath)
+
+    render_views(sc, cam, VIEWS, views_filter, out_dir, before=stand_in)

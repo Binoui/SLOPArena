@@ -7,9 +7,9 @@ The approved visual scope is decisions 22–25 in the
 [locked brief](../../../docs/design/stages/fightguy_sanctuary.design.md).
 
 This generator is retained as editable production source and a worked example
-for later stages. See the [reuse guide](../README.md) for reusable geometry,
-export, shading and preview pieces, and the assumptions that remain specific
-to this Sanctuary.
+for later stages. Its mesh, AO bake, export and clearance helpers come from the
+[shared kit](../README.md#shared-kit); the layout reader, rocks, architecture,
+dressing, props, flags, textures and preview here are specific to this Sanctuary.
 
 Build with the installed Blender (including its bundled Python dependencies):
 
@@ -24,7 +24,8 @@ The clearance report checks surface footprints, pillar extent, backdrop faces
 against the full blast box, and distance to the camera envelope. Small decorative
 props and roof ornaments need visual review; the report does not establish
 collision, performance or human acceptance. Blender previews approximate camera
-framing; Unity screenshots establish actual rendering.
+framing; Unity screenshots establish actual rendering. The report and stamp record
+a `geometryDigest`; a shared-kit change must leave it unchanged.
 
 To apply, acquire your own bounded canonical Editor lease under the
 [coordination protocol](../../../docs/contributing/unity-editor-coordination.md).

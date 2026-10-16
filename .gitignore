@@ -303,6 +303,16 @@ client/Unity/Assets/Resources/InputPrompts.meta
 client/Unity/Assets/Resources/Stages/*.prefab
 client/Unity/Assets/Resources/Stages/*.prefab.meta
 
+# Rebuildable Log Off campsite art (source lives in tools/blender/log_off).
+client/Unity/Assets/Stages/log_off/Presentation.meta
+client/Unity/Assets/Stages/log_off/Presentation/Campsite/
+client/Unity/Assets/Stages/log_off/Presentation/Campsite.meta
+
+# Rebuildable Table Manners craft-room art (source lives in tools/blender/table_manners).
+client/Unity/Assets/Stages/table_manners/Presentation.meta
+client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom/
+client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom.meta
+
 # Local stage previews and Cozy Interior-derived table mesh.
 client/Unity/Assets/StageDesignPreviews/
 client/Unity/Assets/StageDesignPreviews.meta
@@ -399,13 +409,10 @@ __pycache__/
 # Runtime UI artwork shipped with the pre-match screens.
 !client/Unity/Assets/Resources/UI/Portraits/*.png
 !client/Unity/Assets/Resources/UI/Stages/*.png
+!client/Unity/Assets/Resources/UI/Stages/table_manners.png.meta
 
 # Original shipping move illustrations; raw animation/vendor inputs stay ignored.
 !client/Unity/Assets/Resources/UI/AbilityCards/**/*.png
-
-# Table Manners preview depends on the locally installed Cozy Interior pack.
-client/Unity/Assets/Resources/UI/Stages/table_manners.png
-client/Unity/Assets/Resources/UI/Stages/table_manners.png.meta
 
 # Last Stop preview depends on the locally installed Train Station pack.
 client/Unity/Assets/Resources/UI/Stages/last_stop.png

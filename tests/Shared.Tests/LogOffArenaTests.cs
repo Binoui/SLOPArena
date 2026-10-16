@@ -7,12 +7,186 @@ namespace SlopArena.Shared.Tests;
 
 public class LogOffArenaTests
 {
+    // Chopping-block stump (tools/blender/log_off/layout.py SPEC): rim radius
+    // 14.5 + 0.3 sin t - 0.2 sin 3t + 0.12 sin 5t, top y = 0, bark to the kill plane.
+    private const float ShelfTop = -1.5f;
+    private const float ShelfLipX = 18.5f;
+
     private static ArenaDefinition LoadArena()
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root, "data", "arenas", "log_off.arena"));
         Assert.True(arena.HasValue, "Log Off must ship its baked arena.");
         return arena.Value;
+    }
+
+    private static float RimRadius(float theta) =>
+        14.5f + 0.3f * MathF.Sin(theta) - 0.2f * MathF.Sin(3f * theta) + 0.12f * MathF.Sin(5f * theta);
+
+    [Fact]
+    public void BakedShellMatchesTheChoppingBlock()
+    {
+        var arena = LoadArena();
+        Assert.Equal(-ShelfLipX, arena.MinX, 3);
+        Assert.Equal(ShelfLipX, arena.MaxX, 3);
+        Assert.Equal(-10f, arena.KillHeight);
+        Assert.Equal(20f, arena.KillTop, 3);
+        Assert.Equal(-28.5f, arena.KillMinX, 3);
+        Assert.Equal(28.5f, arena.KillMaxX, 3);
+        var spawns = new[] { (-7f, 5f), (7f, -5f), (-7f, -5f), (7f, 5f) };
+        Assert.Equal(spawns.Length, arena.SpawnPoints.Length);
+        for (int i = 0; i < spawns.Length; i++)
+        {
+            Assert.Equal(spawns[i].Item1, arena.SpawnPoints[i].X, 3);
+            Assert.Equal(spawns[i].Item2, arena.SpawnPoints[i].Z, 3);
+            Assert.Equal(0.85f, arena.SpawnPoints[i].Y, 3);
+        }
+
+        Assert.Equal(0f, arena.Heightmap.Sample(0, -8), 3);
+        Assert.Equal(float.MinValue, arena.Heightmap.Sample(0, 6));
+        Assert.Equal(ShelfTop, arena.Heightmap.Sample(16.5f, 0), 3);
+        Assert.Equal(ShelfTop, arena.Heightmap.Sample(-16.5f, 0), 3);
+        Assert.Equal(float.MinValue, arena.Heightmap.Sample(0, 16.5f));
+        Assert.Equal(float.MinValue, arena.Heightmap.Sample(16.5f, 8f));
+    }
+
+    [Theory]
+    [InlineData(CharacterClass.FightGuy, -1)]
+    [InlineData(CharacterClass.FightGuy, 1)]
+    [InlineData(CharacterClass.Manki, -1)]
+    [InlineData(CharacterClass.Manki, 1)]
+    [InlineData(CharacterClass.Wibou, -1)]
+    [InlineData(CharacterClass.Wibou, 1)]
+    [InlineData(CharacterClass.Bonk, -1)]
+    [InlineData(CharacterClass.Bonk, 1)]
+    public void RunningOffTheFlankRim_LandsOnTheFungusShelf(CharacterClass cls, int direction)
+    {
+        var arena = LoadArena();
+        var def = TestHelpers.ResolveDef(cls);
+        var state = TestHelpers.PlayerState(10f * direction, 0f);
+        state.PY = TestHelpers.GroundPY(def);
+        var sim = TestHelpers.MakeSim(arena);
+        sim.RegisterEntity(1, def, state);
+        var inputs = new Dictionary<ulong, InputState>();
+        bool airborne = false;
+        for (int tick = 0; tick < 200; tick++)
+        {
+            inputs[1] = TestHelpers.Input(moveX: direction);
+            sim.Tick(inputs);
+            var current = sim.GetState(1);
+            Assert.Equal(0, current.Deaths);
+            airborne |= !current.IsGrounded;
+            if (!airborne || !current.IsGrounded) continue;
+
+            Assert.Equal(TestHelpers.GroundPY(def, ShelfTop), current.PY, precision: 2);
+            Assert.InRange(current.PX * direction, 14.5f + def.CapsuleRadius, ShelfLipX);
+            return;
+        }
+        Assert.Fail($"{cls}/{direction}: a full-speed run off the flank rim did not land on the shelf.");
+    }
+
+    [Theory]
+    [InlineData(CharacterClass.FightGuy, -1)]
+    [InlineData(CharacterClass.FightGuy, 1)]
+    [InlineData(CharacterClass.Manki, -1)]
+    [InlineData(CharacterClass.Manki, 1)]
+    [InlineData(CharacterClass.Wibou, -1)]
+    [InlineData(CharacterClass.Wibou, 1)]
+    [InlineData(CharacterClass.Bonk, -1)]
+    [InlineData(CharacterClass.Bonk, 1)]
+    public void OneFullJumpFromTheShelf_ReturnsToTheStumpTop(CharacterClass cls, int direction)
+    {
+        var arena = LoadArena();
+        var def = TestHelpers.ResolveDef(cls);
+        var state = TestHelpers.PlayerState(16.5f * direction, 0f);
+        state.PY = TestHelpers.GroundPY(def, ShelfTop);
+        var sim = TestHelpers.MakeSim(arena);
+        sim.RegisterEntity(1, def, state);
+        Assert.True(TestHelpers.TickN(sim, default, 10).IsGrounded, $"{cls}/{direction}: shelf did not support the fighter.");
+        var inputs = new Dictionary<ulong, InputState>();
+        bool airborne = false;
+        for (int tick = 0; tick < 150; tick++)
+        {
+            inputs[1] = TestHelpers.Input(moveX: -direction, jump: tick == 0, jumpHeld: tick < 12);
+            sim.Tick(inputs);
+            var current = sim.GetState(1);
+            Assert.Equal(0, current.Deaths);
+            airborne |= !current.IsGrounded;
+            if (!airborne || !current.IsGrounded) continue;
+
+            Assert.Equal(TestHelpers.GroundPY(def), current.PY, precision: 2);
+            Assert.True(current.PX * direction < 14.5f, $"{cls}/{direction}: landed outside the rim.");
+            return;
+        }
+        Assert.Fail($"{cls}/{direction}: one jump from the shelf did not reach the stump top.");
+    }
+
+    [Theory]
+    [InlineData(CharacterClass.FightGuy)]
+    [InlineData(CharacterClass.Bonk)]
+    public void WalkingOffTheShelfLip_FallsToTheBlastPlane(CharacterClass cls)
+    {
+        var arena = LoadArena();
+        var def = TestHelpers.ResolveDef(cls);
+        var state = TestHelpers.PlayerState(17.5f, 0f);
+        state.PY = TestHelpers.GroundPY(def, ShelfTop);
+        var sim = TestHelpers.MakeSim(arena);
+        sim.RegisterEntity(1, def, state);
+        var inputs = new Dictionary<ulong, InputState>();
+        for (int tick = 0; tick < 240; tick++)
+        {
+            inputs[1] = TestHelpers.Input(moveX: tick < 30 ? 1f : 0f);
+            sim.Tick(inputs);
+            if (sim.GetState(1).Deaths > 0) return;
+        }
+        Assert.Fail($"{cls}: the forest below the shelf must not provide a hidden floor.");
+    }
+
+    public static IEnumerable<object[]> BarkContacts()
+    {
+        // Bark between the split mouth and the shelves at a mid and a deep height; the
+        // flank bark only below the shelf roots.
+        var contacts = new List<(float degrees, float height)>();
+        foreach (float degrees in new[] { 30f, 60f, 120f, 150f, 210f, 240f, 270f, 300f, 330f })
+        foreach (float height in new[] { -3f, -8f })
+            contacts.Add((degrees, height));
+        contacts.Add((0f, -7f));
+        contacts.Add((180f, -7f));
+        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var contact in contacts)
+            yield return new object[] { cls, contact.degrees, contact.height };
+    }
+
+    [Theory]
+    [MemberData(nameof(BarkContacts))]
+    public void BarkWalls_BlockInwardMovementAndAllowOutwardMovement(CharacterClass cls, float degrees, float height)
+    {
+        var arena = LoadArena();
+        var def = TestHelpers.ResolveDef(cls);
+        float theta = degrees * MathF.PI / 180f;
+        float rim = RimRadius(theta);
+        float ox = MathF.Cos(theta), oz = MathF.Sin(theta);
+        var state = TestHelpers.PlayerState(ox * (rim + 1f), oz * (rim + 1f));
+        state.PY = height;
+        state.IsGrounded = false;
+        state.AirTimeTicks = def.Movement.FloatWindowTicks;
+        state.State = ActionState.Attacking;
+        state.AnimLockTicks = 60;
+        state.VX = -ox * 120f;
+        state.VZ = -oz * 120f;
+
+        Simulation.SimulateTick(ref state, def, default, arena, out _, out _, DownActionTuning.Default, false);
+
+        float radial = MathF.Sqrt(state.PX * state.PX + state.PZ * state.PZ);
+        Assert.True(radial >= rim - 0.03f + def.CapsuleRadius - 0.03f,
+            $"{cls}: entered the stump at {degrees} deg, height {height}; radial {radial:F3}, rim {rim:F3}.");
+        Assert.False(state.IsGrounded);
+
+        state.VX = ox * 12f;
+        state.VZ = oz * 12f;
+        Simulation.SimulateTick(ref state, def, default, arena, out _, out _, DownActionTuning.Default, false);
+        Assert.True(MathF.Sqrt(state.PX * state.PX + state.PZ * state.PZ) > radial + 0.1f,
+            $"{cls}: bark trapped outward movement at {degrees} deg, height {height}.");
     }
 
     [Theory]
