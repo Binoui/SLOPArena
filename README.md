@@ -6,7 +6,7 @@ SLOPArena takes the platform-fighter fundamentals of movement, damage percent, r
 
 The goal is a game that is readable and competitive without taking itself too seriously: strong character identities, generous 3D hitboxes, expressive movement, and plenty of room for stupid things to happen.
 
-> **Current state:** SLOPArena is preparing a playable friends demo with four admitted cooked demo-roster packages: FightGuy, Manki, Wibou, and Bonk. Package admission does not prove kit completeness or player acceptance. Character execution is cooked-only; Nilus and the old LMB combo compatibility path were retired on 2026-10-02. See the [playable friends demo reset](docs/plans/2026-09-05-playable-demo-reset.md) for current product work.
+> **Current state:** SLOPArena is working toward a playable friends demo with four fighters: FightGuy, Manki, Wibou, and Bonk. Their kits are still being tuned and playtested. See the [playable friends demo plan](docs/plans/2026-09-05-playable-demo-reset.md) for current product work.
 
 ## The game
 
@@ -27,14 +27,12 @@ Left Stick moves; Right Stick controls the camera and ability aim. Face buttons 
 
 ## Current roster
 
-| Fighter | Style | Content status |
+| Fighter | Style | Status |
 | --- | --- | --- |
-| [**FightGuy**](docs/characters/fightguy.md) | Close-range martial-arts brawler with Ki Shot, Rising Dragon, Cyclone Kick, and Fist of Fury | Admitted cooked package |
-| [**Manki**](docs/characters/manki.md) | Explosive all-rounder / jetpack-bazooka skirmisher with bombs and aerosol area denial | Admitted cooked package |
-| [**Wibou**](docs/characters/wibou.md) | Mid-range kitsune sword-spacing duelist focused on launches and air juggles | Admitted cooked package |
-| [**Bonk**](docs/characters/bonk.md) | Greatsword fighter with sword-reach normals, targeted jump-slam recovery, and Blade Storm | Admitted cooked package; avatar visual/pose review pending |
-
-Package admission identifies content accepted by the cooked roster manifest; it does not by itself establish kit completeness or player acceptance.
+| [**FightGuy**](docs/characters/fightguy.md) | Close-range martial-arts brawler with Ki Shot, Rising Dragon, Cyclone Kick, and Fist of Fury | In the demo roster |
+| [**Manki**](docs/characters/manki.md) | Explosive all-rounder / jetpack-bazooka skirmisher with bombs and aerosol area denial | In the demo roster |
+| [**Wibou**](docs/characters/wibou.md) | Mid-range kitsune sword-spacing duelist focused on launches and air juggles | In the demo roster |
+| [**Bonk**](docs/characters/bonk.md) | Greatsword fighter with sword-reach normals, targeted jump-slam recovery, and Blade Storm | In the demo roster; avatar visual/pose review pending |
 
 ## Development
 
@@ -100,6 +98,25 @@ The server and client consume the same cooked deterministic representation. Runt
 Explore the [interactive runtime architecture diagram](docs/generated/runtime-architecture.html) for component relationships, trust boundaries, and the primary runtime path.
 
 The longer-term direction is cautious Workshop/package support: creators compose approved deterministic primitives and package-owned assets; they do not ship arbitrary simulation code, native plugins, or direct Unity-path dependencies. See [ADR-0022](docs/adr/0022-workshop-first-content-architecture.md) through [ADR-0030](docs/adr/0030-ability-lab-canonical-slot-projection.md).
+
+## Repository layout
+
+| Path | What lives there |
+| --- | --- |
+| `src/Shared/` | Deterministic simulation, content compiler, codecs, and rollback primitives shared by the client and server |
+| `src/Server/` | Headless GameServer and match orchestration |
+| `client/Unity/` | Unity client: input, presentation, networking, UI, Ability Lab, and Editor tools. Character packages live in `Assets/CharacterPackages/` |
+| `tests/` | Shared and Server test suites |
+| `content-cooked/` | Cooked character packages and the roster manifest. The Unity cook writes these; don't edit them by hand |
+| `data/` | Baked arena data used by the GameServer and client |
+| `scenarios/` | Input scenarios for the [course replay runner](docs/testing/course-replay.md) |
+| `tools/` | C# diagnostic and report tools, Python checks, and Blender generators for stage art ([inventory](tools/README.md)) |
+| `scripts/` | Build, release, deploy, playtest, and Unity Editor gateway scripts |
+| `deploy/` | GameServer deployment: a local Compose stack and the VPS release setup |
+| `docs/` | Documentation; start with the [documentation map](docs/README.md). Decisions are recorded in `docs/adr/` |
+| `skills/` | Step-by-step workflows for coding assistants, also readable as plain guides |
+
+At the root, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CREDITS.md`, and `LICENSE` are for everyone, and `CONTEXT.md` is the glossary of game terms. `AGENTS.md`, `CLAUDE.md`, `.agents/`, and `.omp/` configure coding assistants. `DESIGN.md`, `PRODUCT.md`, and `.impeccable/` hold the UI design system and product context used by the Impeccable design tool. You can skip those unless you use the tools or work on UI.
 
 ## FightGuy and Ability Lab
 

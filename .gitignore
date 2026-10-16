@@ -1,11 +1,4 @@
 # ==========================================
-# Godot
-# ==========================================
-.godot/
-*.import
-*.uid
-
-# ==========================================
 # Build outputs
 # ==========================================
 build/
@@ -39,6 +32,14 @@ Desktop.ini
 .claude/
 .aider*
 .windsurf/
+.superset/
+/.pi/
+
+# Superpowers brainstorm session state
+.superpowers/
+
+# Personal third-party skill installs (npx skills); project skills live in skills/.
+/skills-lock.json
 
 # Local harness configuration
 /.mcp.json
@@ -46,69 +47,9 @@ Desktop.ini
 # Project-local SlopBot character progress.
 /.slopbot/
 
-# Local Blender studies and export bundles (archive before pruning).
-# Existing tracked Blender sources remain versioned.
+# Local Blender studies and export bundles stay out of Git.
 *.blend1
 /art/blender/exports/
-
-# ==========================================
-# Large binary data (use Git LFS or generate at runtime)
-# ==========================================
-heightmap.bin
-
-# ==========================================
-# Large asset zips (download, don't commit)
-# ==========================================
-Pro Magic Pack*
-assets/characters/ProMagicPack/*.fbx
-
-# ==========================================
-# Branding assets (local only)
-# ==========================================
-branding/
-
-# ==========================================
-# Unreal Engine 5 artifacts (old migration)
-# ==========================================
-Binaries/
-Config/
-Intermediate/
-Saved/
-Content/
-!client/Unity/Assets/Scripts/Runtime/Content/
-!client/Unity/Assets/Scripts/Runtime/Content/**
-DerivedDataCache/
-Makefile
-*.modules
-*.target
-*.gen.cpp
-*.generated.h
-*.uhtmanifest
-*.uhtpath
-*.uhtsettings
-CrashReportClient/
-*.udebugsymbols
-UnrealBuildTool/
-*.link.rsp
-*.link.rsp.old
-TargetInfo.json
-SourceFileCache.bin
-XmlConfigCache.bin
-DependencyCache.bin
-EngineMetadata.dat
-ActionHistory.bin
-Makefile.bin
-TargetMetadata.dat
-*.o
-*.o.rsp
-*.d
-*.so
-!src/Server/third-party/Steamworks.NET/2025.164.1/libsteam_api.so
-*.so.rsp
-*.so.rsp.old
-*.so.debug
-*.sym
-*.pth
 
 # ==========================================
 # Unity (client/)
@@ -124,18 +65,13 @@ client/Unity/[Mm]emoryCapturer/
 client/Unity/.vs/
 client/Unity/steam_appid.txt
 client/Unity/*.csproj
-client/Unity/*.uid
 client/Unity/*.sln
 client/Unity/*.user
-client/Unity/Assets/Shared/*.pdb
-client/Unity/Assets/Shared/*.deps.json
-client/Unity/Assets/Shared/*.meta
 client/Unity/Assets/Generated/CharacterPackages/
 client/Unity/Assets/Resources/Generated/CharacterPackages/
 /.ability-lab-cache/
 /client/Unity/Assets/Temp/pipeline-screenshots/
 /client/Unity/Assets/Temp/pipeline-screenshots.meta
-client/Unity/Assets/Shared/*.runtimeconfig.json
 
 # Optional TextMesh Pro samples; runtime fonts, materials and shaders stay visible.
 /client/Unity/Assets/TextMesh Pro/Examples & Extras/
@@ -147,7 +83,7 @@ client/Unity/Assets/Shared/*.runtimeconfig.json
 /client/Unity/Packages/com.unity.pipeline/CODEOWNERS
 /client/Unity/Packages/com.unity.pipeline/CODEOWNERS.meta
 
-# Root Unity artifacts (orphaned)
+# Root-level local outputs and stray Unity folders
 /Library/
 /Logs/
 /UserSettings/
@@ -215,11 +151,11 @@ client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyStrikeWrap.p
 client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab
 client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab.meta
 
-# Character art (models, textures, materials — non-redistributable)
 # Solo-dev local audio; keep licensed/downloaded source assets out of Git.
 client/Unity/Assets/Resources/Audio/
 client/Unity/Assets/Resources/Audio.meta
-/.pi/
+
+# Character art (models, textures, materials — non-redistributable)
 client/Unity/Assets/Art/
 client/Unity/Assets/Art.meta
 
@@ -261,8 +197,6 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim
 !client/Unity/Assets/CharacterPackages/wibou/Animations/wibou_crouch.anim
 *.png
-# Approved project documentation reference, not imported game art.
-!docs/design/references/sloparena-visual-identity/visual-reference-study.png
 !client/Unity/Assets/UI/SplashArt/*.png
 !client/Unity/Assets/UI/Arcade/SlopballPoster.png
 !client/Unity/Assets/UI/MenuGear.png
@@ -301,6 +235,13 @@ client/Unity/Assets/Resources/InputPrompts.meta
 *.vfx
 *.vfxgraph
 *.shadervariants
+
+# Documentation images are project-authored, so docs/ screenshots stay visible.
+!/docs/**/*.png
+!/docs/**/*.jpg
+!/docs/**/*.jpeg
+# Local capture runs (see docs/visual-baseline.md) stay out of Git by default.
+/docs/evidence/
 
 # Stage presentation prefabs (local licensed art dependencies)
 client/Unity/Assets/Resources/Stages/*.prefab
@@ -343,33 +284,32 @@ docs/generated/*-move-data.json
 # Prevent Unity .meta file leaks into pure .NET Shared directory
 src/Shared/**/*.meta
 
-# Orphan Godot .uid metadata
+# Local asset-catalog and stage-authoring tool caches
 /.asset-catalog-cache/
 /.stage-authoring-cache/
+
+# Stray Godot .uid metadata from the pre-Unity project
+*.uid
 *.uid.meta
 
 # Unity crash dumps
 client/Unity/mono_crash.mem.*
 
-# Duplicate runtime data (source of truth in /data/)
-client/Unity/data/
-
 # Paid assets — do not commit
 client/Unity/Packages/com.kybernetik.animancer
 client/Unity/Assets/BOXOPHOBIC
 
+# Local git worktrees
 .worktrees/
-
-# Superpowers brainstorm session state
-.superpowers/
 
 # Handoff playtest checklist (worktree agents → PR body, never committed)
 TESTING-UNITY.md
 
-# Staged by scripts/build-release.sh (bundled server + arenas for player build)
-
+# Python bytecode
 __pycache__/
 *.pyc
+
+# Staged by scripts/build-release.sh (bundled server + arenas for player build)
 /client/Unity/Assets/StreamingAssets/
 
 # Local Compose inputs: never stage runtime credentials or operator DNS.
@@ -378,14 +318,11 @@ __pycache__/
 # Operator-owned VPS credentials and release state must stay outside Git.
 /deploy/vps/private/
 /deploy/vps/state/
-.entire/
 
 # Archify visual-check outputs (regenerable QA artifacts)
 *.visual-check.json
 *.visual-check.html
 *.visual-check.*.png
-
-# Locally installed agent skills stay ignored; project adapters are allowed below.
 
 # Separate website repository; not a game submodule
 /SlopArena-web/
@@ -421,6 +358,7 @@ __pycache__/
 client/Unity/Assets/Resources/UI/Stages/last_stop.png
 client/Unity/Assets/Resources/UI/Stages/last_stop.png.meta
 
+# Locally installed agent skills stay ignored; project adapters are allowed below.
 # BEGIN project skill adapters (tools/sync_agent_skills.py)
 /.agents/*
 !/.agents/skills/

@@ -38,7 +38,7 @@ provisioning clips; a store download alone does not restore adapted files.
 | Audio | 56 local Audio assets in the Resources dependency traversal | Generated music is identified by the owner. Record generation/source terms per track and identify the separate sound effects |
 | UI images and materials | Frontend backgrounds, MatchTextVFX and stage preview assets | Some source files are ignored while their metadata is tracked. Confirm authorship and source inputs before selecting narrow ignore exceptions; preserve other agents' current stage/UI work |
 | Cooked pose data | Tracked `content-cooked/{fightguy,manki,wibou,bonk}/poses.bin` | The raw clips are mostly ignored, but sampled derivative data is public. Source-pack rights for this publication remain an explicit maintainer review item |
-| Editable Blender studies | Ten tracked files under `art/blender/exports/`, about 37.7 MB | Preserve them while identifying the canonical Manki source and the studies worth retaining. Random export-folder names and blanket ignore rules do not show that existing files are disposable or independently redistributable |
+| Editable Blender studies | Ten pre-Manki 2 studies (about 37.7 MB) removed from `art/blender/exports/` after #271; retrieve one with `git show 05eb19ec:art/blender/exports/<path>` | Earlier history still contains them. The export folder is local-only; neither the removal nor the ignore rule shows that the files are disposable or independently redistributable |
 
 Do not change the four package manifests' MIT fields to imply that vendor art has
 been relicensed. Record source evidence at the asset/pack level, and retain

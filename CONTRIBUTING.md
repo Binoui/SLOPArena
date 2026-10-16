@@ -108,15 +108,15 @@ explicit scenario coverage and deliberate golden maintenance.
 
 New characters use the package-native workflow. Start with [Adding a Character](docs/characters/adding-a-new-character.md). The editable package lives under `client/Unity/Assets/CharacterPackages/<package>/` and contains:
 
-The current product target is a playable friends demo with Manki, FightGuy, Wibou, and
-Bonk. Package authoring remains technically supported, but a fifth character is not a demo
-prerequisite. Nilus compatibility has been removed; characters use cooked packages only.
-
 - `package.json` for package identity, dependencies, creator, license, and attribution;
 - `character.json` for gameplay semantics and the canonical 16-slot move grid;
 - `CharacterAssetCatalog.asset` for package-local Unity asset bindings.
 
 Cooked runtime content belongs under `content-cooked/<package>/` and is admitted through the cooked roster manifest. Do not add a registry factory, raw runtime JSON loader, manual FightGuy animation configuration, or standalone skeleton payload for new work. There is no legacy character execution fallback.
+
+The current product target is a playable friends demo with Manki, FightGuy, Wibou, and
+Bonk. Package authoring remains technically supported, but a fifth character is not a demo
+prerequisite.
 
 ## Verification
 
