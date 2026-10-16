@@ -8,7 +8,7 @@ the proposed improvements are implemented.
 work are smaller supporting tracks. The user selected these priorities after the
 FightGuy Sanctuary art pass.
 
-**Recommendation:** retain Blender → Unity and SlopArena's existing authoring
+**Recommendation:** retain Blender → Unity and SLOPArena's existing authoring
 tools. Improve the design-to-review loop, prove it on one existing arena and one
 new arena, and extract reusable code from those actual uses. Keep visible art
 delivery ahead of building a general studio application.
@@ -95,7 +95,7 @@ expansion there, covering:
 - which details survive the gameplay camera, and which are reserved for closer views;
 - named review views that demonstrate these decisions.
 
-Preserve SlopArena's chunky, scavenged fight-club identity. Stages can have distinct
+Preserve SLOPArena's chunky, scavenged fight-club identity. Stages can have distinct
 settings and palettes; they do not all inherit the Sanctuary's Tibetan motifs or
 the menu's Paper/Ink treatment.
 

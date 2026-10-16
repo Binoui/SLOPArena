@@ -6,13 +6,13 @@
 
 ## Context
 
-ADR-0023 establishes semantic built-in capability IDs, but a public ID is only useful if creators can know what remains compatible as SlopArena changes. Silent semantic drift would change published characters, stages, replays, and online matches without changing their package identity.
+ADR-0023 establishes semantic built-in capability IDs, but a public ID is only useful if creators can know what remains compatible as SLOPArena changes. Silent semantic drift would change published characters, stages, replays, and online matches without changing their package identity.
 
 The installed runtime also cannot preserve every historical capability forever. Compatibility must be explicit, bounded, and validated before a match starts.
 
 ## Decision
 
-The `slop.*` namespace is an additive, SlopArena-owned public registry. A built-in ID names a documented semantic capability contract.
+The `slop.*` namespace is an additive, SLOPArena-owned public registry. A built-in ID names a documented semantic capability contract.
 
 - IDs use an explicit version component, for example `slop.anim.tumble.default.v1`.
 - Compatible implementation changes may retain the ID when the documented contract remains true.
@@ -23,7 +23,7 @@ The `slop.*` namespace is an additive, SlopArena-owned public registry. A built-
 - A runtime advertises a supported built-in API/schema window. Content outside that window is rejected before simulation rather than silently migrated or substituted.
 - Deprecated IDs remain available only for the declared support window. After that window, creators must publish a new package referencing a supported ID.
 
-The compatibility promise is semantic, not visual. SlopArena may replace the private animation, VFX, SFX, or material implementation behind a compatible ID, but it may not change the contract in a way that changes the published content's intended behavior while retaining that ID.
+The compatibility promise is semantic, not visual. SLOPArena may replace the private animation, VFX, SFX, or material implementation behind a compatible ID, but it may not change the contract in a way that changes the published content's intended behavior while retaining that ID.
 
 ## Considered Options
 

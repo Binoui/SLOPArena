@@ -1,8 +1,8 @@
 ---
 name: sloparena-build
-description: "Verify SlopArena Unity compilation and affected runtime behavior through Unity CLI and com.unity.pipeline after Unity-facing changes or compiler errors; also use for runtime Unity screenshots, UI, HUD, and viewport tasks. Use docs/testing.md to distinguish local iteration from package publishing."
+description: "Verify SLOPArena Unity compilation and affected runtime behavior through Unity CLI and com.unity.pipeline after Unity-facing changes or compiler errors; also use for runtime Unity screenshots, UI, HUD, and viewport tasks. Use docs/testing.md to distinguish local iteration from package publishing."
 ---
-# SlopArena Unity CLI Build Gate
+# SLOPArena Unity CLI Build Gate
 
 For live Editor commands, use your own caller identity and bounded gateway lease from the [Unity CLI guide](../../docs/contributing/unity-cli.md) and [coordination protocol](../../docs/contributing/unity-editor-coordination.md). Run project commands from the selected checkout. Busy ownership waits in the gateway; blocked or unknown status requires recovery.
 

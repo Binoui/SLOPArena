@@ -1,6 +1,6 @@
 {
   "deploymentProfile": "development",
-  "serverName": "SlopArena Local Dev",
+  "serverName": "SLOPArena Local Dev",
   "region": "EU",
   "port": 7777,
   "maxConcurrentMatches": 15,

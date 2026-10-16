@@ -10,7 +10,7 @@
     <PackageId>SlopArena.Shared</PackageId>
     <Version>0.1.0</Version>
     <Authors>Binoui</Authors>
-    <Description>Shared data types for SlopArena — pure C#, no Unity dependencies</Description>
+    <Description>Shared data types for SLOPArena — pure C#, no Unity dependencies</Description>
     <RepositoryUrl>https://github.com/Binoui/SlopArena</RepositoryUrl>
     <!-- Keep standalone .NET outputs complete. Unity's third-party managed
          inputs are versioned separately in Assets/Plugins/NuGet. -->

@@ -4,7 +4,7 @@
 
 ## Outcome and ownership
 
-Two entitled accounts install a controlled SlopArena **Playtest** build through Steam, authenticate without a second account, use the existing global/server/direct chat and browser/lobby/selection flow, fight on the dedicated OVH GameHost, see results, return to the lobby, and rematch. The VPS, not a player's computer or the home host, runs the authoritative Shared simulation. No player-created rooms, invitation system, new matchmaking, Workshop, extra VM, or monitoring platform.
+Two entitled accounts install a controlled SLOPArena **Playtest** build through Steam, authenticate without a second account, use the existing global/server/direct chat and browser/lobby/selection flow, fight on the dedicated OVH GameHost, see results, return to the lobby, and rematch. The VPS, not a player's computer or the home host, runs the authoritative Shared simulation. No player-created rooms, invitation system, new matchmaking, Workshop, extra VM, or monitoring platform.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -19,7 +19,7 @@ The **intended gameplay transport is SteamNetworkingSockets** via the Steamworks
 
 - Public VPS online access is **Steam-only**. Explicit local/development mode may retain guest auth for development; offline Training does not require Steam or Master. Deployment profile alone is not the auth policy. No automatic guest or raw-UDP fallback.
 - Playtest AppID, not the unreleased parent game's ownership, is checked by the Master. SteamPipe preview/upload used AppID `5325920` and depot `5325921`; operator confirmation of the Playtest settings remains a release gate. A publisher key remains only on the Master. 2A proved anonymous game-server login with the pinned native stack locally and in an isolated OVH container; confirm permitted dedicated-server redistributables before the production image.
-- A successful Steam ticket and current ownership yield a **one-hour** SlopArena JWT. Renewal requires a **new Steam web ticket and ownership verification**, not an indefinitely renewable old JWT. Signed-in users continue existing chat/lobby until their JWT expires during a Steam verification outage; new sessions and renewal then fail closed. An already authorized match continues and may admit the same rostered Steam identity to its reserved slot while the GameHost and match still exist. No new match may be launched with an expired application session.
+- A successful Steam ticket and current ownership yield a **one-hour** SLOPArena JWT. Renewal requires a **new Steam web ticket and ownership verification**, not an indefinitely renewable old JWT. Signed-in users continue existing chat/lobby until their JWT expires during a Steam verification outage; new sessions and renewal then fail closed. An already authorized match continues and may admit the same rostered Steam identity to its reserved slot while the GameHost and match still exist. No new match may be launched with an expired application session.
 - Production disables public guest issuance **and** rejects previously issued guest JWTs on REST and SignalR, including refresh. JWTs carry a provider claim; refresh preserves provider and never upgrades a guest. Never treat nickname, locally reported SteamID, or a JWT presented to a gameplay socket as proof of match-slot authorization. Preserve saved display names as presentation only; do not merge same-name guest and Steam users. On a Steam account change, clear the old client application session before authenticating the new account; do not reuse its chat/lobby connection.
 - Only a master-authorized, Steam-verified roster member controls the GameHost entity assigned to that member. Same-account reconnect can reclaim a reserved slot **while the match is active**; close and invalidate the prior handle before accepting its packets. No promise of game-process relaunch recovery, simulation restoration or rollback-history migration.
 - A match not filled by its roster expires **60 seconds after allocation**. Once active, if no players remain connected for 60 seconds, or exactly one remains with no connected opponents for 60 seconds, abort with **no competitive result**, notify the existing lobby flow and free the GameHost slot. Returning roster members reset the relevant absence timer while the match remains active. With at least two players still connected, the match continues; ordinary gameplay can end it normally. A GameHost process restart aborts affected matches and returns players to the lobby; it does not restore them.
@@ -154,7 +154,7 @@ chat reconnection.
 
 ## Implementation tickets
 
-| Gate | SlopArena | MasterServer |
+| Gate | SLOPArena | MasterServer |
 | --- | --- | --- |
 | 2A | [#235 — runtime and VPS proof](https://github.com/Binoui/SlopArena/issues/235) | — |
 | 2B | [#236 — client session](https://github.com/Binoui/SlopArena/issues/236) | [#14 — Steam auth](https://github.com/Binoui/SlopArena-MasterServer/issues/14) |

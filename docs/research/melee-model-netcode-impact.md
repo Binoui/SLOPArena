@@ -2,7 +2,7 @@
 
 > Feeds: final ADR ticket (#142), DI/SDI design tickets (#133/#134). Companion to
 > [`melee-knockback-model.md`](melee-knockback-model.md)
-> (the design source for items 1-5 below) and issue #128 (the design map). SlopArena
+> (the design source for items 1-5 below) and issue #128 (the design map). SLOPArena
 > file refs are relative to the repo root (`src/Shared/…`); Melee refs are relative
 > to `melee-decomp/src/melee/`. Claims marked [verified] were read in the decompiled
 > C; `PlCo.dat` numeric values are marked [community] (structure verified, values
@@ -72,7 +72,7 @@ Consequence for this ticket: **"rollback-snapshot needed?" = "must the field be 
 
 ## 4. Item-by-item detail
 
-### 4.1 SDI — the "2 counters?" answer is: Melee uses 2, SlopArena needs 1–2
+### 4.1 SDI — the "2 counters?" answer is: Melee uses 2, SLOPArena needs 1–2
 
 Melee's SDI gate [verified] (`ftCo_Damage.c:575-600`):
 
@@ -88,7 +88,7 @@ if (fp->allow_sdi && VEC2_SQ_LEN(fp->input.lstick) >= SQ(p_ftCommonData->sdi_min
 
 Two **per-axis** tilt timers (`x670` X, `x671` Y), both reset to 254 on an accepted SDI; the gate is "either axis tilted within `sdi_stick_window`" (~4 frames [community]) plus `allow_sdi` and a stick-magnitude floor (`sdi_min_stick_mag`, `sdi_pos_scale` — `PlCo.dat`, values [community]).
 
-- SlopArena's stick is digital 8-way (`MoveX/MoveY ∈ {−1,0,1}`, `InputController.cs:206-215`), so a **single `SdiWindowTicks` counter (1 byte, ticks-since-last-SDI)** reproduces the window logic exactly: any nonzero `MoveX/MoveY` is the tilt. 1 byte, not 2.
+- SLOPArena's stick is digital 8-way (`MoveX/MoveY ∈ {−1,0,1}`, `InputController.cs:206-215`), so a **single `SdiWindowTicks` counter (1 byte, ticks-since-last-SDI)** reproduces the window logic exactly: any nonzero `MoveX/MoveY` is the tilt. 1 byte, not 2.
 - **2 × byte is still the better mirror**: it matches the decomp field-for-field, costs 1 extra byte, and keeps the door open for a future analog controller (ADR-0016 says controllers map to the same slots later). Recommend 2 × byte; the ADR can pick either — both fit.
 - The shift target (`PX/PY/PZ`) is already a wire field — **only the timer needs carriage**. The shift itself is `pos += stick · sdiScale`, deterministic.
 - Hitstop length bounds the SDI budget: freeze = `2 + 2·damage`, cap 24 (ADR-0012; `ServerSimulation.cs:1048-1059` `ComputeHitstopTicks` call site). Melee scales hitlag with damage too (`ft/ftcommon.c:646-649` [verified] — cited in melee-knockback-model.md §Scope); issue #128 keeps "hitstop length model + SDI window interaction" as an open question for #133.
@@ -97,7 +97,7 @@ Two **per-axis** tilt timers (`x670` X, `x671` Y), both reset to 254 on an accep
 
 - Capture half is **already implemented**: `DIX/DIY` are written from `input.MoveX/MoveY` during the hitstop freeze (`Simulation.cs:175-176`, added by ADR-0012) and during hitstun (`Simulation.cs:636-639`).
 - Consumption half today: additive Combo Influence at hitstun expiry — `KVX += DIX · 0.30 · launchMag` (`Simulation.cs:643-651`; ADR-0013).
-- Melee model (melee-knockback-model.md §4.4.1): rotate the **launch vector** toward the stick at hitlag exit, magnitude preserved, up to `θ_max` = 18° weighted by stick²·sin² [verified] `ftCo_Damage.c:605-640` (x1A8 [community]). In SlopArena terms that is: read `DIX/DIY` at **freeze expiry** and rotate the queued launch before `ApplyKnockback` — a one-shot transition at exactly the existing queue-application point (`Simulation.cs:179-229`).
+- Melee model (melee-knockback-model.md §4.4.1): rotate the **launch vector** toward the stick at hitlag exit, magnitude preserved, up to `θ_max` = 18° weighted by stick²·sin² [verified] `ftCo_Damage.c:605-640` (x1A8 [community]). In SLOPArena terms that is: read `DIX/DIY` at **freeze expiry** and rotate the queued launch before `ApplyKnockback` — a one-shot transition at exactly the existing queue-application point (`Simulation.cs:179-229`).
 - Netcode: zero change. `DIX/DIY` are derived from the relayed input; the rotated launch lands in KV, which is mirrored into the wired `V` every tick (`Simulation.cs:632-634`). With a digital 8-way stick, sin² weighting becomes a discrete function of the 8-way direction — deterministic by construction.
 - Decision to surface in #133: **drop or keep Combo Influence** (melee-knockback-model.md §4.4.3). Both applied = double drift; netcode-neutral either way.
 - Note: ADR-0013's stated reason for rejecting rotational DI ("needs relative-angle math in 3D") is now moot for the keyboard floor — an 8-way discrete rotation in the launch plane is trivial; the ticket #133 grilling should re-check that rejection.
@@ -112,7 +112,7 @@ Two **per-axis** tilt timers (`x670` X, `x671` Y), both reset to 254 on an accep
 
 ### 4.4 Run (dash→run→pivot)
 
-Melee splits ground movement into Run / RunBrake / TurnRun (pivot) / RunDirect (`ftCo_Run.c:81-143`, `ftCo_RunBrake.c`, `ftCo_TurnRun.c:27-30`, `ftCo_RunDirect.c:21-59` [verified]). SlopArena can express all of it with:
+Melee splits ground movement into Run / RunBrake / TurnRun (pivot) / RunDirect (`ftCo_Run.c:81-143`, `ftCo_RunBrake.c`, `ftCo_TurnRun.c:27-30`, `ftCo_RunDirect.c:21-59` [verified]). SLOPArena can express all of it with:
 
 - **One new `ActionState.Run` value** (0 B — the state byte is already on the wire, `buffer[28]`).
 - **Existing wired bookkeeping** (D10/ADR-0011 — added precisely so Predictable re-sim is byte-identical, `CharacterStatePacket.cs:79` comment): `IsSprinting`, `DirHoldTicks`, `TurnaroundTicks`, `LastDirX/Z`, `DashDurationTicks`, `DashDirX/Z`.
@@ -154,7 +154,7 @@ Static per-character data → same transport as `MovementStats`/ability specs (`
 
 ## 7. Sources
 
-### SlopArena (repo root)
+### SLOPArena (repo root)
 
 | Claim | File:line |
 |---|---|

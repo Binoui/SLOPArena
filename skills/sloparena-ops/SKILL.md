@@ -1,9 +1,9 @@
 ---
 name: sloparena-ops
-description: "Investigates SlopArena Steam/VPS readiness, connection failures, lag and match logs. Use when the user asks for logs, reports frozen or snapping fighters, or asks whether the servers are up. Alfred is an explicitly selected historical alternative."
+description: "Investigates SLOPArena Steam/VPS readiness, connection failures, lag and match logs. Use when the user asks for logs, reports frozen or snapping fighters, or asks whether the servers are up. Alfred is an explicitly selected historical alternative."
 ---
 
-# SlopArena operations
+# SLOPArena operations
 
 ## Current target and authorization
 
@@ -98,8 +98,8 @@ boundaries, not live application readiness; it is not a routine log-fetch step.
 
 Client logs:
 
-- Windows: `%USERPROFILE%\AppData\LocalLow\SlopArena\SlopArena\Player.log`.
-- Proton: the Playtest's `steamapps/compatdata/5325920/pfx/drive_c/users/steamuser/AppData/LocalLow/SlopArena/SlopArena/Player.log` under the selected Steam library.
+- Windows: `%USERPROFILE%\AppData\LocalLow\SLOPArena\SLOPArena\Player.log` (case-insensitive, so it also finds older installs).
+- Proton: the Playtest's `steamapps/compatdata/5325920/pfx/drive_c/users/steamuser/AppData/LocalLow/SLOPArena/SLOPArena/Player.log` under the selected Steam library; installs from before the SLOPArena rename keep `LocalLow/SlopArena/SlopArena/`.
 - Linux Editor: `~/.config/unity3d/Editor.log`.
 
 Frozen before countdown: inspect startup control rejection and the full-roster

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Read this map before changing SlopArena. The authoritative gameplay implementation is the pure C# Shared simulation. Unity presents it; the GameServer hosts it.
+Read this map before changing SLOPArena. The authoritative gameplay implementation is the pure C# Shared simulation. Unity presents it; the GameServer hosts it.
 
 ## Repository map
 

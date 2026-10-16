@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a Windows demo release: SlopArena-<version>.zip in build/release/.
+# Build a Windows demo release: SLOPArena-<version>.zip in build/release/.
 # Usage: scripts/build-release.sh <version>   e.g. scripts/build-release.sh 0.2.0-demo.1
 set -euo pipefail
 
@@ -7,7 +7,7 @@ VERSION="${1:?usage: build-release.sh <version>}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 UNITY="${UNITY_EDITOR:-$HOME/Unity/Hub/Editor/6000.0.78f1/Editor/Unity}"
 PROJ="$ROOT/client/Unity"
-REL="$ROOT/build/release/SlopArena-$VERSION"
+REL="$ROOT/build/release/SLOPArena-$VERSION"
 SA="$PROJ/Assets/StreamingAssets"
 verify_roster_payloads() {
   local tree="$1"
@@ -96,12 +96,12 @@ sed -i "s/^  bundleVersion: .*/  bundleVersion: $VERSION/" "$PROJ/ProjectSetting
 
 echo "== Unity Windows player build =="
 mkdir -p "$REL"
-"$UNITY" -batchmode -quit -projectPath "$PROJ" -buildWindows64Player "$REL/SlopArena.exe"
+"$UNITY" -batchmode -quit -projectPath "$PROJ" -buildWindows64Player "$REL/SLOPArena.exe"
 
 echo "== Ship docs + zip =="
 cp "$ROOT/docs/release/PLAY_GUIDE.md" "$REL/README.txt"
 cp "$ROOT/docs/release/HOST_GUIDE.md" "$REL/HOSTING.txt"
-(cd "$REL/.." && zip -r "SlopArena-$VERSION.zip" "SlopArena-$VERSION")
+(cd "$REL/.." && zip -r "SLOPArena-$VERSION.zip" "SLOPArena-$VERSION")
 restore_stage
 trap - EXIT
-echo "DONE: build/release/SlopArena-$VERSION.zip"
+echo "DONE: build/release/SLOPArena-$VERSION.zip"

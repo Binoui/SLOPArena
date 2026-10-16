@@ -8,17 +8,17 @@ adaptive
 
 ## Users
 
-Primary users are friends playing SlopArena online. They need to join a match, understand each fighter quickly, and complete short remote matches without requiring every player to operate hosting or networking infrastructure.
+Primary users are friends playing SLOPArena online. They need to join a match, understand each fighter quickly, and complete short remote matches without requiring every player to operate hosting or networking infrastructure.
 
 ## Product Purpose
 
-SlopArena is an open-source 3D platform fighter built around expressive movement, knockback, compact hero-style kits, and room for unexpected play. The immediate product goal is a playable friends demo that gets real remote feedback on four admitted cooked characters: FightGuy, Manki, Wibou, and Bonk.
+SLOPArena is an open-source 3D platform fighter built around expressive movement, knockback, compact hero-style kits, and room for unexpected play. The immediate product goal is a playable friends demo that gets real remote feedback on four admitted cooked characters: FightGuy, Manki, Wibou, and Bonk.
 
 Success means friends can enter a match, understand what happened, and have enough readable, expressive interaction to want another round. Package admission is not treated as proof of kit completeness or player acceptance.
 
 ## Positioning
 
-SlopArena's distinctive mechanism is a server-authoritative 60 Hz simulation shared by the Unity client and GameServer. The same deterministic gameplay model supports training, prediction, reconciliation, rollback, and online matches while leaving presentation in the client.
+SLOPArena's distinctive mechanism is a server-authoritative 60 Hz simulation shared by the Unity client and GameServer. The same deterministic gameplay model supports training, prediction, reconciliation, rollback, and online matches while leaving presentation in the client.
 
 The combat identity combines camera-relative 8-direction movement, jump arcs, double jumps, fast-fall, ledges, Dash, damage percent, Knockback, Hitstun, Hitstop, Combo Influence, Clash, Burst, and compact fighter kits with meaningful recovery, zoning, and finisher choices.
 
@@ -41,7 +41,7 @@ Gameplay runs at 60 Hz. The client renders authoritative state and semantic pres
 - Shared simulation code remains free of Unity types and engine physics queries.
 - Current admitted demo roster: FightGuy, Manki, Wibou, and Bonk. Nilus and its legacy character execution path are retired.
 - The longer-term Workshop direction permits approved deterministic primitives and package-owned assets, not arbitrary simulation code, native plugins, or direct Unity-path dependencies.
-- The current implementation targets Unity 6 desktop. SlopArena also has a separate web presentation surface; the Impeccable platform value `adaptive` records that the product spans these first-party surfaces rather than asserting a mobile-native target.
+- The current implementation targets Unity 6 desktop. SLOPArena also has a separate web presentation surface; the Impeccable platform value `adaptive` records that the product spans these first-party surfaces rather than asserting a mobile-native target.
 
 ## Brand Commitments
 
@@ -51,7 +51,7 @@ Target graphic primary actions and selection use Action Yellow (`#FFCC22`). Arch
 
 The canonical visual-language guide is `docs/design/visual-language.md`; art conventions remain authoritative for 3D and assets. The sibling repository `../SlopArena-web` is the web graphic reference.
 
-**Status:** SlopArena is unreleased, developed by a solo developer, and is not on Steam. The player-facing identity rollout is implemented. Frontend pages use the user's authored paper background; Home has separate mode/poster/announcement columns. Chat is an absolute user-sized overlay in menus and gameplay and does not influence underlying composition. Settings and match overlays retain readable neutral fields. The separately approved gameplay HUD now has fight-card player panels with clear lives, four paired tickets displaying all eight moves with live ground/air names and effective bindings, shared damage-tier colors, and a persistent target marker with an optional overhead percentage. 3D arenas, existing navigation, gameplay data/authority, and networking are preserved. Connected-room, distributable-player, creator/Ability Lab, website, and release-copy migration are not claimed; the website still has the misleading Steam CTA.
+**Status:** SLOPArena is unreleased, developed by a solo developer, and is not on Steam. The player-facing identity rollout is implemented. Frontend pages use the user's authored paper background; Home has separate mode/poster/announcement columns. Chat is an absolute user-sized overlay in menus and gameplay and does not influence underlying composition. Settings and match overlays retain readable neutral fields. The separately approved gameplay HUD now has fight-card player panels with clear lives, four paired tickets displaying all eight moves with live ground/air names and effective bindings, shared damage-tier colors, and a persistent target marker with an optional overhead percentage. 3D arenas, existing navigation, gameplay data/authority, and networking are preserved. Connected-room, distributable-player, creator/Ability Lab, website, and release-copy migration are not claimed; the website still has the misleading Steam CTA.
 
 ## Evidence on Hand
 

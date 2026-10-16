@@ -1,6 +1,6 @@
-# NPC/Bot System - SlopArena
+# NPC/Bot System - SLOPArena
 
-Complete documentation for creating and managing bots/NPCs in SlopArena.
+Complete documentation for creating and managing bots/NPCs in SLOPArena.
 
 ## Architecture
 

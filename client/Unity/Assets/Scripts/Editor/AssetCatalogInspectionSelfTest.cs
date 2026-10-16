@@ -77,7 +77,7 @@ public static class AssetCatalogInspectionSelfTest
                 SlopArenaCharacterCommands.Inspect(scaledWorkset, scaledOutput, false, true);
             Require(compact.InspectionPath == scaled.RelativePath(scaledOutput, projectRoot) && compact.ReportPath == null && compact.ContactSheetPath == null,
                 "Compact inspection paths were incorrect.");
-            UnityEngine.Debug.Log("[SlopArena] Asset catalog inspection self-test passed.");
+            UnityEngine.Debug.Log("[SLOPArena] Asset catalog inspection self-test passed.");
         }
         finally
         {

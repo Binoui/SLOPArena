@@ -18,7 +18,7 @@ A published Workshop package has:
 - an immutable semantic version;
 - a content hash covering the cooked runtime package;
 - a declared runtime schema version;
-- a declared supported SlopArena runtime/API compatibility range;
+- a declared supported SLOPArena runtime/API compatibility range;
 - explicit dependencies, each pinned by package ID, version, and hash;
 - creator identity, license, and attribution metadata.
 

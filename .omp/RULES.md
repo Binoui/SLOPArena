@@ -1,4 +1,4 @@
-# SlopArena rules
+# SLOPArena rules
 
 The maintained rules are in root [AGENTS.md](../AGENTS.md). This compatibility
 entry point preserves old links and adds no OMP-specific permissions.

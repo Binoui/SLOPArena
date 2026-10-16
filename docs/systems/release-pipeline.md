@@ -236,10 +236,10 @@ launch or two-account match.
 
 | Local output | Purpose |
 | --- | --- |
-| `build/playtest/<version>/SlopArena-<version>.tar.gz` | The only client asset to publish to GitHub |
+| `build/playtest/<version>/SLOPArena-<version>.tar.gz` | The only client asset to publish to GitHub |
 | `build/playtest/<version>/<attempt>/client.json` | Packaged identity and build result |
 | `build/playtest/<version>/<attempt>/handoff.json` | Actual output/log paths and settlement |
-| `build/playtest/<version>/<attempt>/release/SlopArena-<version>/` | Packaged Windows player for local inspection/testing |
+| `build/playtest/<version>/<attempt>/release/SLOPArena-<version>/` | Packaged Windows player for local inspection/testing |
 | Remaining attempt logs/dependency receipts | Private local diagnostic evidence; keep out of release assets |
 
 Package or toolchain changes can invalidate accepted cook provenance. Resolve
@@ -254,7 +254,7 @@ After the build succeeds:
 
 ```bash
 gh release create "playtest-client-$version" \
-  "build/playtest/$version/SlopArena-$version.tar.gz" \
+  "build/playtest/$version/SLOPArena-$version.tar.gz" \
   --target "$game_revision" --prerelease --latest=false \
   --title "Local Playtest client $version" \
   --notes "Verified Windows client from game commit $game_revision. Steam activation follows VPS deployment."

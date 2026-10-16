@@ -52,7 +52,7 @@ Share Link can also access that Replay; public replay browsing is outside v1.
 There is **one shared link per Match**, managed by any participant. Revoking it
 affects everyone using that link; downloaded copies remain usable. Link expiry
 matches Replay expiry and never extends backend retention. Opening a Share Link
-downloads the Replay file for Import Replay in SlopArena; app-launch integration
+downloads the Replay file for Import Replay in SLOPArena; app-launch integration
 and a browser gameplay viewer are deferred.
 
 Provide Import Replay for compatible downloaded files. Local copies remain usable

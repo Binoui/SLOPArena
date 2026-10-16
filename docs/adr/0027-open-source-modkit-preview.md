@@ -6,7 +6,7 @@
 
 ## Context
 
-Creators need to author models, animation, VFX, audio, and gameplay configuration without receiving every private or licensed asset used by SlopArena. Unity and external DCC tools already provide general-purpose authoring capabilities; SlopArena should focus on its own character, stage, ability, timing, hitbox, validation, packaging, and playtesting concerns.
+Creators need to author models, animation, VFX, audio, and gameplay configuration without receiving every private or licensed asset used by SLOPArena. Unity and external DCC tools already provide general-purpose authoring capabilities; SLOPArena should focus on its own character, stage, ability, timing, hitbox, validation, packaging, and playtesting concerns.
 
 The ModKit must also preview the same behavior that the installed game and GameServer use. A Unity-editor-only approximation would allow content to work in the tool but fail under the authoritative shared simulation.
 
@@ -14,7 +14,7 @@ The ModKit must also preview the same behavior that the installed game and GameS
 
 The creator ModKit is distributed as open-source project/tooling code and includes only legally redistributable project assets. Creators may continue using Blender, Maya, Mixamo, or other external DCC tools for source production.
 
-The ModKit focuses on SlopArena-specific authoring:
+The ModKit focuses on SLOPArena-specific authoring:
 
 - character and stage definitions;
 - animation assignment and timing;
@@ -28,7 +28,7 @@ The ModKit focuses on SlopArena-specific authoring:
 
 Unity is the preferred authoring environment for the official ModKit. Normal humanoid fighters use Unity Humanoid rigs as the default path so built-in animations can be retargeted. Generic/custom rigs remain a future-supported path with additional creator-supplied animation requirements; Humanoid is not a universal content requirement.
 
-The installed SlopArena game is the authoritative preview environment. The ModKit cooks a temporary package, the installed game loads it through the same validation and runtime registry path, and the shared simulation runs the actual gameplay. The ModKit may show metadata or placeholders for private built-in resources, but it must not claim an approximation is authoritative.
+The installed SLOPArena game is the authoritative preview environment. The ModKit cooks a temporary package, the installed game loads it through the same validation and runtime registry path, and the shared simulation runs the actual gameplay. The ModKit may show metadata or placeholders for private built-in resources, but it must not claim an approximation is authoritative.
 
 The intended workflow is:
 
@@ -39,7 +39,7 @@ Unity ModKit + external DCC tools
 Cook and validate temporary package
         │
         ▼
-Installed SlopArena
+Installed SLOPArena
         │
         ├── resolve built-in capabilities
         ├── load creator assets
@@ -50,7 +50,7 @@ Official fighters, stages, and presentation content serve as the reference corpu
 
 ## Considered Options
 
-- **Build a standalone proprietary editor** — rejected for the first architecture: it would recreate Blender/Unity functionality and delay SlopArena-specific tooling.
+- **Build a standalone proprietary editor** — rejected for the first architecture: it would recreate Blender/Unity functionality and delay SLOPArena-specific tooling.
 - **Use only Unity-editor preview** — rejected: editor behavior could diverge from the installed game's runtime and authoritative simulation.
 - **Load raw source assets in the installed game** — rejected: source formats are not the cooked runtime contract (ADR-0025).
 - **Require Humanoid rigs** — rejected: it would exclude legitimate non-humanoid community fighters; custom rigs may trade away built-in animation reuse instead.

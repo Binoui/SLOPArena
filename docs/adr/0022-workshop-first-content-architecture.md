@@ -6,7 +6,7 @@
 
 ## Context
 
-SlopArena is intended to be more than a fixed official roster. Its long-term product identity is a free-to-play, open-source 3D platform fighter where community-created fighters, stages, and presentation content are first-class parts of the game through Steam Workshop.
+SLOPArena is intended to be more than a fixed official roster. Its long-term product identity is a free-to-play, open-source 3D platform fighter where community-created fighters, stages, and presentation content are first-class parts of the game through Steam Workshop.
 
 The repository already separates the shared simulation from Unity presentation and uses reusable character, ability, arena, animation, and VFX concepts. It also contains third-party and licensed assets that cannot become raw public dependencies. Treating community creation as a later modding layer would therefore create the wrong boundaries now: official content could depend on private implementation details, and creator content could be forced to redistribute assets it does not own.
 
@@ -22,7 +22,7 @@ The repository already separates the shared simulation from Unity presentation a
 
 ### Content boundary
 
-Workshop packages contain creator-owned definitions and assets, plus references to SlopArena built-in capabilities. They do not contain copies of built-in SlopArena implementation assets.
+Workshop packages contain creator-owned definitions and assets, plus references to SLOPArena built-in capabilities. They do not contain copies of built-in SLOPArena implementation assets.
 
 Workshop content references semantic built-in capability IDs rather than Unity paths, filenames, package names, or asset vendors. The installed game owns the mapping from those IDs to runtime assets.
 
@@ -30,7 +30,7 @@ Community gameplay is composed from deterministic, engine-owned, versioned primi
 
 ### Open-source and access scope
 
-The open-source commitment covers SlopArena code and project assets that SlopArena can legally redistribute. Third-party licensed assets remain behind the installed-game boundary or are distributed under their own valid terms.
+The open-source commitment covers SLOPArena code and project assets that SLOPArena can legally redistribute. Third-party licensed assets remain behind the installed-game boundary or are distributed under their own valid terms.
 
 The game, the creator ModKit, and gameplay-affecting Workshop content remain free to access. This ADR does not prohibit future monetization of non-gameplay content, but paid gameplay content is outside the product commitment.
 
@@ -57,4 +57,4 @@ This ADR does not define the final package schema, Steam integration details, ru
 
 ## Core Principle
 
-> **Workshop content references SlopArena capabilities; it does not depend on SlopArena's underlying asset files.**
+> **Workshop content references SLOPArena capabilities; it does not depend on SLOPArena's underlying asset files.**

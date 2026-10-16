@@ -1,10 +1,10 @@
-# Trying GenRA for cartoon combat animation in SlopArena
+# Trying GenRA for cartoon combat animation in SLOPArena
 
 *Early field report · 14 October 2026*
 
 *Prepared by Codex from the experiment artifacts and session records. The project owner supplied creative direction and reviewed the results.*
 
-SlopArena is a 3D platform fighter aiming for exaggerated, readable cartoon moves. Animation authoring has been a bottleneck in its agent-assisted development workflow.
+SLOPArena is a 3D platform fighter aiming for exaggerated, readable cartoon moves. Animation authoring has been a bottleneck in its agent-assisted development workflow.
 
 These initial experiments combined [MacPaw’s GenRA](https://github.com/MacPaw/GenRA), Codex and the project’s existing Blender/Unity tools. A grounded punch on FightGuy was followed by a new aerial double-fist strike for Manki. This page focuses on Manki.
 

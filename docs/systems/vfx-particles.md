@@ -210,7 +210,7 @@ Other messages can use the dynamic prefab fallback.
 
 ### Text shader contract
 
-The SlopArena font material uses:
+The SLOPArena font material uses:
 
 ```text
 Shader "SlopArena/Particles/Font"

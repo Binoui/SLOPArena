@@ -7,7 +7,7 @@ related_targets: ["client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs", "clien
 
 # Solo finish poster
 
-Mode: Operate. A bounded extension of SlopArena's approved fight-poster HUD. User request: “Good. What about the end of game text ? Can make it more memorable”. Keep the outcome factual and the existing two-second transition to Results.
+Mode: Operate. A bounded extension of SLOPArena's approved fight-poster HUD. User request: “Good. What about the end of game text ? Can make it more memorable”. Keep the outcome factual and the existing two-second transition to Results.
 
 ## Direction contract — 2026-10-14
 

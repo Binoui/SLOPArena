@@ -1,4 +1,4 @@
-# SlopArena — Post-Release Fixes: Baked Data Shipping + In-Match Pause Menu
+# SLOPArena — Post-Release Fixes: Baked Data Shipping + In-Match Pause Menu
 **Date:** 2026-08-02
 **Status:** Approved (ready-for-agent)
 **Spec source:** user report "several issues after exe release"

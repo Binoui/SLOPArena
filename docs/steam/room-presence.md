@@ -11,7 +11,7 @@ below is configured by the client code.
 
 ## Operator actions (not performed by the implementation)
 
-- [ ] In Steamworks, select **SlopArena Playtest AppID 5325920** (not the
+- [ ] In Steamworks, select **SLOPArena Playtest AppID 5325920** (not the
   parent app). Open **Edit Steamworks Settings → Community → Rich Presence**.
 - [ ] Upload [`rich_presence_english.vdf`](rich_presence_english.vdf) as the
   English rich-presence localization and **publish** the Steamworks changes.
@@ -29,7 +29,7 @@ below is configured by the client code.
   and returns after resynchronization or rematch. Check reconnect, account
   teardown, normal shutdown and offline Training. This is a human acceptance
   gate, not proven by Editor compilation or the localization file.
-- [ ] Under **Installation → General** for **SlopArena Playtest AppID 5325920**,
+- [ ] Under **Installation → General** for **SLOPArena Playtest AppID 5325920**,
   enable **Use launch command line** and publish the Steamworks settings.
   [Valve's `GetLaunchCommandLine` documentation](https://partner.steamgames.com/doc/api/ISteamApps#GetLaunchCommandLine)
   requires this setting to deliver launch data through Steam rather than the

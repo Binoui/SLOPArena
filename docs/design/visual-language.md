@@ -1,12 +1,12 @@
-# SlopArena Visual Language
+# SLOPArena Visual Language
 
 **Status:** living guide  
 **Scope:** shared visual identity, 3D art intent, UI presentation, marketing, community/Workshop surfaces, and presentation copy  
-**Graphic reference:** [SlopArena Web](https://github.com/Binoui/SlopArena-web) and its [live landing page](https://binoui.github.io/SlopArena-web/) are the strongest existing marketing expression, not a template for every surface or proof of release availability.
+**Graphic reference:** [SLOPArena Web](https://github.com/Binoui/SlopArena-web) and its [live landing page](https://binoui.github.io/SlopArena-web/) are the strongest existing marketing expression, not a template for every surface or proof of release availability.
 
 ## Purpose
 
-SlopArena needs to look like the same game across menus, results, trailers, web pages, Workshop documentation, social images, and future creator tools. This guide defines the reusable visual grammar behind those surfaces.
+SLOPArena needs to look like the same game across menus, results, trailers, web pages, Workshop documentation, social images, and future creator tools. This guide defines the reusable visual grammar behind those surfaces.
 
 It does not prescribe one layout or shader. Reconcile weaker existing choices when that strengthens the identity; this unreleased solo-developed project is not bound to preserve every incumbent treatment.
 
@@ -14,7 +14,7 @@ The separate [Art and Asset Conventions](../contributing/conventions.md) remain 
 
 ## Approved direction and implementation status
 
-The direction reconciled on 2026-09-30 is **low-poly underground toy-fight-club, with DIY internet-game energy**. SlopArena is not on Steam yet. Release copy must describe actual access rather than imply a public storefront or available Steam demo.
+The direction reconciled on 2026-09-30 is **low-poly underground toy-fight-club, with DIY internet-game energy**. SLOPArena is not on Steam yet. Release copy must describe actual access rather than imply a public storefront or available Steam demo.
 
 The shared graphic anchors are the **Archivo Black name mark and menu declarations**, **Action Yellow `#FFCC22`**, warm Paper/dark Ink, and Orange impact. This is an approved direction, not a claim that every surface implements it. Native UI still uses Baloo 2 and older yellow shades in places; the website still uses chartreuse and misleading Steam availability copy. This documentation reconciliation does not change fonts, styles, assets, or release copy in the running products.
 
@@ -129,7 +129,7 @@ Results and in-match HUD presentation are outside this pre-match refresh.
 
 ## Core tensions
 
-SlopArena should hold these pairs at the same time:
+SLOPArena should hold these pairs at the same time:
 
 | Keep | In tension with |
 | --- | --- |
@@ -144,7 +144,7 @@ If one side takes over, the identity weakens. Pure cool becomes generic esports 
 
 ## Shared invariants
 
-- The same Archivo Black SlopArena name mark across game and marketing; its plate, scale, and placement adapt to the surface.
+- The same Archivo Black SLOPArena name mark across game and marketing; its plate, scale, and placement adapt to the surface.
 - Chunky, readable fighter identities with specific silhouettes, signature colors, weapons, and clear move tells.
 - Cool first, joke second: a legitimate fighting-game composition with increasingly ridiculous details.
 - Paper/Ink graphic construction, scarce Action Yellow, Orange impact, hard boundaries, and physical print offsets.
@@ -227,7 +227,7 @@ Character signature colors, team colors, gameplay category colors, and semantic 
 
 The visual system uses a common name mark and two typographic roles:
 
-1. **Name mark and declarations:** Archivo Black supplies the shared SlopArena lettering and bold menu/marketing declarations. The yellow native name plate may remain as a container; its lettering is not a separate brand.
+1. **Name mark and declarations:** Archivo Black supplies the shared SLOPArena lettering and bold menu/marketing declarations. The yellow native name plate may remain as a container; its lettering is not a separate brand.
 2. **Utility:** Space Mono supplies short marketing instructions, metadata, labels, and dry annotations. Native short labels may use a mono treatment where practical; dense settings, body copy, and HUD information use a restrained readable sans.
 
 Baloo 2 remains in the current native implementation but is not the target display voice. Do not imply Archivo is already bundled in Unity. Do not make every label display type or force monospace where it harms scanning.
@@ -430,7 +430,7 @@ These Persuade surfaces may use the highest texture, overlap, cropping, and typo
 
 Translate the attitude rather than pasting UI onto the world. A clear fighting space sits inside one memorable, improvised premise: rooftops, industrial junk, strange pools, night cities, or a child's tabletop can all belong. Curate landmarks, scale, lighting, and background contrast around the fighters. Strong character colors need not make the world cute or cozy. Signs, cheap materials, playful sponsorships, and specific jokes may support the premise; generic graffiti, random props, grime, or anarchy symbols are not substitutes for one.
 
-## What SlopArena is not
+## What SLOPArena is not
 
 - cyberpunk neon;
 - polished esports branding;
@@ -460,7 +460,7 @@ Existing code and assets establish what is implemented, not what must be preserv
 
 ## Agent brief
 
-Use this instruction when asking an agent to create or revise a SlopArena visual surface:
+Use this instruction when asking an agent to create or revise a SLOPArena visual surface:
 
 > Read `docs/design/visual-language.md`, the owning `DESIGN.md`, and art conventions for 3D work. Use the website's existing flyer construction as graphic evidence, not a layout mandate. Preserve the scavenged low-poly fight-club identity: cool first, joke second; curated asset-pack collage; readable silhouettes; shared Archivo name mark and declarations; Paper/Ink, Action Yellow `#FFCC22`, and Orange impact; hard geometry with controlled DIY imperfection; useful, dry copy. Adapt expression to the surface: 3D art is character/combat-first, menus are Operate, HUD reports state, marketing is Persuade. Gameplay readability and interaction state take priority over decoration. Distinguish approved direction from unchanged implementation and never infer Steam availability.
 
@@ -481,7 +481,7 @@ Before approving a new surface, ask:
 - Are controller, keyboard, hover, focus, disabled, loading, and error states clear where applicable?
 - Would removing the texture leave a strong composition?
 - Does the copy give useful information before personality?
-- Does the result feel like SlopArena rather than generic brutalism or generic grunge?
+- Does the result feel like SLOPArena rather than generic brutalism or generic grunge?
 - Could this belong to a ridiculous underground fighting game made from scavenged low-poly characters, while looking cool enough to main somebody?
 - Can I immediately read what that fighter is doing?
 - Does splash art describe the actual model rather than promise another visual world?
@@ -501,7 +501,7 @@ Prefer a small set of strong examples over a large undifferentiated moodboard.
 
 ### Approved visual board — rough edges, clear decisions
 
-**Reference:** [Offline visual board](references/sloparena-visual-identity/visual-reference-board.html) and [rooftop composition study](references/sloparena-visual-identity/visual-reference-study.png), retained verbatim from the user's [SlopArena visual identity export](https://drive.google.com/file/d/1pxXADuEctjnT7L8FNTpxq3Hvf5uF0Peu/view). Approved as visual reference on 2026-09-30. Source version: unversioned user export `sloparena-visual-identity-export.zip`; not a project build or gameplay capture.
+**Reference:** [Offline visual board](references/sloparena-visual-identity/visual-reference-board.html) and [rooftop composition study](references/sloparena-visual-identity/visual-reference-study.png), retained verbatim from the user's [SLOPArena visual identity export](https://drive.google.com/file/d/1pxXADuEctjnT7L8FNTpxq3Hvf5uF0Peu/view). Approved as visual reference on 2026-09-30. Source version: unversioned user export `sloparena-visual-identity-export.zip`; not a project build or gameplay capture.
 
 - **Purpose:** demonstrate how the shared identity translates into graphic/world composition, palette/type specimens, and interactive UI treatment.
 - **Adopt:** rough fight-flyer framing around calm controls; chunky world geometry with one memorable landmark; Archivo declarations, mono annotations, readable sans information; scarce yellow selection; hard press shadows and a short outcome stamp.

@@ -1,4 +1,4 @@
-# SlopArena
+# SLOPArena
 
 3D platform fighter (Smash/DKO-style) with server-authoritative 60Hz simulation.
 
@@ -243,39 +243,39 @@ The Master-managed, named group of up to four players. Membership and Server Cha
 _Avoid_: physical GameHost lobby, Match, waiting roster
 
 **GuestAuth**:
-Access to SlopArena under a temporary player identity without Steam authentication. A guest identity is not a Steam identity.
+Access to SLOPArena under a temporary player identity without Steam authentication. A guest identity is not a Steam identity.
 _Avoid_: dev login, anonymous auth, temp account
 
-**SlopArena Chat**:
-In-game text communication between SlopArena players, separate from Steam's chat system.
+**SLOPArena Chat**:
+In-game text communication between SLOPArena players, separate from Steam's chat system.
 _Avoid_: Steam chat (when referring to this feature)
 
 **Global Chat**:
-The SlopArena-wide chat channel, not restricted to one GameServer, LobbyRoom, or Match.
+The SLOPArena-wide chat channel, not restricted to one GameServer, LobbyRoom, or Match.
 _Avoid_: server chat
 
 **Server Chat**:
-The SlopArena Chat channel shared by members attached to the same Master Room. A Room's Server Chat is isolated from other Rooms and from physical GameServer lobby membership.
+The SLOPArena Chat channel shared by members attached to the same Master Room. A Room's Server Chat is isolated from other Rooms and from physical GameServer lobby membership.
 _Avoid_: lobby chat, match chat
 
 **Direct Message**:
-A SlopArena Chat message visible only to its sender and recipient, both connected to chat. Direct Messages are not queued for offline delivery.
+A SLOPArena Chat message visible only to its sender and recipient, both connected to chat. Direct Messages are not queued for offline delivery.
 _Avoid_: inbox, offline message
 
 **Social Dock**:
-The menu's reserved area for SlopArena Chat, separate from the current match-preparation page. On compact layouts, a persistent social strip provides access to a chat view that temporarily replaces the page.
+The menu's reserved area for SLOPArena Chat, separate from the current match-preparation page. On compact layouts, a persistent social strip provides access to a chat view that temporarily replaces the page.
 _Avoid_: chat overlay (for the menu dock)
 
 **Unread Message**:
-An incoming, unmuted SlopArena Chat message not yet acknowledged by viewing its conversation at the newest messages while the game has focus and the conversation is unobscured. A brief combat preview alone does not acknowledge the message.
+An incoming, unmuted SLOPArena Chat message not yet acknowledged by viewing its conversation at the newest messages while the game has focus and the conversation is unobscured. A brief combat preview alone does not acknowledge the message.
 _Avoid_: notification (when referring to unread conversation state)
 
 **Guest Session**:
-A player's visit to SlopArena during one game launch, with one temporary identity across chat reconnects. A later launch starts a new Guest Session.
+A player's visit to SLOPArena during one game launch, with one temporary identity across chat reconnects. A later launch starts a new Guest Session.
 _Avoid_: persistent account
 
 **Display Name**:
-A player's chosen name shown in SlopArena Chat, entered on first launch and remembered for later launches. Display Names need not be unique; remembering a name does not preserve a player identity across Guest Sessions.
+A player's chosen name shown in SLOPArena Chat, entered on first launch and remembered for later launches. Display Names need not be unique; remembering a name does not preserve a player identity across Guest Sessions.
 _Avoid_: player ID
 
 **Session Tag**:
@@ -287,7 +287,7 @@ Recent Global Chat or Server Chat messages available to players who join after t
 _Avoid_: offline inbox
 
 **Personal Mute**:
-A player's choice to hide a sender's messages and alerts across SlopArena Chat for the current game launch. It applies to the sender's identity, not their Display Name.
+A player's choice to hide a sender's messages and alerts across SLOPArena Chat for the current game launch. It applies to the sender's identity, not their Display Name.
 _Avoid_: ban, account block
 
 **StockMode**:
@@ -391,7 +391,7 @@ _Avoid_: port pool, port map, port range (too vague)
 
 ## Disambiguation: "server"
 
-The word "server" is overloaded in SlopArena. Use these distinct terms:
+The word "server" is overloaded in SLOPArena. Use these distinct terms:
 - **Master server** — the separate-repo ASP.NET Core app (SignalR/REST, PostgreSQL) that owns Rooms, browser, chat and Match records. Never runs simulation.
 - **GameHost** (the `GameServer` process above) — the .NET console process in `src/Server/` that hosts authoritative Matches and reports their outcomes to Master. Not a browseable Room.
 - **ServerSimulation** — the pure C# tick loop in `src/Shared/` (`Simulation.cs`, `CombatMath.cs`). Runs on GameHost and client prediction tracks; not a process.
@@ -401,11 +401,11 @@ Bare "server" is ambiguous; name the owner instead.
 ## Workshop / Creator Content
 
 **WorkshopContent**:
-Creator-authored fighter, stage, or presentation content distributed through Steam Workshop. WorkshopContent references SlopArena capabilities by public identity and owns its creator-provided assets.
+Creator-authored fighter, stage, or presentation content distributed through Steam Workshop. WorkshopContent references SLOPArena capabilities by public identity and owns its creator-provided assets.
 _Avoid_: mod, addon, user content
 
 **BuiltInContent**:
-SlopArena-provided animation, VFX, SFX, material, or gameplay capability available to WorkshopContent through a public semantic identifier. Its runtime implementation is private to SlopArena.
+SLOPArena-provided animation, VFX, SFX, material, or gameplay capability available to WorkshopContent through a public semantic identifier. Its runtime implementation is private to SLOPArena.
 _Avoid_: internal asset, Unity asset, default asset
 
 **BuiltInContentId**:

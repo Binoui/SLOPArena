@@ -1,10 +1,10 @@
-# SlopArena Chat
+# SLOPArena Chat
 
 **Status:** The original Global/Direct chat foundation was approved under #206. Issue #243 retargets Server Chat to authenticated Master Room membership. Unity client Room-chat changes are implemented; native and real SignalR integration validation remain pending.
 
 ## Goal and scope
 
-Provide SlopArena-owned Global Chat, Server Chat, and online Direct Messages before Steam integration. Chat is separate from Steam chat and from authoritative gameplay.
+Provide SLOPArena-owned Global Chat, Server Chat, and online Direct Messages before Steam integration. Chat is separate from Steam chat and from authoritative gameplay.
 
 Only the developer has played the game at the time of approval. Existing systems may change when needed; preserving current guest identities is not a requirement. Steam integration may reset every guest identity. Steam authentication and Steam social features are not part of this task.
 
@@ -14,7 +14,7 @@ Canonical terms are in the [multiplayer glossary](../../CONTEXT.md#pvp--multipla
 
 | Channel | Audience | Joining and leaving |
 | --- | --- | --- |
-| Global Chat | All connected SlopArena Chat participants, including players in menus and Training | Available throughout the game after chat connects |
+| Global Chat | All connected SLOPArena Chat participants, including players in menus and Training | Available throughout the game after chat connects |
 | Server Chat | Members of the same Master Room | Starts when Room membership is admitted; ends on leave, revocation, or membership expiry |
 | Direct Message | The sender and one selected, currently connected recipient | Started through the game-wide online-player picker; no offline delivery |
 

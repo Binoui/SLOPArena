@@ -1,6 +1,6 @@
 # Ability Architecture
 
-SlopArena abilities are authored as deterministic content and executed by the Shared simulation. The current architecture separates engine-owned mechanics, package-authored timelines, trusted built-in capabilities, and legacy compatibility code.
+SLOPArena abilities are authored as deterministic content and executed by the Shared simulation. The current architecture separates engine-owned mechanics, package-authored timelines, trusted built-in capabilities, and legacy compatibility code.
 
 ## Authority
 

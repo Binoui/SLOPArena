@@ -1,6 +1,6 @@
 # SlopBot skills
 
-SlopBot helps technical newcomers learn SlopArena and take a humanoid fighter from concept or existing assets to a verified persisted package and local play. It is a creator guide, not an asset generator or a general-purpose project coding agent.
+SlopBot helps technical newcomers learn SLOPArena and take a humanoid fighter from concept or existing assets to a verified persisted package and local play. It is a creator guide, not an asset generator or a general-purpose project coding agent.
 
 ## Load the bundle
 
@@ -16,13 +16,13 @@ Point your assistant's documented skill discovery at this repository's `skills/`
 
 No installation is needed to try the local files: ask a file-capable assistant to **read `skills/slopbot/SKILL.md` from your clone and follow it**, giving the absolute checkout path. For example:
 
-> Read the SlopBot skill in my SlopArena clone and follow it. Use this clone as the game checkout. Guided mode: I have a rigged humanoid and some attack clips; help me identify the next step.
+> Read the SlopBot skill in my SLOPArena clone and follow it. Use this clone as the game checkout. Guided mode: I have a rigged humanoid and some attack clips; help me identify the next step.
 
 For concise approved work, request **fast mode**. To continue later, give the project and the relevant `.slopbot/` record or ask to resume that character. Direct helper invocation must still load SlopBot's shared scope, permission and progress rules.
 
 ## What you need
 
-- A skill/file-capable assistant for guidance and the selected SlopArena checkout for current documentation and source inspection. The installed skill directory is not the game checkout.
+- A skill/file-capable assistant for guidance and the selected SLOPArena checkout for current documentation and source inspection. The installed skill directory is not the game checkout.
 - For character integration and playtesting, the current Unity/.NET prerequisites in [Contributing](../../CONTRIBUTING.md) and actual supported access to the project/editor/runtime. A clean clone does not include all ignored licensed/local art; supply required assets legitimately.
 - A usable humanoid model/rig and real clips as you reach those steps. Model generation, rigging and clip sourcing may use external services, but users choose/provide access and confirm licenses. SlopBot does not require a particular asset vendor.
 - A supported clip editor or explicit user-operated handoff for bounded animation adaptation. An assistant being able to load skills does not imply Unity/Blender control, paid-service access, or Editor ownership.

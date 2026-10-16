@@ -1,4 +1,4 @@
-# SlopArena Documentation Map
+# SLOPArena Documentation Map
 
 Canonical guidance is short and linked below. Dated plans, research, generated reports, handoffs, and accepted ADRs are preserved as project records; they are not automatically current implementation instructions.
 

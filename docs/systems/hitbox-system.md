@@ -1,9 +1,9 @@
-# SlopArena Hitbox/Hurtbox System — Architecture & Usage
+# SLOPArena Hitbox/Hurtbox System — Architecture & Usage
 > **Scope:** This page preserves low-level collision implementation notes, including legacy `HitboxEvent` examples. For current package authoring and runtime execution, use [`ability-architecture.md`](ability-architecture.md), [`combat-systems.md`](combat-systems.md), and [`../characters/adding-a-new-character.md`](../characters/adding-a-new-character.md). Do not copy legacy file paths or data shapes into new package work.
 
 ## 🎯 Overview
 
-SlopArena uses a **sim-authoritative** hitbox system driven by **HitboxEvent** data. Hitboxes are spawned by `ServerSimulation.Tick()` when the elapsed attack time matches a `HitboxEvent.TriggerTick`, using pure math collision detection (no engine physics queries on the server).
+SLOPArena uses a **sim-authoritative** hitbox system driven by **HitboxEvent** data. Hitboxes are spawned by `ServerSimulation.Tick()` when the elapsed attack time matches a `HitboxEvent.TriggerTick`, using pure math collision detection (no engine physics queries on the server).
 
 ### Key concepts
 

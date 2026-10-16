@@ -1,6 +1,6 @@
-# SlopArena
+# SLOPArena
 
-SlopArena is a Unity 6 C# 3D platform fighter with a server-authoritative 60 Hz simulation. Prioritize the four-character friends demo and first remote feedback over platform expansion; follow `docs/plans/2026-09-05-playable-demo-reset.md`. Domain vocabulary lives in `CONTEXT.md`; the documentation map is `docs/README.md`.
+SLOPArena is a Unity 6 C# 3D platform fighter with a server-authoritative 60 Hz simulation. Prioritize the four-character friends demo and first remote feedback over platform expansion; follow `docs/plans/2026-09-05-playable-demo-reset.md`. Domain vocabulary lives in `CONTEXT.md`; the documentation map is `docs/README.md`.
 
 ## Policy
 

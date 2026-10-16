@@ -270,7 +270,7 @@ namespace SlopArena.Server
         public Guid? HostId { get; set; }
         public string? RegistrationKey { get; set; }
         public string? MatchControlKey { get; set; }
-        public string ServerName { get; set; } = "SlopArena Server";
+        public string ServerName { get; set; } = "SLOPArena Server";
         public string Region { get; set; } = "EU";
         public int Port { get; set; }
         public int MaxConcurrentMatches { get; set; }

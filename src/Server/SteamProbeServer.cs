@@ -102,7 +102,7 @@ static class SteamProbeServer
         {
             SteamGameServer.SetProduct("sloparena-steam-probe");
             SteamGameServer.SetModDir("sloparena");
-            SteamGameServer.SetGameDescription("SlopArena isolated SteamNetworkingSockets probe");
+            SteamGameServer.SetGameDescription("SLOPArena isolated SteamNetworkingSockets probe");
             SteamGameServer.SetDedicatedServer(true);
             SteamGameServer.LogOnAnonymous();
             Console.WriteLine("[SteamProbe] waiting for authenticated game-server login.");

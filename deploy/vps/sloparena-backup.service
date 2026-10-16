@@ -1,5 +1,5 @@
 [Unit]
-Description=SlopArena off-host PostgreSQL backup
+Description=SLOPArena off-host PostgreSQL backup
 Requires=docker.service
 After=docker.service
 

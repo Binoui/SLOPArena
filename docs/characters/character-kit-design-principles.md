@@ -2,7 +2,7 @@
 
 ## Overview
 
-SlopArena characters use two complementary layers of attacks:
+SLOPArena characters use two complementary layers of attacks:
 
 * **8 normals** on `1 / 2 / 3 / 4`, with grounded and aerial variants.
 * **4 specials** on `A / E / R / F`.
@@ -148,7 +148,7 @@ Typical functions include:
 
 It is **not an ultimate** in the MOBA sense.
 
-SlopArena does not currently use:
+SLOPArena does not currently use:
 
 * ultimate charge;
 * damage-generated meter;

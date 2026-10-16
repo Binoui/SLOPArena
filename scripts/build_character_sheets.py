@@ -8,7 +8,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{name} - SlopArena Character Sheet</title>
+    <title>{name} - SLOPArena Character Sheet</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
         
@@ -387,7 +387,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
     <div class="header">
         <div class="header-title-area">
-            <span class="header-game">SlopArena // Roster Registry</span>
+            <span class="header-game">SLOPArena // Roster Registry</span>
             <span class="header-name">{name}</span>
             <span class="header-tagline">{title}</span>
         </div>
@@ -430,7 +430,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="footer">
         <div>System Version v1.1.0 (Density Optimized)</div>
         <div>Rendered: 2026-07-03</div>
-        <div class="footer-branding">Oh My Pi // SlopArena</div>
+        <div class="footer-branding">Oh My Pi // SLOPArena</div>
     </div>
 </body>
 </html>

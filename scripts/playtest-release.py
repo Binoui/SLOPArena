@@ -138,7 +138,7 @@ def validate_client_inputs(version: str, source_revision: str, endpoint: str) ->
 
 
 def client_paths(root: Path, version: str) -> tuple[Path, Path]:
-    return root / "build/playtest/client.json", root / f"build/release/SlopArena-{version}"
+    return root / "build/playtest/client.json", root / f"build/release/SLOPArena-{version}"
 
 
 def pack_client(args) -> None:
@@ -155,7 +155,7 @@ def pack_client(args) -> None:
             created = True
             with tarfile.open(fileobj=stream, mode="w:gz") as tar:
                 tar.add(receipt, arcname="build/playtest/client.json", recursive=False)
-                tar.add(output, arcname=f"build/release/SlopArena-{args.version}")
+                tar.add(output, arcname=f"build/release/SLOPArena-{args.version}")
     except Exception:
         if created:
             archive.unlink(missing_ok=True)
@@ -173,7 +173,7 @@ def gh_release_json(tag: str) -> dict:
 
 def safe_client_members(tar: tarfile.TarFile, version: str) -> list[tarfile.TarInfo]:
     receipt_name = "build/playtest/client.json"
-    output_name = f"build/release/SlopArena-{version}"
+    output_name = f"build/release/SLOPArena-{version}"
     ancestors = {"build", "build/playtest", "build/release"}
     seen = set()
     members = []
@@ -212,7 +212,7 @@ def fetch_client(args) -> None:
     commit = gh_json(f"repos/{GAME_REPOSITORY}/commits/{tag}")
     require(commit, isinstance(commit, dict) and commit.get("sha") == args.source_revision,
             "Client release tag does not resolve to the requested source revision")
-    filename = f"SlopArena-{args.version}.tar.gz"
+    filename = f"SLOPArena-{args.version}.tar.gz"
     assets = release.get("assets")
     require(assets, isinstance(assets, list) and len(assets) == 1 and isinstance(assets[0], dict)
             and assets[0].get("name") == filename,
@@ -261,7 +261,7 @@ def fetch_client(args) -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             shutil.move(str(stage / "build/playtest/client.json"), receipt_path)
-            shutil.move(str(stage / f"build/release/SlopArena-{args.version}"), output_path)
+            shutil.move(str(stage / f"build/release/SLOPArena-{args.version}"), output_path)
             verify_client(read_json(receipt_path), args.version, args.source_revision, args.endpoint, root)
         except Exception:
             receipt_path.unlink(missing_ok=True)
@@ -296,7 +296,7 @@ def verify_client(receipt: dict, version: str, source_revision: str, endpoint: s
             "Client build did not succeed without errors")
     require(receipt, isinstance(receipt.get("catalogHash"), str) and re.fullmatch(r"[a-f0-9]{64}", receipt["catalogHash"]) is not None,
             "Client canonical catalog identity is missing")
-    relative = f"build/release/SlopArena-{version}"
+    relative = f"build/release/SLOPArena-{version}"
     require(receipt, receipt.get("outputRelativePath") == relative, "Unexpected client output path")
     output = root / relative
     require(output, output.is_dir() and not output.is_symlink(), "Client artifact directory is missing or symlinked")
@@ -307,8 +307,8 @@ def verify_client(receipt: dict, version: str, source_revision: str, endpoint: s
                 "game.json", "server.json", "master.env", "migration.env", "postgres-password")
             forbidden |= "skeleton" in path.name.lower() or any("DoNotShip" in part or "BackUpThisFolder" in part for part in path.parts)
             require(path, not forbidden, "Client artifact contains private or developer-only files")
-    require(output, (output / "SlopArena.exe").is_file(), "Windows player is missing")
-    data = output / "SlopArena_Data"
+    require(output, (output / "SLOPArena.exe").is_file(), "Windows player is missing")
+    data = output / "SLOPArena_Data"
     managed = data / "Managed"
     require(receipt, checksum(managed / "SlopArena.Shared.dll") == receipt.get("sharedSha256"), "Shipped Shared hash differs")
     require(receipt, checksum(data / "Plugins/x86_64/steam_api64.dll") == receipt.get("steamApi64Sha256"), "Shipped Steam native hash differs")

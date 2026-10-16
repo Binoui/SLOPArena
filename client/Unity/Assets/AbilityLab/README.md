@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Ability Lab is SlopArena's internal fighter/move authoring and debugging environment. It is a package-first UI Toolkit editor shell.
+Ability Lab is SLOPArena's internal fighter/move authoring and debugging environment. It is a package-first UI Toolkit editor shell.
 
 ## Usage
 
@@ -17,7 +17,7 @@ Preview and editing use character packages only. The former Nilus Compatibility 
 
 ## Ownership
 
-Ability Lab owns editor and preview tooling. Core gameplay data and simulation remain owned by SlopArena/shared runtime code. Canonical package move identity is the Shared `CanonicalSlotProjection` (`ground.*` then `air.*`); human labels are UI adapters.
+Ability Lab owns editor and preview tooling. Core gameplay data and simulation remain owned by SLOPArena/shared runtime code. Canonical package move identity is the Shared `CanonicalSlotProjection` (`ground.*` then `air.*`); human labels are UI adapters.
 
 ## Direction
 
@@ -28,11 +28,11 @@ The tool may eventually become the basis of a standalone creator tool, so Abilit
 Prefer:
 
 ```text
-AbilityLab → SlopArena gameplay/shared code
+AbilityLab → SLOPArena gameplay/shared code
 ```
 
 Avoid:
 
 ```text
-SlopArena gameplay → AbilityLab
+SLOPArena gameplay → AbilityLab
 ```

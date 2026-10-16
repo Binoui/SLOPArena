@@ -6,7 +6,7 @@ using UnityEngine;
 namespace SlopArena.Client.Editor
 {
     /// <summary>
-    /// Regenerates local SlopArena movement-VFX variants from Cartoon FX Remaster Free.
+    /// Regenerates local SLOPArena movement-VFX variants from Cartoon FX Remaster Free.
     /// Cartoon FX is an optional Asset Store dependency and is never committed.
     /// </summary>
     public static class SetupCartoonMovementVfx
@@ -39,7 +39,7 @@ namespace SlopArena.Client.Editor
             TuneGroundRing();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"[SlopArena] Cartoon movement VFX generated under {Destination}.");
+            Debug.Log($"[SLOPArena] Cartoon movement VFX generated under {Destination}.");
         }
 
 

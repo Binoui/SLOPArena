@@ -9,5 +9,5 @@ then
     exit 1
 fi
 
-echo "Building and starting SlopArena Authoritative Server..."
+echo "Building and starting SLOPArena Authoritative Server..."
 dotnet run --project src/Server/SlopArena.Server.csproj

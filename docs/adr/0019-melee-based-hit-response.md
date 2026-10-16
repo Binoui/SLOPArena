@@ -11,9 +11,9 @@ The map's hit-response arc ([#128](https://github.com/Binoui/SlopArena/issues/12
 
 ## Decision
 
-**Hit response = Melee formulas at SlopArena scale, custom-only authoring, zero wire growth.**
+**Hit response = Melee formulas at SLOPArena scale, custom-only authoring, zero wire growth.**
 
-### 1. Knockback formula (Melee at SA scale, [#132])
+### 1. Knockback formula (Melee at SLOPA scale, [#132])
 
 ```
 mag = (base + growth·(P/100 + 1.0) + Damage·0.1) · 200/(W + 100)
@@ -85,7 +85,7 @@ tools keep the no-floor rule from §2a (grabs/yanks are `weight_set_knockback` a
 hitstop = min(12, (int)((damage/3 + 6) · mul))   // x198≈⅓, x19C≈6 (community), mul per-hit
 ```
 
-Jabs 7, mediums 8, kills 10 ticks (was: cap-12 peg for everything ≥ 8 damage). All SA rules dropped (low-damage ×2, multihit ×0.5 — multihits aren't a core SA feature — floor 1). Cap 12 kept as a never-biting safety (kit max 16 dmg → 11). The six unused `hitstop_*` keys become one `hitstop_multiplier` (default 1.0).
+Jabs 7, mediums 8, kills 10 ticks (was: cap-12 peg for everything ≥ 8 damage). All SLOPA rules dropped (low-damage ×2, multihit ×0.5 — multihits aren't a core SLOPA feature — floor 1). Cap 12 kept as a never-biting safety (kit max 16 dmg → 11). The six unused `hitstop_*` keys become one `hitstop_multiplier` (default 1.0).
 
 ### 4. DI (Melee angle rotation at hitstop exit, [#133])
 

@@ -2,7 +2,7 @@
 > The v2 roadmap re-scopes to online PvP with server browser, SignalR lobbies, 2-4 players, and stock mode (ADRs 0003-0008).
 > This doc's Phase 1 (PvP Bridge) and Phase 4 (UI Flow) shipped. Phase 2 (Prediction/Rollback) is now v2's Phase 7. Content preserved for reference.
 
-# SlopArena — PvP Demo Roadmap (archived 2026-07-03)
+# SLOPArena — PvP Demo Roadmap (archived 2026-07-03)
 
 > Original status: Codebase-audited 2026-07-03. Replaced `2026-06-26-unity-client-architecture.md` and `2026-06-14-online-pvp-roadmap.md` (both deprecated).
 > Original goal: Functional Unity client PvP match (not sandbox) over UDP. Two players, each in their own Unity instance, connecting via a headless server.

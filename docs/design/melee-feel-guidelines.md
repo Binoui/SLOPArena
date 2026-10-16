@@ -1,9 +1,9 @@
 # Melee-Feel Design Guidelines — Damage, Knockback, Angles
 
-> Consolidated numeric rules for tuning SlopArena moves, derived from a 25-character
+> Consolidated numeric rules for tuning SLOPArena moves, derived from a 25-character
 > analysis of Super Smash Bros. Melee (`docs/research/melee-frame-analysis.md`) and the
 > Melee knockback decomp (`docs/research/melee-knockback-model.md`). Use this when
-> authoring or retuning any move. Melee runs at 60fps = SlopArena's 60 ticks/s, so
+> authoring or retuning any move. Melee runs at 60fps = SLOPArena's 60 ticks/s, so
 > frame numbers transfer 1:1 (see that doc for geometry caveats — 2D hitboxes don't
 > transfer, timing does).
 
@@ -84,9 +84,9 @@ flat angle, which is the combos-feel gap.
 
 ---
 
-## 3. The Adaptive auto-angle in SlopArena (implemented 2026-08-16)
+## 3. The Adaptive auto-angle in SLOPArena (implemented 2026-08-16)
 
-SlopArena now has an opt-in equivalent of Melee's 361° angle:
+SLOPArena now has an opt-in equivalent of Melee's 361° angle:
 
 - **`KnockbackProfile.Adaptive`** (`KnockbackProfile.cs`). `KnockbackData.Resolve()` returns
   a sentinel angle (`KnockbackData.AdaptiveAngle = sbyte.MinValue`) for it, keeping the
@@ -117,13 +117,13 @@ Melee role-codes those with fixed angles too. The Kistu pilot flags g_1/a_1/a_2.
 
 ## 4. Knockback model
 
-SlopArena's magnitude (`Simulation.ApplyKnockback`):
+SLOPArena's magnitude (`Simulation.ApplyKnockback`):
 `magnitude = (baseKB + growthKB·(damage%·0.01 + 1) + damage·0.1) · 200/(weight+100)`.
 
-Melee adds three knobs SlopArena historically lacked (see `melee-knockback-model.md`):
+Melee adds three knobs SLOPArena historically lacked (see `melee-knockback-model.md`):
 
 1. **Weight divisor** `200/(W+100)` — heavies take less KB, curve flattens at high W.
-   Already present in SlopArena (`CharacterDefinition.Weight`, default 100).
+   Already present in SLOPArena (`CharacterDefinition.Weight`, default 100).
 2. **Move-damage term** `p/20` — strong hits carry KB even at 0%; weak jabs stay weak.
 3. **Hitstun is a pure function of KB** (`max(1, KB·0.4)`), not a per-move designer cap.
 

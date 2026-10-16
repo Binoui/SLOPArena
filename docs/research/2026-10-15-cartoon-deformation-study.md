@@ -33,7 +33,7 @@ For GenRA, the useful next direction is explicit control over exposed poses, tra
 
 ## What the current implementation actually does
 
-**The user is right that animation can affect gameplay hitbox positions. The earlier statement that animation enlargement cannot affect gameplay was too broad. However, a larger-looking hand does not automatically produce a larger collision radius in the current implementation.** SlopArena cooks selected bone positions from the bound animation, then Shared resolves authored collision volumes around those points. It does not carry per-bone rotation or scale into the pose payload. Sources: [pose sampling](../../client/Unity/Assets/Scripts/Editor/DeterministicPoseTrackBaker.cs#L156), [pose payload](../../src/Shared/BakedAnimationData.cs#L20), [hitbox position resolution](../../src/Shared/HitboxGeometry.cs#L79), [authored radius assignment](../../src/Shared/Abilities/ServerAbility.cs#L179).
+**The user is right that animation can affect gameplay hitbox positions. The earlier statement that animation enlargement cannot affect gameplay was too broad. However, a larger-looking hand does not automatically produce a larger collision radius in the current implementation.** SLOPArena cooks selected bone positions from the bound animation, then Shared resolves authored collision volumes around those points. It does not carry per-bone rotation or scale into the pose payload. Sources: [pose sampling](../../client/Unity/Assets/Scripts/Editor/DeterministicPoseTrackBaker.cs#L156), [pose payload](../../src/Shared/BakedAnimationData.cs#L20), [hitbox position resolution](../../src/Shared/HitboxGeometry.cs#L79), [authored radius assignment](../../src/Shared/Abilities/ServerAbility.cs#L179).
 
 The verified package path is:
 

@@ -1,4 +1,4 @@
-# SlopArena Netcode & Simulation Architecture
+# SLOPArena Netcode & Simulation Architecture
 
 ## Hit reaction snapshots — protocol 7
 

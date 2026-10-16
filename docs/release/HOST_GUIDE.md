@@ -1,4 +1,4 @@
-# SlopArena — hosting your own game
+# SLOPArena — hosting your own game
 
 Hosting starts an embedded game server on your machine. Others can join you
 over the internet ONLY if your router forwards traffic to you.

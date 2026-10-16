@@ -1,11 +1,11 @@
 ---
 name: sloparena-animation-authoring
-description: "Author and safely import SlopArena character animation clips through Blender, Unity Humanoid import, package catalog binding, cooking, and real-surface verification."
+description: "Author and safely import SLOPArena character animation clips through Blender, Unity Humanoid import, package catalog binding, cooking, and real-surface verification."
 metadata: {"category": "game-dev"}
 ---
 
 For live Editor commands, use your own caller identity and bounded gateway lease from the [Unity CLI guide](../../docs/contributing/unity-cli.md) and [coordination protocol](../../docs/contributing/unity-editor-coordination.md). Run project commands from the selected checkout. Busy ownership waits in the gateway; blocked or unknown status requires recovery.
-# SlopArena Animation Authoring
+# SLOPArena Animation Authoring
 
 Use this skill when creating or changing a character animation clip. It owns presentation assets and catalog bindings only. It does **not** change gameplay timing, damage, hitboxes, input, server simulation, or VFX behavior.
 

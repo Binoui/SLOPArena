@@ -1,10 +1,10 @@
 ---
 name: sloparena-finish-branch
-description: "Prepare and verify a SlopArena branch, then perform explicitly authorized commits, pushes or PR creation. Use for finish-branch or ship requests."
+description: "Prepare and verify a SLOPArena branch, then perform explicitly authorized commits, pushes or PR creation. Use for finish-branch or ship requests."
 metadata: {"triggers": ["finish", "pr", "pull request", "ship"], "invocation": "explicit"}
 ---
 
-# Finish a SlopArena branch
+# Finish a SLOPArena branch
 
 Prepare a reviewable branch and perform only the commit, push and PR operations
 explicitly authorized by the user. Loading or invoking this skill alone is not

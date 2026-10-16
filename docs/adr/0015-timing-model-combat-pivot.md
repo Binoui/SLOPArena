@@ -30,7 +30,7 @@ The genre constraint that shapes everything: **free mouse camera + 3D makes spac
 
 7. **Deferred (recorded, not built):**
    - **Clash system** (phase 2): symmetric commit resolution — two `Interruptible` hitboxes connecting within a few ticks resolve as mutual bounce (no damage, short clash-stun + pushback, reset to neutral) instead of a random trade. This is the timing-model substitute for whiff-punish in free-camera 3D. Until it lands, simultaneous commits trade.
-   - **Dash split** — **resolved 2026-08-13 by ADR-0020 §1-2**: SA Dash (Shift, i-frames + cooldown) stays as-is; the locomotion tier is a new **Run** (not a "movement dash"). Footsies live at run/jump range.
+   - **Dash split** — **resolved 2026-08-13 by ADR-0020 §1-2**: SLOPA Dash (Shift, i-frames + cooldown) stays as-is; the locomotion tier is a new **Run** (not a "movement dash"). Footsies live at run/jump range.
    - **Landing lag** on air attacks — **resolved 2026-08-13 by ADR-0021 §3**: landed as `LandingLagTicks` + auto-cancel windows, L-cancelled scale, aerials always end on landing.
 
 ## Considered Options

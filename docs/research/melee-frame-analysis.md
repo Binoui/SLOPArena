@@ -1,6 +1,6 @@
 # Melee Frame Data — Comparative Analysis
 
-> What 25 characters of Melee frame data mean for SlopArena's 8-normal / 4-special kit
+> What 25 characters of Melee frame data mean for SLOPArena's 8-normal / 4-special kit
 > rework (FightGuy first). Full per-move tables: [`melee-frame-data.md`](melee-frame-data.md).
 > Machine-readable dataset: [`melee-frame-data.json`](melee-frame-data.json).
 > All values in **frames = sim ticks** (both 60Hz).
@@ -48,7 +48,7 @@ A normal's hitbox is a thin slice of its duration: **active/total ≈ 0.10-0.29 
 - Present on **33-80% of moves** per category (jabs 64%, dash 80%, uair 80%, fair 76%, dsmash 72%).
 - Typical early-out is **1-8 frames** before the animation ends: jab 21→16, fsmash 64→60.
 - Jabs cancel up to 5 frames early; aerials up to 29 (gated by landing, §5).
-- SlopArena has **no IASA** — `AnimLockTicks` is full commitment. This is the single biggest
+- SLOPArena has **no IASA** — `AnimLockTicks` is full commitment. This is the single biggest
   engine gap for Melee feel. A per-stage `IasaTick` (0 = none) reproduces it.
 
 ### Roster extremes (the design space)
@@ -93,7 +93,7 @@ Outliers worth knowing:
 | Fox/Falco Dash, Mario/DrMario Dash | strong 4-7 | weak 8-17/25 |
 
 Recipe: **two `HitboxEvent`s in one stage** — strong hitbox with high KB, weak one with low KB,
-later TriggerTick. SlopArena already supports this (per-event Damage/Knockback).
+later TriggerTick. SLOPArena already supports this (per-event Damage/Knockback).
 
 ### Gapped multi-hit aerials
 
@@ -125,7 +125,7 @@ TriggerTicks spaced by the rehit interval** (or a lingering zone hitbox with a r
 ### Specials that hide their hitbox on a later submove
 
 - Charge moves (Marth Shield Breaker, Samus Charge Shot): hitbox only on the `End`/`Fully Charged` submove.
-- No hitbox at all: G&W Down B (bucket), Marth Down B (counter), Samus Down B (bomb). SlopArena's
+- No hitbox at all: G&W Down B (bucket), Marth Down B (counter), Samus Down B (bomb). SLOPArena's
   `ChargeTicks` + release-to-fire pattern (AerosolFlame, RoundBomb) already models the charge case.
 
 ## 4. Specials across the roster
@@ -138,7 +138,7 @@ TriggerTicks spaced by the rehit interval** (or a lingering zone hitbox with a r
 | Down B | 15 | 19 | 72 | counters/ground pounds/meteors |
 
 Specials are long, active-dense commitments (act/tot ≈ 0.4-0.5) with **no cooldowns in Melee** —
-commitment is the only gate. SlopArena adds MOBA cooldowns on top; frame data still sets the
+commitment is the only gate. SLOPArena adds MOBA cooldowns on top; frame data still sets the
 commitment profile.
 
 ## 5. Aerial commitment model
@@ -147,12 +147,12 @@ commitment profile.
 - Landing lag: **12-50 frames (median 19)**; L-cancel halves it (**6-25, median 9**).
 - Aerial commitment = air time + landing lag. The active window floats mid-air and the move is
   interruptible (IASA) the rest of the time — Melee's aggression comes from this.
-- SlopArena has no landing-lag or AC concept; aerials currently lock for the whole stage. A
+- SLOPArena has no landing-lag or AC concept; aerials currently lock for the whole stage. A
   `LandingLagTicks` on air stages + AC window fields would close the gap.
 
-## 6. Mapping to SlopArena's 8 normals + 4 specials
+## 6. Mapping to SLOPArena's 8 normals + 4 specials
 
-Melee-native frames are 1-based; SlopArena `HitboxEvent.TriggerTick` is 0-based →
+Melee-native frames are 1-based; SLOPArena `HitboxEvent.TriggerTick` is 0-based →
 **`TriggerTick = meleeFrame − 1`**, `DurationTicks = window length`. `AttackStage.DurationTicks = Total`
 (or IASA, once the engine supports early-outs).
 
@@ -201,7 +201,7 @@ Melee-native frames are 1-based; SlopArena `HitboxEvent.TriggerTick` is 0-based 
 - Per-hitbox windows/colors come from the shoemaker site's `hitframes_colors` tables; damage values are
   per hitbox row in `hitboxtable`. A handful of tables omit windows for sweetspot variants (they overlap
   a colored window — e.g. Falcon Nair's green/yellow inside 7-12/20-29).
-- Melee hitboxes are 2D planes/circles with different semantics than SlopArena's 3D spheres/capsules —
+- Melee hitboxes are 2D planes/circles with different semantics than SLOPArena's 3D spheres/capsules —
   **frame timing transfers, geometry doesn't**.
 - No IASA for specials in Melee — treated as full commitment here.
 

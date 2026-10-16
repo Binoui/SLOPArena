@@ -5,7 +5,7 @@
 > below are relative to `melee-decomp/src/melee/`. Companion frame-data research:
 > [`melee-frame-analysis.md`](melee-frame-analysis.md).
 >
-> **Goal**: move SlopArena's hit-response feel from DKO-style (exponential knockback
+> **Goal**: move SLOPArena's hit-response feel from DKO-style (exponential knockback
 > decay, soft expiry DI) toward a Melee base — adapted to 3D. Verified items are
 > marked [verified] (read in the decompiled C). Numeric constants that live in the
 > disc's `PlCo.dat` (loaded at runtime, `ft/fighter.c:186`) are marked [community] —
@@ -16,10 +16,10 @@
 Covers: (1) knockback formula, (2) hitstun, (3) flight dynamics, (4) DI/SDI,
 (5) per-character weight. Explicitly **not** covered: stale moves (`pl/plstale.c`
 — not of interest right now), frame timing (already in the frame-analysis doc),
-hitlag tuning (SlopArena has `HitstopTicks` per ADR-0012; Melee's is
+hitlag tuning (SLOPArena has `HitstopTicks` per ADR-0012; Melee's is
 `(dmg·x198 + x19C)·vibrateMult`, `ft/ftcommon.c:646`).
 
-What transfers: **formulas, timing structure, and mechanics** — SlopArena units are
+What transfers: **formulas, timing structure, and mechanics** — SLOPArena units are
 m/s and ticks, so every constant gets retuned, but the *shapes* are the value.
 What doesn't: 2D hitbox geometry, per-move data, the motion-state FSM, exact balance.
 
@@ -56,14 +56,14 @@ $$KB = \left(\left(\frac{p}{10} + \frac{p \cdot P}{20}\right) \cdot \frac{200}{W
 
 where `p` = move damage, `P` = victim post-hit %, `W` = weight, capped at 999.
 
-### 1.2 SlopArena today — `src/Shared/Simulation.cs:1098`
+### 1.2 SLOPArena today — `src/Shared/Simulation.cs:1098`
 
 ```csharp
 float magnitude = baseKB + growthKB * (s.DamagePercent * 0.01f);
 ```
 
 Linear in victim %, no weight, no move-damage term, no cap, no ratio multipliers.
-Melee has three extra knobs SlopArena lacks:
+Melee has three extra knobs SLOPArena lacks:
 
 1. **Weight divisor** `200/(W+100)` — heavies take less KB, curve flattens at high W
    (ΔW matters more at low weights).
@@ -107,7 +107,7 @@ if (!fp->mv.co.damage.x0) fp->mv.co.damage.x0 = 1;
   velocity; after hitstun they **soft-merge** (add/keep-max per axis). This is what
   makes wall/floor bounces feel crisp during hitstun and damped after.
 
-### 2.2 SlopArena today — `Simulation.cs:1118-1124`
+### 2.2 SLOPArena today — `Simulation.cs:1118-1124`
 
 ```csharp
 ushort hitstunFromKB = (ushort)Math.Clamp(8 + (int)(kbMagnitude * 0.5f), 8, 60);
@@ -116,7 +116,7 @@ ushort hitstunFinal = Math.Min(hitstunFromKB, stunTicks); // per-move cap
 
 ### 2.3 Deltas
 
-| Melee | SlopArena today | Migration option |
+| Melee | SLOPArena today | Migration option |
 |---|---|---|
 | `(int)(KB·0.4)`, min 1 | `8 + 0.5·kbMag`, clamp 8–60 | Drop the floor 8 and the ceiling 60; keep `max(1, …)` |
 | pure KB function | capped by per-move `StunTicks` | **Decision**: keep `StunTicks` as a designer valve (allows `StunTicks=0` weak-jab, a Melee-impossible move) or go pure |
@@ -151,7 +151,7 @@ else {
   hitstun at slowly-decaying speed — the classic Melee "kept drifting to the blast
   zone" feel. Ground: slide friction with per-character `gr_friction`.
 
-### 3.2 SlopArena today — `Simulation.cs:614-617, 735-738`
+### 3.2 SLOPArena today — `Simulation.cs:614-617, 735-738`
 
 ```csharp
 float decay = MathF.Exp(-KnockbackDecayRate * TickDt);   // λ = 1.8/s
@@ -168,16 +168,16 @@ single biggest feel difference from Melee and the main "get away from DKO" lever
   `KVXZ -= friction·TickDt` along the horizontal launch azimuth, `KVY` untouched
   (gravity does the vertical work). Snap below `VelocityDeadZone` (already exists,
   `Simulation.cs:91`). Friction constant to tune: ~5-15 m/s² gives Melee-like drift
-  tails at SlopArena scale.
+  tails at SLOPArena scale.
 - **Option B — hybrid:** keep decay but make it linear (constant m/s² per second)
   instead of exponential. Easier to reason about, closer to Melee than exp, but
   still kills the tail.
-- **3D note:** Melee friction is 2D (XY launch plane). In SlopArena, decay the
+- **3D note:** Melee friction is 2D (XY launch plane). In SLOPArena, decay the
   horizontal (XZ) component along its direction and leave `KVY` to gravity —
   decaying all three axes is what flattens launch arcs today.
 
 Bounces: adopt the Melee split — while in hitstun, floor/wall bounces hard-set KV
-(full reflection); after hitstun, soft-merge. Currently SlopArena clears KV on
+(full reflection); after hitstun, soft-merge. Currently SLOPArena clears KV on
 landing (`ProcessKnockback`, `Simulation.cs:778`).
 
 ---
@@ -213,7 +213,7 @@ Plus ASDI (`OnExitHitlag`): one extra shift at exit (`lstick`/`cstick · x4BC`).
 (Also present but purpose unresolved: held L/R scales KB magnitude by `x1AC` at
 hitlag exit — probably a leftover, x1AC may be 1.0.)
 
-### 4.3 SlopArena today — `Simulation.cs:632-651` (ADR-0013)
+### 4.3 SLOPArena today — `Simulation.cs:632-651` (ADR-0013)
 
 DI input is committed during hitstun, applied **at hitstun expiry** as *additive
 velocity*: `KVX += DIX · 0.30 · launchMag` (horizontal only). Different timing
@@ -250,7 +250,7 @@ velocity*: `KVX += DIX · 0.30 · launchMag` (horizontal only). Different timing
 - Note: weight does **not** affect hitstun (hitstun is pure KB) — heavy chars take
   less KB, so they get less hitstun *through* the formula, not directly.
 
-### 5.2 SlopArena delta
+### 5.2 SLOPArena delta
 
 - Add `Weight` (float, ~60-120) to `CharacterDefinition`, default 100.
 - Use the normalized divisor in §1.3: `weightFactor = 200/(W+100)` (W=100 → 1.0).
@@ -319,7 +319,7 @@ x204, sdi_*) are not in the repo — they ship on the disc. Structure is verifie
 values marked [community]. Getting byte-exact values requires the ISO's `PlCo.dat`
 (not in the clone).
 
-### SlopArena
+### SLOPArena
 
 | Claim | File |
 |---|---|

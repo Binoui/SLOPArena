@@ -42,7 +42,7 @@ def expected_files(root: Path) -> dict[Path, str]:
                 f"Read the selected checkout's [AGENTS.md](../../../AGENTS.md), then "
                 f"read and follow the maintained [{name} workflow](../../../skills/{name}/SKILL.md). "
                 "Resolve that workflow's sibling references from its source directory. "
-                "Run project commands from the selected SlopArena checkout. "
+                "Run project commands from the selected SLOPArena checkout. "
                 "Loading a skill does not grant commit, push, install, or publication permission.\n"
             )
             if policy_text and harness == ".agents":

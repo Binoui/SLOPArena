@@ -1,4 +1,4 @@
-# SlopArena Visual Identity — Discovery Note
+# SLOPArena Visual Identity — Discovery Note
 
 **Status:** Discovery direction retained. Execution is tracked in [`visual-production-roadmap.md`](visual-production-roadmap.md); validate open style choices in Unity before treating this as an art bible.
 
@@ -8,7 +8,7 @@ Make the existing game attractive and coherent enough that its technical depth i
 
 ## Identity
 
-SlopArena is **mischievous, energetic, and slightly unruly**. It is not fully serious, but it should not be as broadly cartoon-styled as DKO. The name permits rough edges and absurdity; the presentation should make those feel intentional rather than unfinished.
+SLOPArena is **mischievous, energetic, and slightly unruly**. It is not fully serious, but it should not be as broadly cartoon-styled as DKO. The name permits rough edges and absurdity; the presentation should make those feel intentional rather than unfinished.
 
 Working phrase:
 
@@ -25,7 +25,7 @@ The exact rendering family is **open**. Graphic-stylized 3D is the first hypothe
 
 ### Manki — flagship identity
 
-Manki is SlopArena's flagship character: a devious monkey with personality and fun explosives, comparable in broad appeal to Ziggs without copying that design. His current model is unfinished, but his fantasy should anchor the tone:
+Manki is SLOPArena's flagship character: a devious monkey with personality and fun explosives, comparable in broad appeal to Ziggs without copying that design. His current model is unfinished, but his fantasy should anchor the tone:
 
 - Mischief over heroism.
 - Improvised explosives and dangerous gadgets.
@@ -39,7 +39,7 @@ The existing character brief supplies a strong working palette: burnt-orange fur
 
 FightGuy is currently the most practical visual testbed because his animations and gameplay are available. His model is unfinished and visually plain; it must not define the final character-design ceiling.
 
-His role is the disciplined foil to Manki: serious martial-arts silhouettes and controlled blue-white ki, with red accents from the gi, belt, and headband. The contrast is intentional—SlopArena's humor should come from the roster and situations, not force every fighter to be comedic.
+His role is the disciplined foil to Manki: serious martial-arts silhouettes and controlled blue-white ki, with red accents from the gi, belt, and headband. The contrast is intentional—SLOPArena's humor should come from the roster and situations, not force every fighter to be comedic.
 
 Use him to validate shared systems:
 

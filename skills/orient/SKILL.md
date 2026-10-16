@@ -1,6 +1,6 @@
 ---
 name: orient
-description: "Minimal read-only SlopArena session orientation: current demo goal, working-tree status, and relevant next action. Load technical references only for the current task."
+description: "Minimal read-only SLOPArena session orientation: current demo goal, working-tree status, and relevant next action. Load technical references only for the current task."
 ---
 
 # Bounded session orientation

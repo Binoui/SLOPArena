@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily SlopArena off-host PostgreSQL backup
+Description=Daily SLOPArena off-host PostgreSQL backup
 
 [Timer]
 OnCalendar=*-*-* 04:15:00 UTC

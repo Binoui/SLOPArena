@@ -9,7 +9,7 @@
 
 Kill input lag in online matches. The client currently renders raw server state ("one-tick display latency is intentional (Phase 1)"), which at internet RTT (20–100ms = 1–6 ticks) makes movement and hit reactions feel floaty. Rollback gives every client instant local response while the server stays authoritative: predict locally, correct when the authoritative state disproves the prediction.
 
-Demo context: v0.2.0-demo.1 is live with an official server (SlopArena EU #1, `sloparena.barakaslurp.fr:7777`); the friends playtest is the first real internet-latency audience — exactly the regime this design exists for.
+Demo context: v0.2.0-demo.1 is live with an official server (SLOPArena EU #1, `sloparena.barakaslurp.fr:7777`); the friends playtest is the first real internet-latency audience — exactly the regime this design exists for.
 
 ## Decisions
 

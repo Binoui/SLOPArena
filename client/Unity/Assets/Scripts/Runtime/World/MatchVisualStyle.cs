@@ -32,14 +32,14 @@ namespace SlopArena.Client.World
             RenderSettings.ambientGroundColor = new Color(0.07f, 0.06f, 0.09f);
             RenderSettings.ambientIntensity = 1.15f;
 
-            var volumeObject = new GameObject("SlopArena Visual Grade");
+            var volumeObject = new GameObject("SLOPArena Visual Grade");
             volumeObject.transform.SetParent(transform, false);
             var volume = volumeObject.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.priority = 100f;
 
             _runtimeProfile = ScriptableObject.CreateInstance<VolumeProfile>();
-            _runtimeProfile.name = "SlopArena Runtime Visual Grade";
+            _runtimeProfile.name = "SLOPArena Runtime Visual Grade";
             volume.profile = _runtimeProfile;
 
             var tonemapping = _runtimeProfile.Add<Tonemapping>(true);

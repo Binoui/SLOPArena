@@ -2,7 +2,7 @@
 
 ## Current decision
 
-SlopArena now uses the Unity CLI with `com.unity.pipeline`. The IvanMurzak Unity MCP
+SLOPArena now uses the Unity CLI with `com.unity.pipeline`. The IvanMurzak Unity MCP
 package and its extensions were removed because their Roslyn assemblies conflicted with
 Pipeline's live C# evaluation.
 
@@ -423,7 +423,7 @@ covers the operation.
 
 ## Skill sources
 
-Maintained SlopArena workflows live in repository `skills/`; generated `.agents/skills/`
+Maintained SLOPArena workflows live in repository `skills/`; generated `.agents/skills/`
 and `.omp/skills/` adapters expose the same source. See [agent setup](agents.md).
 Load relevant project guidance instead of an operational generic Unity skill that
 expects a conflicting REST/MCP route. Optional local advisory skills are not public
@@ -445,7 +445,7 @@ editor editor_stop
 
 ## Agent-facing character authoring
 
-Character source files are the agent-facing authoring representation. SlopArena CLI
+Character source files are the agent-facing authoring representation. SLOPArena CLI
 commands validate, cook, inspect, and operate on Unity-owned concerns; they are not
 intended to replace source editing with a command per property.
 
@@ -521,7 +521,7 @@ compile, the domain reload lands during a later command, and Pipeline marks the 
 `blocked` (completion unknown) until an explicitly authorized Editor restart.
 
 Use `eval_file` only when a genuinely novel probe needs more code than an inline
-expression. First check the relevant native and SlopArena command schemas. Keep
+expression. First check the relevant native and SLOPArena command schemas. Keep
 task-specific assertions temporary; promote repeated setup/control operations into
 the existing typed command seam rather than rewriting them in each session.
 

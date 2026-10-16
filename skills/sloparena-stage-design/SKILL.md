@@ -1,12 +1,12 @@
 ---
 name: sloparena-stage-design
-description: "Design SlopArena PvP stages and solo Arcade traversal courses with focused interviews, route/composition sketches, graybox review and a Stage Design Brief. Use for new layouts, jump/shortcut design or substantial composition revisions. Implementation and baking belong to sloparena-stage-authoring."
+description: "Design SLOPArena PvP stages and solo Arcade traversal courses with focused interviews, route/composition sketches, graybox review and a Stage Design Brief. Use for new layouts, jump/shortcut design or substantial composition revisions. Implementation and baking belong to sloparena-stage-authoring."
 metadata: {"category": "game-dev"}
 ---
 
 For live Editor commands, use your own caller identity and bounded gateway lease from the [Unity CLI guide](../../docs/contributing/unity-cli.md) and [coordination protocol](../../docs/contributing/unity-editor-coordination.md). Run project commands from the selected checkout. Busy ownership waits in the gateway; blocked or unknown status requires recovery.
 
-# SlopArena Stage Design
+# SLOPArena Stage Design
 
 ## 1. Purpose and boundary
 

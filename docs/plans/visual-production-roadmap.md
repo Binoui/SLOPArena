@@ -1,4 +1,4 @@
-# SlopArena Visual Production Roadmap
+# SLOPArena Visual Production Roadmap
 
 **Status:** Active execution roadmap — 2026-08-20
 **Direction source:** [`visual-identity-discovery.md`](visual-identity-discovery.md)  
@@ -8,7 +8,7 @@ This roadmap coordinates presentation work. It does not replace the PvP or chara
 
 ## Product target
 
-SlopArena should read as **mischievous, energetic, and slightly unruly**: graphic-stylized 3D, strong silhouettes, controlled neutral scenes, and brief spectacle at meaningful combat moments.
+SLOPArena should read as **mischievous, energetic, and slightly unruly**: graphic-stylized 3D, strong silhouettes, controlled neutral scenes, and brief spectacle at meaningful combat moments.
 
 The target is not a collection of individually impressive assets. It is one coherent match:
 
@@ -90,7 +90,7 @@ distinct from specials. Character-specific rollout beyond FightGuy remains pendi
 - `PlayerRenderer` derives every trigger from successive authoritative `CharacterState`
   snapshots; presentation never changes movement or packets.
 - Repeated effects use per-kind pools with one lifecycle owner.
-- Cartoon FX Remaster Free supplies optional local source art; generated SlopArena variants
+- Cartoon FX Remaster Free supplies optional local source art; generated SLOPArena variants
   remain ignored under the Asset Store license. See `docs/contributing/conventions.md`.
 
 **Gate:** First gameplay-camera pass approved by the project owner on 2026-08-20. Bright/dark
@@ -228,7 +228,7 @@ Propagate the approved HUD language through the playable loop in this order:
    Lobby Room, Server Browser, Character Select, Stage Select, and Results now
    use the same compact SC2/WoW-style chat panel backed by Master SignalR.
    Server Chat uses the current authorized Master Room, not physical GameServer
-   membership; see [SlopArena Chat](../design/sloparena-chat.md).
+   membership; see [SLOPArena Chat](../design/sloparena-chat.md).
 3. **Character select — presentation pass complete.** The screen now uses a
    portrait-first fighter roster with a selected-character role line, persistent
    global chat, and bottom lobby player cards. PvP cards show each lobby player's

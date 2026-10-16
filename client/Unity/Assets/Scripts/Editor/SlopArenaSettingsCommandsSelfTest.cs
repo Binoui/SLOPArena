@@ -26,7 +26,7 @@ namespace SlopArena.EditorTools
             RequireInvalid("{\"uiScale\":100,\"unknown\":true}");
             RequireInvalid("{\"uiScale\":100,\"uiScale\":110}");
             RequireInvalid("{\"uiScale\":100} trailing");
-            Debug.Log("[SlopArena] Supported settings command validation self-test passed.");
+            Debug.Log("[SLOPArena] Supported settings command validation self-test passed.");
         }
 
         private static void RequireValid(string json)

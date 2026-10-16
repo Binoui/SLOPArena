@@ -223,7 +223,8 @@ def prepare(args, root, path):
         if state["configuration"] != configuration:
             raise ControllerError("This version already pins another snapshot; choose a new version")
         return state
-    if any(path.parent.glob("SlopArena-*.tar.gz")):
+    # Versions released before the SLOPArena rename keep SlopArena-<version>.tar.gz.
+    if any(archive.name.lower().startswith("sloparena-") for archive in path.parent.glob("*.tar.gz")):
         raise ControllerError("This version already contains an immutable client; choose a new version")
     atomic_json(path.parent / "environment/licensed-inputs.json", inputs)
     roster = json.loads(git(root, "show", f"{game_revision}:content-cooked/roster/manifest.json"))
@@ -370,7 +371,7 @@ def verify_archive(root, archive, state):
 def build(root, path, state):
     config = state["configuration"]
     step = state["steps"]["build"]
-    archive = path.parent / ("SlopArena-" + config["version"] + ".tar.gz")
+    archive = path.parent / ("SLOPArena-" + config["version"] + ".tar.gz")
     if step["status"] == "completed":
         if not archive.is_file() or coordinator.checksum(archive) != step["sha256"]:
             raise ControllerError("Retained client archive differs from the verified build")

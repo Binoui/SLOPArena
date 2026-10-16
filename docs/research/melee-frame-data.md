@@ -8,7 +8,7 @@
 
 ## Conventions
 
-- **Frames = sim ticks.** Melee runs 60fps; SlopArena sims at 60 ticks/s. 1 frame = 1 tick, 1:1.
+- **Frames = sim ticks.** Melee runs 60fps; SLOPArena sims at 60 ticks/s. 1 frame = 1 tick, 1:1.
 - **Active windows are per-hitbox**, color-tagged (`red`/`green`/`blue`…) from the source's
   `hitframes_colors` tables — window → hitbox → damage/BKB/KBS. Multi-hitbox moves list each hitbox's window.
 - **`●` in the source graph = "hitbox changed" marker**, not a separate window; union spans here are cross-checked

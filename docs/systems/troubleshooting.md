@@ -33,8 +33,8 @@ it does not check live application readiness or retrieve a match's logs.
 | Per-match timing, peer health and lifecycle events | [Private MasterConsole diagnostics](../../deploy/vps/README.md#match-diagnostics) |
 | GameHost process log | [Exact permitted VPS command](../../deploy/vps/README.md#noninteractive-agent-log-access), `--service game --tail 200` |
 | Master process log | Same grant, `--service master --tail 200` |
-| Windows player | `%USERPROFILE%\AppData\LocalLow\SlopArena\SlopArena\Player.log` |
-| Proton player | Selected Steam library: `steamapps/compatdata/5325920/pfx/drive_c/users/steamuser/AppData/LocalLow/SlopArena/SlopArena/Player.log` |
+| Windows player | `%USERPROFILE%\AppData\LocalLow\SLOPArena\SLOPArena\Player.log` (case-insensitive, so it also finds older installs) |
+| Proton player | Selected Steam library: `steamapps/compatdata/5325920/pfx/drive_c/users/steamuser/AppData/LocalLow/SLOPArena/SLOPArena/Player.log`; installs from before the SLOPArena rename keep `LocalLow/SlopArena/SlopArena/` |
 | Linux Unity Editor | `~/.config/unity3d/Editor.log` |
 
 The current SSH log grant needs an unlocked VPS key, but no sudo password.

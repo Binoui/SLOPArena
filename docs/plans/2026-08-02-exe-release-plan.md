@@ -19,7 +19,7 @@
 - **Roster (grill Q5):** all characters legal in online matches. `custom_rules` is omitted from official `server.json` (note: `AllowedCharacters` is currently decorative server-side — no enforcement exists; do not build enforcement in this plan).
 - **Signing (grill Q6):** none — friends-only. SmartScreen click-through documented in the player guide.
 - **Distribution (grill Q7):** GitHub Releases zip. itch.io is post-demo.
-- **Versioning (grill Q8):** semver, `v0.2.0-demo.1` style; `productName` becomes `SlopArena`, `bundleVersion` stamped per build.
+- **Versioning (grill Q8):** semver, `v0.2.0-demo.1` style; `productName` becomes `SLOPArena`, `bundleVersion` stamped per build.
 - **CI (grill Q9):** CI runs the 390-test .NET suite (this repo + master repo). The exe is built locally by `scripts/build-release.sh`. Master server deploy is scripted (rsync/ssh), not CI-triggered — home infra is not CI-reliable.
 - **Uptime (grill Q10):** low uptime acceptable; CGNAT/inbound ports UNVERIFIED — Phase 0 is a hard gate; if CGNAT is found, STOP and fall back to a VPS.
 - **Reconciliation (grill Q4):** client prediction/rollback is NOT implemented (netcode Phase 1, roadmap Phase 7). A remote playtest in Phase 7 decides whether it's required before the real demo release; if so, a separate plan is written (this plan gates the *friends* release on the playtest result, not on reconciliation).
@@ -331,7 +331,7 @@ The current snake_case keys do NOT bind (`PropertyNameCaseInsensitive` handles c
 
 ```json
 {
-  "serverName": "SlopArena Local Dev",
+  "serverName": "SLOPArena Local Dev",
   "region": "EU",
   "port": 7777,
   "maxConcurrentMatches": 15,
@@ -532,7 +532,7 @@ rsync -avz /tmp/arenas/ alfred:/srv/sloparena/server/arenas/
 
 ```json
 {
-  "serverName": "SlopArena EU #1",
+  "serverName": "SLOPArena EU #1",
   "region": "EU",
   "port": 7777,
   "maxConcurrentMatches": 4,
@@ -565,7 +565,7 @@ docker exec sloparena-postgres psql -U sloparena -d sloparena -c "SELECT name, \
 # ipAddress = sloparena.barakaslurp.fr, isOfficial = true
 ```
 
-- [ ] **Step 3: Optional second instance** (only after Phase 7 playtest shows demand): add a `server-2` service in the compose file with `port: 7877`, `serverName: "SlopArena EU #2"`, UDP forward `7877-7891`. Not required for the friends demo.
+- [ ] **Step 3: Optional second instance** (only after Phase 7 playtest shows demand): add a `server-2` service in the compose file with `port: 7877`, `serverName: "SLOPArena EU #2"`, UDP forward `7877-7891`. Not required for the friends demo.
 
 ---
 
@@ -578,12 +578,12 @@ docker exec sloparena-postgres psql -U sloparena -d sloparena -c "SELECT name, \
 - [ ] **Step 1: Set productName + version**
 
 ```
-productName: SlopArena
-companyName: SlopArena
+productName: SLOPArena
+companyName: SLOPArena
 bundleVersion: 0.1.0
 ```
 
-Re-open Unity once so the editor regenerates any dependent metadata; confirm the Window title reads "SlopArena".
+Re-open Unity once so the editor regenerates any dependent metadata; confirm the Window title reads "SLOPArena".
 
 - [ ] **Step 2: Commit**
 
@@ -735,7 +735,7 @@ ssh alfred 'cd /root/homelab/sloparena && docker compose up -d --force-recreate 
 
 ```bash
 gh release create v0.2.0-demo.1 build/release/SlopArena-0.2.0-demo.1.zip \
-  --title "SlopArena v0.2.0-demo.1" \
+  --title "SLOPArena v0.2.0-demo.1" \
   --notes "$(cat docs/release/RELEASE_NOTES.template.md)"
 ```
 
@@ -752,7 +752,7 @@ gh release create v0.2.0-demo.1 build/release/SlopArena-0.2.0-demo.1.zip \
 - [x] **Step 1: Write the guide** — full text:
 
 ```markdown
-# SlopArena — how to play
+# SLOPArena — how to play
 
 1. Download `SlopArena-<version>.zip` from the release page.
 2. Right-click the zip → Extract All. Keep the extracted folder together.
@@ -761,7 +761,7 @@ gh release create v0.2.0-demo.1 build/release/SlopArena-0.2.0-demo.1.zip \
      (The game isn't code-signed yet; this is normal.)
 4. Main menu:
    - **Training** — play solo against bots, try every character.
-   - **Join** — pick a server (e.g. "SlopArena EU #1"), enter the lobby, ready up.
+   - **Join** — pick a server (e.g. "SLOPArena EU #1"), enter the lobby, ready up.
      Your friend does the same; the host starts when everyone is ready.
 5. Controls:
    - Mouse — aim camera
@@ -774,7 +774,7 @@ gh release create v0.2.0-demo.1 build/release/SlopArena-0.2.0-demo.1.zip \
    - Esc — pause / back
 6. Problems?
    - Game won't start → your PC must be 64-bit Windows 10/11.
-   - Firewall prompt → allow SlopArena on private networks.
+   - Firewall prompt → allow SLOPArena on private networks.
    - Can't see any servers → the online part is a friends demo; ask the host
      if the servers are up.
 ```
@@ -793,7 +793,7 @@ git commit -m "docs: add player guide, host guide, release notes template"
 - [x] **Step 1: Write it**
 
 ```markdown
-# SlopArena — hosting your own game
+# SLOPArena — hosting your own game
 
 Hosting starts an embedded game server on your machine. Others can join you
 over the internet ONLY if your router forwards traffic to you.
@@ -843,7 +843,7 @@ git commit -m "docs: add production hosting runbook and release pipeline"
 |---|---|
 | Fresh Windows machine: unzip, SmartScreen, launch | ☐ |
 | Training mode solo (no network) | ☐ |
-| Join "SlopArena EU #1", lobby, char select, fight | ☐ |
+| Join "SLOPArena EU #1", lobby, char select, fight | ☐ |
 | 2nd player joins, 2v2 roster | ☐ |
 | 15min match — visible jitter/desync? | ☐ |
 | Host-and-play (technical friend, port-forwarded) | ☐ |

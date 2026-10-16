@@ -1,9 +1,9 @@
 ---
 name: sloparena-entity-system
-description: "SlopArena entity identity, Shared hitbox processing, NPC input, bone attachments, and Unity presentation boundaries."
+description: "SLOPArena entity identity, Shared hitbox processing, NPC input, bone attachments, and Unity presentation boundaries."
 ---
 
-# SlopArena Entity System
+# SLOPArena Entity System
 
 Entities are registered in the Shared simulation with stable IDs. The same ID is used for state lookup, hitbox ownership, collision filtering, network packets, and presentation lookup.
 
