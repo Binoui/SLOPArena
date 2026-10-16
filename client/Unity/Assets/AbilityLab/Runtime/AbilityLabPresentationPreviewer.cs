@@ -60,7 +60,7 @@ public sealed class AbilityLabPresentationPreviewer
 
             var key = new PresentationEventKey(0, 0, 0, PresentationEventSource.Timeline, index);
             active.Add(key);
-            if (!_instances.TryGetValue(key, out var instance))
+            if (!_instances.TryGetValue(key, out var instance) || instance == null)
             {
                 var binding = ResolveBinding(operation.PresentationId, operation.Placement, renderer);
                 if (binding?.Prefab == null) continue;
@@ -111,7 +111,7 @@ public sealed class AbilityLabPresentationPreviewer
 
             PresentationEventKey key = presentationEvent.Key;
             active.Add(key);
-            if (!_instances.TryGetValue(key, out var instance))
+            if (!_instances.TryGetValue(key, out var instance) || instance == null)
             {
                 instance = PresentationPlacementResolver.Instantiate(
                     binding,

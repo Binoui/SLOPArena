@@ -19,6 +19,7 @@ public static class AbilityLabFrontendSelfTest
     {
         if (Application.isPlaying)
             throw new InvalidOperationException("Moves workspace checks require Edit Mode.");
+        using var preservation = new CharacterPackageSelfTestScope("bonk");
         var originalLab = AbilityLab.Instance;
         var originalCamera = originalLab != null ? originalLab.CaptureCameraState() : default;
         var originalCursor = originalLab != null ? originalLab.CaptureTimelineCursor() : default;
@@ -26,27 +27,19 @@ public static class AbilityLabFrontendSelfTest
         AbilityLabInspectorWindow? pane = null;
         IPanel? windowPanel = null;
         IPanel? panePanel = null;
-        GameObject? fixture = null;
         try
         {
-            fixture = new GameObject("AbilityLabMovesWorkspaceSelfTest") { hideFlags = HideFlags.HideAndDontSave };
-            fixture.SetActive(false);
-            var cameraObject = new GameObject("FixtureCamera") { hideFlags = HideFlags.HideAndDontSave };
-            cameraObject.transform.SetParent(fixture.transform);
-            var camera = cameraObject.AddComponent<Camera>();
-            camera.enabled = false;
-            var lab = fixture.AddComponent<AbilityLab>();
-            typeof(AbilityLab).GetField("_camera", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(lab, camera);
-            fixture.SetActive(true);
-            camera.transform.SetPositionAndRotation(new Vector3(7f, 5f, -9f), Quaternion.Euler(13f, 27f, 0f));
-            var cameraPosition = camera.transform.position;
-            var cameraRotation = camera.transform.rotation;
             window = ScriptableObject.CreateInstance<AbilityLabWindow>();
             window.hideFlags = HideFlags.HideAndDontSave;
             typeof(AbilityLabWindow).GetField("_suppressInitialPackage", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, true);
             window.CreateGUI();
             windowPanel = CreateHiddenEditorPanel(window);
             typeof(AbilityLabWindow).GetMethod("OpenPackage", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { "bonk" });
+            var lab = window.CommandLab ?? throw new InvalidOperationException("Window did not create its preview rig.");
+            var camera = lab.PreviewCamera;
+            camera.transform.SetPositionAndRotation(new Vector3(7f, 5f, -9f), Quaternion.Euler(13f, 27f, 0f));
+            var cameraPosition = camera.transform.position;
+            var cameraRotation = camera.transform.rotation;
             var workspace = window.CommandWorkspace;
             if (!workspace.HasPackage || workspace.PackageId != "bonk")
                 throw new InvalidOperationException("Bonk package prerequisite is unavailable.");
@@ -106,7 +99,10 @@ public static class AbilityLabFrontendSelfTest
             fields.Q<FloatField>("Shape/Radius").value = radius + 0.05f;
             if (Math.Abs(lab.ResolveHitboxes().Single().evt.Radius - radius - 0.05f) > 0.0001f)
                 throw new InvalidOperationException("Radius field did not change live resolved hitbox geometry.");
+            int catalogDirtyCount = EditorUtility.GetDirtyCount(workspace.Catalog);
             workspace.Undo();
+            if (EditorUtility.GetDirtyCount(workspace.Catalog) != catalogDirtyCount)
+                throw new InvalidOperationException("Undoing a source-only edit dirtied its asset catalog and could queue a publishing cook.");
             if (Math.Abs(lab.ResolveHitboxes().Single().evt.Radius - radius) > 0.0001f)
                 throw new InvalidOperationException("One Undo did not restore live hitbox geometry.");
             if (camera.transform.position != cameraPosition || camera.transform.rotation != cameraRotation)
@@ -190,7 +186,8 @@ public static class AbilityLabFrontendSelfTest
             var inlineFocus = windowPanel.focusController.focusedElement as VisualElement;
             if (inlineFocus == null || (inlineFocus != closingBone && !closingBone.Contains(inlineFocus)))
                 throw new InvalidOperationException("Bone selector lost keyboard focus when fields returned inline.");
-            return "PASS: independent source inspection; explicit seek; live geometry and one Undo; source-stage bounds; refresh/Undo rebinding; cumulative clamp; native pane transfer/close/tab/input lifecycle. No save/cook or shown windows.";
+            CheckStartupAimCorrectionFields(window, lab, workspace, fields);
+            return "PASS: independent source inspection; explicit seek; live geometry and one Undo; source-stage bounds; refresh/Undo rebinding; cumulative clamp; native pane transfer/close/tab/input lifecycle; all startup aim-correction fields, Undo/Redo, cutoff validation and source round-trip. No save/cook or shown windows.";
         }
         finally
         {
@@ -198,7 +195,6 @@ public static class AbilityLabFrontendSelfTest
             panePanel?.Dispose();
             windowPanel?.Dispose();
             if (window != null) UnityEngine.Object.DestroyImmediate(window);
-            if (fixture != null) UnityEngine.Object.DestroyImmediate(fixture);
             typeof(AbilityLab).GetProperty(nameof(AbilityLab.Instance))!.SetValue(null, originalLab);
             if (originalLab != null)
             {
@@ -206,6 +202,75 @@ public static class AbilityLabFrontendSelfTest
                 originalLab.RestoreCameraState(originalCamera);
             }
         }
+    }
+
+    private static void CheckStartupAimCorrectionFields(AbilityLabWindow window, AbilityLab lab,
+        AbilityLabPackageWorkspace workspace, VisualElement fields)
+    {
+        var slot = workspace.Draft.Slots.First(value => value.Id == "ground.1");
+        var stage = slot.Timeline.Stages[0];
+        var hitbox = stage.Operations.OfType<SpawnHitboxOperationSource>().Single();
+        var original = new StartupAimCorrectionOperationSource(0, AuthoringUnit.Ticks, 6, 7f, 45f, 30f, 15f, 240f, 180f);
+        workspace.SetDraft(workspace.Draft with
+        {
+            Slots = workspace.Draft.Slots.Select(value => value.Id == slot.Id
+                ? value with
+                {
+                    Timeline = value.Timeline with
+                    {
+                        Stages = new[]
+                        {
+                            stage with
+                            {
+                                Operations = new CharacterTimelineOperationSource[]
+                                {
+                                    hitbox with { Tick = 6 }, original,
+                                },
+                            },
+                        },
+                    },
+                } : value).ToArray(),
+        });
+        if (workspace.LiveDraftInvalid)
+            throw new InvalidOperationException("Startup correction fixture failed compilation.");
+        ApplyTick(window, 3);
+        InvokeButton(fields.Q<Button>("effect-0-1"));
+        fields.Q<IntegerField>("selected-effect-fields/Start tick").value = 999;
+        if (Current().Tick != 5 || workspace.LiveDraftInvalid)
+            throw new InvalidOperationException("Startup correction start did not stay before the exclusive cutoff.");
+        workspace.Undo();
+        fields.Q<IntegerField>("selected-effect-fields/Start tick").value = 2;
+        fields.Q<IntegerField>("selected-effect-fields/End tick (exclusive)").value = 5;
+        fields.Q<FloatField>("selected-effect-fields/Acquisition range (m)").value = 9f;
+        fields.Q<FloatField>("selected-effect-fields/Acquisition half-angle (degrees)").value = 60f;
+        fields.Q<FloatField>("selected-effect-fields/Maximum yaw (degrees)").value = 40f;
+        fields.Q<FloatField>("selected-effect-fields/Maximum pitch (degrees)").value = 20f;
+        fields.Q<FloatField>("selected-effect-fields/Yaw speed (degrees/s)").value = 300f;
+        fields.Q<FloatField>("selected-effect-fields/Pitch speed (degrees/s)").value = 210f;
+        var expected = new StartupAimCorrectionOperationSource(2, AuthoringUnit.Ticks, 5, 9f, 60f, 40f, 20f, 300f, 210f);
+        if (Current() != expected || workspace.LiveDraftInvalid || lab.StageIndex != 0 || lab.Tick != 3)
+            throw new InvalidOperationException("Startup correction fields lost edits, failed preview compilation or sought the cursor.");
+        workspace.Undo();
+        if (Current() != expected with { PitchDegreesPerSecond = original.PitchDegreesPerSecond })
+            throw new InvalidOperationException("Startup correction Undo did not restore only the last field.");
+        workspace.Redo();
+        if (Current() != expected)
+            throw new InvalidOperationException("Startup correction Redo lost field values.");
+        var source = new CharacterPackageSource(workspace.Manifest, workspace.Draft);
+        var reloaded = CharacterPackageSourceCodec.Load(CharacterPackageSourceCodec.SerializeManifest(source.Manifest),
+            CharacterPackageSourceCodec.SerializeCharacter(source.Character));
+        if (!reloaded.IsValid || reloaded.Source!.Character.Slots.First(value => value.Id == slot.Id)
+                .Timeline.Stages[0].Operations.OfType<StartupAimCorrectionOperationSource>().Single() != expected)
+            throw new InvalidOperationException("Startup correction edits did not survive source serialization/reload.");
+        fields.Q<IntegerField>("selected-effect-fields/End tick (exclusive)").value = 8;
+        if (!workspace.LiveDraftInvalid || !workspace.Diagnostics.Any(value => value.Code == "operation.cutoff-after-commitment"))
+            throw new InvalidOperationException("Startup correction cutoff after contact did not invalidate preview with diagnostics.");
+        workspace.Undo();
+        if (workspace.LiveDraftInvalid || Current() != expected)
+            throw new InvalidOperationException("Undo did not recover startup correction preview after invalid cutoff.");
+
+        StartupAimCorrectionOperationSource Current() => workspace.Draft.Slots.First(value => value.Id == slot.Id)
+            .Timeline.Stages[0].Operations.OfType<StartupAimCorrectionOperationSource>().Single();
     }
 
     public static void RunAttachmentDraftInvariants()
@@ -353,13 +418,8 @@ public static class AbilityLabFrontendSelfTest
     [MenuItem("Tools/SlopArena/Tests/Ability Lab Frontend")]
     public static void Run()
     {
+        using var preservation = new CharacterPackageSelfTestScope("fightguy", "bonk", "manki", "wibou");
         CleanupOrphanedFixture();
-        var labObject = AbilityLab.Instance != null ? null : new GameObject("AbilityLabFrontendSelfTest");
-        if (labObject != null)
-        {
-            labObject.hideFlags = HideFlags.HideAndDontSave;
-            labObject.AddComponent<AbilityLab>();
-        }
         var window = EditorWindow.GetWindow<AbilityLabWindow>(true, "Ability Lab Self-Test", false);
         AbilityLabPackageWorkspace? fixtureWorkspace = null;
         try
@@ -421,7 +481,7 @@ public static class AbilityLabFrontendSelfTest
                 !ReferenceEquals(priorCharacterPreview, windowWorkspace.Preview))
                 throw new InvalidOperationException("Unsaved source edit did not refresh the Character page.");
 
-            var lab = AbilityLab.Instance;
+            var lab = window.CommandLab;
             if (!lab.IsPackagePreview || lab.ShowHurtboxes || !lab.ShowHitboxes || lab.ShowBakedBones || lab.ShowDummy)
                 throw new InvalidOperationException("Package preview debug defaults are not readable.");
             var characterRoot = lab.Renderer;
@@ -497,7 +557,7 @@ public static class AbilityLabFrontendSelfTest
             if (!windowWorkspace.OpenPackage("Assets/CharacterPackages/manki"))
                 throw new InvalidOperationException("Manki package could not be opened for presentation preview tests.");
             Refresh(window);
-            var mankiLab = AbilityLab.Instance;
+            var mankiLab = window.CommandLab;
             var mankiAddress = CanonicalSlotProjection.All.First(address => address.Id == "ground.F");
             mankiLab.SetSlot(mankiAddress);
             mankiLab.SetStage(0);
@@ -965,13 +1025,6 @@ public static class AbilityLabFrontendSelfTest
             {
                 window.rootVisualElement?.Clear();
                 window.Close();
-            }
-            if (labObject != null)
-            {
-                if (Application.isPlaying)
-                    UnityEngine.Object.Destroy(labObject);
-                else
-                    UnityEngine.Object.DestroyImmediate(labObject);
             }
         }
     }

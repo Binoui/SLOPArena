@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
 #endif
 using SlopArena.Shared;
 using SlopArena.Client.Animation;
@@ -145,7 +146,7 @@ namespace SlopArena.Client.Tools
 
         public CameraState CaptureCameraState()
         {
-            UnityEngine.Camera observed = _camera != null ? _camera : UnityEngine.Camera.main;
+            UnityEngine.Camera observed = _camera;
             return new CameraState(
                 _camera,
                 observed,
@@ -547,7 +548,7 @@ namespace SlopArena.Client.Tools
         private void OnEnable()
         {
             _waitingForAssemblyReload = false;
-            Instance = this;
+            if (!EditorSceneManager.IsPreviewSceneObject(gameObject)) Instance = this;
             EditorApplication.update += UpdateEditorPlayback;
         }
         private void OnDisable()
@@ -575,6 +576,9 @@ namespace SlopArena.Client.Tools
 
         private void Awake()
         {
+#if UNITY_EDITOR
+            if (!EditorSceneManager.IsPreviewSceneObject(gameObject))
+#endif
             Instance = this;
             EnsurePreviewRenderers();
             EnsureCamera();
@@ -679,31 +683,31 @@ namespace SlopArena.Client.Tools
 
         private void LateUpdate()
         {
-            if (_camera != null)
+            if (Application.isPlaying && _camera != null)
             {
                 // Lab camera: right-drag orbits, middle-drag pans the pivot, scroll zooms.
                 // Project uses the new Input System — no legacy Input.* calls.
                 var mouse = UnityEngine.InputSystem.Mouse.current;
                 if (mouse != null)
                 {
-                    if (mouse.rightButton.isPressed)
-                    {
-                        Vector2 delta = mouse.delta.ReadValue();
-                        _orbitAngles.x = Mathf.Clamp(_orbitAngles.x - delta.y * 0.1f, 5f, 85f);
-                        _orbitAngles.y += delta.x * 0.1f;
-                    }
-                    if (mouse.middleButton.isPressed)
-                    {
-                        Vector2 delta = mouse.delta.ReadValue();
-                        float scale = _orbitDistance * 0.0015f;
-                        _orbitPivot += (-_camera.transform.right * delta.x + _camera.transform.up * delta.y) * scale;
-                    }
-                    _orbitDistance = Mathf.Clamp(_orbitDistance - mouse.scroll.ReadValue().y * 0.05f, 1f, 20f);
+                    AdjustCameraView(
+                        mouse.rightButton.isPressed ? mouse.delta.ReadValue() : Vector2.zero,
+                        mouse.middleButton.isPressed ? mouse.delta.ReadValue() : Vector2.zero,
+                        -mouse.scroll.ReadValue().y * 0.05f);
                 }
-                Quaternion rot = Quaternion.Euler(_orbitAngles.x, _orbitAngles.y, 0f);
-                _camera.transform.position = _orbitPivot - rot * Vector3.forward * _orbitDistance;
-                _camera.transform.rotation = rot;
             }
+        }
+
+        public void AdjustCameraView(Vector2 orbitDelta, Vector2 panDelta, float zoomDistance)
+        {
+            if (_camera == null) return;
+            _orbitAngles.x = Mathf.Clamp(_orbitAngles.x - orbitDelta.y * 0.1f, 5f, 85f);
+            _orbitAngles.y += orbitDelta.x * 0.1f;
+            _orbitPivot += (-_camera.transform.right * panDelta.x + _camera.transform.up * panDelta.y)
+                * (_orbitDistance * 0.0015f);
+            _orbitDistance = Mathf.Clamp(_orbitDistance + zoomDistance, 1f, 20f);
+            Quaternion rot = Quaternion.Euler(_orbitAngles.x, _orbitAngles.y, 0f);
+            _camera.transform.SetPositionAndRotation(_orbitPivot - rot * Vector3.forward * _orbitDistance, rot);
         }
 
         /// <summary>Reset the lab camera to its default orbit around the character.</summary>
@@ -723,24 +727,29 @@ namespace SlopArena.Client.Tools
         // ── Loading ──
 
         /// <summary>
-        /// Reuse the scene's main camera for the orbit view, or create one when none
-        /// exists (fresh/empty scene). Called by the lab window when the rig is built.
+        /// Create an owned orbit camera without borrowing the open scene's main camera.
         /// </summary>
         public void EnsureCamera()
         {
             if (_camera != null) return; // serialized ref survives edit→play remap
-            _camera = UnityEngine.Camera.main;
-            if (_camera == null)
+            var camGo = new GameObject("LabCamera");
+            camGo.transform.SetParent(transform, false);
+            _camera = camGo.AddComponent<UnityEngine.Camera>();
+            _camera.clearFlags = CameraClearFlags.SolidColor;
+            _camera.backgroundColor = new Color(0.1f, 0.1f, 0.12f);
+            _camera.fieldOfView = 60f;
+            _camera.nearClipPlane = 0.05f;
+#if UNITY_EDITOR
+            if (EditorSceneManager.IsPreviewScene(gameObject.scene))
             {
-                var camGo = new GameObject("LabCamera");
-                camGo.transform.SetParent(transform, false);
-                _camera = camGo.AddComponent<UnityEngine.Camera>();
-                camGo.AddComponent<AudioListener>();
-                _camera.clearFlags = CameraClearFlags.SolidColor;
-                _camera.backgroundColor = new Color(0.1f, 0.1f, 0.12f);
-                _camera.fieldOfView = 60f;
-                _camera.nearClipPlane = 0.05f;
+                camGo.hideFlags = HideFlags.HideAndDontSave;
+                _camera.scene = gameObject.scene;
+                _camera.cameraType = CameraType.Preview;
+                _camera.enabled = false;
             }
+            else
+#endif
+                camGo.AddComponent<AudioListener>();
             ResetCameraView();
         }
 
@@ -1648,6 +1657,12 @@ namespace SlopArena.Client.Tools
 
         private void OnRenderObject()
         {
+#if UNITY_EDITOR
+            var camera = UnityEngine.Camera.current;
+            if (camera == null ||
+                ((EditorSceneManager.IsPreviewScene(gameObject.scene) || EditorSceneManager.IsPreviewScene(camera.scene)) &&
+                 camera.scene != gameObject.scene)) return;
+#endif
             if (Def == null) return;
             if (Character == CharacterClass.None ? !IsPackagePreview : !Application.isPlaying) return;
             var mat = LineMat;

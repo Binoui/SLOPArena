@@ -73,6 +73,13 @@ public static class AbilityLabVfxSelfTest
             Require(preview.ActiveInstanceCount == 1, "Backward scrubbing did not reconstruct the effect.");
             preview.Clear();
 
+            preview.SetSimulationFrame(new[] { cue }, 1, bindings, renderer, root.transform, history);
+            UnityEngine.Object.DestroyImmediate(preview.ActiveInstances.Single());
+            preview.SetSimulationFrame(new[] { cue }, 1, bindings, renderer, root.transform, history);
+            Require(preview.ActiveInstanceCount == 1 && preview.ActiveInstances.Single() != null,
+                "Refreshing a model left a destroyed effect cached instead of rebuilding it.");
+            preview.Clear();
+
             dispatcher.Clear();
             dispatcher.Register(1, renderer, catalog);
             var mobileAim = new[]
