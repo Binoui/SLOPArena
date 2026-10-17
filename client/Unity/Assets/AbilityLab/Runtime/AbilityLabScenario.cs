@@ -60,9 +60,10 @@ public readonly struct AbilityLabScenarioFrame
     public int OpponentPoseTicks { get; }
     public float ActiveSwordHitboxSeconds { get; }
     public IReadOnlyList<SpellResolver.EntityData> Hurtboxes { get; }
-    public IReadOnlyList<Hitbox> ActiveHitboxes { get; }
+    /// <summary>Every hitbox Shared tested on this frame, including ones that expired or connected.</summary>
+    public IReadOnlyList<Hitbox> TestedHitboxes { get; }
     public AbilityLabScenarioFrame(int frameIndex, uint matchTick, CharacterState actor, CharacterState opponent,
-        float activeSwordHitboxSeconds, IReadOnlyList<SpellResolver.EntityData> hurtboxes, IReadOnlyList<Hitbox> activeHitboxes,
+        float activeSwordHitboxSeconds, IReadOnlyList<SpellResolver.EntityData> hurtboxes, IReadOnlyList<Hitbox> testedHitboxes,
         int actorPoseTicks = 0, int opponentPoseTicks = 0)
     {
         FrameIndex = frameIndex;
@@ -73,7 +74,7 @@ public readonly struct AbilityLabScenarioFrame
         OpponentPoseTicks = opponentPoseTicks;
         ActiveSwordHitboxSeconds = activeSwordHitboxSeconds;
         Hurtboxes = hurtboxes;
-        ActiveHitboxes = activeHitboxes;
+        TestedHitboxes = testedHitboxes;
     }
 }
 

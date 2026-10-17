@@ -8,6 +8,9 @@ Shader "SLOPArena/GraphicCharacter"
         _RimColor("Rim Color", Color) = (1.0, 0.72, 0.20, 1)
         _RimPower("Rim Power", Range(1, 8)) = 3
         _RimStrength("Rim Strength", Range(0, 2)) = 0.65
+        // Hit flash, driven per renderer by FighterHitFeel through a MaterialPropertyBlock.
+        _FlashColor("Flash Color", Color) = (1, 1, 1, 1)
+        _FlashAmount("Flash Amount", Range(0, 1)) = 0
     }
 
     SubShader
@@ -61,6 +64,8 @@ Shader "SLOPArena/GraphicCharacter"
                 half4 _RimColor;
                 half _RimPower;
                 half _RimStrength;
+                half4 _FlashColor;
+                half _FlashAmount;
             CBUFFER_END
 
             Varyings Vert(Attributes input)
@@ -102,6 +107,7 @@ Shader "SLOPArena/GraphicCharacter"
                 half rim = pow(saturate(1.0h - dot(normalWS, viewDir)), _RimPower + 1.5h)
                     * _RimStrength * 0.4h;
                 color += _RimColor.rgb * rim;
+                color = lerp(color, _FlashColor.rgb, _FlashAmount);
                 return half4(color, albedo.a);
             }
             ENDHLSL

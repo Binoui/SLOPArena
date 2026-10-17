@@ -134,6 +134,8 @@ namespace SlopArena.Client.World
                     new Vector3(presentationEvent.WorldX, presentationEvent.WorldY, presentationEvent.WorldZ),
                     Quaternion.Euler(0f, presentationEvent.WorldYaw * Mathf.Rad2Deg, 0f));
                 if (instance == null) continue;
+                foreach (IPresentationOwnerReceiver receiver in instance.GetComponentsInChildren<IPresentationOwnerReceiver>(true))
+                    receiver.BindOwner(entry.Renderer);
                 _active.Add(new ActivePresentation
                 {
                     Instance = instance,

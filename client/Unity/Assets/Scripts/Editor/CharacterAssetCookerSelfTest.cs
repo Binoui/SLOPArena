@@ -10,127 +10,141 @@ using SlopArena.Shared;
 
 public static class CharacterAssetCookerSelfTest
 {
-    private readonly struct LowPoseBakeContext
+    /// <summary>
+    /// Bake every roster package, render each clip frame the way PlayerRenderer does
+    /// (Animancer, model root at the capsule centre plus modelYOffset, facing yaw,
+    /// visualScale) and require Shared to resolve every baked point onto the drawn
+    /// bone or weapon marker within 0.1 mm.
+    /// </summary>
+    [MenuItem("Tools/SLOPArena/Tests/Rendered Pose Alignment")]
+    public static void RunRenderedPoseAlignmentSelfTest()
     {
-        public readonly float VisualScale;
-        public readonly float HurtboxBoneScale;
-        public readonly float ModelYOffset;
-        public readonly float CapsuleHeight;
-        public readonly float HipHeight;
-        public readonly string Crouch;
-        public readonly string Slide;
-
-        public LowPoseBakeContext(
-            float visualScale,
-            float hurtboxBoneScale,
-            float modelYOffset,
-            float capsuleHeight,
-            float hipHeight,
-            string crouch,
-            string slide)
+        int packages = 0, clips = 0, frames = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:CharacterAssetCatalog", new[] { "Assets/CharacterPackages" }))
         {
-            VisualScale = visualScale;
-            HurtboxBoneScale = hurtboxBoneScale;
-            ModelYOffset = modelYOffset;
-            CapsuleHeight = capsuleHeight;
-            HipHeight = hipHeight;
-            Crouch = crouch;
-            Slide = slide;
+            var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(AssetDatabase.GUIDToAssetPath(guid));
+            if (catalog == null || catalog.Rig == null) continue;
+            clips += AssertRenderedPoseAlignment(catalog, ref frames);
+            packages++;
         }
+        if (packages == 0) throw new InvalidOperationException("No character catalogs were found.");
+        Debug.Log($"[SLOPArena] Rendered pose alignment passed: {packages} packages, {clips} clips, {frames} frames within 0.1mm.");
     }
 
-    [MenuItem("Tools/SLOPArena/Tests/Weapon Marker Poses")]
-    public static void RunWeaponMarkerSelfTest()
+    private static int AssertRenderedPoseAlignment(CharacterAssetCatalog catalog, ref int frames)
     {
-        var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>("Assets/CharacterPackages/bonk/CharacterAssetCatalog.asset");
-        var entry = catalog.WeaponConfig.Entries.First(x => x != null);
-        var lowContext = ReadLowPoseBakeContext(catalog);
-        var animations = catalog.Bindings.Where(x => x.Clip != null)
+        var character = ReadCharacterSource(catalog);
+        var presentation = character.Presentation;
+        var animations = catalog.Bindings.Where(x => x != null && x.Clip != null)
             .Select(x => new DeterministicPoseTrackBaker.SampledAnimation
             {
                 SemanticId = x.SemanticId,
                 PoseTrackId = x.PoseTrackId,
                 Clip = x.Clip,
                 FrameCount = Mathf.CeilToInt(x.Clip.length * 60),
-                IsLowPosture = string.Equals(x.SemanticId, lowContext.Crouch, StringComparison.Ordinal)
-                    || string.Equals(x.SemanticId, lowContext.Slide, StringComparison.Ordinal),
             }).ToArray();
         var baked = BakedAnimationData.LoadFromBin(DeterministicPoseTrackBaker.Bake(
-            catalog.Rig, animations, 60, catalog.WeaponConfig,
-            lowContext.VisualScale, lowContext.HurtboxBoneScale,
-            lowContext.ModelYOffset, lowContext.CapsuleHeight, lowContext.HipHeight));
-        var rig = UnityEngine.Object.Instantiate(catalog.Rig);
-        var weapon = UnityEngine.Object.Instantiate(entry.Prefab);
-        rig.hideFlags = weapon.hideFlags = HideFlags.HideAndDontSave;
+            catalog.Rig, animations, 60, catalog.WeaponConfig, presentation.VisualScale, presentation.ModelYOffset));
+        int hipsOffsetIndex = baked.HipsOffsetIndex;
+        if (hipsOffsetIndex < 0) throw new InvalidOperationException($"{catalog.PackageId} bake has no {BakedAnimationData.HipsOffsetPointName}.");
+        var def = new CharacterDefinition
+        {
+            CapsuleHeight = character.CapsuleHeight,
+            HipHeight = character.HipHeight,
+            HurtboxBoneScale = presentation.HurtboxBoneScale,
+        };
+        // An arbitrary placement exercises the facing rotation.
+        var state = new CharacterState { PX = 3.25f, PY = 7.5f, PZ = -1.5f, FacingYaw = 2.2f };
+        var root = new GameObject($"{catalog.PackageId}_RenderedPoseRoot") { hideFlags = HideFlags.HideAndDontSave };
+        GameObject weapon = null;
         try
         {
-            var hand = rig.GetComponentsInChildren<Transform>(true).First(x => x.name == entry.BoneName);
-            var hips = rig.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.Hips);
-            var markers = weapon.GetComponentsInChildren<Transform>(true);
-            var hilt = markers.Single(x => x.name == "bladeHilt");
-            var tip = markers.Single(x => x.name == "bladeEnd");
+            root.transform.SetPositionAndRotation(
+                new Vector3(state.PX, state.PY + presentation.ModelYOffset, state.PZ),
+                Quaternion.Euler(0f, state.FacingYaw * Mathf.Rad2Deg, 0f));
+            var model = UnityEngine.Object.Instantiate(catalog.Rig, root.transform);
+            model.transform.localPosition = Vector3.zero;
+            model.transform.localRotation = Quaternion.identity;
+            model.transform.localScale = Vector3.one * presentation.VisualScale;
+            var animator = model.GetComponent<Animator>();
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            animator.fireEvents = false;
+            var animancer = model.GetComponent<Animancer.AnimancerComponent>();
+            if (animancer == null) animancer = model.AddComponent<Animancer.AnimancerComponent>();
+            var bones = DeterministicPoseTrackBaker.RequiredBones.Select(animator.GetBoneTransform).ToArray();
+            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+
+            var entry = catalog.WeaponConfig?.Entries?.FirstOrDefault(x => x != null);
+            Transform hand = null, hilt = null, tip = null;
+            if (entry != null)
+            {
+                hand = model.GetComponentsInChildren<Transform>(true).First(x => x.name == entry.BoneName);
+                weapon = UnityEngine.Object.Instantiate(entry.Prefab);
+                weapon.hideFlags = HideFlags.HideAndDontSave;
+                var markers = weapon.GetComponentsInChildren<Transform>(true);
+                hilt = markers.SingleOrDefault(x => x.name == "bladeHilt");
+                tip = markers.SingleOrDefault(x => x.name == "bladeEnd");
+            }
             int hiltIndex = Array.IndexOf(baked.BoneNames, "_weapon_hilt");
             int tipIndex = Array.IndexOf(baked.BoneNames, "_weapon_tip");
-            int frames = 0;
-            Vector3 ExpectedMarkerPosition(Transform marker, bool lowPosture)
-                => lowPosture
-                    ? BakeLowPose(rig.transform.InverseTransformPoint(marker.position), lowContext)
-                    : marker.position - hips.position;
 
             foreach (var animation in animations)
             {
+                int animIndex = baked.FindAnimIndex(animation.PoseTrackId);
+                if (animIndex < 0) throw new InvalidOperationException($"{catalog.PackageId} bake is missing {animation.PoseTrackId}.");
+                // The same scrub PlayerRenderer.TrySampleBakedWeaponPath uses.
+                var clipState = animancer.Play(animation.Clip, 0f);
+                clipState.Speed = 0f;
                 for (int frame = 0; frame < animation.FrameCount; frame++)
                 {
-                    animation.Clip.SampleAnimation(rig, frame / 60f);
-                    // Place an actual prefab instance as WeaponAttach does, including its scale.
-                    weapon.transform.position = hand.TransformPoint(entry.PositionOffset);
-                    weapon.transform.rotation = hand.rotation * Quaternion.Euler(entry.RotationOffset);
-                    AssertMarkerPose(hiltIndex, ExpectedMarkerPosition(hilt, animation.IsLowPosture), "_weapon_hilt");
-                    AssertMarkerPose(tipIndex, ExpectedMarkerPosition(tip, animation.IsLowPosture), "_weapon_tip");
+                    clipState.Time = frame / 60f;
+                    animancer.Evaluate(0f);
+                    for (int i = 0; i < bones.Length; i++)
+                        AssertPoint(i, bones[i].position, DeterministicPoseTrackBaker.RequiredBones[i].ToString());
+                    AssertPoint(hipsOffsetIndex, hips.position, BakedAnimationData.HipsOffsetPointName);
+                    if (hilt != null && tip != null && hiltIndex >= 0 && tipIndex >= 0)
+                    {
+                        // Place an actual prefab instance as WeaponAttach does, including its scale.
+                        weapon.transform.position = hand.TransformPoint(entry.PositionOffset);
+                        weapon.transform.rotation = hand.rotation * Quaternion.Euler(entry.RotationOffset);
+                        AssertPoint(hiltIndex, hilt.position, "_weapon_hilt");
+                        AssertPoint(tipIndex, tip.position, "_weapon_tip");
+                    }
                     frames++;
 
-                    void AssertMarkerPose(int boneIndex, Vector3 expected, string bone)
+                    void AssertPoint(int pointIndex, Vector3 rendered, string point)
                     {
-                        if (!baked.GetBonePosition(animation.PoseTrackId, frame, boneIndex, out float x, out float y, out float z))
-                            throw new InvalidOperationException($"Missing {bone} at {animation.SemanticId}:{frame}.");
-                        float error = Vector3.Distance(expected, new Vector3(x, y, z));
+                        if (!HitboxGeometry.BakedPointToWorld(state, def, baked, animIndex, frame, pointIndex, 1f,
+                                out float x, out float y, out float z))
+                            throw new InvalidOperationException($"{catalog.PackageId} is missing {point} at {animation.SemanticId}:{frame}.");
+                        float error = Vector3.Distance(rendered, new Vector3(x, y, z));
                         if (error > 0.0001f)
-                            throw new InvalidOperationException($"{bone} differs from rendered marker by {error:F6}m at {animation.SemanticId}:{frame}.");
+                            throw new InvalidOperationException(
+                                $"{catalog.PackageId} {point} resolves {error * 1000f:F2} mm from the rendered pose at {animation.SemanticId}:{frame}.");
                     }
                 }
             }
-            Debug.Log($"[SLOPArena] Weapon marker poses passed: {animations.Length} clips, {frames} frames, both endpoints within 0.1mm.");
+            return animations.Length;
         }
-
         finally
         {
-            UnityEngine.Object.DestroyImmediate(weapon);
-            UnityEngine.Object.DestroyImmediate(rig);
+            if (weapon != null) UnityEngine.Object.DestroyImmediate(weapon);
+            UnityEngine.Object.DestroyImmediate(root);
         }
     }
-    private static LowPoseBakeContext ReadLowPoseBakeContext(CharacterAssetCatalog catalog)
+
+    private static CharacterAuthoringDocument ReadCharacterSource(CharacterAssetCatalog catalog)
     {
         string path = UnityCharacterAssetCooker.ResolveFile(
             $"Assets/CharacterPackages/{catalog.PackageId}", "character.json");
         var loaded = CharacterPackageSourceCodec.Load(
             File.ReadAllText(Path.Combine(Path.GetDirectoryName(path), "package.json")),
             File.ReadAllText(path));
-        if (!loaded.IsValid)
-            throw new InvalidOperationException("Weapon-marker source did not load.");
-        var character = loaded.Source.Character;
-        var presentation = character.Presentation;
-        return new LowPoseBakeContext(
-            presentation.VisualScale, presentation.HurtboxBoneScale,
-            presentation.ModelYOffset, character.CapsuleHeight, character.HipHeight,
-            presentation.Crouch, presentation.Slide);
+        if (!loaded.IsValid || loaded.Source == null)
+            throw new InvalidOperationException($"{catalog.PackageId} source did not load.");
+        return loaded.Source.Character;
     }
-
-    private static Vector3 BakeLowPose(Vector3 rootLocalPosition, LowPoseBakeContext context)
-        => new(
-            rootLocalPosition.x * context.VisualScale / context.HurtboxBoneScale,
-            (rootLocalPosition.y * context.VisualScale + context.ModelYOffset
-                + context.CapsuleHeight * 0.5f - context.HipHeight) / context.HurtboxBoneScale,
-            rootLocalPosition.z * context.VisualScale / context.HurtboxBoneScale);
 
     [MenuItem("Tools/SLOPArena/Tests/Character Asset Cooker")]
     public static void RunFightGuySelfTest()

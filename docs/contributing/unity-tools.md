@@ -8,6 +8,7 @@ project menus now share **Tools → SLOPArena** and make their purpose explicit:
 | Authoring → Character Asset Catalog | Edit semantic rig/clip/presentation bindings; validate and cook through the package service |
 | Diagnostics → Sword Motion Audit / Validate Projectile VFX | Inspect existing presentation inputs |
 | Tests | Focused Editor regressions, including package fixture restoration |
+| Presentation → Rebuild Wibou / FightGuy Presentation | Regenerate a package's effects, trail style and projectile visual (`sloparena.presentation.<package>.build`); see the [character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md) |
 | Prototypes | Scene, lighting, VFX and arena generators; inspect their output paths before replacing content |
 | Legacy | Standalone skeleton/arena exports and old animation-config population; these do not publish today's character packages |
 

@@ -71,6 +71,12 @@ clock. Weapon positions are hips-relative, so cosmetic projection uses the anima
 hips origin and the renderer's model offset. This avoids playback-clock drift and
 the fixed-hip-height offset without changing Shared collision geometry.
 
+Since 2026-10-17 Wibou's weapon uses the generated `WibouPixelTrail` style from
+`sloparena.presentation.wibou.build`: a light translucent sweep band whose `Dots` and
+`Lines` children shed green and white pixel squares (see
+[Wibou](../characters/wibou.md#combat-presentation--2026-10-16)). The TECH description
+below still applies to any TECH style selected in Ability Lab.
+
 `SwordSweepTrail` replaces the Cartoon FX prefab's authored ring geometry with
 world-fixed blade history. It retains the TECH material, textures, start color,
 color/dissolve curves, background slash, and dots. The source radial UV range is
@@ -282,6 +288,73 @@ expands and fades using unscaled time.
 The shared tier is deliberately character-neutral. Manki smoke/fire, Wibou blade fragments,
 and FightGuy ki must layer over it without changing its gameplay meaning.
 
+## Fighter hit feel
+
+`FighterHitFeel` adds model-level reactions to every fighter in Play Mode. It follows the
+accepted hits `CombatFeedback` already receives and the state `PlayerRenderer` applies.
+Training, PvP and replays therefore share the same prediction and rollback behaviour as the
+hit sparks. Camera shake and impact frames are deliberately absent; the owner wants hits to
+read through the fighters themselves (see the
+[combat presentation plan](../plans/2026-10-16-combat-presentation-pass.md)).
+
+| Layer | Behaviour | Hook |
+|-------|-----------|------|
+| Victim shake | Alternating jitter along the knockback while `HitstopTicks > 0`, decaying across the freeze. Scales by tier; armour halves it. | Deform pivot position |
+| Hit flash | Two white frames scaled by tier (light 55% to launch 90%), then a four-frame rim pulse in the attacker's silhouette colour (`MatchVisualStyle.RimColorFor`) that keeps the fighter's own colours. Reduced Flashing keeps only the pulse. | `_FlashColor`/`_FlashAmount` and the rim properties on `GraphicCharacter.shader`, through a `MaterialPropertyBlock` |
+| Squash and recoil | The victim compresses along the hit and leans away from it, holds through Hitstop, then springs back with one overshoot. | Deform pivots |
+| Attacker coil and strike | Before the first active tick the attacker crouches and leans back. Each active tick snaps forward and settles; the pose holds through Hitstop because attack ticks stop. Weight comes from the hitbox damage. | Deform pivots, driven by the stage's `HitboxEvents` |
+| Launch stretch and smoke | Above 8 m/s of hitstun flight the victim stretches along the flight about its centre. Warm-grey `MovementMagicPoof` puffs are emitted along the travelled path, thickening up to 22 m/s, with wind streaks on hard launches. | Deform pivots; `MovementFeedbackEffect.BeginLaunchTrail` |
+
+The deformation uses two transforms between the `PlayerRenderer` root and the model:
+`Hit Feel Pivot` (lean × axis rotation, axis scale) and `Hit Feel Counter` (inverse axis
+rotation). Together they scale the whole model along one arbitrary axis about a pivot,
+`T(p)·L·R·S·R⁻¹·T(−p)`, without editing clips or bones. The simulated root, hurtboxes
+and hitboxes never move. `TrySampleBakedWeaponPath` samples the undeformed pose and maps
+the blade through the same deformation, so sword ribbons stay on the visible blade.
+`EnsureModel` therefore accepts a model below the pivots.
+
+`FighterHitFeel.Strength` holds per-layer multipliers (0 = off). 1 is the per-tier
+calibration at the top of `FighterHitFeel.cs`. The shipped default is 1.6 for every layer,
+the "high" level the owner picked on 2026-10-16. Tune a layer down in
+`HitFeelStrength.Default`, or try values live in Play Mode on a fighter's `FighterHitFeel`
+component. Review presets are absolute multipliers, so `high:1.6` reproduces the default.
+
+### Hit-feel review captures
+
+`sloparena.hitfeel.*` replays one deterministic duel per strength preset and writes every
+tick from a close and a wide side camera. The attacker sits on the left, so launches travel
+right. Presentation-only changes cannot alter the Shared result, so the presets show the
+same frames with different effects.
+
+```json
+{"commands": [
+  ["sloparena.hitfeel.prepare", "--stage", "splash_deck"],
+  ["editor_play"],
+  ["sloparena.hitfeel.capture", "--output", "tmp/hitfeel/fightguy-g4", "--attacker", "fightguy",
+   "--victim", "manki", "--slot", "4", "--distance", "1.2", "--damage", "90",
+   "--presets", "off:0,low:0.6,mid:1,high:1.6", "--layers", "all"],
+  ["get_console_logs", "--severity", "error", "--limit", "20"]],
+ "restore": [["sloparena.hitfeel.stop"], ["sloparena.hitfeel.restore"]]}
+```
+
+Run it like the stage-view batch: from stopped Edit Mode, with saved scenes and a Game View
+open. `prepare` reuses the stage-view save/restore lifecycle (domain reload off) and
+disables Training in memory. `capture` may repeat inside the same Play Mode batch.
+Each preset spawns its own stage, so the stage atmosphere re-applies exactly as in Training.
+The fighters land and settle for 40 ticks before the press, and the close camera fits their
+gameplay capsules. Captures always show the default flash and report the local Reduced
+Flashing setting, which otherwise leaves only the rim pulse.
+`--layers shake,flash` isolates layers; unlisted layers stay off, and `off:0` is today's
+presentation. Each run reports its accepted hits (tick, tier, Hitstop) and `pressTick`;
+a hit's frame is `tick − pressTick`. Output is `<output>/<preset>/{close,wide}/NNN.jpg`,
+numbered from the press tick. [`tools/presentation_review.py`](../../tools/presentation_review.py)
+writes capture batches, summarizes the run, and builds contact sheets, labelled
+side-by-side WebP clips and a review page from the frames. Review with close-ups,
+because gameplay-distance comparisons hide these effects.
+`--track true` makes the wide camera follow both fighters' capsules each tick, for leaps
+and launches that leave the fixed frame. Use `--presets high:1.6` alone to review
+character effects at the shipped hit-feel strength.
+
 ## BoneTrail Prefab
 
 **Path:** `Assets/Resources/Prefabs/VFX/BoneTrail.prefab`
@@ -343,6 +416,33 @@ No code changes needed — PlayerRenderer picks it up automatically.
 
 ## Adding Character-Specific VFX
 
+Character effects are generated, package-owned assets. Follow the
+[character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md) workflow;
+Wibou is the reference.
+
+- `<Name>PresentationBuilder.cs` defines a character's palette, textures and prefabs.
+  Its `sloparena.presentation.<package>.build` command regenerates everything under
+  `CharacterPackages/<package>/Presentation/` and rebinds it.
+- `PresentationBuilderKit` owns the plumbing: the preview scene, textures, materials,
+  meshes, prefabs, sounds, and binding to the catalog, the catalog's weapon-trail style
+  and the projectile visual config. Rebuilds keep GUIDs and, for unchanged inputs, bytes.
+- `PresentationFx` holds particle-system helpers. `ToonShapes` holds signed-distance
+  shapes and the dark-rim, accent and white-core bands that keep shapes readable on
+  bright stages.
+- Timeline `emitPresentation` cues place effects, and each slot's `hitPresentationId`
+  replaces the shared impact on accepted hits.
+- Bone-attached content goes under a `PresentationFrame` child, which cancels the bone's
+  scale (rigs can carry import scales) and can keep shapes upright.
+- Effects that implement `IPresentationOwnerReceiver` get their fighter from
+  `TimelinePresentationDispatcher` after spawning. `ChargeTierCues` plays children at
+  charge tiers, `ChargeTierVariant` shows a child only after a fully charged attack, and
+  `DamageScaleVariant` swaps looks by the hit contact's damage scale. All three read
+  cosmetic state only.
+- `tools/glyph_mask.py` renders text such as FightGuy's 肉 into a mask that
+  `ToonShapes`' `MaskField` turns into toon-banded textures.
+
+The general rules still apply:
+
 1. Keep `CombatFeedback` tier classification unchanged.
 2. Add a character/move presentation layer driven by the accepted hit owner and active slot.
 3. Pool reusable effects and share materials.
@@ -360,7 +460,10 @@ No code changes needed — PlayerRenderer picks it up automatically.
 | Bone trails | Implemented | `BoneTrail.prefab` + `PlayerRenderer.cs` |
 | Wibou baked blade sweep | Implemented | `SwordSweepTrail.cs` + `WeaponAttach.cs` |
 | Match-start text broadcasts | Implemented | `MatchTextVFX.cs` + `MatchTextVFX/MatchText*.prefab` |
-| Character-specific hit layers | Not implemented | — |
+| Fighter hit feel (shake, flash, squash/lean, launch smoke) | Implemented; strengths under review | `FighterHitFeel.cs` + `GraphicCharacter.shader` |
+| Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
+| FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
+| Character-specific hit layers | Wibou and FightGuy | Per-slot `hitPresentationId` |
 
 ### Authored bone trails
 
@@ -376,8 +479,6 @@ No code changes needed — PlayerRenderer picks it up automatically.
 | Dash start and trail | Not implemented |
 | Jump and landing dust | Not implemented |
 | Manki flame and explosions | Not implemented |
-| Wibou blade fragments and glints | Not implemented |
-| FightGuy ki layer | Not implemented |
 | KO and respawn presentation | Not implemented |
 
 ---

@@ -534,15 +534,17 @@ tick, including empty snapshots that remove expired or impacted visuals.
 `PvPMatch` renders these server snapshots for both players; Training follows its
 local Shared resolver. The packet never feeds Unity position or collision back
 into the Shared simulation. `ProjectileVFXConfig` maps Wibou slot A to the same
-kunai model on ground and in air.
+`WibouKunaiProjectile` prefab (kunai model plus trail effects) on ground and in air,
+and FightGuy slot A to `FightGuyKiBall`, scaled by the charge tier's radius.
 
 Wibou sword trails use the separate presentation-only `SwordTrailSnapshotPacket`.
 Its per-tick active-owner set is derived from server-owned `_weapon_hilt` →
 `_weapon_tip` hitboxes; empty snapshots clear trails after expiration, interruption,
 or match end. Training and Ability Lab read the same Shared resolver directly.
-The TECH asset supplies the cosmetic material, mask texture, color, and dissolve
-curves; Unity renders a short-lived blade sweep from the attached sword's
-hilt/tip poses while active. VFX never owns hit timing or collision.
+The weapon's trail-style prefab (Wibou's generated pixel style) supplies the
+cosmetic material, color and fade; Unity renders a short-lived blade sweep from
+the attached sword's hilt/tip poses while active. VFX never owns hit timing or
+collision.
 
 ---
 

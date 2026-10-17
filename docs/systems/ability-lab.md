@@ -286,6 +286,12 @@ one reusable render target isolates camera clearing from native Editor controls.
 released on UI rebuild/owner disable and does not create another actor or simulation.
 Hitboxes, Hurtboxes and Motion control the existing Lab overlay flags. Missing package,
 rig/camera and invalid-draft states are explicit rather than showing a stale current preview.
+On the timeline, the hitbox and hurtbox overlays show what the authoritative preview
+simulation tested on the tick the model shows (`SpellResolver.LastTickCheckedHitboxes` and
+`LastTickAttackEntities`), so they follow the move's real movement, including rises and
+dives. Recorded scenarios keep every tested hitbox per frame, including one on its last
+active tick. Without an authoritative run, overlays fall back to the authored approximation
+(grounded, forward lunges only, one tick behind the model).
 
 `Move overview` exposes authored timing/animation; selecting an inventory effect switches to
 `Selected effect` with source-addressed detail. The inventory stays available in either mode.

@@ -110,4 +110,28 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: ba8ae8dd5561ad7ed8745a14ff48e752, type: 2}
     _extrapolation: 0
     _poseTrackId: pose.wibou.slide
-  _presentations: []
+  _presentations:
+  - _semanticId: presentation.wibou.blade.glint
+    _prefab: {fileID: 6030912729132272203, guid: 6bd45d975d95d6cd8bb7ff55be463c5b, type: 3}
+  - _semanticId: presentation.wibou.blade.hit
+    _prefab: {fileID: 8310165146358536111, guid: 245d3987162b322ad88fce65d7491e4e, type: 3}
+  - _semanticId: presentation.wibou.blade.heavy-hit
+    _prefab: {fileID: 1111601347709595655, guid: 9a8722e8d2627f489a525fa94c01c858, type: 3}
+  - _semanticId: presentation.wibou.kunai.release
+    _prefab: {fileID: 4175791974689231921, guid: d8ce6c67e7cb3e8f0b45ecd13b042328, type: 3}
+  - _semanticId: presentation.wibou.kunai.hit
+    _prefab: {fileID: 6932462702684568979, guid: b82f7dae3554d438fa32dd672fe159c8, type: 3}
+  - _semanticId: presentation.wibou.code-rain
+    _prefab: {fileID: 1218640255236271351, guid: 4e756395b97e087e290dc8b40553fa1f, type: 3}
+  - _semanticId: presentation.wibou.rising.crescent
+    _prefab: {fileID: 8198410025174390627, guid: cc7fa917eb148dcceb0d44373194c4de, type: 3}
+  - _semanticId: presentation.wibou.skyfall.draw
+    _prefab: {fileID: 7530250364334947904, guid: bb5fbe80363b9e2cda1e534cd114997b, type: 3}
+  - _semanticId: presentation.wibou.skyfall.launch
+    _prefab: {fileID: 5874019425951262313, guid: 81fe1dcaa83ce48138e14a675484ee4c, type: 3}
+  - _semanticId: presentation.wibou.skyfall.spike
+    _prefab: {fileID: 5010605903077912676, guid: a44e231198740733293a6186c442d8f6, type: 3}
+  - _semanticId: presentation.wibou.dash.charge
+    _prefab: {fileID: 8470178808113140597, guid: 5f7fa5706c9647af5bdd5eb8da96edcf, type: 3}
+  - _semanticId: presentation.wibou.dash.cut
+    _prefab: {fileID: 3790780032384582987, guid: 7c667a41ff7c3e4818015dcc12d12dfe, type: 3}

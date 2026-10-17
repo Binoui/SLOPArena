@@ -128,7 +128,9 @@ public class SlopArenaBaker : EditorWindow
             }).ToArray();
             try
             {
-                byte[] bytes = DeterministicPoseTrackBaker.Bake(model, sampled, 60);
+                // Legacy prefabs carry their size on the root, so bake at that scale.
+                byte[] bytes = DeterministicPoseTrackBaker.Bake(model, sampled, 60,
+                    visualScale: model.transform.localScale.x);
                 string deterministicOutputFile = Path.GetFullPath(Path.Combine(
                     Application.dataPath, "..", "..", "..",
                     outputPath.TrimEnd('/'), model.name.ToLowerInvariant() + "_skeleton.bin"));

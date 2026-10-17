@@ -12,9 +12,15 @@ public sealed class AbilityLabSimulationController
     private ServerSimulation _simulation;
     private readonly List<TimelinePresentationEvent> _events = new();
     private readonly List<CharacterState> _stateHistory = new();
+    private readonly List<Hitbox> _testedHitboxes = new();
+    private readonly List<SpellResolver.EntityData> _hurtboxes = new();
 
     public IReadOnlyList<TimelinePresentationEvent> PresentationEvents => _events;
     public IReadOnlyList<CharacterState> StateHistory => _stateHistory;
+    /// <summary>The actor's hitboxes Shared tested on the last simulated tick, the pose the model shows.</summary>
+    public IReadOnlyList<Hitbox> TestedHitboxes => _testedHitboxes;
+    /// <summary>The actor's hurtboxes Shared tested on the last simulated tick.</summary>
+    public IReadOnlyList<SpellResolver.EntityData> Hurtboxes => _hurtboxes;
     public bool IsReady => _simulation != null;
     public float ActiveSwordHitboxSeconds
     {
@@ -39,9 +45,7 @@ public sealed class AbilityLabSimulationController
         float facingYaw,
         int targetTick)
     {
-        _events.Clear();
-        _stateHistory.Clear();
-        _simulation = null;
+        Clear();
         if (definition == null || targetTick < 0) return;
 
         float floorY = origin.y - definition.CapsuleHeight * 0.5f;
@@ -81,6 +85,10 @@ public sealed class AbilityLabSimulationController
             _events.AddRange(simulation.GetPresentationEvents(clear: true));
             _stateHistory.Add(simulation.GetState(PreviewEntityId));
         }
+        foreach (var hitbox in simulation.Resolver.LastTickCheckedHitboxes)
+            if (hitbox.OwnerId == PreviewEntityId) _testedHitboxes.Add(hitbox);
+        foreach (var shape in simulation.LastTickAttackEntities ?? Array.Empty<SpellResolver.EntityData>())
+            if (shape.Id == PreviewEntityId && !shape.ShieldSurface && shape.Active) _hurtboxes.Add(shape);
         _simulation = simulation;
     }
 
@@ -196,8 +204,10 @@ public sealed class AbilityLabSimulationController
             // Shared reuses its entity list each tick; a frame owns a snapshot
             // so backward scrubbing/capture cannot see later collision data.
             var hurtboxes = new List<SpellResolver.EntityData>(simulation.LastTickAttackEntities);
+            // The resolver drops a hitbox on its last tested tick; overlays need every tested one.
+            var testedHitboxes = new List<Hitbox>(simulation.Resolver.LastTickCheckedHitboxes);
             frames.Add(new AbilityLabScenarioFrame(frame, matchTick, actor, opponent,
-                swordSeconds, hurtboxes, activeHitboxes, actorPoseTicks, opponentPoseTicks));
+                swordSeconds, hurtboxes, testedHitboxes, actorPoseTicks, opponentPoseTicks));
         }
         return new AbilityLabScenarioResult(options, frames, contacts, interactions, events, deaths);
     }
@@ -214,6 +224,8 @@ public sealed class AbilityLabSimulationController
     {
         _events.Clear();
         _stateHistory.Clear();
+        _testedHitboxes.Clear();
+        _hurtboxes.Clear();
         _simulation = null;
     }
 

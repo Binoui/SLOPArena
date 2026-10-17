@@ -472,7 +472,6 @@ namespace SlopArena.Shared
 				{
 					int fc = baked.Animations[animIdx].FrameCount;
 					if (animFrame >= fc) animFrame = fc - 1;
-					float px = state.PX, py = state.PY, pz = state.PZ;
 					float yaw = state.FacingYaw;
 					float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
 					float scale = def.HurtboxBoneScale;
@@ -482,11 +481,8 @@ namespace SlopArena.Shared
 						// Pair by name: cooked defs are sorted by bone ID while the bake
 						// keeps its own bone order (issue #282).
 						int bi = baked.FindBoneIndex(hbd.BoneName);
-						if (bi < 0 || !baked.GetBonePosition(targetAnim, animFrame, bi, out float bx, out float by, out float bz)) continue;
-						bx *= scale; by *= scale; bz *= scale;
-						float wx = px + ((bx * cos) + (bz * sin));
-						float wy = def.BoneYToWorldY(py, by);
-						float wz = pz + ((-bx * sin) + (bz * cos));
+						if (bi < 0 || !HitboxGeometry.BakedPointToWorld(in state, def, baked, animIdx, animFrame, bi, scale,
+							out float wx, out float wy, out float wz)) continue;
 						// Per-def offset (Ability Lab authored, spec #119): applied in
 						// sim-meter space, rotated by facing — matches the hitbox
 						// BoneOff* convention. All shipped defs use zero offsets, so
