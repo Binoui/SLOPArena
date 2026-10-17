@@ -8,7 +8,7 @@ The stage picker currently offers six PVP maps:
 | [Splash Deck](splash_deck.md) | Rebuilt 2026-10-16 as a fishing boat anchored in a Mediterranean harbour, keeping the barge's rated fight; maintainer playtest pending |
 | [Slop Pit](slop_pit.md) | Rebuilt 2026-10-16 as a raised fight ring in an underground venue; maintainer playtest pending |
 | [After Hours](after_hours.md) | Rebuilt 2026-10-16 as a broad neon rooftop; maintainer playtest pending |
-| [Last Stop](last_stop.md) | New first pass; maintainer playtest pending |
+| [Last Stop](last_stop.md) | Remade 2026-10-16 as Mind the Gap; maintainer playtest pending |
 | [Log Off](log_off.md) | Rebuilt 2026-10-16 as a split stump with fungus shelves and a sunset campsite; maintainer playtest pending |
 
 Training remains available only in training mode.

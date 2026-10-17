@@ -13,11 +13,12 @@ namespace SlopArena.Client.UI
     /// Combat HUD, rebuilt on UI Toolkit.
     ///
     /// Player cards are built from the roster, so 1v1 and 2/3/4-player matches
-    /// adapt without per-count UXML variants. Paired move cards use effective Input
-    /// System bindings; cooldown data remains read-only.
+    /// adapt without per-count UXML variants. Move keys pair each normal with the
+    /// special on the same face button and use effective Input System bindings;
+    /// cooldown data remains read-only.
     ///
-    /// Fight cards, brief cooldown-ready stamps, and stock-loss broadcasts stay
-    /// attached to their readouts rather than covering the fight.
+    /// Fight cards, key presses/pops, and stock-loss broadcasts stay attached to
+    /// their readouts rather than covering the fight.
     /// </summary>
     public class HUDManager : MonoBehaviour
     {
@@ -94,8 +95,8 @@ namespace SlopArena.Client.UI
             public bool AirAvailable;
             public ushort MaxCooldown;
             public ushort PrevCooldown;
+            public int TimerValue = -1;
             public float PulseTimer;
-            public float UsedTimer;
             public bool Locked;
 
             public ActionSlot(VisualElement root, string cooldownName, string timerName, string keyName)
@@ -157,9 +158,6 @@ namespace SlopArena.Client.UI
         private const float ReadyDuration = 0.42f;
 
         private static readonly Color MoveInk = new Color32(27, 26, 24, 255);
-        private static readonly Color MovePaper = new Color32(240, 238, 232, 255);
-        private static readonly Color MoveOrange = new Color32(224, 92, 42, 255);
-        private static readonly Color MoveBlue = new Color32(57, 169, 255, 255);
 
         private static readonly Color[] BadgeColors;
         private static readonly Color OrangeDamage;
@@ -208,11 +206,6 @@ namespace SlopArena.Client.UI
         private InputPromptAtlas _promptAtlas;
         private int _seenBindingRevision = -1;
         private bool _showGamepadPrompts;
-
-        // AttackSequence also catches repeated casts of the same slot, including
-        // zero-cooldown normals with no idle frame between activations.
-        private byte _prevAttackSlot;
-        private byte _prevAttackSequence;
 
         /// <summary>
         /// Initialize the HUD.
@@ -283,11 +276,6 @@ namespace SlopArena.Client.UI
             _modifierButton = root.Q<Image>("special-modifier-button");
             _modifierButton.scaleMode = ScaleMode.ScaleToFit;
             _modifierKey = root.Q<Label>("special-modifier-key");
-            foreach (var ticket in _moveDeck.Query<VisualElement>(className: "move-pair").ToList())
-            {
-                ticket.generateVisualContent -= DrawMoveTicket;
-                ticket.generateVisualContent += DrawMoveTicket;
-            }
 
             _abilitySlots = new ActionSlot[AbilitySlotDefs.Length];
             for (int i = 0; i < AbilitySlotDefs.Length; i++)
@@ -651,39 +639,19 @@ namespace SlopArena.Client.UI
                 {
                     var slot = _abilitySlots[i];
                     SetSlotPresentation(slot, state.IsGrounded);
+                    // The key stays pressed while its move runs, including repeated
+                    // casts; the cooldown only starts when the move ends.
+                    bool inUse = state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1;
+                    slot.Root.EnableInClassList("in-use", inUse);
+                    if (inUse && slot.PulseTimer > 0f)
+                    {
+                        slot.PulseTimer = 0f;
+                        slot.Root.RemoveFromClassList("ready-pulse");
+                    }
                     if (slot.Locked) continue;
                     UpdateCooldownSlot(slot, state.GetCooldown((byte)(AbilitySlotDefs[i].SlotIndex + 1)));
                 }
-
-                // Accepted activations drive feedback, including consecutive
-                // activations of the same slot.
-                byte castSlot = state.AttackSlot;
-                if (castSlot != _prevAttackSlot || state.AttackSequence != _prevAttackSequence)
-                {
-                    if (castSlot != 0)
-                    {
-                        for (int i = 0; i < _abilitySlots.Length; i++)
-                        {
-                            if (AbilitySlotDefs[i].SlotIndex + 1 == castSlot)
-                            {
-                                PulseConsumed(_abilitySlots[i]);
-                                break;
-                            }
-                        }
-                    }
-                    _prevAttackSlot = castSlot;
-                    _prevAttackSequence = state.AttackSequence;
-                }
             }
-        }
-
-        /// <summary>Quick shrink-and-spring pulse — visual "spent" feedback for a used action.</summary>
-        private void PulseConsumed(ActionSlot s)
-        {
-            s.PulseTimer = 0f;
-            s.Root.RemoveFromClassList("ready-pulse");
-            s.UsedTimer = JuiceDuration;
-            s.Root.EnableInClassList("used-pulse", true);
         }
 
         private void UpdateCooldownSlot(ActionSlot s, ushort cooldown)
@@ -695,16 +663,24 @@ namespace SlopArena.Client.UI
             s.Root.EnableInClassList("on-cooldown", onCooldown);
             if (onCooldown)
             {
-                float frac = s.MaxCooldown > 0 ? Mathf.Clamp01(cooldown / (float)s.MaxCooldown) : 1f;
-                s.Cooldown.style.scale = new Scale(new Vector2(frac, 1f));
-                s.Timer.text = $"{(cooldown / 60f):0.0}s";
+                float remaining = s.MaxCooldown > 0 ? Mathf.Clamp01(cooldown / (float)s.MaxCooldown) : 1f;
+                // The sunk key refills from the bottom as the cooldown elapses.
+                s.Cooldown.style.height = Length.Percent((1f - remaining) * 100f);
+                // Whole seconds from 3 s up, tenths below; text changes only with the shown value.
+                bool wholeSeconds = cooldown >= 180;
+                int shown = wholeSeconds ? 1000 + Mathf.CeilToInt(cooldown / 60f) : Mathf.CeilToInt(cooldown / 6f);
+                if (shown != s.TimerValue)
+                {
+                    s.TimerValue = shown;
+                    s.Timer.text = wholeSeconds ? (shown - 1000).ToString() : (shown / 10f).ToString("0.0");
+                }
             }
             else
             {
-                s.Timer.text = "";
+                s.TimerValue = -1;
             }
 
-            // One short readiness stamp; no repeated pulse or white icon flash.
+            // One short pop when the key becomes ready again.
             if (s.PrevCooldown > 0 && cooldown == 0)
             {
                 s.PulseTimer = ReadyDuration;
@@ -715,9 +691,8 @@ namespace SlopArena.Client.UI
                 s.PulseTimer = 0f;
                 s.Root.RemoveFromClassList("ready-pulse");
             }
-            // NOTE: no "consumed" pulse here — cooldown only moves at ability END, not
-            // press, so this would fire ~1 move later. Press feedback is driven from the
-            // AttackSlot transition in Refresh (see PulseConsumed).
+            // Press feedback comes from the in-use class in Refresh: the cooldown only
+            // starts at ability END, so it cannot signal the press itself.
             s.PrevCooldown = cooldown;
         }
 
@@ -765,7 +740,7 @@ namespace SlopArena.Client.UI
             if (_moveDeck == null || _movePairs == null || _moveDeck.panel == null) return;
             float width = _moveDeck.resolvedStyle.width;
             if (float.IsNaN(width) || width <= 0f) return;
-            const float preferredWidth = 576f;
+            const float preferredWidth = 304f;
             bool rightAligned = _billboardLayer != null && _billboardLayer.childCount > 0 &&
                 _moveDeck.worldBound.yMin < _billboardLayer.worldBound.yMax + 20f &&
                 (width - preferredWidth) * 0.5f < _billboardLayer.worldBound.xMax + 20f;
@@ -784,46 +759,6 @@ namespace SlopArena.Client.UI
                 _moveDeckScale = scale;
                 _movePairs.style.scale = new Scale(Vector2.one * scale);
             }
-        }
-
-        private static void DrawMoveTicket(MeshGenerationContext context)
-        {
-            float width = context.visualElement.contentRect.width;
-            float height = context.visualElement.contentRect.height;
-            float seam = height * 0.5f;
-            var painter = context.painter2D;
-            painter.lineWidth = 2f;
-            painter.strokeColor = MoveInk;
-            painter.fillColor = MovePaper;
-            painter.BeginPath();
-            painter.MoveTo(new Vector2(16, 2));
-            painter.LineTo(new Vector2(width - 2, 2));
-            painter.LineTo(new Vector2(width - 14, seam - 16));
-            painter.LineTo(new Vector2(width - 2, seam));
-            painter.LineTo(new Vector2(2, seam));
-            painter.LineTo(new Vector2(2, seam - 16));
-            painter.ClosePath();
-            painter.Fill();
-            painter.Stroke();
-
-            painter.fillColor = MoveInk;
-            painter.BeginPath();
-            painter.MoveTo(new Vector2(2, seam));
-            painter.LineTo(new Vector2(width - 2, seam));
-            painter.LineTo(new Vector2(width - 14, height - 18));
-            painter.LineTo(new Vector2(width - 28, height - 2));
-            painter.LineTo(new Vector2(16, height - 2));
-            painter.LineTo(new Vector2(2, height - 18));
-            painter.ClosePath();
-            painter.Fill();
-            painter.Stroke();
-
-            painter.lineWidth = 6f;
-            painter.strokeColor = MoveOrange;
-            painter.BeginPath();
-            painter.MoveTo(new Vector2(16, 4));
-            painter.LineTo(new Vector2(width - 3, 4));
-            painter.Stroke();
         }
 
         private void UpdateNetworkStats()
@@ -881,11 +816,6 @@ namespace SlopArena.Client.UI
             {
                 s.PulseTimer -= dt;
                 s.Root.EnableInClassList("ready-pulse", s.PulseTimer > 0f);
-            }
-            if (s.UsedTimer > 0f)
-            {
-                s.UsedTimer -= dt;
-                s.Root.EnableInClassList("used-pulse", s.UsedTimer > 0f);
             }
         }
 

@@ -80,6 +80,10 @@ with `git checkout d98c6c26 -- research/flight-sweep` if that research becomes
 relevant. Generated visual reports and archived investigations remain evidence
 for their source snapshot.
 
+[`hud_icon_prep.py`](hud_icon_prep.py) cleans a generated HUD move icon for Unity:
+palette snap, crisp edges, normalised fill, 256 px export and the embedded prompt. It needs
+ImageMagick 7; see the [HUD move icons README](../client/Unity/Assets/Resources/UI/AbilityCards/README.md).
+
 Add a new maintained C# tool to `SlopArena.sln` and this inventory so CI compiles
 it. Document its inputs and output directory. Keep exploratory projects outside
 that build set until they have a maintained purpose.

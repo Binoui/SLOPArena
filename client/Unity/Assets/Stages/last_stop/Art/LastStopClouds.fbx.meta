@@ -1,0 +1,307 @@
+fileFormatVersion: 2
+guid: 583ebd6db020996a397038d43eca4b6b
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Ballast
+    second: {fileID: 2100000, guid: 21c1e78d5607d46f0afbe58a997d3484, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Brass
+    second: {fileID: 2100000, guid: 3cdd0501703388833a8b699770c130ba, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_BufferWhite
+    second: {fileID: 2100000, guid: 0bc0d5ae0872745c68fcb40b9d58e9e9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_ChaletWood
+    second: {fileID: 2100000, guid: 9ee67977277ebd13998e82b49c16d56d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_ClockFace
+    second: {fileID: 2100000, guid: b3685e0e736cd659d91cea4e0b10fe09, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_ClockHands
+    second: {fileID: 2100000, guid: 92d633829fc80ed4295412e6ad3a8baf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_ClockRed
+    second: {fileID: 2100000, guid: 730cada8075436cbc9b527d68f4ada86, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Cloud
+    second: {fileID: 2100000, guid: 6752cd4ffd1d89da4b8227f4295992e0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_CloudBase
+    second: {fileID: 2100000, guid: 1cc3d9eac69a6eb098a7c721f46d076b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Coal
+    second: {fileID: 2100000, guid: cd3f159c81d66f590bb5561d4c5975e9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Coping
+    second: {fileID: 2100000, guid: 9c3f03bb848bcbc669f9324519150839, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_FireGlow
+    second: {fileID: 2100000, guid: 94b7eb54ace4af08da60876c0bd72024, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Granite
+    second: {fileID: 2100000, guid: 8e2ba78b75539eb99abc61d79423ba63, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_LampRed
+    second: {fileID: 2100000, guid: 521e6fc02d0c4a9459a81c20c875510f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_LampWarm
+    second: {fileID: 2100000, guid: bab1461669188de1cb60267d19b04a6a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Masonry
+    second: {fileID: 2100000, guid: e3f254c501d705a04a02ae7696076dfe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Mist
+    second: {fileID: 2100000, guid: 339bdee9f66dd031482c07b802ee6afe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Moon
+    second: {fileID: 2100000, guid: 652e2b038946e7f468221205f1cb33f6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_MountainRock
+    second: {fileID: 2100000, guid: 6663aed54fd3f50d680c5d10fcd2a45a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_MountainRockFar
+    second: {fileID: 2100000, guid: 3f44c6f501f6e40efa6c252f43e6d7c8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_MountainSnow
+    second: {fileID: 2100000, guid: 780912e00e9fc9d1e812aaedcdcc9493, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_MountainSnowFar
+    second: {fileID: 2100000, guid: b56cbeda74b2f82cb93cc29a1f189245, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Particle
+    second: {fileID: 2100000, guid: d0b179525dd65a4c281744c5bee0af1a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Pine
+    second: {fileID: 2100000, guid: 1823a610e07b59c27a80f25f84676515, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_PlatformSlabs
+    second: {fileID: 2100000, guid: 6ae06057ef48847b6b416b65e28c4c83, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_RoofGray
+    second: {fileID: 2100000, guid: aefd170e22b715bc2ba8c0c20b5d5e8e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Rubber
+    second: {fileID: 2100000, guid: f896ebe413e018bde813c5693d4a509d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_SafetyYellow
+    second: {fileID: 2100000, guid: 8cc4d71e96e73ea30aca4b77614afc43, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_SignBoard
+    second: {fileID: 2100000, guid: 35796f444c15a42db9a05aaa9f8ccdc1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_SignLetters
+    second: {fileID: 2100000, guid: 58747d14ef29a5de3a299a3fd5efc3bc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Sky
+    second: {fileID: 2100000, guid: 4232a5bb1c449cf9ab73defe37169f2c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Sleeper
+    second: {fileID: 2100000, guid: 2e75add50493ebe2baa7be0a00d770d1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Snow
+    second: {fileID: 2100000, guid: 6dabf15958d3d6f05809e8f70e42d09c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_Steel
+    second: {fileID: 2100000, guid: f00907d8c7d1e3b56b382f0b3b07989c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_TrainBlack
+    second: {fileID: 2100000, guid: 8b07907938b5963269b8d92315fbd828, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_TrainCream
+    second: {fileID: 2100000, guid: e46ee749e4163562c99ffd5c409432e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_TrainRed
+    second: {fileID: 2100000, guid: 77690ea19e6264f58b9c040dfd58e787, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_TunnelDark
+    second: {fileID: 2100000, guid: b350a1fe8b4740ef5975ee2f0c1aefa0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_ViaductStone
+    second: {fileID: 2100000, guid: b7201f06d7dd6a8b9ad3e1e172bb5eae, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LS_WindowWarm
+    second: {fileID: 2100000, guid: 317e5ec0cddd3da90b1fb0affa83792a, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 0
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 2
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 0
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 0
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

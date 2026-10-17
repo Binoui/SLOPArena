@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -6,6 +7,8 @@ namespace SlopArena.Client.World
     /// <summary>
     /// Presentation-only atmosphere owned by a stage prefab. Start runs after MatchVisualStyle
     /// so a stage may replace the shared neutral background without affecting simulation.
+    /// A stage that owns its sunlight may also switch off the match scene's directional
+    /// lights while it is loaded; they are re-enabled when the stage is destroyed.
     /// </summary>
     public sealed class ArenaAtmosphere : MonoBehaviour
     {
@@ -17,6 +20,9 @@ namespace SlopArena.Client.World
         [SerializeField] private Color _fogColor = new(0.15f, 0.18f, 0.28f);
         [SerializeField] private float _fogStart = 35f;
         [SerializeField] private float _fogEnd = 100f;
+        [SerializeField] private bool _replaceSceneSunlight;
+
+        private readonly List<Light> _suppressedLights = new();
 
         public void Configure(
             Color background,
@@ -26,7 +32,8 @@ namespace SlopArena.Client.World
             bool fog = false,
             Color fogColor = default,
             float fogStart = 35f,
-            float fogEnd = 100f)
+            float fogEnd = 100f,
+            bool replaceSceneSunlight = false)
         {
             _background = background;
             _ambientSky = ambientSky;
@@ -36,6 +43,7 @@ namespace SlopArena.Client.World
             _fogColor = fogColor == default ? background : fogColor;
             _fogStart = fogStart;
             _fogEnd = fogEnd;
+            _replaceSceneSunlight = replaceSceneSunlight;
         }
 
         private void Start()
@@ -57,6 +65,23 @@ namespace SlopArena.Client.World
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogStartDistance = _fogStart;
             RenderSettings.fogEndDistance = _fogEnd;
+
+            if (!_replaceSceneSunlight) return;
+            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            {
+                if (light.type != LightType.Directional || !light.enabled || light.transform.IsChildOf(transform))
+                    continue;
+                light.enabled = false;
+                _suppressedLights.Add(light);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var light in _suppressedLights)
+                if (light != null)
+                    light.enabled = true;
+            _suppressedLights.Clear();
         }
     }
 }
