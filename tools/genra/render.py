@@ -213,23 +213,36 @@ def preview_video(clip, path, views=('profile', 'three-quarter-right'), size=400
                   slow=4) -> Path:
     """MP4 of the whole clip, views side by side at fixed framing: twice at real speed (one frame per 60 Hz
     tick), then once at 1/slow speed. Ticks in `active` [first, last] are labelled in red; needs ffmpeg."""
-    import subprocess
     from .skin import Skin
     skin = skin or Skin(clip.rig)
     renderer = Renderer(skin, clip.frame)
     world = clip.world()
     span, center = renderer.fit(list(world))
     width, height = size * len(views), size + 28
-    font, small = _font(16), _font(13)
+    font = _font(16)
     frames = []
     for tick in range(len(world)):
         frame = Image.new('RGB', (width, height), BACKGROUND)
         for i, view in enumerate(views):
             frame.paste(renderer.image(world[tick], view, size, span, center, view), (i * size, 28))
-        hot = active is not None and active[0] <= tick <= active[1]
-        label = f't{tick}' + (' contact' if tick == contact else ' active' if hot else '')
-        ImageDraw.Draw(frame).text((8, 5), label, fill=(255, 110, 90) if hot else (235, 238, 242), font=font)
+        tick_label(frame, tick, contact, active, font)
         frames.append(frame)
+    return encode_video(frames, path, slow)
+
+
+def tick_label(image, tick, contact=None, active=None, font=None):
+    """Write 'tN' (plus contact/active, in red inside the active window) at the top left of a frame."""
+    hot = active is not None and active[0] <= tick <= active[1]
+    label = f't{tick}' + (' contact' if tick == contact else ' active' if hot else '')
+    ImageDraw.Draw(image).text((8, 5), label, fill=(255, 110, 90) if hot else (235, 238, 242), font=font or _font(16))
+
+
+def encode_video(frames, path, slow=4) -> Path:
+    """H.264 MP4 of equal-size frames at 60 fps (one per tick): twice at real speed, then once at 1/slow speed,
+    with the speed marked at the top right. Needs ffmpeg."""
+    import subprocess
+    width, height = frames[0].size
+    small = _font(13)
     path = Path(path)
     command = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{width}x{height}',
                '-r', '60', '-i', '-', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-movflags', '+faststart',

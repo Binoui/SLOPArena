@@ -194,7 +194,9 @@ class Clip:
         """Interpolate key poses {tick: Pose} to `n_ticks` dense ticks (0..n_ticks-1).
 
         method: 'pchip' (monotone cubic on rotation vectors relative to each joint's
-        first key: smooth, no overshoot) or 'slerp' (per segment, optional ease).
+        first key: smooth, no overshoot; between two keys a joint turns the shorter way, so
+        spins and flips need a key at least every half turn) or 'slerp' (per segment,
+        optional ease).
         ease: None/'linear', 'in', 'out', 'inout', or {tick: name} for the segment
         starting at that key (slerp only). Translations (the hips) follow the same
         method; scales are interpolated linearly. Ticks outside the keyed range hold
@@ -224,12 +226,9 @@ class Clip:
                 q[:, j] = rots[0].as_quat()
             elif method == 'pchip':
                 base = rots[0]
-                vec = (base.inv() * rots).as_rotvec()
-                if np.linalg.norm(vec, axis=1).max() > np.radians(170):
-                    q[:, j] = _slerp(ticks, rots, clamped, None)  # too far from the first key for a rotvec spline
-                else:
-                    curve = PchipInterpolator(ticks, vec, axis=0)(clamped)
-                    q[:, j] = (base * Rotation.from_rotvec(curve)).as_quat()
+                vec = _continuous_rotvecs((base.inv() * rots).as_rotvec())
+                curve = PchipInterpolator(ticks, vec, axis=0)(clamped)
+                q[:, j] = (base * Rotation.from_rotvec(curve)).as_quat()
             else:
                 q[:, j] = _slerp(ticks, rots, clamped, ease)
         return cls(rig, t, q, s, first.frame)
@@ -301,6 +300,26 @@ def _lerp(ticks, values, dense, ease):
     for i, x in enumerate(dense):
         k, u = _segment(ticks, x, ease)
         out[i] = values[k] + (values[k + 1] - values[k]) * u
+    return out
+
+
+def _continuous_rotvecs(vec):
+    """Rotation vectors (angle times axis) -> the equivalent ones (angle + 2*pi*k about the same axis)
+    closest to the previous key's. A rotation vector wraps at half a turn, so a spin keyed at 165 and
+    195 degrees would otherwise spline back through zero; with this a joint turns from key to key the
+    shorter way, for any number of turns."""
+    out = np.array(vec, dtype=float)
+    for i in range(1, len(out)):
+        prev, v = out[i - 1], out[i]
+        angle = np.linalg.norm(v)
+        if angle > 1e-9:
+            axis = v / angle
+        elif np.linalg.norm(prev) > 1e-9:
+            axis = prev / np.linalg.norm(prev)  # identity: full turns about the previous axis
+        else:
+            continue
+        k = np.round((prev @ axis - angle) / (2 * np.pi))
+        out[i] = min((v + 2 * np.pi * (k + d) * axis for d in (-1, 0, 1)), key=lambda c: np.linalg.norm(c - prev))
     return out
 
 

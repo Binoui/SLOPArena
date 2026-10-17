@@ -2,6 +2,7 @@
 
     <genra python> tools/genra/unity_clip.py roundtrip fightguy idle     # proof: approved clip -> pack -> Unity clip
     <genra python> tools/genra/unity_clip.py write RESULT.json --brief BRIEF.json [--save | --asset Assets/...anim]
+    <genra python> tools/genra/unity_clip.py render --brief BRIEF.json --clip new=Assets/...anim --clip current=anim.bonk.a1
 
 Rig packs mirror Unity's x axis (unity_rigpack.py); this inverts that exactly. unity/write_clip.cs.template turns
 mapped Humanoid bones into muscle and body (RootT/RootQ) curves with HumanPoseHandler, keeps exact local transform
@@ -11,6 +12,8 @@ applyRootMotion off, so the hips may move but the fighter never does. Unity meas
 `roundtrip` rebuilds an approved reference clip from its rig-pack samples and compares bones and skinned vertices
 with the original. `write` converts a toolkit result: the body origin is matched to the entry clip's actual
 playback at the entry tick, and the clip is saved as a new, unbound asset only with --save or --asset.
+`render` draws clips on the actual prefab (materials, weapons, Animancer, stretched over the brief's ticks) from the
+toolkit's review views, so a candidate can be judged next to the clip it would replace before anything is bound.
 Evidence goes to artifacts/genra-unity-clips/<id>/.
 """
 from __future__ import annotations
@@ -57,20 +60,20 @@ def unity_pose(rig, world, mapping) -> tuple[list[str], np.ndarray, np.ndarray]:
     return paths, np.swapaxes(channels, 0, 1), unity[:, keep][..., :3, 3]
 
 
-def run_unity(job: dict, run_dir: Path) -> dict:
-    """Render the writer template for this job and run it with the gateway's eval_file (own lease)."""
+def run_unity(job: dict, run_dir: Path, template: str = 'write_clip') -> dict:
+    """Fill a unity/<template>.cs.template for this job and run it with the gateway's eval_file (own lease)."""
     run_dir.mkdir(parents=True, exist_ok=True)
     job_path, out_path = run_dir / 'job.json', run_dir / 'unity.json'
     job_path.write_text(json.dumps(job))
-    code = (HERE / 'unity/write_clip.cs.template').read_text().replace('{{JOB}}', str(job_path)).replace('{{OUTPUT}}', str(out_path))
-    script = run_dir / 'write_clip.cs'
+    code = (HERE / f'unity/{template}.cs.template').read_text().replace('{{JOB}}', str(job_path)).replace('{{OUTPUT}}', str(out_path))
+    script = run_dir / f'{template}.cs'
     script.write_text(code)
     command = ['bun', str(REPO / 'scripts/unity-editor-gateway.ts'), '--project-path', str(UNITY), '--',
                'eval_file', '--file', str(script), '--timeout', '600000']
     result = subprocess.run(command, cwd=REPO, capture_output=True, text=True)
     (run_dir / 'gateway.log').write_text(result.stdout + '\n--- stderr ---\n' + result.stderr)
     if result.returncode != 0 or not out_path.exists():
-        raise SystemExit(f'Unity clip writer failed; see {run_dir / "gateway.log"}')
+        raise SystemExit(f'Unity {template} failed; see {run_dir / "gateway.log"}')
     return json.loads(out_path.read_text())
 
 
@@ -178,6 +181,70 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None) -
     return report
 
 
+def render(brief_path: Path, clips: list[dict], result: Path | None = None, views=('gameplay', 'three-quarter-right', 'profile'),
+           size=360, slow=4, name=None, offset=None, margin=1.3) -> dict:
+    """Render clips on the character's actual prefab (materials, weapons, Animancer playback stretched over the brief's
+    ticks, as the game plays them) from the toolkit's review views and framing, into one synchronized video: a row per
+    clip, a column per view. `clips` are {'label', 'asset'} (an Assets/... .anim) or {'label', 'semanticId'} (the clip
+    bound in the package catalog, e.g. the move it would replace). `result` (the toolkit clip) sets the framing."""
+    from PIL import Image, ImageDraw
+    from genra.brief import Brief
+    from genra.clip import Clip
+    from genra.render import BACKGROUND, Renderer, _font, encode_video, tick_label
+    from genra.skin import Skin
+    brief = Brief(brief_path)
+    mapping = json.loads((brief.rigpack / 'mapping.json').read_text())
+    clock = brief['clock']
+    renderer = Renderer(Skin(brief.rig), brief.entry_frame)
+    worlds = [brief.entry_pose.world()]
+    if result:
+        worlds += list(Clip.load(brief.rig, result, frame=brief.entry_frame).world())
+    points = np.concatenate([np.concatenate(renderer.skin.points(w))[::5] for w in worlds[::2]])
+    mirror = np.array([-1.0, 1.0, 1.0])  # pack space mirrors Unity's x; mirroring the camera too keeps the image
+    cameras = []
+    for view in views:  # each view frames the candidate's whole motion, with room for the clips compared with it
+        right, up, toward = renderer.camera(view)
+        x, y = points @ right, points @ up
+        center = right * (x.min() + x.max()) / 2 + up * (y.min() + y.max()) / 2 + toward * float((points @ toward).mean())
+        target = center * mirror + (offset if offset is not None else 0.0)
+        cameras.append({'name': view, 'position': (target + toward * mirror * 20).tolist(), 'forward': (-toward * mirror).tolist(),
+                        'up': (up * mirror).tolist(), 'size': max(np.ptp(x), np.ptp(y)) / 2 * margin})
+    weapons = [{'bone': w['bone'], 'prefab': w['prefab'], 'positionOffset': w['positionOffset'], 'rotationOffset': w['rotationOffset']}
+               for w in mapping.get('weapons', [])]
+    name = name or brief['name']
+    run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-render-{name}'
+    job = {'package': mapping['package'], 'clips': clips, 'ticks': clock['duration_ticks'], 'size': size * 2,
+           'frames': str(run_dir / 'frames'), 'background': [c / 255 for c in BACKGROUND], 'views': cameras, 'weapons': weapons}
+    data = run_unity(job, run_dir, 'render_clip')
+    header, font, small = 28, _font(16), _font(13)
+    def cell(label, view, tick):
+        image = Image.open(run_dir / 'frames' / label / view / f'{tick:04d}.png').convert('RGB').resize((size, size), Image.LANCZOS)
+        ImageDraw.Draw(image).text((6, size - 20), f'{label} · {view}', fill=(200, 205, 214), font=small)
+        return image
+    frames = []
+    for tick in range(clock['duration_ticks'] + 1):
+        frame = Image.new('RGB', (size * len(views), header + size * len(clips)), BACKGROUND)
+        for r, c in enumerate(clips):
+            for k, view in enumerate(views):
+                frame.paste(cell(c['label'], view, tick), (k * size, header + r * size))
+        tick_label(frame, tick, clock['contact_tick'], clock['active'], font)
+        frames.append(frame)
+    video = encode_video(frames, run_dir / 'real.mp4', slow)
+    ticks = brief.review_ticks
+    sheet = Image.new('RGB', (200 * len(ticks), 200 * len(clips) * len(views)), BACKGROUND)
+    for r, (c, view) in enumerate((c, v) for c in clips for v in views):
+        for k, tick in enumerate(ticks):
+            image = cell(c['label'], view, tick).resize((200, 200), Image.LANCZOS)
+            ImageDraw.Draw(image).text((6, 4), f't{tick}', fill=(235, 238, 242), font=small)
+            sheet.paste(image, (200 * k, 200 * r))
+    sheet.save(run_dir / 'real-sheet.png')
+    report = {'package': mapping['package'], 'name': name, 'clips': data['clips'], 'views': list(views), 'ticks': clock['duration_ticks'],
+              'renderPipeline': data['renderPipeline'], 'unitySeconds': data['seconds'], 'video': str(video),
+              'sheet': str(run_dir / 'real-sheet.png'), 'evidence': str(run_dir.relative_to(REPO))}
+    (run_dir / 'report.json').write_text(json.dumps(report, indent=2))
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     sub = parser.add_subparsers(dest='command', required=True)
@@ -191,10 +258,27 @@ def main(argv=None):
     target = out.add_mutually_exclusive_group()
     target.add_argument('--save', action='store_true', help='save to Assets/Art/Experiments/GenRA/<package>/<name>.anim')
     target.add_argument('--asset', help='save to this new Assets/... .anim path')
+    show = sub.add_parser('render', help='render clips on the actual prefab as the game plays them, side by side')
+    show.add_argument('--brief', required=True)
+    show.add_argument('--clip', action='append', required=True, metavar='LABEL=SOURCE',
+                      help='SOURCE is an Assets/... .anim or a bound semantic id such as anim.bonk.a1 (repeat to compare)')
+    show.add_argument('--result', help='toolkit result.json that sets the framing')
+    show.add_argument('--write-report', help="report.json of the `write` that made the clip: aligns the framing with its origin")
+    show.add_argument('--views', default='gameplay,three-quarter-right,profile')
+    show.add_argument('--size', type=int, default=360)
+    show.add_argument('--name')
     args = parser.parse_args(argv)
     sys.path.insert(0, str(HERE.parent))
     if args.command == 'roundtrip':
         report = roundtrip(args.package, args.clip)
+    elif args.command == 'render':
+        clips = []
+        for item in args.clip:
+            label, _, source = item.partition('=')
+            clips.append({'label': label, 'asset': source} if source.startswith('Assets/') else {'label': label, 'semanticId': source})
+        offset = np.array(json.loads(Path(args.write_report).read_text())['originOffsetMetres']) if args.write_report else None
+        report = render(Path(args.brief), clips, Path(args.result) if args.result else None, tuple(args.views.split(',')),
+                        args.size, name=args.name, offset=offset)
     else:
         from genra.brief import Brief
         brief = Brief(args.brief)

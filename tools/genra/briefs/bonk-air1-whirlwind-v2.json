@@ -1,0 +1,69 @@
+{
+  "name": "bonk-air1-whirlwind-v2",
+  "notes": "Second pass of the air.1 whirlwind (2026-10-17): the owner 'really liked' the first version, whose collarbones and upper arms went far past Unity's Humanoid limits. Existing move-data clock (88 ticks, hitbox 19-39, IASA 52).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity",
+  "character": "Bonk (55 joints, five fingers; a 1.84 m greatsword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
+  "references": {
+    "fall": "references/fall.usda",
+    "jump": "references/jump.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "images": [
+    "images/fall-entry.png",
+    "images/two-hand-grip.png",
+    "../../genra-runs/20261017-132838-bonk-air1-whirlwind/v1-review.png"
+  ],
+  "image_notes": "1: the fall entry pose with the greatsword resting on the right shoulder (profile, front, three-quarter rear angle). 2: Bonk's own two-handed grip, from his Charging Double Slash (front, three-quarter, profile). 3: the first version at ticks 6, 12, 16, 19, 24, 29, 34, 39 and 46, from the game camera behind him (top row) and from the side (bottom row).",
+  "strike": [
+    "bladeEnd"
+  ],
+  "description": "Reverse Air Slash (air.1), Bonk's aerial spacing tool, as a whirlwind: one full-body spin with the greatsword held out flat, so the blade sweeps all the way around him.\n\nThis is a second pass. The owner really liked the first version (image 3, from the game camera and the side): keep its motion, the wind-up to his left, the whip around to the front, one flat full turn with the blade sweeping his right side, behind him, his left side and the front, the small overshoot and the sword going back onto the shoulder. Its collarbones and upper arms turned far past what Unity's Humanoid can play, so the game would have shown a different move: rebuild it with two_hand_grip for every two-handed key, and the humanoid check must pass.\n\nBonk is the roster's heaviest fighter and its high-jumping acrobat: a hunched brute with huge arms, short legs and a head set low between the shoulders, swinging a 1.84 m greatsword. His aerials should look heavy and acrobatic at once.\n\nMake the sword look heavy. In the air there is no ground to push from, so the whole body swings the blade: hips and chest wind up first and unwind first; the arms follow and the blade comes last, trailing behind the hands until it whips through. The wind-up is slow and readable, the strike takes a few fast ticks, and after contact the blade's momentum carries on and drags the body after it before Bonk reins it in (overshoot, then settle): never stop the blade dead. The legs balance the swing: they tuck to wind up and swing the opposite way to the blade during the strike.\n\nBeats. Tick 0 is the fall pose: the sword rests on his right shoulder with the blade diagonally across his back. Ticks 1-6: the left hand comes up in front of the chest and takes the grip below the right hand. Ticks 1-14: wind up to his left: hips and chest twist left, both hands carry the hilt across to his left side and the blade swings back behind him, flat at about chest height; the knees tuck and the legs swing the other way. Ticks 15-19: unwind fast, hips first, then chest, then the arms; the blade whips around from his left side to the front. Contact at tick 19: the blade is flat and points straight ahead at chest-to-waist height, both arms nearly straight. Ticks 20-39: the whole body keeps turning to his right through one full turn (360 degrees in total about the vertical axis through the hips) with the blade held out flat, so it sweeps his right side around tick 24, behind him around 29, his left around 34 and the front again around 39; the legs trail the turn. Ticks 40-52: the spin slows, he overshoots a little and settles facing forward, the left hand lets go and the sword goes back onto the right shoulder. Ticks 52-88 equal the entry pose. The blade must not cut through his body or legs.",
+  "exit": {
+    "from_tick": 52
+  },
+  "clock": {
+    "duration_ticks": 88,
+    "contact_tick": 19,
+    "active": [
+      19,
+      39
+    ],
+    "iasa_tick": 52
+  },
+  "fast_windows": [
+    [
+      14,
+      24
+    ]
+  ],
+  "two_hands": [
+    6,
+    44
+  ],
+  "review_ticks": [
+    0,
+    6,
+    12,
+    16,
+    19,
+    24,
+    29,
+    34,
+    39,
+    46,
+    52
+  ],
+  "targets": [
+    {
+      "name": "blade tip behind the hips mid-spin (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 29,
+      "max": -0.8
+    }
+  ]
+}

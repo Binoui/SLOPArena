@@ -30,7 +30,7 @@ comparison, but the runner writes USD directly.
 
 ```bash
 PY=artifacts/genra-20261014/.venv/bin/python
-$PY -m unittest discover -s tools/genra -p 'test_*.py'      # 19 tests; skip without rig packs
+$PY -m unittest discover -s tools/genra -p 'test_*.py'      # 20 tests; skip without rig packs
 $PY tools/genra/run.py tools/genra/benchmarks/manki-aerial-double-fist.json --dry-run
 $PY tools/genra/run.py tools/genra/benchmarks/manki-aerial-double-fist.json --probe   # ~$0.06 sandbox check
 $PY tools/genra/run.py tools/genra/benchmarks/manki-aerial-double-fist.json          # one authoring job
@@ -132,6 +132,8 @@ prefab, through the gateway's `eval_file` under your own lease
 ```bash
 $PY tools/genra/unity_clip.py roundtrip fightguy idle     # proof on an approved clip
 $PY tools/genra/unity_clip.py write RESULT.json --brief BRIEF.json [--save | --asset Assets/...anim]
+$PY tools/genra/unity_clip.py render --brief BRIEF.json --result RESULT.json \
+    --clip new=Assets/Art/Experiments/GenRA/bonk/NAME.anim --clip current=anim.bonk.a1
 ```
 
 - Mapped Humanoid bones become muscle and body curves. Unity's `GetHumanPose` is not an
@@ -155,11 +157,31 @@ fists, a hip drop and a punch played back within 1.2 mm per joint.
 still match, but in that test the forearm mesh rolled up to 81 mm differently during the
 punch and the shin up to 21 mm. `write` reports it as `meshVsToolkit`.
 
+`render` is the review on the real character: the catalog prefab with its materials and
+runtime weapons, in a preview scene, playing each clip through Animancer stretched over the
+brief's ticks as `PlayerRenderer` does (speed = baked frames / stage ticks). It renders the
+toolkit's review views and framing into `real.mp4` (a row per clip, real speed twice, then
+quarter speed) and `real-sheet.png`. Pass the bound clip the candidate would replace as a
+second `--clip` to compare them on the same clock. Nothing in the project changes.
+
 Rig packs also carry `humanoid.json`: each mapped joint's muscle axes and ranges, measured
 on the Avatar. Fingers, thumbs and toes only play rotations about those axes, so finger
 hinges use them, `fist()` curls thumbs on them and snaps every digit onto them, and
 `check_clip` fails digit rotations Unity would drop (`snap_to_humanoid()` fixes free edits).
 The approved clips sit exactly on these axes; the bind pose does not (13–29°).
+
+**Humanoid limits.** Unity does not clamp muscle values, but it plays a joint only through
+its muscles. A collarbone cannot roll about its own length, a twist folds back past 90°
+and a swing past 180°. Before 17 October the solvers rotated collarbones freely. Every
+two-handed Bonk run then exceeded these limits, by up to 122° (whirlwind, right
+collarbone), and its Unity conversion missed by 72 mm per joint and 40 cm per vertex.
+Repairing those clips afterwards failed: within the limits the left hand came 23 cm off
+the grip. Now `solve()` (and so `two_hand_grip` and `hold_grip`) moves the spine, neck,
+head, collarbones, upper arms and thighs only through their muscles. Each stays within
+2.5 times Unity's default range, as far as the characters' own approved clips go, with no
+twist past 85° and no swing past 170°. `check_clip` fails anything past that by more than
+5° (`rig.humanoid_excess`). Hands and feet stay free: Unity plays their twist through the
+forearm and shin.
 
 ## Sandbox
 

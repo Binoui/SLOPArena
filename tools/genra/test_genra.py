@@ -123,6 +123,21 @@ class GenraTests(unittest.TestCase):
             back = Clip.load(self.rig, Path(tmp) / 'c.json', frame=self.brief.entry_frame)
             self.assertLess(np.abs(back.world() - clip.world()).max(), 1e-6)
 
+    def test_flips_and_spins_turn_smoothly_past_half_a_turn(self):
+        # Keys at 165 and 195 degrees used to spline back through zero: a 113-degree one-tick flip.
+        hips = self.rig.index('Hips')
+        for axis in ([1, 0, 0], [0, 0, 1]):
+            for angles in ([0, 75, 165, 195, 285, 360], [0, 100, 200, 300, 400, 500, 600, 720]):
+                keys = {}
+                for degrees in angles:
+                    pose = self.entry.copy()
+                    pose.rotate('Hips', axis, -degrees)
+                    keys[round(degrees / 6)] = pose
+                world = [rotation_part(m) for m in Clip.from_keys(keys, round(angles[-1] / 6) + 1).world()[:, hips]]
+                steps = [np.degrees(np.arccos(np.clip((np.trace(b @ a.T) - 1) / 2, -1, 1))) for a, b in zip(world, world[1:])]
+                self.assertLess(max(steps), 8, (axis, angles))
+                self.assertAlmostEqual(sum(steps), angles[-1], delta=1, msg=(axis, angles))
+
     def test_usd_round_trip_keeps_textures(self):
         clip = self.brief.reference('jump')
         with tempfile.TemporaryDirectory() as tmp:
@@ -266,9 +281,17 @@ class CurrentCharacterPackTests(unittest.TestCase):
             flexion, alignment = rig.hinge_state(ready.world(), side + 'Elbow')
             self.assertGreater(alignment, 0.95)  # the idle start carries some twist of its own
             self.assertLess(flexion, 161)
+        # Within what Unity's Humanoid plays (the unbounded solver rolled Bonk's collarbones up to 122 degrees past it).
+        self.assertLess(max(rig.humanoid_excess(j, ready.q[j])[0] for j in rig.humanoid_limited), 0.5)
         clip = Clip.from_keys({0: entry, 8: ready, 16: ready, 24: entry}, 25)
         spec = {'clearance': False, 'face': False, 'snap_degrees_per_tick': 90, 'two_hands': [8, 16]}
         self.assertNotIn('grip', {f['check'] for f in check_clip(clip, spec)['failures']})
+        self.assertNotIn('humanoid', {f['check'] for f in check_clip(clip, spec)['failures']})
+        rolled = entry.copy()  # a collarbone turned about its own length: no muscle plays that
+        rolled.rotate('RightShoulder', rolled.pos('RightArm') - rolled.pos('RightShoulder'), 40)
+        self.assertGreater(rig.humanoid_excess(rig.index('RightShoulder'), rolled.q[rig.index('RightShoulder')])[0], 30)
+        rolling = Clip.from_keys({0: entry, 8: rolled, 24: entry}, 25)
+        self.assertIn('humanoid', {f['check'] for f in check_clip(rolling, spec)['failures']})
         drifting = Clip.from_keys({0: entry, 8: ready, 24: entry}, 25)
         self.assertIn('grip', {f['check'] for f in check_clip(drifting, dict(spec, two_hands=[8, 12]))['failures']})
         held = hold_grip(drifting, 8, 12)

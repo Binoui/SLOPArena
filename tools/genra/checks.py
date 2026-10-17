@@ -16,7 +16,7 @@ DEFAULT_SPEC = {
     'fast_windows': [],                # [[first_tick, last_tick], ...] where fast motion is intended
     'clearance_metres': 0.01,          # region pairs closer than this are reported
     'pose_tolerance_metres': 0.001,
-    'humanoid_degrees': 5.0,           # finger/thumb/toe rotation Unity's Humanoid cannot play
+    'humanoid_degrees': 5.0,           # rotation Unity's Humanoid cannot play (digits off-axis, limits exceeded)
     'grip_metres': 0.02,               # two-handed ticks: left hand distance from the grip
     'grip_degrees': 15.0,
     'face_min_visible': 0.25,          # face visible fraction from the front below which it counts as hidden
@@ -130,6 +130,22 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None) -> dict:
             fail('humanoid', f'{len(bad)} finger/thumb/toe joints turn about axes Unity cannot play, worst {name} '
                              f'{degrees:.0f} deg at tick {tick}; use fist()/set_hinge() or pose.snap_to_humanoid()',
                  joints=[row[0] for row in bad], tick=tick)
+
+    # Spine, neck, head, collarbones, upper arms and thighs play only through their muscles: past the limits the
+    # game shows a different pose (rig.humanoid_bounds; a collarbone cannot roll at all).
+    limited = rig.humanoid_limited
+    if limited and s.get('humanoid_limits', True):
+        excess = np.array([[rig.humanoid_excess(j, clip.q[tick, j])[0] for j in limited] for tick in range(n)])
+        metrics['humanoid limits exceeded by (deg)'] = float(excess.max())
+        bad = [c for c in range(len(limited)) if excess[:, c].max() > s['humanoid_degrees']]
+        if bad:
+            c = max(bad, key=lambda col: excess[:, col].max())
+            tick, ticks = int(excess[:, c].argmax()), np.where(excess[:, c] > s['humanoid_degrees'])[0]
+            degrees, muscle = rig.humanoid_excess(limited[c], clip.q[tick, limited[c]])
+            fail('humanoid', f"{len(bad)} joints turn past what Unity's Humanoid plays, worst {rig.names[limited[c]]} "
+                             f'{degrees:.0f} deg past {muscle} at tick {tick} (ticks {ticks[0]}..{ticks[-1]}); '
+                             'solve() and two_hand_grip() keep to the limits, rotate() does not',
+                 joints=[rig.names[limited[col]] for col in bad], tick=tick)
 
     # Snaps: per-tick local rotation change.
     speed = clip.angular_speed()  # (n-1, joints); row i is tick i -> i+1

@@ -17,6 +17,11 @@ from pxr import Usd, UsdGeom, UsdSkel
 from scipy.spatial.transform import Rotation
 
 FINGERS = ('Index', 'Middle', 'Ring', 'Little', 'Pinky')
+# Humanoid joints play only within their muscles. Approved clips reach about 2.5 times the default muscle ranges
+# (head nods, chest, shoulder shrugs); Unity folds a twist back past 90 degrees and a swing past 180.
+HUMANOID_REACH = 2.5
+HUMANOID_TWIST_LIMIT = 85.0
+HUMANOID_SWING_LIMIT = 170.0
 
 
 def short_name(path: str) -> str:
@@ -242,6 +247,35 @@ class Rig:
         """Finger, thumb and toe joints: Unity plays only rotations about their own muscle axes (1-2 per joint)."""
         digits = ('Thumb', 'Index', 'Middle', 'Ring', 'Little', 'Toes')
         return sorted(j for j, muscles in self.humanoid.items() if all(any(d in m['bone'] for d in digits) for m in muscles))
+
+    @cached_property
+    def humanoid_limited(self) -> list[int]:
+        """Humanoid joints the solvers and checks keep to their muscle limits: spine, neck, head, collarbones, upper
+        arms and thighs. Elbows and knees are hinges, digits snap to their axes, and hands and feet stay free:
+        Unity plays their twist through the forearm and shin."""
+        hinged = {joint for (_, _, joint, _, _) in self.hinges.values()}
+        return sorted(j for j in self.humanoid if j not in hinged and j not in self.humanoid_digits
+                      and not self.names[j].endswith(('Hand', 'Foot')))
+
+    def humanoid_bounds(self, j) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """(muscle axes, lower, upper radians) of joint j for humanoid_split's angles: HUMANOID_REACH times each
+        muscle's range, within the twist and swing Unity can still play."""
+        muscles = self.humanoid[j]
+        lower, upper = [], []
+        for m in muscles:
+            cap = HUMANOID_TWIST_LIMIT if 'Twist' in m['muscle'] or 'Turn' in m['muscle'] else HUMANOID_SWING_LIMIT
+            lower.append(max(HUMANOID_REACH * m['minus'], -cap))
+            upper.append(min(HUMANOID_REACH * m['plus'], cap))
+        return np.array([m['axis'] for m in muscles]), np.radians(lower), np.radians(upper)
+
+    def humanoid_excess(self, j, q) -> tuple[float, str]:
+        """Degrees joint j's local rotation q goes past humanoid_bounds (or turns about an axis none of its muscles
+        has, such as a collarbone's roll), with the muscle concerned."""
+        angles, off = self.humanoid_split(j, q)
+        _, lower, upper = self.humanoid_bounds(j)
+        past = np.degrees(np.maximum(lower - angles, angles - upper).clip(min=0))
+        k = int(np.argmax(past))
+        return (float(past[k]), self.humanoid[j][k]['muscle']) if past[k] >= off else (off, 'an axis no muscle has')
 
     def humanoid_split(self, j, q) -> tuple[np.ndarray, float]:
         """Split joint j's local rotation q into its muscle angles (radians, least squares) and the degrees no

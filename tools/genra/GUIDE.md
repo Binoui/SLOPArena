@@ -54,6 +54,11 @@ fall = b.reference('fall')    # reference Clip on the same skeleton
   the blade points along `blade` (hilt to tip), and the hilt goes as close to `hilt` as both
   arms can hold it (`report['hiltFromRequestMetres']`). Use it for every two-handed key; after
   `Clip.from_keys`, `hold_grip(clip, first, last)` keeps the left hand on the grip between keys.
+- The game plays the spine, neck, head, collarbones, upper arms and thighs only through their Humanoid
+  muscles: up to about 2.5 times Unity's default ranges, no twist past 85 degrees, and a collarbone never
+  rolls about its own length. `solve`, `two_hand_grip` and `hold_grip` keep to these limits; `rotate` does
+  not, and the check fails a pose past them. If `two_hand_grip` reports the left hand off the grip, that hold
+  is out of reach within them: bring the hilt closer to the chest or turn the chest toward it.
 - The game plays fingers, thumbs and toes only as rotations about their own joint axes.
   `set_hinge` and `fist` stay on them; after any other edit of a digit (`rotate`, `solve`),
   call `p.snap_to_humanoid()`.
@@ -72,6 +77,10 @@ legs. Re-check positions after each step; spine changes move every limb.
   joint rotation, which can swing an arm across the face or behind the body. Put breakdown keys
   where the hands and elbows should pass: a support hand meets the grip in front of the chest,
   then both hands lift together.
+- Spins and flips turn the hips: `p.rotate('Hips', [0, 0, 1], -90)` turns the body a quarter to
+  its right and `p.rotate('Hips', [1, 0, 0], -90)` pitches it a quarter forward (positive degrees
+  turn left and lean back). Between two keys a joint turns the shorter way, so key every quarter
+  turn or closer; the spline keeps the turn smooth across keys, any number of turns.
 - Two-handed holds read best where the arms frame the head rather than cross the face. The check
   warns when arms or a weapon hide the face from the front for several ticks; a character whose
   head sits below its shoulders hides it in any overhead hold, so judge that from the renders.
@@ -85,7 +94,7 @@ legs. Re-check positions after each step; spine changes move every limb.
 
 - `print(format_report(check_clip(clip, b.check_spec())))` checks the clock, the exact
   entry and exit poses, fixed bone lengths and scales (only the hips translate), every knee,
-  elbow and finger bend direction, finger poses the game can play, snaps, region clearances,
+  elbow and finger bend direction, joint and finger rotations the game can play, snaps, region clearances,
   a face hidden behind the arms, and the brief's numeric targets.
 - `contact_sheet(clip, ticks, views=b.review_views, path='sheet.png')` renders flat-shaded
   frames. `b.review_views` is profile, front and the three-quarter view from the striking

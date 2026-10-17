@@ -77,7 +77,7 @@ def _set_world_rotation(pose: Pose, j: int, world_rot_row):
     pose._changed()
 
 
-def solve(pose: Pose, joints, targets, reg=0.02, hinges=True, max_nfev=200):
+def solve(pose: Pose, joints, targets, reg=0.02, hinges=True, max_nfev=200, humanoid=True):
     """Least-squares IK. Returns (new_pose, report).
 
     joints: names to vary. Hinge joints (knee/elbow/finger middles) vary only about
@@ -88,6 +88,9 @@ def solve(pose: Pose, joints, targets, reg=0.02, hinges=True, max_nfev=200):
       {'axis': joint, 'local': [x, y, z], 'along': [r, f, u]}  a joint-local axis
       {'palm': 'Left'|'Right', 'along': [r, f, u]}     palm normal direction
     reg pulls each varied joint toward its starting rotation (radians).
+    humanoid: spine, neck, head, collarbone, upper-arm and thigh joints vary only through their Unity Humanoid
+    muscles, within the limits the game can play (rig.humanoid_limited, rig.humanoid_bounds); one that starts
+    past them never goes further out.
     """
     rig = pose.rig
     idx = [rig.index(j) for j in joints]
@@ -96,8 +99,14 @@ def solve(pose: Pose, joints, targets, reg=0.02, hinges=True, max_nfev=200):
         for name, (_, a, m, d, axis) in rig.hinges.items():
             if m in idx:
                 hinge_axis[m] = axis
-    sizes = [1 if j in hinge_axis else 3 for j in idx]
     start = pose.q.copy()
+    muscles = {}  # joint -> (axes, starting angles, lower, upper, rotation at zero)
+    if humanoid:
+        for j in idx:
+            if j not in hinge_axis and j in rig.humanoid_limited:
+                axes, low, high = rig.humanoid_bounds(j)
+                muscles[j] = (axes, rig.humanoid_split(j, start[j])[0], low, high, rig.humanoid[j][0]['zero'])
+    sizes = [1 if j in hinge_axis else len(muscles[j][0]) if j in muscles else 3 for j in idx]
     # Hinges stay within their anatomical range (no hyperextension), measured from the starting flexion.
     lower, upper = [], []
     for j, n in zip(idx, sizes):
@@ -108,6 +117,10 @@ def solve(pose: Pose, joints, targets, reg=0.02, hinges=True, max_nfev=200):
             low, high = np.radians(HINGE_RANGE[rig.hinges[name][0]])
             lower.append(min(low - flexion, -1e-6))
             upper.append(max(high - flexion, 1e-6))
+        elif j in muscles:  # never further out than the start
+            _, angles, low, high, _ = muscles[j]
+            lower += list(np.minimum(low - angles, -1e-6))
+            upper += list(np.maximum(high - angles, 1e-6))
         else:
             lower += [-np.inf] * 3
             upper += [np.inf] * 3
@@ -116,8 +129,12 @@ def solve(pose: Pose, joints, targets, reg=0.02, hinges=True, max_nfev=200):
         p = pose.copy()
         k = 0
         for j, n in zip(idx, sizes):
-            delta = Rotation.from_rotvec(x[k] * hinge_axis[j]) if n == 1 else Rotation.from_rotvec(x[k:k + 3])
-            p.q[j] = (delta * Rotation.from_quat(start[j])).as_quat()
+            if j in muscles:
+                axes, angles, _, _, zero = muscles[j]
+                p.q[j] = (Rotation.from_rotvec(axes.T @ (angles + x[k:k + n])) * zero).as_quat()
+            else:
+                delta = Rotation.from_rotvec(x[k] * hinge_axis[j]) if n == 1 else Rotation.from_rotvec(x[k:k + 3])
+                p.q[j] = (delta * Rotation.from_quat(start[j])).as_quat()
             k += n
         p._changed()
         return p
