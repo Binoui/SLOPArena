@@ -435,9 +435,16 @@ Wibou is the reference.
   scale (rigs can carry import scales) and can keep shapes upright.
 - Effects that implement `IPresentationOwnerReceiver` get their fighter from
   `TimelinePresentationDispatcher` after spawning. `ChargeTierCues` plays children at
-  charge tiers, `ChargeTierVariant` shows a child only after a fully charged attack, and
-  `DamageScaleVariant` swaps looks by the hit contact's damage scale. All three read
-  cosmetic state only.
+  charge tiers (up to five, each with an optional sound, and can grow a `Grow` transform per
+  tier), `ChargeTierVariant` shows a child only after a fully charged attack, and
+  `DamageScaleVariant` swaps looks by the spawn scale (a hit contact's damage scale or a
+  placement's charge scale). All three read cosmetic state only.
+- `SnapToFloor` moves a cosmetic child (a blast ring, a scorch, a debris landing plane) onto
+  the stage floor from the heightmap `MatchBase` publishes as `PresentationFloor`, or hides it
+  when there is no floor below.
+- Projectile visuals: children with `LingerAfterProjectile` (smoke trails) detach and fade
+  when the projectile goes; `OrientProjectile` turns Wibou's kunai and Manki's rocket
+  point-first.
 - `tools/glyph_mask.py` renders text such as FightGuy's 肉 into a mask that
   `ToonShapes`' `MaskField` turns into toon-banded textures.
 
@@ -463,7 +470,8 @@ The general rules still apply:
 | Fighter hit feel (shake, flash, squash/lean, launch smoke) | Implemented; strengths under review | `FighterHitFeel.cs` + `GraphicCharacter.shader` |
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
-| Character-specific hit layers | Wibou and FightGuy | Per-slot `hitPresentationId` |
+| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; concepts approved, in-game check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
+| Character-specific hit layers | Wibou, FightGuy and Manki | Per-slot `hitPresentationId` |
 
 ### Authored bone trails
 
@@ -478,7 +486,6 @@ The general rules still apply:
 |-----|--------|
 | Dash start and trail | Not implemented |
 | Jump and landing dust | Not implemented |
-| Manki flame and explosions | Not implemented |
 | KO and respawn presentation | Not implemented |
 
 ---

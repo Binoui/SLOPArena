@@ -135,7 +135,8 @@ client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShot.prefa
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShotHit.prefab
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShotHit.prefab.meta
 
-# Local Cartoon FX-derived character effects; keep copies and GUID metadata local.
+# Old local Cartoon FX-derived FightGuy effects, unused since the presentation builders;
+# keep any local copies out of Git.
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyCycloneSpiral.prefab
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyCycloneSpiral.prefab.meta
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyEmpoweredHit.prefab
@@ -148,8 +149,6 @@ client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyRisingFist.p
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyRisingFist.prefab.meta
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyStrikeWrap.prefab
 client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyStrikeWrap.prefab.meta
-client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab
-client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab.meta
 
 # Solo-dev local audio; keep licensed/downloaded source assets out of Git.
 client/Unity/Assets/Resources/Audio/
@@ -212,6 +211,7 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuy*.png
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/Source/*.png
 !client/Unity/Assets/CharacterPackages/wibou/Presentation/Wibou*.png
+!client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.png
 # Local Kenney prompt sheets, atlas maps, and Unity-generated metadata.
 client/Unity/Assets/Resources/InputPrompts/
 client/Unity/Assets/Resources/InputPrompts.meta
@@ -224,9 +224,7 @@ client/Unity/Assets/Resources/InputPrompts.meta
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiClothCharcoal.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWorkGloves.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWornMetal.mat
-!client/Unity/Assets/CharacterPackages/manki/Presentation/MankiAerosolFlame.mat
-!client/Unity/Assets/CharacterPackages/manki/Presentation/MankiFuseEmber.mat
-!client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalSwing.mat
+!client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.mat
 *.mask
 *.exr
 *.hdr

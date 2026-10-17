@@ -14,10 +14,13 @@ namespace SlopArena.Client.World
         void BindOwner(PlayerRenderer owner);
     }
 
-    /// <summary>Charge tiers of a slot's charged capability (projectile or directional dash).</summary>
+    /// <summary>
+    /// Charge tiers of a slot's charged capability: a charged projectile or directional dash
+    /// (three tiers) or Manki's Aerosol Inferno (five).
+    /// </summary>
     public static class ChargeTiers
     {
-        /// <summary>0, 1 or 2 for tiers 1–3; -1 when the slot has no charged capability.</summary>
+        /// <summary>0 for tier 1, 1 for tier 2 and so on; -1 when the slot has no charged capability.</summary>
         public static int Of(CharacterDefinition definition, byte slot, ushort chargeTicks)
         {
             foreach (bool airborne in new[] { false, true })
@@ -32,6 +35,14 @@ namespace SlopArena.Client.World
                         return projectile.GetChargeTier(chargeTicks);
                     if (start.Parameters is CookedChargedDirectionalDashCapabilityParameters dash)
                         return dash.GetChargeTier(chargeTicks);
+                    if (start.Parameters is CookedMankiAerosolInfernoCapabilityParameters aerosol)
+                    {
+                        // Below the first threshold the charge still reads as tier 1.
+                        int reached = 0;
+                        foreach (var tier in aerosol.ChargeTiers ?? System.Array.Empty<MankiAerosolChargeTier>())
+                            if (chargeTicks >= tier.ChargeTicks) reached++;
+                        return Mathf.Max(0, reached - 1);
+                    }
                 }
             }
             return -1;

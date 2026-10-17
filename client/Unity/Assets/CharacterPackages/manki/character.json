@@ -187,7 +187,15 @@
     "presentation.manki.normal.strike",
     "presentation.manki.normal.sweep",
     "presentation.manki.normal.heavy",
-    "presentation.manki.normal.hit"
+    "presentation.manki.normal.hit",
+    "presentation.manki.normal.heavy-hit",
+    "presentation.manki.blast.hit",
+    "presentation.manki.jetpack-boost.trail",
+    "presentation.manki.jetpack-boost.cough",
+    "presentation.manki.bazooka.ready",
+    "presentation.manki.bazooka.singe",
+    "presentation.manki.aerosol-inferno.charge",
+    "presentation.manki.aerosol-inferno.hit"
   ],
   "capabilityRequirements": [
     {
@@ -866,7 +874,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "hitPresentationId": "presentation.manki.normal.hit",
+      "hitPresentationId": "presentation.manki.normal.heavy-hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -959,7 +967,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "hitPresentationId": "presentation.manki.normal.hit",
+      "hitPresentationId": "presentation.manki.normal.heavy-hit",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -1103,7 +1111,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.blast.hit"
     },
     {
       "id": "ground.E",
@@ -1173,11 +1182,52 @@
                   "localScaleZ": 1,
                   "durationTicks": 57
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 3,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.jetpack-boost.trail",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": -0.15,
+                  "localPositionZ": -0.2,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 80
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 38,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.jetpack-boost.cough",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": -0.45,
+                  "localPositionZ": -0.1,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 45
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.blast.hit"
     },
     {
       "id": "ground.R",
@@ -1236,6 +1286,26 @@
               },
               {
                 "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.bazooka.ready",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": -0.176166,
+                  "localPositionY": 1.293537,
+                  "localPositionZ": -0.085102,
+                  "localRotationX": -20,
+                  "localRotationY": -90,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 12
+                }
+              },
+              {
+                "kind": "emitPresentation",
                 "tick": 6,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.bazooka.muzzle",
@@ -1251,13 +1321,34 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 18
+                  "durationTicks": 28
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 6,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.bazooka.singe",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 50
                 }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.blast.hit"
     },
     {
       "id": "ground.F",
@@ -1353,6 +1444,26 @@
               },
               {
                 "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.aerosol-inferno.charge",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.139,
+                  "localPositionZ": -0.225,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 600
+                }
+              },
+              {
+                "kind": "emitPresentation",
                 "tick": 8,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.aerosol-inferno.start",
@@ -1374,7 +1485,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.manki.aerosol-inferno.hit"
     }
   ],
   "aliases": [

@@ -46,8 +46,10 @@ python3 tools/presentation_review.py summary tmp/vfx/<package>/before.out
 Repeat with `--stage after_hours` and another output folder. Bright Splash Deck exposes
 glow that washes out; dark After Hours exposes muddy contrast. Keep the summary's hit
 frames: the "after" run must land the same hits. Defaults per slot are starting points.
-Use `--set A:distance=6` for projectile range, `--set 4:ticks=110` for long startups and
-`--set A:hold=52` to fully charge an aim-hold special.
+Use `--set A:distance=4` for projectile range (the rig allows 0.4–4 m), `--set 4:ticks=110`
+for long startups and `--set A:hold=52` to fully charge an aim-hold special. The rig aims at
+the fighter spacing, so a ground-cursor special (Manki's Round Bomb) lands on the victim
+once it reads the cursor: give it a short hold (`--set A:hold=12`).
 The wide camera follows both fighters, which keeps leaps and launches in frame.
 
 Then show the owner a concept board before building: paint the proposed effects over
@@ -79,7 +81,11 @@ materials, one method per prefab, then the bindings and `kit.Finish(built)`. Nam
 | Put bone-attached content under `PresentationFrame` (unit scale, optionally upright). | Rigs carry import scales (FightGuy's bones are 1.5×), which scale offsets and local-space particles. |
 | Give each new MonoBehaviour its own file named after the class. | Otherwise the prefab saves a missing script and the component silently does nothing; `kit.Save` now throws. |
 | Attack ticks keep counting while an aim-hold charges, and Hitstop pauses them. | Give charge cues a long `durationTicks`, and find late cues several frames after the nominal tick in captures. |
-| Read cosmetic state through `IPresentationOwnerReceiver`: `ChargeTierCues`, `ChargeTierVariant`, `DamageScaleVariant`. | Charge-tier pings, rare full-charge variants and finisher looks need no Shared change. |
+| Read cosmetic state through `IPresentationOwnerReceiver`: `ChargeTierCues` (up to five tiers, an `AudioSource` per tier effect, a `Grow` transform scaled per tier), `ChargeTierVariant`, `DamageScaleVariant` (also reads a placement's charge scale). | Charge-tier pings, rare full-charge variants and finisher looks need no Shared change. |
+| A stretched billboard's head is the particle and its quad trails behind it, with U = 0 at the head. Draw a flame's tip at U = 0, keep `lengthScale` near 1.2 with `velocityScale` 0, spawn slightly ahead and grow the size with distance. | Manki's first flame stream trailed 2.5 m backward, over Manki, from particles that were moving forward. |
+| A world-space trail inside an attack-bound cue vanishes when the attack ends. Put lingering trails in their own cue without `AttackBoundPresentation`, and mark projectile trails with `LingerAfterProjectile`. | Manki's jetpack puff column ends at the apex with the move; his rocket's smoke must outlive the rocket. |
+| Put floor marks (rings, scorches, debris landing planes) under a `SnapToFloor` child; particles can collide with that plane. | Blasts happen mid-air; the stage floor comes from `PresentationFloor`, and no floor below hides the mark. |
+| Measure prop anchors with a read-only `eval_file` that attaches the prop as `WeaponAttach` does and reports points in the hand or cue frame. | Manki's bazooka barrel runs along the muzzle cue's +Y and his spray can's nozzle sits at the hand's −Z; guessing them points effects the wrong way. |
 | Use `ToonShapes.Step` for shader-style smoothstep. | `Mathf.SmoothStep(a, b, t)` interpolates from a to b; it is not a 0–1 step. |
 | Delete prefabs, textures and materials you stop generating. | The builder overwrites, it never removes. |
 
@@ -89,7 +95,8 @@ and bake it with `new MaskField(path)` and `ToonShapes.Bands`, as FightGuy's 肉
 Sounds come from `kit.Sound(root, clip, volume, pitch)`. Clips live in the ignored
 `Resources/Audio/SFX/<Name>/` folder. Trim and normalize them (about −3 dB peak), and
 record source and licence in [asset notes](../../docs/assets/credits-and-licenses.md)
-and `CREDITS.md`. Models nested from `Assets/Art` are local-only too; the kit warns when
+and `CREDITS.md`. Script the mix so another machine can rebuild the ignored clips, as
+`tools/sfx/manki_clips.py` does from Kenney's CC0 packs and generated noise. Models nested from `Assets/Art` are local-only too; the kit warns when
 one is missing.
 
 ## 4. Rebuild, cook and verify
@@ -103,9 +110,14 @@ warnings. Check it with `presentation_review.py summary`.
 - If another thread's change breaks compilation, wait; do not edit their files.
 - Rebuilds are byte-identical for unchanged inputs. Hash `Presentation/` before and after
   a refactor to prove it changed nothing.
-- A cook re-pins the roster manifest; stage only your package's pin.
+- A cook re-pins the roster manifest; stage only your package's pin. Saving the catalog
+  auto-cooks the roster, so another package with a stale cook (for example after a cooker
+  version change) is recooked too; leave that change to its owner.
+- Big capsule hitboxes report their contact on the hitbox surface toward the target, up to a
+  radius away from a victim deep inside; a hit effect there pops in mid-air (see the plan's
+  open decisions).
 - Builder materials and textures match the global `*.mat` and `*.png` ignore rules.
-  Re-include your package's prefix in `.gitignore`, as FightGuy and Wibou do, then run
+  Re-include your package's prefix in `.gitignore`, as FightGuy, Wibou and Manki do, then run
   `python3 tools/check_asset_closure.py` on the package catalog: only the local audio
   may be reported missing.
 

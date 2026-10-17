@@ -13,10 +13,13 @@ namespace SlopArena.Client.World
     public sealed class ChargeTierCues : MonoBehaviour, IPresentationOwnerReceiver
     {
         public byte Slot = AbilitySlots.A;
-        [Tooltip("Played on reaching tier 2 and tier 3; children start stopped.")]
-        public ParticleSystem Tier2, Tier3;
+        [Tooltip("Played on reaching tiers 2 to 5, with an AudioSource on the same object if any; children start stopped.")]
+        public ParticleSystem Tier2, Tier3, Tier4, Tier5;
         [Tooltip("Optional effect that runs only while charging; it stops emitting on release.")]
         public ParticleSystem Charging;
+        [Tooltip("Optional transform scaled by 1 + GrowPerTier × tier while charging, e.g. a pilot flame (use Hierarchy scaling).")]
+        public Transform Grow;
+        public float GrowPerTier;
 
         private PlayerRenderer _owner;
         private int _shownTier;
@@ -33,8 +36,16 @@ namespace SlopArena.Client.World
             }
             int tier = ChargeTiers.Of(_owner.CharacterDef, Slot, _owner.CurrentChargeTicks);
             for (int reached = _shownTier + 1; reached <= tier; reached++)
-                (reached == 1 ? Tier2 : Tier3)?.Play(true);
+                Play(reached switch { 1 => Tier2, 2 => Tier3, 3 => Tier4, 4 => Tier5, _ => null });
             _shownTier = Mathf.Max(_shownTier, tier);
+            if (Grow != null) Grow.localScale = Vector3.one * (1f + GrowPerTier * Mathf.Max(0, _shownTier));
+        }
+
+        private static void Play(ParticleSystem cue)
+        {
+            if (cue == null) return;
+            cue.Play(true);
+            if (cue.TryGetComponent(out AudioSource sound)) sound.Play();
         }
     }
 }

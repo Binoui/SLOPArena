@@ -48,6 +48,10 @@ kit:
 
 # Manki — Mad Bomber Monkey
 
+> **Identity (owner, 2026-10-17):** a chaotic character who fights with gadgets and
+> explosions. He is also everyone's favourite: everybody the owner knows loves him,
+> because his is the most unique design in the roster. His effects should show off the
+> chaos without hiding the design people love.
 
 > Status: Package-native authoring source cooked and rostered. The canonical kit contract is the package-native 16-entry grid: grounded and aerial variants of `1 / 2 / 3 / 4 / A / E / R / F`. `LMB` and `RMB` are camera controls, not persisted move identities.
 > Package source: `client/Unity/Assets/CharacterPackages/manki/`; cooked runtime: `content-cooked/manki/`.
@@ -205,7 +209,54 @@ roster pins are unchanged.
 - **R**: Bazooka (FPS-style). Short cast (20 ticks), fire a rocket projectile in camera direction (AimYaw/AimPitch). Projectile has gravity (15 m/s²), speed 40 m/s, max flight 45 ticks. Explodes on entity hit or ground contact with 3m AoE. CanHitOwner=true on explosion — aim at feet for rocket jump (4 self-damage, upward knockback). No rise, no hover, no hold-to-aim. 240 tick cooldown (4s).
 - **F**: Aerosol Inferno. Hold enters the loop animation and freezes movement. An 18-tick minimum charge applies even to a tap; early release queues the shot, and a longer hold continues aiming until release. Manki follows camera yaw only; vertical aim is ignored. The firing phase starts the flame hitbox and VFX together at tick 8 and sustains both for 44 attack ticks through the 52-tick commitment. Charge tiers at 18/30/42/54/66 ticks select 10/14/18/22/26 damage and 0.6×/0.8×/1×/1.25×/1.5× flame size. Charge caps at 66 ticks but still waits for release. The facing-aligned capsule and flame grow together from 2.64 m to 6.6 m total length (0.84 m to 2.1 m diameter), anchored at the same near edge; the effect is independent of wrist rotation and ends on interruption. Cooldown: 600 ticks.
 
+## Combat presentation — 2026-10-17
+
+"Controlled Chaos", built for the identity above from concepts the owner approved on
+2026-10-17. Toon blasts with chunky smoke that clears fast; gadget junk (bolts, nuts,
+springs and gears) that spills out of every boom; and his winking, tongue-out grin rising in
+the smoke of his two big booms, the way 肉 is FightGuy's brand. The gags are his gadgets
+backfiring on him, never on the opponent. `sloparena.presentation.manki.build`
+(`MankiPresentationBuilder.cs`, on the shared `PresentationBuilderKit`) generates every
+texture, mesh, material and prefab. It binds them to the asset catalog and to the Round Bomb
+and rocket projectile visuals. Only presentation cues, `presentationIds` and
+`hitPresentationId` values in `character.json` changed; damage, hitboxes and timing did not.
+The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md).
+
+| Move | Presentation |
+| --- | --- |
+| Normals (ground and air 1–4) | An orange toon swoosh behind the striking limb and a puff of smoke. Hits use `normal.hit`: a soot-rimmed orange "pow" with sparks. Ground and air 4 use `normal.heavy-hit`, which adds a flash star and a nut flying off. |
+| Round Bomb (A) | The held and thrown bomb (`MankiLitBomb`) fizzes at the fuse, pulses red and leaves a dotted puff trail that fades after the blast. The explosion is a flash star, a toon fireball, a ring of puffs, and junk that bounces once and settles on the floor. A floor ring grows to the real 3 m blast radius and a scorch with glowing cracks fades over 2.5 s. Then his grin rises out of the smoke. Contacts use `blast.hit`. |
+| Jetpack Boost (E) | Ignition at his feet: a squashed flash and fireball, puffs along the ground, a ring at the 1.5 m blast radius, and a spring and a bolt popping loose. While he rises, a flaring exhaust (it ends with the move at the apex) and a sputtering puff column (`jetpack-boost.trail`, not attack-bound, so it fades on its own). Just before the apex the engine coughs a ring of puffs and drops a bolt (`jetpack-boost.cough`, tick 38; Hitstop delays it). Contacts use `blast.hit`. |
+| Bazooka (R) | A glint and a clunk-click as he shoulders it (`bazooka.ready`, tick 0). The shot: a flash star and a short flame at the muzzle, and a comically oversized backblast out of the back end that singes his fur, which smokes for a moment (`bazooka.singe`, on his head). The rocket is a red toon rocket that flies point-first, with a wobbly smoke trail that lingers after impact. The explosion is the Round Bomb's, bigger, with the grin. Contacts use `blast.hit`. |
+| Aerosol Inferno (F) | While he charges, the can rattles and leaks mist, and a pilot flame on the nozzle grows at each of the five charge tiers with a spark pop and a rattle (`aerosol-inferno.charge`). The stream is a toon flame that licks forward, with soot rolling off the top. It scales with the charge like the hitbox, and from tier 4 the nozzle burns white-hot. Hits use `aerosol-inferno.hit`: a soot puff, licks of flame and embers. |
+
+- **Floor marks:** the blast rings, scorch and landing junk sit on the stage floor through
+  `SnapToFloor`, which samples the heightmap `MatchBase` publishes as `PresentationFloor`.
+  A blast with no floor within 3 m (1.4 m for the jetpack) leaves no ring or scorch. Without a
+  stage (Ability Lab) they keep their authored offset.
+- **Projectiles:** the rocket and bomb trails carry `LingerAfterProjectile`.
+  `ProjectileVFXManager` detaches them before it destroys the projectile visual, so the smoke
+  fades instead of vanishing on impact. It also turns the rocket point-first, as for Wibou's
+  kunai. The bomb model is nested at its 80× import scale, so the projectile entry's scale is
+  now 1 (it was 80 on the root).
+- **Charge tiers:** `ChargeTierCues` handles up to five tiers. It plays an `AudioSource` on a
+  tier's effect and scales its `Grow` transform per tier (the pilot flame).
+- **Sounds and art:** the clips are CC0 Kenney sounds plus generated hiss, sizzle, sputter and
+  whistle, in the ignored `Resources/Audio/SFX/Manki/` (see
+  [provenance](../assets/credits-and-licenses.md)). `tools/sfx/manki_clips.py` rebuilds them.
+  Without them the effects are silent and the builder lists the missing clips. The bomb nests
+  the local-only `Art/Characters/manki/Models/bomb.fbx`.
+- **Known issue:** F's hit effect can appear up to a metre above a victim who stands deep
+  inside a high-tier flame. Shared reports a capsule contact on the hitbox surface toward the
+  target (`SpellResolver.CapsuleCollision`), which overshoots inside the 1 m-radius capsule.
+  The effect it replaced had the same offset. A fix belongs in Shared and needs its own approval.
+
+The generated prefabs replace the earlier hand-made and Cartoon FX versions in place, keeping
+their GUIDs. The sections below up to the Head Slam describe those earlier versions.
+
 ## Jetpack presentation — 2026-10-11
+
+> Superseded on 2026-10-17 by [Combat presentation](#combat-presentation--2026-10-17); kept as history.
 
 The E visual pass keeps the current authored movement, ignition hitbox, cooldown,
 animation and air alias. The original world-space ignition burst remains separate
@@ -248,6 +299,8 @@ Mode/script reload instability remains unresolved. Multiplayer verification is
 pending. The follow-up below extends the presentation pass to Q/R/F.
 
 ## Gadget presentation follow-up — 2026-10-11
+
+> Superseded on 2026-10-17 by [Combat presentation](#combat-presentation--2026-10-17); kept as history.
 
 All four specials use warm flame, embers and short soot smoke. Ground and air
 aliases share the same presentation assets. Gameplay parameters and animation
@@ -301,6 +354,8 @@ Verification receipts are in the planning workspace's
 `_bmad-output/manki-scrappy-polish-20261011/`.
 
 ## Normal attack presentation — 2026-10-11
+
+> Superseded on 2026-10-17 by [Combat presentation](#combat-presentation--2026-10-17); kept as history.
 
 Ground and air normals now use short cream/gold swing marks and world-space
 ribbons that follow the striking limb. Heavy attacks get a wider sweep; air
@@ -391,7 +446,7 @@ for the GenRA conversion path, playback comparison and remaining human feel chec
 - `client/Unity/Assets/CharacterPackages/manki/package.json` — package identity and license
 - `client/Unity/Assets/CharacterPackages/manki/character.json` — canonical authoring source and 16-slot projection
 - `client/Unity/Assets/CharacterPackages/manki/CharacterAssetCatalog.asset` — Unity presentation bindings
-- `client/Unity/Assets/CharacterPackages/manki/Presentation/MankiAerosolInferno.prefab` — F presentation binding
+- `client/Unity/Assets/Scripts/Editor/MankiPresentationBuilder.cs` — generates and binds everything under `Presentation/` except the rigs
 - `content-cooked/manki/manifest.json` — cooked package manifest and hashes
 - `content-cooked/manki/character.runtime.json` — normalized runtime definition
 - `content-cooked/manki/poses.bin` — deterministic cooked pose data

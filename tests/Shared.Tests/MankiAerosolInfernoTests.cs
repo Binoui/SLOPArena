@@ -1,9 +1,15 @@
+using System.Collections.Generic;
 using Xunit;
 
 namespace SlopArena.Shared.Tests;
 
 public sealed class MankiAerosolInfernoTests
 {
+    // The charge cue (rattling can, pilot flame) starts with the charge; the flame stream starts
+    // with the hitbox on fire frame eight.
+    private const string Charge = "presentation.manki.aerosol-inferno.charge";
+    private const string Stream = "presentation.manki.aerosol-inferno.start";
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -18,14 +24,16 @@ public sealed class MankiAerosolInfernoTests
         };
         sim.RegisterEntity(1, def, state);
 
+        var charging = new List<TimelinePresentationEvent>();
         for (int frame = 0; frame < 18; frame++)
         {
             sim.Tick(new() { [1] = frame == 0 ? new InputState { ActiveSlot = AbilitySlots.F } : default });
             Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
             Assert.Equal((ushort)(frame + 1), sim.GetState(1).ChargeTicks);
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
-            Assert.Empty(sim.GetPresentationEvents(clear: true));
+            charging.AddRange(sim.GetPresentationEvents(clear: true));
         }
+        Assert.Equal(Charge, Assert.Single(charging).PresentationId);
 
         sim.Tick(new());
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
@@ -43,7 +51,7 @@ public sealed class MankiAerosolInfernoTests
         Assert.Equal(HitboxShape.Capsule, hitbox.Shape);
         Assert.Equal(0.42f, hitbox.Radius, 4);
         var flame = Assert.Single(sim.GetPresentationEvents(clear: true));
-        Assert.Equal("presentation.manki.aerosol-inferno.start", flame.PresentationId);
+        Assert.Equal(Stream, flame.PresentationId);
         Assert.Equal((ushort)44, flame.Placement!.DurationTicks);
 
         Assert.Equal((ushort)44, hitbox.DurationTicks);
@@ -89,7 +97,7 @@ public sealed class MankiAerosolInfernoTests
             Assert.Equal((ushort)System.Math.Min(heldTicks, 66), sim.GetState(1).ChargeTicks);
             TestHelpers.TickDefault(sim, 7);
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
-            Assert.Empty(sim.GetPresentationEvents(clear: true));
+            Assert.DoesNotContain(sim.GetPresentationEvents(clear: true), e => e.PresentationId == Stream);
             sim.Tick(new());
             var hitbox = Assert.Single(sim.Resolver.GetActiveHitboxes());
             Assert.Equal(damage, hitbox.Damage);
@@ -139,7 +147,7 @@ public sealed class MankiAerosolInfernoTests
             sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.F, IsAiming = true } });
             Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
-            Assert.Empty(sim.GetPresentationEvents(clear: true));
+            Assert.DoesNotContain(sim.GetPresentationEvents(clear: true), e => e.PresentationId == Stream);
         }
         sim.Tick(new());
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
@@ -160,7 +168,7 @@ public sealed class MankiAerosolInfernoTests
         {
             sim.Tick(new());
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
-            Assert.Empty(sim.GetPresentationEvents(clear: true));
+            Assert.DoesNotContain(sim.GetPresentationEvents(clear: true), e => e.PresentationId == Stream);
         }
         Assert.Equal((ushort)0, sim.GetState(1).ChargeTicks);
     }

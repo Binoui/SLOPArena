@@ -48,6 +48,21 @@ GUID inputs without operating Unity. Run `python3 tools/check_unity_setup.py`,
 optionally with `--root /path/to/checkout --json`. See
 [Unity setup](../docs/contributing/unity-setup.md) for scope and provisioning.
 
+[`presentation_review.py`](presentation_review.py) supports character presentation
+reviews: it writes the Unity gateway batch for `sloparena.hitfeel.*` captures,
+summarizes the batch output, and turns frames into contact sheets, labelled
+before/after WebP clips and an HTML review page. Sheets and clips need `ffmpeg`.
+Workflow: [character VFX pass](../skills/sloparena-character-vfx-pass/SKILL.md).
+[`glyph_mask.py`](glyph_mask.py) renders text from a font (default: FightGuy's 肉 face)
+into a grayscale mask PNG that presentation builders bake into toon-banded textures; it
+needs Pillow.
+[`sfx/manki_clips.py`](sfx/manki_clips.py) rebuilds Manki's ignored presentation clips
+from Kenney's CC0 Sci-Fi, Impact and RPG packs plus generated noise; it needs `ffmpeg`
+with libvorbis.
+
+[`character_sizes/`](character_sizes/README.md) holds two read-only Unity evals:
+a roster lineup render with heights, and per-clip foot contact (floating or sinking).
+
 [`check_asset_closure.py`](check_asset_closure.py) follows every reference from
 the given Unity assets and reports what a fresh clone would miss: files excluded by
 `.gitignore`, usually vendor packs, and references that no longer resolve. Run
