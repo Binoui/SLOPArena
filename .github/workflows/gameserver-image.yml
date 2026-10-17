@@ -63,7 +63,7 @@ jobs:
         run: |
           dotnet test tests/Shared.Tests/ --nologo
           dotnet test tests/Server.Tests/ --nologo
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - name: Identify release
         id: release
         env:
