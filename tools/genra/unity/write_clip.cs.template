@@ -1,0 +1,435 @@
+// genra clip writer: toolkit poses -> hybrid Humanoid clip on the package's catalog prefab, measured in Unity.
+// Rendered by tools/genra/unity_clip.py ({{JOB}} {{OUTPUT}}) and run with the gateway's eval_file in Edit Mode.
+// Mapped Humanoid bones become muscle and body (RootT/RootQ) curves from HumanPoseHandler; every other joint keeps
+// exact local transform curves. Root motion is baked into the pose: PlayerRenderer plays clips through Animancer
+// with applyRootMotion off, so nothing may be extracted from the body. Playback is measured the same way in a
+// preview scene. The clip is saved only when the job names a new asset path; nothing is overwritten or bound.
+var job = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("{{JOB}}"));
+var output = "{{OUTPUT}}";
+if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("genra clip writer requires Edit Mode");
+var package = (string)job["package"];
+var name = (string)job["name"];
+int fps = (int)job["fps"];
+var paths = job["paths"].ToObject<string[]>();
+var locals = job["local"].ToObject<float[][][]>();  // [tick][path] Unity local px py pz qx qy qz qw sx sy sz
+int ticks = locals.Length;
+var reference = job["reference"] as Newtonsoft.Json.Linq.JObject;  // entry clip the candidate starts from
+string compareId = job["compare"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["compare"] : null;
+var bakeTicks = job["bakeTicks"].ToObject<int[]>();
+string assetPath = job["asset"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["asset"] : null;
+if (assetPath != null && (!assetPath.StartsWith("Assets/") || !assetPath.EndsWith(".anim") || assetPath.Contains("..")))
+  throw new System.Exception("Asset path must be a new Assets/... .anim path: " + assetPath);
+if (assetPath != null && UnityEditor.AssetDatabase.LoadMainAssetAtPath(assetPath) != null) throw new System.Exception("Refusing to overwrite " + assetPath);
+
+var catalog = UnityEditor.AssetDatabase.LoadMainAssetAtPath("Assets/CharacterPackages/" + package + "/CharacterAssetCatalog.asset");
+if (catalog == null) throw new System.Exception("No catalog for " + package);
+var catalogObject = new UnityEditor.SerializedObject(catalog);
+var prefab = (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+UnityEngine.AnimationClip Bound(string semantic) {
+  if (semantic == null) return null;
+  var bindings = catalogObject.FindProperty("_bindings");
+  for (int i = 0; i < bindings.arraySize; i++) {
+    var entry = bindings.GetArrayElementAtIndex(i);
+    if (entry.FindPropertyRelative("_semanticId").stringValue == semantic)
+      return (UnityEngine.AnimationClip)entry.FindPropertyRelative("_clip").objectReferenceValue;
+  }
+  throw new System.Exception("Missing bound clip " + semantic);
+}
+var referenceClip = reference != null ? Bound((string)reference["semanticId"]) : null;
+float referenceTime = reference != null ? (int)reference["tick"] / (float)fps : 0f;
+var compareClip = Bound(compareId);
+float[] P(UnityEngine.Vector3 v) => new[] { v.x, v.y, v.z };
+
+var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+var spawned = new System.Collections.Generic.List<UnityEngine.GameObject>();
+var temporary = new System.Collections.Generic.List<UnityEngine.Object>();  // destroyed after the instances
+try {
+  // A prefab instance as the game creates it, minus gameplay: Animator with root motion off, rest pose restorable,
+  // single-source rotation constraints applied the way the runtime does (Edit Mode does not evaluate them).
+  (UnityEngine.GameObject actor, UnityEngine.Animator animator, UnityEngine.Transform[] bones, System.Action restore,
+   System.Action constrain, UnityEngine.SkinnedMeshRenderer[] skins) Spawn() {
+    var actor = (UnityEngine.GameObject)UnityEngine.Object.Instantiate(prefab);
+    spawned.Add(actor);
+    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(actor, scene);
+    actor.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
+    var animator = actor.GetComponentInChildren<UnityEngine.Animator>(true);
+    animator.applyRootMotion = false;
+    animator.cullingMode = UnityEngine.AnimatorCullingMode.AlwaysAnimate;
+    var all = actor.GetComponentsInChildren<UnityEngine.Transform>(true);
+    var byPath = new System.Collections.Generic.Dictionary<string, UnityEngine.Transform>();
+    foreach (var t in all) byPath[UnityEditor.AnimationUtility.CalculateTransformPath(t, actor.transform)] = t;
+    var bones = new UnityEngine.Transform[paths.Length];
+    for (int i = 0; i < paths.Length; i++) if (!byPath.TryGetValue(paths[i], out bones[i])) throw new System.Exception("Missing transform " + paths[i]);
+    var restT = new UnityEngine.Vector3[all.Length]; var restR = new UnityEngine.Quaternion[all.Length]; var restS = new UnityEngine.Vector3[all.Length];
+    for (int i = 0; i < all.Length; i++) { restT[i] = all[i].localPosition; restR[i] = all[i].localRotation; restS[i] = all[i].localScale; }
+    var constraints = actor.GetComponentsInChildren<UnityEngine.Animations.RotationConstraint>(true);
+    return (actor, animator, bones,
+      () => { for (int i = 0; i < all.Length; i++) { all[i].localPosition = restT[i]; all[i].localRotation = restR[i]; all[i].localScale = restS[i]; } },
+      () => {
+        foreach (var c in constraints) {
+          if (!c.constraintActive || c.weight <= 0f || c.sourceCount != 1) continue;
+          var src = c.GetSource(0);
+          if (src.sourceTransform != null && src.weight > 0f) c.transform.rotation = src.sourceTransform.rotation * UnityEngine.Quaternion.Euler(c.rotationOffset);
+        }
+      },
+      actor.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true));
+  }
+
+  // 1. Humanoid pose of every tick from the toolkit's local transforms.
+  var source = Spawn();
+  var avatar = source.animator.avatar;
+  if (avatar == null || !avatar.isValid || !avatar.isHuman) throw new System.Exception("The prefab's Animator needs a valid Humanoid Avatar");
+  var human = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
+  for (var b = UnityEngine.HumanBodyBones.Hips; b < UnityEngine.HumanBodyBones.LastBone; b++) {
+    var t = source.animator.GetBoneTransform(b);
+    if (t != null) human.Add(t);
+  }
+  void Pose(UnityEngine.Transform[] bones, int tick) {
+    for (int i = 0; i < bones.Length; i++) {
+      var v = locals[tick][i];
+      bones[i].localPosition = new UnityEngine.Vector3(v[0], v[1], v[2]);
+      bones[i].localRotation = new UnityEngine.Quaternion(v[3], v[4], v[5], v[6]);
+      bones[i].localScale = new UnityEngine.Vector3(v[7], v[8], v[9]);
+    }
+  }
+  using var handler = new UnityEngine.HumanPoseHandler(avatar, source.animator.transform);
+  var humanPose = new UnityEngine.HumanPose();
+  var bodyT = new UnityEngine.Vector3[ticks]; var bodyQ = new UnityEngine.Quaternion[ticks]; var muscles = new float[ticks][];
+
+  // GetHumanPose is not an exact inverse everywhere (on Manki's right leg some twist muscles read back at about half),
+  // so each chain's muscles are then refined until SetHumanPose reproduces the toolkit's joint positions. A chain's
+  // targets are the joints its bones carry: those whose parent belongs to the chain. Chains run parents first.
+  var boneOf = new System.Collections.Generic.Dictionary<UnityEngine.Transform, int>();
+  for (int b = 0; b < (int)UnityEngine.HumanBodyBones.LastBone; b++) {
+    var t = source.animator.GetBoneTransform((UnityEngine.HumanBodyBones)b);
+    if (t != null) boneOf[t] = b;
+  }
+  int Owner(UnityEngine.Transform t) { for (; t != null; t = t.parent) if (boneOf.TryGetValue(t, out int b)) return b; return -1; }
+  int[] Range(UnityEngine.HumanBodyBones first, UnityEngine.HumanBodyBones last) {
+    var list = new System.Collections.Generic.List<int>(); for (int b = (int)first; b <= (int)last; b++) list.Add(b); return list.ToArray();
+  }
+  int[] Of(params UnityEngine.HumanBodyBones[] bones) => System.Array.ConvertAll(bones, b => (int)b);
+  var chains = new[] {
+    Of(UnityEngine.HumanBodyBones.Spine, UnityEngine.HumanBodyBones.Chest, UnityEngine.HumanBodyBones.UpperChest, UnityEngine.HumanBodyBones.Neck,
+       UnityEngine.HumanBodyBones.Head, UnityEngine.HumanBodyBones.LeftEye, UnityEngine.HumanBodyBones.RightEye, UnityEngine.HumanBodyBones.Jaw),
+    Of(UnityEngine.HumanBodyBones.LeftUpperLeg, UnityEngine.HumanBodyBones.LeftLowerLeg, UnityEngine.HumanBodyBones.LeftFoot, UnityEngine.HumanBodyBones.LeftToes),
+    Of(UnityEngine.HumanBodyBones.RightUpperLeg, UnityEngine.HumanBodyBones.RightLowerLeg, UnityEngine.HumanBodyBones.RightFoot, UnityEngine.HumanBodyBones.RightToes),
+    Of(UnityEngine.HumanBodyBones.LeftShoulder, UnityEngine.HumanBodyBones.LeftUpperArm, UnityEngine.HumanBodyBones.LeftLowerArm, UnityEngine.HumanBodyBones.LeftHand),
+    Of(UnityEngine.HumanBodyBones.RightShoulder, UnityEngine.HumanBodyBones.RightUpperArm, UnityEngine.HumanBodyBones.RightLowerArm, UnityEngine.HumanBodyBones.RightHand),
+    Range(UnityEngine.HumanBodyBones.LeftThumbProximal, UnityEngine.HumanBodyBones.LeftLittleDistal),
+    Range(UnityEngine.HumanBodyBones.RightThumbProximal, UnityEngine.HumanBodyBones.RightLittleDistal) };
+  var indexOf = new System.Collections.Generic.Dictionary<UnityEngine.Transform, int>();
+  for (int i = 0; i < paths.Length; i++) indexOf[source.bones[i]] = i;
+  var chainMuscles = new int[chains.Length][]; var chainTargets = new int[chains.Length][]; var chainTurns = new int[chains.Length][];
+  for (int c = 0; c < chains.Length; c++) {
+    var set = new System.Collections.Generic.HashSet<int>(chains[c]);
+    var m = new System.Collections.Generic.List<int>();
+    foreach (var b in chains[c]) if (source.animator.GetBoneTransform((UnityEngine.HumanBodyBones)b) != null)
+      for (int dof = 0; dof < 3; dof++) { int muscle = UnityEngine.HumanTrait.MuscleFromBone(b, dof); if (muscle >= 0) m.Add(muscle); }
+    var targets = new System.Collections.Generic.List<int>();
+    for (int i = 0; i < paths.Length; i++) if (set.Contains(Owner(source.bones[i].parent))) targets.Add(i);
+    var turns = new System.Collections.Generic.List<int>();  // the chain's own bones: their world orientation
+    foreach (var b in chains[c]) { var t = source.animator.GetBoneTransform((UnityEngine.HumanBodyBones)b); if (t != null && indexOf.TryGetValue(t, out int k)) turns.Add(k); }
+    chainMuscles[c] = m.ToArray(); chainTargets[c] = targets.ToArray(); chainTurns[c] = turns.ToArray();
+  }
+  var goal = new UnityEngine.Vector3[paths.Length]; var goalRotation = new UnityEngine.Quaternion[paths.Length];
+  var trial = new UnityEngine.HumanPose();
+  const float lever = 0.05f;  // orientation error as the motion of points 5 cm along two bone axes
+  float[] Residual(int tick, float[] full, int[] targets, int[] turns) {
+    trial.bodyPosition = bodyT[tick]; trial.bodyRotation = bodyQ[tick]; trial.muscles = full;
+    handler.SetHumanPose(ref trial);
+    var r = new float[targets.Length * 3 + turns.Length * 6];
+    for (int i = 0; i < targets.Length; i++) { var d = source.bones[targets[i]].position - goal[targets[i]]; r[3 * i] = d.x; r[3 * i + 1] = d.y; r[3 * i + 2] = d.z; }
+    int o = targets.Length * 3;
+    for (int i = 0; i < turns.Length; i++) {
+      var a = source.bones[turns[i]].rotation; var g = goalRotation[turns[i]];
+      var dx = (a * UnityEngine.Vector3.right - g * UnityEngine.Vector3.right) * lever; var dy = (a * UnityEngine.Vector3.up - g * UnityEngine.Vector3.up) * lever;
+      r[o + 6 * i] = dx.x; r[o + 6 * i + 1] = dx.y; r[o + 6 * i + 2] = dx.z; r[o + 6 * i + 3] = dy.x; r[o + 6 * i + 4] = dy.y; r[o + 6 * i + 5] = dy.z;
+    }
+    return r;
+  }
+  double SquaredSum(float[] r) { double s = 0; foreach (var v in r) s += (double)v * v; return s; }
+  double[] Solve(double[,] a, double[] b) {  // Gaussian elimination with partial pivoting; a and b are consumed
+    int n = b.Length;
+    for (int col = 0; col < n; col++) {
+      int pivot = col; for (int row = col + 1; row < n; row++) if (System.Math.Abs(a[row, col]) > System.Math.Abs(a[pivot, col])) pivot = row;
+      for (int k = 0; k < n; k++) { var tmp = a[col, k]; a[col, k] = a[pivot, k]; a[pivot, k] = tmp; }
+      { var tmp = b[col]; b[col] = b[pivot]; b[pivot] = tmp; }
+      for (int row = col + 1; row < n; row++) { var f = a[row, col] / a[col, col]; for (int k = col; k < n; k++) a[row, k] -= f * a[col, k]; b[row] -= f * b[col]; }
+    }
+    var x = new double[n];
+    for (int row = n - 1; row >= 0; row--) { var s = b[row]; for (int k = row + 1; k < n; k++) s -= a[row, k] * x[k]; x[row] = s / a[row, row]; }
+    return x;
+  }
+  // Damped Gauss-Newton: returns the parameters minimising the residual, leaving eval's side effects at that minimum.
+  float[] Minimize(float[] x, System.Func<float[], float[]> eval, float[] steps, int targetCount) {
+    int n = x.Length;
+    var r = eval(x); double err = SquaredSum(r), lambda = 1e-3;
+    for (int iteration = 0; iteration < 30 && System.Math.Sqrt(err / targetCount) > 2e-5; iteration++) {
+      var jac = new double[r.Length, n];
+      for (int c = 0; c < n; c++) { var xp = (float[])x.Clone(); xp[c] += steps[c]; var rp = eval(xp); for (int i = 0; i < r.Length; i++) jac[i, c] = (rp[i] - r[i]) / steps[c]; }
+      var jtj = new double[n, n]; var jtr = new double[n];
+      for (int a = 0; a < n; a++) { for (int i = 0; i < r.Length; i++) jtr[a] += jac[i, a] * r[i]; for (int c = 0; c < n; c++) for (int i = 0; i < r.Length; i++) jtj[a, c] += jac[i, a] * jac[i, c]; }
+      bool improved = false;
+      for (int attempt = 0; attempt < 8 && !improved; attempt++) {
+        var m = (double[,])jtj.Clone(); var rhs = new double[n];
+        for (int a = 0; a < n; a++) { m[a, a] += lambda * jtj[a, a] + 1e-9; rhs[a] = -jtr[a]; }
+        var dx = Solve(m, rhs); var xn = new float[n]; for (int a = 0; a < n; a++) xn[a] = x[a] + (float)dx[a];
+        var rn = eval(xn); var en = SquaredSum(rn);
+        if (en < err) { x = xn; r = rn; err = en; lambda = System.Math.Max(lambda / 3, 1e-9); improved = true; } else lambda *= 4;
+      }
+      if (!improved) break;
+    }
+    eval(x);
+    return x;
+  }
+  // The body: hip position and orientation against the hips and the joints they carry directly. Unity's body frame
+  // is the centre of mass, so every limb fit below moves the body with it and keeps these targets pinned.
+  var bodyTargets = new System.Collections.Generic.List<int>();
+  int hipsBone = (int)UnityEngine.HumanBodyBones.Hips;
+  for (int i = 0; i < paths.Length; i++) if (boneOf.TryGetValue(source.bones[i], out int hb) && hb == hipsBone || Owner(source.bones[i].parent) == hipsBone) bodyTargets.Add(i);
+  var bodyTurns = new System.Collections.Generic.List<int>();
+  if (indexOf.TryGetValue(source.animator.GetBoneTransform(UnityEngine.HumanBodyBones.Hips), out int hipsIndex)) bodyTurns.Add(hipsIndex);
+  void Fit(int tick, float[] full, int[] idx, int[] targets, int[] turns) {  // idx: muscles to vary with the body
+    var t0 = bodyT[tick]; var q0 = bodyQ[tick]; int n = idx.Length;
+    var all = new System.Collections.Generic.List<int>(bodyTargets); foreach (var t in targets) if (!all.Contains(t)) all.Add(t);
+    var watched = all.ToArray();
+    var allTurns = new System.Collections.Generic.List<int>(bodyTurns); foreach (var t in turns) if (!allTurns.Contains(t)) allTurns.Add(t);
+    var watchedTurns = allTurns.ToArray();
+    var x = new float[n + 6]; var steps = new float[n + 6];
+    for (int i = 0; i < n; i++) { x[i] = full[idx[i]]; steps[i] = 1e-3f; }
+    for (int i = n; i < n + 6; i++) steps[i] = 1e-4f;
+    float[] Eval(float[] v) {
+      for (int i = 0; i < n; i++) full[idx[i]] = v[i];
+      bodyT[tick] = t0 + new UnityEngine.Vector3(v[n], v[n + 1], v[n + 2]);
+      var w = new UnityEngine.Vector3(v[n + 3], v[n + 4], v[n + 5]);
+      bodyQ[tick] = (w.sqrMagnitude > 0f ? UnityEngine.Quaternion.AngleAxis(w.magnitude * UnityEngine.Mathf.Rad2Deg, w.normalized) : UnityEngine.Quaternion.identity) * q0;
+      return Residual(tick, full, watched, watchedTurns);
+    }
+    Minimize(x, Eval, steps, watched.Length + 2 * watchedTurns.Length);
+  }
+  var fitBefore = new float[ticks]; var fitAfter = new float[ticks]; var fitWorst = new int[ticks];
+  var allTargets = new System.Collections.Generic.List<int>(bodyTargets); foreach (var t in chainTargets) allTargets.AddRange(t);
+  var everyTarget = allTargets.ToArray(); var noTurns = new int[0];
+  var everyTurn = new System.Collections.Generic.List<int>(bodyTurns); foreach (var t in chainTurns) everyTurn.AddRange(t);
+  var fitAngle = new float[ticks]; var fitAngleJoint = new int[ticks];
+  (float, int) MaxAngle() {
+    float m = 0f; int at = 0;
+    foreach (var j in everyTurn) { var a = UnityEngine.Quaternion.Angle(source.bones[j].rotation, goalRotation[j]); if (a > m) { m = a; at = j; } }
+    return (m, at);
+  }
+  float MaxDistance3(float[] r) { float m = 0f; for (int i = 0; i < r.Length; i += 3) m = UnityEngine.Mathf.Max(m, new UnityEngine.Vector3(r[i], r[i + 1], r[i + 2]).magnitude); return m; }
+  for (int tick = 0; tick < ticks; tick++) {
+    source.restore(); Pose(source.bones, tick);
+    for (int i = 0; i < paths.Length; i++) { goal[i] = source.bones[i].position; goalRotation[i] = source.bones[i].rotation; }
+    handler.GetHumanPose(ref humanPose);
+    bodyT[tick] = humanPose.bodyPosition; bodyQ[tick] = humanPose.bodyRotation;
+    var full = (float[])humanPose.muscles.Clone();
+    fitBefore[tick] = MaxDistance3(Residual(tick, full, everyTarget, noTurns));
+    // Unity's body is the centre of mass, so limb muscles move the hips: alternate body and limb fits, keep the best.
+    float best = fitBefore[tick]; var bestMuscles = (float[])full.Clone(); var bestT = bodyT[tick]; var bestQ = bodyQ[tick];
+    for (int round = 0; round < 6 && best > 5e-5f; round++) {
+      Fit(tick, full, new int[0], new int[0], new int[0]);
+      for (int c = 0; c < chains.Length; c++) if (chainMuscles[c].Length > 0) Fit(tick, full, chainMuscles[c], chainTargets[c], chainTurns[c]);
+      float now = MaxDistance3(Residual(tick, full, everyTarget, noTurns));
+      if (now >= best * 0.98f) { if (now < best) { best = now; bestMuscles = (float[])full.Clone(); bestT = bodyT[tick]; bestQ = bodyQ[tick]; } break; }
+      best = now; bestMuscles = (float[])full.Clone(); bestT = bodyT[tick]; bestQ = bodyQ[tick];
+    }
+    full = bestMuscles; bodyT[tick] = bestT; bodyQ[tick] = bestQ;
+    var final = Residual(tick, full, everyTarget, noTurns);
+    fitAfter[tick] = MaxDistance3(final); (fitAngle[tick], fitAngleJoint[tick]) = MaxAngle();
+    int worstJoint = 0; float worstValue = -1f;
+    for (int i = 0; i < everyTarget.Length; i++) { var d = new UnityEngine.Vector3(final[3 * i], final[3 * i + 1], final[3 * i + 2]).magnitude; if (d > worstValue) { worstValue = d; worstJoint = everyTarget[i]; } }
+    fitWorst[tick] = worstJoint;
+    muscles[tick] = full;
+  }
+
+  // Joints outside the Avatar keep their own curves. Humanoid playback resets unmapped joints that sit between two
+  // mapped bones, so those are reported instead of animated.
+  bool InBetween(UnityEngine.Transform t) {
+    bool above = false;
+    for (var p = t.parent; p != null && !above; p = p.parent) above = human.Contains(p);
+    if (!above) return false;
+    foreach (var c in t.GetComponentsInChildren<UnityEngine.Transform>(true)) if (c != t && human.Contains(c)) return true;
+    return false;
+  }
+  var generic = new System.Collections.Generic.List<int>(); var inBetween = new System.Collections.Generic.List<string>(); var mapped = new System.Collections.Generic.List<string>();
+  for (int i = 0; i < paths.Length; i++) {
+    if (human.Contains(source.bones[i])) mapped.Add(paths[i]);
+    else if (InBetween(source.bones[i])) inBetween.Add(paths[i]);
+    else generic.Add(i);
+  }
+
+  // 2. The clip. HumanTrait names finger muscles "Left Index 1 Stretched"; clips bind "LeftHand.Index.1 Stretched".
+  string MuscleAttribute(string muscle) {
+    foreach (var side in new[] { "Left", "Right" })
+      foreach (var finger in new[] { "Thumb", "Index", "Middle", "Ring", "Little" })
+        if (muscle.StartsWith(side + " " + finger + " ")) return side + "Hand." + finger + "." + muscle.Substring(side.Length + finger.Length + 2);
+    return muscle;
+  }
+  UnityEngine.Quaternion Continuous(UnityEngine.Quaternion q, UnityEngine.Quaternion previous) =>
+    UnityEngine.Quaternion.Dot(q, previous) < 0f ? new UnityEngine.Quaternion(-q.x, -q.y, -q.z, -q.w) : q;
+  UnityEngine.AnimationClip Build(UnityEngine.Vector3 origin) {
+    var clip = new UnityEngine.AnimationClip { name = name, frameRate = fps };
+    var bindings = new System.Collections.Generic.List<UnityEditor.EditorCurveBinding>();
+    var curves = new System.Collections.Generic.List<UnityEngine.AnimationCurve>();
+    void Add(string path, System.Type type, string property, System.Func<int, float> value) {
+      var keys = new UnityEngine.Keyframe[ticks];
+      for (int tick = 0; tick < ticks; tick++) keys[tick] = new UnityEngine.Keyframe(tick / (float)fps, value(tick));
+      var curve = new UnityEngine.AnimationCurve(keys);
+      for (int k = 0; k < keys.Length; k++) {
+        UnityEditor.AnimationUtility.SetKeyLeftTangentMode(curve, k, UnityEditor.AnimationUtility.TangentMode.Linear);
+        UnityEditor.AnimationUtility.SetKeyRightTangentMode(curve, k, UnityEditor.AnimationUtility.TangentMode.Linear);
+      }
+      bindings.Add(UnityEditor.EditorCurveBinding.FloatCurve(path, type, property));
+      curves.Add(curve);
+    }
+    var root = new UnityEngine.Quaternion[ticks];
+    for (int tick = 0; tick < ticks; tick++) root[tick] = tick == 0 ? bodyQ[0] : Continuous(bodyQ[tick], root[tick - 1]);
+    Add("", typeof(UnityEngine.Animator), "RootT.x", t => bodyT[t].x + origin.x);
+    Add("", typeof(UnityEngine.Animator), "RootT.y", t => bodyT[t].y + origin.y);
+    Add("", typeof(UnityEngine.Animator), "RootT.z", t => bodyT[t].z + origin.z);
+    Add("", typeof(UnityEngine.Animator), "RootQ.x", t => root[t].x);
+    Add("", typeof(UnityEngine.Animator), "RootQ.y", t => root[t].y);
+    Add("", typeof(UnityEngine.Animator), "RootQ.z", t => root[t].z);
+    Add("", typeof(UnityEngine.Animator), "RootQ.w", t => root[t].w);
+    for (int m = 0; m < UnityEngine.HumanTrait.MuscleCount; m++) {
+      int muscle = m;
+      Add("", typeof(UnityEngine.Animator), MuscleAttribute(UnityEngine.HumanTrait.MuscleName[m]), t => muscles[t][muscle]);
+    }
+    foreach (var i in generic) {
+      int bone = i;
+      var path = UnityEditor.AnimationUtility.CalculateTransformPath(source.bones[i], source.animator.transform);
+      var rotation = new UnityEngine.Quaternion[ticks];
+      for (int tick = 0; tick < ticks; tick++) {
+        var v = locals[tick][bone];
+        var q = new UnityEngine.Quaternion(v[3], v[4], v[5], v[6]);
+        rotation[tick] = tick == 0 ? q : Continuous(q, rotation[tick - 1]);
+      }
+      var names = new[] { "m_LocalPosition.x", "m_LocalPosition.y", "m_LocalPosition.z" };
+      for (int c = 0; c < 3; c++) { int k = c; Add(path, typeof(UnityEngine.Transform), names[c], t => locals[t][bone][k]); }
+      names = new[] { "m_LocalRotation.x", "m_LocalRotation.y", "m_LocalRotation.z", "m_LocalRotation.w" };
+      Add(path, typeof(UnityEngine.Transform), names[0], t => rotation[t].x);
+      Add(path, typeof(UnityEngine.Transform), names[1], t => rotation[t].y);
+      Add(path, typeof(UnityEngine.Transform), names[2], t => rotation[t].z);
+      Add(path, typeof(UnityEngine.Transform), names[3], t => rotation[t].w);
+      names = new[] { "m_LocalScale.x", "m_LocalScale.y", "m_LocalScale.z" };
+      for (int c = 0; c < 3; c++) { int k = c; Add(path, typeof(UnityEngine.Transform), names[c], t => locals[t][bone][7 + k]); }
+    }
+    UnityEditor.AnimationUtility.SetEditorCurves(clip, bindings.ToArray(), curves.ToArray());
+    var settings = UnityEditor.AnimationUtility.GetAnimationClipSettings(clip);
+    settings.loopTime = false; settings.startTime = 0f; settings.stopTime = (ticks - 1) / (float)fps;
+    settings.loopBlendOrientation = true; settings.loopBlendPositionY = true; settings.loopBlendPositionXZ = true;  // bake into pose
+    settings.keepOriginalOrientation = true; settings.keepOriginalPositionY = true; settings.keepOriginalPositionXZ = true;
+    settings.heightFromFeet = false; settings.mirror = false;
+    UnityEditor.AnimationUtility.SetAnimationClipSettings(clip, settings);
+    return clip;
+  }
+
+  // 3. Playback as the game does it (Animancer, applyRootMotion off) and as plain clip sampling.
+  var player = Spawn();
+  var animancer = player.actor.AddComponent<Animancer.AnimancerComponent>();
+  animancer.Animator = player.animator;
+  using var playerPoser = new UnityEngine.HumanPoseHandler(player.animator.avatar, player.animator.transform);
+  float[][] Positions(UnityEngine.Transform[] bones) { var p = new float[bones.Length][]; for (int i = 0; i < bones.Length; i++) p[i] = P(bones[i].position); return p; }
+  (float[][] positions, UnityEngine.Vector3 body) Runtime(UnityEngine.AnimationClip clip, float time) {
+    player.restore();
+    var state = animancer.Play(clip, 0f); state.Speed = 0f; state.Time = time; animancer.Evaluate(0f);
+    player.constrain();
+    var pose = new UnityEngine.HumanPose(); playerPoser.GetHumanPose(ref pose);
+    return (Positions(player.bones), pose.bodyPosition);
+  }
+  float[][] Sampled(UnityEngine.AnimationClip clip, float time) {
+    source.restore(); clip.SampleAnimation(source.actor, time); source.constrain();
+    return Positions(source.bones);
+  }
+  // Skinned vertices in world space (BakeMesh without scale, rigid renderer transform: the rig packs' convention).
+  var baked = new UnityEngine.Mesh();
+  float[][] Skin((UnityEngine.GameObject actor, UnityEngine.Animator animator, UnityEngine.Transform[] bones, System.Action restore,
+                  System.Action constrain, UnityEngine.SkinnedMeshRenderer[] skins) who) {
+    var all = new float[who.skins.Length][];
+    for (int r = 0; r < who.skins.Length; r++) {
+      var sk = who.skins[r]; sk.BakeMesh(baked, false);
+      var v = baked.vertices; var flat = new float[v.Length * 3];
+      for (int i = 0; i < v.Length; i++) { var w = sk.transform.position + sk.transform.rotation * v[i]; flat[3 * i] = w.x; flat[3 * i + 1] = w.y; flat[3 * i + 2] = w.z; }
+      all[r] = flat;
+    }
+    return all;
+  }
+  float MaxDistance(float[] a, float[] b) { float m = 0f; for (int i = 0; i < a.Length; i += 3) { float dx = a[i] - b[i], dy = a[i + 1] - b[i + 1], dz = a[i + 2] - b[i + 2]; m = UnityEngine.Mathf.Max(m, dx * dx + dy * dy + dz * dz); } return UnityEngine.Mathf.Sqrt(m); }
+
+  // 4. Origin: match the reference clip's actual playback at the entry tick with a constant body offset.
+  var origin = UnityEngine.Vector3.zero;
+  float[][] referencePositions = null;
+  if (referenceClip != null) {
+    var target = Runtime(referenceClip, referenceTime);
+    referencePositions = target.positions;
+    var provisional = Build(UnityEngine.Vector3.zero);
+    temporary.Add(provisional);
+    origin = target.body - Runtime(provisional, 0f).body;
+  }
+  var result = Build(origin);
+
+  var newSample = new float[ticks][][]; var newRuntime = new float[ticks][][];
+  var compareSample = compareClip != null ? new float[ticks][][] : null; var compareRuntime = compareClip != null ? new float[ticks][][] : null;
+  for (int tick = 0; tick < ticks; tick++) {
+    float time = tick / (float)fps;
+    newSample[tick] = Sampled(result, time);
+    newRuntime[tick] = Runtime(result, time).positions;
+    if (compareClip != null) { compareSample[tick] = Sampled(compareClip, time); compareRuntime[tick] = Runtime(compareClip, time).positions; }
+  }
+  var skin = new System.Collections.Generic.List<object>();
+  var bakes = new System.Collections.Generic.List<object>();  // conversions: the mesh as the game plays it
+  if (compareClip == null) {
+    foreach (var tick in bakeTicks) {
+      Runtime(result, tick / (float)fps); var mesh = Skin(player);
+      var renderers = new System.Collections.Generic.List<object>();
+      for (int r = 0; r < mesh.Length; r++)
+        renderers.Add(new { path = UnityEditor.AnimationUtility.CalculateTransformPath(player.skins[r].transform, player.actor.transform), vertices = mesh[r] });
+      bakes.Add(new { tick, renderers });
+    }
+  }
+  if (compareClip != null) {
+    foreach (var tick in bakeTicks) {
+      float time = tick / (float)fps;
+      Runtime(result, time); var mine = Skin(player);
+      Runtime(compareClip, time); var theirs = Skin(player);
+      for (int r = 0; r < mine.Length; r++) skin.Add(new { tick, renderer = player.skins[r].name, vertices = mine[r].Length / 3, maxErrorMetres = MaxDistance(mine[r], theirs[r]) });
+    }
+  }
+  UnityEngine.Object.DestroyImmediate(baked);
+
+  string savedGuid = null;
+  if (assetPath != null) {
+    var folder = System.IO.Path.GetDirectoryName(assetPath).Replace('\\', '/');
+    var parts = folder.Split('/'); var current = parts[0];
+    for (int i = 1; i < parts.Length; i++) {
+      var next = current + "/" + parts[i];
+      if (!UnityEditor.AssetDatabase.IsValidFolder(next)) UnityEditor.AssetDatabase.CreateFolder(current, parts[i]);
+      current = next;
+    }
+    UnityEditor.AssetDatabase.CreateAsset(result, assetPath);
+    UnityEditor.AssetDatabase.SaveAssetIfDirty(result);
+    UnityEditor.AssetDatabase.TryGetGUIDAndLocalFileIdentifier(result, out savedGuid, out long _);
+  }
+
+  var data = new {
+    package, name, fps, ticks, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), avatar = avatar.name, humanMotion = result.humanMotion,
+    lengthSeconds = result.length, curves = UnityEditor.AnimationUtility.GetCurveBindings(result).Length,
+    muscleAttributes = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(UnityEngine.HumanTrait.MuscleName, MuscleAttribute)),
+    mapped, generic = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(generic, i => paths[i])), inBetween,
+    reference = referenceClip != null ? new { clip = referenceClip.name, semanticId = (string)reference["semanticId"], tick = (int)reference["tick"], positions = referencePositions } : null,
+    originBodyOffset = P(origin), compare = compareClip?.name,
+    fit = new { beforeMetres = fitBefore, afterMetres = fitAfter, afterDegrees = fitAngle, worstJoint = System.Array.ConvertAll(fitWorst, i => paths[i]),
+                worstAngleJoint = System.Array.ConvertAll(fitAngleJoint, i => paths[i]) },
+    newSample, newRuntime, compareSample, compareRuntime, skin, bakes,
+    asset = assetPath != null ? new { path = assetPath, guid = savedGuid } : null };
+  System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output));
+  System.IO.File.WriteAllText(output, Newtonsoft.Json.JsonConvert.SerializeObject(data));
+  if (assetPath == null) temporary.Add(result);
+  return new { output, data.humanMotion, data.curves, mapped = mapped.Count, generic = generic.Count, inBetween = inBetween.Count, origin = data.originBodyOffset, data.asset };
+} finally {
+  foreach (var g in spawned) if (g != null) UnityEngine.Object.DestroyImmediate(g);
+  foreach (var o in temporary) if (o != null) UnityEngine.Object.DestroyImmediate(o);
+  UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
+}

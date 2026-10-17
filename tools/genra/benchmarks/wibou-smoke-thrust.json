@@ -1,0 +1,78 @@
+{
+  "name": "wibou-smoke-thrust",
+  "notes": "PIPELINE SMOKE TEST, not a game move: it checks that the current-character rig pack works end to end.",
+  "rigpack": "artifacts/genra-rigpacks/wibou-unity",
+  "character": "Wibou (37 joints; one index-finger chain and a thumb per hand; a 1.52 m sword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
+  "description": "A one-handed forward sword thrust from the idle stance. Ticks 1-8 draw the sword arm back slightly with the blade pointing forward. Ticks 9-12 drive the arm and blade straight forward at chest height; contact at tick 12 with the blade level and pointing at the target in front. Ticks 13-15 hold the extension. Ticks 16-33 recover to the idle pose; ticks 34-40 equal the idle entry pose exactly. The torso may turn into the thrust, but both feet stay planted (no step). The free left hand stays balanced and away from the blade.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 34
+  },
+  "clock": {
+    "duration_ticks": 40,
+    "contact_tick": 12,
+    "active": [
+      12,
+      15
+    ],
+    "iasa_tick": 34
+  },
+  "fast_windows": [
+    [
+      9,
+      13
+    ]
+  ],
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "images": [
+    "images/idle-entry.png"
+  ],
+  "image_notes": "The idle entry pose with the sword (profile, front, three-quarter rear angle).",
+  "review_ticks": [
+    0,
+    4,
+    8,
+    10,
+    12,
+    15,
+    20,
+    27,
+    34
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "targets": [
+    {
+      "name": "blade tip ahead of chest at contact (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Spine2",
+      "tick": 12,
+      "min": 1.4
+    },
+    {
+      "name": "blade tip below chest at contact (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "Spine2",
+      "tick": 12,
+      "min": -0.25,
+      "max": 0.25
+    }
+  ]
+}

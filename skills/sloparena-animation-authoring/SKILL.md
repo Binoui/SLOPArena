@@ -46,9 +46,11 @@ move data, still includes this animation review checkpoint.
 
 1. Prepare an unbound candidate and complete the applicable authoring/import checks.
    Preview it on the actual character through a transient instance or isolated
-   candidate asset. Show normal-speed side and gameplay views, with scrubbing or
-   slower playback when useful. Check anatomy yourself first; include a close view
-   of hands or other affected joints when the wider view hides their articulation.
+   candidate asset. Show normal-speed side and three-quarter rear views (35° to the
+   side of straight behind and 20° up, on the striking side for attacks), with
+   scrubbing or slower playback when useful. Check anatomy yourself first; include
+   a close view of hands or other affected joints when the wider view hides their
+   articulation.
 2. Present the candidate revision, preview and proposed contact/recovery clock, then
    wait for the user to approve the animation. If gameplay retiming is authorized,
    keep proposed values in candidate notes until this review, rather than editing
@@ -117,10 +119,10 @@ Use tests/state measurements for timing, input and resources rather than extra i
 Keep detailed traces for failures and representative cases, not every passing
 permutation, unless explicitly requested. Repeat only checks invalidated by a change.
 
-- For new or substantially reworked motion, inspect a semantic-frame contact sheet and complete timed gameplay-camera preview before final import. Static poses need neither a repeated-frame contact sheet nor an artificial timed motion preview. Viewport captures are sufficient; polished rendering is not required.
+- For new or substantially reworked motion, inspect a semantic-frame contact sheet and complete timed three-quarter rear preview before final import. Static poses need neither a repeated-frame contact sheet nor an artificial timed motion preview. Viewport captures are sufficient; polished rendering is not required.
 - For a bounded correction, inspect the affected frames/interval first, then the complete action and entry/handoff before acceptance. Replay at the intended runtime speed, not merely the source FPS.
 - Use the presentation acceptance criteria below for still poses. Use playback to judge acceleration, attack snap, arcs, continuity, contact, weight, recoil, foot sliding, interpolation overshoot, and secondary-motion timing. Stills cannot prove motion quality.
-- Add diagnostic angles only when the gameplay view cannot establish the suspected defect. For unusually extreme poses, inspect affected joints/accessories for collapse, volume loss, clipping, twisting, or apparent detachment; this is not a full rig audit.
+- Add diagnostic angles only when the side and three-quarter rear views cannot establish the suspected defect. The match camera's straight-behind angle hides most strikes; do not use it as the review angle. For unusually extreme poses, inspect affected joints/accessories for collapse, volume loss, clipping, twisting, or apparent detachment; this is not a full rig audit.
 - Tie each repair to an observed view, frame range, and likely bones/channels. User critique identifies the failed dimension—pose, timing, trajectory, weight, silhouette, deformation, transition, or secondary motion—not automatic permission to rewrite the clip.
 - Keep the current source recoverable and associate evidence with its action revision/pass. Repeat expensive checks only when relevant changes invalidate them.
 

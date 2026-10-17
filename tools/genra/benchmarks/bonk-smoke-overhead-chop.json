@@ -1,0 +1,102 @@
+{
+  "name": "bonk-smoke-overhead-chop",
+  "notes": "PIPELINE SMOKE TEST, not a game move: it checks that the current-character rig pack works end to end.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity",
+  "character": "Bonk (55 joints, five fingers; a 1.84 m greatsword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
+  "description": "A two-handed overhead greatsword chop from the idle stance. Ticks 1-12 lift the sword overhead with both arms, the blade pointing back over the shoulders. Ticks 13-15 hold the loaded pose. Ticks 16-18 chop down in front of the body; contact at tick 18 with the blade roughly horizontal and pointing forward at about waist height. Ticks 19-24 follow through slightly lower and decelerate. Ticks 25-39 recover to the idle pose; ticks 40-48 equal the idle entry pose exactly. The left hand comes up in front of the chest and takes the grip below the right hand by tick 6; both hands hold the hilt through the lift, the chop and the follow-through (ticks 6-24), then the left hand returns to its idle place. Both feet stay planted. The blade must not cut into the ground or the body.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 40
+  },
+  "clock": {
+    "duration_ticks": 48,
+    "contact_tick": 18,
+    "active": [
+      18,
+      22
+    ],
+    "iasa_tick": 40
+  },
+  "fast_windows": [
+    [
+      15,
+      19
+    ]
+  ],
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "images": [
+    "images/idle-entry.png",
+    "images/two-hand-grip.png"
+  ],
+  "image_notes": "1: the idle entry pose with the greatsword (profile, front, three-quarter rear angle). 2: Bonk's own two-handed grip, from his Charging Double Slash (front, three-quarter, profile).",
+  "review_ticks": [
+    0,
+    6,
+    12,
+    15,
+    17,
+    18,
+    21,
+    24,
+    32,
+    40
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "two_hands": [
+    6,
+    24
+  ],
+  "targets": [
+    {
+      "name": "blade tip ahead of chest at contact (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Spine2",
+      "tick": 18,
+      "min": 1.2
+    },
+    {
+      "name": "blade tip below chest at contact (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "Spine2",
+      "tick": 18,
+      "min": 0.2
+    },
+    {
+      "name": "blade tip clearance above toes at contact (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "RightToeBase",
+      "tick": 18,
+      "max": -0.05
+    },
+    {
+      "name": "blade tip fastest drop ends (tick)",
+      "kind": "fastest_drop",
+      "a": "bladeEnd",
+      "window": [
+        10,
+        30
+      ],
+      "min": 16,
+      "max": 19
+    }
+  ]
+}

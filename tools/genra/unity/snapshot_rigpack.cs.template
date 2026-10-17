@@ -1,0 +1,240 @@
+// genra rig-pack snapshot: read-only, Edit Mode, preview scene; no asset or scene changes.
+// Rendered by tools/genra/unity_rigpack.py (fields {{PACKAGE}} {{OUTPUT}} {{CLIPS}} {{BAKES}}) and run with
+// the gateway's eval_file. Captures the package's catalog prefab exactly as the game renders it: skinned meshes
+// (vertices, UVs, triangles, weights, bindposes), runtime weapon attachments (WeaponAttach placement), rotation
+// constraints, bound clips played at 60 Hz as PlayerRenderer plays them, and baked skinned vertices at chosen frames.
+var package = "{{PACKAGE}}";
+var output = "{{OUTPUT}}";
+var semantics = new string[] { {{CLIPS}} };
+var bakeFrames = new int[] { {{BAKES}} };
+if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("Rig-pack snapshot requires Edit Mode");
+var packageRoot = "Assets/CharacterPackages/" + package;
+var catalog = UnityEditor.AssetDatabase.LoadMainAssetAtPath(packageRoot + "/CharacterAssetCatalog.asset");
+if (catalog == null) throw new System.Exception("No catalog for " + package);
+var catalogObject = new UnityEditor.SerializedObject(catalog);
+var prefab = (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+var bindings = catalogObject.FindProperty("_bindings");
+var clips = new System.Collections.Generic.Dictionary<string, UnityEngine.AnimationClip>();
+foreach (var semantic in semantics) {
+  for (int i = 0; i < bindings.arraySize; i++) {
+    var entry = bindings.GetArrayElementAtIndex(i);
+    if (entry.FindPropertyRelative("_semanticId").stringValue == semantic)
+      clips[semantic] = (UnityEngine.AnimationClip)entry.FindPropertyRelative("_clip").objectReferenceValue;
+  }
+  if (!clips.ContainsKey(semantic) || clips[semantic] == null) throw new System.Exception("Missing bound clip " + semantic);
+}
+
+float[] Flat(UnityEngine.Matrix4x4 m) { var a = new float[16]; for (int r = 0; r < 4; r++) for (int c = 0; c < 4; c++) a[r * 4 + c] = m[r, c]; return a; }
+float[] Vec3s(UnityEngine.Vector3[] v) { var a = new float[v.Length * 3]; for (int i = 0; i < v.Length; i++) { a[3 * i] = v[i].x; a[3 * i + 1] = v[i].y; a[3 * i + 2] = v[i].z; } return a; }
+float[] Vec2s(UnityEngine.Vector2[] v) { var a = new float[v.Length * 2]; for (int i = 0; i < v.Length; i++) { a[2 * i] = v[i].x; a[2 * i + 1] = v[i].y; } return a; }
+object Materials(UnityEngine.Material[] materials) {
+  var list = new System.Collections.Generic.List<object>();
+  foreach (var m in materials) {
+    if (m == null) { list.Add(null); continue; }
+    UnityEngine.Color color = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.HasProperty("_Color") ? m.color : UnityEngine.Color.white;
+    var texture = m.mainTexture;
+    list.Add(new { name = m.name, shader = m.shader.name, path = UnityEditor.AssetDatabase.GetAssetPath(m),
+      texture = texture != null ? UnityEditor.AssetDatabase.GetAssetPath(texture) : null, color = new[] { color.r, color.g, color.b, color.a } });
+  }
+  return list;
+}
+object MeshData(UnityEngine.Mesh mesh) {
+  var submeshes = new System.Collections.Generic.List<int[]>();
+  for (int s = 0; s < mesh.subMeshCount; s++) submeshes.Add(mesh.GetTriangles(s));
+  return new { name = mesh.name, vertexCount = mesh.vertexCount, vertices = Vec3s(mesh.vertices), uv = Vec2s(mesh.uv), submeshes = submeshes };
+}
+
+var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+var spawned = new System.Collections.Generic.List<UnityEngine.GameObject>();
+try {
+  var actor = (UnityEngine.GameObject)UnityEngine.Object.Instantiate(prefab);
+  spawned.Add(actor);
+  UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(actor, scene);
+  actor.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
+  var animator = actor.GetComponentInChildren<UnityEngine.Animator>();
+  var transforms = new System.Collections.Generic.List<UnityEngine.Transform>(actor.GetComponentsInChildren<UnityEngine.Transform>(true));
+  var index = new System.Collections.Generic.Dictionary<UnityEngine.Transform, int>();
+  for (int i = 0; i < transforms.Count; i++) index[transforms[i]] = i;
+  var restT = new UnityEngine.Vector3[transforms.Count]; var restR = new UnityEngine.Quaternion[transforms.Count]; var restS = new UnityEngine.Vector3[transforms.Count];
+  for (int i = 0; i < transforms.Count; i++) { restT[i] = transforms[i].localPosition; restR[i] = transforms[i].localRotation; restS[i] = transforms[i].localScale; }
+  void Restore() { for (int i = 0; i < transforms.Count; i++) { transforms[i].localPosition = restT[i]; transforms[i].localRotation = restR[i]; transforms[i].localScale = restS[i]; } }
+  string PathOf(UnityEngine.Transform t) => UnityEditor.AnimationUtility.CalculateTransformPath(t, actor.transform);
+
+  // Constraints (e.g. Manki's copied skin fingers follow the animated fingers). Edit-mode sampling does not
+  // evaluate them, so apply single-source rotation constraints the way the runtime does.
+  var constraints = actor.GetComponentsInChildren<UnityEngine.Animations.RotationConstraint>(true);
+  var constraintData = new System.Collections.Generic.List<object>();
+  foreach (var c in constraints) {
+    var sources = new System.Collections.Generic.List<object>();
+    for (int s = 0; s < c.sourceCount; s++) { var src = c.GetSource(s); sources.Add(new { path = src.sourceTransform != null ? PathOf(src.sourceTransform) : null, weight = src.weight }); }
+    constraintData.Add(new { path = PathOf(c.transform), active = c.constraintActive, weight = c.weight, locked = c.locked,
+      offset = new[] { c.rotationOffset.x, c.rotationOffset.y, c.rotationOffset.z }, sources = sources });
+  }
+  void ApplyConstraints() {
+    foreach (var c in constraints) {
+      if (!c.constraintActive || c.weight <= 0f || c.sourceCount != 1) continue;
+      var src = c.GetSource(0);
+      if (src.sourceTransform == null || src.weight <= 0f) continue;
+      c.transform.rotation = src.sourceTransform.rotation * UnityEngine.Quaternion.Euler(c.rotationOffset);
+    }
+  }
+
+  // Runtime weapon attachments: WeaponAttach places the weapon at bone.TransformPoint(PositionOffset) with
+  // bone.rotation * Euler(RotationOffset), on the named skin bone (humanoid RightHand fallback).
+  var skin = actor.GetComponentInChildren<UnityEngine.SkinnedMeshRenderer>(true);
+  UnityEngine.Transform FindBone(string name) {
+    foreach (var b in skin.bones) if (b != null && b.name == name) return b;
+    if (name == "mixamorig:RightHand" && animator != null) return animator.GetBoneTransform(UnityEngine.HumanBodyBones.RightHand);
+    return null;
+  }
+  var weapons = new System.Collections.Generic.List<object>();
+  foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:ScriptableObject", new[] { packageRoot })) {
+    var configPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+    var config = new UnityEditor.SerializedObject(UnityEditor.AssetDatabase.LoadMainAssetAtPath(configPath));
+    var entries = config.FindProperty("Entries");
+    if (entries == null || !entries.isArray) continue;
+    for (int i = 0; i < entries.arraySize; i++) {
+      var e = entries.GetArrayElementAtIndex(i);
+      var boneName = e.FindPropertyRelative("BoneName")?.stringValue;
+      var weaponPrefab = e.FindPropertyRelative("Prefab")?.objectReferenceValue as UnityEngine.GameObject;
+      if (string.IsNullOrEmpty(boneName) || weaponPrefab == null) continue;
+      var bone = FindBone(boneName);
+      if (bone == null) throw new System.Exception("Weapon bone not found: " + boneName);
+      var weapon = (UnityEngine.GameObject)UnityEngine.Object.Instantiate(weaponPrefab);
+      spawned.Add(weapon);
+      UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(weapon, scene);
+      weapon.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
+      var position = e.FindPropertyRelative("PositionOffset").vector3Value;
+      var rotation = e.FindPropertyRelative("RotationOffset").vector3Value;
+      weapon.transform.position = bone.TransformPoint(position);
+      weapon.transform.rotation = bone.rotation * UnityEngine.Quaternion.Euler(rotation);
+      var toBone = bone.worldToLocalMatrix * weapon.transform.localToWorldMatrix;
+      var parts = new System.Collections.Generic.List<object>();
+      foreach (var filter in weapon.GetComponentsInChildren<UnityEngine.MeshFilter>(true)) {
+        var renderer = filter.GetComponent<UnityEngine.MeshRenderer>();
+        if (filter.sharedMesh == null || renderer == null) continue;
+        parts.Add(new { path = UnityEditor.AnimationUtility.CalculateTransformPath(filter.transform, weapon.transform),
+          toWeapon = Flat(weapon.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix), mesh = MeshData(filter.sharedMesh),
+          materials = Materials(renderer.sharedMaterials) });
+      }
+      var anchors = new System.Collections.Generic.List<object>();
+      foreach (var anchorName in new[] { e.FindPropertyRelative("TrailHiltAnchor")?.stringValue, e.FindPropertyRelative("TrailTipAnchor")?.stringValue }) {
+        if (string.IsNullOrEmpty(anchorName)) continue;
+        UnityEngine.Transform found = null;
+        foreach (var t in weapon.GetComponentsInChildren<UnityEngine.Transform>(true)) if (t.name == anchorName) { found = t; break; }
+        if (found != null) anchors.Add(new { name = anchorName, toWeapon = Flat(weapon.transform.worldToLocalMatrix * found.localToWorldMatrix) });
+      }
+      weapons.Add(new { config = configPath, slot = e.FindPropertyRelative("AttackSlot")?.intValue, bone = PathOf(bone), prefab = UnityEditor.AssetDatabase.GetAssetPath(weaponPrefab),
+        positionOffset = new[] { position.x, position.y, position.z }, rotationOffset = new[] { rotation.x, rotation.y, rotation.z },
+        toBone = Flat(toBone), parts = parts, anchors = anchors });
+      UnityEngine.Object.DestroyImmediate(weapon);
+      spawned.Remove(weapon);
+    }
+  }
+
+  var bones = new System.Collections.Generic.List<object>();
+  foreach (var t in transforms)
+    bones.Add(new { name = t.name, path = PathOf(t), parent = t.parent != null && index.ContainsKey(t.parent) ? index[t.parent] : -1,
+      world = Flat(t.localToWorldMatrix) });
+  var renderers = actor.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true);
+  var meshes = new System.Collections.Generic.List<object>();
+  foreach (var sk in renderers) {
+    var mesh = sk.sharedMesh;
+    var perVertex = mesh.GetBonesPerVertex().ToArray();
+    var weights = mesh.GetAllBoneWeights().ToArray();
+    var influenceIndex = new int[weights.Length]; var influenceWeight = new float[weights.Length];
+    for (int i = 0; i < weights.Length; i++) { influenceIndex[i] = weights[i].boneIndex; influenceWeight[i] = weights[i].weight; }
+    var counts = new int[perVertex.Length]; for (int i = 0; i < perVertex.Length; i++) counts[i] = perVertex[i];
+    var bonePaths = new System.Collections.Generic.List<string>(); foreach (var b in sk.bones) bonePaths.Add(b != null ? PathOf(b) : null);
+    var bindposes = new System.Collections.Generic.List<float[]>(); foreach (var m in mesh.bindposes) bindposes.Add(Flat(m));
+    meshes.Add(new { name = sk.name, path = PathOf(sk.transform), world = Flat(sk.transform.localToWorldMatrix), mesh = MeshData(mesh),
+      bones = bonePaths, rootBone = sk.rootBone != null ? PathOf(sk.rootBone) : null, bindposes = bindposes,
+      influenceCounts = counts, influenceBones = influenceIndex, influenceWeights = influenceWeight, materials = Materials(sk.sharedMaterials) });
+  }
+
+  // Humanoid muscles, measured on the Avatar: each mapped bone's local rotation with one muscle at -1, -0.5, 0,
+  // 0.5 and 1 from the all-zero muscle pose. The toolkit bends fingers about these exact axes so that Unity can
+  // play what it authors; rotations outside them are lost in a Humanoid clip.
+  float[] Q(UnityEngine.Quaternion q) => new[] { q.x, q.y, q.z, q.w };
+  var humanoid = new System.Collections.Generic.List<object>();
+  if (animator != null && animator.avatar != null && animator.avatar.isHuman) {
+    Restore();
+    using var poser = new UnityEngine.HumanPoseHandler(animator.avatar, animator.transform);
+    var zero = new UnityEngine.HumanPose(); poser.GetHumanPose(ref zero);
+    var zeroMuscles = new float[zero.muscles.Length];
+    for (int b = 0; b < (int)UnityEngine.HumanBodyBones.LastBone; b++) {
+      var bone = animator.GetBoneTransform((UnityEngine.HumanBodyBones)b);
+      if (bone == null) continue;
+      for (int dof = 0; dof < 3; dof++) {
+        int muscle = UnityEngine.HumanTrait.MuscleFromBone(b, dof);
+        if (muscle < 0) continue;
+        var samples = new System.Collections.Generic.List<float[]>();
+        foreach (var value in new[] { -1f, -0.5f, 0f, 0.5f, 1f }) {
+          var pose = zero; pose.muscles = (float[])zeroMuscles.Clone(); pose.muscles[muscle] = value;
+          poser.SetHumanPose(ref pose);
+          samples.Add(Q(bone.localRotation));
+        }
+        humanoid.Add(new { path = PathOf(bone), humanBone = ((UnityEngine.HumanBodyBones)b).ToString(), dof,
+          muscle = UnityEngine.HumanTrait.MuscleName[muscle], values = new[] { -1f, -0.5f, 0f, 0.5f, 1f }, localRotations = samples });
+      }
+    }
+    Restore();
+  }
+
+  // Clips are evaluated the way PlayerRenderer plays them: Animancer on the prefab's Animator with root motion off
+  // (and Animancer's default of no foot IK). AnimationClip.SampleAnimation differs: it applies root motion when the
+  // prefab enables it (Bonk, Wibou), extracts the root differently and can stretch legs toward IK goals.
+  animator.applyRootMotion = false;
+  animator.cullingMode = UnityEngine.AnimatorCullingMode.AlwaysAnimate;
+  var animancer = actor.AddComponent<Animancer.AnimancerComponent>();
+  animancer.Animator = animator;
+  object Sample(UnityEngine.AnimationClip clip) {
+    int fps = 60; int end = UnityEngine.Mathf.RoundToInt(clip.length * fps);
+    var frames = new System.Collections.Generic.List<object>();
+    var bakes = new System.Collections.Generic.List<object>();
+    var baked = new UnityEngine.Mesh();
+    try {
+      for (int f = 0; f <= end; f++) {
+        float time = UnityEngine.Mathf.Min(f / (float)fps, clip.length);
+        Restore();
+        var state = animancer.Play(clip, 0f); state.Speed = 0f; state.Time = time; animancer.Evaluate(0f);
+        ApplyConstraints();
+        var world = new System.Collections.Generic.List<float[]>(); foreach (var t in transforms) world.Add(Flat(t.localToWorldMatrix));
+        frames.Add(new { frame = f, timeSeconds = time, world = world });
+        if (System.Array.IndexOf(bakeFrames, f) >= 0 || (f == end && System.Array.IndexOf(bakeFrames, -1) >= 0)) {
+          // Raw BakeMesh output in both scale modes with the renderer transform; the builder picks the
+          // conversion that reproduces Unity's world positions (its scale semantics vary with import scale).
+          var withScale = new System.Collections.Generic.List<float[]>(); var withoutScale = new System.Collections.Generic.List<float[]>();
+          var rendererWorld = new System.Collections.Generic.List<float[]>();
+          foreach (var sk in renderers) {
+            sk.BakeMesh(baked, true); withScale.Add(Vec3s(baked.vertices));
+            sk.BakeMesh(baked, false); withoutScale.Add(Vec3s(baked.vertices));
+            rendererWorld.Add(Flat(sk.transform.localToWorldMatrix));
+          }
+          bakes.Add(new { frame = f, bakedUseScale = withScale, bakedNoScale = withoutScale, rendererWorld = rendererWorld });
+        }
+      }
+    } finally { UnityEngine.Object.DestroyImmediate(baked); Restore(); }
+    return new { name = clip.name, path = UnityEditor.AssetDatabase.GetAssetPath(clip), sourceFps = clip.frameRate, fps = fps, endFrame = end,
+      durationSeconds = clip.length, humanMotion = clip.humanMotion, frames = frames, bakes = bakes };
+  }
+  var references = new System.Collections.Generic.Dictionary<string, object>();
+  foreach (var semantic in semantics) references[semantic] = Sample(clips[semantic]);
+
+  var modelPath = UnityEditor.AssetDatabase.GetAssetPath(skin.sharedMesh);
+  var data = new { package = package, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), model = modelPath,
+    avatar = animator != null && animator.avatar != null ? animator.avatar.name : null,
+    avatarPath = animator != null && animator.avatar != null ? UnityEditor.AssetDatabase.GetAssetPath(animator.avatar) : null,
+    avatarValid = animator != null && animator.avatar != null && animator.avatar.isValid,
+    avatarHuman = animator != null && animator.avatar != null && animator.avatar.isHuman,
+    unity = UnityEngine.Application.unityVersion, coordinates = "Unity left-handed, Y up, metres; matrices row-major m[r,c] for column vectors",
+    sampling = "Animancer playback, applyRootMotion off, no foot IK (PlayerRenderer)",
+    bones = bones, meshes = meshes, constraints = constraintData, weapons = weapons, humanoid, references = references };
+  System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output));
+  System.IO.File.WriteAllText(output, Newtonsoft.Json.JsonConvert.SerializeObject(data));
+  return new { output = output, data.prefab, data.model, data.avatar, data.avatarHuman, bones = bones.Count, skins = meshes.Count,
+    constraints = constraintData.Count, weapons = weapons.Count, humanoidMuscles = humanoid.Count, clips = references.Keys };
+} finally {
+  foreach (var g in spawned) if (g != null) UnityEngine.Object.DestroyImmediate(g);
+  UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
+}
