@@ -13,6 +13,8 @@ using SlopArena.Client.Camera;
 using SlopArena.Client.Combat;
 using SlopArena.Client.UI;
 using SlopArena.Client.Simulation;
+using SlopArena.Client.Diagnostics;
+using SlopArena.Shared.Telemetry;
 namespace SlopArena.Client.World
 {
     public enum NpcAiMode
@@ -70,6 +72,8 @@ namespace SlopArena.Client.World
         private const ulong NpcEntityId = 100;
         private TargetIndicator _lockIndicator;
         private TrainingSettingsPanel _settingsPanel;
+        // Opt-in local measurement of this match (Settings → Gameplay); presentation-only.
+        private PracticeSessionLog? _sessionLog;
 
         private sealed class NpcSlot
         {
@@ -176,7 +180,10 @@ namespace SlopArena.Client.World
         }
 
         public void SetNoCooldowns(bool on)
-            => _bridge.InternalSim.NoCooldownsEntityId = on ? PlayerEntityId : null;
+        {
+            _bridge.InternalSim.NoCooldownsEntityId = on ? PlayerEntityId : null;
+            _sessionLog?.LogEvent((int)_tick, "no-cooldowns", on ? "on" : "off");
+        }
 
         public void SetNpcMode(NpcAiMode mode)
         {
@@ -185,6 +192,7 @@ namespace SlopArena.Client.World
             foreach (var npc in _npcs)
                 npc.Memory.Reset();
             _settingsPanel?.RefreshSelection();
+            _sessionLog?.LogEvent((int)_tick, "cpu-behavior", mode.ToString());
         }
 
         public void SetNpcDifficulty(CpuDifficulty difficulty)
@@ -196,6 +204,7 @@ namespace SlopArena.Client.World
                 npc.Memory.Reset();
             }
             _settingsPanel?.RefreshSelection();
+            _sessionLog?.LogEvent((int)_tick, "cpu-difficulty", _npcDifficulty.ToString());
         }
         public float GetSelectedNpcDamage()
             => _npcs.Count > 0 ? _bridge.GetState(SelectedNpcId).DamagePercent : 0f;
@@ -208,6 +217,8 @@ namespace SlopArena.Client.World
             state.DamagePercent = (ushort)Mathf.Clamp(Mathf.RoundToInt(percent), 0, 999);
             _bridge.InternalSim.SetState(SelectedNpcId, state);
             _hudManager?.Refresh();
+            _sessionLog?.LogEvent((int)_tick, "set-damage",
+                FormattableString.Invariant($"{SelectedNpcId}:{state.DamagePercent}"));
         }
 
         /// <summary>Zero damage for the player and every CPU without moving them.</summary>
@@ -221,6 +232,7 @@ namespace SlopArena.Client.World
                 _bridge.InternalSim.SetState(entity.Key, state);
             }
             _hudManager?.Refresh();
+            _sessionLog?.LogEvent((int)_tick, "reset-damage");
         }
 
         /// <summary>Return every fighter to its spawn, preserving damage and CPU settings.</summary>
@@ -244,6 +256,7 @@ namespace SlopArena.Client.World
             ResetTrainingPresentation();
             _projectileVFX?.OnTick();
             _hudManager?.Refresh();
+            _sessionLog?.LogEvent((int)_tick, "reset-positions");
         }
 
         private void RestoreTrainingEntity(ulong id, SpawnPoint spawn, MatchContentEntry entry,
@@ -286,6 +299,8 @@ namespace SlopArena.Client.World
             _npcs.Add(slot);
             RebuildRosterVisuals();
             _settingsPanel?.RefreshRoster();
+            _sessionLog?.LogEvent((int)_tick, "cpu-added",
+                slot.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         public void DeleteSelectedNpc()
@@ -299,6 +314,8 @@ namespace SlopArena.Client.World
             _selectedNpcIndex = Math.Clamp(_selectedNpcIndex, 0, _npcs.Count - 1);
             RebuildRosterVisuals();
             _settingsPanel?.RefreshRoster();
+            _sessionLog?.LogEvent((int)_tick, "cpu-removed",
+                slot.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
         protected override void OnMatchStart()
         {
@@ -412,6 +429,39 @@ namespace SlopArena.Client.World
                 _settingsPanel = panel;
                 panel.Init(this, _hudManager.Document, _cameraMount);
             }
+            StartSessionLog(arenaName);
+        }
+
+        private void StartSessionLog(string arenaName)
+        {
+            if (!ClientSettingsService.Instance.RecordSessionLog
+                || MatchConfig.Mode is not (GameMode.Training or GameMode.Solo))
+                return;
+            var header = new SessionHeader
+            {
+                StartedUtc = DateTime.UtcNow.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                Mode = MatchConfig.Mode.ToString(),
+                Arena = arenaName,
+            };
+            header.Fighters.Add(PracticeSessionLog.Fighter(PlayerEntityId, "player", _playerEntry));
+            foreach (var npc in _npcs)
+                header.Fighters.Add(PracticeSessionLog.Fighter(npc.Id, "cpu", _npcEntry,
+                    BotDifficultyProfile.DisplayName(CurrentNpcDifficulty), _npcAiMode.ToString()));
+            PracticeSessionLog.DescribePresentation(header, _cameraMount,
+                _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
+            _sessionLog = PracticeSessionLog.TryStart(header, _playerDef);
+        }
+
+        private void FinishSessionLog(string reason)
+        {
+            _sessionLog?.Finish(reason);
+            _sessionLog = null;
+        }
+
+        protected override void OnDestroy()
+        {
+            FinishSessionLog("left");
+            base.OnDestroy();
         }
 
         /// <summary>Rebuild the HUD and lock indicator after the NPC roster changes.</summary>
@@ -521,7 +571,9 @@ namespace SlopArena.Client.World
             }
 
             // Tick
+            _sessionLog?.BeforeTick(_bridge.InternalSim, (int)_tick, tickInputs);
             _bridge.Tick(tickInputs);
+            _sessionLog?.AfterTick(_bridge.InternalSim, (int)_tick, tickInputs, _cameraMount, _mainCamera);
 
             // Feed only authoritative resolver outcomes back to runner-owned bot memory.
             // Combat events are delayed inside BotMemory; no one-tick hit flag is exposed
@@ -628,6 +680,7 @@ namespace SlopArena.Client.World
         private void BuildSoloResults(MatchOutcome outcome)
         {
             _soloResultsShown = true;
+            FinishSessionLog("solo-ended");
             var player = _bridge.GetState(PlayerEntityId);
             var npc = _bridge.GetState(NpcEntityId);
             bool playerFirst = !outcome.IsSharedVictory && outcome.WinnerEntityId == PlayerEntityId;

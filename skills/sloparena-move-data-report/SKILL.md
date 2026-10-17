@@ -19,6 +19,9 @@ in `docs/systems/move-data-report.md`; keep experiment results there, not in thi
 - Start with the player's intended action and recurring frustration, ideally footage.
   The player supplies experience, not a required diagnosis. Simulation explains what
   happened; headless success cannot establish satisfying controls or visually fair contact.
+- For how a person actually misses (distance, height, aim, camera, device), have them
+  record a [practice session log](../../docs/systems/practice-session-log.md) in Training
+  or Solo and run `tools/SessionLogReport`; CPU Opponents perceive positions exactly.
 - Normalize policy comparisons by entity-minutes: ticks / 3,600 at 60 Hz. A mirror
   aggregate contains two players; a jump-in side against grounded contains one.
 - Count connected attack activations, not individual multi-hit contacts. Separate

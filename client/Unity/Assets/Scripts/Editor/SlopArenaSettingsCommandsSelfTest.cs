@@ -11,6 +11,7 @@ namespace SlopArena.EditorTools
         {
             RequireValid("{\"uiScale\":80,\"targetOpacity\":20,\"screenShake\":0,\"showOverheadDamage\":false,\"reducedFlashing\":true}");
             RequireValid("{\"uiScale\":140,\"targetOpacity\":100,\"screenShake\":100}");
+            RequireValid("{\"recordSessionLog\":true}");
             RequireInvalid(null);
             RequireInvalid("{}");
             RequireInvalid("[]");
@@ -23,6 +24,7 @@ namespace SlopArena.EditorTools
             RequireInvalid("{\"screenShake\":NaN}");
             RequireInvalid("{\"showOverheadDamage\":1}");
             RequireInvalid("{\"reducedFlashing\":\"true\"}");
+            RequireInvalid("{\"recordSessionLog\":1}");
             RequireInvalid("{\"uiScale\":100,\"unknown\":true}");
             RequireInvalid("{\"uiScale\":100,\"uiScale\":110}");
             RequireInvalid("{\"uiScale\":100} trailing");

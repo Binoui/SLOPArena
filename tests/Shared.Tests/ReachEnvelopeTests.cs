@@ -66,24 +66,33 @@ public class ReachEnvelopeTests
     }
 
     [Fact]
-    public void FacingFrame_RotatedByQuarterTurn_SwapsAxes()
+    public void FacingFrame_QuarterTurnFacesPositiveX()
     {
+        // The simulation faces yaw = atan2(dx, dz): a quarter turn looks along +X,
+        // so +X is ahead and +Z is on the character's left.
         float yaw = MathF.PI / 2f;
-        var (side, fwd) = FacingMath.ToFacingFrame(0f, 3f, yaw);
-        TestHelpers.AssertNear(3f, side, 0.0001f);
-        TestHelpers.AssertNear(0f, fwd, 0.0001f);
+        var (aheadSide, aheadFwd) = FacingMath.ToFacingFrame(3f, 0f, yaw);
+        TestHelpers.AssertNear(0f, aheadSide, 0.0001f);
+        TestHelpers.AssertNear(3f, aheadFwd, 0.0001f);
+        var (leftSide, leftFwd) = FacingMath.ToFacingFrame(0f, 3f, yaw);
+        TestHelpers.AssertNear(-3f, leftSide, 0.0001f);
+        TestHelpers.AssertNear(0f, leftFwd, 0.0001f);
     }
 
-    [Fact]
-    public void FacingFrame_RoundTrip_RecoversWorldDelta()
+    [Theory]
+    [InlineData(0.7f, 0.4f, 1.3f)]
+    [InlineData(-2.1f, -0.6f, 0.9f)]
+    [InlineData(3.1f, 0.25f, -1.1f)]
+    public void FacingFrame_InvertsHitboxGeometryOffsets(float yaw, float offX, float offZ)
     {
-        float yaw = 0.7f;
-        float dx = 2f, dz = -1.5f;
-        var (side, fwd) = FacingMath.ToFacingFrame(dx, dz, yaw);
-        float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
-        float wx = side * cos - fwd * sin;
-        float wz = side * sin + fwd * cos;
-        TestHelpers.AssertNear(dx, wx, 0.0001f);
-        TestHelpers.AssertNear(dz, wz, 0.0001f);
+        var state = new CharacterState { PX = 4f, PY = 1f, PZ = -2f, FacingYaw = yaw };
+        var evt = new HitboxEvent { OffX = offX, OffZ = offZ, Radius = 0.5f };
+        HitboxGeometry.ResolvePositions(state, evt, null, null, null, 0, 0, false,
+            out float wx, out _, out float wz, out _, out _, out _);
+
+        var (side, fwd) = FacingMath.ToFacingFrame(wx - state.PX, wz - state.PZ, yaw);
+
+        TestHelpers.AssertNear(offX, side, 0.0001f);
+        TestHelpers.AssertNear(offZ, fwd, 0.0001f);
     }
 }

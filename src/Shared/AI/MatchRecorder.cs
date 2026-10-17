@@ -23,6 +23,10 @@ public sealed class MatchRecorder
         public ulong ActivationId;
     }
 
+    /// <summary>Largest horizontal distance (metres) at which an unselected fighter can
+    /// become a swing's proximity <see cref="SwingRecord.ReferenceTarget"/>.</summary>
+    public const float ReferenceSearchRadius = 12f;
+
     private readonly MatchRecord _record = new();
     private readonly Dictionary<ulong, PendingAction> _pendingActions = new();
     private readonly Dictionary<(ulong Attacker, ulong Target), ComboLink> _openCombos = new();
@@ -33,6 +37,10 @@ public sealed class MatchRecorder
     private readonly HashSet<(ulong Attacker, ulong Target)> _hitPairs = new();
 
     public MatchRecord Record => _record;
+
+    /// <summary>Append every entity's position to <see cref="MatchRecord.Samples"/> each tick.
+    /// Long-running recorders that log positions elsewhere can turn this off.</summary>
+    public bool RecordPositionSamples { get; set; } = true;
 
     /// <summary>Finalize the record after the match loop. Returns the record.</summary>
     public MatchRecord Finish(int durationTicks, int seed, MatchOutcome outcome)
@@ -67,7 +75,7 @@ public sealed class MatchRecorder
             };
             _record.ActionAttempts.Add(attempt);
 
-            int window = ActiveWindowTicks(def, input.ActiveSlot, air);
+            int window = ActiveWindowTicks(sim.GetDefinition(id) ?? def, input.ActiveSlot, air);
             ulong targetId = st.TargetEntityId;
             float side = 0f, fwd = 0f, dy = 0f;
             if (targetId > 0 && states.TryGetValue(targetId, out var target))
@@ -83,6 +91,15 @@ public sealed class MatchRecorder
                 StartTick = tick, WindowTicks = window,
                 RelSide = side, RelForward = fwd, RelHeight = dy,
             };
+            swing.ReferenceTarget = FindReferenceTarget(id, in st, states, out swing.ReferenceByProximity);
+            if (swing.ReferenceTarget != 0)
+            {
+                var reference = states[swing.ReferenceTarget];
+                swing.TargetGroundedAtStart = reference.IsGrounded;
+                swing.TargetVXAtStart = reference.VX;
+                swing.TargetVYAtStart = reference.VY;
+                swing.TargetVZAtStart = reference.VZ;
+            }
             _pendingActions[id] = new PendingAction
             {
                 Attempt = attempt, Swing = swing, ActivationId = sim.GetLastActivationId(id),
@@ -107,8 +124,9 @@ public sealed class MatchRecorder
         bool stockBoundary = sim.LastTickDeaths.Count > 0;
         if (stockBoundary)
             _record.Deaths.AddRange(sim.LastTickDeaths);
-        foreach (var (id, st) in states)
-            _record.Samples.Add(new TickSample { Tick = tick, EntityId = id, PX = st.PX, PY = st.PY, PZ = st.PZ });
+        if (RecordPositionSamples)
+            foreach (var (id, st) in states)
+                _record.Samples.Add(new TickSample { Tick = tick, EntityId = id, PX = st.PX, PY = st.PY, PZ = st.PZ });
         if (stockBoundary)
             CloseCombos();
         _pendingActionIds.Clear();
@@ -141,6 +159,7 @@ public sealed class MatchRecorder
                 _pendingActions.Remove(id);
             }
         }
+        UpdateContactGeometry(sim, tick, states);
 
         if (!stockBoundary)
         {
@@ -156,7 +175,12 @@ public sealed class MatchRecorder
         
         foreach (var hit in sim.LastTickHits)
         {
-            if (hit.Blocked) continue;
+            if (hit.Blocked)
+            {
+                if (_acceptedSwings.TryGetValue(hit.ActivationId, out var blockedSwing))
+                    blockedSwing.Blocked = true;
+                continue;
+            }
             _openComboPairs.Clear();
             foreach (var pair in _openCombos.Keys)
                 _openComboPairs.Add(pair);
@@ -182,7 +206,10 @@ public sealed class MatchRecorder
                 Tick = tick,
             });
             if (_acceptedSwings.TryGetValue(hit.ActivationId, out var swing))
+            {
                 swing.Connected = true;
+                if (hit.Damage > 0f) swing.DamagingContacts++;
+            }
             var pairForHit = (hit.OwnerEntityId, hit.TargetEntityId);
             bool hadActionableWindow = _actionableSinceHit.TryGetValue(pairForHit, out var actionable)
                 && actionable;
@@ -220,6 +247,89 @@ public sealed class MatchRecorder
                     _actionableSinceHit[pair] = true;
         if (stockBoundary)
             CloseCombos();
+    }
+
+    /// <summary>The selected target, else the nearest other fighter within range (ties by ID).</summary>
+    private static ulong FindReferenceTarget(ulong attackerId, in CharacterState attacker,
+        IReadOnlyDictionary<ulong, CharacterState> states, out bool byProximity)
+    {
+        byProximity = false;
+        ulong selected = attacker.TargetEntityId;
+        if (selected != 0 && selected != attackerId && states.ContainsKey(selected))
+            return selected;
+
+        ulong nearest = 0;
+        float best = ReferenceSearchRadius * ReferenceSearchRadius;
+        foreach (var (otherId, other) in states)
+        {
+            if (otherId == attackerId) continue;
+            float dx = other.PX - attacker.PX;
+            float dz = other.PZ - attacker.PZ;
+            float distanceSq = dx * dx + dz * dz;
+            if (distanceSq < best || (distanceSq == best && nearest != 0 && otherId < nearest))
+            {
+                best = distanceSq;
+                nearest = otherId;
+            }
+        }
+        byProximity = nearest != 0;
+        return nearest;
+    }
+
+    /// <summary>
+    /// Track how close each accepted activation's hitboxes came to its reference target,
+    /// using the hitboxes exactly as the resolver tested them during the last tick.
+    /// </summary>
+    private void UpdateContactGeometry(ServerSimulation sim, int tick,
+        IReadOnlyDictionary<ulong, CharacterState> states)
+    {
+        var tested = sim.Resolver.LastTickCheckedHitboxes;
+        if (tested.Count == 0) return;
+        var volumes = sim.LastTickAttackEntities;
+        foreach (var hitbox in tested)
+        {
+            if (hitbox.ActivationId == 0
+                || !_acceptedSwings.TryGetValue(hitbox.ActivationId, out var swing)
+                || swing.Attacker != hitbox.OwnerId)
+                continue;
+            if (swing.LastHitboxTick != tick)
+            {
+                swing.HitboxTicks++;
+                if (swing.FirstHitboxTick < 0) swing.FirstHitboxTick = tick;
+                swing.LastHitboxTick = tick;
+            }
+            if (swing.ReferenceTarget == 0 || volumes == null) continue;
+            foreach (var volume in volumes)
+            {
+                if (volume.Id != swing.ReferenceTarget || !volume.Active) continue;
+                float gap = SpellResolver.SurfaceGap(in hitbox, in volume,
+                    out float gapX, out float gapY, out float gapZ);
+                if (swing.HasClosestApproach && gap >= swing.ClosestGap) continue;
+                RecordClosestApproach(swing, tick, gap, gapX, gapY, gapZ, states);
+            }
+        }
+    }
+
+    private static void RecordClosestApproach(SwingRecord swing, int tick, float gap,
+        float gapX, float gapY, float gapZ, IReadOnlyDictionary<ulong, CharacterState> states)
+    {
+        swing.HasClosestApproach = true;
+        swing.ClosestGap = gap;
+        swing.ClosestTick = tick;
+        swing.MissWorldX = gapX;
+        swing.MissWorldY = gapY;
+        swing.MissWorldZ = gapZ;
+        if (!states.TryGetValue(swing.Attacker, out var attacker)) return;
+        (swing.MissSide, swing.MissForward) = FacingMath.ToFacingFrame(gapX, gapZ, attacker.FacingYaw);
+        swing.MissUp = gapY;
+        if (!states.TryGetValue(swing.ReferenceTarget, out var target)) return;
+        (swing.ClosestRelSide, swing.ClosestRelForward) = FacingMath.ToFacingFrame(
+            target.PX - attacker.PX, target.PZ - attacker.PZ, attacker.FacingYaw);
+        swing.ClosestRelHeight = target.PY - attacker.PY;
+        swing.TargetGroundedAtClosest = target.IsGrounded;
+        swing.TargetVXAtClosest = target.VX;
+        swing.TargetVYAtClosest = target.VY;
+        swing.TargetVZAtClosest = target.VZ;
     }
 
     private void CloseCombos()
