@@ -1,0 +1,78 @@
+{
+  "name": "manki-smoke-jab",
+  "notes": "PIPELINE SMOKE TEST, not a game move: it checks that the current-character rig pack works end to end.",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity",
+  "character": "Manki v3 (58 joints; three fingers and a thumb per hand; five-bone tail)",
+  "description": "A quick right-hand jab from the idle stance. Ticks 1-7 load slightly: the right shoulder draws back and both hands come up into a guard. Ticks 8-10 the right fist extends straight forward at shoulder height; contact at tick 10. Ticks 11-13 hold the extension briefly. Ticks 14-29 retract and settle back to the idle pose; ticks 30-40 equal the idle entry pose exactly. The left hand stays as a guard near the chin. Both feet stay planted; the hips and chest may rotate a little into the punch. Close the right hand into a proper fist for the strike.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 30
+  },
+  "clock": {
+    "duration_ticks": 40,
+    "contact_tick": 10,
+    "active": [
+      10,
+      13
+    ],
+    "iasa_tick": 30
+  },
+  "fast_windows": [
+    [
+      7,
+      11
+    ]
+  ],
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "images": [
+    "images/idle-entry.png"
+  ],
+  "image_notes": "The idle entry pose on this rig (profile, front, three-quarter rear angle).",
+  "review_ticks": [
+    0,
+    5,
+    8,
+    10,
+    12,
+    16,
+    22,
+    30,
+    40
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "targets": [
+    {
+      "name": "right fist ahead of chest at contact (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 10,
+      "min": 0.22
+    },
+    {
+      "name": "right fist below shoulder at contact (m)",
+      "kind": "below",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 10,
+      "min": -0.08,
+      "max": 0.1
+    }
+  ]
+}

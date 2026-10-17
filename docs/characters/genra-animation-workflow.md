@@ -21,15 +21,36 @@ checkout and Python environment are recorded in the
 availability before starting. Tool installation still requires approval under
 [AGENTS.md](../../AGENTS.md).
 
-Two authoring routes have worked:
+**Opus 5.5 authors GenRA motion** (owner decision, 16 October 2026). On the same
+prompt, its Manki aerial first pass had correct finger curl and a clearer
+wind-up than the Codex pass; see the [provider A/B](../research/2026-10-16-genra-opus-ab.md).
+Codex threads may prepare inputs, convert, preview and integrate, but they hand
+pose authoring to Opus 5.5.
 
-- **Model-proposed poses:** the FightGuy and first Manki aerial runs used a
-  Codex-backed adapter to produce sparse joint-space keys, followed by GenRA's
-  parser, interpolation and USD writer. They used explicit same-rig references
-  with automatic example selection disabled.
-- **Poses authored in the current session:** Head Slam used rig-aware blocking,
-  numerical IK and controlled interpolation, then the same pinned GenRA parser
-  and USD writer. It made no additional provider or CLI model request.
+**Use the [genra toolkit](../../tools/genra/README.md).** `tools/genra/run.py <brief>`
+runs one sandboxed Opus 5.5 job. The model authors poses in Python against the actual
+skinned rig. It has character-frame poses, IK that bends knees, elbows and fingers only
+on their anatomical hinges, monotone interpolation, automated checks, and software
+renders it inspects. The runner re-checks the result and writes it into a copy of the
+rig pack's USD, as lossless quaternions with no GenRA Euler round trip. On the Manki
+aerial benchmark, four runs took 105–209 s and $0.37–0.68 at list price, and all passed
+every check. The GenRA-prompt route took 25 minutes and $6.95 and failed two checks.
+Inputs are a rig pack (rig, references, textures, images, hash manifest) and a brief
+whose numeric targets restate its creative text.
+
+Earlier routes, for the records below:
+- **Codex-backed GenRA adapter:** the FightGuy and first Manki aerial runs produced
+  sparse joint-space keys through GenRA's parser, interpolation and USD writer, with
+  explicit same-rig references and automatic example selection disabled.
+- **Session-authored poses:** Head Slam and Bonk were authored in the Codex session
+  through the same writer.
+- **Opus A/B:** reused the GenRA adapter with `claude -p`.
+
+`claude_runner.py` has three sandbox lessons built in:
+- **Pre-approve Bash.** In dontAsk mode it otherwise refuses heredocs and piped Python.
+- **Lock down repository access.** Deny repository reads, then allow back only the
+  toolkit, rig pack and venv.
+- **Never `--add-dir` repository paths.** They become writable even under `denyWrite`.
 
 Record the route actually used. GenRA processing alone does not mean a separate
 model generated the motion. Reuse the task's authorized provider/tool route;
@@ -38,11 +59,18 @@ or refinement request, record the selected model/settings, references, call and
 time limits, raw response and usage. Preserve failures rather than retrying
 without a bound. Never include credentials in prompts or evidence.
 
-The workflow is maintained here; executable helpers currently remain in the
-local per-run workspaces listed below. There is no repository-wide GenRA command
-or clean-clone setup yet. Check that the needed helpers exist, inspect their
-assumptions, and adapt them in a fresh workspace. Missing local tooling needs a
-concrete setup or handoff, not a claim that the pipeline ran.
+The toolkit, runner, tests and briefs are tracked. Rig packs and the Python environment
+are local (`artifacts/`).
+
+`tools/genra/unity_rigpack.py` builds rig packs for the current characters: Manki v3,
+FightGuy v2, Bonk and Wibou, swords included. It snapshots the catalog prefab and its
+clips through a read-only gateway lease, and checks the result against Unity's own
+skinning, vertex by vertex. Use these packs instead of re-deriving rigs in Blender.
+
+Conversion back to Unity (Humanoid hybrid clip, Animancer checks) still uses the per-run
+helpers listed below. `mapping.json` maps each pack joint to its Unity transform path for
+that step. Check that the helpers you need exist and adapt them in a fresh workspace.
+Missing local tooling needs a concrete setup or handoff, not a claim that the pipeline ran.
 
 ## 1. Capture the brief and clock
 
@@ -93,6 +121,15 @@ Before generating new motion, take a known same-rig clip through
 Compare joint transforms and deformed skin at relevant times, including between
 original source frames where needed. Declare tolerances and required references
 before judging the control. Record warnings and failed controls explicitly.
+
+For the toolkit's Unity-built rig packs, `tools/genra/unity_clip.py roundtrip` is
+this proof without Blender: the clip as the game plays it, then the rig pack, a
+native Humanoid clip, and the game's playback again. On 17 October all four current
+characters' idle, run, jump and fall came back within 0.084 mm per bone and
+0.126 mm per vertex. Sample clips the way the game plays them (Animancer,
+`applyRootMotion` off): plain `AnimationClip.SampleAnimation` was up to 3.5 m away,
+because it applied root motion on prefabs that enable it and extracted roots
+differently. See the [toolkit README](../../tools/genra/README.md#into-unity).
 
 A conversion baseline can be reused when its source rig, Avatar, prefab/skin
 hierarchy, reference assets, converter revision and import/export settings still
@@ -153,6 +190,13 @@ then retain any required unmapped FK curves in a Unity-native hybrid `.anim`.
 For a directly authored native clip, skip unnecessary FBX steps. Confirm the
 current clip GUID/fileID, curve paths, length, sample rate and baked frame count.
 
+Toolkit results skip FBX: `unity_clip.py write` builds the hybrid clip directly,
+starts it where the entry clip actually plays, and measures it as the game plays it.
+Read its report before preview. `meshVsToolkit` shows where Unity's limb twist
+distribution changes the mesh even though joints match: in a 17 October test the
+forearm mesh rolled up to 81 mm differently during a punch. Review those ticks on the
+actual character before approval.
+
 For Manki's deformation rigs (`Presentation/MankiRig.prefab` and the legacy
 `Presentation/Legacy/MankiDeformRig.prefab`), fingers also have skin branches below
 `LeftFistDeform` and `RightFistDeform`. Supply matching curves to the original and
@@ -181,8 +225,20 @@ shifted contact under the runtime speed multiplier. The Manki runs needed tiny
 FBX timestamp corrections to recover the intended exact 60 Hz grid. Record that
 correction and verify the resulting clock; do not retime gameplay to conceal it.
 
-Prepare normal-speed side and gameplay-angle previews of the whole action,
+Prepare normal-speed side and three-quarter rear previews of the whole action,
 semantic pose sheets, and joint/hand close-ups when the wide view hides anatomy.
+The three-quarter rear camera sits behind the striking shoulder, 35° to that side
+and 20° up. Do not review from the match camera's angle, straight behind the
+fighter: in the first toolkit runs it showed only 0–24% of the striking hand or
+weapon at contact. The Ability Lab fighter faces world +Z, so capture the view with
+absolute camera angles: `--camera-yaw -35` for a right-side strike, `35` for a
+left-side one.
+
+```bash
+editor sloparena.lab.capture --action ground.2 --ticks 8 --camera-yaw -35 --camera-pitch 20 \
+  --overlays none --dummy off --output .ability-lab-cache/fightguy/straight-punch-rear-right
+```
+
 Inspect foot drift, clipping, silhouette, contact timing, recovery, endpoint and
 interruption blends into idle/fall. Test reset of deformation inherited from
 adjacent moves. Candidate inspection must use the actual current character,
@@ -238,6 +294,7 @@ play the accepted package clip.
 | [Manki leg correction](../research/2026-10-14-genra-manki-leg-correction.md) | Anatomical IK repair after a misleading pose metric | `artifacts/genra-manki-aerial-20261014/` |
 | [Manki air 3](../research/2026-10-15-manki-air3-double-fist.md) | Accepted package integration and existing deformation controls | `artifacts/manki-air3-integration-20261015/` |
 | [Manki Head Slam](../research/2026-10-16-manki-ground4-head-slam.md) | Current-session authorship, quaternion conversion and finger correction | `artifacts/manki-g4-head-slam-20261016/` |
+| [Provider A/B](../research/2026-10-16-genra-opus-ab.md) | Opus 5.5 through the Claude CLI on the retained aerial prompt; bend-direction checks | `artifacts/genra-opus-ab-20261016/` |
 
 The aerial workspace's `README.md` indexes the reference/conversion/import
 helpers. Head Slam retains the later authoring and finger-repair passes. These
