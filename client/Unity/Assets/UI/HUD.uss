@@ -461,7 +461,9 @@
     -unity-font-style: bold;
 }
 
-/* Four paired move tickets. The backing geometry is drawn by HUDManager. */
+/* Move keys: a paper tab per normal over a raised ink key per special.
+   Depth is state. A ready key stands on its offset plate; it sinks while its
+   move runs or cools down, refills, then pops back up with a brief yellow edge. */
 .move-deck {
     position: absolute;
     left: 0;
@@ -475,7 +477,6 @@
 
 .move-pairs {
     position: relative;
-    height: 104px;
     flex-direction: row;
     flex-shrink: 0;
     transform-origin: right bottom;
@@ -483,64 +484,117 @@
 
 .move-pair {
     position: relative;
-    width: 136px;
-    height: 104px;
+    width: 68px;
     margin: 0 4px;
     flex-shrink: 0;
+    flex-direction: column;
     overflow: visible;
 }
 
 .slot {
     position: relative;
-    height: 52px;
-    width: 136px;
     flex-shrink: 0;
     overflow: visible;
 }
 
-.slot-name {
-    display: none;
-    height: 40px;
-    flex-shrink: 0;
-    margin: 0 17px;
-    padding: 0;
-    white-space: normal;
-    font-size: 18px;
-    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
-    -unity-text-align: middle-center;
-    color: #1B1A18;
+.normal-slot {
+    width: 67px;
+    height: 37px;
 }
 
-.slot-name.long-move-name {
-    font-size: 16px;
-}
-
-.normal-slot .slot-name {
+.special-slot {
+    width: 68px;
+    height: 68px;
     margin-top: 8px;
 }
 
-.special-slot .slot-name {
-    display: none;
-    height: 40px;
-    margin-bottom: 5px;
-    font-size: 18px;
-    color: #F0EEE8;
+.slot-plate {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 64px;
+    height: 34px;
+    background-color: #161513;
 }
 
-.special-slot .slot-name.long-move-name {
-    font-size: 16px;
+.special-slot .slot-plate {
+    left: 4px;
+    top: 4px;
+    height: 64px;
+    background-color: #39A9FF;
+    border-width: 2px;
+    border-color: #161513;
+    transition-property: background-color;
+    transition-duration: 0.1s;
+}
+
+.slot.locked .slot-plate {
+    display: none;
+}
+
+.slot-face {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 64px;
+    height: 34px;
+    background-color: #F0EEE8;
+    border-width: 2px;
+    border-color: #161513;
+    transition-property: translate, border-color;
+    transition-duration: 0.07s;
+}
+
+.special-slot .slot-face {
+    height: 64px;
+    background-color: #1B1A18;
+    border-color: #F0EEE8;
+}
+
+.normal-slot.in-use .slot-face,
+.normal-slot.on-cooldown .slot-face {
+    translate: 3px 3px;
+}
+
+.special-slot.in-use .slot-face,
+.special-slot.on-cooldown .slot-face {
+    translate: 4px 4px;
+}
+
+.special-slot.on-cooldown .slot-face {
+    border-color: #6F6A73;
+}
+
+.special-slot.ready-pulse .slot-face {
+    translate: -1px -1px;
+    border-color: #FFCC22;
+}
+
+.slot.quiet-feedback .slot-face {
+    transition-duration: 0s;
+}
+
+.special-slot.quiet-feedback.ready-pulse .slot-face {
+    translate: 0 0;
+}
+
+.slot-name {
+    display: none;
 }
 
 .slot-content {
-    position: relative;
-    flex-grow: 1;
-    margin: 12px 10px 6px 10px;
-    overflow: hidden;
+    position: absolute;
+    left: 26px;
+    top: 0;
+    width: 30px;
+    height: 30px;
 }
 
 .special-slot .slot-content {
-    margin-top: 6px;
-    margin-bottom: 6px;
+    left: 2px;
+    top: 2px;
+    width: 56px;
+    height: 56px;
 }
 
 .slot-icon-inner {
@@ -549,102 +603,64 @@
     top: 0;
     right: 0;
     bottom: 0;
-    transition-property: scale, translate, opacity;
-    transition-duration: 0.12s;
-}
-
-.slot.ready-pulse .slot-icon-inner {
-    scale: 1.03;
-}
-
-.slot.used-pulse .slot-icon-inner {
-    scale: 0.95;
-    translate: 0 2px;
-}
-
-.slot.quiet-feedback .slot-icon-inner {
-    scale: 1;
-    translate: 0 0;
-}
-
-.slot.locked .slot-icon-inner {
-    opacity: 0.4;
-}
-
-.slot.locked .slot-name {
-    font-size: 17px;
+    transition-property: opacity;
+    transition-duration: 0.1s;
 }
 
 .slot.on-cooldown .slot-icon-inner {
-    opacity: 0.45;
+    opacity: 0.3;
 }
 
-.slot-ready {
-    position: absolute;
-    display: none;
-    right: 7px;
-    top: 4px;
-    width: 50px;
-    height: 18px;
-    margin: 0;
-    padding: 0;
-    color: #161513;
-    background-color: #E05C2A;
-    border-width: 1px;
-    border-color: #161513;
-    font-size: 11px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
+.slot.locked .slot-icon-inner {
+    opacity: 0.35;
 }
 
-.special-slot .slot-ready {
-    background-color: #39A9FF;
-    left: 7px;
-    right: auto;
-    top: 4px;
-}
-
-.slot.ready-pulse .slot-ready {
-    display: flex;
-}
-
+/* Refill: grows from the bottom as the cooldown elapses (height set by HUDManager). */
 .slot-cooldown {
     position: absolute;
-    left: 10px;
-    right: 10px;
-    bottom: 3px;
-    height: 4px;
     display: none;
-    transform-origin: left center;
-    background-color: #E05C2A;
-}
-
-.special-slot .slot-cooldown {
-    background-color: #39A9FF;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+    background-color: rgba(57, 169, 255, 0.2);
+    border-top-width: 2px;
+    border-color: #39A9FF;
 }
 
 .slot-timer {
     position: absolute;
-    left: 20px;
-    right: 20px;
-    top: 8px;
+    display: none;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
     margin: 0;
     padding: 0;
-    font-size: 15px;
+    font-size: 24px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
     -unity-text-outline-width: 1px;
-    -unity-text-outline-color: #161513;
+    -unity-text-outline-color: #000000;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
     color: #F0EEE8;
-    background-color: #1B1A18;
+}
+
+.normal-slot .slot-timer {
+    font-size: 14px;
+}
+
+/* Cooldown completion is shown by the pop and yellow edge, not a text tag. */
+.slot-ready {
+    display: none;
 }
 
 .slot-prompt {
     position: absolute;
-    left: 0;
-    right: 0;
-    top: -18px;
-    height: 32px;
+    left: 1px;
+    top: 0;
+    min-width: 22px;
+    height: 30px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
@@ -652,39 +668,36 @@
 
 .slot-prompt-image {
     display: none;
-    width: 32px;
-    height: 32px;
-    padding: 2px;
-    background-color: #161513;
-    border-radius: 16px;
+    width: 22px;
+    height: 22px;
 }
 
 .slot-key-label {
-    min-width: 28px;
-    max-width: 112px;
-    height: 28px;
-    padding: 0 5px;
-    font-size: 18px;
+    margin: 0;
+    padding: 0;
+    font-size: 17px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
+    white-space: nowrap;
     color: #1B1A18;
-    background-color: #F0EEE8;
-    border-width: 2px;
-    border-color: #161513;
 }
 
 .special-slot .slot-prompt {
-    left: auto;
-    right: 6px;
-    top: 8px;
-    height: 24px;
+    left: -9px;
+    top: -9px;
+    min-width: 0;
+    height: auto;
+    rotate: -4deg;
 }
 
 .special-slot .slot-key-label {
-    min-width: 22px;
-    height: 22px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
     font-size: 12px;
-    border-width: 1px;
+    background-color: #F0EEE8;
+    border-width: 2px;
+    border-color: #161513;
 }
 
 .controller-prompts .special-slot .slot-prompt {
@@ -694,7 +707,7 @@
 .move-tooltip {
     position: absolute;
     display: none;
-    top: -48px;
+    top: -34px;
     width: 240px;
     height: 26px;
     margin: 0;
@@ -709,29 +722,29 @@
 }
 
 .modifier-rail {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    top: 50px;
-    height: 5px;
-    background-color: #39A9FF;
-    transition-property: background-color;
-    transition-duration: 0.1s;
+    display: none;
 }
 
+/* Controller only: specials share each face button behind the modifier. */
 .modifier-prompt {
     position: absolute;
-    left: -42px;
-    top: 39px;
+    left: -58px;
+    top: 63px;
     height: 28px;
-    min-width: 56px;
-    padding: 0 5px;
+    min-width: 48px;
+    padding: 0 6px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
     background-color: #F0EEE8;
     border-width: 2px;
     border-color: #1B1A18;
+    transition-property: background-color;
+    transition-duration: 0.1s;
+}
+
+.keyboard-modifier {
+    display: none;
 }
 
 .modifier-button {
@@ -743,34 +756,22 @@
 .modifier-key {
     margin: 0;
     padding: 0;
-    font-size: 10px;
+    font-size: 16px;
     -unity-font-style: bold;
     color: #1B1A18;
-}
-
-.controller-prompts .modifier-key {
-    font-size: 18px;
 }
 
 .modifier-plus {
     margin: 0;
-    padding: 0 3px;
+    padding: 0 0 0 3px;
     color: #1B1A18;
-    font-size: 18px;
+    font-size: 16px;
     -unity-font-style: bold;
 }
 
-.keyboard-modifier .modifier-plus {
-    display: none;
-}
-
 .modifier-held .modifier-prompt,
-.modifier-held .modifier-rail {
+.modifier-held .special-slot .slot-plate {
     background-color: #FFCC22;
-}
-
-.modifier-held .special-slot .slot-name {
-    color: #FFCC22;
 }
 
 /* Locked marker keeps its anchor when the optional damage tab is hidden. */

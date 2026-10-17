@@ -356,6 +356,7 @@ __pycache__/
 
 # Local promo renders and composition workspaces
 /brag-output*/
+videos/*
 
 # Personal vlog research and local Downloads/session source pointers.
 /docs/research/2026-10-14-development-*
