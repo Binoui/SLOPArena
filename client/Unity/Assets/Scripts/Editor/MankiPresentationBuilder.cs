@@ -62,7 +62,7 @@ namespace SlopArena.EditorTools
         {
             public Material Glow, SoftGlow, Fireball, Flash, Pow, Puff, Soot, Mist, Junk, Ring, Scorch, Spark, Flame,
                 FlameJet, FlameJetHot, Grin, Ribbon, RibbonHeavy, Rattle, Rocket;
-            public Mesh RocketMesh;
+            public Mesh RocketMesh, LighterMesh;
         }
 
         [CliCommand("sloparena.presentation.manki.build", "Rebuild Manki's package presentation prefabs, textures, meshes, materials and bindings in Edit Mode. Saving the catalog triggers the usual package cook.", MainThreadRequired = true, Tags = new[] { "presentation", "character" })]
@@ -89,6 +89,7 @@ namespace SlopArena.EditorTools
                 ("presentation.manki.bazooka.singe", Singe()),
                 ("presentation.manki.bazooka.explosion", Boom("MankiBazookaExplosion", big: true)),
                 ("presentation.manki.aerosol-inferno.charge", AerosolCharge()),
+                ("presentation.manki.aerosol-inferno.lighter", Lighter()),
                 ("presentation.manki.aerosol-inferno.start", Inferno()),
                 ("presentation.manki.aerosol-inferno.hit", InfernoHit()),
             };
@@ -192,9 +193,11 @@ namespace SlopArena.EditorTools
             var velocity = grin.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.World;
-            velocity.x = new ParticleSystem.MinMaxCurve(0f);
-            velocity.y = new ParticleSystem.MinMaxCurve(1f, Curve((0f, 1.2f), (0.35f, 0.5f), (1f, 0.25f)));
-            velocity.z = new ParticleSystem.MinMaxCurve(0f);
+            // x, y and z share one curve mode; a zero multiplier keeps the grin from drifting sideways.
+            var rise = Curve((0f, 1.2f), (0.35f, 0.5f), (1f, 0.25f));
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, rise);
+            velocity.y = new ParticleSystem.MinMaxCurve(1f, rise);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, rise);
             SizeOverLife(grin, Curve((0f, 0.35f), (0.12f, 1.08f), (0.25f, 1f), (1f, 1.12f)));
             var color = grin.colorOverLifetime;
             color.enabled = true;
@@ -591,9 +594,10 @@ namespace SlopArena.EditorTools
         // ── Aerosol Inferno (F) ──────────────────────────────────────────────────
 
         /// <summary>
-        /// The charge, at the can's nozzle: the can rattles and leaks mist, and a pilot flame on the
-        /// nozzle grows one step per charge tier with a spark pop and a rattle at each of the five.
-        /// Everything stops on release (<see cref="ChargeTierCues"/>).
+        /// The charge, at the can's nozzle: the can itself grows, shakes harder and heats red as the
+        /// charge builds and throbs when full (<see cref="ChargePropFeedback"/>). It rattles and leaks
+        /// mist, and a pilot flame on the nozzle grows one step per charge tier with a spark pop and
+        /// a rattle at each of the five. Everything stops on release (<see cref="ChargeTierCues"/>).
         /// </summary>
         private static GameObject AerosolCharge()
         {
@@ -709,7 +713,106 @@ namespace SlopArena.EditorTools
             cues.Tier5 = tiers[3];
             cues.Grow = grow.transform;
             cues.GrowPerTier = 0.3f;
-            _kit.Sound(root, "manki_lighter", 0.5f, 1f);
+            var feedback = root.AddComponent<ChargePropFeedback>();
+            feedback.Slot = AbilitySlots.F;
+            feedback.Marks = rattle;
+            _kit.Sound(root, "manki_can_rattle", 0.35f, 0.9f);
+            return _kit.Save(root);
+        }
+
+        /// <summary>
+        /// The homemade flamethrower's other half: a chunky red lighter, sized like his cartoon spray
+        /// can, in his free hand while the stream fires. The fire clip keeps that hand under the can,
+        /// so the lighter leans back toward the cap, at an angle measured from the fist, can axis and
+        /// cap to clear the can from tick 4 to tick 37 with its flame beside the cap. It shows from
+        /// tick 3, sparks fly off the wheel as it flicks on, and as the stream lights at tick 8 its
+        /// flame flares toward the cap. The cue ends at tick 39, before the clip swings the can back
+        /// through that hand.
+        /// </summary>
+        private static GameObject Lighter()
+        {
+            var root = _kit.NewRoot("MankiLighter", attackBound: true);
+            var upright = Frame(root, upright: true);
+            var aim = new GameObject("Lean");
+            aim.transform.SetParent(upright.transform, false);
+            aim.transform.localRotation = Quaternion.Euler(-30f, 0f, -10f);
+            const float show = 2f / 60f;
+            var body = Particles(aim, "Lighter", _m.Rocket, 1f, ParticleSystemSimulationSpace.Local);
+            Burst(body, 1);
+            var main = body.main;
+            main.startDelay = show;
+            main.startLifetime = 60f;
+            main.startSize = 1f;
+            var renderer = body.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            renderer.mesh = _m.LighterMesh;
+            renderer.alignment = ParticleSystemRenderSpace.Local;
+
+            var nozzle = new GameObject("Flame");
+            nozzle.transform.SetParent(aim.transform, false);
+            nozzle.transform.localPosition = new Vector3(0f, LighterTop + 0.13f, 0f);
+            var glow = Particles(nozzle, "Glow", _m.Glow, 1f, ParticleSystemSimulationSpace.Local);
+            main = glow.main;
+            main.loop = true;
+            main.startDelay = show + 0.03f;
+            main.startLifetime = 0.15f;
+            main.startSize = 0.55f;
+            main.startColor = new Color(1f, 0.72f, 0.3f, 0.6f);
+            var emission = glow.emission;
+            emission.rateOverTime = 14f;
+            Behind(glow);
+            var flame = Particles(nozzle, "Flame", _m.Flame, 1f, ParticleSystemSimulationSpace.Local);
+            main = flame.main;
+            main.loop = true;
+            main.startDelay = show + 0.03f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.1f, 0.14f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.3f, 0.36f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.12f, 0.12f);
+            emission = flame.emission;
+            emission.rateOverTime = 28f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 2) });
+            RandomFrame(flame, 2, 2);
+            SizeOverLife(flame, Curve((0f, 0.6f), (0.35f, 1f), (1f, 0.8f)));
+            InFront(flame);
+
+            var flick = Particles(aim, "Flick", _m.Spark, 0.3f);
+            flick.transform.localPosition = new Vector3(-0.02f, LighterTop - 0.02f, 0f);
+            Burst(flick, 6);
+            main = flick.main;
+            main.startDelay = show;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.12f, 0.22f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.07f, 0.12f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.8f, 2f);
+            main.gravityModifier = 0.5f;
+            Sphere(flick, 0.01f);
+            Spin(flick, 400f);
+            Fade(flick, 0.5f);
+            InFront(flick);
+
+            // Tick 8 (seven ticks after this cue): as the spray lights, the flame flares forward into
+            // the stream, away from his face.
+            var flareAt = new GameObject("Flare");
+            flareAt.transform.SetParent(upright.transform, false);
+            flareAt.transform.localPosition = aim.transform.localRotation * nozzle.transform.localPosition;
+            var flare = Particles(flareAt, "Flare", _m.Flame, 0.5f);
+            main = flare.main;
+            main.startDelay = 7f / 60f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.16f, 0.24f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.32f, 0.5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 3.5f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.3f, 0.3f);
+            Burst(flare, 5);
+            var shape = flare.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 20f;
+            shape.radius = 0.03f;
+            shape.rotation = new Vector3(-35f, 0f, 0f);
+            RandomFrame(flare, 2, 2);
+            SizeOverLife(flare, Curve((0f, 0.5f), (0.3f, 1f), (1f, 0.6f)));
+            Fade(flare, 0.5f);
+            InFront(flare);
+            _kit.Sound(root, "manki_lighter", 0.6f, 1f);
             return _kit.Save(root);
         }
 
@@ -763,7 +866,7 @@ namespace SlopArena.EditorTools
             velocity = licks.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.x = new ParticleSystem.MinMaxCurve(0f);
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.y = new ParticleSystem.MinMaxCurve(1.2f, 1.8f);
             velocity.z = new ParticleSystem.MinMaxCurve(0.5f, 1f);
             RandomFrame(licks, 2, 2);
@@ -1074,9 +1177,9 @@ namespace SlopArena.EditorTools
             var velocity = tongues.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.x = new ParticleSystem.MinMaxCurve(0f);
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.y = new ParticleSystem.MinMaxCurve(rise * 0.6f, rise);
-            velocity.z = new ParticleSystem.MinMaxCurve(0f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             // Each tongue trails behind its particle; grow it with distance so none reach back past the nozzle.
             Stretch(tongues, 0f, 1.25f);
             SizeOverLife(tongues, Curve((0f, 0.2f), (0.5f, 0.85f), (1f, 1.25f)));
@@ -1136,6 +1239,7 @@ namespace SlopArena.EditorTools
             Rattle = Mat("MankiRattle", 256, 128, RattlePixel),
             Rocket = RocketMaterial(),
             RocketMesh = RocketMesh("MankiRocketMesh"),
+            LighterMesh = LighterMesh("MankiLighterMesh"),
         };
 
         private static Material Mat(string name, int width, int height, System.Func<float, float, Color> pixel)
@@ -1499,6 +1603,81 @@ namespace SlopArena.EditorTools
             var o = q + new Vector2(0.16f, 0.2f);
             return -Mathf.Min(Mathf.Min(Circle(o, Vector2.zero, 1.08f), Circle(o, new Vector2(0f, 0.62f), 0.68f)),
                 Mathf.Min(Circle(o, new Vector2(-0.7f, 0.4f), 0.58f), Circle(o, new Vector2(0.7f, 0.4f), 0.58f)));
+        }
+
+        // The lighter's hood top in its mesh (metres above the grip at the origin).
+        private const float LighterTop = 0.17f;
+
+        /// <summary>
+        /// A chunky disposable lighter along +Y in metres, held at the origin, at the cartoon scale
+        /// of his spray can: a red body with chamfered edges, a steel hood and a dark spark wheel.
+        /// UVs pick the rocket atlas's colour columns, with V carrying a fixed light for toon shading.
+        /// </summary>
+        private static Mesh LighterMesh(string name)
+        {
+            const float halfWidth = 0.05f, halfDepth = 0.028f, chamfer = 0.014f, bottom = -0.15f, shoulder = 0.12f;
+            var light = new Vector3(0.45f, 0.35f, 0.82f).normalized;
+            var vertices = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var triangles = new List<int>();
+            Vector3[] Ring(float shrink) => new[]
+            {
+                new Vector3(halfWidth, 0f, -halfDepth + chamfer), new Vector3(halfWidth, 0f, halfDepth - chamfer),
+                new Vector3(halfWidth - chamfer, 0f, halfDepth), new Vector3(-halfWidth + chamfer, 0f, halfDepth),
+                new Vector3(-halfWidth, 0f, halfDepth - chamfer), new Vector3(-halfWidth, 0f, -halfDepth + chamfer),
+                new Vector3(-halfWidth + chamfer, 0f, -halfDepth), new Vector3(halfWidth - chamfer, 0f, -halfDepth),
+            }.Select(v => new Vector3(v.x * shrink, 0f, v.z * shrink)).ToArray();
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, float column)
+            {
+                var normal = Vector3.Cross(b - a, d - a).normalized;
+                float lit = 0.5f + 0.5f * Mathf.Abs(Vector3.Dot(normal, light));
+                int k = vertices.Count;
+                vertices.AddRange(new[] { a, b, c, d });
+                for (int i = 0; i < 4; i++) uvs.Add(new Vector2(column, lit));
+                triangles.AddRange(new[] { k, k + 1, k + 2, k, k + 2, k + 3 });
+            }
+            void Prism(Vector3[] ring, float y0, float y1, float column)
+            {
+                for (int i = 0; i < ring.Length; i++)
+                {
+                    var a = ring[i];
+                    var b = ring[(i + 1) % ring.Length];
+                    Quad(a + Vector3.up * y0, b + Vector3.up * y0, b + Vector3.up * y1, a + Vector3.up * y1, column);
+                }
+                foreach (float y in new[] { y0, y1 })
+                {
+                    int centre = vertices.Count;
+                    vertices.Add(Vector3.up * y);
+                    uvs.Add(new Vector2(column, y > 0f ? 0.95f : 0.4f));
+                    for (int i = 0; i < ring.Length; i++)
+                    {
+                        vertices.Add(ring[i] + Vector3.up * y);
+                        uvs.Add(new Vector2(column, y > 0f ? 0.95f : 0.4f));
+                    }
+                    for (int i = 0; i < ring.Length; i++)
+                        triangles.AddRange(new[] { centre, centre + 1 + i, centre + 1 + (i + 1) % ring.Length });
+                }
+            }
+            Prism(Ring(1f), bottom, shoulder, 0.125f);
+            Prism(Ring(0.9f), shoulder, LighterTop, 0.625f);
+            const int sides = 10;
+            const float wheelRadius = 0.02f;
+            var wheelCentre = new Vector3(-halfWidth * 0.35f, shoulder + 0.026f, 0f);
+            for (int i = 0; i < sides; i++)
+            {
+                float a0 = i * Mathf.PI * 2f / sides, a1 = (i + 1) * Mathf.PI * 2f / sides;
+                var p0 = wheelCentre + new Vector3(Mathf.Cos(a0), Mathf.Sin(a0), 0f) * wheelRadius;
+                var p1 = wheelCentre + new Vector3(Mathf.Cos(a1), Mathf.Sin(a1), 0f) * wheelRadius;
+                var depth = Vector3.forward * halfDepth * 0.7f;
+                Quad(p0 - depth, p1 - depth, p1 + depth, p0 + depth, 0.875f);
+            }
+            var mesh = new Mesh { name = name };
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return _kit.SaveMesh(mesh);
         }
 
         /// <summary>Colour columns for the rocket mesh (body, band, nose, fins), toon-shaded along V.</summary>

@@ -49,7 +49,9 @@ frames: the "after" run must land the same hits. Defaults per slot are starting 
 Use `--set A:distance=4` for projectile range (the rig allows 0.4–4 m), `--set 4:ticks=110`
 for long startups and `--set A:hold=52` to fully charge an aim-hold special. The rig aims at
 the fighter spacing, so a ground-cursor special (Manki's Round Bomb) lands on the victim
-once it reads the cursor: give it a short hold (`--set A:hold=12`).
+once it reads the cursor: give it a short hold (`--set A:hold=12`). Add `--set F:orbit=65`
+for a view from behind the attacker, as the gameplay camera sees it: held props and their
+effects can hide behind the body or inside the prop itself.
 The wide camera follows both fighters, which keeps leaps and launches in frame.
 
 Then show the owner a concept board before building: paint the proposed effects over
@@ -81,11 +83,12 @@ materials, one method per prefab, then the bindings and `kit.Finish(built)`. Nam
 | Put bone-attached content under `PresentationFrame` (unit scale, optionally upright). | Rigs carry import scales (FightGuy's bones are 1.5×), which scale offsets and local-space particles. |
 | Give each new MonoBehaviour its own file named after the class. | Otherwise the prefab saves a missing script and the component silently does nothing; `kit.Save` now throws. |
 | Attack ticks keep counting while an aim-hold charges, and Hitstop pauses them. | Give charge cues a long `durationTicks`, and find late cues several frames after the nominal tick in captures. |
-| Read cosmetic state through `IPresentationOwnerReceiver`: `ChargeTierCues` (up to five tiers, an `AudioSource` per tier effect, a `Grow` transform scaled per tier), `ChargeTierVariant`, `DamageScaleVariant` (also reads a placement's charge scale). | Charge-tier pings, rare full-charge variants and finisher looks need no Shared change. |
+| Read cosmetic state through `IPresentationOwnerReceiver`: `ChargeTierCues` (up to five tiers, an `AudioSource` per tier effect, a `Grow` transform scaled per tier), `ChargeTierVariant`, `DamageScaleVariant` (also reads a placement's charge scale) and `ChargePropFeedback` (a held prop grows, shakes and heats with the charge). | Charge-tier pings, rare full-charge variants and finisher looks need no Shared change. |
 | A stretched billboard's head is the particle and its quad trails behind it, with U = 0 at the head. Draw a flame's tip at U = 0, keep `lengthScale` near 1.2 with `velocityScale` 0, spawn slightly ahead and grow the size with distance. | Manki's first flame stream trailed 2.5 m backward, over Manki, from particles that were moving forward. |
 | A world-space trail inside an attack-bound cue vanishes when the attack ends. Put lingering trails in their own cue without `AttackBoundPresentation`, and mark projectile trails with `LingerAfterProjectile`. | Manki's jetpack puff column ends at the apex with the move; his rocket's smoke must outlive the rocket. |
 | Put floor marks (rings, scorches, debris landing planes) under a `SnapToFloor` child; particles can collide with that plane. | Blasts happen mid-air; the stage floor comes from `PresentationFloor`, and no floor below hides the mark. |
-| Measure prop anchors with a read-only `eval_file` that attaches the prop as `WeaponAttach` does and reports points in the hand or cue frame. | Manki's bazooka barrel runs along the muzzle cue's +Y and his spray can's nozzle sits at the hand's −Z; guessing them points effects the wrong way. |
+| Measure prop anchors with a read-only `eval_file` that attaches the prop as `WeaponAttach` does and reports points in the hand or cue frame. For a prop in the other hand, sample the clip through the attack (a `PlayableGraph` on the rig) and search angles that keep it clear of the first prop. | Manki's bazooka barrel runs along the muzzle cue's +Y and his spray can's nozzle sits at the hand's −Z; guessing them points effects the wrong way. |
+| Give a velocity module's x, y and z one curve mode: `MinMaxCurve(0f)` is Constant and `MinMaxCurve(a, b)` is TwoConstants, so write `MinMaxCurve(0f, 0f)` beside a range, or a zero multiplier on the same curve beside a curve. | Unity logs "Particle Velocity curves must all be in the same mode" whenever the effect plays; `kit.Save` now throws instead. |
 | Use `ToonShapes.Step` for shader-style smoothstep. | `Mathf.SmoothStep(a, b, t)` interpolates from a to b; it is not a 0–1 step. |
 | Delete prefabs, textures and materials you stop generating. | The builder overwrites, it never removes. |
 

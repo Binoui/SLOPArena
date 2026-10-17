@@ -79,14 +79,16 @@ namespace SlopArena.EditorTools
             [CliArg("width", "Frame width, 320–1920.")] int width = 960,
             [CliArg("height", "Frame height, 180–1080.")] int height = 540,
             [CliArg("track", "Let the wide camera follow both fighters each tick, for leaps and launches.")] bool track = false,
-            [CliArg("hold", "Ticks to keep aiming after the press, 0–120; charges aim-hold specials such as Ki Shot.")] int hold = 0)
+            [CliArg("hold", "Ticks to keep aiming after the press, 0–120; charges aim-hold specials such as Ki Shot.")] int hold = 0,
+            [CliArg("orbit", "Degrees both cameras orbit around the fighters, -180–180: 0 is the side view, 90 looks from behind the attacker like the gameplay camera.")] float orbit = 0f)
         {
             var saved = Read();
             if (!EditorApplication.isPlaying)
                 throw new InvalidOperationException("Enter Play Mode (editor_play) after sloparena.hitfeel.prepare.");
             if (distance < 0.4f || distance > 4f || damage < 0 || damage > 300 || ticks < 10 || ticks > 240 || hold < 0 || hold > 120
+                || orbit < -180f || orbit > 180f
                 || width < 320 || width > 1920 || height < 180 || height > 1080 || width % 2 != 0 || height % 2 != 0)
-                throw new ArgumentException("distance, damage, ticks or frame size is out of range (even frame sizes only).");
+                throw new ArgumentException("distance, damage, ticks, hold, orbit or frame size is out of range (even frame sizes only).");
             byte slotWire = SlopArenaTrainingCommands.MapSlot(slot);
             var plan = ParsePresets(presets);
             var selected = ParseLayers(layers);
@@ -142,6 +144,7 @@ namespace SlopArena.EditorTools
                     review.CaptureTicks = ticks;
                     review.TrackWide = track;
                     review.HoldTicks = hold;
+                    review.CameraOrbitDegrees = orbit;
                     review.Strength = Scaled(selected, scale);
                     review.CloseCamera = close;
                     review.WideCamera = wide;

@@ -195,7 +195,8 @@
     "presentation.manki.bazooka.ready",
     "presentation.manki.bazooka.singe",
     "presentation.manki.aerosol-inferno.charge",
-    "presentation.manki.aerosol-inferno.hit"
+    "presentation.manki.aerosol-inferno.hit",
+    "presentation.manki.aerosol-inferno.lighter"
   ],
   "capabilityRequirements": [
     {
@@ -1460,6 +1461,26 @@
                   "localScaleY": 1,
                   "localScaleZ": 1,
                   "durationTicks": 600
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 1,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.aerosol-inferno.lighter",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "localPositionX": 0.019,
+                  "localPositionY": 0.11,
+                  "localPositionZ": 0.014,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 38
                 }
               },
               {

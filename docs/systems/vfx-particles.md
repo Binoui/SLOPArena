@@ -345,7 +345,8 @@ The fighters land and settle for 40 ticks before the press, and the close camera
 gameplay capsules. Captures always show the default flash and report the local Reduced
 Flashing setting, which otherwise leaves only the rim pulse.
 `--layers shake,flash` isolates layers; unlisted layers stay off, and `off:0` is today's
-presentation. Each run reports its accepted hits (tick, tier, Hitstop) and `pressTick`;
+presentation. `--orbit 65` turns both cameras toward the attacker's back, close to the
+gameplay camera's angle. Each run reports its accepted hits (tick, tier, Hitstop) and `pressTick`;
 a hit's frame is `tick − pressTick`. Output is `<output>/<preset>/{close,wide}/NNN.jpg`,
 numbered from the press tick. [`tools/presentation_review.py`](../../tools/presentation_review.py)
 writes capture batches, summarizes the run, and builds contact sheets, labelled
@@ -438,7 +439,9 @@ Wibou is the reference.
   charge tiers (up to five, each with an optional sound, and can grow a `Grow` transform per
   tier), `ChargeTierVariant` shows a child only after a fully charged attack, and
   `DamageScaleVariant` swaps looks by the spawn scale (a hit contact's damage scale or a
-  placement's charge scale). All three read cosmetic state only.
+  placement's charge scale). `ChargePropFeedback` makes a held prop show the charge: it grows,
+  shakes and heats Manki's spray can through `WeaponAttach.PropFor` and restores it on release.
+  All of them read cosmetic state only.
 - `SnapToFloor` moves a cosmetic child (a blast ring, a scorch, a debris landing plane) onto
   the stage floor from the heightmap `MatchBase` publishes as `PresentationFloor`, or hides it
   when there is no floor below.

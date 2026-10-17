@@ -108,9 +108,11 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             1, aerosolStage.DurationTicks);
         Assert.True(aerosolParameters.Damage > 0f);
         var presentations = aerosolStage.Operations.OfType<CookedEmitPresentationOperation>().ToArray();
-        Assert.Equal(2, presentations.Length);
-        // The charge cue starts with the charge; the flame stream starts with the hitbox.
+        Assert.Equal(3, presentations.Length);
+        // The charge cue starts with the charge, the lighter right after release, and the flame
+        // stream with the hitbox.
         Assert.Equal((ushort)0, Assert.Single(presentations, x => x.PresentationId == "presentation.manki.aerosol-inferno.charge").Tick);
+        Assert.Equal((ushort)1, Assert.Single(presentations, x => x.PresentationId == "presentation.manki.aerosol-inferno.lighter").Tick);
         Assert.Equal(aerosolParameters.FireTriggerTick,
             Assert.Single(presentations, x => x.PresentationId == "presentation.manki.aerosol-inferno.start").Tick);
         Assert.Empty(package.Definition.Slots.SelectMany(x => x.Timeline.Stages).SelectMany(x => x.Operations).OfType<CookedSetVelocityOperation>());

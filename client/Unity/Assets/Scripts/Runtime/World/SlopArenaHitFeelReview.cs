@@ -33,6 +33,11 @@ namespace SlopArena.EditorTools
         public bool TrackWide;
         /// <summary>Ticks to keep aiming after the press, which charges aim-hold specials.</summary>
         public int HoldTicks;
+        /// <summary>
+        /// Degrees both cameras orbit around the fighters: 0 is the side view, 90 looks from behind
+        /// the attacker along the attack, like the gameplay camera.
+        /// </summary>
+        public float CameraOrbitDegrees;
         public UnityEngine.Camera CloseCamera = null!, WideCamera = null!;
         public RenderTexture CloseTarget = null!, WideTarget = null!;
         public string OutputDirectory = "";
@@ -149,7 +154,7 @@ namespace SlopArena.EditorTools
         /// <summary>Side views: attacker on the left, victim on the right, launches travel right.</summary>
         private void Frame(Vector3 center, Vector3 forward)
         {
-            Vector3 side = Vector3.Cross(Vector3.up, forward);
+            Vector3 side = Side(forward);
             Place(CloseCamera, center + forward * 0.35f + Vector3.up * 0.9f, side, 5.2f, 0.45f, 30f);
             Place(WideCamera, center + forward * 2.2f + Vector3.up * 1.4f, side, 8f, 0.9f, 40f);
         }
@@ -163,7 +168,7 @@ namespace SlopArena.EditorTools
             // PY is the capsule centre (CharacterDefinition.BoneYToWorldY), not the feet.
             float floor = Mathf.Min(a.y - _attacker.CapsuleHeight * 0.5f, v.y - _victim.CapsuleHeight * 0.5f);
             var middle = new Vector3((a.x + v.x) * 0.5f, floor + height * 0.5f, (a.z + v.z) * 0.5f);
-            Vector3 side = Vector3.Cross(Vector3.up, _forward);
+            Vector3 side = Side(_forward);
             const float fov = 30f;
             float tangent = Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
             float gap = Vector3.Distance(new Vector3(a.x, 0f, a.z), new Vector3(v.x, 0f, v.z));
@@ -188,8 +193,12 @@ namespace SlopArena.EditorTools
             float distance = Mathf.Max((top - bottom + 2f) / (2f * tangent), (gap + 3f) / (2f * tangent * WideCamera.aspect), 6f);
             _wideFocus = Vector3.Lerp(_wideFocus, middle, 0.2f);
             _wideDistance = Mathf.Lerp(_wideDistance, distance, 0.2f);
-            Place(WideCamera, _wideFocus, Vector3.Cross(Vector3.up, _forward), _wideDistance, _wideDistance * 0.09f, 40f);
+            Place(WideCamera, _wideFocus, Side(_forward), _wideDistance, _wideDistance * 0.09f, 40f);
         }
+
+        /// <summary>The cameras' direction from the fighters: the side, orbited toward the attacker's back.</summary>
+        private Vector3 Side(Vector3 forward)
+            => Quaternion.AngleAxis(CameraOrbitDegrees, Vector3.up) * Vector3.Cross(Vector3.up, forward);
 
         private static void Place(UnityEngine.Camera camera, Vector3 focus, Vector3 side, float distance,
             float rise, float fieldOfView)

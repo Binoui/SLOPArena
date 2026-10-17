@@ -74,7 +74,7 @@ Material:
     - _FlipbookBlending: 0
     - _FlipbookMode: 0
     - _Mode: 0
-    - _QueueOffset: 0
+    - _QueueOffset: 9
     - _SoftParticlesEnabled: 0
     - _SoftParticlesFarFadeDistance: 1
     - _SoftParticlesNearFadeDistance: 0
