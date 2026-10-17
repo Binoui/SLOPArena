@@ -514,7 +514,9 @@
     top: 3px;
     width: 64px;
     height: 34px;
-    background-color: #161513;
+    background-color: #E05C2A;
+    border-width: 2px;
+    border-color: #161513;
 }
 
 .special-slot .slot-plate {

@@ -93,20 +93,20 @@ components:
     textColor: "{colors.paper}"
     rounded: "{rounded.none}"
     padding: "8px 12px"
-  hud-move-ticket:
+  hud-move-column:
     rounded: "{rounded.none}"
-    width: "136px"
-    height: "104px"
-  hud-normal-move:
+    width: "68px"
+    height: "113px"
+  hud-normal-tab:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.hud-ink}"
-    width: "136px"
-    height: "52px"
-  hud-special-move:
+    width: "64px"
+    height: "34px"
+  hud-special-key:
     backgroundColor: "{colors.hud-ink}"
     textColor: "{colors.paper}"
-    width: "136px"
-    height: "52px"
+    width: "64px"
+    height: "64px"
   hud-move-hover:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.hud-ink}"
@@ -171,7 +171,7 @@ components:
 
 # Design System: SLOPArena
 
-**Authority and status:** [Visual Language](docs/design/visual-language.md) owns the shared identity; [Art and Asset Conventions](docs/contributing/conventions.md) own 3D presentation and assets. This document specifies the native approved target, mirrored by `.impeccable/design.json` and its surface brief. The unreleased solo-developed game is not on Steam. The player-facing identity rollout is implemented across Home, shared shell, fighter/stage selection, Results, browser/lobby, Settings, pause/Training controls, chat, and entry/confirmation dialogs. Gameplay HUD now combines portrait fight cards and prominent lives with four paired move tickets displaying all eight moves, plus an independent target marker with optional damage. Functional colors and gameplay authority remain. Creator/Ability Lab tools, website migration, connected-room acceptance, and release-copy changes are not claimed.
+**Authority and status:** [Visual Language](docs/design/visual-language.md) owns the shared identity; [Art and Asset Conventions](docs/contributing/conventions.md) own 3D presentation and assets. This document specifies the native approved target, mirrored by `.impeccable/design.json` and its surface brief. The unreleased solo-developed game is not on Steam. The player-facing identity rollout is implemented across Home, shared shell, fighter/stage selection, Results, browser/lobby, Settings, pause/Training controls, chat, and entry/confirmation dialogs. Gameplay HUD now combines portrait fight cards and prominent lives with four paired move keys displaying all eight moves, plus an independent target marker with optional damage. Functional colors and gameplay authority remain. Creator/Ability Lab tools, website migration, connected-room acceptance, and release-copy changes are not claimed.
 
 ## Overview
 
@@ -211,7 +211,7 @@ The palette uses local paper and ink values, with Action Yellow reserved for pri
 
 **Implemented paper/ink roles:** The frontend is paper-led, with the user-authored `Assets/UI/FrontendPaperBackground.png` behind every shell page. Shared `--shell-page`, page-ink/muted/warning/error roles distinguish the outer surface from dark content fields. Existing `--shell-canvas` retains exact ink `#1B1A18`; surface/recess/rule remain `#252422`, `#161513`, `#7B7872`. Paper controls remain `#F0EEE8`, Action Yellow `#FFCC22`. Settings, chat, match overlays, and HUD keep their calm dark-field and functional-color semantics; 3D arenas are not wallpapered or recolored.
 
-**Paired HUD roles:** Paper normals use HUD Ink names and a restrained Combat Orange top rule; Ink specials use Paper names and a shared HUD Special Blue seam. Holding the effective special modifier turns the seam, connector field, and special names Action Yellow. These category accents remain separate from character artwork and the existing damage tiers.
+**Paired HUD roles:** Paper normal tabs stand on Combat Orange offset plates; Ink special keys stand on HUD Special Blue plates. Holding the effective special modifier turns the special plates and connector Action Yellow, and a key that becomes ready pops with a brief Action Yellow edge. These category accents remain separate from character artwork and the existing damage tiers.
 
 ### Named Rules
 **The One Accent Rule.** Action Yellow and Combat Orange may both exist on a screen, but one accent owns each region.
@@ -238,7 +238,7 @@ The palette uses local paper and ink values, with Action Yellow reserved for pri
 
 **Settings, match overlays, and chat:** Settings now uses paper outer framing, ink Archivo title, bordered paper category tabs, yellow selection, and a quiet dark scroll/control field. Keyboard-focused tabs and Back use ink/paper contrast with a yellow frame; outer status text is ink, not yellow on paper. All five categories retain actual values, controls, scrolling, remap, reset, and display-revert behavior. Migrated controls out-specify optional local licensed-study images without editing those excluded assets. Training/Solo pause retains paper controls and yellow Resume; Training utility stays quieter ink. Gameplay join dialogs preserve input/modal/pause ownership. Chat retains channel/history/draft/mute/resize and hide/reopen behavior; maximize is removed. Native evidence: `.impeccable/review/remaining-ui-20261001/`, `.impeccable/review/settings-paper-20261001/`, and `.impeccable/review/chat-contrast-controls-20261001/`.
 
-**Fight-card HUD:** Stable 330×120 player cards use larger 100×120 portraits, slightly offset portrait/identity frames, 54 px utility percentages, and a dedicated LIVES count plus filled/outlined-struck tickets. Training omits stocks; 5–8 use tighter ticket spacing and larger stock counts remain count-only. Eliminated portraits quiet down without fading critical numbers. A brief paper KO stamp sits beside the affected card, switching to ink/red OUT on the last life; it replaces the duplicated particle-text/toast stock-loss message and keeps the card's identity accent. The paired deck is an icon-only strip; fixed grounded move names appear in a small runtime hover label rather than permanent card text. Bindings, modifier lettering, and cooldown seconds retain readable utility type. Reduced flashing suppresses damage kicks/flashes and artwork scaling while retaining readiness and stock-loss information. The independent target marker and existing damage tiers remain. Portrait/stock baseline: `.impeccable/review/fight-card-hud-20261001/`; preceding HUD evidence: `.impeccable/review/hud-punch-20261013-twd77uy1/`; paired-deck evidence: `.impeccable/review/paired-hud-20261013/`. Controlled specimens are presentation proof, not online gameplay acceptance.
+**Fight-card HUD:** Stable 330×120 player cards use larger 100×120 portraits, slightly offset portrait/identity frames, 54 px utility percentages, and a dedicated LIVES count plus filled/outlined-struck tickets. Training omits stocks; 5–8 use tighter ticket spacing and larger stock counts remain count-only. Eliminated portraits quiet down without fading critical numbers. A brief paper KO stamp sits beside the affected card, switching to ink/red OUT on the last life; it replaces the duplicated particle-text/toast stock-loss message and keeps the card's identity accent. The move deck is an icon-only row of keys; fixed grounded move names appear in a small runtime hover label rather than permanent text. Bindings, modifier lettering, and cooldown seconds retain readable utility type. Reduced flashing suppresses damage kicks/flashes and the ready key's pop while keeping sunk cooldown keys and stock-loss information. The independent target marker and existing damage tiers remain. Portrait/stock baseline: `.impeccable/review/fight-card-hud-20261001/`; preceding HUD evidence: `.impeccable/review/hud-punch-20261013-twd77uy1/`; paired-deck evidence: `.impeccable/review/paired-hud-20261013/`; the move keys were accepted in game on 2026-10-17 without a recorded capture. Controlled specimens are presentation proof, not online gameplay acceptance.
 
 **Character:** Heavy, blocky declarations paired with clear utility typography. Display type makes one statement at a time; utility type carries actions, status, and annotations.
 
@@ -258,9 +258,9 @@ The palette uses local paper and ink values, with Action Yellow reserved for pri
 
 Screens begin with a stable rectangular grid: primary action zone, content or roster zone, status zone, and utility zone. The grid is then disrupted once or twice with controlled rotation, overlap, crop, or a burst shape. Keep interactive controls aligned even when surrounding poster elements are crooked.
 
-The current Unity UI uses proportional screen anchoring for major regions, with fixed internal dimensions for buttons, HUD billboards, and slots. Common observed rhythm values are `8px`, `12px`, `14px`, and `18px`; dense HUD elements use tighter internal padding than menus. Gameplay HUD information stays stable while the camera moves: player billboards stack predictably, the four-ticket move deck sits at the lower edge, and overhead damage remains spatially attached to fighters.
+The current Unity UI uses proportional screen anchoring for major regions, with fixed internal dimensions for buttons, HUD billboards, and slots. Common observed rhythm values are `8px`, `12px`, `14px`, and `18px`; dense HUD elements use tighter internal padding than menus. Gameplay HUD information stays stable while the camera moves: player billboards stack predictably, the four-column move-key deck sits at the lower edge, and overhead damage remains spatially attached to fighters.
 
-The paired deck is centered by default, with four equal icon pairs and an `8px` gap, totaling `576px` in logical UI units—about 30% of a 1920-wide viewport at default scale. Its lower margin is `18px`. When the deck would intersect stacked player cards, it moves right and scales to the available width. Native 1366×768 specimens at UI100 and UI140 keep all eight entries visible and clear of four portraits.
+The move-key deck is centered by default: four `68px` columns with `8px` gaps, about `304px` in logical UI units (roughly 16% of a 1920-wide viewport at default scale). Its lower margin is `18px`. When the deck would intersect stacked player cards, it moves right and scales to the available width. The 1366×768 and UI140 clearance checks were recorded for the earlier tickets and have not been re-captured for the keys.
 
 Do not rotate dense paragraphs, settings controls, or critical status. Rotation belongs to decorative notes, tape labels, poster groups, and cutout material.
 
@@ -283,7 +283,7 @@ Corners are square by default (`0px`). Forms are rectangular, assertive, and con
 
 Rotation is authored and restrained: typically under three degrees for grouped content, with larger angles reserved for decorative bursts or notes. Interactive controls use a strong dark border, a heavier bottom edge, and a short press translation. Dense HUD geometry may use tiny offsets and thin dividers, but its alignment remains stable.
 
-Paired move tickets use continuous angular Paper/Ink fields with cut corners and thin Ink outlines. A `6px` orange top rule marks the normal tier; one `5px` blue seam joins the special tier across all four tickets. Action art sits inside those fields without a separate icon-box frame.
+Move keys are square physical buttons. Each `64×34` Paper normal tab has a `2px` Ink outline and stands on a `3px` Combat Orange offset plate; each `64×64` Ink special key has a `2px` Paper outline and stands on a `4px` HUD Special Blue plate. Depth carries state: a key sinks flush while its move runs or cools down, refills from the bottom behind a centred countdown, then pops back up. Keyboard special bindings sit on small tilted Paper stickers. Action art fills the face without a separate icon frame.
 
 ## Components
 
@@ -359,7 +359,7 @@ Native Training evidence for all four fighters, idle/hit/airborne poses, shared 
 
 Player identity, damage, and lives live in stable left-side fight cards with larger portraits, identity accents, percentage readouts, and explicit stock counts/tickets. Stock loss uses one adjacent KO/OUT stamp per affected card. Training starts with a compact behavior/shortcut readout; pause expands its controls in place, and the session toggle can keep them expanded during play. The locked-target pointer/brackets and shared damage-tier colors remain.
 
-The local move deck exposes all eight moves in four continuous tickets, ordered `1/A`, `2/R`, `3/E`, `4/F`. Each ticket places its normal on Paper above its special on Ink. The control legend keeps its grounded names and artwork while airborne. Active move availability, cooldowns, and accepted-use feedback still follow simulation state; no selector or caption is added. Missing abilities read UNAVAILABLE. Controller headers show the effective normal face button once for both halves; the shared connector shows the effective modifier plus that button. Shoulder bindings use prominent live LB/RB lettering rather than a padded shoulder sprite. Other controller bindings use available atlas artwork or text fallback. Keyboard keeps separate effective normal and special tabs; physical number-row keys retain their digits on AZERTY.
+The local move deck exposes all eight moves in four columns, ordered `1/A`, `2/R`, `3/E`, `4/F`. Each column places its normal tab above its special key. The control legend keeps its grounded names and artwork while airborne. Active move availability, cooldowns, and accepted-use feedback still follow simulation state; no selector or caption is added. Missing abilities read UNAVAILABLE. On controller, each tab shows the effective face button once for both halves, and an `LB +` connector left of the special row shows the effective modifier. Shoulder bindings use prominent live LB/RB lettering rather than a padded shoulder sprite. Other controller bindings use available atlas artwork or text fallback. On keyboard, each tab shows the effective normal binding and each special key carries its binding sticker; physical number-row keys retain their digits on AZERTY.
 
 **The Stable-Pair Rule.** Keep all eight controls visible, preserve each normal/special relationship, and keep the same names and artwork through jumps. Physical controls remain adapters rather than a second move identity.
 
@@ -398,7 +398,7 @@ Bonk normal artwork lives under the workspace's `_bmad-output/bonk-ability-icons
 
 The accepted 36 transparent PNGs for Wibou, FightGuy, Manki and Bonk remain installed at `Assets/Resources/Icons/{CharacterClass}/{IconName}.png`. Optional `Air/{IconName}.png` artwork overrides the airborne image; otherwise the HUD uses that airborne ability's base icon key. Bonk has four distinct aerial normal icons; the other three characters intentionally share input-slot artwork across ground/air. Textures preserve sRGB/alpha with bilinear filtering, clamp, no mipmaps and no compression. The HUD caches artwork during character setup and changes the image only when needed; authored character colors remain separate from category rules and damage tiers.
 
-The compact paired-ticket presentation uses 47 native-alpha UI sprites under `Assets/Resources/UI/AbilityCards/` across FightGuy, Manki, Wibou, and Bonk, including distinct airborne normals. Each PNG embeds its exact generation prompt as `impeccable:prompt`. Normal figures use Ink; specials use Paper, with each fighter's restrained blue, orange, green, or steel accent. The strip displays fixed grounded artwork; authored air sprites remain available as assets, and original icons remain as fallback. FightGuy ground `3` now depicts and is labelled High Kick in its authoring source. Names, controls, and status remain live UI. Sprites import at a maximum of 256 pixels; source alpha is preserved. Current evidence: `.impeccable/review/paired-hud-20261013/compact-verification.json` and `compact-final/`, including genuine Training for each fighter and controlled ground/air UI140 specimens.
+Grounded HUD move art uses one locked linocut icon set under `Assets/Resources/UI/AbilityCards/`. Each icon shows the striking limb, weapon or projectile and its effect rather than the whole fighter, in Ink or Paper plus the fighter's accent. Tab icons (normals) are filled solid to read at 30 px; key icons (specials) keep their carving at 56 px. That folder's README records the style template, references and review step; `tools/hud_icon_prep.py` snaps colours, normalises fill and embeds each exact prompt as `impeccable:prompt`. All four fighters' grounded sets are installed. Airborne sprites and original icons remain as authored assets and fallback. Sprites import at a maximum of 256 pixels; source alpha is preserved.
 
 ## Do's and Don'ts
 

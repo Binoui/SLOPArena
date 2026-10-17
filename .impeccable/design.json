@@ -187,17 +187,17 @@
       {
         "name": "hud-feedback",
         "value": "0.12s–0.18s",
-        "purpose": "Brief press and damage feedback; one 0.42-second READY tab and a 1.15-second KO/OUT stock-loss stamp attached to its fighter card."
+        "purpose": "Brief press and damage feedback; one 0.42-second ready pop on a move key and a 1.15-second KO/OUT stock-loss stamp attached to its fighter card."
       },
       {
         "name": "hud-move-activation",
-        "value": "0.15s",
-        "purpose": "Accepted semantic activation presses its action artwork; repeated same-slot activations retrigger it. Reduced flashing suppresses scaling/translation."
+        "value": "0.07s",
+        "purpose": "Key press/pop translation. A key sinks flush while its move runs and stays sunk through its cooldown; repeated same-slot casts keep it down. Reduced flashing removes the transition and the ready pop's jump."
       },
       {
         "name": "hud-move-ready",
         "value": "0.42s",
-        "purpose": "One READY tag after cooldown expiry; no repeating icon flash."
+        "purpose": "One ready pop (1 px lift and Action Yellow edge) after cooldown expiry; no text tag or repeating flash."
       },
       {
         "name": "solo-stamp-settle",
@@ -223,7 +223,7 @@
     "breakpoints": [],
     "narrative": {
       "northStar": "Low-poly underground toy-fight-club, with DIY internet-game energy",
-      "overview": "Scavenged low-poly fight-club forms and curated asset-pack collage. Cool first, joke second; slightly crappy on purpose, extremely readable. Frontend pages are paper-led using the user-authored FrontendPaperBackground.png, continuing behind the transparent top bar with readable control-local paper backing and ink borders. Separate ink foreground/dark-field roles remain. Home has left modes, a larger aspect-fitted framed poster at center, and right announcements. Chat is an absolute user-sized bottom-left overlay with paper frame/tabs and grouped Hide/Resize, no maximize; dimensions never rebalance underlying layout. Fighter/stage participants and Player/CPU controls sit bottom middle/right, leaving bottom-left clear by default. Settings uses paper outer framing/categories and calm dark utility fields. Gameplay HUD uses larger 330×120 portrait-led fight cards with explicit lives, one adjacent KO/OUT stock-loss stamp, four continuous Paper/Ink move tickets exposing all eight moves in 1/A–2/R–3/E–4/F order, live ground/air names, a shared effective-modifier connector, brief READY tags, and printed keyboard prompts, and an independent target marker. Training defaults to a compact behavior/shortcut readout that expands on pause. Percentages share the existing damage tiers; identity and target accents remain functional. No 3D arena, gameplay, transport, creator/Ability Lab, or website redesign; connected-room acceptance remains unverified.",
+      "overview": "Scavenged low-poly fight-club forms and curated asset-pack collage. Cool first, joke second; slightly crappy on purpose, extremely readable. Frontend pages are paper-led using the user-authored FrontendPaperBackground.png, continuing behind the transparent top bar with readable control-local paper backing and ink borders. Separate ink foreground/dark-field roles remain. Home has left modes, a larger aspect-fitted framed poster at center, and right announcements. Chat is an absolute user-sized bottom-left overlay with paper frame/tabs and grouped Hide/Resize, no maximize; dimensions never rebalance underlying layout. Fighter/stage participants and Player/CPU controls sit bottom middle/right, leaving bottom-left clear by default. Settings uses paper outer framing/categories and calm dark utility fields. Gameplay HUD uses larger 330×120 portrait-led fight cards with explicit lives, one adjacent KO/OUT stock-loss stamp, four paired move keys (Paper normal tabs on orange plates over raised Ink special keys on blue plates) exposing all eight moves in 1/A–2/R–3/E–4/F order, hover names, an effective-modifier connector on controller, depth-based cooldown state with a brief ready pop, and printed keyboard prompts, and an independent target marker. Training defaults to a compact behavior/shortcut readout that expands on pause. Percentages share the existing damage tiers; identity and target accents remain functional. No 3D arena, gameplay, transport, creator/Ability Lab, or website redesign; connected-room acceptance remains unverified.",
       "keyCharacteristics": [
         "Underground fight-club energy with DIY internet-game construction.",
         "Chunky low-poly silhouettes and curated asset-pack collage, harmonized through scale, lighting, material response, palette/value hierarchy, and composition rather than a universal shader.",
@@ -308,7 +308,7 @@
         "client/Unity/Assets/UI/HUD.uss",
         "client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs"
       ],
-      "shape": "Four continuous angular Paper/Ink tickets, thin Ink outline, 6 px normal top rule, and one 5 px shared special seam. Art has no separate icon-box frame.",
+      "shape": "Square physical keys: 64×34 Paper normal tabs on 3 px Combat Orange plates over 64×64 Ink special keys on 4 px HUD Special Blue plates, 2 px outlines. Art fills the face; no icon-box frame.",
       "pairing": [
         "1/A",
         "2/R",
@@ -316,11 +316,11 @@
         "4/F"
       ],
       "projection": "All eight controls stay visible. Grounded names and artwork are fixed through ground/air transitions; active availability, cooldowns and accepted-use feedback follow simulation state. Names appear in a runtime hover label, not permanent fields.",
-      "layout": "576 logical-unit icon strip: four136×104 paired fields,52-unit tiers,8-unit gaps,18-unit bottom margin. About30% of1920-wide viewport; 67%less ticket area than the preceding880×208 deck. Centered by default, shift/scale only for portrait clearance.",
-      "bindings": "Controller normal headers share effective face buttons with lower specials. The common connector shows the effective modifier plus sign; shoulders use live LB/RB lettering. Keyboard retains both effective normal and special tabs, including physical number-row digits on AZERTY.",
-      "states": "Holding the actual modifier highlights the connector field, seam, and special names in Action Yellow. Chat input, binding capture, Settings, and pause suppress held feedback. Accepted activations press artwork, cooldowns show seconds plus a 4 px bar, and completion shows one READY tag. Reduced flashing suppresses scaling and translation while retaining status.",
-      "artwork": "47 UI-only native-alpha sprites for all four fighters, including distinct airborne normals. Each embeds its exact generation prompt; imported maximum texture size is 256. FightGuy ground 3 depicts High Kick and uses the corrected authored name. Original icons remain as fallback.",
-      "evidence": ".impeccable/review/paired-hud-20261013/mini-verification.json and mini-fixed/. Native grounded/airborne legend stability, remaps, cooldown/READY, runtime hover and viewport checks; controlled specimens are labelled.",
+      "layout": "304 logical-unit deck: four 68-unit columns (37-unit tab, 8-unit gap, 68-unit key) with 8-unit gaps and an 18-unit bottom margin, about 16% of a 1920-wide viewport. Centered by default, shift/scale only for portrait clearance.",
+      "bindings": "Controller tabs show the effective face button once for both halves; an LB + connector left of the special row shows the effective modifier, with live LB/RB lettering for shoulders. Keyboard tabs show the effective normal binding and each special key carries a tilted binding sticker, including physical number-row digits on AZERTY; the keyboard SPECIALS connector is hidden.",
+      "states": "Depth is state: ready keys stand on their plate; a key sinks flush while its move runs or cools down, refills from the bottom behind a centred countdown (whole seconds, tenths under 3 s), then pops back with a brief Action Yellow edge. Holding the actual modifier turns special plates and the connector Action Yellow; chat input, binding capture, Settings and pause suppress held feedback. Reduced flashing removes the transitions and the pop's jump while keeping sunk state.",
+      "artwork": "Grounded art uses one locked linocut set: limb, weapon or projectile plus effect, Ink/Paper plus the fighter accent, tab icons filled solid for 30 px. Template, references and cleanup live in Assets/Resources/UI/AbilityCards/README.md and tools/hud_icon_prep.py. All four fighters are installed. Each sprite embeds its exact prompt; imported maximum texture size is 256. Airborne sprites and original icons remain.",
+      "evidence": ".impeccable/review/paired-hud-20261013/mini-verification.json and mini-fixed/. Native grounded/airborne legend stability, remaps, cooldown/READY, runtime hover and viewport checks; controlled specimens are labelled. The move keys were accepted in game on 2026-10-17 without a recorded capture.",
       "nativeGateException": "The HTML plate-reference scan cannot resolve Resources.LoadAll<Sprite>; .impeccable/build/state.json remains hero/open. Native evidence is recorded separately; no web tool pass is claimed."
     },
     "targetLockIndicator": {
@@ -479,10 +479,10 @@
       "css": ".ds-status-pill { display:inline-block; background:#17131B; color:#F0EEE8; padding:8px 12px; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; border-left:8px solid #FFCC22; }"
     },
     {
-      "name": "Paired Move Ticket",
+      "name": "Paired Move Keys",
       "kind": "custom",
-      "refersTo": "hud-move-ticket",
-      "description": "Small fixed paired icon fields; names appear only on hover."
+      "refersTo": "hud-move-column",
+      "description": "A Paper normal tab over a raised Ink special key per column; names appear only on hover."
     },
     {
       "name": "Locked Target Readout",
