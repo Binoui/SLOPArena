@@ -31,7 +31,9 @@ namespace SlopArena.Client.World
             if (_owner == null) return;
             if (_owner.CurrentActionState != ActionState.Aiming || _owner.CurrentAttackSlot != Slot)
             {
-                if (Charging != null && Charging.isEmitting) Charging.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                // isPlaying, not isEmitting: a silent controller system never emits but still owns
+                // the charge effects below it.
+                if (Charging != null && Charging.isPlaying) Charging.Stop(true, ParticleSystemStopBehavior.StopEmitting);
                 return;
             }
             int tier = ChargeTiers.Of(_owner.CharacterDef, Slot, _owner.CurrentChargeTicks);

@@ -31,8 +31,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 FONT = ROOT / "client/Unity/Assets/Fonts/ArchivoBlack-Regular.ttf"
 # Starting points per canonical ground slot: metres apart, victim percent, ticks captured
-# after the press. Override per character with --set, e.g. A:distance=6, F:ticks=160 or
-# A:hold=50 (ticks of aiming after the press, which charges aim-hold specials).
+# after the press. Override per character with --set, e.g. A:distance=4, F:ticks=160,
+# A:hold=50 (ticks of aiming after the press, which charges aim-hold specials) or
+# F:orbit=70 (degrees the cameras orbit toward the attacker's back, for the gameplay angle).
 MOVE_DEFAULTS = {
     "1": {"distance": 1.3, "damage": 40, "ticks": 50},
     "2": {"distance": 1.3, "damage": 40, "ticks": 50},
@@ -67,9 +68,9 @@ def build_batch(attacker: str, victim: str, stage: str, output: str, moves: list
     for override in overrides:
         move, _, assignment = override.partition(":")
         key, _, value = assignment.partition("=")
-        if move not in settings or key not in ("distance", "damage", "ticks", "hold") or not value:
-            raise SystemExit(f"--set {override}: expected MOVE:distance|damage|ticks|hold=VALUE for a captured move")
-        settings[move][key] = float(value) if key == "distance" else int(value)
+        if move not in settings or key not in ("distance", "damage", "ticks", "hold", "orbit") or not value:
+            raise SystemExit(f"--set {override}: expected MOVE:distance|damage|ticks|hold|orbit=VALUE for a captured move")
+        settings[move][key] = float(value) if key in ("distance", "orbit") else int(value)
     width, _, height = size.partition("x")
     commands = [["sloparena.hitfeel.prepare", "--stage", stage], ["editor_play"]]
     for move in moves:
@@ -82,6 +83,8 @@ def build_batch(attacker: str, victim: str, stage: str, output: str, moves: list
             command += ["--track", "true"]
         if s.get("hold"):
             command += ["--hold", str(s["hold"])]
+        if s.get("orbit"):
+            command += ["--orbit", number(s["orbit"])]
         commands.append(command)
     commands.append(["get_console_logs", "--severity", "error", "--limit", "20"])
     return {"commands": commands, "restore": [["sloparena.hitfeel.stop"], ["sloparena.hitfeel.restore"]]}

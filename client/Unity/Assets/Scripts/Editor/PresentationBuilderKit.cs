@@ -114,7 +114,10 @@ namespace SlopArena.EditorTools
             material.SetFloat("_Cull", 0f);
             material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             material.SetOverrideTag("RenderType", "Transparent");
-            material.renderQueue = (int)RenderQueue.Transparent + (additive ? 9 : 10);
+            // URP recomputes the queue from _QueueOffset whenever it validates the material.
+            int queueOffset = additive ? 9 : 10;
+            material.SetFloat("_QueueOffset", queueOffset);
+            material.renderQueue = (int)RenderQueue.Transparent + queueOffset;
             material.SetShaderPassEnabled("DepthOnly", false);
             material.SetShaderPassEnabled("SHADOWCASTER", false);
             if (created) AssetDatabase.CreateAsset(material, path);
@@ -204,6 +207,15 @@ namespace SlopArena.EditorTools
                 if (MonoScript.FromMonoBehaviour(behaviour) == null)
                     throw new InvalidOperationException(
                         $"{root.name}: {behaviour.GetType().Name} cannot be saved in a prefab; move it to {behaviour.GetType().Name}.cs.");
+            // Unity logs "Particle Velocity curves must all be in the same mode" each time a
+            // system whose velocity axes mix curve modes plays.
+            foreach (var system in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var velocity = system.velocityOverLifetime;
+                if (velocity.enabled && (velocity.x.mode != velocity.y.mode || velocity.y.mode != velocity.z.mode))
+                    throw new InvalidOperationException(
+                        $"{root.name}/{system.name}: velocity over lifetime x, y and z must share one curve mode.");
+            }
             string path = $"{Root}/{root.name}.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path, out bool saved);
             Object.DestroyImmediate(root);

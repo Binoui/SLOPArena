@@ -151,6 +151,8 @@ MonoBehaviour:
     _prefab: {fileID: 6964989176759731854, guid: 179dd3c7da190920fba973988a9e92d1, type: 3}
   - _semanticId: presentation.manki.aerosol-inferno.charge
     _prefab: {fileID: 6587611114754785141, guid: 6678add402a3df443bd940cf487f8f44, type: 3}
+  - _semanticId: presentation.manki.aerosol-inferno.lighter
+    _prefab: {fileID: 7912395339456709008, guid: 1b4c6637476afbe888623756f187297d, type: 3}
   - _semanticId: presentation.manki.aerosol-inferno.start
     _prefab: {fileID: 2053101587433184381, guid: 2db9d01ecccd44ec1be8bb5a8287dcd7, type: 3}
   - _semanticId: presentation.manki.aerosol-inferno.hit

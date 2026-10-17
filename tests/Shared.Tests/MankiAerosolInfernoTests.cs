@@ -5,9 +5,10 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class MankiAerosolInfernoTests
 {
-    // The charge cue (rattling can, pilot flame) starts with the charge; the flame stream starts
-    // with the hitbox on fire frame eight.
+    // The charge cue (rattling can, pilot flame) starts with the charge, the lighter right after
+    // release, and the flame stream with the hitbox on fire frame eight.
     private const string Charge = "presentation.manki.aerosol-inferno.charge";
+    private const string Lighter = "presentation.manki.aerosol-inferno.lighter";
     private const string Stream = "presentation.manki.aerosol-inferno.start";
 
     [Theory]
@@ -38,12 +39,14 @@ public sealed class MankiAerosolInfernoTests
         sim.Tick(new());
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
         Assert.Equal((ushort)0, sim.GetState(1).AttackElapsedTicks);
+        var windup = new List<TimelinePresentationEvent>();
         for (int fireFrame = 1; fireFrame < 8; fireFrame++)
         {
             sim.Tick(new());
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
-            Assert.Empty(sim.GetPresentationEvents(clear: true));
+            windup.AddRange(sim.GetPresentationEvents(clear: true));
         }
+        Assert.Equal(Lighter, Assert.Single(windup).PresentationId);
 
         sim.Tick(new());
         Assert.Equal((ushort)8, sim.GetState(1).AttackElapsedTicks);

@@ -29,6 +29,13 @@ class PresentationReviewTests(unittest.TestCase):
         self.assertEqual(logs[0], "get_console_logs")
         self.assertEqual(batch["restore"], [["sloparena.hitfeel.stop"], ["sloparena.hitfeel.restore"]])
 
+    def test_batch_passes_a_camera_orbit_only_when_set(self) -> None:
+        batch = review.build_batch("manki", "fightguy", "splash_deck", "tmp/x", ["1", "F"], ["F:orbit=70"],
+                                   "high:1.6", "960x540", False)
+        first, second = batch["commands"][2:4]
+        self.assertNotIn("--orbit", first)
+        self.assertEqual(second[second.index("--orbit") + 1], "70")
+
     def test_batch_rejects_overrides_for_uncaptured_moves(self) -> None:
         with self.assertRaises(SystemExit):
             review.build_batch("wibou", "manki", "splash_deck", "tmp/x", ["1"], ["F:ticks=9"],

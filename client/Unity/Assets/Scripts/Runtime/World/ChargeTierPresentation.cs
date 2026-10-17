@@ -21,7 +21,37 @@ namespace SlopArena.Client.World
     public static class ChargeTiers
     {
         /// <summary>0 for tier 1, 1 for tier 2 and so on; -1 when the slot has no charged capability.</summary>
-        public static int Of(CharacterDefinition definition, byte slot, ushort chargeTicks)
+        public static int Of(CharacterDefinition definition, byte slot, ushort chargeTicks) => Find(definition, slot) switch
+        {
+            CookedChargedProjectileCapabilityParameters projectile => projectile.GetChargeTier(chargeTicks),
+            CookedChargedDirectionalDashCapabilityParameters dash => dash.GetChargeTier(chargeTicks),
+            // Below the first threshold the charge still reads as tier 1.
+            CookedMankiAerosolInfernoCapabilityParameters aerosol => Mathf.Max(0, Reached(aerosol, chargeTicks) - 1),
+            _ => -1,
+        };
+
+        /// <summary>The charge from 0 to 1 at the capability's full charge; 0 when the slot has none.</summary>
+        public static float Progress(CharacterDefinition definition, byte slot, ushort chargeTicks)
+        {
+            ushort full = Find(definition, slot) switch
+            {
+                CookedChargedProjectileCapabilityParameters projectile => projectile.MaxChargeTicks,
+                CookedChargedDirectionalDashCapabilityParameters dash => dash.MaxChargeTicks,
+                CookedMankiAerosolInfernoCapabilityParameters aerosol => aerosol.MaxChargeTicks,
+                _ => (ushort)0,
+            };
+            return full > 0 ? Mathf.Clamp01(chargeTicks / (float)full) : 0f;
+        }
+
+        private static int Reached(CookedMankiAerosolInfernoCapabilityParameters aerosol, ushort chargeTicks)
+        {
+            int reached = 0;
+            foreach (var tier in aerosol.ChargeTiers ?? System.Array.Empty<MankiAerosolChargeTier>())
+                if (chargeTicks >= tier.ChargeTicks) reached++;
+            return reached;
+        }
+
+        private static CookedCapabilityParameters Find(CharacterDefinition definition, byte slot)
         {
             foreach (bool airborne in new[] { false, true })
             {
@@ -29,23 +59,11 @@ namespace SlopArena.Client.World
                 if (cooked == null) continue;
                 foreach (var stage in cooked.Timeline.Stages)
                 foreach (var operation in stage.Operations)
-                {
-                    if (operation is not CookedStartCapabilityOperation start) continue;
-                    if (start.Parameters is CookedChargedProjectileCapabilityParameters projectile)
-                        return projectile.GetChargeTier(chargeTicks);
-                    if (start.Parameters is CookedChargedDirectionalDashCapabilityParameters dash)
-                        return dash.GetChargeTier(chargeTicks);
-                    if (start.Parameters is CookedMankiAerosolInfernoCapabilityParameters aerosol)
-                    {
-                        // Below the first threshold the charge still reads as tier 1.
-                        int reached = 0;
-                        foreach (var tier in aerosol.ChargeTiers ?? System.Array.Empty<MankiAerosolChargeTier>())
-                            if (chargeTicks >= tier.ChargeTicks) reached++;
-                        return Mathf.Max(0, reached - 1);
-                    }
-                }
+                    if (operation is CookedStartCapabilityOperation { Parameters: CookedChargedProjectileCapabilityParameters
+                        or CookedChargedDirectionalDashCapabilityParameters or CookedMankiAerosolInfernoCapabilityParameters } start)
+                        return start.Parameters;
             }
-            return -1;
+            return null;
         }
     }
 }

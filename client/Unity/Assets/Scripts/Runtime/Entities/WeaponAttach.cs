@@ -97,6 +97,16 @@ namespace SlopArena.Client.Entities
             }
         }
 
+        /// <summary>The spawned prop for an attack slot (Manki's spray can for F), or null.</summary>
+        public Transform PropFor(byte attackSlot)
+        {
+            if (_entries == null || _instances == null) return null;
+            for (int i = 0; i < _entries.Length && i < _instances.Length; i++)
+                if (_entries[i] != null && _entries[i].AttackSlot == attackSlot && _instances[i] != null)
+                    return _instances[i].transform;
+            return null;
+        }
+
         public void SetPreviewState(byte attackSlot, int attackElapsedTicks, bool firePhase = false)
         {
             _previewStateActive = true;
