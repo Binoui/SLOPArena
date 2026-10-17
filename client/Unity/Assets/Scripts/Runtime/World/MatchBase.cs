@@ -69,6 +69,7 @@ namespace SlopArena.Client.World
         private void FixedUpdate() => OnMatchFixedUpdate();
         protected virtual void OnDestroy()
         {
+            PresentationFloor.Clear();
             _aimHandler?.ResetPresentation();
             _timelinePresentations.Clear();
             foreach (var weapon in _weapons.Values)
@@ -203,6 +204,7 @@ namespace SlopArena.Client.World
 
         protected void SpawnStageVisual(ArenaDefinition arena, bool cameraObstruction = true)
         {
+            PresentationFloor.Use(arena.Heightmap);
             var stageRoot = new GameObject("Stage");
             var triangles = arena.CollisionTriangles;
             if (cameraObstruction && triangles != null && triangles.Length > 0)

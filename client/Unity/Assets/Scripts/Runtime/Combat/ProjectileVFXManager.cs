@@ -282,10 +282,13 @@ namespace SlopArena.Client.Combat
             }
             return null;
         }
+        /// <summary>Turns the root's +Y along the flight for visuals built point-first (kunai, rocket).</summary>
         private static void OrientProjectile(Transform visual, CharacterClass character, byte slot,
             float vx, float vy, float vz)
         {
-            if (character != CharacterClass.Wibou || slot != AbilitySlots.A) return;
+            bool pointFirst = (character == CharacterClass.Wibou && slot == AbilitySlots.A)
+                || (character == CharacterClass.Manki && slot == AbilitySlots.R);
+            if (!pointFirst) return;
             var velocity = new Vector3(vx, vy, vz);
             if (velocity.sqrMagnitude > 0.0001f)
                 visual.rotation = Quaternion.LookRotation(velocity) * Quaternion.Euler(90f, 0f, 0f);
@@ -294,6 +297,9 @@ namespace SlopArena.Client.Combat
         private static void DestroyVisual(GameObject visual)
         {
             if (visual == null) return;
+            // Trails marked to linger (smoke behind a rocket) detach and fade instead of vanishing.
+            foreach (var linger in visual.GetComponentsInChildren<SlopArena.Client.World.LingerAfterProjectile>(true))
+                if (Application.isPlaying) linger.Release();
             if (Application.isPlaying) UnityEngine.Object.Destroy(visual);
             else UnityEngine.Object.DestroyImmediate(visual);
         }

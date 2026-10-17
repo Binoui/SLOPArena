@@ -24,6 +24,7 @@ Thank you to the creators whose work helps make SLOPArena possible.
 ## Sound effects
 
 - **[Kenney](https://kenney.nl/assets/rpg-audio)** — RPG Audio blade sounds for Wibou.
+- **[Kenney](https://kenney.nl/assets/sci-fi-sounds)** — Sci-Fi Sounds, Impact Sounds and RPG Audio in Manki's explosions, jetpack, bazooka and spray can.
 
 ## Music
 

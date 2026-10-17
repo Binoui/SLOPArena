@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6742118630197115259
+--- !u!114 &-4443339736465258990
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20,7 +20,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: MankiNormalSwing
+  m_Name: MankiFlame
   m_Shader: {fileID: 4800000, guid: 0406db5a14f94604a8c57ccfbc9f3b46, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -31,7 +31,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 1
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: 3010
   stringTagMap:
     RenderType: Transparent
   disabledShaderPasses:
@@ -42,7 +42,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 6d53b1aef89956fd2982e175974d5731, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
@@ -57,15 +57,11 @@ Material:
     m_Floats:
     - _AlphaClip: 0
     - _AlphaToMask: 0
-    - _BaseColor: 0
-    - _BaseColorAddSubDiff: 0
-    - _Blend: 2
+    - _Blend: 0
     - _BlendOp: 0
-    - _CameraFadeParams: 0
     - _CameraFadingEnabled: 0
     - _CameraFarFadeDistance: 2
     - _CameraNearFadeDistance: 1
-    - _Color: 0
     - _ColorMode: 0
     - _Cull: 0
     - _Cutoff: 0.5
@@ -73,14 +69,12 @@ Material:
     - _DistortionEnabled: 0
     - _DistortionStrength: 1
     - _DistortionStrengthScaled: 0.1
-    - _DstBlend: 1
-    - _DstBlendAlpha: 1
-    - _EmissionColor: 0
+    - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _FlipbookBlending: 0
     - _FlipbookMode: 0
     - _Mode: 0
     - _QueueOffset: 0
-    - _SoftParticleFadeParams: 0
     - _SoftParticlesEnabled: 0
     - _SoftParticlesFarFadeDistance: 1
     - _SoftParticlesNearFadeDistance: 0
@@ -89,10 +83,10 @@ Material:
     - _Surface: 1
     - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 1.65, g: 1.5, b: 1.25, a: 1}
+    - _BaseColor: {r: 1.2, g: 1.2, b: 1.2, a: 1}
     - _BaseColorAddSubDiff: {r: 0, g: 0, b: 0, a: 0}
     - _CameraFadeParams: {r: 0, g: Infinity, b: 0, a: 0}
-    - _Color: {r: 1.65, g: 1.5, b: 1.25, a: 1}
+    - _Color: {r: 1.2, g: 1.2, b: 1.2, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []

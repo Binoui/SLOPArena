@@ -19,12 +19,12 @@ MonoBehaviour:
     AttackSlot: 11
     Airborne: 0
     Prefab: {fileID: 5113496752642633616, guid: f43706d28f4fe0a5584d724f371176b0, type: 3}
-    Scale: 80
+    Scale: 1
   - Character: 1
     AttackSlot: 11
     Airborne: 1
     Prefab: {fileID: 5113496752642633616, guid: f43706d28f4fe0a5584d724f371176b0, type: 3}
-    Scale: 80
+    Scale: 1
   - Character: 1
     AttackSlot: 5
     Airborne: 0

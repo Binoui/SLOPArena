@@ -13,7 +13,10 @@ Before the other characters, the Wibou builder was split into a reusable
 [character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md) skill and the
 review tooling in `tools/presentation_review.py`. FightGuy followed on 2026-10-17 with
 "The Champ's Show" (see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17)),
-replacing the FightGuy ideas in section 3 below.
+replacing the FightGuy ideas in section 3 below. Manki followed the same day with
+"Controlled Chaos" (see [Manki](../characters/manki.md#combat-presentation--2026-10-17)):
+concepts approved, built and captured; the in-game check is pending. It replaces the Manki
+ideas in section 3 below.
 Everything is presentation-only and follows accepted hits
 and semantic events, like `CombatFeedback`. The one item that needs a Shared
 contract change is listed under [open decisions](#open-decisions) and needs its
@@ -142,7 +145,7 @@ Normals stay restrained. Every special gets:
   shout on the kick finisher.
 - Give specials their own hit presentation instead of `empowered.hit`.
 
-### Manki (fire, smoke, explosives)
+### Manki (superseded on 2026-10-17 by Controlled Chaos)
 
 - **Explosions first:** a flash, a fireball, a lingering smoke column, debris, a
   ground ring, a scorch mark, and a boom that gets muffled with distance.
@@ -216,8 +219,8 @@ custom shake.
    extracted afterwards.
 3. FightGuy's VFX. Done; voice lines are deferred.
 4. Audio foundation for the roster: variation, Manki's explosions and startup
-   stings.
-5. Manki and Bonk.
+   stings. Manki's explosions, jetpack, bazooka and spray can have their own clips.
+5. Manki (built 2026-10-17, in-game check pending) and Bonk.
 
 ## Open decisions
 
@@ -228,6 +231,11 @@ custom shake.
   presentation or a finisher flag on the hit event. That is a Shared/compiler
   contract change, so it needs an options write-up and approval first.
 - Whether enabling URP Opaque Texture for distortion effects is worth its cost.
+- **Capsule hit contacts:** `SpellResolver.CapsuleCollision` puts the contact on the hitbox
+  surface toward the target, so a victim deep inside a large capsule (Manki's tier-5 Aerosol
+  Inferno, radius 1.05 m) gets its hit effect up to a metre away. Clamping the offset to the
+  axis-to-target distance would fix every capsule; it is a Shared change, so it needs
+  approval first.
 - **Dash Slash charge pings:** FightGuy's Ki Shot now shows tier pings with the client-only
   `ChargeTierCues`, which reads the replicated charge. Wibou's Dash Slash can reuse it
   without a Shared change.
