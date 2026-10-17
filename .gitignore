@@ -371,10 +371,6 @@ videos/*
 # Original shipping move illustrations; raw animation/vendor inputs stay ignored.
 !client/Unity/Assets/Resources/UI/AbilityCards/**/*.png
 
-# Last Stop preview depends on the locally installed Train Station pack.
-client/Unity/Assets/Resources/UI/Stages/last_stop.png
-client/Unity/Assets/Resources/UI/Stages/last_stop.png.meta
-
 # Original fighter models, materials and textures (generated for this project) ship so
 # a fresh clone can show the fighters. Their folders also hold local packs and old
 # candidates, so list files one by one; each pattern also matches the file's .meta.
@@ -399,6 +395,14 @@ client/Unity/Assets/Resources/UI/Stages/last_stop.png.meta
 !client/Unity/Assets/Art/Characters/bonk/Prefabs/bonk_sword.prefab*
 # Not listed yet: manki/Models/bazooka.fbx is 61.5 MB. GitHub warns above 50 MB and
 # rejects files over 100 MB, so re-export it lighter (or move art to Git LFS) first.
+
+# Last Stop's art is original (headless Blender geometry, generated textures) and
+# references no vendor pack, so the stage ships whole, picker prefab included.
+!client/Unity/Assets/Stages/last_stop/Art/*.fbx
+!client/Unity/Assets/Stages/last_stop/Textures/*.png
+!client/Unity/Assets/Stages/last_stop/Materials/*.mat
+!client/Unity/Assets/Stages/last_stop/Animation/*.anim
+!client/Unity/Assets/Resources/Stages/last_stop.prefab*
 
 # Locally installed agent skills stay ignored; project adapters are allowed below.
 # BEGIN project skill adapters (tools/sync_agent_skills.py)

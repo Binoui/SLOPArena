@@ -148,9 +148,11 @@ These checks are structural and agent-camera evidence. They are not the human
 gameplay-camera review, human PVP acceptance or a measured performance result.
 
 The collision meshes, FBX art, textures, materials, animation clips, authoring
-scene and baked arena are versionable. Under the existing policy the Resources
-prefab and rendered thumbnail stay ignored local files, even though they no
-longer depend on licensed art.
+scene and baked arena are versioned. So are the Resources prefab and the
+stage-select thumbnail, re-included in `.gitignore` because they no longer
+depend on licensed art, so a fresh clone gets the whole stage.
+`tools/check_asset_closure.py` on the prefab and stage folder finds no ignored
+or vendor dependency; only URP's own shaders come from a package.
 
 ## Test in Unity
 
