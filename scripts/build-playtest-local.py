@@ -349,6 +349,7 @@ def run(args: argparse.Namespace) -> dict:
         stage_local_dependencies(args.local_unity_project or canonical_project, checkout, evidence)
     cache = None
     cache_inputs = None
+    local_inputs = None
     cache_report = {"status": "disabled"}
     if getattr(args, "build_cache", None):
         if args.diagnose_cook:
@@ -361,9 +362,10 @@ def run(args: argparse.Namespace) -> dict:
                 cache = playtest_cache.ImportCache(args.build_cache)
             except ValueError as exc:
                 raise BuildError(str(exc)) from exc
-            cache_inputs = playtest_cache.compatibility(project, unity_version,
-                json.loads((evidence / "local-dependencies.json").read_text()))
-            cache_report = {"status": "seed-only"} if args.certify_cook else cache.restore(project, cache_inputs)
+            local_inputs = json.loads((evidence / "local-dependencies.json").read_text())
+            cache_inputs = playtest_cache.compatibility(project, unity_version)
+            cache_report = ({"status": "seed-only"} if args.certify_cook
+                            else cache.restore(project, cache_inputs, local_inputs))
     playtest_timing.atomic_json(evidence / "cache.json", cache_report)
     if args.cook_baseline and args.cook_baseline.is_dir():
         baseline = checkout / "build/playtest/accepted-cook-status"
@@ -444,7 +446,7 @@ def run(args: argparse.Namespace) -> dict:
                 raise BuildError("Certification Editor has not closed; refusing cache snapshot")
             with timeline.stage("cache-store"):
                 try:
-                    cache_report["store"] = cache.store(project, cache_inputs, args.source_revision)
+                    cache_report["store"] = cache.store(project, cache_inputs, args.source_revision, local_inputs)
                 except (OSError, ValueError):
                     cache_report["store"] = {"status": "failed", "reason": "snapshot_unavailable"}
                 playtest_timing.atomic_json(evidence / "cache.json", cache_report)
@@ -483,7 +485,7 @@ def run(args: argparse.Namespace) -> dict:
             if project_is_open(project):
                 raise BuildError("Cannot snapshot a Library while its Editor is running")
             try:
-                cache_report["store"] = cache.store(project, cache_inputs, args.source_revision)
+                cache_report["store"] = cache.store(project, cache_inputs, args.source_revision, local_inputs)
             except (OSError, ValueError):
                 cache_report["store"] = {"status": "failed", "reason": "snapshot_unavailable"}
             playtest_timing.atomic_json(evidence / "cache.json", cache_report)

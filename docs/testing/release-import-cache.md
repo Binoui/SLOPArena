@@ -70,7 +70,9 @@ self-tests passed. Exact results are retained in `validation.json` locally.
 Cache defaults stay off. Compatibility intentionally excludes the source SHA
 and includes Unity, host/target, package/settings and licensed input hashes.
 Changed licensed inputs miss; changed tracked scripts/assets remain subject to
-Unity invalidation and native verification. Snapshot corruption, symlinks,
+Unity invalidation and native verification. On 2026-10-17 local-only inputs left the
+compatibility key too ([ADR amendment](../adr/0035-release-timing-and-import-cache.md#amendment--2026-10-17)):
+they are reimported per file like tracked sources, and `cache.json` lists them. Snapshot corruption, symlinks,
 incompatible inputs, independent writable copies and bounded replacement/retention
 have focused Python coverage. Native timings also retain BuildReport steps;
 their parent/child durations overlap and must not be added as independent work.

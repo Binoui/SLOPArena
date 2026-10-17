@@ -51,3 +51,19 @@ without that start, report duration as unavailable instead of deriving it from
 wall timestamps. Existing recorded durations remain readable. Source checks,
 isolated builds, protocol/image/backup guards and manual
 Steam activation retain their existing boundaries.
+
+## Amendment — 2026-10-17
+
+The owner asked for per-file reuse after playtest.27 and .28 both imported cold.
+playtest.28 missed because #297 turned two local-only Last Stop files into tracked
+ones, which changed the licensed input hash. Local-only inputs are source files like
+tracked ones: Unity records their import dependencies, including playtest.18's
+by-name texture lookup (`SourceAsset/GuidOfPathLocation`), and reimports what
+changed. Every release still verifies the committed cooks natively, so a divergent
+import fails the build instead of shipping.
+
+Compatibility is now the Unity version, host/target and the `Packages` and
+`ProjectSettings` hashes (schema 2). A snapshot records its local-only inputs, and
+each attempt's `cache.json` lists those added, removed or changed since. The release
+candidate still pins its licensed input fingerprint. Cold builds stay the default
+until a cache hit has been compared with a cold build.
