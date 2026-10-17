@@ -196,6 +196,9 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
 # Approved project-authored Bonk horizontal aerial.
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim
+# Approved project-authored Bonk aerials from the GenRA toolkit (2026-10-17).
+!client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air1_whirlwind.anim
+!client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air3_meteor_cleave.anim
 !client/Unity/Assets/CharacterPackages/wibou/Animations/wibou_crouch.anim
 *.png
 !client/Unity/Assets/UI/SplashArt/*.png
@@ -212,6 +215,8 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/Source/*.png
 !client/Unity/Assets/CharacterPackages/wibou/Presentation/Wibou*.png
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.png
+!client/Unity/Assets/CharacterPackages/bonk/Presentation/Bonk*.png
+!client/Unity/Assets/CharacterPackages/bonk/Presentation/Source/*.png
 # Local Kenney prompt sheets, atlas maps, and Unity-generated metadata.
 client/Unity/Assets/Resources/InputPrompts/
 client/Unity/Assets/Resources/InputPrompts.meta
@@ -225,6 +230,7 @@ client/Unity/Assets/Resources/InputPrompts.meta
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWorkGloves.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWornMetal.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.mat
+!client/Unity/Assets/CharacterPackages/bonk/Presentation/Bonk*.mat
 *.mask
 *.exr
 *.hdr

@@ -16,7 +16,10 @@ review tooling in `tools/presentation_review.py`. FightGuy followed on 2026-10-1
 replacing the FightGuy ideas in section 3 below. Manki followed the same day with
 "Controlled Chaos" (see [Manki](../characters/manki.md#combat-presentation--2026-10-17)):
 concepts approved, built and captured; the in-game check is pending. It replaces the Manki
-ideas in section 3 below.
+ideas in section 3 below. Bonk followed with "BONK!" (see
+[Bonk](../characters/bonk.md#combat-presentation--2026-10-17)): a bucket-red identity, a comic
+BONK! on his big hits, the armour read from section 2 and a "?" when armour shrugs off a hit.
+Concepts were approved and it is built and captured; the in-game check is pending.
 Everything is presentation-only and follows accepted hits
 and semantic events, like `CombatFeedback`. The one item that needs a Shared
 contract change is listed under [open decisions](#open-decisions) and needs its
@@ -158,10 +161,11 @@ Normals stay restrained. Every special gets:
 - **Aerosol Inferno:** a can rattle, then a "psshht" into a roaring flame loop,
   heat haze, and a brief soot tint on victims.
 
-### Bonk (steel; the most complete today)
+### Bonk (superseded on 2026-10-17 by BONK!)
 
 - The armor read from section 2, a "BONK!" pop on the Shoulder Bash headbutt, a
-  Jump Slam crack that lingers, and a fan of sword afterimages in Blade Storm.
+  Jump Slam crack that lingers, and a fan of sword afterimages in Blade Storm. The built
+  pass keeps the first three; Blade Storm got orbiting smears instead of afterimages.
 
 ## 4. Audio
 
@@ -220,7 +224,7 @@ custom shake.
 3. FightGuy's VFX. Done; voice lines are deferred.
 4. Audio foundation for the roster: variation, Manki's explosions and startup
    stings. Manki's explosions, jetpack, bazooka and spray can have their own clips.
-5. Manki (built 2026-10-17, in-game check pending) and Bonk.
+5. Manki and Bonk (both built 2026-10-17, in-game checks pending).
 
 ## Open decisions
 

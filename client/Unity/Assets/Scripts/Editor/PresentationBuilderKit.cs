@@ -216,6 +216,18 @@ namespace SlopArena.EditorTools
                     throw new InvalidOperationException(
                         $"{root.name}/{system.name}: velocity over lifetime x, y and z must share one curve mode.");
             }
+            // Unity silently ignores orbital velocity unless the orbital axes use the same curve
+            // mode as x, y and z (Bonk's Blade Storm whirl stood still).
+            foreach (var system in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var velocity = system.velocityOverLifetime;
+                if (!velocity.enabled || (IsZero(velocity.orbitalX) && IsZero(velocity.orbitalY) && IsZero(velocity.orbitalZ)))
+                    continue;
+                var mode = velocity.x.mode;
+                if (velocity.orbitalX.mode != mode || velocity.orbitalY.mode != mode || velocity.orbitalZ.mode != mode)
+                    throw new InvalidOperationException(
+                        $"{root.name}/{system.name}: orbital x, y and z must use the same curve mode as x, y and z.");
+            }
             string path = $"{Root}/{root.name}.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path, out bool saved);
             Object.DestroyImmediate(root);
@@ -223,6 +235,13 @@ namespace SlopArena.EditorTools
                 throw new InvalidOperationException($"Could not save {path}.");
             return prefab;
         }
+
+        private static bool IsZero(ParticleSystem.MinMaxCurve curve) => curve.mode switch
+        {
+            ParticleSystemCurveMode.Constant => curve.constant == 0f,
+            ParticleSystemCurveMode.TwoConstants => curve.constantMin == 0f && curve.constantMax == 0f,
+            _ => false,
+        };
 
         // ── Bindings ─────────────────────────────────────────────────────────────
 

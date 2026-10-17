@@ -163,12 +163,17 @@
     "_weapon_tip"
   ],
   "presentationIds": [
-    "presentation.bonk.steel.hit",
+    "presentation.bonk.normal.hit",
+    "presentation.bonk.heavy.hit",
     "presentation.bonk.bash.hit",
+    "presentation.bonk.slam.hit",
+    "presentation.bonk.slash.hit",
+    "presentation.bonk.storm.hit",
     "presentation.bonk.normal.glint",
     "presentation.bonk.normal.plant",
-    "presentation.bonk.bash.brace",
+    "presentation.bonk.bash.snort",
     "presentation.bonk.bash.charge",
+    "presentation.bonk.armor",
     "presentation.bonk.slam.launch",
     "presentation.bonk.slam.air-launch",
     "presentation.bonk.slam.landing",
@@ -237,7 +242,7 @@
                   "localScaleX": 0.8,
                   "localScaleY": 0.8,
                   "localScaleZ": 0.8,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -254,7 +259,7 @@
                   "localScaleX": 0.55,
                   "localScaleY": 0.55,
                   "localScaleZ": 0.55,
-                  "durationTicks": 25
+                  "durationTicks": 30
                 }
               },
               {
@@ -297,14 +302,14 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.normal.hit"
     },
     {
       "id": "ground.2",
@@ -358,7 +363,7 @@
                   "localScaleX": 0.8,
                   "localScaleY": 0.8,
                   "localScaleZ": 0.8,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -375,7 +380,7 @@
                   "localScaleX": 0.55,
                   "localScaleY": 0.55,
                   "localScaleZ": 0.55,
-                  "durationTicks": 25
+                  "durationTicks": 30
                 }
               },
               {
@@ -418,14 +423,14 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.normal.hit"
     },
     {
       "id": "ground.3",
@@ -479,7 +484,7 @@
                   "localScaleX": 0.8,
                   "localScaleY": 0.8,
                   "localScaleZ": 0.8,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -496,7 +501,7 @@
                   "localScaleX": 0.55,
                   "localScaleY": 0.55,
                   "localScaleZ": 0.55,
-                  "durationTicks": 25
+                  "durationTicks": 30
                 }
               },
               {
@@ -539,14 +544,14 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.normal.hit"
     },
     {
       "id": "ground.4",
@@ -600,7 +605,7 @@
                   "localScaleX": 1.2,
                   "localScaleY": 1.2,
                   "localScaleZ": 1.2,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -617,7 +622,7 @@
                   "localScaleX": 0.85,
                   "localScaleY": 0.85,
                   "localScaleZ": 0.85,
-                  "durationTicks": 25
+                  "durationTicks": 30
                 }
               },
               {
@@ -660,14 +665,14 @@
                   "localScaleX": 0.85,
                   "localScaleY": 0.85,
                   "localScaleZ": 0.85,
-                  "durationTicks": 11
+                  "durationTicks": 28
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.heavy.hit"
     },
     {
       "id": "ground.A",
@@ -712,9 +717,9 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 8,
+                "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.bonk.bash.brace",
+                "presentationId": "presentation.bonk.bash.snort",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.head",
@@ -724,7 +729,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 9
+                  "durationTicks": 36
                 }
               },
               {
@@ -732,6 +737,23 @@
                 "tick": 12,
                 "unit": "ticks",
                 "durationTicks": 25
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.armor",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 25
+                }
               },
               {
                 "kind": "forwardLunge",
@@ -754,7 +776,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 24
+                  "durationTicks": 40
                 }
               },
               {
@@ -868,7 +890,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.slam.hit"
     },
     {
       "id": "ground.R",
@@ -912,10 +934,44 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.bash.snort",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 36
+                }
+              },
+              {
                 "kind": "armorWindow",
                 "tick": 12,
                 "unit": "ticks",
                 "durationTicks": 17
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.armor",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 17
+                }
               },
               {
                 "kind": "forwardLunge",
@@ -939,7 +995,7 @@
                   "localScaleX": 0.85,
                   "localScaleY": 0.85,
                   "localScaleZ": 0.85,
-                  "durationTicks": 23
+                  "durationTicks": 40
                 }
               },
               {
@@ -956,7 +1012,7 @@
                   "localScaleX": 0.9,
                   "localScaleY": 0.9,
                   "localScaleZ": 0.9,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -1000,7 +1056,7 @@
                   "localScaleX": 0.6,
                   "localScaleY": 0.6,
                   "localScaleZ": 0.6,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               },
               {
@@ -1017,7 +1073,7 @@
                   "localScaleX": 1.1,
                   "localScaleY": 1.1,
                   "localScaleZ": 1.1,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -1060,14 +1116,14 @@
                   "localScaleX": 0.9,
                   "localScaleY": 0.9,
                   "localScaleZ": 0.9,
-                  "durationTicks": 11
+                  "durationTicks": 28
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.slash.hit"
     },
     {
       "id": "ground.F",
@@ -1145,7 +1201,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 45
+                  "durationTicks": 48
                 }
               },
               {
@@ -1162,7 +1218,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 45
+                  "durationTicks": 60
                 }
               },
               {
@@ -1283,7 +1339,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 12
+                  "durationTicks": 28
                 }
               },
               {
@@ -1296,7 +1352,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.storm.hit"
     },
     {
       "id": "air.1",
@@ -1350,7 +1406,7 @@
                   "localScaleX": 0.8,
                   "localScaleY": 0.8,
                   "localScaleZ": 0.8,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -1373,7 +1429,7 @@
                   "baseKnockback": 5,
                   "knockbackGrowth": 24,
                   "stunTicks": 14,
-                  "durationTicks": 21,
+                  "durationTicks": 24,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1393,14 +1449,14 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.normal.hit"
     },
     {
       "id": "air.2",
@@ -1454,7 +1510,7 @@
                   "localScaleX": 0.8,
                   "localScaleY": 0.8,
                   "localScaleZ": 0.8,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -1497,14 +1553,14 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.normal.hit"
     },
     {
       "id": "air.3",
@@ -1558,7 +1614,7 @@
                   "localScaleX": 0.8,
                   "localScaleY": 0.8,
                   "localScaleZ": 0.8,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -1601,14 +1657,14 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.normal.hit"
     },
     {
       "id": "air.4",
@@ -1662,7 +1718,7 @@
                   "localScaleX": 1.2,
                   "localScaleY": 1.2,
                   "localScaleZ": 1.2,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -1685,7 +1741,7 @@
                   "baseKnockback": 9,
                   "knockbackGrowth": 40,
                   "stunTicks": 22,
-                  "durationTicks": 12,
+                  "durationTicks": 4,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1705,14 +1761,14 @@
                   "localScaleX": 0.85,
                   "localScaleY": 0.85,
                   "localScaleZ": 0.85,
-                  "durationTicks": 11
+                  "durationTicks": 28
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.heavy.hit"
     },
     {
       "id": "air.A",
@@ -1764,9 +1820,9 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 8,
+                "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.bonk.bash.brace",
+                "presentationId": "presentation.bonk.bash.snort",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.head",
@@ -1776,7 +1832,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 9
+                  "durationTicks": 36
                 }
               },
               {
@@ -1784,6 +1840,23 @@
                 "tick": 12,
                 "unit": "ticks",
                 "durationTicks": 25
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.armor",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 25
+                }
               },
               {
                 "kind": "forwardLunge",
@@ -1903,7 +1976,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.slam.hit"
     },
     {
       "id": "air.R",
@@ -1954,10 +2027,44 @@
                 "durationTicks": 30
               },
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.bash.snort",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 36
+                }
+              },
+              {
                 "kind": "armorWindow",
                 "tick": 12,
                 "unit": "ticks",
                 "durationTicks": 17
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 12,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.armor",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.head",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 17
+                }
               },
               {
                 "kind": "forwardLunge",
@@ -1981,7 +2088,7 @@
                   "localScaleX": 0.9,
                   "localScaleY": 0.9,
                   "localScaleZ": 0.9,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -2025,7 +2132,7 @@
                   "localScaleX": 0.6,
                   "localScaleY": 0.6,
                   "localScaleZ": 0.6,
-                  "durationTicks": 8
+                  "durationTicks": 20
                 }
               },
               {
@@ -2042,7 +2149,7 @@
                   "localScaleX": 1.1,
                   "localScaleY": 1.1,
                   "localScaleZ": 1.1,
-                  "durationTicks": 8
+                  "durationTicks": 10
                 }
               },
               {
@@ -2085,14 +2192,14 @@
                   "localScaleX": 0.9,
                   "localScaleY": 0.9,
                   "localScaleZ": 0.9,
-                  "durationTicks": 11
+                  "durationTicks": 28
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.slash.hit"
     },
     {
       "id": "air.F",
@@ -2170,7 +2277,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 45
+                  "durationTicks": 48
                 }
               },
               {
@@ -2291,7 +2398,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 12
+                  "durationTicks": 28
                 }
               },
               {
@@ -2304,7 +2411,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.bonk.steel.hit"
+      "hitPresentationId": "presentation.bonk.storm.hit"
     }
   ],
   "aliases": []
