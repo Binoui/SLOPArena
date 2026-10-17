@@ -347,9 +347,13 @@ public sealed class CookedTimelineAbility : ServerAbility
                 _lungeReach = new Hitbox[Math.Max(1, (int)cooked.DurationTicks)];
                 var pose = s;
                 pose.PX = pose.PY = pose.PZ = 0f;
+                // AttackElapsedTicks counts from the activation; operation ticks from their stage.
+                int stageStart = 0;
+                for (int stage = 0; stage < _stageIndex; stage++)
+                    stageStart += _slot.Timeline.Stages[stage].DurationTicks;
                 for (int tick = 0; tick < _lungeReach.Length; tick++)
                 {
-                    pose.AttackElapsedTicks = (ushort)(hit.Tick + tick);
+                    pose.AttackElapsedTicks = (ushort)(stageStart + hit.Tick + tick);
                     HitboxGeometry.ResolvePositions(pose, evt, BakedData, CharacterDef,
                         AnimationNames, AnimIndex, Slot, !s.IsGrounded,
                         out float x, out float y, out float z, out float ex, out float ey, out float ez);

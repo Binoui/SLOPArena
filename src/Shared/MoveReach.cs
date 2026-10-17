@@ -40,12 +40,18 @@ public static class MoveReach
         int ticks = Math.Max(1, (int)evt.DurationTicks);
         var samples = new CapsuleSample[ticks];
         float py = def.CapsuleHeight * 0.5f;
+        // AttackElapsedTicks counts from the activation; TriggerTick counts from its stage.
+        int stageStart = 0;
+        var spec = def.GetSlotAbility(slot, airborne);
+        if (spec != null)
+            for (int i = 0; i < animIndex && i < spec.Stages.Length; i++)
+                stageStart += spec.Stages[i].DurationTicks;
         for (int t = 0; t < ticks; t++)
         {
             var s = new CharacterState
             {
                 PX = 0f, PY = py, PZ = 0f, FacingYaw = 0f,
-                AttackElapsedTicks = (ushort)(evt.TriggerTick + t),
+                AttackElapsedTicks = (ushort)(stageStart + evt.TriggerTick + t),
             };
             HitboxGeometry.ResolvePositions(s, evt, baked, def, animationNames, animIndex, slot, airborne,
                 out float wx, out float wy, out float wz,

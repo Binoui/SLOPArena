@@ -829,12 +829,15 @@ namespace SlopArena.Client.World
             }
         }
 
+        // Hitboxes exactly as the latest tick tested them, including a window's last tick.
         private void DrawHitboxGizmos()
         {
-            var hitboxes = _bridge.InternalSim.Resolver.GetActiveHitboxes();
-            Gizmos.color = new Color(1f, 0.3f, 0f, 0.6f);
+            var hitboxes = _bridge.InternalSim.Resolver.LastTickCheckedHitboxes;
             foreach (var hb in hitboxes)
             {
+                Gizmos.color = new Color(0.6f, 0.3f, 0.05f, 0.6f);
+                DrawSweepLines(in hb, Gizmos.DrawLine);
+                Gizmos.color = new Color(1f, 0.3f, 0f, 0.6f);
                 var center = new Vector3(hb.X, hb.Y, hb.Z);
                 if (hb.Shape == HitboxShape.Sphere || (hb.X == hb.EndX && hb.Y == hb.EndY && hb.Z == hb.EndZ))
                 {
@@ -849,10 +852,12 @@ namespace SlopArena.Client.World
 
         private void DrawHitboxDebug()
         {
-            var hitboxes = _bridge.InternalSim.Resolver.GetActiveHitboxes();
+            var hitboxes = _bridge.InternalSim.Resolver.LastTickCheckedHitboxes;
             Color color = new Color(1f, 0.3f, 0f, 0.6f);
+            Color sweepColor = new Color(0.6f, 0.3f, 0.05f, 0.6f);
             foreach (var hb in hitboxes)
             {
+                DrawSweepLines(in hb, (p0, p1) => Debug.DrawLine(p0, p1, sweepColor));
                 var center = new Vector3(hb.X, hb.Y, hb.Z);
                 if (hb.Shape == HitboxShape.Sphere || (hb.X == hb.EndX && hb.Y == hb.EndY && hb.Z == hb.EndZ))
                 {
@@ -862,6 +867,30 @@ namespace SlopArena.Client.World
                 {
                     DrawWireCapsule(center, new Vector3(hb.EndX, hb.EndY, hb.EndZ), hb.Radius, (p0, p1) => Debug.DrawLine(p0, p1, color));
                 }
+            }
+        }
+
+        /// <summary>
+        /// The path a swept bone hitbox tested since the previous tick: each swept pose's
+        /// axis joined by its start and end paths up to the current pose.
+        /// </summary>
+        private static void DrawSweepLines(in Hitbox hb, Action<Vector3, Vector3> drawLine)
+        {
+            if (hb.Sweep == null) return;
+            for (int p = 0; p < hb.Sweep.Length; p++)
+            {
+                var pose = hb.Sweep[p];
+                var start = new Vector3(pose.X, pose.Y, pose.Z);
+                var end = new Vector3(pose.EndX, pose.EndY, pose.EndZ);
+                var nextStart = p + 1 < hb.Sweep.Length
+                    ? new Vector3(hb.Sweep[p + 1].X, hb.Sweep[p + 1].Y, hb.Sweep[p + 1].Z)
+                    : new Vector3(hb.X, hb.Y, hb.Z);
+                var nextEnd = p + 1 < hb.Sweep.Length
+                    ? new Vector3(hb.Sweep[p + 1].EndX, hb.Sweep[p + 1].EndY, hb.Sweep[p + 1].EndZ)
+                    : new Vector3(hb.EndX, hb.EndY, hb.EndZ);
+                drawLine(start, end);
+                drawLine(start, nextStart);
+                drawLine(end, nextEnd);
             }
         }
 

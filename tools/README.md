@@ -34,7 +34,7 @@ of a fighter or a networked match.
 | `SelfPlayReport/` | Deterministic bot-match diagnostics |
 | `BonkInvestigation/` | Sword contact, pose-phase and grounded move/jump recovery diagnostics |
 | `SpectateView/` | Record and inspect deterministic matches |
-| `HitReliabilityReport/` | Per-normal playback speed, reach, aerial vertical reach and bone/weapon tick-sampling loss; see [hit reliability](../docs/systems/move-data-report.md#hit-reliability) |
+| `HitReliabilityReport/` | Per-normal playback speed, reach, aerial vertical reach and bone/weapon swing coverage between ticks; see [hit reliability](../docs/systems/move-data-report.md#hit-reliability) |
 | `SessionLogReport/` | Report local practice session logs (human swings, misses, camera handling); see [the session log](../docs/systems/practice-session-log.md) |
 
 [KnockbackVisuals](KnockbackVisuals/README.md) supplies a browser viewer for saved

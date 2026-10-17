@@ -128,5 +128,37 @@ namespace SlopArena.Shared
         /// it (not the live IsGrounded, which can flip mid-window if the owner lands).
         /// </summary>
         public bool Airborne;
+
+        /// <summary>True once a tracked hitbox has been resolved on an earlier tick.</summary>
+        public bool HasSweepOrigin;
+
+        /// <summary>The owner sample and pose of the previous tick, where this tick's sweep starts.</summary>
+        public HitboxSweepOrigin SweepOrigin;
+
+        /// <summary>
+        /// Poses a tracked hitbox passed through since the previous tick, earliest first,
+        /// tested before the current X/Y/Z pose. Null when it did not move enough to need
+        /// them, on its first active tick, or across an attack-clock seek. A fresh array
+        /// each tick, so copies kept for diagnostics stay valid.
+        /// </summary>
+        public HitboxPose[]? Sweep;
+    }
+
+    /// <summary>One resolved hitbox pose: start point, and capsule end (ignored for spheres).</summary>
+    public struct HitboxPose
+    {
+        public float X, Y, Z;
+        public float EndX, EndY, EndZ;
+    }
+
+    /// <summary>Owner sample a tracked hitbox's next sweep starts from.</summary>
+    public struct HitboxSweepOrigin
+    {
+        public float PX, PY, PZ;
+        public float FacingYaw;
+        public float AttackPosePitch;
+        public ushort AttackElapsedTicks;
+        public byte ComboStage;
+        public HitboxPose Pose;
     }
 }

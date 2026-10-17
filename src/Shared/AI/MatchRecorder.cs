@@ -278,7 +278,8 @@ public sealed class MatchRecorder
 
     /// <summary>
     /// Track how close each accepted activation's hitboxes came to its reference target,
-    /// using the hitboxes exactly as the resolver tested them during the last tick.
+    /// using the hitboxes exactly as the resolver tested them during the last tick,
+    /// swept poses included.
     /// </summary>
     private void UpdateContactGeometry(ServerSimulation sim, int tick,
         IReadOnlyDictionary<ulong, CharacterState> states)
@@ -304,6 +305,17 @@ public sealed class MatchRecorder
                 if (volume.Id != swing.ReferenceTarget || !volume.Active) continue;
                 float gap = SpellResolver.SurfaceGap(in hitbox, in volume,
                     out float gapX, out float gapY, out float gapZ);
+                if (hitbox.Sweep != null)
+                    foreach (var pose in hitbox.Sweep)
+                    {
+                        var probe = hitbox;
+                        probe.X = pose.X; probe.Y = pose.Y; probe.Z = pose.Z;
+                        probe.EndX = pose.EndX; probe.EndY = pose.EndY; probe.EndZ = pose.EndZ;
+                        float sweptGap = SpellResolver.SurfaceGap(in probe, in volume,
+                            out float sweptX, out float sweptY, out float sweptZ);
+                        if (sweptGap >= gap) continue;
+                        gap = sweptGap; gapX = sweptX; gapY = sweptY; gapZ = sweptZ;
+                    }
                 if (swing.HasClosestApproach && gap >= swing.ClosestGap) continue;
                 RecordClosestApproach(swing, tick, gap, gapX, gapY, gapZ, states);
             }

@@ -454,6 +454,15 @@ namespace SlopArena.Shared
 		public static List<SpellResolver.EntityData> BuildEntitiesFromState(
 			CharacterState state, CharacterDefinition def, BakedAnimationData baked,
 			string targetAnim, int animFrame, ulong entityId = 0)
+			=> BuildEntitiesFromState(state, def, baked, targetAnim, (float)animFrame, entityId);
+
+		/// <summary>
+		/// Hurtbox volumes for a state posed at a baked frame, which may be fractional
+		/// (attacks run on their clip clock); the pose interpolates between frames.
+		/// </summary>
+		public static List<SpellResolver.EntityData> BuildEntitiesFromState(
+			CharacterState state, CharacterDefinition def, BakedAnimationData baked,
+			string targetAnim, float animFrame, ulong entityId = 0)
 		{
 			var list = new List<SpellResolver.EntityData>();
 			AppendEntitiesFromState(state, def, baked, targetAnim, animFrame, entityId, list);
@@ -461,7 +470,7 @@ namespace SlopArena.Shared
 		}
 
 		private static void AppendEntitiesFromState(CharacterState state, CharacterDefinition def,
-			BakedAnimationData baked, string targetAnim, int animFrame, ulong entityId,
+			BakedAnimationData baked, string targetAnim, float animFrame, ulong entityId,
 			List<SpellResolver.EntityData> list)
 		{
 			if (baked != null && def.HurtboxBoneDefs != null && def.HurtboxBoneDefs.Length > 0)
@@ -471,7 +480,8 @@ namespace SlopArena.Shared
 				if (animIdx >= 0)
 				{
 					int fc = baked.Animations[animIdx].FrameCount;
-					if (animFrame >= fc) animFrame = fc - 1;
+					if (animFrame > fc - 1) animFrame = fc - 1;
+					if (animFrame < 0f) animFrame = 0f;
 					float yaw = state.FacingYaw;
 					float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
 					float scale = def.HurtboxBoneScale;
@@ -529,16 +539,19 @@ namespace SlopArena.Shared
 		}
 
         /// <summary>
-        /// Resolve the animation name and baked frame for hitbox/hurtbox bone lookup.
+        /// Resolve the animation name and baked frame for hurtbox bone lookup. Attacks use
+        /// their clip clock, the stage's elapsed ticks mapped onto the clip exactly like
+        /// hitboxes (<see cref="HitboxGeometry.AttackFrame"/>), so a fighter's body and
+        /// weapon share one pose; other states step a per-entity frame counter.
         /// Returns false when there's no valid baked data for this entity or animation index is invalid.
         /// Side effects: advances _animFrames and _prevAnimIndex for the entity.
         /// </summary>
         private bool ResolveBoneAnimFrame(ulong id, CharacterState state, CharacterDefinition def,
-            out BakedAnimationData baked, out string targetAnim, out int bakedFrame, bool advanceFrame = true)
+            out BakedAnimationData baked, out string targetAnim, out float bakedFrame, bool advanceFrame = true)
         {
             baked = null!;
             targetAnim = null!;
-            bakedFrame = 0;
+            bakedFrame = 0f;
 
             if (!_bakedData.TryGetValue(id, out baked!) || def.HurtboxBoneDefs == null || def.HurtboxBoneDefs.Length == 0)
                 return false;
@@ -604,8 +617,11 @@ namespace SlopArena.Shared
                 if (cooked != null)
                 {
                     int stageIdx = Math.Min(state.ComboStage, (byte)(cooked.Timeline.Stages.Count - 1));
-                    int durationTicks = cooked.Timeline.Stages[stageIdx].DurationTicks;
-                    if (durationTicks > 0) bakedFrame = Math.Min(frame * fc / durationTicks, fc - 1);
+                    int stageElapsed = state.AttackElapsedTicks;
+                    for (int i = 0; i < stageIdx; i++)
+                        stageElapsed -= cooked.Timeline.Stages[i].DurationTicks;
+                    bakedFrame = HitboxGeometry.AttackFrame(Math.Max(0, stageElapsed), fc,
+                        cooked.Timeline.Stages[stageIdx].DurationTicks);
                 }
             }
 

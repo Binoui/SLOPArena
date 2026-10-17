@@ -15,8 +15,8 @@ namespace SlopArena.HitReliabilityReport;
 /// Measures how forgiving each admitted normal is against standing roster targets, from the
 /// cooked content the game runs: clip playback speed, active ticks that touch a nearby target,
 /// real-sim reach bands for ground normals, how far below or above its feet an aerial reaches,
-/// and how much of a bone or weapon swing passes between tested ticks. Use it to compare
-/// characters and to check a re-authored attack after its cook.
+/// and how much of a bone or weapon swing the engine leaves untested between ticks. Use it to
+/// compare characters and to check a re-authored attack after its cook.
 /// </summary>
 internal static class Program
 {
@@ -114,7 +114,8 @@ internal static class Program
 
         md.AppendLine("## Bone and weapon sampling").AppendLine();
         md.AppendLine("Grid positions (0.5–3 m ahead, ±40°) where a standing FightGuy-sized target lies in the swing's path "
-            + "between ticks but is never touched by a tested tick.").AppendLine();
+            + "between ticks but no tested pose touches it. Tested poses are each tick's pose plus the swept poses the "
+            + "engine tests between active ticks, so Untested should stay near zero.").AppendLine();
         md.AppendLine("| Move | Anchor | Radius | Max tip step / tick | Target feet | Swept | Untested |");
         md.AppendLine("|---|---|---:|---:|---:|---:|---:|");
         foreach (var move in moves)
