@@ -28,12 +28,21 @@ def files(root):
     return result
 
 
-def compatibility(project, unity_version, licensed_inputs):
-    return {"schemaVersion": 1, "unityVersion": unity_version, "target": "StandaloneWindows64",
+def compatibility(project, unity_version):
+    """What can change every import at once. Source files are not part of it: tracked or
+    local-only, Unity reimports each changed file and its dependents from a restored Library."""
+    return {"schemaVersion": 2, "unityVersion": unity_version, "target": "StandaloneWindows64",
             "host": platform.system(), "architecture": platform.machine(),
             "packagesHash": fingerprint(files(project / "Packages")),
-            "settingsHash": fingerprint(files(project / "ProjectSettings")),
-            "licensedInputsHash": fingerprint(licensed_inputs)}
+            "settingsHash": fingerprint(files(project / "ProjectSettings"))}
+
+
+def local_changes(before, after, limit=20):
+    """Local-only files that differ from the snapshot's, for the attempt's evidence."""
+    changes = {"added": sorted(set(after) - set(before)),
+               "removed": sorted(set(before) - set(after)),
+               "changed": sorted(name for name in set(before) & set(after) if before[name] != after[name])}
+    return {kind: {"count": len(names), "paths": names[:limit]} for kind, names in changes.items()}
 
 
 class ImportCache:
@@ -56,7 +65,7 @@ class ImportCache:
         finally:
             os.close(fd)
 
-    def restore(self, project, inputs):
+    def restore(self, project, inputs, local_inputs):
         key = fingerprint(inputs)
         library = project / "Library"
         if library.exists() or library.is_symlink():
@@ -80,13 +89,14 @@ class ImportCache:
                 shutil.copytree(source, library)
                 if files(library) != manifest["files"]:
                     raise ValueError("Cache copy did not preserve snapshot bytes")
-                return {"status": "hit", "key": key, "snapshotSourceRevision": manifest["sourceRevision"]}
+                return {"status": "hit", "key": key, "snapshotSourceRevision": manifest["sourceRevision"],
+                        "localChanges": local_changes(manifest["localInputs"], local_inputs)}
             except (OSError, ValueError, KeyError, TypeError):
                 if library.is_dir() and not library.is_symlink():
                     shutil.rmtree(library)
                 return {"status": "rejected", "key": key, "reason": "invalid_snapshot"}
 
-    def store(self, project, inputs, revision):
+    def store(self, project, inputs, revision, local_inputs):
         library = project / "Library"
         if library.is_symlink() or not library.is_dir():
             raise ValueError("Settled isolated Library is missing")
@@ -102,7 +112,7 @@ class ImportCache:
             shutil.copytree(library, staged / "Library", ignore=ignore)
             hashes = files(staged / "Library")
             manifest = {"key": key, "compatibility": inputs, "sourceRevision": revision,
-                        "createdAtUtc": playtest_timing.utc_now(), "files": hashes}
+                        "createdAtUtc": playtest_timing.utc_now(), "localInputs": local_inputs, "files": hashes}
             playtest_timing.atomic_json(staged / "manifest.json", manifest)
             entry = self.root / key
             old = self.root / (".previous-" + uuid.uuid4().hex)

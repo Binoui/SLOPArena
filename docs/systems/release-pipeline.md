@@ -124,12 +124,13 @@ manual Steam activation remain separate stages.
 The selected published source must include the updated producer. The cache lives
 under ignored `build/.playtest-import-cache/`, is private to the operator, copies
 settled Library snapshots into independent projects, verifies snapshot bytes,
-and keeps at most two compatibility snapshots. Unity version, host/target,
-package/settings and licensed input hashes determine compatibility; an ordinary
-source commit does not invalidate the entire cache. Changed tracked assets and
-scripts remain Unity import dependencies. Changed licensed inputs cause a miss.
-Invalid snapshots fall back to cold import. Every hit still runs native package,
-catalog and player verification. Cache evidence is in each attempt's `cache.json`.
+and keeps at most two compatibility snapshots. Unity version, host/target and the
+`Packages` and `ProjectSettings` hashes determine compatibility. Source files do
+not: after an ordinary commit or a changed local-only input, the build restores the
+snapshot and Unity reimports each changed file and its dependents. Each snapshot
+records its local-only inputs, and the attempt's `cache.json` lists the ones added,
+removed or changed since. Invalid snapshots fall back to cold import. Every hit still
+runs native package, catalog and player verification.
 
 For accepted character changes, a valid authoring cook is local evidence. Its
 advisory status and inspect provenance now identify the cook target and Unity
