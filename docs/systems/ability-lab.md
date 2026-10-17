@@ -289,7 +289,9 @@ rig/camera and invalid-draft states are explicit rather than showing a stale cur
 On the timeline, the hitbox and hurtbox overlays show what the authoritative preview
 simulation tested on the tick the model shows (`SpellResolver.LastTickCheckedHitboxes` and
 `LastTickAttackEntities`), so they follow the move's real movement, including rises and
-dives. Recorded scenarios keep every tested hitbox per frame, including one on its last
+dives. A bone hitbox also draws, in darker orange, the band Shared swept through since the
+previous tick (`Hitbox.Sweep`): each swept pose's axis joined by its start and end paths.
+Recorded scenarios keep every tested hitbox per frame, including one on its last
 active tick. Without an authoritative run, overlays fall back to the authored approximation
 (grounded, forward lunges only, one tick behind the model).
 

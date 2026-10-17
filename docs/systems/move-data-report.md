@@ -118,7 +118,9 @@ Each character gets `<char>.md` and `<char>.json`:
   any active tick touches within 3 m ahead. An aerial that reaches less than 0.5 m below
   its feet only hits grounded targets at the very end of a fall.
 - **Bone and weapon sampling** — positions a standing target occupies on the swing path
-  between consecutive active ticks (eight interpolated sub-steps) that no tested tick touches.
+  between consecutive active ticks (the clip sampled 16 times per tick) that no tested pose
+  touches. Tested poses are each tick's pose plus the swept poses Shared tests between
+  active ticks, so this stays near zero; a rise means the sweep stopped covering the swing.
 
 Flags mark fast clips, point-blank whiffs, aerials that cannot reach below their feet and
 sampling loss above 10%. The attacker stays fixed for the geometry columns, and targets

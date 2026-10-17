@@ -246,9 +246,11 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Re-resolve every bone-tracked hitbox to its owner's current bone position.
-        /// Call once per tick, before Tick(), so melee hitboxes sweep with the limb
-        /// instead of freezing at their spawn position. Projectiles and non-bone
-        /// hitboxes are untouched (they carry their own velocity).
+        /// Call once per tick, before Tick(), so melee hitboxes follow the limb instead
+        /// of freezing at their spawn position. From a hitbox's second active tick on,
+        /// <see cref="Hitbox.Sweep"/> also holds the poses it passed through since the
+        /// previous tick, which Tick() tests before the current pose. Projectiles and
+        /// non-bone hitboxes are untouched (they carry their own velocity).
         /// </summary>
         public void UpdateBoneHitboxes(IReadOnlyDictionary<ulong, CharacterState> states)
         {
@@ -257,14 +259,32 @@ namespace SlopArena.Shared
                 var hb = _hitboxes[i];
                 if (!hb.Active || !hb.TracksBone || hb.Def == null) continue;
                 if (!states.TryGetValue(hb.OwnerId, out var owner)) continue;
-                if (owner.AttackSlot == 0) continue; // owner interrupted/ended — leave the lingering hitbox as-is
+                if (owner.AttackSlot == 0)
+                {
+                    // Owner interrupted/ended — leave the lingering hitbox as-is.
+                    if (hb.Sweep != null) { hb.Sweep = null; _hitboxes[i] = hb; }
+                    continue;
+                }
 
                 HitboxGeometry.ResolvePositions(owner, hb.SourceEvent, hb.Baked, hb.Def,
                     hb.AnimationNames, hb.AnimIndex, hb.Slot, hb.Airborne,
                     out float wx, out float wy, out float wz,
                     out float wex, out float wey, out float wez);
+                var current = new HitboxPose { X = wx, Y = wy, Z = wz, EndX = wex, EndY = wey, EndZ = wez };
+                hb.Sweep = hb.HasSweepOrigin
+                    ? HitboxGeometry.SweepPoses(hb.SourceEvent, hb.Baked, hb.Def, hb.AnimationNames,
+                        hb.AnimIndex, hb.Slot, hb.Airborne, in hb.SweepOrigin, in owner, in current)
+                    : null;
                 hb.X = wx; hb.Y = wy; hb.Z = wz;
                 hb.EndX = wex; hb.EndY = wey; hb.EndZ = wez;
+                hb.SweepOrigin = new HitboxSweepOrigin
+                {
+                    PX = owner.PX, PY = owner.PY, PZ = owner.PZ,
+                    FacingYaw = owner.FacingYaw, AttackPosePitch = owner.AttackPosePitch,
+                    AttackElapsedTicks = owner.AttackElapsedTicks, ComboStage = owner.ComboStage,
+                    Pose = current,
+                };
+                hb.HasSweepOrigin = true;
                 _hitboxes[i] = hb;
             }
         }
@@ -323,69 +343,40 @@ namespace SlopArena.Shared
                     if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
                     if (hitThisTick.Contains(entity.Id)) continue;
                     if (entity.InvincibilityTicks > 0) continue;
+                    // One-hit-per-opponent: skip entities this hitbox already tagged.
+                    if (hb.HitsMultipleOpponents && hb.HitEntities!.Contains(entity.Id))
+                        continue;
+
+                    // A swept bone hitbox tests the poses it passed through since the
+                    // previous tick, earliest first, then its current pose. The first
+                    // pose in contact supplies the contact point and launch geometry.
+                    var contact = hb;
                     bool hit = false;
                     float dist = 0f, dx = 0f, dy = 0f, dz = 0f;
                     float hitX = 0f, hitY = 0f, hitZ = 0f;
                     float contactTime = 1f;
                     float movingTargetY = entity.PosY;
-
-                    bool shieldSweep = entity.ShieldSurface && hb.Shape == HitboxShape.Sphere
-                        && SweptShieldContact(in hb, in entity, prevX, prevY, prevZ,
-                            out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ);
-
-                    if (entity.MotionPath != null)
+                    if (hb.Sweep != null)
                     {
-                        hit = MovingSphereContact(in hb, in entity, prevX, prevY, prevZ,
-                            out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ,
-                            out contactTime, out movingTargetY);
-                    }
-                    else if (shieldSweep)
-                    {
-                        hit = true;
-                    }
-                    else if (hb.Shape == HitboxShape.Capsule || entity.Shape == HitboxShape.Capsule)
-                    {
-                        hit = CapsuleCollision(hb, entity, out dist, out dx, out dy, out dz,
-                            out hitX, out hitY, out hitZ);
-                    }
-                    else
-                    {
-                        // Sphere-sphere (original)
-                        dx = entity.PosX - hb.X;
-                        dy = entity.PosY - hb.Y;
-                        dz = entity.PosZ - hb.Z;
-                        float distSq = (dx * dx) + (dy * dy) + (dz * dz);
-                        float combinedRadius = hb.Radius + entity.Radius;
-                        if (distSq <= combinedRadius * combinedRadius)
+                        for (int p = 0; p < hb.Sweep.Length && !hit; p++)
                         {
-                            dist = MathF.Sqrt(distSq);
-                            hit = true;
-                            if (dist > 0.001f)
-                            {
-                                float invDist = 1f / dist;
-                                hitX = hb.X + dx * invDist * hb.Radius;
-                                hitY = hb.Y + dy * invDist * hb.Radius;
-                                hitZ = hb.Z + dz * invDist * hb.Radius;
-                            }
-                            else
-                            {
-                                hitX = hb.X;
-                                hitY = hb.Y;
-                                hitZ = hb.Z;
-                            }
+                            var probe = hb;
+                            var pose = hb.Sweep[p];
+                            probe.X = pose.X; probe.Y = pose.Y; probe.Z = pose.Z;
+                            probe.EndX = pose.EndX; probe.EndY = pose.EndY; probe.EndZ = pose.EndZ;
+                            hit = TryContact(in probe, in entity, probe.X, probe.Y, probe.Z,
+                                out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ,
+                                out contactTime, out movingTargetY);
+                            if (hit) contact = probe;
                         }
                     }
-
-                    if (hit && entity.ShieldSurface && !shieldSweep)
-                        ShieldSurfaceContact(in hb, in entity, prevX, prevY, prevZ,
-                            dist, dx, dy, dz, out hitX, out hitY, out hitZ);
+                    if (!hit)
+                        hit = TryContact(in hb, in entity, prevX, prevY, prevZ,
+                            out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ,
+                            out contactTime, out movingTargetY);
 
                     if (hit)
                     {
-                        // One-hit-per-opponent: skip entities this hitbox already tagged.
-                        if (hb.HitsMultipleOpponents && hb.HitEntities!.Contains(entity.Id))
-                            continue;
-
                         // Calculate knockback direction (normalized, no force multiplier)
                         float dirXNorm = dist > 0.001f ? (dx / dist) : 0f;
                         float dirZNorm = dist > 0.001f ? (dz / dist) : 0f;
@@ -399,7 +390,7 @@ namespace SlopArena.Shared
                         if (launchAngle == KnockbackData.AdaptiveAngle)
                         {
                             float refY = entity.MotionPath != null ? movingTargetY : (entity.PosY + entity.EndY) * 0.5f;
-                            launchAngle = ComputeAdaptiveAngle(dx, refY - hb.Y, dz);
+                            launchAngle = ComputeAdaptiveAngle(dx, refY - contact.Y, dz);
                         }
 
                         results.Add(new HitResult
@@ -463,6 +454,74 @@ namespace SlopArena.Shared
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Contact test between one hitbox pose and one entity: moving Arcade spheres,
+        /// swept shield contact for spheres, capsule and sphere-sphere overlap. Shield
+        /// surfaces report their contact point on the shield.
+        /// </summary>
+        private static bool TryContact(in Hitbox hb, in EntityData entity, float prevX, float prevY, float prevZ,
+            out float dist, out float dx, out float dy, out float dz, out float hitX, out float hitY, out float hitZ,
+            out float contactTime, out float movingTargetY)
+        {
+            bool hit = false;
+            dist = dx = dy = dz = 0f;
+            hitX = hitY = hitZ = 0f;
+            contactTime = 1f;
+            movingTargetY = entity.PosY;
+
+            bool shieldSweep = entity.ShieldSurface && hb.Shape == HitboxShape.Sphere
+                && SweptShieldContact(in hb, in entity, prevX, prevY, prevZ,
+                    out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ);
+
+            if (entity.MotionPath != null)
+            {
+                hit = MovingSphereContact(in hb, in entity, prevX, prevY, prevZ,
+                    out dist, out dx, out dy, out dz, out hitX, out hitY, out hitZ,
+                    out contactTime, out movingTargetY);
+            }
+            else if (shieldSweep)
+            {
+                hit = true;
+            }
+            else if (hb.Shape == HitboxShape.Capsule || entity.Shape == HitboxShape.Capsule)
+            {
+                hit = CapsuleCollision(hb, entity, out dist, out dx, out dy, out dz,
+                    out hitX, out hitY, out hitZ);
+            }
+            else
+            {
+                // Sphere-sphere (original)
+                dx = entity.PosX - hb.X;
+                dy = entity.PosY - hb.Y;
+                dz = entity.PosZ - hb.Z;
+                float distSq = (dx * dx) + (dy * dy) + (dz * dz);
+                float combinedRadius = hb.Radius + entity.Radius;
+                if (distSq <= combinedRadius * combinedRadius)
+                {
+                    dist = MathF.Sqrt(distSq);
+                    hit = true;
+                    if (dist > 0.001f)
+                    {
+                        float invDist = 1f / dist;
+                        hitX = hb.X + dx * invDist * hb.Radius;
+                        hitY = hb.Y + dy * invDist * hb.Radius;
+                        hitZ = hb.Z + dz * invDist * hb.Radius;
+                    }
+                    else
+                    {
+                        hitX = hb.X;
+                        hitY = hb.Y;
+                        hitZ = hb.Z;
+                    }
+                }
+            }
+
+            if (hit && entity.ShieldSurface && !shieldSweep)
+                ShieldSurfaceContact(in hb, in entity, prevX, prevY, prevZ,
+                    dist, dx, dy, dz, out hitX, out hitY, out hitZ);
+            return hit;
         }
 
         private void OrderMovingTargetContacts(List<EntityData> entities)

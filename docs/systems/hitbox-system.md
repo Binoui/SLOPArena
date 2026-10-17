@@ -253,6 +253,9 @@ foreach (var kvp in _states)
 
 Since v0.13, `HitboxEvent` supports bone-attached hitboxes. When `BoneName` is set, the hitbox is positioned at the character skeleton bone's world position (from baked animation data) instead of the fixed `OffX/Y/Z` entity-relative offset.
 
+> Superseded: tracked bone hitboxes re-resolve every tick and sweep between ticks; see
+> [Clip clock and swept bone hitboxes](#clip-clock-and-swept-bone-hitboxes--since-2026-10-17).
+
 ⚠️ **Melee Pivot Decoherence Warning:** Spawning a server-side hitbox on a bone transform occurs on the *first trigger tick only*. Afterward, unless updated dynamically, the hitbox remains anchored statically in world space (modulo entity linear velocity), while the visual skeletal mesh continues its swipe movement. This can separate the visual swing from the physical damage bubble.
 To avoid this mismatch, standard basic melee combos must always utilize rapid-active entity-relative offsets (`OffX/Y/Z`) for high-performance timing (e.g., active windows of 3-8 ticks). Save bone-attached patterns strictly for specific tracking-startup indicators or target-seeking cinematics (e.g., Dragon's Kick) where precise initial targeting is needed but decoherence isn't an issue.
 
@@ -295,6 +298,42 @@ HitboxEvents = new[]
 
 **ServerAbility limitation:**
 ServerAbility subclasses (e.g., `FightGuyCycloneKick`, `MankiBazooka`) manage their own hitbox spawning in `Tick()` via `ServerAbility.SpawnHitbox()`, which always uses entity-relative `OffX/Y/Z`. Bone-attached `HitboxEvent` fields on a ServerAbility's data are ignored. ServerAbilities that need bone-attached hitboxes must resolve baked data and call `Resolver.Spawn()` directly.
+
+#### Clip clock and swept bone hitboxes — since 2026-10-17
+
+**Clip clock.** An attack pose sits at the fractional clip frame
+`HitboxGeometry.AttackFrame(stageElapsed, frameCount, stageDurationTicks)`, where
+`stageElapsed` is `AttackElapsedTicks` minus the earlier stages' durations, the same clip time the
+renderer plays. Between two baked frames, points interpolate. A capsule with two baked ends moves
+rigidly: the start point is interpolated and the end follows the blended direction at the
+blended length, so a fast blade keeps its length (`HitboxGeometry.BlendSegment`). The
+attacker's own hurtboxes use the same clock. They used to read a per-entity frame counter that
+ran a tick behind the hitboxes and wrapped at the clip's frame count, so on clips playing
+under 1× speed the body snapped back to the opening pose for the last ticks of the move (up to
+1.6 m on Bonk's Reverse Air Slash). `PlayerRenderer`'s baked blade path (the sword trail) and a
+freshly started attack clip use the same clock, so what is drawn matches what is tested.
+
+**Sweep.** From a tracked hitbox's second active tick on, `SpellResolver.UpdateBoneHitboxes`
+fills `Hitbox.Sweep` with the poses it passed through since the previous tick
+(`HitboxGeometry.SweepPoses`). The owner's position, facing and pitch blend between the two
+ticks. The clip follows every baked frame in between, and poses are spaced at most half the
+radius apart (24 poses at most, the current one included). `SpellResolver.Tick` tests the swept
+poses earliest first, then the current pose; the first pose in contact supplies the contact
+point and launch geometry. Rules:
+
+- The first active tick tests only its own pose, so no move starts hitting earlier.
+- Each opponent is still hit at most once per window.
+- An attack-clock seek or reset, a stage change, and hitstop (nothing moves) produce no sweep.
+
+Before the sweep, 11–15% of the positions where Wibou's drawn sword passed through a standing
+opponent registered nothing, and 37–40% for Air Slash and Reverse Slash against an opponent
+1 m below. Fists and feet, with 1 m hit spheres, lost 5% or less. Several consumers read the
+swept poses:
+
+- `LastTickCheckedHitboxes` entries carry the sweep.
+- The Ability Lab and Training hitbox display draw it.
+- The practice session log's closest approach includes it.
+- `tools/HitReliabilityReport` counts it as tested.
 ---
 
 ## 🔵 Hurtbox (target)

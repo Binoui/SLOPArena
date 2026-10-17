@@ -475,7 +475,8 @@ namespace SlopArena.Client.Entities
         {
             hilt = tip = default;
             if (_animancer == null || _weaponHips == null
-                || !TryGetBakedWeaponPose(state, airborne, out var pose, out var animationName, out int frame)
+                || !TryGetBakedWeaponPose(state, airborne, out var bakedHilt, out var bakedTip,
+                    out var animationName, out float frame)
                 || !TryGetAnimation(animationName, out var clip, out _))
                 return false;
             // Sample the undeformed pose; the result is mapped through the hit-feel deformation below.
@@ -502,10 +503,8 @@ namespace SlopArena.Client.Entities
 
             Vector3 hips = Quaternion.Inverse(transform.rotation)
                 * (_weaponHips.position - transform.position);
-            int hiltOffset = _weaponHiltBoneIndex * 3;
-            int tipOffset = _weaponTipBoneIndex * 3;
-            Vector3 localHilt = hips + new Vector3(pose[hiltOffset], pose[hiltOffset + 1], pose[hiltOffset + 2]);
-            Vector3 localTip = hips + new Vector3(pose[tipOffset], pose[tipOffset + 1], pose[tipOffset + 2]);
+            Vector3 localHilt = hips + bakedHilt;
+            Vector3 localTip = hips + bakedTip;
             float sin = Mathf.Sin(state.FacingYaw);
             float cos = Mathf.Cos(state.FacingYaw);
             hilt = new Vector3(
@@ -536,12 +535,17 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
+        /// <summary>
+        /// Hips-relative baked hilt and tip at the attack's clip time, the same fractional
+        /// frame and rigid between-frame blend the Shared hitbox uses.
+        /// </summary>
         private bool TryGetBakedWeaponPose(
-            in CharacterState state, bool airborne, out float[] pose, out string animationName, out int frame)
+            in CharacterState state, bool airborne, out Vector3 hilt, out Vector3 tip,
+            out string animationName, out float frame)
         {
-            pose = null;
+            hilt = tip = default;
             animationName = null;
-            frame = 0;
+            frame = 0f;
             if (_bakedData == null || _charDef == null || state.AttackSlot == 0
                 || _weaponHiltBoneIndex < 0 || _weaponTipBoneIndex < 0)
                 return false;
@@ -556,13 +560,27 @@ namespace SlopArena.Client.Entities
             var animation = _bakedData.Animations[bakedIndex];
             if (animation.FrameCount <= 0)
                 return false;
-            int durationTicks = spec.Stages[stageIndex].DurationTicks;
-            frame = durationTicks > 0
-                ? Math.Min(state.AttackElapsedTicks * animation.FrameCount / durationTicks, animation.FrameCount - 1)
-                : Math.Min(state.AttackElapsedTicks, animation.FrameCount - 1);
-            pose = animation.Frames[frame];
-            return _weaponHiltBoneIndex * 3 + 2 < pose.Length
-                && _weaponTipBoneIndex * 3 + 2 < pose.Length;
+            frame = HitboxGeometry.AttackFrame(StageElapsedTicks(state, spec, stageIndex),
+                animation.FrameCount, spec.Stages[stageIndex].DurationTicks);
+            int frame0 = (int)frame;
+            int hiltOffset = _weaponHiltBoneIndex * 3;
+            int tipOffset = _weaponTipBoneIndex * 3;
+            var pose = animation.Frames[frame0];
+            if (hiltOffset + 2 >= pose.Length || tipOffset + 2 >= pose.Length)
+                return false;
+            float hx = pose[hiltOffset], hy = pose[hiltOffset + 1], hz = pose[hiltOffset + 2];
+            float tx = pose[tipOffset], ty = pose[tipOffset + 1], tz = pose[tipOffset + 2];
+            float blend = frame - frame0;
+            if (blend > 0f)
+            {
+                var next = animation.Frames[frame0 + 1];
+                HitboxGeometry.BlendSegment(true, blend, ref hx, ref hy, ref hz, ref tx, ref ty, ref tz,
+                    next[hiltOffset], next[hiltOffset + 1], next[hiltOffset + 2],
+                    next[tipOffset], next[tipOffset + 1], next[tipOffset + 2]);
+            }
+            hilt = new Vector3(hx, hy, hz);
+            tip = new Vector3(tx, ty, tz);
+            return true;
         }
 
         public bool IsSwordTrailTick(CharacterState state, bool airborne)
@@ -1356,6 +1374,18 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
+        /// <summary>Largest gap, in ticks, a fresh attack clip seeks forward to meet the simulation.</summary>
+        private const int MaxClipStartSeekTicks = 8;
+
+        /// <summary>Ticks into the current stage; AttackElapsedTicks counts from the activation.</summary>
+        private static int StageElapsedTicks(in CharacterState state, AbilitySpec spec, int stageIndex)
+        {
+            int elapsed = state.AttackElapsedTicks;
+            for (int i = 0; i < stageIndex && i < spec.Stages.Length; i++)
+                elapsed -= spec.Stages[i].DurationTicks;
+            return Math.Max(0, elapsed);
+        }
+
         private float GetAbilityAnimationSpeed(AbilitySpec spec, int comboStage, string animationName)
         {
             if (spec.AnimSpeed > 0f) return spec.AnimSpeed;
@@ -1402,6 +1432,15 @@ namespace SlopArena.Client.Entities
             // restarts, including same-slot IASA, must rewind the clip.
             animState.Time = 0;
             animState.Speed = animSpeed;
+            // The first attack state a client applies is already a tick or more into the
+            // attack; start the clip where the simulation is, so drawn limbs match the
+            // tested ones. A larger gap (an aim hold's running clock) keeps the restart.
+            if (state.State == ActionState.Attacking && spec.Stages is { Length: > 0 })
+            {
+                int elapsed = StageElapsedTicks(state, spec, Math.Min(comboStage, spec.Stages.Length - 1));
+                if (elapsed <= MaxClipStartSeekTicks)
+                    animState.Time = elapsed / 60f * animSpeed;
+            }
             _currentExtrapolationMode = ExtrapolationMode.None;
             // Cooked catalogs own extrapolation metadata; legacy configs retain
             // their existing per-definition overrides.

@@ -87,6 +87,20 @@ No move data changed, but reach against a standing FightGuy did (hurtboxes paire
 | ground.3 Up Slash | 0.30–2.25 m | 0.30–2.40 m |
 | ground.4 Heavy Down Slash | 0.30–2.15 m | 0.30–1.95 m |
 
+Later the same day, sword hitboxes started testing the path the blade sweeps between ticks
+and every pose moved to the exact clip time
+([clip clock and sweep](../systems/hitbox-system.md#clip-clock-and-swept-bone-hitboxes--since-2026-10-17)).
+Five windows were then lined up with the strike as drawn. The maintainer approved hits
+behind Wibou for Double Slash's second slash and an earlier Air Up Slash:
+
+| Move | Window | Why |
+|---|---|---|
+| ground.2 Double Slash | t9–t15 → t9–t16 | The second slash finishes one tick later, behind Wibou. |
+| ground.4 Heavy Down Slash | t41–t55 → t41–t47 | The blade rests on the ground from t48. |
+| air.2 Reverse Slash | t4–t8 → t4–t11 | The slash keeps moving fast for three more ticks. |
+| air.3 Air Up Slash | t10–t16 → t9–t16 | The upswing starts low in front between t9 and t10. Startup aim correction now ends at t9. |
+| air.4 Air Heavy Down Slash | t8–t15 → t8–t16 | The strike finishes one tick later, the part that reaches below. |
+
 ## Approved presentation accent — 2026-10-02
 
 Wibou's character accent is **Matrix/hacker green**, shared by sword VFX and ability-icon blades/arcs. The current weapon config's trail GUID resolves to `CFXR4 Sword Trail TECH (360 Thick)`, inheriting `(360 Spiral)` with base RGB `(0.5673758, 1, 0.41134745)`; its flat 8-bit icon equivalent is **`#91FF69`**. The particle/material HDR boost is not reproduced as UI glow. This replaces the undecided foxfire accent in the historical concept below; it does not approve a model/costume redesign.
@@ -180,13 +194,13 @@ animation; landing lag, geometry, rewards and specials are unchanged.
 | Normal | Duration | IASA | Hit trigger / active length |
 |---|---:|---:|---|
 | ground.1 | 63 | 28 | 13 / 12 |
-| ground.2 | 63 | 23 | 9 / 7 |
+| ground.2 | 63 | 23 | 9 / 8 |
 | ground.3 | 63 | 26 | 14 / 7 |
-| ground.4 | 74 | 63 | 41 / 15 |
+| ground.4 | 74 | 63 | 41 / 7 |
 | air.1 | 27 | 23 | 6 / 8 |
-| air.2 | 25 | 21 | 4 / 5 |
-| air.3 | 27 | 23 | 10 / 7 |
-| air.4 | 36 | 31 | 8 / 8 |
+| air.2 | 25 | 21 | 4 / 8 |
+| air.3 | 27 | 23 | 9 / 8 |
+| air.4 | 36 | 31 | 8 / 9 |
 
 All entries are authored 60-Hz ticks. Ground normals retain at least four inactive
 ticks before another ability, eight for ground.4. Shared lifetime/IASA probes

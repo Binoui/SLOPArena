@@ -346,6 +346,7 @@ namespace SlopArena.Client.Tools
         private readonly List<SpellResolver.EntityData> _hurtboxes = new();
         private readonly List<SpellResolver.EntityData> _dummyHurtboxes = new();
         private readonly List<(int index, HitboxEvent evt, Vector3 start, Vector3 end)> _hitboxes = new();
+        private readonly List<HitboxPose[]> _hitboxSweeps = new();
         private readonly List<(Vector3 pos, char phase)> _trajectory = new();
         private WeaponAttach _weaponAttach;
         private WeaponAttach _dummyWeaponAttach;
@@ -1219,18 +1220,19 @@ namespace SlopArena.Client.Tools
 
         /// <summary>
         /// Mirror of the server's tick→baked-frame projection (SpawnHitbox /
-        /// ResolveBoneAnimFrame): bakedFrame = min(tick * fc / durationTicks, fc-1),
-        /// animation falls back to "idle" when missing from the bake.
+        /// ResolveBoneAnimFrame): the fractional clip frame of
+        /// <see cref="HitboxGeometry.AttackFrame"/>; the animation falls back to "idle"
+        /// when missing from the bake.
         /// </summary>
-        public bool ResolvePose(string animName, ushort durationTicks, out string resolvedAnim, out int bakedFrame)
+        public bool ResolvePose(string animName, ushort durationTicks, out string resolvedAnim, out float bakedFrame)
         {
             resolvedAnim = animName;
-            bakedFrame = 0;
+            bakedFrame = 0f;
             if (Baked == null) return false;
             int fc = Baked.FrameCountFor(animName);
             if (fc < 0) { resolvedAnim = "idle"; fc = Baked.FrameCountFor("idle"); }
             if (fc < 0) return false;
-            bakedFrame = durationTicks > 0 ? Mathf.Min(Tick * fc / durationTicks, fc - 1) : Mathf.Min(Tick, fc - 1);
+            bakedFrame = HitboxGeometry.AttackFrame(Tick, fc, durationTicks);
             return true;
         }
 
@@ -1255,7 +1257,7 @@ namespace SlopArena.Client.Tools
             if (spec == null || !TryGetStage(out var stage)) return _hurtboxes;
 
             string animName = AnimNameFor(spec, StageIndex);
-            if (!ResolvePose(animName, stage.DurationTicks, out string resolvedAnim, out int bakedFrame)) return _hurtboxes;
+            if (!ResolvePose(animName, stage.DurationTicks, out string resolvedAnim, out float bakedFrame)) return _hurtboxes;
 
             Vector3 lungeDisplacement = CalculateLungeDisplacement();
             var state = new CharacterState
@@ -1269,9 +1271,17 @@ namespace SlopArena.Client.Tools
             return _hurtboxes;
         }
 
+        /// <summary>
+        /// Swept poses of the hitboxes from the latest <see cref="ResolveHitboxes"/> call, in
+        /// the same order: the path Shared tested between the previous tick and this one
+        /// (null when a hitbox did not sweep, or for authored previews without a simulation).
+        /// </summary>
+        public IReadOnlyList<HitboxPose[]> LastHitboxSweeps => _hitboxSweeps;
+
         public IReadOnlyList<(int index, HitboxEvent evt, Vector3 start, Vector3 end)> ResolveHitboxes()
         {
             _hitboxes.Clear();
+            _hitboxSweeps.Clear();
             if (Scenario != null)
             {
                 int index = 0;
@@ -1282,6 +1292,7 @@ namespace SlopArena.Client.Tools
                     evt.Radius = hitbox.Radius;
                     _hitboxes.Add((index++, evt, new Vector3(hitbox.X, hitbox.Y, hitbox.Z),
                         new Vector3(hitbox.EndX, hitbox.EndY, hitbox.EndZ)));
+                    _hitboxSweeps.Add(hitbox.Sweep);
                 }
                 return _hitboxes;
             }
@@ -1299,6 +1310,7 @@ namespace SlopArena.Client.Tools
                     evt.Radius = hitbox.Radius;
                     _hitboxes.Add((index, evt, new Vector3(hitbox.X, hitbox.Y, hitbox.Z),
                         new Vector3(hitbox.EndX, hitbox.EndY, hitbox.EndZ)));
+                    _hitboxSweeps.Add(hitbox.Sweep);
                 }
                 return _hitboxes;
             }
@@ -1324,6 +1336,7 @@ namespace SlopArena.Client.Tools
                     out float wx, out float wy, out float wz,
                     out float wex, out float wey, out float wez);
                 _hitboxes.Add((i, evt, new Vector3(wx, wy, wz), new Vector3(wex, wey, wez)));
+                _hitboxSweeps.Add(null);
             }
             return _hitboxes;
         }
@@ -1749,8 +1762,15 @@ namespace SlopArena.Client.Tools
             }
             if (ShowHitboxes)
             {
-                foreach (var (index, evt, start, end) in ResolveHitboxes())
+                var hitboxes = ResolveHitboxes();
+                for (int i = 0; i < hitboxes.Count; i++)
                 {
+                    var (index, evt, start, end) = hitboxes[i];
+                    if (i < _hitboxSweeps.Count && _hitboxSweeps[i] != null)
+                    {
+                        GL.Color(new Color(0.6f, 0.3f, 0.05f));
+                        DrawSweep(_hitboxSweeps[i], evt, start, end);
+                    }
                     GL.Color(index == SelectedHitboxEventIndex
                         ? new Color(1f, 1f, 0.1f)
                         : new Color(1f, 0.45f, 0f));
@@ -1799,6 +1819,32 @@ namespace SlopArena.Client.Tools
             GL.Vertex(b);
         }
 
+        /// <summary>
+        /// The band a swept hitbox tested this tick: each swept capsule's axis joined by its
+        /// start and end paths up to the current pose, or the swept sphere centres.
+        /// </summary>
+        private static void DrawSweep(HitboxPose[] sweep, HitboxEvent evt, Vector3 currentStart, Vector3 currentEnd)
+        {
+            for (int p = 0; p < sweep.Length; p++)
+            {
+                var pose = sweep[p];
+                var start = new Vector3(pose.X, pose.Y, pose.Z);
+                var end = new Vector3(pose.EndX, pose.EndY, pose.EndZ);
+                var nextStart = p + 1 < sweep.Length ? new Vector3(sweep[p + 1].X, sweep[p + 1].Y, sweep[p + 1].Z) : currentStart;
+                var nextEnd = p + 1 < sweep.Length ? new Vector3(sweep[p + 1].EndX, sweep[p + 1].EndY, sweep[p + 1].EndZ) : currentEnd;
+                if (evt.Shape == HitboxShape.Capsule)
+                {
+                    Line(start, end);
+                    Line(start, nextStart);
+                    Line(end, nextEnd);
+                }
+                else
+                {
+                    WireSphere(start, evt.Radius);
+                }
+            }
+        }
+
         private static void WireSphere(Vector3 c, float r)
         {
             const int segs = 16;
@@ -1826,7 +1872,7 @@ namespace SlopArena.Client.Tools
             if (spec == null || !TryGetStage(out var stage)) return;
 
             string animName = AnimNameFor(spec, StageIndex);
-            if (!ResolvePose(animName, stage.DurationTicks, out string resolvedAnim, out int bakedFrame)) return;
+            if (!ResolvePose(animName, stage.DurationTicks, out string resolvedAnim, out float bakedFrame)) return;
 
             var state = new CharacterState
             {
@@ -1837,10 +1883,11 @@ namespace SlopArena.Client.Tools
             if (_simulationPreviewer.IsReady && _simulationPreviewer.StateHistory.Count > 0)
             {
                 state = _simulationPreviewer.StateHistory[_simulationPreviewer.StateHistory.Count - 1];
-                int fc = Baked.FrameCountFor(resolvedAnim);
-                bakedFrame = stage.DurationTicks > 0
-                    ? Mathf.Min(state.AttackElapsedTicks * fc / stage.DurationTicks, fc - 1)
-                    : Mathf.Min(state.AttackElapsedTicks, fc - 1);
+                int stageElapsed = state.AttackElapsedTicks;
+                for (int i = 0; i < StageIndex && i < spec.Stages.Length; i++)
+                    stageElapsed -= spec.Stages[i].DurationTicks;
+                bakedFrame = HitboxGeometry.AttackFrame(Mathf.Max(0, stageElapsed),
+                    Baked.FrameCountFor(resolvedAnim), stage.DurationTicks);
             }
             int animIndex = Baked.FindAnimIndex(resolvedAnim);
             float scale = DisplayDef.HurtboxBoneScale;

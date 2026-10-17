@@ -57,7 +57,7 @@ For each accepted activation, `MatchRecorder` measures the smallest surface gap 
 its hitboxes and its reference target. The reference target is the selected target at the
 press, otherwise the nearest other fighter within 12 m. It uses
 `SpellResolver.LastTickCheckedHitboxes`, the hitboxes exactly as that tick tested them
-(including ones that connected or expired), against that fighter's
+(including ones that connected or expired, and a bone hitbox's swept poses), against that fighter's
 `ServerSimulation.LastTickAttackEntities`, which is the shield sphere while it shields. The
 vector from the hitbox surface to the target surface is stored in the attacker's facing
 frame (forward, side, up) and in world space. Self-play bots get the same fields.

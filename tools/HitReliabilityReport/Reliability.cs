@@ -66,6 +66,8 @@ internal static class Reliability
     internal const int MinSweptForFlag = 20;
     private const float Origin = 100f;
     private const int SubSteps = 8;
+    /// <summary>Clip samples per tick for the reference swing path in <see cref="SamplingLoss"/>.</summary>
+    private const int PathSamplesPerTick = 16;
     private static readonly byte[] NormalWires = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
 
     internal static ArenaDefinition FlatArena() => new()
@@ -222,8 +224,8 @@ internal static class Reliability
 
     /// <summary>
     /// For each bone or weapon hitbox: grid positions (0.5–3 m ahead, ±40°) whose target the
-    /// swing passes through between consecutive active ticks (8 interpolated sub-steps) versus
-    /// positions an actually tested tick touches.
+    /// swing passes through between consecutive active ticks (the clip sampled 16 times per
+    /// tick) versus positions the engine tests: each tick's pose plus its swept poses.
     /// </summary>
     internal static List<SamplingRow> SamplingLoss(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air,
         IReadOnlyList<SpellResolver.EntityData> medium)
@@ -235,8 +237,39 @@ internal static class Reliability
             var evt = events[e];
             if (evt.BoneName == null || evt.Damage <= 0f) continue;
             var ticks = new List<Hitbox>();
+            var engine = new List<Hitbox>();
+            var path = new List<Hitbox>();
+            HitboxSweepOrigin? origin = null;
             for (int t = evt.TriggerTick; t < evt.TriggerTick + Math.Max((ushort)1, evt.DurationTicks); t++)
-                ticks.Add(Resolve(attacker, spec, wire, air, evt, t));
+            {
+                var hitbox = Resolve(attacker, spec, wire, air, evt, t);
+                ticks.Add(hitbox);
+                engine.Add(hitbox);
+                var owner = OriginState(attacker, t);
+                var pose = new HitboxPose { X = hitbox.X, Y = hitbox.Y, Z = hitbox.Z, EndX = hitbox.EndX, EndY = hitbox.EndY, EndZ = hitbox.EndZ };
+                if (origin is { } from)
+                {
+                    for (int k = 1; k < PathSamplesPerTick; k++)
+                        path.Add(ResolveAt(attacker, spec, wire, air, evt, owner, t - 1 + k / (float)PathSamplesPerTick));
+                    var sweep = HitboxGeometry.SweepPoses(evt, attacker.BakedAnimation, attacker.Definition,
+                        spec.AnimationNames, 0, (byte)(wire - 1), air, in from, in owner, in pose);
+                    if (sweep != null)
+                        foreach (var swept in sweep)
+                        {
+                            var probe = hitbox;
+                            probe.X = swept.X; probe.Y = swept.Y; probe.Z = swept.Z;
+                            probe.EndX = hitbox.Shape == HitboxShape.Capsule ? swept.EndX : swept.X;
+                            probe.EndY = hitbox.Shape == HitboxShape.Capsule ? swept.EndY : swept.Y;
+                            probe.EndZ = hitbox.Shape == HitboxShape.Capsule ? swept.EndZ : swept.Z;
+                            engine.Add(probe);
+                        }
+                }
+                origin = new HitboxSweepOrigin
+                {
+                    PX = owner.PX, PY = owner.PY, PZ = owner.PZ,
+                    AttackElapsedTicks = owner.AttackElapsedTicks, Pose = pose,
+                };
+            }
             float maxStep = 0f;
             for (int i = 1; i < ticks.Count; i++)
                 maxStep = Math.Max(maxStep, Distance(ticks[i].EndX, ticks[i].EndY, ticks[i].EndZ,
@@ -253,8 +286,8 @@ internal static class Reliability
                     {
                         float yaw = bearing * MathF.PI / 180f;
                         var placed = Shift(medium, MathF.Sin(yaw) * d, dy, MathF.Cos(yaw) * d);
-                        bool tested = ticks.Any(h => Touches(h, placed));
-                        bool swept = tested || Swept(ticks, placed);
+                        bool tested = engine.Any(h => Touches(h, placed));
+                        bool swept = tested || path.Any(h => Touches(h, placed));
                         if (swept) row.SweptPositions++;
                         if (tested) row.TestedPositions++;
                     }
@@ -298,13 +331,30 @@ internal static class Reliability
         return ticks;
     }
 
+    /// <summary>The attacker standing at the origin, facing +Z, <paramref name="tick"/> ticks into the attack.</summary>
+    private static CharacterState OriginState(MatchContentEntry attacker, int tick) => new()
+    {
+        PX = Origin, PY = attacker.Definition.CapsuleHeight * 0.5f, PZ = Origin,
+        AttackElapsedTicks = (ushort)tick,
+    };
+
+    /// <summary>The hitbox at a fractional attack time, for the reference swing path.</summary>
+    private static Hitbox ResolveAt(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air, HitboxEvent evt,
+        in CharacterState state, float elapsedTicks)
+    {
+        HitboxGeometry.ResolvePositionsAt(state, evt, attacker.BakedAnimation, attacker.Definition, spec.AnimationNames,
+            0, (byte)(wire - 1), air, elapsedTicks, out float x, out float y, out float z, out float ex, out float ey, out float ez);
+        bool capsule = evt.Shape == HitboxShape.Capsule || evt.EndBoneName != null;
+        return new Hitbox
+        {
+            X = x, Y = y, Z = z, EndX = capsule ? ex : x, EndY = capsule ? ey : y, EndZ = capsule ? ez : z,
+            Radius = evt.Radius, Shape = capsule ? HitboxShape.Capsule : HitboxShape.Sphere,
+        };
+    }
+
     private static Hitbox Resolve(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air, HitboxEvent evt, int tick)
     {
-        var state = new CharacterState
-        {
-            PX = Origin, PY = attacker.Definition.CapsuleHeight * 0.5f, PZ = Origin,
-            AttackElapsedTicks = (ushort)tick,
-        };
+        var state = OriginState(attacker, tick);
         HitboxGeometry.ResolvePositions(state, evt, attacker.BakedAnimation, attacker.Definition, spec.AnimationNames,
             0, (byte)(wire - 1), air, out float x, out float y, out float z, out float ex, out float ey, out float ez);
         bool capsule = evt.Shape == HitboxShape.Capsule || evt.EndBoneName != null;
