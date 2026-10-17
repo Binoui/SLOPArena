@@ -42,9 +42,9 @@
     "slide": "anim.wibou.slide",
     "landStartOffsetSeconds": 0.49,
     "modelResourcePath": "Characters/Wibou",
-    "visualScale": 1,
+    "visualScale": 0.85,
     "hurtboxBoneScale": 0.85,
-    "modelYOffset": 0.194,
+    "modelYOffset": 0.034,
     "modelSoleOffset": 0,
     "autoModelYOffset": false
   },
@@ -180,7 +180,20 @@
     "_weapon_tip",
     "_weapon_hilt"
   ],
-  "presentationIds": [],
+  "presentationIds": [
+    "presentation.wibou.blade.glint",
+    "presentation.wibou.blade.hit",
+    "presentation.wibou.blade.heavy-hit",
+    "presentation.wibou.kunai.release",
+    "presentation.wibou.kunai.hit",
+    "presentation.wibou.code-rain",
+    "presentation.wibou.rising.crescent",
+    "presentation.wibou.skyfall.draw",
+    "presentation.wibou.skyfall.launch",
+    "presentation.wibou.skyfall.spike",
+    "presentation.wibou.dash.charge",
+    "presentation.wibou.dash.cut"
+  ],
   "capabilityRequirements": [
     {
       "capabilityId": "slop.ability.charged-directional-dash.v1",
@@ -235,6 +248,26 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 13,
                 "unit": "meters",
@@ -263,7 +296,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "ground.2",
@@ -304,6 +338,26 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 4,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 9,
                 "unit": "meters",
@@ -332,7 +386,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "ground.3",
@@ -373,6 +428,26 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 9,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 14,
                 "unit": "meters",
@@ -401,7 +476,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "ground.4",
@@ -442,6 +518,26 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 36,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 41,
                 "unit": "meters",
@@ -470,7 +566,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.heavy-hit"
     },
     {
       "id": "air.1",
@@ -511,6 +608,26 @@
                 "pitchDegreesPerSecond": 180
               },
               {
+                "kind": "emitPresentation",
+                "tick": 1,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 6,
                 "unit": "meters",
@@ -539,7 +656,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "air.2",
@@ -580,6 +698,26 @@
                 "pitchDegreesPerSecond": 180
               },
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 4,
                 "unit": "meters",
@@ -608,7 +746,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "air.3",
@@ -649,6 +788,26 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 5,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 10,
                 "unit": "meters",
@@ -677,7 +836,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "air.4",
@@ -718,6 +878,26 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 3,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.blade.glint",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 8,
                 "unit": "meters",
@@ -746,7 +926,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.heavy-hit"
     },
     {
       "id": "ground.A",
@@ -836,11 +1017,32 @@
                   "maxFlightTicks": 90,
                   "yawOffsetDegrees": 15
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.kunai.release",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": 0.4,
+                  "localPositionZ": 0.6,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 24
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.kunai.hit"
     },
     {
       "id": "ground.E",
@@ -889,6 +1091,26 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.code-rain",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 75
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 19,
                 "unit": "meters",
@@ -913,11 +1135,32 @@
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 19,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.rising.crescent",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": 0.3,
+                  "localPositionZ": 0.5,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 34
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
       "id": "ground.R",
@@ -1009,11 +1252,52 @@
                     "knockbackDirection": "awayFromOwner"
                   }
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.dash.charge",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 70
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 1,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.dash.cut",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 56
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.heavy-hit"
     },
     {
       "id": "ground.F",
@@ -1068,6 +1352,26 @@
                 }
               },
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.skyfall.draw",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": -0.8,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 32
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 14,
                 "unit": "meters",
@@ -1091,6 +1395,46 @@
                   "interruptible": false,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.skyfall.launch",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": 0.05,
+                  "localPositionZ": 0.9,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 34
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.code-rain",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 75
                 }
               },
               {
@@ -1118,11 +1462,32 @@
                   "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 60,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.skyfall.spike",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": -0.3,
+                  "localPositionZ": 0.7,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 42
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.wibou.blade.heavy-hit"
     }
   ],
   "aliases": [

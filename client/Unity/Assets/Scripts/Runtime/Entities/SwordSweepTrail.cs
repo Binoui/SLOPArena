@@ -71,6 +71,8 @@ namespace SlopArena.Client.Entities
                 InnerBladeFraction = 1f - Mathf.Clamp(bladeWidth, 0.01f, 1f);
                 Mesh = new Mesh { name = name };
                 Mesh.MarkDynamic();
+                // Edit-mode previews (Ability Lab) must survive a scene switch's unused-asset unload.
+                if (!Application.isPlaying) Mesh.hideFlags = HideFlags.DontSave;
                 var child = new GameObject(name);
                 child.transform.SetParent(parent, false);
                 child.AddComponent<MeshFilter>().sharedMesh = Mesh;

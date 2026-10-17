@@ -1243,6 +1243,12 @@ namespace SlopArena.Client.Tools
                     if (shape.Id == 1 && !shape.ShieldSurface && shape.Active) _hurtboxes.Add(shape);
                 return _hurtboxes;
             }
+            // Timeline preview: the hurtboxes Shared tested on the tick the model shows.
+            if (_simulationPreviewer.IsReady)
+            {
+                _hurtboxes.AddRange(_simulationPreviewer.Hurtboxes);
+                return _hurtboxes;
+            }
             if (Baked == null) return _hurtboxes; // no pose data at all
 
             var spec = CurrentSpec();
@@ -1269,13 +1275,29 @@ namespace SlopArena.Client.Tools
             if (Scenario != null)
             {
                 int index = 0;
-                foreach (var hitbox in Scenario.Frames[ScenarioFrame].ActiveHitboxes)
+                foreach (var hitbox in Scenario.Frames[ScenarioFrame].TestedHitboxes)
                 {
-                    if (!hitbox.Active) continue;
                     var evt = hitbox.SourceEvent;
                     evt.Shape = hitbox.Shape;
                     evt.Radius = hitbox.Radius;
                     _hitboxes.Add((index++, evt, new Vector3(hitbox.X, hitbox.Y, hitbox.Z),
+                        new Vector3(hitbox.EndX, hitbox.EndY, hitbox.EndZ)));
+                }
+                return _hitboxes;
+            }
+            // Timeline preview: the hitboxes Shared tested on the tick the model shows,
+            // at their simulated positions (the model follows the same state).
+            if (_simulationPreviewer.IsReady)
+            {
+                var authored = CurrentWorkingEvents();
+                var matched = new bool[authored.Length];
+                foreach (var hitbox in _simulationPreviewer.TestedHitboxes)
+                {
+                    var evt = hitbox.SourceEvent;
+                    int index = MatchAuthoredEvent(authored, matched, evt);
+                    evt.Shape = hitbox.Shape;
+                    evt.Radius = hitbox.Radius;
+                    _hitboxes.Add((index, evt, new Vector3(hitbox.X, hitbox.Y, hitbox.Z),
                         new Vector3(hitbox.EndX, hitbox.EndY, hitbox.EndZ)));
                 }
                 return _hitboxes;
@@ -1304,6 +1326,23 @@ namespace SlopArena.Client.Tools
                 _hitboxes.Add((i, evt, new Vector3(wx, wy, wz), new Vector3(wex, wey, wez)));
             }
             return _hitboxes;
+        }
+
+        /// <summary>Index of the authored event a simulated hitbox came from, or -1.</summary>
+        private static int MatchAuthoredEvent(HitboxEvent[] authored, bool[] matched, in HitboxEvent source)
+        {
+            for (int i = 0; i < authored.Length; i++)
+            {
+                var a = authored[i];
+                if (matched[i] || a.TriggerTick != source.TriggerTick || a.DurationTicks != source.DurationTicks
+                    || a.BoneName != source.BoneName || a.EndBoneName != source.EndBoneName
+                    || a.OffX != source.OffX || a.OffY != source.OffY || a.OffZ != source.OffZ
+                    || a.EndOffX != source.EndOffX || a.EndOffY != source.EndOffY || a.EndOffZ != source.EndOffZ)
+                    continue;
+                matched[i] = true;
+                return i;
+            }
+            return -1;
         }
 
         public List<SpellResolver.EntityData> ResolveDummyHurtboxes()
@@ -1597,6 +1636,8 @@ namespace SlopArena.Client.Tools
             }
             else
             {
+                // No authoritative run for this slot: overlays fall back to the authored approximation.
+                _simulationPreviewer.Clear();
                 _weaponAttach?.SetHitboxTrailActive(false);
                 _presentationPreviewer.SetFrame(sourceStage, Tick, _presentationBindings, _previewRenderer.transform, _previewRenderer);
             }
@@ -1779,7 +1820,7 @@ namespace SlopArena.Client.Tools
         }
         private void DrawBakedBonePoints()
         {
-            if (Baked == null) return;
+            if (Baked == null || DisplayDef == null) return;
 
             var spec = CurrentSpec();
             if (spec == null || !TryGetStage(out var stage)) return;
@@ -1787,25 +1828,33 @@ namespace SlopArena.Client.Tools
             string animName = AnimNameFor(spec, StageIndex);
             if (!ResolvePose(animName, stage.DurationTicks, out string resolvedAnim, out int bakedFrame)) return;
 
-            float cos = Mathf.Cos(FacingYaw);
-            float sin = Mathf.Sin(FacingYaw);
-            float scale = DisplayDef?.HurtboxBoneScale ?? 1f;
-            var state = new CharacterState { PX = transform.position.x, PY = BasePosition().y, PZ = transform.position.z };
+            var state = new CharacterState
+            {
+                PX = transform.position.x, PY = BasePosition().y, PZ = transform.position.z, FacingYaw = FacingYaw,
+            };
+            // Timeline preview: the simulated state the model shows, whose
+            // AttackElapsedTicks runs one tick ahead of the scrub tick.
+            if (_simulationPreviewer.IsReady && _simulationPreviewer.StateHistory.Count > 0)
+            {
+                state = _simulationPreviewer.StateHistory[_simulationPreviewer.StateHistory.Count - 1];
+                int fc = Baked.FrameCountFor(resolvedAnim);
+                bakedFrame = stage.DurationTicks > 0
+                    ? Mathf.Min(state.AttackElapsedTicks * fc / stage.DurationTicks, fc - 1)
+                    : Mathf.Min(state.AttackElapsedTicks, fc - 1);
+            }
+            int animIndex = Baked.FindAnimIndex(resolvedAnim);
+            float scale = DisplayDef.HurtboxBoneScale;
 
             for (int i = 0; i < Baked.BoneNames.Length; i++)
             {
                 string bone = Baked.BoneNames[i];
-                if (!Baked.GetBonePosition(resolvedAnim, bakedFrame, i, out float x, out float y, out float z)) continue;
-
+                // The hips offset resolves onto the Hips bone; drawing it twice adds nothing.
+                if (i == Baked.HipsOffsetIndex) continue;
                 bool weaponPoint = bone.StartsWith("_", StringComparison.Ordinal);
-                float pointScale = weaponPoint ? 1f : scale;
-                float wx = x * pointScale;
-                float wy = y * pointScale;
-                float wz = z * pointScale;
-                var world = new Vector3(
-                    state.PX + wx * cos + wz * sin,
-                    DisplayDef.BoneYToWorldY(state.PY, wy),
-                    state.PZ - wx * sin + wz * cos);
+                if (!HitboxGeometry.BakedPointToWorld(state, DisplayDef, Baked, animIndex, bakedFrame, i,
+                        weaponPoint ? 1f : scale, out float wx, out float wy, out float wz)) continue;
+                HitboxGeometry.ApplyAttackPosePitch(in state, DisplayDef, ref wx, ref wy, ref wz);
+                var world = new Vector3(wx, wy, wz);
 
                 GL.Color(bone == "_weapon_tip"
                     ? new Color(1f, 0.1f, 1f)

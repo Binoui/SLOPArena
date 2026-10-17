@@ -336,6 +336,21 @@ GLB (with skeleton + animations)
 
 **Zero runtime skeleton math on the server.** No GLB parsing, no bone hierarchy walking, no matrix inversions — just a flat array lookup + lerp interpolation.
 
+#### Drawn hips — package cooks since 2026-10-17
+
+Points stay hips-relative, but the package cook also writes `_hips_offset`: where the
+animation draws the hips, relative to the capsule centre in the facing frame. The cook
+evaluates each clip the way Animancer plays it (playable graph, no root motion, no foot IK);
+`AnimationClip.SampleAnimation` agrees on the hips-relative pose but put the hips up to 3.5 m
+elsewhere for clips with root curves. `HitboxGeometry.BakedPointToWorld` places every baked
+point for hitboxes, hurtboxes and the Ability Lab: the hips at `_hips_offset`, every other
+point at hips + scale × (point − hips), with `HurtboxBoneScale` for body points and 1 for
+weapon points. Bakes without `_hips_offset` keep the fixed `HipHeight` pivot. Before this,
+the fixed pivot put Wibou's tested sword up to 37 cm from the drawn blade in his normals and
+53 cm in Skyfall's dive, and every fighter's hurtboxes trailed animated hip motion by up to
+1.2 m (Bonk's Targeted Jump Slam). The `Rendered Pose Alignment` Editor self-test renders
+every clip frame through Animancer and requires each resolved point within 0.1 mm.
+
 ### Server-side — `SpellResolver.EntityData` (pure C# struct)
 
 ```csharp
@@ -374,19 +389,10 @@ if (_bakedData.TryGetValue(id, out var baked) && def.HurtboxBoneDefs?.Length > 0
     {
         // Defs and baked bones are ordered independently: pair them by name.
         int bi = baked.FindBoneIndex(hbd.BoneName);
-        if (bi < 0 || !baked.GetBonePosition(targetAnim, frame, bi,
-            out float bx, out float by, out float bz))
+        // Drawn hips + HurtboxBoneScale × (bone − hips), rotated by facing yaw.
+        if (bi < 0 || !HitboxGeometry.BakedPointToWorld(state, def, baked, baked.FindAnimIndex(targetAnim), frame, bi,
+            def.HurtboxBoneScale, out float wx, out float wy, out float wz))
             continue;
-
-        // Apply bone scale (Mixamo cm→m = 0.01, native m = 1.0)
-        float scale = def.HurtboxBoneScale;
-        bx *= scale; by *= scale; bz *= scale;
-
-        // Bone → world: rotate by yaw, add position
-        float cos = MathF.Cos(state.FacingYaw), sin = MathF.Sin(state.FacingYaw);
-        float wx = state.PX + (bx * cos + bz * sin);
-        float wy = def.BoneYToWorldY(state.PY, by);
-        float wz = state.PZ + (-bx * sin + bz * cos);
 
         entityList.Add(new EntityData { PosX = wx, ... });
     }

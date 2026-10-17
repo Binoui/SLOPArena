@@ -11,8 +11,32 @@ namespace SlopArena.Shared
     /// </summary>
     public class BakedAnimationData
     {
+        /// <summary>
+        /// Synthetic point holding where the animation draws the hips, relative to the
+        /// capsule centre in the fighter's facing frame. Every other point is
+        /// hips-relative; bakes without this point use the fixed HipHeight pivot.
+        /// </summary>
+        public const string HipsOffsetPointName = "_hips_offset";
+
         public string[] BoneNames = null!;
         public BakedAnim[] Animations = null!;
+
+        private string[]? _indexedBoneNames;
+        private int _hipsOffsetIndex = -1;
+
+        /// <summary>Index of <see cref="HipsOffsetPointName"/>, or -1 for legacy bakes.</summary>
+        public int HipsOffsetIndex
+        {
+            get
+            {
+                if (!ReferenceEquals(_indexedBoneNames, BoneNames))
+                {
+                    _indexedBoneNames = BoneNames;
+                    _hipsOffsetIndex = BoneNames == null ? -1 : Array.IndexOf(BoneNames, HipsOffsetPointName);
+                }
+                return _hipsOffsetIndex;
+            }
+        }
 
         /// <summary>
         /// One baked animation.
@@ -124,6 +148,26 @@ namespace SlopArena.Shared
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Read one baked point by animation index; the frame is clamped to the clip.
+        /// Returns false when the animation or point index is out of range.
+        /// </summary>
+        public bool TryGetPoint(int animIndex, int frameIndex, int pointIndex, out float x, out float y, out float z)
+        {
+            x = y = z = 0;
+            if (animIndex < 0 || animIndex >= Animations.Length || pointIndex < 0 || pointIndex >= BoneNames.Length)
+                return false;
+            var anim = Animations[animIndex];
+            if (anim.FrameCount <= 0) return false;
+            if (frameIndex < 0) frameIndex = 0;
+            if (frameIndex >= anim.FrameCount) frameIndex = anim.FrameCount - 1;
+            int baseIdx = pointIndex * 3;
+            x = anim.Frames[frameIndex][baseIdx];
+            y = anim.Frames[frameIndex][baseIdx + 1];
+            z = anim.Frames[frameIndex][baseIdx + 2];
+            return true;
         }
 
         /// <summary>

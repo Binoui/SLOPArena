@@ -18,6 +18,10 @@
       Then compare the idle hips-to-sole distance with `hipHeight`, and measure the lowest
       skinned vertex against the floor in Training. Manki v3 sank 2.9 cm at matched height and
       0.7 cm at matched scale; see [Manki](manki.md).
+- [ ] Check the fighter against the [roster size](adding-a-new-character.md#roster-size) and
+      every clip's foot contact with [`tools/character_sizes`](../../tools/character_sizes/README.md).
+      Resize with `presentation.visualScale`; fix a single floating or sinking clip with its
+      root Y offset rather than `modelYOffset`.
 - [ ] Bind every required semantic animation ID to its exact intended imported clip.
 - [ ] Set **Import Materials** to None on animation-only FBX sources. Otherwise Unity resolves their embedded texture names against unrelated project textures, and the cook source hash differs between your Editor and the isolated release import.
 - [ ] Assign one unique deterministic pose-track ID to each semantic binding.

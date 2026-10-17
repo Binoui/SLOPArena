@@ -30,7 +30,9 @@ public sealed class ChargedProjectileTests
         Assert.Equal(start.PX, held.PX);
         Assert.Equal(start.PZ, held.PZ);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
-        Assert.Empty(sim.GetPresentationEvents());
+        // Holding plays only the charge cue; nothing from the release has fired.
+        Assert.All(sim.GetPresentationEvents(),
+            e => Assert.Equal("presentation.fightguy.ki-shot.charge", e.PresentationId));
 
         TestHelpers.TickDefault(sim, 1);
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);

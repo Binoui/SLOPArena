@@ -1,6 +1,18 @@
 # FightGuy
 
+> **Identity (owner, 2026-10-17):** a classic shoto and a genuinely talented martial
+> artist: the underground champion, and proud of it. He is also a bit dumb, egocentric
+> and not very bright, but never mean-spirited. His specials should show that
+> personality, not only generic ki.
+
 FightGuy is the reference cooked character package.
+
+## Run foot contact — 2026-10-17
+
+FightGuy's size is the roster reference (idle head 1.33 m; see
+[roster size](adding-a-new-character.md#roster-size)). His run floated 4.5–17 cm above the
+floor; `Art/Characters/fightguy/Animations/fightguy_run.anim` (ignored) now has a root Y
+offset of 0.048, so its contacts touch the floor. Poses are unchanged.
 
 ## Local cooldown tuning — 2026-10-03
 
@@ -125,113 +137,37 @@ the stronger inward pull keeps late catches in reach despite outward defensive d
 Only the tick-88 right-foot hit launches outward. Ground and air F share this timeline.
 The cooked timeline and hitbox direction are authoritative.
 
-## Ki Shot projectile visual
+## Combat presentation — 2026-10-17
 
-Ground and air A (physical Q) use the game-owned
-`Assets/CharacterPackages/fightguy/Presentation/FightGuyKiShot.prefab`, copied and
-fully unpacked from Cartoon FX Remaster's `CFXR3 Iceball A + Ice Trail`.
-`Resources/VFXConfigs/ProjectileVisuals.asset` binds both variants at scale 0.5.
-Vendor materials, textures, and the effect script remain shared dependencies;
-the vendor prefab is unchanged. Automatic clearing and camera shake are disabled
-on the owned copy: `ProjectileVFXManager` controls placement and despawn from
-Shared hitboxes in Training and server snapshots in PvP. Shared remains authoritative
-for each charge tier's collision radius.
+"The Champ's Show", built for the identity above. Blue ki is his real skill, champion gold
+is his ego, and 肉 ("meat", painted on his gi) is his brand: he stamps it on everything
+and doesn't know what it means. Chalk dust marks his strikes. The gags only ever
+embarrass him, and Fist of Fury stays serious because he is still the champ.
+`sloparena.presentation.fightguy.build` (`FightGuyPresentationBuilder.cs`, on the shared
+`PresentationBuilderKit`) generates every texture, mesh, material and prefab and binds
+them to the asset catalog and the Ki Shot projectile visual. The 肉 comes from
+`Presentation/Source/Niku.png`, rendered by `tools/glyph_mask.py` with the font used for
+the gi. The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md).
+Only presentation cues and `hitPresentationId` values in `character.json` changed;
+damage, hitboxes and timing did not.
 
-`PlayerRenderer` starts that same visual at `bone.right-hand` during Aiming.
-The manager follows the animated hand in world space, without inheriting rig
-scale, and retains it through firing startup. When Shared/the server supplies
-the projectile, ownership transfers to the projectile entry and it follows the
-authoritative position instead of the hand. Held and flying visuals scale to the
-selected charge tier; cosmetic network snapshots carry the authoritative radius. The authored projectile origin is
-unchanged; this is a visual handoff, not a hand-driven gameplay spawn.
-Cancel, interruption, stock changes, model replacement, and renderer disable
-clear held visuals. Consumed aim records prevent duplicate visuals from late aim
-states; a projectile snapshot can transfer the visual before the release-state
-packet arrives.
+| Move | Presentation |
+| --- | --- |
+| Normals (ground and air 1–4) | A blue toon ribbon behind the striking limb and a puff of chalk off the wraps; heavies use a gold-cored ribbon. Hits use `normal.hit`: a round blue "pow" and speed lines. Ground and air 4 use `normal.heavy-hit`, which adds a gold star and chalk specks. |
+| Ki Shot (A) | While charging, ki motes are pulled into his palm. Reaching tier 2 and tier 3 pops a gold ring around the ball and paparazzi camera flashes around him (`ChargeTierCues`). Release: shockwave rings at the palm. The ball is a toon blue sphere with a slowly spinning gold 肉, a comet tail and motes, and grows with the charge tier. Hit: a blue impact with a small gold 肉 spark; a fully charged shot also slaps a red 肉 ink stamp on the victim (`ChargeTierVariant`). |
+| Rising Dragon (E) | A blue ki glow on the uppercut fist shedding gold sparkles, and twin blue and gold helices growing up his body. At the top a spotlight finds him and his fist pops into a giant foam "#1" finger with a star glint. Hit: gold behind blue with rising speed lines. |
+| Cyclone Kick (R) | Fast twin helices and wind rings around his legs, chalk kicked up from both feet. Gold dizzy stars circle his head through the recovery and vanish exactly when he can act: the gag doubles as a punish window. Hit: a blue impact in a gold swirl with chalk specks. |
+| Fist of Fury (F) | He locks in: gold power lines rise around him over a gold ring on the floor, and his eye glints. Each punch throws a blue ghost fist. Punch hits are a small blue impact with a gold 肉; the finisher kick (`DamageScaleVariant`) is a gold-and-blue starburst stamped with a gold 肉 seal, a shockwave ring and speed lines. |
 
-## Ki Shot hit visual
+Bone-attached cues put their content under a `PresentationFrame` child, which cancels
+the bone scale: FightGuy's rig bones carry a 1.5× import scale. Spirals, rings, the
+dizzy stars and the foam finger also stay upright. `ChargeTierCues`,
+`ChargeTierVariant` and `DamageScaleVariant` read cosmetic state only: the replicated
+charge, the fighter's last fired charge and the hit contact's damage scale.
+`TimelinePresentationDispatcher` binds the owner after spawning a cue or hit effect.
 
-`ground.A` authors `hitPresentationId: presentation.fightguy.ki-shot.hit`;
-`air.A` inherits it through its existing alias. The source asset catalog binds
-that ID to `Presentation/FightGuyKiShotHit.prefab`, an owned copy of
-`CFXR3 Hit Ice A (Air)` at root scale 0.25 with camera shake disabled.
-
-Shared emits a `HitContact` presentation only after accepting the hit, at the
-resolved contact point. Training consumes it directly; PvP waits for the server
-event and deduplicates repeated delivery. It replaces the default hit graphic
-and the projectile's redundant contact burst, not damage, Hitstop, sounds or
-controller feedback. Blocks use shield feedback, and expiry retains its existing
-burst without emitting an Ice hit. E and F now use their own configured contact effect; other attacks keep their default graphics.
-
-The previously unbound `presentation.cyclone-kick.start` declaration and R
-timeline event were removed with user approval. R's gameplay is unchanged.
-
-## Special VFX
-
-The package owns six additional prefabs under `Presentation/`. Timeline cues are
-cosmetic and use canonical slots; the existing air aliases inherit them:
-
-| Slot | Cue | Placement/window |
-| --- | --- | --- |
-| A / physical Q | `FightGuyKiRelease`, from Plasma Shoot Blue | Right hand, tick 4, 18 ticks; repeated release burst |
-| E | `FightGuyRisingFist`, from Ice Shield | Right fist, tick 6, 25 ticks; brighter, denser downward trail; rising body accent from tick 8 for 20 ticks |
-| R | `FightGuyCycloneSpiral`, with an owned 3D ribbon and Tornado Straight wind | Hips, tick 6, 42 ticks; upright 2.25-turn spiral wraps legs and torso |
-| F | `FightGuyStrikeWrap`, from Ice Shield | Alternating hands at each of the seven authored punch windows; larger right-foot cue at tick 88; soft `FightGuyPowerAura` through tick 100 |
-
-Every FightGuy attack slot, including ground/air normals and Q, binds
-`FightGuyEmpoweredHit`, a compact adaptation of Hit Ice A Air, to accepted contacts. Shared carries a cosmetic scale of
-`clamp(sqrt(acceptedDamage / 6), 0.6, 1.6)` in the existing placement packet:
-F's repeated punches are smaller than its final kick. Blocks keep shield
-feedback; whiffs show the limb cues alone. No damage, timing, projectile geometry,
-or movement values changed in this pass.
-
-Attached copies opt into `AttackBoundPresentation` so the runtime dispatcher
-clears them on attack interruption, sequence replacement, owner disable/removal,
-or the authored lifetime. Hitstop preserves the remaining attack ticks.
-World contact bursts retain their own lifetime. Vendor prefabs remain shared
-source assets; the owned copies disable vendor auto-destruction and lights.
-`FightGuyPowerAura` adapts Power Aura Loop into a soft body glow and compact
-ascending motes for E/F. R owns its helical mesh and material so its axis is upright
-and its shape is independent of camera-facing slash meshes.
-
-The live draft Lab now loads presentation bindings and includes world contact
-bursts in its capture hierarchy. Owned preview animation graphs are explicitly
-destroyed before script reload, including the inactive dummy's graph. This avoids
-leaving native Playables with references to the previous managed domain.
-
-Lab screenshots are a first visual pass; final arena readability and two-client
-PvP acceptance remain separate checks.
-
-## Normal VFX
-
-All eight normals use the same short swing marks and moving limb ribbons as
-Manki, recolored to FightGuy's blue-white energy palette. The package owns
-`FightGuyNormalStrike`, `FightGuyNormalSweep`, and `FightGuyHeavySwing`, with
-its own feathered crescent mesh and additive material. Each prefab combines
-a small camera-facing arc with a world-space particle ribbon that follows the
-animated striking limb. Heavy attacks use a broader arc and thicker ribbon.
-
-| Slot | Limb / effect | Start tick / lifetime |
-| --- | --- | --- |
-| ground.1 | Right foot / small sweep | 7 / 8 ticks |
-| ground.2 | Right hand / strike | 6 / 8 ticks |
-| ground.3 | Right foot / sweep | 8 / 9 ticks |
-| ground.4 | Right foot / heavy, left foot / smaller sweep | 12 / 10 ticks |
-| air.1 | Right hand, then left hand / strike | 7 and 18 / 8 ticks each |
-| air.2 | Left foot / sweep, then smaller follow-through | 8 and 14 / 8 ticks each |
-| air.3 | Right foot / sweep | 16 / 9 ticks |
-| air.4 | Right hand / heavy | 23 / 10 ticks |
-
-The eleven new timeline cues start at the existing hitbox activation ticks.
-The established `FightGuyEmpoweredHit` contact effect remains bound to every
-normal. These swing copies also use `AttackBoundPresentation` for interruption
-and lifetime cleanup. The Manki assets, existing FightGuy effects, gameplay
-operations, rig, clips, and cooked pose payload are unchanged.
-
-Verified on 2026-10-11 with accepted inspect/cook/verify/roster refresh, all
-eight Lab whiffs, four ground contacts (4/7/7/14 damage), a shield contact,
-and four existing Shared normal tests. Native Training exercised all eight
-normals on Splash Deck and the heavy ground kick on After Hours; moving limb
-ribbons were visible and cleared after recovery. The checks used a temporary
-Disable Domain Reload option and restored the original Editor settings and
-viewport. This pass does not establish two-client PvP behavior.
+The previous Cartoon FX copies (`FightGuyKiShot`, `FightGuyKiShotHit`, `FightGuyKiRelease`,
+`FightGuyRisingFist`, `FightGuyStrikeWrap`, `FightGuyPowerAura`, `FightGuyCycloneSpiral`,
+`FightGuyEmpoweredHit`) are local-only and no longer bound by this pass. Older commits
+still bind them, so delete them only once this pass is on `main`. Voice lines are planned
+for later.

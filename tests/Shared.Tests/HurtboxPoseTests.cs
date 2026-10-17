@@ -141,16 +141,18 @@ public class HurtboxPoseTests
         Assert.Equal(authored.Count, resolved.Count);
         float cos = MathF.Cos(state.FacingYaw), sin = MathF.Sin(state.FacingYaw);
         float scale = def.HurtboxBoneScale;
+        int idle = baked.FindAnimIndex(def.IdleAnim);
         foreach (var bone in authored)
         {
             Assert.True(RigBones.TryGetValue(bone.BoneId, out var rigBone), $"{bone.BoneId} has no expected rig bone.");
             int index = Array.IndexOf(baked.BoneNames, rigBone);
             Assert.True(index >= 0, $"{fighter} bake lacks {rigBone}.");
-            Assert.True(baked.GetBonePosition(def.IdleAnim, 0, index, out float bx, out float by, out float bz));
-            bx *= scale; by *= scale; bz *= scale;
-            float wx = state.PX + (bx * cos) + (bz * sin) + (bone.OffsetX * cos) + (bone.OffsetZ * sin);
-            float wy = def.BoneYToWorldY(state.PY, by) + bone.OffsetY;
-            float wz = state.PZ + (-bx * sin) + (bz * cos) + (-bone.OffsetX * sin) + (bone.OffsetZ * cos);
+            // The named bone where it is drawn (cooked hips offset), then the authored offset.
+            Assert.True(HitboxGeometry.BakedPointToWorld(state, def, baked, idle, 0, index, scale,
+                out float bx, out float by, out float bz));
+            float wx = bx + (bone.OffsetX * cos) + (bone.OffsetZ * sin);
+            float wy = by + bone.OffsetY;
+            float wz = bz + (-bone.OffsetX * sin) + (bone.OffsetZ * cos);
 
             var sphere = Assert.Single(resolved, e =>
                 MathF.Abs(e.PosX - wx) < 0.0001f && MathF.Abs(e.PosY - wy) < 0.0001f && MathF.Abs(e.PosZ - wz) < 0.0001f);

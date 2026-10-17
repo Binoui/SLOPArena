@@ -21,6 +21,10 @@ Thank you to the creators whose work helps make SLOPArena possible.
 - **[Kybernetik](https://assetstore.unity.com/packages/tools/animation/animancer-pro-v8-293522)** — Animancer animation playback.
 - **[Riley Labrecque](https://github.com/rlabrecque/Steamworks.NET)** — Steamworks.NET.
 
+## Sound effects
+
+- **[Kenney](https://kenney.nl/assets/rpg-audio)** — RPG Audio blade sounds for Wibou.
+
 ## Music
 
 Music generated for SLOPArena using [Google Gemini's Lyria](https://deepmind.google/models/lyria/).

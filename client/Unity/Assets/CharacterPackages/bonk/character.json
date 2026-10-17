@@ -42,15 +42,15 @@
     "slide": "anim.bonk.slide",
     "landStartOffsetSeconds": 0.49,
     "modelResourcePath": "",
-    "visualScale": 3,
+    "visualScale": 3.3,
     "hurtboxBoneScale": 0.85,
-    "modelYOffset": 0,
+    "modelYOffset": 0.24,
     "modelSoleOffset": 0,
     "autoModelYOffset": true
   },
   "capsuleRadius": 0.35,
   "capsuleHeight": 1.7,
-  "hipHeight": 0.82,
+  "hipHeight": 0.92,
   "hurtboxRadius": 1,
   "shieldRadius": 1.05,
   "captureGeometry": {

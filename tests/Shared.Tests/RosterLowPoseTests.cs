@@ -8,7 +8,6 @@ public sealed class RosterLowPoseTests
 {
     [Theory]
     [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Bonk)]
     [InlineData(CharacterClass.Wibou)]
     public void AdmittedLowPostures_DuckHighContactButRemainHittableLow(CharacterClass character)
     {

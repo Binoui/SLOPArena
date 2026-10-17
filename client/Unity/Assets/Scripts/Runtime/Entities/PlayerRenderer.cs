@@ -122,6 +122,14 @@ namespace SlopArena.Client.Entities
         private void ApplyAttackPoseModel(CharacterState state)
         {
             if (_modelInstance == null || _charDef == null) return;
+            // The pitch pivot is solved in the undeformed model frame; hit feel deforms on top.
+            _hitFeel?.SuspendDeformation();
+            try { ApplyAttackPosePitch(state, _charDef); }
+            finally { _hitFeel?.ResumeDeformation(); }
+        }
+
+        private void ApplyAttackPosePitch(CharacterState state, CharacterDefinition definition)
+        {
             float pitch = state.AttackPosePitch;
             Transform model = _modelInstance.transform;
             model.localRotation = Quaternion.identity;
@@ -135,7 +143,7 @@ namespace SlopArena.Client.Entities
             }
 
             Vector3 pivotWorld = new(state.PX,
-                _charDef.BoneYToWorldY(state.PY, 0f), state.PZ);
+                definition.BoneYToWorldY(state.PY, 0f), state.PZ);
             Vector3 pivotParent = transform.InverseTransformPoint(pivotWorld);
             Quaternion pitchRotation = Quaternion.Euler(-pitch * Mathf.Rad2Deg, 0f, 0f);
             Vector3 pivotScaled = Vector3.Scale(model.localScale, model.InverseTransformPoint(pivotWorld));
@@ -224,6 +232,7 @@ namespace SlopArena.Client.Entities
             {
                 _modelInstance.name = _modelName;
                 _modelInstance.transform.localScale = Vector3.one * _modelVisualScale;
+                _hitFeel?.AttachModel(_modelInstance.transform);
                 return;
             }
 
@@ -242,7 +251,8 @@ namespace SlopArena.Client.Entities
         /// </summary>
         public void EnsureModel()
         {
-            if (_modelInstance != null && _modelInstance.transform.parent == transform && transform.childCount > 0)
+            // The model sits below the hit-feel pivots in Play Mode.
+            if (_modelInstance != null && _modelInstance.transform.IsChildOf(transform))
                 return;
             _modelInstance = null;
 
@@ -320,6 +330,7 @@ namespace SlopArena.Client.Entities
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             instance.transform.localScale = Vector3.one * visualScale;
+            _hitFeel?.AttachModel(instance.transform);
 
             _animancer = instance.GetComponent<AnimancerComponent>();
             if (_animancer == null)
@@ -393,6 +404,14 @@ namespace SlopArena.Client.Entities
         public int CurrentAttackElapsedTicks => _lastState.AttackElapsedTicks;
         /// <summary>Identity of the last applied attack, for attached presentation cleanup.</summary>
         public byte CurrentAttackSequence => _lastState.AttackSequence;
+        /// <summary>Charge of the current charged attack while aiming or firing; 0 otherwise.</summary>
+        public ushort CurrentChargeTicks => _lastState.ChargeTicks;
+        /// <summary>
+        /// Charge and slot of the last charged attack that fired. Kept after the attack ends, so a
+        /// cosmetic hit effect can tell how charged its projectile was.
+        /// </summary>
+        public ushort LastFiredChargeTicks { get; private set; }
+        public byte LastFiredChargeSlot { get; private set; }
         /// <summary>Resolve the actual charge or release clip and its preview envelope.</summary>
         public bool TryGetAbilityPhaseAnimation(
             byte attackSlot,
@@ -459,6 +478,8 @@ namespace SlopArena.Client.Entities
                 || !TryGetBakedWeaponPose(state, airborne, out var pose, out var animationName, out int frame)
                 || !TryGetAnimation(animationName, out var clip, out _))
                 return false;
+            // Sample the undeformed pose; the result is mapped through the hit-feel deformation below.
+            _hitFeel?.SuspendDeformation();
             if (_modelInstance != null)
             {
                 _modelInstance.transform.localRotation = Quaternion.identity;
@@ -503,6 +524,13 @@ namespace SlopArena.Client.Entities
                 HitboxGeometry.ApplyAttackPosePitch(in state, _charDef, ref tx, ref ty, ref tz);
                 hilt = new Vector3(hx, hy, hz);
                 tip = new Vector3(tx, ty, tz);
+            }
+            if (_hitFeel != null)
+            {
+                // Keep the cosmetic blade ribbon on the visible, deformed blade.
+                hilt = _hitFeel.DeformPoint(hilt);
+                tip = _hitFeel.DeformPoint(tip);
+                _hitFeel.ResumeDeformation();
             }
             ApplyAttackPoseModel(state);
             return true;
@@ -682,8 +710,17 @@ namespace SlopArena.Client.Entities
             _sfxSource.volume = 0.7f;
             _jumpSfx = Resources.Load<AudioClip>("Audio/SFX/jump");
             if (Application.isPlaying)
+            {
                 MovementFeedbackEffect.Prewarm();
+                _hitFeel = GetComponent<FighterHitFeel>() ?? gameObject.AddComponent<FighterHitFeel>();
+                _hitFeel.Init(this);
+            }
         }
+
+        private FighterHitFeel? _hitFeel;
+
+        /// <summary>Presentation-only hit feel; null outside Play Mode.</summary>
+        public FighterHitFeel? HitFeel => _hitFeel;
         // ── Frame-by-frame animation control ──
 
         private BakedAnimationData? _bakedData;
@@ -1129,6 +1166,12 @@ namespace SlopArena.Client.Entities
             UpdateShield(state);
             CaptureWeaponTrailState(state);
             UpdateKiShotVisual(state);
+            _hitFeel?.OnState(in state, _charDef, _currentAttackAirborne);
+            if (state.State == ActionState.Attacking && state.ChargeTicks > 0)
+            {
+                LastFiredChargeTicks = state.ChargeTicks;
+                LastFiredChargeSlot = state.AttackSlot;
+            }
             _lastState = state;
             _hasAppliedState = true;
             if (!_hasPresentedDeaths)

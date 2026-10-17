@@ -5,7 +5,10 @@ using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 using SlopArena.Client.Entities;
+using SlopArena.Shared;
 
 internal static class DeterministicPoseTrackBaker
 {
@@ -29,47 +32,52 @@ internal static class DeterministicPoseTrackBaker
         public AnimationClip Clip = null!;
         public int FrameCount;
         public byte[] Bytes = Array.Empty<byte>();
-        // Low posture clips are authored in rig-root local space rather than
-        // hips-relative space so the baked pelvis translation survives runtime
-        // BoneYToWorldY reconstruction.
-        public bool IsLowPosture;
     }
 
+    /// <summary>
+    /// Bake hips-relative points for every clip. With <paramref name="modelYOffset"/>, also
+    /// write <see cref="BakedAnimationData.HipsOffsetPointName"/>: the drawn hips relative to
+    /// the capsule centre, so Shared tests every point where the renderer draws it.
+    /// </summary>
     internal static byte[] Bake(
         GameObject rig,
         IReadOnlyList<SampledAnimation> animations,
         int sampleRate,
         WeaponAttachConfig weaponConfig = null,
         float visualScale = 1f,
-        float hurtboxBoneScale = 1f,
-        float modelYOffset = 0f,
-        float capsuleHeight = 0f,
-        float hipHeight = 0f)
+        float? modelYOffset = null)
     {
         if (sampleRate != 60) throw new InvalidOperationException("Sample rate must be exactly 60 Hz.");
         if (rig == null) throw new InvalidOperationException("Rig is missing.");
         if (animations == null || animations.Count == 0) throw new InvalidOperationException("No animations to bake.");
-
-        bool hasLowPosture = animations.Any(x => x != null && x.IsLowPosture);
-        if (hasLowPosture)
-        {
-            if (!IsPositiveFinite(visualScale) || !IsPositiveFinite(hurtboxBoneScale))
-                throw new InvalidOperationException("Low-posture bake scales must be finite and positive.");
-            if (!IsFinite(modelYOffset) || !IsFinite(capsuleHeight) || !IsFinite(hipHeight))
-                throw new InvalidOperationException("Low-posture bake alignment values must be finite.");
-        }
+        if (!IsPositiveFinite(visualScale)) throw new InvalidOperationException("Visual scale must be finite and positive.");
+        if (modelYOffset.HasValue && !IsFinite(modelYOffset.Value))
+            throw new InvalidOperationException("Model Y offset must be finite.");
 
         var sourceAnimator = rig.GetComponent<Animator>();
         if (sourceAnimator == null) throw new InvalidOperationException("Rig has no Animator.");
         var temp = UnityEngine.Object.Instantiate(rig);
         temp.name = $"{rig.name}_CharacterCookTemp";
         temp.hideFlags = HideFlags.HideAndDontSave;
+        // PlayerRenderer parents the rig at the model root with identity rotation and
+        // replaces its scale with visualScale; sample in that frame so every point
+        // matches the rendered model.
+        temp.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        temp.transform.localScale = Vector3.one * visualScale;
         try
         {
             var animator = temp.GetComponent<Animator>();
             if (animator == null) throw new InvalidOperationException("Cloned rig has no Animator.");
+            // Evaluate clips as Animancer plays them: a playable graph without root motion
+            // or foot IK. AnimationClip.SampleAnimation agrees on the hips-relative pose but
+            // places the hips elsewhere for clips with root curves (up to 3.5 m off).
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            animator.fireEvents = false;
+            animator.Rebind();
             var transforms = new Transform[RequiredBones.Length];
-            var names = new string[RequiredBones.Length + (weaponConfig == null ? 0 : 2)];
+            int weaponPoints = weaponConfig == null ? 0 : 2;
+            var names = new string[RequiredBones.Length + weaponPoints + (modelYOffset.HasValue ? 1 : 0)];
             for (int i = 0; i < RequiredBones.Length; i++)
             {
                 transforms[i] = animator.GetBoneTransform(RequiredBones[i]);
@@ -139,6 +147,8 @@ internal static class DeterministicPoseTrackBaker
                 names[RequiredBones.Length] = "_weapon_tip";
                 names[RequiredBones.Length + 1] = "_weapon_hilt";
             }
+            if (modelYOffset.HasValue)
+                names[RequiredBones.Length + weaponPoints] = BakedAnimationData.HipsOffsetPointName;
             var hips = transforms[2];
             using var stream = new MemoryStream();
             WriteUInt32(stream, 0x4C454B53u);
@@ -153,39 +163,40 @@ internal static class DeterministicPoseTrackBaker
                     throw new InvalidOperationException($"Animation '{animation.SemanticId}' has no valid frames.");
                 WriteString(stream, animation.PoseTrackId);
                 WriteUInt32(stream, (uint)animation.FrameCount);
-                for (int frame = 0; frame < animation.FrameCount; frame++)
+                var graph = PlayableGraph.Create(temp.name);
+                try
                 {
-                    animation.Clip.SampleAnimation(temp, frame / 60f);
-                    Vector3 hipsPosition = hips.position;
-                    for (int bone = 0; bone < transforms.Length; bone++)
+                    graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+                    var output = AnimationPlayableOutput.Create(graph, "pose", animator);
+                    var playable = AnimationClipPlayable.Create(graph, animation.Clip);
+                    playable.SetApplyFootIK(false);
+                    output.SetSourcePlayable(playable);
+                    graph.Play();
+                    for (int frame = 0; frame < animation.FrameCount; frame++)
                     {
-                        Vector3 position = animation.IsLowPosture
-                            ? LowPoseBonePosition(temp.transform.InverseTransformPoint(transforms[bone].position),
-                                visualScale, modelYOffset, capsuleHeight, hipHeight, hurtboxBoneScale)
-                            : transforms[bone].position - hipsPosition;
-                        WriteFiniteVector(stream, position, animation.SemanticId, frame, names[bone]);
-                    }
-                    if (weaponEntry != null)
-                    {
-                        Vector3 bladePosition = weaponBone.TransformPoint(weaponEntry.PositionOffset);
-                        Quaternion bladeRotation = weaponBone.rotation * Quaternion.Euler(weaponEntry.RotationOffset);
-                        Vector3 tip = bladePosition + bladeRotation * tipLocal;
-                        Vector3 hilt = bladePosition + bladeRotation * hiltLocal;
-                        if (animation.IsLowPosture)
+                        playable.SetTime(frame / 60d);
+                        graph.Evaluate(0f);
+                        Vector3 hipsPosition = hips.position;
+                        for (int bone = 0; bone < transforms.Length; bone++)
+                            WriteFiniteVector(stream, transforms[bone].position - hipsPosition, animation.SemanticId, frame, names[bone]);
+                        if (weaponEntry != null)
                         {
-                            tip = LowPoseBonePosition(temp.transform.InverseTransformPoint(tip),
-                                visualScale, modelYOffset, capsuleHeight, hipHeight, hurtboxBoneScale);
-                            hilt = LowPoseBonePosition(temp.transform.InverseTransformPoint(hilt),
-                                visualScale, modelYOffset, capsuleHeight, hipHeight, hurtboxBoneScale);
+                            Vector3 bladePosition = weaponBone.TransformPoint(weaponEntry.PositionOffset);
+                            Quaternion bladeRotation = weaponBone.rotation * Quaternion.Euler(weaponEntry.RotationOffset);
+                            Vector3 tip = bladePosition + bladeRotation * tipLocal;
+                            Vector3 hilt = bladePosition + bladeRotation * hiltLocal;
+                            WriteFiniteVector(stream, tip - hipsPosition, animation.SemanticId, frame, "_weapon_tip");
+                            WriteFiniteVector(stream, hilt - hipsPosition, animation.SemanticId, frame, "_weapon_hilt");
                         }
-                        else
-                        {
-                            tip -= hipsPosition;
-                            hilt -= hipsPosition;
-                        }
-                        WriteFiniteVector(stream, tip, animation.SemanticId, frame, "_weapon_tip");
-                        WriteFiniteVector(stream, hilt, animation.SemanticId, frame, "_weapon_hilt");
+                        // The model root sits modelYOffset above the capsule centre.
+                        if (modelYOffset.HasValue)
+                            WriteFiniteVector(stream, hipsPosition + Vector3.up * modelYOffset.Value,
+                                animation.SemanticId, frame, BakedAnimationData.HipsOffsetPointName);
                     }
+                }
+                finally
+                {
+                    graph.Destroy();
                 }
             }
             return stream.ToArray();
@@ -195,18 +206,6 @@ internal static class DeterministicPoseTrackBaker
             UnityEngine.Object.DestroyImmediate(temp);
         }
     }
-
-    private static Vector3 LowPoseBonePosition(
-        Vector3 rootLocalPosition,
-        float visualScale,
-        float modelYOffset,
-        float capsuleHeight,
-        float hipHeight,
-        float hurtboxBoneScale)
-        => new(
-            rootLocalPosition.x * visualScale / hurtboxBoneScale,
-            (rootLocalPosition.y * visualScale + modelYOffset + capsuleHeight * 0.5f - hipHeight) / hurtboxBoneScale,
-            rootLocalPosition.z * visualScale / hurtboxBoneScale);
 
     private static bool IsFinite(float value)
         => !float.IsNaN(value) && !float.IsInfinity(value);

@@ -159,15 +159,45 @@ public static class HitboxGeometry
             : Math.Min(s.AttackElapsedTicks, fc - 1);
         if (bakedFrame >= fc) bakedFrame = fc - 1;
 
-        if (!baked.GetBonePosition(targetAnim, bakedFrame, bi, out float bx, out float by, out float bz))
-            return false;
+        return BakedPointToWorld(s, def, baked, animIdx, bakedFrame, bi, scale, out x, out y, out z);
+    }
 
-        bx *= scale; by *= scale; bz *= scale;
+    /// <summary>
+    /// World position of one baked point, before attack-pose pitch. Points are stored
+    /// hips-relative; <paramref name="scale"/> pulls them toward the hips
+    /// (<c>HurtboxBoneScale</c> for body points, 1 for weapon points). The hips sit where
+    /// the animation draws them when the bake carries
+    /// <see cref="BakedAnimationData.HipsOffsetPointName"/>, else at the fixed
+    /// <c>HipHeight</c> pivot. Shared by hitboxes, hurtboxes and the Ability Lab.
+    /// </summary>
+    public static bool BakedPointToWorld(
+        in CharacterState s, CharacterDefinition def, BakedAnimationData baked,
+        int animIndex, int frame, int pointIndex, float scale,
+        out float x, out float y, out float z)
+    {
+        x = y = z = 0f;
+        if (!baked.TryGetPoint(animIndex, frame, pointIndex, out float bx, out float by, out float bz))
+            return false;
         float cos = MathF.Cos(s.FacingYaw);
         float sin = MathF.Sin(s.FacingYaw);
-        x = s.PX + ((bx * cos) + (bz * sin));
-        y = def.BoneYToWorldY(s.PY, by);
-        z = s.PZ + ((-bx * sin) + (bz * cos));
+        int hipsIndex = baked.HipsOffsetIndex;
+        if (hipsIndex < 0)
+        {
+            bx *= scale; by *= scale; bz *= scale;
+            x = s.PX + ((bx * cos) + (bz * sin));
+            y = def.BoneYToWorldY(s.PY, by);
+            z = s.PZ + ((-bx * sin) + (bz * cos));
+            return true;
+        }
+
+        baked.TryGetPoint(animIndex, frame, hipsIndex, out float hx, out float hy, out float hz);
+        if (pointIndex == hipsIndex) bx = by = bz = 0f;
+        float lx = hx + (bx * scale);
+        float ly = hy + (by * scale);
+        float lz = hz + (bz * scale);
+        x = s.PX + ((lx * cos) + (lz * sin));
+        y = s.PY + ly;
+        z = s.PZ + ((-lx * sin) + (lz * cos));
         return true;
     }
 }

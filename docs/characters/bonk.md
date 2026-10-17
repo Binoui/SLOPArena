@@ -7,6 +7,30 @@ It exercises the authoritative Shared compiler, trusted built-in capability
 admission, cooked package loading, Character Select discovery, and match
 content admission. Avatar visual/pose review remains a release prerequisite.
 
+## Size and floor contact — 2026-10-17
+
+Bonk is now the biggest fighter in the [roster size](adding-a-new-character.md#roster-size)
+order: `visualScale` 3 → 3.3, `modelYOffset` 0 → 0.24 and `hipHeight` 0.82 → 0.92.
+His idle head is at 1.64 m (in-game 1.35 m before, level with FightGuy). The old
+offset left his feet 14 cm in the floor in idle frame 0 and 31 cm in the run. The cook
+now samples poses at `visualScale`, so his standing hurtboxes are 10% larger and follow
+the higher hips. Capsule, shield radius, capture geometry and the greatsword's length are
+unchanged; his bigger arms carry the blade tip 13–20 cm (6–7%) farther in the normals.
+
+- **Run:** clip `Run_ver_B` in the ignored `Art/Characters/bonk/Animations/run.FBX` has a
+  root Y offset of −0.189 (import setting). Planted frames sit 0–3 cm above the floor;
+  two single-frame foot pops reach about −5 cm.
+- **Crouch:** crouch hurtboxes follow the rendered pose, and the old crouch sank 23 cm,
+  which was most of its duck. It now sinks 10 cm: the crouched head is 8.5 cm below the
+  standing head hurtbox (was 20 cm), and the raised sword hand stays at standing height.
+  The crouch-ducks-the-top-hurtbox Shared row for Bonk was removed; a deeper crouch pose
+  is the fix.
+- **Still open:** idle dips 8 cm into the floor mid-cycle; several attack, hit and air
+  clips still dip 15–37 cm (`g3`, `gr`, hit reactions, `a1`, jump). In idle, run, jump and
+  most attacks his head also drops below the shoulder line (12 cm above the upper chest,
+  31 cm in rest and hit clips), so he reads as headless. These are clip retarget issues;
+  list them with the [grounding tool](../../tools/character_sizes/README.md).
+
 ## Horizontal aerial — 2026-10-16
 
 Air Cleave (`air.2`, normal 2 while airborne) now uses the approved horizontal

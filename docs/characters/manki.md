@@ -166,6 +166,16 @@ so the prefab, material and catalog GUIDs are unchanged:
   (`MankiDeformRig`, `MankiVisualRig`) remain in `Presentation/Legacy/`: point the
   catalog `_rig` at `Legacy/MankiDeformRig.prefab` to use them.
 
+### Run foot contact — 2026-10-17
+
+The run floated 5–17 cm above the floor (median 12 cm): its root Y is baked "based upon
+centre of mass at start", and the run's first frame is crouched. Clip `run` in the
+ignored `Art/Characters/manki/Animations/run.fbx` now has a root Y offset of 0.084
+(import setting), so its lowest contact touches the floor (median 7 cm through the
+stride). Poses are unchanged; the cook only records the new clip. Still open: specials
+sink 6–10 cm (`ga`, `gr`, `gf`) and the crouch 11 cm, which also sets its hurtboxes;
+see the [grounding tool](../../tools/character_sizes/README.md).
+
 ## Kit
 
 | Slot | Name | Visual | Mechanic |

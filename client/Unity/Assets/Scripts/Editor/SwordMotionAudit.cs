@@ -39,6 +39,7 @@ public static class SwordMotionAudit
         var sourceRig = preview.Rig;
         var rig = UnityEngine.Object.Instantiate(sourceRig);
         rig.hideFlags = HideFlags.HideAndDontSave;
+        rig.transform.localScale = Vector3.one * preview.Package.Definition.Presentation.VisualScale;
         try
         {
             var bone = FindBone(rig, entry.BoneName);

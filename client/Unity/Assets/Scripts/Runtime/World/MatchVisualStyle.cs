@@ -24,6 +24,14 @@ namespace SlopArena.Client.World
             ApplyCharacterMaterials();
         }
 
+        /// <summary>Resting silhouette rim applied to every fighter material.</summary>
+        public const float RimStrength = 0.72f, RimPower = 3.2f;
+
+        /// <summary>Player silhouette colour: the local fighter is orange, everyone else cyan.</summary>
+        public static Color RimColorFor(ulong entityId) => entityId == MatchConfig.LocalEntityId
+            ? new Color(1f, 0.68f, 0.12f)
+            : new Color(0.18f, 0.78f, 1f);
+
         private void ApplyAtmosphere()
         {
             RenderSettings.ambientMode = AmbientMode.Trilight;
@@ -73,9 +81,7 @@ namespace SlopArena.Client.World
 
             foreach (var player in FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None))
             {
-                Color rimColor = player.EntityId == MatchConfig.LocalEntityId
-                    ? new Color(1f, 0.68f, 0.12f)
-                    : new Color(0.18f, 0.78f, 1f);
+                Color rimColor = RimColorFor(player.EntityId);
 
                 foreach (var modelRenderer in player.GetComponentsInChildren<Renderer>(true))
                 {
@@ -105,8 +111,8 @@ namespace SlopArena.Client.World
 
                         material.SetColor("_ShadowColor", new Color(0.16f, 0.18f, 0.28f));
                         material.SetColor("_RimColor", rimColor);
-                        material.SetFloat("_RimPower", 3.2f);
-                        material.SetFloat("_RimStrength", 0.72f);
+                        material.SetFloat("_RimPower", RimPower);
+                        material.SetFloat("_RimStrength", RimStrength);
                         styled[i] = material;
                         _runtimeMaterials.Add(material);
                     }

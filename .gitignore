@@ -207,6 +207,11 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/UI/HUDNormalDiamond.png
 !client/Unity/Assets/UI/HUDSpecialDiamond.png
 !client/Unity/Assets/UI/HUDSlotBase.png
+# Presentation builder output and its glyph sources are project-authored; see
+# skills/sloparena-character-vfx-pass. Their sounds stay in local Resources/Audio.
+!client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuy*.png
+!client/Unity/Assets/CharacterPackages/fightguy/Presentation/Source/*.png
+!client/Unity/Assets/CharacterPackages/wibou/Presentation/Wibou*.png
 # Local Kenney prompt sheets, atlas maps, and Unity-generated metadata.
 client/Unity/Assets/Resources/InputPrompts/
 client/Unity/Assets/Resources/InputPrompts.meta
@@ -214,8 +219,8 @@ client/Unity/Assets/Resources/InputPrompts.meta
 *.jpg
 *.jpeg
 *.mat
-!client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyTornadoRibbon.mat
-!client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuyNormalSwing.mat
+!client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuy*.mat
+!client/Unity/Assets/CharacterPackages/wibou/Presentation/Wibou*.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiClothCharcoal.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWorkGloves.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWornMetal.mat
@@ -407,6 +412,7 @@ client/Unity/Assets/Resources/UI/Stages/last_stop.png.meta
 !/.agents/skills/sloparena-asset-selection/
 !/.agents/skills/sloparena-build/
 !/.agents/skills/sloparena-build-export/
+!/.agents/skills/sloparena-character-vfx-pass/
 !/.agents/skills/sloparena-character-workflow/
 !/.agents/skills/sloparena-combat-engine/
 !/.agents/skills/sloparena-entity-system/

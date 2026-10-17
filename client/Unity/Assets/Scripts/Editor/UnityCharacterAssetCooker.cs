@@ -65,7 +65,6 @@ public sealed class CharacterCookAnimationDefinition
     public int ClipLengthBits;
     public int SampleRate;
     public ExtrapolationMode Extrapolation;
-    public bool IsLowPosture;
 }
 
 public sealed class CharacterAssetCookResult
@@ -99,7 +98,7 @@ public static class UnityCharacterAssetCooker
     public const int BindingSchemaVersion = 1;
     public const int PoseVersion = 1;
     public const int SampleRate = 60;
-    public const string CookerVersion = "low-posture-1";
+    public const string CookerVersion = "hips-offset-1";
 
     public static CharacterAssetCookResult Cook(string packageRoot, CharacterAssetCatalog catalog, CharacterCookOutput output, CharacterCookProfile profile)
     {
@@ -150,8 +149,6 @@ public static class UnityCharacterAssetCooker
                 ClipLengthBits = BitConverter.SingleToInt32Bits(binding.Clip.length),
                 SampleRate = SampleRate,
                 Extrapolation = binding.Extrapolation,
-                IsLowPosture = string.Equals(required.Id, presentation.Crouch, StringComparison.Ordinal)
-                    || string.Equals(required.Id, presentation.Slide, StringComparison.Ordinal),
             });
         }
         definitions.Sort((a, b) => StringComparer.Ordinal.Compare(a.SemanticId, b.SemanticId));
@@ -171,15 +168,11 @@ public static class UnityCharacterAssetCooker
                     PoseTrackId = x.PoseTrackId,
                     Clip = x.Clip,
                     FrameCount = x.FrameCount,
-                    IsLowPosture = x.IsLowPosture,
                 }).ToArray(),
                 SampleRate,
                 catalog.WeaponConfig,
                 presentation.VisualScale,
-                presentation.HurtboxBoneScale,
-                presentation.ModelYOffset,
-                compiled.CookedPackage.Definition.CapsuleHeight,
-                compiled.CookedPackage.Definition.HipHeight);
+                presentation.ModelYOffset);
         }
         catch (Exception ex)
         {

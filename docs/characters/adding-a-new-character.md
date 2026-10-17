@@ -42,6 +42,18 @@ For generated-model cleanup or an existing-model replacement, follow the
 It separates surface repairs from rig changes and defines visual, retargeting and
 cooked-pose acceptance.
 
+### Roster size
+
+The roster shares one size order (owner, 2026-10-17): Bonk is the biggest, FightGuy and
+Wibou are the same height, and Manki is the smallest. Idle head heights above the floor
+are Bonk 1.64 m, Wibou 1.34 m, FightGuy 1.33 m and Manki 0.84 m. Fit a new fighter
+into that order with `presentation.visualScale`; the cook samples its hurtboxes at the
+same scale. Then set `modelYOffset` so idle frame 0 stands on the floor and keep
+`hipHeight` near the idle hip height: it is the pivot for attack-pose pitch and aim
+correction. Hurtboxes and bone hitboxes follow the drawn hips through the cooked
+`_hips_offset`, not `hipHeight`. Measure with the
+[character size tools](../../tools/character_sizes/README.md).
+
 Import the rig as Humanoid when the character is an ordinary humanoid fighter. Inspect the
 Avatar before binding clips. Reject invalid orientation, scale, root motion, required-bone,
 or non-finite-pose diagnostics. Do not remap a bad rig at runtime or own a standalone

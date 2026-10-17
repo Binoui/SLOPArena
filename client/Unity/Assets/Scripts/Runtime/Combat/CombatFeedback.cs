@@ -3,6 +3,7 @@ using SlopArena.Client.Entities;
 using SlopArena.Client.Simulation;
 using SlopArena.Shared;
 using SlopArena.Client.UI;
+using SlopArena.Client.World;
 using UnityEngine;
 
 namespace SlopArena.Client.Combat
@@ -20,6 +21,7 @@ namespace SlopArena.Client.Combat
         private ISimulationBridge _bridge;
         private CombatSFX _sfx;
         private readonly Dictionary<ulong, CharacterDefinition> _definitions = new();
+        private readonly Dictionary<ulong, PlayerRenderer> _renderers = new();
 
         private void Awake()
         {
@@ -28,7 +30,10 @@ namespace SlopArena.Client.Combat
 
         public void RegisterRenderer(PlayerRenderer renderer)
         {
-            if (renderer?.CharacterDef != null)
+            if (renderer == null)
+                return;
+            _renderers[renderer.EntityId] = renderer;
+            if (renderer.CharacterDef != null)
                 _definitions[renderer.EntityId] = renderer.CharacterDef;
         }
 
@@ -55,6 +60,8 @@ namespace SlopArena.Client.Combat
                 // Overrides arrive through the authoritative semantic event dispatcher.
                 if (string.IsNullOrEmpty(slot?.HitPresentationId))
                     GraphicHitEffect.Spawn(in hit, tier);
+                if (_renderers.TryGetValue(hit.TargetEntityId, out var victim) && victim != null)
+                    victim.HitFeel?.ReceiveHit(in hit, tier, MatchVisualStyle.RimColorFor(hit.OwnerEntityId));
                 _sfx.Play(tier, definition?.Class ?? CharacterClass.FightGuy);
                 ClientSettingsService.Instance.PlayConfirmedImpact();
             }

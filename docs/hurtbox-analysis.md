@@ -1,5 +1,11 @@
 # Hurtbox / Visual Model Alignment
 
+> **Superseded for package cooks (2026-10-17).** Cooks now write `_hips_offset`, the drawn
+> hips relative to the capsule centre, and Shared places hurtboxes and bone hitboxes from it
+> (see [hitbox system](systems/hitbox-system.md#drawn-hips--package-cooks-since-2026-10-17)).
+> `HipHeight` and `BoneYToWorldY` below remain the fixed pivot for attack-pose pitch, aim
+> correction and legacy bakes without that point.
+
 ## The Core Problem
 
 Server hurtboxes (from baked bone data) didn't align with the visual model. The baked data uses a Hips-relative coordinate system (Hips at Y=0, feet at negative Y), but the simulation formula anchored hurtboxes at capsule-bottom. Result: Hips hurtbox sat at ground level while the model's Hips was at hip height — a Y desync up to 0.85m.

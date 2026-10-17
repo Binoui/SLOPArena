@@ -59,16 +59,19 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Y distance from character feet (ground contact) to Hips bone, in meters.
-        /// Bridges the gap between capsule center (py) and the Hips-relative origin
-        /// of baked bone data. Derived from abs(lowest bone Y) at idle frame 0.
+        /// The fixed hip pivot: attack-pose pitch and aim correction rotate around it.
+        /// Baked points only use it when the bake has no
+        /// <see cref="BakedAnimationData.HipsOffsetPointName"/> point; current cooks
+        /// place the hips where the animation draws them.
         /// Manki: 0.50f, FightGuy: 0.82f.
         /// </summary>
         public float HipHeight;
 
         /// <summary>
-        /// Convert a bone-local Y (Hips-relative from baked data) to world-space Y.
+        /// World-space Y of a point <paramref name="boneLocalY"/> above the fixed hip pivot.
         /// Formula: capsuleCenterY - CapsuleHeight/2 + HipHeight + boneLocalY.
         /// When grounded (capsuleCenterY = CapsuleHeight/2), this reduces to HipHeight + boneLocalY.
+        /// Use <see cref="HitboxGeometry.BakedPointToWorld"/> for baked points.
         /// </summary>
         public float BoneYToWorldY(float capsuleCenterY, float boneLocalY)
             => capsuleCenterY - CapsuleHeight * 0.5f + HipHeight + boneLocalY;

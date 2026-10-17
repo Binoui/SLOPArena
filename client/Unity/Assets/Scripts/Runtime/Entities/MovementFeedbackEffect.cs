@@ -19,6 +19,7 @@ namespace SlopArena.Client.Entities
         Invincibility,
         AirRing,
         GroundRing,
+        LaunchSmoke,
     }
 
     /// <summary>
@@ -37,6 +38,8 @@ namespace SlopArena.Client.Entities
         private MovementFeedbackKind _kind;
         private float _releaseAt;
         private bool _continuous;
+        private Vector3 _trailPosition;
+        private float _trailCarry;
         private bool _active;
 
         public static void Prewarm()
@@ -154,6 +157,61 @@ namespace SlopArena.Client.Entities
             _continuous = false;
             StopParticles(false);
             _releaseAt = Time.unscaledTime + 0.35f;
+        }
+
+        /// <summary>Smoke puffs that follow a launched fighter; density and size track the launch.</summary>
+        public static MovementFeedbackEffect? BeginLaunchTrail(Vector3 position)
+        {
+            Prewarm();
+            GameObject prefab = LoadPrefab(MovementFeedbackKind.LaunchSmoke);
+            if (prefab == null)
+                return null;
+            Stack<MovementFeedbackEffect> pool = PoolFor(MovementFeedbackKind.LaunchSmoke);
+            MovementFeedbackEffect effect = PopReusable(pool);
+            effect ??= CreateInstance(MovementFeedbackKind.LaunchSmoke, prefab);
+            effect.ShowContinuousLaunch(position);
+            return effect;
+        }
+
+        /// <param name="intensity">0–1 launch strength.</param>
+        /// <param name="strength">Review/tuning multiplier; 1 is the default look.</param>
+        public void FollowLaunchTrail(Vector3 position, float intensity, float strength)
+        {
+            if (!_continuous)
+                return;
+            // Emit along the path travelled since the last frame. Distance emission depends on the
+            // prefab's emitter-velocity mode, so puffs are placed explicitly instead.
+            float density = Mathf.Lerp(3f, 8f, intensity) * strength;
+            float size = Mathf.Lerp(0.35f, 0.85f, intensity) * Mathf.Sqrt(strength);
+            Vector3 from = _trailPosition;
+            _trailCarry += Vector3.Distance(from, position) * density;
+            int count = Mathf.Min((int)_trailCarry, 12);
+            _trailCarry -= count;
+            for (int i = 0; i < count; i++)
+            {
+                var puff = new ParticleSystem.EmitParams
+                {
+                    position = Vector3.Lerp(from, position, (i + 1f) / count) + Random.insideUnitSphere * 0.08f,
+                    startSize = size * Random.Range(0.7f, 1f),
+                    // Warm grey still reads against white props and bright skies.
+                    startColor = new Color(0.8f, 0.77f, 0.74f, 0.85f),
+                    applyShapeToPosition = false,
+                };
+                foreach (ParticleSystem particle in _particles)
+                    if (particle != null)
+                        particle.Emit(puff, 1);
+            }
+            _trailPosition = position;
+            transform.position = position;
+        }
+
+        public void EndLaunchTrail()
+        {
+            if (!_continuous)
+                return;
+            _continuous = false;
+            StopParticles(false);
+            _releaseAt = Time.unscaledTime + 0.8f;
         }
 
 
@@ -345,6 +403,38 @@ namespace SlopArena.Client.Entities
             _releaseAt = float.PositiveInfinity;
         }
 
+        private void ShowContinuousLaunch(Vector3 position)
+        {
+            gameObject.SetActive(true);
+            transform.SetPositionAndRotation(position, Quaternion.identity);
+            transform.localScale = Vector3.one;
+            _trailPosition = position;
+            _trailCarry = 0f;
+
+            foreach (ParticleSystem particle in _particles)
+            {
+                particle.gameObject.SetActive(true);
+                particle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                particle.Clear(true);
+                var main = particle.main;
+                main.loop = true;
+                main.duration = 1f;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                main.maxParticles = 96;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.6f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0.25f);
+                main.gravityModifier = 0f;
+                // FollowLaunchTrail emits every puff; the module would add bursts or a rate.
+                var emission = particle.emission;
+                emission.enabled = false;
+                particle.Play(true);
+            }
+
+            _active = true;
+            _continuous = true;
+            _releaseAt = float.PositiveInfinity;
+        }
+
         private void Update()
         {
             if (!_active || _continuous || Time.unscaledTime < _releaseAt)
@@ -407,7 +497,7 @@ namespace SlopArena.Client.Entities
                 => "VFX/SlopArena/MovementWindTrails",
             MovementFeedbackKind.Jump or MovementFeedbackKind.DoubleJump
                 or MovementFeedbackKind.Landing or MovementFeedbackKind.HeavyLanding
-                or MovementFeedbackKind.Respawn
+                or MovementFeedbackKind.Respawn or MovementFeedbackKind.LaunchSmoke
                 => "VFX/SlopArena/MovementMagicPoof",
             MovementFeedbackKind.Invincibility or MovementFeedbackKind.AirRing
                 => "VFX/SlopArena/MovementAirRing",
@@ -447,6 +537,7 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.Invincibility,
             MovementFeedbackKind.AirRing,
             MovementFeedbackKind.GroundRing,
+            MovementFeedbackKind.LaunchSmoke,
         };
     }
 }
