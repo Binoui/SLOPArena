@@ -83,7 +83,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.gf
   - _semanticId: anim.bonk.a1
-    _clip: {fileID: 7400000, guid: 47b643bdc1e0eada69f2243bbb7bff72, type: 2}
+    _clip: {fileID: 7400000, guid: d9b3e2504f93b3627902832b098e225e, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.a1
   - _semanticId: anim.bonk.a2
@@ -91,7 +91,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.a2
   - _semanticId: anim.bonk.a3
-    _clip: {fileID: 7400000, guid: 1700a0c9c2a38d3e2addd8419b8a331c, type: 2}
+    _clip: {fileID: 7400000, guid: 0eea15e4f95879756b27a6645bce2900, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.a3
   - _semanticId: anim.bonk.a4
@@ -119,28 +119,38 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: pose.bonk.slide
   _presentations:
-  - _semanticId: presentation.bonk.steel.hit
-    _prefab: {fileID: 3149147115763953314, guid: e9e75777e90e461a58e8f15423afd384, type: 3}
+  - _semanticId: presentation.bonk.normal.hit
+    _prefab: {fileID: 4516294351796022242, guid: 988f85e9bb11c8e4cb618d137854361b, type: 3}
+  - _semanticId: presentation.bonk.heavy.hit
+    _prefab: {fileID: 8711570300592302138, guid: 5fda5fa5a78e45bb3806c5e34c39b4b4, type: 3}
   - _semanticId: presentation.bonk.bash.hit
     _prefab: {fileID: 3939395085170910799, guid: 2eeb5fc1313842da5af39d921d03e911, type: 3}
+  - _semanticId: presentation.bonk.slam.hit
+    _prefab: {fileID: 5879888403227607144, guid: 871a297145f12f89ba0c6f3ebea58d7f, type: 3}
+  - _semanticId: presentation.bonk.slash.hit
+    _prefab: {fileID: 5123855418656073262, guid: 04aa4d67fb46953a5b24a01d399bb82d, type: 3}
+  - _semanticId: presentation.bonk.storm.hit
+    _prefab: {fileID: 2276664692208332092, guid: 2283ce4f293743b0d9f1aeca84dd195e, type: 3}
   - _semanticId: presentation.bonk.normal.glint
     _prefab: {fileID: 1374814300817248429, guid: c73bbea7794aac5c3a386cda358f7113, type: 3}
   - _semanticId: presentation.bonk.normal.plant
     _prefab: {fileID: 7487074691050578419, guid: 64f41a37467d530beac5cc22b30ffce9, type: 3}
-  - _semanticId: presentation.bonk.bash.brace
-    _prefab: {fileID: 8177764351932431851, guid: 1f16744a9187f610cb1e92f1d01f0b50, type: 3}
+  - _semanticId: presentation.bonk.slash.cut
+    _prefab: {fileID: 239623712099611573, guid: def7fbfdd34616ac0b6b01dbcff46601, type: 3}
+  - _semanticId: presentation.bonk.slash.heavy
+    _prefab: {fileID: 4293438040413557814, guid: 0cbb4faa70cb2a36cb2c6b13f92ee9e9, type: 3}
+  - _semanticId: presentation.bonk.bash.snort
+    _prefab: {fileID: 7615887825180857262, guid: 04b90835dc36992a4a5084832b2ebe53, type: 3}
   - _semanticId: presentation.bonk.bash.charge
     _prefab: {fileID: 8971319239333944202, guid: b1668a44b22aaa4db875309434dbe94d, type: 3}
+  - _semanticId: presentation.bonk.armor
+    _prefab: {fileID: 5485779506001873241, guid: ad3a76c0e4bf38086aba5707fc7ac274, type: 3}
   - _semanticId: presentation.bonk.slam.launch
     _prefab: {fileID: 4627049086581531590, guid: e7b989b19b66e92f185bcbf1502efaed, type: 3}
   - _semanticId: presentation.bonk.slam.air-launch
     _prefab: {fileID: 8927869234706730574, guid: f2cf0ba64152504b080209d58e0b52f8, type: 3}
   - _semanticId: presentation.bonk.slam.landing
     _prefab: {fileID: 1236426330928721581, guid: 7f6040c959223756b9b1f7d22896c566, type: 3}
-  - _semanticId: presentation.bonk.slash.cut
-    _prefab: {fileID: 239623712099611573, guid: def7fbfdd34616ac0b6b01dbcff46601, type: 3}
-  - _semanticId: presentation.bonk.slash.heavy
-    _prefab: {fileID: 4293438040413557814, guid: 0cbb4faa70cb2a36cb2c6b13f92ee9e9, type: 3}
   - _semanticId: presentation.bonk.storm.wind
     _prefab: {fileID: 3430704171342964115, guid: a365c6b18ad7ca5269befda3490a7bd7, type: 3}
   - _semanticId: presentation.bonk.storm.air-wind

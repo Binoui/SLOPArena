@@ -1,11 +1,47 @@
 # Bonk
 
+> **Identity (owner, 2026-10-17):** a big, simple, good-natured brute, the "big hits"
+> character and one of the easier fighters to play. His name is the sound his hits make,
+> so a comic **BONK!** is his brand. The gags are on him: he's dense. His headbutt rings his
+> own bucket, and when armour shrugs off a hit a little "?" pops over his head. His colour
+> is the bucket red of his helmet and pauldron over bandage cream; steel was too plain.
+
 ## Status
 
 Bonk is a package-native greatsword kit admitted to the built-in roster.
 It exercises the authoritative Shared compiler, trusted built-in capability
 admission, cooked package loading, Character Select discovery, and match
 content admission. Avatar visual/pose review remains a release prerequisite.
+
+## Whirlwind and Meteor Cleave aerials — 2026-10-17
+
+Reverse Air Slash (`air.1`) now plays the **Whirlwind** and Downward Sweep (`air.3`) the
+**Meteor Cleave**. Both were authored with the GenRA toolkit (Opus 5.5) on the slots'
+existing clocks, and the owner approved them on the actual character. Their gameplay values
+are unchanged. The hitboxes run from `_weapon_hilt` to `_weapon_tip`, so their reach follows
+the new blade paths.
+
+- **Whirlwind** (`bonk_air1_whirlwind.anim`, 88 frames at 1×). Both hands take the hilt and
+  he winds up to his left, then turns one full flat circle to his right through the active
+  window: the blade is on his right at tick 24, behind at 29, left at 34 and in front at 39.
+  After a small overshoot the sword is back on his shoulder by tick 52. The blade now also
+  passes beside and behind him.
+- **Meteor Cleave** (`bonk_air3_meteor_cleave.anim`, 50 frames at 1×). The blade drops
+  behind his back and whips over his right shoulder. At contact (tick 21) it points 45°
+  down beside his right knee with his body folded forward, then hangs straight down beside
+  his right foot. Because it comes down his right side, the game camera sees 48% of the
+  blade at contact; a first version that chopped down his middle showed none.
+- Acrobatic Double Slice (`air.4`) keeps its clip by the owner's choice. A somersault
+  concept was not adopted.
+
+Native Ability Lab scenarios on the cooked package, opponent 1.5 m ahead:
+
+| Move | Idle opponent | Shield | 8 m away |
+| --- | --- | --- | --- |
+| Whirlwind | hit at tick 19, 8 damage | blocked at tick 39 | miss |
+| Meteor Cleave | hit at tick 22, 11 damage, −45° spike | blocked at tick 21 | miss |
+
+See the [GenRA Bonk aerials record](../research/2026-10-17-bonk-genra-aerials.md).
 
 ## Size and floor contact — 2026-10-17
 
@@ -45,56 +81,53 @@ pass for a low aerial hit, shield block and out-of-range miss. See the
 [authoring and integration record](../research/2026-10-16-bonk-horizontal-aerial.md)
 for the approved revision and evidence.
 
-## Combat presentation — 2026-10-11
+## Combat presentation — 2026-10-17
 
-Bonk's package now has a cream, rust-red and charcoal steel treatment, with
-dust and angular debris for weight. All eight normals have a blade-tip glint,
-a brief rough cut and a recolored sword sweep; ground normals also plant a
-small dust puff. Accepted sword hits add a jagged flash, steel sparks and dark
-flecks. Shield contacts retain the shared block effect.
+"BONK!", built for the identity above from concepts the owner approved on 2026-10-17. His
+name is the sound his hits make: his big hits print a comic **BONK!** in bandage cream on a
+bucket-red balloon, the way 肉 is FightGuy's brand and the grin is Manki's. A thick red smear
+follows the plank, contacts are blunt red "thunks" with ringing arcs instead of sharp sparks,
+and dust, cracks and rubble give him weight. The gags are on him: he snorts like a bull before
+an armoured charge, his own bucket rings after a headbutt, and a hit his armour shrugs off
+gets a little "?". `sloparena.presentation.bonk.build` (`BonkPresentationBuilder.cs`, on the
+shared `PresentationBuilderKit`) generates every texture, material and prefab and binds them
+to the asset catalog and the weapon's trail style. The lettering comes from
+`Presentation/Source/Bonk.png` and `Question.png`, rendered by `tools/glyph_mask.py` with
+Baloo 2 ExtraBold (`--weight 800 --bounce 7`). Only presentation cues, `presentationIds` and
+`hitPresentationId` values in `character.json` changed; damage, hitboxes and timing did not.
+The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md).
 
-Q's Shoulder Bash adds an armour scrape, charge dust and a sharper contact
-clang. R accents its first slash lightly and its second slash more strongly.
-F adds turbulent wind during its mobile spin, ground dust only for the ground
-variant, and a larger cut at its final authored hit window. `air.F` is now
-explicit so it can choose the airborne presentation while preserving the same
-gameplay as the former alias.
+| Move | Presentation |
+| --- | --- |
+| Normals (ground and air 1–4) | A red twinkle on the end of the plank before the swing and a low "whoomp". The sword trail is a bucket-red smear with a cream streak along the outer third of the plank (`BonkSmearTrail`), so big overhead swings never hide him. Ground normals kick up foot dust. Hits use `normal.hit`: a blunt red thunk with ringing arcs, steel chips, a puff of dust and a wooden "thock". Ground and air 4 use `heavy.hit`, which adds a small BONK!. |
+| Shoulder Bash (A) | At tick 0 he snorts like a bull: two steam puffs out of the bucket's eye slit and his eyes flash (`bash.snort`). Through the armour window he glows bucket red and his eyes stay lit (`armor`); the charge stomps and kicks dust behind him. Contact (`bash.hit`): the big BONK!, drawn in front of both fighters, and his own bucket rings twice on his head ("DOOONG"). |
+| Charging Double Slash (R) | The same snort, armour glow and charge dust. Hits use `slash.hit`: slash 1 (4 damage) is a small thunk, slash 2 (8 damage) a bigger one with dust (`DamageScaleVariant`). |
+| Armour (A and R) | When the armour absorbs a hit, a steel tink, chips and a little "?" pop over his bucket and float up (`ArmorGlowPresentation`). He didn't notice. |
+| Jump Slam (E) | Takeoff: a ring of dust along the floor, rocks and upward speed lines (air version: a puff ring). Landing, wherever he lands: a dust ring, rubble that bounces once, and floor cracks that fade over 2.5 s with a "THOOM". A hit (`slam.hit`) adds the BONK!. |
+| Blade Storm (F) | Three red smears orbit him at chest height, about 2.5 turns a second, with a "whum-whum" loop; on the ground a dust tornado spins at his feet. Spin hits are small thunks; the 12-damage finisher (`storm.hit`, `DamageScaleVariant`) is the biggest BONK! with his bucket ringing. |
 
-E uses optional `launchPresentationId` and `landingPresentationId` on the
-targeted-leap capability. The landing dust ring, stone chips and low thud
-trigger at the actual landing position, independent of aim hold or flight
-length. A flight timeout does not produce a landing burst. Both phase cues
-use the replicated presentation-event path.
+- **Armour read:** `ArmorGlowPresentation` asks `FighterHitFeel` for a pulsing rim glow while
+  the cue lives. The cue is attack-bound and lasts exactly the authored armour window (25 ticks
+  for A, 17 for R), so interruption ends it. The "?" is a detached copy of the cue's `Absorb`
+  child, spawned on `FighterHitFeel.ArmorAbsorbed`, which fires for an accepted hit whose
+  `ArmorProtected` is set. Under Reduced Flashing the glow is steady.
+- **BONK! placement:** the balloon and letters are billboards whose pivot moves them 1 m toward
+  the camera, so the fighters never cover them. Contacts scale with damage
+  (`sqrt(damage/6)`, 0.6–1.6), which sizes the BONK! too.
+- **Bucket ring:** `SnapToOwnerBone` moves that part of `bash.hit` from the contact onto
+  Bonk's head bone.
+- **Sounds:** generated by `tools/sfx/bonk_clips.py` from Kenney's CC0 Impact and Sci-Fi packs
+  plus filtered noise, in the ignored `Resources/Audio/SFX/Bonk/` (see
+  [provenance](../assets/credits-and-licenses.md)). They are first-draft mixes. Without them
+  the effects are silent and the builder lists the missing clips.
+- **Known issue (gameplay, not this pass):** on an idle FightGuy only Blade Storm's first spin
+  hit lands. The plank stays above his head through the spin, so the later spin hits and the
+  finisher pass over him, before and after this pass.
 
-The prefabs, materials, meshes and steel trail live under package-owned
-`Presentation/`; sounds reuse the existing Bonk clips through the SFX mixer.
-Gameplay values, damage windows, movement, cooldowns and animation assets
-are unchanged by this pass. Attached effects share the match/Lab lifetime
-rules, including mobile aim, Hitstop, interruption and activation replacement.
-
-Verification: all sixteen slots retain their previous gameplay after presentation
-operations are removed and aliases are expanded. The saved package passes native
-inspect/verify with matching source and cooked hashes and an updated roster pin.
-Ability Lab exercised all eight normals, ground/air specials, damaging contact,
-shield contact and whiffs; the VFX and sword-trail self-tests passed. Live Training
-on After Hours showed the heavy swing, mobile spin, final cut and actual landing
-burst, with effects clearing after recovery and an empty error console. Captures
-and the receipt are in `.ability-lab-cache/bonk-impact-vfx-20261011/`.
-
-Shared build and tests passed (1,787 passed, two existing skips); Server build
-and all 34 tests passed. The approved Editor restart recovered the stalled reload.
-Training used a temporary no-domain-reload setting, restored afterward along with
-the viewport and clean Frontend scene. Hidden Lab previews were disposed before
-Play Mode; this pass does not change the Lab window's ownership lifecycle.
-
-Shoulder Bash follow-up: its contact flash is about a third larger, lasts a
-little longer and throws more steel sparks/flecks. The armour glint is stronger,
-and a quiet heavy-impact layer sits beneath the lower-pitched clang. Only the
-`BonkBashImpact` and `BonkBrace` prefabs changed. Native hit, shield, whiff and
-airborne checks passed with no lingering effects or errors; before/after Shared
-scenario frames, gameplay payload and poses are identical. The recooked package
-and roster pin verify successfully. Comparison captures and the follow-up receipt
-are in `.ability-lab-cache/bonk-bash-emphasis-20261011/`.
+The generated prefabs replace the hand-made 2026-10-11 pass (cream, rust-red and charcoal
+steel, a SLASH sword trail) in place, keeping their GUIDs where the names match. The pass
+deleted the unreferenced `BonkSteelImpact`, `BonkBrace` and `BonkSteelSwordTrail` prefabs,
+the `BonkSteelFlash` and `BonkSteelSparks` materials and the five mesh assets they used.
 
 ## Local cooldown tuning — 2026-10-03
 
@@ -253,14 +286,21 @@ the existing air.2 probe is noninterruptible, while the other normals are interr
 | `ground.2` | Greatsword Swing — forward spacing | 93 | 47 | 20 / 15 | 0.5 | 10 / 35° | 7 / 30 | 16 |
 | `ground.3` | Reverse Rising Slash | 125 | 44 | 21 / 20 | 0.5 | 10 / 35° | 7 / 30 | 16 |
 | `ground.4` | Heavy Double Slice — kill read | 118 | 71 | 48 / 16 | 0.5 | 15 / 25° | 10 / 42 | 22 |
-| `air.1` | Reverse Air Slash — spacing | 88 | 52 | 19 / 21 | 0.5 | 8 / 35° | 5 / 24 | 14 |
+| `air.1` | Reverse Air Slash — spacing | 88 | 52 | 19 / 24 | 0.5 | 8 / 35° | 5 / 24 | 14 |
 | `air.2` | Existing air.2 probe, recovery retimed | 53 | 45 | 15 / 14 | 0.5 | 1 / 45° | 5 / 80 | 8 |
 | `air.3` | Downward Sweep — spike | 100 | 60 | 19 / 16 | 0.5 | 11 / -45° | 7 / 30 | 20 |
-| `air.4` | Acrobatic Double Slice — kill read | 73 | 63 | 37 / 12 | 0.5 | 14 / 25° | 9 / 40 | 22 |
+| `air.4` | Acrobatic Double Slice — kill read | 73 | 63 | 37 / 4 | 0.5 | 14 / 25° | 9 / 40 | 22 |
 
 Grounded landing/auto-cancel fields remain zero. Aerial landing lag / early
 auto-cancel / late auto-cancel: `air.1: 20 / 19 / 43`, `air.2: 18 / 0 / 45`,
 `air.3: 22 / 20 / 50`, `air.4: 24 / 20 / 62`. Zero early auto-cancel is disabled.
+
+On 2026-10-17 two windows were lined up with the drawn strike, after sword hitboxes started
+sweeping between ticks ([clip clock and sweep](../systems/hitbox-system.md#clip-clock-and-swept-bone-hitboxes--since-2026-10-17)).
+`air.1` Reverse Air Slash runs t19–t42 instead of t19–t39: the greatsword kept full speed for
+three ticks after the window. `air.4` Acrobatic Double Slice runs t37–t40 instead of t37–t48:
+the slice is over at t39, and its end pose no longer hits for nine more ticks. These aerial
+animations are due to be redone; their windows will need another pass then.
 
 `ground.E` and `air.E` use the same reusable targeted-leap lifecycle:
 `groundCursor` hold/release aim, a 240-tick cooldown, and a 112-tick authored

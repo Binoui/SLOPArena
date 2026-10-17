@@ -63,11 +63,23 @@ namespace SlopArena.Client.Entities
         /// <summary>Review captures show the default flash regardless of the local Reduced Flashing setting.</summary>
         public bool IgnoreReducedFlashing;
 
+        /// <summary>
+        /// Raised when this fighter's armour absorbs an accepted hit, for cosmetic reactions
+        /// (Bonk's "?"; see <see cref="SlopArena.Client.World.ArmorGlowPresentation"/>).
+        /// </summary>
+        public event System.Action? ArmorAbsorbed;
+
         private PlayerRenderer _renderer = null!;
         private Transform? _axis, _counter;
         private readonly List<SkinnedMeshRenderer> _skins = new();
         private MaterialPropertyBlock? _block;
         private bool _flashApplied;
+
+        // Sustained rim glows (an armour read) held by presentation cues; the latest wins.
+        private const float GlowRimStrength = 2.4f;
+        private const float GlowRimPower = 1.2f;
+        private const float GlowPulseHz = 4f;
+        private readonly List<(Object key, Color color)> _glows = new();
 
         // Victim reaction.
         private bool _hit, _frozen, _armored;
@@ -133,7 +145,20 @@ namespace SlopArena.Client.Entities
             _releaseTime = Time.time;
             _flashTime = Time.time;
             _flashTint = attackerTint;
+            if (hit.ArmorProtected) ArmorAbsorbed?.Invoke();
         }
+
+        /// <summary>
+        /// Holds a rim glow in <paramref name="color"/> until <see cref="EndGlow"/> with the same
+        /// key, e.g. for an attack's armour window. A hit flash still plays over it.
+        /// </summary>
+        public void BeginGlow(Object key, Color color)
+        {
+            EndGlow(key);
+            _glows.Add((key, color));
+        }
+
+        public void EndGlow(Object key) => _glows.RemoveAll(glow => glow.key == key);
 
         /// <summary>Call once per applied simulation tick, after the renderer has applied the state.</summary>
         public void OnState(in CharacterState state, CharacterDefinition? definition, bool attackAirborne)
@@ -367,16 +392,25 @@ namespace SlopArena.Client.Entities
             // Frames at the 60 Hz presentation rate; the epsilon absorbs Time.time rounding.
             float frames = (now - _flashTime) * 60f + 0.01f;
             float white = 0f, rim = 0f;
+            bool reduced = !IgnoreReducedFlashing && ClientSettingsService.Instance.ReducedFlashing;
             if (Strength.Flash > 0f && frames >= 0f)
             {
-                bool reduced = !IgnoreReducedFlashing && ClientSettingsService.Instance.ReducedFlashing;
                 if (!reduced && frames < 2f)
                     white = Mathf.Min(0.9f, FlashWhite[_tier] * Strength.Flash);
                 float rimStart = reduced ? 0f : 2f;
                 if (frames >= rimStart && frames < rimStart + 4f)
                     rim = (1f - (frames - rimStart) / 4f) * Mathf.Min(1f, Strength.Flash);
             }
-            if (white <= 0f && rim <= 0f)
+            // A held glow pulses gently; Reduced Flashing keeps it steady.
+            float glow = 0f;
+            Color glowColor = Color.white;
+            _glows.RemoveAll(held => held.key == null);
+            if (_glows.Count > 0)
+            {
+                glowColor = _glows[_glows.Count - 1].color;
+                glow = reduced ? 0.85f : 0.75f + 0.25f * Mathf.Sin(now * GlowPulseHz * Mathf.PI * 2f);
+            }
+            if (white <= 0f && rim <= 0f && glow <= 0f)
             {
                 ClearFlash();
                 return;
@@ -394,10 +428,16 @@ namespace SlopArena.Client.Entities
                     _block.SetFloat(RimStrengthId, Mathf.Lerp(MatchVisualStyle.RimStrength, 2f, rim));
                     _block.SetFloat(RimPowerId, Mathf.Lerp(MatchVisualStyle.RimPower, 1.2f, rim));
                 }
+                else if (glow > 0f)
+                {
+                    _block.SetColor(RimColorId, glowColor);
+                    _block.SetFloat(RimStrengthId, Mathf.Lerp(MatchVisualStyle.RimStrength, GlowRimStrength, glow));
+                    _block.SetFloat(RimPowerId, Mathf.Lerp(MatchVisualStyle.RimPower, GlowRimPower, glow));
+                }
                 skin.SetPropertyBlock(_block);
             }
             _flashApplied = true;
-            _flashFrames++;
+            if (white > 0f || rim > 0f) _flashFrames++;
         }
 
         private void ClearFlash()

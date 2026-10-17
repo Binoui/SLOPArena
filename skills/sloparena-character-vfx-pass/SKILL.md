@@ -89,17 +89,27 @@ materials, one method per prefab, then the bindings and `kit.Finish(built)`. Nam
 | Put floor marks (rings, scorches, debris landing planes) under a `SnapToFloor` child; particles can collide with that plane. | Blasts happen mid-air; the stage floor comes from `PresentationFloor`, and no floor below hides the mark. |
 | Measure prop anchors with a read-only `eval_file` that attaches the prop as `WeaponAttach` does and reports points in the hand or cue frame. For a prop in the other hand, sample the clip through the attack (a `PlayableGraph` on the rig) and search angles that keep it clear of the first prop. | Manki's bazooka barrel runs along the muzzle cue's +Y and his spray can's nozzle sits at the hand's −Z; guessing them points effects the wrong way. |
 | Give a velocity module's x, y and z one curve mode: `MinMaxCurve(0f)` is Constant and `MinMaxCurve(a, b)` is TwoConstants, so write `MinMaxCurve(0f, 0f)` beside a range, or a zero multiplier on the same curve beside a curve. | Unity logs "Particle Velocity curves must all be in the same mode" whenever the effect plays; `kit.Save` now throws instead. |
+| Give orbital x, y and z the same curve mode as x, y and z (`MinMaxCurve(0f, 0f)` beside a range). | Unity silently ignores the orbit otherwise: Bonk's Blade Storm whirl stood still. `kit.Save` now throws. |
+| Draw lettering and other must-read pops in front of the fighters with a positive billboard `pivot.z` (in units of the particle's Z size). | Bonk's BONK! at the contact sat inside the victim's body; 1 m toward the camera keeps it in front without moving it on screen much. |
+| Keep a big weapon's trail band on its outer part: transparent along the inner blade, opaque near the tip. | A full-plank band on Bonk's overhead swings painted over his whole body. |
+| For looks held on the fighter, use `ArmorGlowPresentation` (a rim glow for the cue's life, plus a detached child on `FighterHitFeel.ArmorAbsorbed`); move part of a hit effect onto the attacker with `SnapToOwnerBone`. | Bonk's armour read, his "?" when armour shrugs off a hit, and his bucket ringing on his own head need no Shared change. |
 | Use `ToonShapes.Step` for shader-style smoothstep. | `Mathf.SmoothStep(a, b, t)` interpolates from a to b; it is not a 0–1 step. |
 | Delete prefabs, textures and materials you stop generating. | The builder overwrites, it never removes. |
+| Give every object in a prefab a unique name (Bonk's builder suffixes repeats before `kit.Save`). | Unity keeps fileIDs by matching names when it overwrites a prefab, so a repeated name (Spin/Thunk and Finisher/Thunk) gets a new fileID on every rebuild. |
+| Don't delete and recreate a reused material in the same Editor session; if you must, force-reimport it and the prefabs that use it before Play Mode. | Unity reused the old GUID, but prefab references resolved to null at runtime and Bonk's dust rendered magenta until a reimport. |
 
 Glyph and logo art: render a mask with `tools/glyph_mask.py` into `Presentation/Source/`
-and bake it with `new MaskField(path)` and `ToonShapes.Bands`, as FightGuy's 肉 does.
+and bake it with `new MaskField(path)` and `ToonShapes.Bands`, as FightGuy's 肉 does. For comic
+lettering, `--weight` picks a variable font's weight and `--bounce` tilts alternate letters;
+Bonk's builder bakes its BONK! from Baloo 2 ExtraBold with an offset-mask extrusion.
 
 Sounds come from `kit.Sound(root, clip, volume, pitch)`. Clips live in the ignored
 `Resources/Audio/SFX/<Name>/` folder. Trim and normalize them (about −3 dB peak), and
 record source and licence in [asset notes](../../docs/assets/credits-and-licenses.md)
 and `CREDITS.md`. Script the mix so another machine can rebuild the ignored clips, as
-`tools/sfx/manki_clips.py` does from Kenney's CC0 packs and generated noise. Models nested from `Assets/Art` are local-only too; the kit warns when
+`tools/sfx/manki_clips.py` and `tools/sfx/bonk_clips.py` do from Kenney's CC0 packs and
+generated noise. ffmpeg's `bandpass` reads `w` as a Q factor unless you add `t=h`; narrow
+noise bands otherwise come out as a pure tone. Models nested from `Assets/Art` are local-only too; the kit warns when
 one is missing.
 
 ## 4. Rebuild, cook and verify
@@ -111,8 +121,9 @@ warnings. Check it with `presentation_review.py summary`.
 
 - Recompile before any refresh after C# edits in the shared Editor.
 - If another thread's change breaks compilation, wait; do not edit their files.
-- Rebuilds are byte-identical for unchanged inputs. Hash `Presentation/` before and after
-  a refactor to prove it changed nothing.
+- Rebuilds are byte-identical for unchanged inputs once object names are unique. Hash
+  `Presentation/` across two rebuilds to prove it, and before and after a refactor to prove
+  it changed nothing.
 - A cook re-pins the roster manifest; stage only your package's pin. Saving the catalog
   auto-cooks the roster, so another package with a stale cook (for example after a cooker
   version change) is recooked too; leave that change to its owner.

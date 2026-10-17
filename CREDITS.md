@@ -15,6 +15,7 @@ Thank you to the creators whose work helps make SLOPArena possible.
 
 - **[Omnibus-Type](https://github.com/Omnibus-Type/ArchivoBlack)** — Archivo Black, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/ArchivoBlack-OFL.txt).
 - **[Colophon Foundry](https://github.com/google/fonts/tree/main/ofl/spacemono)** — Space Mono, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/SpaceMono-OFL.txt).
+- **[The Baloo 2 Project Authors / Ek Type](https://github.com/EkType/Baloo2)** — Baloo 2, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/OFL.txt); also the lettering of Bonk's BONK! and "?".
 
 ## Tools and technology
 
@@ -25,6 +26,7 @@ Thank you to the creators whose work helps make SLOPArena possible.
 
 - **[Kenney](https://kenney.nl/assets/rpg-audio)** — RPG Audio blade sounds for Wibou.
 - **[Kenney](https://kenney.nl/assets/sci-fi-sounds)** — Sci-Fi Sounds, Impact Sounds and RPG Audio in Manki's explosions, jetpack, bazooka and spray can.
+- **[Kenney](https://kenney.nl/assets/impact-sounds)** — Impact Sounds and Sci-Fi Sounds in Bonk's thunks, BONK!, ringing bucket, stomps and Jump Slam landing.
 
 ## Music
 

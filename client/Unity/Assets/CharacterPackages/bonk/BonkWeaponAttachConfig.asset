@@ -22,7 +22,7 @@ MonoBehaviour:
     FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: -90, y: 188, z: -45}
     HideAfterTicks: 0
-    TrailStylePrefab: {fileID: 9179529471604905644, guid: f74bc84f2a942278a8b1c0450d2b2f93, type: 3}
+    TrailStylePrefab: {fileID: 4126525135168621223, guid: 955b678fbfe5295aa968e45ac4e78bbf, type: 3}
     HitboxMotionTime: 0.12
     TrailBladeWidth: 1
     TrailHiltAnchor: bladeHilt
