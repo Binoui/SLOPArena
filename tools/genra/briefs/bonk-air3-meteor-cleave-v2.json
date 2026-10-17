@@ -1,0 +1,94 @@
+{
+  "name": "bonk-air3-meteor-cleave-v2",
+  "notes": "Second pass of the air.3 concept after review (2026-10-17): 'fine, maybe needs another pass'. Existing move-data clock (50 ticks, hitbox 21-36, no IASA).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity",
+  "character": "Bonk (55 joints, five fingers; a 1.84 m greatsword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
+  "references": {
+    "fall": "references/fall.usda",
+    "jump": "references/jump.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "images": [
+    "images/fall-entry.png",
+    "images/two-hand-grip.png",
+    "../../genra-runs/20261017-132841-bonk-air3-meteor-cleave/v1-review.png"
+  ],
+  "image_notes": "1: the fall entry pose with the greatsword resting on the right shoulder (profile, front, three-quarter rear angle). 2: Bonk's own two-handed grip, from his Charging Double Slash (front, three-quarter, profile). 3: the first version at ticks 6, 12, 17, 19, 21 and 28, from the side (top row) and from the game camera behind him (bottom row).",
+  "strike": [
+    "bladeEnd"
+  ],
+  "description": "Downward Sweep (air.3), Bonk's committed spike, as a meteor cleave: a two-handed overhead chop down his right side that keeps going down beneath him while his body jackknifes. This is a second pass. In the first version (image 3) the fold at contact and the heavy hang with the blade pointing down were good; this pass makes the strike visible from the game camera, cleans up the wind-up and gives the swing over the top a little more time.\n\nBonk is the roster's heaviest fighter and its high-jumping acrobat: a hunched brute with huge arms, short legs and a head set low between the shoulders, swinging a 1.84 m greatsword. His aerials should look heavy and acrobatic at once.\n\nMake the sword look heavy. In the air there is no ground to push from, so the whole body swings the blade: hips and chest wind up first and unwind first; the arms follow and the blade comes last, trailing behind the hands until it whips through. The wind-up is slow and readable, the strike takes a few fast ticks, and after contact the blade's momentum carries on and drags the body after it before Bonk reins it in (overshoot, then settle): never stop the blade dead. The legs balance the swing: they tuck to wind up and swing the opposite way to the blade during the strike.\n\nThe game camera sits behind Bonk and a little above him, so a chop straight down his middle hides behind his broad back (image 3, bottom row). Bring the blade down on his right side instead: the hands travel from above his right shoulder down past his right hip, so the blade passes outside his right arm and leg, where the camera sees it.\n\nBeats. Tick 0 is the fall pose: the sword rests on his right shoulder with the blade diagonally across his back. Ticks 1-6: the left hand comes up in front of the chest and takes the grip below the right hand. Ticks 1-14: load: lean the chest clearly back (about 30 degrees, head up), lift both hands up beside and slightly behind the right side of his head, and let the blade drop down behind his back, tip pointing down behind him. The blade goes straight from the shoulder to that hanging load and never points straight up on the way. Knees pull up in front, so the body bends backward like a drawn bow. Ticks 14-16: a moving hold while the blade sinks a little deeper behind. Ticks 16-21: the cleave: the chest jackknifes forward and the arms whip the blade over his right shoulder and down his right side; the legs kick backward as the chest folds. Contact at tick 21: both arms nearly straight, the blade pointing forward and about 45 degrees down beside his right knee. Ticks 22-30: the blade keeps sweeping down until it points almost straight down beside and below his right foot, with the arms fully extended so the hilt hangs at full reach; the torso is folded forward about 45 degrees and the legs trail behind; the blade slows as it bottoms out. Ticks 31-36: hang in that low pose, still drifting down a little. Ticks 37-48: recover: he unfolds, the left hand lets go and the right arm carries the sword back up onto the shoulder. Ticks 48-50 equal the entry pose. The blade must not cut through his body or legs.",
+  "exit": {
+    "from_tick": 48
+  },
+  "clock": {
+    "duration_ticks": 50,
+    "contact_tick": 21,
+    "active": [
+      21,
+      36
+    ],
+    "iasa_tick": 50
+  },
+  "fast_windows": [
+    [
+      15,
+      25
+    ]
+  ],
+  "two_hands": [
+    6,
+    36
+  ],
+  "review_ticks": [
+    0,
+    6,
+    10,
+    14,
+    16,
+    18,
+    21,
+    24,
+    28,
+    33,
+    40,
+    48
+  ],
+  "targets": [
+    {
+      "name": "blade tip below the hips at contact (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 21,
+      "min": 0.4
+    },
+    {
+      "name": "blade tip below the hips at the bottom of the sweep (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 30,
+      "min": 1.0
+    },
+    {
+      "name": "blade tip on his right side at contact (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 21,
+      "min": 0.35
+    },
+    {
+      "name": "blade tip on his right side at the bottom of the sweep (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 30,
+      "min": 0.35
+    }
+  ]
+}

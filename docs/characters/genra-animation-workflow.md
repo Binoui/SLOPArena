@@ -195,7 +195,15 @@ starts it where the entry clip actually plays, and measures it as the game plays
 Read its report before preview. `meshVsToolkit` shows where Unity's limb twist
 distribution changes the mesh even though joints match: in a 17 October test the
 forearm mesh rolled up to 81 mm differently during a punch. Review those ticks on the
-actual character before approval.
+actual character before approval. A `muscleFit` miss of centimetres means the toolkit
+pose left Unity's Humanoid limits: the result must pass the toolkit's `humanoid`
+check before conversion. On 17 October a whirlwind authored before that check rolled a
+collarbone 122° past its limits and missed by 72 mm per joint.
+
+`unity_clip.py render` then plays the saved candidate on the catalog prefab, with its
+materials and sword, through Animancer over the move's ticks, from the review views.
+Add the bound clip it would replace as a second `--clip` to compare both on the same
+clock. Show `real.mp4` to the owner for approval: it is the move as the game will play it.
 
 For Manki's deformation rigs (`Presentation/MankiRig.prefab` and the legacy
 `Presentation/Legacy/MankiDeformRig.prefab`), fingers also have skin branches below
@@ -295,6 +303,7 @@ play the accepted package clip.
 | [Manki air 3](../research/2026-10-15-manki-air3-double-fist.md) | Accepted package integration and existing deformation controls | `artifacts/manki-air3-integration-20261015/` |
 | [Manki Head Slam](../research/2026-10-16-manki-ground4-head-slam.md) | Current-session authorship, quaternion conversion and finger correction | `artifacts/manki-g4-head-slam-20261016/` |
 | [Provider A/B](../research/2026-10-16-genra-opus-ab.md) | Opus 5.5 through the Claude CLI on the retained aerial prompt; bend-direction checks | `artifacts/genra-opus-ab-20261016/` |
+| [Bonk aerials](../research/2026-10-17-bonk-genra-aerials.md) | Toolkit concepts to an approved bind; Humanoid limits; real-character review with `unity_clip.py render` | `artifacts/bonk-aerials-integration-20261017/` |
 
 The aerial workspace's `README.md` indexes the reference/conversion/import
 helpers. Head Slam retains the later authoring and finger-repair passes. These
