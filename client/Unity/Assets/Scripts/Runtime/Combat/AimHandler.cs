@@ -374,15 +374,16 @@ namespace SlopArena.Client.Combat
 
                 if (aimMode == AimMode.CameraForward3D && _aimCameraMount != null)
                 {
-                    Vector2 delta = HumanInputActions.MouseLook.ReadValue<Vector2>()
-                        + aimStick * (600f * Time.deltaTime);
                     var cameraSettings = ClientSettingsService.Instance;
+                    // Mouse follows mouse sensitivity; the stick follows stick look speed.
+                    Vector2 delta = HumanInputActions.MouseLook.ReadValue<Vector2>() * cameraSettings.CameraInputGain
+                        + aimStick * (600f * Time.deltaTime * cameraSettings.StickInputGain);
                     if (cameraSettings.InvertCameraHorizontal) delta.x = -delta.x;
                     if (cameraSettings.InvertCameraVertical) delta.y = -delta.y;
                     _aimCameraMount.Tick(_characterTransform);
                     bool horizontalOnly = charDef.Class == CharacterClass.Manki
                         && (byte)(_aimingSlot + 1) == AbilitySlots.F;
-                    _aimCameraMount.ApplyMouseDelta(delta, _aimSensitivity * cameraSettings.CameraInputGain, !horizontalOnly);
+                    _aimCameraMount.ApplyMouseDelta(delta, _aimSensitivity, !horizontalOnly);
 
                     _lastAimYawRad = _aimCameraMount.GetAimYawRad();
                     _lastAimPitchRad = horizontalOnly ? 0f : _aimCameraMount.GetAimPitchRad();
@@ -442,7 +443,7 @@ namespace SlopArena.Client.Combat
             {
                 if (!_controllerCursorActive && mouse != null)
                     _controllerCursorPosition = mouse.position.ReadValue();
-                _controllerCursorPosition += stick * (700f * Time.deltaTime * ClientSettingsService.Instance.CameraInputGain);
+                _controllerCursorPosition += stick * (700f * Time.deltaTime * ClientSettingsService.Instance.StickInputGain);
                 _controllerCursorPosition.x = Mathf.Clamp(_controllerCursorPosition.x, 0f, Screen.width);
                 _controllerCursorPosition.y = Mathf.Clamp(_controllerCursorPosition.y, 0f, Screen.height);
                 _controllerCursorActive = true;

@@ -328,6 +328,10 @@ _Avoid_: public replay listing, Match invite
 A person watching an ongoing Match without having entered its fighter Roster. An eliminated fighter watching the remainder of their own Match is a different role.
 _Avoid_: eliminated fighter, replay viewer
 
+**Practice Session Log**:
+An opt-in local file measuring one Training or Solo CPU match: each swing's outcome and closest approach to its target, camera and device context, and practice-control changes. It is measurement, not a Replay: it cannot be watched again and is never uploaded.
+_Avoid_: replay, telemetry upload
+
 ## Prediction & Rollback
 
 **ConfirmedTick**:

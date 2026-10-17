@@ -11,6 +11,9 @@ runs, so the numbers are what the game produces — not a reimplementation.
 Primary use: attack duration, active frames, frame advantage, and knockback shape/range at a glance. The
 combo matrix/probes are experimental diagnostics, deliberately separated from the core report.
 
+These reports measure authored content against scripted opponents. To measure how a person actually
+misses in Training or Solo (distance, height, aim, camera), use the [practice session log](practice-session-log.md).
+
 ## Explicit-input route measurements
 
 `--route-search` searches **FightGuy versus FightGuy** using admitted cooked content
@@ -91,6 +94,36 @@ conditions. `true` means no recorded ordinary-action gap between the observed co
 `pressure` means a gap existed. Neither label proves counterplay quality or enjoyment.
 Best-found payoff is not a ceiling, and failure to find a route is not impossibility.
 Use the payoff and DI/timing surface to choose playtest questions, not automatic tuning.
+
+## Hit reliability
+
+`tools/HitReliabilityReport` measures how forgiving each admitted normal is against
+idle, standing FightGuy (medium) and Manki (small) targets, from the cooked roster:
+
+```bash
+dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk] \
+  [--out artifacts/hit-reliability]
+```
+
+Each character gets `<char>.md` and `<char>.json`:
+
+- **Playback** — baked 60 Hz animation frames per gameplay tick. Above 1.4× the clip is
+  compressed to fit the move timing and the swing crosses the front in very few ticks.
+- **Active ticks / touch at 1 m** — active ticks, and how many of them touch a target
+  standing 1 m ahead. A long window with few touching ticks spends its time behind or above.
+- **Reach** (ground normals) — real-simulation starting distances, 0.30–4.50 m in 5 cm
+  steps, that connect, at 0° and 30° bearing; "same" at 30° means startup aim correction
+  removes that sideways error.
+- **Vertical reach** (aerials) — target feet heights relative to the attacker's feet that
+  any active tick touches within 3 m ahead. An aerial that reaches less than 0.5 m below
+  its feet only hits grounded targets at the very end of a fall.
+- **Bone and weapon sampling** — positions a standing target occupies on the swing path
+  between consecutive active ticks (eight interpolated sub-steps) that no tested tick touches.
+
+Flags mark fast clips, point-blank whiffs, aerials that cannot reach below their feet and
+sampling loss above 10%. The attacker stays fixed for the geometry columns, and targets
+are idle; human timing and movement belong to the [practice session log](practice-session-log.md).
+Compare a character's report before and after a re-authored attack is cooked.
 
 ## Aerial experiments
 

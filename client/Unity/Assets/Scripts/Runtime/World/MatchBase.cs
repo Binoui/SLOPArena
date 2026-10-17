@@ -294,7 +294,7 @@ namespace SlopArena.Client.World
             var go = new GameObject("LockTargetIndicator");
             go.transform.SetParent(transform, false);
             var indicator = go.AddComponent<TargetIndicator>();
-            indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId);
+            indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera);
         }
 
 

@@ -274,6 +274,15 @@ input-suppressed modes do not auto-orbit. Training and PvP share this behavior.
 The experimental tuning and enable switch live on `CameraMount` under **Lock Camera
 Assistance** in the Inspector, not in target-selection or Shared gameplay rules.
 
+The right stick orbits on a curve: precise near the centre and up to 300°/s yaw at full
+deflection (pitch at 60% of yaw), reaching top speed after a quarter second held near the
+edge. **Stick Look Speed** (Settings → Controls, 10–200%) scales it, plus the stick-driven
+aim camera and ground cursor; **Mouse Sensitivity** (Settings → Gameplay) scales only the
+mouse. While the last input came from a controller, lock assistance uses an 8° dead zone,
+200°/s and twice the response, and resumes after half the manual grace. Keyboard and
+mouse keep the values above. The stick speed, controller dead zone and turn speed are
+tunable on `CameraMount` under **Controller Stick**.
+
 Aim indicators and camera movement are visual input aids. They do not bypass server validation or replace Shared simulation.
 
 ## Design rules

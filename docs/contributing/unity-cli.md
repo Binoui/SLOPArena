@@ -293,7 +293,10 @@ no retained Editor owner's permission or response is required.
 `sloparena.settings.apply --patch '<JSON object>'` defaults to dry-run; it reports
 requested, proposed, before and observed after values. Supported keys are `uiScale`
 (80/90/100/110/120/130/140 percent), `targetOpacity` (20–100 percent),
-`screenShake` (0–100 percent), `showOverheadDamage` and `reducedFlashing` (booleans).
+`screenShake` (0–100 percent), `showOverheadDamage`, `reducedFlashing` and
+`recordSessionLog` (booleans; the last starts a [practice session log](../systems/practice-session-log.md)
+with the next Training or Solo match). No scene places the settings owner; it is
+created at runtime, so these commands need Play Mode.
 Unknown/duplicate keys and invalid types/ranges fail before setters run.
 Actual application requires `--dry-run false --confirm true` and persists through
 the settings service. Save original values and restore them after verification.
@@ -395,7 +398,8 @@ editor sloparena.ui.viewport --width 1920 --height 1080 --gizmos off
 ```
 
 Capture-output resizing changes the PNG dimensions only; it does not set the Game View layout
-resolution. Set the viewport first when the intended UI layout depends on it.
+resolution. Set the viewport first when the intended UI layout or on-screen pixel sizes depend on
+it: the docked Game View can be far smaller than 1080p, and its frame is then upscaled.
 
 `viewport` verifies the selected size/gizmo settings and reports `completion: settings-applied`
 plus `screenSizeMatches`; this is not proof of a newly rendered screenshot. Use capture's

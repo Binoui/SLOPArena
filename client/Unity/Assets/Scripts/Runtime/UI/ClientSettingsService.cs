@@ -38,6 +38,7 @@ namespace SlopArena.Client.UI
             public float stickDeadzone = 12.5f;
             public bool vibration = true;
             public float cameraSensitivity = 100f;
+            public float stickLookSpeed = 100f;
             public bool invertCameraHorizontal;
             public bool invertCameraVertical;
             public int displayMode = (int)FullScreenMode.Windowed;
@@ -53,6 +54,7 @@ namespace SlopArena.Client.UI
             public bool reducedFlashing;
             public bool showOverheadDamage = true;
             public int targetLockMode = (int)TargetLockMode.Always;
+            public bool recordSessionLog;
         }
 
         public static ClientSettingsService Instance
@@ -76,6 +78,10 @@ namespace SlopArena.Client.UI
         public float CameraSensitivity => _settings.cameraSensitivity / 100f;
         // The manual delta-driven camera path runs at half the former default gain.
         public float CameraInputGain => CameraSensitivity * 0.5f;
+        /// <summary>Right-stick camera speed multiplier (1 = default); the mouse uses <see cref="CameraSensitivity"/>.</summary>
+        public float StickLookSpeed => _settings.stickLookSpeed / 100f;
+        /// <summary>Stick-driven aim camera and cursor gain, on the same half scale as <see cref="CameraInputGain"/>.</summary>
+        public float StickInputGain => StickLookSpeed * 0.5f;
         public bool InvertCameraHorizontal => _settings.invertCameraHorizontal;
         public bool InvertCameraVertical => _settings.invertCameraVertical;
         public event Action? Changed;
@@ -92,6 +98,8 @@ namespace SlopArena.Client.UI
         public bool ReducedFlashing => _settings.reducedFlashing;
         public bool ShowOverheadDamage => _settings.showOverheadDamage;
         public TargetLockMode AutoLockMode => (TargetLockMode)_settings.targetLockMode;
+        /// <summary>Save a local practice session log for Training and Solo matches started afterwards.</summary>
+        public bool RecordSessionLog => _settings.recordSessionLog;
         public AudioMixerGroup? FindBus(string name)
         {
             if (_mixer == null) _mixer = Resources.Load<AudioMixer>("Settings/SlopArena");
@@ -203,6 +211,7 @@ namespace SlopArena.Client.UI
             ChangedAndApply();
         }
         public void SetCameraSensitivity(float percent) { _settings.cameraSensitivity = Mathf.Clamp(Mathf.Round(percent), 10f, 200f); ChangedAndApply(); }
+        public void SetStickLookSpeed(float percent) { _settings.stickLookSpeed = Mathf.Clamp(Mathf.Round(percent), 10f, 200f); ChangedAndApply(); }
         public void SetInvertCameraHorizontal(bool value) { _settings.invertCameraHorizontal = value; ChangedAndApply(); }
         public void SetInvertCameraVertical(bool value) { _settings.invertCameraVertical = value; ChangedAndApply(); }
         public void SetNetworkStats(int value) { _settings.networkStats = Mathf.Clamp(value, 0, 2); ChangedAndApply(); }
@@ -210,6 +219,7 @@ namespace SlopArena.Client.UI
         public void SetShowOverheadDamage(bool value) { _settings.showOverheadDamage = value; ChangedAndApply(); }
         public void SetScreenShake(float percent) { _settings.screenShake = Clamp(percent); ChangedAndApply(); }
         public void SetReducedFlashing(bool value) { _settings.reducedFlashing = value; ChangedAndApply(); }
+        public void SetRecordSessionLog(bool value) { _settings.recordSessionLog = value; ChangedAndApply(); }
         public void SetAutoLockMode(TargetLockMode value)
         {
             _settings.targetLockMode = value is TargetLockMode.Never or TargetLockMode.Always or TargetLockMode.OnHit
@@ -223,6 +233,7 @@ namespace SlopArena.Client.UI
             _settings.bindingOverrides = "";
             _settings.stickDeadzone = HumanInputActions.DefaultDeadzone * 100f;
             _settings.vibration = true;
+            _settings.stickLookSpeed = 100f;
             ApplyControls(); ChangedAndApply(); Save();
         }
 
@@ -283,6 +294,7 @@ namespace SlopArena.Client.UI
                 }
                 _settings.stickDeadzone = ValidRange(_settings.stickDeadzone, HumanInputActions.DefaultDeadzone * 100f, 5f, 50f);
                 _settings.cameraSensitivity = ValidRange(_settings.cameraSensitivity, 100f, 10f, 200f);
+                _settings.stickLookSpeed = ValidRange(_settings.stickLookSpeed, 100f, 10f, 200f);
                 _settings.quality = _settings.quality is >= 0 and <= 2 ? _settings.quality : 2;
                 _settings.targetFps = _settings.targetFps is 60 or 120 or 144 or 240 or -1 ? _settings.targetFps : 120;
                 _settings.uiScale = _settings.uiScale is 80 or 90 or 100 or 110 or 120 or 130 or 140 ? _settings.uiScale : 100;

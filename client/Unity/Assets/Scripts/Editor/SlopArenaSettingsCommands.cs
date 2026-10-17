@@ -86,6 +86,7 @@ namespace SlopArena.EditorTools
                 if (parsed.ShowOverheadDamage.HasValue) { owner.SetShowOverheadDamage(parsed.ShowOverheadDamage.Value); result.AppliedFields.Add("showOverheadDamage"); }
                 if (parsed.ReducedFlashing.HasValue) { owner.SetReducedFlashing(parsed.ReducedFlashing.Value); result.AppliedFields.Add("reducedFlashing"); }
                 if (parsed.ScreenShake.HasValue) { owner.SetScreenShake(parsed.ScreenShake.Value); result.AppliedFields.Add("screenShake"); }
+                if (parsed.RecordSessionLog.HasValue) { owner.SetRecordSessionLog(parsed.RecordSessionLog.Value); result.AppliedFields.Add("recordSessionLog"); }
                 result.PersistenceStatus = "save-failed-or-partial";
                 owner.Save();
                 result.Success = true;
@@ -181,13 +182,15 @@ namespace SlopArena.EditorTools
                         break;
                     case "showOverheadDamage":
                     case "reducedFlashing":
+                    case "recordSessionLog":
                         if (property.Value.Type != JTokenType.Boolean)
                         {
                             error = property.Name + " must be a JSON boolean.";
                             return false;
                         }
                         if (property.Name == "showOverheadDamage") patch.ShowOverheadDamage = (bool)property.Value;
-                        else patch.ReducedFlashing = (bool)property.Value;
+                        else if (property.Name == "reducedFlashing") patch.ReducedFlashing = (bool)property.Value;
+                        else patch.RecordSessionLog = (bool)property.Value;
                         break;
                     default:
                         error = "Unsupported preference key: " + property.Name;
@@ -252,7 +255,8 @@ namespace SlopArena.EditorTools
                 TargetOpacity = owner.TargetOpacity * 100f,
                 ShowOverheadDamage = owner.ShowOverheadDamage,
                 ReducedFlashing = owner.ReducedFlashing,
-                ScreenShake = owner.ScreenShake * 100f
+                ScreenShake = owner.ScreenShake * 100f,
+                RecordSessionLog = owner.RecordSessionLog
             };
 
         private static SlopArenaSettingsPatchValues ToRequested(SettingsPatch patch)
@@ -262,7 +266,8 @@ namespace SlopArena.EditorTools
                 TargetOpacity = patch.TargetOpacity,
                 ShowOverheadDamage = patch.ShowOverheadDamage,
                 ReducedFlashing = patch.ReducedFlashing,
-                ScreenShake = patch.ScreenShake
+                ScreenShake = patch.ScreenShake,
+                RecordSessionLog = patch.RecordSessionLog
             };
 
         private static SlopArenaSettingsSnapshot ApplyPatch(SlopArenaSettingsSnapshot before, SettingsPatch patch)
@@ -272,7 +277,8 @@ namespace SlopArena.EditorTools
                 TargetOpacity = patch.TargetOpacity.HasValue ? Mathf.Round(patch.TargetOpacity.Value) : before.TargetOpacity,
                 ShowOverheadDamage = patch.ShowOverheadDamage ?? before.ShowOverheadDamage,
                 ReducedFlashing = patch.ReducedFlashing ?? before.ReducedFlashing,
-                ScreenShake = patch.ScreenShake.HasValue ? Mathf.Round(patch.ScreenShake.Value) : before.ScreenShake
+                ScreenShake = patch.ScreenShake.HasValue ? Mathf.Round(patch.ScreenShake.Value) : before.ScreenShake,
+                RecordSessionLog = patch.RecordSessionLog ?? before.RecordSessionLog
             };
 
         private static SlopArenaSettingsCommandResult Failure(string message, SlopArenaSettingsPatchValues requested = null)
@@ -295,6 +301,7 @@ namespace SlopArena.EditorTools
             internal bool? ShowOverheadDamage;
             internal bool? ReducedFlashing;
             internal float? ScreenShake;
+            internal bool? RecordSessionLog;
         }
     }
 
@@ -319,6 +326,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("showOverheadDamage", NullValueHandling = NullValueHandling.Ignore)] public bool? ShowOverheadDamage { get; set; }
         [JsonProperty("reducedFlashing", NullValueHandling = NullValueHandling.Ignore)] public bool? ReducedFlashing { get; set; }
         [JsonProperty("screenShake", NullValueHandling = NullValueHandling.Ignore)] public float? ScreenShake { get; set; }
+        [JsonProperty("recordSessionLog", NullValueHandling = NullValueHandling.Ignore)] public bool? RecordSessionLog { get; set; }
     }
 
 
@@ -329,6 +337,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("showOverheadDamage")] public bool ShowOverheadDamage { get; set; }
         [JsonProperty("reducedFlashing")] public bool ReducedFlashing { get; set; }
         [JsonProperty("screenShake")] public float ScreenShake { get; set; }
+        [JsonProperty("recordSessionLog")] public bool RecordSessionLog { get; set; }
     }
 
     public sealed class SlopArenaSettingsDiagnostic

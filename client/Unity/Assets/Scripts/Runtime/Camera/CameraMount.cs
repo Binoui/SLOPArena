@@ -30,6 +30,18 @@ namespace SlopArena.Client.Camera
         private Vector3 _lockTargetPosition;
         private float _manualOrbitGraceRemaining;
 
+        [Header("Controller Stick")]
+        [Tooltip("Right-stick yaw at full deflection and 100% Stick Look Speed, degrees/second.")]
+        [SerializeField, Min(0f)] private float _stickYawSpeed = 300f;
+        [Tooltip("Lock assistance dead zone while the last input came from a controller.")]
+        [SerializeField, Range(0f, 90f)] private float _controllerLockDeadZone = 8f;
+        [SerializeField, Min(0f)] private float _controllerLockSpeed = 200f;
+        private float _stickHeldSeconds;
+        // Practice session log: manual camera rotation since the last TakeLookSample.
+        private float _sampleMouseDegrees;
+        private float _sampleStickDegrees;
+        private float _sampleStickPeak;
+
         private CameraMode _mode = CameraMode.Normal;
         private float _frozenYaw;
         private float _frozenPitch = 15f;
@@ -110,17 +122,22 @@ namespace SlopArena.Client.Camera
             {
                 Vector2 mouseLook = HumanInputActions.MouseLook.ReadValue<Vector2>();
                 Vector2 stickLook = HumanInputActions.StickLook.ReadValue<Vector2>();
-                Vector2 delta = mouseLook + stickLook * (90f * Time.deltaTime);
+                // Controllers get a shorter manual grace and stronger lock assistance.
+                bool controller = HumanInputActions.LastUsedGamepad;
                 if (mouseLook.sqrMagnitude > 0f || stickLook.sqrMagnitude > 0f)
-                    _manualOrbitGraceRemaining = _lockManualGraceSeconds;
+                    _manualOrbitGraceRemaining = controller ? _lockManualGraceSeconds * 0.5f : _lockManualGraceSeconds;
                 else
                 {
                     _manualOrbitGraceRemaining = Mathf.Max(0f, _manualOrbitGraceRemaining - Time.deltaTime);
                     if (_manualOrbitGraceRemaining <= 0f)
-                        UpdateLockOrbit(Time.deltaTime);
+                        UpdateLockOrbit(Time.deltaTime, controller);
                 }
                 var settings = ClientSettingsService.Instance;
-                delta *= settings.CameraInputGain;
+                Vector2 stickDegrees = StickDegrees(stickLook, settings.StickLookSpeed, Time.deltaTime);
+                Vector2 delta = mouseLook * settings.CameraInputGain + stickDegrees;
+                _sampleMouseDegrees += (Mathf.Abs(mouseLook.x) + Mathf.Abs(mouseLook.y)) * settings.CameraInputGain;
+                _sampleStickDegrees += Mathf.Abs(stickDegrees.x) + Mathf.Abs(stickDegrees.y);
+                _sampleStickPeak = Mathf.Max(_sampleStickPeak, Mathf.Min(1f, stickLook.magnitude));
                 _orbital.HorizontalAxis.Value += delta.x * (settings.InvertCameraHorizontal ? -1f : 1f);
                 SetCameraPitchDeg(GetCameraPitchDeg() - delta.y * (settings.InvertCameraVertical ? -1f : 1f));
 
@@ -302,12 +319,52 @@ namespace SlopArena.Client.Camera
             return right.normalized;
         }
 
-        private void UpdateLockOrbit(float deltaTime)
+        public CameraMode Mode => _mode;
+        public bool AssistsLockedTarget => _assistLockedTarget;
+        public float LockYawDeadZoneDegrees => _lockYawDeadZone;
+        public float LockYawSpeedDegrees => _lockYawSpeed;
+        public Vector2 PitchRangeDegrees => _orbital != null ? _orbital.VerticalAxis.Range : Vector2.zero;
+        /// <summary>Right-stick yaw at full deflection with the current Stick Look Speed, degrees/second.</summary>
+        public float StickYawRateDegrees => _stickYawSpeed * ClientSettingsService.Instance.StickLookSpeed;
+
+        /// <summary>
+        /// Manual camera rotation applied since the previous call: mouse and right-stick
+        /// degrees (yaw + pitch) and the largest stick deflection. Resets the accumulators.
+        /// </summary>
+        public (float mouseDegrees, float stickDegrees, float stickPeak) TakeLookSample()
+        {
+            var sample = (_sampleMouseDegrees, _sampleStickDegrees, _sampleStickPeak);
+            _sampleMouseDegrees = _sampleStickDegrees = _sampleStickPeak = 0f;
+            return sample;
+        }
+
+        /// <summary>
+        /// Right-stick orbit: precise near the centre (exponential curve) and fast at full
+        /// deflection, ramping to top speed after a quarter second held near the edge.
+        /// </summary>
+        private Vector2 StickDegrees(Vector2 stick, float speed, float deltaTime)
+        {
+            float magnitude = Mathf.Min(1f, stick.magnitude);
+            if (magnitude < 0.0001f)
+            {
+                _stickHeldSeconds = 0f;
+                return Vector2.zero;
+            }
+            _stickHeldSeconds = magnitude > 0.9f ? _stickHeldSeconds + deltaTime : 0f;
+            float ramp = Mathf.Lerp(0.6f, 1f, Mathf.Clamp01(_stickHeldSeconds / 0.25f));
+            float rate = _stickYawSpeed * speed * Mathf.Pow(magnitude, 1.8f) * ramp;
+            Vector2 direction = stick / stick.magnitude;
+            return new Vector2(direction.x * rate, direction.y * rate * 0.6f) * deltaTime;
+        }
+
+        private void UpdateLockOrbit(float deltaTime, bool controller)
         {
             if (!_assistLockedTarget || _lockPlayer == null) return;
             float yaw = GetCameraYawDeg();
             SetCameraYawDeg(GetAssistedYaw(yaw, _lockTargetPosition - _lockPlayer.position,
-                _lockYawDeadZone, _lockYawResponse, _lockYawSpeed, deltaTime));
+                controller ? _controllerLockDeadZone : _lockYawDeadZone,
+                controller ? _lockYawResponse * 2f : _lockYawResponse,
+                controller ? _controllerLockSpeed : _lockYawSpeed, deltaTime));
         }
 
         private static float GetAssistedYaw(float yaw, Vector3 offset, float deadZone,

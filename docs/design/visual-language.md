@@ -408,7 +408,7 @@ Solo ends in the existing fight-flyer world: Archivo SLOP SETTLED. on Action Yel
 
 ### Fighter ground cues
 
-**The Ground Anchor Rule.** Keep a small, steady, open-centre floor cue under each fighter; strengthen its outline as the feet lift, and hide it without supporting floor. A soft contact shadow is a functional depth exception, not a default panel treatment. Use small broken Paper rings with dark edging and a short local Action Yellow notch; other fighters stay neutral. Current X/Z projects onto the baked floor, independently of target-lock or aiming feedback. Native Training evidence: `.impeccable/review/ground-marker-20261013/verification.json`; connected PvP and packaged-player rendering remain unverified.
+**The Ground Anchor Rule.** Keep a small, steady, open-centre floor cue under each fighter; strengthen its outline as the feet lift, and hide it without supporting floor. A soft contact shadow is a functional depth exception, not a default panel treatment. Use small broken Paper rings with dark edging and a short local Action Yellow notch; other fighters stay neutral. Current X/Z projects onto the baked floor, independently of target-lock or aiming feedback. Airborne fighters add one dotted drop line from the feet to their ring: small `#FFB03B` dots with the ring's dark rim, at a fixed spacing in metres counted up from the floor, never below 4 px. It fades in with the ring, shows current height only and never predicts a landing. Native Training evidence: `.impeccable/review/ground-marker-20261013/verification.json` and `.impeccable/review/drop-line-20261017/verification.json`; connected PvP and packaged-player rendering remain unverified.
 
 ### Locked target cues
 

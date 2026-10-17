@@ -12,8 +12,16 @@ namespace SlopArena.Shared
     public class SpellResolver
     {
         private readonly List<Hitbox> _hitboxes = new();
+        private readonly List<Hitbox> _lastTickChecked = new();
         private readonly List<EntityData> _orderedEntities = new();
         private readonly ContactDistanceComparer _contactDistance = new();
+
+        /// <summary>
+        /// Diagnostics only: every hitbox exactly as the latest <see cref="Tick"/> tested it,
+        /// including hitboxes that connected or expired during that tick. Gameplay never reads
+        /// it; telemetry uses it to measure how close an attack came to its target.
+        /// </summary>
+        public IReadOnlyList<Hitbox> LastTickCheckedHitboxes => _lastTickChecked;
 
         private sealed class ContactDistanceComparer : IComparer<EntityData>
         {
@@ -175,7 +183,11 @@ namespace SlopArena.Shared
         /// <summary>
         /// Clear all hitboxes (e.g., on match reset).
         /// </summary>
-        public void Clear() => _hitboxes.Clear();
+        public void Clear()
+        {
+            _hitboxes.Clear();
+            _lastTickChecked.Clear();
+        }
 
         /// <summary>
         /// Drain and return all pending explosion events from this tick.
@@ -266,6 +278,7 @@ namespace SlopArena.Shared
         {
             var results = new List<HitResult>();
             var hitThisTick = new HashSet<ulong>();
+            _lastTickChecked.Clear();
             if (orderMovingTargetContacts) OrderMovingTargetContacts(entities);
 
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
@@ -431,6 +444,7 @@ namespace SlopArena.Shared
                         break;
                     }
                 }
+                _lastTickChecked.Add(hb);
 
                 // Age / expire
                 hb.AgeTicks++;
@@ -626,6 +640,39 @@ namespace SlopArena.Shared
             float horiz = MathF.Sqrt((dx * dx) + (dz * dz));
             float deg = MathF.Atan2(dy, horiz) * (180f / MathF.PI);
             return (sbyte)Math.Clamp((int)MathF.Round(deg), 0, 90);
+        }
+
+        /// <summary>
+        /// Diagnostics: signed surface gap in metres between a hitbox and one entity volume,
+        /// zero or negative when they overlap. The out vector runs from the hitbox surface to
+        /// the entity surface along their closest points, and is zero when they overlap.
+        /// </summary>
+        public static float SurfaceGap(in Hitbox hb, in EntityData entity,
+            out float gapX, out float gapY, out float gapZ)
+        {
+            bool hbCapsule = hb.Shape == HitboxShape.Capsule;
+            bool entityCapsule = entity.Shape == HitboxShape.Capsule;
+            ClosestPointsSegmentSegment(
+                hb.X, hb.Y, hb.Z,
+                hbCapsule ? hb.EndX : hb.X, hbCapsule ? hb.EndY : hb.Y, hbCapsule ? hb.EndZ : hb.Z,
+                entity.PosX, entity.PosY, entity.PosZ,
+                entityCapsule ? entity.EndX : entity.PosX, entityCapsule ? entity.EndY : entity.PosY,
+                entityCapsule ? entity.EndZ : entity.PosZ,
+                out float cx1, out float cy1, out float cz1,
+                out float cx2, out float cy2, out float cz2);
+            float dx = cx2 - cx1, dy = cy2 - cy1, dz = cz2 - cz1;
+            float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+            float gap = distance - (hb.Radius + entity.Radius);
+            if (gap <= 0f || distance <= 0.000001f)
+            {
+                gapX = gapY = gapZ = 0f;
+                return gap;
+            }
+            float scale = gap / distance;
+            gapX = dx * scale;
+            gapY = dy * scale;
+            gapZ = dz * scale;
+            return gap;
         }
 
         /// </summary>

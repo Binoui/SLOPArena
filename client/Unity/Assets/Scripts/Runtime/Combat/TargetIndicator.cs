@@ -9,6 +9,8 @@ namespace SlopArena.Client.Combat
     /// <summary>
     /// Small broken floor rings and contact shadows, one per player entity. Pinned to the
     /// arena heightmap so position stays readable while airborne; hidden without floor.
+    /// Airborne fighters also get a dotted orange drop line from their feet down to the ring,
+    /// with dots at a fixed world spacing so a higher jump shows more of them.
     /// The local fighter has a yellow notch. Selection and
     /// lock feedback moved to TargetLockIndicator (targeting pass 1). The launch
     /// trajectory remains editor gizmos only, never gameplay.
@@ -21,22 +23,40 @@ namespace SlopArena.Client.Combat
             public readonly ulong EntityId;
             public readonly Transform Transform;
             public readonly MeshRenderer Mesh;
+            public readonly LineRenderer DropLine;
             public readonly Color Accent;
 
-            public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh, Color accent)
+            public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh,
+                LineRenderer dropLine, Color accent)
             {
                 Renderer = renderer;
                 EntityId = renderer != null ? renderer.EntityId : 0;
                 Transform = transform;
                 Mesh = mesh;
+                DropLine = dropLine;
                 Accent = accent;
             }
         }
         private const float RingHeightAboveFloor = 0.025f;
         private static readonly Color Paper = new Color(240f / 255f, 238f / 255f, 232f / 255f);
         private static readonly Color LocalAccent = new Color(1f, 204f / 255f, 34f / 255f);
+        private static readonly Color DropLineOrange = new Color(1f, 176f / 255f, 59f / 255f);
         private static readonly int AirborneProperty = Shader.PropertyToID("_Airborne");
         private static readonly int AccentProperty = Shader.PropertyToID("_Accent");
+        private static readonly int LengthInWidthsProperty = Shader.PropertyToID("_LengthInWidths");
+        private static readonly int SpacingProperty = Shader.PropertyToID("_Spacing");
+        private static readonly int CoreProperty = Shader.PropertyToID("_Core");
+        private static readonly int ColorProperty = Shader.PropertyToID("_Color");
+
+        [Header("Drop Line")]
+        [SerializeField, Min(0.005f)] private float _dropLineWidth = 0.05f;
+        [Tooltip("Smallest dot diameter on screen, so distant fighters keep a readable line.")]
+        [SerializeField, Min(0f)] private float _dropLineMinPixels = 4f;
+        [Tooltip("Dot spacing in line widths.")]
+        [SerializeField, Min(1.05f)] private float _dropLineSpacing = 2f;
+        [Tooltip("Light core radius in line widths; the rest of the dot is a dark rim.")]
+        [SerializeField, Range(0f, 0.5f)] private float _dropLineCore = 0.3f;
+        [SerializeField] private Color _dropLineColor = DropLineOrange;
         /// <summary>Min knockback speed that counts as a launch (State == Hitstun).</summary>
         private const float LaunchSpeedThreshold = 0.05f;
         /// <summary>Max ticks to forward-simulate a launch (mirrors AbilityLab, ~40s).</summary>
@@ -48,6 +68,9 @@ namespace SlopArena.Client.Combat
         private ArenaDefinition _arena;
         private Material _markerMaterial;
         private MaterialPropertyBlock _markerProperties;
+        private Material _dropLineMaterial;
+        private MaterialPropertyBlock _dropLineProperties;
+        private UnityEngine.Camera _camera;
 
         // Per-ring indicator state, indexed identically to _rings.
         private List<(Vector3 pos, char phase)>[] _arcPoints = Array.Empty<List<(Vector3 pos, char phase)>>();
@@ -55,13 +78,16 @@ namespace SlopArena.Client.Combat
         private bool[] _arcActive = Array.Empty<bool>();
 
         public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers,
-            ArenaDefinition arena, ulong localEntityId = 0)
+            ArenaDefinition arena, ulong localEntityId = 0, UnityEngine.Camera renderCamera = null)
         {
             _getState = getState;
             _heightmap = arena.Heightmap;
             _arena = arena;
+            _camera = renderCamera;
             _markerMaterial = new Material(Resources.Load<Shader>("Shaders/FighterGroundMarker"));
             _markerProperties = new MaterialPropertyBlock();
+            _dropLineMaterial = new Material(Resources.Load<Shader>("Shaders/FighterDropLine"));
+            _dropLineProperties = new MaterialPropertyBlock();
 
             _rings = new Ring[renderers?.Length ?? 0];
             _arcPoints = new List<(Vector3, char)>[_rings.Length];
@@ -83,9 +109,26 @@ namespace SlopArena.Client.Combat
                 mr.receiveShadows = false;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 Color accent = renderer != null && renderer.EntityId == localEntityId ? LocalAccent : Paper;
-                _rings[i] = new Ring(renderer, ringGO.transform, mr, accent);
+                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent);
                 ringGO.SetActive(false);
             }
+        }
+
+        private LineRenderer CreateDropLine()
+        {
+            var lineGO = new GameObject("FighterDropLine");
+            lineGO.transform.SetParent(transform, false);
+            var line = lineGO.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.positionCount = 2;
+            line.alignment = LineAlignment.View;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCapVertices = 0;
+            line.sharedMaterial = _dropLineMaterial;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.enabled = false;
+            return line;
         }
 
         private void LateUpdate()
@@ -99,6 +142,7 @@ namespace SlopArena.Client.Combat
                 if (renderer == null)
                 {
                     ring.Transform.gameObject.SetActive(false);
+                    ring.DropLine.enabled = false;
                     _arcActive[i] = false;
                     continue;
                 }
@@ -112,6 +156,7 @@ namespace SlopArena.Client.Combat
                 {
                     // No supporting floor beneath this fighter, including below a platform.
                     ring.Transform.gameObject.SetActive(false);
+                    ring.DropLine.enabled = false;
                     _arcActive[i] = false;
                     continue;
                 }
@@ -124,6 +169,7 @@ namespace SlopArena.Client.Combat
                 _markerProperties.SetFloat(AirborneProperty, airborne);
                 _markerProperties.SetColor(AccentProperty, ring.Accent);
                 ring.Mesh.SetPropertyBlock(_markerProperties);
+                UpdateDropLine(ring, ring.Transform.position, floorY + heightAboveFloor, airborne);
                 UpdateLaunchArc(i, ring, state);
             }
         }
@@ -132,6 +178,42 @@ namespace SlopArena.Client.Combat
         {
             if (_markerMaterial != null)
                 Destroy(_markerMaterial);
+            if (_dropLineMaterial != null)
+                Destroy(_dropLineMaterial);
+        }
+
+        private void UpdateDropLine(in Ring ring, Vector3 bottom, float feetY, float airborne)
+        {
+            var line = ring.DropLine;
+            float length = feetY - bottom.y;
+            if (airborne <= 0.01f || length <= 0.05f)
+            {
+                line.enabled = false;
+                return;
+            }
+
+            var top = new Vector3(bottom.x, feetY, bottom.z);
+            float width = _dropLineWidth;
+            if (_camera == null) _camera = UnityEngine.Camera.main;
+            if (_camera != null && !_camera.orthographic)
+            {
+                float distance = Vector3.Distance(_camera.transform.position, (bottom + top) * 0.5f);
+                float metresPerPixel = 2f * distance * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad)
+                    / Mathf.Max(1, _camera.pixelHeight);
+                width = Mathf.Max(width, _dropLineMinPixels * metresPerPixel);
+            }
+
+            // Floor first: the shader counts dots up from the ring.
+            line.SetPosition(0, bottom);
+            line.SetPosition(1, top);
+            line.startWidth = line.endWidth = width;
+            _dropLineProperties.SetFloat(AirborneProperty, airborne);
+            _dropLineProperties.SetFloat(LengthInWidthsProperty, length / width);
+            _dropLineProperties.SetFloat(SpacingProperty, _dropLineSpacing);
+            _dropLineProperties.SetFloat(CoreProperty, _dropLineCore);
+            _dropLineProperties.SetColor(ColorProperty, _dropLineColor);
+            line.SetPropertyBlock(_dropLineProperties);
+            line.enabled = true;
         }
 
 

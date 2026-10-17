@@ -184,6 +184,7 @@ namespace SlopArena.Client.UI
                     if (action != "SpecialModifier") AddBindingRow(root, action, ActionLabel(action));
             }
             AddSlider(root, "Stick Deadzone", settings.StickDeadzone, 5f, 50f, settings.SetStickDeadzone);
+            AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
             var vibration = new Toggle("Vibration") { value = settings.Vibration };
             vibration.AddToClassList("sa-settings-toggle");
             vibration.RegisterValueChangedCallback(evt => settings.SetVibration(evt.newValue));
@@ -261,7 +262,7 @@ namespace SlopArena.Client.UI
         private static void BuildGameplay(VisualElement root)
         {
             var settings = ClientSettingsService.Instance;
-            AddSlider(root, "Camera Sensitivity", settings.CameraSensitivity * 100f, 10f, 200f, settings.SetCameraSensitivity);
+            AddSlider(root, "Mouse Sensitivity", settings.CameraSensitivity * 100f, 10f, 200f, settings.SetCameraSensitivity);
             var horizontal = new Toggle("Invert Horizontal Camera") { value = settings.InvertCameraHorizontal };
             horizontal.RegisterValueChangedCallback(evt => settings.SetInvertCameraHorizontal(evt.newValue));
             root.Add(horizontal);
@@ -290,6 +291,13 @@ namespace SlopArena.Client.UI
             lockMode.RegisterValueChangedCallback(evt =>
                 settings.SetAutoLockMode(lockModes[lockChoices.IndexOf(evt.newValue)]));
             root.Add(lockMode);
+            var sessionLog = new Toggle("Record practice session log") { value = settings.RecordSessionLog };
+            sessionLog.RegisterValueChangedCallback(evt => settings.SetRecordSessionLog(evt.newValue));
+            root.Add(sessionLog);
+            var sessionLogNote = new Label("Saves a local file for each Training or Solo match you start, to measure hits, misses and camera handling. Nothing is uploaded. Files: "
+                + SlopArena.Client.Diagnostics.PracticeSessionLog.Directory);
+            sessionLogNote.AddToClassList("sa-settings-note");
+            root.Add(sessionLogNote);
         }
         private static void AddSlider(VisualElement root, string label, float value, float min, float max, Action<float> setter)
         {

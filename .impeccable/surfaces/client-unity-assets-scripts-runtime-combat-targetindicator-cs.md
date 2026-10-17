@@ -2,7 +2,7 @@
 version: 1
 slug: "client-unity-assets-scripts-runtime-combat-targetindicator-cs"
 primary_target: "client/Unity/Assets/Scripts/Runtime/Combat/TargetIndicator.cs"
-related_targets: ["client/Unity/Assets/Resources/Shaders/FighterGroundMarker.shader", "client/Unity/Assets/Scripts/Runtime/World/MatchBase.cs", "client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs"]
+related_targets: ["client/Unity/Assets/Resources/Shaders/FighterGroundMarker.shader", "client/Unity/Assets/Resources/Shaders/FighterDropLine.shader", "client/Unity/Assets/Scripts/Runtime/World/MatchBase.cs", "client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs"]
 ---
 
 # Fighter ground marker
@@ -32,3 +32,16 @@ The local fighter receives the short yellow notch. Other fighters use neutral Pa
 `.impeccable/review/ground-marker-20261013/verification.json` records current source hashes and nine actual Unity Training captures in `native-final/`, covering FightGuy, Manki, Wibou, and Bonk, grounded/airborne/early-jump/landing/ledge views, and both native resolutions. The final verification records correct floor placement, missing-floor hiding, neutral NPC accent, material cleanup, no colliders, and zero shader/C#/runtime errors. The final finish-review disposition is ship with no material fixes. The Editor was restored to a clean stopped Frontend, with a free settled lease.
 
 Connected PvP, packaged-player rendering, physical controls, and NPC roster rebuild are not acceptance evidence. The manual Unity follow-up checklist is in the gitignored root `TESTING-UNITY.md`.
+
+## Drop line — 2026-10-17
+
+Jump height and drift were still hard to read during play. Perspective-correct mockups on real Training captures compared a solid drop line, a height ruler, a growing ring, a predicted landing marker and line plus landing (`.impeccable/review/drop-line-20261017/mockups/options.html`). The user chose the drop line, dotted, and rejected the landing marker: the prediction sounded unreliable and awkward against knocked-back fighters. From four in-game variants (`variants/grid.html`: Fine, Bold, Sparse, Orange) they picked Orange.
+
+THESIS: Tie an airborne fighter to its floor ring so height reads at a glance.
+FORM: One vertical dotted line from the capsule feet to the ring centre; no prediction, arc, label or animation.
+
+Each airborne fighter, local or not, gets a camera-facing `LineRenderer` with the `SLOPArena/Fighter Drop Line` shader. Dots are 0.05 m `#FFB03B` discs with the ring's dark rim (light core radius 0.3 of the width), one every 0.10 m counted up from the floor. Dots therefore stay put while the fighter rises, and a higher jump shows more of them. The width never drops below 4 px on screen, which widens dots on far fighters and low resolutions (0.0635 m at 1366×768 for the full-jump case). Visibility reuses the ring's airborne transition, 0.05–0.75 m of foot height. It is disabled when grounded, below 0.05 m, or wherever the ring hides for missing floor. The match passes its render camera to `Init`; `Camera.main` is only a fallback (it was null in the Training capture scene). The width, minimum pixels, spacing, core and colour are serialized fields, so they can be tuned live in the inspector. The line material is destroyed with the indicator.
+
+`#FFB03B` is the mockup orange the user picked from the grid, not the palette Orange `#F05B35`. Over the bright After Hours poster it is weaker than the Paper or Bold variants; it reads clearly against floors.
+
+Evidence: `.impeccable/review/drop-line-20261017/verification.json` records source hashes, five actual Unity Training captures with default settings (1920×1080 and 1366×768) and live probes. These cover the line on a frozen full jump, faint at 0.3 m, hidden past the stage edge and after landing, and on a real local jump driven through `sloparena.training.run`, with zero runtime errors and the Editor restored to Frontend. Connected PvP, packaged-player rendering, other stages and physical controls remain unverified; see `TESTING-UNITY.md`.
