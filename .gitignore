@@ -220,6 +220,9 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 *.png
 !client/Unity/Assets/UI/SplashArt/*.png
 !client/Unity/Assets/UI/Arcade/SlopballPoster.png
+!client/Unity/Assets/UI/Arcade/CoursesPoster.png
+!client/Unity/Assets/UI/MainMenuBackground.png
+!client/Unity/Assets/UI/FrontendPaperBackground.png
 !client/Unity/Assets/UI/MenuGear.png
 !client/Unity/Assets/UI/SlopArenaIcon.png
 !client/Unity/Assets/UI/SelectionCheck.png

@@ -49,7 +49,7 @@ use the previous full-body illustrations; the HUD does not show them.
    slices outside the new canvas produce no sprites and make the HUD use the older art.
 
 ```text
-Game ability icon for a 56-pixel HUD key in SlopArena, a scrappy underground fight-club platform fighter. Square 1024x1024 canvas, transparent background.
+Game ability icon for a 56-pixel HUD key in SLOPArena, a scrappy underground fight-club platform fighter. Square 1024x1024 canvas, transparent background.
 Subject: {SUBJECT}
 Show only the move: crop tight on the striking limb, weapon or projectile. At most a hand, forearm or shoulder of the fighter, never a full body, never a face.
 Direction: the motion clearly travels {DIRECTION}.

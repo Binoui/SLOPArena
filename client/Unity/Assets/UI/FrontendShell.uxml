@@ -4,7 +4,7 @@
     <ui:VisualElement name="frontend-shell" class="frontend-shell">
         <ui:VisualElement name="shell-backdrop" class="shell-backdrop" picking-mode="Ignore" />
         <ui:VisualElement name="shell-top-bar" class="shell-top-bar">
-            <ui:Button name="shell-wordmark" text="SLOPARENA" tooltip="Home" class="shell-wordmark" />
+            <ui:Button name="shell-wordmark" text="SLOPArena" tooltip="Home" class="shell-wordmark" />
             <ui:VisualElement name="shell-nav" class="shell-nav">
                 <ui:Button name="shell-nav-training" text="TRAINING" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>
                 <ui:Button name="shell-nav-offline" text="SOLO" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>

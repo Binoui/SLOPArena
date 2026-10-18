@@ -1,7 +1,7 @@
 # Skill Evals (phase 1: observation corpus)
 
 Lightweight evaluation/observability for the agent skill system. Records which
-skill reads were attempted for real SlopArena operations, makes them browsable
+skill reads were attempted for real SLOPArena operations, makes them browsable
 in Evalite, and lets you promote interesting cases into deterministic routing
 regression tests. Not a telemetry platform.
 
