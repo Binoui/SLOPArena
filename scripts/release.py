@@ -472,11 +472,25 @@ def dispatch(root, path, state):
             step.pop("dispatchStartedAtUtc", None)
             mark(path, state, "workflow", "dispatch-rejected", rejectedHttpStatus=exc.http_status)
         raise
-    run = discover_run(state)
+    run = discover_dispatched_run(state)
     if run:
         mark(path, state, "workflow", "running", runId=run["id"], url=run["html_url"])
     else:
         mark(path, state, "workflow", "dispatch-unconfirmed")
+
+
+DISPATCH_DISCOVERY_DELAYS = (2, 3, 5, 10, 15, 25)
+
+
+def discover_dispatched_run(state):
+    """GitHub lists a dispatched run a few seconds after accepting it; look again before giving up."""
+    run = discover_run(state)
+    for delay in DISPATCH_DISCOVERY_DELAYS:
+        if run:
+            break
+        time.sleep(delay)
+        run = discover_run(state)
+    return run
 
 
 def receipts(path, run):
