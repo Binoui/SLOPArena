@@ -25,13 +25,18 @@
                 <ui:ScrollView name="player-list-scroll" class="player-list-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden">
                     <ui:VisualElement name="player-list" class="player-list lobby-list" />
                 </ui:ScrollView>
+                <!-- Connection feedback and retry stay with the roster, clear of the
+                     bottom-left chat overlay. -->
+                <ui:VisualElement class="lobby-panel__footer">
+                    <ui:VisualElement class="lobby-panel__feedback">
+                        <ui:Label name="lbl-status" text="Connecting to the room…" class="lobby-status" />
+                        <ui:Label name="lbl-invite-hint" class="lobby-invite-hint" style="display: none;" />
+                    </ui:VisualElement>
+                    <ui:Button name="btn-retry" text="RETRY CONNECTION" class="btn-secondary lobby-retry" style="display: none;" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="page-summary" class="page-section lobby-summary-section">
-            <ui:Label name="lbl-status" text="Connecting to the room…" class="lobby-status" />
-            <ui:Label name="lbl-invite-hint" class="lobby-invite-hint" style="display: none;" />
-            <ui:Button name="btn-retry" text="RETRY CONNECTION" class="btn-secondary lobby-retry" style="display: none;" />
-        </ui:VisualElement>
+        <ui:VisualElement name="page-summary" class="page-section lobby-summary-section" />
         <ui:VisualElement name="page-actions" class="page-section lobby-actions-section">
             <ui:Button name="btn-invite" text="INVITE FRIEND" class="btn-secondary lobby-action lobby-action--invite" style="display: none;" />
             <ui:Button name="btn-leave" text="LEAVE ROOM" class="btn-secondary lobby-action lobby-action--leave" />

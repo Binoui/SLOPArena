@@ -58,7 +58,7 @@ public struct Hitbox
     public float VX, VY, VZ;          // Velocity (0,0,0 = static melee, ≠0 = projectile)
     public float Radius;              // Sphere radius
     public ushort DurationTicks;      // Lifetime in ticks (60Hz)
-    public ushort AgeTicks;           // Current age (incremented each tick)
+    public ushort AgeTicks;           // Current age (not incremented for a melee hitbox while its owner is in Hitstop)
 
     public HitboxShape Shape;         // Sphere or Capsule
     public float EndX, EndY, EndZ;    // Capsule end point (ignored for Sphere)
@@ -244,7 +244,7 @@ foreach (var kvp in _states)
 
 - **Positioning**: `entityPos + rotate(OffX, OffY, OffZ) by facing yaw` — offsets are in local space, rotated into world space by the entity's facing direction
 - **Timing**: `state.AttackElapsedTicks` increments each tick from attack start — when it matches `TriggerTick`, the hitbox is spawned
-- **Duration**: hitbox lifetime is `HitboxEvent.DurationTicks` (set on the spawned `Hitbox`)
+- **Duration**: hitbox lifetime is `HitboxEvent.DurationTicks` (set on the spawned `Hitbox`). A melee hitbox does not age while its owner is in Hitstop, like the attack clock, so one hit's freeze does not use up the move's other live hitboxes. Projectiles and explosions age every tick.
 - **Interruptible**: currently handled at the SpellResolver level (future: hitstun clears interruptible events)
 - **Client role**: client only renders the animation FSM (ActionState) — does not spawn hitboxes for standard attacks
 

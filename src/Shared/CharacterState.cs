@@ -84,13 +84,13 @@ namespace SlopArena.Shared
         public byte Deaths;              // match death counter, server authority
 
         /// <summary>Legacy universal Dash timers retained in the versioned state packet;
-        /// no input path consumes them after the forward air-dodge cutover.</summary>
+        /// no input path consumes them after the air-dodge cutover.</summary>
         public ushort DashCooldownTicks;
         public ushort DashDurationTicks;
-        /// <summary>Facing snapshot direction used while forward air dodge is moving.</summary>
+        /// <summary>Air-dodge direction captured from the stick, or facing when neutral.</summary>
         public float DashDirX, DashDirZ;
 
-        /// <summary>Remaining respawn, ledge, or forward air-dodge invulnerability ticks.</summary>
+        /// <summary>Remaining respawn, ledge, or air-dodge invulnerability ticks.</summary>
         public ushort InvincibilityTicks;
 
         /// <summary>

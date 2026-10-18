@@ -2,6 +2,6 @@ namespace SlopArena.Shared
 {
     public static class SimulationProtocol
     {
-        public const byte Version = 9;
+        public const byte Version = 10;
     }
 }

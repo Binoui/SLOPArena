@@ -1,0 +1,20 @@
+/* Slopball feel pass (SlopballView): the pace trial line, combo pops and the off-screen ball chip.
+   The panel, toast and base pop styles come from Arcade.uss. */
+.slopball-pace { font-size: 11px; -unity-font-style: bold; letter-spacing: 1px; color: rgb(255, 204, 34); margin-top: 2px; white-space: normal; }
+.slopball-count-pop { font-size: 40px; text-shadow: 3px 3px 0px rgb(255, 107, 74); }
+.slopball-count-pop--big { font-size: 58px; color: rgb(255, 236, 160); }
+.slopball-ball-chip { position: absolute; top: 6px; translate: -50% 0; flex-direction: column; align-items: center; }
+.slopball-ball-chip-arrow { width: 14px; height: 14px; margin-bottom: -6px; rotate: 45deg; background-color: rgb(255, 176, 59); border-width: 2px; border-color: rgb(27, 26, 24); }
+.slopball-ball-chip-ball { width: 30px; height: 30px; border-radius: 15px; background-color: rgb(255, 210, 63); border-width: 3px; border-color: rgb(42, 23, 8); }
+.slopball-ball-chip-height { margin-top: 2px; font-size: 17px; color: rgb(255, 246, 222); -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); -unity-text-outline-width: 1.5px; -unity-text-outline-color: rgb(27, 26, 24); white-space: nowrap; }
+/* Rally heat: four pips that warm from orange to white; trick and HEAT UP! callouts under the combo pop. */
+.slopball-heat { flex-direction: row; align-items: center; margin-top: -2px; margin-bottom: 8px; }
+.slopball-heat-label { font-size: 11px; -unity-font-style: bold; letter-spacing: 1px; margin-right: 8px; color: rgb(240, 238, 232); }
+.slopball-heat-pip { width: 14px; height: 9px; margin-right: 4px; border-width: 1px; border-color: rgba(240, 238, 232, 0.45); background-color: rgba(240, 238, 232, 0.08); }
+.slopball-heat-pip--lit { border-color: rgb(42, 23, 8); background-color: rgb(255, 154, 28); }
+.slopball-heat-pip--h2.slopball-heat-pip--lit { background-color: rgb(255, 90, 40); }
+.slopball-heat-pip--h3.slopball-heat-pip--lit { background-color: rgb(255, 72, 140); }
+.slopball-heat-pip--h4.slopball-heat-pip--lit { background-color: rgb(255, 240, 200); }
+.slopball-callout-base { font-size: 26px; }
+.slopball-callout { color: rgb(150, 255, 236); text-shadow: 3px 3px 0px rgb(20, 110, 100); -unity-text-outline-color: rgb(8, 40, 38); }
+.slopball-callout--heat { font-size: 30px; color: rgb(255, 210, 120); text-shadow: 3px 3px 0px rgb(200, 60, 20); }

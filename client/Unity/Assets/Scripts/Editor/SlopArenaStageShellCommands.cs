@@ -242,6 +242,7 @@ namespace SlopArena.EditorTools
             config.Targets = ((JArray)spec["targets"]).Select(t => new ArcadeStageAuthoring.Target
             {
                 Id = (string)t["id"], Marker = Marker("Target_" + (string)t["id"], t["position"]), Radius = (float)t["radius"],
+                Hits = t["hits"] != null ? (int)t["hits"] : 1,
             }).ToArray();
             config.Checkpoints = ((JArray)spec["checkpoints"]).Select(c => new ArcadeStageAuthoring.Checkpoint
             {

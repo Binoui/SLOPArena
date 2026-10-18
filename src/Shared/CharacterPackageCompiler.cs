@@ -195,14 +195,16 @@ public static class CharacterPackageCompiler
         {
             if (!resolved.TryGetValue(CanonicalSlots[ordinal], out var slot)) continue;
             ValidateSlideCarry(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
+            ValidateAimMovementSpeed(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
             var timeline = CookTimeline(slot.Timeline, d, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
-            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= 8, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId));
+            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= 8, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale));
         }
         if (resolved.Count != CanonicalSlots.Length) d.Error("reference.unresolved", "character.slots", "Not all canonical slots resolve.");
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            c.Slots.Any(slot => slot.AimMovementSpeedScale != 1f) ? "1.7.0"
+            : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                 operation is StartCapabilityOperationSource { Parameters: ChargedProjectileCapabilityParameters }))) ? "1.6.0"
                 : RequiresRuntimeApi15(c) ? "1.5.0"
                 : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
@@ -432,6 +434,19 @@ public static class CharacterPackageCompiler
             if (string.Equals(slots[i].Id, id, StringComparison.Ordinal))
                 return i;
         return -1;
+    }
+
+    private static void ValidateAimMovementSpeed(string canonicalId, CharacterSlotSource slot, int sourceIndex, DiagnosticBag d)
+    {
+        if (slot.AimMovementSpeedScale == 1f)
+            return;
+        var path = sourceIndex >= 0
+            ? $"character.slots[{sourceIndex}].aimMovementSpeedScale"
+            : $"character.slots.{canonicalId}.aimMovementSpeedScale";
+        if (!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f))
+            d.Error("value.out-of-range", path, "Aim movement speed scale must be greater than 0 and at most 1.");
+        if (slot.AimMovement != AuthoringAimMovementMode.Mobile)
+            d.Error("slot.aim-movement-speed.requires-mobile", path, "Aim movement speed scale requires aimMovement mobile.");
     }
 
     private static void ValidateSlideCarry(string canonicalId, CharacterSlotSource slot, int sourceIndex, DiagnosticBag d)
@@ -1043,6 +1058,7 @@ public static class CharacterPackageCompiler
         w.WriteNumber("behavior", (byte)x.Behavior);
         w.WriteNumber("aimMode", (byte)x.AimMode);
         w.WriteNumber("aimMovement", (byte)x.AimMovement);
+        if (x.AimMovementSpeedScale != 1f) Number(w, "aimMovementSpeedScale", x.AimMovementSpeedScale);
         if (x.AimAnimationId != null)
             w.WriteString("aimAnimationId", x.AimAnimationId);
         w.WriteNumber("cooldownTicks", x.CooldownTicks);

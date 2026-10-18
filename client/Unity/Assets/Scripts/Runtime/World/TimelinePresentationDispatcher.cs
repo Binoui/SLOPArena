@@ -40,6 +40,7 @@ namespace SlopArena.Client.World
 
         private sealed class ActivePresentation
         {
+            public PresentationEventKey Key;
             public GameObject Instance;
             public PresentationLifetime Lifetime;
             public ulong AttackEntityId;
@@ -138,12 +139,32 @@ namespace SlopArena.Client.World
                     receiver.BindOwner(entry.Renderer);
                 _active.Add(new ActivePresentation
                 {
+                    Key = presentationEvent.Key,
                     Instance = instance,
                     Lifetime = new PresentationLifetime(LifetimeTicks(presentationEvent), attachedToAttack,
                         presentationEvent.AttackSequence, entry.Renderer.CurrentAttackElapsedTicks),
                     AttackEntityId = presentationEvent.EntityId,
                     AttackOwner = attachedToAttack ? entry.Renderer : null,
                 });
+            }
+        }
+
+        /// <summary>
+        /// Online rollback (ADR-0039): stop the effects of events the GameHost ruled out. Their
+        /// keys are forgotten, so a re-prediction that produces one again presents it again.
+        /// </summary>
+        public void Retract(IReadOnlyList<TimelinePresentationEvent> events)
+        {
+            if (events == null) return;
+            foreach (TimelinePresentationEvent presentationEvent in events)
+            {
+                _seenEvents.Remove(presentationEvent.Key);
+                for (int i = _active.Count - 1; i >= 0; i--)
+                {
+                    if (_active[i].Key != presentationEvent.Key) continue;
+                    if (_active[i].Instance != null) DestroyInstance(_active[i].Instance);
+                    _active.RemoveAt(i);
+                }
             }
         }
 

@@ -114,7 +114,7 @@ public class RollbackSimulatorTests
         authority.Tick(new Dictionary<ulong, InputState> { [OpponentId] = dodgeInput });
         var accepted = authority.GetState(OpponentId);
         Assert.Equal(ActionState.AirDodgeMovement, accepted.State);
-        Assert.Equal((ushort)5, accepted.InvincibilityTicks);
+        Assert.Equal(DefenseConfig.AirDodgeInvulnerabilityTicks, accepted.InvincibilityTicks);
         Assert.Equal((byte)0, accepted.AirDodgesLeft);
         Assert.Equal(0f, accepted.DashDirX);
         Assert.Equal(1f, accepted.DashDirZ);
@@ -151,10 +151,16 @@ public class RollbackSimulatorTests
             return rollback.GetState(OpponentId);
         }
 
-        for (uint replayTicks = 1; replayTicks <= 30; replayTicks++)
+        // Boundaries: last invulnerable tick, first vulnerable tick, last burst tick,
+        // first glide tick, last recovery tick and the first actionable tick.
+        uint invulnerable = DefenseConfig.AirDodgeInvulnerabilityTicks;
+        uint movement = DefenseConfig.AirDodgeMovementTicks;
+        uint actionable = movement + DefenseConfig.AirDodgeRecoveryTicks;
+        var boundaries = new[] { invulnerable - 1, invulnerable, movement - 1, movement, actionable - 1, actionable };
+        for (uint replayTicks = 1; replayTicks <= actionable; replayTicks++)
         {
             reference.Tick(referenceInput);
-            if (replayTicks is not (4 or 5 or 9 or 10 or 29 or 30))
+            if (Array.IndexOf(boundaries, replayTicks) < 0)
                 continue;
 
             var expected = reference.GetState(OpponentId);
@@ -175,32 +181,34 @@ public class RollbackSimulatorTests
             Assert.Equal(expected.AirDodgesLeft, actual.AirDodgesLeft);
             Assert.Equal(expected.AirDodgeRecoveryTicks, actual.AirDodgeRecoveryTicks);
 
-            switch (replayTicks)
+            if (replayTicks == invulnerable - 1)
             {
-                case 4:
-                    Assert.Equal(ActionState.AirDodgeMovement, actual.State);
-                    Assert.Equal((ushort)1, actual.InvincibilityTicks);
-                    Assert.True(actual.PZ > accepted.PZ);
-                    break;
-                case 5:
-                    Assert.Equal(ActionState.AirDodgeMovement, actual.State);
-                    Assert.Equal((ushort)0, actual.InvincibilityTicks);
-                    break;
-                case 9:
-                    Assert.Equal(ActionState.AirDodgeMovement, actual.State);
-                    break;
-                case 10:
-                    Assert.Equal(ActionState.AirDodgeRecovery, actual.State);
-                    Assert.Equal((ushort)20, actual.AirDodgeRecoveryTicks);
-                    break;
-                case 29:
-                    Assert.Equal(ActionState.AirDodgeRecovery, actual.State);
-                    Assert.Equal((ushort)1, actual.AirDodgeRecoveryTicks);
-                    break;
-                case 30:
-                    Assert.Equal(ActionState.Idle, actual.State);
-                    Assert.Equal((ushort)0, actual.AirDodgeRecoveryTicks);
-                    break;
+                Assert.Equal(ActionState.AirDodgeMovement, actual.State);
+                Assert.Equal((ushort)1, actual.InvincibilityTicks);
+                Assert.True(actual.PZ > accepted.PZ);
+            }
+            else if (replayTicks == invulnerable)
+            {
+                Assert.Equal(ActionState.AirDodgeMovement, actual.State);
+                Assert.Equal((ushort)0, actual.InvincibilityTicks);
+            }
+            else if (replayTicks == movement - 1)
+                Assert.Equal(ActionState.AirDodgeMovement, actual.State);
+            else if (replayTicks == movement)
+            {
+                Assert.Equal(ActionState.AirDodgeRecovery, actual.State);
+                Assert.Equal(DefenseConfig.AirDodgeRecoveryTicks, actual.AirDodgeRecoveryTicks);
+                Assert.True(actual.VZ > 0f);
+            }
+            else if (replayTicks == actionable - 1)
+            {
+                Assert.Equal(ActionState.AirDodgeRecovery, actual.State);
+                Assert.Equal((ushort)1, actual.AirDodgeRecoveryTicks);
+            }
+            else
+            {
+                Assert.Equal(ActionState.Idle, actual.State);
+                Assert.Equal((ushort)0, actual.AirDodgeRecoveryTicks);
             }
         }
     }

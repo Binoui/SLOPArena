@@ -100,5 +100,21 @@ namespace SlopArena.Shared.Abilities
                 },
             });
         }
+
+        internal override void WriteSnapshot(SnapshotWriter w)
+        {
+            base.WriteSnapshot(w);
+            w.WriteBool(_fired);
+            w.WriteFloat(_cachedAimDistance);
+            w.WriteFloat(_cachedAimYaw);
+        }
+
+        internal override void ReadSnapshot(SnapshotReader r)
+        {
+            base.ReadSnapshot(r);
+            _fired = r.ReadBool();
+            _cachedAimDistance = r.ReadFloat();
+            _cachedAimYaw = r.ReadFloat();
+        }
     }
 }

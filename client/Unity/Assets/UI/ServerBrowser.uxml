@@ -21,8 +21,10 @@
                         <ui:Label text="PUBLIC LIST" class="panel-note" />
                     </ui:VisualElement>
                     <ui:ScrollView name="server-list" class="server-list" mode="Vertical" horizontal-scroller-visibility="Hidden" />
+                    <!-- Scan feedback (loading, empty, unreachable) lives with the list it
+                         describes, clear of the bottom-left chat overlay. -->
                     <ui:VisualElement class="browser-panel__footer">
-                        <ui:Label text="Nothing here? Refresh or create a room." class="browser-hint" />
+                        <ui:Label name="lbl-status" text="Loading the room list…" class="browser-status" />
                         <ui:Button name="btn-refresh" text="REFRESH" class="btn-secondary browser-refresh" />
                     </ui:VisualElement>
                 </ui:VisualElement>
@@ -49,7 +51,6 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="page-summary" class="page-section browser-summary-section">
-            <ui:Label name="lbl-status" text="Loading the room list…" class="browser-status" />
             <ui:Label name="lbl-host-status" class="host-status" style="display: none;" />
         </ui:VisualElement>
         <ui:VisualElement name="page-actions" class="page-section browser-actions-section">

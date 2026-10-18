@@ -1,5 +1,96 @@
 # SLOPArena Netcode & Simulation Architecture
 
+## Full-world rollback — protocol 10
+
+Online play predicts the whole world from complete GameHost snapshots
+([ADR-0039](../adr/0039-full-world-rollback.md), [plan](../plans/2026-10-18-full-world-rollback.md)
+phases 0–4). Release client, GameHost and Master together; protocol 9 peers are rejected.
+
+- **World Frames.** Each tick the GameHost sends every client the same `WorldFramePacket`
+  (Steam tag `Frame`, unreliable; a raw datagram on development UDP) in place of
+  per-entity state, presentation-event, projectile-visual and sword-trail packets: the
+  World Snapshot after the tick, the input each fighter consumed (connected fighters
+  relay neutral input before the first playing tick) and the complete event and hit
+  record of the tick and the two before it. Bodies are DEFLATE-compressed when smaller:
+  about 450 bytes median with two fighters and 900 with four (26–52 KB/s). Countdown
+  frames carry the server tick, and the frame that turns Playing is the tick before
+  `StartTick`. The GameHost sets Steam's send rate to 256 KB/s–1 MB/s; both ends accept
+  Steam messages up to a full frame.
+- **Prediction.** `RollbackSimulationBridge` wraps the transport-free `NetplaySession`.
+  Its `NetplayPredictor` (one `ServerSimulation` with every fighter) restores the newest
+  frame, the Anchor, and re-simulates the Prediction Window with the player's recorded
+  inputs and each opponent's relayed input without presses; when its earlier prediction
+  of the anchor tick matches byte for byte, nothing is re-simulated. Prediction starts at
+  the frame that turns Playing, waits after 60 ticks without a frame, and jumps to the
+  GameHost when a frame is past the local tick (older inputs then leave the bundle).
+  NetplayClock pacing, the adaptive input lead and input bundles are unchanged.
+- **Presentation.** Every fighter renders from the predicted world, as in Training:
+  projectile visuals and sword trails come from the predicted resolver; presentation
+  events and hits come from rollback ledgers, each once, with predicted ones the GameHost
+  rules out stopped and unpredicted ones started when their record arrives. Position
+  corrections keep their easing.
+- **Diagnostics.** `[Netplay]` every 5 s: pacing (`updates`, `skipped`, `extraSteps`,
+  `lead`, `ahead`), frames (`frames`, `stale`, `rejected`), anchors (`anchors`, `exact`,
+  `corrections`, `mispredicts` ≥ 1 cm or a state, damage, KO or reaction change),
+  largest correction at the anchor tick (`selfCorr`, `oppCorr`) and visible jump
+  (`selfSnap`, `oppSnap`), `window` (ticks predicted ahead, max anchor age), `resim`
+  ticks and `resimMs`, `jumps`, `starved`, `effects`/`hits` started and retracted,
+  `selfInputMismatch` (anchors where the GameHost consumed a different input than
+  yours), then `serverLate`, `minSlack`, `ping` and frame times. `[Netplay] serverLate`
+  and the GameHost's input lines are unchanged.
+- **Superseded.** LocalTrack, PredictedTrack, raw playout and the self hit-reaction hold
+  below no longer run online; they and the per-entity packet types remain until plan
+  phase 7 removes them.
+
+## Self hit reactions and netplay diagnostics — 2026-10-18
+
+> Superseded online by protocol 10 above; kept as the record of the protocol 9 fix.
+
+The 2026-10-18 Steam playtest again had a clean network (RTT 9–13 ms, Steam quality
+1.0, server at 60 Hz) and smooth pacing, but players still saw rollbacks and a game
+that felt fast. When the local player was hit online, the freeze never showed (0 of
+23 hits, against 30 of 30 offline): `LocalTrack` skipped every self snapshot with
+`HitstopTicks > 0` and any correction across an attack, so the player kept moving
+about 12 ticks and then slid into a hit reaction that was already partly over.
+
+- **Hold.** A self snapshot with a freeze and new damage is a hit the self track
+  cannot predict (opponent mirrors have no hitboxes) or rebuild (the queued launch is
+  not on the wire). The track cancels the interrupted local attack and pauses on the
+  server's frozen snapshot.
+- **Re-seed.** The first snapshot after the freeze carries the applied launch. The
+  track re-seeds from it, restores the Combo Influence from the player's own inputs
+  consumed during the freeze, and replays its recorded inputs to the local tick. The
+  local simulation then runs the hitstun itself, so an attack buffered at the end of
+  hitstun starts on time. A launch without a freeze re-seeds directly.
+- **Presentation.** Until the server reports the self out of the reaction,
+  `RollbackSimulator.GetState(self)` plays the self's snapshots on the raw playout
+  clock, in the attacker's time frame: the full freeze and the whole hit reaction
+  render at their authored length. Leaving the reaction returns to the local
+  timeline, a few ticks ahead, with the usual correction easing.
+- **Diagnostics.** `[Netplay]` now logs a UTC time, `reconciles` (snapshots applied),
+  `mispredicts`/`maxSnap` (corrections that moved the self ≥ 1 cm or changed its
+  state), `hitsTaken`/`hitLate` (server hits presented and how many ticks the local
+  timeline had run past them), `serverLate`/`minSlack` (the GameServer's arrival
+  report) and `maxFrameMs`. Each late-input report also logs `[Netplay] serverLate`
+  with Steam's view of the connection (send queue, pending bytes, rates). The GameHost
+  records `Input gap entity N` when a peer's input resumes after three or more missing
+  ticks: start tick, held/neutral ticks, and whether delayed bundles arrived (worst
+  slack) or none did.
+
+- **Missing and late input (GameHost).** `PeerInputTimeline` owns each peer's input
+  stream. A missing tick repeats the newest known input without press edges for up to
+  20 ticks after that input's tick, then neutral; late datagrams refresh that newest
+  input instead of being discarded. Press edges that arrive at most 10 ticks late merge
+  into the next consumed tick, once per source tick (`InputState.WithEdgesFrom`, the
+  rule the client already used for buffered presses). The relay now carries inputs as
+  consumed, before the simulation clears presses it acted on. `Inputs entity N` lines
+  add `rescued` and `dropped` (late presses applied or too old), and gap events note
+  late presses applied.
+
+No wire field changed in this protocol 9 fix. The GameHost input policy carries over to
+protocol 10; the self-track hold and the switch between predicted and raw time frames
+were replaced by full-world rollback (section above).
+
 ## Smooth online play — protocol 9
 
 The 2026-10-16 Steam playtest had a clean network (about 10 ms RTT, no loss, healthy
@@ -56,7 +147,7 @@ snapshots carry. Release client, GameHost and Master together; protocol 8 peers 
 - **Diagnostics.** Every five seconds the GameHost logs `Inputs entity N: bundles late
   early held neutral minSlack` per peer during play. The client logs `[Netplay]` with
   skipped/extra-step updates, lead, ticks ahead, corrections, raw playout delay and
-  starvation, ping and frame time.
+  starvation, ping and frame time (extended on 2026-10-18; see above).
 
 ## Hit reaction snapshots — protocol 7
 
@@ -113,7 +204,8 @@ reaches them; stale packets cannot rewind that timeline.
 The server clock advances at 60 Hz through countdown and play. During play, it consumes
 input only at its exact target tick, accepts future targets no more than 30 ticks ahead, and ignores
 expired targets. Missing input holds the last state for at most six ticks with jump,
-facing/lock, defense/grab/retarget and slot press edges stripped, then becomes neutral.
+facing/lock, defense/grab/retarget and slot press edges stripped, then becomes neutral
+(replaced on 2026-10-18 by a 20-tick hold with late-press rescue; see the top section).
 Movement, jump hold and shield hold are retained. The client sends input for the tick being
 stepped, never an expired preincrement tick. Catch-up is bounded to four steps per client
 update; buffered one-shot edges are consumed once, while earlier catch-up steps retain
@@ -206,15 +298,16 @@ can resume gameplay. Chat does not pause simulation or grant invulnerability.
 [`RollbackSimulationBridge`](../../client/Unity/Assets/Scripts/Runtime/Simulation/RollbackSimulationBridge.cs).
 Its fixed update:
 
-1. Builds `InputState` from the Unity input adapter and the canonical active slot.
-2. Calls `RollbackSimulationBridge.Tick`.
-3. The bridge sends local input through `NetworkClient`, advances the Shared local track,
-   drains entity packets, match-result packets, and presentation-event queues, and exposes
-   selected state and events for rendering.
-4. The bridge routes the self packet to reconciliation and opponent packets to
-   `RollbackSimulator`, which chooses `PredictedTrack` or `RawTrack` by action state.
-5. `PvPMatch` applies bridge-selected state and presentation events to `PlayerRenderer`
-   and other presentation systems.
+1. Records displayed positions, then `PumpNetwork`: Clock controls feed the
+   NetplayClock, World Frames feed the predictor (restore and re-simulation), and the
+   match result is kept.
+2. Hands the position change the re-simulation caused to correction easing.
+3. Reports Ready once a frame has arrived, builds `InputState` from the Unity input
+   adapter and the canonical active slot, and calls `Tick`: paced prediction steps,
+   the input bundle, and the ledgers' started and retracted events and hits.
+4. Applies predicted states to `PlayerRenderer`, updates projectile visuals and sword
+   trails from the predicted resolver, stops retracted effects, plays new ones, and
+   passes new hits to `CombatFeedback`.
 
 Unity's project Fixed Timestep is **1/60 second**, matching the authoritative tick
 cadence. This sets the rate of the client fixed-update loop; it does not replace
@@ -222,7 +315,8 @@ reconciliation or change its existing history-window policy.
 
 See [`PvPMatch.cs`](../../client/Unity/Assets/Scripts/Runtime/World/PvPMatch.cs),
 [`RollbackSimulationBridge.cs`](../../client/Unity/Assets/Scripts/Runtime/Simulation/RollbackSimulationBridge.cs),
-and [`RollbackSimulator.cs`](../../src/Shared/Rollback/RollbackSimulator.cs).
+[`NetplaySession.cs`](../../src/Shared/Rollback/NetplaySession.cs) and
+[`NetplayPredictor.cs`](../../src/Shared/Rollback/NetplayPredictor.cs).
 
 ### 3b. Training flow
 
@@ -255,14 +349,11 @@ Tick():
      → StockMatchRule.Evaluate: last player standing wins; simultaneous
        last-stock trade → most stocks wins, equal deaths → shared victory (issue #37)
 
-  6. SendState() — broadcast to all connected clients
-     → For each client:
-       → For each entity (all rostered players):
-      → Packet: entityId(8) + tick(4) + CharacterStatePacket(202) + hasInput(1) + InputState(22) = up to 237B
-         → tick = _serverTick (echoed back)
-         → hasInput/InputState = the input the server consumed for that entity
-           that tick, or the no-input marker (issue #80 — input relay)
-       → Client filters by entityId
+  6. SendState() — one World Frame per tick, the same bytes for every connected client
+     → World Snapshot after the tick, each fighter's consumed input (InputRelay; no
+       input for eliminated or disconnected fighters), events and hits of the last
+       three ticks; DEFLATE when smaller
+     → Bootstrap/Clock controls and the match result as before
 ```
 
 ---
@@ -299,7 +390,7 @@ datagram does not drop a press. Steam prefixes the bundle with the `Input` kind 
 | 18     | byte    | TargetEntityId  | Client-selected target (0 = none)  |
 | 19     | byte    | flags2          | bit0: JumpHeld, bit1: FaceToCamera, bit2: ToggleLock, bit3: DownPressed, bit4: ShieldHeld, bit5: ShieldPressed, bit6: GrabPressed, bit7: RetargetPressed |
 | 20     | byte    | LockMode        | `0=Never`, `1=Always`, `2=OnHit` |
-| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 9` |
+| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 10` |
 
 `ShieldHeld` is the per-tick physical hold used for grounded shield. `ShieldPressed` is a
 fresh logical edge and the sole airborne dodge input; the simulation accepts it only while
@@ -310,7 +401,34 @@ Validate the exact envelope, input count and supported version before endpoint
 registration or reconnect/countdown side effects. This is a coordinated cutover, not
 backward-compatible partial decoding.
 
-### 4b. Server → Client (per entity)
+### 4b. Server → Client: World Frame (protocol 10)
+
+```
+Header (16 bytes)
+[0..3]    magic "WFRM"
+[4]       frame format (1)
+[5]       SimulationProtocol.Version (10)
+[6]       flags — bit 0: body DEFLATE-compressed
+[7]       MatchState
+[8..11]   tick — the World Snapshot's tick
+[12..15]  uncompressed body length (≤ 64 KB; inflation never exceeds it)
+Body
+  World Snapshot          length + ServerSimulation.CaptureSnapshot bytes
+  relayed inputs          count; per fighter in ascending entity order:
+                          entityId(8) + hasInput(1) [+ InputState(22)]
+  presentation events     ticks tick−2..tick, the complete record of each
+  hits                    ticks tick−2..tick, the complete record of each
+```
+
+[`WorldFramePacket`](../../src/Shared/WorldFramePacket.cs) is the contract; malformed
+frames are rejected with `InvalidDataException`. The GameHost keeps the event and hit
+history in [`WorldFrameHistory`](../../src/Shared/WorldFrameHistory.cs).
+
+### 4c. Retired: per-entity state packet (protocol 9)
+
+Protocol 9 sent one of these per fighter per tick; protocol 10 carries complete state in
+the World Snapshot instead. The layout below remains for reference until plan phase 7
+removes the type.
 
 ```
 Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(202) + hasInput(1) + InputState(22) = up to 237 bytes
@@ -360,8 +478,8 @@ versus airborne dodge from authoritative state; client-side chord binding emits
 | 48-69  | ushort×11| Cooldown0..10              | Per-slot cooldown ticks (ADR-0016: 11 slots), local HUD fills (issue #38) |
 | 70-71  | ushort  | AirTimeTicks                | FloatWindow gravity timer |
 | 72-73  | ushort  | DashDurationTicks           | Reserved legacy universal-dash timer; not the air-dodge phase timer |
-| 74-77  | float   | DashDirX                    | AirDodgeMovement direction X, captured from facing |
-| 78-81  | float   | DashDirZ                    | AirDodgeMovement direction Z, captured from facing |
+| 74-77  | float   | DashDirX                    | AirDodgeMovement direction X, captured from the stick (facing when neutral) |
+| 78-81  | float   | DashDirZ                    | AirDodgeMovement direction Z, captured from the stick (facing when neutral) |
 | 82-83  | ushort  | DashCooldownTicks           | Reserved legacy universal-dash cooldown |
 | 84     | byte    | AirDodgesLeft               | Remaining air dodges (D10)         |
 | 85     | byte    | JumpsLeft                   | Remaining jumps (D10)              |
@@ -403,19 +521,12 @@ versus airborne dodge from authoritative state; client-side chord binding emits
 | 188-189| ushort  | ChargeTicks | Held charge for remote charge visuals; 0 outside Attacking/Aiming |
 | 190-201| float×3 | KnockbackVelocityX/Y/Z | Knockback velocity; launch presentation and predicted flight |
 
-**Packet sizes:** `CharacterStatePacket` is 202 bytes. `ServerEntityPacket` is 214 bytes
-before its mandatory relay marker, 215 bytes without input and 237 bytes with input.
-Input is 22 bytes. Non-v9 state/input/control payloads are rejected. Steam admission also
-uses protocol version 9; coordinate Master `protocolVersion` with GameServer and clients.
-The 20-byte control frame appends the Clock input report: `InputSlack` (sbyte, 127 = no
-input since the previous Clock) and `LateInputs` (byte, saturating).
-
-**The server sends ALL states to every client.** Clients ignore the ones that don't concern them. No routing overhead.
-
-**Tick echo:** The server echoes the consumed client tick so `RollbackSimulationBridge`
-can match the self response to local history for reconciliation. Opponent packets are
-ingested by `RollbackSimulator` into predicted or raw tracks; the tick is not merely
-informational.
+**Packet sizes (retired):** `CharacterStatePacket` was 202 bytes and `ServerEntityPacket`
+237 bytes with input. Input is 22 bytes. Non-v10 frames, inputs and controls are rejected;
+Steam admission also uses protocol version 10, so coordinate Master `protocolVersion`
+with GameServer and clients. The 20-byte control frame appends the Clock input report:
+`InputSlack` (sbyte, 127 = no input since the previous Clock) and `LateInputs` (byte,
+saturating).
 
 ---
 
@@ -447,42 +558,30 @@ these authoritative timers rather than clearing them or retaining stale local va
 
 ## 6. Prediction & Rollback
 
-The client uses the three-track model implemented in
-[`RollbackSimulator`](../../src/Shared/Rollback/RollbackSimulator.cs):
+The client predicts every fighter in one Shared simulation (ADR-0039):
 
-- **LocalTrack** continuously simulates the self entity with the player's input and
-  reconciles corrections from the server.
-- **PredictedTrack** replays predictable opponents from confirmed state and relayed input.
-- **RawTrack** renders complex or unknown opponents from their latest received state when
-  their private ability state cannot be reconstructed.
+- [`NetplayPredictor`](../../src/Shared/Rollback/NetplayPredictor.cs) restores the newest
+  World Frame (the Anchor) and re-simulates the Prediction Window to the local tick: the
+  player's recorded inputs (as the GameHost decodes them) and, for each opponent, the input
+  relayed at the anchor tick without presses. Eliminated and disconnected fighters consume
+  no input, as on the GameHost. Coupled interactions (grabs, throws, blocks) are predicted
+  like everything else; the anchor corrects them.
+- [`RollbackLedger`](../../src/Shared/Rollback/RollbackLedger.cs) hands out presentation
+  events and hits once per key across re-simulation, retracts predicted ones that a
+  re-simulation drops or the GameHost's record of their tick lacks, and starts GameHost
+  ones the client never predicted.
+- [`NetplaySession`](../../src/Shared/Rollback/NetplaySession.cs) adds the transport-free
+  client protocol: Clock samples, frame ingestion, paced steps with buffered presses, and
+  the input bundle ending at the local tick. The Unity bridge and the GameHost tests both
+  drive it.
 
-This is narrower than predicting every remote ability: predictable opponents can be
-replayed, while complex or unknown opponents use received state.
+Cross-runtime differences (Unity Mono against .NET 8) only affect the few predicted ticks:
+every frame re-anchors on GameHost state. Every ability must implement the snapshot
+contract ([ability architecture](ability-architecture.md), step 6).
 
-Defense interactions use a targeted authoritative barrier. The client predicts shield,
-grab attempt/whiff, and airborne dodge but sets
-`ServerSimulation.PredictCoupledInteractions = false` for the self track. A server capture
-or block contact replaces self state even across locally complex attack history;
-`ApplyAuthoritativeState` cancels the old live ability and owned hitboxes first.
-During capture the self track holds the newest authoritative snapshot rather than
-replaying itself through a two-fighter interval. The bridge ingests a full packet drain
-together. Captured opponents stay raw; matching interaction ID, partner IDs and capture
-tick pair companion snapshots when they arrive. Missing companions are bounded to a
-30-tick pending window. A terminal outcome is sufficient without a prior capture and
-allows ordinary prediction on later snapshots; per-entity packet ticks and terminal identity/tick reject
-duplicate or older capture packets. Presentation events retain their stable event-key
-deduplication across rollback. This barrier does not make arbitrary ability snapshots
-reconstructible.
-
-Sliding and Crouching are predictable locomotion states. Exact history replay preserves
-DownPressed; every speculative opponent frontier tick clears it, including the first
-tick after a received relay. Held Down remains intact.
-
-An authoritative snapshot or local replay suffix with `HitstopTicks > 0` cannot be
-reconstructed/replayed, even if its ActionState is ordinarily predictable. Frozen
-opponents use RawTrack. Packets preserve QueuedCrouchBrace but do not contain the complete
-queued launch payload or ability instance; only a live full-fidelity simulation resolves
-that launch. This is not arbitrary combat rewind.
+The protocol 9 three-track model (LocalTrack, PredictedTrack and RawTrack in
+`RollbackSimulator`, with raw playout and a defense-interaction barrier) is retired online
+and will be deleted in plan phase 7.
 
 ---
 
@@ -515,8 +614,8 @@ gameplay results. See [`ServerSimulation.cs`](../../src/Shared/ServerSimulation.
 ## 8. Client presentation state
 
 The client does not independently drive gameplay state. `PlayerRenderer` and related
-visual systems consume the bridge-selected simulation output, including local prediction,
-reconciled self state, predicted opponents, raw opponents, and semantic presentation events:
+visual systems consume the bridge's simulation output — online, the predicted world with
+its eased corrections — and semantic presentation events:
 
 ```text
 PvPMatch / Training
@@ -527,20 +626,19 @@ PvPMatch / Training
 Animation, VFX, and audio remain presentation-only. They do not infer gameplay from raw
 input and do not feed results back into Shared simulation.
 
-Wibou Q projectile visuals also use a dedicated, presentation-only
-`ProjectileVisualPacket`: the GameServer snapshots each active kunai's owner,
-activation, authored operation index, position, and velocity every simulation
-tick, including empty snapshots that remove expired or impacted visuals.
-`PvPMatch` renders these server snapshots for both players; Training follows its
-local Shared resolver. The packet never feeds Unity position or collision back
-into the Shared simulation. `ProjectileVFXConfig` maps Wibou slot A to the same
-`WibouKunaiProjectile` prefab (kunai model plus trail effects) on ground and in air,
-and FightGuy slot A to `FightGuyKiBall`, scaled by the charge tier's radius.
+Projectile visuals follow moving hitboxes in a Shared resolver: Training's own, and
+online the predicted world's (`ProjectileVFXManager.SetPredictedSimulation`). Visuals are
+keyed by owner, activation and authored visual operation (plus resolver order for
+duplicates), so a projectile keeps its visual and trail through re-simulation. Impact
+bursts on hitbox removal are Training-only, because re-simulation repeats removals;
+confirmed hits play their own presentation events online. Visuals never feed Unity
+position or collision back into the Shared simulation. `ProjectileVFXConfig` maps Wibou
+slot A to the same `WibouKunaiProjectile` prefab (kunai model plus trail effects) on ground
+and in air, and FightGuy slot A to `FightGuyKiBall`, scaled by the charge tier's radius.
 
-Wibou sword trails use the separate presentation-only `SwordTrailSnapshotPacket`.
-Its per-tick active-owner set is derived from server-owned `_weapon_hilt` →
-`_weapon_tip` hitboxes; empty snapshots clear trails after expiration, interruption,
-or match end. Training and Ability Lab read the same Shared resolver directly.
+Wibou sword trails follow the same resolver: `_weapon_hilt` → `_weapon_tip` hitboxes
+that are active show the owner's trail, and their removal clears it. Training, Ability
+Lab and online matches all read it directly.
 The weapon's trail-style prefab (Wibou's generated pixel style) supplies the
 cosmetic material, color and fade; Unity renders a short-lived blade sweep from
 the attached sword's hilt/tip poses while active. VFX never owns hit timing or

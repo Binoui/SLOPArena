@@ -72,27 +72,66 @@ public class ShieldStateTests
     [Theory]
     [InlineData(ActionState.Run)]
     [InlineData(ActionState.Sliding)]
-    public void GrabOverridesMovementAndStopsHorizontalMomentum(ActionState action)
+    public void GrabOverridesMovementAndBrakesIncomingMomentumBeforeActiveTicks(ActionState action)
     {
+        var def = TestHelpers.EngineDef;
         var initial = TestHelpers.PlayerState() with
         {
-            PY = TestHelpers.GroundPY(TestHelpers.MankiDef),
+            PY = TestHelpers.GroundPY(def),
             State = action, VX = 7f, VZ = 3f, FacingYaw = 0.4f,
         };
-        var sim = Make(initial);
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, initial);
         var state = Tick(sim, new InputState { GrabPressed = true, MoveX = -1f, MoveY = 1f });
 
         Assert.Equal(ActionState.GrabAttempt, state.State);
-        Assert.Equal(0f, state.VX);
-        Assert.Equal(0f, state.VZ);
-        Assert.Equal(initial.PX, state.PX);
-        Assert.Equal(initial.PZ, state.PZ);
+        Assert.InRange(state.VX, 0.01f, initial.VX - 0.01f);
+        Assert.InRange(state.VZ, 0.01f, initial.VZ - 0.01f);
+        TestHelpers.AssertNear(initial.VX / initial.VZ, state.VX / state.VZ);
+        Assert.True(state.PX > initial.PX);
+        Assert.True(state.PZ > initial.PZ);
         Assert.Equal(initial.FacingYaw, state.FacingYaw);
 
-        state = Tick(sim, new InputState { MoveX = -1f, MoveY = 1f });
+        for (int tick = 1; tick < DefenseConfig.GrabBrakeTicks; tick++)
+        {
+            var previous = state;
+            state = Tick(sim, new InputState { MoveX = -1f, MoveY = 1f });
+            Assert.InRange(state.VX, 0f, previous.VX);
+            Assert.InRange(state.VZ, 0f, previous.VZ);
+            Assert.Equal(initial.FacingYaw, state.FacingYaw);
+        }
         Assert.Equal(ActionState.GrabAttempt, state.State);
-        Assert.Equal(initial.PX, state.PX);
-        Assert.Equal(initial.PZ, state.PZ);
+        Assert.Equal(0f, state.VX);
+        Assert.Equal(0f, state.VZ);
+        var stopped = state;
+        for (int tick = DefenseConfig.GrabBrakeTicks;
+             tick < DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks; tick++)
+        {
+            state = Tick(sim, new InputState { MoveX = 1f, MoveY = -1f, FaceToCamera = true, AimYaw = 18000 });
+            Assert.Equal(ActionState.GrabAttempt, state.State);
+            Assert.Equal(stopped.PX, state.PX);
+            Assert.Equal(stopped.PZ, state.PZ);
+            Assert.Equal(initial.FacingYaw, state.FacingYaw);
+        }
+    }
+
+    [Fact]
+    public void StationaryGrabDoesNotGainMomentumFromHeldMovement()
+    {
+        var def = TestHelpers.EngineDef;
+        var initial = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) };
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, initial);
+
+        for (int tick = 0; tick < DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks; tick++)
+        {
+            var state = Tick(sim, new InputState { GrabPressed = tick == 0, MoveX = 1f, MoveY = 1f });
+            Assert.Equal(ActionState.GrabAttempt, state.State);
+            Assert.Equal(initial.PX, state.PX);
+            Assert.Equal(initial.PZ, state.PZ);
+            Assert.Equal(0f, state.VX);
+            Assert.Equal(0f, state.VZ);
+        }
     }
 
     [Fact]

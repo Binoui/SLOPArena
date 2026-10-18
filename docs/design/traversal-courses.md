@@ -19,6 +19,12 @@ single Jump → E face is the traversal shortcut. Its whole shell, markers inclu
 in [`layout.py`](../../tools/blender/manki_quarry/layout.py) and reaches Unity through
 `sloparena.stage.shell-apply` (no course-specific Editor code).
 
+The third, FightGuy's [Fight Night Pier](stages/fightguy_pier.design.md), shapes the targets
+like his kit: rows for the Cyclone Kick, stacks for the Rising Dragon, far balloons for the
+Ki Shot, and one bonus target per section that takes eight hits (one Fist of Fury). Shared
+course targets carry a hit count for that (`CourseTargetDefinition.Hits`). Jumps and punches
+still finish it, about twice as slowly as the specials.
+
 ## Resolve traversal intent before building
 
 For a new course or a substantial route revision, ask the few unresolved questions
@@ -76,11 +82,18 @@ possible single-jump input fails. Do not change fighter physics or ability rules
 to rescue geometry unless that separate gameplay change is requested.
 
 Verify both complete branches with real inputs against the actual `.arena`, not
-fabricated collision approximations. When a course promises that projectiles beat
+fabricated collision approximations. While a layout is still moving, the same route tests can
+run on the shell JSON before any bake: `CourseShellArena` (tests/Shared.Tests) mirrors the
+bake's bounds, blast planes, heightmap and course markers from `layout.py --unity-shell`, so
+`SLOPARENA_COURSE_SHELL=<shell json>` turns a layout edit into a test run in seconds. The
+baked arena stays the final word. When a course promises that projectiles beat
 jumping, prove both: a route that shoots every target and one that reaches each target
 on foot without A/R/E (`MankiQuarryRouteTests`). Calibrate legs one at a time from a
 teleported start before composing the full route; it surfaces every failing gap in one run. Include all required targets, checkpoint
-events, the finish and falls. Observe ordinary braking and takeoff state: coasting
+events, the finish and falls. A group meant for one special has to fit that special's live
+hitboxes, not its travel: the Cyclone Kick glides 12 m but hits only on ticks 7–48 (about
+8 m), a Rising Dragon misses a balloon 0.85 m off its column, and an attack in the air stops
+horizontal drift, so balloons over a hop sit above the footholds. Observe ordinary braking and takeoff state: coasting
 off a small ledge before pressing jump can look like an impossible gap or an ability
 bug. Shield braking is a legal diagnostic input, not a new course mechanic.
 
@@ -102,7 +115,9 @@ Preserve accepted art with targeted edits and a baseline of protected source,
 landmark transforms, materials, atmosphere and gameplay scene. Refit the art to
 approved moved platforms; do not reset a dressed course through a greybox rebuild.
 Move targets, checkpoint sensors/respawns, finish frames and route arrows with
-their owning surfaces. Gameplay changes use existing record compatibility rules;
+their owning surfaces. A checkpoint sensor must not hold a target its checkpoint requires:
+the player lands in the sensor before breaking it and gets "1 TARGET MISSED". Move the
+sensor past the target, or count the target in the next section. Gameplay changes use existing record compatibility rules;
 cosmetic changes preserve comparable times.
 
 Prove reachability cheaply in Shared while tuning, then exercise the final route
@@ -123,7 +138,10 @@ recording/export remain separate capabilities.
 ## Review layout before extending the art
 
 Review the takeoff, intended landing, detour and next destination from the actual
-gameplay camera, including reverse/low views. Global inspection renders may frame
+gameplay camera, including reverse/low views. The orbit camera never looks up and pulls in
+when tall geometry stands within about 10 m behind the fighter, so keep signs, rides and
+booths out of that space at takeoffs: the pier raised its arch sign to 13 m, moved the
+shooting gallery onto stilts beside the midway and the Big Wheel out to sea. Global inspection renders may frame
 the distant backdrop so widely that the playable course is tiny; use local route
 views to assess gaps. Orbit renders prove structure, not gamefeel or performance.
 

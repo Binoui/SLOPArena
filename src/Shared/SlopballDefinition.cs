@@ -44,10 +44,24 @@ namespace SlopArena.Shared
             SpawnHalfWidth = spawnHalfWidth; SpawnHalfDepth = spawnHalfDepth;
         }
 
+        /// <summary>Returns per heat step: every fifth return in a combo heats the rally up.</summary>
+        public const int HeatStep = 5;
+        public const int MaxHeat = 4;
+
+        /// <summary>Rally heat for a combo: 0 below five returns, then one step per five up to <see cref="MaxHeat"/>. A miss cools it with the combo.</summary>
+        public static int HeatOf(ulong returns) => (int)Math.Min(returns / HeatStep, (ulong)MaxHeat);
+
         public SlopballShot CreateShot(ArcadeBallDefinition ball, ulong returns)
             => CreateShot(ball, returns, returns, Seed);
 
-        internal SlopballShot CreateShot(ArcadeBallDefinition ball, ulong shotIndex, ulong returns, uint seed)
+        /// <summary>
+        /// One serve. The landing point, flight time and launcher origin are drawn as they always were; rally heat
+        /// then mixes in special serves solved to land on that same point: a zinger (quicker and flatter, deeper), a
+        /// moonball (slower and higher, under <paramref name="ceiling"/>) and a curveball that bends sideways. A
+        /// special serve that cannot clear the net with margin stays a lob. <paramref name="kind"/> forces one.
+        /// </summary>
+        internal SlopballShot CreateShot(ArcadeBallDefinition ball, ulong shotIndex, ulong returns, uint seed,
+            float ceiling = float.PositiveInfinity, SlopballServe? kind = null)
         {
             uint random = Mix(seed ^ (uint)shotIndex ^ Mix((uint)(shotIndex >> 32) + 0x9e3779b9u));
             float x = (Unit(ref random) * 2f - 1f) * LandingHalfWidth;
@@ -60,6 +74,7 @@ namespace SlopArena.Shared
                 : new ArcadePoint(ball.Spawn.X + (Unit(ref random) * 2f - 1f) * SpawnHalfWidth,
                     ball.Spawn.Y, ball.Spawn.Z + (Unit(ref random) * 2f - 1f) * SpawnHalfDepth);
             float duration = ticks * Simulation.TickDt;
+            SlopballShot lob;
             if (ball.LinearDrag > 0f)
             {
                 // Solve the same discrete damped motion used by the ball. Randomize
@@ -73,15 +88,151 @@ namespace SlopArena.Shared
                     fallSpeed = fallSpeed * ball.VelocityRetention - ball.Gravity * Simulation.TickDt;
                     fall += fallSpeed * Simulation.TickDt;
                 }
-                return new SlopballShot(shotIndex, spawn,
+                lob = new SlopballShot(shotIndex, spawn,
                     new((x - spawn.X) / travel, (FloorY + ball.Radius - spawn.Y - fall) / travel,
                         (z - spawn.Z) / travel), (ushort)ticks);
             }
-            // Semi-implicit gravity matches ArcadeBallSimulation, including its first gravity step.
-            var velocity = new ArcadePoint((x - spawn.X) / duration,
-                (FloorY + ball.Radius - spawn.Y) / duration + .5f * ball.Gravity * Simulation.TickDt * (ticks + 1),
-                (z - spawn.Z) / duration);
-            return new SlopballShot(shotIndex, spawn, velocity, (ushort)ticks);
+            else
+            {
+                // Semi-implicit gravity matches ArcadeBallSimulation, including its first gravity step.
+                var velocity = new ArcadePoint((x - spawn.X) / duration,
+                    (FloorY + ball.Radius - spawn.Y) / duration + .5f * ball.Gravity * Simulation.TickDt * (ticks + 1),
+                    (z - spawn.Z) / duration);
+                lob = new SlopballShot(shotIndex, spawn, velocity, (ushort)ticks);
+            }
+            // The serve mix draws after every earlier value, so lobs stay exactly as before.
+            float pick = Unit(ref random), side = Unit(ref random) < .5f ? -1f : 1f, bend = Unit(ref random);
+            var serve = kind ?? PickServe(HeatOf(returns), pick);
+            return serve == SlopballServe.Lob ? lob : Special(ball, shotIndex, spawn, x, z, ticks, serve, side, bend, ceiling) ?? lob;
+        }
+
+        /// <summary>Rally heat's serve mix: lobs only when cold, then zingers, moonballs and curveballs join in.</summary>
+        private static SlopballServe PickServe(int heat, float pick)
+        {
+            int roll = (int)(pick * 100f);
+            return heat switch
+            {
+                <= 0 => SlopballServe.Lob,
+                1 => roll < 30 ? SlopballServe.Zinger : SlopballServe.Lob,
+                2 => roll < 30 ? SlopballServe.Zinger : roll < 50 ? SlopballServe.Moonball : SlopballServe.Lob,
+                3 => roll < 25 ? SlopballServe.Zinger : roll < 40 ? SlopballServe.Moonball : roll < 65 ? SlopballServe.Curveball : SlopballServe.Lob,
+                _ => roll < 30 ? SlopballServe.Zinger : roll < 45 ? SlopballServe.Moonball : roll < 75 ? SlopballServe.Curveball : SlopballServe.Lob,
+            };
+        }
+
+        private SlopballShot? Special(ArcadeBallDefinition ball, ulong index, ArcadePoint spawn, float x, float z, int ticks,
+            SlopballServe serve, float side, float bend, float ceiling)
+        {
+            float curve = 0f;
+            switch (serve)
+            {
+                case SlopballServe.Zinger:
+                    // Quicker and flatter, so it lands in the deeper part of the receiving area to clear the net.
+                    z = LandingMinZ + (z - LandingMinZ) * .45f;
+                    ticks = Math.Max(30, (int)MathF.Round(ticks * .68f));
+                    break;
+                case SlopballServe.Moonball:
+                    ticks = Math.Min(300, (int)MathF.Round(ticks * 1.38f));
+                    break;
+                case SlopballServe.Curveball:
+                    // 2.5-4.5 m/s² sideways, but never bending more than about 3 m off the straight path.
+                    float seconds = ticks * Simulation.TickDt;
+                    curve = side * MathF.Min(2.5f + 2f * bend, 24f / (seconds * seconds));
+                    break;
+            }
+            for (int attempt = 0; attempt < 12; attempt++)
+            {
+                var velocity = Solve(ball, spawn, x, FloorY + ball.Radius, z, ticks, curve);
+                var (netClear, apex) = Fly(ball, spawn, velocity, curve, ticks);
+                if (netClear >= NetTop + ball.Radius + .1f && apex + ball.Radius < ceiling - .1f)
+                    return new SlopballShot(index, spawn, velocity, (ushort)ticks, serve, curve);
+                // Only a moonball under a low ceiling can recover: it comes down a little sooner.
+                if (serve != SlopballServe.Moonball || ticks < 40) return null;
+                ticks = (int)MathF.Round(ticks * .93f);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// "Every touch pops": null when a hit at <paramref name="position"/> starts outside the player half or its
+        /// free flight already clears the net; otherwise the velocity of a lob that does. It lands on the sender floor
+        /// (the mirror of the receiving area) along the hit's sideways direction. A stronger hit (<paramref name="launch"/>,
+        /// m/s) lands deeper on a quicker, flatter arc that rises only as much as the net needs.
+        /// </summary>
+        internal ArcadePoint? ReturnAssist(ArcadeBallDefinition ball, ArcadePoint position, ArcadePoint velocity, float launch)
+        {
+            float r = ball.Radius;
+            if (position.Z >= NetZ - NetHalfThickness - r) return null;
+            if (Fly(ball, position, velocity, 0f, 600).NetClear >= NetTop + r + .05f) return null;
+            float strength = Math.Clamp((launch - 4f) / 22f, 0f, 1f);
+            float near = 2f * NetZ - LandingMaxZ, far = 2f * NetZ - LandingMinZ;
+            float targetZ = near + (far - near) * (.25f + .75f * strength);
+            float horizontal = MathF.Sqrt(velocity.X * velocity.X + velocity.Z * velocity.Z);
+            float sideways = horizontal > .5f ? velocity.X / horizontal : 0f;
+            float targetX = Math.Clamp(position.X + sideways * (targetZ - position.Z) * .5f, -2f * LandingHalfWidth, 2f * LandingHalfWidth);
+            // A weak touch pops up (it leaves rising); a strong one may drive straight down over the net.
+            float rise = strength > .6f ? float.NegativeInfinity : 2f - 2.5f * strength;
+            var lob = default(ArcadePoint);
+            for (int ticks = Math.Max(20, (int)MathF.Round(HardFlightTicks * (.75f - .3f * strength))); ticks <= 240; ticks += 4)
+            {
+                lob = Solve(ball, position, targetX, FloorY + r, targetZ, ticks, 0f);
+                if (lob.Y >= rise && Fly(ball, position, lob, 0f, ticks).NetClear >= NetTop + r + .3f) return lob;
+            }
+            return lob;
+        }
+
+        /// <summary>The launch velocity that reaches (x, y, z) after exactly <paramref name="ticks"/> steps of the ball's damped, curving flight.</summary>
+        private static ArcadePoint Solve(ArcadeBallDefinition ball, ArcadePoint start, float x, float y, float z, int ticks, float curve)
+        {
+            float retention = ball.VelocityRetention, dt = Simulation.TickDt;
+            float weight = 1f, travel = 0f, fallSpeed = 0f, fall = 0f, bendSpeed = 0f, bend = 0f;
+            for (int tick = 0; tick < ticks; tick++)
+            {
+                weight *= retention;
+                travel += weight * dt;
+                fallSpeed = fallSpeed * retention - ball.Gravity * dt;
+                fall += fallSpeed * dt;
+                bendSpeed = bendSpeed * retention + curve * dt;
+                bend += bendSpeed * dt;
+            }
+            return new((x - start.X - bend) / travel, (y - start.Y - fall) / travel, (z - start.Z) / travel);
+        }
+
+        /// <summary>
+        /// Free flight as ArcadeBallSimulation steps it, ignoring collisions: the centre height where it first
+        /// crosses the net plane (−∞ if it reaches the floor first) and its highest centre.
+        /// </summary>
+        private (float NetClear, float Apex) Fly(ArcadeBallDefinition ball, ArcadePoint start, ArcadePoint velocity, float curve, int maxTicks)
+        {
+            float retention = ball.VelocityRetention, dt = Simulation.TickDt, floor = FloorY + ball.Radius;
+            float x = start.X, y = start.Y, z = start.Z, vx = velocity.X, vy = velocity.Y, vz = velocity.Z;
+            float netClear = float.NegativeInfinity, apex = y;
+            bool crossed = false;
+            for (int tick = 0; tick < maxTicks; tick++)
+            {
+                vx = vx * retention + curve * dt; vz *= retention; vy = vy * retention - ball.Gravity * dt;
+                float nx = x + vx * dt, ny = y + vy * dt, nz = z + vz * dt;
+                if (!crossed && nz != z && (z - NetZ) * (nz - NetZ) <= 0f)
+                {
+                    crossed = true;
+                    netClear = y + (ny - y) * ((NetZ - z) / (nz - z));
+                }
+                x = nx; y = ny; z = nz;
+                apex = MathF.Max(apex, y);
+                if (y <= floor && vy < 0f) break;
+            }
+            return (netClear, apex);
+        }
+
+        /// <summary>The cage's ceiling: the lowest flat collision above the net.</summary>
+        internal float CeilingOf(in ArenaDefinition arena)
+        {
+            float ceiling = float.MaxValue;
+            foreach (var triangle in arena.CollisionTriangles ?? Array.Empty<CollisionTriangle>())
+                if (MathF.Abs(triangle.AY - triangle.BY) < .001f && MathF.Abs(triangle.AY - triangle.CY) < .001f
+                    && triangle.AY > NetTop)
+                    ceiling = MathF.Min(ceiling, triangle.AY);
+            return ceiling;
         }
 
         public void ValidateCourt(in ArenaDefinition arena)
@@ -96,13 +247,10 @@ namespace SlopArena.Shared
                 || arena.SpawnPoints == null || arena.SpawnPoints.Length != 1 || arena.SpawnPoints[0].Z >= NetZ - NetHalfThickness
                 || arena.CollisionTriangles == null || arena.CollisionTriangles.Length < 12)
                 throw new ArgumentException("Slopball requires an enclosed court, sender spawn and valid player-side landing region.");
-            float ceiling = float.MaxValue;
+            float ceiling = CeilingOf(in arena);
             bool net = false;
             foreach (var triangle in arena.CollisionTriangles)
             {
-                if (MathF.Abs(triangle.AY - triangle.BY) < .001f && MathF.Abs(triangle.AY - triangle.CY) < .001f
-                    && triangle.AY > NetTop)
-                    ceiling = MathF.Min(ceiling, triangle.AY);
                 if (MathF.Abs(triangle.AZ - NetZ) <= NetHalfThickness + .001f
                     && MathF.Abs(triangle.BZ - NetZ) <= NetHalfThickness + .001f
                     && MathF.Abs(triangle.CZ - NetZ) <= NetHalfThickness + .001f
@@ -110,22 +258,27 @@ namespace SlopArena.Shared
                     net = true;
             }
             if (!net || ceiling == float.MaxValue) throw new ArgumentException("Slopball needs baked net and ceiling geometry.");
-            // Sample the whole capped profile, including its jitter extremes. These are technical
-            // path checks; character reach/readability still need gameplay and human validation.
+            // Sample the whole capped profile, including its jitter extremes and every serve rally heat can
+            // mix in (curveballs must also stay off the side walls). These are technical path checks;
+            // character reach/readability still need gameplay and human validation.
+            var kinds = new SlopballServe?[] { null, SlopballServe.Zinger, SlopballServe.Moonball, SlopballServe.Curveball };
             for (uint i = 0; i <= RampReturns + 32; i++)
+            foreach (var kind in kinds)
             {
-                var shot = CreateShot(ball, i);
+                var shot = CreateShot(ball, i, i, Seed, ceiling, kind);
                 var position = shot.Spawn; var velocity = shot.Velocity;
                 bool cleared = false;
                 for (int tick = 0; tick < shot.FlightTicks; tick++)
                 {
-                    velocity = new(velocity.X * ball.VelocityRetention,
+                    velocity = new(velocity.X * ball.VelocityRetention + shot.Curve * Simulation.TickDt,
                         velocity.Y * ball.VelocityRetention - ball.Gravity * Simulation.TickDt,
                         velocity.Z * ball.VelocityRetention);
                     var next = new ArcadePoint(position.X + velocity.X * Simulation.TickDt,
                         position.Y + velocity.Y * Simulation.TickDt, position.Z + velocity.Z * Simulation.TickDt);
                     if (next.Y + ball.Radius >= ceiling - .1f)
                         throw new ArgumentException("Slopball serves must remain below the ceiling.");
+                    if (next.X - ball.Radius <= arena.MinX || next.X + ball.Radius >= arena.MaxX)
+                        throw new ArgumentException("Slopball serves must stay off the side walls.");
                     if (position.Z > NetZ && next.Z <= NetZ)
                     {
                         float fraction = (NetZ - position.Z) / (next.Z - position.Z);
@@ -145,12 +298,19 @@ namespace SlopArena.Shared
         { value = Mix(value + 0x9e3779b9u); return (value >> 8) * (1f / 16777216f); }
     }
 
+    /// <summary>The sender's serves: rally heat mixes the special ones in (<see cref="SlopballDefinition.HeatOf"/>).</summary>
+    public enum SlopballServe : byte { Lob, Zinger, Moonball, Curveball }
+
     public readonly struct SlopballShot
     {
         public readonly ulong Index;
         public readonly ArcadePoint Spawn, Velocity;
         public readonly ushort FlightTicks;
-        public SlopballShot(ulong index, ArcadePoint spawn, ArcadePoint velocity, ushort flightTicks)
-        { Index = index; Spawn = spawn; Velocity = velocity; FlightTicks = flightTicks; }
+        public readonly SlopballServe Kind;
+        /// <summary>A curveball's sideways (X) acceleration until its first contact, m/s²; zero for other serves.</summary>
+        public readonly float Curve;
+        public SlopballShot(ulong index, ArcadePoint spawn, ArcadePoint velocity, ushort flightTicks,
+            SlopballServe kind = SlopballServe.Lob, float curve = 0f)
+        { Index = index; Spawn = spawn; Velocity = velocity; FlightTicks = flightTicks; Kind = kind; Curve = curve; }
     }
 }

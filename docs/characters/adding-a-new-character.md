@@ -23,9 +23,9 @@ the character's approved kit data before roster admission. Import package-local 
 with their `.meta` files. Record licensing and stop if a source asset is not redistributable.
 
 `character.json` uses `authoringSchemaVersion: 3`. Author a positive finite
-`movement.airDodgeSpeed` independently of the historical `dashSpeed`; it is
-the forward air dodge's horizontal speed for ten simulation ticks. The
-current admitted fighters use 11 m/s except Wibou at 12.1 m/s. Older source
+`movement.airDodgeSpeed` independently of the historical `dashSpeed`; the air
+dodge's burst starts at 2.3 times this speed and eases out over twelve simulation
+ticks. The current admitted fighters use 11 m/s except Wibou at 12.1 m/s. Older source
 and cooked schema versions cannot be admitted without migration and a recook.
 
 ## 2. Validate and bind assets
@@ -116,6 +116,12 @@ approved kit specification.
 recovery designation, SetVelocity, ForwardLunge, SetAimState or
 StartCapability operations. Conflicts fail compilation with
 `slot.slide-carry.motion-conflict`; aliases inherit the resolved target value.
+
+`aimMovementSpeedScale` defaults to 1 and is written only when lower. On an
+`aimMovement: mobile` slot it walks the fighter at that fraction (greater than 0, at most 1)
+of its run and air speed while the slot's aim state lasts; a fixed slot rejects it with
+`slot.aim-movement-speed.requires-mobile`. When a timeline `setAimState` ends a mobile aim,
+the walking stops, so it never carries through the rest of the move.
 
 ### Optional attack hit VFX
 
@@ -209,10 +215,11 @@ returns semantic `success: false` and preserves the last valid artifact, generat
 and cook status. It must not promote invalid drafts.
 
 Cooked schema version remains 3 and runtime API maximum is `1.x`. The loader accepts
-known minima `1.0.0` through `1.5.0`; select the lowest feature floor the authored content
+known minima `1.0.0` through `1.7.0`; select the lowest feature floor the authored content
 requires. `1.0.0` is the baseline, timed gravity-window operations require `1.2.0`, armor
 windows and nonzero `fixedHitstunTicks` require `1.3.0`, `startupAimCorrection` requires
-`1.4.0`, and public charged directional dash requires `1.5.0`. A package combining
+`1.4.0`, public charged directional dash requires `1.5.0`, public charged projectile
+requires `1.6.0`, and an `aimMovementSpeedScale` below 1 requires `1.7.0`. A package combining
 features uses the highest required minimum; older runtimes must reject features above
 their API level. New additive source fields do not themselves change the cooked schema.
 

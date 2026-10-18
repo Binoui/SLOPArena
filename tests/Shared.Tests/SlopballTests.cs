@@ -12,12 +12,14 @@ public class SlopballTests
         rules.ValidateCourt(arena);
         float minYaw = float.MaxValue, maxYaw = float.MinValue, minPitch = float.MaxValue, maxPitch = float.MinValue;
         int shortShots = 0, deepShots = 0;
+        var kinds = new HashSet<SlopballServe>();
         float minSpawnX = 999, maxSpawnX = -999, minSpawnZ = 999, maxSpawnZ = -999;
         for (ulong i = 0; i < 1024; i++)
         {
             uint seed = unchecked((uint)(i + 1) * 2654435761u);
-            var shot = rules.CreateShot(profile.Ball, i, Math.Min(i, rules.RampReturns), seed);
-            Assert.Equal(shot, rules.CreateShot(profile.Ball, i, Math.Min(i, rules.RampReturns), seed));
+            float ceiling = rules.CeilingOf(arena);
+            var shot = rules.CreateShot(profile.Ball, i, Math.Min(i, rules.RampReturns), seed, ceiling);
+            Assert.Equal(shot, rules.CreateShot(profile.Ball, i, Math.Min(i, rules.RampReturns), seed, ceiling));
             Assert.InRange(shot.Spawn.X, -8, 8);
             Assert.InRange(shot.Spawn.Z, 5, 7);
             Assert.Equal(profile.Ball.Spawn.Y, shot.Spawn.Y);
@@ -27,7 +29,8 @@ public class SlopballTests
             float pitch = MathF.Atan2(shot.Velocity.Y, MathF.Sqrt(shot.Velocity.X * shot.Velocity.X + shot.Velocity.Z * shot.Velocity.Z)) * 180 / MathF.PI;
             minYaw = MathF.Min(minYaw, yaw); maxYaw = MathF.Max(maxYaw, yaw);
             minPitch = MathF.Min(minPitch, pitch); maxPitch = MathF.Max(maxPitch, pitch);
-            var ball = new ArcadeBallSimulation(profile.Ball, arena); ball.Reset(shot.Spawn, shot.Velocity);
+            var ball = new ArcadeBallSimulation(profile.Ball, arena); ball.Reset(shot.Spawn, shot.Velocity, shot.Curve);
+            kinds.Add(shot.Kind);
             bool crossed = false, landed = false;
             for (int tick = 0; tick < shot.FlightTicks + 2; tick++)
             {
@@ -49,6 +52,7 @@ public class SlopballTests
         Assert.True(minYaw < -20 && maxYaw > 20);
         Assert.True(maxPitch - minPitch > 30);
         Assert.True(shortShots >= 10 && deepShots >= 10);
+        Assert.Equal(4, kinds.Count);
         Assert.Equal(ArenaBinaryFormat.Serialize(arena), ArenaBinaryFormat.Serialize(ArenaBinaryFormat.Deserialize(ArenaBinaryFormat.Serialize(arena))!.Value));
     }
 
@@ -133,8 +137,14 @@ public class SlopballTests
         for (ulong i = 0; i < 100; i++)
         {
             var shot = rules.CreateShot(stage.Ball, i);
-            Assert.InRange(shot.FlightTicks, rules.HardFlightTicks - rules.FlightJitterTicks, rules.EasyFlightTicks + rules.FlightJitterTicks);
-            if (i >= rules.RampReturns) Assert.InRange(shot.FlightTicks, rules.HardFlightTicks - rules.FlightJitterTicks, rules.HardFlightTicks + rules.FlightJitterTicks);
+            int quickest = rules.HardFlightTicks - rules.FlightJitterTicks, slowest = rules.EasyFlightTicks + rules.FlightJitterTicks;
+            if (shot.Kind == SlopballServe.Zinger) Assert.InRange(shot.FlightTicks, 30, slowest * .68f + 1);
+            else if (shot.Kind == SlopballServe.Moonball) Assert.InRange(shot.FlightTicks, quickest, 300);
+            else
+            {
+                Assert.InRange(shot.FlightTicks, quickest, slowest);
+                if (i >= rules.RampReturns) Assert.InRange(shot.FlightTicks, quickest, rules.HardFlightTicks + rules.FlightJitterTicks);
+            }
         }
         Assert.NotEqual(rules.CreateShot(stage.Ball, 0).Velocity, rules.CreateShot(stage.Ball, 1UL << 32).Velocity);
     }
@@ -447,6 +457,184 @@ public class SlopballTests
         Assert.Equal(3f, hit.Damage);
         Assert.InRange(hit.ContactTime, 0, .3f);
         Assert.Single(resolver.GetActiveHitboxes());
+    }
+
+    [Fact]
+    public void WeakHitInThePlayerHalfPopsOverTheNetAndScores()
+    {
+        var sim = new ServerSimulation(Court(), NoWinMatchRule.Instance);
+        var def = TestHelpers.EngineDef; var state = TestHelpers.PlayerState();
+        state.PX = 5; state.PZ = -5; state.PY = def.CapsuleHeight * .5f;
+        sim.RegisterEntity(1, def, state);
+        for (int i = 0; i < 400; i++)
+        {
+            sim.Tick(new());
+            var live = sim.ArcadeBall!.Value;
+            if (live.Active && live.Position.Z < -1.5f && live.Velocity.Y < 0) break;
+        }
+        var ball = sim.ArcadeBall!.Value;
+        Assert.True(ball.Active && ball.Position.Z < -1.5f);
+        // A feeble tap: on its own it would barely move the ball.
+        sim.Resolver.Spawn(new Hitbox
+        {
+            OwnerId = 1, AttackSlot = 1, ActivationId = 3, X = ball.Position.X, Y = ball.Position.Y, Z = ball.Position.Z,
+            EndX = ball.Position.X, EndY = ball.Position.Y, EndZ = ball.Position.Z, Radius = .45f, Shape = HitboxShape.Sphere,
+            Damage = 3f, BaseKnockback = 2f, KnockbackGrowth = 2f, KnockbackAngle = 10, DurationTicks = 2,
+        });
+        sim.Tick(new());
+        var hit = Assert.Single(sim.LastTickHits, x => x.TargetEntityId == ball.EntityId);
+        // The hit reports the tap's own launch (about 1.8 m/s); the ball pops as a faster, rising lob toward the sender half.
+        var popped = sim.ArcadeBall!.Value.Velocity;
+        float speed = MathF.Sqrt(popped.X * popped.X + popped.Y * popped.Y + popped.Z * popped.Z);
+        Assert.True(hit.ImpactForce < 3f && speed > 3f, $"reported {hit.ImpactForce}, popped at {speed}");
+        Assert.True(popped.Z > 0f && popped.Y > 0f);
+        bool returned = false;
+        for (int i = 0; i < 400 && !returned; i++)
+        {
+            sim.Tick(new());
+            returned = sim.LastTickSlopballEvents.Any(e => e.Kind == SlopballEventKind.Returned);
+            Assert.DoesNotContain(sim.LastTickSlopballEvents, e => e.Kind == SlopballEventKind.Missed);
+        }
+        Assert.True(returned);
+        Assert.Equal(1UL, sim.Slopball!.Value.Returns);
+    }
+
+    [Fact]
+    public void ReturnAssistLeavesClearingHitsAndSenderHalfContactsAlone()
+    {
+        var arena = Court(); var rules = arena.Arcade!.Slopball!; var ball = arena.Arcade.Ball;
+        // Already over the net in free flight: untouched.
+        Assert.Null(rules.ReturnAssist(ball, new(0, 2, -2), new(0, 6, 9), 11));
+        // Contact past the net: untouched.
+        Assert.Null(rules.ReturnAssist(ball, new(0, 2, 1), new(0, 0, -1), 2));
+        // Driven down into the net, or hit away from it: a lob that clears and lands on the sender floor.
+        foreach (var (position, velocity, launch) in new (ArcadePoint, ArcadePoint, float)[]
+                 { (new(0, 1, -1), new(0, -2, 6), 6), (new(-1, 2.5f, -4), new(-1, .5f, -3), 3), (new(1.5f, .6f, -2), new(0, 0, 25), 25) })
+        {
+            var assisted = rules.ReturnAssist(ball, position, velocity, launch);
+            Assert.True(assisted.HasValue);
+            var sim = new ArcadeBallSimulation(ball, arena); sim.Reset(position, assisted!.Value);
+            ArcadePoint? landing = null;
+            for (int tick = 0; tick < 600 && landing == null; tick++)
+            {
+                sim.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
+                Assert.DoesNotContain(sim.Contacts, c => MathF.Abs(c.Position.Z - rules.NetZ) < rules.NetHalfThickness + ball.Radius + .01f
+                    && c.Position.Y < rules.NetTop + ball.Radius);
+                foreach (var contact in sim.Contacts) if (contact.NormalY > .5f) { landing = contact.Position; break; }
+            }
+            Assert.True(landing.HasValue && landing.Value.Z > rules.NetZ);
+        }
+    }
+
+    [Fact]
+    public void RallyHeatMixesInZingersMoonballsAndCurveballsByLevel()
+    {
+        var stage = Court().Arcade!; var rules = stage.Slopball!;
+        Assert.Equal(0, SlopballDefinition.HeatOf(4)); Assert.Equal(1, SlopballDefinition.HeatOf(5));
+        Assert.Equal(3, SlopballDefinition.HeatOf(17)); Assert.Equal(4, SlopballDefinition.HeatOf(999));
+        foreach (ulong returns in new ulong[] { 0, 4, 5, 10, 15, 20 })
+        {
+            var kinds = new HashSet<SlopballServe>();
+            for (ulong i = 0; i < 400; i++) kinds.Add(rules.CreateShot(stage.Ball, i, returns, 77).Kind);
+            int heat = SlopballDefinition.HeatOf(returns);
+            Assert.Contains(SlopballServe.Lob, kinds);
+            Assert.Equal(heat >= 1, kinds.Contains(SlopballServe.Zinger));
+            Assert.Equal(heat >= 2, kinds.Contains(SlopballServe.Moonball));
+            Assert.Equal(heat >= 3, kinds.Contains(SlopballServe.Curveball));
+        }
+        // The same draw with a special serve forced keeps its landing point and only changes the flight.
+        var lob = rules.CreateShot(stage.Ball, 3, 0, 77);
+        var zinger = rules.CreateShot(stage.Ball, 3, 0, 77, kind: SlopballServe.Zinger);
+        var moon = rules.CreateShot(stage.Ball, 3, 0, 77, kind: SlopballServe.Moonball);
+        Assert.Equal(SlopballServe.Lob, lob.Kind);
+        Assert.True(zinger.Kind == SlopballServe.Lob || zinger.FlightTicks < lob.FlightTicks);
+        Assert.True(moon.FlightTicks > lob.FlightTicks && moon.Velocity.Y > lob.Velocity.Y);
+    }
+
+    [Fact]
+    public void SpecialServesClearTheNetLandInTheReceivingAreaAndStayUnderALowCeiling()
+    {
+        var arena = Court(); var profile = arena.Arcade!; var rules = profile.Slopball!;
+        float ceiling = rules.CeilingOf(arena);
+        Assert.Equal(6f, ceiling);
+        rules.ValidateCourt(arena);
+        foreach (var kind in new[] { SlopballServe.Zinger, SlopballServe.Moonball, SlopballServe.Curveball })
+        for (ulong i = 0; i < 64; i++)
+        {
+            var shot = rules.CreateShot(profile.Ball, i, 20, 91, ceiling, kind);
+            var ball = new ArcadeBallSimulation(profile.Ball, arena); ball.Reset(shot.Spawn, shot.Velocity, shot.Curve);
+            float apex = 0f;
+            bool crossed = false, landed = false;
+            for (int tick = 0; tick < 400 && !landed; tick++)
+            {
+                var before = ball.State.Position;
+                ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
+                var after = ball.State.Position;
+                apex = MathF.Max(apex, after.Y);
+                if (before.Z > rules.NetZ && after.Z <= rules.NetZ) crossed = true;
+                Assert.DoesNotContain(ball.Contacts, c => c.NormalY < -.5f);
+                foreach (var contact in ball.Contacts)
+                    if (contact.NormalY > .5f)
+                    {
+                        Assert.InRange(contact.Position.X, -rules.LandingHalfWidth - .01f, rules.LandingHalfWidth + .01f);
+                        Assert.InRange(contact.Position.Z, rules.LandingMinZ - .01f, rules.LandingMaxZ + .01f);
+                        landed = true;
+                    }
+            }
+            Assert.True(crossed && landed);
+            Assert.True(apex + profile.Ball.Radius < ceiling);
+            if (shot.Kind == SlopballServe.Curveball) Assert.NotEqual(0f, shot.Curve);
+        }
+    }
+
+    [Fact]
+    public void CurveballBendsSidewaysAndStillLandsOnItsLobsSpot()
+    {
+        var arena = VariedCourt(); var profile = arena.Arcade!; var rules = profile.Slopball!;
+        float ceiling = rules.CeilingOf(arena);
+        var lob = rules.CreateShot(profile.Ball, 9, 0, 5, ceiling);
+        var curve = rules.CreateShot(profile.Ball, 9, 0, 5, ceiling, SlopballServe.Curveball);
+        Assert.Equal(SlopballServe.Curveball, curve.Kind);
+        ArcadePoint Land(SlopballShot shot, out float bend)
+        {
+            var ball = new ArcadeBallSimulation(profile.Ball, arena); ball.Reset(shot.Spawn, shot.Velocity, shot.Curve);
+            bend = 0f;
+            for (int tick = 0; tick < 600; tick++)
+            {
+                ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
+                bend = MathF.Max(bend, MathF.Abs(ball.State.Curve));
+                foreach (var contact in ball.Contacts) if (contact.NormalY > .5f) return contact.Position;
+            }
+            throw new InvalidOperationException("The serve never landed.");
+        }
+        var lobLanding = Land(lob, out _);
+        var curveLanding = Land(curve, out float pull);
+        Assert.Equal(lobLanding.X, curveLanding.X, 1);
+        Assert.Equal(lobLanding.Z, curveLanding.Z, 1);
+        Assert.InRange(MathF.Abs(curve.Curve), .5f, 4.5f);
+        Assert.Equal(MathF.Abs(curve.Curve), pull);
+        // It leaves sideways against its bend, then the pull brings it back onto the lob's spot.
+        Assert.True(MathF.Sign(curve.Velocity.X - lob.Velocity.X) == -MathF.Sign(curve.Curve));
+    }
+
+    [Fact]
+    public void HeatRisesEveryFiveReturnsAndAMissCoolsIt()
+    {
+        var (arena, ball, rules) = Fixture();
+        for (int i = 0; i < 5; i++)
+        {
+            ReceiveAndArm(arena, ball, rules);
+            ball.Reset(new(0, 3, -1), new(0, 0, 120)); Advance(rules, ball, arena);
+            ball.Reset(new(0, .35f, 2), new(0, -120, 0)); Advance(rules, ball, arena);
+            Assert.Equal(i == 4 ? 1 : 0, rules.State.Heat);
+            Serve(rules, ball);
+        }
+        Assert.Equal(5UL, rules.State.Returns);
+        Assert.Equal(1, rules.State.Heat);
+        ball.Reset(new(0, .35f, -2), new(0, -120, 0)); Advance(rules, ball, arena);
+        Assert.Equal(0UL, rules.State.Returns);
+        Assert.Equal(0, rules.State.Heat);
+        Assert.Equal(SlopballServe.Lob, rules.State.Shot.Kind);
     }
 
     private static void ReceiveAndArm(ArenaDefinition arena, ArcadeBallSimulation ball, SlopballSimulation rules)

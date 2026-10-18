@@ -45,8 +45,6 @@ namespace SlopArena.Client.World
         private readonly TimelinePresentationDispatcher _timelinePresentations = new();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
         private readonly HashSet<ulong> _activeSwordOwners = new();
-        private uint _lastSwordTrailTick;
-        private bool _hasSwordTrailTick;
         protected MatchPauseMenu _pauseMenu;
         private Mesh _cameraCollisionMesh;
 
@@ -151,18 +149,22 @@ namespace SlopArena.Client.World
         protected void PresentTimelineEvents()
             => _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
 
+        /// <summary>Online rollback: stop the presentations of events the GameHost ruled out.</summary>
+        protected void RetractTimelineEvents(IReadOnlyList<TimelinePresentationEvent> events)
+            => _timelinePresentations.Retract(events);
+
         /// <summary>Arcade retry: the bridge now runs a fresh simulation; end what the old one presented.</summary>
         protected void ResetSimulationPresentation()
         {
             _timelinePresentations.ResetForFreshSimulation();
-            _hasSwordTrailTick = false;
             _activeSwordOwners.Clear();
             ApplySwordTrailOwners();
             _aimHandler?.ResetPresentation();
             _showCrosshair = false;
         }
 
-        /// <summary>Training: use active Shared melee hitboxes, including early removal.</summary>
+        /// <summary>Show sword trails for the simulation's active melee hitboxes (Training, and
+        /// the predicted world online), including early removal.</summary>
         protected void UpdateSwordTrailsFromResolver(SpellResolver resolver)
         {
             _activeSwordOwners.Clear();
@@ -170,18 +172,6 @@ namespace SlopArena.Client.World
                 foreach (var hitbox in resolver.GetActiveHitboxes())
                     if (IsSwordHitbox(in hitbox))
                         _activeSwordOwners.Add(hitbox.OwnerId);
-            ApplySwordTrailOwners();
-        }
-
-        /// <summary>PvP: use the latest authoritative owner set, including empty removals.</summary>
-        protected void ApplySwordTrailSnapshot(SwordTrailSnapshotPacket snapshot)
-        {
-            if (_hasSwordTrailTick && snapshot.Tick <= _lastSwordTrailTick) return;
-            _hasSwordTrailTick = true;
-            _lastSwordTrailTick = snapshot.Tick;
-            _activeSwordOwners.Clear();
-            foreach (ulong owner in snapshot.ActiveOwnerIds)
-                _activeSwordOwners.Add(owner);
             ApplySwordTrailOwners();
         }
 

@@ -1,0 +1,83 @@
+"""Fight Night Pier colours (0..1 RGB). Dusk on a seaside pier the fight club took over for
+title night: sun-bleached planks and white trim under a low orange sun, FightGuy's royal
+blue, champion gold and headband red on everything the champ paid for, and the old pier
+burnt black. Walkable tops stay mid-toned so the low sun never clips them."""
+
+# The pier
+PLANK = (0.55, 0.46, 0.37)
+PLANK_LIGHT = (0.66, 0.57, 0.46)
+PLANK_DARK = (0.38, 0.30, 0.23)
+PLANK_GAP = (0.13, 0.10, 0.08)
+TRIM = (0.84, 0.81, 0.76)
+TRIM_DARK = (0.60, 0.57, 0.53)
+PILE = (0.31, 0.25, 0.20)
+PILE_DARK = (0.18, 0.14, 0.11)
+WEED = (0.16, 0.26, 0.17)
+UNDER = (0.07, 0.06, 0.08)
+IRON = (0.24, 0.24, 0.27)
+
+# The old pier, burnt
+CHAR = (0.25, 0.21, 0.18)
+CHAR_LIGHT = (0.42, 0.35, 0.29)
+ASH = (0.45, 0.42, 0.40)
+EMBER = (0.62, 0.24, 0.08)
+
+# FightGuy's colours
+GI_BLUE = (0.17, 0.33, 0.68)
+GI_BLUE_DARK = (0.09, 0.17, 0.38)
+GOLD = (1.00, 0.80, 0.13)
+GOLD_DARK = (0.66, 0.47, 0.05)
+RED = (0.80, 0.16, 0.14)
+RED_DARK = (0.48, 0.07, 0.06)
+CREAM = (0.95, 0.91, 0.81)
+SKIN = (0.86, 0.62, 0.44)
+HAIR = (0.08, 0.07, 0.07)
+INK = (0.08, 0.07, 0.08)
+ORANGE = (0.95, 0.42, 0.17)
+WHITE = (0.93, 0.92, 0.89)
+
+# The fair
+AWNING_RED = (0.78, 0.15, 0.13)
+AWNING_WHITE = (0.92, 0.90, 0.84)
+TEAL = (0.10, 0.55, 0.55)
+PINK = (0.93, 0.45, 0.62)
+STEEL = (0.47, 0.50, 0.56)
+STEEL_DARK = (0.25, 0.27, 0.31)
+COASTER = (0.76, 0.12, 0.12)
+SUPPORT = (0.86, 0.84, 0.80)
+CANVAS = (0.86, 0.82, 0.72)
+CARDBOARD = (0.70, 0.55, 0.37)
+CARDBOARD_DARK = (0.48, 0.36, 0.23)
+BUOY_RED = (0.82, 0.18, 0.12)
+BUOY_ORANGE = (0.96, 0.48, 0.12)
+GLASS = (0.42, 0.62, 0.70)
+WATER_TANK = (0.22, 0.52, 0.66)
+
+# Sea and sky at dusk
+SEA_DEEP = (0.08, 0.13, 0.25)
+SEA_MID = (0.12, 0.20, 0.34)
+SEA_SHALLOW = (0.16, 0.30, 0.38)
+SEA_GLOW = (0.52, 0.30, 0.26)
+SKY_ZENITH = (0.13, 0.12, 0.33)
+SKY_HIGH = (0.30, 0.22, 0.48)
+SKY_MID = (0.66, 0.36, 0.50)
+SKY_LOW = (0.98, 0.52, 0.36)
+SKY_HORIZON = (1.00, 0.72, 0.44)
+SKY_EAST_LOW = (0.30, 0.24, 0.46)
+SUN = (1.00, 0.86, 0.56)
+SUN_HALO = (1.00, 0.60, 0.34)
+CLOUD = (0.96, 0.60, 0.52)
+CLOUD_DARK = (0.46, 0.30, 0.44)
+TOWN = (0.20, 0.15, 0.24)
+TOWN_LIGHT = (0.30, 0.22, 0.32)
+HILL = (0.15, 0.11, 0.20)
+HEADLAND = (0.12, 0.09, 0.16)
+
+# Light (StageNeon: vertex alpha is the glow mask)
+BULB = (1.00, 0.85, 0.52)
+BULB_WARM = (1.00, 0.70, 0.36)
+WINDOW = (1.00, 0.80, 0.48)
+NEON_PINK = (1.00, 0.36, 0.66)
+NEON_BLUE = (0.36, 0.66, 1.00)
+NEON_GOLD = (1.00, 0.78, 0.30)
+BEAM = (1.00, 0.92, 0.72)

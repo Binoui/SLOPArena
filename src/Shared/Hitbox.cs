@@ -27,6 +27,7 @@ namespace SlopArena.Shared
         public float VX, VY, VZ;
         public float Radius;
         public ushort DurationTicks;
+        /// <summary>Ticks lived so far. A melee window does not age while its owner is in hitstop.</summary>
         public ushort AgeTicks;
 
         /// <summary>

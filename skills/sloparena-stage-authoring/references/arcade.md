@@ -26,7 +26,8 @@ with fixed origins. Unchanged profiles retain their existing serialized bytes.
 The static net is baked ball collision and is excluded from the fighter/projectile
 ground heightmap. Shared validates serve arcs against the court.
 
-Character Courses compile typed section v5 inside the same arena v6 artifact.
+Character Courses compile typed section v5 inside the same arena v6 artifact (section v6
+when a course has bonus targets that take several hits; one-hit courses keep v5 bytes).
 `ArcadeStageAuthoring.CharacterCourse` selects targets, checkpoints with sensor
 volumes/respawns and cumulative target prerequisites, and a finish volume instead
 of a ball/Slopball profile. Markers must be empty children under AuthoringAids;
@@ -43,8 +44,24 @@ it creates the source scene and writes `ArcadeStageAuthoring` with empty markers
 applies move with the layout. Add the course to `CharacterCourseMatch.Courses` (title, finish
 name, tips) so Arcade offers it to the fighters its profile admits; every course plays in the
 one course scene. [Kaboom Quarry](../../../tools/blender/manki_quarry/README.md) works this way.
+A target tuple may add a hit count, `(id, position, radius, hits)`, for a bonus target
+([Fight Night Pier](../../../tools/blender/fightguy_pier/README.md)); give it a `TargetLooks`
+entry with `CourseBonusTarget` damage stages in the course's presentation set. Before baking,
+run the route tests on the shell JSON through `CourseShellArena`
+(`SLOPARENA_COURSE_SHELL=<shell json>`), and keep each checkpoint sensor clear of the targets
+it requires.
 A kill plane exactly 1 m under the spawn floor trips `ArenaShippingTests`' unbaked-heightmap
 check; keep the water a little lower.
+
+A challenge's feel (targets, ball, cues, sounds) is presentation, not stage art: a
+`PresentationBuilderKit.ForFolder` builder bakes it into the stage's `Presentation/`
+folder plus a Resources set, and a runtime class plays it from Shared state and events
+after each tick. See `SanctuaryCoursePresentationBuilder` with `CharacterCoursePresentation`
+([course feel pass](../../../docs/design/arcade-phase-4.md#feel-pass--2026-10-18)) and
+`SlopballPresentationBuilder` with `SlopballPresentation`
+([Slopball feel pass](../../../docs/design/stages/slopball.md#feel-pass--2026-10-18)).
+Clips come from `tools/sfx/*_clips.py`. Pitch concepts first: paint over real
+`sloparena.photo.live` captures and show the sounds as a short slideshow video.
 
 Arcade sources require one grounded `Spawn_01`; normal sources retain four empty
 spawn markers. Other scripts/components remain rejected by the source validator.

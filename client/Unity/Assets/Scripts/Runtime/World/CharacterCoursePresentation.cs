@@ -8,8 +8,8 @@ using Object = UnityEngine.Object;
 namespace SlopArena.Client.World
 {
     /// <summary>
-    /// The Character Course's feel: targets, breaks with a section melody, checkpoint frames,
-    /// missed-target cues with light pillars, ALL CLEAR! and the finish. Sections are the target
+    /// The Character Course's feel: targets, breaks with a section melody, bonus targets that react to
+    /// each hit, checkpoint frames, missed-target cues with light pillars, ALL CLEAR! and the finish. Sections are the target
     /// ranges between checkpoint prerequisites. It reads Shared course state and events after
     /// each tick and never feeds back: the missed cue repeats Shared's sensor test on the
     /// authoritative fighter position, only to explain why a checkpoint did not save.
@@ -26,6 +26,9 @@ namespace SlopArena.Client.World
         private readonly Func<UnityEngine.Camera> _camera;
         private readonly Transform _root;
         private readonly Transform[] _targets;
+        private readonly CoursePresentationSet.TargetLook[] _looks;
+        private readonly CourseBonusTarget[] _bonus;
+        private readonly Dictionary<string, AudioClip> _lookClips = new();
         private readonly int[] _sectionOf, _sectionStart, _sectionEnd;
         private readonly bool[] _broken, _flagged, _inside, _lockedSeen;
         private readonly float[] _cueReady;
@@ -53,6 +56,7 @@ namespace SlopArena.Client.World
             {
                 int clips = 0, beacons = 0;
                 foreach (var clip in new[] { _pop, _bell, _chord, _saved, _missed, _gong, _finishGong }) if (clip != null) clips++;
+                foreach (var clip in _lookClips.Values) if (clip != null) clips++;
                 foreach (var beacon in _beacons) if (beacon != null) beacons++;
                 var markers = new string[_markers.Length];
                 for (int i = 0; i < markers.Length; i++) markers[i] = _markers[i] != null ? _markers[i].Current.ToString() : null;
@@ -91,6 +95,8 @@ namespace SlopArena.Client.World
             _view.ConfigurePips(sizes);
 
             _targets = new Transform[count];
+            _looks = new CoursePresentationSet.TargetLook[count];
+            _bonus = new CourseBonusTarget[count];
             if (set != null && set.Target != null) CreateLanterns();
             else (_orb, _orbCore) = CreateOrbs();
             _markers = new CourseCheckpointMarker[course.Checkpoints.Count];
@@ -102,6 +108,9 @@ namespace SlopArena.Client.World
             AudioClip Load(string name) => string.IsNullOrEmpty(folder) ? null : Resources.Load<AudioClip>($"{folder}/{name}");
             _pop = Load("course_pop"); _bell = Load("course_bell"); _chord = Load("course_chord"); _saved = Load("course_saved");
             _missed = Load("course_missed"); _gong = Load("course_all_clear"); _finishGong = Load("course_finish");
+            foreach (var look in _looks)
+                foreach (string clip in new[] { look?.HitClip, look?.BreakClip })
+                    if (!string.IsNullOrEmpty(clip) && !_lookClips.ContainsKey(clip)) _lookClips[clip] = Load(clip);
             var audio = new GameObject("Course Audio");
             audio.transform.SetParent(_root, false);
             var bus = ClientSettingsService.Instance.FindBus("SFX");
@@ -120,11 +129,16 @@ namespace SlopArena.Client.World
             for (int i = 0; i < _targets.Length; i++)
             {
                 var target = _course.Targets[i];
-                var view = Object.Instantiate(_set.Target, _root);
+                var look = _set.LookFor(target.Id);
+                _looks[i] = look != null && look.Target != null ? look : null;
+                var prefab = _looks[i]?.Target ?? _set.Target;
+                float authored = _looks[i]?.TargetRadius ?? _set.TargetRadius;
+                var view = Object.Instantiate(prefab, _root);
                 view.name = "Course Target " + target.Id;
-                view.transform.SetPositionAndRotation(Position(target.Position), Quaternion.identity);
-                view.transform.localScale = Vector3.one * (target.Radius / Mathf.Max(.01f, _set.TargetRadius));
+                view.transform.SetPositionAndRotation(Position(target.Position), prefab.transform.rotation);
+                view.transform.localScale = Vector3.one * (target.Radius / Mathf.Max(.01f, authored));
                 if (view.TryGetComponent<CourseLantern>(out var lantern)) lantern.Init(Viewer, i * 2.39996f);
+                if (view.TryGetComponent<CourseBonusTarget>(out var bonus)) { bonus.Init(i * 2.39996f); _bonus[i] = bonus; }
                 _targets[i] = view.transform;
             }
         }
@@ -166,6 +180,7 @@ namespace SlopArena.Client.World
         public void Reset()
         {
             foreach (var target in _targets) target.gameObject.SetActive(true);
+            foreach (var bonus in _bonus) if (bonus != null) bonus.ResetDamage();
             for (int i = 0; i < _beacons.Length; i++)
             {
                 if (_beacons[i] != null) Object.Destroy(_beacons[i].gameObject);
@@ -207,6 +222,9 @@ namespace SlopArena.Client.World
                         pendingBreaks--;
                         Break(e.Index, state.BrokenTargets - pendingBreaks, state.TotalTargets);
                         break;
+                    case CharacterCourseEventKind.TargetHit:
+                        BonusHit(e.Index, simulation.CourseTargetHitsLeft(e.Index));
+                        break;
                     case CharacterCourseEventKind.CheckpointSaved:
                         if (e.Index >= 0 && e.Index < _markers.Length) _markers[e.Index]?.Saved();
                         Play(_saved, .5f);
@@ -229,13 +247,14 @@ namespace SlopArena.Client.World
         {
             var target = _course.Targets[index];
             var position = Position(target.Position);
-            float scale = _set != null ? target.Radius / Mathf.Max(.01f, _set.TargetRadius) : 1f;
-            Spawn(_set?.Break, position, scale, 3f);
+            var look = _looks[index];
+            float scale = _set != null ? target.Radius / Mathf.Max(.01f, look?.TargetRadius ?? _set.TargetRadius) : 1f;
+            Spawn(look?.Break ?? _set?.Break, position, scale, look != null ? 4f : 3f);
             ReleaseBeacon(index);
             _flagged[index] = false;
             int section = _sectionOf[index], inSection = 0;
             for (int i = _sectionStart[section]; i < _sectionEnd[section]; i++) if (_broken[i]) inSection++;
-            Play(_pop, .7f, UnityEngine.Random.Range(.96f, 1.04f));
+            Play(LookClip(look?.BreakClip) ?? _pop, look != null ? .85f : .7f, UnityEngine.Random.Range(.96f, 1.04f));
             if (_set != null && _set.NoteSemitones.Length > 0)
                 Play(_bell, .5f, Mathf.Pow(2f, _set.NoteSemitones[Mathf.Clamp(inSection - 1, 0, _set.NoteSemitones.Length - 1)] / 12f));
             _view.ShowCountPop(position + Vector3.up * target.Radius * 1.7f, $"{broken}/{total}");
@@ -250,6 +269,23 @@ namespace SlopArena.Client.World
                 missing > 0 ? (missing == 1 ? "1 earlier target is still missing." : $"{missing} earlier targets are still missing.")
                     : checkpoint >= 0 ? $"Checkpoint {checkpoint + 1} is lit: it will save." : "Head for the finish.", false);
         }
+
+        /// <summary>A bonus target took a hit that did not break it: its next damage stage, a jolt and a rising thud.</summary>
+        private void BonusHit(int index, int hitsLeft)
+        {
+            var target = _course.Targets[index];
+            int taken = target.Hits - hitsLeft;
+            _bonus[index]?.Hit(taken, target.Hits);
+            var look = _looks[index];
+            var position = Position(target.Position);
+            float scale = _set != null ? target.Radius / Mathf.Max(.01f, look?.TargetRadius ?? _set.TargetRadius) : 1f;
+            Spawn(look?.Hit, position, scale, 1.5f);
+            Play(LookClip(look?.HitClip) ?? _pop, .55f, Mathf.Pow(2f, (taken - 1) / 12f));
+            _view.ShowCountPop(position + Vector3.up * target.Radius * 1.4f, $"{taken}/{target.Hits}", "course-count-pop--hit");
+        }
+
+        private AudioClip LookClip(string name)
+            => !string.IsNullOrEmpty(name) && _lookClips.TryGetValue(name, out var clip) ? clip : null;
 
         private void AllClear()
         {

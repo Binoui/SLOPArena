@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27f78137fb7d3fb82be22e548c57ee18, type: 3}
+  m_Name: fightguy_pier
+  m_EditorClassIdentifier: 
+  Target: {fileID: 7501993500912970261, guid: 3684bea9c4f65706ca2e92e6bdc26189, type: 3}
+  TargetRadius: 0.55
+  Break: {fileID: 4373263347853025866, guid: c742bcb8235d352afadeec51e50e6215, type: 3}
+  Marker: {fileID: 1509357763166007609, guid: 039d437460c024bac8debe3ba4657ad8, type: 3}
+  MissedBeacon: {fileID: 7942439523284928020, guid: e4252f60611f1fa49abba009c855b627, type: 3}
+  FinishBeacon: {fileID: 2680931265604537387, guid: a27a327259cd92ac0a721c54eb5adf62, type: 3}
+  FinishBurst: {fileID: 3097271679980764459, guid: 522dc46e2404bcbb0940507bbe365cbc, type: 3}
+  SoundFolder: Audio/SFX/CoursePier
+  NoteSemitones: 0000000002000000040000000500000007000000090000000b0000000c0000000e00000010000000
+  TargetLooks:
+  - IdPrefix: car
+    Target: {fileID: 823669544780577172, guid: d0f776fdc932e707f8d73abf02ef6e2a, type: 3}
+    TargetRadius: 1.1
+    Break: {fileID: 4657843358827538841, guid: bc71a7b15541f635396331958fe28afd, type: 3}
+    Hit: {fileID: 1369050029145717674, guid: 8c559a924ca69863a92be608b72435f8, type: 3}
+    HitClip: course_car_hit
+    BreakClip: course_car_break
+  - IdPrefix: pinata
+    Target: {fileID: 2272453652599498561, guid: d5d90412ad5f0194e820bc65f48dbcb5, type: 3}
+    TargetRadius: 0.9
+    Break: {fileID: 763160965970610411, guid: 078f5c03607e0d029b8d87503e2e0436, type: 3}
+    Hit: {fileID: 5826777642161233658, guid: ebc5076cae54023169fd8a1e655b7301, type: 3}
+    HitClip: course_pinata_hit
+    BreakClip: course_pinata_break
+  - IdPrefix: punch
+    Target: {fileID: 64107384588856930, guid: af6d79fb7e260f2eb8525a9151da3c56, type: 3}
+    TargetRadius: 0.75
+    Break: {fileID: 5406097612431030737, guid: 62843a3a8752c142587b4ebde0f1a024, type: 3}
+    Hit: {fileID: 4359007612128910726, guid: a249097b9582a29b28b85355b4257cc3, type: 3}
+    HitClip: course_punch_hit
+    BreakClip: course_punch_break
+  - IdPrefix: bag
+    Target: {fileID: 7273145020717832314, guid: 243c5c408a07e0b77ab040fcaf54238c, type: 3}
+    TargetRadius: 0.75
+    Break: {fileID: 5319127483040258873, guid: 6be39e5e790d91849bf516cf2ebbf8c8, type: 3}
+    Hit: {fileID: 4817718045531974679, guid: 0a4ea7e6c4ff46fdc9b291f7dcc72d1f, type: 3}
+    HitClip: course_bag_hit
+    BreakClip: course_bag_break

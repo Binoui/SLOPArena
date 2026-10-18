@@ -83,7 +83,7 @@ public static class CookedCharacterPackageLoader
         {
             var m=ParseManifest(copied[CharacterPackageAssembler.ManifestPath]);
             if(m.PackageId!=requirement!.PackageId||m.Version!=requirement.Version||m.CookedContentHash!=requirement.CookedContentHash||m.PackageHash!=requirement.PackageHash) d.Add(Error("package.identity.mismatch","manifest","Package identity does not match the requested requirement."));
-            if(m.CookedSchemaVersion!=3||(m.RuntimeApiMin!="1.0.0"&&m.RuntimeApiMin!="1.1.0"&&m.RuntimeApiMin!="1.2.0"&&m.RuntimeApiMin!="1.3.0"&&m.RuntimeApiMin!="1.4.0"&&m.RuntimeApiMin!="1.5.0"&&m.RuntimeApiMin!="1.6.0")||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
+            if(m.CookedSchemaVersion!=3||(m.RuntimeApiMin!="1.0.0"&&m.RuntimeApiMin!="1.1.0"&&m.RuntimeApiMin!="1.2.0"&&m.RuntimeApiMin!="1.3.0"&&m.RuntimeApiMin!="1.4.0"&&m.RuntimeApiMin!="1.5.0"&&m.RuntimeApiMin!="1.6.0"&&m.RuntimeApiMin!="1.7.0")||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
             if(m.Dependencies.Count!=0) d.Add(Error("package.dependencies.unsupported","manifest.dependencies","Unresolved package dependencies are not supported."));
             foreach (var c in m.Capabilities)
             {
@@ -104,6 +104,7 @@ public static class CookedCharacterPackageLoader
             ValidateChargedProjectiles(package.Definition, m.RuntimeApiMin, d);
             ValidateArmorAndFixedHitstun(package.Definition, m.RuntimeApiMin, d);
             ValidateStartupAimCorrections(package.Definition, m.RuntimeApiMin, d);
+            ValidateAimMovementSpeeds(package.Definition, m.RuntimeApiMin, d);
             if(package.Metadata.PackageId!=m.PackageId||package.Metadata.Version!=m.Version||package.Metadata.CookedSchemaVersion!=m.CookedSchemaVersion) d.Add(Error("package.runtime.metadata-mismatch",CharacterPackageAssembler.RuntimePath,"Runtime package metadata does not match manifest."));
             var baked=BakedAnimationData.LoadFromBin(copied[CharacterPackageAssembler.PosePath]);
             using var bindings = JsonDocument.Parse(copied[CharacterPackageAssembler.BindingPath]);
@@ -168,8 +169,8 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedProjectileCapabilityId).ToArray();
             if (charges.Length == 0) continue;
-            if (runtimeApiMin != "1.6.0")
-                diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged projectile requires runtime API 1.6.0."));
+            if (runtimeApiMin is not ("1.6.0" or "1.7.0"))
+                diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged projectile requires runtime API 1.6.0 or later."));
             bool invalid = charges.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
             foreach (var operation in charges)
@@ -213,7 +214,7 @@ public static class CookedCharacterPackageLoader
                         continue;
                     lifecycleCount++;
                     string path = slot.Id + ".chargedDirectionalDash";
-                    if (runtimeApiMin is not ("1.5.0" or "1.6.0"))
+                    if (runtimeApiMin is not ("1.5.0" or "1.6.0" or "1.7.0"))
                         diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                             "Charged directional dash requires runtime API 1.5.0."));
                     if (capability.Parameters is not CookedChargedDirectionalDashCapabilityParameters dash)
@@ -316,9 +317,25 @@ public static class CookedCharacterPackageLoader
                 ValidateFixedHitstun(leap.Hitbox.FixedHitstunTicks, leap.Hitbox.StunTicks,
                     slot.Id, diagnostics, ref requiresApi13);
         }
-        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0"))
+        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0" or "1.7.0"))
             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                 "Armor windows and fixed hitstun require runtime API 1.3.0 or later."));
+    }
+
+    private static void ValidateAimMovementSpeeds(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.Slots)
+        {
+            if (slot.AimMovementSpeedScale == 1f) continue;
+            if (runtimeApiMin != "1.7.0")
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "Aim movement speed scale requires runtime API 1.7.0."));
+            if (!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f)
+                || slot.AimMovement != AuthoringAimMovementMode.Mobile)
+                diagnostics.Add(Error("package.slot.invalid", slot.Id,
+                    "Aim movement speed scale must be in (0, 1] on a mobile aim slot."));
+        }
     }
 
     private static void ValidateStartupAimCorrections(
@@ -339,7 +356,7 @@ public static class CookedCharacterPackageLoader
                 {
                     if (operation is CookedStartupAimCorrectionOperation correction)
                     {
-                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0"))
+                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0" or "1.7.0"))
                             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                                 "Startup aim correction requires runtime API 1.4.0 or later."));
                         windowCount++;
@@ -500,8 +517,8 @@ public static class CookedCharacterPackageLoader
         }
         private static CookedSlotDefinition ParseSlot(JsonElement e)
         {
-            var q = OOptional(e, new[] { "aimMovement", "aimAnimationId", "allowSlideCarry", "hitPresentationId" },
-                "ordinal", "id", "isAir", "name", "description", "iconId", "behavior", "aimMode", "aimMovement",
+            var q = OOptional(e, new[] { "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "allowSlideCarry", "hitPresentationId" },
+                "ordinal", "id", "isAir", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimMovementSpeedScale",
                 "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart",
                 "allowSlideCarry", "chargePool", "timeline");
             var pool = q["chargePool"].ValueKind == JsonValueKind.Null ? null : ParseChargePool(q["chargePool"]);
@@ -518,7 +535,7 @@ public static class CookedCharacterPackageLoader
                 U(q, "cooldownTicks"), Bo(q, "isRecoveryMove"), Bo(q, "preserveMomentumOnStart"),
                 new CookedTimeline(A(t, "stages").EnumerateArray().Select(ParseStage).ToList()), pool,
                 (AuthoringAimMovementMode)BOrDefault(q, "aimMovement", 0), SO(q, "aimAnimationId", ""),
-                BoOrDefault(q, "allowSlideCarry", false), hitPresentationId);
+                BoOrDefault(q, "allowSlideCarry", false), hitPresentationId, FOrDefault(q, "aimMovementSpeedScale", 1f));
         }
         private static CookedChargePool ParseChargePool(JsonElement e){var q=O(e,"maxCharges","regenTicks");return new CookedChargePool(I(q,"maxCharges"),U(q,"regenTicks"));}
         private static CookedStage ParseStage(JsonElement e){var q=OOptional(e,new[]{"attackRange","warpRange","useTargetLock","rotateTowardTarget","trackingStrength"},"durationTicks","iasaTicks","landingLagTicks","autoCancelBeforeTicks","autoCancelAfterTicks","attackRange","warpRange","useTargetLock","rotateTowardTarget","trackingStrength","animationIds","operations");return new CookedStage(U(q,"durationTicks"),U(q,"iasaTicks"),U(q,"landingLagTicks"),U(q,"autoCancelBeforeTicks"),U(q,"autoCancelAfterTicks"),A(q["animationIds"]).EnumerateArray().Select(x=>x.GetString()!).ToList(),A(q["operations"]).EnumerateArray().Select(ParseOperation).ToList(),FOrDefault(q,"attackRange",0f),FOrDefault(q,"warpRange",0f),BoOrDefault(q,"useTargetLock",false),BoOrDefault(q,"rotateTowardTarget",false),FOrDefault(q,"trackingStrength",0f));}

@@ -89,9 +89,11 @@ namespace SlopArena.Client.UI
             if (_lblServer != null) _lblServer.enableRichText = false;
             if (_lblInviteHint != null) _lblInviteHint.enableRichText = false;
 
+            // An unnamed room shows a short code, not a 36-character GUID.
             if (_lblServer != null)
                 _lblServer.text = string.IsNullOrEmpty(ClientSession.SelectedServerName)
-                    ? (_roomMode ? ClientSession.SelectedRoomId.ToString() : ClientSession.SelectedServerId.ToString())
+                    ? "ROOM " + (_roomMode ? ClientSession.SelectedRoomId : ClientSession.SelectedServerId)
+                        .ToString("N").Substring(0, 6).ToUpperInvariant()
                     : ClientSession.SelectedServerName;
             if (_backButton != null) _backButton.clicked += Leave;
             if (_btnLeave != null) _btnLeave.clicked += Leave;
@@ -661,8 +663,9 @@ namespace SlopArena.Client.UI
             slot.AddToClassList("player-slot");
             var slotIndex = new Label($"P{index + 1}") { name = "slot-index" };
             slotIndex.AddToClassList("slot-index");
-            var name = new Label("Open slot") { name = "slot-name", enableRichText = false };
+            var name = new Label("OPEN SLOT") { name = "slot-name", enableRichText = false };
             name.AddToClassList("slot-name");
+            slot.EnableInClassList("player-slot--open", index >= players.Count);
             if (index < players.Count)
             {
                 var player = players[index];
@@ -683,11 +686,12 @@ namespace SlopArena.Client.UI
             var slot = new VisualElement { name = "player-slot" };
             slot.AddToClassList("player-slot");
             slot.Add(new Label($"P{index + 1}") { name = "slot-index" });
-            var name = new Label(index < members.Count ? members[index].Name : "Open slot")
+            var name = new Label(index < members.Count ? members[index].Name : "OPEN SLOT")
             {
                 name = "slot-name",
                 enableRichText = false
             };
+            slot.EnableInClassList("player-slot--open", index >= members.Count);
             slot.Add(name);
             if (index < members.Count && members[index].IsLeader)
                 slot.Add(new Label("LEADER") { name = "leader-badge" });

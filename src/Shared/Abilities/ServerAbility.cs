@@ -346,5 +346,67 @@ namespace SlopArena.Shared.Abilities
             s.AttackSlot = 0; // signal to simulation that ability ended
         }
 
+        // ── World Snapshot contract (ADR-0039) ──
+        // Every field that changes after construction is written here or in an override that
+        // calls base first. Wiring (simulation, resolver, content, presentation sink) is
+        // re-attached by whoever recreates the instance, never written.
+
+        /// <summary>Write this activation's runtime state.</summary>
+        internal virtual void WriteSnapshot(SnapshotWriter w)
+        {
+            w.WriteBool(_hitGroups != null);
+            if (_hitGroups != null)
+            {
+                var groups = new List<byte>(_hitGroups.Keys);
+                groups.Sort();
+                w.WriteInt(groups.Count);
+                foreach (byte group in groups)
+                {
+                    w.WriteByte(group);
+                    w.WriteSet(_hitGroups[group]);
+                }
+            }
+            w.WriteUShort(_armorWindowTicks);
+            w.WriteBool(_armorTickActive);
+            w.WriteBool(_armorStartsOnFirstTick);
+            w.WriteBool(FrozenForSimulationTick);
+            SnapshotCodecs.Write(w, ActivationInput);
+            w.WriteByte(Slot);
+            w.WriteUShort(Cooldown);
+            w.WriteBool(AirborneAtStart);
+            w.WriteULong(ActivationId);
+            w.WriteByte(PresentationAttackSequence);
+            w.WriteInt(PresentationOperationIndex);
+            w.WriteByte(AnimIndex);
+        }
+
+        /// <summary>Restore the state <see cref="WriteSnapshot"/> wrote into a freshly constructed, wired instance.</summary>
+        internal virtual void ReadSnapshot(SnapshotReader r)
+        {
+            _hitGroups = null;
+            if (r.ReadBool())
+            {
+                _hitGroups = new Dictionary<byte, HashSet<ulong>>();
+                int count = r.ReadCount(5);
+                for (int i = 0; i < count; i++)
+                {
+                    byte group = r.ReadByte();
+                    _hitGroups[group] = r.ReadSet() ?? throw SnapshotReader.Malformed("hit group");
+                }
+            }
+            _armorWindowTicks = r.ReadUShort();
+            _armorTickActive = r.ReadBool();
+            _armorStartsOnFirstTick = r.ReadBool();
+            FrozenForSimulationTick = r.ReadBool();
+            ActivationInput = SnapshotCodecs.ReadInputState(r);
+            Slot = r.ReadByte();
+            Cooldown = r.ReadUShort();
+            AirborneAtStart = r.ReadBool();
+            ActivationId = r.ReadULong();
+            PresentationAttackSequence = r.ReadByte();
+            PresentationOperationIndex = r.ReadInt();
+            AnimIndex = r.ReadByte();
+        }
+
     }
 }

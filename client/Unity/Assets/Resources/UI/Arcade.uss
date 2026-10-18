@@ -5,15 +5,14 @@
     padding: 0;
 }
 .arcade-header .btn-back {
-    margin: 0;
+    margin: 0 10px 0 0;
     min-height: 48px;
-    border-color: rgb(23, 19, 27);
 }
 .arcade-page-title {
     margin: 0;
     padding: 8px 16px;
     background-color: rgb(240, 238, 232);
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     font-size: 30px;
     -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
@@ -42,7 +41,7 @@
     margin: 0;
     padding: 6px 10px;
     background-color: rgb(240, 238, 232);
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     font-size: 12px;
     -unity-font-style: bold;
     letter-spacing: 1px;
@@ -67,11 +66,11 @@
     flex-shrink: 0;
     margin: 0 0 16px;
     padding: 0;
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
     border-width: 3px;
-    border-color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
     border-radius: 0;
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
 }
 .arcade-mode-gallery--single .arcade-mode-card {
     width: 100%;
@@ -82,9 +81,11 @@
 .arcade-mode-card--selected {
     border-color: rgb(255, 204, 34);
 }
+/* Focus uses the stage cards' yellow frame; selection adds the check. Combat
+   Orange stays reserved for impact. */
 .arcade-mode-card:hover,
 .arcade-mode-card:focus {
-    border-color: rgb(224, 92, 42);
+    border-color: rgb(255, 204, 34);
 }
 .arcade-mode-art {
     flex-grow: 1;
@@ -107,7 +108,7 @@
 }
 .arcade-mode-title {
     margin: 0;
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     min-width: 0;
     flex-shrink: 1;
     font-size: 26px;
@@ -124,13 +125,13 @@
     margin-left: 12px;
     background-image: url("../../UI/SelectionCheck.png");
     -unity-background-scale-mode: scale-to-fit;
-    -unity-background-image-tint-color: rgb(23, 19, 27);
+    -unity-background-image-tint-color: rgb(27, 26, 24);
     display: none;
 }
 .arcade-mode-card--selected .arcade-mode-check { display: flex; }
 .arcade-mode-rule {
     margin: 6px 0 0;
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     font-size: 15px;
     white-space: normal;
     -unity-text-align: upper-left;
@@ -143,9 +144,9 @@
     flex-shrink: 0;
     padding: 20px;
     background-color: rgb(240, 238, 232);
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     border-width: 2px;
-    border-color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
 }
 .arcade-selected-mode {
     margin: 0 0 12px;
@@ -175,7 +176,7 @@
     flex-shrink: 0;
     margin: 0;
     border-width: 3px;
-    border-color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
     translate: 0 0;
 }
 .arcade-fighters .char-card--selected { border-color: rgb(255, 204, 34); }
@@ -184,7 +185,7 @@
 .arcade-fighters .char-card--selected:hover,
 .arcade-fighters .char-card--selected:focus {
     border-width: 3px;
-    border-color: rgb(224, 92, 42);
+    border-color: rgb(255, 204, 34);
     translate: 0 0;
 }
 .arcade-fighters .char-portrait {
@@ -212,7 +213,7 @@
     margin-top: 12px;
     padding-top: 12px;
     border-top-width: 1px;
-    border-top-color: rgb(98, 92, 107);
+    border-top-color: rgb(123, 120, 114);
 }
 .arcade-best-fighter {
     margin: 0 0 4px;
@@ -229,8 +230,17 @@
 }
 .arcade-record-panel .unity-foldout__toggle {
     min-height: 24px;
-    margin-top: 8px;
+    margin: 8px 0 0 0;
     font-size: 12px;
+}
+.arcade-record-panel .unity-foldout__text {
+    color: rgb(27, 26, 24);
+    font-size: 11px;
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+}
+.arcade-record-panel .unity-foldout__checkmark {
+    -unity-background-image-tint-color: rgb(27, 26, 24);
 }
 .arcade-archive { max-height: 72px; }
 .arcade-archive Label { font-size: 12px; }
@@ -248,7 +258,13 @@
     min-width: 0;
     min-height: 56px;
     margin: 0;
+    border-width: 3px;
+    border-bottom-width: 8px;
+    border-right-width: 6px;
     font-size: 20px;
+    letter-spacing: 0;
+    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
 }
 .frontend-shell--compact .arcade-page-title { font-size: 26px; }
 .frontend-shell--compact .arcade-body { padding-top: 12px; padding-bottom: 16px; }
@@ -277,7 +293,7 @@
 .frontend-shell--compact .arcade-launch-row { margin-top: 12px; }
 .frontend-shell--compact .arcade-launch-row .btn-primary { min-height: 48px; font-size: 17px; }
 
-.slopball-live { position: absolute; right: 18px; top: 76px; width: 265px; padding: 12px; background-color: rgba(13, 13, 20, 0.86); color: rgb(240, 238, 232); border-left-width: 4px; border-left-color: rgb(255, 204, 34); }
+.slopball-live { position: absolute; right: 18px; top: 76px; width: 265px; padding: 12px; background-color: rgba(22, 21, 19, 0.86); color: rgb(240, 238, 232); border-left-width: 4px; border-left-color: rgb(255, 204, 34); }
 .arcade-eyebrow { font-size: 12px; -unity-font-style: bold; letter-spacing: 1px; }
 .slopball-count { white-space: normal; font-size: 16px; margin-top: 4px; margin-bottom: 8px; }
 .slopball-cue { font-size: 14px; white-space: normal; margin-top: 6px; margin-bottom: 8px; }
@@ -290,12 +306,13 @@
 .course-pip--broken { background-color: rgb(255, 204, 34); border-color: rgb(255, 204, 34); }
 .course-pip--missed { background-color: rgba(255, 112, 103, 0.3); border-color: rgb(255, 112, 103); }
 .course-checkpoint--warning { color: rgb(255, 122, 92); }
-.course-toast { display: none; position: absolute; right: 100%; top: 150px; width: 250px; margin-right: 12px; padding: 9px 12px; background-color: rgba(13, 13, 20, 0.92); border-left-width: 4px; border-left-color: rgb(47, 193, 170); }
+.course-toast { display: none; position: absolute; right: 100%; top: 150px; width: 250px; margin-right: 12px; padding: 9px 12px; background-color: rgba(22, 21, 19, 0.92); border-left-width: 4px; border-left-color: rgb(47, 193, 170); }
 .course-toast-title { font-size: 15px; -unity-font-style: bold; color: rgb(120, 236, 214); white-space: nowrap; }
 .course-toast-line { font-size: 12px; color: rgb(240, 238, 232); white-space: normal; margin-top: 2px; }
 .course-toast--warning { border-left-color: rgb(210, 58, 44); }
 .course-toast--warning .course-toast-title { color: rgb(255, 122, 92); }
 .course-count-pop { position: absolute; translate: -50% -50%; font-size: 34px; color: rgb(255, 246, 222); -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(43, 18, 12); text-shadow: 3px 3px 0px rgb(200, 129, 26); white-space: nowrap; }
+.course-count-pop--hit { font-size: 24px; color: rgb(255, 204, 34); text-shadow: 2px 2px 0px rgb(214, 59, 47); }
 .course-edge-marker { position: absolute; width: 18px; height: 18px; translate: -50% -50%; rotate: 45deg; background-color: rgb(210, 58, 44); border-width: 2px; border-color: rgb(255, 246, 222); }
 .slopball-streak-toast {
     position: absolute;
@@ -303,7 +320,7 @@
     top: 28px;
     margin-right: 14px;
     padding: 9px 14px;
-    background-color: rgba(13, 13, 20, 0.94);
+    background-color: rgba(22, 21, 19, 0.94);
     border-bottom-width: 3px;
     border-bottom-color: rgb(255, 204, 34);
     color: rgb(255, 220, 92);
@@ -320,11 +337,32 @@
     background-image: url("../../UI/Arcade/CoursesPoster.png");
 }
 .course-time { font-size: 30px; color: rgb(255, 204, 34); -unity-font-style: bold; margin-top: 8px; margin-bottom: 8px; }
-.course-results { position: absolute; left: 25%; right: 25%; top: 24%; padding: 28px; background-color: rgb(23, 19, 27); color: rgb(240, 238, 232); border-top-width: 5px; border-top-color: rgb(255, 204, 34); }
+.course-results { position: absolute; left: 25%; right: 25%; top: 24%; padding: 28px; background-color: rgb(27, 26, 24); color: rgb(240, 238, 232); border-top-width: 5px; border-top-color: rgb(255, 204, 34); }
 .course-results .arcade-mode-title { color: rgb(240, 238, 232); }
 .course-actions { flex-direction: row; margin-top: 16px; }
-.course-actions Button { flex-grow: 1; margin-right: 8px; min-height: 52px; font-size: 18px; -unity-font-style: bold; color: rgb(23, 19, 27); border-width: 2px; border-color: rgb(23, 19, 27); border-radius: 0; }
+.course-actions Button { flex-grow: 1; margin-right: 8px; min-height: 52px; font-size: 18px; -unity-font-style: bold; color: rgb(27, 26, 24); border-width: 2px; border-color: rgb(27, 26, 24); border-radius: 0; }
 .course-actions .btn-primary { background-color: rgb(255, 204, 34); }
 .course-actions .btn-secondary { background-color: rgb(240, 238, 232); }
-.course-actions Button:hover, .course-actions Button:focus { border-color: rgb(224, 92, 42); }
-#arcade-course-tips { margin-top: 10px; margin-bottom: 10px; }
+.course-actions Button:hover, .course-actions Button:focus { border-color: rgb(255, 204, 34); border-width: 3px; }
+.course-actions .btn-primary:hover, .course-actions .btn-primary:focus { border-color: rgb(240, 238, 232); }
+/* MOVEMENT TIPS: a themed checkbox with a utility label, not Unity's default. */
+#arcade-course-tips { margin: 10px 0; }
+#arcade-course-tips .unity-toggle__input { flex-direction: row; align-items: center; }
+#arcade-course-tips .unity-toggle__checkmark {
+    width: 20px;
+    height: 20px;
+    background-color: rgb(255, 255, 255);
+    border-width: 2px;
+    border-color: rgb(27, 26, 24);
+    -unity-background-image-tint-color: rgb(27, 26, 24);
+}
+#arcade-course-tips:checked .unity-toggle__checkmark { background-color: rgb(255, 204, 34); }
+#arcade-course-tips:hover .unity-toggle__checkmark,
+#arcade-course-tips:focus .unity-toggle__checkmark { border-width: 3px; }
+#arcade-course-tips .unity-toggle__text {
+    margin-left: 8px;
+    color: rgb(27, 26, 24);
+    font-size: 12px;
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+}

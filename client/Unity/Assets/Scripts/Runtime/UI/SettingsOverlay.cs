@@ -151,7 +151,7 @@ namespace SlopArena.Client.UI
             AddSlider(right, "SFX Volume", settings.Sfx, 0f, 100f, settings.SetSfx);
             AddSlider(right, "UI Volume", settings.Ui, 0f, 100f, settings.SetUi);
             columns.Add(left); columns.Add(right); root.Add(columns);
-            var mute = new Toggle("Mute When Unfocused") { value = settings.MuteWhenUnfocused };
+            var mute = new Toggle("MUTE WHEN UNFOCUSED") { value = settings.MuteWhenUnfocused };
             mute.AddToClassList("sa-settings-toggle");
             mute.RegisterValueChangedCallback(evt => settings.SetMuteWhenUnfocused(evt.newValue));
             root.Add(mute);
@@ -160,7 +160,7 @@ namespace SlopArena.Client.UI
         private void BuildControls(VisualElement root)
         {
             var settings = ClientSettingsService.Instance;
-            _device = new DropdownField("Device",
+            _device = new DropdownField("DEVICE",
                 new System.Collections.Generic.List<string> { "Keyboard", "Mouse", "Controller" },
                 _deviceName == "Mouse" ? 1 : _deviceName == "Controller" ? 2 : 0);
             _device.AddToClassList("sa-settings-field");
@@ -180,21 +180,28 @@ namespace SlopArena.Client.UI
             }
             else
             {
+                // Keyboard and Mouse list only actions this device can bind; an
+                // unbindable row (the analog stick on Keyboard) was dead weight.
                 foreach (var action in HumanInputActions.RebindableActions)
-                    if (action != "SpecialModifier") AddBindingRow(root, action, ActionLabel(action));
+                    if (action != "SpecialModifier" && HumanInputActions.BindingIndex(action, SelectedGroup) >= 0)
+                        AddBindingRow(root, action, ActionLabel(action));
             }
-            AddSlider(root, "Stick Deadzone", settings.StickDeadzone, 5f, 50f, settings.SetStickDeadzone);
-            AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
-            var vibration = new Toggle("Vibration") { value = settings.Vibration };
-            vibration.AddToClassList("sa-settings-toggle");
-            vibration.RegisterValueChangedCallback(evt => settings.SetVibration(evt.newValue));
-            root.Add(vibration);
+            if (_deviceName == "Controller")
+            {
+                AddSlider(root, "Stick Deadzone", settings.StickDeadzone, 5f, 50f, settings.SetStickDeadzone);
+                AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
+                var vibration = new Toggle("VIBRATION") { value = settings.Vibration };
+                vibration.AddToClassList("sa-settings-toggle");
+                vibration.RegisterValueChangedCallback(evt => settings.SetVibration(evt.newValue));
+                root.Add(vibration);
+            }
             var reset = new Button(() =>
             {
                 if (HumanInputActions.IsCapturing) HumanInputActions.CancelCapture();
                 settings.ResetControls();
                 SelectCategory(Controls);
             }) { text = "RESET CONTROLS" };
+            reset.AddToClassList("sa-settings-body-action");
             root.Add(reset);
         }
 
@@ -204,7 +211,7 @@ namespace SlopArena.Client.UI
             int index = HumanInputActions.BindingIndex(action, group);
             var row = new VisualElement();
             row.AddToClassList("sa-settings-binding-row");
-            var name = new Label(label);
+            var name = new Label(label.ToUpperInvariant());
             name.AddToClassList("sa-settings-row-label");
             row.Add(name);
             var current = new Label(HumanInputActions.BindingLabel(action, group));
@@ -264,21 +271,21 @@ namespace SlopArena.Client.UI
         {
             var settings = ClientSettingsService.Instance;
             AddSlider(root, "Mouse Sensitivity", settings.CameraSensitivity * 100f, 10f, 200f, settings.SetCameraSensitivity);
-            var horizontal = new Toggle("Invert Horizontal Camera") { value = settings.InvertCameraHorizontal };
+            var horizontal = new Toggle("INVERT HORIZONTAL CAMERA") { value = settings.InvertCameraHorizontal };
             horizontal.RegisterValueChangedCallback(evt => settings.SetInvertCameraHorizontal(evt.newValue));
             root.Add(horizontal);
-            var vertical = new Toggle("Invert Vertical Camera") { value = settings.InvertCameraVertical };
+            var vertical = new Toggle("INVERT VERTICAL CAMERA") { value = settings.InvertCameraVertical };
             vertical.RegisterValueChangedCallback(evt => settings.SetInvertCameraVertical(evt.newValue));
             root.Add(vertical);
             AddSlider(root, "Target Indicator Opacity", settings.TargetOpacity * 100f, 20f, 100f, settings.SetTargetOpacity);
-            var overheadDamage = new Toggle("Show overhead damage") { value = settings.ShowOverheadDamage };
+            var overheadDamage = new Toggle("SHOW OVERHEAD DAMAGE") { value = settings.ShowOverheadDamage };
             overheadDamage.RegisterValueChangedCallback(evt => settings.SetShowOverheadDamage(evt.newValue));
             root.Add(overheadDamage);
             var overheadDamageNote = new Label("This hides only the target-lock damage percentage. Player panel percentages and the targeting marker remain visible.");
             overheadDamageNote.AddToClassList("sa-settings-note");
             root.Add(overheadDamageNote);
             var statsChoices = new List<string> { "Off", "Ping", "Detailed" };
-            var stats = new DropdownField("Network Stats", statsChoices, statsChoices[settings.NetworkStats]);
+            var stats = new DropdownField("NETWORK STATS", statsChoices, statsChoices[settings.NetworkStats]);
             stats.RegisterValueChangedCallback(evt => settings.SetNetworkStats(statsChoices.IndexOf(evt.newValue)));
             root.Add(stats);
             var network = new Label("Network stats appear in the match HUD. Ping requires a live gameplay-server connection.");
@@ -287,12 +294,12 @@ namespace SlopArena.Client.UI
             AddSlider(root, "Screen Shake", settings.ScreenShake * 100f, 0f, 100f, settings.SetScreenShake);
             var lockChoices = new List<string> { "Never", "Always", "On Hit" };
             var lockModes = new[] { TargetLockMode.Never, TargetLockMode.Always, TargetLockMode.OnHit };
-            var lockMode = new DropdownField("Auto Target Lock", lockChoices,
+            var lockMode = new DropdownField("AUTO TARGET LOCK", lockChoices,
                 Array.IndexOf(lockModes, settings.AutoLockMode));
             lockMode.RegisterValueChangedCallback(evt =>
                 settings.SetAutoLockMode(lockModes[lockChoices.IndexOf(evt.newValue)]));
             root.Add(lockMode);
-            var sessionLog = new Toggle("Record practice session log") { value = settings.RecordSessionLog };
+            var sessionLog = new Toggle("RECORD PRACTICE SESSION LOG") { value = settings.RecordSessionLog };
             sessionLog.RegisterValueChangedCallback(evt => settings.SetRecordSessionLog(evt.newValue));
             root.Add(sessionLog);
             var sessionLogNote = new Label("Saves a local file for each Training or Solo match you start, to measure hits, misses and camera handling. Nothing is uploaded. Files: "
@@ -321,16 +328,19 @@ namespace SlopArena.Client.UI
             var settings = ClientSettingsService.Instance;
             var choices = new List<string> { "80%", "90%", "100%", "110%", "120%", "130%", "140%" };
             string current = $"{settings.UiScale}%";
-            var scale = new DropdownField("UI Scale", choices, current);
+            var scale = new DropdownField("UI SCALE", choices, current);
             scale.RegisterValueChangedCallback(evt => settings.SetUiScale(int.Parse(evt.newValue.TrimEnd('%'))));
             root.Add(scale);
-            var reduced = new Toggle("Reduced Flashing") { value = settings.ReducedFlashing };
+            var reduced = new Toggle("REDUCED FLASHING") { value = settings.ReducedFlashing };
             reduced.RegisterValueChangedCallback(evt => settings.SetReducedFlashing(evt.newValue));
             root.Add(reduced);
             var explanation = new Label("Reduces transient graphic hit rings and rays. Other visual effects may still flash.");
             explanation.AddToClassList("sa-settings-note");
             root.Add(explanation);
         }
+        // Labels are uppercased where each control is built. Never rewrite a field's
+        // label afterwards: the label's ChangeEvent<string> bubbles into the field's
+        // own value callback (a dropdown would rebuild its tab, or parse its label).
         private static void ApplyReadableContrast(VisualElement root)
         {
             root.Query<DropdownField>().ForEach(field => field.AddToClassList("sa-settings-field"));
@@ -353,10 +363,12 @@ namespace SlopArena.Client.UI
             var actions = new VisualElement();
             actions.AddToClassList("sa-settings-confirmation-actions");
             actions.Add(new Button(ConfirmReset) { text = "RESET" });
-            actions.Add(new Button(CancelReset) { text = "CANCEL" });
+            var cancel = new Button(CancelReset) { text = "CANCEL" };
+            actions.Add(cancel);
             ApplyReadableContrast(actions);
             box.Add(actions);
-            _resetConfirmation.Add(box); _surface.Add(_resetConfirmation); actions.Q<Button>()?.Focus();
+            // Start on the safe choice: a stray confirm press must not wipe settings.
+            _resetConfirmation.Add(box); _surface.Add(_resetConfirmation); cancel.Focus();
         }
 
         private void CancelReset()
@@ -373,7 +385,7 @@ namespace SlopArena.Client.UI
             var modes = new List<string> { "Windowed", "Borderless", "Fullscreen" };
             string currentMode = Screen.fullScreenMode == FullScreenMode.FullScreenWindow ? "Borderless" :
                 Screen.fullScreenMode == FullScreenMode.ExclusiveFullScreen ? "Fullscreen" : "Windowed";
-            var mode = new DropdownField("Display Mode", modes, currentMode);
+            var mode = new DropdownField("DISPLAY MODE", modes, currentMode);
             root.Add(mode);
             var resolutions = new List<Resolution>();
             foreach (var item in Screen.resolutions)
@@ -382,25 +394,27 @@ namespace SlopArena.Client.UI
                 resolutions.Add(new Resolution { width = Screen.width, height = Screen.height });
             var labels = resolutions.ConvertAll(r => $"{r.width} × {r.height}");
             int selected = resolutions.FindIndex(r => r.width == Screen.width && r.height == Screen.height);
-            var resolution = new DropdownField("Resolution", labels, labels[Mathf.Max(selected, 0)]);
+            var resolution = new DropdownField("RESOLUTION", labels, labels[Mathf.Max(selected, 0)]);
             root.Add(resolution);
             var qualities = new List<string> { "Low", "Medium", "High" };
-            var quality = new DropdownField("Quality", qualities, qualities[Mathf.Clamp(settings.Quality, 0, 2)]);
+            var quality = new DropdownField("QUALITY", qualities, qualities[Mathf.Clamp(settings.Quality, 0, 2)]);
             quality.RegisterValueChangedCallback(evt => settings.SetVideo(qualities.IndexOf(evt.newValue), settings.VSync, settings.TargetFps));
             root.Add(quality);
-            var vsync = new Toggle("VSync (controls pacing when enabled)") { value = settings.VSync };
+            var vsync = new Toggle("VSYNC (CONTROLS PACING WHEN ENABLED)") { value = settings.VSync };
             vsync.RegisterValueChangedCallback(evt => settings.SetVideo(settings.Quality, evt.newValue, settings.TargetFps));
             root.Add(vsync);
             var fpsChoices = new List<string> { "60", "120", "144", "240", "Unlimited" };
             int fpsIndex = settings.TargetFps switch { 60 => 0, 120 => 1, 144 => 2, 240 => 3, _ => 4 };
-            var fps = new DropdownField("FPS Limit", fpsChoices, fpsChoices[fpsIndex]);
+            var fps = new DropdownField("FPS LIMIT", fpsChoices, fpsChoices[fpsIndex]);
             fps.RegisterValueChangedCallback(evt =>
             {
                 int index = fpsChoices.IndexOf(evt.newValue);
                 settings.SetVideo(settings.Quality, settings.VSync, index == 4 ? -1 : int.Parse(evt.newValue));
             });
             root.Add(fps);
-            root.Add(new Button(() => BeginDisplayChange(mode.value, resolutions[labels.IndexOf(resolution.value)])) { text = "APPLY DISPLAY" });
+            var apply = new Button(() => BeginDisplayChange(mode.value, resolutions[labels.IndexOf(resolution.value)])) { text = "APPLY DISPLAY" };
+            apply.AddToClassList("sa-settings-body-action");
+            root.Add(apply);
         }
 
         private void BeginDisplayChange(string mode, Resolution resolution)

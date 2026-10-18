@@ -109,4 +109,18 @@ public sealed class MankiJetpackBoost : ServerAbility
     {
         s.IsAiming = false;
     }
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteUShort(_elapsedTicks);
+        w.WriteBool(_ignited);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _elapsedTicks = r.ReadUShort();
+        _ignited = r.ReadBool();
+    }
 }

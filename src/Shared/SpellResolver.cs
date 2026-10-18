@@ -189,6 +189,63 @@ namespace SlopArena.Shared
             _lastTickChecked.Clear();
         }
 
+        /// <summary>World Snapshot: live hitboxes in resolution order and undrained explosions.
+        /// The last tick's checked list is presentation output and is not captured.</summary>
+        internal void WriteSnapshot(SnapshotWriter w,
+            Func<ulong, (CharacterDefinition? Def, BakedAnimationData? Baked)> ownerContent)
+        {
+            w.WriteInt(_hitboxes.Count);
+            foreach (var hb in _hitboxes)
+                SnapshotCodecs.Write(w, hb, ownerContent);
+            w.WriteInt(_pendingExplosions.Count);
+            foreach (var (x, y, z, explosion, ownerId, attackSlot, activationId, airborne, attackSequence) in _pendingExplosions)
+            {
+                w.WriteFloat(x);
+                w.WriteFloat(y);
+                w.WriteFloat(z);
+                SnapshotCodecs.Write(w, explosion);
+                w.WriteULong(ownerId);
+                w.WriteByte(attackSlot);
+                w.WriteULong(activationId);
+                w.WriteBool(airborne);
+                w.WriteByte(attackSequence);
+            }
+        }
+
+        /// <summary>Parsed resolver state, applied only after the whole snapshot decoded.</summary>
+        internal sealed class SnapshotData
+        {
+            public readonly List<Hitbox> Hitboxes = new();
+            public readonly List<(float x, float y, float z, ProjectileExplosion explosion, ulong ownerId, byte attackSlot, ulong activationId, bool airborne, byte attackSequence)> Explosions = new();
+        }
+
+        internal static SnapshotData ReadSnapshot(SnapshotReader r,
+            Func<ulong, (CharacterDefinition? Def, BakedAnimationData? Baked)> ownerContent)
+        {
+            var data = new SnapshotData();
+            int hitboxes = r.ReadCount(1);
+            for (int i = 0; i < hitboxes; i++)
+                data.Hitboxes.Add(SnapshotCodecs.ReadHitbox(r, ownerContent));
+            int explosions = r.ReadCount(1);
+            for (int i = 0; i < explosions; i++)
+            {
+                float x = r.ReadFloat(), y = r.ReadFloat(), z = r.ReadFloat();
+                var explosion = SnapshotCodecs.ReadProjectileExplosion(r);
+                data.Explosions.Add((x, y, z, explosion, r.ReadULong(), r.ReadByte(), r.ReadULong(),
+                    r.ReadBool(), r.ReadByte()));
+            }
+            return data;
+        }
+
+        internal void ApplySnapshot(SnapshotData data)
+        {
+            _hitboxes.Clear();
+            _lastTickChecked.Clear();
+            _pendingExplosions.Clear();
+            _hitboxes.AddRange(data.Hitboxes);
+            _pendingExplosions.AddRange(data.Explosions);
+        }
+
         /// <summary>
         /// Drain and return all pending explosion events from this tick.
         /// Call after Tick() to spawn explosion hitboxes at the returned positions.
@@ -293,8 +350,12 @@ namespace SlopArena.Shared
         /// Process one tick: move projectiles, check collisions, age hitboxes.
         /// Returns all hits this tick (one per entity, first hitbox to connect wins).
         /// Already-hit entities in this tick are skipped (no double-hit).
+        /// Melee windows (<see cref="Hitbox.CancelWithAbility"/>) of <paramref name="frozenOwners"/>
+        /// do not age: hitstop pauses the owner's move (ADR-0012), so a freeze cannot use up the
+        /// move's other live windows. They still test contact. Projectiles keep their own time.
         /// </summary>
-        public List<HitResult> Tick(List<EntityData> entities, bool orderMovingTargetContacts = false)
+        public List<HitResult> Tick(List<EntityData> entities, bool orderMovingTargetContacts = false,
+            HashSet<ulong>? frozenOwners = null)
         {
             var results = new List<HitResult>();
             var hitThisTick = new HashSet<ulong>();
@@ -438,7 +499,8 @@ namespace SlopArena.Shared
                 _lastTickChecked.Add(hb);
 
                 // Age / expire
-                hb.AgeTicks++;
+                if (!hb.CancelWithAbility || frozenOwners == null || !frozenOwners.Contains(hb.OwnerId))
+                    hb.AgeTicks++;
                 if (hb.AgeTicks >= hb.DurationTicks || !hb.Active)
                 {
                     if (hb.Explosion.HasValue)

@@ -132,10 +132,14 @@
     min-width: 0;
 }
 
+/* On this dark panel a focused button keeps its fill and gains a yellow frame;
+   turning it ink would sink it into the panel. */
 .ts-btn:hover,
 .ts-btn:focus {
-    background-color: #1b1a18;
-    color: #f0eee8;
+    background-color: #ffffff;
+    color: #1b1a18;
+    border-width: 2px;
+    border-bottom-width: 3px;
     border-color: #ffcc22;
 }
 
@@ -146,7 +150,12 @@
     border-color: #161513;
 }
 
-.ts-btn.active:focus { border-color: #f0eee8; }
+.ts-btn.active:hover,
+.ts-btn.active:focus {
+    border-width: 2px;
+    border-bottom-width: 3px;
+    border-color: #f0eee8;
+}
 .ts-btn:active { translate: 0 2px; }
 
 .ts-btn:disabled {
@@ -164,27 +173,74 @@
 
 .ts-reset-all { margin-right: 4px; }
 
+/* Label on the left, checkbox at the right edge, both centred on one row. */
 .ts-toggle {
+    flex-direction: row;
+    align-items: center;
+    min-height: 28px;
+    margin: 2px 0 4px 0;
     font-size: 12px;
     color: #f0eee8;
-    margin-top: 2px;
-    margin-bottom: 4px;
     flex-shrink: 0;
 }
 
+.ts-toggle .unity-base-field__label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0 8px 0 0;
+    font-size: 11px;
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    white-space: normal;
+    color: #f0eee8;
+}
+
 .ts-toggle .unity-toggle__input {
-    background-color: #161513;
-    border-color: #7b7872;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    margin: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 .ts-toggle .unity-toggle__checkmark {
+    width: 18px;
+    height: 18px;
     background-color: #161513;
+    border-width: 2px;
     border-color: #7b7872;
     -unity-background-image-tint-color: #1b1a18;
 }
 
-.ts-toggle:focus .unity-toggle__checkmark { border-color: #f0eee8; }
+.ts-toggle:hover .unity-toggle__checkmark,
+.ts-toggle:focus .unity-toggle__checkmark { border-color: #ffcc22; }
 .ts-toggle:checked .unity-toggle__checkmark {
     background-color: #ffcc22;
     border-color: #ffcc22;
 }
+.ts-toggle:checked:hover .unity-toggle__checkmark,
+.ts-toggle:checked:focus .unity-toggle__checkmark { border-color: #f0eee8; }
+
+/* Thin scrollbar in the panel's colours, without Unity's arrow buttons. */
+.ts-scroll .unity-scroller--vertical {
+    width: 6px;
+    margin-left: 4px;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+.ts-scroll .unity-scroller__low-button,
+.ts-scroll .unity-scroller__high-button { display: none; }
+.ts-scroll .unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: #252422;
+    border-width: 0;
+}
+.ts-scroll .unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: #7b7872;
+    border-width: 0;
+}
+.ts-scroll .unity-scroller--vertical .unity-base-slider__dragger-border { border-width: 0; }
+

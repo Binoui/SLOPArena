@@ -34,8 +34,15 @@ Do not restart a healthy GameHost or interrupt a match to investigate lag.
    suggest server work/scheduling; poor peer measurements suggest transport.
    Normal server measurements do not rule out client frame pacing, prediction or
    hit presentation. During play the GameHost logs `Inputs entity N:` lines (late,
-   held and neutral ticks, minimum slack) and the client `Player.log` has `[Netplay]`
-   lines (skipped/extra-step updates, lead, corrections, raw playout, frame time).
+   held, neutral, rescued and dropped late presses, minimum slack) and `Input gap
+   entity N` events (start tick, length, whether delayed bundles arrived). The client `Player.log` has `[Netplay]`
+   lines every 5 s (protocol 10: UTC time, pacing, World Frames received/stale/rejected,
+   anchors and exact anchors, `corrections`/`mispredicts`, largest correction and visible
+   jump for you and opponents, prediction `window`, re-simulation time, `jumps`/`starved`,
+   effects and hits started/retracted, `selfInputMismatch`, server late reports, ping,
+   frame time) and a `[Netplay] serverLate` line with Steam's connection status. Protocol 9
+   clients logged `reconciles`/`mispredicts`/`maxSnap`/`hitsTaken`/raw playout instead; see
+   [troubleshooting](../../docs/systems/troubleshooting.md#rollbacks-or-too-fast-with-a-clean-network).
 
 Diagnostics retain active matches and the last 50 ended matches, with 256 recent
 events per match. GameHost restart loses them. A `410` means a known match has

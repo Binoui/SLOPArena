@@ -4,7 +4,7 @@
     top: 76px;
     width: 340px;
     padding: 14px 16px 12px 16px;
-    background-color: rgba(13, 13, 20, 0.88);
+    background-color: rgba(22, 21, 19, 0.88);
     color: rgb(240, 238, 232);
     border-left-width: 4px;
     border-left-color: rgb(255, 204, 34);
@@ -37,7 +37,7 @@
     margin-right: 9px;
     padding: 2px 6px;
     background-color: rgb(240, 238, 232);
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     font-size: 12px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
@@ -49,7 +49,7 @@
     background-color: rgb(255, 204, 34);
     border-color: rgb(255, 204, 34);
     background-image: url("../../UI/SelectionCheck.png");
-    -unity-background-image-tint-color: rgb(23, 19, 27);
+    -unity-background-image-tint-color: rgb(27, 26, 24);
 }
 .tutorial-objective--done .tutorial-text { color: rgb(150, 146, 138); }
 .tutorial-objective--done .tutorial-key { opacity: 0.45; }
@@ -60,7 +60,7 @@
     right: 28%;
     top: 24%;
     padding: 28px;
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
     color: rgb(240, 238, 232);
     border-top-width: 5px;
     border-top-color: rgb(255, 204, 34);
@@ -79,9 +79,9 @@
     min-height: 52px;
     font-size: 18px;
     -unity-font-style: bold;
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     border-width: 2px;
-    border-color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
     border-radius: 0;
 }
 .tutorial-actions .btn-primary { background-color: rgb(255, 204, 34); }
@@ -97,7 +97,7 @@
 .tutorial-stamp-plate {
     align-items: center;
     padding: 8px 36px 14px 36px;
-    background-color: rgba(13, 13, 20, 0.78);
+    background-color: rgba(22, 21, 19, 0.78);
     border-width: 6px;
     border-color: rgb(120, 214, 120);
     border-radius: 12px;

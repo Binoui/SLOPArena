@@ -36,15 +36,25 @@ namespace SlopArena.Shared
 
     public sealed class CourseTargetDefinition
     {
+        public const byte MaxHits = 32;
         public string Id { get; }
         public ArcadePoint Position { get; }
         public float Radius { get; }
-        public CourseTargetDefinition(string id, ArcadePoint position, float radius)
+        /// <summary>
+        /// Damaging hits that break the target: 1 for an ordinary target, more for a bonus target
+        /// that takes a beating. Each accepted hit counts once, whatever its damage. Records
+        /// fingerprint it separately (ArcadeRecordCompatibility), so single-hit courses keep theirs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public byte Hits { get; }
+        public CourseTargetDefinition(string id, ArcadePoint position, float radius, byte hits = 1)
         {
             CharacterCourseDefinition.ValidateId(id);
             if (!position.IsFinite || !float.IsFinite(radius) || radius <= 0f || radius > 2f)
                 throw new ArgumentException("Course targets need finite positions and a radius in (0, 2].");
-            Id = id; Position = position; Radius = radius;
+            if (hits == 0 || hits > MaxHits)
+                throw new ArgumentException($"Course targets break after 1–{MaxHits} hits.");
+            Id = id; Position = position; Radius = radius; Hits = hits;
         }
     }
 
@@ -74,6 +84,9 @@ namespace SlopArena.Shared
         public IReadOnlyList<CourseTargetDefinition> Targets { get; }
         public IReadOnlyList<CourseCheckpointDefinition> Checkpoints { get; }
         public ArcadeVolume Finish { get; }
+        /// <summary>True when some target takes more than one hit (arena section v6).</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool HasMultiHitTargets { get; }
         public CharacterCourseDefinition(IReadOnlyList<CourseTargetDefinition> targets,
             IReadOnlyList<CourseCheckpointDefinition> checkpoints, ArcadeVolume finish)
         {
@@ -87,6 +100,7 @@ namespace SlopArena.Shared
                 var target = targets[i];
                 if (target == null || !ids.Add(target.Id)) throw new ArgumentException("Duplicate or missing course target.");
                 targetCopy[i] = target;
+                HasMultiHitTargets |= target.Hits > 1;
             }
             var checkpointCopy = new CourseCheckpointDefinition[checkpoints.Count];
             int previous = 0;

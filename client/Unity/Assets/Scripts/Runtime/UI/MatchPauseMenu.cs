@@ -136,28 +136,21 @@ namespace SlopArena.Client.UI
             _panel.style.alignItems = Align.Center;
             _panel.style.justifyContent = Justify.Center;
 
+            // Card, title and button sizes live in HUD.uss so this card matches
+            // the frontend MENU: same order, Resume first.
             var box = new VisualElement();
             box.AddToClassList("match-pause-box");
-            box.style.width = 300;
-            box.style.marginLeft = 12;
-            box.style.paddingTop = 24;
-            box.style.paddingBottom = 24;
-            box.style.paddingLeft = 24;
-            box.style.paddingRight = 24;
 
             var title = new Label("PAUSED");
             title.AddToClassList("match-pause-title");
-            title.style.fontSize = 30;
-            title.style.unityTextAlign = TextAnchor.MiddleCenter;
-            title.style.marginBottom = 20;
             box.Add(title);
 
-            box.Add(MakeButton("SETTINGS", OpenSettings));
             _resumeButton = MakeButton("RESUME", () => SetPaused(false));
             _resumeButton.AddToClassList("match-pause-action--primary");
             box.Add(_resumeButton);
             if (_onRetry != null)
                 box.Add(MakeButton("RETRY", Retry));
+            box.Add(MakeButton("SETTINGS", OpenSettings));
             box.Add(MakeButton("LEAVE MATCH", LeaveMatch));
             box.Add(MakeButton("QUIT GAME", QuitGame));
 
@@ -177,10 +170,6 @@ namespace SlopArena.Client.UI
         {
             var btn = new Button(onClick) { text = label, name = "pause-" + label.ToLowerInvariant().Replace(' ', '-') };
             btn.AddToClassList("match-pause-action");
-            btn.style.width = 240;
-            btn.style.height = 46;
-            btn.style.fontSize = 20;
-            btn.style.marginBottom = 10;
             return btn;
         }
         private void OpenSettings()

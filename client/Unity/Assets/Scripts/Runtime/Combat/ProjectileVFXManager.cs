@@ -6,10 +6,12 @@ using UnityEngine.Rendering;
 namespace SlopArena.Client.Combat
 {
     /// <summary>
-    /// Reads server hitboxes from SpellResolver each tick and spawns/manages
+    /// Reads hitboxes from a simulation's SpellResolver each tick and spawns/manages
     /// projectile VFX (KiShot, etc.). Moving hitboxes (|V| > 0) get a visual
     /// GameObject with a glowing sphere + trail + light that follows the hitbox.
-    /// On hitbox removal, spawns an impact burst.
+    /// Training follows its simulation's removals for impact bursts; online, the predicted
+    /// world is re-simulated, so removals repeat and are not followed (confirmed hits have
+    /// their own presentation events).
     /// </summary>
     public class ProjectileVFXManager : MonoBehaviour
     {
@@ -29,16 +31,12 @@ namespace SlopArena.Client.Combat
         private SpellResolver _resolver;
         private ProjectileVFXConfig _config;
 
-        // Local Training visuals follow the Shared resolver; PvP visuals follow server snapshots.
-        private readonly Dictionary<int, GameObject> _activeVisuals = new();
-        private readonly Dictionary<int, CharacterClass> _activeProjectileClasses = new();
-        private readonly HashSet<int> _matchedLocal = new();
-        private readonly List<int> _goneLocal = new();
-        private readonly Dictionary<(ulong owner, ulong activation, int operation), GameObject> _remoteVisuals = new();
-        private readonly HashSet<(ulong owner, ulong activation, int operation)> _matchedRemote = new();
-        private readonly List<(ulong owner, ulong activation, int operation)> _goneRemote = new();
-        private uint _lastRemoteTick;
-        private bool _hasRemoteTick;
+        // Keyed by activation and visual operation, not position, so a re-simulated projectile
+        // keeps its visual (and trail) through rollback corrections.
+        private readonly Dictionary<(ulong owner, ulong activation, int operation, int ordinal), GameObject> _activeVisuals = new();
+        private readonly HashSet<(ulong owner, ulong activation, int operation, int ordinal)> _matchedLocal = new();
+        private readonly List<(ulong owner, ulong activation, int operation, int ordinal)> _goneLocal = new();
+        private readonly Dictionary<(ulong owner, ulong activation, int operation), int> _ordinals = new();
 
         private struct HeldProjectile
         {
@@ -112,7 +110,16 @@ namespace SlopArena.Client.Combat
                     held.Visual.transform.position = held.Hand.position;
         }
 
-        public void SetSimulation(ServerSimulation sim)
+        /// <summary>Training: follow this simulation, including impact bursts on hitbox removal.</summary>
+        public void SetSimulation(ServerSimulation sim) => Attach(sim, followRemovals: true);
+
+        /// <summary>
+        /// Online: follow the predicted world. Its re-simulations repeat removals, so impact
+        /// bursts are not taken from them; confirmed hits play their own presentation events.
+        /// </summary>
+        public void SetPredictedSimulation(ServerSimulation sim) => Attach(sim, followRemovals: false);
+
+        private void Attach(ServerSimulation sim, bool followRemovals)
         {
             // An Arcade retry swaps in a fresh simulation; nothing from the old one may linger.
             if (_resolver != null)
@@ -120,54 +127,12 @@ namespace SlopArena.Client.Combat
             foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
             foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
             _activeVisuals.Clear();
-            _activeProjectileClasses.Clear();
             _heldVisuals.Clear();
             _sim = sim;
             _config = Resources.Load<ProjectileVFXConfig>("VFXConfigs/ProjectileVisuals");
             _resolver = sim.Resolver;
-            if (_resolver != null)
+            if (_resolver != null && followRemovals)
                 _resolver.OnHitboxRemoved += OnHitboxRemoved;
-        }
-
-        public void SetRemoteSnapshots()
-        {
-            _config = Resources.Load<ProjectileVFXConfig>("VFXConfigs/ProjectileVisuals");
-        }
-
-        /// <summary>Use only server projectile positions in PvP; missing entries despawn.</summary>
-        public void OnSnapshot(ProjectileVisualPacket snapshot)
-        {
-            if (_hasRemoteTick && snapshot.Tick <= _lastRemoteTick) return;
-            _lastRemoteTick = snapshot.Tick;
-            _hasRemoteTick = true;
-            _matchedRemote.Clear();
-            foreach (var projectile in snapshot.Projectiles)
-            {
-                var key = (projectile.OwnerId, projectile.ActivationId, projectile.OperationIndex);
-                _matchedRemote.Add(key);
-                if (!_remoteVisuals.TryGetValue(key, out var visual))
-                {
-                    visual = TakeHeldVisual(projectile.OwnerId, projectile.Character, projectile.AttackSlot)
-                        ?? CreateProjectileVisual(projectile.Character, projectile.AttackSlot, projectile.Airborne);
-                    _remoteVisuals.Add(key, visual);
-                }
-                visual.transform.position = new Vector3(projectile.X, projectile.Y, projectile.Z);
-                var charge = GetChargedProjectileParameters(
-                    SlopArena.Client.ClientSession.MatchContentCatalog?.Resolve(projectile.Character)?.Definition,
-                    projectile.AttackSlot, projectile.Airborne);
-                ScaleProjectileVisual(visual, projectile.Radius, charge,
-                    projectile.Character, projectile.AttackSlot, projectile.Airborne);
-                OrientProjectile(visual.transform, projectile.Character, projectile.AttackSlot,
-                    projectile.VX, projectile.VY, projectile.VZ);
-            }
-            _goneRemote.Clear();
-            foreach (var visual in _remoteVisuals)
-                if (!_matchedRemote.Contains(visual.Key))
-                {
-                    DestroyVisual(visual.Value);
-                    _goneRemote.Add(visual.Key);
-                }
-            foreach (var key in _goneRemote) _remoteVisuals.Remove(key);
         }
 
         /// <summary>Call after _sim.Tick() each FixedUpdate.</summary>
@@ -177,6 +142,7 @@ namespace SlopArena.Client.Combat
 
             var hitboxes = _resolver.GetActiveHitboxes();
             _matchedLocal.Clear();
+            _ordinals.Clear();
             for (int i = 0; i < hitboxes.Count; i++)
             {
                 var hb = hitboxes[i];
@@ -185,14 +151,18 @@ namespace SlopArena.Client.Combat
                 if (speedSq <= 0.0001f)
                     continue;
 
-                int projectileKey = ComputeHitboxKey(hb);
+                // Resolver order is canonical, so the ordinal separates projectiles that share an
+                // activation and visual operation the same way on every (re-)simulation.
+                var identity = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex);
+                int ordinal = _ordinals.TryGetValue(identity, out int seen) ? seen : 0;
+                _ordinals[identity] = ordinal + 1;
+                var projectileKey = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex, ordinal);
                 _matchedLocal.Add(projectileKey);
                 if (!_activeVisuals.TryGetValue(projectileKey, out var vis))
                 {
                     vis = TakeHeldVisual(hb.OwnerId, character, hb.AttackSlot, hb.AttackSequence)
                         ?? CreateProjectileVisual(character, hb.AttackSlot, hb.ActivationAirborne);
                     _activeVisuals[projectileKey] = vis;
-                    _activeProjectileClasses[projectileKey] = character;
                 }
                 vis.transform.position = new Vector3(hb.X, hb.Y, hb.Z);
                 ScaleProjectileVisual(vis, hb.Radius,
@@ -207,33 +177,8 @@ namespace SlopArena.Client.Combat
                 if (_matchedLocal.Contains(kv.Key)) continue;
                 _goneLocal.Add(kv.Key);
                 DestroyVisual(kv.Value);
-                _activeProjectileClasses.Remove(kv.Key);
             }
             foreach (var id in _goneLocal) _activeVisuals.Remove(id);
-        }
-
-
-        /// <summary>
-        /// Stable hash key for a hitbox across ticks.
-        /// Computes approximate spawn origin by reversing velocity * age.
-        /// </summary>
-        private static int ComputeHitboxKey(in Hitbox hb)
-        {
-            float tickDt = SlopArena.Shared.Simulation.TickDt;
-            float t = hb.AgeTicks * tickDt;
-            float ox = hb.X - hb.VX * t;
-            float oy = hb.Y - hb.VY * t - 0.5f * hb.Gravity * t * t;
-            float oz = hb.Z - hb.VZ * t;
-            // Manual hash combine (System.HashCode unavailable in Unity profile)
-            int hash = 17;
-            hash = hash * 31 + (int)hb.OwnerId;
-            hash = hash * 31 + (int)hb.ActivationId;
-            hash = hash * 31 + (int)(hb.ActivationId >> 32);
-            hash = hash * 31 + hb.VisualOperationIndex;
-            hash = hash * 31 + Mathf.RoundToInt(ox * 10f);
-            hash = hash * 31 + Mathf.RoundToInt(oy * 10f);
-            hash = hash * 31 + Mathf.RoundToInt(oz * 10f);
-            return hash;
         }
 
         private static CookedChargedProjectileCapabilityParameters GetChargedProjectileParameters(
@@ -398,9 +343,7 @@ namespace SlopArena.Client.Combat
             GameObject prefab = _config != null ? _config.ExplosionPrefab : null;
             float scale = _config != null ? _config.ExplosionScale : 1f;
             float visualScale = hb.Explosion.Value.Radius * scale;
-            var cls = _activeProjectileClasses.TryGetValue(ComputeHitboxKey(hb), out var cachedClass)
-                ? cachedClass
-                : (_sim.GetDefinition(hb.OwnerId)?.Class ?? CharacterClass.None);
+            var cls = _sim.GetDefinition(hb.OwnerId)?.Class ?? CharacterClass.None;
             byte presentationSlot = hb.AttackSlot != 0 ? hb.AttackSlot : (byte)(hb.Slot + 1);
             if (_config != null && _config.ExplosionOverrides != null)
             {
@@ -498,7 +441,6 @@ namespace SlopArena.Client.Combat
             if (_resolver != null)
                 _resolver.OnHitboxRemoved -= OnHitboxRemoved;
             foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
-            foreach (var visual in _remoteVisuals.Values) DestroyVisual(visual);
             foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
         }
     }

@@ -295,6 +295,40 @@ public sealed class CharacterPackageCompilerTests
         Assert.Equal("anim.fightguy.slide", runtime.SlideAnim);
     }
     [Fact]
+    public void AimMovementSpeedScale_CooksOnMobileSlotsWithRuntimeApi17()
+    {
+        var result = CompileCharacter(character =>
+        {
+            character["slots"]![0]!["allowSlideCarry"] = false;
+            character["slots"]![0]!["aimMovement"] = "mobile";
+            character["slots"]![0]!["aimMovementSpeedScale"] = 0.4;
+        });
+        Assert.NotNull(result.CookedPackage);
+        Assert.Equal(0.4f, result.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.1").AimMovementSpeedScale);
+        Assert.Equal("1.7.0", result.CookedPackage.Metadata.RuntimeApiMin);
+        Assert.Contains("\"aimMovementSpeedScale\":0.4", System.Text.Encoding.UTF8.GetString(result.CookedPackage.CanonicalBytes));
+
+        // Full speed is the default and stays out of the canonical bytes.
+        var unscaled = CompileCharacter();
+        Assert.DoesNotContain("aimMovementSpeedScale", System.Text.Encoding.UTF8.GetString(unscaled.CookedPackage!.CanonicalBytes));
+    }
+
+    [Theory]
+    [InlineData("mobile", 0.0, "value.out-of-range")]
+    [InlineData("mobile", 1.5, "value.out-of-range")]
+    [InlineData("fixed", 0.4, "slot.aim-movement-speed.requires-mobile")]
+    public void AimMovementSpeedScale_RejectsOutOfRangeOrFixedAim(string movement, double scale, string code)
+    {
+        var result = CompileCharacter(character =>
+        {
+            character["slots"]![0]!["allowSlideCarry"] = false;
+            character["slots"]![0]!["aimMovement"] = movement;
+            character["slots"]![0]!["aimMovementSpeedScale"] = scale;
+        });
+        AssertError(result, code);
+    }
+
+    [Fact]
     public void StageAttackRange_SurvivesCompileAndRemainsDeterministic()
     {
         CharacterCompileResult result = CompileCharacter(character =>

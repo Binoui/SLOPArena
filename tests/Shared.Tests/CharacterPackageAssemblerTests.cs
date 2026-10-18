@@ -513,7 +513,8 @@ public sealed class CharacterPackageAssemblerTests
     [Theory]
     [InlineData("wibou", "1.5.0", "1.4.0")]
     [InlineData("fightguy", "1.6.0", "1.5.0")]
-    public void ChargedLifecycle_CookedLoaderRestoresParametersAndApiFloor(string id, string api, string incompatibleApi)
+    [InlineData("bonk", "1.7.0", "1.6.0")]
+    public void CookedLoaderRestoresParametersAndEnforcesApiFloor(string id, string api, string incompatibleApi)
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/" + id);
         var compiled = CharacterPackageCompiler.Compile(
@@ -538,6 +539,9 @@ public sealed class CharacterPackageAssemblerTests
             Assert.Equal(20f, charge.Projectile.Speed);
             Assert.Equal((ushort)112, charge.Projectile.MaxFlightTicks);
         }
+        if (id == "bonk")
+            Assert.All(loaded.Package!.Definition.Slots.Where(slot => slot.Id.EndsWith(".F")),
+                slot => Assert.True(slot.AimMovementSpeedScale is > 0f and < 1f));
         var input = BuildInput(package, Array.Empty<PackageDependencySource>(),
             package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
         var runtime = JsonNode.Parse(input.RuntimeBytes)!.AsObject();

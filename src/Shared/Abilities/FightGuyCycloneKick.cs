@@ -12,7 +12,7 @@ namespace SlopArena.Shared.Abilities
         public override bool OwnsVerticalMotion => true;
         private readonly CookedCycloneKickCapabilityParameters _parameters;
         private ushort _ticks;
-        private readonly HashSet<ulong> _hitEntities = new();
+        private HashSet<ulong> _hitEntities = new();
 
         public FightGuyCycloneKick(CookedCycloneKickCapabilityParameters parameters)
             => _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
@@ -78,6 +78,20 @@ namespace SlopArena.Shared.Abilities
                 HitsMultipleOpponents = true,
                 HitEntities = _hitEntities,
             });
+        }
+
+        internal override void WriteSnapshot(SnapshotWriter w)
+        {
+            base.WriteSnapshot(w);
+            w.WriteUShort(_ticks);
+            w.WriteSet(_hitEntities);
+        }
+
+        internal override void ReadSnapshot(SnapshotReader r)
+        {
+            base.ReadSnapshot(r);
+            _ticks = r.ReadUShort();
+            _hitEntities = r.ReadSet() ?? throw SnapshotReader.Malformed("FightGuyCycloneKick hit set");
         }
     }
 

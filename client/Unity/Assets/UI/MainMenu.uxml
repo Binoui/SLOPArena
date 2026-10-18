@@ -22,7 +22,7 @@
                     <ui:Label text="ANNOUNCEMENTS" class="menu-info-heading" />
                     <ui:VisualElement name="menu-announcements" class="menu-announcements">
                         <ui:Label text="WELCOME TO THE PLAYTEST" class="menu-info-declaration" />
-                        <ui:Label text="Thank you for playing SLOPArena !&#10;The game is still in early playtest. &#10;Feedback is appreciated ! &#10;Join the discord to get involved in the development ! :)" class="menu-info-copy" style="white-space: normal; height: 80px; width: 619px;" />
+                        <ui:Label text="Thanks for playing. SLOPArena is in early playtest: it will break. Tell us what broke on Discord." class="menu-info-copy" />
                     </ui:VisualElement>
                     <ui:Button name="menu-discord" text="JOIN DISCORD" tooltip="Join the SLOPArena community (opens in your browser)" class="btn-secondary menu-discord" />
                 </ui:VisualElement>

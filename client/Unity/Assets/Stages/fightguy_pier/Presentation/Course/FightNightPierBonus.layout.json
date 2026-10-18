@@ -1,0 +1,77 @@
+{
+ "generator": "tools/blender/fightguy_pier/bonus.py",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "FNP_Lit",
+  "FNP_Ground",
+  "FNP_Glow",
+  "FNP_Water",
+  "FNP_Sky"
+ ],
+ "atlas": "FightNightPierAtlas.png",
+ "atlasCells": "400769ad48327cc00c21ec77d03c3b972f358b62dde3098225cc70dd27547c08",
+ "cells": {
+  "plate": [
+   1024,
+   3360,
+   512,
+   256
+  ],
+  "punch_marquee": [
+   3072,
+   3104,
+   1024,
+   256
+  ],
+  "punch_scale": [
+   1792,
+   0,
+   512,
+   1024
+  ],
+  "niku": [
+   2816,
+   3360,
+   256,
+   256
+  ],
+  "white": [
+   3968,
+   0,
+   128,
+   128
+  ],
+  "lamp": [
+   2560,
+   3360,
+   256,
+   256
+  ]
+ },
+ "meter": {
+  "x0": 0.07,
+  "x1": 0.21,
+  "y0": 0.42,
+  "y1": 1.02,
+  "z": -0.045
+ },
+ "objects": [
+  "Bag 0",
+  "Bag 1",
+  "Bag 2",
+  "Bag 3",
+  "Car 0",
+  "Car 1",
+  "Car 2",
+  "Car 3",
+  "Pinata 0",
+  "Pinata 1",
+  "Pinata 2",
+  "Pinata 3",
+  "Punch 0",
+  "Punch 1",
+  "Punch 2",
+  "Punch 3"
+ ],
+ "geometryDigest": "6f32cba377a5563b16606001a28deba739774540f961d141e5ba8517f0c85aa5"
+}

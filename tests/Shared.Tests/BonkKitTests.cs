@@ -431,7 +431,7 @@ public sealed class BonkKitTests
     }
 
     [Fact]
-    public void BonkF_ProducesFourLightAndOneHeavyIndependentContacts()
+    public void BonkF_LandsOneHoldHitPerTurnThenTheFinisher()
     {
         var def = BonkDefinition();
         var sim = TestHelpers.MakeSim();
@@ -461,35 +461,52 @@ public sealed class BonkKitTests
                 .Where(x => x.OwnerEntityId == 1 && x.TargetEntityId == 100)
                 .Select(x => x.Damage));
         }
-        Assert.Equal(new[] { 2.5f, 2.5f, 2.5f, 2.5f, 12f }, damage);
+        Assert.Equal(new[] { 2.5f, 2.5f, 12f }, damage);
         Assert.Null(sim.GetActiveAbility(1));
     }
 
     [Fact]
-    public void BonkF_AllowsMovementWhileSlashing()
+    public void BonkF_WalksSlowlyDuringTheSpinAndStopsForTheRecovery()
     {
+        // The storm can be steered at a fraction of his speed while it spins. When the spin
+        // ends, so does the walking: no slide through the recovery, on the ground or after
+        // landing from the air version.
         var def = BonkDefinition();
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState(x: 20f, z: 10f);
-        state.PY = TestHelpers.GroundPY(def);
-        sim.RegisterEntity(1, def, state);
-
-        float startZ = state.PZ;
-        var heavySeen = false;
-        for (var i = 0; i < 60; i++)
+        foreach (bool airborne in new[] { false, true })
         {
-            sim.Tick(new Dictionary<ulong, InputState> { [1] = TestHelpers.Input(activeSlot: 6, moveY: 0.25f) });
-            var st = sim.GetState(1);
-            Assert.Equal(ActionState.Aiming, st.State);
-            heavySeen |= sim.Resolver.GetActiveHitboxes().Any(x => x.OwnerId == 1 && x.Damage == 12f);
-        }
-        Assert.True(sim.GetState(1).PZ > startZ, "F must allow normal movement while slashing");
-        Assert.True(heavySeen);
+            var sim = TestHelpers.MakeSim();
+            var state = TestHelpers.PlayerState(x: 20f, z: 10f);
+            state.PY = TestHelpers.GroundPY(def) + (airborne ? 3f : 0f);
+            state.IsGrounded = !airborne;
+            sim.RegisterEntity(1, def, state);
+            float scale = def.GetAimMovementSpeedScale(AbilitySlots.F, airborne);
+            Assert.InRange(scale, 0.1f, 0.9f);
 
-        for (var i = 0; i < 60; i++)
-            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
-        Assert.Null(sim.GetActiveAbility(1));
-        Assert.Equal(ActionState.Idle, sim.GetState(1).State);
+            var heavySeen = false;
+            float fastest = 0f;
+            CharacterState? spinEnd = null;
+            for (var i = 0; i < 160 && (i == 0 || sim.GetActiveAbility(1) != null); i++)
+            {
+                sim.Tick(new Dictionary<ulong, InputState> { [1] = TestHelpers.Input(activeSlot: i == 0 ? AbilitySlots.F : (byte)0, moveY: 1f) });
+                var st = sim.GetState(1);
+                heavySeen |= sim.Resolver.GetActiveHitboxes().Any(x => x.OwnerId == 1 && x.Damage == 12f);
+                if (st.State == ActionState.Aiming)
+                    fastest = MathF.Max(fastest, MathF.Sqrt(st.VX * st.VX + st.VZ * st.VZ));
+                else if (spinEnd == null && st.AttackSlot != 0)
+                    spinEnd = st;
+                if (spinEnd is { } end && st.AttackSlot != 0)
+                {
+                    TestHelpers.AssertNear(end.PX, st.PX, 1e-4f);
+                    TestHelpers.AssertNear(end.PZ, st.PZ, 1e-4f);
+                }
+            }
+            float cap = scale * (airborne ? def.Movement.AirSpeedMax : def.Movement.RunSpeed);
+            Assert.InRange(fastest, 0.5f * cap, Math.Max(cap, scale * def.Movement.RunSpeed) + 1e-4f);
+            Assert.True(sim.GetState(1).PZ > state.PZ, "F must let him walk while spinning");
+            Assert.NotNull(spinEnd);
+            Assert.True(heavySeen);
+            Assert.Null(sim.GetActiveAbility(1));
+        }
     }
 
     [Theory]

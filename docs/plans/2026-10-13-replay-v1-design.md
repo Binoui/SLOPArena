@@ -278,10 +278,12 @@ only. Implementation, publishing and deployment remain separate work.
 
 ## Source constraints
 
-The GameHost selects exact-tick inputs, holds eligible controls for at most six
-missing ticks with press edges removed, and then uses neutral input. Disconnected
-and eliminated fighters are omitted from the selected input dictionary. An
-input-driven Replay must preserve the selected inputs before simulation consumes
+The GameHost selects exact-tick inputs. A missing tick repeats the newest known
+input with press edges removed for up to 20 ticks after that input's tick, then uses
+neutral input; presses that arrive at most 10 ticks late merge into the next consumed
+tick (since 2026-10-18, [PeerInputTimeline](../../src/Shared/Rollback/PeerInputTimeline.cs)).
+Disconnected and eliminated fighters are omitted from the selected input dictionary.
+An input-driven Replay must preserve the selected inputs before simulation consumes
 them; received client packets alone do not reproduce this policy. See
 [MatchInstance](../../src/Server/MatchInstance.cs).
 

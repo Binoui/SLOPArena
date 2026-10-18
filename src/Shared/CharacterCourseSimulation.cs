@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace SlopArena.Shared
 {
     public enum CharacterCoursePhase : byte { Ready, Countdown, Running, Completed, Stopped }
-    public enum CharacterCourseEventKind : byte { Go, TargetBroken, CheckpointSaved, Respawned, Completed }
+    /// <summary>TargetHit is a bonus target taking a hit that does not break it yet.</summary>
+    public enum CharacterCourseEventKind : byte { Go, TargetBroken, CheckpointSaved, Respawned, Completed, TargetHit }
     public readonly struct CharacterCourseEvent
     {
         public readonly CharacterCourseEventKind Kind;
@@ -32,6 +33,7 @@ namespace SlopArena.Shared
         public const byte FirstInputAlias = 128;
         private readonly CharacterCourseDefinition _definition;
         private readonly bool[] _broken;
+        private readonly byte[] _hitsLeft;
         private readonly List<CharacterCourseEvent> _events = new();
         private CharacterCoursePhase _phase;
         private ulong _elapsed;
@@ -40,7 +42,11 @@ namespace SlopArena.Shared
         public IReadOnlyList<CharacterCourseEvent> Events { get; }
         public CharacterCourseState State => new(_phase, _elapsed, _brokenCount, _broken.Length, _checkpoint, _countdown);
         public CharacterCourseSimulation(CharacterCourseDefinition definition)
-        { _definition = definition; _broken = new bool[definition.Targets.Count]; Events = _events.AsReadOnly(); }
+        {
+            _definition = definition; _broken = new bool[definition.Targets.Count]; Events = _events.AsReadOnly();
+            _hitsLeft = new byte[_broken.Length];
+            for (int i = 0; i < _hitsLeft.Length; i++) _hitsLeft[i] = definition.Targets[i].Hits;
+        }
 
         public void Begin(ushort countdown)
         {
@@ -62,6 +68,8 @@ namespace SlopArena.Shared
         }
         public void Stop() { if (_phase != CharacterCoursePhase.Completed) _phase = CharacterCoursePhase.Stopped; }
         public bool IsBroken(int index) => _broken[index];
+        /// <summary>Hits this target still needs: its full count until hit, 0 once broken.</summary>
+        public int HitsLeft(int index) => _hitsLeft[index];
         public bool TryIndex(ulong id, out int index)
         {
             index = id >= FirstEntityId && id - FirstEntityId < (ulong)_broken.Length ? (int)(id - FirstEntityId) : -1;
@@ -72,9 +80,14 @@ namespace SlopArena.Shared
             int index = alias - FirstInputAlias;
             return index >= 0 && index < _broken.Length && !_broken[index] ? FirstEntityId + (ulong)index : 0;
         }
-        public bool Break(int index)
+        /// <summary>
+        /// One accepted damaging hit: false while not running or already broken. The last hit a
+        /// target needs breaks it (TargetBroken); a bonus target's earlier hits emit TargetHit.
+        /// </summary>
+        public bool Hit(int index)
         {
             if (_phase != CharacterCoursePhase.Running || _broken[index]) return false;
+            if (--_hitsLeft[index] > 0) { Emit(CharacterCourseEventKind.TargetHit, index); return true; }
             _broken[index] = true; _brokenCount++; Emit(CharacterCourseEventKind.TargetBroken, index); return true;
         }
         public IEnumerable<SpellResolver.EntityData> CollisionTargets()

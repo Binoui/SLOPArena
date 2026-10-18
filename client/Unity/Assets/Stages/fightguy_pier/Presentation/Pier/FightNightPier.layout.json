@@ -1,0 +1,57 @@
+{
+ "generator": "tools/blender/fightguy_pier/build.py",
+ "seed": 20261018,
+ "source": "client/Unity/Assets/Stages/fightguy_pier/fightguy_pier.unity",
+ "sourceSha256": "a5b3d299c841bca08bc167a9edc435d9e112f6bb23dbf00c9dae2a5912713362",
+ "arena": "data/arenas/fightguy_pier.arena",
+ "arenaSha256": "21ea7bb9bb7a60035e86be925bf1d77045d080cc42a546d035f030efe1e98769",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "FNP_Lit",
+  "FNP_Ground",
+  "FNP_Glow",
+  "FNP_Water",
+  "FNP_Sky"
+ ],
+ "textures": {
+  "ground": "FightNightPierGround.png",
+  "atlas": "FightNightPierAtlas.png",
+  "detail": "FightNightPierDetail.png",
+  "ripples": "FightNightPierRipples.png"
+ },
+ "sun": {
+  "azimuth": 262.0,
+  "elevation": 16.0
+ },
+ "objects": [
+  "Arch",
+  "Big Wheel",
+  "Big Wheel Lights",
+  "Booths",
+  "Buoys",
+  "Carousel",
+  "Clouds",
+  "Coaster",
+  "Crowd",
+  "Headlands",
+  "Lamps",
+  "Lights",
+  "Midway",
+  "Old Pier",
+  "Pier",
+  "Pier Head",
+  "Plaza",
+  "Pods",
+  "Promenade",
+  "Rafts",
+  "Ring",
+  "Sea",
+  "Sky",
+  "Tops",
+  "Town",
+  "Town Lights",
+  "Wheel Tower"
+ ],
+ "geometryDigest": "ce2a1b1423d9ed211785701ccb2e85b15f3b9e88c578af329becedc09839e15c",
+ "problems": 0
+}

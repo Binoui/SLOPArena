@@ -25,11 +25,13 @@ namespace SlopArena.Shared
         public readonly float Radius, DamagePercent;
         public readonly ushort HitstopTicks;
         public readonly bool Active;
+        /// <summary>Sideways (X) acceleration of a curveball serve until its first contact, m/s²; zero otherwise.</summary>
+        public readonly float Curve;
         public ArcadeBallState(ulong entityId, ArcadePoint position, ArcadePoint velocity,
-            float radius, float damagePercent, ushort hitstopTicks, bool active = true)
+            float radius, float damagePercent, ushort hitstopTicks, bool active = true, float curve = 0f)
         {
             EntityId = entityId; Position = position; Velocity = velocity;
-            Radius = radius; DamagePercent = damagePercent; HitstopTicks = hitstopTicks; Active = active;
+            Radius = radius; DamagePercent = damagePercent; HitstopTicks = hitstopTicks; Active = active; Curve = curve;
         }
     }
 
@@ -47,11 +49,11 @@ namespace SlopArena.Shared
         private readonly List<SphereMotionSegment> _path = new();
         private readonly List<ArcadeBallContact> _contacts = new();
         private ulong _entityId = FirstEntityId;
-        private float _x, _y, _z, _vx, _vy, _vz, _percent;
+        private float _x, _y, _z, _vx, _vy, _vz, _percent, _curve;
         private ushort _hitstop;
         private bool _active;
         public ArcadeBallState State => new(_entityId, new(_x, _y, _z), new(_vx, _vy, _vz),
-            _definition.Radius, _percent, _hitstop, _active);
+            _definition.Radius, _percent, _hitstop, _active, _curve);
         public IReadOnlyList<SphereMotionSegment> Path { get; }
         public IReadOnlyList<ArcadeBallContact> Contacts => _contacts;
 
@@ -66,14 +68,23 @@ namespace SlopArena.Shared
         public void Reset()
             => Reset(_definition.Spawn, _definition.InitialVelocity);
 
-        public void Reset(ArcadePoint spawn, ArcadePoint velocity)
+        /// <summary>A fresh ball; <paramref name="curve"/> bends it sideways (X, m/s²) until its first contact.</summary>
+        public void Reset(ArcadePoint spawn, ArcadePoint velocity, float curve = 0f)
         {
             if (_entityId == ulong.MaxValue) throw new InvalidOperationException("Ball identity space exhausted.");
+            if (!float.IsFinite(curve)) throw new ArgumentOutOfRangeException(nameof(curve));
             _entityId++;
             _x = spawn.X; _y = spawn.Y; _z = spawn.Z;
             _vx = velocity.X; _vy = velocity.Y; _vz = velocity.Z;
-            _percent = 0f; _hitstop = 0; _active = true;
+            _percent = 0f; _hitstop = 0; _active = true; _curve = curve;
             _path.Clear(); _contacts.Clear();
+        }
+
+        /// <summary>Replaces the launch velocity of the hit just applied (Slopball's return assist); hitstop and percent stay.</summary>
+        public void Relaunch(ArcadePoint velocity)
+        {
+            _vx = velocity.X; _vy = velocity.Y; _vz = velocity.Z;
+            _curve = 0f;
         }
 
         public void Retire(float time = 1f)
@@ -124,6 +135,8 @@ namespace SlopArena.Shared
             float retention = _definition.VelocityRetention;
             _vx *= retention; _vz *= retention;
             _vy = _vy * retention - _definition.Gravity * Simulation.TickDt;
+            // A curveball's sideways pull, after drag like gravity; SlopballDefinition solves serves the same way.
+            if (_curve != 0f) _vx += _curve * Simulation.TickDt;
             float time = 0f;
             for (int bounce = 0; bounce < 16 && time < 1f; bounce++)
             {
@@ -156,7 +169,8 @@ namespace SlopArena.Shared
                 _z = start.Z + (end.Z - start.Z) * fraction;
                 _path.Add(new(time, nextTime, start, new(_x, _y, _z)));
                 if (!contact) { time = 1f; break; }
-                _contacts.Add(new(nextTime, new(_x, _y, _z), body, ny));
+                _contacts.Add(new(nextTime, new(_x, _y, _z), body, nx, ny, nz));
+                _curve = 0f;
                 _x += nx * (Skin + penetration); _y += ny * (Skin + penetration); _z += nz * (Skin + penetration);
                 float incoming = _vx * nx + _vy * ny + _vz * nz;
                 if (incoming < 0f)
@@ -183,7 +197,7 @@ namespace SlopArena.Shared
             float angle = hit.KnockbackAngle * (MathF.PI / 180f);
             float horizontal = speed * MathF.Cos(angle);
             _vx = dirX * horizontal; _vy = speed * MathF.Sin(angle); _vz = dirZ * horizontal;
-            _hitstop = freeze;
+            _hitstop = freeze; _curve = 0f;
             return speed;
         }
 
@@ -234,12 +248,16 @@ namespace SlopArena.Shared
         }
     }
 
-    internal readonly struct ArcadeBallContact
+    /// <summary>
+    /// One bounce of the ball within a tick: off baked collision (floor, walls, net, ceiling) or a fighter's body.
+    /// The normal points away from the surface. Presentation reads these for sounds and trick callouts.
+    /// </summary>
+    public readonly struct ArcadeBallContact
     {
-        public readonly float Time, NormalY;
+        public readonly float Time, NormalX, NormalY, NormalZ;
         public readonly ArcadePoint Position;
         public readonly bool Body;
-        public ArcadeBallContact(float time, ArcadePoint position, bool body, float normalY)
-        { Time = time; Position = position; Body = body; NormalY = normalY; }
+        public ArcadeBallContact(float time, ArcadePoint position, bool body, float normalX, float normalY, float normalZ)
+        { Time = time; Position = position; Body = body; NormalX = normalX; NormalY = normalY; NormalZ = normalZ; }
     }
 }

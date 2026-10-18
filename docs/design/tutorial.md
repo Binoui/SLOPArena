@@ -73,10 +73,13 @@ hit, and the throw counts once the dummy is released.
   true combo for any fighter, but juggles work: a second, separate move landing while the
   dummy is still airborne from the first. The lesson therefore counts a hit while the dummy
   is stunned *or* still airborne, starts it at 30% and lifts cooldowns, because Bonk's only
-  juggle ends in Blade Storm (15 s cooldown). The hint names a tested opener per fighter
+  juggle then ended in Blade Storm (15 s cooldown). The hint names a tested opener per fighter
   (`TutorialView.ComboOpeners`): FightGuy High Kick → jump attack; Manki Straight Punch →
-  Bazooka; Wibou Up Slash → Up Slash; Bonk Reverse Rising Slash → Blade Storm. Re-check
-  them with a juggle probe when a kit changes.
+  Bazooka; Wibou Up Slash → Up Slash; Bonk Reverse Rising Slash → jump and Reverse Air Slash.
+  Bonk's was rechecked on 2026-10-18, when Blade Storm's walking slowed to 35% of his run
+  and could no longer chase the launched dummy; it lands from 0.8–1.8 m when the jump goes
+  toward the dummy.
+  Re-check them with a juggle probe when a kit changes.
 - **Recovery is feasible for everyone with E.** From up to 3 m below the deck (and the
   Training Lab floor), an air jump and E return all four fighters; all but Manki also from
   5 m. Bonk's E is an aimed leap and works when held, aimed at the stage and released; the

@@ -50,6 +50,9 @@ namespace SlopArena.Client.Entities
         private const float LaunchFullSpeed = 22f;  // m/s where they saturate
         private const float MaxLaunchStretch = 0.4f;
         private const float AttackReleaseSeconds = 0.06f;
+        // Air dodge: stretch along the dodge and lean into it, easing out over the burst.
+        private const float DodgeStretch = 0.15f;
+        private const float DodgeLeanDegrees = 7f;
 
         private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
         private static readonly int FlashAmountId = Shader.PropertyToID("_FlashAmount");
@@ -94,6 +97,12 @@ namespace SlopArena.Client.Entities
         private bool _attacking;
         private Vector3 _attackAxis = Vector3.up;
         private float _attackStretchTarget, _attackLeanTarget, _attackStretch, _attackLean;
+
+        // Air dodge.
+        private bool _dodging;
+        private Vector3 _dodgeDirection;
+        private int _dodgeTicks;
+        private float _dodgeTickTime;
 
         // Launch.
         private Vector3 _lastPosition, _velocity;
@@ -196,6 +205,13 @@ namespace SlopArena.Client.Entities
                 : 0f;
             _peakLaunch = Mathf.Max(_peakLaunch, _launch);
             if (flying) _peakSpeed = Mathf.Max(_peakSpeed, _velocity.magnitude);
+            _dodging = state.State == ActionState.AirDodgeMovement;
+            if (_dodging)
+            {
+                _dodgeDirection = new Vector3(state.DashDirX, 0f, state.DashDirZ);
+                _dodgeTicks = DefenseConfig.AirDodgeMovementTicks - state.StateTicks;
+                _dodgeTickTime = Time.time;
+            }
             UpdateAttack(in state, definition, attackAirborne);
         }
 
@@ -332,6 +348,19 @@ namespace SlopArena.Client.Entities
                 axis = _attackAxis;
                 stretch = _attackStretch * Strength.Squash;
                 lean = _attackLean * Strength.Lean;
+            }
+            else if (_dodging && _dodgeDirection.sqrMagnitude > 1e-6f)
+            {
+                float elapsed = _dodgeTicks + Mathf.Clamp01((now - _dodgeTickTime) / SlopArena.Shared.Simulation.TickDt);
+                float t = Mathf.Clamp01(elapsed / DefenseConfig.AirDodgeMovementTicks);
+                float k = Mathf.Pow(1f - t, 1.4f);
+                Vector3 direction = toLocal * _dodgeDirection.normalized;
+                axis = direction;
+                stretch = DodgeStretch * k;
+                // Positive rotation about up×d tips the head along the dodge.
+                leanAxis = Vector3.Cross(Vector3.up, direction);
+                lean = DodgeLeanDegrees * k;
+                pivotHeight = -_renderer.ModelYOffset;   // the capsule centre
             }
 
             if (_launch > 0f && Strength.Squash > 0f && _velocity.sqrMagnitude > 1e-4f)
@@ -496,7 +525,7 @@ namespace SlopArena.Client.Entities
 
         private void ResetReaction()
         {
-            _hit = _frozen = _attacking = false;
+            _hit = _frozen = _attacking = _dodging = false;
             _attackStretch = _attackLean = _attackStretchTarget = _attackLeanTarget = 0f;
             _velocity = Vector3.zero;
             _launch = 0f;

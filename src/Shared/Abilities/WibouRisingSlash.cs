@@ -90,4 +90,18 @@ public sealed class WibouRisingSlash : ServerAbility
         s.VY = 0f;
         s.VZ = 0f;
     }
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteUShort(_ticks);
+        w.WriteFloat(_recoveryYaw);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _ticks = r.ReadUShort();
+        _recoveryYaw = r.ReadFloat();
+    }
 }

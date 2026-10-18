@@ -59,6 +59,10 @@ invincibility; grabs remain effective. The timer belongs to the active ability,
 pauses in Hitstop, and disappears when that activation ends or is canceled.
 Overlapping operations replace the remaining window.
 
+A spawned hitbox's `durationTicks` count the same way: a melee hitbox does not age while
+its owner is in Hitstop, so the freeze from one hit cannot use up the move's other live
+hitboxes. Projectiles and explosions age every tick.
+
 Hitboxes may opt into `fixedHitstunTicks` (1–240) with a nonzero `stunTicks`
 gate. This changes reaction duration, not launch velocity, so linking contacts
 can retain proximity without changing the global knockback formula. Zero/omitted
@@ -89,7 +93,11 @@ Controller left-stick input aims during these holds; the right stick also remain
 available. Directional aim follows the stick direction, ground targeting moves a
 virtual cursor, and camera aiming adjusts yaw/pitch. Mouse aiming is unchanged.
 `mobile` remains an explicit option for abilities that allow repositioning, using
-the left stick for movement and right stick for aim.
+the left stick for movement and right stick for aim. A mobile slot may set
+`aimMovementSpeedScale` (above 0, at most 1; runtime API `1.7.0`) to walk at that fraction
+of the fighter's run and air speed, as Bonk does at 35% during Blade Storm's spin. When a
+timeline `setAimState` ends a mobile aim, horizontal speed stops: attacks have no friction,
+so the stick's speed would otherwise carry through the rest of the move.
 
 `slop.ability.charged-directional-dash.v1` is a public lifecycle requiring runtime
 API `1.5.0`. It owns capped hold charge, release-locked manual direction,
@@ -201,5 +209,10 @@ The Match Content Catalog is immutable for the match. A later cook applies only 
 3. If variable-duration or native behavior is required, extend an approved stateful capability and record compatibility/versioning.
 4. Define natural completion, cancellation, hit identity, and presentation events.
 5. Validate and cook the package, then test the Shared observable behavior through the catalog path.
+6. Keep the activation snapshot-complete ([ADR-0039](../adr/0039-full-world-rollback.md)): every field
+   that changes after construction is written in `WriteSnapshot` and read back in `ReadSnapshot`
+   (override and call `base` first); hit sets shared with hitboxes go through `WriteSet`/`ReadSet`
+   so the sharing survives a restore. `WorldSnapshotContractTests` fails on a missed field and
+   `WorldSnapshotTests` on any behaviour a restored simulation does not reproduce.
 
 For package creation, follow [Adding a Character](../characters/adding-a-new-character.md). For universal mechanics, see [Combat Systems](combat-systems.md). There is no legacy character execution path.

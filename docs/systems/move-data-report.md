@@ -124,8 +124,9 @@ Each character gets `<char>.md` and `<char>.json`:
   tested pose touches it. The target is never knocked away, so a zero means that hit cannot
   land on that target at all. On 2026-10-18 Bonk's Blade Storm (F) swung over every
   standing head: only its chip hitbox scored, and its four big hits were zero for both targets.
-  After the [hip-height spin](../characters/bonk.md#blade-storm-spin--2026-10-18) they touch
-  7–15 bearings each.
+  After the [hip-height spin](../characters/bonk.md#blade-storm-spin--2026-10-18) they touched
+  7–15 bearings each, and since the [storm rework](../characters/bonk.md#storm-rework), with
+  one window per turn of the spin, each of its three hits touches all 24.
 - **Bone and weapon sampling** — positions a standing target occupies on the swing path
   between consecutive active ticks (the clip sampled 16 times per tick) that no tested pose
   touches. Tested poses are each tick's pose plus the swept poses Shared tests between

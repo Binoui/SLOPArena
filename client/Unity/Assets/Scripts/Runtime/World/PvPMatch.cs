@@ -15,9 +15,11 @@ using SlopArena.Client.Simulation;
 namespace SlopArena.Client.World
 {
     /// <summary>
-    /// PvP match backed by a remote server. Uses RollbackSimulationBridge (ADR-0011):
-    /// the local player predicts continuously; opponents predict while in a movement
-    /// state and render raw from the server otherwise.
+    /// PvP match backed by a remote GameHost. Uses RollbackSimulationBridge (ADR-0039): every
+    /// fighter is predicted in one simulation from the newest World Frame, so the match
+    /// presents like Training: projectiles and sword trails from the predicted resolver,
+    /// effects and hits from the rollback ledgers (ruled-out effects stop), and position
+    /// corrections eased.
     /// </summary>
     public class PvPMatch : MatchBase
     {
@@ -130,7 +132,8 @@ namespace SlopArena.Client.World
                 return;
             }
             _networkClient.EntityId = PlayerEntityId;
-            _bridge = new RollbackSimulationBridge(arena, _networkClient, PlayerEntityId);
+            _bridge = new RollbackSimulationBridge(arena, _networkClient, PlayerEntityId,
+                new StockMatchRule((byte)MatchConfig.MaxStocks));
             SpawnStageVisual(arena);
             if (_combatFeedback == null)
                 _combatFeedback = FindFirstObjectByType<CombatFeedback>();
@@ -138,7 +141,7 @@ namespace SlopArena.Client.World
                 _combatFeedback = gameObject.AddComponent<CombatFeedback>();
             _combatFeedback.SetSimulation(_bridge);
             _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
-            _projectileVFX.SetRemoteSnapshots();
+            _projectileVFX.SetPredictedSimulation(_bridge.Simulation);
 
             // Character definitions come only from the admitted match catalog.
             var contentCatalog = SlopArena.Client.ClientSession.MatchContentCatalog;
@@ -170,6 +173,28 @@ namespace SlopArena.Client.World
             for (int i = 0; i < MatchConfig.Opponents.Count; i++)
             {
                 var opp = MatchConfig.Opponents[i];
+                var opponentEntry = contentCatalog.Resolve(opp.Class);
+                if (opponentEntry == null)
+                {
+                    ClientSession.RejectMatchStart($"Opponent selector {opp.Class} is absent from the admitted content catalog.");
+                    return;
+                }
+                var def = opponentEntry.Definition;
+
+                // Every fighter is simulated locally, drawn or not: register its content before
+                // the first World Frame, which then restores its authoritative state.
+                var oppSpawn = SpawnPointFor(arena, opp.EntityId);
+                var initialState = new CharacterState
+                {
+                    PX = oppSpawn.X, PY = oppSpawn.Y, PZ = oppSpawn.Z,
+                    FacingYaw = oppSpawn.Yaw,
+                    State = ActionState.Idle,
+                    IsGrounded = true,
+                    JumpsLeft = def.Movement.MaxJumps,
+                    AirDodgesLeft = 1,
+                    DamagePercent = 0,
+                };
+                _bridge.RegisterEntity(opp.EntityId, def, initialState, opponentEntry.BakedAnimation);
 
                 PlayerRenderer renderer;
                 if (i == 0 && _opponentRenderer != null)
@@ -184,17 +209,10 @@ namespace SlopArena.Client.World
                 }
                 else
                 {
-                    Debug.LogWarning($"[PvPMatch] No opponent template in scene — skipping opponent {opp.EntityId}.");
+                    Debug.LogWarning($"[PvPMatch] No opponent template in scene — opponent {opp.EntityId} is simulated but not drawn.");
                     continue;
                 }
 
-                var opponentEntry = contentCatalog.Resolve(opp.Class);
-                if (opponentEntry == null)
-                {
-                    ClientSession.RejectMatchStart($"Opponent selector {opp.Class} is absent from the admitted content catalog.");
-                    return;
-                }
-                var def = opponentEntry.Definition;
                 if (!SetupRenderer(renderer, opponentEntry, arena, opp.EntityId, false))
                 {
                     ClientSession.RejectMatchStart($"Opponent render content could not be loaded for entity {opp.EntityId}.");
@@ -202,23 +220,6 @@ namespace SlopArena.Client.World
                 }
                 renderer.transform.position = SpawnPosition(arena, opp.EntityId);
                 _opponentRenderers[opp.EntityId] = renderer;
-
-                // Register with the rollback bridge: populates _defs (prediction needs
-                // the CharacterDefinition) and seeds the RawTrack initial state so the
-                // opponent renders at its spawn until the first server packet. Without
-                // this, PvP crashed on the first predictable opponent packet
-                var oppSpawn = SpawnPointFor(arena, opp.EntityId);
-                var initialState = new CharacterState
-                {
-                    PX = oppSpawn.X, PY = oppSpawn.Y, PZ = oppSpawn.Z,
-                    FacingYaw = oppSpawn.Yaw,
-                    State = ActionState.Idle,
-                    IsGrounded = true,
-                    JumpsLeft = def.Movement.MaxJumps,
-                    AirDodgesLeft = 1,
-                    DamagePercent = 0,
-                };
-                _bridge.RegisterEntity(opp.EntityId, def, initialState, opponentEntry.BakedAnimation);
                 renderer.RenderInterpolation = true;
                 renderer.ApplyServerState(initialState);
             }
@@ -276,6 +277,8 @@ namespace SlopArena.Client.World
 
         private void Update()
         {
+            float frameMs = Time.unscaledDeltaTime * 1000f;
+            if (frameMs > _windowMaxFrameMs) _windowMaxFrameMs = frameMs;
             if (IsPaused) return; // pause menu owns Esc + skips polling (issue #77)
             _inputController.Poll();
         }
@@ -295,15 +298,6 @@ namespace SlopArena.Client.World
             var s = SpawnPointFor(arena, entityId);
             return new Vector3(s.X, s.Y, s.Z);
         }
-        private bool HasCompleteRosterBaseline()
-        {
-            if (!_bridge.HasInitialState(PlayerEntityId))
-                return false;
-            foreach (var opponent in MatchConfig.Opponents)
-                if (!_bridge.HasInitialState(opponent.EntityId))
-                    return false;
-            return true;
-        }
 
         protected override void OnMatchFixedUpdate()
         {
@@ -314,7 +308,7 @@ namespace SlopArena.Client.World
             {
                 _observedConnectionGeneration = connectionGeneration;
                 _clockAcknowledgedGeneration = -1;
-                _bridge.ResetInitialStates();
+                _bridge.ResetConnection();
             }
             // Authoritative corrections and track switches move fighters without time
             // passing; hand exactly that displacement to presentation to smooth out.
@@ -324,9 +318,14 @@ namespace SlopArena.Client.World
             foreach (var frame in _bridge.LastControlFrames)
                 if (frame.Packet.EntityId == PlayerEntityId &&
                     frame.Packet.Kind == NetplayControlKind.Clock)
+                {
                     _clockAcknowledgedGeneration = connectionGeneration;
+                    if (frame.Packet.LateInputs > 0)
+                        LogLateInputs(frame.Packet);
+                }
 
-            bool rosterBaselineReady = HasCompleteRosterBaseline();
+            // Every World Frame carries every fighter: one frame is the full roster baseline.
+            bool rosterBaselineReady = _bridge.HasWorldFrame;
             if (rosterBaselineReady && _networkClient.IsServerConnected &&
                 _networkClient.LastPingMilliseconds.HasValue &&
                 _clockAcknowledgedGeneration != connectionGeneration)
@@ -359,8 +358,9 @@ namespace SlopArena.Client.World
                 _localInputs[PlayerEntityId] = input;
                 _bridge.Tick(_localInputs);
             }
-            var projectileSnapshot = _networkClient.ReceiveProjectileVisuals();
-            var swordTrailSnapshot = _networkClient.ReceiveSwordTrailSnapshot();
+            else
+                _bridge.Idle();
+            _projectileVFX.OnTick();
             _combatFeedback?.OnTick();
 
             if (_bridge.LatestMatchResult != null && ClientSession.CurrentMatchResults == null)
@@ -372,10 +372,8 @@ namespace SlopArena.Client.World
             _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId));
             foreach (var kv in _opponentRenderers)
                 kv.Value.ApplyServerState(_bridge.GetState(kv.Key));
-            if (projectileSnapshot.HasValue)
-                _projectileVFX.OnSnapshot(projectileSnapshot.Value);
-            if (swordTrailSnapshot.HasValue)
-                ApplySwordTrailSnapshot(swordTrailSnapshot.Value);
+            UpdateSwordTrailsFromResolver(_bridge.Resolver);
+            RetractTimelineEvents(_bridge.RetractedPresentationEvents);
             PresentTimelineEvents();
 
             var presentationState = _bridge.GetState(PlayerEntityId);
@@ -425,20 +423,46 @@ namespace SlopArena.Client.World
             if (_tick % NetplayStatsIntervalTicks == 0 && matchState == MatchState.Playing)
             {
                 var stats = _bridge.TakeStats(NetworkClient.MonotonicSeconds);
-                int corrections = stats.Corrections - _loggedCorrections;
-                _loggedCorrections = stats.Corrections;
+                var p = stats.Prediction;
+                _lastWindowMispredictions = p.Mispredictions;
                 Debug.Log(FormattableString.Invariant(
-                    $"[Netplay] updates={stats.Updates} skipped={stats.SkippedUpdates} extraSteps={stats.ExtraStepUpdates} ") +
+                    $"[Netplay] utc={DateTime.UtcNow:HH:mm:ss} updates={stats.Updates} skipped={stats.SkippedUpdates} extraSteps={stats.ExtraStepUpdates} ") +
                     FormattableString.Invariant(
-                    $"lead={stats.LeadTicks}({stats.LeadBonus:+0;-0;0}) ahead={stats.AheadOfServerTicks} corrections={corrections} ") +
+                    $"lead={stats.LeadTicks}({stats.LeadBonus:+0;-0;0}) ahead={stats.AheadOfServerTicks} ") +
                     FormattableString.Invariant(
-                    $"rawDelay={stats.RawPlayoutDelay} rawStarved={stats.RawStarvations} ping={_networkClient.LastPingMilliseconds?.ToString("F0") ?? "?"}ms ") +
-                    FormattableString.Invariant($"frameMs={Time.smoothDeltaTime * 1000f:F1}"));
+                    $"frames={p.Frames} stale={p.StaleFrames} rejected={p.RejectedFrames} anchors={p.Anchors} exact={p.ExactAnchors} ") +
+                    FormattableString.Invariant(
+                    $"corrections={p.Corrections} mispredicts={p.Mispredictions} selfCorr={p.MaxSelfCorrectionMeters:F2}m oppCorr={p.MaxOpponentCorrectionMeters:F2}m ") +
+                    FormattableString.Invariant(
+                    $"selfSnap={p.MaxSelfSnapMeters:F2}m oppSnap={p.MaxOpponentSnapMeters:F2}m window={p.PredictionTicks}(max {p.MaxAnchorAgeTicks}) ") +
+                    FormattableString.Invariant(
+                    $"resim={p.ResimulatedTicks} resimMs={p.TotalResimulationMs:F1}(max {p.MaxResimulationMs:F2}) jumps={p.Jumps} starved={p.StarvedTicks} ") +
+                    FormattableString.Invariant(
+                    $"effects=+{p.EffectsStarted}/-{p.EffectsRetracted} hits=+{p.HitsStarted}/-{p.HitsRetracted} selfInputMismatch={p.SelfInputMismatches} ") +
+                    FormattableString.Invariant(
+                    $"serverLate={stats.ServerLateInputs} minSlack={stats.MinInputSlack?.ToString() ?? "-"} ping={_networkClient.LastPingMilliseconds?.ToString("F0") ?? "?"}ms ") +
+                    FormattableString.Invariant($"frameMs={Time.smoothDeltaTime * 1000f:F1} maxFrameMs={_windowMaxFrameMs:F1}"));
+                _windowMaxFrameMs = 0f;
             }
         }
 
+        /// <summary>The GameServer received some of our inputs after their tick ran. Pair the
+        /// report with Steam's view of our connection so the next stall can be attributed.</summary>
+        private void LogLateInputs(NetplayControlPacket clock)
+        {
+            float now = Time.unscaledTime;
+            if (now - _lastLateInputLogAt < 1f) return;
+            _lastLateInputLogAt = now;
+            string slack = clock.InputSlack == NetplayControlPacket.NoInputSlack ? "-" : clock.InputSlack.ToString();
+            Debug.Log(FormattableString.Invariant(
+                $"[Netplay] serverLate utc={DateTime.UtcNow:HH:mm:ss.fff} late={clock.LateInputs} minSlack={slack} serverTick={clock.Tick} ") +
+                FormattableString.Invariant($"maxFrameMs={_windowMaxFrameMs:F1} {_networkClient.DescribeTransport()}"));
+        }
+
         private const int NetplayStatsIntervalTicks = 300;
-        private int _loggedCorrections;
+        private float _windowMaxFrameMs;
+        private int _lastWindowMispredictions;
+        private float _lastLateInputLogAt = float.NegativeInfinity;
         private readonly Dictionary<ulong, Vector3> _displayedBeforePump = new();
 
         private void CaptureDisplayedPositions()
@@ -492,8 +516,8 @@ namespace SlopArena.Client.World
             if (ChatInputGate.SuppressShortcuts || !UnityEngine.Input.GetKey(KeyCode.F3)) return;
 
             var style = new GUIStyle(GUI.skin.label) { fontSize = 14, normal = { textColor = Color.white } };
-            GUI.Label(new Rect(10, 10, 400, 20), $"Corrections: {_bridge.CorrectionCount}", style);
-            GUI.Label(new Rect(10, 30, 400, 20), $"Frontier window: {_bridge.LastFrontierTicks} ticks", style);
+            GUI.Label(new Rect(10, 10, 400, 20), $"Prediction window: {_bridge.PredictionTicks} ticks", style);
+            GUI.Label(new Rect(10, 30, 400, 20), $"Mispredictions (last 5 s): {_lastWindowMispredictions}", style);
         }
 
         private void PresentStockLosses()

@@ -125,12 +125,13 @@ public class SteamGameServerAdmissionTests
             contentHash: ContentHash,
             steamSend: (_, recipient, frame, _) =>
             {
-                if (frame[0] != SteamGameplayWire.State) return;
-                var packet = ServerEntityPacket.Deserialize(frame.AsSpan(1));
+                if (frame[0] != SteamGameplayWire.Frame) return;
+                var world = WorldFramePacket.Deserialize(frame.AsSpan(1));
                 int index = (int)recipient - 1;
-                receivedEntities[index].Add(packet.EntityId);
+                foreach (var relayed in world.Inputs)
+                    receivedEntities[index].Add(relayed.EntityId);
                 if (receivedEntities[index].Count == 2) baselines[index].TrySetResult(true);
-                if (packet.State.MatchState == MatchState.Countdown) countdown.TrySetResult(packet.Tick);
+                if (world.MatchState == MatchState.Countdown) countdown.TrySetResult(world.Tick);
             }, clock: clock);
 
         bool Deliver(long connectionId, ulong entityId, byte[] frame) =>
@@ -259,7 +260,7 @@ public class SteamGameServerAdmissionTests
     }
 
     [Fact]
-    public async Task SteamCountdownBroadcast_UsesExactFramedNoInputPacket()
+    public async Task SteamWaitingBroadcast_IsOneTaggedWorldFrameWithEveryFighter()
     {
         var clock = new TestClock(DateTimeOffset.Parse("2026-09-26T12:00:00Z"));
         var catalog = LoadCatalog();
@@ -272,7 +273,7 @@ public class SteamGameServerAdmissionTests
             contentHash: ContentHash,
             steamSend: (_, _, frame, _) =>
             {
-                if (frame[0] == SteamGameplayWire.State)
+                if (frame[0] == SteamGameplayWire.Frame)
                     firstState.TrySetResult(frame);
             }, clock: clock);
         match.Start();
@@ -281,10 +282,12 @@ public class SteamGameServerAdmissionTests
             Assert.True(match.TryBindSteamPlayer(1001, 11, ContentHash, out _, out _, out _));
             Assert.True(match.TryBindSteamPlayer(1002, 22, ContentHash, out _, out _, out _));
             var frame = await firstState.Task.WaitAsync(TimeSpan.FromSeconds(2));
-            Assert.Equal(1 + ServerEntityPacket.NoInputSize, frame.Length);
-            var state = ServerEntityPacket.Deserialize(frame.AsSpan(1));
-            Assert.False(state.HasInput);
-            Assert.Contains(state.EntityId, new[] { 1UL, 2UL });
+            var world = WorldFramePacket.Deserialize(frame.AsSpan(1));
+            Assert.Equal(MatchState.Waiting, world.MatchState);
+            Assert.Equal(0u, world.Tick);
+            Assert.Equal(new[] { 1UL, 2UL }, world.Inputs.Select(x => x.EntityId));
+            // Nothing is consumed before the first playing tick; connected fighters relay neutral input.
+            Assert.All(world.Inputs, relayed => Assert.Equal(default, relayed.Input));
         }
         finally
         {
@@ -298,36 +301,41 @@ public class SteamGameServerAdmissionTests
     {
         var clock = new TestClock(DateTimeOffset.Parse("2026-09-26T12:00:00Z"));
         var playing = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var spawned = new TaskCompletionSource<ProjectileVisualPacket>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var spawned = new TaskCompletionSource<Hitbox[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         var removed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var swordActive = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var swordRemoved = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var catalog = LoadCatalog();
+        // The opponent's view: a simulation restored from every World Frame it receives.
+        var view = new ServerSimulation(ArenaRegistry.GetPvP("slop_pit")!.Value);
+        foreach (var (entity, character) in new[] { (1UL, CharacterClass.Wibou), (2UL, CharacterClass.FightGuy) })
+        {
+            var content = catalog.Resolve(character)!;
+            view.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
+        }
         var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), "slop_pit",
             new[] { new MatchPlayer(1001, CharacterClass.Wibou, 1),
                 new MatchPlayer(1002, CharacterClass.FightGuy, 2) },
-            LoadCatalog(), _ => { }, contentHash: ContentHash,
+            catalog, _ => { }, contentHash: ContentHash,
             admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
             steamSend: (_, recipient, frame, _) =>
             {
-                if (recipient != 2) return;
-                if (frame[0] == SteamGameplayWire.State
-                    && ServerEntityPacket.Deserialize(frame.AsSpan(1)).State.MatchState == MatchState.Playing)
+                if (recipient != 2 || frame[0] != SteamGameplayWire.Frame) return;
+                var world = WorldFramePacket.Deserialize(frame.AsSpan(1));
+                if (world.MatchState == MatchState.Playing)
                     playing.TrySetResult(true);
-                if (frame[0] == SteamGameplayWire.Projectile
-                    && ProjectileVisualPacket.TryDeserialize(frame.AsSpan(1), out var packet))
-                {
-                    if (packet.Projectiles.Count == 3) spawned.TrySetResult(packet);
-                    else if (packet.Projectiles.Count == 0 && spawned.Task.IsCompleted)
-                        removed.TrySetResult(true);
-                }
-                if (frame[0] == SteamGameplayWire.SwordTrail
-                    && SwordTrailSnapshotPacket.TryDeserialize(frame.AsSpan(1), out var sword))
-                {
-                    if (sword.ActiveOwnerIds.Count == 1 && sword.ActiveOwnerIds[0] == 1)
-                        swordActive.TrySetResult(true);
-                    else if (sword.ActiveOwnerIds.Count == 0 && swordActive.Task.IsCompleted)
-                        swordRemoved.TrySetResult(true);
-                }
+                view.RestoreSnapshot(world.Snapshot);
+                var kunai = view.Resolver.GetActiveHitboxes()
+                    .Where(h => h.OwnerId == 1 && h.Active && h.AttackSlot == AbilitySlots.A).ToArray();
+                if (kunai.Length == 3) spawned.TrySetResult(kunai);
+                else if (kunai.Length == 0 && spawned.Task.IsCompleted)
+                    removed.TrySetResult(true);
+                bool sword = view.Resolver.GetActiveHitboxes().Any(h => h.OwnerId == 1 && h.Active &&
+                    h.SourceEvent.BoneName == "_weapon_hilt" && h.SourceEvent.EndBoneName == "_weapon_tip");
+                if (sword)
+                    swordActive.TrySetResult(true);
+                else if (swordActive.Task.IsCompleted)
+                    swordRemoved.TrySetResult(true);
             }, clock: clock);
         match.Start();
         try
@@ -346,9 +354,8 @@ public class SteamGameServerAdmissionTests
                     OneInput(i == 0 ? new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true } : default)));
                 Thread.Sleep(16);
             }
-            var packet = await spawned.Task.WaitAsync(TimeSpan.FromSeconds(3));
-            Assert.Equal(3, packet.Projectiles.Select(x => x.OperationIndex).Distinct().Count());
-            Assert.All(packet.Projectiles, x => Assert.Equal(CharacterClass.Wibou, x.Character));
+            var kunai = await spawned.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.Equal(3, kunai.Select(x => x.VisualOperationIndex).Distinct().Count());
             await removed.Task.WaitAsync(TimeSpan.FromSeconds(4));
             nextTick = match.ServerTick + 6;
             for (uint i = 0; i < 80; i++)

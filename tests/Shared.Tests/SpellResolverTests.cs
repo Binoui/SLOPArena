@@ -307,4 +307,28 @@ public class SpellResolverTests
 
         Assert.Empty(resolver.DrainPendingExplosions());
     }
+
+    // ── Owner hitstop ──
+
+    [Fact]
+    public void Tick_FrozenOwner_PausesItsMeleeWindowsButNotProjectilesOrOtherOwners()
+    {
+        // ADR-0012: hitstop pauses the attacker's move, so its melee windows wait with it.
+        // A launched projectile and another fighter's window keep their own time.
+        var resolver = new SpellResolver();
+        var window = MakeHitbox(0, 0, 0); window.DurationTicks = 2; window.CancelWithAbility = true;
+        var projectile = MakeHitbox(10, 0, 0); projectile.DurationTicks = 2;
+        var otherWindow = MakeHitbox(20, 0, 0, ownerId: 3); otherWindow.DurationTicks = 2; otherWindow.CancelWithAbility = true;
+        resolver.Spawn(window); resolver.Spawn(projectile); resolver.Spawn(otherWindow);
+        var noEntities = new List<SpellResolver.EntityData>();
+
+        for (int i = 0; i < 5; i++)
+            resolver.Tick(noEntities, frozenOwners: new HashSet<ulong> { 1 });
+        Assert.Equal(0, Assert.Single(resolver.GetActiveHitboxes()).AgeTicks);
+
+        resolver.Tick(noEntities);
+        Assert.Equal(1, Assert.Single(resolver.GetActiveHitboxes()).AgeTicks);
+        resolver.Tick(noEntities);
+        Assert.Empty(resolver.GetActiveHitboxes());
+    }
 }

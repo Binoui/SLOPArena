@@ -998,6 +998,92 @@ public sealed class TimelineRuntimeTests
         Assert.Equal(0UL, sim.GetState(1).AttackCorrectionTargetId);
     }
 
+    [Fact]
+    public void AttackerHitstopDoesNotShortenItsOtherLiveWindows()
+    {
+        // At tick 2 a window 1 m to the right connects and freezes both fighters, while a
+        // 3-tick window 5 m to the left touches nobody. The freeze pauses the attacker's
+        // timeline (ADR-0012), so the second window still closes on the same attack tick.
+        var slot = Slot(20,
+            new CookedSpawnHitboxOperation(2, AuthoringUnit.Meters, Hitbox(2, 1)),
+            new CookedSpawnHitboxOperation(2, AuthoringUnit.Meters, Hitbox(2, 3) with { OffsetX = -5f }));
+
+        float groundY = TestHelpers.GroundPY(TestHelpers.EngineDef);
+
+        (ushort ClosedAt, bool Froze) Run(bool withTarget)
+        {
+            var (sim, def) = Create(slot, TestHelpers.PlayerState() with { PY = groundY });
+            if (withTarget)
+                sim.RegisterEntity(100, def, TestHelpers.NpcState(1f, 0f) with { PY = groundY });
+            sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+            bool seen = false, froze = false;
+            for (int tick = 0; tick < 40; tick++)
+            {
+                sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+                froze |= sim.GetState(1).HitstopTicks > 0;
+                bool live = sim.Resolver.GetActiveHitboxes().Any(hitbox => hitbox.X < -2f);
+                if (seen && !live) return (sim.GetState(1).AttackElapsedTicks, froze);
+                seen |= live;
+            }
+            throw new InvalidOperationException("The left window never closed.");
+        }
+
+        var alone = Run(withTarget: false);
+        var frozen = Run(withTarget: true);
+        Assert.False(alone.Froze);
+        Assert.True(frozen.Froze);
+        Assert.Equal(alone.ClosedAt, frozen.ClosedAt);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MobileAimWalksAtItsSpeedScaleAndStopsWhenTheAimEnds(bool airborne)
+    {
+        // A mobile aim state on ticks 0-19 walks at 40% of run (or air) speed under a held
+        // stick. When the timeline ends the aim, the walking stops instead of carrying into
+        // the rest of the move, which has no friction.
+        var timeline = new CookedTimeline(new[]
+        {
+            new CookedStage(40, 0, 0, 0, 0, Array.Empty<string>(), new CookedTimelineOperation[]
+            {
+                new CookedSetAimStateOperation(0, AuthoringUnit.Ticks, AuthoringAimMode.CameraForward3D),
+                new CookedSetAimStateOperation(20, AuthoringUnit.Ticks, AuthoringAimMode.None),
+            }),
+        });
+        var slot = new CookedSlotDefinition(airborne ? 8 : 0, airborne ? "air.1" : "ground.1", airborne, "Test", "Test",
+            "icon.test", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false, timeline,
+            aimMovement: AuthoringAimMovementMode.Mobile, aimMovementSpeedScale: 0.4f);
+        var def = TestHelpers.EngineDef;
+        var slots = def.CookedSlots!.ToArray();
+        slots[airborne ? 8 : 0] = slot;
+        def.CookedSlots = slots;
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState() with
+        {
+            PY = TestHelpers.GroundPY(def) + (airborne ? 50f : 0f), IsGrounded = !airborne,
+        });
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        var stick = new Dictionary<ulong, InputState> { [1] = new InputState { MoveX = 1f } };
+        float cap = 0.4f * (airborne ? def.Movement.AirSpeedMax : def.Movement.RunSpeed);
+
+        float fastest = 0f;
+        while (sim.GetState(1).State == ActionState.Aiming)
+        {
+            sim.Tick(stick);
+            var walking = sim.GetState(1);
+            if (walking.State == ActionState.Aiming) fastest = MathF.Max(fastest, MathF.Abs(walking.VX));
+        }
+        Assert.InRange(fastest, 0.5f * cap, cap + 1e-4f);
+        if (!airborne) TestHelpers.AssertNear(cap, fastest, 1e-4f);
+
+        var stopped = sim.GetState(1);
+        Assert.Equal(ActionState.Attacking, stopped.State);
+        for (int tick = 0; tick < 10; tick++) sim.Tick(stick);
+        Assert.Equal(0f, sim.GetState(1).VX);
+        TestHelpers.AssertNear(stopped.PX, sim.GetState(1).PX, 1e-5f);
+    }
+
     private static CharacterDefinition CompileSourceDefinition(string package)
     {
         string directory = RepoFile($"client/Unity/Assets/CharacterPackages/{package}");

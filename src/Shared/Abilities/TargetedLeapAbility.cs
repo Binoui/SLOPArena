@@ -200,4 +200,26 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         while (yaw < -MathF.PI) yaw += 2f * MathF.PI;
         return yaw;
     }
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteByte((byte)_phase);
+        w.WriteUShort(_phaseTicks);
+        w.WriteFloat(_aimYaw);
+        w.WriteFloat(_aimDistance);
+        w.WriteFloat(_horizontalSpeed);
+        w.WriteBool(_hitboxSpawned);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _phase = (Phase)r.ReadByte();
+        _phaseTicks = r.ReadUShort();
+        _aimYaw = r.ReadFloat();
+        _aimDistance = r.ReadFloat();
+        _horizontalSpeed = r.ReadFloat();
+        _hitboxSpawned = r.ReadBool();
+    }
 }

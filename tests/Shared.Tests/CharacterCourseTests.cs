@@ -138,7 +138,7 @@ public sealed class CharacterCourseTests
     public void FastSweepsCannotSkipCheckpointOrFinishSensors()
     {
         var course = new CharacterCourseSimulation(Arena().Arcade!.Course!);
-        course.Begin(1); course.BeginTick(); course.BeginTick(); course.Break(0); course.Break(1);
+        course.Begin(1); course.BeginTick(); course.BeginTick(); course.Hit(0); course.Hit(1);
         course.FinishTick(new(-5, 1, 0), new(20, 1, 0), false);
         Assert.Equal(1, course.State.SavedCheckpoint);
         Assert.Equal(CharacterCoursePhase.Completed, course.State.Phase);
@@ -184,12 +184,88 @@ public sealed class CharacterCourseTests
         string hash = ArcadeRecordCompatibility.Course(arena, entry);
         arena.DisplayName = "Cosmetic name"; arena.PreviewColor = "#ffffff";
         Assert.Equal(hash, ArcadeRecordCompatibility.Course(arena, entry));
-        Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, entry, rulesRevision: 2));
+        Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, entry,
+            rulesRevision: ArcadeRecordCompatibility.CourseRulesRevision + 1));
         var c = arena.Arcade!.Course!;
         arena.Arcade = ArcadeStageDefinition.ForCourse("fixture", 1, new[] { "fightguy" }, new CharacterCourseDefinition(
             new[] { new CourseTargetDefinition("first", new(3, 1, 0), .5f), c.Targets[1] }, c.Checkpoints, c.Finish));
         Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, entry));
         Assert.Throws<ArgumentException>(() => ArcadeRecordCompatibility.Course(arena, BuiltInContentResolver.Resolve(CharacterClass.Manki)));
+    }
+
+    [Fact]
+    public void BonusTargetsTakeTheirHitCountKeepTheLockAndGateCheckpointsUntilBroken()
+    {
+        var sim = new ServerSimulation(BonusArena(hits: 3), NoWinMatchRule.Instance);
+        sim.RegisterEntity(1, TestHelpers.EngineDef, TestHelpers.PlayerState());
+        sim.SetRespawnPosition(1, 0, .85f, 0);
+        sim.BeginCourseAttempt(1); sim.Tick(new()); sim.Tick(new());
+        sim.Tick(new() { [1] = new() { ToggleLock = true, TargetEntityId = sim.CourseTargetInputAlias(0) } });
+        Assert.Equal(3, sim.CourseTargetHitsLeft(0));
+        for (int hit = 1; hit <= 2; hit++)
+        {
+            Break(sim, 0);
+            Assert.False(sim.IsCourseTargetBroken(0));
+            Assert.Equal(3 - hit, sim.CourseTargetHitsLeft(0));
+            var e = Assert.Single(sim.LastTickCourseEvents);
+            Assert.Equal((CharacterCourseEventKind.TargetHit, 0), (e.Kind, e.Index));
+            Assert.Single(sim.LastTickHits);
+            Assert.True(sim.GetState(1).LockOn);
+            Move(sim, 4); sim.Tick(new());
+            Assert.Equal(-1, sim.Course!.Value.SavedCheckpoint);
+            Move(sim, 0); sim.Tick(new());
+        }
+        Assert.Equal(0, sim.Course!.Value.BrokenTargets);
+        Break(sim, 0);
+        Assert.True(sim.IsCourseTargetBroken(0));
+        Assert.Equal(0, sim.CourseTargetHitsLeft(0));
+        Assert.Equal(CharacterCourseEventKind.TargetBroken, Assert.Single(sim.LastTickCourseEvents).Kind);
+        Assert.Equal(1, sim.Course.Value.BrokenTargets);
+        Assert.False(sim.GetState(1).LockOn);
+        Break(sim, 0); Assert.Empty(sim.LastTickHits);
+        Move(sim, 4); sim.Tick(new());
+        Assert.Equal(0, sim.Course.Value.SavedCheckpoint);
+    }
+
+    [Fact]
+    public void BonusTargetCoursesWriteSectionSixWhileSingleHitCoursesKeepFive()
+    {
+        var single = Arena();
+        Assert.False(single.Arcade!.Course!.HasMultiHitTargets);
+        Assert.Equal(5, BinaryPrimitives.ReadUInt16LittleEndian(ArcadeStageBinaryFormat.Serialize(single.Arcade)));
+        var bonus = BonusArena(hits: 8);
+        byte[] bytes = ArenaBinaryFormat.Serialize(bonus);
+        var loaded = ArenaBinaryFormat.Deserialize(bytes)!.Value;
+        Assert.Equal(new byte[] { 8, 1 }, loaded.Arcade!.Course!.Targets.Select(t => t.Hits).ToArray());
+        Assert.Equal(bytes, ArenaBinaryFormat.Serialize(loaded));
+        byte[] section = ArcadeStageBinaryFormat.Serialize(bonus.Arcade!);
+        Assert.Equal(6, BinaryPrimitives.ReadUInt16LittleEndian(section));
+        for (int length = 0; length < section.Length; length++)
+            Assert.Null(ArcadeStageBinaryFormat.Deserialize(section[..length]));
+        Assert.Throws<ArgumentException>(() => new CourseTargetDefinition("none", new(0, 1, 0), .5f, 0));
+        Assert.Throws<ArgumentException>(() => new CourseTargetDefinition("many", new(0, 1, 0), .5f, CourseTargetDefinition.MaxHits + 1));
+    }
+
+    [Fact]
+    public void HitCountsChangeOnlyBonusCourseFingerprints()
+    {
+        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        // Single-hit courses project exactly as they did before hit counts existed.
+        var options = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+        Assert.DoesNotContain("Hits", System.Text.Json.JsonSerializer.Serialize(Arena().Arcade!.Course, options));
+        string eight = ArcadeRecordCompatibility.Course(BonusArena(hits: 8), entry);
+        Assert.Equal(eight, ArcadeRecordCompatibility.Course(BonusArena(hits: 8), entry));
+        Assert.NotEqual(eight, ArcadeRecordCompatibility.Course(BonusArena(hits: 6), entry));
+        Assert.NotEqual(eight, ArcadeRecordCompatibility.Course(BonusArena(hits: 1), entry));
+    }
+
+    private static ArenaDefinition BonusArena(byte hits)
+    {
+        var arena = Arena(); var c = arena.Arcade!.Course!;
+        arena.Arcade = ArcadeStageDefinition.ForCourse("fixture", 1, new[] { "fightguy" }, new CharacterCourseDefinition(
+            new[] { new CourseTargetDefinition("bonus", c.Targets[0].Position, c.Targets[0].Radius, hits), c.Targets[1] },
+            c.Checkpoints, c.Finish));
+        return arena;
     }
 
     internal static ArenaDefinition Arena()

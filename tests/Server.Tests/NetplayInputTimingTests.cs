@@ -25,18 +25,20 @@ public sealed class NetplayInputTimingTests
 
     private sealed class Capture
     {
-        public readonly ConcurrentDictionary<uint, ServerEntityPacket> SelfStates = new();
+        /// <summary>The input the GameHost relayed for entity 1, by frame tick.</summary>
+        public readonly ConcurrentDictionary<uint, RelayedInput> SelfStates = new();
         public readonly ConcurrentQueue<NetplayControlPacket> SelfClocks = new();
         public volatile bool Playing;
 
         public void Record(ulong recipient, byte[] frame)
         {
             if (recipient != 1 || frame.Length < 2) return;
-            if (frame[0] == SteamGameplayWire.State)
+            if (frame[0] == SteamGameplayWire.Frame)
             {
-                var packet = ServerEntityPacket.Deserialize(frame.AsSpan(1));
-                if (packet.State.MatchState == MatchState.Playing) Playing = true;
-                if (packet.EntityId == 1) SelfStates[packet.Tick] = packet;
+                var world = WorldFramePacket.Deserialize(frame.AsSpan(1));
+                if (world.MatchState == MatchState.Playing) Playing = true;
+                foreach (var relayed in world.Inputs)
+                    if (relayed.EntityId == 1) SelfStates[world.Tick] = relayed;
             }
             else if (frame[0] == SteamGameplayWire.Control &&
                      NetplayControlPacket.TryDeserialize(frame.AsSpan(1), out var control) &&

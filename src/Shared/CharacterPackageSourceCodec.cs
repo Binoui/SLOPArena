@@ -539,6 +539,7 @@ public static class CharacterPackageSourceCodec
         w.WriteString("behavior", BehaviorText(x.Behavior));
         w.WriteString("aimMode", AimText(x.AimMode));
         w.WriteString("aimMovement", AimMovementText(x.AimMovement));
+        if (x.AimMovementSpeedScale != 1f) Number(w, "aimMovementSpeedScale", x.AimMovementSpeedScale);
         if (x.AimAnimationId != null) w.WriteString("aimAnimationId", x.AimAnimationId);
         if (x.HitPresentationId != null) w.WriteString("hitPresentationId", x.HitPresentationId);
         w.WriteNumber("cooldownTicks", x.CooldownTicks);
@@ -911,11 +912,12 @@ public static class CharacterPackageSourceCodec
         foreach (var e in a.EnumerateArray())
         {
             var path = $"character.slots[{i}]";
-            var p = ReadObject(e, path, d, "id", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart", "allowSlideCarry", "chargePool", "timeline");
+            var p = ReadObject(e, path, d, "id", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart", "allowSlideCarry", "chargePool", "timeline");
             var chargePool = p.TryGetValue("chargePool", out var chargeElement) && chargeElement.ValueKind != JsonValueKind.Null
                 ? ParseChargePool(chargeElement, path + ".chargePool", d)
                 : null;
-            result.Add(new CharacterSlotSource(String(p, "id", path + ".id", d), String(p, "name", path + ".name", d), String(p, "description", path + ".description", d), String(p, "iconId", path + ".iconId", d), EnumValue(p, "behavior", path + ".behavior", d, ParseBehavior), EnumValue(p, "aimMode", path + ".aimMode", d, ParseAimMode), UShort(p, "cooldownTicks", path + ".cooldownTicks", d), Bool(p, "isRecoveryMove", path + ".isRecoveryMove", d), Bool(p, "preserveMomentumOnStart", path + ".preserveMomentumOnStart", d), ParseTimeline(p, path, d), chargePool, OptionalEnumValue(p, "aimMovement", path + ".aimMovement", d, ParseAimMovement, AuthoringAimMovementMode.Fixed), OptionalString(p, "aimAnimationId", path + ".aimAnimationId", d), OptionalBool(p, "allowSlideCarry", path + ".allowSlideCarry", d), OptionalString(p, "hitPresentationId", path + ".hitPresentationId", d)));
+            result.Add(new CharacterSlotSource(String(p, "id", path + ".id", d), String(p, "name", path + ".name", d), String(p, "description", path + ".description", d), String(p, "iconId", path + ".iconId", d), EnumValue(p, "behavior", path + ".behavior", d, ParseBehavior), EnumValue(p, "aimMode", path + ".aimMode", d, ParseAimMode), UShort(p, "cooldownTicks", path + ".cooldownTicks", d), Bool(p, "isRecoveryMove", path + ".isRecoveryMove", d), Bool(p, "preserveMomentumOnStart", path + ".preserveMomentumOnStart", d), ParseTimeline(p, path, d), chargePool, OptionalEnumValue(p, "aimMovement", path + ".aimMovement", d, ParseAimMovement, AuthoringAimMovementMode.Fixed), OptionalString(p, "aimAnimationId", path + ".aimAnimationId", d), OptionalBool(p, "allowSlideCarry", path + ".allowSlideCarry", d), OptionalString(p, "hitPresentationId", path + ".hitPresentationId", d),
+                p.ContainsKey("aimMovementSpeedScale") ? Float(p, "aimMovementSpeedScale", path + ".aimMovementSpeedScale", d) : 1f));
             i++;
         }
         return result;

@@ -91,14 +91,16 @@ _Avoid_: directional block
 Disabled for the friends demo: the Shared simulation does not enter this state on an edge approach. Fighters fall past ledges and must recover onto a stage surface. The old state value and packet fields remain reserved for compatibility; ADR-0020 §4 records the earlier design, not the current demo rule.
 _Avoid_: ledge grab (the action), edge hang, tether
 
-**Forward Air Dodge**:
-A fresh airborne Defense press commits to ten ticks of facing-locked horizontal
-movement, with invulnerability for the first five ticks, then twenty ticks of
-vulnerable recovery. It spends one air dodge until a genuine landing or respawn.
-It retains ordinary gravity and cannot turn, attack, jump or shield-cancel
-before recovery ends. Landing ends movement but not remaining commitment;
-ledge grabs cannot interrupt recovery while disabled.
-_Avoid_: air dash, directional dodge, wavedash
+**Air Dodge**:
+A fresh airborne Defense press commits to a twelve-tick horizontal burst in the
+held stick direction (forward when neutral), invulnerable for its first eight
+ticks, then fourteen ticks of vulnerable recovery that glides out on the burst's
+exit speed. It spends one air dodge until a genuine landing or respawn. Facing
+never changes; it retains ordinary gravity and cannot steer, attack, jump or
+shield-cancel before recovery ends. Landing stops all horizontal movement and
+caps the remaining commitment at ten ticks; ledge grabs cannot interrupt
+recovery while disabled.
+_Avoid_: air dash, wavedash
 
 **RecoveryMove**:
 The per-character dedicated upward/diagonal burst used to return to the stage after being knocked out — one Slot per kit, long cooldown. The only move that resets the FloatWindow; normal air attacks no longer do (ADR-0015).
@@ -360,12 +362,24 @@ _Avoid_: replay, telemetry upload
 
 ## Prediction & Rollback
 
+**World Snapshot**:
+The complete state of a PvP Shared simulation after one tick: every fighter's full state, active ability runtimes, live hitboxes and projectiles, and simulation counters, in a canonical encoding where equal states give equal bytes. Restoring it into a simulation with the same arena, rule and registered fighters reproduces the same future on the same runtime. The basis of full-world rollback (ADR-0039); not a network character packet.
+_Avoid_: save state, full packet, checkpoint (unless meaning a stored World Snapshot)
+
+**Anchor**:
+The newest World Snapshot a client has received from the GameHost and restored (or found identical to its own prediction of that tick). Full-world prediction always restarts from it; the client keeps no divergent history of its own (ADR-0039).
+_Avoid_: ConfirmedTick (track model), base state, keyframe
+
+**Prediction Window**:
+The ticks a client simulates beyond its Anchor, up to its local tick, with its own recorded inputs and each opponent's last relayed input without presses. Re-simulated whenever a newer Anchor arrives; capped so a client stops predicting when frames stop arriving.
+_Avoid_: RollbackWindow (track model), lag window
+
 **ConfirmedTick**:
-The highest match tick for which the client holds a full server-authoritative snapshot for every non-self entity. The base state PredictedTrack rebuilds from; it advances as state packets arrive, one tick at a time. Does not apply to LocalTrack — the self entity is never rebuilt from a snapshot.
+The highest match tick for which the client holds a full server-authoritative snapshot for every non-self entity. The base state PredictedTrack rebuilds from; it advances as state packets arrive, one tick at a time. Does not apply to LocalTrack — the self entity is never rebuilt from a snapshot. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: ack tick, sync tick, last confirmed
 
 **RollbackWindow**:
-The span of ticks between ConfirmedTick and the currently rendered tick, replayed on PredictedTrack entities whenever the confirmed base advances or a mismatch is corrected. Applies only to opponents currently in a Predictable ActionState — RawTrack entities have no window (they render the latest packet directly), and LocalTrack has no window (it never rebuilds).
+The span of ticks between ConfirmedTick and the currently rendered tick, replayed on PredictedTrack entities whenever the confirmed base advances or a mismatch is corrected. Applies only to opponents currently in a Predictable ActionState — RawTrack entities have no window (they render the latest packet directly), and LocalTrack has no window (it never rebuilds). Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: rewind window, prediction buffer, lag window
 
 **InputRelay**:
@@ -373,23 +387,23 @@ The GameHost's broadcast of per-fighter input data alongside authoritative Match
 _Avoid_: input forwarding, input piggyback, input echo
 
 **LocalTrack**:
-The self entity's `ServerSimulation`, run continuously on the client from match start — never rebuilt from a received snapshot, fed the player's own true InputState every tick. Corrected only by snapping the wire-serialized fields when a received packet disagrees; fields absent from the wire (attack timers, knockback, ability-instance state) never diverge because this track is never reconstructed from a lossy snapshot.
+The self entity's `ServerSimulation`, run continuously on the client from match start — never rebuilt from a received snapshot, fed the player's own true InputState every tick. Corrected only by snapping the wire-serialized fields when a received packet disagrees; fields absent from the wire (attack timers, knockback, ability-instance state) never diverge because this track is never reconstructed from a lossy snapshot. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: self-prediction, client-side prediction (ambiguous with PredictedTrack), own-entity sim
 
 **PredictedTrack**:
-An opponent entity currently in a Predictable ActionState. Rebuilt from ConfirmedTick's snapshot and replayed forward tick-by-tick using InputRelay data (or the no-input marker) up to the current local tick. Diverges only at the frontier (ticks past the last received relay), corrected by snap on the next packet.
+An opponent entity currently in a Predictable ActionState. Rebuilt from ConfirmedTick's snapshot and replayed forward tick-by-tick using InputRelay data (or the no-input marker) up to the current local tick. Diverges only at the frontier (ticks past the last received relay), corrected by snap on the next packet. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: opponent prediction, ghost sim, replayed entity
 
 **RawTrack**:
-An opponent rendered from received state rather than local re-simulation while its action or Hitstop requires private simulation state. Returns to prediction only when its confirmed state is reconstructible.
+An opponent rendered from received state rather than local re-simulation while its action or Hitstop requires private simulation state. Returns to prediction only when its confirmed state is reconstructible. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: unpredicted entity, fallback display, snap-only entity
 
 **Predictable ActionState**:
-An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery, Thrown flight/recovery and the forward air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction.
+An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery, Thrown flight/recovery and the air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: safe state, simple state, movement state
 
 **Complex ActionState**:
-An action requiring private ability/resolver state or paired server authority. Attacking, Hitstun, LedgeHang and linked Grabbing/Grabbed/Throwing render from authoritative state; the self track uses a targeted barrier for confirmed capture or block contact instead of replaying through a coupled interval. The retired `Warping` numeric value remains reserved for wire compatibility.
+An action requiring private ability/resolver state or paired server authority. Attacking, Hitstun, LedgeHang and linked Grabbing/Grabbed/Throwing render from authoritative state; the self track uses a targeted barrier for confirmed capture or block contact instead of replaying through a coupled interval. The retired `Warping` numeric value remains reserved for wire compatibility. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: unsafe state, hard state, ability state
 
 

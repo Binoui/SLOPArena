@@ -418,13 +418,15 @@ namespace SlopArena.Shared
 
 
 
-            // Grab takes priority over grounded movement and brakes existing momentum.
+            // Grab takes priority over grounded movement and briefly carries existing momentum.
             if (input.GrabPressed && s.IsGrounded
                 && CanAcceptDefenseAction(in s, def, blockStunLocked, verticalMotionOwned))
             {
-                StartGrabAttempt(ref s);
+                StartGrabAttempt(ref s, stats);
                 movementActionAccepted = true;
             }
+            if (s.State == ActionState.GrabAttempt)
+                DecayHorizontalSpeed(ref s, stats.RunSpeed / DefenseConfig.GrabBrakeTicks);
 
             if (!input.GrabPressed && input.Jump && s.JumpsLeft > 0 && s.AnimLockTicks == 0
                 && s.HitstunTicks == 0 && !blockStunLocked && !verticalMotionOwned
@@ -499,7 +501,7 @@ namespace SlopArena.Shared
                 else if (!s.IsGrounded && input.ShieldPressed && s.AirDodgesLeft > 0
                     && CanAcceptAirDodge(in s, blockStunLocked, verticalMotionOwned))
                 {
-                    StartAirDodge(ref s, stats);
+                    StartAirDodge(ref s, stats, input);
                     movementActionAccepted = true;
                 }
             }
@@ -520,18 +522,26 @@ namespace SlopArena.Shared
             }
 
             // 7. Fixed aim holds stop horizontal movement, including incoming air momentum.
-            // Mobile-policy holds retain normal movement control. Attacks own their travel.
+            // Mobile-policy holds retain normal movement control at the slot's speed scale.
+            // Attacks own their travel.
             bool fixedAim = s.State == ActionState.Aiming && s.AttackSlot > 0
                 && def.GetAimMovementMode(s.AttackSlot, !s.IsGrounded) == AimMovementMode.Fixed;
             if (fixedAim)
                 s.VX = s.VZ = 0f;
+            var moveStats = stats;
+            if (s.State == ActionState.Aiming && s.AttackSlot > 0 && !fixedAim)
+            {
+                float aimSpeedScale = def.GetAimMovementSpeedScale(s.AttackSlot, !s.IsGrounded);
+                moveStats.RunSpeed *= aimSpeedScale;
+                moveStats.AirSpeedMax *= aimSpeedScale;
+            }
             // Landing lag (issue #125): "no input, no movement" — the stick cannot steer
             // during the lock, even once the aerial has ended and the state is Idle.
             if (!blockStunLocked && s.LandingLagTicks == 0
                 && (s.State == ActionState.Idle || s.State == ActionState.Aiming
                     || s.State == ActionState.Run || s.State == ActionState.Crouching
                     || s.State == ActionState.Sliding))
-                ProcessNormalMovement(ref s, stats, input, tuning, movementActionAccepted, processInput: !fixedAim);
+                ProcessNormalMovement(ref s, moveStats, input, tuning, movementActionAccepted, processInput: !fixedAim);
             if (verticalMotionOwned && s.IsGrounded
                 && (input.Down || input.DownPressed)
                 && !movementActionAccepted)
@@ -664,6 +674,7 @@ namespace SlopArena.Shared
             {
                 if (s.State == ActionState.AirDodgeMovement)
                     s.AirDodgeRecoveryTicks = (ushort)(s.StateTicks + DefenseConfig.AirDodgeRecoveryTicks);
+                s.AirDodgeRecoveryTicks = Math.Min(s.AirDodgeRecoveryTicks, DefenseConfig.AirDodgeLandingTicks);
                 s.State = ActionState.AirDodgeRecovery;
                 s.StateTicks = s.AirDodgeRecoveryTicks;
                 if (s.InvincibilityTicks <= DefenseConfig.AirDodgeInvulnerabilityTicks)
@@ -781,7 +792,7 @@ namespace SlopArena.Shared
             state.SlideAttackCarryActive = false;
         }
 
-        private static void StartGrabAttempt(ref CharacterState state)
+        private static void StartGrabAttempt(ref CharacterState state, MovementStats stats)
         {
             ClearMovementInterruptionFlags(ref state);
             state.State = ActionState.GrabAttempt;
@@ -795,23 +806,41 @@ namespace SlopArena.Shared
                 (int)MathF.Round(state.FacingYaw * (18000f / MathF.PI)), short.MinValue, short.MaxValue);
             state.ShieldDropTicks = 0;
             ClearDefenseAttackState(ref state);
-            state.VX = state.VZ = 0f;
+            ClampHorizontalSpeed(ref state, stats.RunSpeed);
         }
 
-        private static void StartAirDodge(ref CharacterState state, MovementStats stats)
+        private static void StartAirDodge(ref CharacterState state, MovementStats stats, InputState input)
         {
             ClearMovementInterruptionFlags(ref state);
             ClearDefenseAttackState(ref state);
-            state.DashDirX = MathF.Sin(state.FacingYaw);
-            state.DashDirZ = MathF.Cos(state.FacingYaw);
+            // The stick aims the dodge and a neutral stick dodges forward; facing stays put.
+            (float dirX, float dirZ) = GetInputDirection(input);
+            if ((dirX * dirX) + (dirZ * dirZ) <= 1e-4f)
+            {
+                dirX = MathF.Sin(state.FacingYaw);
+                dirZ = MathF.Cos(state.FacingYaw);
+            }
+            state.DashDirX = dirX;
+            state.DashDirZ = dirZ;
             state.State = ActionState.AirDodgeMovement;
             state.StateTicks = DefenseConfig.AirDodgeMovementTicks;
             state.AirDodgeRecoveryTicks = 0;
             state.InvincibilityTicks = Math.Max(state.InvincibilityTicks,
                 DefenseConfig.AirDodgeInvulnerabilityTicks);
             state.AirDodgesLeft--;
-            state.VX = state.DashDirX * stats.AirDodgeSpeed;
-            state.VZ = state.DashDirZ * stats.AirDodgeSpeed;
+            float speed = AirDodgeBurstSpeed(stats, state.StateTicks);
+            state.VX = state.DashDirX * speed;
+            state.VZ = state.DashDirZ * speed;
+        }
+
+        /// <summary>Front-loaded burst speed, derived from the remaining movement ticks.</summary>
+        private static float AirDodgeBurstSpeed(MovementStats stats, ushort remainingTicks)
+        {
+            // Repeated multiplication avoids MathF.Pow, whose result can differ between runtimes.
+            float speed = stats.AirDodgeSpeed * DefenseConfig.AirDodgeLaunchScale;
+            for (int tick = remainingTicks; tick < DefenseConfig.AirDodgeMovementTicks; tick++)
+                speed *= DefenseConfig.AirDodgeSpeedRetention;
+            return speed;
         }
 
         private static void AdvanceDefenseStates(ref CharacterState state)
@@ -828,10 +857,10 @@ namespace SlopArena.Shared
             }
             else if (state.State == ActionState.AirDodgeMovement && state.StateTicks == 0)
             {
+                // Recovery keeps the burst's exit velocity and glides it out.
                 state.State = ActionState.AirDodgeRecovery;
                 state.StateTicks = DefenseConfig.AirDodgeRecoveryTicks;
                 state.AirDodgeRecoveryTicks = DefenseConfig.AirDodgeRecoveryTicks;
-                state.VX = state.VZ = 0f;
             }
             else if (state.State == ActionState.AirDodgeRecovery && state.AirDodgeRecoveryTicks == 0)
             {
@@ -891,12 +920,14 @@ namespace SlopArena.Shared
         private static void ProcessDefenseAirDodge(ref CharacterState state, MovementStats stats)
         {
             if (state.State == ActionState.AirDodgeRecovery)
-                state.VX = state.VZ = 0f;
-            else
             {
-                state.VX = state.DashDirX * stats.AirDodgeSpeed;
-                state.VZ = state.DashDirZ * stats.AirDodgeSpeed;
+                // Glide on air friction without steering; landing has already zeroed it.
+                DecayHorizontalSpeed(ref state, stats.AirFriction * TickDt);
+                return;
             }
+            float speed = AirDodgeBurstSpeed(stats, state.StateTicks);
+            state.VX = state.DashDirX * speed;
+            state.VZ = state.DashDirZ * speed;
         }
 
 

@@ -58,7 +58,14 @@ public static class SteamGameplayControlRouter
 
 public sealed class SteamGameServerHost : IAsyncDisposable
 {
-    private const int MaxMessageBytes = 1024;
+    /// <summary>Client frames are inputs and controls; a few hundred bytes at most.</summary>
+    private const int MaxInboundMessageBytes = 1024;
+    /// <summary>A World Frame with its wire tag; Steam fragments anything above the MTU.</summary>
+    private const int MaxOutboundMessageBytes = 1 + WorldFramePacket.HeaderSize + WorldFramePacket.MaxBodyBytes;
+    /// <summary>World Frames need about 30–60 KB/s per peer, peaking near 125 KB/s with four fighters;
+    /// keep Steam's bandwidth estimate from throttling below that.</summary>
+    private const int MinimumSendRateBytesPerSecond = 256 * 1024;
+    private const int MaximumSendRateBytesPerSecond = 1024 * 1024;
     private const int MessagesPerConnectionPerPoll = 8;
     private const int MaxMessagesPerPoll = 2048;
     private readonly int _maxConnections;
@@ -72,7 +79,7 @@ public sealed class SteamGameServerHost : IAsyncDisposable
     private readonly ConcurrentQueue<Guid> _closeMatches = new();
     private readonly ConcurrentDictionary<Guid, byte> _closeQueued = new();
     private readonly IntPtr[] _messages = new IntPtr[MessagesPerConnectionPerPoll];
-    private readonly byte[] _receiveFrame = new byte[MaxMessageBytes];
+    private readonly byte[] _receiveFrame = new byte[MaxInboundMessageBytes];
     private readonly InputState[] _inputBundle = new InputState[InputBundle.MaxInputs];
     private readonly HashSet<HSteamNetConnection> _pendingFlush = new();
     /// <summary>Wakes the Steam loop as soon as a match has queued a tick's frames.</summary>
@@ -128,6 +135,19 @@ public sealed class SteamGameServerHost : IAsyncDisposable
 
     public void AttachOrchestrator(MultiMatchOrchestrator orchestrator) => _orchestrator = orchestrator;
 
+    /// <summary>Global Steam send-rate bound for every connection; a refusal keeps Steam's default.</summary>
+    private static void ConfigureSendRate(ESteamNetworkingConfigValue setting, int bytesPerSecond)
+    {
+        var value = GCHandle.Alloc(bytesPerSecond, GCHandleType.Pinned);
+        try
+        {
+            if (!SteamGameServerNetworkingUtils.SetConfigValue(setting, ESteamNetworkingConfigScope.k_ESteamNetworkingConfig_Global,
+                    IntPtr.Zero, ESteamNetworkingConfigDataType.k_ESteamNetworkingConfig_Int32, value.AddrOfPinnedObject()))
+                Console.WriteLine($"[Steam] {setting} was refused; keeping Steam's default.");
+        }
+        finally { value.Free(); }
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         if (GameServer.InitEx(0, 0, 0, EServerMode.eServerModeAuthentication, "1.0.0.0", out string initError) != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
@@ -153,6 +173,8 @@ public sealed class SteamGameServerHost : IAsyncDisposable
             throw new InvalidOperationException("Steam game-server login failed or timed out.");
         SteamGameServerNetworkingSockets.InitAuthentication();
         SteamGameServerNetworkingUtils.InitRelayNetworkAccess();
+        ConfigureSendRate(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_SendRateMin, MinimumSendRateBytesPerSecond);
+        ConfigureSendRate(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_SendRateMax, MaximumSendRateBytesPerSecond);
 
         long authenticationDeadline = Stopwatch.GetTimestamp() + 30 * Stopwatch.Frequency;
         while (!cancellationToken.IsCancellationRequested && Stopwatch.GetTimestamp() < authenticationDeadline)
@@ -184,7 +206,7 @@ public sealed class SteamGameServerHost : IAsyncDisposable
 
     public void SendToMatchEntity(Guid matchId, ulong entityId, byte[] frame, bool reliable)
     {
-        if (matchId == Guid.Empty || entityId == 0 || frame.Length is < 2 or > MaxMessageBytes ||
+        if (matchId == Guid.Empty || entityId == 0 || frame.Length is < 2 or > MaxOutboundMessageBytes ||
             !_entityConnections.TryGetValue((matchId, entityId), out var connection))
             return;
         var item = new Outbound(connection.Id, matchId, entityId, frame);

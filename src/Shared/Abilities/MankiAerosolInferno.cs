@@ -124,4 +124,18 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
             KnockbackDirection = AuthoringKnockbackDirection.AwayFromOwner,
         });
     }
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteBool(_fired);
+        w.WriteBool(_released);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _fired = r.ReadBool();
+        _released = r.ReadBool();
+    }
 }

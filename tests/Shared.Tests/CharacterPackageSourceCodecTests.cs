@@ -207,6 +207,26 @@ public sealed class CharacterPackageSourceCodecTests
     }
 
     [Fact]
+    public void AimMovementSpeedScale_RoundTripsAndMissingDefaultsToFullSpeed()
+    {
+        var missing = CharacterPackageSourceCodec.Load(Fixture("package.json"), Fixture("character.json"));
+        Assert.True(missing.IsValid, string.Join("\n", missing.Diagnostics));
+        Assert.Equal(1f, missing.Source!.Character.Slots[0].AimMovementSpeedScale);
+        Assert.DoesNotContain("aimMovementSpeedScale", CharacterPackageSourceCodec.SerializeCharacter(missing.Source.Character));
+
+        var scaledJson = JsonNode.Parse(Fixture("character.json"))!.AsObject();
+        ((JsonObject)scaledJson["slots"]![0]!)["aimMovement"] = "mobile";
+        ((JsonObject)scaledJson["slots"]![0]!)["aimMovementSpeedScale"] = 0.4;
+        var scaled = CharacterPackageSourceCodec.Load(Fixture("package.json"), scaledJson.ToJsonString());
+        Assert.True(scaled.IsValid, string.Join("\n", scaled.Diagnostics));
+        Assert.Equal(0.4f, scaled.Source!.Character.Slots[0].AimMovementSpeedScale);
+        var reparsed = CharacterPackageSourceCodec.Load(Fixture("package.json"),
+            CharacterPackageSourceCodec.SerializeCharacter(scaled.Source.Character));
+        Assert.True(reparsed.IsValid, string.Join("\n", reparsed.Diagnostics));
+        Assert.Equal(0.4f, reparsed.Source!.Character.Slots[0].AimMovementSpeedScale);
+    }
+
+    [Fact]
     public void AllowSlideCarry_RoundTripsAndMissingDefaultsFalse()
     {
         var missingJson = JsonNode.Parse(Fixture("character.json"))!.AsObject();

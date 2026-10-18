@@ -55,32 +55,46 @@ check those body hurtboxes, never the expanded shield sphere. The Unity guard
 mesh has no collider or combat authority; `PlayerRenderer` follows the
 authoritative state and scales it to the same diameter.
 
-### Forward air dodge
+### Air dodge
 
-A fresh airborne Defense press (Left Shift / RT) starts a facing-locked forward
-air dodge if the fighter has an air dodge left and is otherwise actionable.
-Holding Defense through a shield-jump does not produce a fresh press. The
-first 5 ticks are invulnerable; horizontal movement lasts 10 ticks from
-acceptance, so ticks 5–9 are vulnerable. The following 20 ticks are vulnerable
-recovery. Movement overrides, rather than adds to, inherited run/slide speed
-and stops at tick 10. Gravity and vertical momentum continue. Attacks, jump,
-grab, steering, Down/fast-fall and Shield cannot cancel commitment; rejected
-edges do not queue. Landing ends movement and invulnerability but retains
-all remaining commitment as grounded recovery. Ledge grabs do not interrupt
-recovery while the ledge mechanic is disabled. Genuine landing and respawn
-replenish the one-use resource; wall contact and hitstun do not.
+A fresh airborne Defense press (Left Shift / RT) starts an air dodge if the
+fighter has an air dodge left and is otherwise actionable. Holding Defense
+through a shield-jump does not produce a fresh press. The dodge goes in the
+held 8-way stick direction, camera-relative like running; a neutral stick
+dodges toward the current facing. Facing never changes, so a backward dodge
+works like a backdash and aerials still point the same way.
 
-Initial no-obstacle comparison at 60 Hz (old universal airborne Dash used the
-per-character `dashSpeed` and `dashDurationTicks`; the new independently
-authored `airDodgeSpeed` runs for 10 ticks). Values are horizontal distance
-before collision/landing:
+Horizontal movement overrides, rather than adds to, inherited run/slide speed.
+It lasts 12 ticks: the burst starts at 2.3 times the fighter's `airDodgeSpeed` and
+keeps 90% of its speed each tick, so it ends a little above air-drift speed. The first 8
+ticks are invulnerable and ticks 8–11 are vulnerable. The following 14 ticks are
+vulnerable recovery that keeps the burst's exit velocity and loses only the
+fighter's `airFriction`. Gravity and vertical momentum continue throughout.
+Attacks, jump, grab, steering, Down/fast-fall and Shield cannot cancel
+commitment; rejected edges do not queue. Landing ends movement and
+invulnerability, stops horizontal velocity (no wavedash) and leaves at most 10
+ticks of grounded recovery, about an aerial's landing lag. Ledge grabs do not
+interrupt recovery while the ledge mechanic is disabled. Genuine landing and
+respawn replenish the one-use resource; wall contact and hitstun do not.
 
-| Fighter | Old peak m/s | Old travel m | Dodge peak m/s | Dodge travel m |
-| --- | ---: | ---: | ---: | ---: |
-| FightGuy | 20 | 6.667 | 11 | 1.833 |
-| Manki | 20 | 6.000 | 11 | 1.833 |
-| Wibou | 22 | 5.867 | 12.1 | 2.017 |
-| Bonk | 20 | 6.667 | 11 | 1.833 |
+The client presents it as the [print slip](vfx-particles.md#air-dodge-print-slip): paper
+swooshes at the push-off and a misprinted fighter for exactly as long as it is invulnerable.
+
+No-obstacle comparison at 60 Hz with a neutral stick, from the top of a jump.
+The old universal airborne Dash used the per-character `dashSpeed` and
+`dashDurationTicks`. Values are horizontal distance before collision/landing;
+"actionable" is the distance when recovery ends.
+
+| Fighter | Old dash travel m | Dodge start m/s | While invulnerable m | Burst m | Actionable m |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FightGuy | 6.667 | 25.3 | 2.402 | 3.026 | 4.703 |
+| Manki | 6.000 | 25.3 | 2.402 | 3.026 | 4.703 |
+| Wibou | 5.867 | 27.83 | 2.642 | 3.328 | 5.191 |
+| Bonk | 6.667 | 25.3 | 2.402 | 3.026 | 4.703 |
+
+The previous facing-locked tuning (11 m/s for 10 ticks, then 20 ticks frozen in
+place) covered 1.83 m, less than holding the stick for the same 30 ticks, and a
+dodge just before touchdown left 29 ticks of grounded recovery.
 
 Universal airborne Dash input no longer moves the fighter. Kit-owned
 dash/lunge/recovery abilities retain their own timing and mobility.
@@ -137,7 +151,9 @@ interruption or a crouched landing. These are scenario measurements, not balance
 ### Ground grab, held movement, and forward throw
 
 Grab uses C on keyboard (rebindable) or LB+RT on controller. It takes priority
-over grounded movement, brakes horizontal momentum, and snapshots facing.
+over grounded movement and snapshots facing. Incoming horizontal momentum carries
+briefly, capped at run speed and braked to a stop within 6 ticks (100 ms), before
+the active window; held movement cannot steer or add speed. Stationary grabs stay in place.
 `GrabAttempt` commits to 7 startup, 3 front-only active, and 36 whiff-recovery
 ticks; the 46-tick total matches the 23-frame `grab.fbx` at 30 fps. Block stun
 prevents admission. Cooked per-character `captureGeometry` defines the forward
@@ -193,7 +209,7 @@ poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
 SLOPArena uses damage percent rather than a conventional health pool. A hit applies damage, then Knockback using the hit's profile and the victim's current percent. Profiles cover Light, Medium, Launcher, Kill, Spike, and explicit Custom values.
 
 - **Hitstun** is the victim's no-action duration after a damaging hit. Inputs buffer according to the simulation rules; residual launch continues after Hitstun ends.
-- **Hitstop** freezes the attacker/victim pair briefly on contact while the match clock continues. Block hitstop does not enter damaging-hit launch/DI logic.
+- **Hitstop** freezes the attacker/victim pair briefly on contact while the match clock continues. The attacker's move pauses, and so do its live melee hitboxes: they keep their remaining active ticks for after the freeze. Projectiles keep flying. Block hitstop does not enter damaging-hit launch/DI logic.
 - **Block stun** locks a defender after a blocked contact for `clamp(ceil(0.6 × incoming damage) + 2, 4, 15)` ticks; overlaps retain the larger remaining duration.
 - **Shield drop** lasts 7 vulnerable ticks after release; release during block stun starts the full drop only when the stun expires.
 - **Clash** resolves simultaneous Interruptible hitboxes as mutual pushback and short stun instead of an arbitrary trade.

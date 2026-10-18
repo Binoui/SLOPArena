@@ -2,12 +2,12 @@
     flex-grow: 1;
     position: relative;
     overflow: hidden;
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
 }
 
 .menu-screen,
 .char-select-screen {
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
     color: rgb(240, 238, 232);
     font-size: 18px;
 }
@@ -18,11 +18,11 @@
     right: 0;
     top: 0;
     bottom: 0;
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
 }
 
 .menu-backdrop {
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
     border-right-width: 14px;
     border-right-color: rgb(224, 92, 42);
 }
@@ -48,7 +48,7 @@
 .flow-eyebrow,
 .flow-progress,
 .footer-label {
-    color: rgb(255, 200, 33);
+    color: rgb(255, 204, 34);
 }
 
 .flow-title,
@@ -68,7 +68,7 @@
 
 .flow-subtitle {
     margin-top: 10px;
-    color: rgb(196, 189, 197);
+    color: rgb(196, 193, 186);
     font-size: 19px;
     white-space: normal;
 }
@@ -83,8 +83,8 @@
     margin-left: auto;
     padding: 12px 16px;
     border-left-width: 7px;
-    border-left-color: rgb(255, 200, 33);
-    background-color: rgb(13, 13, 20);
+    border-left-color: rgb(255, 204, 34);
+    background-color: rgb(22, 21, 19);
     color: rgb(240, 238, 232);
     font-size: 17px;
     -unity-font-style: bold;
@@ -97,12 +97,12 @@
 .btn-back {
     border-radius: 0;
     border-width: 2px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     border-bottom-width: 6px;
     min-height: 56px;
     padding-left: 18px;
     padding-right: 18px;
-    color: rgb(25, 19, 27);
+    color: rgb(27, 26, 24);
     font-size: 18px;
     letter-spacing: 1px;
     -unity-font-style: bold;
@@ -112,27 +112,41 @@
 }
 
 
-.btn-primary {
-    background-color: rgb(255, 200, 33);
+/* One interaction language for every frontend button:
+   - Action Yellow fill means primary action or current selection.
+   - Hover/focus never moves a control upward and never borrows the yellow:
+     a paper control turns ink with a yellow frame; a yellow control keeps
+     its yellow and takes a heavier ink frame. Controls on dark panels keep
+     their fill and gain a yellow frame instead (see the panel sheets).
+   - Press sinks 3px. Disabled uses a muted fill, not opacity. */
+.btn-primary,
+.btn-hot {
+    background-color: rgb(255, 204, 34);
 }
 
 .btn-primary:hover,
-.btn-primary:focus {
-    background-color: rgb(255, 217, 92);
-    border-color: rgb(240, 238, 232);
-    translate: 0 -2px;
+.btn-primary:focus,
+.btn-hot:hover,
+.btn-hot:focus {
+    background-color: rgb(255, 204, 34);
+    border-color: rgb(22, 21, 19);
+    border-left-width: 3px;
+    border-top-width: 3px;
+    border-right-width: 3px;
 }
 
 .btn-primary:active,
 .btn-secondary:active,
-.btn-hot:active {
+.btn-hot:active,
+.btn-back:active {
     translate: 0 3px;
 }
 
-.btn-primary:disabled {
-    background-color: rgb(83, 77, 91);
-    border-color: rgb(83, 77, 91);
-    color: rgb(165, 158, 168);
+.btn-primary:disabled,
+.btn-hot:disabled {
+    background-color: rgb(123, 120, 114);
+    border-color: rgb(123, 120, 114);
+    color: rgb(240, 238, 232);
 }
 
 .btn-secondary {
@@ -140,38 +154,28 @@
 }
 
 .btn-secondary:hover,
-.btn-secondary:focus {
-    background-color: rgb(255, 255, 255);
-    border-color: rgb(255, 200, 33);
-    translate: 0 -2px;
+.btn-secondary:focus,
+.btn-back:hover,
+.btn-back:focus {
+    background-color: rgb(27, 26, 24);
+    color: rgb(240, 238, 232);
+    border-color: rgb(255, 204, 34);
 }
 
-.btn-hot {
-    background-color: rgb(224, 92, 42);
-    color: rgb(23, 19, 27);
-}
-
-.btn-hot:hover,
-.btn-hot:focus {
-    background-color: rgb(255, 118, 80);
-    border-color: rgb(255, 200, 33);
-    translate: 0 -2px;
-}
-
+/* BACK is the same paper control on every page. */
 .btn-back {
     width: 108px;
     min-height: 48px;
-    background-color: rgb(13, 13, 20);
-    color: rgb(240, 238, 232);
-    border-color: rgb(240, 238, 232);
+    background-color: rgb(240, 238, 232);
+    color: rgb(27, 26, 24);
+    border-width: 3px;
+    border-right-width: 5px;
+    border-bottom-width: 6px;
+    border-color: rgb(22, 21, 19);
     font-size: 16px;
-}
-
-.btn-back:hover,
-.btn-back:focus {
-    background-color: rgb(224, 92, 42);
-    border-color: rgb(255, 200, 33);
-    translate: 0 -2px;
+    letter-spacing: 0;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
 }
 
 .panel-title {
@@ -182,7 +186,7 @@
 }
 
 .panel-note {
-    color: rgb(183, 174, 184);
+    color: rgb(183, 180, 173);
     font-size: 13px;
 }
 
@@ -277,7 +281,7 @@
 .server-info {
     margin-left: 14px;
     margin-right: 16px;
-    color: rgb(196, 189, 197);
+    color: rgb(196, 193, 186);
     font-size: 16px;
     white-space: nowrap;
 }
@@ -293,10 +297,14 @@
     -unity-font-style: normal;
 }
 
+/* Yellow JOIN on the dark room rows: focus keeps the fill and takes a paper frame. */
 .server-join:hover,
 .server-join:focus {
-    background-color: rgb(255, 217, 92);
+    background-color: rgb(255, 204, 34);
     border-color: rgb(240, 238, 232);
+    border-left-width: 3px;
+    border-top-width: 3px;
+    border-right-width: 3px;
 }
 
 .server-join:disabled {
@@ -305,23 +313,21 @@
     color: rgb(240, 238, 232);
 }
 
-.frontend-shell .browser-summary-section .browser-status,
-.frontend-shell .lobby-summary-section .lobby-status {
-    color: var(--shell-page-warning);
-}
-
-.frontend-shell .browser-summary-section .browser-status.error,
-.frontend-shell .lobby-summary-section .lobby-status.error {
-    color: var(--shell-page-error);
-}
-
-
-.frontend-shell .browser-hint {
+/* Scan and connection feedback sits inside the dark list panels it
+   describes, next to REFRESH / RETRY, clear of the chat overlay. */
+.frontend-shell .browser-panel .browser-status,
+.frontend-shell .lobby-panel .lobby-status {
     flex-grow: 1;
+    flex-shrink: 1;
     min-width: 0;
-    color: var(--shell-page-ink);
-    font-size: 18px;
+    color: rgb(240, 238, 232);
+    font-size: 16px;
     white-space: normal;
+}
+
+.frontend-shell .browser-panel .browser-status.error,
+.frontend-shell .lobby-panel .lobby-status.error {
+    color: rgb(255, 145, 128);
 }
 
 .field-help {
@@ -400,24 +406,31 @@
     font-size: 14px;
 }
 
+/* One box: the inner text input carries the field's frame and fill, so the
+   outer element adds no second border or inset. */
 .browser-input,
 .direct-connect-input {
-    width: 100%;
     min-height: 50px;
-    margin-top: 7px;
-    padding-left: 12px;
-    padding-right: 12px;
-    border-width: 2px;
-    border-color: rgb(123, 120, 114);
-    background-color: rgb(37, 36, 34);
+    margin: 7px 0 0 0;
+    padding: 0;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
     color: rgb(240, 238, 232);
     font-size: 18px;
 }
 
 .browser-input .unity-base-text-field__input,
 .direct-connect-input .unity-base-text-field__input {
+    flex-grow: 1;
+    min-height: 50px;
+    margin: 0;
+    padding: 0 12px;
+    border-width: 2px;
+    border-radius: 0;
+    border-color: rgb(123, 120, 114);
     background-color: rgb(37, 36, 34);
     color: rgb(240, 238, 232);
+    -unity-text-align: middle-left;
 }
 
 .browser-input .unity-base-text-field__input--placeholder,
@@ -425,8 +438,6 @@
     color: rgb(196, 189, 179);
 }
 
-.browser-input:focus,
-.direct-connect-input:focus,
 .browser-input:focus .unity-base-text-field__input,
 .direct-connect-input:focus .unity-base-text-field__input {
     border-color: rgb(255, 204, 34);
@@ -450,25 +461,19 @@
     -unity-font-style: normal;
 }
 
-.browser-tool .btn-hot:hover,
-.browser-tool .btn-hot:focus,
-.browser-actions-section .btn-hot:hover,
-.browser-actions-section .btn-hot:focus,
-.direct-connect-actions > .btn-hot:hover,
-.direct-connect-actions > .btn-hot:focus {
-    background-color: rgb(255, 217, 92);
-    border-color: rgb(240, 238, 232);
+/* CREATE ROOM spans exactly the field above it. */
+.browser-tool .btn-hot {
+    margin: 12px 0 0 0;
 }
 
 .browser-tool .btn-hot:disabled,
 .browser-actions-section .btn-hot:disabled,
 .direct-connect-actions > .btn-hot:disabled {
-    background-color: rgb(83, 77, 70);
+    background-color: rgb(123, 120, 114);
     border-color: rgb(123, 120, 114);
     color: rgb(240, 238, 232);
 }
 
-.browser-header-section .btn-back,
 .browser-panel .panel-title,
 .browser-refresh,
 .browser-actions-section .btn-secondary,
@@ -478,24 +483,18 @@
     letter-spacing: 0;
 }
 
-.browser-header-section .btn-back {
-    background-color: rgb(240, 238, 232);
+/* REFRESH sits on the dark room panel: focus keeps the paper fill and adds a
+   yellow frame instead of turning ink into the panel. */
+.browser-refresh:hover,
+.browser-refresh:focus {
+    background-color: rgb(255, 255, 255);
     color: rgb(27, 26, 24);
-    border-color: rgb(13, 13, 20);
-}
-
-.browser-header-section .btn-back:hover,
-.browser-header-section .btn-back:focus,
-.browser-refresh:focus,
-.browser-actions-section .btn-secondary:focus,
-.direct-connect-actions > .btn-secondary:focus {
-    background-color: rgb(27, 26, 24);
-    color: rgb(240, 238, 232);
     border-color: rgb(255, 204, 34);
-    translate: 0 0;
+    border-left-width: 3px;
+    border-top-width: 3px;
+    border-right-width: 3px;
 }
 
-.browser-header-section .btn-back:active,
 .browser-refresh:active,
 .browser-actions-section .btn-secondary:active,
 .direct-connect-actions > .btn-secondary:active {
@@ -505,7 +504,7 @@
 .browser-input .unity-base-text-field__input:focus,
 .direct-connect-input .unity-base-text-field__input:focus {
     border-color: rgb(255, 204, 34);
-    border-width: 2px;
+    background-color: rgb(22, 21, 19);
 }
 
 .browser-refresh:disabled,
@@ -649,7 +648,7 @@
 }
 
 .char-select-screen {
-    background-color: rgb(20, 17, 24);
+    background-color: rgb(22, 21, 19);
 }
 
 .char-select-header {
@@ -702,35 +701,32 @@
     min-height: 230px;
     margin: 0 7px;
     padding: 0;
-    background-color: rgb(36, 32, 43);
+    background-color: rgb(37, 36, 34);
     border-width: 3px;
     border-color: rgb(240, 238, 232);
     border-bottom-width: 7px;
-    border-bottom-color: rgb(13, 13, 20);
+    border-bottom-color: rgb(22, 21, 19);
     transition-duration: 0.12s;
     transition-property: translate, border-color, background-color;
 }
 
 .char-card--selected {
-    translate: 0 -7px;
-    background-color: rgb(13, 13, 20);
+    background-color: rgb(22, 21, 19);
     border-width: 5px;
     border-bottom-width: 8px;
     border-color: rgb(255, 204, 34);
 }
 
+/* Cards never jump: selection is the yellow frame and strip, focus a white frame. */
 .char-card:hover {
-    translate: 0 -5px;
-    border-color: rgb(241, 235, 221);
+    border-color: rgb(240, 238, 232);
 }
 .char-card:focus {
-    translate: 0 -5px;
     border-width: 5px;
     border-color: rgb(255, 255, 255);
 }
 .char-card--selected:hover,
 .char-card--selected:focus {
-    translate: 0 -7px;
     border-color: rgb(255, 255, 255);
     border-bottom-color: rgb(255, 204, 34);
 }
@@ -740,10 +736,10 @@
     min-height: 0;
     width: 100%;
     overflow: hidden;
-    background-color: rgb(44, 40, 49);
+    background-color: rgb(37, 36, 34);
     background-position: center;
     -unity-background-scale-mode: scale-and-crop;
-    -unity-background-image-tint-color: rgb(220, 213, 222);
+    -unity-background-image-tint-color: rgb(222, 220, 214);
 }
 .char-card:hover .char-portrait,
 .char-card:focus .char-portrait,
@@ -757,12 +753,14 @@
     left: 0;
     right: 0;
     bottom: 0;
+    /* Unity's default label margin would inset the strip and show art beneath it. */
+    margin: 0;
     min-height: 56px;
     padding-left: 14px;
     padding-right: 48px;
     border-top-width: 3px;
-    border-top-color: rgb(13, 13, 20);
-    color: rgb(23, 19, 27);
+    border-top-color: rgb(22, 21, 19);
+    color: rgb(27, 26, 24);
     background-color: rgb(240, 238, 232);
     font-size: 25px;
     letter-spacing: 0;
@@ -771,11 +769,11 @@
     -unity-text-align: middle-left;
 }
 .char-card--selected .char-card-name {
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     background-color: rgb(255, 204, 34);
 }
 .char-card:hover .char-card-name,
-.char-card:focus .char-card-name { color: rgb(23, 19, 27); }
+.char-card:focus .char-card-name { color: rgb(27, 26, 24); }
 
 .char-card-check {
     position: absolute;
@@ -785,7 +783,7 @@
     height: 24px;
     background-image: url("SelectionCheck.png");
     -unity-background-scale-mode: scale-to-fit;
-    -unity-background-image-tint-color: rgb(23, 19, 27);
+    -unity-background-image-tint-color: rgb(27, 26, 24);
     display: none;
 }
 .char-card--selected .char-card-check { display: flex; }
@@ -803,8 +801,8 @@
     margin-right: 5px;
     margin-bottom: 5px;
     padding: 5px 7px;
-    color: rgb(20, 17, 24);
-    background-color: rgb(255, 200, 33);
+    color: rgb(22, 21, 19);
+    background-color: rgb(255, 204, 34);
     font-size: 13px;
     -unity-font-style: bold;
 }
@@ -820,7 +818,7 @@
 .char-marker--local {
     border-width: 2px;
     border-color: rgb(240, 238, 232);
-    background-color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
     color: rgb(240, 238, 232);
     -unity-font-definition: url("../Fonts/SpaceMono.asset");
     -unity-font-style: normal;
@@ -840,7 +838,7 @@
 
 .char-role {
     margin-top: 3px;
-    color: rgb(196, 189, 197);
+    color: rgb(196, 193, 186);
     font-size: 18px;
     white-space: normal;
 }
@@ -876,23 +874,30 @@
     margin-right: 10px;
     padding: 11px;
     flex-shrink: 0;
-    background-color: rgb(35, 30, 40);
+    background-color: rgb(37, 36, 34);
     border-width: 2px;
-    border-color: rgb(83, 77, 91);
+    border-color: rgb(123, 120, 114);
     border-bottom-width: 5px;
     border-bottom-color: rgb(224, 92, 42);
 }
 
+/* Fighter and Stage Select build the same participant card; on Fighter Select
+   it is a Button, whose centred text would otherwise be inherited. */
+.char-summary-section .player-card,
+.stage-player-cards .player-card {
+    -unity-text-align: upper-left;
+}
+
 .player-card--local {
-    border-color: rgb(255, 200, 33);
-    border-bottom-color: rgb(255, 200, 33);
+    border-color: rgb(255, 204, 34);
+    border-bottom-color: rgb(255, 204, 34);
 }
 .player-card--editing {
     border-width: 3px;
     border-color: rgb(240, 238, 232);
     border-bottom-width: 6px;
-    border-bottom-color: rgb(255, 200, 33);
-    background-color: rgb(52, 45, 55);
+    border-bottom-color: rgb(255, 204, 34);
+    background-color: rgb(48, 46, 43);
 }
 
 
@@ -903,13 +908,13 @@
 }
 
 .player-card__number {
-    color: rgb(255, 200, 33);
+    color: rgb(255, 204, 34);
     font-size: 18px;
     -unity-font-style: bold;
 }
 
 .player-card__host {
-    color: rgb(183, 174, 184);
+    color: rgb(183, 180, 173);
     font-size: 13px;
     letter-spacing: 1px;
 }
@@ -923,11 +928,11 @@
 
 .player-card__portrait {
     position: relative;
-    align-self: flex-end;
+    align-self: flex-start;
     width: 62px;
     height: 62px;
     margin-top: 6px;
-    background-color: rgb(44, 40, 49);
+    background-color: rgb(37, 36, 34);
     -unity-background-scale-mode: scale-and-crop;
 }
 .player-card__character {
@@ -941,7 +946,7 @@
 .player-card__waiting {
     flex-grow: 1;
     margin-top: 18px;
-    color: rgb(183, 174, 184);
+    color: rgb(183, 180, 173);
     font-size: 15px;
     white-space: normal;
 }
@@ -961,10 +966,10 @@
 }
 
 .player-card__status--picking {
-    color: rgb(255, 200, 33);
+    color: rgb(255, 204, 34);
 }
 .player-card__status--editing {
-    color: rgb(255, 200, 33);
+    color: rgb(255, 204, 34);
 }
 
 
@@ -975,7 +980,7 @@
     padding: 16px 18px;
     background-color: rgb(240, 238, 232);
     border-width: 3px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     border-bottom-width: 7px;
     border-right-width: 6px;
     align-items: stretch;
@@ -983,7 +988,7 @@
 }
 
 .selection-target {
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     font-size: 21px;
     letter-spacing: 0;
     -unity-font-style: bold;
@@ -1002,29 +1007,34 @@
     padding-left: 5px;
     padding-right: 5px;
     background-color: rgb(240, 238, 232);
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     border-width: 2px;
-    border-color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
     border-bottom-width: 6px;
     border-right-width: 4px;
     font-size: 15px;
 }
 #btn-edit-player { margin-right: 6px; }
+/* PLAYER/CPU and difficulty: yellow is the current choice; focus turns a
+   paper choice ink with a yellow frame and gives the yellow one a heavier frame. */
 .selection-target-button:hover,
 .selection-target-button:focus {
-    background-color: rgb(255, 255, 255);
-    border-color: rgb(23, 19, 27);
-    translate: 0 -2px;
+    background-color: rgb(27, 26, 24);
+    border-color: rgb(255, 204, 34);
+    color: rgb(240, 238, 232);
 }
 .selection-target-button.active {
     background-color: rgb(255, 204, 34);
-    border-color: rgb(23, 19, 27);
-    color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
+    color: rgb(27, 26, 24);
 }
 .selection-target-button.active:hover,
 .selection-target-button.active:focus {
-    background-color: rgb(255, 218, 74);
-    border-color: rgb(23, 19, 27);
+    background-color: rgb(255, 204, 34);
+    border-color: rgb(22, 21, 19);
+    color: rgb(27, 26, 24);
+    border-left-width: 3px;
+    border-top-width: 3px;
 }
 .selection-target-button:active {
     translate: 0 3px;
@@ -1044,27 +1054,31 @@
     padding-left: 3px;
     padding-right: 3px;
     background-color: rgb(240, 238, 232);
-    border-color: rgb(23, 19, 27);
-    color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
+    color: rgb(27, 26, 24);
     font-size: 14px;
     letter-spacing: 0;
 }
 #btn-cpu-difficulty-hard { margin-right: 0; }
 .solo-difficulty-button:hover,
 .solo-difficulty-button:focus {
-    background-color: rgb(255, 255, 255);
-    border-color: rgb(23, 19, 27);
-    color: rgb(23, 19, 27);
+    background-color: rgb(27, 26, 24);
+    border-color: rgb(255, 204, 34);
+    color: rgb(240, 238, 232);
 }
 .solo-difficulty-button.active {
     background-color: rgb(255, 204, 34);
-    border-color: rgb(23, 19, 27);
-    color: rgb(23, 19, 27);
+    border-color: rgb(27, 26, 24);
+    color: rgb(27, 26, 24);
 }
 .solo-difficulty-button.active:hover,
 .solo-difficulty-button.active:focus {
-    background-color: rgb(255, 218, 74);
-    border-color: rgb(23, 19, 27);
+    background-color: rgb(255, 204, 34);
+    border-color: rgb(22, 21, 19);
+    color: rgb(27, 26, 24);
+    border-left-width: 3px;
+    border-top-width: 3px;
+    border-right-width: 3px;
 }
 
 .pvp-action-area {
@@ -1403,20 +1417,18 @@
     border-right-width: 5px;
     background-color: var(--shell-action);
     color: var(--shell-canvas);
-    font-size: 12px;
-    letter-spacing: 1px;
+    font-size: 16px;
+    letter-spacing: 0;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-center;
 }
 
 .results-return:hover,
 .results-return:focus {
-    background-color: var(--shell-paper);
-    border-color: var(--shell-canvas);
-}
-
-.results-return:focus {
-    border-color: var(--shell-action);
+    background-color: var(--shell-action);
+    border-color: var(--shell-recess);
+    border-left-width: 4px;
+    border-top-width: 4px;
 }
 
 .results-return:active {
@@ -1460,4 +1472,3 @@
 }
 .frontend-shell .flow-subtitle { color: var(--shell-page-muted); }
 
-.frontend-shell .browser-panel .browser-hint { color: var(--shell-paper); }

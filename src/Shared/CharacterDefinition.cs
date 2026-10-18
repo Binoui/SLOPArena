@@ -257,6 +257,10 @@ namespace SlopArena.Shared
                 return cooked.AimMovement == AuthoringAimMovementMode.Mobile ? AimMovementMode.Mobile : AimMovementMode.Fixed;
             return GetSlotAbility(wireSlot - 1, airborne)?.AimMovement ?? AimMovementMode.Fixed;
         }
+        /// <summary>Fraction of run and air speed a mobile aim state moves at (1 = full speed).</summary>
+        public float GetAimMovementSpeedScale(byte wireSlot, bool airborne)
+            => wireSlot == AbilitySlots.None ? 1f
+                : GetCookedSlotAbility(wireSlot, airborne)?.AimMovementSpeedScale ?? 1f;
 
 
 

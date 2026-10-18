@@ -556,6 +556,12 @@ the check off for a batch that must not compile. Prefer typed commands that impo
 only their own files (`sloparena.stage.art-apply` does) over an `eval_file` that calls
 `AssetDatabase.Refresh`.
 
+That check covers scripts only. Edited `.uss` and `.uxml` files are imported when
+something refreshes, so after a stylesheet-only change a capture still shows the
+old styles. Import exactly the files you edited first, in the same batch:
+`eval` of `AssetDatabase.ImportAsset("Assets/UI/FrontendShell.uss", ImportAssetOptions.ForceUpdate)`
+(one call per file). It neither recompiles nor imports anyone else's work.
+
 Use `eval_file` only when a genuinely novel probe needs more code than an inline
 expression. First check the relevant native and SLOPArena command schemas. Keep
 task-specific assertions temporary; promote repeated setup/control operations into

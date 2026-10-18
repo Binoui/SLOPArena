@@ -171,7 +171,8 @@ namespace SlopArena.EditorTools
                     fighter = MatchConfig.PlayerClass.ToString(), hitCount = hits.Count, hits, goals,
                     challenge = match.Simulation.Slopball.HasValue ? new { phase = match.Simulation.Slopball.Value.Phase.ToString(), returns = match.Simulation.Slopball.Value.Returns } : null,
                     ball = new { id = ball.EntityId.ToString(), x = ball.Position.X, y = ball.Position.Y,
-                        z = ball.Position.Z, percent = ball.DamagePercent } };
+                        z = ball.Position.Z, percent = ball.DamagePercent },
+                    presentation = (match as SlopballMatch)?.PresentationDiagnostics };
             }
             finally
             {

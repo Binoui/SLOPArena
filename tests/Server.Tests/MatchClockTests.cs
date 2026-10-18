@@ -10,6 +10,8 @@ namespace SlopArena.Server.Tests;
 
 public class MatchClockTests
 {
+    private const uint HoldTicks = SlopArena.Shared.Rollback.PeerInputTimeline.DefaultHoldTicks;
+
     [Fact]
     public void ReadyPeersStartFiveSecondCountdownAndPlayingClockAdvancesWithoutInput()
     {
@@ -38,9 +40,9 @@ public class MatchClockTests
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         var firstBaseline = new HashSet<ulong>();
         var secondBaseline = new HashSet<ulong>();
-        var firstLatest = new Dictionary<ulong, ServerEntityPacket>();
+        var firstLatest = new Dictionary<ulong, FrameView>();
         var firstInputs = new Dictionary<uint, InputState>();
-        var secondLatest = new Dictionary<ulong, ServerEntityPacket>();
+        var secondLatest = new Dictionary<ulong, FrameView>();
         ulong firstEntity = 1;
         uint firstCountdownTick = 0;
         uint firstPlayingTick = 0, secondPlayingTick = 0;
@@ -50,7 +52,7 @@ public class MatchClockTests
         bool targetEdgeCleared = false;
 
         void Drain(UdpClient peer, HashSet<ulong> baseline,
-            Dictionary<ulong, ServerEntityPacket> latest, ulong selfEntity, bool isFirstPeer)
+            Dictionary<ulong, FrameView> latest, ulong selfEntity, bool isFirstPeer)
         {
             while (peer.Client.Poll(0, SelectMode.SelectRead))
             {
@@ -68,16 +70,18 @@ public class MatchClockTests
                     }
                     continue;
                 }
-                if (frame.Length is not (ServerEntityPacket.NoInputSize or ServerEntityPacket.MaxSize))
+                if (!WorldFramePacket.TryDeserialize(frame, out var world) || world is null)
                     continue;
-                var packet = ServerEntityPacket.Deserialize(frame);
-                baseline.Add(packet.EntityId);
-                latest[packet.EntityId] = packet;
-                if (packet.EntityId != selfEntity)
-                    continue;
+                // Every World Frame carries every fighter.
+                foreach (var relayed in world.Inputs)
+                {
+                    baseline.Add(relayed.EntityId);
+                    latest[relayed.EntityId] = new FrameView(world.Tick, world.MatchState, relayed.HasInput, relayed.Input);
+                }
+                var packet = latest[selfEntity];
                 if (packet.HasInput)
                     firstInputs[packet.Tick] = packet.Input;
-                if (packet.State.MatchState == MatchState.Playing)
+                if (packet.MatchState == MatchState.Playing)
                 {
                     if (isFirstPeer && firstPlayingTick == 0)
                         firstPlayingTick = packet.Tick;
@@ -86,7 +90,7 @@ public class MatchClockTests
                 }
                 if (!isFirstPeer)
                     continue;
-                if (packet.State.MatchState == MatchState.Countdown && firstCountdownTick == 0)
+                if (packet.MatchState == MatchState.Countdown && firstCountdownTick == 0)
                     firstCountdownTick = packet.Tick;
                 if (targetTick == 0 || packet.Tick != targetTick)
                 {
@@ -187,7 +191,7 @@ public class MatchClockTests
 
             deadline.Restart();
             while (deadline.Elapsed < TimeSpan.FromSeconds(2) &&
-                (!targetConsumed || !targetEdgeCleared || !firstInputs.ContainsKey(targetTick + 7)))
+                (!targetConsumed || !targetEdgeCleared || !firstInputs.ContainsKey(targetTick + HoldTicks + 1)))
             {
                 Drain(first, firstBaseline, firstLatest, firstEntity, isFirstPeer: true);
                 Thread.Sleep(1);
@@ -198,7 +202,7 @@ public class MatchClockTests
             Assert.True(firstInputs.TryGetValue(targetTick, out var exactInput));
             Assert.True(exactInput.DownPressed);
             Assert.Equal(1f, exactInput.MoveX);
-            for (uint offset = 1; offset <= 6; offset++)
+            for (uint offset = 1; offset <= HoldTicks; offset++)
             {
                 Assert.True(firstInputs.TryGetValue(targetTick + offset, out var fallback),
                     $"Missing fallback state for server tick {targetTick + offset}.");
@@ -211,11 +215,53 @@ public class MatchClockTests
                 Assert.Equal((byte)0, fallback.ActiveSlot);
                 Assert.Equal(1f, fallback.MoveX);
             }
-            Assert.True(firstInputs.TryGetValue(targetTick + 7, out var neutral));
+            Assert.True(firstInputs.TryGetValue(targetTick + HoldTicks + 1, out var neutral));
             Assert.False(neutral.Down);
             Assert.False(neutral.DownPressed);
             Assert.Equal((byte)0, neutral.ActiveSlot);
             Assert.Equal(0f, neutral.MoveX);
+
+            // Input resuming ends the run; the GameHost records where it started and that no
+            // delayed bundle explained it.
+            uint resumeTick = match.ServerTick + 10;
+            InputBundle.Write(inputFrame, firstEntity, resumeTick, new[] { default(InputState) });
+            first.Send(inputFrame, inputFrame.Length, endpoint);
+            string gapStart = $"Input gap entity {firstEntity}: ";
+            string afterTarget = $" ticks from tick {targetTick + 1} (held {HoldTicks}, neutral ";
+            bool IsTargetGap(string message) =>
+                message.StartsWith(gapStart, StringComparison.Ordinal) && message.Contains(afterTarget, StringComparison.Ordinal);
+            deadline.Restart();
+            while (deadline.Elapsed < TimeSpan.FromSeconds(2) &&
+                !match.Diagnostics.Snapshot().Events.Any(e => IsTargetGap(e.Message)))
+            {
+                Drain(first, firstBaseline, firstLatest, firstEntity, isFirstPeer: true);
+                Thread.Sleep(1);
+            }
+            var gap = Assert.Single(match.Diagnostics.Snapshot().Events, e => IsTargetGap(e.Message));
+            Assert.EndsWith("no late bundles (lost or never sent)", gap.Message);
+
+            // A press whose tick already ran is applied on the next tick instead of lost, and
+            // the relay reports it there. (Ticks up to the consumed resume input are settled.)
+            deadline.Restart();
+            while (deadline.Elapsed < TimeSpan.FromSeconds(2) && match.ServerTick < resumeTick + 3)
+                Thread.Sleep(1);
+            uint lateTick = match.ServerTick - 1;
+            var latePress = new InputState { Jump = true, ActiveSlot = AbilitySlots.Slot2 };
+            InputBundle.Write(inputFrame, firstEntity, lateTick, new[] { latePress });
+            first.Send(inputFrame, inputFrame.Length, endpoint);
+            uint rescuedTick = 0;
+            deadline.Restart();
+            while (deadline.Elapsed < TimeSpan.FromSeconds(2) && rescuedTick == 0)
+            {
+                Drain(first, firstBaseline, firstLatest, firstEntity, isFirstPeer: true);
+                foreach (var (tick, relayed) in firstInputs)
+                    if (tick > lateTick && relayed.Jump && relayed.ActiveSlot == AbilitySlots.Slot2)
+                        rescuedTick = tick;
+                Thread.Sleep(1);
+            }
+            Assert.True(rescuedTick > lateTick, "The late press never reached a consumed tick.");
+            Assert.True(rescuedTick - lateTick <= SlopArena.Shared.Rollback.PeerInputTimeline.DefaultRescueTicks,
+                $"The late press was applied {rescuedTick - lateTick} ticks late.");
         }
         finally
         {
@@ -223,6 +269,9 @@ public class MatchClockTests
             Assert.True(ended.Wait(3000), "Local match did not stop.");
         }
     }
+
+    /// <summary>One fighter's view of a World Frame: its tick, match state and relayed input.</summary>
+    private readonly record struct FrameView(uint Tick, MatchState MatchState, bool HasInput, InputState Input);
 
     private static byte[] Control(NetplayControlKind kind, ulong entityId, uint tick = 0, uint startTick = 0)
     {

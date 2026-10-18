@@ -165,6 +165,15 @@ client/Unity/Assets/Resources/Audio/SFX/*
 !client/Unity/Assets/Resources/Audio/SFX/Manki.meta
 !client/Unity/Assets/Resources/Audio/SFX/Bonk/
 !client/Unity/Assets/Resources/Audio/SFX/Bonk.meta
+# The air dodge's "fwip", generated from noise by tools/sfx/air_dodge_clips.py.
+!client/Unity/Assets/Resources/Audio/SFX/AirDodge/
+!client/Unity/Assets/Resources/Audio/SFX/AirDodge.meta
+# Fight Night Pier and Slopball cues, synthesized by tools/sfx/pier_course_clips.py and
+# tools/sfx/slopball_clips.py.
+!client/Unity/Assets/Resources/Audio/SFX/CoursePier/
+!client/Unity/Assets/Resources/Audio/SFX/CoursePier.meta
+!client/Unity/Assets/Resources/Audio/SFX/Slopball/
+!client/Unity/Assets/Resources/Audio/SFX/Slopball.meta
 client/Unity/Assets/Resources/Audio.meta
 
 # Local art: animation packs, vendor models, old candidates. Folders stay visible so
@@ -449,6 +458,30 @@ videos/*
 # its synthesized clips stay in local Resources/Audio (tools/sfx/course_clips.py).
 !client/Unity/Assets/Stages/fightguy_sanctuary/Presentation/Course/*.png
 !client/Unity/Assets/Stages/fightguy_sanctuary/Presentation/Course/*.mat
+# Kaboom Quarry (Manki's course) and Fight Night Pier (FightGuy's): stage art from
+# tools/blender/<stage> plus each course's generated feel; both play from playtest.30.
+!client/Unity/Assets/Stages/manki_quarry/Presentation/Quarry/*.fbx
+!client/Unity/Assets/Stages/manki_quarry/Presentation/Quarry/*.png
+!client/Unity/Assets/Stages/manki_quarry/Presentation/Quarry/*.mat
+!client/Unity/Assets/Stages/manki_quarry/Presentation/Course/*.png
+!client/Unity/Assets/Stages/manki_quarry/Presentation/Course/*.mat
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Pier/*.fbx
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Pier/*.png
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Pier/*.mat
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.fbx
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.png
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.mat
+!client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/Source/*.png
+# Slopball's court greybox, its Night Court room and its mascot ball
+# (SlopballPresentationBuilder, which reads the word masks in Ball/Source).
+!client/Unity/Assets/Stages/slopball/*.mat
+!client/Unity/Assets/Stages/slopball/Presentation/NightCourt/*.fbx
+!client/Unity/Assets/Stages/slopball/Presentation/NightCourt/*.png
+!client/Unity/Assets/Stages/slopball/Presentation/NightCourt/*.mat
+!client/Unity/Assets/Stages/slopball/Presentation/Ball/*.png
+!client/Unity/Assets/Stages/slopball/Presentation/Ball/*.mat
+!client/Unity/Assets/Stages/slopball/Presentation/Ball/Source/*.png
+!client/Unity/Assets/Resources/Stages/slopball.prefab*
 
 # Locally installed agent skills stay ignored; project adapters are allowed below.
 # BEGIN project skill adapters (tools/sync_agent_skills.py)

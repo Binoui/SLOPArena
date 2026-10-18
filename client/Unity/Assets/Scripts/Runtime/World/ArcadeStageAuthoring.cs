@@ -42,6 +42,8 @@ namespace SlopArena.Client.World
             public string Id;
             public Transform Marker;
             public float Radius = .65f;
+            [Tooltip("Hits that break it: 1 for an ordinary target, more for a bonus target.")]
+            [Range(1, CourseTargetDefinition.MaxHits)] public int Hits = 1;
         }
         [Serializable] public sealed class Checkpoint
         {
@@ -66,7 +68,7 @@ namespace SlopArena.Client.World
                 for (int i = 0; i < targets.Length; i++)
                 {
                     var target = Targets[i] ?? throw new ArgumentException("Missing course target.");
-                    targets[i] = new(target.Id, Point(target.Marker), target.Radius);
+                    targets[i] = new(target.Id, Point(target.Marker), target.Radius, (byte)Mathf.Clamp(target.Hits, 0, 255));
                 }
                 var checkpoints = new CourseCheckpointDefinition[Checkpoints.Length];
                 for (int i = 0; i < checkpoints.Length; i++)

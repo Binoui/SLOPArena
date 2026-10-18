@@ -118,8 +118,8 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
         s.VX = _directionX * (_commandedDistance / Simulation.TickDt);
         s.VZ = _directionZ * (_commandedDistance / Simulation.TickDt);
 
-        // Travel pauses during Hitstop, but resolver lifetimes do not. Keep the same
-        // hit history until StopDash explicitly removes traversal at the endpoint.
+        // Travel length depends on the dash, so traversal keeps one hit history until
+        // StopDash explicitly removes it at the endpoint.
         _traversalHitEntities = SpawnHitbox(ref s, ToEvent(_parameters.TraversalHitbox,
             ushort.MaxValue, _parameters.TraversalHitbox.Damage), followOwner: true);
         if (_dashTravelTicks <= _parameters.FinisherLeadTicks)
@@ -250,4 +250,42 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
             Damage = damage,
             HitGroup = 0,
         };
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteByte((byte)_phase);
+        w.WriteFloat(_dashYaw);
+        w.WriteFloat(_directionX);
+        w.WriteFloat(_directionZ);
+        w.WriteFloat(_startX);
+        w.WriteFloat(_startZ);
+        w.WriteFloat(_distance);
+        w.WriteFloat(_lastProgress);
+        w.WriteFloat(_commandedDistance);
+        w.WriteUShort(_dashTravelTicks);
+        w.WriteUShort(_recoveryTicks);
+        w.WriteBool(_finisherSpawned);
+        w.WriteBool(_groundedLastDashTick);
+        w.WriteSet(_traversalHitEntities);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _phase = (Phase)r.ReadByte();
+        _dashYaw = r.ReadFloat();
+        _directionX = r.ReadFloat();
+        _directionZ = r.ReadFloat();
+        _startX = r.ReadFloat();
+        _startZ = r.ReadFloat();
+        _distance = r.ReadFloat();
+        _lastProgress = r.ReadFloat();
+        _commandedDistance = r.ReadFloat();
+        _dashTravelTicks = r.ReadUShort();
+        _recoveryTicks = r.ReadUShort();
+        _finisherSpawned = r.ReadBool();
+        _groundedLastDashTick = r.ReadBool();
+        _traversalHitEntities = r.ReadSet();
+    }
 }
