@@ -21,9 +21,9 @@
     "icon": "repo:client/Unity/Assets/UI/SlopArenaIcon.png"
   },
   "marks": {
-    "wide": {"centre": [812, 488], "size": 112, "angle": 3.2},
-    "home": {"centre": [814, 492], "size": 112, "angle": 3.2, "tagline": true},
-    "tall": {"centre": [500, 721], "size": 132}
+    "wide": {"centre": [812, 488], "size": 112, "angle": 3.2, "bomb": true},
+    "home": {"centre": [814, 486], "size": 112, "angle": 3.2, "tagline": true, "bomb": true},
+    "tall": {"centre": [500, 716], "size": 132, "bomb": true}
   },
   "outputs": [
     {"to": "game:UI/SplashArt/FightGuy.png", "from": "fightguy"},
@@ -48,10 +48,11 @@
     {"to": "steam:library/library_capsule_english.png", "from": "tall", "mark": "tall", "size": [600, 900]},
     {"to": "steam:library/library_header_english.png", "from": "wide", "mark": "wide", "crop": [0, 30, 1672, 811], "size": [920, 430]},
     {"to": "steam:library/library_hero_english.png", "from": "hero", "crop": [0, 0, 2206, 712], "size": [3840, 1240], "sharpen": true},
-    {"to": "steam:library/library_logo_english.png", "logo": {"width": 1280}},
+    {"to": "steam:library/library_logo_english.png", "logo": {"width": 1280, "bomb": true}},
     {"to": "steam:community/community_icon_english.jpg", "from": "icon", "icon": {"background": "#FFCC22", "margin": 0.06}, "size": [184, 184], "quality": 95},
     {"to": "steam:community/client_icon.ico", "from": "icon", "ico": [16, 24, 32, 48, 64, 96, 128, 256]},
 
+    {"to": "web:src/assets/key-art/nameplate.png", "logo": {"width": 1200, "shadow": 0, "bomb": true}},
     {"to": "web:src/assets/key-art/trailer-poster.jpg", "from": "wide", "crop": [0, 0, 1672, 940], "size": [1600, 900], "quality": 88},
     {"to": "web:src/assets/fighters/fightguy-portrait.png", "from": "repo:client/Unity/Assets/Resources/UI/Portraits/FightGuy.png"},
     {"to": "web:src/assets/fighters/manki-portrait.png", "from": "repo:client/Unity/Assets/Resources/UI/Portraits/Manki.png"},

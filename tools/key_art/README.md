@@ -26,11 +26,16 @@ The name is **SLOPArena** on one line, in the bundled Archivo Black: Ink letteri
 off-register Orange print. Never stack SLOP / ARENA or set SLOPARENA in capitals; the capitals
 spell the shorthand SLOPA. A `mark` gives the centre, size and angle on a plate in the source
 image (`"tagline": true` adds a `GET IN THE SLOP.` strip; base Steam capsules carry only the
-name). `logo` draws the website's torn, dotted yellow plate with the name, on transparency.
+name). `"bomb": true` puts the game icon's bomb in place of the O, its body centred on the
+letter at 1.04x the O's height, with the fuse and spark rising above the line: use it on large
+marks: its face still reads on the Steam small capsule's ~40 px capitals, while the game's top
+bar (~15 px capitals) turns it into a smudge and keeps the plain O.
+`logo` draws the website's torn, dotted yellow plate with the name, on transparency
+(`"shadow": 0` drops its Ink offset shadow, as the website does).
 `namemark` stamps the mark on any other image:
 
 ```bash
-python3 tools/key_art/key_art.py namemark in.png out.png --centre 812 488 --size 112 --angle 3.2
+python3 tools/key_art/key_art.py namemark in.png out.png --centre 812 488 --size 112 --angle 3.2 --bomb
 ```
 
 ## Checks

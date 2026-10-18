@@ -232,7 +232,7 @@ Character signature colors, team colors, gameplay category colors, and semantic 
 
 The visual system uses a common name mark and two typographic roles:
 
-1. **Name mark and declarations:** Archivo Black supplies the shared SLOPArena lettering and bold menu/marketing declarations. The yellow native name plate may remain as a container; its lettering is not a separate brand. Set the name on one line exactly as `SLOPArena`, never stacked `SLOP / ARENA` or in capitals as `SLOPARENA`, even where nearby labels are uppercase: its capitals spell the shorthand **SLOPA** (never SA). Typeset it; do not let an image generator draw it.
+1. **Name mark and declarations:** Archivo Black supplies the shared SLOPArena lettering and bold menu/marketing declarations. The yellow native name plate may remain as a container; its lettering is not a separate brand. Set the name on one line exactly as `SLOPArena`, never stacked `SLOP / ARENA` or in capitals as `SLOPARENA`, even where nearby labels are uppercase: its capitals spell the shorthand **SLOPA** (never SA). On large marks (logos, store capsules, posters, the website nameplate) the bomb from the game icon replaces the O; small or live text such as the top bar keeps the letter. Typeset it; do not let an image generator draw it.
 2. **Utility:** Space Mono supplies short marketing instructions, metadata, labels, and dry annotations. Native short labels may use a mono treatment where practical; dense settings, body copy, and HUD information use a restrained readable sans.
 
 Baloo 2 remains in the current native implementation but is not the target display voice. Do not imply Archivo is already bundled in Unity. Do not make every label display type or force monospace where it harms scanning.

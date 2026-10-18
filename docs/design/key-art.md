@@ -13,7 +13,7 @@ crop, size and name mark; `python3 tools/key_art/key_art.py build <set>` rewrite
 **Name mark.** The game's name is set as **SLOPArena** on one line in Archivo Black: Ink lettering
 over an off-register Orange print on the art's yellow plates, or on the website's torn yellow plate
 for the logo. Never stack it as SLOP / ARENA or set it in capitals as SLOPARENA: the capitals spell
-the shorthand SLOPA. The tool typesets it; generated images carry no lettering.
+the shorthand SLOPA. On large marks (the Steam logo and capsules, the Home poster, the billboard and the website nameplate) the bomb from the game icon stands in for the O, its fuse and spark rising above the line; the owner picked this on 2026-10-18. Live UI text such as the game's top bar and the website header keeps the plain O. The tool typesets the mark; generated images carry no lettering.
 
 | Target | Source | How |
 | --- | --- | --- |
@@ -24,9 +24,9 @@ the shorthand SLOPA. The tool typesets it; generated images carry no lettering.
 | `Assets/UI/Arcade/SlopballPoster.png` | `Bonk's Night Court Smash.png` (P8), 1983x793 | as generated |
 | `Assets/UI/Arcade/CoursesPoster.png` | `course.png` (P9), 1983x793 | as generated; replaces the card's flat green field and its ONE MAP PER FIGHTER label |
 | `Assets/UI/FrontendPaperBackground.png` | `Warm newsprint with torn edge scraps.png` (P10), 1672x941 | as generated |
-| Steam store and library (`steam` outputs) | P5, P6, P7 (`... wide newsprint showdown-2.png`), P10 | capsules with the name mark; text-free hero upscaled to 3840x1240; transparent 1280x261 logo; README and previews beside them |
+| Steam store and library (`steam` outputs) | P5, P6, P7 (`... wide newsprint showdown-2.png`), P10 | capsules with the name mark; text-free hero upscaled to 3840x1240; transparent 1280x312 logo; README and previews beside them |
 | Steam community icon and client `.ico` | `Assets/UI/SlopArenaIcon.png` | the bomb on Action Yellow; replaces the X-eyed crowned smiley |
-| SlopArena-web portraits and trailer poster | the portraits; P5 without the mark | the play button sits on the empty plate |
+| SlopArena-web portraits, nameplate and trailer poster | the portraits; the logo; P5 without the mark | the shadowless logo is the hero nameplate and the social card's; the trailer's play button sits on the empty plate |
 
 The top bar's wordmark reads `SLOPArena` too. The two Arcade cards and the wallpaper keep their
 5:2 and 16:9 proportions (`nPOTScale: None`). The Home poster and wallpaper were local-only before;
