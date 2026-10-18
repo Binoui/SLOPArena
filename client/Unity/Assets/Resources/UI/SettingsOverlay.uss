@@ -19,14 +19,12 @@
     min-height: 470px;
     padding: 22px 26px;
     background-color: rgb(240, 238, 232);
-    border-left-width: 2px;
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 7px;
-    border-left-color: rgb(22, 21, 19);
-    border-top-color: rgb(22, 21, 19);
-    border-right-color: rgb(22, 21, 19);
-    border-bottom-color: rgb(255, 204, 34);
+    /* The shared modal card: ink frame with a hard bottom/right print offset,
+       as the frontend MENU and the in-match pause card. */
+    border-width: 3px;
+    border-right-width: 6px;
+    border-bottom-width: 8px;
+    border-color: rgb(22, 21, 19);
 }
 
 .sa-settings-header {
@@ -81,13 +79,9 @@
     border-bottom-color: rgb(22, 21, 19);
 }
 
-.sa-settings-tab:hover {
-    background-color: rgb(255, 204, 34);
-    border-top-color: rgb(27, 26, 24);
-    border-left-color: rgb(27, 26, 24);
-    border-right-color: rgb(27, 26, 24);
-}
-
+/* Focus and hover never borrow the selected yellow: paper tabs turn ink with a
+   yellow frame; the selected tab keeps its yellow and takes a heavier ink frame. */
+.sa-settings-tab:hover,
 .sa-settings-tab:focus {
     background-color: rgb(27, 26, 24);
     color: rgb(240, 238, 232);
@@ -96,13 +90,22 @@
     border-right-color: rgb(255, 204, 34);
 }
 
+.sa-settings-tab--selected:hover,
+.sa-settings-tab--selected:focus {
+    background-color: rgb(255, 204, 34);
+    color: rgb(27, 26, 24);
+    border-width: 3px;
+    border-bottom-width: 5px;
+    border-color: rgb(22, 21, 19);
+}
+
 .sa-settings-tab:active { translate: 0 3px; }
 
 .sa-settings-scroll {
     flex-grow: 1;
     min-height: 100px;
     padding-left: 16px;
-    padding-right: 16px;
+    padding-right: 10px;
     padding-top: 18px;
     padding-bottom: 12px;
     background-color: rgb(22, 21, 19);
@@ -110,27 +113,58 @@
     border-color: rgb(27, 26, 24);
 }
 
+/* A thin scrollbar in the panel's own colours, without Unity's arrow buttons. */
+.sa-settings-scroll .unity-scroller--vertical {
+    width: 8px;
+    margin-left: 8px;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+.sa-settings-scroll .unity-scroller__low-button,
+.sa-settings-scroll .unity-scroller__high-button { display: none; }
+.sa-settings-scroll .unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: rgb(37, 36, 34);
+    border-width: 0;
+}
+.sa-settings-scroll .unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: rgb(123, 120, 114);
+    border-width: 0;
+}
+.sa-settings-scroll .unity-scroller--vertical .unity-base-slider__dragger:hover {
+    background-color: rgb(240, 238, 232);
+}
+.sa-settings-scroll .unity-scroller--vertical .unity-base-slider__dragger-border { border-width: 0; }
+
 .sa-settings-body { color: rgb(240, 238, 232); }
 .sa-settings-columns { flex-direction: row; flex-wrap: wrap; }
 .sa-settings-column { flex-grow: 1; flex-basis: 330px; min-width: 0; }
 .sa-settings-column--first { margin-right: 12px; }
 
-.sa-settings-row, .sa-settings-binding-row {
+/* Every control sits on the same row: one surface, one label style, centred. */
+.sa-settings-row, .sa-settings-binding-row,
+.sa-settings-field, .sa-settings-toggle {
     flex-direction: row;
     align-items: center;
     min-height: 54px;
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
     padding-left: 12px;
     padding-right: 12px;
     background-color: rgb(37, 36, 34);
+    color: rgb(240, 238, 232);
 }
 
-.sa-settings-row-label {
+.sa-settings-row-label,
+.sa-settings-field .unity-base-field__label,
+.sa-settings-toggle .unity-base-field__label {
     flex-grow: 1;
+    flex-shrink: 1;
     min-width: 105px;
+    margin: 0;
+    padding: 0 12px 0 0;
     color: rgb(240, 238, 232);
     font-size: 13px;
     -unity-font-style: bold;
+    -unity-text-align: middle-left;
     white-space: normal;
 }
 
@@ -159,37 +193,44 @@
     border-color: rgb(240, 238, 232);
 }
 
-.sa-settings-field {
-    min-height: 44px;
-    margin-bottom: 8px;
-    background-color: rgb(37, 36, 34);
-    color: rgb(240, 238, 232);
-    border-bottom-width: 2px;
-    border-bottom-color: rgb(123, 120, 114);
-}
-.sa-settings-field:focus { border-bottom-color: rgb(255, 204, 34); }
-.sa-settings-field .unity-base-field__label { color: rgb(240, 238, 232); }
+/* Dropdowns: the value field takes the right side, like a slider and its value.
+   Unity's theme gives field inputs flex-basis 0, which wins over width; set the
+   basis itself. */
 .sa-settings-field .unity-base-field__input {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 46%;
+    min-height: 36px;
+    margin: 0;
+    padding-left: 10px;
+    padding-right: 8px;
     background-color: rgb(22, 21, 19);
+    border-width: 2px;
+    border-radius: 0;
+    border-color: rgb(123, 120, 114);
     color: rgb(240, 238, 232);
 }
+.sa-settings-field:hover .unity-base-field__input,
+.sa-settings-field:focus .unity-base-field__input,
+.sa-settings-field .unity-base-field__input:focus { border-color: rgb(255, 204, 34); }
 .sa-settings-field .unity-base-field__input .unity-text-element { color: rgb(240, 238, 232); }
 .sa-settings-field .unity-base-field__input .unity-base-popup-field__text { color: rgb(240, 238, 232); }
 .sa-settings-field .unity-base-popup-field__arrow { -unity-background-image-tint-color: rgb(240, 238, 232); }
-.sa-settings-toggle {
-    min-height: 44px;
-    margin-bottom: 8px;
-    padding-left: 12px;
-    background-color: rgb(37, 36, 34);
-    color: rgb(240, 238, 232);
-}
-.sa-settings-toggle .unity-base-field__label { color: rgb(240, 238, 232); }
+
+/* Toggles: the checkbox sits at the row's right edge, where slider values sit. */
 .sa-settings-toggle .unity-toggle__input {
-    background-color: rgb(22, 21, 19);
-    border-color: rgb(123, 120, 114);
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    margin: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 .sa-settings-toggle .unity-toggle__checkmark {
+    width: 22px;
+    height: 22px;
     background-color: rgb(22, 21, 19);
+    border-width: 2px;
     border-color: rgb(123, 120, 114);
     -unity-background-image-tint-color: rgb(27, 26, 24);
 }
@@ -197,8 +238,27 @@
     background-color: rgb(255, 204, 34);
     border-color: rgb(255, 204, 34);
 }
-.sa-settings-toggle:focus .unity-toggle__checkmark { border-color: rgb(240, 238, 232); }
-.sa-settings-note { color: rgb(240, 238, 232); white-space: normal; }
+.sa-settings-toggle:hover .unity-toggle__checkmark,
+.sa-settings-toggle:focus .unity-toggle__checkmark { border-color: rgb(255, 204, 34); }
+.sa-settings-toggle:checked:hover .unity-toggle__checkmark,
+.sa-settings-toggle:checked:focus .unity-toggle__checkmark { border-color: rgb(240, 238, 232); }
+
+/* Help notes belong to the row above: same inset, quieter, with room before the next row. */
+.sa-settings-note {
+    margin: -2px 0 14px 0;
+    padding: 0 12px;
+    color: rgb(183, 180, 173);
+    font-size: 13px;
+    white-space: normal;
+}
+
+/* Tab-level actions (APPLY DISPLAY, RESET CONTROLS) are buttons, not full-width bars. */
+.sa-settings-body .sa-settings-body-action {
+    align-self: flex-end;
+    min-width: 220px;
+    margin-top: 4px;
+    margin-bottom: 12px;
+}
 
 .sa-settings-status { min-height: 18px; margin-top: 6px; white-space: normal; }
 .sa-settings-footer {
@@ -262,11 +322,13 @@
     -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
 }
+/* On the paper card a focused paper button turns ink with a yellow frame; the
+   yellow primary keeps its yellow and takes a heavier ink frame. */
 .sa-settings-footer .sa-settings-action:hover,
 .sa-settings-footer .sa-settings-action:focus {
     background-image: none;
-    background-color: rgb(240, 238, 232);
-    color: rgb(27, 26, 24);
+    background-color: rgb(27, 26, 24);
+    color: rgb(240, 238, 232);
     border-top-color: rgb(255, 204, 34);
     border-left-color: rgb(255, 204, 34);
     border-right-color: rgb(255, 204, 34);
@@ -282,11 +344,12 @@
 .sa-settings-footer .sa-settings-action--primary:hover,
 .sa-settings-footer .sa-settings-action--primary:focus {
     background-image: none;
-    background-color: rgb(27, 26, 24);
-    color: rgb(240, 238, 232);
-    border-top-color: rgb(255, 204, 34);
-    border-left-color: rgb(255, 204, 34);
-    border-right-color: rgb(255, 204, 34);
+    background-color: rgb(255, 204, 34);
+    color: rgb(27, 26, 24);
+    border-left-width: 4px;
+    border-top-width: 4px;
+    border-right-width: 4px;
+    border-color: rgb(22, 21, 19);
 }
 .sa-settings-footer .sa-settings-action:disabled {
     background-image: none;
@@ -310,11 +373,10 @@
     max-width: 480px;
     padding: 22px;
     background-color: rgb(240, 238, 232);
-    border-left-width: 2px;
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 7px;
-    border-color: rgb(27, 26, 24);
+    border-width: 3px;
+    border-right-width: 6px;
+    border-bottom-width: 8px;
+    border-color: rgb(22, 21, 19);
 }
 .sa-settings-confirmation-title {
     color: rgb(27, 26, 24);
@@ -329,8 +391,8 @@
     padding-left: 12px;
     padding-right: 12px;
     background-image: none;
-    background-color: rgb(37, 36, 34);
-    color: rgb(240, 238, 232);
+    background-color: rgb(240, 238, 232);
+    color: rgb(27, 26, 24);
     border-left-width: 2px;
     border-top-width: 2px;
     border-right-width: 2px;
@@ -345,11 +407,11 @@
 .sa-settings-confirmation-actions .sa-settings-action:hover,
 .sa-settings-confirmation-actions .sa-settings-action:focus {
     background-image: none;
-    color: rgb(27, 26, 24);
-    background-color: rgb(255, 204, 34);
-    border-top-color: rgb(27, 26, 24);
-    border-left-color: rgb(27, 26, 24);
-    border-right-color: rgb(27, 26, 24);
+    color: rgb(240, 238, 232);
+    background-color: rgb(27, 26, 24);
+    border-top-color: rgb(255, 204, 34);
+    border-left-color: rgb(255, 204, 34);
+    border-right-color: rgb(255, 204, 34);
 }
 .sa-settings-confirmation-actions .sa-settings-action:active { translate: 0 3px; }
 .sa-settings-confirmation-actions .sa-settings-action:disabled {

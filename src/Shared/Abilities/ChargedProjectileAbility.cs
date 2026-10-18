@@ -58,4 +58,24 @@ public sealed class ChargedProjectileAbility : ServerAbility, IAimHoldCapability
                 PresentationOperationIndex, autoTarget);
         }
     }
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteBool(_released);
+        w.WriteBool(_fired);
+        w.WriteFloat(_radius);
+        w.WriteFloat(_aimYaw);
+        w.WriteFloat(_aimPitch);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _released = r.ReadBool();
+        _fired = r.ReadBool();
+        _radius = r.ReadFloat();
+        _aimYaw = r.ReadFloat();
+        _aimPitch = r.ReadFloat();
+    }
 }

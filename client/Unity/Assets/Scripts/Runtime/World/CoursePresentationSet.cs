@@ -10,6 +10,26 @@ namespace SlopArena.Client.World
     /// </summary>
     public sealed class CoursePresentationSet : ScriptableObject
     {
+        /// <summary>
+        /// A look for the targets whose id starts with <see cref="IdPrefix"/>, instead of the
+        /// default target and break: a bonus target that takes several hits, say. Clip names are
+        /// in <see cref="SoundFolder"/>; empty keeps the course's own.
+        /// </summary>
+        [System.Serializable]
+        public sealed class TargetLook
+        {
+            public string IdPrefix;
+            [Tooltip("Idle target: a CourseBonusTarget or CourseLantern root, built for TargetRadius.")]
+            public GameObject Target;
+            public float TargetRadius = .65f;
+            [Tooltip("One-shot effect at the target when it breaks.")]
+            public GameObject Break;
+            [Tooltip("One-shot effect at the target on each hit that does not break it yet.")]
+            public GameObject Hit;
+            public string HitClip;
+            public string BreakClip;
+        }
+
         public const string ResourcesFolder = "Courses";
         [Tooltip("Idle target (a CourseLantern root), built for TargetRadius and scaled to each target's radius.")]
         public GameObject Target;
@@ -28,5 +48,16 @@ namespace SlopArena.Client.World
         public string SoundFolder = "Audio/SFX/Course";
         [Tooltip("Semitones above course_bell for the first, second, … break of a section.")]
         public int[] NoteSemitones = { 0, 2, 4, 7, 9, 12, 14, 16, 19, 21 };
+        [Tooltip("Per-target looks, matched by id prefix (first match wins).")]
+        public TargetLook[] TargetLooks = System.Array.Empty<TargetLook>();
+
+        public TargetLook LookFor(string targetId)
+        {
+            if (TargetLooks == null) return null;
+            foreach (var look in TargetLooks)
+                if (look != null && !string.IsNullOrEmpty(look.IdPrefix) && targetId.StartsWith(look.IdPrefix, System.StringComparison.Ordinal))
+                    return look;
+            return null;
+        }
     }
 }

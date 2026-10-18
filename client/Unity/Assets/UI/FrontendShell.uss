@@ -98,7 +98,7 @@
 .shell-modal-help {
     margin-top: 8px;
     margin-bottom: 14px;
-    color: rgb(196, 189, 197);
+    color: rgb(196, 193, 186);
     font-size: 13px;
     white-space: normal;
 }
@@ -202,7 +202,7 @@
     bottom: 0;
     align-items: center;
     justify-content: center;
-    background-color: rgba(13, 13, 20, 0.78);
+    background-color: rgba(22, 21, 19, 0.78);
 }
 
 .shell-escape-menu--open {
@@ -215,7 +215,7 @@
     padding: 24px;
     background-color: var(--shell-paper);
     border-width: 3px;
-    border-color: rgb(13, 13, 20);
+    border-color: var(--shell-recess);
     border-bottom-width: 8px;
     border-right-width: 6px;
 }
@@ -226,15 +226,20 @@
     font-size: 36px;
 }
 
+/* The shared modal card (also the in-match pause card in HUD.uss and the
+   Settings poster): yellow RESUME first, paper secondaries. Focus turns a paper
+   button ink with a yellow frame; RESUME keeps its yellow with a heavier frame. */
 .frontend-shell .shell-escape-action {
     width: 100%;
-    margin-bottom: 10px;
-    background-color: var(--shell-surface);
-    color: var(--shell-paper);
+    min-height: 52px;
+    margin: 0 0 10px 0;
+    background-color: var(--shell-paper);
+    color: var(--shell-canvas);
+    font-size: 18px;
     border-width: 3px;
     border-bottom-width: 6px;
     border-right-width: 5px;
-    border-color: rgb(13, 13, 20);
+    border-color: var(--shell-recess);
 }
 
 .frontend-shell .shell-escape-action.btn-primary {
@@ -243,27 +248,22 @@
 }
 .frontend-shell .shell-escape-action:hover,
 .frontend-shell .shell-escape-action:focus {
-    background-color: var(--shell-action);
-    color: var(--shell-canvas);
-    border-color: rgb(255, 255, 255);
-}
-.frontend-shell .shell-escape-action.btn-primary:hover,
-.frontend-shell .shell-escape-action.btn-primary:focus {
     background-color: var(--shell-canvas);
     color: var(--shell-paper);
     border-color: var(--shell-action);
 }
+.frontend-shell .shell-escape-action.btn-primary:hover,
+.frontend-shell .shell-escape-action.btn-primary:focus {
+    background-color: var(--shell-action);
+    color: var(--shell-canvas);
+    border-color: var(--shell-recess);
+    border-left-width: 4px;
+    border-top-width: 4px;
+}
 .frontend-shell .shell-escape-action:disabled {
-    background-color: var(--shell-surface);
+    background-color: var(--shell-rule);
     color: var(--shell-paper);
     border-color: var(--shell-rule);
-    opacity: 0.65;
-}
-
-
-.frontend-shell .shell-escape-action.btn-back {
-    width: 100%;
-    font-size: 18px;
 }
 
 .shell-menu-trigger {
@@ -353,7 +353,7 @@
     border-width: 2px;
     border-bottom-width: 6px;
     border-right-width: 5px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     background-color: var(--shell-action);
     color: var(--shell-canvas);
     font-size: 22px;
@@ -365,8 +365,18 @@
 
 .shell-wordmark:hover,
 .shell-wordmark:focus {
-    background-color: rgb(255, 218, 74);
-    border-color: var(--shell-canvas);
+    background-color: var(--shell-action);
+    border-color: var(--shell-recess);
+    border-left-width: 3px;
+    border-top-width: 3px;
+}
+
+/* Pages that guard their flow disable Home; the name mark still reads at full
+   strength instead of Unity's half-opacity disabled tint. */
+.shell-wordmark:disabled {
+    opacity: 1;
+    background-color: var(--shell-action);
+    color: var(--shell-canvas);
 }
 
 .shell-nav {
@@ -412,14 +422,24 @@
     background-color: var(--shell-canvas);
 }
 
+/* Hover/focus must not look like the current mode: an unselected tab turns
+   ink with a yellow frame; the selected yellow tab takes a heavier ink frame. */
 .shell-nav-tab:hover,
 .shell-nav-tab:focus {
+    color: var(--shell-paper);
+    border-width: 2px;
+    border-color: var(--shell-action);
+    background-color: var(--shell-canvas);
+}
+
+.shell-nav-tab--selected:hover,
+.shell-nav-tab--selected:focus {
     color: var(--shell-page-ink);
-    border-color: var(--shell-canvas);
+    border-width: 2px;
+    border-color: var(--shell-recess);
     background-color: var(--shell-action);
 }
 
-.shell-nav-tab:focus { border-color: var(--shell-canvas); }
 .shell-nav-tab:disabled { color: var(--shell-page-muted); opacity: 1; }
 
 .shell-settings {
@@ -446,7 +466,9 @@
 
 .shell-page-context {
     margin-left: 20px;
-    color: var(--shell-page-muted);
+    padding: 3px 8px;
+    background-color: rgba(240, 238, 232, 0.92);
+    color: var(--shell-page-ink);
     font-size: 13px;
     letter-spacing: 2px;
 }
@@ -475,18 +497,24 @@
 
 .shell-identity:hover,
 .shell-identity:focus {
-    border-color: var(--shell-canvas);
-    background-color: var(--shell-action);
+    color: var(--shell-paper);
+    border-color: var(--shell-action);
+    background-color: var(--shell-canvas);
 }
 
 /* The visible top-bar route (issue #220): text is set by the focus router
    ("E/X // TOP BAR"); hidden while a text field is editing or a modal is
    presented. */
+/* A readable key chip on a paper plate rather than 10px grey on the wallpaper. */
 .shell-topbar-hint {
     margin-right: 12px;
-    color: var(--shell-page-muted);
-    font-size: 10px;
-    letter-spacing: 2px;
+    padding: 3px 8px;
+    background-color: var(--shell-paper);
+    border-width: 1px;
+    border-color: var(--shell-canvas);
+    color: var(--shell-page-ink);
+    font-size: 11px;
+    letter-spacing: 1px;
     -unity-font-style: bold;
     white-space: nowrap;
 }
@@ -580,42 +608,45 @@
     padding-right: 16px;
 }
 
+/* Compact keeps top-bar text at 12px: 10px read as ~9px at 1366×768. */
 .frontend-shell--compact .shell-wordmark {
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .frontend-shell--compact .shell-page-context { display: none; }
 .frontend-shell--compact .shell-nav { margin-left: 10px; }
 .frontend-shell--compact .shell-nav-tab {
-    min-width: 70px;
+    min-width: 80px;
     min-height: 36px;
-    margin-right: 2px;
-    padding-left: 6px;
-    padding-right: 6px;
-    font-size: 10px;
+    margin-right: 3px;
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 12px;
+    letter-spacing: 0;
 }
 .frontend-shell--compact .shell-settings {
     min-height: 32px;
     margin-left: 4px;
-    padding-left: 7px;
-    padding-right: 7px;
-    font-size: 10px;
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 12px;
 }
 .frontend-shell--compact .shell-identity {
-    max-width: 160px;
+    max-width: 180px;
     margin-left: 6px;
-    font-size: 10px;
+    font-size: 12px;
     text-overflow: ellipsis;
     overflow: hidden;
 }
 .frontend-shell--compact .shell-menu-trigger {
-    min-width: 76px;
+    min-width: 80px;
     min-height: 34px;
     margin-left: 6px;
-    padding-left: 27px;
-    padding-right: 6px;
-    font-size: 10px;
+    padding-left: 30px;
+    padding-right: 8px;
+    font-size: 12px;
 }
+.frontend-shell--compact .shell-topbar-hint { font-size: 11px; padding: 2px 6px; }
 
 .frontend-shell--compact .shell-workspace {
     padding-left: 16px;
@@ -638,6 +669,8 @@
 /* Home has no page summary/action footer; chat is not part of this row. */
 .frontend-shell--home .shell-lower-row { display: none; }
 .frontend-shell--home .shell-page-lower-host { display: none; }
+/* Home has no page context; its empty plate would show as a stray chip. */
+.frontend-shell--home .shell-page-context { display: none; }
 
 /* Arcade keeps its mode browser and launch controls together in the body. */
 .frontend-shell--arcade .shell-header-host { background-color: rgba(0, 0, 0, 0); }
@@ -797,26 +830,29 @@
     border-width: 3px;
     border-bottom-width: 8px;
     border-right-width: 6px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     background-color: var(--shell-paper);
     color: var(--shell-canvas);
     font-size: 27px;
     -unity-text-align: middle-left;
 }
 
+/* Same rule as every button: focus turns the paper slab ink and lights its
+   frame and print offset yellow, so it never reads as a yellow primary. */
 .menu-action:hover,
 .menu-action:focus {
-    background-color: var(--shell-action);
-    border-color: var(--shell-canvas);
+    background-color: var(--shell-canvas);
+    color: var(--shell-paper);
+    border-color: var(--shell-action);
 }
 
 .menu-action:disabled,
 .menu-action:disabled:hover,
 .menu-action:disabled:focus {
-    background-color: var(--shell-surface);
+    background-color: var(--shell-rule);
     border-color: var(--shell-rule);
     color: var(--shell-paper);
-    opacity: 0.65;
+    opacity: 1;
 }
 
 /* The tutorial sits above the four modes as a slimmer entry for newcomers. */
@@ -840,10 +876,6 @@
     border-color: var(--shell-canvas);
 }
 
-.menu-action--tutorial:hover .menu-action-badge,
-.menu-action--tutorial:focus .menu-action-badge {
-    background-color: var(--shell-paper);
-}
 
 .menu-info {
     width: 348px;
@@ -853,7 +885,7 @@
     margin-left: 24px;
     background-color: var(--shell-paper);
     border-width: 3px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     border-bottom-width: 8px;
     border-right-width: 6px;
 }
@@ -983,42 +1015,29 @@
 }
 
 
-.char-header--local .btn-back {
-    background-color: rgb(240, 238, 232);
-    color: rgb(23, 19, 27);
-    border-width: 3px;
-    border-bottom-width: 6px;
-    border-right-width: 5px;
-    border-color: rgb(13, 13, 20);
-}
-.char-header--local .btn-back:hover,
-.char-header--local .btn-back:focus {
-    background-color: rgb(255, 204, 34);
-    border-color: rgb(255, 255, 255);
-}
-.char-header--local .btn-back:active { translate: 0 3px; }
-
 .char-summary-section .btn-primary,
 .char-actions-section .btn-primary {
     background-color: rgb(255, 204, 34);
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
     border-width: 3px;
     border-bottom-width: 8px;
     border-right-width: 6px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     font-size: 20px;
 }
 .char-summary-section .btn-primary:hover,
 .char-summary-section .btn-primary:focus,
 .char-actions-section .btn-primary:hover,
 .char-actions-section .btn-primary:focus {
-    background-color: rgb(240, 238, 232);
-    border-color: rgb(255, 255, 255);
+    background-color: rgb(255, 204, 34);
+    border-color: rgb(22, 21, 19);
+    border-left-width: 4px;
+    border-top-width: 4px;
 }
 .char-summary-section .btn-primary:disabled,
 .char-actions-section .btn-primary:disabled {
-    background-color: rgb(83, 77, 91);
-    border-color: rgb(83, 77, 91);
+    background-color: rgb(123, 120, 114);
+    border-color: rgb(123, 120, 114);
     color: rgb(240, 238, 232);
 }
 
@@ -1043,7 +1062,7 @@
 .char-summary-section .player-card__status { font-size: 11px; }
 .char-summary-section .player-card__portrait {
     border-width: 2px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
 }
 
 .char-body-section {
@@ -1103,14 +1122,14 @@
     border-width: 3px;
     border-color: var(--shell-rule);
     border-bottom-width: 7px;
-    border-bottom-color: rgb(13, 13, 20);
+    border-bottom-color: rgb(22, 21, 19);
 }
 .char-summary-section--solo .player-card__number {
     color: rgb(240, 238, 232);
 }
 .char-summary-section--solo .player-card:hover,
 .char-summary-section--solo .player-card:focus {
-    border-color: rgb(241, 235, 221);
+    border-color: rgb(240, 238, 232);
 }
 .char-summary-section--solo .player-card--editing {
     background-color: rgb(240, 238, 232);
@@ -1124,10 +1143,10 @@
 .char-summary-section--solo .player-card--editing .player-card__name,
 .char-summary-section--solo .player-card--editing .player-card__character,
 .char-summary-section--solo .player-card--editing .player-card__status {
-    color: rgb(23, 19, 27);
+    color: rgb(27, 26, 24);
 }
 .char-summary-section--solo .player-card--editing .player-card__identity {
-    border-bottom-color: rgb(23, 19, 27);
+    border-bottom-color: rgb(27, 26, 24);
 }
 .char-summary-section--solo .player-card--editing:hover,
 .char-summary-section--solo .player-card--editing:focus {
@@ -1141,13 +1160,27 @@
     align-self: flex-start;
     align-items: stretch;
 }
+/* Step and roster status: a boxed paper plate above SELECT STAGE that fits
+   its column, instead of loose grey text running off the screen edge. */
 .char-summary-section--local .char-header-status {
     margin-left: 0;
     margin-bottom: 12px;
+    padding: 8px 10px;
     align-items: flex-start;
+    background-color: var(--shell-paper);
+    border-width: 2px;
+    border-color: var(--shell-recess);
+}
+.char-summary-section--local .flow-progress {
+    font-size: 12px;
+    letter-spacing: 0;
+    white-space: normal;
 }
 .char-summary-section--local .char-select-meta {
-    margin-top: 6px;
+    margin-top: 4px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    white-space: normal;
 }
 
 .frontend-shell--compact .char-summary-section.char-summary-section--local .solo-next-action {
@@ -1228,8 +1261,8 @@
     border-color: var(--shell-rule);
     border-bottom-width: 5px;
     border-right-width: 4px;
-    border-bottom-color: rgb(13, 13, 20);
-    border-right-color: rgb(13, 13, 20);
+    border-bottom-color: rgb(22, 21, 19);
+    border-right-color: rgb(22, 21, 19);
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
@@ -1240,7 +1273,6 @@
 
 .stage-card:hover,
 .stage-card:focus {
-    translate: 0 -4px;
     border-color: var(--shell-paper);
 }
 
@@ -1250,7 +1282,6 @@
 }
 
 .stage-card--selected {
-    translate: 0 -6px;
     border-width: 3px;
     border-color: var(--shell-action);
 }
@@ -1297,7 +1328,7 @@
     min-height: 174px;
     background-color: var(--shell-surface);
     border-color: var(--shell-rule);
-    border-bottom-color: rgb(13, 13, 20);
+    border-bottom-color: rgb(22, 21, 19);
 }
 
 .stage-player-cards .player-card--local {
@@ -1345,14 +1376,16 @@
     border-width: 3px;
     border-bottom-width: 8px;
     border-right-width: 6px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     font-size: 17px;
 }
 
 .stage-actions-section .stage-confirm:hover,
 .stage-actions-section .stage-confirm:focus {
-    background-color: var(--shell-paper);
-    border-color: rgb(255, 255, 255);
+    background-color: var(--shell-action);
+    border-color: var(--shell-recess);
+    border-left-width: 4px;
+    border-top-width: 4px;
 }
 
 .stage-actions-section .stage-confirm:disabled {
@@ -1397,9 +1430,10 @@
     margin-top: 2px;
 }
 
+/* The right-hand chip already says who chooses the stage; without the
+   duplicate subtitle the header matches Fighter Select's height. */
 .stage-header-section .flow-subtitle {
-    margin-top: 4px;
-    font-size: 15px;
+    display: none;
 }
 
 .stage-header-section .stage-host-status {
@@ -1421,8 +1455,15 @@
     width: 100%;
 }
 
+/* Four previews per row, tall enough to show the arena instead of a strip. */
 .stage-body-section .stage-card {
-    height: 136px;
+    width: 23.6%;
+    height: 236px;
+}
+
+.stage-body-section .stage-card .stage-name {
+    min-height: 38px;
+    font-size: 16px;
 }
 
 
@@ -1457,22 +1498,6 @@
     border-bottom-color: var(--shell-action);
 }
 
-.stage-header-section .btn-back {
-    background-color: var(--shell-paper);
-    color: var(--shell-canvas);
-    border-width: 3px;
-    border-bottom-width: 6px;
-    border-right-width: 5px;
-    border-color: rgb(13, 13, 20);
-}
-
-.stage-header-section .btn-back:hover,
-.stage-header-section .btn-back:focus {
-    background-color: var(--shell-action);
-    border-color: rgb(255, 255, 255);
-}
-
-.stage-header-section .btn-back:active,
 .stage-actions-section .stage-confirm:active {
     translate: 0 3px;
 }
@@ -1491,8 +1516,14 @@
 }
 
 .frontend-shell--compact .stage-body-section .stage-card {
-    width: 14.4%;
-    height: 99px;
+    width: 23.4%;
+    height: 230px;
+}
+
+.frontend-shell--compact .stage-body-section .stage-card .stage-name {
+    min-height: 30px;
+    padding: 6px 6px 4px;
+    font-size: 13px;
 }
 
 
@@ -1750,15 +1781,18 @@
     border-width: 2px;
     border-color: var(--shell-rule);
     border-bottom-width: 5px;
-    border-bottom-color: rgb(13, 13, 20);
+    border-bottom-color: rgb(22, 21, 19);
 }
 
 .lobby-body-section .lobby-panel__header {
     flex-shrink: 0;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
 }
+
+/* Capacity lines up with the PLAYER ROSTER title, not between its two lines. */
+.lobby-body-section .lobby-panel__capacity { margin-top: 7px; }
 
 .lobby-body-section .panel-title {
     color: var(--shell-paper);
@@ -1859,6 +1893,25 @@
     flex-shrink: 0;
 }
 
+/* An open slot is a quiet placeholder, not a name plate. */
+.lobby-body-section .lobby-list .player-slot--open {
+    background-color: rgba(0, 0, 0, 0);
+    border-color: rgb(72, 70, 64);
+}
+
+.lobby-body-section .lobby-list .player-slot--open #slot-index {
+    color: var(--shell-rule);
+}
+
+.lobby-body-section .lobby-list .player-slot--open #slot-name {
+    padding: 4px 0;
+    background-color: rgba(0, 0, 0, 0);
+    color: var(--shell-rule);
+    font-size: 14px;
+    letter-spacing: 1px;
+    -unity-font-definition: url("../Fonts/SpaceMono.asset");
+}
+
 .lobby-summary-section {
     flex-grow: 1;
     min-width: 0;
@@ -1866,41 +1919,56 @@
     justify-content: flex-end;
 }
 
-.lobby-summary-section .lobby-status,
-.lobby-invite-hint {
+/* Connection feedback and RETRY close the roster panel, beside each other. */
+.lobby-body-section .lobby-panel__footer {
+    flex-shrink: 0;
+    margin-top: 12px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.lobby-body-section .lobby-panel__feedback {
+    flex-grow: 1;
+    flex-shrink: 1;
     min-width: 0;
-    color: var(--shell-paper);
+}
+
+.lobby-invite-hint {
+    margin-top: 6px;
+    min-width: 0;
+    color: rgb(196, 193, 186);
     font-size: 14px;
     white-space: normal;
 }
 
-.lobby-summary-section .lobby-status.error { color: rgb(255, 145, 128); }
-
-.lobby-invite-hint { margin-top: 6px; }
-
-.lobby-summary-section .lobby-retry {
-    width: 210px;
+/* RETRY sits on the dark roster panel: focus keeps the paper fill and adds a
+   yellow frame. */
+.lobby-body-section .lobby-retry {
+    flex-shrink: 0;
+    width: 220px;
     min-width: 0;
     min-height: 44px;
-    margin-top: 8px;
+    margin: 0 0 0 14px;
     background-color: var(--shell-paper);
     color: var(--shell-canvas);
     border-width: 3px;
-    border-bottom-width: 7px;
+    border-bottom-width: 6px;
     border-right-width: 5px;
-    border-color: rgb(13, 13, 20);
+    border-color: var(--shell-recess);
+    font-size: 15px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
     letter-spacing: 0;
 }
 
-.lobby-summary-section .lobby-retry:hover,
-.lobby-summary-section .lobby-retry:focus {
-    background-color: var(--shell-action);
-    border-color: var(--shell-paper);
+.lobby-body-section .lobby-retry:hover,
+.lobby-body-section .lobby-retry:focus {
+    background-color: rgb(255, 255, 255);
+    color: var(--shell-canvas);
+    border-color: var(--shell-action);
 }
 
-.lobby-summary-section .lobby-retry:active { translate: 0 3px; }
+.lobby-body-section .lobby-retry:active { translate: 0 3px; }
 
 .lobby-actions-section {
     flex-shrink: 0;
@@ -1919,7 +1987,7 @@
     border-width: 3px;
     border-bottom-width: 8px;
     border-right-width: 6px;
-    border-color: rgb(13, 13, 20);
+    border-color: rgb(22, 21, 19);
     font-size: 16px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
@@ -1940,47 +2008,30 @@
 
 .lobby-actions-section .lobby-action:hover,
 .lobby-actions-section .lobby-action:focus {
-    background-color: var(--shell-surface);
-    color: var(--shell-paper);
-    border-color: var(--shell-paper);
-}
-
-.lobby-actions-section .lobby-action--start:hover,
-.lobby-actions-section .lobby-action--start:focus {
     background-color: var(--shell-canvas);
     color: var(--shell-paper);
     border-color: var(--shell-action);
 }
 
+.lobby-actions-section .lobby-action--start:hover,
+.lobby-actions-section .lobby-action--start:focus {
+    background-color: var(--shell-action);
+    color: var(--shell-canvas);
+    border-color: var(--shell-recess);
+    border-left-width: 4px;
+    border-top-width: 4px;
+}
+
 .lobby-actions-section .lobby-action:active { translate: 0 3px; }
 
 .lobby-actions-section .lobby-action:disabled {
-    background-color: var(--shell-surface);
+    background-color: var(--shell-rule);
     border-color: var(--shell-rule);
     color: var(--shell-paper);
-    opacity: 0.72;
+    opacity: 1;
     translate: 0 0;
 }
 
-.lobby-header-section .btn-back {
-    background-color: var(--shell-paper);
-    color: var(--shell-canvas);
-    border-width: 3px;
-    border-bottom-width: 6px;
-    border-right-width: 5px;
-    border-color: rgb(13, 13, 20);
-    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
-    -unity-font-style: normal;
-    letter-spacing: 0;
-}
-
-.lobby-header-section .btn-back:hover,
-.lobby-header-section .btn-back:focus {
-    background-color: var(--shell-action);
-    border-color: var(--shell-paper);
-}
-
-.lobby-header-section .btn-back:active { translate: 0 3px; }
 
 .frontend-shell--compact .lobby-header-section { min-height: 56px; }
 .frontend-shell--compact .lobby-header-section .flow-title { font-size: 29px; }
@@ -2008,38 +2059,22 @@
 .browser-header-section .flow-subtitle,
 .browser-summary-section .host-status,
 .lobby-header-section .flow-title,
-.lobby-header-section .flow-subtitle,
-.lobby-invite-hint {
+.lobby-header-section .flow-subtitle {
     color: var(--shell-page-ink);
 }
 
 .char-summary-section--local .char-select-meta,
 .browser-header-section .flow-subtitle,
-.stage-header-section .flow-subtitle,
-.lobby-invite-hint {
+.stage-header-section .flow-subtitle {
     color: var(--shell-page-muted);
 }
 
-.stage-waiting,
-.lobby-summary-section .lobby-status.error {
+.stage-waiting {
     color: var(--shell-page-error);
 }
 
 .stage-host-status {
     color: var(--shell-paper);
-}
-
-.char-header--local .btn-back:hover,
-.char-header--local .btn-back:focus,
-.stage-header-section .btn-back:hover,
-.stage-header-section .btn-back:focus,
-.stage-actions-section .stage-confirm:hover,
-.stage-actions-section .stage-confirm:focus,
-.lobby-header-section .btn-back:hover,
-.lobby-header-section .btn-back:focus,
-.lobby-summary-section .lobby-retry:hover,
-.lobby-summary-section .lobby-retry:focus {
-    border-color: var(--shell-canvas);
 }
 
 .char-summary-section--solo .player-card--editing:hover,
@@ -2108,3 +2143,66 @@
     width: 220px;
     min-height: 46px;
 }
+
+/* ── Page headers: one strip ─────────────────────────────────────────────
+   Every page header pads its paper strip the same way and keeps the same
+   height, so Fighter → Stage Select no longer jumps and BACK no longer sits
+   on the strip's corner. Results has no BACK, so the padding is its inset. */
+.char-header--local,
+.stage-header-section,
+.browser-header-section,
+.lobby-header-section,
+.results-header-section {
+    min-height: 92px;
+    padding: 10px 14px 10px 10px;
+    align-items: center;
+}
+
+.char-header--local .flow-title,
+.stage-header-section .flow-title,
+.browser-header-section .flow-title,
+.lobby-header-section .flow-title {
+    margin-top: 0;
+    font-size: 38px;
+}
+
+.frontend-shell--compact .char-header--local,
+.frontend-shell--compact .stage-header-section,
+.frontend-shell--compact .browser-header-section,
+.frontend-shell--compact .lobby-header-section,
+.frontend-shell--compact .results-header-section {
+    min-height: 64px;
+    padding: 6px 10px 6px 6px;
+}
+
+.frontend-shell--compact .char-header--local .flow-title,
+.frontend-shell--compact .stage-header-section .flow-title,
+.frontend-shell--compact .browser-header-section .flow-title,
+.frontend-shell--compact .lobby-header-section .flow-title {
+    font-size: 28px;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────
+   One thin bar without Unity's arrow buttons for every frontend list; the
+   rule grey reads on both the paper page and the dark panels. */
+.frontend-shell .unity-scroller--vertical {
+    width: 8px;
+    margin-left: 4px;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+.frontend-shell .unity-scroller__low-button,
+.frontend-shell .unity-scroller__high-button { display: none; }
+.frontend-shell .unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: rgba(123, 120, 114, 0.25);
+    border-width: 0;
+}
+.frontend-shell .unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: var(--shell-rule);
+    border-width: 0;
+}
+.frontend-shell .unity-scroller--vertical .unity-base-slider__dragger:hover {
+    background-color: var(--shell-canvas);
+}
+.frontend-shell .unity-scroller--vertical .unity-base-slider__dragger-border { border-width: 0; }
+

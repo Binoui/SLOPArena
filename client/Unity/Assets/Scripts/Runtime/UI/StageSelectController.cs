@@ -157,7 +157,10 @@ namespace SlopArena.Client.UI
             {
                 SelectStage(MatchConfig.ArenaName);
             }
-            else if (isTraining && firstStageButton != null)
+            // Local modes always open with a stage chosen, so the start action is
+            // visible at once: Training's own arena, or Solo's first stage when no
+            // earlier Solo stage is remembered.
+            else if ((isTraining || MatchConfig.Mode == GameMode.Solo) && firstStageButton != null)
             {
                 SelectStage(firstStageButton.name.Substring("stage-".Length));
             }

@@ -309,8 +309,17 @@ public sealed class CookedTimelineAbility : ServerAbility
                         _slot.Behavior == AuthoringAbilityBehavior.AimedProjectile && _slot.AimMode == AuthoringAimMode.None);
                     break;
                 case CookedSetAimStateOperation aim:
+                    // Walking under a mobile aim ends with it: attacks have no friction, so the
+                    // stick's speed would otherwise carry through the rest of the move.
+                    bool endsMobileAim = s.State == ActionState.Aiming && aim.AimState == AuthoringAimMode.None
+                        && _slot.AimMovement == AuthoringAimMovementMode.Mobile;
                     s.IsAiming = aim.AimState != AuthoringAimMode.None;
                     s.State = s.IsAiming ? ActionState.Aiming : ActionState.Attacking;
+                    if (endsMobileAim)
+                    {
+                        ClearVelocityOwnership(ref s);
+                        s.VX = s.VZ = 0f;
+                    }
                     break;
                 case CookedStartCapabilityOperation capability:
                     StartCapability(ref s, def, capability, flattenedOperationIndex);
@@ -464,4 +473,94 @@ public sealed class CookedTimelineAbility : ServerAbility
         }
         _capabilities.Clear();
     }
+
+    /// <summary>The cooked slot this activation runs, by its definition ordinal.</summary>
+    internal int SlotOrdinal => _slot.Ordinal;
+    internal int RunningCapabilities => _capabilities.Count;
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteUShort(_stageTick);
+        w.WriteInt(_stageIndex);
+        w.WriteInt(_operationCursor);
+        w.WriteBool(_completed);
+        w.WriteBool(_unlimitedAimHold);
+        w.WriteFloat(_forwardLungeSpeed);
+        w.WriteFloat(_forwardLungeYaw);
+        w.WriteUShort(_forwardLungeTicksRemaining);
+        w.WriteBool(_forwardLungeActive);
+        w.WriteInt(_lungeReach.Length);
+        foreach (var reach in _lungeReach)
+            SnapshotCodecs.Write(w, reach, NoOwnerContent);
+        w.WriteUShort(_gravityWindowTicksRemaining);
+        w.WriteFloat(_gravityWindowScale);
+        // Capabilities are recreated from the timeline operation that started them.
+        w.WriteInt(_capabilities.Count);
+        foreach (var capability in _capabilities)
+        {
+            w.WriteInt(capability.PresentationOperationIndex);
+            capability.WriteSnapshot(w);
+        }
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _stageTick = r.ReadUShort();
+        _stageIndex = r.ReadInt();
+        if (_stageIndex < 0 || _stageIndex >= _slot.Timeline.Stages.Count)
+            throw SnapshotReader.Malformed("timeline stage");
+        _operationCursor = r.ReadInt();
+        if (_operationCursor < 0 || _operationCursor > CurrentStage.Operations.Count)
+            throw SnapshotReader.Malformed("timeline operation cursor");
+        _completed = r.ReadBool();
+        _unlimitedAimHold = r.ReadBool();
+        _forwardLungeSpeed = r.ReadFloat();
+        _forwardLungeYaw = r.ReadFloat();
+        _forwardLungeTicksRemaining = r.ReadUShort();
+        _forwardLungeActive = r.ReadBool();
+        int reach = r.ReadCount(100); // an encoded hitbox takes well over 100 bytes
+        _lungeReach = reach == 0 ? Array.Empty<Hitbox>() : new Hitbox[reach];
+        for (int i = 0; i < reach; i++)
+            _lungeReach[i] = SnapshotCodecs.ReadHitbox(r, NoOwnerContent);
+        _gravityWindowTicksRemaining = r.ReadUShort();
+        _gravityWindowScale = r.ReadFloat();
+        _capabilities.Clear();
+        int capabilities = r.ReadCount(4);
+        for (int i = 0; i < capabilities; i++)
+        {
+            int operationIndex = r.ReadInt();
+            if (FindOperation(operationIndex) is not CookedStartCapabilityOperation operation ||
+                !InternalCapabilityRegistry.TryCreate(operation.CapabilityId, operation.CapabilityVersion,
+                    operation.Parameters, out var capability))
+                throw SnapshotReader.Malformed("capability operation");
+            capability.Resolver = Resolver;
+            capability.OwnerSimulation = OwnerSimulation;
+            capability.SimulationStates = SimulationStates;
+            capability.BakedData = BakedData;
+            capability.CharacterDef = CharacterDef;
+            capability.Arena = Arena;
+            capability.AnimationNames = AnimationNames;
+            capability.PresentationSink = PresentationSink;
+            capability.ReadSnapshot(r);
+            _capabilities.Add(capability);
+        }
+    }
+
+    private CookedTimelineOperation? FindOperation(int flattenedIndex)
+    {
+        if (flattenedIndex < 0)
+            return null;
+        foreach (var stage in _slot.Timeline.Stages)
+        {
+            if (flattenedIndex < stage.Operations.Count)
+                return stage.Operations[flattenedIndex];
+            flattenedIndex -= stage.Operations.Count;
+        }
+        return null;
+    }
+
+    private static (CharacterDefinition? Def, BakedAnimationData? Baked) NoOwnerContent(ulong owner)
+        => throw new InvalidOperationException("Lunge reach shapes carry no content references.");
 }

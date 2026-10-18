@@ -349,6 +349,27 @@ because gameplay-distance comparisons hide these effects.
 and launches that leave the fixed frame. Use `--presets high:1.6` alone to review
 character effects at the shipped hit-feel strength.
 
+## Air dodge print slip
+
+Every fighter's air dodge prints itself out of register (concept C, picked by the owner on
+2026-10-18). `AirDodgePresentation` follows the state `PlayerRenderer` applies
+(`AirDodgeMovement`, `DashDirX/Z`, `InvincibilityTicks`), so Training, PvP prediction and
+replays agree, and it never changes gameplay. Every layer is timed in applied simulation ticks.
+
+| Layer | Behaviour | Hook |
+|-------|-----------|------|
+| Push-off | Two cut-paper crescents (Paper fill, ink rim, hard ink print shadow) curl behind the launch point, pop in and fade over 7 ticks; a paper "fwip" plays. | `Resources/Shaders/AirDodgePrint.shader`; `Resources/Audio/SFX/AirDodge/air_dodge_fwip.ogg` |
+| Misprint | While the dodge is invulnerable, an orange and an Action Yellow flat copy of the model sit one and two steps (7.5 cm each) back along the dodge on screen, 75% after the first 4 ticks. They snap back over 2 ticks when the fighter can be hit again. | Copies of the model's renderers sharing its bones; `Resources/Shaders/AirDodgePrintSlip.shader` |
+| Printed bars | Three Action Yellow bars with ink rims and print shadows reach back from just behind the body, grow in over 2 ticks, hold while invulnerable, then fade over 5 ticks. | `AirDodgePrint.shader` |
+| Stretch and lean | The model stretches 15% along the dodge and leans 7° into it, easing out over the 12-tick burst. | `FighterHitFeel` deform pivots |
+
+The misprint shader keeps the shift's on-screen length for every camera; a dodge straight
+toward or away from the camera slides the copies sideways. It pushes the copies 0.45 m back
+along the view ray, so the fighter hides them except where they peek out. The bars and
+crescents turn about the dodge to face whichever camera draws them. The landing dust that
+every touchdown spawns also covers a dodge into the ground. `tools/sfx/air_dodge_clips.py`
+regenerates the sound from seeded noise; `--out` writes the three candidates for review.
+
 ## BoneTrail Prefab
 
 **Path:** `Assets/Resources/Prefabs/VFX/BoneTrail.prefab`
@@ -469,6 +490,7 @@ The general rules still apply:
 | Wibou baked blade sweep | Implemented | `SwordSweepTrail.cs` + `WeaponAttach.cs` |
 | Match-start text broadcasts | Implemented | `MatchTextVFX.cs` + `MatchTextVFX/MatchText*.prefab` |
 | Fighter hit feel (shake, flash, squash/lean, launch smoke) | Implemented; strengths under review | `FighterHitFeel.cs` + `GraphicCharacter.shader` |
+| Air dodge print slip: paper swooshes, misprint while invulnerable, printed bars, fwip | Implemented 2026-10-18; concept approved, in-game check pending | `AirDodgePresentation.cs` + `Resources/Shaders/AirDodgePrint*.shader`; see [Air dodge print slip](#air-dodge-print-slip) |
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
 | Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; concepts approved, in-game check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |

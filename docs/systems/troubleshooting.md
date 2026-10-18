@@ -108,6 +108,40 @@ policy, including repeated/skipped frames, shorter re-hits and hitstop. Keep cli
 protocol 7 hosts. If a new protocol-7 match still snaps, capture new evidence rather
 than assuming the earlier omission is still the cause.
 
+## Rollbacks or "too fast" with a clean network
+
+The 2026-10-18 match `ec79dd8e…` had RTT 9–13 ms, Steam quality 1.0 and clean
+server ticks, yet players saw rollbacks. Read these in `Player.log` and the
+match diagnostics before blaming transport:
+
+- Protocol 10 (full-world rollback): `[Netplay] … anchors=A exact=E corrections=C
+  mispredicts=M` — every received World Frame re-anchors the prediction; `exact` anchors
+  needed nothing, `corrections` differed at all (opponent input changes, Mono/.NET drift)
+  and `mispredicts` moved a fighter ≥ 1 cm or changed its state, damage, KOs or hit
+  reaction. `selfCorr`/`oppCorr` are the largest such differences, `selfSnap`/`oppSnap`
+  the largest visible jumps (eased on screen). A `window` far above the input lead,
+  `starved` ticks or `jumps` mean frames stopped arriving; `rejected` frames mean a
+  snapshot did not fit the match. `selfInputMismatch` counts anchors where the GameHost
+  consumed different input than yours (late or held). `effects`/`hits` show what
+  started and what a rollback retracted.
+- Protocol 9 logged `mispredicts=N maxSnap=Xm` (corrections that moved the local fighter)
+  and `reconciles` (snapshots applied); builds before 2026-10-18 log `corrections=`, the
+  applied count. `hitsTaken`/`hitLate` counted server hits on the local fighter; older
+  builds never showed the local freeze online (0 of 23 hits).
+- `serverLate`/`minSlack`, the `[Netplay] serverLate` line (Steam send queue and
+  pending bytes at that moment) and `maxFrameMs` separate a client hitch, a
+  backed-up send queue and a delay past this machine. On the GameHost,
+  `Input gap entity N: L ticks from tick T (held H, neutral M)` marks a run without
+  that player's input; `late bundles, worst -K ticks` means the inputs were delayed
+  K ticks, `no late bundles` means they were lost or never sent, and `late presses
+  applied` counts presses the GameHost still honoured on the next tick. The 5-second
+  `Inputs entity N` line adds `rescued` and `dropped` (late presses applied, or more
+  than 10 ticks late and discarded). Since 2026-10-18 a missing input holds the newest
+  controls for 20 ticks before going neutral.
+- Protocol 9 only: opponents switched between predicted (local time) and raw (server
+  time) playback when they attacked or were hit, a jump of about five ticks at 10 ms RTT
+  (ADR-0011). Protocol 10 draws every fighter in one time frame (ADR-0039).
+
 ## Projectile aim diverges after camera turns
 
 Yaw is a circular direction, not a value to saturate at the signed-short limit.

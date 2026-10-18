@@ -277,20 +277,24 @@ public class MatchControlSecurityTests
                 return;
             }
 
-            if (frame.Length is not (ServerEntityPacket.NoInputSize or ServerEntityPacket.MaxSize))
+            if (!WorldFramePacket.TryDeserialize(frame, out var world) || world is null)
                 return;
-            var state = ServerEntityPacket.Deserialize(frame);
+            foreach (var relayed in world.Inputs)
+            {
+                if (isFirst)
+                    firstBaseline.Add(relayed.EntityId);
+                else
+                    secondBaseline.Add(relayed.EntityId);
+            }
             if (isFirst)
             {
-                firstBaseline.Add(state.EntityId);
-                firstTick = Math.Max(firstTick, state.Tick);
-                firstPlaying |= state.EntityId == firstEntity && state.State.MatchState == MatchState.Playing;
+                firstTick = Math.Max(firstTick, world.Tick);
+                firstPlaying |= world.MatchState == MatchState.Playing;
             }
             else
             {
-                secondBaseline.Add(state.EntityId);
-                secondTick = Math.Max(secondTick, state.Tick);
-                secondPlaying |= state.EntityId == secondEntity && state.State.MatchState == MatchState.Playing;
+                secondTick = Math.Max(secondTick, world.Tick);
+                secondPlaying |= world.MatchState == MatchState.Playing;
             }
         }
 

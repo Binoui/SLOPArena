@@ -141,11 +141,22 @@ namespace SlopArena.Client.UI
         /// <summary>The checkpoint line turns red for a moment after reaching a checkpoint that cannot save.</summary>
         public void FlashCheckpointNotSaved() => _notSaved = NotSavedSeconds;
 
-        /// <summary>The running count floats up from a broken target.</summary>
-        public void ShowCountPop(Vector3 world, string text)
+        /// <summary>The running count floats up from a broken target (or a bonus target's hit count).</summary>
+        public void ShowCountPop(Vector3 world, string text, string variant = null)
         {
+            // A target's next count replaces its last, so a flurry of bonus hits reads as one climbing number.
+            for (int i = _pops.Count - 1; i >= 0; i--)
+            {
+                var other = _pops[i].world;
+                if (new Vector2(other.x - world.x, other.z - world.z).sqrMagnitude < .36f && Mathf.Abs(other.y - world.y) < 1f)
+                {
+                    _pops[i].label.RemoveFromHierarchy();
+                    _pops.RemoveAt(i);
+                }
+            }
             var label = new Label(text) { pickingMode = PickingMode.Ignore };
             label.AddToClassList("course-count-pop");
+            if (!string.IsNullOrEmpty(variant)) label.AddToClassList(variant);
             if (_live.styleSheets.count > 0) label.styleSheets.Add(_live.styleSheets[0]);
             label.style.display = DisplayStyle.None;
             _hud.Add(label);

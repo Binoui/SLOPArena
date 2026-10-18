@@ -48,8 +48,8 @@
                 </ui:VisualElement>
                 <ui:Button name="reset-all" class="ts-btn ts-reset-all" text="RESET BOTH" tooltip="Return all fighters to their spawns and set damage to 0%." />
             </ui:VisualElement>
-            <ui:Toggle name="no-cd-toggle" class="ts-toggle" label="No player ability cooldowns" />
-            <ui:Toggle name="show-during-play" class="ts-toggle" label="Keep controls visible during play" value="false" tooltip="Pause always expands the controls. During play a compact behavior readout remains visible." />
+            <ui:Toggle name="no-cd-toggle" class="ts-toggle" label="NO PLAYER ABILITY COOLDOWNS" />
+            <ui:Toggle name="show-during-play" class="ts-toggle" label="KEEP CONTROLS VISIBLE DURING PLAY" value="false" tooltip="Pause always expands the controls. During play a compact behavior readout remains visible." />
         </ui:ScrollView>
     </ui:VisualElement>
 </ui:UXML>

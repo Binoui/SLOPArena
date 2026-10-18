@@ -170,5 +170,19 @@ namespace SlopArena.Shared.Abilities
                 target.DamagePercent = (ushort)Math.Clamp(corrected, 0, 999);
             }
         }
+
+        internal override void WriteSnapshot(SnapshotWriter w)
+        {
+            base.WriteSnapshot(w);
+            w.WriteByte((byte)_phase);
+            w.WriteBool(_projectileSpawned);
+        }
+
+        internal override void ReadSnapshot(SnapshotReader r)
+        {
+            base.ReadSnapshot(r);
+            _phase = (BazookaPhase)r.ReadByte();
+            _projectileSpawned = r.ReadBool();
+        }
     }
 }

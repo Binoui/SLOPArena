@@ -203,6 +203,8 @@ public sealed class CookedSlotDefinition
     public string? HitPresentationId { get; }
     public CookedChargePool? ChargePool { get; }
     public AuthoringAimMovementMode AimMovement { get; }
+    /// <summary>Fraction of the fighter's run and air speed while a mobile aim state is active.</summary>
+    public float AimMovementSpeedScale { get; }
     public string? AimAnimationId { get; }
     public CookedTimeline Timeline { get; }
 
@@ -223,7 +225,8 @@ public sealed class CookedSlotDefinition
         AuthoringAimMovementMode aimMovement = AuthoringAimMovementMode.Fixed,
         string? aimAnimationId = null,
         bool allowSlideCarry = false,
-        string? hitPresentationId = null)
+        string? hitPresentationId = null,
+        float aimMovementSpeedScale = 1f)
     {
         Ordinal = ordinal;
         Id = id;
@@ -240,6 +243,7 @@ public sealed class CookedSlotDefinition
         Timeline = timeline;
         ChargePool = chargePool;
         AimMovement = aimMovement;
+        AimMovementSpeedScale = aimMovementSpeedScale;
         AimAnimationId = aimAnimationId;
         HitPresentationId = hitPresentationId;
     }

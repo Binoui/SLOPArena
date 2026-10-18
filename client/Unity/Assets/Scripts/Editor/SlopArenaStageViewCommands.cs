@@ -50,7 +50,7 @@ namespace SlopArena.EditorTools
             public GameMode mode;
             public bool slopball;
             public CharacterClass playerClass;
-            public string packageId, arenaName, fighterSession;
+            public string packageId, arenaName, fighterSession, recordDirectory;
         }
 
         [CliCommand("sloparena.stage.views.prepare", "Save Editor state, disable domain reload and open the Training-based baseline scene on a PvP stage, or the Slopball Arcade scene.", MainThreadRequired = true, Tags = new[] { "stage", "capture" })]
@@ -86,6 +86,7 @@ namespace SlopArena.EditorTools
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale, mode = MatchConfig.Mode, slopball = slopball,
                 playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, arenaName = MatchConfig.ArenaName,
                 fighterSession = SessionState.GetString(ArcadeBallMatch.FighterSessionKey, ""),
+                recordDirectory = ArcadeRecordsStore.VerificationDirectory,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view)
             };
@@ -102,6 +103,8 @@ namespace SlopArena.EditorTools
                 MatchConfig.PlayerClass = CharacterClass.FightGuy;
                 MatchConfig.PlayerPackageId = "fightguy";
                 SessionState.SetString(ArcadeBallMatch.FighterSessionKey, CharacterClass.FightGuy.ToString());
+                // Scripted serves bank like play does; keep them out of the player's real records.
+                ArcadeRecordsStore.VerificationDirectory = Path.Combine(Application.temporaryCachePath, "SlopArenaStageViewRecords");
                 EditorSceneManager.OpenScene(SlopballScenePath, OpenSceneMode.Single);
                 return new { success = true, stage, scene = SlopballScenePath, spawns = arena.Value.SpawnPoints.Length, lighting = "stage" };
             }
@@ -217,6 +220,7 @@ namespace SlopArena.EditorTools
                 MatchConfig.PlayerClass = saved.playerClass; MatchConfig.PlayerPackageId = saved.packageId; MatchConfig.ArenaName = saved.arenaName;
                 if (string.IsNullOrEmpty(saved.fighterSession)) SessionState.EraseString(ArcadeBallMatch.FighterSessionKey);
                 else SessionState.SetString(ArcadeBallMatch.FighterSessionKey, saved.fighterSession);
+                ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             }
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             Selection.objects = saved.selection.Select(x => GlobalObjectId.TryParse(x, out var id) ? GlobalObjectId.GlobalObjectIdentifierToObjectSlow(id) : null).Where(x => x != null).ToArray();

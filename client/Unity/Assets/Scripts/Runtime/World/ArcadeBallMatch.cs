@@ -56,6 +56,7 @@ namespace SlopArena.Client.World
                 enabled = false;
                 return;
             }
+            arena = PrepareArena(arena);
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
             {
                 Debug.LogError("[Arcade] Local content catalog failed: " + failure);
@@ -117,6 +118,17 @@ namespace SlopArena.Client.World
         protected virtual void OnBallMatchReady(MatchContentEntry entry, ArenaDefinition arena) { }
         protected virtual void OnChallengeTick() { }
         protected virtual void OnAttemptStopped() { }
+        /// <summary>The court a fresh attempt simulates, from the baked one (a local profile trial, say).</summary>
+        protected virtual ArenaDefinition PrepareArena(ArenaDefinition arena) => arena;
+        /// <summary>True when the subclass draws the ball and its ground cue; the base then keeps only a position anchor.</summary>
+        protected virtual bool CustomBallPresentation => false;
+        /// <summary>Follows the Shared ball each tick; aim selection and lock-on read it.</summary>
+        protected Transform BallAnchor => _ballView;
+        /// <summary>
+        /// True while OnChallengeTick follows a simulation tick, so its LastTick* results are new. An
+        /// ended attempt is presented again without ticking (and countdown ticks keep SimulationTick).
+        /// </summary>
+        protected bool SimulationAdvanced { get; private set; }
 
         private void BeginCameraRendering(ScriptableRenderContext context, UnityEngine.Camera camera)
         {
@@ -173,7 +185,7 @@ namespace SlopArena.Client.World
         {
             if (!Ready || IsPaused || _restarting) return;
             if (_bridge.InternalSim.Slopball is SlopballState ended && ended.Ended)
-            { OnChallengeTick(); ProbeTickCompleted?.Invoke(_tick); return; }
+            { SimulationAdvanced = false; OnChallengeTick(); ProbeTickCompleted?.Invoke(_tick); return; }
             byte slot = _inputController.ConsumePendingSlotPress();
             var owner = _bridge.GetState(PlayerEntityId);
             var aim = _aimHandler != null ? _aimHandler.Evaluate(owner, slot, _playerDef, _inputController) : AimContext.None;
@@ -209,12 +221,22 @@ namespace SlopArena.Client.World
                 presented.Radius, (ushort)presented.DamagePercent);
             if (owner.LockOn && selected) _cameraMount?.SetLockFocus(_playerRenderer.transform, _ballView.position);
             else _cameraMount?.ClearLockFocus(_playerRenderer.transform);
+            SimulationAdvanced = true;
             OnChallengeTick();
+            SimulationAdvanced = false;
             ProbeTickCompleted?.Invoke(_tick);
         }
 
         private void CreateBallView()
         {
+            if (CustomBallPresentation)
+            {
+                var anchor = new GameObject("Arcade Ball Anchor");
+                anchor.layer = LayerMask.NameToLayer("Ignore Raycast");
+                anchor.transform.SetParent(transform, false);
+                _ballView = anchor.transform;
+                return;
+            }
             var view = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             view.name = "Arcade Ball Presentation";
             view.layer = LayerMask.NameToLayer("Ignore Raycast");

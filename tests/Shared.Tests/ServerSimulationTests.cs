@@ -743,7 +743,8 @@ public class ServerSimulationTests
         Assert.Equal(ActionState.AirDodgeMovement, movement.State);
         Assert.Equal((byte)0, movement.AirDodgesLeft);
         Assert.Equal(DefenseConfig.AirDodgeInvulnerabilityTicks, movement.InvincibilityTicks);
-        TestHelpers.AssertNear(def.Movement.AirDodgeSpeed, movement.VX);
+        float speed = def.Movement.AirDodgeSpeed * DefenseConfig.AirDodgeLaunchScale;
+        TestHelpers.AssertNear(speed, movement.VX);
         TestHelpers.AssertNear(0f, movement.VZ);
         Assert.Equal((ushort)DefenseConfig.AirDodgeMovementTicks, movement.StateTicks);
 
@@ -751,12 +752,13 @@ public class ServerSimulationTests
         for (int i = 1; i < DefenseConfig.AirDodgeMovementTicks; i++)
         {
             sim.Tick(heldShield);
+            speed *= DefenseConfig.AirDodgeSpeedRetention;
             var phase = sim.GetState(1);
             Assert.Equal(ActionState.AirDodgeMovement, phase.State);
             Assert.Equal((ushort)(DefenseConfig.AirDodgeMovementTicks - i), phase.StateTicks);
             Assert.Equal(i < DefenseConfig.AirDodgeInvulnerabilityTicks,
                 phase.InvincibilityTicks > 0);
-            TestHelpers.AssertNear(def.Movement.AirDodgeSpeed, phase.VX);
+            TestHelpers.AssertNear(speed, phase.VX);
             TestHelpers.AssertNear(0f, phase.VZ);
             TestHelpers.AssertNear(MathF.PI * 0.5f, phase.FacingYaw);
         }
@@ -764,9 +766,47 @@ public class ServerSimulationTests
         var recovery = sim.GetState(1);
         Assert.Equal(ActionState.AirDodgeRecovery, recovery.State);
         Assert.Equal(DefenseConfig.AirDodgeRecoveryTicks, recovery.AirDodgeRecoveryTicks);
-        Assert.Equal(0f, recovery.VX);
-        Assert.Equal(0f, recovery.VZ);
+        // Recovery glides on the burst's exit speed; the held stick does not steer it.
+        TestHelpers.AssertNear(speed - def.Movement.AirFriction * Simulation.TickDt, recovery.VX);
+        TestHelpers.AssertNear(0f, recovery.VZ);
         Assert.Equal((byte)0, recovery.AirDodgesLeft);
+    }
+
+    [Fact]
+    public void AirDodgeFollowsTheStickWithoutTurningTheFighter()
+    {
+        var def = MakeTestDef();
+        var sim = new ServerSimulation(TestHelpers.TestArena());
+        var state = GroundedState(1, def);
+        state.PX = state.PZ = 50f;
+        state.PY += 5f;
+        state.IsGrounded = false;
+        state.VZ = def.Movement.AirSpeedMax;
+        sim.RegisterEntity(1, def, state);
+
+        // Facing +Z while drifting forward, the stick pushes back and to the side.
+        sim.Tick(new() { [1] = new() { ShieldPressed = true, ShieldHeld = true, MoveX = 1f, MoveY = -1f } });
+        var dodge = sim.GetState(1);
+        float diagonal = MathF.Sqrt(0.5f);
+        float speed = def.Movement.AirDodgeSpeed * DefenseConfig.AirDodgeLaunchScale;
+        Assert.Equal(ActionState.AirDodgeMovement, dodge.State);
+        TestHelpers.AssertNear(diagonal, dodge.DashDirX);
+        TestHelpers.AssertNear(-diagonal, dodge.DashDirZ);
+        TestHelpers.AssertNear(speed * diagonal, dodge.VX);
+        TestHelpers.AssertNear(-speed * diagonal, dodge.VZ);
+
+        // Later stick input neither steers the dodge nor turns the fighter.
+        int commitment = DefenseConfig.AirDodgeMovementTicks + DefenseConfig.AirDodgeRecoveryTicks;
+        for (int tick = 1; tick < commitment; tick++)
+            sim.Tick(new() { [1] = new() { MoveY = 1f } });
+        var end = sim.GetState(1);
+        Assert.Equal(ActionState.AirDodgeRecovery, end.State);
+        Assert.Equal(0f, end.FacingYaw);
+        TestHelpers.AssertNear(end.PX - state.PX, state.PZ - end.PZ, 0.0001f);
+        Assert.True(end.PX - state.PX > 2f);
+        Assert.True(end.VX > 0f && end.VZ < 0f);
+        sim.Tick(new() { [1] = new() { MoveY = 1f } });
+        Assert.Equal(ActionState.Idle, sim.GetState(1).State);
     }
 
     [Fact]
@@ -791,7 +831,8 @@ public class ServerSimulationTests
         Assert.False(start.IsFastFalling);
         Assert.False(start.SlideAttackCarryActive);
         Assert.True(start.VY < state.VY);
-        Assert.Equal(11f, start.VZ);
+        Assert.Equal(def.Movement.AirDodgeSpeed * DefenseConfig.AirDodgeLaunchScale, start.VZ);
+        float previousVZ = start.VZ;
         for (int tick = 1; tick < DefenseConfig.AirDodgeMovementTicks
             + DefenseConfig.AirDodgeRecoveryTicks; tick++)
         {
@@ -814,9 +855,11 @@ public class ServerSimulationTests
                 ? ActionState.AirDodgeMovement : ActionState.AirDodgeRecovery, current.State);
             if (tick >= DefenseConfig.AirDodgeMovementTicks)
             {
+                // The glide ignores the held stick and only loses air friction.
                 Assert.Equal(0f, current.VX);
-                Assert.Equal(0f, current.VZ);
+                TestHelpers.AssertNear(previousVZ - def.Movement.AirFriction * Simulation.TickDt, current.VZ);
             }
+            previousVZ = current.VZ;
         }
         sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ShieldHeld = true } });
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
@@ -843,33 +886,32 @@ public class ServerSimulationTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, 20f, 6.666667f, 11f, 1.833333f)]
-    [InlineData(CharacterClass.Manki, 20f, 6f, 11f, 1.833333f)]
-    [InlineData(CharacterClass.Wibou, 22f, 5.866667f, 12.1f, 2.016667f)]
-    [InlineData(CharacterClass.Bonk, 20f, 6.666667f, 11f, 1.833333f)]
-    public void CookedAirDodgeIsSlowerAndShorterThanOldAirDash(
-        CharacterClass character, float oldPeakSpeed, float oldTravel,
-        float newPeakSpeed, float newTravel)
+    [InlineData(CharacterClass.FightGuy, 6.666667f, 11f, 3.025755f)]
+    [InlineData(CharacterClass.Manki, 6f, 11f, 3.025755f)]
+    [InlineData(CharacterClass.Wibou, 5.866667f, 12.1f, 3.328333f)]
+    [InlineData(CharacterClass.Bonk, 6.666667f, 11f, 3.025755f)]
+    public void CookedAirDodgeBurstIsShorterThanOldAirDash(
+        CharacterClass character, float oldTravel, float dodgeSpeed, float burstTravel)
     {
         var def = BuiltInContentResolver.Resolve(character).Definition;
-        Assert.Equal(oldPeakSpeed, def.Movement.DashSpeed);
-        Assert.Equal(newPeakSpeed, def.Movement.AirDodgeSpeed);
+        Assert.Equal(dodgeSpeed, def.Movement.AirDodgeSpeed);
         var state = GroundedState(1, def);
         state.IsGrounded = false;
         state.PY += 30f;
         var sim = new ServerSimulation(TestHelpers.TestArena());
         sim.RegisterEntity(1, def, state);
         sim.Tick(new() { [1] = new() { ShieldPressed = true } });
-        TestHelpers.AssertNear(newPeakSpeed, sim.GetState(1).VZ);
+        TestHelpers.AssertNear(dodgeSpeed * DefenseConfig.AirDodgeLaunchScale, sim.GetState(1).VZ);
         for (int tick = 1; tick < DefenseConfig.AirDodgeMovementTicks; tick++)
             sim.Tick(new() { [1] = default });
-        var atTen = sim.GetState(1);
-        TestHelpers.AssertNear(newTravel, atTen.PZ, 0.001f);
-        Assert.True(newPeakSpeed < oldPeakSpeed);
-        Assert.True(atTen.PZ < oldTravel);
+        var burstEnd = sim.GetState(1);
+        Assert.Equal(ActionState.AirDodgeMovement, burstEnd.State);
+        TestHelpers.AssertNear(burstTravel, burstEnd.PZ, 0.001f);
+        Assert.True(burstEnd.PZ < oldTravel);
         sim.Tick(new() { [1] = default });
-        Assert.Equal(ActionState.AirDodgeRecovery, sim.GetState(1).State);
-        TestHelpers.AssertNear(newTravel, sim.GetState(1).PZ, 0.001f);
+        var glide = sim.GetState(1);
+        Assert.Equal(ActionState.AirDodgeRecovery, glide.State);
+        Assert.True(glide.PZ > burstEnd.PZ);
     }
 
     [Fact]
@@ -938,7 +980,7 @@ public class ServerSimulationTests
 
 
     [Fact]
-    public void LandingDuringMovementPreservesFullRemainingCommitment()
+    public void LandingDuringMovementCapsRemainingCommitment()
     {
         var def = MakeTestDef();
         var sim = new ServerSimulation(TestHelpers.TestArena());
@@ -964,8 +1006,11 @@ public class ServerSimulationTests
         Assert.True(landed.IsGrounded);
         Assert.InRange(elapsed, 1, DefenseConfig.AirDodgeMovementTicks - 1);
         Assert.Equal(ActionState.AirDodgeRecovery, landed.State);
-        Assert.Equal((ushort)(DefenseConfig.AirDodgeMovementTicks - elapsed
-            + DefenseConfig.AirDodgeRecoveryTicks), landed.AirDodgeRecoveryTicks);
+        Assert.True(DefenseConfig.AirDodgeMovementTicks - elapsed + DefenseConfig.AirDodgeRecoveryTicks
+            > DefenseConfig.AirDodgeLandingTicks);
+        Assert.Equal(DefenseConfig.AirDodgeLandingTicks, landed.AirDodgeRecoveryTicks);
+        Assert.Equal(0f, landed.VX);
+        Assert.Equal(0f, landed.VZ);
         Assert.Equal((byte)1, landed.AirDodgesLeft);
         Assert.Equal((ushort)0, landed.InvincibilityTicks);
         int remaining = landed.AirDodgeRecoveryTicks;
@@ -1001,8 +1046,33 @@ public class ServerSimulationTests
         Assert.Equal(ActionState.AirDodgeRecovery, landed.State);
         Assert.NotEqual(ActionState.Shielding, landed.State);
         Assert.Equal((byte)1, landed.AirDodgesLeft);
-        Assert.Equal((ushort)(DefenseConfig.AirDodgeMovementTicks + DefenseConfig.AirDodgeRecoveryTicks),
-            landed.AirDodgeRecoveryTicks);
+        Assert.Equal(DefenseConfig.AirDodgeLandingTicks, landed.AirDodgeRecoveryTicks);
+    }
+
+    [Fact]
+    public void LandingLateInRecoveryKeepsTheShorterRemainder()
+    {
+        var def = MakeTestDef();
+        var sim = new ServerSimulation(TestHelpers.TestArena());
+        var state = GroundedState(1, def);
+        state.PY += 0.005f;
+        state.IsGrounded = false;
+        state.VY = -1f;
+        state.VZ = 4f;
+        state.State = ActionState.AirDodgeRecovery;
+        state.StateTicks = state.AirDodgeRecoveryTicks = 4;
+        state.AirDodgesLeft = 0;
+        sim.RegisterEntity(1, def, state);
+
+        sim.Tick(new() { [1] = default });
+        var landed = sim.GetState(1);
+        Assert.True(landed.IsGrounded);
+        Assert.Equal(ActionState.AirDodgeRecovery, landed.State);
+        Assert.Equal((ushort)3, landed.AirDodgeRecoveryTicks);
+        Assert.Equal(0f, landed.VZ);
+        for (int tick = 0; tick < 3; tick++)
+            sim.Tick(new() { [1] = default });
+        Assert.Equal(ActionState.Idle, sim.GetState(1).State);
     }
 
     [Fact]

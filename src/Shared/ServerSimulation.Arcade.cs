@@ -15,6 +15,8 @@ namespace SlopArena.Shared
         public CharacterCourseState? Course => _course?.State;
         public IReadOnlyList<CharacterCourseEvent> LastTickCourseEvents => _course?.Events ?? Array.Empty<CharacterCourseEvent>();
         public bool IsCourseTargetBroken(int index) => _course?.IsBroken(index) ?? false;
+        /// <summary>Hits a course target still needs (0 once broken); a bonus target starts above 1.</summary>
+        public int CourseTargetHitsLeft(int index) => _course?.HitsLeft(index) ?? 0;
         public byte CourseTargetInputAlias(int index)
             => _course != null && index >= 0 && index < _arena.Arcade!.Course!.Targets.Count
                 ? (byte)(CharacterCourseSimulation.FirstInputAlias + index) : (byte)0;
@@ -22,6 +24,8 @@ namespace SlopArena.Shared
             => CourseTargetInputAlias(index) != 0 ? CharacterCourseSimulation.FirstEntityId + (ulong)index : 0;
         public uint SimulationTick => _tick;
         public IReadOnlyList<SlopballEvent> LastTickSlopballEvents => _slopball?.Events ?? Array.Empty<SlopballEvent>();
+        /// <summary>The Arcade ball's bounces during the last tick (walls, net, ceiling, floor and fighter bodies), for presentation.</summary>
+        public IReadOnlyList<ArcadeBallContact> LastTickArcadeBallContacts => _arcadeBall?.Contacts ?? Array.Empty<ArcadeBallContact>();
 
         public void StopSlopball() => _slopball?.Stop(_arcadeBall!);
         public void StopCourse() => _course?.Stop();
@@ -151,6 +155,7 @@ namespace SlopArena.Shared
             { dirX = -dirX; dirZ = -dirZ; }
             ushort freeze = ComputeHitstopTicks(damage, spec);
             float launch = ball.Hit(hit, damage, force, dirX, dirZ, freeze);
+            if (_slopball != null && damage > 0f) _slopball.AssistReturn(ball, launch);
             if (ownerExists)
             {
                 if (hit.FreezesOwner) owner.HitstopTicks = freeze;
@@ -202,11 +207,12 @@ namespace SlopArena.Shared
             if (_activeAbilities.TryGetValue(hit.OwnerEntityId, out var ability))
                 ability.OnHitObject(ref owner, definition, ref damage, ref force);
             if (damage <= 0f) { _states[hit.OwnerEntityId] = owner; return; }
-            if (!_course.Break(index)) return;
+            if (!_course.Hit(index)) return;
             var spec = hit.AttackSlot > 0 ? definition.GetSlotAbility(hit.AttackSlot - 1, hit.Airborne) : null;
             ushort freeze = ComputeHitstopTicks(damage, spec);
             if (hit.FreezesOwner) owner.HitstopTicks = freeze;
-            if (owner.TargetEntityId == hit.TargetEntityId) { owner.TargetEntityId = 0; owner.LockOn = false; }
+            // A bonus target that still needs hits keeps the lock; a broken one releases it.
+            if (_course.IsBroken(index) && owner.TargetEntityId == hit.TargetEntityId) { owner.TargetEntityId = 0; owner.LockOn = false; }
             _states[hit.OwnerEntityId] = owner;
             var accepted = hit;
             accepted.MatchTick = _tick; accepted.Damage = damage; accepted.HitstopTicks = freeze;

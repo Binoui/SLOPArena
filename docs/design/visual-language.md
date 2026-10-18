@@ -44,8 +44,10 @@ fallback styles until an asset-distribution plan is agreed.
   control; TRAINING / SOLO / ONLINE retain their order. The authored wallpaper
   continues behind the transparent bar; navigation has local paper backing
   and a visible ink border.
-  Active mode uses an ink-on-yellow field and ink underline; exposed identity
-  and utility labels use readable paper-surface roles rather than pale text.
+  Active mode uses an ink-on-yellow field and ink underline; hover and focus
+  turn a tab ink with a yellow frame, so they never read as a second active
+  mode (the same focus rule as every frontend control, see `DESIGN.md`). Exposed
+  identity and utility labels use readable paper-surface roles rather than pale text.
   Existing display-name/modal/session guards and Back/Leave routes remain.
   Settings, identity, and Menu stay on the right; semantic connection colors
   change only for contrast, not presence logic.
@@ -104,7 +106,9 @@ fallback styles until an asset-distribution plan is agreed.
   stage-select summary, and results.
   Fighter selection opens the shared Stage Select page. The Training arena is
   first and preselected when admitted; otherwise the first available stage is
-  selected. Enter Training loads the chosen stage with the existing local tools.
+  selected. Solo opens on its last Solo stage, or the first card, so its start
+  action is visible at once. Enter Training loads the chosen stage with the
+  existing local tools.
   Stage Select places participant cards and the stage action side by side
   in the bottom middle/right, leaving the default bottom-left chat area clear.
   Compact density drops secondary header copy; the admitted stage list remains
@@ -115,8 +119,9 @@ fallback styles until an asset-distribution plan is agreed.
   at the second; added Training NPCs use subsequent authored spawns, cycling
   those NPC spawns when needed. NPC respawns retain the selected marker's
   position, height, and facing.
-- **Stages:** cards show rendered previews of the actual project prefabs. Fighter
-  portraits use crops of the supplied splash illustrations, not prefab renders.
+- **Stages:** cards show rendered previews of the actual project prefabs, four per
+  row at roughly 16:9. Fighter portraits use crops of the supplied splash
+  illustrations, not prefab renders.
 - **Recovery:** focus is visible; controller Back closes address entry before leaving the
   browser. Escape, gamepad Start, or the top-right gear opens the frontend menu on any
   pre-match page, including over address entry and chat. Resume or a second Escape/Start

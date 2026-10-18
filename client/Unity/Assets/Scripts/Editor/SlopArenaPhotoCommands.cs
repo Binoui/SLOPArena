@@ -353,7 +353,8 @@ namespace SlopArena.EditorTools
             {
                 bool planned = await completion.Task;
                 return new { success = planned, spot = spot.HasValue ? new[] { spot.Value.x, spot.Value.y } : null, chosen, hits, goals,
-                    returns = match.Simulation?.Slopball is SlopballState state ? state.Returns : 0 };
+                    returns = match.Simulation?.Slopball is SlopballState state ? state.Returns : 0,
+                    presentation = (match as SlopballMatch)?.PresentationDiagnostics };
             }
             finally
             {

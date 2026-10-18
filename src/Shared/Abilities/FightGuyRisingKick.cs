@@ -72,5 +72,19 @@ namespace SlopArena.Shared.Abilities
                 s.AirTimeTicks = def.Movement.FloatWindowTicks;
             }
         }
+
+        internal override void WriteSnapshot(SnapshotWriter w)
+        {
+            base.WriteSnapshot(w);
+            w.WriteUShort(_ticks);
+            w.WriteBool(_airborne);
+        }
+
+        internal override void ReadSnapshot(SnapshotReader r)
+        {
+            base.ReadSnapshot(r);
+            _ticks = r.ReadUShort();
+            _airborne = r.ReadBool();
+        }
     }
 }

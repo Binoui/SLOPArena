@@ -22,16 +22,72 @@ approved it on the actual character. The old clip was an overhead twirl that kep
 hitbox landed.
 
 - He drops into a wide, low stance and turns three full circles to his left with the blade
-  flat, 1 m off the floor. Spin hits 1 and 3 and the finisher sweep across his right side
-  into the front; spin hit 2 crosses his left side toward his back. He stops at tick 66 and
-  has the sword back on his shoulder by tick 94. In the air his legs keep the same steps.
-- The chip hitbox (ticks 2–75) followed the blade 0.2–0.5 m lower, an offset for the old
-  twirl. Its offsets are now zero. Damage, timing and the other hitboxes are unchanged.
+  flat, 1 m off the floor, from tick 8 to tick 66. The blade passes behind him at about ticks
+  12, 29, 43 and 58 and in front at 21, 36 and 50. He has the sword back on his shoulder by
+  tick 94. In the air his legs keep the same steps.
 - The whirl smears (`BonkBladeStormWind`, `BonkAirStormWind`) orbit 0.2 m above his hips,
   at the blade, instead of 0.9 m.
 
-Bearings (of 24) at which each hit touches a standing target, from
-`HitReliabilityReport --char bonk --slots F`, before → after:
+### Storm rework
+
+With the new clip the owner still found the move awkward: the hitboxes and knockback were
+"probably not best", and Bonk could move in the end lag. The owner chose a storm that holds
+its victims (option A), first planted, then, after trying it ("much better feel!"), steerable
+at a slower walk. The clip and its clock did not change.
+
+- **Slow steering.** The spin's mobile aim state (ticks 0–65) walks him at 35% of his speed
+  (`aimMovementSpeedScale` 0.35: 3.5 m/s on the ground, 2.1 m/s in the air), and the walking
+  stops when the spin ends at tick 66. Before, mobile aim gave him his full 10 m/s, and the move
+  then kept that speed through the recovery: he slid 3.6 m after letting go of the stick at
+  tick 70. The speed scale and the stop are engine options (runtime API 1.7.0; see
+  [Ability architecture](../systems/ability-architecture.md)).
+- **One window per turn.** Ticks 8–28 and 29–42 are hold hits, 43–58 the finisher. The turns
+  change behind him, so a target in front of him or beside him meets each window once. They
+  replace the 74-tick chip and the three 4-tick spin hits, which each covered part of a turn.
+- **Hold, then launch.** The hold hits (2.5 damage) pull the target toward him (angle 0, base
+  20, no growth) with 24 ticks of fixed hitstun, the pattern of FightGuy's Fist of Fury.
+  Before, every small hit pushed the target away and out of the next window. The finisher (12
+  damage, base 10, growth 36) launches at 35° instead of 25°. The string totals 17 damage (22
+  before, which almost never all landed).
+
+Measured on the cooked package:
+
+- **Hit reliability report:** each of the three hits touches all 24 bearings around him at 1
+  and 1.5 m against FightGuy and Manki (before: spin hits 7–11, finisher 13–15). Reach is
+  0.30–3.50 m against FightGuy.
+- **Real simulation**, one press against each of the four fighters at 1–3 m from 8 directions,
+  at 0% and 60%: the full string lands everywhere, except Manki 3 m away behind him, who takes
+  the finisher only. Before the rework a press averaged 10.4–13.1 damage, and behind him or on
+  his left only 2.5–5 landed.
+- **Walking:** holding the stick toward a fighter 1–4 m ahead, the full string lands; from 5 m
+  he catches them by the second turn. Walking away drops a victim 2 m away after the first
+  hit; at 1 m the pull keeps them in.
+- **The review setup**, FightGuy 1.3 m ahead at 60%: hits at move ticks 19, 33 and 47. The
+  first pulls him from 1.3 m to 0.7 m, against Bonk. The finisher sends him about 9.5 m out and
+  2.3 m up (0%: 6 m and 1.25 m; 100%: 11.5 m and 3.2 m). He recovers 5–30 ticks before Bonk,
+  far away.
+- **Air F** started 1.2 m up: the hold hits pass over standing FightGuy and Wibou and only the
+  finisher lands; against Bonk the whole string lands.
+- **Wind-up:** nothing hits during the overhead wind-up (ticks 2–7) any more. The old chip
+  reached targets up to 2.0 m above his feet there; air F now reaches 1.3 m above them.
+
+Native Ability Lab scenarios, a Bonk dummy 1.5 m ahead:
+
+| Move | Idle opponent | Shield | 8 m away |
+| --- | --- | --- | --- |
+| Blade Storm (ground) | frames 19, 37 and 56 (2.5 + 2.5 + 12) | all three blocked (frames 17, 39, 58) | miss |
+| Blade Storm (air) | finisher at frame 48 (the Lab's air start is a capsule height up) | blocked at frame 47 | miss |
+
+Bonk ends every run in Idle. In game (Splash Deck, FightGuy 1.3 m ahead at 60%, planted
+version) the string lands at frames 19, 39 and 59, and the finisher's BONK! sends him off. The
+Tutorial's Bonk combo hint changed with it: Blade Storm can no longer chase the launched dummy,
+so the hint is now Reverse Rising Slash → jump and Reverse Air Slash (see
+[Tutorial](../design/tutorial.md#findings-that-shape-the-lessons)).
+
+### Before the rework
+
+Bearings (of 24) at which each hit touched a standing target with the clip's original
+windows, from `HitReliabilityReport --char bonk --slots F`, old twirl → new spin:
 
 | Hit | FightGuy 1 m | FightGuy 1.5 m | Manki 1 m | Manki 1.5 m |
 | --- | ---: | ---: | ---: | ---: |
@@ -41,21 +97,11 @@ Bearings (of 24) at which each hit touches a standing target, from
 | Spin hit, tick 32 | 0 → 11 | 0 → 9 | 0 → 9 | 0 → 8 |
 | Finisher, tick 44 | 0 → 15 | 0 → 13 | 0 → 15 | 0 → 13 |
 
-In the real simulation, one press against a standing fighter 1–2.5 m away now connects from
-all 8 directions tested, for each of the four fighters (before: 0–8 of 8). Straight ahead and
-on his right, the finisher lands with one to three 2.5-damage hits (14.5–19.5 damage). Behind
-him and on his left, only one or two 2.5-damage hits land (2.5–5): the finisher sweeps his
-right side and front only, and each small hit pushes the target away. Air F reaches 0.4 m
-below his feet against Manki (0.3 m before), which is still flagged.
-
-Native Ability Lab scenarios on the cooked package, opponent 1.5 m ahead:
-
-| Move | Idle opponent | Shield | 8 m away |
-| --- | --- | --- | --- |
-| Blade Storm (ground) | spin hit at frame 18, finisher at frame 54 (14.5 damage) | blocked at frames 16, 39 and 58 | miss |
-| Blade Storm (air) | finisher at frame 48, chip at 49 (14.5 damage) | blocked at frames 47 and 48 | miss |
-
-Bonk ends every run in Idle. See the [Blade Storm record](../research/2026-10-18-bonk-blade-storm-spin.md).
+With those windows the chip's offsets (−0.2 and −0.5 m, made for the old twirl) were zeroed,
+and the [hitstop fix](../systems/combat-systems.md#damage-and-hit-response) let spin hit 1
+land after the chip's freeze. The windows still closed 1–2 ticks before the blade crossed his
+front, and each small hit pushed the target out of the next one. See the
+[Blade Storm record](../research/2026-10-18-bonk-blade-storm-spin.md).
 
 ## Whirlwind and Meteor Cleave aerials — 2026-10-17
 
@@ -358,10 +404,13 @@ values live in Bonk-specific C#. Aim yaw and distance are cached while held,
 so release input cannot replace the selected direction. Ability Lab's Moves
 inspector edits these parameters through the package draft and Undo.
 
-`ground.F` is `Blade Storm`: a 100-tick timeline with hitboxes at ticks 2, 16, 24,
-32, and 44, and a 900-tick cooldown. Its mobile aim ends at tick 75, locking
-movement for the final 25 ticks. `air.F` has the same gameplay with airborne wind
-and no ground-dust emitter.
+`ground.F` is `Blade Storm`: a 100-tick timeline with a 900-tick cooldown and one
+hit window per turn of the spin. Ticks 8–28 and 29–42 deal 2.5 damage and hold the
+target (a pull toward him and 24 ticks of fixed hitstun); the 12-damage finisher on
+ticks 43–58 launches at 35°. A mobile aim state from tick 0 to 65 lets him walk at 35%
+of his speed (`aimMovementSpeedScale` 0.35); the walking stops with it, so he does not
+slide in the recovery. `air.F` has the same gameplay with airborne wind and no
+ground-dust emitter.
 
 `air.A` and `air.R` preserve their grounded timelines and add a `gravityWindow`
 at tick 0: 0.5× the active airborne gravity for 30 ticks. FastFall overrides

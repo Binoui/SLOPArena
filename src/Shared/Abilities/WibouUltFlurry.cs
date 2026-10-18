@@ -62,4 +62,16 @@ public sealed class WibouUltFlurry : ServerAbility
         s.VX = 0f;
         s.VZ = 0f;
     }
+
+    internal override void WriteSnapshot(SnapshotWriter w)
+    {
+        base.WriteSnapshot(w);
+        w.WriteUShort(_ticks);
+    }
+
+    internal override void ReadSnapshot(SnapshotReader r)
+    {
+        base.ReadSnapshot(r);
+        _ticks = r.ReadUShort();
+    }
 }

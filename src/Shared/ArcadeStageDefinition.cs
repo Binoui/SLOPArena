@@ -93,13 +93,16 @@ namespace SlopArena.Shared
     /// <summary>Bounded typed section inside arena v6; not a separate runtime artifact.</summary>
     internal static class ArcadeStageBinaryFormat
     {
-        private const ushort SectionVersion = 5;
+        // 5: Character Course. 6: a course whose targets carry hit counts (bonus targets); a
+        // course of single-hit targets keeps writing v5, byte for byte.
+        private const ushort SectionVersion = 6;
+        private const ushort CourseVersion = 5;
 
         public static byte[] Serialize(ArcadeStageDefinition stage)
         {
             using var stream = new MemoryStream();
             using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-            ushort version = stage.Course != null ? SectionVersion
+            ushort version = stage.Course != null ? (stage.Course.HasMultiHitTargets ? SectionVersion : CourseVersion)
                 : stage.Slopball is { } varied && (varied.SpawnHalfWidth > 0f || varied.SpawnHalfDepth > 0f)
                 ? (ushort)4 : stage.Ball!.LinearDrag > 0f ? (ushort)3 : stage.Slopball == null ? (ushort)1 : (ushort)2;
             writer.Write(version);
@@ -110,7 +113,10 @@ namespace SlopArena.Shared
             {
                 writer.Write((byte)course.Targets.Count);
                 foreach (var target in course.Targets)
-                { WriteString(writer, target.Id); WritePoint(writer, target.Position); writer.Write(target.Radius); }
+                {
+                    WriteString(writer, target.Id); WritePoint(writer, target.Position); writer.Write(target.Radius);
+                    if (version >= SectionVersion) writer.Write(target.Hits);
+                }
                 writer.Write((byte)course.Checkpoints.Count);
                 foreach (var checkpoint in course.Checkpoints)
                 {
@@ -150,12 +156,13 @@ namespace SlopArena.Shared
                 if (count == 0 || count > 16) return null;
                 var packages = new string[count];
                 for (int i = 0; i < count; i++) packages[i] = ReadString(reader);
-                if (version == 5)
+                if (version >= CourseVersion)
                 {
                     int targetCount = reader.ReadByte();
                     if (targetCount == 0 || targetCount > CharacterCourseDefinition.MaxTargets) return null;
                     var targets = new CourseTargetDefinition[targetCount];
-                    for (int i = 0; i < targets.Length; i++) targets[i] = new(ReadString(reader), ReadPoint(reader), reader.ReadSingle());
+                    for (int i = 0; i < targets.Length; i++) targets[i] = new(ReadString(reader), ReadPoint(reader), reader.ReadSingle(),
+                        version >= SectionVersion ? reader.ReadByte() : (byte)1);
                     int checkpointCount = reader.ReadByte();
                     if (checkpointCount > 32) return null;
                     var checkpoints = new CourseCheckpointDefinition[checkpointCount];

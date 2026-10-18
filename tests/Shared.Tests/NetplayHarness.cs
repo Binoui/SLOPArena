@@ -114,6 +114,11 @@ internal sealed class NetplayHarness
     public CharacterState ServerState(ulong id) => _server.GetState(id);
     public CharacterState ClientState(ulong id) => _client.GetState(id);
 
+    /// <summary>A hit only the authority decides: spawn a hitbox in the server simulation.</summary>
+    public void SpawnServerHitbox(Hitbox hitbox) => _server.Resolver.Spawn(hitbox);
+
+    public LocalTrackStats TakeSelfStats() => _client.TakeSelfStats();
+
     /// <summary>True when the client self state equals the server's on every wire
     /// field after both timelines have settled on the same authoritative inputs. On
     /// divergence, outputs the compared packets so AssertSelfConverged can dump both.</summary>

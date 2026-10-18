@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: FightNightPierGroundSurface
+  m_Shader: {fileID: 4800000, guid: 95447156a32520b94b7d5d037e74a99b, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 5f6860ec50ba7db81b0c1695eb015177, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMap:
+        m_Texture: {fileID: 2800000, guid: 6c88c94e2726a98d8bc6b602b7d2cd3a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Cull: 2
+    - _DetailScale: 0.7
+    - _DetailStrength: 0.28
+    - _Emission: 0
+    - _Gloss: 24
+    - _ReceiveShadowsOff: 0
+    - _Specular: 0
+    - _Wind: 0
+    - _WindFrequency: 1
+    - _Wrap: 0.3
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ShadowTint: {r: 0.58, g: 0.56, b: 0.78, a: 1}
+    - _WindDirection: {r: 1, g: 0, b: 0.3, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

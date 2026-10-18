@@ -194,16 +194,16 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>
-        /// Juggle openers that a Shared probe confirmed on 2026-10-17 against the dummy at 30%:
-        /// starter, follow-up and whether to jump in between. Re-check them when a kit changes
-        /// (docs/design/tutorial.md); an unknown fighter gets the generic hint.
+        /// Juggle openers that a Shared probe confirmed against the dummy at 30% (2026-10-17;
+        /// Bonk's on 2026-10-18): starter, follow-up and whether to jump in between. Re-check them
+        /// when a kit changes (docs/design/tutorial.md); an unknown fighter gets the generic hint.
         /// </summary>
         private static readonly Dictionary<CharacterClass, (byte Starter, byte FollowUp, bool Jump)> ComboOpeners = new()
         {
             [CharacterClass.FightGuy] = (AbilitySlots.Slot3, AbilitySlots.Slot3, true),
             [CharacterClass.Manki] = (AbilitySlots.Slot2, AbilitySlots.R, false),
             [CharacterClass.Wibou] = (AbilitySlots.Slot3, AbilitySlots.Slot3, false),
-            [CharacterClass.Bonk] = (AbilitySlots.Slot3, AbilitySlots.F, false),
+            [CharacterClass.Bonk] = (AbilitySlots.Slot3, AbilitySlots.Slot1, true),
         };
 
         private string ComboHint(bool gamepad)
@@ -226,7 +226,7 @@ namespace SlopArena.Client.UI
             TutorialLessonId.Recovery => ("RECOVERY", AimedRecovery
                 ? "There are no ledges to grab. Use your air jump, then hold E, aim at the stage and release."
                 : "There are no ledges to grab. Use your air jump and E to get back."),
-            TutorialLessonId.ShieldAndDodge => ("SHIELD & DODGE", "Shield blocks attacks from every side. In the air, the same button dodges forward."),
+            TutorialLessonId.ShieldAndDodge => ("SHIELD & DODGE", "Shield blocks attacks from every side. In the air, the same button dodges the way you push."),
             TutorialLessonId.GrabAndThrow => ("GRAB & THROW", "Grab from up close, then throw."),
             TutorialLessonId.Combo => ("COMBO", ComboHint(gamepad)),
             TutorialLessonId.Knockout => ("KNOCKOUT", "The higher the damage %, the farther they fly. Knock them off the stage to win."),

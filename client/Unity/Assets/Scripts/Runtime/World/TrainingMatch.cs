@@ -478,9 +478,11 @@ namespace SlopArena.Client.World
 
         private List<HUDManager.HudPlayer> HudExtraPlayers()
         {
+            // CPU cards name the CPU, not its internal entity id (which starts at 100).
             var list = new List<HUDManager.HudPlayer>(_npcs.Count);
-            foreach (var slot in _npcs)
-                list.Add(new HUDManager.HudPlayer(slot.Id, $"P{slot.Id}", slot.Def.Class, isLocal: false));
+            for (int i = 0; i < _npcs.Count; i++)
+                list.Add(new HUDManager.HudPlayer(_npcs[i].Id, i == 0 ? "CPU" : $"CPU {i + 1}",
+                    _npcs[i].Def.Class, isLocal: false));
             return list;
         }
 

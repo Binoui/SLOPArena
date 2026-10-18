@@ -36,6 +36,15 @@ namespace SlopArena.Client.World
         public const string SceneName = "Arcade_FightGuyCourse";
         public static readonly CharacterCourseInfo[] Courses =
         {
+            // A fighter plays the first listed course whose arena is baked and admits it
+            // (ArcadeSelectController), so FightGuy gets the pier when it is baked and Sanctuary otherwise.
+            new("fightguy_pier", "FIGHT NIGHT PIER", "the ring", new[]
+            {
+                "F wrecks the car in one go. R sweeps a row, E pops a stack, A reaches far balloons.",
+                "Jump then R to the old pier through the balloon line, or hop the pilings and punch them.",
+                "Jump then E up the wheel tower through the stack, or climb the gondolas. Then max out the punch machine.",
+                "R sweeps the coaster straight. Ki Shot the prize buoy, F the heavy bag, then into the ring.",
+            }),
             new(ArenaKey, "SANCTUARY COURSE", "the shrine", new[]
             {
                 "Jump then R to cross the broken bridge, or use the pole detour. Any route counts.",

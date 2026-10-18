@@ -150,9 +150,10 @@ public class SweptBoneHitboxTests
         // between them crosses the opponent.
         var (_, hits, tested) = SwingAt(0f);
 
-        Assert.Equal(SwingDuration, tested.Count);
+        var hit = Assert.Single(hits);
+        // Tested on every active tick, and on every tick of the freeze its hit causes (ADR-0012).
+        Assert.Equal(SwingDuration + hit.HitstopTicks, tested.Count);
         Assert.DoesNotContain(tested, x => Touches(x.Box, x.Target));
-        Assert.Single(hits);
     }
 
     [Fact]

@@ -880,36 +880,62 @@
     background-color: rgba(22, 21, 19, 0.72);
 }
 
+/* The same modal card as the frontend MENU (FrontendShell.uss .shell-escape-*):
+   left title, yellow Resume first, paper secondaries, hard print offset. */
 .match-pause-box {
+    width: 360px;
+    max-width: 90%;
+    padding: 24px;
     background-color: #f0eee8;
     border-width: 3px;
-    border-color: #161513;
+    border-right-width: 6px;
     border-bottom-width: 8px;
+    border-color: #161513;
 }
 
 .match-pause-title {
+    margin-bottom: 18px;
     color: #1b1a18;
+    font-size: 36px;
+    -unity-text-align: middle-left;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
 }
 
 .match-pause-action {
+    min-height: 52px;
+    margin: 0 0 10px 0;
+    padding: 0 18px;
     background-color: #f0eee8;
     color: #1b1a18;
-    border-width: 2px;
+    font-size: 18px;
+    border-width: 3px;
+    border-right-width: 5px;
+    border-bottom-width: 6px;
     border-color: #161513;
-    border-bottom-width: 5px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-font-style: normal;
+    -unity-text-align: middle-center;
 }
 
 .match-pause-action--primary { background-color: #ffcc22; }
 
+/* Focus: a paper button turns ink with a yellow frame; the yellow primary
+   keeps its yellow and takes a heavier ink frame. */
 .match-pause-action:hover,
 .match-pause-action:focus {
     background-color: #1b1a18;
     color: #f0eee8;
     border-color: #ffcc22;
+}
+
+.match-pause-action--primary:hover,
+.match-pause-action--primary:focus {
+    background-color: #ffcc22;
+    color: #1b1a18;
+    border-left-width: 4px;
+    border-top-width: 4px;
+    border-color: #161513;
 }
 
 .match-pause-action:active { translate: 0 3px; }

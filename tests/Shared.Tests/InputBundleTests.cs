@@ -86,4 +86,29 @@ public sealed class InputBundleTests
         Assert.Equal(full.TargetEntityId, held.TargetEntityId);
         Assert.Equal(full.LockMode, held.LockMode);
     }
+
+    [Fact]
+    public void MergingAnUnconsumedInputRestoresEveryEdgeTheHeldInputCleared()
+    {
+        // WithoutEdges, WithEdgesFrom and HasPressEdges must name the same edges, or a press
+        // that the GameServer or the client buffers would be lost on its way to the next tick.
+        var full = new InputState
+        {
+            MoveX = 0.7f, Jump = true, JumpHeld = true, DownPressed = true, ShieldPressed = true,
+            ShieldHeld = true, GrabPressed = true, FaceToCamera = true, ToggleLock = true,
+            RetargetPressed = true, ActiveSlot = AbilitySlots.R,
+        };
+        var held = full.WithoutEdges();
+        Assert.False(held.HasPressEdges);
+        Assert.True(full.HasPressEdges);
+
+        Assert.Equal(full, held.WithEdgesFrom(full));
+
+        var current = new InputState { MoveX = -1f, ActiveSlot = AbilitySlots.E };
+        var merged = current.WithEdgesFrom(full);
+        Assert.Equal(-1f, merged.MoveX);
+        Assert.Equal(AbilitySlots.E, merged.ActiveSlot);
+        Assert.True(merged.Jump && merged.ShieldPressed && merged.RetargetPressed);
+        Assert.False(merged.ShieldHeld);
+    }
 }

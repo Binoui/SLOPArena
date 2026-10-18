@@ -1,5 +1,7 @@
 # ADR-0011: Rollback prediction scope — LocalTrack, PredictedTrack, RawTrack
 
+**Being superseded by [ADR-0039](0039-full-world-rollback.md)** (accepted 2026-10-18): full-world rollback anchored on complete server snapshots. This record still describes the shipped client until the protocol 10 cutover.
+
 **Amends:** ADR-0010 (all-entity prediction via input relay) — corrects its rejection rationale for self-only prediction and narrows its "predict all entities" mechanism.
 
 ADR-0010 committed to one rebuild-and-replay code path for every entity, self included, justified by "opponent hit reactions must feel instant too." Auditing that mechanism against the actual wire protocol and ability architecture (grilling session, 2026-08-03) found it unimplementable as specced: `CharacterStatePacket` serializes ~24 of `CharacterState`'s ~40 fields (drops attack-elapsed ticks, knockback velocity, hitstun ticks, DI, dash/warp state), and per-ability instance fields (e.g. `NilusVoidRift._seedSpawned`, `_cachedAimYaw`) plus `SpellResolver`'s live hitbox/projectile list exist only in server process memory — never on the wire, never in `CharacterState` at all. Rebuilding an entity that's mid-attack, mid-hitstun, or has a live projectile/rift in flight from a wire snapshot cannot reproduce that state; re-sim would diverge from tick zero of the replay window, not just at the frontier.

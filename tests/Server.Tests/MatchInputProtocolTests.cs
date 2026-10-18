@@ -45,7 +45,7 @@ public class MatchInputProtocolTests
             InputBundle.Write(bytes, id, 1, new[] { new InputState { Down = true, DownPressed = true } });
             return bytes;
         }
-        ServerEntityPacket AwaitState(UdpClient client, byte[]? repeat = null)
+        WorldFramePacket AwaitState(UdpClient client, byte[]? repeat = null)
         {
             var timer = Stopwatch.StartNew();
             while (timer.ElapsedMilliseconds < 3000)
@@ -55,8 +55,8 @@ public class MatchInputProtocolTests
                 {
                     var remote = new IPEndPoint(IPAddress.Any, 0);
                     var bytes = client.Receive(ref remote);
-                    if (bytes.Length == ServerEntityPacket.NoInputSize || bytes.Length == ServerEntityPacket.MaxSize)
-                        return ServerEntityPacket.Deserialize(bytes);
+                    if (WorldFramePacket.TryDeserialize(bytes, out var frame))
+                        return frame!;
                 }
             }
             throw new TimeoutException("No authoritative state received from local match.");
@@ -78,11 +78,11 @@ public class MatchInputProtocolTests
             var acceptedBootstrap = Control(NetplayControlKind.Bootstrap, 1);
             var state = AwaitState(accepted, acceptedBootstrap);
             var sentinelState = AwaitState(sentinel, sentinelBootstrap);
-            Assert.Equal(MatchState.Waiting, state.State.MatchState);
+            Assert.Equal(MatchState.Waiting, state.MatchState);
             accepted.Send(Control(NetplayControlKind.Ready, 1, state.Tick), NetplayControlPacket.Size, endpoint);
             sentinel.Send(Control(NetplayControlKind.Ready, 2, sentinelState.Tick), NetplayControlPacket.Size, endpoint);
             var countdownTimer = Stopwatch.StartNew();
-            ServerEntityPacket countdown = default;
+            WorldFramePacket? countdown = null;
             bool sawCountdown = false;
             while (countdownTimer.ElapsedMilliseconds < 1500 && !sawCountdown)
             {
@@ -90,10 +90,9 @@ public class MatchInputProtocolTests
                 if (!accepted.Client.Poll(30_000, SelectMode.SelectRead)) continue;
                 var remote = new IPEndPoint(IPAddress.Any, 0);
                 var received = accepted.Receive(ref remote);
-                if ((received.Length == ServerEntityPacket.NoInputSize || received.Length == ServerEntityPacket.MaxSize) &&
-                    ServerEntityPacket.Deserialize(received).State.MatchState == MatchState.Countdown)
+                if (WorldFramePacket.TryDeserialize(received, out var frame) && frame!.MatchState == MatchState.Countdown)
                 {
-                    countdown = ServerEntityPacket.Deserialize(received);
+                    countdown = frame;
                     sawCountdown = true;
                 }
             }
@@ -121,7 +120,7 @@ public class MatchInputProtocolTests
 
             rejected.Send(ping, ping.Length, endpoint);
             Assert.False(rejected.Client.Poll(200_000, SelectMode.SelectRead), "An unadmitted peer received a ping echo.");
-            Assert.Equal(MatchState.Countdown, countdown.State.MatchState);
+            Assert.Equal(MatchState.Countdown, countdown!.MatchState);
         }
         finally
         {
@@ -130,7 +129,7 @@ public class MatchInputProtocolTests
         }
     }
     [Fact]
-    public void UdpOpponentReceivesWibouKunaiAndEmptyRemovalSnapshot()
+    public void UdpOpponentFramesCarryWibouKunaiAndSwordHitboxesUntilTheyEnd()
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         string cooked = Path.Combine(root, "content-cooked");
@@ -146,11 +145,25 @@ public class MatchInputProtocolTests
         using var wibou = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var opponent = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var ended = new ManualResetEventSlim();
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All.First(arena => arena.Purpose == ArenaPurpose.PvP).Name,
+        var arena = ArenaRegistry.All.First(candidate => candidate.Purpose == ArenaPurpose.PvP);
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
             new[] { new MatchPlayer(101, CharacterClass.Wibou, 1),
                 new MatchPlayer(102, CharacterClass.FightGuy, 2) },
             catalog.Catalog!, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
+        // The opponent's view: its own simulation restored from each received World Frame.
+        var view = new ServerSimulation(arena);
+        foreach (var (entity, character) in new[] { (1UL, CharacterClass.Wibou), (2UL, CharacterClass.FightGuy) })
+        {
+            var content = catalog.Catalog!.Resolve(character)!;
+            view.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
+        }
+        WorldFramePacket? ReceiveFrame(UdpClient client)
+        {
+            if (!client.Client.Poll(30_000, SelectMode.SelectRead)) return null;
+            var remote = new IPEndPoint(IPAddress.Any, 0);
+            return WorldFramePacket.TryDeserialize(client.Receive(ref remote), out var frame) ? frame : null;
+        }
         void Send(UdpClient client, ulong entity, uint tick, InputState input)
         {
             var frame = new byte[InputBundle.SizeFor(1)];
@@ -172,11 +185,10 @@ public class MatchInputProtocolTests
                 SendControl(client, NetplayControlKind.Bootstrap, entity);
                 if (!client.Client.Poll(30_000, SelectMode.SelectRead)) continue;
                 var remote = new IPEndPoint(IPAddress.Any, 0);
-                var frame = client.Receive(ref remote);
-                if (frame.Length != ServerEntityPacket.NoInputSize && frame.Length != ServerEntityPacket.MaxSize) continue;
-                var state = ServerEntityPacket.Deserialize(frame);
-                entities.Add(state.EntityId);
-                baselineTick = Math.Max(baselineTick, state.Tick);
+                if (!WorldFramePacket.TryDeserialize(client.Receive(ref remote), out var frame)) continue;
+                foreach (var relayed in frame!.Inputs)
+                    entities.Add(relayed.EntityId);
+                baselineTick = Math.Max(baselineTick, frame.Tick);
             }
             Assert.Equal(2, entities.Count);
             SendControl(client, NetplayControlKind.Ready, entity, baselineTick);
@@ -224,15 +236,11 @@ public class MatchInputProtocolTests
                     SendPing(opponent);
                     nextHeartbeat += 1000;
                 }
-                if (!opponent.Client.Poll(30_000, SelectMode.SelectRead)) continue;
-                var remote = new IPEndPoint(IPAddress.Any, 0);
-                var frame = opponent.Receive(ref remote);
-                if (frame.Length != ServerEntityPacket.NoInputSize && frame.Length != ServerEntityPacket.MaxSize) continue;
-                var packet = ServerEntityPacket.Deserialize(frame);
-                if (packet.State.MatchState == MatchState.Playing)
+                if (ReceiveFrame(opponent) is not { } frame) continue;
+                if (frame.MatchState == MatchState.Playing)
                 {
                     playing = true;
-                    playingTick = packet.Tick;
+                    playingTick = frame.Tick;
                 }
             }
             Assert.True(playing, "UDP match did not reach Playing.");
@@ -254,15 +262,14 @@ public class MatchInputProtocolTests
                     SendPing(opponent);
                     projectileHeartbeat += 1000;
                 }
-                if (!opponent.Client.Poll(30_000, SelectMode.SelectRead)) continue;
-                var remote = new IPEndPoint(IPAddress.Any, 0);
-                var frame = opponent.Receive(ref remote);
-                if (!ProjectileVisualPacket.TryDeserialize(frame, out var snapshot)) continue;
-                if (snapshot.Projectiles.Count == 3) sawThree = true;
-                if (sawThree && snapshot.Projectiles.Count == 0) sawEmptyAfter = true;
+                if (ReceiveFrame(opponent) is not { } frame) continue;
+                view.RestoreSnapshot(frame.Snapshot);
+                int kunai = view.Resolver.GetActiveHitboxes().Count(h => h.OwnerId == 1 && h.Active && h.AttackSlot == AbilitySlots.A);
+                if (kunai == 3) sawThree = true;
+                if (sawThree && kunai == 0) sawEmptyAfter = true;
             }
-            Assert.True(sawThree, "Opponent never received three authoritative kunai.");
-            Assert.True(sawEmptyAfter, "Opponent never received the kunai removal snapshot.");
+            Assert.True(sawThree, "The opponent's frames never carried three kunai.");
+            Assert.True(sawEmptyAfter, "The opponent's frames never showed the kunai gone.");
             nextTick = ReadServerTick(wibou) + 6;
             for (uint tick = 0; tick < 80; tick++)
             {
@@ -280,15 +287,15 @@ public class MatchInputProtocolTests
                     SendPing(opponent);
                     swordHeartbeat += 1000;
                 }
-                if (!opponent.Client.Poll(30_000, SelectMode.SelectRead)) continue;
-                var remote = new IPEndPoint(IPAddress.Any, 0);
-                var frame = opponent.Receive(ref remote);
-                if (!SwordTrailSnapshotPacket.TryDeserialize(frame, out var snapshot)) continue;
-                if (snapshot.ActiveOwnerIds.Count == 1 && snapshot.ActiveOwnerIds[0] == 1) sawSword = true;
-                if (sawSword && snapshot.ActiveOwnerIds.Count == 0) sawSwordEmptyAfter = true;
+                if (ReceiveFrame(opponent) is not { } frame) continue;
+                view.RestoreSnapshot(frame.Snapshot);
+                bool sword = view.Resolver.GetActiveHitboxes().Any(h => h.OwnerId == 1 && h.Active &&
+                    h.SourceEvent.BoneName == "_weapon_hilt" && h.SourceEvent.EndBoneName == "_weapon_tip");
+                if (sword) sawSword = true;
+                if (sawSword && !sword) sawSwordEmptyAfter = true;
             }
-            Assert.True(sawSword, "Opponent never received the active Wibou sword hitbox.");
-            Assert.True(sawSwordEmptyAfter, "Opponent never received the sword trail removal snapshot.");
+            Assert.True(sawSword, "The opponent's frames never carried the active Wibou sword hitbox.");
+            Assert.True(sawSwordEmptyAfter, "The opponent's frames never showed the sword hitbox gone.");
         }
         finally
         {

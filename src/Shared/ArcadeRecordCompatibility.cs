@@ -11,10 +11,15 @@ public static class ArcadeRecordCompatibility
     // Bump for Shared primitive/capability/rule changes that alter Arcade comparability.
     // Data changes below are detected automatically; UI, art, audio and VFX are excluded.
     // 4: explosions hit everything in their radius, not only the first entity (2026-10-18).
-    public const uint RulesRevision = 4;
+    // 5: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
+    // 6: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
+    // 7: Slopball hits always pop over the net, and rally heat mixes zingers, moonballs and curveballs in (2026-10-18).
+    public const uint RulesRevision = 7;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
-    public const uint CourseRulesRevision = 1;
+    // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
+    // 3: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
+    public const uint CourseRulesRevision = 3;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)
@@ -95,7 +100,7 @@ public static class ArcadeRecordCompatibility
                 {
                     slot.Ordinal, slot.IsAir, slot.Behavior, slot.AimMode, slot.CooldownTicks,
                     slot.IsRecoveryMove, slot.PreserveMomentumOnStart, slot.AllowSlideCarry,
-                    slot.ChargePool, slot.AimMovement,
+                    slot.ChargePool, slot.AimMovement, slot.AimMovementSpeedScale,
                     Stages = slot.Timeline.Stages.Select(s => new
                     {
                         s.DurationTicks, s.IasaTicks, s.LandingLagTicks, s.AutoCancelBeforeTicks,
@@ -110,6 +115,11 @@ public static class ArcadeRecordCompatibility
         using var sha = SHA256.Create();
         // ArcadePoint uses readonly fields. Other projection records expose properties.
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(gameplay, new JsonSerializerOptions { IncludeFields = true });
+        // Bonus targets' hit counts join the projection only when a course has them, so courses of
+        // single-hit targets keep the bytes (and the records) they had before hit counts existed.
+        if (course && stage.Course!.HasMultiHitTargets)
+            bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(
+                new { TargetHits = stage.Course.Targets.Select(t => (int)t.Hits).ToArray() })).ToArray();
         return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
     }
 

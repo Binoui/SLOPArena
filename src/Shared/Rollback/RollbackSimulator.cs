@@ -11,7 +11,9 @@ namespace SlopArena.Shared.Rollback
     /// RawTrack presentation plays received snapshots back on a playout clock that advances
     /// one tick per local tick, a small adaptive delay behind the newest server tick, so
     /// bunched packet arrival does not stall or skip raw opponents. Logic consumers (the
-    /// self track's opponent mirror, interaction barriers) use the newest snapshot.
+    /// self track's opponent mirror, interaction barriers) use the newest snapshot. While
+    /// LocalTrack presents a server-decided hit reaction, the self plays back on the same
+    /// clock, so attacker and victim freeze and react in one time frame.
     /// </summary>
     public sealed class RollbackSimulator
     {
@@ -25,6 +27,7 @@ namespace SlopArena.Shared.Rollback
         private readonly PredictedTrack _predicted;
         private readonly Dictionary<ulong, CharacterState> _rawTrackLatest = new();
         private readonly Dictionary<ulong, List<(uint Tick, CharacterState State)>> _rawHistory = new();
+        private readonly List<(uint Tick, CharacterState State)> _selfServerHistory = new();
         private readonly TickPacer _rawPacer = new();
         private uint _rawNewestTick;
         private uint _rawPlayoutTick;
@@ -51,6 +54,8 @@ namespace SlopArena.Shared.Rollback
         }
 
         public int CorrectionCount => _local.CorrectionCount;
+        /// <summary>Self-track correction health since the previous call.</summary>
+        public LocalTrackStats TakeSelfStats() => _local.TakeWindowStats();
         public uint LastFrontierTicks => _predicted.LastFrontierTicks;
         public uint LocalTick => _localTick;
         /// <summary>Ticks between the newest server snapshot and the raw playout clock.</summary>
@@ -95,7 +100,10 @@ namespace SlopArena.Shared.Rollback
             {
                 _futureSelf = null;
                 if (!_terminalInteractions.Contains(future.State.InteractionId))
+                {
                     _local.ReconcileWithServer(future);
+                    TrackSelfPresentation(future);
+                }
                 Publish(_local.DrainPresentationEvents());
             }
 
@@ -132,6 +140,7 @@ namespace SlopArena.Shared.Rollback
                     if (packet.EntityId == _selfId)
                     {
                         _local.ReconcileWithServer(packet);
+                        TrackSelfPresentation(packet);
                         localReconciled = true;
                     }
                     else if (state.InteractionId == 0 &&
@@ -178,7 +187,10 @@ namespace SlopArena.Shared.Rollback
                 if (packet.EntityId == _selfId)
                 {
                     if (!localReconciled)
+                    {
                         _local.ReconcileWithServer(packet);
+                        TrackSelfPresentation(packet);
+                    }
                     if (state.InteractionId != 0 &&
                         _pendingCompanions.TryGetValue(state.InteractionPartnerId, out var companion))
                     {
@@ -233,7 +245,10 @@ namespace SlopArena.Shared.Rollback
         /// <summary>Presentation state: self prediction, predicted opponents, or raw playout.</summary>
         public CharacterState GetState(ulong id)
         {
-            if (id == _selfId) return _local.GetState();
+            if (id == _selfId)
+                return _local.PresentFromServer && _selfServerHistory.Count > 0
+                    ? RawDisplayState(_selfServerHistory)
+                    : _local.GetState();
             if (_predicted.IsTracking(id)) return _predicted.GetState(id);
             if (_rawHistory.TryGetValue(id, out var history) && history.Count > 0)
                 return RawDisplayState(history);
@@ -255,6 +270,25 @@ namespace SlopArena.Shared.Rollback
                 _rawHistory[id] = history = new List<(uint Tick, CharacterState State)>();
             if (replaceHistory)
                 history.Clear();
+            InsertSnapshot(history, tick, state);
+        }
+
+        /// <summary>Keep the self's authoritative snapshots only while LocalTrack presents
+        /// a server-decided hit reaction.</summary>
+        private void TrackSelfPresentation(ServerEntityPacket packet)
+        {
+            if (!_local.PresentFromServer)
+            {
+                _selfServerHistory.Clear();
+                return;
+            }
+            var state = packet.State.ToState();
+            state.EntityId = _selfId;
+            InsertSnapshot(_selfServerHistory, packet.Tick, state);
+        }
+
+        private static void InsertSnapshot(List<(uint Tick, CharacterState State)> history, uint tick, CharacterState state)
+        {
             int index = history.Count;
             while (index > 0 && history[index - 1].Tick >= tick)
                 index--;
@@ -315,18 +349,22 @@ namespace SlopArena.Shared.Rollback
             }
 
             foreach (var history in _rawHistory.Values)
-            {
-                int keep = 0;
-                while (keep + 1 < history.Count && history[keep + 1].Tick <= _rawPlayoutTick)
-                    keep++;
-                if (keep > 0)
-                    history.RemoveRange(0, keep);
-            }
+                TrimPlayedSnapshots(history);
+            TrimPlayedSnapshots(_selfServerHistory);
+        }
+
+        private void TrimPlayedSnapshots(List<(uint Tick, CharacterState State)> history)
+        {
+            int keep = 0;
+            while (keep + 1 < history.Count && history[keep + 1].Tick <= _rawPlayoutTick)
+                keep++;
+            if (keep > 0)
+                history.RemoveRange(0, keep);
         }
 
         public Dictionary<ulong, CharacterState> GetAllStates()
         {
-            var result = new Dictionary<ulong, CharacterState> { [_selfId] = _local.GetState() };
+            var result = new Dictionary<ulong, CharacterState> { [_selfId] = GetState(_selfId) };
             foreach (var id in _defs.Keys)
                 if (id != _selfId) result[id] = GetState(id);
             return result;

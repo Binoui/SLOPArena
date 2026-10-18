@@ -96,6 +96,11 @@ Presentation keeps running in real time while the simulation is frozen, so
 particles, HUD animations and sounds in a capture are further along than its
 tick suggests. Capture several nearby ticks and judge effect timing in play.
 
+The course clock stops at completion, so no capture can come after the finish tick.
+Several captures on the finish tick itself see the finish celebration play out instead:
+each waits for its own fresh render, so they land a few tenths of a second apart in real
+time.
+
 The saved Sanctuary fixture is a known ordinary-jump route for the wider Phase 5
 layout. It uses normal attacks and movement, all required targets and the three
 saves. It is not a route finder or an optimal-time claim. Geometry or kit changes
@@ -107,6 +112,13 @@ with nine gameplay-camera captures. Its inputs come from the Shared route test
 (`MankiQuarryRouteTests.JumpThenJetpackSkipsTheBenches`); after a deliberate layout or
 kit change, rewrite them with `SLOPARENA_EXPORT_COURSE_INPUTS=$PWD/scenarios/arcade dotnet
 test tests/Shared.Tests --filter JumpThenJetpackSkipsTheBenches` and adjust capture ticks.
+
+`scenarios/arcade/fightguy-pier-specials.json` replays Fight Night Pier with the cooked
+FightGuy kit: each balloon group broken by its special, the four bonus targets wrecked by
+Fist of Fury, Jump → R to the old pier and Jump → E up the wheel tower, with 25 captures.
+Its inputs come from `FightGuyPierRouteTests.TheSpecialsClearTheirShapesAndFinish`; run that
+test with `SLOPARENA_ROUTE_LOG=1` to print every break, save and the finish with its tick
+when you move the captures.
 
 ## Lifecycle, evidence and restoration
 

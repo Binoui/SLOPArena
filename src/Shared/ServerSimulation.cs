@@ -57,6 +57,8 @@ namespace SlopArena.Shared
 			= Array.Empty<SpellResolver.EntityData>();
 		private readonly HashSet<ulong> _lastTickAcceptedActions = new();
 		private readonly HashSet<ulong> _damagedThisTick = new();
+		/// <summary>Fighters frozen by hitstop this tick; their melee windows pause with their move.</summary>
+		private readonly HashSet<ulong> _hitstopFrozenThisTick = new();
 		/// <summary>Entity IDs whose actions were accepted during the most recent tick.</summary>
 		public IReadOnlyCollection<ulong> LastTickAcceptedActions
 			=> _lastTickAcceptedActions;
@@ -112,7 +114,7 @@ namespace SlopArena.Shared
                 if (arena.Arcade.Slopball is SlopballDefinition rules)
                 {
                     rules.ValidateCourt(in arena);
-                    _slopball = new SlopballSimulation(rules, ball, _arcadeBall);
+                    _slopball = new SlopballSimulation(rules, ball, _arcadeBall, rules.CeilingOf(in arena));
                 }
             }
             if (arena.Arcade?.Course is CharacterCourseDefinition course)
@@ -155,6 +157,7 @@ namespace SlopArena.Shared
 			if (baked != null) _bakedData[id] = baked;
 			_animFrames[id] = 0;
 			_prevAnimIndex[id] = -1;
+			SortStatesByEntity();
 	}
 
 		public void SetRespawnPosition(ulong entityId, float x, float y, float z, float yaw = 0f)
@@ -383,10 +386,9 @@ namespace SlopArena.Shared
 			// Collect entities whose ability ended this tick (can't modify dict during iteration)
 			var ended = new List<ulong>();
 
-			foreach (var kvp in _activeAbilities)
+			foreach (ulong id in SortedAbilityOwners())
 			{
-				ulong id = kvp.Key;
-				var ability = kvp.Value;
+				if (!_activeAbilities.TryGetValue(id, out var ability)) continue;
 				if (!_states.TryGetValue(id, out var state)) continue;
 				if (!_defs.TryGetValue(id, out var def)) continue;
 				bool frozenForTick = ability.FrozenForSimulationTick;
@@ -1427,8 +1429,13 @@ namespace SlopArena.Shared
 				var beforeMovement = state;
 				bool wasGrounded = state.IsGrounded;
 				_activeAbilities.TryGetValue(id, out var activeAbility);
+				// Hitstop at the start of the tick freezes the fighter for all of it, even when
+				// this step spends the last frozen tick: its ability and melee windows skip the tick.
+				bool frozen = state.HitstopTicks > 0;
+				if (frozen)
+					_hitstopFrozenThisTick.Add(id);
 				if (activeAbility != null)
-					activeAbility.FrozenForSimulationTick = state.HitstopTicks > 0;
+					activeAbility.FrozenForSimulationTick = frozen;
 				bool verticalMotionOwned = activeAbility?.OwnsVerticalMotion == true;
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
@@ -2117,7 +2124,8 @@ namespace SlopArena.Shared
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
 			LastTickAttackEntities = attackEntities;
-			var hits = _spellResolver.Tick(attackEntities, orderMovingTargetContacts: _slopball != null);
+			var hits = _spellResolver.Tick(attackEntities, orderMovingTargetContacts: _slopball != null,
+				frozenOwners: _hitstopFrozenThisTick);
 			for (int i = 0; i < hits.Count; i++)
 			{
 				var contact = hits[i];
@@ -2590,6 +2598,7 @@ namespace SlopArena.Shared
 				_lastTickTouchdowns.Clear();
 				_settledCrouchCandidates.Clear();
 				_damagedThisTick.Clear();
+				_hitstopFrozenThisTick.Clear();
                 if (_slopball != null && !_slopball.BeginTick(_arcadeBall!))
                 { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
                 if (_course != null && !_course.BeginTick())

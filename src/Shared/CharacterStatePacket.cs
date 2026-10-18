@@ -58,7 +58,7 @@ namespace SlopArena.Shared
         /// <summary>Auto-lock suppression latch, replicated for rollback reconstruction.</summary>
         public bool AutoLockSuppressed;
         // Predictable ActionState fields carried for rollback. AirDodgeMovement uses
-        // DashDirX/Z as its captured forward direction; DashDurationTicks and
+        // DashDirX/Z as its captured stick or facing direction; DashDurationTicks and
         // DashCooldownTicks remain legacy wire fields and do not time or gate air dodge.
         public ushort AirTimeTicks;
         public ushort DashDurationTicks;

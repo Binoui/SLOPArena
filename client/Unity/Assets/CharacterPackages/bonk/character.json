@@ -1133,6 +1133,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "mobile",
+      "aimMovementSpeedScale": 0.35,
       "aimAnimationId": "anim.bonk.gf",
       "cooldownTicks": 900,
       "isRecoveryMove": false,
@@ -1160,32 +1161,6 @@
                 "tick": 0,
                 "unit": "ticks",
                 "aimState": "cameraForward3D"
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 2,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "_weapon_hilt",
-                  "endBoneId": "_weapon_tip",
-                  "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
-                  "stunTicks": 8,
-                  "durationTicks": 74,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
               },
               {
                 "kind": "emitPresentation",
@@ -1223,11 +1198,11 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 16,
+                "tick": 8,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
-                  "radius": 0.32,
+                  "radius": 0.35,
                   "offsetX": 0,
                   "offsetY": 0,
                   "offsetZ": 0,
@@ -1237,23 +1212,24 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
                   "stunTicks": 8,
-                  "durationTicks": 4,
+                  "durationTicks": 21,
                   "interruptible": true,
                   "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
                 }
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 24,
+                "tick": 29,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
-                  "radius": 0.32,
+                  "radius": 0.35,
                   "offsetX": 0,
                   "offsetY": 0,
                   "offsetZ": 0,
@@ -1263,45 +1239,20 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
                   "stunTicks": 8,
-                  "durationTicks": 4,
+                  "durationTicks": 14,
                   "interruptible": true,
                   "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
                 }
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 32,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.32,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "_weapon_hilt",
-                  "endBoneId": "_weapon_tip",
-                  "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
-                  "stunTicks": 8,
-                  "durationTicks": 4,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 44,
+                "tick": 43,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1315,11 +1266,11 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 12,
-                  "angle": 25,
+                  "angle": 35,
                   "baseKnockback": 10,
                   "knockbackGrowth": 36,
                   "stunTicks": 20,
-                  "durationTicks": 6,
+                  "durationTicks": 16,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1344,7 +1295,7 @@
               },
               {
                 "kind": "setAimState",
-                "tick": 75,
+                "tick": 66,
                 "unit": "ticks",
                 "aimState": "none"
               }
@@ -2209,6 +2160,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "mobile",
+      "aimMovementSpeedScale": 0.35,
       "aimAnimationId": "anim.bonk.gf",
       "cooldownTicks": 900,
       "isRecoveryMove": false,
@@ -2238,32 +2190,6 @@
                 "aimState": "cameraForward3D"
               },
               {
-                "kind": "spawnHitbox",
-                "tick": 2,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "_weapon_hilt",
-                  "endBoneId": "_weapon_tip",
-                  "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
-                  "stunTicks": 8,
-                  "durationTicks": 74,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              },
-              {
                 "kind": "emitPresentation",
                 "tick": 2,
                 "unit": "ticks",
@@ -2282,11 +2208,11 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 16,
+                "tick": 8,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
-                  "radius": 0.32,
+                  "radius": 0.35,
                   "offsetX": 0,
                   "offsetY": 0,
                   "offsetZ": 0,
@@ -2296,23 +2222,24 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
                   "stunTicks": 8,
-                  "durationTicks": 4,
+                  "durationTicks": 21,
                   "interruptible": true,
                   "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
                 }
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 24,
+                "tick": 29,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
-                  "radius": 0.32,
+                  "radius": 0.35,
                   "offsetX": 0,
                   "offsetY": 0,
                   "offsetZ": 0,
@@ -2322,45 +2249,20 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
                   "stunTicks": 8,
-                  "durationTicks": 4,
+                  "durationTicks": 14,
                   "interruptible": true,
                   "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
                 }
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 32,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.32,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "_weapon_hilt",
-                  "endBoneId": "_weapon_tip",
-                  "damage": 2.5,
-                  "angle": 25,
-                  "baseKnockback": 2,
-                  "knockbackGrowth": 8,
-                  "stunTicks": 8,
-                  "durationTicks": 4,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 44,
+                "tick": 43,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -2374,11 +2276,11 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 12,
-                  "angle": 25,
+                  "angle": 35,
                   "baseKnockback": 10,
                   "knockbackGrowth": 36,
                   "stunTicks": 20,
-                  "durationTicks": 6,
+                  "durationTicks": 16,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -2403,7 +2305,7 @@
               },
               {
                 "kind": "setAimState",
-                "tick": 75,
+                "tick": 66,
                 "unit": "ticks",
                 "aimState": "none"
               }

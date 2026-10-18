@@ -17,12 +17,23 @@ mechanics happens through play. Arcade works without an online match or account.
 | Challenge | Initial roster and content | Result |
 | --- | --- | --- |
 | Slopball | All four fighters; one shared court, a floodlit cage in an after-hours warehouse | Continuous ball play; a small return-combo counter and local best |
-| Character Course | One map per fighter: FightGuy's mountain sanctuary, Manki's [Kaboom Quarry](stages/manki_quarry.design.md) (2026-10-18, greybox pending play) | Time to break every required target and reach the finish |
+| Character Course | One map per fighter: FightGuy's [Fight Night Pier](stages/fightguy_pier.design.md) (2026-10-18, pending play; the mountain sanctuary is his fallback), Manki's [Kaboom Quarry](stages/manki_quarry.design.md) (2026-10-18, greybox pending play) | Time to break every required target and reach the finish |
 
 The longer-term course goal is one map per character. Arcade's Course card lists every
 fighter with a course in `CharacterCourseMatch.Courses` (stage key, title, finish name,
 tips) whose baked profile admits it; picking the fighter picks its course, and all courses
-play in the one course scene. The first release proves
+play in the one course scene. A fighter with several baked courses plays the first one
+listed that admits it, so the pier comes before the sanctuary.
+
+**Bonus targets** (2026-10-18, picked for Fight Night Pier). A course target may take
+several hits, 1 to 32 (`CourseTargetDefinition.Hits`). Each damaging contact counts one, the
+lock-on stays on the target until it breaks, and a checkpoint that requires it waits for the
+break. A course of one-hit targets bakes exactly as before (arena section 5); a course with a
+bonus target writes section 6, and only then do hit counts enter its records' fingerprint.
+The client shows each hit as the target's next damage stage, a jolt and a climbing count
+(`CourseBonusTarget`, the course look's `TargetLooks`).
+
+The first release proves
 both challenge types before expanding. When Arcade implementation begins,
 **Slopball is the first playable slice**. Getting the first working remote match
 remains the immediate engineering priority.
@@ -64,6 +75,15 @@ index. The shot index continues across misses; combo count controls the gentle
 capped difficulty progression, resetting to the easy range on a miss. All four fighters share the same profile and progression;
 playtesting must establish that its serves are readable and playable for every kit.
 
+**Rally heat** (2026-10-18) rises one step every five returns, up to four, and a miss
+cools it back to zero. Heat mixes special serves in among the lobs. Zingers (from heat 1)
+arrive in about two thirds of the time on a flatter arc, into the deeper part of the
+receiving area. Moonballs (from heat 2) hang about 40% longer. Curveballs (from heat 3)
+bend 2.5–4.5 m/s² sideways and still land on their lob's spot. At heat 4 roughly three
+serves in four are special. A special serve that would not clear the net or would reach
+the ceiling is served as its lob. Court validation also checks every kind against the
+walls. The serve cue names the next special serve before it fires.
+
 ### Return and failure rules
 
 A valid return follows this order:
@@ -100,6 +120,13 @@ the same discrete damped motion so shots still reach their receiving region. Dam
 percent during that shot and use the move's direction and relative strength to
 launch it. Percent strengthens later attack responses; incoming serve speed is
 controlled separately by the shot profile.
+
+**Every touch pops** (2026-10-18). A damaging hit in the player half whose free flight
+would not clear the net is relaunched as a lob that does. The lob lands on the sender
+floor along the hit's sideways direction. Weak touches pop up softly and land short;
+stronger ones fly quicker and flatter and land deeper. Hits that already clear the net,
+body contacts and contacts past the net keep their own flight. The hit still reports its
+own strength, so a feeble tap looks and sounds like one.
 
 Body contact redirects existing ball velocity without adding speed. It causes no
 damage or Knockback to the fighter. The body has the same physical shape in every

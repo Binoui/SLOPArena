@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccc99725a42300e99887904275accd15, type: 3}
+  m_Name: SlopballPresentation
+  m_EditorClassIdentifier: 
+  Ball: {fileID: 8848697649375899161, guid: 217ff30d213c072d180d860223f5c024, type: 3}
+  BallRadius: 0.65
+  GroundMarker: {fileID: 4525472053705648875, guid: 8d36f802c00dc314cb31cf68917878e5, type: 3}
+  ServePuff: {fileID: 7507616468243954066, guid: f7d40f40da7957f63b2c197e6209543f, type: 3}
+  HitLight: {fileID: 1108997635990094751, guid: a503f03b7ac2b6fa19735c0f27483860, type: 3}
+  HitHeavy: {fileID: 6075653978741436605, guid: 998aa89d7911d6e69a7e85a5729371a2, type: 3}
+  Bounce: {fileID: 6794130367850178710, guid: 2d73000e6d37afcca9e78b16c0211b81, type: 3}
+  Score: {fileID: 2540387039046462311, guid: 1d596ed5d9191e2dbade741835e381a3, type: 3}
+  Miss: {fileID: 3107614497940015950, guid: c72c7ffd2ebef4002bcfe939b3a18aed, type: 3}
+  SoundFolder: Audio/SFX/Slopball
+  NoteSemitones: 00000000020000000400000007000000090000000c0000000e000000100000001300000015000000

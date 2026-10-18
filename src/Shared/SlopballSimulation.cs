@@ -24,6 +24,8 @@ namespace SlopArena.Shared
         public readonly SlopballShot Shot;
         public readonly float Difficulty;
         public bool Ended => Phase == SlopballPhase.Stopped;
+        /// <summary>Rally heat (0-4): one step per five returns in the combo; it changes the serve mix.</summary>
+        public int Heat => SlopballDefinition.HeatOf(Returns);
         public SlopballState(SlopballPhase phase, ulong returns, ushort serveInTicks, bool received,
             bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0, bool clearedNet = false,
             ulong bestStreak = 0, uint sessionSeed = 0)
@@ -45,6 +47,7 @@ namespace SlopArena.Shared
         }
         private readonly SlopballDefinition _rules;
         private readonly ArcadeBallDefinition _ballDefinition;
+        private readonly float _ceiling;
         private readonly List<Trace> _trace = new();
         private readonly List<SlopballEvent> _events = new();
         private SlopballPhase _phase = SlopballPhase.WaitingServe;
@@ -59,11 +62,13 @@ namespace SlopArena.Shared
         public SlopballState State => new(_phase, _returns, _serveIn, _received, _armed, _shot,
             (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared, _bestStreak, _seed);
 
-        public SlopballSimulation(SlopballDefinition rules, ArcadeBallDefinition definition, ArcadeBallSimulation ball)
+        /// <param name="ceiling">The court's ceiling height, which keeps moonball serves under it.</param>
+        public SlopballSimulation(SlopballDefinition rules, ArcadeBallDefinition definition, ArcadeBallSimulation ball,
+            float ceiling = float.PositiveInfinity)
         {
-            _rules = rules; _ballDefinition = definition;
+            _rules = rules; _ballDefinition = definition; _ceiling = ceiling;
             _seed = rules.Seed;
-            _shot = rules.CreateShot(definition, 0); _serveIn = rules.ServeGapTicks;
+            _shot = rules.CreateShot(definition, 0, 0, _seed, _ceiling); _serveIn = rules.ServeGapTicks;
             ball.Retire();
         }
 
@@ -74,7 +79,7 @@ namespace SlopArena.Shared
                 throw new InvalidOperationException("A countdown requires a clean Slopball attempt.");
             if (sessionSeed == 0) throw new ArgumentOutOfRangeException(nameof(sessionSeed));
             _seed = sessionSeed ?? _rules.Seed;
-            _shot = _rules.CreateShot(_ballDefinition, 0, 0, _seed);
+            _shot = _rules.CreateShot(_ballDefinition, 0, 0, _seed, _ceiling);
             _phase = SlopballPhase.Countdown; _countdown = ticks; _serveIn = 0;
             ball.Retire();
         }
@@ -97,7 +102,7 @@ namespace SlopArena.Shared
 
         private void Serve(ArcadeBallSimulation ball)
         {
-            ball.Reset(_shot.Spawn, _shot.Velocity);
+            ball.Reset(_shot.Spawn, _shot.Velocity, _shot.Curve);
             _received = _armed = _cleared = false; _phase = SlopballPhase.Live;
             Emit(SlopballEventKind.Served, ball, 0f);
         }
@@ -138,6 +143,20 @@ namespace SlopArena.Shared
             if (_phase != SlopballPhase.Live) return false;
             _attacked = true;
             if (_received && playerContact) { _armed = true; Emit(SlopballEventKind.Redirected, ball, time); }
+            return true;
+        }
+
+        /// <summary>
+        /// "Every touch pops": after a damaging hit's launch, a ball in the player half that would not clear the
+        /// net on its own is relaunched as a lob that does (SlopballDefinition.ReturnAssist). The hit still reports
+        /// its own launch, so a feeble tap reads as one. Returns whether the ball was relaunched.
+        /// </summary>
+        public bool AssistReturn(ArcadeBallSimulation ball, float launch)
+        {
+            if (_phase != SlopballPhase.Live) return false;
+            var state = ball.State;
+            if (_rules.ReturnAssist(_ballDefinition, state.Position, state.Velocity, launch) is not ArcadePoint velocity) return false;
+            ball.Relaunch(velocity);
             return true;
         }
 
@@ -189,7 +208,7 @@ namespace SlopArena.Shared
         {
             if (_shotIndex == ulong.MaxValue) throw new InvalidOperationException("Slopball shot sequence exhausted.");
             _shotIndex++;
-            _shot = _rules.CreateShot(_ballDefinition, _shotIndex, _returns, _seed);
+            _shot = _rules.CreateShot(_ballDefinition, _shotIndex, _returns, _seed, _ceiling);
             _phase = SlopballPhase.WaitingServe; _serveIn = _rules.ServeGapTicks;
         }
         private void Emit(SlopballEventKind kind, ArcadeBallSimulation ball, float time)

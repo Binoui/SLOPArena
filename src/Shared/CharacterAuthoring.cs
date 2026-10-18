@@ -133,7 +133,8 @@ public sealed record CharacterSlotSource(
     AuthoringAimMovementMode AimMovement = AuthoringAimMovementMode.Fixed,
     string? AimAnimationId = null,
     bool AllowSlideCarry = false,
-    string? HitPresentationId = null);
+    string? HitPresentationId = null,
+    float AimMovementSpeedScale = 1f);
 
 public sealed record ChargePoolSource(int MaxCharges, ushort RegenTicks);
 public sealed record CharacterAliasSource(string From, string To);

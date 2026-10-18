@@ -97,6 +97,30 @@ namespace SlopArena.Shared
             return held;
         }
 
+        /// <summary>True when this input carries any one-tick press edge.</summary>
+        public bool HasPressEdges => Jump || DownPressed || ShieldPressed || GrabPressed ||
+            FaceToCamera || ToggleLock || RetargetPressed || ActiveSlot != 0;
+
+        /// <summary>
+        /// This input with the press edges of an <paramref name="earlier"/> input that was never
+        /// consumed, so the press is not lost. A slot pressed on this input wins over an earlier
+        /// one. The client merges presses between fixed updates and the GameServer merges presses
+        /// that arrived after their tick ran; both use this rule.
+        /// </summary>
+        public InputState WithEdgesFrom(InputState earlier)
+        {
+            var merged = this;
+            merged.Jump |= earlier.Jump;
+            merged.DownPressed |= earlier.DownPressed;
+            merged.ShieldPressed |= earlier.ShieldPressed;
+            merged.GrabPressed |= earlier.GrabPressed;
+            merged.FaceToCamera |= earlier.FaceToCamera;
+            merged.ToggleLock |= earlier.ToggleLock;
+            merged.RetargetPressed |= earlier.RetargetPressed;
+            if (merged.ActiveSlot == 0) merged.ActiveSlot = earlier.ActiveSlot;
+            return merged;
+        }
+
         public void Write(Span<byte> buf)
         {
             if (buf.Length < Size)

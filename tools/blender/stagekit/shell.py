@@ -55,7 +55,8 @@ def merged(name, asset, solids):
 def course(profile_id, packages, targets, checkpoints, finish, revision=1):
     """An Arcade Character Course for `document(course=...)`.
 
-    targets: [(id, (x, y, z), radius)] in route order; every target is required.
+    targets: [(id, (x, y, z), radius)] or [(id, (x, y, z), radius, hits)] in route order; every target is
+        required. `hits` (default 1) makes a bonus target that breaks on its n-th damaging hit.
     checkpoints: [(id, (x, y, z) sensor centre, (hx, hy, hz) half size, (x, y, z) respawn, yaw degrees,
         required target count)]; counts are cumulative and the respawn sits at body height
         (surface + 0.85), like a spawn marker.
@@ -66,14 +67,23 @@ def course(profile_id, packages, targets, checkpoints, finish, revision=1):
         raise ValueError("course needs targets and unique target/checkpoint ids")
     if any(not 0 < t[2] <= 2 for t in targets):
         raise ValueError("course target radii must be in (0, 2]")
+    if any(len(t) > 3 and not 1 <= t[3] <= 32 for t in targets):
+        raise ValueError("course target hits must be in [1, 32]")
     counts = [c[5] for c in checkpoints]
     if counts != sorted(counts) or any(not 0 < n <= len(targets) for n in counts):
         raise ValueError("checkpoint target counts must be cumulative and within the target count")
     return {"profileId": profile_id, "gameplayRevision": revision, "allowedPackageIds": list(packages),
-            "targets": [{"id": i, "position": list(p), "radius": r} for i, p, r in targets],
+            "targets": [_target(*t) for t in targets],
             "checkpoints": [{"id": i, "centre": list(c), "halfSize": list(h), "respawn": list(r), "yaw": yaw,
                              "requiredTargets": n} for i, c, h, r, yaw, n in checkpoints],
             "finish": {"centre": list(finish[0]), "halfSize": list(finish[1])}}
+
+
+def _target(target_id, position, radius, hits=1):
+    target = {"id": target_id, "position": list(position), "radius": radius}
+    if hits != 1:
+        target["hits"] = hits   # single-hit targets keep the original document
+    return target
 
 
 def document(stage, kill_y, meshes, spawns, course=None):

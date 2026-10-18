@@ -26,10 +26,9 @@ namespace SlopArena.Server
 		private readonly string _arenaName;
 		private readonly MatchContentCatalog _contentCatalog;
 		private readonly List<PlayerSlot> _slots;
-        private readonly bool _hasWibou;
-        private readonly bool _hasProjectileVisuals;
-        private readonly List<ProjectileVisualState> _projectileVisuals = new(12);
-        private readonly List<ulong> _swordTrailOwners = new(4);
+		/// <summary>Recent events and hits; each World Frame carries the last three ticks of them.</summary>
+		private readonly WorldFrameHistory _frameHistory = new();
+		private readonly List<RelayedInput> _relayedInputs = new();
 		private UdpClient? _udpServer;
 		private volatile bool _running = true;
 
@@ -40,13 +39,13 @@ namespace SlopArena.Server
 
 		/// <summary>
 		/// The inputs the server actually consumed for the last sim tick, keyed by
-		/// entity. Sent back to clients as the input-relay section of each state
-		/// broadcast (issue #80, ADR-0010): membership in this dict is the relay
-		/// signal, so empty queues, eliminated entities, and disconnected players
-		/// all broadcast the explicit no-input marker. Null until the first
-		/// playing tick (countdown broadcasts relay nothing).
+		/// entity. Sent back to clients as the InputRelay of each World Frame (ADR-0039):
+		/// membership in this dict is the relay signal, so eliminated entities and
+		/// disconnected players relay no input. Null until the first playing tick
+		/// (countdown frames relay neutral input for connected players).
 		/// </summary>
 		private Dictionary<ulong, InputState>? _lastTickInputs;
+		private readonly Dictionary<ulong, InputState> _relayInputs = new();
 		private readonly Dictionary<ulong, InputState> _tickInputs = new();
 
 		private const double TimeoutSeconds = 5.0;
@@ -73,6 +72,8 @@ namespace SlopArena.Server
 		private readonly MatchContentHandleMap? _contentHandleMap;
 		private readonly Guid _steamMatchGuid;
 		private readonly object _steamGate = new();
+		private const int MinimumLoggedInputGap = 3;
+		private readonly List<string> _inputGapLogs = new();
 		private int _steamInputCount;
 		private DateTimeOffset? _noOpponentSinceUtc;
 		private readonly TimeProvider _clock;
@@ -121,8 +122,6 @@ namespace SlopArena.Server
 				var content = _contentCatalog.Resolve(p.CharacterClass)
 					?? throw new InvalidDataException($"Roster selector '{p.CharacterClass}' is not in the match content catalog.");
 				_slots.Add(new PlayerSlot((ulong)p.EntityId, p.CharacterClass, p.SteamId, content));
-                _hasWibou |= p.CharacterClass == CharacterClass.Wibou;
-                _hasProjectileVisuals |= p.CharacterClass is CharacterClass.Wibou or CharacterClass.FightGuy;
 			}
 		}
 
@@ -216,7 +215,7 @@ namespace SlopArena.Server
 					replacedConnectionId = slot.ConnectionId;
 				}
 				slot.ReadyConnectionId = 0;
-				slot.LastInput = default;
+				slot.Inputs.Reset();
 				slot.LastInputConnectionId = connectionId;
 				slot.ConnectionId = connectionId;
 				slot.SteamConnected = true;
@@ -242,8 +241,7 @@ namespace SlopArena.Server
 						slot.ReadyConnectionId = 0;
 						slot.MissingInputTicks = 0;
 						slot.Disconnected = true;
-						slot.Queue.Clear();
-						slot.LastInput = default;
+						slot.Inputs.Reset();
 						slot.LastInputConnectionId = 0;
 						Diagnostics.RecordPeer(slot.EntityId, false);
 						Log($"Entity {slot.EntityId} Steam connection closed.");
@@ -392,7 +390,7 @@ namespace SlopArena.Server
 								{
 									slot.Disconnected = true;
 									slot.ReadyConnectionId = 0;
-									slot.Queue.Clear();
+									slot.Inputs.Reset();
 									Log($"Player (entity {slot.EntityId}) disconnected — entity goes idle.");
 									Diagnostics.RecordPeer(slot.EntityId, false);
 								}
@@ -442,6 +440,28 @@ namespace SlopArena.Server
 				_onSteamMatchEnd?.Invoke(matchGuid);
 		}
 
+		/// <summary>
+		/// Record a finished run of ticks simulated without the peer's input. Late bundles that
+		/// arrived during the run show the inputs were delayed in transit (worst slack = how
+		/// many ticks too late); none means they were lost or never sent.
+		/// </summary>
+		private void EndInputGap(PlayerSlot slot)
+		{
+			int length = slot.GapHeld + slot.GapNeutral;
+			if (length >= MinimumLoggedInputGap)
+			{
+				string arrival = slot.GapLateBundles > 0
+					? FormattableString.Invariant($"{slot.GapLateBundles} late bundles, worst {slot.GapWorstSlack} ticks")
+					: "no late bundles (lost or never sent)";
+				string rescued = slot.GapRescued > 0
+					? FormattableString.Invariant($"; {slot.GapRescued} late presses applied")
+					: "";
+				_inputGapLogs.Add(FormattableString.Invariant(
+					$"Input gap entity {slot.EntityId}: {length} ticks from tick {slot.GapStartTick} (held {slot.GapHeld}, neutral {slot.GapNeutral}); {arrival}{rescued}"));
+			}
+			slot.ResetInputGap();
+		}
+
 		/// <summary>Per-peer input arrival since the previous diagnostics line (slack 1 = just in time).</summary>
 		private void LogInputWindow()
 		{
@@ -451,8 +471,9 @@ namespace SlopArena.Server
 					? "none"
 					: slot.WindowMinSlack.ToString(System.Globalization.CultureInfo.InvariantCulture);
 				Log(FormattableString.Invariant(
-					$"Inputs entity {slot.EntityId}: bundles={slot.WindowBundles} late={slot.WindowLate} early={slot.WindowEarly} held={slot.WindowHeld} neutral={slot.WindowNeutral} minSlack={slack}"));
+					$"Inputs entity {slot.EntityId}: bundles={slot.WindowBundles} late={slot.WindowLate} early={slot.WindowEarly} held={slot.WindowHeld} neutral={slot.WindowNeutral} rescued={slot.WindowRescued} dropped={slot.WindowDroppedPresses} minSlack={slack}"));
 				slot.WindowBundles = slot.WindowLate = slot.WindowEarly = slot.WindowHeld = slot.WindowNeutral = 0;
+				slot.WindowRescued = slot.WindowDroppedPresses = 0;
 				slot.WindowMinSlack = int.MaxValue;
 			}
 		}
@@ -524,8 +545,7 @@ namespace SlopArena.Server
 						if (slot.ConnectionId != queued.ConnectionId || !slot.SteamConnected) continue;
 						if (slot.LastInputConnectionId != queued.ConnectionId)
 						{
-							slot.Queue.Clear();
-							slot.LastInput = default;
+							slot.Inputs.Reset();
 							slot.LastInputConnectionId = queued.ConnectionId;
 						}
 						slot.LastPacket = DateTime.UtcNow;
@@ -581,8 +601,7 @@ namespace SlopArena.Server
 								continue;
 							if (controlSlot.EndPoint == null || !controlSlot.EndPoint.Equals(remoteEP))
 							{
-								controlSlot.Queue.Clear();
-								controlSlot.LastInput = default;
+								controlSlot.Inputs.Reset();
 								controlSlot.MissingInputTicks = 0;
 								controlSlot.Ready = false;
 							}
@@ -626,8 +645,9 @@ namespace SlopArena.Server
 		}
 
 		/// <summary>
-		/// Record how early the bundle's newest input arrived (slack 1 = just in time) and
-		/// queue each redundant tick still ahead of the simulation; duplicates replace.
+		/// Record how early the bundle's newest input arrived (slack 1 = just in time) and hand
+		/// its redundant ticks to the peer's input timeline: ticks ahead of the simulation
+		/// queue, late ticks refresh the held controls and may rescue their presses.
 		/// </summary>
 		private void AcceptInputBundle(PlayerSlot slot, uint newestTick, ReadOnlySpan<InputState> inputs)
 		{
@@ -637,6 +657,11 @@ namespace SlopArena.Server
 			{
 				slot.IntervalLate++;
 				slot.WindowLate++;
+				if (slot.MissingInputTicks > 0)
+				{
+					slot.GapLateBundles++;
+					slot.GapWorstSlack = (int)Math.Min(slot.GapWorstSlack, slack);
+				}
 			}
 			else if (slack > NetplayClock.HistoryTicks)
 			{
@@ -648,12 +673,8 @@ namespace SlopArena.Server
 				slot.IntervalMinSlack = Math.Min(slot.IntervalMinSlack, (int)slack);
 				slot.WindowMinSlack = Math.Min(slot.WindowMinSlack, (int)slack);
 			}
-			for (int i = 0; i < inputs.Length; i++)
-			{
-				uint tick = InputBundle.TickAt(newestTick, inputs.Length, i);
-				if (tick <= _serverTick || tick - _serverTick > NetplayClock.HistoryTicks) continue;
-				slot.Queue.Push(tick, inputs[i]);
-			}
+			var late = slot.Inputs.Accept(_serverTick, newestTick, inputs, NetplayClock.HistoryTicks);
+			slot.WindowDroppedPresses += late.DroppedPresses;
 		}
 
 		private PlayerSlot? FindSlot(ulong entityId)
@@ -674,6 +695,9 @@ namespace SlopArena.Server
 			if (_matchState == MatchState.Countdown)
 			{
 				_serverTick++;
+				// Nothing is simulated during the countdown, but frames carry the server tick so
+				// clients anchor on it; the GO frame (StartTick − 1) aligns their prediction.
+				_sim.SetTick(_serverTick);
 				if (--_countdownTicks == 0)
 				{
 					_matchState = MatchState.Playing;
@@ -704,40 +728,57 @@ namespace SlopArena.Server
 				{
 					if (slot.Disconnected || _rule.IsEliminated(_sim.GetState(slot.EntityId)))
 					{
-						slot.Queue.Clear();
-						slot.LastInput = default;
+						slot.Inputs.Reset();
 						slot.MissingInputTicks = 0;
+						slot.ResetInputGap();
 						continue;
 					}
 
-					slot.Queue.Prune(_serverTick);
-					InputState input;
-					if (slot.Queue.TryTake(targetTick, out var queuedInput))
+					var consumed = slot.Inputs.Consume(targetTick);
+					slot.WindowRescued += consumed.RescuedPresses;
+					slot.GapRescued += consumed.RescuedPresses;
+					if (consumed.Source == ConsumedInputSource.Received)
 					{
-						input = queuedInput;
+						if (slot.MissingInputTicks > 0)
+							EndInputGap(slot);
 						slot.MissingInputTicks = 0;
-					}
-					else if (slot.MissingInputTicks++ < 6)
-					{
-						input = slot.LastInput.WithoutEdges();
-						slot.WindowHeld++;
 					}
 					else
 					{
-						input = default;
-						slot.LastInput = default;
-						slot.WindowNeutral++;
+						if (slot.MissingInputTicks++ == 0)
+							slot.GapStartTick = targetTick;
+						if (consumed.Source == ConsumedInputSource.Held)
+						{
+							slot.WindowHeld++;
+							slot.GapHeld++;
+						}
+						else
+						{
+							slot.WindowNeutral++;
+							slot.GapNeutral++;
+						}
 					}
-
-					slot.LastInput = input;
-					inputs[slot.EntityId] = input;
+					inputs[slot.EntityId] = consumed.Input;
 				}
 			}
 
-			_lastTickInputs = inputs;
+			foreach (var message in _inputGapLogs)
+				Log(message);
+			_inputGapLogs.Clear();
+
+			// Relay the inputs as consumed, before the simulation clears presses it acted on.
+			_relayInputs.Clear();
+			foreach (var (entityId, consumedInput) in inputs)
+				_relayInputs[entityId] = consumedInput;
+			_lastTickInputs = _relayInputs;
 			_sim.SetTick(_serverTick);
 			_serverTick = targetTick;
 			_sim.Tick(inputs);
+			int droppedEvents = _frameHistory.DroppedEvents;
+			_frameHistory.Record(_serverTick, _sim.GetPresentationEvents(clear: true), _sim.LastTickHits);
+			if (_frameHistory.DroppedEvents != droppedEvents)
+				// Cosmetic only: an unencodable event must not cost the match.
+				Diagnostics.ReportError(_serverTick, "Unencodable presentation event dropped.");
 			var outcome = _rule.Evaluate(_sim.GetAllStates());
 			if (outcome.IsEnded)
 			{
@@ -765,99 +806,15 @@ namespace SlopArena.Server
 		{
 			if (_udpServer == null && _steamSend is null) return;
 
-			var packets = new List<(byte[] buffer, int length)>(_slots.Count);
-			foreach (var slot in _slots)
+			// One World Frame per tick, the same bytes for every peer (ADR-0039).
+			byte[] frame = BuildWorldFrame();
+			byte[]? steamFrame = null;
+			if (_steamSend is not null)
 			{
-				var statePacket = CharacterStatePacket.FromState(_sim.GetState(slot.EntityId), _serverTick);
-				statePacket.MatchState = _matchState;
-
-				InputState consumed = default;
-				bool hasInput = _lastTickInputs != null && _lastTickInputs.TryGetValue(slot.EntityId, out consumed);
-				var packet = new ServerEntityPacket
-				{
-					EntityId = slot.EntityId,
-					Tick = _serverTick,
-					State = statePacket,
-					HasInput = hasInput,
-					Input = consumed,
-				};
-
-				int offset = _steamSend is null ? 0 : 1;
-				var buf = new byte[packet.WireSize + offset];
-				if (offset != 0) buf[0] = SteamGameplayWire.State;
-				packet.Serialize(buf.AsSpan(offset));
-				packets.Add((buf, packet.WireSize + offset));
+				steamFrame = new byte[frame.Length + 1];
+				steamFrame[0] = SteamGameplayWire.Frame;
+				frame.CopyTo(steamFrame, 1);
 			}
-
-			var presentationPackets = new List<(byte[] buffer, int length)>();
-			foreach (var evt in _sim.GetPresentationEvents(clear: true))
-			{
-				PresentationEventPacket eventPacket;
-				try
-				{
-					eventPacket = new PresentationEventPacket(
-						evt.MatchTick, evt.EntityId, evt.OperationIndex, evt.PresentationId,
-						evt.AttackSequence, evt.Source, evt.WorldX, evt.WorldY, evt.WorldZ, evt.WorldYaw,
-						evt.Placement);
-				}
-				catch (ArgumentException)
-				{
-					// Cosmetic only: an unencodable event must not cost the match.
-					Diagnostics.ReportError(_serverTick, "Unencodable presentation event dropped.");
-					continue;
-				}
-				int offset = _steamSend is null ? 0 : 1;
-				var eventBuffer = new byte[eventPacket.WireSize + offset];
-				if (offset != 0) eventBuffer[0] = SteamGameplayWire.Event;
-				eventPacket.Serialize(eventBuffer.AsSpan(offset));
-				presentationPackets.Add((eventBuffer, eventBuffer.Length));
-			}
-
-            byte[]? swordTrailBuffer = null;
-            if (_hasWibou)
-            {
-                _swordTrailOwners.Clear();
-                if (_matchState == MatchState.Playing)
-                {
-                    foreach (var hitbox in _sim.Resolver.GetActiveHitboxes())
-                    {
-                        if (!hitbox.Active || hitbox.SourceEvent.BoneName != "_weapon_hilt"
-                            || hitbox.SourceEvent.EndBoneName != "_weapon_tip"
-                            || _sim.GetDefinition(hitbox.OwnerId)?.Class != CharacterClass.Wibou
-                            || _swordTrailOwners.Contains(hitbox.OwnerId))
-                            continue;
-                        _swordTrailOwners.Add(hitbox.OwnerId);
-                    }
-                }
-                var snapshot = new SwordTrailSnapshotPacket(_serverTick, _swordTrailOwners);
-                int offset = _steamSend is null ? 0 : 1;
-                swordTrailBuffer = new byte[snapshot.WireSize + offset];
-                if (offset != 0) swordTrailBuffer[0] = SteamGameplayWire.SwordTrail;
-                snapshot.Serialize(swordTrailBuffer.AsSpan(offset));
-            }
-
-            byte[]? projectileBuffer = null;
-            if (_hasProjectileVisuals)
-            {
-                _projectileVisuals.Clear();
-                foreach (var hitbox in _sim.Resolver.GetActiveHitboxes())
-                {
-                    var character = _sim.GetDefinition(hitbox.OwnerId)?.Class ?? CharacterClass.None;
-                    if (_matchState != MatchState.Playing || hitbox.AttackSlot != AbilitySlots.A || !hitbox.Active
-                        || character is not (CharacterClass.Wibou or CharacterClass.FightGuy)
-                        || _projectileVisuals.Count >= ProjectileVisualPacket.MaxProjectiles)
-                        continue;
-                    _projectileVisuals.Add(new ProjectileVisualState(
-                        hitbox.OwnerId, hitbox.ActivationId, hitbox.VisualOperationIndex,
-                        character, hitbox.AttackSlot, hitbox.ActivationAirborne,
-                        hitbox.X, hitbox.Y, hitbox.Z, hitbox.VX, hitbox.VY, hitbox.VZ, hitbox.Radius));
-                }
-                var snapshot = new ProjectileVisualPacket(_serverTick, _projectileVisuals);
-                int offset = _steamSend is null ? 0 : 1;
-                projectileBuffer = new byte[snapshot.WireSize + offset];
-                if (offset != 0) projectileBuffer[0] = SteamGameplayWire.Projectile;
-                snapshot.Serialize(projectileBuffer.AsSpan(offset));
-            }
 
 			byte[]? steamResult = null;
 			if (_steamSend is not null && _matchState == MatchState.Ended && _matchResultPacket != null && !_steamResultSent)
@@ -876,11 +833,8 @@ namespace SlopArena.Server
 						? slot.EndPoint != null && !slot.Disconnected
 						: slot.SteamConnected;
 					if (!connected) continue;
-					foreach (var pkt in packets)
-					{
-						if (_steamSend is null) _udpServer!.Send(pkt.buffer, pkt.length, slot.EndPoint!);
-						else _steamSend(_steamMatchGuid, slot.EntityId, pkt.buffer, false);
-					}
+					if (_steamSend is null) _udpServer!.Send(frame, frame.Length, slot.EndPoint!);
+					else _steamSend(_steamMatchGuid, slot.EntityId, steamFrame!, false);
 
 					if (_matchState == MatchState.Ended && _matchResultPacket != null)
 					{
@@ -896,21 +850,6 @@ namespace SlopArena.Server
 					bool ready = _steamSend is null ? slot.Ready : slot.ReadyConnectionId == slot.ConnectionId;
 					if (!ready || _serverTick % 6 == 0)
 						SendNetplayControl(slot, ready ? NetplayControlKind.Clock : NetplayControlKind.Bootstrap);
-					foreach (var evt in presentationPackets)
-					{
-						if (_steamSend is null) _udpServer!.Send(evt.buffer, evt.length, slot.EndPoint!);
-						else _steamSend(_steamMatchGuid, slot.EntityId, evt.buffer, false);
-					}
-                    if (projectileBuffer != null)
-                    {
-                        if (_steamSend is null) _udpServer!.Send(projectileBuffer, projectileBuffer.Length, slot.EndPoint!);
-                        else _steamSend(_steamMatchGuid, slot.EntityId, projectileBuffer, false);
-                    }
-                    if (swordTrailBuffer != null)
-                    {
-                        if (_steamSend is null) _udpServer!.Send(swordTrailBuffer, swordTrailBuffer.Length, slot.EndPoint!);
-                        else _steamSend(_steamMatchGuid, slot.EntityId, swordTrailBuffer, false);
-                    }
 				}
 			}
 			catch (Exception ex)
@@ -921,6 +860,31 @@ namespace SlopArena.Server
 			// The whole tick is queued: let the Steam host send it now as one flushed burst.
 			_steamFlush?.Invoke();
 		}
+
+		/// <summary>
+		/// The World Snapshot after the current tick, the input each fighter consumed during it
+		/// and the last three ticks' events and hits. Before the first playing tick, connected
+		/// players relay neutral input: it is what they consume if their first input is late.
+		/// </summary>
+		private byte[] BuildWorldFrame()
+		{
+			_relayedInputs.Clear();
+			foreach (var slot in _slots)
+			{
+				bool hasInput;
+				InputState input = default;
+				if (_lastTickInputs != null)
+					hasInput = _lastTickInputs.TryGetValue(slot.EntityId, out input);
+				else
+					hasInput = !slot.Disconnected && !_rule.IsEliminated(_sim.GetState(slot.EntityId));
+				_relayedInputs.Add(new RelayedInput(slot.EntityId, hasInput, input));
+			}
+			_relayedInputs.Sort(static (a, b) => a.EntityId.CompareTo(b.EntityId));
+			var snapshot = _sim.CaptureSnapshot();
+			return new WorldFramePacket(_matchState, snapshot, _relayedInputs,
+				_frameHistory.EventsForFrame(snapshot.Tick), _frameHistory.HitsForFrame(snapshot.Tick)).Serialize();
+		}
+
 		private void SendNetplayControl(PlayerSlot slot, NetplayControlKind kind)
 		{
 			var control = new NetplayControlPacket(kind, slot.EntityId, _serverTick, _startTick);
@@ -1007,14 +971,26 @@ namespace SlopArena.Server
 			public long ReadyConnectionId { get; set; }
 			public bool Ready { get; set; }
 			public int MissingInputTicks { get; set; }
-			public TickInputBuffer Queue { get; } = new();
-			public InputState LastInput;
+			/// <summary>Queued input, held controls and late-press rescue (ADR-0039 decision 5).</summary>
+			public PeerInputTimeline Inputs { get; } = new();
 			// Arrival report for the next Clock control (match thread only).
 			public int IntervalMinSlack = int.MaxValue;
 			public int IntervalLate;
 			// Diagnostics window, logged with the periodic timing line (match thread only).
 			public int WindowBundles, WindowLate, WindowEarly, WindowHeld, WindowNeutral;
+			public int WindowRescued, WindowDroppedPresses;
 			public int WindowMinSlack = int.MaxValue;
+			// Current run of ticks simulated without this peer's input (match thread only).
+			public uint GapStartTick;
+			public int GapHeld, GapNeutral, GapLateBundles, GapRescued;
+			public int GapWorstSlack = int.MaxValue;
+
+			public void ResetInputGap()
+			{
+				GapStartTick = 0;
+				GapHeld = GapNeutral = GapLateBundles = GapRescued = 0;
+				GapWorstSlack = int.MaxValue;
+			}
 
 			public PlayerSlot(ulong entityId, CharacterClass characterClass, long steamId, MatchContentEntry content)
 			{

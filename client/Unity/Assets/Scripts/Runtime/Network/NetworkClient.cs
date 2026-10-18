@@ -3,7 +3,6 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -21,7 +20,12 @@ namespace SlopArena.Client.Network
         [SerializeField] private string _serverIp = "127.0.0.1";
         [SerializeField] private int _serverPort = 9876;
         private const int MaxSteamMessages = 64;
+        /// <summary>Client frames are inputs and controls.</summary>
         private const int MaxSteamFrameBytes = 1024;
+        /// <summary>A World Frame with its wire tag; Steam reassembles fragments above the MTU.</summary>
+        private const int MaxSteamReceiveBytes = 1 + WorldFramePacket.HeaderSize + WorldFramePacket.MaxBodyBytes;
+        /// <summary>Two seconds of frames; older ones are superseded anyway.</summary>
+        private const int MaxQueuedFrames = 120;
         private const double SteamConnectionTimeoutSeconds = 30;
         private const double SteamJoinTimeoutSeconds = 15;
         private static readonly IntPtr[] SteamMessages = new IntPtr[MaxSteamMessages];
@@ -45,7 +49,7 @@ namespace SlopArena.Client.Network
         private long _steamNextReconnectAt;
         private long _steamNextPingAt;
         private double _steamReconnectDelaySeconds = 1;
-        private readonly byte[] _steamReceiveFrame = new byte[MaxSteamFrameBytes];
+        private readonly byte[] _steamReceiveFrame = new byte[MaxSteamReceiveBytes];
         private readonly byte[] _steamInputFrame = new byte[1 + InputBundle.MaxSize];
         private string _connectionFailure = string.Empty;
         private readonly byte[] _steamControlFrame = new byte[1 + NetplayControlPacket.Size];
@@ -78,9 +82,8 @@ namespace SlopArena.Client.Network
         private Thread? _receiveThread;
         private volatile bool _running;
         private readonly ConcurrentQueue<MatchResultPacket> _matchResultQueue = new();
-        private readonly ConcurrentQueue<TimelinePresentationEvent> _presentationEventQueue = new();
-        private readonly ConcurrentQueue<ProjectileVisualPacket> _projectileVisualQueue = new();
-        private readonly ConcurrentQueue<SwordTrailSnapshotPacket> _swordTrailQueue = new();
+        private readonly ConcurrentQueue<WorldFramePacket> _frameQueue = new();
+        private int _queuedFrames;
 
         private long _nextPingNonce;
         private long _lastPingSentAt;
@@ -106,7 +109,6 @@ namespace SlopArena.Client.Network
             ? $"Steam P2P {_steamDescriptor.ServerSteamId}"
             : _serverEp.ToString();
         private static readonly byte[] PongMagic = { (byte)'P', (byte)'O', (byte)'N', (byte)'G' };
-        private readonly ConcurrentQueue<ServerEntityPacket> _receivedQueue = new();
         public ulong EntityId { get => _entityId; set => _entityId = value; }
         public bool IsServerConnected => _connected;
         public uint LastServerTick { get; private set; }
@@ -409,46 +411,27 @@ namespace SlopArena.Client.Network
             return false;
         }
 
-        /// <summary>
-        /// Drain the receive queue into raw per-entity packets — tick, hasInput/Input relay,
-        /// and state all intact. RollbackSimulationBridge routes self packets to
-        /// RollbackSimulator.ReconcileSelf and everything else to IngestOpponentBatch.
-        /// </summary>
-        public List<ServerEntityPacket> ReceiveEntityPackets()
+        /// <summary>Drain the World Frames received since the previous call, in arrival order.</summary>
+        public void ReceiveWorldFrames(List<WorldFramePacket> destination)
         {
-            var result = new List<ServerEntityPacket>();
-            while (_receivedQueue.TryDequeue(out var entry))
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            destination.Clear();
+            while (_frameQueue.TryDequeue(out var frame))
             {
-                result.Add(entry);
-                if (entry.Tick > LastServerTick) LastServerTick = entry.Tick;
+                Interlocked.Decrement(ref _queuedFrames);
+                destination.Add(frame);
+                if (frame.Tick > LastServerTick) LastServerTick = frame.Tick;
             }
-            return result;
         }
 
-        public List<TimelinePresentationEvent> ReceivePresentationEvents()
+        private void EnqueueFrame(ReadOnlySpan<byte> payload)
         {
-            var result = new List<TimelinePresentationEvent>();
-            while (_presentationEventQueue.TryDequeue(out var entry))
-                result.Add(entry);
-            return result;
-        }
-        /// <summary>Latest authoritative projectile surface; an empty snapshot removes all visuals.</summary>
-        public ProjectileVisualPacket? ReceiveProjectileVisuals()
-        {
-            ProjectileVisualPacket? latest = null;
-            while (_projectileVisualQueue.TryDequeue(out var entry))
-                if (latest == null || entry.Tick > latest.Value.Tick)
-                    latest = entry;
-            return latest;
-        }
-        /// <summary>Latest authoritative sword-hitbox owners; empty snapshots remove all trails.</summary>
-        public SwordTrailSnapshotPacket? ReceiveSwordTrailSnapshot()
-        {
-            SwordTrailSnapshotPacket? latest = null;
-            while (_swordTrailQueue.TryDequeue(out var entry))
-                if (latest == null || entry.Tick > latest.Value.Tick)
-                    latest = entry;
-            return latest;
+            if (!WorldFramePacket.TryDeserialize(payload, out var frame) || frame == null)
+                return;
+            _frameQueue.Enqueue(frame);
+            if (Interlocked.Increment(ref _queuedFrames) > MaxQueuedFrames && _frameQueue.TryDequeue(out _))
+                Interlocked.Decrement(ref _queuedFrames);
+            Interlocked.Exchange(ref _lastServerPacketAt, Stopwatch.GetTimestamp());
         }
 
         /// <summary>Drain authoritative final match snapshots received from the server.</summary>
@@ -488,46 +471,21 @@ namespace SlopArena.Client.Network
                         continue;
                     }
                     if (!ep.Equals(_serverEp)) continue;
-                    
+
+                    if (WorldFramePacket.TryPeekTick(buf, out _))
+                    {
+                        EnqueueFrame(buf);
+                        _connected = true;
+                        continue;
+                    }
                     if (MatchResultPacket.TryDeserialize(buf, out var matchResult))
                     {
                         _matchResultQueue.Enqueue(matchResult!);
                         continue;
                     }
-                    if (PresentationEventPacket.TryDeserialize(buf, out var presentationPacket))
-                    {
-                        _presentationEventQueue.Enqueue(presentationPacket!.Value.ToEvent());
-                        continue;
-                    }
-
-                    if (ProjectileVisualPacket.TryDeserialize(buf, out var projectileVisual))
-                    {
-                        _projectileVisualQueue.Enqueue(projectileVisual);
-                        continue;
-                    }
-                    if (SwordTrailSnapshotPacket.TryDeserialize(buf, out var swordTrail))
-                    {
-                        _swordTrailQueue.Enqueue(swordTrail);
-                        continue;
-                    }
-
                     if (buf.Length == NetplayControlPacket.Size)
-                    {
                         EnqueueControl(buf, MonotonicSeconds);
-                        continue;
-                    }
-                    if (buf.Length != ServerEntityPacket.NoInputSize &&
-                        buf.Length != ServerEntityPacket.MaxSize)
-                        continue;
-                    try
-                    {
-                        _receivedQueue.Enqueue(ServerEntityPacket.Deserialize(buf));
-                        Interlocked.Exchange(ref _lastServerPacketAt, Stopwatch.GetTimestamp());
-                        _connected = true;
-                    }
-                    catch (ArgumentException) { continue; }
-                    catch (InvalidDataException) { continue; }
-                    }
+                }
                 catch
                 {
                     if (_running) break;
@@ -700,7 +658,7 @@ namespace SlopArena.Client.Network
                         continue;
                     var message = Marshal.PtrToStructure<SteamNetworkingMessage_t>(pointer);
                     if (message.m_cbSize < 1 || message.m_cbSize > _steamReceiveFrame.Length)
-                        continue;
+                        continue; // larger than any World Frame: not ours
                     long ageMicroseconds = steamNow - message.m_usecTimeReceived.m_SteamNetworkingMicroseconds;
                     double receivedAt = readAt - Math.Clamp(ageMicroseconds, 0L, 1_000_000L) / 1_000_000d;
                     Marshal.Copy(message.m_pData, _steamReceiveFrame, 0, message.m_cbSize);
@@ -763,31 +721,9 @@ namespace SlopArena.Client.Network
                 return;
             }
             switch (frame[0])
-
             {
-                case SteamGameplayWire.State:
-                    if (payload.Length != ServerEntityPacket.NoInputSize &&
-                        payload.Length != ServerEntityPacket.MaxSize)
-                        return;
-                    try
-                    {
-                        _receivedQueue.Enqueue(ServerEntityPacket.Deserialize(payload));
-                        Interlocked.Exchange(ref _lastServerPacketAt, Stopwatch.GetTimestamp());
-                    }
-                    catch (ArgumentException) { }
-                    catch (InvalidDataException) { }
-                    break;
-                case SteamGameplayWire.Event:
-                    if (PresentationEventPacket.TryDeserialize(payload, out var presentation))
-                        _presentationEventQueue.Enqueue(presentation!.Value.ToEvent());
-                    break;
-                case SteamGameplayWire.Projectile:
-                    if (ProjectileVisualPacket.TryDeserialize(payload, out var projectileVisual))
-                        _projectileVisualQueue.Enqueue(projectileVisual);
-                    break;
-                case SteamGameplayWire.SwordTrail:
-                    if (SwordTrailSnapshotPacket.TryDeserialize(payload, out var swordTrail))
-                        _swordTrailQueue.Enqueue(swordTrail);
+                case SteamGameplayWire.Frame:
+                    EnqueueFrame(payload);
                     break;
                 case SteamGameplayWire.Result:
                     if (!_steamResultReceived && MatchResultPacket.TryDeserialize(payload, out var result))
@@ -797,6 +733,26 @@ namespace SlopArena.Client.Network
                     }
                     break;
             }
+        }
+
+        /// <summary>
+        /// Steam's live view of this connection for late-input diagnostics: a growing send
+        /// queue or pending bytes point at this machine's uplink; healthy values point past it.
+        /// </summary>
+        public string DescribeTransport()
+        {
+            if (_transport != UI.MatchTransport.SteamP2P || !_hasSteamConnection)
+                return $"transport={_transport}";
+            var status = default(SteamNetConnectionRealTimeStatus_t);
+            var lane = default(SteamNetConnectionRealTimeLaneStatus_t);
+            if (SteamNetworkingSockets.GetConnectionRealTimeStatus(_steamConnection, ref status, 0, ref lane) != EResult.k_EResultOK)
+                return "steam=unavailable";
+            return FormattableString.Invariant(
+                $"steamPing={status.m_nPing}ms quality={status.m_flConnectionQualityLocal:F2}/{status.m_flConnectionQualityRemote:F2} ") +
+                FormattableString.Invariant(
+                $"out={status.m_flOutPacketsPerSec:F0}pkt/s in={status.m_flInPacketsPerSec:F0}pkt/s sendRate={status.m_nSendRateBytesPerSecond / 1024}KB/s ") +
+                FormattableString.Invariant(
+                $"pending={status.m_cbPendingUnreliable}/{status.m_cbPendingReliable}B queue={(long)status.m_usecQueueTime / 1000.0:F1}ms jitter={status.m_usecMaxJitter / 1000.0:F1}ms");
         }
 
         private void UpdateSteamPing(long now)
@@ -858,19 +814,12 @@ namespace SlopArena.Client.Network
 
         private void ClearReceiveQueues()
         {
-            while (_receivedQueue.TryDequeue(out _)) { }
-            while (_presentationEventQueue.TryDequeue(out _)) { }
-            while (_projectileVisualQueue.TryDequeue(out _)) { }
+            ClearTransientReceiveQueues();
             while (_matchResultQueue.TryDequeue(out _)) { }
-            while (_swordTrailQueue.TryDequeue(out _)) { }
-            while (_controlQueue.TryDequeue(out _)) { }
         }
         private void ClearTransientReceiveQueues()
         {
-            while (_receivedQueue.TryDequeue(out _)) { }
-            while (_presentationEventQueue.TryDequeue(out _)) { }
-            while (_projectileVisualQueue.TryDequeue(out _)) { }
-            while (_swordTrailQueue.TryDequeue(out _)) { }
+            while (_frameQueue.TryDequeue(out _)) Interlocked.Decrement(ref _queuedFrames);
             while (_controlQueue.TryDequeue(out _)) { }
         }
 

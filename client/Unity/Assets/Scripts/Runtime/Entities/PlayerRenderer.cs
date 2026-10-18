@@ -233,6 +233,7 @@ namespace SlopArena.Client.Entities
                 _modelInstance.name = _modelName;
                 _modelInstance.transform.localScale = Vector3.one * _modelVisualScale;
                 _hitFeel?.AttachModel(_modelInstance.transform);
+                _airDodge?.AttachModel(_modelInstance.transform);
                 return;
             }
 
@@ -331,6 +332,7 @@ namespace SlopArena.Client.Entities
             instance.transform.localRotation = Quaternion.identity;
             instance.transform.localScale = Vector3.one * visualScale;
             _hitFeel?.AttachModel(instance.transform);
+            _airDodge?.AttachModel(instance.transform);
 
             _animancer = instance.GetComponent<AnimancerComponent>();
             if (_animancer == null)
@@ -675,7 +677,6 @@ namespace SlopArena.Client.Entities
         private bool _hasAppliedState;
         private byte _lastPresentedDeaths;
         private bool _hasPresentedDeaths;
-        private MovementFeedbackEffect _airDodgeTrail;
         private MovementFeedbackEffect _respawnInvincibilityEffect;
         private bool _respawnInvincibilityActive;
         private ulong _activeAccentWindowSignature;
@@ -742,10 +743,17 @@ namespace SlopArena.Client.Entities
                 MovementFeedbackEffect.Prewarm();
                 _hitFeel = GetComponent<FighterHitFeel>() ?? gameObject.AddComponent<FighterHitFeel>();
                 _hitFeel.Init(this);
+                _airDodge = TryGetComponent(out AirDodgePresentation airDodge)
+                    ? airDodge : gameObject.AddComponent<AirDodgePresentation>();
+                _airDodge.Init(this);
             }
         }
 
         private FighterHitFeel? _hitFeel;
+        private AirDodgePresentation? _airDodge;
+
+        /// <summary>Plays a one-shot on this fighter's SFX source (2D, SFX mixer bus).</summary>
+        internal void PlayOneShot(AudioClip clip, float volume) => _sfxSource?.PlayOneShot(clip, volume);
 
         /// <summary>Presentation-only hit feel; null outside Play Mode.</summary>
         public FighterHitFeel? HitFeel => _hitFeel;
@@ -1006,11 +1014,7 @@ namespace SlopArena.Client.Entities
         {
             HideShield();
             _projectileVFX?.ClearHeldVisual(_entityId);
-            if (_airDodgeTrail != null)
-            {
-                _airDodgeTrail.EndDashTrail();
-                _airDodgeTrail = null;
-            }
+            _airDodge?.Clear();
             if (_respawnInvincibilityEffect != null)
             {
                 _respawnInvincibilityEffect.EndInvincibility();
@@ -1190,7 +1194,6 @@ namespace SlopArena.Client.Entities
             transform.position = drawnPosition;
             if (Application.isPlaying)
             {
-                UpdateAirDodgeFeedback(state, targetPos);
                 if (!stockTransition)
                     EmitMovementFeedback(state, targetPos);
                 UpdateRespawnInvincibility(state, targetPos);
@@ -1228,6 +1231,7 @@ namespace SlopArena.Client.Entities
             CaptureWeaponTrailState(state);
             UpdateKiShotVisual(state);
             _hitFeel?.OnState(in state, _charDef, _currentAttackAirborne);
+            _airDodge?.OnState(in state);
             if (state.State == ActionState.Attacking && state.ChargeTicks > 0)
             {
                 LastFiredChargeTicks = state.ChargeTicks;
@@ -1302,28 +1306,6 @@ namespace SlopArena.Client.Entities
             CharacterClass.Wibou => new Color(0.76f, 0.9f, 1f, 0.95f),
             CharacterClass.Bonk => new Color(0.96f, 0.58f, 0.18f, 0.95f),
         };
-
-        private void UpdateAirDodgeFeedback(CharacterState state, Vector3 position)
-        {
-            if (state.State != ActionState.AirDodgeMovement)
-            {
-                if (_airDodgeTrail != null)
-                {
-                    _airDodgeTrail.EndDashTrail();
-                    _airDodgeTrail = null;
-                }
-                return;
-            }
-
-            Vector3 airDodgeDirection = new(state.DashDirX, 0f, state.DashDirZ);
-            if (airDodgeDirection.sqrMagnitude < 0.001f)
-                airDodgeDirection = new Vector3(state.VX, 0f, state.VZ);
-            Vector3 trailDirection = -airDodgeDirection;
-            if (_airDodgeTrail == null)
-                _airDodgeTrail = MovementFeedbackEffect.BeginDashTrail(position, trailDirection);
-            else
-                _airDodgeTrail.FollowDashTrail(position, trailDirection);
-        }
 
         private void EmitMovementFeedback(CharacterState state, Vector3 position)
         {

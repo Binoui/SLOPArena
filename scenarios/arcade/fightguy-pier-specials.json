@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "stage": "fightguy_pier",
+  "fighter": "fightguy",
+  "inputs": "fightguy-pier-specials.inputs.json",
+  "captures": [
+    {
+      "tick": 3,
+      "name": "start",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 3,
+      "name": "start-town",
+      "camera": {
+        "yaw": 180,
+        "pitch": 15
+      }
+    },
+    {
+      "tick": 70,
+      "name": "car-bash",
+      "camera": {
+        "yaw": 90,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 330,
+      "name": "gallery-kick",
+      "camera": {
+        "yaw": 0,
+        "pitch": 22
+      }
+    },
+    {
+      "tick": 445,
+      "name": "striker",
+      "camera": {
+        "yaw": 330,
+        "pitch": 12
+      }
+    },
+    {
+      "tick": 600,
+      "name": "dunk-shot",
+      "camera": {
+        "yaw": 270,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 760,
+      "name": "plaza",
+      "camera": {
+        "yaw": 270,
+        "pitch": 22
+      }
+    },
+    {
+      "tick": 790,
+      "name": "plaza-takeoff",
+      "camera": {
+        "yaw": 270,
+        "pitch": 15
+      }
+    },
+    {
+      "tick": 800,
+      "name": "old-pier-kick",
+      "camera": {
+        "yaw": 270,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 930,
+      "name": "pinata",
+      "camera": {
+        "yaw": 270,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 1350,
+      "name": "bell-shot",
+      "camera": {
+        "yaw": 270,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 1500,
+      "name": "old-pier",
+      "camera": {
+        "yaw": 340,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 1670,
+      "name": "wheel-view",
+      "camera": {
+        "yaw": 90,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 1720,
+      "name": "booth-kick",
+      "camera": {
+        "yaw": 90,
+        "pitch": 22
+      }
+    },
+    {
+      "tick": 1862,
+      "name": "tower-rise",
+      "camera": {
+        "yaw": 60,
+        "pitch": 10
+      }
+    },
+    {
+      "tick": 1980,
+      "name": "tower-top",
+      "camera": {
+        "yaw": 90,
+        "pitch": 30
+      }
+    },
+    {
+      "tick": 1980,
+      "name": "tower-south",
+      "camera": {
+        "yaw": 180,
+        "pitch": 30
+      }
+    },
+    {
+      "tick": 2080,
+      "name": "punch-machine",
+      "camera": {
+        "yaw": 90,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 2222,
+      "name": "lift-hill-save",
+      "camera": {
+        "yaw": 90,
+        "pitch": 22
+      }
+    },
+    {
+      "tick": 2379,
+      "name": "coaster",
+      "camera": {
+        "yaw": 90,
+        "pitch": 28
+      }
+    },
+    {
+      "tick": 2457,
+      "name": "coaster-kick",
+      "camera": {
+        "yaw": 0,
+        "pitch": 22
+      }
+    },
+    {
+      "tick": 2840,
+      "name": "heavy-bag",
+      "camera": {
+        "yaw": 0,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 3133,
+      "name": "complete",
+      "camera": {
+        "yaw": 0,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 3133,
+      "name": "complete-champ",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 3133,
+      "name": "complete-wheel",
+      "camera": {
+        "yaw": 0,
+        "pitch": 8
+      }
+    }
+  ],
+  "expect": {
+    "completed": true,
+    "targets": 28,
+    "falls": 0,
+    "checkpoints": 3
+  }
+}
