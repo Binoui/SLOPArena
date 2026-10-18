@@ -210,9 +210,11 @@ def motion_overview(clip, contact, path=None, views=('front', 'three-quarter-rig
 
 
 def preview_video(clip, path, views=('profile', 'three-quarter-right'), size=400, skin=None, contact=None, active=None,
-                  slow=4) -> Path:
+                  slow=4, loop_from=None) -> Path:
     """MP4 of the whole clip, views side by side at fixed framing: twice at real speed (one frame per 60 Hz
-    tick), then once at 1/slow speed. Ticks in `active` [first, last] are labelled in red; needs ffmpeg."""
+    tick), then once at 1/slow speed. Ticks in `active` [first, last] are labelled in red; needs ffmpeg.
+    With `loop_from`, the real-speed pass plays the clip once and then the loop twice more, wrapping from the
+    last tick to `loop_from` as the game does, so the seam can be judged."""
     from .skin import Skin
     skin = skin or Skin(clip.rig)
     renderer = Renderer(skin, clip.frame)
@@ -227,6 +229,9 @@ def preview_video(clip, path, views=('profile', 'three-quarter-right'), size=400
             frame.paste(renderer.image(world[tick], view, size, span, center, view), (i * size, 28))
         tick_label(frame, tick, contact, active, font)
         frames.append(frame)
+    if loop_from is not None:
+        looped = frames + frames[loop_from + 1:] * 2
+        return encode_passes([('1x', 1, looped), (f'1/{slow}x', slow, frames)], path)
     return encode_video(frames, path, slow)
 
 
@@ -240,22 +245,26 @@ def tick_label(image, tick, contact=None, active=None, font=None):
 def encode_video(frames, path, slow=4) -> Path:
     """H.264 MP4 of equal-size frames at 60 fps (one per tick): twice at real speed, then once at 1/slow speed,
     with the speed marked at the top right. Needs ffmpeg."""
+    return encode_passes([('1x', 1, frames + frames), (f'1/{slow}x', slow, frames)], path)
+
+
+def encode_passes(passes, path) -> Path:
+    """H.264 MP4 at 60 fps from passes of (speed label, frames per image, images); needs ffmpeg."""
     import subprocess
-    width, height = frames[0].size
+    width, height = passes[0][2][0].size
     small = _font(13)
     path = Path(path)
     command = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{width}x{height}',
                '-r', '60', '-i', '-', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-movflags', '+faststart',
                '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2', str(path)]
     with subprocess.Popen(command, stdin=subprocess.PIPE) as encoder:
-        for speed, repeat, passes in (('1x', 1, 2), (f'1/{slow}x', slow, 1)):
-            for _ in range(passes):
-                for frame in frames:
-                    marked = frame.copy()
-                    ImageDraw.Draw(marked).text((width - 50, 7), speed, fill=(170, 176, 186), font=small)
-                    data = marked.tobytes()
-                    for _ in range(repeat):
-                        encoder.stdin.write(data)
+        for speed, repeat, frames in passes:
+            for frame in frames:
+                marked = frame.copy()
+                ImageDraw.Draw(marked).text((width - 50, 7), speed, fill=(170, 176, 186), font=small)
+                data = marked.tobytes()
+                for _ in range(repeat):
+                    encoder.stdin.write(data)
         encoder.stdin.close()
         if encoder.wait() != 0:
             raise RuntimeError('ffmpeg failed to encode the preview')

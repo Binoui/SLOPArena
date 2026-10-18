@@ -4,7 +4,7 @@ display_name: After Hours
 target: pvp
 players: 2-4
 variant: static
-availability: provisional-visual-and-gameplay-review-pending
+availability: accepted
 competitive_intent: mixed
 topology: broad chamfered club roof with two performance risers and closed recovery walls
 source_scene: client/Unity/Assets/Stages/after_hours/after_hours.unity
@@ -14,7 +14,7 @@ design_brief: docs/design/stages/after_hours.design.md
 art_source: tools/blender/after_hours
 human_review:
   owner: project maintainer
-  status: pending
+  status: accepted 2026-10-17
   process: gameplay-camera orbit and recovery review, then normal PVP at 2 and 4 players
 ---
 
@@ -51,10 +51,10 @@ All presentation is original procedural art from `tools/blender/after_hours`
 baked AO, a billboard/screen atlas and a detail texture. The roof and club tower use
 `SLOPArena/StageVertexLit`; the city, signs, sky and traffic use the new
 `SLOPArena/StageNeon` shader, whose per-vertex channels animate signs, windows,
-traffic and trains without scripts. `sloparena.stage.art-after-hours` verifies the
-generator stamp against the source-scene and arena hashes, imports the art, sets the
-materials, a six-light night rig and the stage atmosphere, and removes earlier art
-roots. The prefab has no Colliders and no gameplay-owning components.
+traffic and trains without scripts. `sloparena.stage.art-apply --stage after_hours`
+verifies the generator stamp against the source-scene and arena hashes, imports the
+art, and applies the materials, six-light night rig, stage atmosphere and fight-night
+poster from `tools/blender/after_hours/presentation.py`. The prefab has no Colliders and no gameplay-owning components.
 
 Background geometry stays out of the blast corridor. Within 25 m of the roof nothing
 rises above two metres under the kill plane, so the 15 m orbit camera cannot clip
@@ -73,6 +73,5 @@ generated FBX/textures/materials stay local/ignored; rebuild them from the sourc
   in `tmp/after-hours-neon/pass-02/` and receipts in
   `.stage-authoring-cache/after_hours/neon-20261016/`.
 
-Human gameplay-camera, recovery-feel and two/four-player PVP review, measured
-rendering performance and packaged-player checks remain pending. These checks do not
-replace them.
+Accepted by the maintainer on 2026-10-17 after the stage pass ("the maps are much
+better"). Frame time and the packaged build were not measured separately.

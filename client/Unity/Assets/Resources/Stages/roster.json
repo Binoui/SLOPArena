@@ -1,0 +1,5 @@
+{
+ "about": "Stage Select roster, the single list of offered stages. picker stages appear in Solo and PvP; online Rooms offer them once Master admits them, and each release writes Master's Room__AdmittedArenas from this list. trainingOnly stages appear only in Training. A listed stage still needs a baked arena with collision and its Resources/Stages prefab. See docs/design/stages/roster.md.",
+ "picker": ["table_manners", "splash_deck", "slop_pit", "after_hours", "last_stop", "log_off"],
+ "trainingOnly": ["training"]
+}

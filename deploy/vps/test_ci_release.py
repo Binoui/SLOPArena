@@ -59,6 +59,19 @@ class CandidateValidationTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ci_release.CandidateError):
                 ci_release.validate_candidate(value)
 
+    def test_optional_admitted_arenas_roster_is_bounded_and_kept_in_order(self):
+        supplied = candidate()
+        supplied["admitted_arenas"] = ["table_manners", "splash_deck", "slop_pit"]
+        normalized = ci_release.validate_candidate(supplied)
+        self.assertEqual(normalized["admitted_arenas"], ["table_manners", "splash_deck", "slop_pit"])
+        self.assertNotIn("admitted_arenas", ci_release.validate_candidate(candidate()))
+        for arenas in ([], ["slop_pit", "slop_pit"], ["../etc"], ["Slop_Pit"], [None], "slop_pit",
+                       ["a%d" % n for n in range(33)], ["x" * 65]):
+            value = candidate()
+            value["admitted_arenas"] = arenas
+            with self.subTest(arenas=arenas), self.assertRaises(ci_release.CandidateError):
+                ci_release.validate_candidate(value)
+
     def test_validate_only_cli_emits_normalized_public_candidate(self):
         script = Path(ci_release.__file__)
         supplied = candidate()
@@ -111,6 +124,69 @@ class CandidateStateTests(unittest.TestCase):
             after = output.stat()
             self.assertEqual((after.st_uid, after.st_gid, after.st_mode & 0o777),
                              (before.st_uid, before.st_gid, before.st_mode & 0o777))
+
+    def test_release_master_environment_replaces_arena_admission_with_the_roster_in_place(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "active-master.env"
+            old_hash, new_hash = b"a" * 64, b"b" * 64
+            original = (b"Other__Value=a=b\r\nRoom__CatalogHash=" + old_hash + b"\r\n"
+                        b"Room__AdmittedArenas__0=slop_court\r\n# kept comment\r\n"
+                        b"Room__AdmittedArenas__1=after_hours\r\nLast__Value=z\r\n")
+            source.write_bytes(original)
+            active = {"runtime": {"master_env_file": str(source)}}
+            supplied = candidate()
+            supplied["catalog_hash"] = new_hash.decode()
+            supplied["admitted_arenas"] = ["table_manners", "slop_pit", "after_hours"]
+
+            output = ci_release.private_master_environment(active, root / "state", supplied)
+
+            self.assertEqual(output.read_bytes(),
+                             b"Other__Value=a=b\r\nRoom__CatalogHash=" + new_hash + b"\r\n"
+                             b"Room__AdmittedArenas__0=table_manners\r\nRoom__AdmittedArenas__1=slop_pit\r\n"
+                             b"Room__AdmittedArenas__2=after_hours\r\n# kept comment\r\nLast__Value=z\r\n")
+            self.assertEqual(source.read_bytes(), original)
+
+    def test_release_master_environment_adds_arena_admission_after_the_catalog_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "active-master.env"
+            source.write_bytes(b"Room__CatalogHash=" + b"a" * 64)
+            supplied = candidate()
+            supplied["admitted_arenas"] = ["slop_pit"]
+            output = ci_release.private_master_environment({"runtime": {"master_env_file": str(source)}},
+                                                           root / "state", supplied)
+            self.assertEqual(output.read_bytes(),
+                             b"Room__CatalogHash=" + supplied["catalog_hash"].encode() + b"\n"
+                             b"Room__AdmittedArenas__0=slop_pit\n")
+
+    def test_release_master_environment_refuses_unusual_arena_admission_lines(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "active-master.env"
+            source.write_bytes(b"Room__CatalogHash=" + b"a" * 64 + b"\nexport Room__AdmittedArenas__0=slop_pit\n")
+            supplied = candidate()
+            supplied["admitted_arenas"] = ["slop_pit"]
+            with self.assertRaisesRegex(release.ReleaseError, "plain assignments"):
+                ci_release.private_master_environment({"runtime": {"master_env_file": str(source)}},
+                                                      root / "state", supplied)
+
+    def test_active_profile_must_admit_exactly_the_release_roster(self):
+        profile = {"Deployment__Profile": "vps", "Auth__Mode": "steam", "Steam__AppId": "5325920",
+                   "Steam__Identity": "sloparena-playtest", "Room__CatalogHash": "4" * 64,
+                   "Room__AdmittedArenas__0": "table_manners", "Room__AdmittedArenas__1": "slop_pit"}
+
+        def check(environment, arenas):
+            config = {"services": {"master": {"environment": environment}}}
+            with patch.object(release, "image_config", return_value=config):
+                ci_release.require_active_vps_profile({}, Path("/unused"), {}, {}, "4" * 64, arenas)
+
+        check(profile, ["table_manners", "slop_pit"])
+        check(profile, None)
+        for environment, arenas in ((profile, ["table_manners"]), (profile, ["slop_pit", "table_manners"]),
+                                    ({**profile, "Room__AdmittedArenas__2": "log_off"}, ["table_manners", "slop_pit"])):
+            with self.subTest(arenas=arenas), self.assertRaises(release.ReleaseError):
+                check(environment, arenas)
 
     def test_duplicate_candidate_id_accepts_identical_bytes_and_rejects_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:

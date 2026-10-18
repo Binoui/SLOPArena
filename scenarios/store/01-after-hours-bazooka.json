@@ -1,0 +1,62 @@
+{
+ "stage": "after_hours",
+ "notes": "Manki's Bazooka (R) launches FightGuy at 250%; his grin rises from the smoke under the SLOP ARENA billboard.",
+ "capture": {
+  "from": 34,
+  "to": 60,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 95
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -5.6,
+    0,
+    -4.5
+   ],
+   "target": 2,
+   "input": [
+    {
+     "at": 20,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    1.1,
+    0,
+    -1.9
+   ],
+   "damage": 250,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "fb",
+   "pos": [
+    -5.4,
+    2.4,
+    -9.3
+   ],
+   "look": [
+    -1.74,
+    0.32,
+    -0.23
+   ],
+   "fov": 41,
+   "far": 3000
+  }
+ ],
+ "pick": {
+  "camera": "fb",
+  "tick": 54
+ }
+}

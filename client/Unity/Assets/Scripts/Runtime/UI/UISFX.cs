@@ -15,6 +15,8 @@ namespace SlopArena.Client.UI
         private AudioClip _menuTheme;
         private AudioClip[] _matchThemes;
         private bool _missingMenuThemeWarningLogged;
+        private const float MusicVolume = 0.35f;
+        private float _musicGain = 1f, _musicTarget = 1f, _musicDuck;
 
         public static void PlayClick()
         {
@@ -47,9 +49,28 @@ namespace SlopArena.Client.UI
             _instance._countdownSource.PlayOneShot(_instance._countdownStart, 0.85f);
         }
 
+        /// <summary>
+        /// Character Course ALL CLEAR!: the music dips under the gong, then swells a little for
+        /// the run home until <see cref="ResetMusicLift"/>.
+        /// </summary>
+        public static void LiftMusic()
+        {
+            EnsureInstance();
+            _instance._musicDuck = 0.9f;
+            _instance._musicTarget = 1.3f;
+        }
+
+        public static void ResetMusicLift()
+        {
+            if (_instance == null) return;
+            _instance._musicDuck = 0f;
+            _instance._musicTarget = 1f;
+        }
+
         public static void PlayMenuMusic()
         {
             EnsureInstance();
+            ResetMusicLift();
             if (_instance._menuTheme == null)
             {
                 if (!_instance._missingMenuThemeWarningLogged)
@@ -74,6 +95,7 @@ namespace SlopArena.Client.UI
                 return;
 
             AudioClip clip = _instance._matchThemes[Random.Range(0, _instance._matchThemes.Length)];
+            ResetMusicLift();
             _instance._musicSource.Stop();
             _instance._musicSource.clip = clip;
             _instance._musicSource.Play();
@@ -85,6 +107,17 @@ namespace SlopArena.Client.UI
                 return;
             _instance._musicSource.Stop();
             _instance._musicSource.clip = null;
+        }
+
+        private void Update()
+        {
+            if (_musicSource == null || (_musicGain == _musicTarget && _musicDuck <= 0f)) return;
+            float target = _musicDuck > 0f ? 0.55f : _musicTarget;
+            _musicDuck = Mathf.Max(0f, _musicDuck - Time.unscaledDeltaTime);
+            // A quick dip, then a slow swell.
+            float rate = target < _musicGain ? 6f : 0.25f;
+            _musicGain = Mathf.MoveTowards(_musicGain, target, rate * Time.unscaledDeltaTime);
+            _musicSource.volume = MusicVolume * _musicGain;
         }
 
         private static void EnsureInstance()
@@ -124,7 +157,7 @@ namespace SlopArena.Client.UI
             _musicSource.playOnAwake = false;
             _musicSource.loop = true;
             _musicSource.spatialBlend = 0f;
-            _musicSource.volume = 0.35f;
+            _musicSource.volume = MusicVolume;
             _musicSource.outputAudioMixerGroup = ClientSettingsService.Instance.FindBus("Music");
             _menuTheme = Resources.Load<AudioClip>("Audio/Music/MainTheme");
             _matchThemes = new[]

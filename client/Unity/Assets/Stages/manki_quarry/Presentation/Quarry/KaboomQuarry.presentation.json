@@ -1,0 +1,332 @@
+{
+ "format": 1,
+ "stage": "manki_quarry",
+ "folder": "Assets/Stages/manki_quarry/Presentation/Quarry",
+ "model": "KaboomQuarry.fbx",
+ "stamp": "KaboomQuarry.layout.json",
+ "root": "Kaboom Quarry",
+ "supersededRoots": [
+  "Kaboom Quarry (rough pass)"
+ ],
+ "textures": [
+  {
+   "file": "KaboomQuarryGround.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 4096,
+   "aniso": 8
+  },
+  {
+   "file": "KaboomQuarryAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 4096,
+   "aniso": 8
+  },
+  {
+   "file": "KaboomQuarryStrata.png",
+   "srgb": true,
+   "wrap": "repeat",
+   "maxSize": 1024,
+   "aniso": 8
+  },
+  {
+   "file": "KaboomQuarryDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  },
+  {
+   "file": "KaboomQuarryRipples.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "MQ_Lit",
+   "asset": "KaboomQuarryLit",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "KaboomQuarryAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "KaboomQuarryDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.6,
+    "_DetailStrength": 0.22,
+    "_Wrap": 0.3,
+    "_Specular": 0.0,
+    "_Gloss": 24,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.66,
+     0.76
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "MQ_Ground",
+   "asset": "KaboomQuarryGroundSurface",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "KaboomQuarryGround.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "KaboomQuarryDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.7,
+    "_DetailStrength": 0.32,
+    "_Wrap": 0.25,
+    "_Specular": 0.0,
+    "_Gloss": 24,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.66,
+     0.76
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "MQ_Rock",
+   "asset": "KaboomQuarryRock",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "KaboomQuarryStrata.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "KaboomQuarryDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.28,
+    "_Wrap": 0.35,
+    "_Specular": 0.0,
+    "_Gloss": 24,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.66,
+     0.76
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "MQ_Glow",
+   "asset": "KaboomQuarryGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "KaboomQuarryAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.7,
+    "_Ambient": 0.35,
+    "_Shade": 0.3,
+    "_Glow": 2.6,
+    "_FogAmount": 1.0,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     -0.321,
+     0.829,
+     -0.458,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "MQ_Water",
+   "asset": "KaboomQuarryWater",
+   "shader": "SLOPArena/StageWater",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_RippleMap": "KaboomQuarryRipples.png"
+   },
+   "floats": {
+    "_SwellHeight": 0.05,
+    "_SwellLength": 9,
+    "_FoamStrength": 0.55,
+    "_RippleStrength": 0.6
+   },
+   "colors": {
+    "_SkyColor": [
+     0.6,
+     0.7,
+     0.8
+    ],
+    "_HorizonColor": [
+     0.88,
+     0.82,
+     0.72
+    ]
+   }
+  }
+ ],
+ "shadows": {
+  "cast": true,
+  "receive": true,
+  "objects": {
+   "Water": {
+    "cast": false,
+    "receive": true
+   },
+   "Quarry Walls": {
+    "cast": false,
+    "receive": true
+   },
+   "Mount Manki": {
+    "cast": false,
+    "receive": true
+   },
+   "Flotsam": {
+    "cast": false,
+    "receive": true
+   },
+   "Smoke": {
+    "cast": false,
+    "receive": false
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Dusty Sun",
+   "type": "directional",
+   "sun": {
+    "azimuth": 215.0,
+    "elevation": 56.0
+   },
+   "color": [
+    1,
+    0.92,
+    0.78
+   ],
+   "intensity": 1.05,
+   "shadows": "soft",
+   "shadowStrength": 0.72
+  },
+  {
+   "name": "Pit Bounce",
+   "type": "point",
+   "position": [
+    -10,
+    22,
+    -4
+   ],
+   "color": [
+    1,
+    0.86,
+    0.68
+   ],
+   "intensity": 0.45,
+   "range": 80
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.84,
+   0.77,
+   0.64
+  ],
+  "ambientSky": [
+   0.74,
+   0.78,
+   0.84
+  ],
+  "ambientGround": [
+   0.64,
+   0.53,
+   0.4
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.88,
+   0.8,
+   0.67
+  ],
+  "fogStart": 80,
+  "fogEnd": 650
+ }
+}

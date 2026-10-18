@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "stage": "manki_quarry",
+  "fighter": "manki",
+  "inputs": "manki-quarry-jetpack.inputs.json",
+  "captures": [
+    { "tick": 3, "name": "start", "camera": { "yaw": 0, "pitch": 18 } },
+    { "tick": 120, "name": "first-bomb", "camera": { "yaw": 330, "pitch": 22 } },
+    { "tick": 400, "name": "haul-road", "camera": { "yaw": 290, "pitch": 25 } },
+    { "tick": 900, "name": "pontoons", "camera": { "yaw": 10, "pitch": 28 } },
+    { "tick": 1697, "name": "blast-face", "camera": { "yaw": 0, "pitch": 12 } },
+    { "tick": 1735, "name": "jetpack", "camera": { "yaw": 20, "pitch": 8 } },
+    { "tick": 1800, "name": "upper-bench", "camera": { "yaw": 160, "pitch": 30 } },
+    { "tick": 2300, "name": "conveyor", "camera": { "yaw": 200, "pitch": 35 } },
+    { "tick": 2842, "name": "complete", "camera": { "yaw": 20, "pitch": 25 } }
+  ],
+  "expect": {
+    "completed": true,
+    "targets": 18,
+    "falls": 0,
+    "checkpoints": 3
+  }
+}

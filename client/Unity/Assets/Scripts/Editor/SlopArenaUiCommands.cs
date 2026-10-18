@@ -110,6 +110,8 @@ namespace SlopArena.EditorTools
                     GameMode.Training => "shell-nav-training",
                     GameMode.Solo => "shell-nav-offline",
                     GameMode.Arcade => "shell-nav-arcade",
+                    // The tutorial has no navigation tab; it starts from Home.
+                    GameMode.Tutorial => "menu-tutorial",
                     _ => "shell-nav-online"
                 };
                 var submitted = await Click(modeButton, step);

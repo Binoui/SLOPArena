@@ -1,0 +1,51 @@
+{
+  "name": "shared-tumble-laid-out",
+  "notes": "Shared airborne tumble for all four fighters (docs/design/airborne-tumble-animation.md), owner decisions of 2026-10-17: laid-out flail, tumble until landing or an action, strong launches only. Clock confirmed by the owner: 24-tick build-up, 60-tick loop. Authored on FightGuy v2; Unity's Humanoid retargets it to Manki, Wibou and Bonk.",
+  "rigpack": "artifacts/genra-rigpacks/fightguy-unity",
+  "frame": "hips",
+  "character": "FightGuy v2. This one clip is shared: Unity's Humanoid retargeting also plays it on Manki (a monkey), Wibou (a swordsman) and Bonk (a hunched brute with a 1.84 m greatsword in his right hand).",
+  "references": {
+    "fall": "references/fall.usda",
+    "idle": "references/idle.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 24
+  },
+  "images": [
+    "../../tumble-20261017/concept-laid-out.png"
+  ],
+  "image_notes": "1: the approved concept as rough 2D side-view stick figures, not exact poses. The fighter faces right, toward the attacker; the hit came from the right and the flight goes up and to the left (blue arrow). Orange limbs are the near side, grey the far side. Left to right: the hit clip's impact snap (not part of this clip), tick 0 compact catch, the build-up unfolding, then three loop poses (laid out, rocking back, rocking forward), and the upright pose the game blends to on exit (not part of this clip).",
+  "description": "The airborne tumble: what a fighter's body does while a strong hit carries it through the air. It must sell the knockback: the hit launched this fighter and the force is still carrying the body. The old version was a stiff, symmetric lean that barely moved; this one is a laid-out, loose, out-of-control flail.\n\nHow the game plays it. A strong hit freezes both fighters for a moment, then the fighter plays the first few ticks of a hit reaction (light, medium or hard: a backward flinch, a forward fold or a sideways twist), then crossfades into this clip over 8 ticks. So ticks 0-8 are blended with whichever hit pose came before: tick 0 must be a calm, central pose that any of them can blend into, and the motion builds from there. Ticks 0-24 play once (the build-up). Ticks 24-84 then loop for as long as the fighter flies, from a fraction of a second to several seconds, until they land or act; the game wraps from tick 84 back to tick 24. The fighter faces the attacker (front) and flies backward and up, away from them; the fighter itself does not move, only the body animates.\n\nBuild-up (ticks 0-24, the slow, progressive start). Tick 0 is a compact catch: torso slightly folded forward and upright, chin tucked, knees drawn up a little, elbows bent with both hands close in front of the chest, hands loose. Then the force takes over, ease in, never a snap: ticks 0-8 the hips start being carried backward and the torso starts tipping back; ticks 8-16 the chest follows, the head lags then whips back, the arms fling outward and up and the legs swing forward and up toward the attacker; ticks 16-24 the body reaches the laid-out pose and is already moving the way the loop moves, so it flows straight into it.\n\nLoop (ticks 24-84, 60 ticks). Laid out: lying back, face up, the whole body pitched back about 65-100 degrees from upright, rocking slowly within that range about once per loop. Never head-down: the head is never more than a little below the hips. The body bows around the hips like a banana: the hips sag lowest and lead the flight, while the head and the legs trail higher. The back faces the direction of flight. The limbs flail loosely and out of phase, never mirrored: one arm flings up past the head while the other trails out to the side, then they trade; one leg is bent while the other extends, swapping through the loop (a loose scissor or bicycle, never planted, never kicking). Wrists, ankles and the head lag behind their parent segments; the head lolls behind the torso's rocking. Hands stay loose and half open, never fists. Give the torso a slight roll about its own long axis, about 10-20 degrees to either side, so the silhouette is never flat. Nothing should look like a repeated flinch or a new impact on each cycle: it is continuous, heavy and helpless.\n\nRead it end-on. The two players mostly see this along the flight: the attacker from the front and the victim's own camera from straight behind. A side-view curve alone disappears from there, so spread the arms and legs sideways into a wide X-like silhouette for most of the loop, and keep the roll.\n\nThe hips may move inside the clip: keep the body centred about where the upright body was (lie back around the hips; they may rise or shift a little). Two of the fighters carry a sword in the right hand (Bonk's greatsword is 1.84 m long): keep the right forearm pointing away from the body, out to the side or overhead, never across the chest, the face or between the legs. No landing brace, no planted feet, no attack or guard poses, no full flips or spins, and no turning to face another way.",
+  "clock": {
+    "duration_ticks": 84
+  },
+  "views": [
+    "profile",
+    "front",
+    "gameplay",
+    "three-quarter-right"
+  ],
+  "preview_views": [
+    "profile",
+    "front",
+    "gameplay"
+  ],
+  "review_ticks": [0, 4, 8, 12, 16, 20, 24, 34, 44, 54, 64, 74],
+  "targets": [
+    {"name": "left hand near the chest at tick 0 (m)", "kind": "distance", "a": "LeftHand", "b": "Spine2", "tick": 0, "max": 0.45},
+    {"name": "right hand near the chest at tick 0 (m)", "kind": "distance", "a": "RightHand", "b": "Spine2", "tick": 0, "max": 0.45},
+    {"name": "head behind the hips at the loop start (m)", "kind": "ahead", "a": "Head", "b": "Hips", "tick": 24, "max": -0.35},
+    {"name": "head behind the hips mid-loop (m)", "kind": "ahead", "a": "Head", "b": "Hips", "tick": 54, "max": -0.35},
+    {"name": "head height above the hips, tick 24 (m)", "kind": "below", "a": "Hips", "b": "Head", "tick": 24, "min": -0.25, "max": 0.35},
+    {"name": "head height above the hips, tick 39 (m)", "kind": "below", "a": "Hips", "b": "Head", "tick": 39, "min": -0.25, "max": 0.35},
+    {"name": "head height above the hips, tick 54 (m)", "kind": "below", "a": "Hips", "b": "Head", "tick": 54, "min": -0.25, "max": 0.35},
+    {"name": "head height above the hips, tick 69 (m)", "kind": "below", "a": "Hips", "b": "Head", "tick": 69, "min": -0.25, "max": 0.35},
+    {"name": "hands spread apart, tick 39 (m)", "kind": "distance", "a": "LeftHand", "b": "RightHand", "tick": 39, "min": 0.7},
+    {"name": "hands spread apart, tick 69 (m)", "kind": "distance", "a": "LeftHand", "b": "RightHand", "tick": 69, "min": 0.7}
+  ]
+}

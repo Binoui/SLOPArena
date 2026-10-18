@@ -1,10 +1,10 @@
 ---
 key: slop_pit
-status: locked
+status: accepted
 locked: 2026-10-16
 approved_by: maintainer
 approval_scope: selected warehouse cage-fight venue and raised-ring layout, procedural rebuild
-runtime_camera_review: pending
+accepted: 2026-10-17
 blockout:
   - .stage-authoring-cache/slop_pit/ring-20261016/build/preview/
   - tmp/slop-pit-ring/pass-05-pvp/
@@ -16,9 +16,8 @@ On 2026-10-16 the maintainer asked to remake Slop Pit with the procedural stage
 process because the factory deck did not sell the underground fight ring of the
 key art. From the presented options they selected the **warehouse cage fight**
 venue and, with the shell explicitly open to change, the **raised ring** layout.
-Those choices authorize this bounded implementation. The new captures have not
-been approved; in-game visual review and two/four-player PvP acceptance remain
-pending. The stage keeps the immutable key `slop_pit` and its display name.
+Those choices authorize this bounded implementation. The maintainer accepted the
+built stage on 2026-10-17 ("the maps are much better"). The stage keeps the immutable key `slop_pit` and its display name.
 
 ## Personality
 
@@ -165,8 +164,8 @@ canvas and floor stay neutral so fighters and their amber and cyan rims read fir
   Training's arena adds three directional lights, so the canvas print keeps headroom:
   tan under PvP lighting, bright cream (not clipped) in Training. These are agent
   evidence, not human review.
-- **Pending:** the maintainer's in-game visual review, two- and four-player PvP
-  acceptance, recovery feel, measured performance and the packaged build.
+- **Accepted** by the maintainer on 2026-10-17. Frame time and the packaged build
+  were not measured separately.
 
 ## History
 

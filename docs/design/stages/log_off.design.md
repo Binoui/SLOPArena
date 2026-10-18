@@ -1,10 +1,10 @@
 ---
 key: log_off
-status: locked
+status: accepted
 locked: 2026-10-16
 approved_by: maintainer
 approval_scope: selected split-and-fungus layout, logged-off campsite, and sunset campfire implementation
-runtime_camera_review: pending
+accepted: 2026-10-17
 blockout:
   - .ability-lab-cache/log-off-campsite-20261016/orbit/top.png
 ---
@@ -14,8 +14,8 @@ blockout:
 On 2026-10-16 the maintainer selected **Split + fungus shelves**, **Logged-off
 campsite**, and **Sunset campfire** from the rework options. Those choices authorize
 this bounded rework of the previous split-stump woodland. The implementation scope
-is decided; the new captures have not been approved by the maintainer. Human
-in-game camera and two/four-player PvP reviews remain pending.
+is decided. The maintainer accepted the built stage on 2026-10-17 ("the maps are much
+better").
 
 ## Personality
 

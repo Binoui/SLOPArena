@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using Xunit;
 
 namespace SlopArena.Shared.Tests;
@@ -51,6 +53,31 @@ public class ArenaShippingTests
                 $"{fileName}: ground {surface:F2} at spawn is below the blast zone {arena.KillHeight}");
             // Bug signature: Heightmap.Data == null makes Simulation ground at KillHeight + 1.
             Assert.NotEqual(arena.KillHeight + 1f, surface, precision: 2);
+        }
+    }
+
+    /// <summary>
+    /// Every stage the picker roster offers ships whole: a baked PvP arena with collision, its
+    /// Resources prefab and its stage-select thumbnail are in the repository, so a fresh clone
+    /// and a release build both show it. The release turns the same list into Master's admission.
+    /// </summary>
+    [Fact]
+    public void PickerRoster_StagesShipWithArenaPrefabAndThumbnail()
+    {
+        string root = RepoRoot();
+        string resources = Path.Combine(root, "client", "Unity", "Assets", "Resources");
+        using var roster = JsonDocument.Parse(File.ReadAllText(Path.Combine(resources, "Stages", "roster.json")));
+        string[] picker = roster.RootElement.GetProperty("picker").EnumerateArray().Select(x => x.GetString()!).ToArray();
+        Assert.NotEmpty(picker);
+        Assert.Equal(picker.Length, picker.Distinct().Count());
+        foreach (string stage in picker)
+        {
+            var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root, "data", "arenas", stage + ".arena"));
+            Assert.True(arena.HasValue, $"{stage}: the roster offers it but data/arenas/{stage}.arena does not load");
+            Assert.Equal(ArenaPurpose.PvP, arena.Value.Purpose);
+            Assert.NotEmpty(arena.Value.CollisionTriangles);
+            Assert.True(File.Exists(Path.Combine(resources, "Stages", stage + ".prefab")), $"{stage}: Resources/Stages/{stage}.prefab is missing");
+            Assert.True(File.Exists(Path.Combine(resources, "UI", "Stages", stage + ".png")), $"{stage}: its stage-select thumbnail is missing");
         }
     }
 

@@ -38,7 +38,10 @@ namespace SlopArena.Client.Combat
                 Destroy(_arcMaterial);
         }
 
-        public void SetTrajectory(Vector3 origin, float capsuleHeight, float yawRad, float distance)
+        /// <param name="origin">The thrower's body centre (state PY).</param>
+        /// <param name="impact">Where the throw really lands, when known: the arc ends there
+        /// instead of at foot height on a y = 0 floor.</param>
+        public void SetTrajectory(Vector3 origin, float capsuleHeight, float yawRad, float distance, Vector3? impact = null)
         {
             EnsureVisuals();
             float launchRad = LaunchAngleDeg * Mathf.Deg2Rad;
@@ -50,14 +53,18 @@ namespace SlopArena.Client.Combat
             float aimCos = Mathf.Cos(yawRad);
             float aimSin = Mathf.Sin(yawRad);
             float startY = origin.y + LaunchOffsetY;
-            float totalTime = distance / Mathf.Max(hSpeed, 0.01f);
+            float reach = distance;
+            if (impact.HasValue)
+                reach = new Vector2(impact.Value.x - origin.x, impact.Value.z - origin.z).magnitude;
+            float totalTime = reach / Mathf.Max(hSpeed, 0.01f);
 
             for (int i = 0; i <= ArcSegments; i++)
             {
                 float t = (float)i / ArcSegments * totalTime;
+                float y = startY + vSpeed * t - 0.5f * Gravity * t * t;
                 _arcPoints[i] = new Vector3(
                     origin.x + hSpeed * aimSin * t,
-                    Mathf.Max(startY + vSpeed * t - 0.5f * Gravity * t * t, 0f),
+                    impact.HasValue ? y : Mathf.Max(y, 0f),
                     origin.z + hSpeed * aimCos * t);
             }
 

@@ -135,7 +135,7 @@ The project rules tell assistants to explain their plan and get your OK before c
 | Grab | C | LB + RT |
 | Crouch, slide, fast-fall | X | LT |
 | Normals 1 / 2 / 3 / 4 | Number row 1 / 2 / 3 / 4 | A / X / Y / B |
-| Specials A / E / R / F | A / E / R / F | Hold LB, then A / Y / X / B |
+| Specials A / E / R / F | Q / E / R / F (A / E / R / F on AZERTY) | Hold LB, then A / Y / X / B |
 | Face the camera | Left click | L3 |
 | Lock on to a target | Right click | R3 |
 | Switch target | Tab | D-pad right |

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using SlopArena.Client.Input;
 using SlopArena.Client.UI;
 using SlopArena.Client.World;
 using SlopArena.Shared;
@@ -11,7 +12,10 @@ using Unity.Pipeline.Commands;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
 namespace SlopArena.EditorTools
@@ -190,8 +194,17 @@ namespace SlopArena.EditorTools
 
         [MenuItem("Tools/SLOPArena/Arcade/Phase 4/Open FightGuy Course")]
         private static void OpenMenu() => Open();
-        [CliCommand("sloparena.arcade.course.open", "Open the FightGuy sanctuary course; press Play to begin.", MainThreadRequired = true, Tags = new[] { "arcade" })]
-        public static object Open() => SlopArenaArcadePhase1Commands.OpenBallScene(ScenePath, CharacterCourseMatch.ArenaKey, "fightguy");
+        [MenuItem("Tools/SLOPArena/Arcade/Open Manki Course")]
+        private static void OpenMankiMenu() => Open("manki_quarry", "manki");
+        [CliCommand("sloparena.arcade.course.open", "Open a Character Course (FightGuy's sanctuary by default) with a fighter it admits; press Play to begin.", MainThreadRequired = true, Tags = new[] { "arcade" })]
+        public static object Open(
+            [CliArg("stage", "Course stage key, one of CharacterCourseMatch.Courses.")] string stage = CharacterCourseMatch.ArenaKey,
+            [CliArg("fighter", "Package ID the course admits (fightguy for the sanctuary, manki for the quarry).")] string fighter = "fightguy")
+        {
+            if (Array.FindIndex(CharacterCourseMatch.Courses, c => c.Key == stage) < 0)
+                throw new ArgumentException("Unknown course " + stage + "; add it to CharacterCourseMatch.Courses.", nameof(stage));
+            return SlopArenaArcadePhase1Commands.OpenBallScene(ScenePath, stage, fighter);
+        }
 
         [CliCommand("sloparena.arcade.course.status", "Observe real course state, targets, checkpoints, fighter and records.", MainThreadRequired = true, Tags = new[] { "arcade", "simulation" })]
         public static object Status()
@@ -205,7 +218,53 @@ namespace SlopArena.EditorTools
                 fighter = fighter.HasValue ? new { fighter.Value.PX, fighter.Value.PY, fighter.Value.PZ,
                     fighter.Value.IsGrounded, fighter.Value.Deaths, cooldownE = fighter.Value.GetCooldown(AbilitySlots.E),
                     cooldownR = fighter.Value.GetCooldown(AbilitySlots.R) } : null,
+                activeHitboxes = sim?.Resolver?.GetActiveHitboxes().Count, presentation = match?.PresentationDiagnostics,
                 recordsFile = ArcadeRecordsStore.Instance.Path, recordFeedback = ArcadeRecordsStore.Instance.Feedback };
+        }
+
+        [CliCommand("sloparena.arcade.course.retry", "Retry the live course like a player (direct call, or the bound Retry control on a virtual gamepad/keyboard) and wait for the fresh attempt; reports latency and the gamepad hold bar.",
+            MainThreadRequired = true, Tags = new[] { "arcade", "simulation" })]
+        public static async Task<object> Retry([CliArg("via", "call (default), gamepad (hold the bound button) or keyboard (press the bound key).")] string via = "call")
+        {
+            var match = Object.FindFirstObjectByType<CharacterCourseMatch>();
+            if (!EditorApplication.isPlaying || EditorApplication.isPaused || match == null || !match.Ready || match.ProbeInputActive)
+                throw new InvalidOperationException("Retry requires a ready, unpaused course without an active probe.");
+            if (via is not ("call" or "gamepad" or "keyboard")) throw new ArgumentException("via must be call, gamepad or keyboard.");
+            var hold = Object.FindObjectsByType<UIDocument>(FindObjectsSortMode.None)
+                .Select(x => x.rootVisualElement?.Q("course-retry-hold")).FirstOrDefault(x => x != null);
+            var previous = match.Simulation; int frame = Time.frameCount; float holdPeak = 0f; bool holdShown = false;
+            var clock = System.Diagnostics.Stopwatch.StartNew(); double deadline = EditorApplication.timeSinceStartup + 30;
+            InputDevice device = null;
+            try
+            {
+                if (via == "call") match.RestartAttempt();
+                else
+                {
+                    // Press the actual Retry binding for that device, so rebinding is respected.
+                    device = via == "gamepad" ? InputSystem.AddDevice<Gamepad>("CourseRetryProbePad") : InputSystem.AddDevice<Keyboard>("CourseRetryProbeKeyboard");
+                    var action = HumanInputActions.Get("Retry");
+                    var binding = action.bindings[HumanInputActions.BindingIndex("Retry", via == "gamepad" ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardGroup)];
+                    if (InputControlPath.TryFindControl(device, binding.effectivePath) is not ButtonControl button)
+                        throw new InvalidOperationException("The Retry binding is not a button on a " + via + ": " + binding.effectivePath);
+                    using (UnityEngine.InputSystem.LowLevel.StateEvent.From(device, out var eventPtr)) { button.WriteValueIntoEvent(1f, eventPtr); InputSystem.QueueEvent(eventPtr); }
+                }
+                CharacterCourseMatch current;
+                while ((current = Object.FindFirstObjectByType<CharacterCourseMatch>()) == null || !current.Ready || current.Simulation == previous)
+                {
+                    if (!EditorApplication.isPlaying || EditorApplication.timeSinceStartup > deadline)
+                        throw new InvalidOperationException("The retried course did not become ready; inspect the console.");
+                    if (hold != null && hold.resolvedStyle.display == DisplayStyle.Flex && hold.resolvedStyle.width > 0f)
+                    {
+                        holdShown = true;
+                        holdPeak = Mathf.Max(holdPeak, hold[0].resolvedStyle.width / hold.resolvedStyle.width);
+                    }
+                    await Task.Delay(1);
+                }
+                clock.Stop();
+                return new { success = true, via, milliseconds = Math.Round(clock.Elapsed.TotalMilliseconds, 1), frames = Time.frameCount - frame,
+                    sameMatch = current == match, holdShown, holdPeak = Math.Round(holdPeak, 2), state = Status() };
+            }
+            finally { if (device != null) InputSystem.RemoveDevice(device); }
         }
 
         [CliCommand("sloparena.arcade.course.run", "Apply bounded normal semantic inputs to the live course; observe actual target and checkpoint events.",

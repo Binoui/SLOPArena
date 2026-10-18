@@ -304,9 +304,11 @@ namespace Unity.Pipeline.Editor
         /// </summary>
         private static void OnBeforeAssemblyReload()
         {
+            // Stop serving first: a request that is still waiting for the main thread when the
+            // domain unloads deadlocks the Editor. The descriptor stays; the next domain's
+            // [InitializeOnLoad] restarts the server and rewrites it.
+            m_Server?.StopForReload();
             EditorCommandOwnershipSession.PersistCurrent();
-            // Server will be automatically recreated after reload due to [InitializeOnLoad]
-            // Instance descriptor file will be cleaned up and recreated
         }
 
         /// <summary>

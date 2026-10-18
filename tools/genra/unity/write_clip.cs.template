@@ -4,6 +4,9 @@
 // exact local transform curves. Root motion is baked into the pose: PlayerRenderer plays clips through Animancer
 // with applyRootMotion off, so nothing may be extracted from the body. Playback is measured the same way in a
 // preview scene. The clip is saved only when the job names a new asset path; nothing is overwritten or bound.
+// job["alignOrigin"] (default true) moves the body onto the entry clip's at the entry tick; a free-entry clip (its
+// own start pose, such as a crouch) keeps the toolkit origin, which is already Unity's. job["loopTime"] cycles the
+// whole clip in Unity.
 var job = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("{{JOB}}"));
 var output = "{{OUTPUT}}";
 if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("genra clip writer requires Edit Mode");
@@ -16,6 +19,8 @@ int ticks = locals.Length;
 var reference = job["reference"] as Newtonsoft.Json.Linq.JObject;  // entry clip the candidate starts from
 string compareId = job["compare"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["compare"] : null;
 var bakeTicks = job["bakeTicks"].ToObject<int[]>();
+bool alignOrigin = job["alignOrigin"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean || (bool)job["alignOrigin"];
+bool loopTime = job["loopTime"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && (bool)job["loopTime"];
 string assetPath = job["asset"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["asset"] : null;
 if (assetPath != null && (!assetPath.StartsWith("Assets/") || !assetPath.EndsWith(".anim") || assetPath.Contains("..")))
   throw new System.Exception("Asset path must be a new Assets/... .anim path: " + assetPath);
@@ -318,7 +323,7 @@ try {
     }
     UnityEditor.AnimationUtility.SetEditorCurves(clip, bindings.ToArray(), curves.ToArray());
     var settings = UnityEditor.AnimationUtility.GetAnimationClipSettings(clip);
-    settings.loopTime = false; settings.startTime = 0f; settings.stopTime = (ticks - 1) / (float)fps;
+    settings.loopTime = loopTime; settings.startTime = 0f; settings.stopTime = (ticks - 1) / (float)fps;
     settings.loopBlendOrientation = true; settings.loopBlendPositionY = true; settings.loopBlendPositionXZ = true;  // bake into pose
     settings.keepOriginalOrientation = true; settings.keepOriginalPositionY = true; settings.keepOriginalPositionXZ = true;
     settings.heightFromFeet = false; settings.mirror = false;
@@ -358,15 +363,19 @@ try {
   }
   float MaxDistance(float[] a, float[] b) { float m = 0f; for (int i = 0; i < a.Length; i += 3) { float dx = a[i] - b[i], dy = a[i + 1] - b[i + 1], dz = a[i + 2] - b[i + 2]; m = UnityEngine.Mathf.Max(m, dx * dx + dy * dy + dz * dz); } return UnityEngine.Mathf.Sqrt(m); }
 
-  // 4. Origin: match the reference clip's actual playback at the entry tick with a constant body offset.
+  // 4. Origin: match the reference clip's actual playback at the entry tick with a constant body offset. Without
+  // alignOrigin the reference is only measured: moving a free entry's body centre onto the reference's lifted a
+  // crouched loop 17-21 cm off the floor (2026-10-18).
   var origin = UnityEngine.Vector3.zero;
   float[][] referencePositions = null;
   if (referenceClip != null) {
     var target = Runtime(referenceClip, referenceTime);
     referencePositions = target.positions;
-    var provisional = Build(UnityEngine.Vector3.zero);
-    temporary.Add(provisional);
-    origin = target.body - Runtime(provisional, 0f).body;
+    if (alignOrigin) {
+      var provisional = Build(UnityEngine.Vector3.zero);
+      temporary.Add(provisional);
+      origin = target.body - Runtime(provisional, 0f).body;
+    }
   }
   var result = Build(origin);
 
@@ -415,7 +424,7 @@ try {
 
   var data = new {
     package, name, fps, ticks, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), avatar = avatar.name, humanMotion = result.humanMotion,
-    lengthSeconds = result.length, curves = UnityEditor.AnimationUtility.GetCurveBindings(result).Length,
+    lengthSeconds = result.length, looping = result.isLooping, alignOrigin, curves = UnityEditor.AnimationUtility.GetCurveBindings(result).Length,
     muscleAttributes = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(UnityEngine.HumanTrait.MuscleName, MuscleAttribute)),
     mapped, generic = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(generic, i => paths[i])), inBetween,
     reference = referenceClip != null ? new { clip = referenceClip.name, semanticId = (string)reference["semanticId"], tick = (int)reference["tick"], positions = referencePositions } : null,

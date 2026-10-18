@@ -67,6 +67,39 @@ public sealed class HitReliabilityReportTests
     }
 
     [Fact]
+    public void ParseSlots_AcceptsCanonicalKeysAndRejectsUnknownOnes()
+    {
+        Assert.Equal(new[] { AbilitySlots.Slot1, AbilitySlots.Slot4, AbilitySlots.F }, Reliability.ParseSlots("1, 4,f,F"));
+        Assert.Null(Reliability.ParseSlots("1,Q"));
+        Assert.Null(Reliability.ParseSlots(""));
+    }
+
+    [Fact]
+    public void BearingsTouched_CountsOnlyTheBearingsTheBladeReaches()
+    {
+        // The pillar stands 1.5 m away on each of 24 bearings; the blade points straight ahead, so
+        // it reaches the pillar straight ahead and 15° to either side, not 30° or behind.
+        var centred = Pillar[0];
+        centred.PosZ = 0f;
+        centred.EndZ = 0f;
+
+        Assert.Equal(3, Reliability.BearingsTouched(new[] { Blade(0f) }, new[] { centred }, 1.5f));
+    }
+
+    [Fact]
+    public void Flag_ReportsHitsThatNeverTouchAStandingTarget()
+    {
+        var move = new MoveReliability { Slot = "ground.F", ActiveTicks = 74, ContactTicksAtProbe = 10 };
+        move.Hits.Add(new HitCoverage { FirstTick = 2, Touched = { ("Manki", 1f, 8), ("Manki", 1.5f, 5) } });
+        move.Hits.Add(new HitCoverage { FirstTick = 16, Touched = { ("Manki", 1f, 0), ("Manki", 1.5f, 0) } });
+        move.Hits.Add(new HitCoverage { FirstTick = 44, Touched = { ("Manki", 1f, 0), ("Manki", 1.5f, 0) } });
+
+        Reliability.Flag(move);
+
+        Assert.Equal("2 of 3 hits (t16, t44) never touch a standing Manki 1–1.5 m away", Assert.Single(move.Flags));
+    }
+
+    [Fact]
     public void Flag_ReportsPointBlankWhiffOnlyAtTheDirectBearing()
     {
         var move = new MoveReliability { Slot = "ground.2", ActiveTicks = 10, ContactTicksAtProbe = 3 };

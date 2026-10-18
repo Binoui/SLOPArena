@@ -13,7 +13,6 @@ saves a .blend.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import os
@@ -29,11 +28,13 @@ import bpy  # noqa: E402
 
 from stagekit import blender as kit  # noqa: E402
 from stagekit import checks, geo  # noqa: E402
+from stagekit.presentation import write as write_presentation  # noqa: E402
 
 import bay as BAY  # noqa: E402
 import boat as BOAT  # noqa: E402
 import coast as COAST  # noqa: E402
 import layout as LAYOUT  # noqa: E402
+import presentation as PRESENTATION  # noqa: E402
 import sea as SEA  # noqa: E402
 import textures  # noqa: E402
 import village as VILLAGE  # noqa: E402
@@ -43,8 +44,8 @@ DEFAULT_OUT = "/tmp/splash-deck-generated"
 DEFAULT_REPORT = REPO / ".stage-authoring-cache/splash_deck/harbour"
 MATERIALS = ["SD_Wood", "SD_Deck", "SD_Hull", "SD_Land", "SD_Foliage", "SD_Cloth", "SD_Water", "SD_Glow", "SD_Sky"]
 GLOWING = ("SD_Glow", "SD_Sky")
-ENVELOPE = 25.0         # orbit radius 10 x 1.5 zoom plus the 10 m side blast margin
-ENVELOPE_CEILING = 2.0  # metres below the kill plane
+ENVELOPE = checks.CAMERA_REACH_FROM_OUTLINE  # measured from the deck outline
+ENVELOPE_CEILING = checks.CEILING_CLEARANCE
 LANE_CLEAR = 30.0       # travelling objects stay above topY + LANE_CLEAR inside the envelope
 # The deck, hull and raised spots carry painted contact shading instead of a vertex AO bake:
 # their few large faces would turn the whole wall grey (a wall beside the deck sees half the sky).
@@ -59,17 +60,7 @@ TEXTURES = {"deck": "SplashDeckDeck.png", "hull": "SplashDeckHull.png", "atlas":
 
 
 def args():
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    p = argparse.ArgumentParser()
-    p.add_argument("--out", default=DEFAULT_OUT)
-    p.add_argument("--report", default=str(DEFAULT_REPORT))
-    p.add_argument("--preview", action="store_true")
-    p.add_argument("--views", default="")
-    p.add_argument("--no-bake", action="store_true")
-    p.add_argument("--no-export", action="store_true")
-    p.add_argument("--spec-only", action="store_true")
-    p.add_argument("--samples", type=int, default=48)
-    return p.parse_args(argv)
+    return checks.build_args(DEFAULT_OUT, DEFAULT_REPORT)
 
 
 def _outside_distance(poly, x, z):
@@ -255,6 +246,7 @@ def main():
                        "sun": {"azimuth": BAY.SUN_AZIMUTH, "elevation": BAY.SUN_ELEVATION},
                        "objects": sorted(objects), "geometryDigest": digest, "problems": len(problems)}, fh, indent=1)
             fh.write("\n")
+        write_presentation(PRESENTATION.PRESENTATION, a.out)
     triangles = sum(g.triangle_count for g in b.groups.values())
     summary = {
         "source": data["source"], "sourceSha256": data["sourceSha256"], "arenaSha256": data["arenaSha256"],

@@ -12,20 +12,22 @@ using SlopArena.Shared;
 namespace SlopArena.HitReliabilityReport;
 
 /// <summary>
-/// Measures how forgiving each admitted normal is against standing roster targets, from the
-/// cooked content the game runs: clip playback speed, active ticks that touch a nearby target,
-/// real-sim reach bands for ground normals, how far below or above its feet an aerial reaches,
-/// and how much of a bone or weapon swing the engine leaves untested between ticks. Use it to
-/// compare characters and to check a re-authored attack after its cook.
+/// Measures how forgiving each admitted normal (or selected special) is against standing roster
+/// targets, from the cooked content the game runs: clip playback speed, active ticks that touch a
+/// nearby target, real-sim reach bands for ground moves, how far below or above its feet an aerial
+/// reaches, where around the attacker each hit of a multi-hit ground move lands, and how much of a
+/// bone or weapon swing the engine leaves untested between ticks. Use it to compare characters and
+/// to check a re-authored attack after its cook.
 /// </summary>
 internal static class Program
 {
     private const string Usage = """
         Usage: dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk]
-               [--out artifacts/hit-reliability]
+               [--slots 1,2,3,4] [--out artifacts/hit-reliability]
 
         Writes <char>.md and <char>.json per character. Targets are idle, standing FightGuy
         (medium) and Manki (small); measurements read the admitted content-cooked roster.
+        --slots picks canonical slots (1-4, A, E, R, F), ground and air; the default is the normals.
         """;
 
     private static readonly Dictionary<string, CharacterClass> Characters = new(StringComparer.Ordinal)
@@ -38,6 +40,7 @@ internal static class Program
     {
         string selector = "all";
         string output = Path.Combine("artifacts", "hit-reliability");
+        byte[] wires = Reliability.NormalWires;
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -45,6 +48,14 @@ internal static class Program
                 case "--help" or "-h": Console.WriteLine(Usage); return 0;
                 case "--char" when i + 1 < args.Length: selector = args[++i].ToLowerInvariant(); break;
                 case "--out" when i + 1 < args.Length: output = args[++i]; break;
+                case "--slots" when i + 1 < args.Length:
+                    if (Reliability.ParseSlots(args[++i]) is not { } parsed)
+                    {
+                        Console.Error.WriteLine($"Unknown slots '{args[i]}'.\n{Usage}");
+                        return 2;
+                    }
+                    wires = parsed;
+                    break;
                 default:
                     Console.Error.WriteLine($"Unknown or incomplete argument '{args[i]}'.\n{Usage}");
                     return 2;
@@ -62,7 +73,7 @@ internal static class Program
         foreach (var (name, cls) in Characters.Where(x => selector == "all" || x.Key == selector))
         {
             var attacker = BuiltInContentResolver.Resolve(cls);
-            var moves = Reliability.Measure(attacker, targets, arena);
+            var moves = Reliability.Measure(attacker, targets, arena, wires);
             string markdown = Markdown(attacker, moves);
             File.WriteAllText(Path.Combine(output, name + ".md"), markdown);
             File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new
@@ -70,7 +81,7 @@ internal static class Program
                 attacker.Identity, generatedUtc = DateTime.UtcNow.ToString("u", CultureInfo.InvariantCulture), moves,
             }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
             int flagged = moves.Count(x => x.Flags.Count > 0);
-            Console.WriteLine($"{name}: {moves.Count} normals, {flagged} flagged → {Path.GetFullPath(Path.Combine(output, name + ".md"))}");
+            Console.WriteLine($"{name}: {moves.Count} moves, {flagged} flagged → {Path.GetFullPath(Path.Combine(output, name + ".md"))}");
         }
         return 0;
     }
@@ -83,7 +94,7 @@ internal static class Program
             + "Idle standing targets; ground reach comes from the real simulation (5 cm steps), aerial and sampling "
             + "columns from the cooked hitbox geometry with the attacker fixed in place.").AppendLine();
 
-        md.AppendLine("## Ground normals").AppendLine();
+        md.AppendLine("## Ground moves").AppendLine();
         md.AppendLine($"| Move | Playback | Active ticks | Touch at {Reliability.ContactProbeMeters:F0} m | Reach vs FightGuy | Reach vs Manki | At 30° | Flags |");
         md.AppendLine("|---|---:|---:|---:|---|---|---|---|");
         foreach (var move in moves.Where(x => !x.Air))
@@ -96,7 +107,7 @@ internal static class Program
         }
         md.AppendLine();
 
-        md.AppendLine("## Aerial normals").AppendLine();
+        md.AppendLine("## Aerial moves").AppendLine();
         md.AppendLine("Target feet height relative to the attacker's feet that any active tick can touch (searched −3 to +2 m).").AppendLine();
         md.AppendLine("| Move | Playback | Active ticks | vs FightGuy | vs Manki | Flags |");
         md.AppendLine("|---|---:|---:|---|---|---|");
@@ -111,6 +122,24 @@ internal static class Program
                 + $"{Band("FightGuy")} | {Band("Manki")} | {string.Join("; ", move.Flags)} |");
         }
         md.AppendLine();
+
+        var multi = moves.Where(x => x.Hits.Count > 0).ToList();
+        if (multi.Count > 0)
+        {
+            var columns = multi[0].Hits[0].Touched.Select(x => (x.Target, x.Distance)).ToList();
+            md.AppendLine("## Multi-hit coverage").AppendLine();
+            md.AppendLine($"Bearings (of {Reliability.CoverageBearings}, 15° apart) at which each hit of a multi-hit ground move "
+                + "touches a standing target, from the poses the engine tests, with the attacker fixed and the target never "
+                + "knocked away. A hit with zero everywhere cannot land on that target.").AppendLine();
+            md.AppendLine("| Move | Ticks | Damage | Radius | "
+                + string.Join(" | ", columns.Select(c => FormattableString.Invariant($"{c.Target} {c.Distance:0.0} m"))) + " |");
+            md.AppendLine("|---|---|---:|---:|" + string.Concat(columns.Select(_ => "---:|")));
+            foreach (var move in multi)
+                foreach (var hit in move.Hits)
+                    md.AppendLine(FormattableString.Invariant($"| {move.Slot} | {hit.FirstTick}–{hit.LastTick} | {hit.Damage:0.#} | {hit.Radius:F2} | ")
+                        + string.Join(" | ", hit.Touched.Select(x => x.Bearings.ToString(CultureInfo.InvariantCulture))) + " |");
+            md.AppendLine();
+        }
 
         md.AppendLine("## Bone and weapon sampling").AppendLine();
         md.AppendLine("Grid positions (0.5–3 m ahead, ±40°) where a standing FightGuy-sized target lies in the swing's path "

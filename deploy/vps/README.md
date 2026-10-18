@@ -234,7 +234,10 @@ python3 -I deploy/vps/ci_release.py --validate-only < candidate-public.json
 The receiver runs the existing off-host backup service, then acquires the release
 lock and requires fresh successful evidence for the still-active release. It
 copies the active Master environment to an immutable release-specific private
-file, changing only `Room__CatalogHash` and preserving other bytes/owner/mode.
+file, changing only `Room__CatalogHash` and, when the candidate carries
+`admitted_arenas` (the Stage Select roster of the release commit), replacing every
+`Room__AdmittedArenas__N` entry with that list. Other bytes, owner and mode are
+preserved. Candidates without the field keep the active arena admission.
 The prior environment remains unchanged for compatible recovery. The candidate
 HTTPS endpoint must exactly match the active private test host. Identical
 release-ID retries verify the active result; different content under an existing
@@ -246,6 +249,35 @@ on the VPS. On timeout or failure, use the authenticated operator's private
 `release.py status`/events to reconcile before retrying. CI does not bootstrap a
 host, grant schema-upgrade permission implicitly, bypass active fights, activate
 a Steam build, or perform destructive database recovery.
+
+### Updating installed helpers
+
+The VPS has no repository checkout: copy the reviewed helpers there, then install
+them. Copy from `origin/main` after the change merges, not from a working tree,
+and install the three together, because `ci_release.py` imports the other two.
+On the workstation, from the repository root:
+
+```bash
+git fetch origin
+git archive origin/main deploy/vps/release.py deploy/vps/recovery.py deploy/vps/ci_release.py \
+  | ssh sloparena 'rm -rf ~/sloparena-helpers && mkdir -m 0700 ~/sloparena-helpers && tar -xf - -C ~/sloparena-helpers'
+```
+
+Then in an operator session on the VPS (`ssh sloparena`):
+
+```bash
+cd ~/sloparena-helpers/deploy/vps
+for f in release.py recovery.py ci_release.py; do cmp -s "$f" "/opt/sloparena/deploy/vps/$f" && echo "$f: same" || echo "$f: changes"; done
+sudo install -o root -g root -m 0644 release.py recovery.py ci_release.py /opt/sloparena/deploy/vps/
+for f in release.py recovery.py ci_release.py; do cmp -s "$f" "/opt/sloparena/deploy/vps/$f" && echo "$f: installed" || echo "$f: NOT installed"; done
+cd && rm -rf ~/sloparena-helpers
+```
+
+If the first loop says `recovery.py` changes, check the backup-helper contract
+above before installing it. A receiver older than the candidate rejects it before
+the backup or the release lock, but the release step sees only an empty reply and
+records an ambiguous failure. `release.py status` then still shows the previous
+release: update the helpers and resume the same candidate.
 
 
 ## Disposable rehearsal

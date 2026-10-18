@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Unity.Pipeline.Commands;
 using Unity.Pipeline.Models;
 using Unity.Pipeline.Security;
@@ -195,6 +197,22 @@ namespace Unity.Pipeline.Editor
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// A domain reload that lands while an async command waits between frames destroys the
+        /// command's continuation: its request never answers and its ownership operation stays
+        /// unknown until an Editor restart. Compiles still run; their reload waits for the command.
+        /// Test runs are exempt: Play Mode and recompile tests reload within a single run.
+        /// </summary>
+        protected override void HoldReloadsUntil(CommandInfo command, Task pending)
+        {
+            var mainThread = SynchronizationContext.Current;
+            if (mainThread == null || command.Name == "run_tests")
+                return;
+            EditorApplication.LockReloadAssemblies();
+            pending.ContinueWith(_ => mainThread.Post(__ => EditorApplication.UnlockReloadAssemblies(), null),
+                CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
 
         protected override void OnTransactionProcessed(string requestJson, string responseJson)

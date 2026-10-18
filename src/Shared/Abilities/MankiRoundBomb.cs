@@ -8,6 +8,8 @@ namespace SlopArena.Shared.Abilities
     /// </summary>
     public sealed class MankiRoundBomb : ServerAbility, IAimHoldCapability
     {
+        /// <summary>Release height above the body centre. The throw lands at foot height at the aimed distance.</summary>
+        public const float LaunchOffsetY = 1.2f;
         private readonly CookedMankiRoundBombCapabilityParameters _parameters;
         private bool _fired;
         private float _cachedAimDistance;
@@ -71,7 +73,7 @@ namespace SlopArena.Shared.Abilities
                     $"[MankiQ] Projectile spawned! dist={_cachedAimDistance:F2} yaw={_cachedAimYaw:F2}rad");
             float D = Math.Clamp(_cachedAimDistance, 0.5f, _parameters.MaxRange);
             float g = _parameters.Gravity;
-            const float launchOffsetY = 1.2f;
+            const float launchOffsetY = LaunchOffsetY;
             float dY = -def.CapsuleHeight * 0.5f - launchOffsetY;
             float launchRad = _parameters.LaunchAngle * (MathF.PI / 180f);
             CombatMath.ComputeProjectileLaunch(D, launchRad, g, dY, out float _, out float hSpeed, out float vSpeed);

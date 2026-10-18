@@ -1001,3 +1001,111 @@
     border-width: 1px;
     border-color: #7b7872;
 }
+
+/* Online fight cards name the player; the fighter becomes a quiet tag. */
+.fighter-name--player {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fighter-character {
+    margin-left: 7px;
+    height: 22px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    -unity-font-definition: url("../Fonts/SpaceMono.asset");
+    -unity-font-style: normal;
+    -unity-text-align: middle-left;
+    color: #A8A49C;
+    white-space: nowrap;
+}
+
+/* Speech slips: Room chat from the fight, pasted over the speaker. */
+.chat-speech-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.chat-slip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: center bottom;
+}
+
+.chat-slip--card {
+    transform-origin: left center;
+}
+
+.chat-slip__shadow {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    right: -4px;
+    bottom: -4px;
+    background-color: #1B1A18;
+}
+
+.chat-slip__box {
+    max-width: 300px;
+    padding: 10px 12px 9px 12px;
+    background-color: #F0EEE8;
+    border-width: 2px;
+    border-color: #1B1A18;
+}
+
+.chat-slip__text {
+    margin: 0;
+    padding: 0;
+    font-size: 17px;
+    white-space: normal;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    color: #1B1A18;
+}
+
+.chat-slip__who {
+    position: absolute;
+    left: 8px;
+    top: -15px;
+    margin: 0;
+    padding: 3px 6px 2px 6px;
+    border-width: 2px;
+    border-color: #1B1A18;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
+    color: #1B1A18;
+    white-space: nowrap;
+}
+
+/* A turned square: its lower edges are the tail, its upper half hides the box border. */
+.chat-slip__tail {
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    width: 13px;
+    height: 13px;
+    margin-left: -7px;
+    background-color: #F0EEE8;
+    border-color: #1B1A18;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    rotate: 45deg;
+}
+
+.chat-slip--card .chat-slip__tail {
+    left: -7px;
+    top: 50%;
+    bottom: auto;
+    margin-left: 0;
+    margin-top: -7px;
+    border-right-width: 0;
+    border-left-width: 2px;
+}

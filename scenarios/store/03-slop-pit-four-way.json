@@ -1,0 +1,106 @@
+{
+ "stage": "slop_pit",
+ "notes": "All four fighters: FightGuy's Rising Dragon on Wibou, Manki's Aerosol Inferno on Bonk's Blade Storm.",
+ "capture": {
+  "from": 108,
+  "to": 124,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 95
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    -2.4,
+    0,
+    1.0
+   ],
+   "yaw": 90,
+   "damage": 40,
+   "target": 2,
+   "input": [
+    {
+     "at": 98,
+     "press": "E"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    -1.5,
+    0,
+    1.0
+   ],
+   "yaw": 270,
+   "damage": 70
+  },
+  {
+   "id": 3,
+   "package": "manki",
+   "feet": [
+    0.0,
+    0,
+    -1.0
+   ],
+   "yaw": 90,
+   "damage": 55,
+   "target": 4,
+   "input": [
+    {
+     "at": 30,
+     "press": "F"
+    },
+    {
+     "from": 30,
+     "to": 100,
+     "aim": true
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "package": "bonk",
+   "feet": [
+    2.8,
+    0,
+    -1.0
+   ],
+   "yaw": 270,
+   "damage": 60,
+   "target": 3,
+   "input": [
+    {
+     "at": 88,
+     "press": "F"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "a",
+   "pos": [
+    0,
+    1.8,
+    -7.5
+   ],
+   "look": [
+    0,
+    2.3,
+    0
+   ],
+   "fov": 46,
+   "far": 3000
+  }
+ ],
+ "pick": {
+  "camera": "a",
+  "tick": 118,
+  "crop": "0.1,0.02,0.86"
+ }
+}

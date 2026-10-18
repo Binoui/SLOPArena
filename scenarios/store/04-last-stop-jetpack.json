@@ -1,0 +1,71 @@
+{
+ "stage": "last_stop",
+ "notes": "Manki's Jetpack Boost (E) out of the gap beside the train while Wibou throws kunai (A).",
+ "capture": {
+  "from": 24,
+  "to": 40,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 94
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -1.5,
+    -1.2,
+    1.5
+   ],
+   "grounded": false,
+   "yaw": 200,
+   "damage": 75,
+   "input": [
+    {
+     "at": 6,
+     "press": "E"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    -3.6,
+    0,
+    -1.0
+   ],
+   "yaw": 40,
+   "damage": 45,
+   "target": 1,
+   "input": [
+    {
+     "at": 16,
+     "press": "A"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "e2",
+   "pos": [
+    2.0,
+    0.9,
+    0.9
+   ],
+   "look": [
+    -2.3,
+    2.4,
+    0.6
+   ],
+   "fov": 52,
+   "far": 4000
+  }
+ ],
+ "pick": {
+  "camera": "e2",
+  "tick": 32
+ }
+}

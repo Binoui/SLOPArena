@@ -12,7 +12,6 @@ report. Run with a fresh factory scene; it never opens or saves a .blend file.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import os
@@ -28,8 +27,10 @@ import bpy  # noqa: E402
 
 from stagekit import blender as kit  # noqa: E402
 from stagekit import checks, geo  # noqa: E402
+from stagekit.presentation import write as write_presentation  # noqa: E402
 
 import layout as LAYOUT  # noqa: E402
+import presentation as PRESENTATION  # noqa: E402
 import room as ROOM  # noqa: E402
 import table as TABLE  # noqa: E402
 import textures  # noqa: E402
@@ -42,7 +43,7 @@ MATERIALS = ["TM_Build", "TM_Cloth", "TM_Glow", "TM_Sky"]
 # the table edge, never below the fighter (pitch 0-45 degrees) and at most ~11 m above
 # the top blast line. Nothing within ENVELOPE of the edge may sit between the kill
 # plane and ENVELOPE_TOP.
-ENVELOPE = 25.0
+ENVELOPE = checks.CAMERA_REACH_FROM_OUTLINE
 ENVELOPE_TOP = 35.0
 NO_AO = {"Sky", "Garden Far", "Toy Train"}
 # Flush layers stacked millimetres above another surface. They are hidden while the rest
@@ -54,17 +55,7 @@ TRIANGLE_BUDGET = 300_000  # planning target, reported only (performance is meas
 
 
 def args():
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    p = argparse.ArgumentParser()
-    p.add_argument("--out", default=DEFAULT_OUT)
-    p.add_argument("--report", default=str(DEFAULT_REPORT))
-    p.add_argument("--preview", action="store_true")
-    p.add_argument("--views", default="")
-    p.add_argument("--no-bake", action="store_true")
-    p.add_argument("--no-export", action="store_true")
-    p.add_argument("--spec-only", action="store_true")
-    p.add_argument("--samples", type=int, default=48)
-    return p.parse_args(argv)
+    return checks.build_args(DEFAULT_OUT, DEFAULT_REPORT)
 
 
 def outside_distance(outline, x, z):
@@ -255,6 +246,7 @@ def main():
                        "blender": bpy.app.version_string, "materials": MATERIALS,
                        "objects": sorted(objects), "geometryDigest": digest, "problems": len(problems)}, fh, indent=1)
             fh.write("\n")
+        write_presentation(PRESENTATION.PRESENTATION, a.out)
     triangles = sum(g.triangle_count for g in b.groups.values())
     summary = {
         "source": data["source"], "sourceSha256": data["sourceSha256"], "arenaSha256": data["arenaSha256"],

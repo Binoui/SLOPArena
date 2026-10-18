@@ -61,12 +61,16 @@ fallback styles until an asset-distribution plan is agreed.
   `#F0EEE8` controls/header fields, exact `#1B1A18` ink, Archivo declarations,
   and `#FFCC22` actions remain; no local licensed sprites are required for Home.
   Fighter selection continues to read the admitted cooked catalog.
-- **Chat:** Hide and resize form one top-right control row; there is no maximize.
-  Hidden chat reopens with CHAT at bottom-left. Account entry stays in the shell.
-  Paper frame/channel tabs and ink text contrast with dark history/input fields.
-  Active channel and available SEND are yellow; unavailable controls remain
-  readable and disabled. Direct retains conversation and mute management.
-  Shared user-resized dimensions persist across menus, gameplay, scenes, and launches within viewport bounds.
+- **Chat:** One dark stream inside a Paper frame, not channel tabs: Space Mono
+  channel chips (outlined GLOBAL, Paper ROOM, Orange DM), bold sender names with your
+  own in Action Yellow, then the text. Paper filter plates (ALL/ROOM/GLOBAL/DMS) carry
+  small Orange unread counts; the active filter and the `TO:` destination chip are
+  Action Yellow. A mono presence button opens the player list for Direct Messages
+  and mute. Hide and resize form one top-right control row; there is no maximize.
+  Hidden chat becomes a slim Ink tab: a Paper CHAT plate, the unread count, the
+  latest public line and presence, instead of a yellow button over the page.
+  Account entry stays in the shell. User-resized dimensions persist across menus,
+  scenes and launches within viewport bounds.
   Chat is an absolute overlay everywhere: it never reserves page space or
   moves/resizes the composition underneath, including Home's poster.
   Selection pages keep default bottom-left chat space free of essential controls:
@@ -76,6 +80,7 @@ fallback styles until an asset-distribution plan is agreed.
   Frontend and gameplay keep their established left-side anchoring.
   Match entry still closes interactive chat input; disconnected and send
   feedback render inside the message history instead of below the composer.
+  In fights chat is HUD material, not a window: see Speech slips under HUD.
 - **Online:** browsing, hosting, and Join by Address converge on the registered room
   session before fighter and stage selection. Address entry accepts IPv4 plus an
   optional port; it still requires the room directory. It is not an offline bypass.
@@ -391,6 +396,8 @@ Default controller headers read left to right A, X, Y, B: normal `1` / LB+A spec
 At default 1920-wide scale, the deck is about 304 logical units wide (roughly 16% of the viewport) at bottom center. When four stacked portrait cards would overlap it, the deck moves right and scales to the available width. Depth carries state: a key sinks flush while its move runs, stays sunk while it cools down and refills from the bottom behind a centred countdown, then pops back up with a brief Action Yellow edge. Reduced flashing removes the transitions and the pop's jump while keeping the sunk state.
 
 Grounded move art uses one locked linocut icon set under `Assets/Resources/UI/AbilityCards/`: each icon shows the striking limb, weapon or projectile and its effect, not the whole fighter, in Ink or Paper plus the fighter's accent. Tab icons are filled solid so they read at 30 px; key icons keep their carving at 56 px. The folder README records the template, references and cleanup (`tools/hud_icon_prep.py`). All four fighters' grounded sets are installed. Airborne sprites and original icons remain as assets and fallback. Ticket-era native evidence remains in `.impeccable/review/paired-hud-20261013/`; the keys were accepted in game on 2026-10-17 without a recorded capture.
+
+**Speech slips.** Room chat from the people in the match is pasted over their fighter as a Paper slip: 2 px Ink border, a 4 px hard Ink offset shadow, 17 px bold text, at most two lines, a short tail toward the head, and an Archivo name tab in the speaker's player color. It reads as speech, never as an Ink HUD readout, and stacks above the locked-target tag. A slip lasts 3–7 s by length with a quick pop; reduced flashing keeps only the fade. Off-screen, hidden or eliminated speakers, and always the local player, get the slip beside their fight card, with the tail pointing at the card. Other chat stays quiet at the bottom-left: a ticker of restrained Ink lines (Space Mono channel chip, bold name, 15 px text), an `ENTER CHAT` key hint only while someone just spoke, and a one-line composer with an Action Yellow destination chip. There is no permanent chat button in the HUD. Online fight cards name the player in Archivo, with the fighter as a small mono tag; offline cards keep the fighter name. Evidence: `.impeccable/review/chat-everywhere-20261018/` (Training with injected messages; real two-client delivery is unverified).
 
 Player cards use portraits, identity badges/edges, large readable percentages, and an explicit LIVES count with solid living tickets and outlined, struck-through lost tickets. Training omits lives; up to eight tickets fit beside the count and higher counts use numbers only. Critical numbers stay readable after elimination. The independent target bracket/pointer remains visible for a lock when `Show overhead damage` is OFF; only its percentage tab/backing disappear, without changing its anchor or player-panel percentages. The setting defaults ON and persists independently of gameplay lock policy. All percentages share white below 40%, orange from 40–89%, and red at 90%+; player identity and marker colors retain their separate meaning. Reduced flashing suppresses card hit flashes. Readouts stay aligned and texture-free, with no menu wallpaper or chat-dependent positioning.
 

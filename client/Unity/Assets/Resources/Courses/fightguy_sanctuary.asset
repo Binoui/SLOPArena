@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27f78137fb7d3fb82be22e548c57ee18, type: 3}
+  m_Name: fightguy_sanctuary
+  m_EditorClassIdentifier: 
+  Target: {fileID: 7375326792509234878, guid: d27c4e260cec67bf4a709fb9ef0b0cd5, type: 3}
+  TargetRadius: 0.65
+  Break: {fileID: 8055660452591218766, guid: 792b8dbc2b10afaeaba6f4266e7543a1, type: 3}
+  Marker: {fileID: 3357146854041933920, guid: c8e824d25014b6c58b5056308f8dbd38, type: 3}
+  MissedBeacon: {fileID: 5095067209879667645, guid: 22da33ec96e764ab9889347f415f9a99, type: 3}
+  FinishBeacon: {fileID: 5290838702794140422, guid: 6f86408d38a9f90bcb14806514bc0bed, type: 3}
+  FinishBurst: {fileID: 4210263734064135801, guid: 19856f86722af0f3e954e0afc25ca907, type: 3}
+  SoundFolder: Audio/SFX/Course
+  NoteSemitones: 00000000020000000400000007000000090000000c0000000e000000100000001300000015000000

@@ -1,0 +1,174 @@
+{
+  "name": "bonk-gf-blade-storm-spin",
+  "notes": "Ground F Blade Storm redo (2026-10-18). The owner found the current overhead twirl hits too high and misses: its hands sit 1.4-2.2 m and its blade tip 2.3-3.4 m above the floor, so none of the four big hits can touch a standing FightGuy, Wibou or Manki (head tops 1.02-1.49 m). The owner chose option A: a full-body spin with the blade flat at hip height. Existing move-data clock: 100 ticks, chip hitbox 2-75, hits 16-19, 24-27, 32-35, finisher 44-49, movement until 75, no IASA. air.F plays the same clip.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity",
+  "frame": "hips",
+  "character": "Bonk (55 joints, five fingers; a 1.84 m greatsword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
+  "references": {
+    "idle": "references/idle.usda",
+    "swing": "references/swing.usda",
+    "charge": "references/charge.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "images": [
+    "images/idle-entry.png",
+    "images/two-hand-grip.png",
+    "../../genra-runs/20261017-141048-bonk-air1-whirlwind-v2/motion.png"
+  ],
+  "image_notes": "1: the idle entry pose, the sword resting on his right shoulder (profile, front, three-quarter rear). 2: Bonk's own two-handed grip, from his Charging Double Slash (front, three-quarter, profile). 3: motion paths of his approved aerial whirlwind (air.1): ghosted poses, the hand and elbow paths, and the blade tip's path in white. Its flat full-body spin is the mechanic to reuse here, on the ground and lower.",
+  "strike": [
+    "bladeEnd"
+  ],
+  "description": "Blade Storm (ground F), Bonk's spinning special, rebuilt as a full-body spin with the greatsword held out flat at hip height, so the blade sweeps the other fighters' waist and chest all the way around him.\n\nWhy: the current Blade Storm twirls the sword over his head, with his hands between chest height and above his head and the blade tilted up, so it passes over the other fighters (their heads top out 1.0-1.5 m above the floor) and its big hits never land. The new blade must stay low: flat at his hip height, 0.75-1.05 m above the floor, from the first sweep through the finisher. His soles are 0.83 m below the entry hips, so that is -0.08 to +0.22 m on the up axis, for the hilt and the tip alike.\n\nBonk is the roster's heaviest fighter: a hunched brute with huge arms, short legs and a head set low between the shoulders, swinging a 1.84 m greatsword. His approved aerial whirlwind (image 3) is the mechanic: the whole body turns the blade, hips and chest lead, the arms follow and the blade comes last, held out flat with both arms nearly straight. Here he does it on the ground, lower and three times over, like a hammer thrower: a wide, low stance (knees well bent, hips a little lower than in idle), long arms, leaning back slightly against the pull of the blade. His grounded two-handed swings are references `swing` (Greatsword Swing) and `charge` (Charging Double Slash) for his stance and weight.\n\nMake it heavy and readable. The blade never stops dead, and it never cuts through his body or legs. He turns to his left the whole time (counter-clockwise seen from above).\n\nFeet: the floor is where his soles are in the idle pose. He turns with short, heavy steps: one foot at a time steps around the other so his feet stay under his hips, and a foot on the floor stays on its spot (it may turn there) without sliding or sinking into the floor. Small hops are fine where a step can't keep up. His body stays centred over the same spot.\n\nBeats. The hit windows are fixed: ticks 16-19, 24-27, 32-35 and the heavy finisher at 44-49. Tick 0 is the idle pose: the sword rests on his right shoulder. Ticks 1-5: the left hand comes up and takes the grip below the right hand. Ticks 1-8: wind up to his right: he drops into the stance, hips and chest twist to his right, and both hands swing the sword down off the shoulder until the blade lies flat behind his right side at hip height. Ticks 9-17: unwind fast to his left, hips first, then chest, then arms; the blade whips around his right side and passes straight ahead at tick 17. Ticks 17-33: one steady full turn to his left with the blade held out flat at hip height: his left side around tick 21, behind him around 25, his right around 29, straight ahead again at 33. Ticks 33-46: the second turn speeds up and he leans into the finisher: left around 36, behind around 40, right around 43, then at tick 46 the heaviest sweep straight ahead, arms fully extended, the stance at its lowest, the blade still at hip height. Ticks 46-66: the blade's momentum carries him round once more while the spin slows: left around 51, behind around 56, right around 61, and he comes to a stop facing forward at tick 66 with the blade in front of him, three full turns after tick 17. Ticks 66-94: he rises out of the stance, the left hand lets go, and he swings the sword back up onto his right shoulder. Ticks 94-100 equal the idle pose.",
+  "exit": {
+    "from_tick": 94
+  },
+  "clock": {
+    "duration_ticks": 100,
+    "contact_tick": 46,
+    "active": [
+      16,
+      49
+    ],
+    "iasa_tick": 100
+  },
+  "fast_windows": [
+    [
+      8,
+      19
+    ],
+    [
+      40,
+      50
+    ]
+  ],
+  "two_hands": [
+    5,
+    66
+  ],
+  "review_ticks": [
+    0,
+    5,
+    8,
+    13,
+    17,
+    21,
+    25,
+    29,
+    33,
+    40,
+    46,
+    56,
+    66,
+    80,
+    94
+  ],
+  "targets": [
+    {
+      "name": "blade tip at hip height passing ahead, tick 17 (m, up from the entry hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 17,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "blade tip at hip height behind him, tick 25 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 25,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "blade tip at hip height passing ahead, tick 33 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 33,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "blade tip at hip height at the finisher, tick 46 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 46,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "hilt at hip height, tick 17 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 17,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "hilt at hip height, tick 33 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 33,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "hilt at hip height at the finisher, tick 46 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 46,
+      "min": -0.08,
+      "max": 0.22
+    },
+    {
+      "name": "blade tip ahead of the hips, tick 17 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 17,
+      "min": 1.2
+    },
+    {
+      "name": "blade tip behind the hips, tick 25 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 25,
+      "max": -1.2
+    },
+    {
+      "name": "blade tip ahead of the hips, tick 33 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 33,
+      "min": 1.2
+    },
+    {
+      "name": "blade tip far ahead of the hips at the finisher, tick 46 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 46,
+      "min": 1.6
+    },
+    {
+      "name": "blade tip ahead of the hips as the spin stops, tick 66 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 66,
+      "min": 0.8
+    }
+  ]
+}

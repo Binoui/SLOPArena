@@ -22,7 +22,11 @@ current task; ordinary work does not need a full skill catalog or historical pla
 
 ## Read and report
 
-Run `git status --short --branch` and `git log --oneline -5`. Read `CONTEXT.md`,
+Run `git status --short --branch` and `git log --oneline -5`. Also run `git fetch
+--quiet origin` (read-only for the working tree) and `git rev-list --count
+HEAD..origin/main`: when the checkout is more than a few commits behind, say so first
+and recommend pulling before content work. A second machine once built a whole stage
+67 commits behind main and missed the shared tools it should have used. Read `CONTEXT.md`,
 `docs/README.md`, the demo plan or technical references only as the task requires.
 Report the current goal, relevant uncommitted work, next action and concrete blocker
 in at most ten lines. Do not build, inventory every branch or reopen settled choices.

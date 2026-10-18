@@ -7,7 +7,6 @@ using SlopArena.Client.UI;
 using SlopArena.Client.Input;
 using SlopArena.Shared;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
 namespace SlopArena.Client.World
@@ -29,6 +28,7 @@ namespace SlopArena.Client.World
         private float _ballFloorY;
         private uint _tick, _attackContacts;
         private InputState? _probeInput;
+        private ArcadeRetryInput _retryInput;
         private bool _restarting;
         private Renderer[] _closeCameraRenderers;
         private bool[] _originalForceRenderingOff;
@@ -108,6 +108,7 @@ namespace SlopArena.Client.World
                 RenderPipelineManager.endCameraRendering += EndCameraRendering;
             }
             _inputController.RequireReleaseBeforeHumanInput();
+            _retryInput = new ArcadeRetryInput();
             _ballFloorY = arena.Arcade.Slopball?.FloorY ?? arena.Heightmap.Sample(spawn.X, spawn.Z);
             CreateBallView(); PresentBall();
             OnBallMatchReady(entry, arena);
@@ -155,11 +156,13 @@ namespace SlopArena.Client.World
 
         protected virtual void Update()
         {
-            if (!Ready || IsPaused || _restarting) return;
-            if (!ChatInputGate.SuppressShortcuts && Keyboard.current?.backspaceKey.wasPressedThisFrame == true)
+            if (!Ready || _restarting) return;
+            bool retry = _retryInput.Poll(!IsPaused && !ChatInputGate.SuppressShortcuts);
+            if (IsPaused) return;
+            if (retry)
             {
-                if (_bridge.InternalSim.Slopball.HasValue) RestartAttempt();
-                else { _bridge.InternalSim.ResetArcadeBall(); PresentBall(); }
+                if (_bridge.InternalSim.Slopball.HasValue) { RestartAttempt(); return; }
+                _bridge.InternalSim.ResetArcadeBall(); PresentBall();
             }
             if (_bridge.InternalSim.Slopball is SlopballState challenge && (challenge.Ended || challenge.Phase == SlopballPhase.Countdown))
             { _inputController.RequireReleaseBeforeHumanInput(); return; }

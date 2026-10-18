@@ -24,31 +24,26 @@ to run unless its triangles, spawns, facings and blast planes match. `--spec-onl
 requires `--no-export` and is for reviewing an unbaked change. `--no-bake` skips the
 AO bake for a faster pass; `--views a,b` limits the Eevee previews.
 
-A layout change is a gameplay change. Rebuild the collision source scene from
-`python3 layout.py --unity-shell`, which writes the hull, wheelhouse and hatch meshes
-plus the markers for an `eval_file` rebuild of `Assets/Stages/splash_deck/`. Then bake,
-update `tests/Shared.Tests/SplashDeckArenaTests.cs`, and regenerate the art.
+A layout change is a gameplay change: write the shell with `python3 layout.py --unity-shell
+> /tmp/splash_deck-shell.json`, rebuild the collision source scene with `sloparena.stage.shell-apply
+--stage splash_deck --from /tmp/splash_deck-shell.json`, bake, update `tests/Shared.Tests/SplashDeckArenaTests.cs`,
+then regenerate the art.
 
-After any changed C# has compiled, copy the seven generated files into
-`client/Unity/Assets/Stages/splash_deck/Presentation/Harbour/` within your own bounded
-canonical Editor gateway lease:
-
-- `SplashDeckHarbour.fbx` and `SplashDeckHarbour.layout.json` (source/arena stamp)
-- `SplashDeckDeck.png`, `SplashDeckHull.png`, `SplashDeckAtlas.png`
-- `SplashDeckDetail.png`, `SplashDeckRipples.png`
-
-Then apply and inspect in one batch:
+Apply the build with one gateway call under your own bounded lease; it copies only the
+changed files into `Assets/Stages/splash_deck/Presentation/Harbour/` and imports only them:
 
 ```bash
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.stage.art-splash-deck
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.stage.inspect \
-  --stage splash_deck --output .stage-authoring-cache/splash_deck/harbour/inspection.json
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
+  sloparena.stage.art-apply --stage splash_deck --from /tmp/splash-deck-generated
 ```
 
-The apply command verifies the stamp against the source scene and arena, configures
-the textures and nine materials, sets the morning sun, deck fill and atmosphere, and
-replaces only the previous barge roots and its own roots. It does not rebake or
-write gameplay data. The generated art and Resources prefab stay local/ignored.
+[`presentation.py`](presentation.py) holds what it applies: the five textures, nine materials, the morning sun on `bay.py`'s sun bearing, the deck sky fill and the sea-haze atmosphere. It rejects a stamp
+whose source-scene or arena hash differs, replaces only superseded roots and updates its
+own in place, and never writes gameplay data. A lighting or material change is a
+`presentation.py` edit applied without a Blender run (see the
+[shared kit](../README.md#shared-kit)). The accepted art and Resources prefab are committed.
+Then inspect with `sloparena.stage.inspect --stage splash_deck --output
+.stage-authoring-cache/splash_deck/harbour/inspection.json`.
 
 ## Source files
 

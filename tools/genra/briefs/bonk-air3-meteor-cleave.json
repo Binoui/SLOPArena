@@ -2,6 +2,7 @@
   "name": "bonk-air3-meteor-cleave",
   "notes": "Concept for air.3 Downward Sweep, on its existing move-data clock (50 ticks, hitbox 21-36, no IASA).",
   "rigpack": "artifacts/genra-rigpacks/bonk-unity",
+  "frame": "hips",
   "character": "Bonk (55 joints, five fingers; a 1.84 m greatsword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
   "references": {
     "fall": "references/fall.usda",

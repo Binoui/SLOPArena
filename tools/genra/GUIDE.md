@@ -3,7 +3,9 @@
 Author the animation in Python with `genra`: rig-aware poses, anatomical IK, checks and
 renders for the actual character. Units are metres and 60 Hz ticks. Positions and
 directions use the **character frame** `[right, front, up]`, in metres from the entry
-pose's hips; front is the facing at entry and up is world up. The fighter itself never moves;
+pose's hips; front is the fighter's facing (where it moves, attacks and finds its opponent)
+and up is world up. A fighting stance turns the hips and chest away from front, by up to 90°,
+so read where the chest points from the pose, not from front. The fighter itself never moves;
 the hips can (crouch, lunge, weight shift), and Unity keeps that motion in the pose.
 
 ## Run
@@ -25,7 +27,7 @@ from genra.solve import two_bone, solve, fist, two_hand_grip, hold_grip
 from genra.checks import check_clip, format_report
 from genra.render import contact_sheet
 b = Brief('brief.json'); rig = b.rig
-entry = b.entry_pose          # tick-0 Pose, also the exit pose
+entry = b.entry_pose          # tick-0 Pose and the exit pose; a free entry only sets the frame
 fall = b.reference('fall')    # reference Clip on the same skeleton
 ```
 
@@ -81,6 +83,12 @@ legs. Re-check positions after each step; spine changes move every limb.
   its right and `p.rotate('Hips', [1, 0, 0], -90)` pitches it a quarter forward (positive degrees
   turn left and lean back). Between two keys a joint turns the shorter way, so key every quarter
   turn or closer; the spline keeps the turn smooth across keys, any number of turns.
+- Loops: `Clip.from_keys(keys, n_ticks, cycle=(first, last))` makes ticks `first`..`last` a seamless
+  cycle. Key the same pose at both ends; the keys between follow a periodic spline, so the motion keeps its
+  speed when the game wraps from `last` back to `first` (it can overshoot a little between keys, which reads
+  as follow-through). Keys before `first` form a build-up that arrives with the loop's velocity. Offset the
+  torso, head, arm and leg keys in time so they don't all peak on the same tick, and keep full turns out of
+  a loop. The check fails a seam that doesn't close or that jerks harder than the loop itself.
 - Two-handed holds read best where the arms frame the head rather than cross the face. The check
   warns when arms or a weapon hide the face from the front for several ticks; a character whose
   head sits below its shoulders hides it in any overhead hold, so judge that from the renders.

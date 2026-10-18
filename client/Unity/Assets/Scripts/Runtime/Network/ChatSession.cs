@@ -26,7 +26,11 @@ namespace SlopArena.Client.Network
         public const int MaxConversations = 32;
         public const int MaxMessagesPerConversation = 50;
         public const int MaxMutedPlayers = 256;
+#if UNITY_EDITOR
+        public const string EditorSteamEnabledPrefsKey = "SlopArena.Steam.EnabledInEditor";
+#endif
 
+        private const string EditorSteamDisabledStatus = "Steam is disabled in the Editor. Local play remains available. For online testing, enable Tools > SLOPArena > Steam > Enable in Editor before entering Play Mode.";
         private const float InitialRetrySeconds = 2f;
         private const float MaxRetrySeconds = 30f;
         private const int MaxAutomaticRetries = 5;
@@ -57,6 +61,7 @@ namespace SlopArena.Client.Network
         private RoomSteamPresence? _roomPresence;
         private SteamRoomJoinCoordinator? _roomJoin;
         private bool _developmentGuest;
+        private bool _steamDisabledInEditor;
         private ulong _authenticatedSteamId;
         private bool _inviteOverlayPending;
         private bool _steamOverlayActive;
@@ -99,6 +104,14 @@ namespace SlopArena.Client.Network
         /// return an evicted reading anchor to newest with an explanation.
         /// </summary>
         public event Action<string>? ConversationHistoryTrimmed;
+
+        /// <summary>
+        /// Raised once for each message that arrives live (pushed by Master or
+        /// accepted from this client's own send), before <see cref="Changed"/>.
+        /// Backlog, reconnect snapshots and duplicates never raise it, so
+        /// presentation can time transient previews from local arrival.
+        /// </summary>
+        public event Action<ChatMessage>? MessageArrived;
 
         public ChatPlayer? Self { get; private set; }
         public bool IsConnected => _nameApplied && _chatStateReady && _lobby?.IsConnected == true;
@@ -163,6 +176,10 @@ namespace SlopArena.Client.Network
             }
             _instance = this;
             DontDestroyOnLoad(gameObject);
+#if UNITY_EDITOR
+            // Steam can keep tracking the Editor process after Play Mode stops.
+            _steamDisabledInEditor = !UnityEditor.EditorPrefs.GetBool(EditorSteamEnabledPrefsKey, false);
+#endif
             _masterServerUrl = ClientSession.MasterServerUrl;
             _savedDisplayName = PlayerPrefs.GetString(DisplayNamePlayerPrefsKey, string.Empty).Trim();
             _activeConversation = GetOrCreateConversation("global", "GLOBAL")!;
@@ -171,6 +188,11 @@ namespace SlopArena.Client.Network
 
         private void Start()
         {
+            if (!_developmentGuest && _steamDisabledInEditor)
+            {
+                SetStatus(EditorSteamDisabledStatus);
+                return;
+            }
             if (!_developmentGuest)
             {
                 try
@@ -463,13 +485,32 @@ namespace SlopArena.Client.Network
             NotifyChanged();
         }
 
-        public async Task SendDraftAsync()
+        public Task SendDraftAsync()
         {
             var conversation = _activeConversation;
-            if (conversation == null || conversation.IsSending)
+            return conversation == null
+                ? Task.CompletedTask
+                : SendAsync(conversation, conversation.Draft, fromDraft: true);
+        }
+
+        /// <summary>
+        /// Send a fixed quick line (controller chat) to one conversation without
+        /// touching its draft. Limits and outcomes are the same as a typed send.
+        /// </summary>
+        public Task SendQuickLineAsync(string key, string text)
+        {
+            var conversation = _conversations.FirstOrDefault(c => c.Key == key);
+            return conversation == null
+                ? Task.CompletedTask
+                : SendAsync(conversation, text, fromDraft: false);
+        }
+
+        private async Task SendAsync(ChatConversation conversation, string text, bool fromDraft)
+        {
+            if (conversation.IsSending)
                 return;
             var key = conversation.Key;
-            var text = conversation.Draft;
+            string kept = fromDraft ? " Your draft was kept." : string.Empty;
             if (!ChatTextValidation.TryValidateMessage(text, out var normalized, out var validationError))
             {
                 conversation.Feedback = validationError;
@@ -478,7 +519,9 @@ namespace SlopArena.Client.Network
             }
             if (!IsConnected)
             {
-                conversation.Feedback = "Not sent while offline. Your draft was kept; send it when ready.";
+                conversation.Feedback = fromDraft
+                    ? "Not sent while offline. Your draft was kept; send it when ready."
+                    : "Not sent while offline.";
                 NotifyChanged();
                 return;
             }
@@ -512,18 +555,19 @@ namespace SlopArena.Client.Network
                     if (!_conversations.Contains(conversation) ||
                         (TryRoomKey(key, out var sentRoomId) && _joinedRoomId != sentRoomId))
                         return;
-                    AddMessage(accepted);
-                    if (conversation.Draft == text)
+                    if (AddMessage(accepted))
+                        RaiseMessageArrived(accepted);
+                    if (fromDraft && conversation.Draft == text)
                         conversation.Draft = string.Empty;
                     conversation.Feedback = "Sent";
                 }
                 else if (!IsConnected)
                 {
-                    conversation.Feedback = "Send status is uncertain because the connection dropped. Your draft was kept.";
+                    conversation.Feedback = "Send status is uncertain because the connection dropped." + kept;
                 }
                 else
                 {
-                    conversation.Feedback = "Send was not confirmed. Your draft was kept.";
+                    conversation.Feedback = "Send was not confirmed." + kept;
                 }
             }
             catch (Microsoft.AspNetCore.SignalR.HubException ex)
@@ -537,11 +581,13 @@ namespace SlopArena.Client.Network
                     var message when message.Contains("chat_capacity") => "Chat is temporarily busy. Try again later.",
                     _ => "The Master rejected this message."
                 };
-                conversation.Feedback = reason + " Your draft was kept.";
+                conversation.Feedback = reason + kept;
             }
             catch (Exception)
             {
-                conversation.Feedback = "Send status is uncertain. Your draft was kept and will not be resent automatically.";
+                conversation.Feedback = fromDraft
+                    ? "Send status is uncertain. Your draft was kept and will not be resent automatically."
+                    : "Send status is uncertain. It will not be resent automatically.";
             }
             finally
             {
@@ -585,6 +631,14 @@ namespace SlopArena.Client.Network
             if (_activeConversation == null)
                 return;
             _activeConversation.Unread = 0;
+        }
+
+        /// <summary>Acknowledge one conversation that the presenter shows at its newest messages.</summary>
+        public void MarkRead(string key)
+        {
+            var conversation = _conversations.FirstOrDefault(c => c.Key == key);
+            if (conversation != null)
+                conversation.Unread = 0;
         }
 
         public bool IsMessageVisible(ChatMessage message) =>
@@ -679,7 +733,8 @@ namespace SlopArena.Client.Network
             _authAttempted = true;
             if (!_developmentGuest && !_ownsSteamApi)
             {
-                SetStatus("Steam is unavailable. Local play remains available.");
+                SetStatus(_steamDisabledInEditor ? EditorSteamDisabledStatus :
+                    "Steam is unavailable. Local play remains available.");
                 return false;
             }
             SetStatus(_developmentGuest ? "Signing in as a development guest…" : "Signing in with Steam…");
@@ -1134,8 +1189,15 @@ namespace SlopArena.Client.Network
                     GetOrCreateConversation(RoomKey(roomId), RoomTitle(roomId));
                 }
             }
-            AddMessage(message);
+            if (AddMessage(message))
+                RaiseMessageArrived(message);
             NotifyChanged();
+        }
+
+        private void RaiseMessageArrived(ChatMessage message)
+        {
+            try { MessageArrived?.Invoke(message); }
+            catch (Exception ex) { Debug.LogException(ex); }
         }
 
         private void OnPresence(ChatPresence presence)
@@ -1237,10 +1299,11 @@ namespace SlopArena.Client.Network
             NotifyChanged();
 
         }
-        private void AddMessage(ChatMessage message)
+        /// <summary>Store a message once; false for duplicates and unroutable messages.</summary>
+        private bool AddMessage(ChatMessage message)
         {
             if (message == null || message.MessageId == Guid.Empty)
-                return;
+                return false;
             string key;
             string title;
             switch ((message.Channel ?? string.Empty).ToLowerInvariant())
@@ -1257,19 +1320,19 @@ namespace SlopArena.Client.Network
                     string? other = message.Sender?.PlayerId == _selfPlayerId
                         ? message.RecipientId
                         : message.Sender?.PlayerId;
-                    if (string.IsNullOrEmpty(other)) return;
+                    if (string.IsNullOrEmpty(other)) return false;
                     key = DirectKey(other);
                     title = ResolveDirectTitle(other, message.Sender);
                     break;
                 default:
-                    return;
+                    return false;
             }
             var conversation = GetOrCreateConversation(key, title);
             if (conversation == null)
-                return;
+                return false;
             conversation.Title = string.IsNullOrEmpty(conversation.Title) ? title : conversation.Title;
             if (conversation.MutableMessages.Any(existing => existing.MessageId == message.MessageId))
-                return;
+                return false;
             conversation.MutableMessages.Add(message);
             bool trimmed = false;
             while (conversation.MutableMessages.Count > MaxMessagesPerConversation)
@@ -1282,6 +1345,7 @@ namespace SlopArena.Client.Network
             bool incoming = message.Sender?.PlayerId != _selfPlayerId;
             if (incoming && IsMessageVisible(message))
                 conversation.Unread++;
+            return true;
         }
 
         private ChatConversation? GetOrCreateConversation(string key, string title)
@@ -1389,6 +1453,7 @@ namespace SlopArena.Client.Network
         private void SetCurrentRoom(Guid? roomId)
         {
             if (roomId == Guid.Empty) roomId = null;
+            Guid? previousRoomId = _joinedRoomId;
             _joinedRoomId = roomId;
             for (int i = _conversations.Count - 1; i >= 0; i--)
             {
@@ -1396,6 +1461,12 @@ namespace SlopArena.Client.Network
                     existingRoomId != roomId)
                     _conversations.RemoveAt(i);
             }
+            // Joining a Room makes its Server Chat the destination, so "gg" in
+            // the lobby or match reaches the other members, not everyone online.
+            // The player can still switch destination afterwards.
+            if (roomId is Guid joinedRoomId && previousRoomId != joinedRoomId &&
+                GetOrCreateConversation(RoomKey(joinedRoomId), RoomTitle(joinedRoomId)) is { } room)
+                _activeConversation = room;
             if (_activeConversation != null && !_conversations.Contains(_activeConversation))
                 _activeConversation = GetOrCreateConversation("global", "GLOBAL");
         }
@@ -1410,10 +1481,10 @@ namespace SlopArena.Client.Network
         }
         private string RoomTitle(Guid roomId) =>
             roomId == _roomTitleId && !string.IsNullOrEmpty(_roomTitleName)
-                ? $"SERVER // {_roomTitleName}"
+                ? $"ROOM // {_roomTitleName}"
                 : roomId == ClientSession.SelectedRoomId && !string.IsNullOrEmpty(ClientSession.SelectedServerName)
-                    ? $"SERVER // {ClientSession.SelectedServerName}"
-                    : $"SERVER // {roomId:D}";
+                    ? $"ROOM // {ClientSession.SelectedServerName}"
+                    : $"ROOM // {roomId:D}";
         private string ResolveDirectTitle(string playerId, ChatPlayer fallback) =>
             FormatPlayerTitle(_onlinePlayers.FirstOrDefault(p => p.PlayerId == playerId) ?? fallback ?? new ChatPlayer(playerId, playerId, string.Empty));
         private static string FormatPlayerTitle(ChatPlayer player) =>

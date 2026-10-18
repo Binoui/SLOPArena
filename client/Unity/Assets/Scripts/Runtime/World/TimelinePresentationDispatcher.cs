@@ -149,10 +149,20 @@ namespace SlopArena.Client.World
 
         public void Clear()
         {
+            ResetForFreshSimulation();
+            _entries.Clear();
+        }
+
+        /// <summary>
+        /// A fresh simulation (Arcade retry) restarts ticks and identities: end every effect and
+        /// forget seen events, or the new attempt's first events would read as duplicates.
+        /// Renderer registrations stay.
+        /// </summary>
+        public void ResetForFreshSimulation()
+        {
             foreach (ActivePresentation active in _active)
                 if (active.Instance != null) DestroyInstance(active.Instance);
             _active.Clear();
-            _entries.Clear();
             _seenEvents.Clear();
         }
 

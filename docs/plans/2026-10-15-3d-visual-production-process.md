@@ -263,6 +263,17 @@ The first two batches should modify existing owners before adding abstractions:
    link the retained Blender kit. Refresh the baseline/roster guidance and sync
    discovery adapters when needed. Keep one owner for each existing production rule.
 
+**Status 2026-10-17** (after the five PvP reworks and their retro): for PvP stages,
+camera proof and appearance capture are `sloparena.stage.views.capture` (requested
+against actual pose) plus `views.cameras` for free poses, `views.frametime` and
+`tools/capture_exposure.py`. The rebuild record is the generator stamp (source and
+arena hashes, `geometryDigest`), the `<Stem>.presentation.json` that
+`sloparena.stage.art-apply` reads, and byte-repeatable FBX export; accepted art is
+committed. Non-box shells are `layout.py` specs checked against the baked triangles
+and exported through `stagekit.shell` for `sloparena.stage.shell-apply`. The workflow
+guidance lives in the stage-authoring skill's pass recipe. The course replay capture
+(item 1 for courses) is unchanged.
+
 Choose between a separate read-only visual-report wrapper and further command
 options only after the two pilots expose repetitive work. This plan recommends
 small existing-command extensions first. Any shared-library extraction or broader

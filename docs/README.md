@@ -39,7 +39,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | Document | Use it for |
 | --- | --- |
 | [Combat Systems](systems/combat-systems.md) | Universal 8-normal/4-special model and combat mechanics |
-| [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown, solo arcade and moving-platform directions; proposed rules and open decisions |
+| [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown, upgrade rounds, solo arcade and moving-platform directions; proposed rules and open decisions |
 | [Solo Arcade feature brief](design/arcade.md) | Approved Slopball and FightGuy Course scope, rules, offline entry and personal records |
 | [Solo Arcade implementation plan](design/arcade-implementation.md) | Focused Shared objects, unified stage migration, Slopball-first delivery and verification handoff |
 | [Arcade Phase 1](design/arcade-phase-1.md) | Ball/contact foundation, test-court launch steps and verification status |
@@ -48,6 +48,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Arcade Phase 4](design/arcade-phase-4.md) | FightGuy Sanctuary greybox, targets, checkpoints, timed completion and course records |
 | [Arcade Phase 5](design/arcade-phase-5.md) | Cloudtop first-crossing art, wider course spacing, local asset sources and verification |
 | [Solo Arcade interview log](design/arcade-interview.md) | Seven resolved question rounds and inspected runtime/kit constraints |
+| [Tutorial](design/tutorial.md) | Fighter's License lessons, objective rules, combo/recovery findings, native commands and verification |
 | [Hitbox System](systems/hitbox-system.md) | Hitbox, hurtbox, and collision geometry |
 | [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, and Combo Influence design |
 | [Ability Lab](systems/ability-lab.md) | Package editing, authoritative preview, and agent-facing workspace commands |
@@ -69,6 +70,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Asset source and license notes](assets/credits-and-licenses.md) | Internal provenance and release checks |
 | [Contributor input inventory](assets/contributor-inputs.md) | Catalog dependencies, local-only asset families and provenance gaps |
 | [Visual presentation baseline](visual-baseline.md) | Repeatable gameplay-camera evidence for visual comparisons |
+| [Store screenshots](steam/store-screenshots.md) | The Steam screenshot set, its recipes and the `sloparena.photo.*` photo mode |
 | [3D visual-production process proposal](plans/2026-10-15-3d-visual-production-process.md) | Stage-first plan for design, Blender production, material-accurate review, reuse and targeted model/VFX work |
 | [Combat presentation pass](plans/2026-10-16-combat-presentation-pass.md) | Owner direction, current state and proposed order for hit feel, special VFX, audio and procedural deformation |
 | [AI 3D workflow research](research/2026-10-15-ai-3d-production-workflows.md) | Revision-pinned study of gamedev-skills and OhMyGame, including transferable practices and implementation limits |

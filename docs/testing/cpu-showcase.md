@@ -67,8 +67,9 @@ in stopped Edit Mode. It never restarts the original Frontend automatically.
   roof are excluded from camera bounds so one fall cannot pull the shot away.
 - Optional `prepare --reveal true` opens the recording on the high-resolution
   After Hours fight-night billboard. It holds for 1.4 seconds, then cranes down
-  and widens into the group shot by four seconds. Apply the poster with
-  `sloparena.stage.billboard-after-hours` before using this option.
+  and widens into the group shot by four seconds. The poster
+  ships with the stage art; `sloparena.stage.art-apply --stage after_hours` reinstalls
+  it.
 - Optional `prepare --captions true` adds the approved white text as an in-Editor
   preview using Archivo Black. The first seven recorded seconds have no overlay:
   four seconds for the reveal, then three seconds of clear fighting. The beats are

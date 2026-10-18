@@ -24,6 +24,7 @@ The existing Solo stamp presentation and audio remain presentation only.
 The HUD keeps the ball-play cue prominent, with combo/best in smaller text.
 A floor miss resets the combo and sends a new random ball after the short gap;
 no results screen interrupts movement or normal kit cooldowns. **Backspace**
+(the rebindable Arcade Retry; hold **Select** on a controller, or pause **Retry**)
 starts a fresh practice session with a new seed. **Escape/Start** uses normal
 local pause; **Leave Match** saves the session best and returns to Arcade.
 

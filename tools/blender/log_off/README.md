@@ -20,20 +20,19 @@ The build writes an FBX, stump-top PNG, atlas, detail PNG and source/hash stamp.
 actual-triangle corridor checks and playable-surface extents. Generation stays
 outside `Assets/`. Headless Blender does not open an interactive Blender session.
 
-After C# compilation has settled, copy the five generated files into
-`Assets/Stages/log_off/Presentation/Campsite/` inside your own bounded gateway
-lease, then run:
+Apply the build with one gateway call under your own bounded lease; it copies only the
+changed files into `Assets/Stages/log_off/Presentation/Campsite/` and imports only them:
 
 ```bash
 bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
-  sloparena.stage.art-log-off
+  sloparena.stage.art-apply --stage log_off --from /tmp/log-off-generated
 ```
 
-The command verifies source/arena hashes, remaps six materials to the existing
-`StageVertexLit` and `StageNeon` shaders, applies lighting and atmosphere, and
-replaces only the old woodland roots and its own campsite roots. It preserves the
-prefab GUID, collision source and baked arena. Generated assets and the Resources
-prefab stay local under the project's stage-art ignore rules.
+[`presentation.py`](presentation.py) holds what it applies: the six `StageVertexLit`/`StageNeon` materials, the sunset sun, campfire, lantern and tent lights (placed by `camp.py`) and the dusk atmosphere. It rejects a stamp
+whose source-scene or arena hash differs, replaces only superseded roots and updates its
+own in place, and never writes gameplay data. A lighting or material change is a
+`presentation.py` edit applied without a Blender run (see the
+[shared kit](../README.md#shared-kit)). The accepted art and Resources prefab are committed.
 
 `stump.py` follows the collision top, split walls and solid shelves. Bark furrows
 recess into the walls; the flared foot and roots begin below the kill plane.

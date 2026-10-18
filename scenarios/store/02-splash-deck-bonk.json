@@ -1,0 +1,70 @@
+{
+ "stage": "splash_deck",
+ "notes": "Bonk's ground 4 launches Wibou at 142% past the NO FIGHTING ON DECK sign; HUD layer on.",
+ "capture": {
+  "from": 102,
+  "to": 114,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 95
+ },
+ "hud": {
+  "local": 1,
+  "stocks": 3
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    -2.5,
+    0,
+    3.2
+   ],
+   "yaw": 20,
+   "damage": 38,
+   "target": 2,
+   "input": [
+    {
+     "at": 30,
+     "press": "4"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    -1.95,
+    0,
+    4.7
+   ],
+   "yaw": 200,
+   "damage": 142,
+   "deaths": 1,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "p1",
+   "pos": [
+    5,
+    1.6,
+    1.0
+   ],
+   "look": [
+    -3,
+    1.6,
+    4.5
+   ],
+   "fov": 46,
+   "far": 4000
+  }
+ ],
+ "pick": {
+  "camera": "p1",
+  "tick": 108
+ }
+}

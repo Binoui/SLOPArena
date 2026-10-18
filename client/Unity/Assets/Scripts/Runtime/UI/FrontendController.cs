@@ -152,7 +152,7 @@ namespace SlopArena.Client.UI
             if (_current == FrontendPage.ServerBrowser
                 || _current == FrontendPage.ArcadeSelect
                 || (_current == FrontendPage.FighterSelect
-                    && MatchConfig.Mode is GameMode.Solo or GameMode.Training))
+                    && MatchConfig.Mode is GameMode.Solo or GameMode.Training or GameMode.Tutorial))
                 _currentContext?.InvokeBackAction();
         }
 
@@ -160,7 +160,7 @@ namespace SlopArena.Client.UI
             _identity is { ModeGateClosed: false }
             && (_current is FrontendPage.Home or FrontendPage.ServerBrowser or FrontendPage.ArcadeSelect
                 || (_current is FrontendPage.FighterSelect or FrontendPage.StageSelect
-                    && MatchConfig.Mode is GameMode.Solo or GameMode.Training));
+                    && MatchConfig.Mode is GameMode.Solo or GameMode.Training or GameMode.Tutorial));
 
         private void NavigateMode(GameMode mode)
         {
@@ -199,7 +199,7 @@ namespace SlopArena.Client.UI
                 && (_current == FrontendPage.ServerBrowser
                     || _current == FrontendPage.ArcadeSelect
                     || (_current == FrontendPage.FighterSelect
-                        && MatchConfig.Mode is GameMode.Solo or GameMode.Training));
+                        && MatchConfig.Mode is GameMode.Solo or GameMode.Training or GameMode.Tutorial));
             _navHome?.SetEnabled(home || canReturnHome);
             _navTraining?.SetEnabled(canSwitchMode);
             _navOffline?.SetEnabled(canSwitchMode);
@@ -207,6 +207,7 @@ namespace SlopArena.Client.UI
             _navOnline?.SetEnabled(canSwitchMode);
             _currentContext?.Q<Button>("menu-online")?.SetEnabled(canPlay);
             _currentContext?.Q<Button>("menu-solo")?.SetEnabled(canPlay);
+            _currentContext?.Q<Button>("menu-tutorial")?.SetEnabled(canPlay);
             _currentContext?.Q<Button>("menu-training")?.SetEnabled(canPlay);
             _currentContext?.Q<Button>("menu-arcade")?.SetEnabled(canPlay);
 

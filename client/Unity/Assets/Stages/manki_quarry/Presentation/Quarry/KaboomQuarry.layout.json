@@ -1,0 +1,43 @@
+{
+ "generator": "tools/blender/manki_quarry/build.py",
+ "seed": 20261018,
+ "source": "client/Unity/Assets/Stages/manki_quarry/manki_quarry.unity",
+ "sourceSha256": "a5ec1e2082444398b7dfae09381fcda59a3be7dd5595ec134420c54e10191d3a",
+ "arena": "data/arenas/manki_quarry.arena",
+ "arenaSha256": "70cd2a7d9ea2c286006882359bf99a6c68afd0d3756fbd046df64ddf4222ec08",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "MQ_Lit",
+  "MQ_Ground",
+  "MQ_Rock",
+  "MQ_Glow",
+  "MQ_Water"
+ ],
+ "textures": {
+  "ground": "KaboomQuarryGround.png",
+  "atlas": "KaboomQuarryAtlas.png",
+  "strata": "KaboomQuarryStrata.png",
+  "detail": "KaboomQuarryDetail.png",
+  "ripples": "KaboomQuarryRipples.png"
+ },
+ "sun": {
+  "azimuth": 215.0,
+  "elevation": 56.0
+ },
+ "objects": [
+  "Duck",
+  "Flotsam",
+  "Islands",
+  "Landmark",
+  "Mount Manki",
+  "Props",
+  "Quarry Walls",
+  "Quarry Yard",
+  "Route",
+  "Smoke",
+  "Tops",
+  "Water"
+ ],
+ "geometryDigest": "21cdaeb72efedf70b42473c929f901cf22c78f10f4b69617973f062b236cdc73",
+ "problems": 0
+}

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Rebuild Bonk's presentation clips from Kenney CC0 packs and generated noise.
 
-The clips live in the ignored client/Unity/Assets/Resources/Audio/SFX/Bonk/ folder; without
-them Bonk's effects are silent. Download Kenney's "Impact Sounds" and "Sci-Fi Sounds" (CC0,
+The clips are tracked in client/Unity/Assets/Resources/Audio/SFX/Bonk/ with their .meta files
+(Bonk's prefabs reference them by GUID); rerun this only to change a clip, then commit it. His
+swings and hit impacts come from tools/sfx/bonk_foley_clips.py instead. Download Kenney's "Impact Sounds" and "Sci-Fi Sounds" (CC0,
 https://kenney.nl/assets) and unpack each so --kenney holds impact/Audio and scifi/Audio, as
 for tools/sfx/manki_clips.py. Every clip is peak-normalized to -3 dBFS; needs ffmpeg with
 libvorbis. Provenance: docs/assets/credits-and-licenses.md.

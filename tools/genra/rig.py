@@ -123,6 +123,16 @@ class Rig:
     def up(self) -> np.ndarray:
         return np.array({'Z': [0., 0., 1.], 'Y': [0., 1., 0.]}[self.up_axis])
 
+    @cached_property
+    def facing(self) -> np.ndarray | None:
+        """The fighter's forward in world space: the actor root's +z from a Unity-built pack's mapping.json (the
+        game's facing, which the match camera follows), or None for a rig without one."""
+        mapping = self.path.parent / 'mapping.json'
+        if not mapping.exists():
+            return None
+        m = np.array(json.loads(mapping.read_text())['actorRootWorld'], float).reshape(4, 4)
+        return unit(np.array([-m[0, 2], m[1, 2], m[2, 2]]))  # Unity's column-vector +z, x mirrored like the pack
+
     # ----- kinematics ---------------------------------------------------------
     def fk(self, t, q, s) -> np.ndarray:
         """World transforms (..., N, 4, 4) for local channels shaped (..., N, 3|4)."""

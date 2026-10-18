@@ -43,7 +43,7 @@ namespace SlopArena.Client.Input
         {
             "MoveUp", "MoveDown", "MoveLeft", "MoveRight", "MoveStick", "Jump", "Down",
             "Shield", "Grab", "Slot1", "Slot2", "Slot3", "Slot4", "SlotA", "SlotE", "SlotR", "SlotF",
-            "SpecialModifier", "FaceToCamera", "ToggleLock", "Retarget", "Pause"
+            "SpecialModifier", "FaceToCamera", "ToggleLock", "Retarget", "Pause", "Retry"
         };
 
         public static void Initialize(string overridesJson)
@@ -95,7 +95,15 @@ namespace SlopArena.Client.Input
         public static string BindingLabel(string actionName, string group)
         {
             int index = BindingIndex(actionName, group);
-            return index < 0 ? "Unbound" : Get(actionName).GetBindingDisplayString(index);
+            if (index < 0) return "Unbound";
+            var action = Get(actionName);
+            string label = action.GetBindingDisplayString(index);
+            // Some platform keyboards name non-printing keys with control characters (Backspace
+            // and Escape on Linux render as boxes); the layout's control name reads everywhere.
+            bool printable = !string.IsNullOrWhiteSpace(label);
+            foreach (char c in label ?? "") printable &= !char.IsControl(c);
+            return printable ? label : InputControlPath.ToHumanReadableString(action.bindings[index].effectivePath,
+                InputControlPath.HumanReadableStringOptions.OmitDevice);
         }
 
         public static void Rebind(string actionName, string group, Action<string, string> completed)
@@ -216,9 +224,9 @@ namespace SlopArena.Client.Input
             AddButton("Slot2", "<Keyboard>/2", "<Gamepad>/buttonWest");
             AddButton("Slot3", "<Keyboard>/3", "<Gamepad>/buttonNorth");
             AddButton("Slot4", "<Keyboard>/4", "<Gamepad>/buttonEast");
-            var keyboard = Keyboard.current;
-            string slotAKey = keyboard != null ? keyboard.FindKeyOnCurrentKeyboardLayout("A").name : "q";
-            AddButton("SlotA", $"<Keyboard>/{slotAKey}");
+            // Keyboard paths are key positions: the key right of Tab reads A on AZERTY and Q on
+            // QWERTY. Binding the key that types "A" put special A on move-left for QWERTY players.
+            AddButton("SlotA", "<Keyboard>/q");
             AddButton("SlotE", "<Keyboard>/e");
             AddButton("SlotR", "<Keyboard>/r");
             AddButton("SlotF", "<Keyboard>/f");
@@ -229,6 +237,8 @@ namespace SlopArena.Client.Input
             AddButton("ToggleLock", "<Mouse>/rightButton", "<Gamepad>/rightStickPress");
             AddButton("Retarget", "<Keyboard>/tab", "<Gamepad>/dpad/right");
             AddButton("Pause", "<Keyboard>/escape", "<Gamepad>/start");
+            // Arcade only: a full fresh attempt. ArcadeRetryInput requires a short gamepad hold.
+            AddButton("Retry", "<Keyboard>/backspace", "<Gamepad>/select");
             AddValue("MoveStick", "<Gamepad>/leftStick", "Vector2");
             AddValue("MouseLook", "<Mouse>/delta", "Vector2");
             AddValue("StickLook", "<Gamepad>/rightStick", "Vector2");

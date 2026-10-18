@@ -29,11 +29,15 @@ namespace SlopArena.Client.UI
             Clear();
         }
 
-        public void Show(string text, float seconds)
+        /// <summary>
+        /// Prints <paramref name="text"/>. <paramref name="wide"/> uses the gold start card for other
+        /// headlines (the Character Course's ALL CLEAR!), which bring their own sound.
+        /// </summary>
+        public void Show(string text, float seconds, bool wide = false, bool sound = true)
         {
             if (_root == null || _stamp == null || _title == null || _print == null) return;
             bool number = text is "3" or "2" or "1";
-            bool start = text == "SLOP IT OUT";
+            bool start = wide || text == "SLOP IT OUT";
             _root.EnableInClassList("solo-countdown--number", number);
             _root.EnableInClassList("solo-countdown--start", start);
             _title.text = _print.text = text;
@@ -42,7 +46,7 @@ namespace SlopArena.Client.UI
             _tilt = text switch { "3" => -7f, "2" => 4f, "1" => -3f, _ => -4f };
             _root.style.display = DisplayStyle.Flex;
             Tick(0f);
-            UISFX.PlayCountdownBeat(text);
+            if (sound) UISFX.PlayCountdownBeat(text);
         }
 
         public void Tick(float dt)

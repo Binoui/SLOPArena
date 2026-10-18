@@ -1,0 +1,48 @@
+{
+ "generator": "tools/blender/license_test/build.py",
+ "seed": 20261018,
+ "source": "client/Unity/Assets/Stages/license_test/license_test.unity",
+ "sourceSha256": "0d02f5b7ea0da18f0eb4f77aa921006b14eb3e999fdacef20e38dc038ee60ac8",
+ "arena": "data/arenas/license_test.arena",
+ "arenaSha256": "fb5c7e656e8258c9094a8de59cdf337df52b96d7df5c318af13eaa4d17d89213",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "LT_Lit",
+  "LT_Deck",
+  "LT_Glass",
+  "LT_Concrete",
+  "LT_Brick",
+  "LT_Far",
+  "LT_Sky"
+ ],
+ "textures": {
+  "deck": "LicenseTestDeck.png",
+  "atlas": "LicenseTestAtlas.png",
+  "brick": "LicenseTestBrick.png",
+  "concrete": "LicenseTestConcrete.png",
+  "detail": "LicenseTestDetail.png"
+ },
+ "sun": {
+  "azimuth": 100.0,
+  "elevation": 58.0
+ },
+ "objects": [
+  "Barrier",
+  "City Far",
+  "City Near",
+  "Clouds",
+  "Course",
+  "Deck",
+  "Facade",
+  "Neighbour",
+  "Party Wall",
+  "Safety Fence",
+  "Sky",
+  "Street",
+  "Test Center Base",
+  "Test Center Tower",
+  "Traffic"
+ ],
+ "geometryDigest": "a045cf60f79b96947723afc832c36f93fb964fe6228da4bc1a2fa873e1948b83",
+ "problems": 0
+}

@@ -4,7 +4,7 @@ display_name: Log Off
 target: pvp
 players: 2-4
 variant: static
-availability: provisional-human-camera-and-pvp-review-pending
+availability: accepted
 competitive_intent: playful
 topology: split chopping stump with two lower bracket-fungus shelves
 source_scene: client/Unity/Assets/Stages/log_off/log_off.unity
@@ -118,6 +118,5 @@ Receipts are local under `.stage-authoring-cache/log_off/campsite-20261016/`;
 full orbit images under `.ability-lab-cache/log-off-campsite-20261016/orbit/`;
 final gameplay views under `tmp/log-off-views/pass-02-pvp/` and
 `tmp/log-off-views/pass-02-training/`. The production report records decision
-conformance and the pending light-shaft difference. Human camera/gamefeel review,
-external two/four-player PvP acceptance and packaged-player performance remain
-unverified.
+conformance and the pending light-shaft difference. Accepted by the maintainer on 2026-10-17 after the stage pass ("the maps are much
+better"). Frame time and the packaged build were not measured separately.

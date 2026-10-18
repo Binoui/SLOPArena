@@ -1,0 +1,61 @@
+{
+ "generator": "tools/blender/splash_deck/build.py",
+ "seed": 20261016,
+ "source": "client/Unity/Assets/Stages/splash_deck/splash_deck.unity",
+ "sourceSha256": "12524e30d869d2afa0ecafc2eb65904a560e5a771a6ed46e96b0085a101301c9",
+ "arena": "data/arenas/splash_deck.arena",
+ "arenaSha256": "7c4c14d91600530f72960f05790ce9703998f4c60a4a056f284db18a600f9497",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "SD_Wood",
+  "SD_Deck",
+  "SD_Hull",
+  "SD_Land",
+  "SD_Foliage",
+  "SD_Cloth",
+  "SD_Water",
+  "SD_Glow",
+  "SD_Sky"
+ ],
+ "textures": {
+  "deck": "SplashDeckDeck.png",
+  "hull": "SplashDeckHull.png",
+  "atlas": "SplashDeckAtlas.png",
+  "detail": "SplashDeckDetail.png",
+  "ripples": "SplashDeckRipples.png"
+ },
+ "waterY": -11.4,
+ "sun": {
+  "azimuth": 112.0,
+  "elevation": 36.0
+ },
+ "objects": [
+  "Awnings",
+  "Beach",
+  "Breakwater",
+  "Chapel",
+  "Church",
+  "Clouds",
+  "Deck",
+  "Far Islands",
+  "FishHatch",
+  "Gulls",
+  "Harbour Boats",
+  "Hills",
+  "Hull",
+  "Laundry",
+  "Lighthouse",
+  "Lighthouse Lamp",
+  "Market",
+  "Quay",
+  "Rocks",
+  "Sailboats",
+  "Sea",
+  "Sky",
+  "Trees",
+  "Village",
+  "Wheelhouse"
+ ],
+ "geometryDigest": "8920a18a83fc522848bb97f8153c4420cae994c56b309a12c3893c4e22c4f443",
+ "problems": 0
+}

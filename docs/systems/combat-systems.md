@@ -247,6 +247,12 @@ The Shared resolver owns collision. A move can issue fixed-position, capsule, sp
 - projectile velocity, gravity, lifetime, and ground contact;
 - explosion queues and lingering rehit zones.
 
+A projectile stops at the first entity it touches. Its explosion is different: since
+2026-10-18 the blast hits everything inside its radius once for its whole window, so a
+bomb or rocket that lands between two fighters, between course targets or next to its
+own owner (Manki's rocket jump) reaches all of them. Before that change the blast also
+stopped at its first contact.
+
 No Unity physics query or client-only trajectory determines gameplay.
 
 ## Targeting and aiming
@@ -282,6 +288,14 @@ mouse. While the last input came from a controller, lock assistance uses an 8° 
 200°/s and twice the response, and resumes after half the manual grace. Keyboard and
 mouse keep the values above. The stick speed, controller dead zone and turn speed are
 tunable on `CameraMount` under **Controller Stick**.
+
+Ground-cursor aim (Manki's Round Bomb, Bonk's Targeted Jump Slam) points at the stage's
+own collision: MatchBase mirrors the baked triangles as a camera proxy, and the cursor ray
+hits that proxy (a steep face counts as the top of its block; open water or void falls back
+to the y = 0 plane). The bomb's server arc always lands at foot height at the sent distance,
+so the client sends `CombatMath.LobDistanceThrough` for the point under the cursor; the arc
+then passes through a raised island or lower roof, within the bomb's unchanged 12 m reach.
+Height costs reach: an island 2.4 m up needs a 12.5 m throw at 9 m.
 
 Aim indicators and camera movement are visual input aids. They do not bypass server validation or replace Shared simulation.
 

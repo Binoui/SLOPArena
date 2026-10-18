@@ -1,13 +1,14 @@
 ---
 key: after_hours
-status: draft
-approved_by: null
+status: accepted
+locked: 2026-10-16
+approved_by: maintainer
+approval_scope: selected broad club roof layout and neon downtown mix, procedural rebuild
 direction_selected_by: maintainer
 direction_selected: 2026-10-16
 layout_selected: broad club roof
 city_selected: neon downtown mix
-human_review: pending
-production_status: neon_rebuild_review_pending
+accepted: 2026-10-17
 blockout:
   - .stage-authoring-cache/after_hours/neon-20261016/build/preview/
   - tmp/after-hours-neon/pass-02/
@@ -154,8 +155,8 @@ lights through it. Fighters and edges stay brighter and clearer than the skyline
   in-memory arena override, domain reload disabled) are in
   `tmp/after-hours-neon/pass-01` (first apply) and `pass-02` (current). They are
   agent evidence, not human review.
-- **Pending:** the maintainer's in-game visual review, two- and four-player PvP
-  acceptance, recovery feel, performance measurement and the packaged build.
+- **Accepted** by the maintainer on 2026-10-17. Frame time and the packaged build
+  were not measured separately.
 
 ## History
 

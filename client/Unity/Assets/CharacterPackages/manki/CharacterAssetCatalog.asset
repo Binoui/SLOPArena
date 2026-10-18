@@ -107,7 +107,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.manki.a4
   - _semanticId: anim.manki.tumble
-    _clip: {fileID: -623603649343465320, guid: b79032c6c9e8aa56ab188264f01fff1c, type: 3}
+    _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.tumble
   - _semanticId: anim.manki.crouch

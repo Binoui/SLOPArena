@@ -88,9 +88,10 @@ namespace SlopArena.Client.UI
 
             Button firstStageButton = null;
             int stageCount = 0;
+            var roster = StageRoster.Load();
             foreach (var arena in ArenaRegistry.All)
             {
-                if (!IsInStageSelectRoster(arena.Name, isTraining)) continue;
+                if (!roster.Offers(arena.Name, isTraining)) continue;
                 string? baked = BakedContentPaths.ResolveArena(arena.Name);
                 if (baked == null) continue;
                 var arenaOpt = ArenaBinaryFormat.LoadFromFile(baked);
@@ -228,23 +229,29 @@ namespace SlopArena.Client.UI
                 progressLabel.text = progress;
         }
 
-        // Curated picker roster: other baked arenas remain available for
-        // compatibility and authoring until their rebuilds are ready.
-        private static bool IsInStageSelectRoster(string arenaName, bool isTraining)
+        /// <summary>
+        /// Curated picker roster from Resources/Stages/roster.json, the single list the release
+        /// also turns into Master's online admission. Other baked arenas remain available for
+        /// compatibility and authoring until their rebuilds are ready.
+        /// </summary>
+        [Serializable]
+        private sealed class StageRoster
         {
-            switch (arenaName)
+            public string[] picker = Array.Empty<string>();
+            public string[] trainingOnly = Array.Empty<string>();
+
+            public bool Offers(string arenaName, bool isTraining)
+                => Array.IndexOf(picker, arenaName) >= 0 || (isTraining && Array.IndexOf(trainingOnly, arenaName) >= 0);
+
+            public static StageRoster Load()
             {
-                case "table_manners":
-                case "splash_deck":
-                case "slop_pit":
-                case "after_hours":
-                case "last_stop":
-                case "log_off":
-                    return true;
-                case "training":
-                    return isTraining;
-                default:
-                    return false;
+                var asset = Resources.Load<TextAsset>("Stages/roster");
+                if (asset == null)
+                {
+                    Debug.LogError("[StageSelect] Missing Resources/Stages/roster.json; no stages are offered.");
+                    return new StageRoster();
+                }
+                return JsonUtility.FromJson<StageRoster>(asset.text) ?? new StageRoster();
             }
         }
 

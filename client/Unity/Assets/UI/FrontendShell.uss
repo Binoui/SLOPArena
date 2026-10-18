@@ -43,14 +43,7 @@
     --chat-surface: var(--shell-surface);
     --chat-deep-ink: var(--shell-recess);
     --chat-border: var(--shell-rule);
-    background-color: var(--shell-surface);
-}
-.frontend-shell .chat-history,
-.frontend-shell .chat-draft .unity-base-text-field__input {
     background-color: var(--shell-recess);
-}
-.frontend-shell .online-list {
-    background-color: var(--shell-surface);
 }
 
 .shell-hidden {
@@ -656,63 +649,38 @@
    `FrontendShellView` in panel coordinates derived from the physical size
    targets (PanelSettings use ConstantPhysicalSize, and the runtime scale
    factor is read from `panel.scaledPixelsPerPoint`, so USS px cannot express
-   physical pixels). Shell chat history may shrink and scroll when its header
-   grows, so the composer remains inside the user-sized overlay. */
-
-.frontend-shell .chat-panel {
-    padding: 4px;
-}
-
-.frontend-shell .chat-tabs {
-    height: 28px;
-    margin-top: 0;
-}
-
-.frontend-shell .chat-tab {
-    min-height: 26px;
-}
-
-.frontend-shell .chat-body {
-    margin-top: 4px;
-}
-
-.frontend-shell .chat-compose {
-    min-height: 28px;
-    margin-top: 4px;
-}
-
-.frontend-shell .chat-draft,
-.frontend-shell .chat-compose .chat-action {
-    min-height: 26px;
-}
-
-.frontend-shell .chat-feedback {
-    min-height: 0;
-}
+   physical pixels). The stream shrinks and scrolls when the cell is small,
+   so the filters and the composer stay inside the user-sized overlay. */
 
 .frontend-shell .chat-history {
     min-height: 0;
 }
 
+.frontend-shell--compact .chat-head {
+    padding: 4px 62px 4px 4px;
+}
 
+.frontend-shell--compact .chat-filter {
+    min-height: 22px;
+    padding: 0 6px;
+}
 
-
-.frontend-shell--compact .chat-tab {
+.frontend-shell--compact .chat-filter__name {
     font-size: 9px;
 }
 
-
-
-.frontend-shell--compact .chat-message {
-    min-height: 0;
-    margin-bottom: 2px;
-    padding: 2px 2px;
+.frontend-shell--compact .chat-main {
+    padding: 4px 6px 6px 6px;
 }
 
-.frontend-shell--compact .chat-message__text {
-    font-size: 11px;
+.frontend-shell--compact .chat-row__name,
+.frontend-shell--compact .chat-row__text {
+    font-size: 12px;
 }
 
+.frontend-shell--compact .chat-compose {
+    min-height: 30px;
+}
 
 .frontend-shell--compact .chat-draft {
     font-size: 12px;
@@ -726,16 +694,9 @@
     font-size: 10px;
 }
 
-/* Fit the presenter inside its resizable cell: the history keeps a small
-   scrolling floor and the corner controls stay reachable. */
 .frontend-shell--compact .chat-corner-actions {
-    flex-direction: row;
-    align-items: center;
-    right: 24px;
-}
-
-.frontend-shell--compact .chat-history {
-    min-height: 50px;
+    top: 4px;
+    right: 4px;
 }
 
 
@@ -858,6 +819,32 @@
     opacity: 0.65;
 }
 
+/* The tutorial sits above the four modes as a slimmer entry for newcomers. */
+.menu-action--tutorial {
+    min-height: 60px;
+    font-size: 22px;
+}
+
+.menu-action-badge {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    translate: 0 -50%;
+    padding: 2px 8px;
+    background-color: var(--shell-action);
+    color: var(--shell-canvas);
+    font-size: 13px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-width: 2px;
+    border-color: var(--shell-canvas);
+}
+
+.menu-action--tutorial:hover .menu-action-badge,
+.menu-action--tutorial:focus .menu-action-badge {
+    background-color: var(--shell-paper);
+}
+
 .menu-info {
     width: 348px;
     min-height: 300px;
@@ -917,6 +904,11 @@
     min-height: 50px;
     margin-bottom: 6px;
     font-size: 22px;
+}
+.frontend-shell--compact .menu-action--tutorial {
+    /* With the tutorial the column still has to clear the chat overlay. */
+    min-height: 38px;
+    font-size: 18px;
 }
 .frontend-shell--compact .menu-info {
     width: 270px;

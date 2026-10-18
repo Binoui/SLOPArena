@@ -474,6 +474,7 @@ The general rules still apply:
 | Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; concepts approved, in-game check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
 | Bonk "BONK!": bucket-red smear, blunt thunks, a comic BONK! on big hits, armour glow, snort, dust, cracks and rubble | Implemented 2026-10-17; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#combat-presentation--2026-10-17) |
 | Character-specific hit layers | All four fighters | Per-slot `hitPresentationId` |
+| Character Course feel (Sanctuary): paper-lantern targets, breaks, checkpoint frames, missed-target pillars, ALL CLEAR! and the finish | Implemented 2026-10-18; concepts approved, in-game check pending | `SanctuaryCoursePresentationBuilder.cs` + `CharacterCoursePresentation.cs`; see [Phase 4](../design/arcade-phase-4.md#feel-pass--2026-10-18) |
 
 ### Authored bone trails
 

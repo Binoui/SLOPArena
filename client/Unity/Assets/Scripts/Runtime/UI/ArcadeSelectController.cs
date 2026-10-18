@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SlopArena.Client.Network;
 using SlopArena.Client.World;
@@ -16,7 +17,10 @@ namespace SlopArena.Client.UI
         private ArenaDefinition _arena;
         private CharacterClass _selected;
         private static bool _courseSelected;
-        private ArenaDefinition? _slopballArena, _courseArena;
+        private ArenaDefinition? _slopballArena;
+        /// <summary>Baked courses with a presentation, in menu order; each fighter plays the first that admits it.</summary>
+        private readonly List<(CharacterCourseInfo Info, ArenaDefinition Arena)> _courses = new();
+        private CharacterCourseInfo _course;
         private ArcadeRecordKey _key;
 
         public void InjectPageContext(FrontendPageContext context) => _context = context;
@@ -37,11 +41,14 @@ namespace SlopArena.Client.UI
             var modes = _context.Q<ScrollView>("arcade-modes");
             modes.EnableInClassList("arcade-mode-gallery--single", modes.contentContainer.childCount == 1);
             _slopballArena = LoadArena(SlopballMatch.ArenaKey);
-            _courseArena = LoadArena(CharacterCourseMatch.ArenaKey);
+            _courses.Clear();
+            foreach (var info in CharacterCourseMatch.Courses)
+                if (LoadArena(info.Key) is ArenaDefinition courseArena && courseArena.Arcade?.Course != null)
+                    _courses.Add((info, courseArena));
             var ballMode = _context.Q<Button>("arcade-mode-slopball");
             var courseMode = _context.Q<Button>("arcade-mode-course");
             bool ballReady = _slopballArena?.Arcade?.Slopball != null;
-            bool courseReady = _courseArena?.Arcade?.Course != null;
+            bool courseReady = _courses.Count > 0;
             ballMode.SetEnabled(ballReady); courseMode.SetEnabled(courseReady);
             ballMode.clicked += () => SelectMode(false);
             courseMode.clicked += () => SelectMode(true);
@@ -65,21 +72,33 @@ namespace SlopArena.Client.UI
             return ArenaBinaryFormat.LoadFromFile(path);
         }
 
+        /// <summary>The course this fighter plays: the first listed course whose profile admits it.</summary>
+        private bool TryCourse(MatchContentEntry entry, out CharacterCourseInfo info, out ArenaDefinition arena)
+        {
+            foreach (var course in _courses)
+                if (course.Arena.Arcade.AllowsPackage(entry.Identity.PackageId))
+                { info = course.Info; arena = course.Arena; return true; }
+            info = null; arena = default; return false;
+        }
+
+        private bool Admits(MatchContentEntry entry)
+            => _courseSelected ? TryCourse(entry, out _, out _) : _arena.Arcade.AllowsPackage(entry.Identity.PackageId);
+
         private void SelectMode(bool course)
         {
-            var arena = course ? _courseArena : _slopballArena;
-            if (!arena.HasValue || _catalog == null) return;
-            _courseSelected = course; _arena = arena.Value; _key = null;
+            if (_catalog == null || (course ? _courses.Count == 0 : !_slopballArena.HasValue)) return;
+            _courseSelected = course; _key = null; _course = null;
+            if (!course) _arena = _slopballArena.Value;
             _context.Q<Button>("arcade-mode-slopball").EnableInClassList("arcade-mode-card--selected", !course);
             _context.Q<Button>("arcade-mode-course").EnableInClassList("arcade-mode-card--selected", course);
-            _context.Q<Label>("arcade-selected-mode").text = course ? "SANCTUARY COURSE" : "SLOPBALL";
+            _context.Q<Label>("arcade-selected-mode").text = course ? "CHARACTER COURSES" : "SLOPBALL";
             _context.Q<Button>("arcade-play").text = course ? "PLAY COURSE" : "PLAY SLOPBALL";
             _context.Q<Toggle>("arcade-course-tips").style.display = course ? DisplayStyle.Flex : DisplayStyle.None;
             var grid = _context.Q<VisualElement>("arcade-fighters"); grid.Clear();
             foreach (var cls in MenuRoster.Classes)
             {
                 var entry = _catalog.Resolve(cls);
-                if (entry == null || !_arena.Arcade.AllowsPackage(entry.Identity.PackageId)) continue;
+                if (entry == null || !Admits(entry)) continue;
                 var button = new Button(() => Select(cls)) { name = "arcade-fighter-" + cls };
                 button.AddToClassList("char-card");
                 var portrait = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -92,7 +111,8 @@ namespace SlopArena.Client.UI
                 check.AddToClassList("char-card-check");
                 button.Add(check);
             }
-            _selected = course ? CharacterClass.FightGuy : _catalog.Resolve(MatchConfig.PlayerClass) != null ? MatchConfig.PlayerClass : CharacterClass.FightGuy;
+            var current = _catalog.Resolve(MatchConfig.PlayerClass);
+            _selected = current != null && Admits(current) ? MatchConfig.PlayerClass : CharacterClass.FightGuy;
             Select(_selected);
             MenuNavigation.Configure(_context, grid.Q<Button>("arcade-fighter-" + _selected)
                 ?? grid.Children().OfType<Button>().FirstOrDefault() ?? _context.Q<Button>("btn-back"),
@@ -102,7 +122,13 @@ namespace SlopArena.Client.UI
         private void Select(CharacterClass fighter)
         {
             var entry = _catalog.Resolve(fighter);
-            if (entry == null || !_arena.Arcade.AllowsPackage(entry.Identity.PackageId)) return;
+            if (entry == null || !Admits(entry)) return;
+            if (_courseSelected)
+            {
+                TryCourse(entry, out _course, out var courseArena);
+                _arena = courseArena;
+                _context.Q<Label>("arcade-selected-mode").text = _course.Title;
+            }
             _selected = fighter;
             MatchConfig.PlayerClass = fighter;
             MatchConfig.PlayerPackageId = entry.Identity.PackageId;
@@ -144,9 +170,9 @@ namespace SlopArena.Client.UI
 
         private void Launch()
         {
-            if (!_context.Valid || _key == null || _catalog.Resolve(_selected) == null) return;
+            if (!_context.Valid || _key == null || _catalog.Resolve(_selected) == null || _courseSelected && _course == null) return;
             MatchConfig.Mode = GameMode.Arcade;
-            MatchConfig.ArenaName = _courseSelected ? CharacterCourseMatch.ArenaKey : SlopballMatch.ArenaKey;
+            MatchConfig.ArenaName = _courseSelected ? _course.Key : SlopballMatch.ArenaKey;
             MatchConfig.IsHost = true;
 #if UNITY_EDITOR
             UnityEditor.SessionState.SetString(ArcadeBallMatch.FighterSessionKey, _selected.ToString());

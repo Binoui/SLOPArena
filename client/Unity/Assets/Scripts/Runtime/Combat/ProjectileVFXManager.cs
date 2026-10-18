@@ -114,6 +114,14 @@ namespace SlopArena.Client.Combat
 
         public void SetSimulation(ServerSimulation sim)
         {
+            // An Arcade retry swaps in a fresh simulation; nothing from the old one may linger.
+            if (_resolver != null)
+                _resolver.OnHitboxRemoved -= OnHitboxRemoved;
+            foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
+            foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
+            _activeVisuals.Clear();
+            _activeProjectileClasses.Clear();
+            _heldVisuals.Clear();
             _sim = sim;
             _config = Resources.Load<ProjectileVFXConfig>("VFXConfigs/ProjectileVisuals");
             _resolver = sim.Resolver;

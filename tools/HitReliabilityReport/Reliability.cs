@@ -21,6 +21,8 @@ internal sealed class MoveReliability
     public List<ReachBand> Reach = new();
     public List<VerticalBand> Vertical = new();
     public List<SamplingRow> Sampling = new();
+    /// <summary>Ground moves with several damaging hitboxes: where around the attacker each one can land.</summary>
+    public List<HitCoverage> Hits = new();
     public List<string> Flags = new();
 }
 
@@ -55,6 +57,18 @@ internal sealed class SamplingRow
     public double LostShare => SweptPositions == 0 ? 0 : (SweptPositions - TestedPositions) / (double)SweptPositions;
 }
 
+/// <summary>Bearings around the attacker at which one hit of a multi-hit ground move touches a standing target.</summary>
+internal sealed class HitCoverage
+{
+    public int Event;
+    public int FirstTick;
+    public int LastTick;
+    public float Damage;
+    public float Radius;
+    /// <summary>Per target and distance: bearings (of <see cref="Reliability.CoverageBearings"/>) any tested pose touches.</summary>
+    public List<(string Target, float Distance, int Bearings)> Touched = new();
+}
+
 internal static class Reliability
 {
     internal const float ContactProbeMeters = 1f;
@@ -68,7 +82,31 @@ internal static class Reliability
     private const int SubSteps = 8;
     /// <summary>Clip samples per tick for the reference swing path in <see cref="SamplingLoss"/>.</summary>
     private const int PathSamplesPerTick = 16;
-    private static readonly byte[] NormalWires = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+    /// <summary>Evenly spaced bearings (15° apart) at which <see cref="Coverage"/> places a standing target.</summary>
+    internal const int CoverageBearings = 24;
+    internal static readonly float[] CoverageMeters = { 1f, 1.5f };
+    internal static readonly byte[] NormalWires = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+    /// <summary>Canonical slot keys and their input wire values, in report order.</summary>
+    private static readonly (string Key, byte Wire)[] SlotKeys =
+    {
+        ("1", AbilitySlots.Slot1), ("2", AbilitySlots.Slot2), ("3", AbilitySlots.Slot3), ("4", AbilitySlots.Slot4),
+        ("A", AbilitySlots.A), ("E", AbilitySlots.E), ("R", AbilitySlots.R), ("F", AbilitySlots.F),
+    };
+
+    /// <summary>Wire values for comma-separated slot keys (1–4, A, E, R, F); null if a key is unknown or none is given.</summary>
+    internal static byte[]? ParseSlots(string text)
+    {
+        var wires = new List<byte>();
+        foreach (string key in text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var match = SlotKeys.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (match.Key == null) return null;
+            if (!wires.Contains(match.Wire)) wires.Add(match.Wire);
+        }
+        return wires.Count == 0 ? null : wires.ToArray();
+    }
+
+    private static string SlotKey(byte wire) => SlotKeys.First(x => x.Wire == wire).Key;
 
     internal static ArenaDefinition FlatArena() => new()
     {
@@ -79,13 +117,13 @@ internal static class Reliability
     };
 
     internal static List<MoveReliability> Measure(MatchContentEntry attacker,
-        IReadOnlyList<MatchContentEntry> targets, ArenaDefinition arena)
+        IReadOnlyList<MatchContentEntry> targets, ArenaDefinition arena, IReadOnlyList<byte>? wires = null)
     {
         var volumes = targets.Select(t => (t, Volumes(t, arena))).ToList();
         var medium = volumes[0].Item2;
         var moves = new List<MoveReliability>();
         foreach (bool air in new[] { false, true })
-        foreach (byte wire in NormalWires)
+        foreach (byte wire in wires ?? NormalWires)
         {
             var spec = attacker.Definition.GetSlotAbility(wire - 1, air);
             if (spec == null || spec.Stages.Length == 0) continue;
@@ -102,6 +140,7 @@ internal static class Reliability
                     move.Vertical.Add(VerticalAgainst(samples, target.Definition.Class.ToString(), targetVolumes));
             }
             move.Sampling.AddRange(SamplingLoss(attacker, spec, wire, air, medium));
+            if (!air) move.Hits.AddRange(Coverage(attacker, spec, wire, volumes));
             Flag(move);
             moves.Add(move);
         }
@@ -120,10 +159,7 @@ internal static class Reliability
                 active.Add(t);
         return new MoveReliability
         {
-            Slot = (air ? "air." : "ground.") + (wire switch
-            {
-                AbilitySlots.Slot1 => "1", AbilitySlots.Slot2 => "2", AbilitySlots.Slot3 => "3", _ => "4",
-            }),
+            Slot = (air ? "air." : "ground.") + SlotKey(wire),
             Name = spec.Name,
             Air = air,
             DurationTicks = stage.DurationTicks,
@@ -150,6 +186,12 @@ internal static class Reliability
             move.Flags.Add(F($"{row.LostShare * 100:F0}% of swept positions untested (target feet {row.TargetFeetHeight:+0.0;-0.0;0} m)"));
         if (move.ActiveTicks > 0 && move.ContactTicksAtProbe == 0 && !move.Air)
             move.Flags.Add(F($"no active tick touches a target {ContactProbeMeters:F0} m ahead"));
+        foreach (string target in move.Hits.SelectMany(x => x.Touched).Select(x => x.Target).Distinct())
+        {
+            var never = move.Hits.Where(h => h.Touched.Where(x => x.Target == target).All(x => x.Bearings == 0)).ToList();
+            if (never.Count > 0)
+                move.Flags.Add(F($"{never.Count} of {move.Hits.Count} hits ({string.Join(", ", never.Select(h => $"t{h.FirstTick}"))}) never touch a standing {target} {CoverageMeters[0]:0.#}–{CoverageMeters[^1]:0.#} m away"));
+        }
     }
 
     /// <summary>Real-sim starting distances (0.30–4.50 m, 5 cm) that connect against an idle target.</summary>
@@ -236,40 +278,7 @@ internal static class Reliability
         {
             var evt = events[e];
             if (evt.BoneName == null || evt.Damage <= 0f) continue;
-            var ticks = new List<Hitbox>();
-            var engine = new List<Hitbox>();
-            var path = new List<Hitbox>();
-            HitboxSweepOrigin? origin = null;
-            for (int t = evt.TriggerTick; t < evt.TriggerTick + Math.Max((ushort)1, evt.DurationTicks); t++)
-            {
-                var hitbox = Resolve(attacker, spec, wire, air, evt, t);
-                ticks.Add(hitbox);
-                engine.Add(hitbox);
-                var owner = OriginState(attacker, t);
-                var pose = new HitboxPose { X = hitbox.X, Y = hitbox.Y, Z = hitbox.Z, EndX = hitbox.EndX, EndY = hitbox.EndY, EndZ = hitbox.EndZ };
-                if (origin is { } from)
-                {
-                    for (int k = 1; k < PathSamplesPerTick; k++)
-                        path.Add(ResolveAt(attacker, spec, wire, air, evt, owner, t - 1 + k / (float)PathSamplesPerTick));
-                    var sweep = HitboxGeometry.SweepPoses(evt, attacker.BakedAnimation, attacker.Definition,
-                        spec.AnimationNames, 0, (byte)(wire - 1), air, in from, in owner, in pose);
-                    if (sweep != null)
-                        foreach (var swept in sweep)
-                        {
-                            var probe = hitbox;
-                            probe.X = swept.X; probe.Y = swept.Y; probe.Z = swept.Z;
-                            probe.EndX = hitbox.Shape == HitboxShape.Capsule ? swept.EndX : swept.X;
-                            probe.EndY = hitbox.Shape == HitboxShape.Capsule ? swept.EndY : swept.Y;
-                            probe.EndZ = hitbox.Shape == HitboxShape.Capsule ? swept.EndZ : swept.Z;
-                            engine.Add(probe);
-                        }
-                }
-                origin = new HitboxSweepOrigin
-                {
-                    PX = owner.PX, PY = owner.PY, PZ = owner.PZ,
-                    AttackElapsedTicks = owner.AttackElapsedTicks, Pose = pose,
-                };
-            }
+            var (ticks, engine, path) = SweepEvent(attacker, spec, wire, air, evt);
             float maxStep = 0f;
             for (int i = 1; i < ticks.Count; i++)
                 maxStep = Math.Max(maxStep, Distance(ticks[i].EndX, ticks[i].EndY, ticks[i].EndZ,
@@ -295,6 +304,93 @@ internal static class Reliability
             }
         }
         return rows;
+    }
+
+    /// <summary>
+    /// One hitbox over its active ticks, attacker fixed at the origin: each tick's pose, the poses the
+    /// engine tests (each tick's pose plus the swept poses between ticks), and the clip sampled
+    /// <see cref="PathSamplesPerTick"/> times per tick as the reference swing path.
+    /// </summary>
+    private static (List<Hitbox> Ticks, List<Hitbox> Engine, List<Hitbox> Path) SweepEvent(
+        MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air, HitboxEvent evt)
+    {
+        var ticks = new List<Hitbox>();
+        var engine = new List<Hitbox>();
+        var path = new List<Hitbox>();
+        HitboxSweepOrigin? origin = null;
+        for (int t = evt.TriggerTick; t < evt.TriggerTick + Math.Max((ushort)1, evt.DurationTicks); t++)
+        {
+            var hitbox = Resolve(attacker, spec, wire, air, evt, t);
+            ticks.Add(hitbox);
+            engine.Add(hitbox);
+            var owner = OriginState(attacker, t);
+            var pose = new HitboxPose { X = hitbox.X, Y = hitbox.Y, Z = hitbox.Z, EndX = hitbox.EndX, EndY = hitbox.EndY, EndZ = hitbox.EndZ };
+            if (origin is { } from)
+            {
+                for (int k = 1; k < PathSamplesPerTick; k++)
+                    path.Add(ResolveAt(attacker, spec, wire, air, evt, owner, t - 1 + k / (float)PathSamplesPerTick));
+                var sweep = HitboxGeometry.SweepPoses(evt, attacker.BakedAnimation, attacker.Definition,
+                    spec.AnimationNames, 0, (byte)(wire - 1), air, in from, in owner, in pose);
+                if (sweep != null)
+                    foreach (var swept in sweep)
+                    {
+                        var probe = hitbox;
+                        probe.X = swept.X; probe.Y = swept.Y; probe.Z = swept.Z;
+                        probe.EndX = hitbox.Shape == HitboxShape.Capsule ? swept.EndX : swept.X;
+                        probe.EndY = hitbox.Shape == HitboxShape.Capsule ? swept.EndY : swept.Y;
+                        probe.EndZ = hitbox.Shape == HitboxShape.Capsule ? swept.EndZ : swept.Z;
+                        engine.Add(probe);
+                    }
+            }
+            origin = new HitboxSweepOrigin
+            {
+                PX = owner.PX, PY = owner.PY, PZ = owner.PZ,
+                AttackElapsedTicks = owner.AttackElapsedTicks, Pose = pose,
+            };
+        }
+        return (ticks, engine, path);
+    }
+
+    /// <summary>
+    /// For a ground move with several damaging hitboxes: the bearings at which each one touches a standing
+    /// target <see cref="CoverageMeters"/> away, from the poses the engine tests, with the attacker fixed and
+    /// the target never knocked away.
+    /// </summary>
+    internal static List<HitCoverage> Coverage(MatchContentEntry attacker, AbilitySpec spec, byte wire,
+        IReadOnlyList<(MatchContentEntry Target, List<SpellResolver.EntityData> Volumes)> targets)
+    {
+        var rows = new List<HitCoverage>();
+        var events = spec.Stages[0].HitboxEvents ?? Array.Empty<HitboxEvent>();
+        if (events.Count(x => x.Damage > 0f) < 2) return rows;
+        for (int e = 0; e < events.Length; e++)
+        {
+            var evt = events[e];
+            if (evt.Damage <= 0f) continue;
+            var tested = SweepEvent(attacker, spec, wire, false, evt).Engine;
+            var row = new HitCoverage
+            {
+                Event = e, FirstTick = evt.TriggerTick, LastTick = evt.TriggerTick + Math.Max((ushort)1, evt.DurationTicks) - 1,
+                Damage = evt.Damage, Radius = evt.Radius,
+            };
+            foreach (var (target, volumes) in targets)
+                foreach (float distance in CoverageMeters)
+                    row.Touched.Add((target.Definition.Class.ToString(), distance, BearingsTouched(tested, volumes, distance)));
+            rows.Add(row);
+        }
+        return rows;
+    }
+
+    /// <summary>How many of <see cref="CoverageBearings"/> evenly spaced bearings place the target where a tested pose touches it.</summary>
+    internal static int BearingsTouched(IReadOnlyList<Hitbox> tested, IReadOnlyList<SpellResolver.EntityData> volumes, float distance)
+    {
+        int count = 0;
+        for (int i = 0; i < CoverageBearings; i++)
+        {
+            float yaw = i * 2f * MathF.PI / CoverageBearings;
+            var placed = Shift(volumes, MathF.Sin(yaw) * distance, 0f, MathF.Cos(yaw) * distance);
+            if (tested.Any(h => Touches(h, placed))) count++;
+        }
+        return count;
     }
 
     internal static bool Swept(IReadOnlyList<Hitbox> ticks, IReadOnlyList<SpellResolver.EntityData> volumes)

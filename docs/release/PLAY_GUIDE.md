@@ -6,18 +6,24 @@
    - Windows shows "Windows protected your PC" → click "More info" → "Run anyway".
      (The game isn't code-signed yet; this is normal.)
 4. Main menu:
-   - **Training** — play solo against bots, try every character.
-   - **Join** — pick a server (e.g. "SLOPArena EU #1"), enter the lobby, ready up.
-     Your friend does the same; the host starts when everyone is ready.
-5. Controls:
-   - Mouse — aim camera
-   - WASD — move
-   - Space — jump (double-tap for double jump)
-   - Shift — dash
-   - Left click — attack
-   - Right click — ability 1
-   - Q / E / R / F — abilities 2-5
+   - **Tutorial** — new here? Learn the controls step by step (about 10 minutes).
+   - **Training** — practise freely against a CPU dummy, any fighter.
+   - **Solo** — a stock match against a CPU.
+   - **Arcade** — solo challenges: Slopball and the Sanctuary course.
+   - **Online** — join a Room with friends.
+5. Controls (all rebindable in Settings):
+   - Mouse — camera; you always move relative to it
+   - WASD (ZQSD on AZERTY) — move
+   - Space — jump: tap for a short hop, hold for a full jump, again in the air to double jump
+   - X — down: crouch, slide while running, fast fall while falling
+   - 1 / 2 / 3 / 4 — attacks (different moves in the air)
+   - Q / E / R / F (A / E / R / F on AZERTY) — specials; E also gets you back to the stage
+   - Left Shift — shield (hold); in the air, a forward dodge
+   - C — grab, then any attack to throw
+   - Right click — target lock on/off · Tab — next target · Left click — face the camera
    - Esc — pause / back
+   - Controller: left stick move, right stick camera, RB jump, LT down, A/X/Y/B attacks,
+     LB + A/X/Y/B specials, RT shield, LB + RT grab, Start pause
 6. Problems?
    - Game won't start → your PC must be 64-bit Windows 10/11.
    - Firewall prompt → allow SLOPArena on private networks.

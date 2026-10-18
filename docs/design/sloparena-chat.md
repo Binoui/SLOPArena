@@ -1,6 +1,6 @@
 # SLOPArena Chat
 
-**Status:** The original Global/Direct chat foundation was approved under #206. Issue #243 retargets Server Chat to authenticated Master Room membership. Unity client Room-chat changes are implemented; native and real SignalR integration validation remain pending.
+**Status:** The original Global/Direct chat foundation was approved under #206. Issue #243 retargets Server Chat to authenticated Master Room membership. Unity client Room-chat changes are implemented; native and real SignalR integration validation remain pending. The owner approved the 2026-10-18 presentation rework under [Interface and input](#interface-and-input): one docked stream in menus; a ticker, one-line composer, speech slips and controller quick lines in fights. It changes no Master contract.
 
 ## Goal and scope
 
@@ -31,7 +31,7 @@ The online-player picker shows connected players by Display Name and Session Tag
 - Before first online/chat use, ask for a Display Name. Do not block Training or Solo while the player has not chosen one.
 - Remember the name locally. On later launches, connect automatically with that name and a new guest identity.
 - Use the same Display Name for chat, lobby, and match presentation. Do not introduce a chat-only alias.
-- Duplicate names are allowed. A short Session Tag must distinguish players; Direct Messages and Personal Mute target identity, never name.
+- Duplicate names are allowed. A short Session Tag must distinguish players; Direct Messages and Personal Mute target identity, never name. Show the tag next to a name wherever another identity in the same view shares that name.
 - Allow renaming only while the player is not joined to a GameServer. Preserve the guest identity and Session Tag, update current directory/presentation data, and save the new name locally.
 - Earlier messages retain the name used when sent. Renaming does not reattribute old messages or evade Personal Mute.
 - A player who relaunches is a new identity, even if the saved name is unchanged. An old Direct conversation must not automatically target that new identity.
@@ -49,7 +49,9 @@ These values were approved during the design interview.
 | Send rate | At most five sends per five seconds per guest, shared across all channels |
 | Public Channel Backlog | Last 50 messages per Global/Server channel, in Master memory only |
 | Local scrollback | Last 50 messages per channel or Direct conversation, during the current launch |
-| Combat feed | At most three public-message lines; fade after eight seconds |
+| Combat ticker | At most three public lines, each wrapped to two lines; visible for eight seconds, fading over the last two |
+| Speech slip | Room line from a match player: 3 s plus 0.06 s per character, at most 7 s; at most 80 characters shown |
+| Quick line | Controller D-pad up/left/down sends `GG`, `NICE` or `ONE MORE?` to the Room; at most one per 1.5 s, under the shared send limit |
 
 Render names and messages literally. URLs remain text. There are no clickable links, formatting, attachments, or previews. Empty messages and invalid names must fail validation. Client feedback and Master validation must agree on length handling, including Unicode. Rejected messages must not silently become different text.
 
@@ -96,29 +98,57 @@ There are no reports, bans, moderation dashboard, or durable account-blocking sy
 
 Use one shared chat interface across menus, Training, Room Lobby, fights, results, and rematches. Preserve the existing [visual language](visual-language.md); this task does not authorize a redesign of unrelated menus or HUD elements.
 
-The presenter reuses one `ChatOverlay` across Frontend and gameplay hosts. It has no
-title header: Expand and Minimize icons sit immediately left of the top-right resize
-grip, and the active direct conversation is named on its DIRECT tab. Identity stays in
-the shell, while connection and send failures render as a line inside the message
-history instead of below the composer. Dragging the frame's corner saves one shared
-physical width/height in PlayerPrefs and reapplies it across scenes and launches,
-clamped to each host's usable viewport. The menu chat keeps its bottom-left cell;
-gameplay chat anchors to the left side of the HUD. Match entry still closes
-interactive chat so retained presentation preferences never bypass input gating.
+The presenter reuses one `ChatOverlay` across Frontend and gameplay hosts. Identity
+stays in the shell; connection and send failures render as a line inside the
+messages instead of below the composer.
 
-Expanded chat has separate Global and Server tabs, plus a Direct area with a conversation list. Keep the active destination visible beside the composer. Server Chat keeps the `SERVER CHAT` label and is available from the shared chat UI, including Room Lobby, only while Room membership is active. Do not silently redirect a draft when its Room or recipient becomes unavailable.
+**Menus.** The bottom-left Social Dock shows one stream instead of channel tabs.
+Each line carries a channel chip (`GLOBAL`, `ROOM`, `DM`), the sender and the text;
+Direct lines add `TO YOU` or `TO <name>`, and your own name is Action Yellow.
+Filters `ALL`, `ROOM`, `GLOBAL` and `DMS` carry unread counts; choosing `ROOM` or
+`GLOBAL` also addresses the composer there. The presence button (`N ONLINE`, or
+`OFFLINE`) opens the player list, where a player starts a Direct Message or is muted;
+muted players are listed for unmuting. The composer's `TO:` chip names the
+destination: clicking it or pressing Tab cycles Room, Global and recent online Direct
+conversations, and clicking a line replies where it was said. Typed text moves with
+the destination. Minimize and the resize grip sit top-right; dragging the grip saves
+one physical width/height in PlayerPrefs, clamped to the viewport. Minimized chat is
+a slim tab: `CHAT`, the unread count, the latest unread public line and presence.
 
-During combat, show a small fading feed of clearly labeled Global/Server messages authorized for the current Room. Apply the three-line/eight-second defaults without covering stocks, damage, move indicators, or other critical combat information.
+**Fights.** There is no permanent chat button. A ticker at the HUD's bottom-left
+shows live public lines; `ENTER CHAT` (or the quick-line legend for controller
+players in an online match) appears below it only while something was just said or
+a Direct Message is unread, with a `DM n` chip for unread Direct Messages. Enter
+opens a single composer line with the destination chip and the last five lines from
+Room, Global and an addressed Direct conversation above it for context; there are no
+tabs, history box, send button, resize grip or mouse cursor. Room lines from people
+playing the match become speech slips over their fighter instead of ticker lines; a
+slip sits above the locked-target tag when they share a column, and moves beside the
+speaker's fight card when the fighter is off-screen, hidden or out. The local player's
+own lines always use their card, because their fighter stands under the camera.
+Online fight cards name the player, with the fighter as a small tag. Match entry
+still closes interactive chat so retained presentation never bypasses input gating.
 
-Direct Messages use a quiet unread indicator. Do not put their text in the public fading feed or add notification sounds. Incoming messages must not steal keyboard focus.
+Server Chat is labeled `ROOM` in the UI, matching the Room page. Joining a Room makes
+its conversation the destination, and a Room match starts addressed to the Room;
+Training and Solo address Global. Server Chat is available only while Room membership
+is active. Do not silently redirect a draft when its Room or recipient becomes
+unavailable.
+
+Keep the ticker, slips and composer clear of stocks, damage, move indicators and
+other critical combat information.
+
+Direct Messages use a quiet unread indicator. Do not put their text in the ticker, speech slips or the minimized tab, and do not add notification sounds. Incoming messages must not steal keyboard focus. Personal Mute hides a sender's lines, slips and alerts everywhere.
 
 While reading older messages, do not force-scroll to the newest message. Provide an explicit way to return to the newest messages.
 
 ### Combat typing
 
-- Enter opens and focuses the composer.
+- Enter opens and focuses the one-line composer, with the caret after any kept draft.
+- Tab changes the destination; the typed text moves with it.
 - The next Enter submits the message and closes the composer, returning control to the fight.
 - Escape closes without sending and retains the draft.
+- Controller players cannot type: during an online Room match, D-pad up/left/down send a quick line without opening the composer. D-pad right stays Retarget.
 - While composing, suppress human gameplay input, camera input, and conflicting background shortcuts.
 - Consume the opening/closing keys and clear buffered gameplay actions. Typing must not trigger attacks or other stale actions when chat closes.
 - Do not pause the simulation, grant protection, or otherwise change gameplay rules. The fighter remains vulnerable while typing.
@@ -190,6 +220,8 @@ checks do not satisfy the native UI, input, local mute, or scene-lifetime checks
 | Text contains markup-like input or Unicode | It renders as literal text, with consistent validation; it cannot inject formatting or another sender identity |
 | Chat opens, sends, and closes during a fight | Typing cannot move, attack, steer the camera, or activate background shortcuts; closing does not release buffered attacks; simulation and vulnerability continue |
 | Two real clients exchange messages through the shared UI | Live delivery works across menus, Training, lobby/select, fight, results, and rematch; no fixture activity or local-only success is presented as real delivery |
-| Native UI is inspected at 16:9 and approximately 2:1 | Feed, tabs, picker, draft, scrollback, and failure states remain usable without covering critical HUD information |
+| A Room member speaks during an online match | The line appears as a speech slip over their fighter (beside their card when off-screen or out; your own on your card) and not in the ticker |
+| A controller player presses D-pad up, left or down in an online match | `GG`, `NICE` or `ONE MORE?` reaches the Room and shows as their slip; nothing is sent in Training or Solo |
+| Native UI is inspected at 16:9 and approximately 2:1 | Ticker, slips, composer, stream filters, player list, draft, scrollback, and failure states remain usable without covering critical HUD information |
 
 Follow the applicable [verification mode](../testing.md) and [Unity CLI workflow](../contributing/unity-cli.md) when verifying this client integration. Protocol checks do not replace native input/focus and real-client delivery checks.

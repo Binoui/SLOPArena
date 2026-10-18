@@ -324,8 +324,9 @@ Choose the capture path by surface:
 | Ability Lab action/scenario frames | `sloparena.lab.capture` |
 | Runtime menus, HUD, or gameplay including Screen Space - Overlay UI (Play Mode) | `sloparena.capture.game-view --source screen` |
 | Camera-only frame or Scene View | `sloparena.capture.game-view --source camera` or `--source scene` |
-| PvP stage art from the gameplay camera | `sloparena.stage.views.*` batch in the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review) |
+| PvP stage or Slopball court art from the gameplay camera | `sloparena.stage.views.*` batch in the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review) |
 | Arcade course gameplay | [Course replay runner](../testing/course-replay.md) |
+| Tutorial lessons and its map | `sloparena.tutorial.*` batch in the [tutorial record](../design/tutorial.md#native-commands) |
 
 The native Pipeline `screenshot` command is camera-only and does not capture composited
 Screen Space - Overlay UI. Its `--output` accepts an absolute path or a path relative to the
@@ -449,12 +450,21 @@ editor editor_play
 editor editor_stop
 ```
 
-**Play Mode stall:** this Editor deadlocks when Play Mode is entered with a domain
-reload, and the lease stays `blocked` until a user-approved restart. Workflows that
-need Play Mode use the stage-views commands or the course replay runner, which save
-the Play Mode options, disable domain reload and restore everything afterwards.
-Before any other `editor_play`, set `EditorSettings.enterPlayModeOptions` to
-`DisableDomainReload` the same way and restore it after `editor_stop`.
+**Play Mode and reloads:** `editor_play` enters Play Mode without a domain reload by
+default and puts the project's Enter Play Mode Options back when Play Mode ends (also
+after a crash, on the next Editor start); `editor_play --reload true` opts into a
+fresh domain. Without a reload, static state set before Play Mode survives, so reset
+what a test depends on. Workflows that need Play Mode still prefer the stage-views
+commands or the course replay runner, which also save and restore scenes and
+selection.
+
+Before 2026-10-17 a domain reload could hang this Editor: the Pipeline server kept
+accepting requests while the domain unloaded, and a command still waiting for the
+main thread blocked the unload (main thread on a futex, log silent, lease `blocked`).
+The server now stops serving before a reload, fails queued main-thread work so those
+waits return, and holds reloads while an async command is running. A request that
+arrives during a reload fails as an uncertain command instead of hanging the Editor;
+check `status` and rerun it once the Editor has settled.
 
 ## Agent-facing character authoring
 
@@ -481,6 +491,14 @@ editor sloparena.character.unbind --target bonk --semantic-id anim.run
 editor sloparena.character.roster.refresh --package-id bonk
 editor sloparena.character.assets --target bonk --semantic-id anim.run
 ```
+
+`bind` replaces an existing semantic ID's clip; it does not create one. To add an ID (a new
+aim loop, for example), add its `_bindings` entry to `CharacterAssetCatalog.asset` and import
+the catalog before `character.json` refers to it: an `eval` of
+`AssetDatabase.ImportAsset("Assets/CharacterPackages/<package>/CharacterAssetCatalog.asset")`
+imports just that file, where a full `Refresh` would also compile other threads' scripts.
+In between, every command that loads the package fails with `reference.animation.unresolved`,
+including other threads' commands.
 
 `cook --dry-run` returns the predicted hashes and output paths without writing
 canonical cooked artifacts, generated catalogs, or cook status. Roster admission is
@@ -527,11 +545,16 @@ Verified result:
 {"unity":"6000.0.78f1","playing":false}
 ```
 
-**Reload hazard:** after editing C# (including Editor scripts), run `recompile` as its
-own command first and check errors before any `eval`/`eval_file` that calls
-`AssetDatabase.Refresh` or imports assets. Otherwise the refresh starts an uncorrelated
-compile, the domain reload lands during a later command, and Pipeline marks the lease
-`blocked` (completion unknown) until an explicitly authorized Editor restart.
+**Reload hazard:** a refresh compiles every script edited since the last compile,
+including another thread's, and the reload follows during a later command. The
+gateway therefore checks before each batch: when a `.cs`, `.asmdef`, `.asmref` or
+plugin `.dll` under `Assets/` or `Packages/` is newer than `Library/ScriptAssemblies`,
+it runs `recompile` (and `recompile_status`) first as its own step and reports the
+file. Compile errors from someone else's unfinished scripts are reported and the
+batch continues with the loaded scripts. `SLOPARENA_GATEWAY_AUTO_RECOMPILE=0` turns
+the check off for a batch that must not compile. Prefer typed commands that import
+only their own files (`sloparena.stage.art-apply` does) over an `eval_file` that calls
+`AssetDatabase.Refresh`.
 
 Use `eval_file` only when a genuinely novel probe needs more code than an inline
 expression. First check the relevant native and SLOPArena command schemas. Keep

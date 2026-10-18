@@ -25,6 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # tools/blender: the shared stagekit
 from stagekit import arena as baked  # noqa: E402
+from stagekit import shell  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 SOURCE_SCENE = REPO / "client/Unity/Assets/Stages/log_off/log_off.unity"
@@ -398,15 +399,12 @@ def load(spec_only: bool = False, spec=SPEC) -> dict:
 
 
 def unity_shell_json(spec=SPEC) -> dict:
-    """Input for the collision-source rebuild (Unity eval): one closed mesh per solid."""
-    solids = []
-    for name, (verts, tris) in collision(spec).items():
-        solids.append({"name": name.replace(" ", ""), "vertices": [list(v) for v in verts],
-                       "triangles": [i for t in tris for i in t]})
-    return {"top": spec["top"], "killY": spec["kill_y"], "solids": solids,
-            "spawns": [{"name": "Spawn_%02d" % (i + 1),
-                        "position": [x, spec["top"] + spec["spawn_body_half_height"], z],
-                        "yaw": spawn_yaw(x, z)} for i, (x, z) in enumerate(spec["spawns"])]}
+    """Input for sloparena.stage.shell-apply: the closed stump and shelf solids share one mesh
+    asset (SplitStumpShell child, LogOffCollision.asset) and spawn markers."""
+    solids = [(verts, [i for t in tris for i in t]) for verts, tris in collision(spec).values()]
+    top = spec["top"] + spec["spawn_body_half_height"]
+    return shell.document("log_off", spec["kill_y"], [shell.merged("SplitStumpShell", "LogOffCollision", solids)],
+                          [(x, top, z, spawn_yaw(x, z)) for x, z in spec["spawns"]])
 
 
 if __name__ == "__main__":

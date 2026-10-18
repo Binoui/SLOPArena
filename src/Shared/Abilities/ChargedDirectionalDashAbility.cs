@@ -8,6 +8,11 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
 {
     private enum Phase : byte { Charge, Dash, Recovery, Ended }
 
+    // Terrain stops the dash when a tick keeps less than this share of its forward travel: walls
+    // hit at about 40 degrees or more. Ground seams and gentle ramps trim a little; the remainder
+    // is commanded again. Keep it off 0.5, which a 45-degree wall graze lands on exactly.
+    private const float BlockedTravelRatio = 0.6f;
+
     private readonly CookedChargedDirectionalDashCapabilityParameters _parameters;
     private Phase _phase;
     private float _dashYaw;
@@ -21,9 +26,13 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
     private ushort _dashTravelTicks;
     private ushort _recoveryTicks;
     private bool _finisherSpawned;
+    private bool _groundedLastDashTick;
     private HashSet<ulong>? _traversalHitEntities;
 
     public override bool IgnoresFighterPushboxes => _phase == Phase.Dash;
+    // The dash ends where its marker showed, often inside the fighter it just cut:
+    // body overlap during recovery moves that fighter, not the dasher.
+    public override bool HoldsFighterPushboxPosition => _phase == Phase.Recovery;
     public override bool OwnsVerticalMotion => _phase == Phase.Dash;
 
     public ChargedDirectionalDashAbility(CookedChargedDirectionalDashCapabilityParameters parameters)
@@ -92,6 +101,7 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
         _startZ = s.PZ;
         _lastProgress = 0f;
         _finisherSpawned = false;
+        _groundedLastDashTick = s.IsGrounded;
         _recoveryTicks = 0;
         _dashTravelTicks = (ushort)Math.Max(1,
             (int)MathF.Ceiling(_distance / (_parameters.DashSpeed * Simulation.TickDt)));
@@ -123,7 +133,10 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
 
         float progress = (s.PX - _startX) * _directionX + (s.PZ - _startZ) * _directionZ;
         float moved = progress - _lastProgress;
-        if (moved + 0.0001f < _commandedDistance)
+        // An airborne landing keeps only the travel before touchdown; it is not a wall.
+        bool landed = s.IsGrounded && !_groundedLastDashTick;
+        _groundedLastDashTick = s.IsGrounded;
+        if (moved < _commandedDistance * BlockedTravelRatio && !landed)
         {
             StopDash(ref s, clearHitboxes: true);
             return;
@@ -133,8 +146,9 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
         float remaining = _distance - progress;
         if (remaining <= 0.0001f)
         {
-            s.PX = _startX + _directionX * _distance;
-            s.PZ = _startZ + _directionZ * _distance;
+            // Trim only the forward overshoot: a wall slide keeps its sideways offset.
+            s.PX += _directionX * remaining;
+            s.PZ += _directionZ * remaining;
             StopDash(ref s, clearHitboxes: false);
             return;
         }

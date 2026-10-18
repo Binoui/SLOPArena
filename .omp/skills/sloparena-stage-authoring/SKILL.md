@@ -1,6 +1,6 @@
 ---
 name: sloparena-stage-authoring
-description: "Implement SLOPArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes (including procedural Blender stage art and gameplay-camera views) and source-to-bake verification."
+description: "Implement SLOPArena PvP stages and solo Arcade courses through authoritative collision/marker baking and separate cosmetic presentation. Use for stage geometry, course spacing, targets/checkpoints, art passes (procedural Blender generators applied with sloparena.stage.art-apply, gameplay-camera views, review cameras, thumbnails, exposure checks) and source-to-bake verification."
 metadata: {"category": "game-dev"}
 ---
 

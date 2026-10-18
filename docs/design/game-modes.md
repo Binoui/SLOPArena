@@ -1,8 +1,8 @@
 # Game mode exploration
 
 **Status:** exploratory design notes, started 2026-10-13; solo arcade direction
-added 2026-10-14. These record the maintainer's preferred directions and proposed
-rules to try; they are not an implementation
+added 2026-10-14; upgrade rounds added 2026-10-17. These record the maintainer's
+preferred directions and proposed rules to try; they are not an implementation
 specification or a claim of supported features. The
 [friends demo](../plans/2026-09-05-playable-demo-reset.md) remains the current
 delivery baseline.
@@ -10,7 +10,8 @@ delivery baseline.
 ## Direction from the discussion
 
 Keep basic three-stock fights available. Explore other reasons to enjoy the same
-movement, kits and Knockback through new objectives and distinctive map geometry.
+movement, kits and Knockback through new objectives, distinctive map geometry and
+upgrades between rounds.
 
 - **Capture zones:** completing a capture awards points, then a zone appears at
   another location. Free-for-all and teams are equally important. Larger maps for
@@ -21,6 +22,9 @@ movement, kits and Knockback through new objectives and distinctive map geometry
   remain part of the direction. This mode needs a dedicated map.
 - **Crown:** carrying the crown and escaping pursuers is the attraction. A larger
   map with more movement choices should support that chase.
+- **Upgrade rounds:** one PvP Match made of short fights, with upgrades drafted
+  between rounds, inspired by League of Legends' Arena. Generic upgrades come
+  first; character upgrades are the goal.
 - **Moving platforms:** add gameplay geometry and personality to current maps as
   well as considering it for the new modes.
 - **Solo arcade:** small replayable minigames with personal records, offering a
@@ -151,6 +155,103 @@ Capture and crown could share a larger map if it offers both contestable sites a
 connected chase routes. That is a reuse hypothesis, not a requirement that one map
 fit both modes.
 
+## Upgrade rounds
+
+The maintainer's reference is League of Legends' Arena mode: Battlerite-style
+round fights with roguelike upgrades drafted between rounds. SLOPArena's version
+is a PvP mode where one Match is a series of short fights, and each upgrade
+changes how a fighter moves or how its moves behave until the Match ends. It
+reuses current stages, Character Kits and stock fights, so unlike the modes
+above it needs no dedicated map.
+
+The match rhythm is **fight a round → draft an upgrade → fight again with
+changed kits → repeat until one player wins the Match**.
+
+The maintainer has selected:
+
+- One Match contains every round. The Room stays in that Match until the final
+  round, so nobody joins after it starts (Rooms admit new members only in
+  Lobby). Results follow the final round.
+- Generic upgrades come first because they work for every fighter. Character
+  upgrades are the more fun direction and should become the heart of the mode.
+- A local prototype against CPU Opponents is an acceptable first step; the
+  destination is PvP.
+- It is the first multiplayer mode experiment, ahead of capture (2026-10-17).
+- Balance stays out of scope while the shape of the mode is explored.
+
+A first rules proposal:
+
+- Each player keeps one fighter, locked in Character Select, for the whole
+  Match.
+- A round is a short one-stock fight. Damage percent resets between rounds. A
+  long round goes to overtime, where Knockback rises or the blast zones close in.
+- Between rounds, every player picks one of a few offered upgrades. Picks are
+  revealed together, so everyone sees the other builds before the next fight.
+- Rarer and stranger upgrades appear as the Match goes on. The loser of a round
+  could get an extra choice; in ROUNDS, only the loser gets a card.
+- In 1v1, the first player to a target number of round wins takes the Match.
+  With three or four players, each player could carry a Match-long health pool
+  (working name: hearts) that low placements drain until one player remains.
+  Team play waits for the team support that capture also needs.
+- Stages rotate between rounds, or the loser of a round picks the next one, as
+  in competitive Smash.
+- League's gold and item shop stay out at first; the draft is the core.
+- Upgrades belong to one Match. A rematch starts without upgrades.
+
+No round count, round length, win target, draft timer, offer count or upgrade
+value has been selected.
+
+**Generic upgrades** change universal mechanics, so they work for every fighter
+and future package: an extra jump or air dodge, a heavier or lighter fighter,
+faster special or Burst cooldowns, a Slide that hits, a shockwave on a FastFall
+landing, surviving one blast-zone contact per round by bouncing back, bonus
+damage for hitting during an attack's startup, winning Clashes outright, damage
+dealt that heals some of the attacker's own percent, launch power that grows
+with the fighter's own percent, or a giant or tiny fighter.
+
+**Character upgrades** bend one of the fighter's own moves, usually a special,
+in the spirit of Battlerite's battlerites and Rivals of Aether's Abyss runes:
+
+- **FightGuy:** Ki Shot keeps charging while moving; a full Ki Shot splits on
+  impact; Rising Dragon works twice before landing; Cyclone Kick pulls
+  opponents in.
+- **Manki:** Round Bomb sticks to the first fighter it touches; the Bazooka
+  blast launches Manki too, for a rocket jump; Jetpack Boost gets a second
+  burst; Aerosol Inferno leaves burning ground.
+- **Wibou:** shuriken hits mark a target and Dash Slash homes in on the mark;
+  Dash Slash resets on hit; Rising Slash leaves an afterimage that slashes
+  again; Skyfall's spike lands with a shockwave.
+- **Bonk:** Shoulder Bash stuns an opponent driven into a wall; Bonk can move
+  during Blade Storm; Jump Slam leaves a delayed aftershock; the greatsword
+  grows with each hit in the round.
+
+Wilder directions include **borrowed moves**, which take a special from another
+fighter (projectiles without a held prop are the easiest start), and **Hot
+Potato**, a bomb attached at round start that passes to whoever its carrier
+hits. Optional **curses** could trade a drawback for a stronger offer.
+
+An upgrade that changes a move occupies that move's Slot, and a later upgrade
+on the same Slot replaces it, as Hades does with boons. Builds stay readable,
+and the HUD can mark the matching move ticket. Each fight card can summarize
+the build, and fighters need visible tells when an upgrade changes how a move
+looks. One voice for the cards is patch notes: Hotfix, Patch and DLC rarities,
+curses as Known Issues and card text written as patch-note lines. The mode's
+name is not selected; Patch Day, Early Access and Slop Circuit came up.
+
+Rounds can vary without new maps. A breakable orb that spawns mid-round and
+rewards whoever breaks it would give free-for-all fights a meeting point, as in
+Battlerite; Arcade's Course Targets are a starting point. Round events such as
+low gravity or everyone starting at a high percent are another option.
+
+The CPU prototype plays the same Match structure locally: rounds and drafts
+against CPU Opponents that also draft upgrades. It tests whether drafting and
+the first upgrades are fun before online round and draft support exists. A solo
+ladder of escalating CPU fights is a possible spin-off, not the goal.
+
+Open choices include private offers versus a shared pool where a pick denies
+that upgrade to others, what happens when a player leaves mid-Match, and
+whether a character upgrade modifies its move or replaces it.
+
 ## Moving geometry
 
 Start with one deliberate platform behavior on a suitable map: a ferry between
@@ -179,6 +280,16 @@ simulation support; cosmetic Unity animation alone does not supply it. Objective
 state, team rules, the ball and crown also need Shared/GameServer authority and
 matching client presentation.
 
+Upgrade rounds need several rounds inside one Match, with resets between them,
+and a draft whose choices are part of authoritative simulation history so
+prediction, rollback and Replays reproduce them. Per-fighter upgrade state
+belongs in the Shared simulation. A Match currently uses one baked stage, so
+rotating stages between rounds is new work. Character upgrades need an
+authored, cooked and pinned form that keeps match content immutable, such as
+alternate move timelines in the package. `IMatchRule` is the existing seam for
+new win conditions, and the local Solo match against a CPU Opponent is the
+natural host for the prototype.
+
 Multiplayer-mode architecture options and approval belong to a later design step.
 Solo Arcade's selected foundation is documented in its own implementation plan;
 these broader notes do not select a general framework.
@@ -201,20 +312,24 @@ arcade appeal can be tested through the local simulation independently.
    joining, combat readability and another-round interest. Record concrete
    failures and what players enjoyed. An early session supplies evidence while
    the game is still rough; it does not require a finished casual-mode offering.
-3. **Build one bounded capture mode experiment.** Give free-for-all and teams
-   equal priority. Use one existing static map or a simple route graybox,
-   unlimited respawns, full-capture scoring and zone relocation. Resolve the
-   necessary architecture options before implementation. Keep the four-or-more
-   player direction and scope the additional capacity work explicitly.
-4. **Test capture with mixed-skill friends.** Exercise the actual four-player
-   online mode, including team play, and expand the capacity test when more
-   players are supported. Check whether players understand the goal, feel useful,
-   stay involved and choose another round. Fix the problems that prevent that
-   experience, then invite more small groups to play the tested offering.
-5. **Choose the next addition from observed play.** Crown can reuse objective
-   infrastructure and route-map work. Volleyball keeps its dedicated ball/court
-   experiment; moving platforms keep their separate movement/collision scope.
-   Their order should follow player interest and the remaining technical risk.
+3. **Build one bounded upgrade rounds experiment.** It needs no new map: use
+   the current stages and stock fights. Prototype the round and draft loop
+   against CPU Opponents with generic upgrades, add a first character upgrade
+   for each fighter, then play the same Match online. Resolve the necessary
+   architecture options before implementation.
+4. **Test upgrade rounds with mixed-skill friends.** Play online Matches in 1v1
+   and with three or four players. Check whether players understand the draft,
+   read each other's builds, stay involved across rounds and choose another
+   Match. Fix the problems that prevent that experience, then invite more small
+   groups to play the tested offering.
+5. **Choose the next addition from observed play.** Capture keeps its bounded
+   experiment: free-for-all and teams with equal priority, one existing static
+   map or a simple route graybox, unlimited respawns, full-capture scoring and
+   zone relocation, plus explicitly scoped capacity work for four or more
+   players. Crown can reuse that objective infrastructure and route-map work.
+   Volleyball keeps its dedicated ball/court experiment; moving platforms keep
+   their separate movement/collision scope. Their order should follow player
+   interest and the remaining technical risk.
 
 Connection and match-breaking failures take priority whenever they prevent a
 session. Once players can complete and repeat matches, casual-mode experiments
@@ -240,6 +355,10 @@ an optional outcome.
 5. Follow the selected solo Arcade sequence: prove Slopball across the roster,
    then the static FightGuy Course, with personal bests and quick retry. Test
    whether each challenge is enjoyable and repeated attempts visibly improve.
+6. Prototype upgrade rounds against CPU Opponents with generic upgrades, add a
+   first character upgrade for each fighter, then play a PvP Match with
+   friends. Check whether drafts create memorable moments, players read each
+   other's builds and they want another Match.
 
 Observe whether players understand the objective, encounter others frequently,
 find useful roles across skill levels, and voluntarily want another round.

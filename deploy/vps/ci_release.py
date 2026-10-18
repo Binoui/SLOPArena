@@ -35,6 +35,9 @@ VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+-playtest\.[0-9]+$")
 RELEASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 MANIFEST_ID = re.compile(r"^[1-9][0-9]{0,19}$")
+# Stage keys Master admits online; the release copies them from the picker roster.
+ARENA_KEY = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+MAX_ADMITTED_ARENAS = 32
 
 
 class CandidateError(release.ReleaseError):
@@ -153,7 +156,8 @@ def validate_candidate(payload: Any) -> dict[str, Any]:
     """Validate and normalize the public candidate without consulting host state."""
     keys = {"release_id", "version", "source_revisions", "images", "catalog_hash",
             "schema", "steam", "master_endpoint"}
-    if not isinstance(payload, dict) or set(payload) != keys:
+    # admitted_arenas is optional so candidates from before roster admission still validate.
+    if not isinstance(payload, dict) or not keys <= set(payload) <= keys | {"admitted_arenas"}:
         raise CandidateError("candidate must contain exactly the approved public fields")
 
     release_id = payload["release_id"]
@@ -231,7 +235,14 @@ def validate_candidate(payload: Any) -> dict[str, Any]:
             endpoint != f"https://{host}" or not release.HOSTNAME.fullmatch(host)):
         raise CandidateError("master_endpoint must be an HTTPS hostname without a path")
 
-    return {
+    arenas = payload.get("admitted_arenas")
+    if "admitted_arenas" in payload and (
+            not isinstance(arenas, list) or not 1 <= len(arenas) <= MAX_ADMITTED_ARENAS or
+            any(not isinstance(name, str) or not ARENA_KEY.fullmatch(name) for name in arenas) or
+            len(set(arenas)) != len(arenas)):
+        raise CandidateError("admitted_arenas must list 1-32 unique lowercase stage keys")
+
+    normalized = {
         "release_id": release_id,
         "version": version,
         "source_revisions": {name: revisions[name] for name in ("gameplay", "master")},
@@ -245,6 +256,9 @@ def validate_candidate(payload: Any) -> dict[str, Any]:
         "steam": {name: steam[name] for name in ("app_id", "depot_id", "build_id", "manifest_id")},
         "master_endpoint": endpoint,
     }
+    if arenas is not None:
+        normalized["admitted_arenas"] = list(arenas)
+    return normalized
 
 
 def require_endpoint(candidate: dict[str, Any], active: dict[str, Any]) -> None:
@@ -295,7 +309,24 @@ def private_master_environment(active: dict[str, Any], target: Path,
     match = re.fullmatch(rb"(Room__CatalogHash=)[a-f0-9]{64}(\r?\n)?", lines[index])
     if not match:
         raise release.ReleaseError("active Room__CatalogHash must be a plain SHA-256 assignment")
-    lines[index] = match.group(1) + candidate["catalog_hash"].encode("ascii") + (match.group(2) or b"")
+    ending = match.group(2) or b""
+    lines[index] = match.group(1) + candidate["catalog_hash"].encode("ascii") + ending
+    if "admitted_arenas" in candidate:
+        # The roster replaces every Room__AdmittedArenas__N entry, in place of the first one.
+        arena_lines = [i for i, line in enumerate(lines)
+                       if re.match(rb"^\s*(?:export\s+)?Room__AdmittedArenas__", line)]
+        for i in arena_lines:
+            if not re.fullmatch(rb"Room__AdmittedArenas__[0-9]+=[a-z0-9_]*(\r?\n)?", lines[i]):
+                raise release.ReleaseError("active Room__AdmittedArenas entries must be plain assignments")
+        position = arena_lines[0] if arena_lines else index + 1
+        line_ending = ending or b"\n"
+        if not arena_lines and not lines[index].endswith(b"\n"):
+            lines[index] += line_ending
+        admitted = [b"Room__AdmittedArenas__%d=%s" % (n, name.encode("ascii")) + line_ending
+                    for n, name in enumerate(candidate["admitted_arenas"])]
+        kept = [line for i, line in enumerate(lines) if i not in set(arena_lines)]
+        position -= sum(1 for i in arena_lines if i < position)
+        lines = kept[:position] + admitted + kept[position:]
     content = b"".join(lines)
     path = target / "private" / f"master-{candidate['release_id']}.env"
     release.private_dir(path.parent)
@@ -336,7 +367,8 @@ def private_master_environment(active: dict[str, Any], target: Path,
 
 
 def require_active_vps_profile(event: dict[str, Any], target: Path, active: dict[str, Any],
-                               env: dict[str, str], catalog_hash: str | None = None) -> None:
+                               env: dict[str, str], catalog_hash: str | None = None,
+                               admitted_arenas: list[str] | None = None) -> None:
     config = release.image_config(event, target, target / "release.env", None, env, active)
     try:
         master_env = config["services"]["master"]["environment"]
@@ -350,8 +382,13 @@ def require_active_vps_profile(event: dict[str, Any], target: Path, active: dict
     }
     if catalog_hash is not None:
         expected["Room__CatalogHash"] = catalog_hash
+    if admitted_arenas is not None:
+        expected.update({f"Room__AdmittedArenas__{n}": name for n, name in enumerate(admitted_arenas)})
     if not isinstance(master_env, dict) or any(master_env.get(key) != value for key, value in expected.items()):
         raise release.ReleaseError("active Master Compose profile is not the approved VPS Playtest profile")
+    if admitted_arenas is not None and any(key.startswith("Room__AdmittedArenas__") and key not in expected
+                                           for key in master_env):
+        raise release.ReleaseError("active Master Compose profile admits arenas beyond the release roster")
 
 
 def run_offhost_backup() -> datetime:
@@ -530,7 +567,8 @@ def _deploy_candidate(candidate: dict[str, Any], event: dict) -> dict[str, Any]:
                 save_immutable_record(record_path, record_data)
                 release.preflight(event, args, env)
                 release.deploy(event, args, target, manifest, env)
-            require_active_vps_profile(event, target, manifest, env, candidate["catalog_hash"])
+            require_active_vps_profile(event, target, manifest, env, candidate["catalog_hash"],
+                                       candidate.get("admitted_arenas"))
 
             event["stage"] = "deployment_verification"
             services = verify_ready(target, target / "release.env", env)
@@ -555,6 +593,7 @@ def _deploy_candidate(candidate: dict[str, Any], event: dict) -> dict[str, Any]:
                 "services": services,
                 "registration": public_registration(registration),
                 "backup": backup,
+                **({"admitted_arenas": candidate["admitted_arenas"]} if "admitted_arenas" in candidate else {}),
             }
         except Exception as exc:
             try:

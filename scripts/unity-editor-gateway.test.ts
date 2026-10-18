@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { identityFromT3, identityFromCodex, identityFromClaude, identityFromLauncher, identityFromEnvironment, run } from './unity-editor-gateway.ts';
+import { identityFromT3, identityFromCodex, identityFromClaude, identityFromLauncher, identityFromEnvironment, pendingScriptChange, run } from './unity-editor-gateway.ts';
 
 test('native Codex and launcher identities are distinct and require complete session IDs', async () => {
   const session = '01a127c6-bae8-7792-b662-4d0aab865c4b';
@@ -489,6 +489,67 @@ test('delayed compile failure stops main commands but restores and releases', as
     assert.equal(f.state.releaseCount, 1);
     assert.equal(f.state.owner, null);
   } finally { process.exitCode = previousExit; await f.close(); }
+});
+
+async function scripts(project: string, compiledAt: Date, edits: Record<string, Date>) {
+  await mkdir(join(project, 'Library', 'ScriptAssemblies'), { recursive: true });
+  const dll = join(project, 'Library', 'ScriptAssemblies', 'Assembly-CSharp.dll');
+  await writeFile(dll, '');
+  await utimes(dll, compiledAt, compiledAt);
+  for (const [path, at] of Object.entries(edits)) {
+    const file = join(project, path);
+    await mkdir(join(file, '..'), { recursive: true });
+    await writeFile(file, '');
+    await utimes(file, at, at);
+  }
+}
+
+test('scripts edited after the last compile are found; hidden and ~ folders are not', async () => {
+  const folder = await mkdtemp(join(tmpdir(), 'unity-editor-gateway-scripts-'));
+  try {
+    const compiled = new Date('2026-10-17T10:00:00Z'), later = new Date('2026-10-17T10:05:00Z'), earlier = new Date('2026-10-17T09:00:00Z');
+    assert.equal(await pendingScriptChange(folder), null);
+    await scripts(folder, compiled, { 'Assets/Scripts/Old.cs': earlier, 'Packages/com.example/Samples~/Sample.cs': later, 'Assets/.hidden/Draft.cs': later, 'Assets/Art/notes.txt': later });
+    assert.equal(await pendingScriptChange(folder), null);
+    await scripts(folder, compiled, { 'Packages/com.example/Editor/Tool.cs': later, 'Assets/Plugins/Shared.dll': new Date('2026-10-17T10:06:00Z') });
+    assert.equal(await pendingScriptChange(folder), join('Assets', 'Plugins', 'Shared.dll'));
+  } finally { await rm(folder, { recursive: true, force: true }); }
+});
+
+test('a batch recompiles scripts edited since the last compile first and continues past their compile errors', async () => {
+  const f = await fixture(), previousExit = process.exitCode, previousOptOut = process.env.SLOPARENA_GATEWAY_AUTO_RECOMPILE;
+  delete process.env.SLOPARENA_GATEWAY_AUTO_RECOMPILE;
+  process.exitCode = undefined;
+  try {
+    await scripts(f.project, new Date('2026-10-17T10:00:00Z'), { 'Assets/Scripts/Edited.cs': new Date('2026-10-17T10:05:00Z') });
+    const result = await capture(() => run(['--project-path', f.project, '--', 'first'], { unityPath: f.fakeUnity, identity, pollInterval: 1 }));
+    assert.equal('error' in result, false);
+    assert.equal(process.exitCode, undefined);
+    // The fixture's recompile_status reports a failed compile: a warning, not a stopped batch.
+    assert.deepEqual(f.state.calls.filter(call => call.path === '/api/exec').map(call => call.body.command), ['recompile', 'recompile_status', 'first']);
+    assert.match(result.err, /Assets\/Scripts\/Edited\.cs changed after the last script compile/);
+    assert.match(result.err, /Scripts do not compile right now/);
+    assert.equal(f.state.releaseCount, 1);
+  } finally { process.exitCode = previousExit; await f.close(); }
+
+  for (const [label, prepare, args] of [
+    ['an up-to-date project', async (project: string) => scripts(project, new Date('2026-10-17T10:10:00Z'), { 'Assets/Scripts/Edited.cs': new Date('2026-10-17T10:05:00Z') }), ['--', 'first']],
+    ['an explicit opt-out', async (project: string) => { process.env.SLOPARENA_GATEWAY_AUTO_RECOMPILE = '0'; await scripts(project, new Date('2026-10-17T10:00:00Z'), { 'Assets/Scripts/Edited.cs': new Date('2026-10-17T10:05:00Z') }); }, ['--', 'first']],
+  ] as const) {
+    const g = await fixture(), exit = process.exitCode;
+    process.exitCode = undefined;
+    try {
+      await prepare(g.project);
+      const result = await capture(() => run(['--project-path', g.project, ...args], { unityPath: g.fakeUnity, identity, pollInterval: 1 }));
+      assert.equal('error' in result, false, label);
+      assert.deepEqual(g.state.calls.filter(call => call.path === '/api/exec').map(call => call.body.command), ['first'], label);
+    } finally {
+      process.exitCode = exit;
+      if (previousOptOut === undefined) delete process.env.SLOPARENA_GATEWAY_AUTO_RECOMPILE;
+      else process.env.SLOPARENA_GATEWAY_AUTO_RECOMPILE = previousOptOut;
+      await g.close();
+    }
+  }
 });
 
 test('recompile JSON failure is semantic while arbitrary eval result data is not', async () => {

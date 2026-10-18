@@ -3,6 +3,9 @@
         <ui:VisualElement name="page-body" class="page-section menu-body-section">
             <ui:VisualElement class="menu-layout">
                 <ui:VisualElement class="menu-actions">
+                    <ui:Button name="menu-tutorial" text="TUTORIAL" class="menu-action menu-action--tutorial">
+                        <ui:Label name="menu-tutorial-new" text="NEW HERE?" picking-mode="Ignore" class="menu-action-badge" />
+                    </ui:Button>
                     <ui:Button name="menu-training" text="TRAINING" class="menu-action menu-action--training" />
                     <ui:Button name="menu-solo" text="SOLO" class="menu-action menu-action--solo" />
                     <ui:Button name="menu-arcade" text="ARCADE" class="menu-action menu-action--arcade" />

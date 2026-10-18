@@ -49,67 +49,12 @@ public static class GeneratePrototypeArenas
     {
         EnsureFolder("Assets/Art/Stages", "GeneratedPrototypes");
 
-        GenerateSplashDeck();
         GenerateRecCenterRoof();
         GeneratePicnicPanic();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[PrototypeArenas] Generated and baked the prototype arenas without authoring scenes.");
-    }
-
-    private static void GenerateSplashDeck()
-    {
-        const string key = "splash_deck";
-        var boxes = new[]
-        {
-            new Box("Pool Deck", new Vector3(0f, -0.25f, 0f), new Vector3(30f, 0.5f, 22f)),
-            new Box("West Diving Board", new Vector3(-10.5f, 0.75f, 0f), new Vector3(6f, 1.5f, 5f)),
-            new Box("East Diving Board", new Vector3(10.5f, 0.75f, 0f), new Vector3(6f, 1.5f, 5f)),
-        };
-        var spawns = new[]
-        {
-            new Spawn(new Vector3(-6f, 0.85f, -5f), 45f),
-            new Spawn(new Vector3(6f, 0.85f, 5f), 225f),
-            new Spawn(new Vector3(-6f, 0.85f, 5f), 135f),
-            new Spawn(new Vector3(6f, 0.85f, -5f), 315f),
-        };
-
-        var deck = Mat(key, "Deck", new Color(0.72f, 0.65f, 0.53f), 0.18f);
-        var aqua = Mat(key, "Pool", new Color(0.18f, 0.55f, 0.62f), 0.30f, new Color(0.005f, 0.045f, 0.055f));
-        var coral = Mat(key, "Coral", new Color(0.72f, 0.38f, 0.34f), 0.12f);
-        var yellow = Mat(key, "Yellow", new Color(0.76f, 0.66f, 0.31f), 0.10f);
-        var cream = Mat(key, "Cream", new Color(0.82f, 0.80f, 0.72f), 0.08f);
-        var blue = Mat(key, "Blue", new Color(0.27f, 0.42f, 0.52f), 0.20f);
-
-        var root = NewRoot("Splash Deck");
-        root.AddComponent<ArenaAtmosphere>().Configure(
-            new Color(0.43f, 0.79f, 0.96f),
-            new Color(0.72f, 0.86f, 0.94f),
-            new Color(0.34f, 0.43f, 0.47f),
-            1.15f);
-        AddCollisionVisuals(root, boxes, deck, new Dictionary<string, Material>
-        {
-            ["West Diving Board"] = coral,
-            ["East Diving Board"] = coral,
-        });
-        AddRectangleTrim(root, 30f, 22f, yellow);
-
-        Cube(root, "North Pool", new Vector3(0f, -0.45f, 16f), new Vector3(30f, 0.18f, 7f), aqua);
-        Cube(root, "South Pool", new Vector3(0f, -0.45f, -16f), new Vector3(30f, 0.18f, 7f), aqua);
-        Cube(root, "North Pool Rim", new Vector3(0f, -0.18f, 12.4f), new Vector3(30f, 0.45f, 0.35f), cream);
-        Cube(root, "South Pool Rim", new Vector3(0f, -0.18f, -12.4f), new Vector3(30f, 0.45f, 0.35f), cream);
-
-        Umbrella(root, new Vector3(-19f, 0f, 14f), coral, cream);
-        Umbrella(root, new Vector3(19f, 0f, -14f), yellow, blue);
-        Umbrella(root, new Vector3(19f, 0f, 14f), blue, cream);
-        DeckChair(root, new Vector3(-18f, 0f, -14f), coral, cream, 18f);
-        DeckChair(root, new Vector3(18f, 0f, 14f), yellow, cream, -20f);
-        FloatStack(root, new Vector3(-7f, -0.1f, 16f), coral, yellow, blue);
-        FloatStack(root, new Vector3(9f, -0.1f, -16f), blue, coral, yellow);
-        AddSpawnMarkers(root, spawns);
-
-        SaveAndBake(key, "Splash Deck", "#36bfd1", root, boxes, spawns, -12f);
     }
 
     private static void GenerateRecCenterRoof()
@@ -259,39 +204,6 @@ public static class GeneratePrototypeArenas
         foreach (int x in new[] { -1, 1 })
         foreach (int z in new[] { -1, 1 })
             Cube(root, "Pavilion Post", center + new Vector3(x * 3.2f, 2.8f, z * 2.2f), new Vector3(0.25f, 4.7f, 0.25f), accent);
-    }
-
-    private static void Umbrella(GameObject root, Vector3 center, Material canopy, Material pole)
-    {
-        Cylinder(root, "Umbrella Pole", center + Vector3.up * 2.2f, new Vector3(0.12f, 2.2f, 0.12f), pole);
-        Sphere(root, "Umbrella Canopy", center + Vector3.up * 4.3f, new Vector3(4.2f, 0.65f, 4.2f), canopy);
-    }
-
-    private static void DeckChair(GameObject root, Vector3 center, Material fabric, Material frame, float yaw)
-    {
-        Cube(root, "Chair Seat", center + Vector3.up * 0.7f, new Vector3(2.4f, 0.25f, 3.2f), fabric, new Vector3(0f, yaw, -7f));
-        Cube(root, "Chair Back", center + new Vector3(0f, 2f, 1.3f), new Vector3(2.4f, 3f, 0.25f), fabric, new Vector3(-18f, yaw, 0f));
-        Cube(root, "Chair Frame", center + Vector3.up * 0.25f, new Vector3(2.7f, 0.2f, 3.5f), frame, new Vector3(0f, yaw, 0f));
-    }
-
-    private static void FloatStack(GameObject root, Vector3 center, Material first, Material second, Material third)
-    {
-        Cylinder(root, "Float A", center + Vector3.up * 0.15f, new Vector3(2.1f, 0.18f, 2.1f), first);
-        Cylinder(root, "Float B", center + new Vector3(1.4f, 0.22f, 0.6f), new Vector3(1.6f, 0.15f, 1.6f), second, new Vector3(12f, 0f, 18f));
-        Sphere(root, "Beach Ball", center + new Vector3(-1.6f, 0.9f, -0.5f), Vector3.one * 1.4f, third);
-    }
-
-    private static void AddPointLight(GameObject root, string name, Vector3 position, Color color, float intensity, float range)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(root.transform, false);
-        go.transform.localPosition = position;
-        var light = go.AddComponent<Light>();
-        light.type = LightType.Point;
-        light.color = color;
-        light.intensity = intensity;
-        light.range = range;
-        light.shadows = LightShadows.None;
     }
 
     private static void AddSpawnMarkers(GameObject root, Spawn[] spawns)

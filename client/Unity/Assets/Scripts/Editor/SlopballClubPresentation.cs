@@ -23,6 +23,9 @@ namespace SlopArena.EditorTools
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Finish Slopball in Edit Mode.");
+            var current = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (current != null && current.transform.Find(SlopArena.Client.World.SlopballCourtShow.RootName) != null)
+                throw new InvalidOperationException("The court uses the Night Court art (sloparena.stage.art-slopball); the club finish would stack under it.");
             var assets = new Assets();
             var concrete = assets.Material("Concrete", new(.49f, .465f, .39f), .08f, assets.Grain("Concrete Grain", .13f));
             var padding = assets.Material("Teal Padding", new(.10f, .28f, .29f), .22f);

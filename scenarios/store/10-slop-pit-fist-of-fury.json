@@ -1,0 +1,64 @@
+{
+ "stage": "slop_pit",
+ "notes": "FightGuy's Fist of Fury (F) finisher launches Bonk with the gold 肉 seal.",
+ "capture": {
+  "from": 176,
+  "to": 190,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 95
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    -0.6,
+    0,
+    0
+   ],
+   "yaw": 90,
+   "damage": 25,
+   "target": 2,
+   "input": [
+    {
+     "at": 30,
+     "press": "F"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "bonk",
+   "feet": [
+    0.7,
+    0,
+    0
+   ],
+   "yaw": 270,
+   "damage": 110
+  }
+ ],
+ "cameras": [
+  {
+   "name": "s2",
+   "pos": [
+    -1.6,
+    0.7,
+    -4.0
+   ],
+   "look": [
+    0.2,
+    2.3,
+    0
+   ],
+   "fov": 46,
+   "far": 3000
+  }
+ ],
+ "pick": {
+  "camera": "s2",
+  "tick": 178
+ }
+}

@@ -1,0 +1,415 @@
+{
+ "format": 1,
+ "stage": "slop_pit",
+ "folder": "Assets/Stages/slop_pit/Presentation/Ring",
+ "model": "SlopPitArena.fbx",
+ "stamp": "SlopPitArena.layout.json",
+ "root": "Slop Pit Fight Ring",
+ "supersededRoots": [
+  "Platform_A",
+  "Platform_B",
+  "ArtPass01",
+  "PitScrapFill",
+  "ConveyorSilhouettes",
+  "DeckEdgeLighting",
+  "PerimeterWalls",
+  "MainDeck",
+  "SparseScrap",
+  "BlockoutFill"
+ ],
+ "textures": [
+  {
+   "file": "SlopPitAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "SlopPitCanvas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "SlopPitFloor.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "SlopPitDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "SP_Lit",
+   "asset": "SlopPitLit",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SlopPitAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SlopPitDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.5,
+    "_DetailStrength": 0.28,
+    "_Wrap": 0.3,
+    "_Specular": 0.12,
+    "_Gloss": 22,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.55,
+     0.52
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SP_Floor",
+   "asset": "SlopPitFloor",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SlopPitFloor.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SlopPitDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.5,
+    "_DetailStrength": 0.3,
+    "_Wrap": 0.3,
+    "_Specular": 0.18,
+    "_Gloss": 22,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.55,
+     0.52
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SP_Canvas",
+   "asset": "SlopPitCanvas",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SlopPitCanvas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SlopPitDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.5,
+    "_DetailStrength": 0.12,
+    "_Wrap": 0.35,
+    "_Specular": 0.05,
+    "_Gloss": 22,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.55,
+     0.52
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SP_Venue",
+   "asset": "SlopPitVenue",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "SlopPitAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.42,
+    "_Ambient": 0.5,
+    "_Shade": 0.35,
+    "_Glow": 1.4,
+    "_FogAmount": 1,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.2,
+     0.85,
+     -0.3,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "SP_Haze",
+   "asset": "SlopPitHaze",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "SlopPitAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.42,
+    "_Ambient": 0,
+    "_Shade": 0.35,
+    "_Glow": 0.32,
+    "_FogAmount": 0.55,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.2,
+     0.85,
+     -0.3,
+     0
+    ]
+   }
+  }
+ ],
+ "shadows": {
+  "cast": false,
+  "receive": false,
+  "objects": {
+   "Ring": {
+    "cast": true,
+    "receive": true
+   },
+   "Ringside Floor": {
+    "cast": true,
+    "receive": true
+   },
+   "Ring Tower": {
+    "cast": true,
+    "receive": true
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Ring Key",
+   "type": "directional",
+   "rotation": [
+    64,
+    22,
+    0
+   ],
+   "color": [
+    1,
+    0.92,
+    0.8
+   ],
+   "intensity": 1.05,
+   "shadows": "soft",
+   "shadowStrength": 0.62
+  },
+  {
+   "name": "Ring Overhead",
+   "type": "point",
+   "position": [
+    0,
+    9,
+    0
+   ],
+   "color": [
+    1,
+    0.86,
+    0.66
+   ],
+   "intensity": 28,
+   "range": 26
+  },
+  {
+   "name": "Slop Glow North",
+   "type": "point",
+   "position": [
+    0,
+    -18,
+    22
+   ],
+   "color": [
+    0.55,
+    1,
+    0.25
+   ],
+   "intensity": 24,
+   "range": 20
+  },
+  {
+   "name": "Slop Glow South",
+   "type": "point",
+   "position": [
+    0,
+    -18,
+    -22
+   ],
+   "color": [
+    0.55,
+    1,
+    0.25
+   ],
+   "intensity": 24,
+   "range": 20
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.035,
+   0.022,
+   0.016
+  ],
+  "ambientSky": [
+   0.36,
+   0.3,
+   0.26
+  ],
+  "ambientGround": [
+   0.1,
+   0.08,
+   0.07
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.3,
+   0.16,
+   0.07
+  ],
+  "fogStart": 24,
+  "fogEnd": 190
+ },
+ "cameras": [
+  {
+   "name": "thumbnail",
+   "position": [
+    -27,
+    16,
+    -31
+   ],
+   "target": [
+    0,
+    -1.5,
+    2.5
+   ],
+   "fov": 40
+  },
+  {
+   "name": "ringside",
+   "position": [
+    2,
+    1.75,
+    -14.5
+   ],
+   "target": [
+    0,
+    1.9,
+    0
+   ],
+   "fov": 50
+  },
+  {
+   "name": "recovery-west",
+   "position": [
+    -27,
+    -3.5,
+    9
+   ],
+   "target": [
+    -16,
+    -6.5,
+    0
+   ],
+   "fov": 52
+  },
+  {
+   "name": "recovery-corner",
+   "position": [
+    25,
+    -2,
+    -25
+   ],
+   "target": [
+    13.5,
+    -6,
+    -13.5
+   ],
+   "fov": 52
+  },
+  {
+   "name": "pit-down",
+   "position": [
+    -3,
+    5,
+    -21
+   ],
+   "target": [
+    2,
+    -22,
+    -31
+   ],
+   "fov": 55
+  },
+  {
+   "name": "hero-low",
+   "position": [
+    0,
+    3.2,
+    -9
+   ],
+   "target": [
+    0,
+    4.5,
+    48
+   ],
+   "fov": 42
+  }
+ ]
+}

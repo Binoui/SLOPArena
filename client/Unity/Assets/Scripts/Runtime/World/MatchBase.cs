@@ -62,7 +62,7 @@ namespace SlopArena.Client.World
             _pauseMenu = gameObject.AddComponent<MatchPauseMenu>();
             _pauseMenu.Init(_cameraMount, _inputController, LeaveMatch,
                 _hudManager != null ? _hudManager.Document : null,
-                freezeSimulation: this is not PvPMatch);
+                freezeSimulation: this is not PvPMatch, onRetry: PauseRetry);
             OnMatchStart();
             gameObject.AddComponent<MatchVisualStyle>().Apply();
         }
@@ -92,6 +92,9 @@ namespace SlopArena.Client.World
         {
             FrontendController.Show(FrontendPage.FighterSelect);
         }
+
+        /// <summary>Arcade challenges offer a full fresh attempt from the pause menu; other modes do not.</summary>
+        protected virtual Action PauseRetry => null;
 
         // ── Shared setup helpers ────────────────────────────────────────────
 
@@ -147,6 +150,17 @@ namespace SlopArena.Client.World
         }
         protected void PresentTimelineEvents()
             => _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
+
+        /// <summary>Arcade retry: the bridge now runs a fresh simulation; end what the old one presented.</summary>
+        protected void ResetSimulationPresentation()
+        {
+            _timelinePresentations.ResetForFreshSimulation();
+            _hasSwordTrailTick = false;
+            _activeSwordOwners.Clear();
+            ApplySwordTrailOwners();
+            _aimHandler?.ResetPresentation();
+            _showCrosshair = false;
+        }
 
         /// <summary>Training: use active Shared melee hitboxes, including early removal.</summary>
         protected void UpdateSwordTrailsFromResolver(SpellResolver resolver)
@@ -264,10 +278,10 @@ namespace SlopArena.Client.World
             var players = new List<HUDManager.HudPlayer>(
                 MatchConfig.Opponents.Count + 1 + (extraPlayers?.Count ?? 0))
             {
-                new(PlayerEntityId, $"P{PlayerEntityId}", def.Class, isLocal: true)
+                OnlineHudPlayer(PlayerEntityId, def.Class, isLocal: true)
             };
             foreach (var opp in MatchConfig.Opponents)
-                players.Add(new HUDManager.HudPlayer(opp.EntityId, $"P{opp.EntityId}", opp.Class, isLocal: false));
+                players.Add(OnlineHudPlayer(opp.EntityId, opp.Class, isLocal: false));
             if (extraPlayers != null)
                 players.AddRange(extraPlayers);
             players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
@@ -278,6 +292,28 @@ namespace SlopArena.Client.World
             _hudManager?.Initialize(Bridge.GetState, players, maxStocks);
             _hudManager?.SetCharacterDefinition(def);
             _hudManager?.SetCamera(_cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
+        }
+
+        /// <summary>
+        /// A fight card for one match entity. Online Room matches carry the
+        /// Master roster, which names the player and ties their chat identity
+        /// to the fighter for speech slips; offline cards keep the fighter name.
+        /// </summary>
+        private static HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, CharacterClass @class, bool isLocal)
+        {
+            string label = $"P{entityId}";
+            if (MatchConfig.Mode == GameMode.PvP && ClientSession.MatchRoster != null)
+                foreach (var member in ClientSession.MatchRoster)
+                {
+                    if (member.EntityId <= 0 || (ulong)member.EntityId != entityId)
+                        continue;
+                    string name = string.IsNullOrWhiteSpace(member.Name) ? null : member.Name;
+                    string chatId = member.SteamId > 0
+                        ? member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        : null;
+                    return new HUDManager.HudPlayer(entityId, label, @class, isLocal, name, chatId);
+                }
+            return new HUDManager.HudPlayer(entityId, label, @class, isLocal);
         }
 
         protected void SetupAimHandler(CharacterDefinition def)

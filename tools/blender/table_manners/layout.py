@@ -25,6 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # tools/blender: the shared stagekit
 from stagekit import arena as baked  # noqa: E402
+from stagekit import shell  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 SOURCE_SCENE = REPO / "client/Unity/Assets/Stages/table_manners/table_manners.unity"
@@ -186,24 +187,16 @@ def load(spec_only: bool = False, spec=SPEC) -> dict:
     return data
 
 
+# GameplayGeometry child -> mesh asset in Assets/Stages/table_manners (GUIDs kept on rebuild).
+SHELL_ASSETS = {"CraftTable": "TableMannersCraftTable", "PlayDoughCake": "TableMannersPlayDoughCake"}
+
+
 def unity_shell_json(spec=SPEC) -> dict:
-    """Input for the collision-source rebuild (Unity eval): indexed meshes and markers."""
-    meshes = []
-    for name, tris in collision(spec).items():
-        index = {}
-        vertices, triangles = [], []
-        for t in tris:
-            for p in t:
-                key = tuple(round(v, 6) for v in p)
-                if key not in index:
-                    index[key] = len(vertices)
-                    vertices.append(list(key))
-                triangles.append(index[key])
-        meshes.append({"name": name, "vertices": vertices, "triangles": triangles})
+    """Input for sloparena.stage.shell-apply: indexed meshes and spawn markers."""
+    meshes = [shell.mesh(name, SHELL_ASSETS[name], *shell.indexed(tris)) for name, tris in collision(spec).items()]
     top = spec["top"] + spec["spawn_body_half_height"]
-    return {"killY": spec["kill_y"], "meshes": meshes,
-            "spawns": [{"name": "Spawn_%02d" % (i + 1), "position": [x, top, z], "yaw": spawn_yaw(x, z)}
-                       for i, (x, z) in enumerate(spec["spawns"])]}
+    return shell.document("table_manners", spec["kill_y"], meshes,
+                          [(x, top, z, spawn_yaw(x, z)) for x, z in spec["spawns"]])
 
 
 if __name__ == "__main__":

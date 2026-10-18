@@ -8,10 +8,10 @@ turns the result into a Humanoid clip on the character's own prefab.
 | Module | Purpose |
 | --- | --- |
 | `rig.py` | USD skeleton, forward kinematics (matches UsdSkel to 1e-7 m), bind-pose locals, anatomical hinges for knees, elbows and fingers, Unity's Humanoid muscle axes |
-| `clip.py` | `Pose` edits in the character frame (including hip shifts), `Clip` keyframes with monotone or eased interpolation, the `genra-clip-1` file |
+| `clip.py` | `Pose` edits in the character frame (including hip shifts), `Clip` keyframes with monotone or eased interpolation and seamless loop cycles, the `genra-clip-1` file |
 | `solve.py` | Two-bone limb IK on anatomical hinges (elbows and knees kept in range), least-squares targets, fists, two-handed grips |
 | `skin.py` | UsdSkel skinning, body regions, clearance queries |
-| `checks.py` | Clock, entry/exit, bone lengths and scales, hinge direction, finger poses Unity can play, snaps, clearances, a hidden face, brief targets |
+| `checks.py` | Clock, entry/exit, loop seams, bone lengths and scales, hinge direction, finger poses Unity can play, snaps, clearances, a hidden face, brief targets |
 | `render.py` | Fast software contact sheets, motion paths and MP4 previews, no GPU needed; how much of the strike each view shows |
 | `usdio.py` | Writes a clip into a copy of the rig USD (lossless quaternions, textures copied) |
 | `brief.py`, `rigpack.py` | Animation briefs and hashed rig packs |
@@ -30,7 +30,7 @@ comparison, but the runner writes USD directly.
 
 ```bash
 PY=artifacts/genra-20261014/.venv/bin/python
-$PY -m unittest discover -s tools/genra -p 'test_*.py'      # 20 tests; skip without rig packs
+$PY -m unittest discover -s tools/genra -p 'test_*.py'      # 24 tests; skip without rig packs
 $PY tools/genra/run.py tools/genra/benchmarks/manki-aerial-double-fist.json --dry-run
 $PY tools/genra/run.py tools/genra/benchmarks/manki-aerial-double-fist.json --probe   # ~$0.06 sandbox check
 $PY tools/genra/run.py tools/genra/benchmarks/manki-aerial-double-fist.json          # one authoring job
@@ -54,9 +54,20 @@ stream, tool audit, usage summary, the model's scratch files, `check.txt`, `shee
   (`./genra video` renders one on demand). The model works in `/tmp/genra-runs/<id>/` through the `./py` and
 `./genra` wrappers.
 
+**Character frame.** Brief targets, pose edits and every review view use the character frame:
+origin at the entry hips, up world up, front the fighter's facing. With Unity rig packs the
+facing is the actor's forward from `mapping.json`: the direction the game moves and attacks
+along and the match camera looks along. Before 18 October, front was square to the entry
+hips. Fighting stances turn the hips well off the facing (idle: Bonk 90°, Wibou 77°, FightGuy
+51°, Manki 41°; run about 0°), so the `gameplay` and three-quarter views of idle- and
+jump-entry briefs were taken from the side, and "ahead" in their targets pointed sideways.
+Wibou's approved R charge loop beckons about 77° off the dash for this reason. Move briefs
+written before then carry `"frame": "hips"` so they still reproduce their approved clips;
+new briefs use the facing.
+
 Review sheets show profile, front and a three-quarter rear view: behind the striking
 shoulder, 35° to the side and 20° up. The match camera sits straight behind the fighter.
-In the first five runs it showed only 0–24% of the striking hand or weapon at contact,
+In the first five runs (hip frame) it showed only 0–24% of the striking hand or weapon at contact,
 against 39–91% from the three-quarter view, so it is only an optional `gameplay` view.
 When the brief names its `strike` joints, `check.txt` and `summary.json` record how much
 of the striking part each view shows at contact. This is information, not a check.
@@ -73,7 +84,13 @@ and are local.
 $PY tools/genra/unity_rigpack.py snapshot manki   # read-only eval_file through your own gateway lease
 $PY tools/genra/unity_rigpack.py build manki      # USD rig pack + per-vertex validation
 $PY tools/genra/unity_rigpack.py all manki fightguy bonk wibou
+$PY tools/genra/unity_rigpack.py all wibou --reference dash=anim.wibou.r   # adds a bound move: wibou-unity-dash
 ```
+
+`--reference LABEL=SEMANTIC_ID` adds a bound move clip as `references/LABEL.usda`, for example
+the attack a new aim loop hands off to, so the brief can show it to the model. That pack is
+built beside the shared one (`<package>-unity-LABEL`, from its own snapshot), so other briefs
+keep theirs.
 
 - **Snapshot:** `unity/snapshot_rigpack.cs.template` instantiates the catalog prefab in a
   preview scene. It records the skinned meshes as rendered (vertices, UVs, triangles,
@@ -123,6 +140,14 @@ deliver the hit (`RightHand`, or `bladeEnd` for a weapon); a left-side strike mo
 review view behind the left shoulder. Targets should restate the
 creative text, not add new requirements.
 
+Clips that are not attacks leave out the contact, active and IASA ticks. A looping clip
+(`loop.from_tick`) plays a one-shot build-up and then cycles from that tick to the end; the
+model keys it with `Clip.from_keys(..., cycle=...)` and the check fails a seam that does not
+close or that jerks harder than the loop itself. `entry.match: false` keeps the entry
+reference only as the character frame, for clips such as the shared tumble that blend in from
+several different reactions. `views` and `preview_views` replace the default review views,
+for example end-on views where the players see the motion along its path.
+
 ## Into Unity
 
 `unity_clip.py` writes a toolkit result as a Humanoid `.anim` for the character's catalog
@@ -142,11 +167,20 @@ $PY tools/genra/unity_clip.py render --brief BRIEF.json --result RESULT.json \
   positions and orientations. Other joints (tails, deformers) keep exact local curves.
 - Root motion is baked into the pose: `PlayerRenderer` plays clips through Animancer with
   `applyRootMotion` off. The hips may move; the fighter does not.
-- Everything is measured as the game plays it (Animancer in a preview scene). `write`
-  matches the body origin to the entry clip's playback at the entry tick, and reports
-  joints and skinned vertices against the toolkit. Nothing is saved unless `--save` or
+- Everything is measured as the game plays it (Animancer in a preview scene). For a matched
+  entry, `write` matches the body origin to the entry clip's playback at the entry tick. A
+  free entry (`entry.match: false`) keeps the toolkit's origin, which is already Unity's:
+  moving a crouched loop's body centre onto idle's had lifted it 17–21 cm off the floor.
+  The report warns when a clip plays more than 1 cm from where the toolkit put it, and
+  compares joints and skinned vertices with the toolkit. Nothing is saved unless `--save` or
   `--asset` names a new path (default `Assets/Art/Experiments/GenRA/<package>/<name>.anim`),
   and nothing is bound.
+- Judge written clips with `render`, `timeline`, the Ability Lab or Training, not Unity's Inspector preview.
+  The clips name no preview model, so the Inspector shows them broken on its default mannequin
+  (Wibou's R charge loop, 2026-10-18), and plain sampling applies the prefab's root motion.
+- Unity loops only a whole clip. A loop from tick 0 (an aim hold) is saved looping, and the
+  report gives its `loopSeam`. A loop after a build-up is saved one-shot, with
+  `loopFromSeconds` for the game to wrap it, as `PlayerRenderer` does for the tumble.
 
 The 17 October round trips rebuilt idle, run, jump and fall for all four characters within
 0.084 mm per bone and 0.126 mm per vertex of the original playback. A toolkit clip with
@@ -163,6 +197,16 @@ brief's ticks as `PlayerRenderer` does (speed = baked frames / stage ticks). It 
 toolkit's review views and framing into `real.mp4` (a row per clip, real speed twice, then
 quarter speed) and `real-sheet.png`. Pass the bound clip the candidate would replace as a
 second `--clip` to compare them on the same clock. Nothing in the project changes.
+
+`timeline SPEC.json --brief BRIEF.json [--result RESULT.json]` reviews the handoffs into and
+out of a candidate, which a single-clip render cannot show. Each row of the spec is a
+sequence of clip events, as `PlayerRenderer` drives them: a tick, a clip (an `Assets/...`
+`.anim` or a bound semantic id), a crossfade in seconds, a start time, and a speed or
+`ticks` to stretch the clip like an ability. Rows can also travel (`moves`: first tick, last
+tick, metres per tick forward), and the cameras follow. Phase labels name the ticks. It
+writes `timeline.mp4` and `timeline-sheet.png`. Wibou's R review was idle, then the held
+charge loop, then the release into the dash at its 6.4 m travel; it showed a 3-tick spring
+up into the dash clip's upright first frame.
 
 Rig packs also carry `humanoid.json`: each mapped joint's muscle axes and ranges, measured
 on the Avatar. Fingers, thumbs and toes only play rotations about those axes, so finger

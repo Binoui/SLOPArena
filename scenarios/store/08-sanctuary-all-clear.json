@@ -1,0 +1,33 @@
+{
+ "notes": "Sanctuary course finale: the last lantern breaks, ALL CLEAR!, 20/20 and the gold shrine pillar. Replays scenarios/arcade/sanctuary-main.inputs.json and captures one window with a free camera that follows FightGuy.",
+ "stage": "fightguy_sanctuary",
+ "fighter": "fightguy",
+ "inputs": "../arcade/sanctuary-main.inputs.json",
+ "window": {
+  "from": 5300,
+  "to": 5322
+ },
+ "camera": {
+  "follow": "fighter",
+  "move": true,
+  "lookOffset": [
+   -2.0,
+   1.1,
+   0.4
+  ],
+  "pos": [
+   0.6,
+   0.0,
+   -5.6
+  ],
+  "look": [
+   0,
+   0,
+   0
+  ],
+  "fov": 52
+ },
+ "pick": {
+  "tick": 5310
+ }
+}

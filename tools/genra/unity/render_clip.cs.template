@@ -4,6 +4,9 @@
 // stretched over the stage's ticks the way PlayerRenderer does (speed = baked frames / stage ticks), with Animancer and
 // root motion off, runtime weapon attachments and the actual meshes and materials. Skinned meshes are drawn from
 // BakeMesh copies so the preview never shows a stale GPU skinning cache.
+// job["rows"] (timeline) instead plays clip sequences the way PlayerRenderer drives them: each event crossfades to a
+// clip at a tick (fade seconds, start time, speed or `ticks` to stretch it like an ability), the clock advances one
+// 60 Hz tick per frame, and `moves` carry the fighter forward so a dash travels; the cameras follow it.
 var job = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("{{JOB}}"));
 var output = "{{OUTPUT}}";
 if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("genra render requires Edit Mode");
@@ -27,13 +30,17 @@ UnityEngine.AnimationClip Bound(string semantic) {
   }
   throw new System.Exception("Missing bound clip " + semantic);
 }
-var clips = new System.Collections.Generic.List<(string label, string source, UnityEngine.AnimationClip clip)>();
-foreach (var c in job["clips"]) {
+UnityEngine.AnimationClip Resolve(Newtonsoft.Json.Linq.JToken c) {
   string asset = c["asset"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)c["asset"] : null;
   var clip = asset != null ? UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(asset) : Bound((string)c["semanticId"]);
   if (clip == null) throw new System.Exception("Missing clip " + (asset ?? (string)c["semanticId"]));
-  clips.Add(((string)c["label"], asset ?? (string)c["semanticId"], clip));
+  return clip;
 }
+// PlayerRenderer: baked frames = ceil(length * 60), speed = frames / stage ticks, time = tick / 60 * speed.
+int Baked(UnityEngine.AnimationClip clip) => UnityEngine.Mathf.Max(1, UnityEngine.Mathf.CeilToInt(clip.length * 60f - 0.0001f));
+var clips = new System.Collections.Generic.List<(string label, string source, UnityEngine.AnimationClip clip)>();
+foreach (var c in job["clips"] ?? new Newtonsoft.Json.Linq.JArray())
+  clips.Add(((string)c["label"], (string)(c["asset"] ?? c["semanticId"]), Resolve(c)));
 
 var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
 var temporary = new System.Collections.Generic.List<UnityEngine.Object>();
@@ -82,9 +89,13 @@ try {
     copies.Add((skin, copy, mesh));
   }
 
+  void Rest() { for (int i = 0; i < all.Length; i++) { all[i].localPosition = restT[i]; all[i].localRotation = restR[i]; all[i].localScale = restS[i]; } }
   void Pose(UnityEngine.AnimationClip clip, float time) {
-    for (int i = 0; i < all.Length; i++) { all[i].localPosition = restT[i]; all[i].localRotation = restR[i]; all[i].localScale = restS[i]; }
+    Rest();
     var state = animancer.Play(clip, 0f); state.Speed = 0f; state.Time = time; animancer.Evaluate(0f);
+    Settle();
+  }
+  void Settle() {
     foreach (var c in constraints) {  // Edit Mode does not evaluate constraints; apply single-source ones as the runtime does
       if (!c.constraintActive || c.weight <= 0f || c.sourceCount != 1) continue;
       var src = c.GetSource(0);
@@ -121,28 +132,60 @@ try {
     views.Add(((string)v["name"], new UnityEngine.Vector3(p[0], p[1], p[2]),
                UnityEngine.Quaternion.LookRotation(new UnityEngine.Vector3(f[0], f[1], f[2]), new UnityEngine.Vector3(u[0], u[1], u[2])), (float)v["size"]));
   }
+  void Capture(string label, int tick) {
+    foreach (var view in views) {
+      camera.transform.SetPositionAndRotation(view.position + actor.transform.position, view.rotation);
+      camera.orthographicSize = view.size;
+      var right = camera.transform.right; var up = camera.transform.up; var forward = camera.transform.forward;
+      key.transform.rotation = UnityEngine.Quaternion.LookRotation(forward - 0.8f * up + 0.35f * right, up);
+      fill.transform.rotation = UnityEngine.Quaternion.LookRotation(forward - 0.15f * up - 0.9f * right, up);
+      camera.Render();
+      UnityEngine.RenderTexture.active = target;
+      pixels.ReadPixels(new UnityEngine.Rect(0, 0, size, size), 0, 0);
+      pixels.Apply();
+      System.IO.File.WriteAllBytes(frames + "/" + label + "/" + view.name + "/" + tick.ToString("D4") + ".png", UnityEngine.ImageConversion.EncodeToPNG(pixels));
+    }
+  }
   var receipts = new System.Collections.Generic.List<object>();
   foreach (var (label, source, clip) in clips) {
-    // PlayerRenderer: baked frames = ceil(length * 60), speed = frames / stage ticks, time = tick / 60 * speed.
-    int baked = UnityEngine.Mathf.Max(1, UnityEngine.Mathf.CeilToInt(clip.length * 60f - 0.0001f));
+    int baked = Baked(clip);
     float speed = baked / (float)ticks;
     foreach (var view in views) System.IO.Directory.CreateDirectory(frames + "/" + label + "/" + view.name);
     for (int tick = 0; tick <= ticks; tick++) {
       Pose(clip, UnityEngine.Mathf.Min(tick / 60f * speed, clip.length));
-      foreach (var view in views) {
-        camera.transform.SetPositionAndRotation(view.position, view.rotation);
-        camera.orthographicSize = view.size;
-        var right = camera.transform.right; var up = camera.transform.up; var forward = camera.transform.forward;
-        key.transform.rotation = UnityEngine.Quaternion.LookRotation(forward - 0.8f * up + 0.35f * right, up);
-        fill.transform.rotation = UnityEngine.Quaternion.LookRotation(forward - 0.15f * up - 0.9f * right, up);
-        camera.Render();
-        UnityEngine.RenderTexture.active = target;
-        pixels.ReadPixels(new UnityEngine.Rect(0, 0, size, size), 0, 0);
-        pixels.Apply();
-        System.IO.File.WriteAllBytes(frames + "/" + label + "/" + view.name + "/" + tick.ToString("D4") + ".png", UnityEngine.ImageConversion.EncodeToPNG(pixels));
-      }
+      Capture(label, tick);
     }
     receipts.Add(new { label, source, clip = clip.name, lengthSeconds = clip.length, frameRate = clip.frameRate, bakedFrames = baked, speed, humanMotion = clip.humanMotion });
+  }
+  foreach (var row in job["rows"] ?? new Newtonsoft.Json.Linq.JArray()) {
+    string label = (string)row["label"];
+    var events = new System.Collections.Generic.Dictionary<int, Newtonsoft.Json.Linq.JToken>();
+    foreach (var e in row["events"]) events[(int)e["tick"]] = e;
+    var moves = row["moves"]?.ToObject<float[][]>() ?? new float[0][];  // [first tick, last tick, metres per tick forward]
+    foreach (var view in views) System.IO.Directory.CreateDirectory(frames + "/" + label + "/" + view.name);
+    Rest();
+    actor.transform.position = UnityEngine.Vector3.zero;
+    animancer.Stop();
+    var played = new System.Collections.Generic.List<object>();
+    for (int tick = 0; tick <= ticks; tick++) {
+      // As in the game, a clip starts on the tick its state changes and that frame already advances one tick.
+      if (events.TryGetValue(tick, out var e)) {
+        var clip = Resolve(e);
+        float fade = e["fade"] != null ? (float)e["fade"] : 0f;
+        float speed = e["speed"] != null ? (float)e["speed"] : e["ticks"] != null ? Baked(clip) / (float)e["ticks"] : 1f;
+        var state = animancer.Play(clip, fade);
+        state.Time = e["time"] != null ? (float)e["time"] : 0f;
+        state.Speed = speed;
+        played.Add(new { tick, source = (string)(e["asset"] ?? e["semanticId"]), clip = clip.name, fade, speed, looping = clip.isLooping, lengthSeconds = clip.length });
+      }
+      if (tick > 0) {
+        animancer.Evaluate(1f / 60f);
+        foreach (var m in moves) if (tick >= m[0] && tick <= m[1]) actor.transform.position += new UnityEngine.Vector3(0f, 0f, m[2]);
+      } else animancer.Evaluate(0f);
+      Settle();
+      Capture(label, tick);
+    }
+    receipts.Add(new { label, events = played, travelMetres = actor.transform.position.z });
   }
   camera.targetTexture = null;
   var data = new { package, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), ticks, size, frames, clips = receipts,

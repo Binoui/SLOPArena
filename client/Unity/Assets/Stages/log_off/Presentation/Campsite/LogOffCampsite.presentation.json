@@ -1,0 +1,366 @@
+{
+ "format": 1,
+ "stage": "log_off",
+ "folder": "Assets/Stages/log_off/Presentation/Campsite",
+ "model": "LogOffCampsite.fbx",
+ "stamp": "LogOffCampsite.layout.json",
+ "root": "Log Off Campsite",
+ "supersededRoots": [
+  "ApprovedStump",
+  "WoodlandWorld",
+  "WarmAfternoonSun"
+ ],
+ "textures": [
+  {
+   "file": "LogOffStumpTop.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "LogOffAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "LogOffDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "LO_Wood",
+   "asset": "LogOffWood",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "LogOffAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "LogOffDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.3,
+    "_Wrap": 0.35,
+    "_Specular": 0,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1.3,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.56,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "LO_Stump",
+   "asset": "LogOffStumpTop",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "LogOffStumpTop.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "LogOffDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.18,
+    "_Wrap": 0.45,
+    "_Specular": 0,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1.3,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.56,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "LO_Foliage",
+   "asset": "LogOffFoliage",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "LogOffAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "LogOffDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.1,
+    "_Wrap": 0.5,
+    "_Specular": 0,
+    "_Emission": 0,
+    "_Wind": 0.8,
+    "_WindFrequency": 1.3,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.56,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "LO_Cloth",
+   "asset": "LogOffCloth",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "LogOffAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "LogOffDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.12,
+    "_Wrap": 0.5,
+    "_Specular": 0,
+    "_Emission": 0,
+    "_Wind": 0.35,
+    "_WindFrequency": 1.3,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.56,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "LO_Glow",
+   "asset": "LogOffGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "LogOffAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.6,
+    "_Ambient": 0.4,
+    "_Shade": 0.2,
+    "_Glow": 1.6,
+    "_FogAmount": 0.6,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     -0.35,
+     0.8,
+     -0.2,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "LO_Sky",
+   "asset": "LogOffSky",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "LogOffAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0,
+    "_Shade": 0,
+    "_Glow": 1.2,
+    "_FogAmount": 0,
+    "_TimeScale": 1,
+    "_Cull": 0.0
+   }
+  }
+ ],
+ "shadows": {
+  "cast": true,
+  "receive": true,
+  "objects": {
+   "Sky": {
+    "cast": false,
+    "receive": false
+   },
+   "Fireflies": {
+    "cast": false,
+    "receive": false
+   },
+   "Far Forest": {
+    "cast": false,
+    "receive": false
+   },
+   "Camp Glow": {
+    "cast": false,
+    "receive": false
+   },
+   "Canopy": {
+    "cast": false,
+    "receive": false
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Sunset Sun",
+   "type": "directional",
+   "sun": {
+    "azimuth": 252,
+    "elevation": 22
+   },
+   "color": [
+    1,
+    0.71,
+    0.47
+   ],
+   "intensity": 1.25,
+   "shadows": "soft",
+   "shadowStrength": 0.55
+  },
+  {
+   "name": "Campfire",
+   "type": "point",
+   "position": [
+    6.0,
+    -14.739111279428577,
+    92.0
+   ],
+   "color": [
+    1,
+    0.55,
+    0.22
+   ],
+   "intensity": 6,
+   "range": 190
+  },
+  {
+   "name": "Lantern",
+   "type": "point",
+   "position": [
+    -23.0,
+    -5.8619442138656765,
+    81.0
+   ],
+   "color": [
+    1,
+    0.8,
+    0.45
+   ],
+   "intensity": 3,
+   "range": 70
+  },
+  {
+   "name": "Tent Glow",
+   "type": "point",
+   "position": [
+    -48.0,
+    -8.847743095518801,
+    138.0
+   ],
+   "color": [
+    1,
+    0.65,
+    0.35
+   ],
+   "intensity": 2,
+   "range": 55
+  },
+  {
+   "name": "Stump Fill",
+   "type": "point",
+   "position": [
+    0,
+    26,
+    -4
+   ],
+   "color": [
+    1,
+    0.88,
+    0.74
+   ],
+   "intensity": 0.9,
+   "range": 50
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.62,
+   0.5,
+   0.56
+  ],
+  "ambientSky": [
+   0.52,
+   0.46,
+   0.64
+  ],
+  "ambientGround": [
+   0.22,
+   0.16,
+   0.11
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.66,
+   0.5,
+   0.5
+  ],
+  "fogStart": 90,
+  "fogEnd": 720
+ }
+}

@@ -5,14 +5,27 @@ namespace SlopArena.Client.Simulation
 {
     public class LocalSimulationBridge : ISimulationBridge
     {
-        private readonly ServerSimulation _server;
+        private ServerSimulation _server;
         private readonly ArenaDefinition _arena;
+        private readonly IMatchRule? _rule;
         private readonly List<TimelinePresentationEvent> _lastTickPresentationEvents = new();
 
         public LocalSimulationBridge(ArenaDefinition arena, IMatchRule? rule = null)
         {
             _arena = arena;
+            _rule = rule;
             _server = new ServerSimulation(arena, rule);
+        }
+
+        /// <summary>
+        /// Replace the simulation with a clean one on the same arena and (stateless) rule, for an
+        /// Arcade retry. Fighters, projectiles, queued effects and challenge state all start over;
+        /// callers register entities again. Holders of this bridge need no rebinding.
+        /// </summary>
+        public void Restart()
+        {
+            _server = new ServerSimulation(_arena, _rule);
+            _lastTickPresentationEvents.Clear();
         }
         public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
             => _server.RegisterEntity(id, def, initialState, baked);

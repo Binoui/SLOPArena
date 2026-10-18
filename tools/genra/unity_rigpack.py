@@ -3,6 +3,7 @@
     <genra python> tools/genra/unity_rigpack.py snapshot manki      # Unity, own gateway lease, read-only
     <genra python> tools/genra/unity_rigpack.py build manki         # USD rig pack + validation
     <genra python> tools/genra/unity_rigpack.py all manki fightguy bonk wibou
+    <genra python> tools/genra/unity_rigpack.py all wibou --reference dash=anim.wibou.r   # -> wibou-unity-dash
 
 `snapshot` renders unity/snapshot_rigpack.cs.template and runs it with the gateway's
 eval_file: the catalog prefab is instantiated in a preview scene, its skinned meshes,
@@ -12,7 +13,9 @@ through Animancer with root motion off, as PlayerRenderer plays them: plain clip
 root motion when the prefab enables it and can stretch legs toward IK goals.
 `build` writes artifacts/genra-rigpacks/<package>-unity/: rig.usda (skeleton, meshes, UVs,
 materials, first clip), references/<clip>.usda (skeleton + animation), textures/, images/,
-mapping.json, validation.json and manifest.json. Unity space is left-handed and Y-up;
+mapping.json, validation.json and manifest.json. `--reference LABEL=SEMANTIC_ID` adds a bound move clip
+(for example the attack a new loop hands off to) so a brief can show it to the model; such a pack is built
+beside the shared one, <package>-unity-LABEL, from its own snapshot. Unity space is left-handed and Y-up;
 the pack mirrors x into a right-handed Y-up space. Constraint-driven copy bones (Manki's
 skin fingers) are bound to their source joints; weapons become fixed joints under their bone.
 """
@@ -46,9 +49,19 @@ MIRROR = np.diag([-1.0, 1.0, 1.0])
 
 
 # ----- Unity snapshot --------------------------------------------------------------------
-def snapshot(package: str, out: Path | None = None) -> Path:
-    clips = CHARACTERS[package]
-    out = out or SNAPSHOTS / f'{package}-{time.strftime("%Y%m%d-%H%M%S")}.json'
+def variant(package: str, refs: dict | None) -> str:
+    """'wibou', or 'wibou+dash' for a pack with extra references: plain builds never pick up a variant's snapshot."""
+    return '+'.join([package, *[label for label in refs or {} if label not in CHARACTERS[package]]])
+
+
+def pack_dir(package: str, refs: dict | None = None) -> Path:
+    """artifacts/genra-rigpacks/<package>-unity, or <package>-unity-dash for a pack with an extra 'dash' reference."""
+    return REPO / 'artifacts/genra-rigpacks' / '-'.join([f'{package}-unity', *variant(package, refs).split('+')[1:]])
+
+
+def snapshot(package: str, out: Path | None = None, refs: dict | None = None) -> Path:
+    clips = refs or CHARACTERS[package]
+    out = out or SNAPSHOTS / f'{variant(package, refs)}-{time.strftime("%Y%m%d-%H%M%S")}.json'
     template = (HERE / 'unity/snapshot_rigpack.cs.template').read_text()
     code = (template.replace('{{PACKAGE}}', package).replace('{{OUTPUT}}', str(out))
             .replace('{{CLIPS}}', ', '.join(json.dumps(v) for v in clips.values()))
@@ -67,10 +80,10 @@ def snapshot(package: str, out: Path | None = None) -> Path:
     return out
 
 
-def latest_snapshot(package: str) -> Path:
-    found = sorted(SNAPSHOTS.glob(f'{package}-*.json'))
+def latest_snapshot(package: str, refs: dict | None = None) -> Path:
+    found = sorted(SNAPSHOTS.glob(f'{variant(package, refs)}-*.json'))
     if not found:
-        raise SystemExit(f'No snapshot for {package}; run "snapshot {package}" first')
+        raise SystemExit(f'No snapshot for {variant(package, refs)}; run "snapshot {package}" with the same references first')
     return found[-1]
 
 
@@ -117,15 +130,16 @@ def mesh_tokens(meshes) -> list[str]:
 
 
 # ----- build --------------------------------------------------------------------------------
-def build(package: str, snap_path: Path | None = None, out_dir: Path | None = None) -> dict:
+def build(package: str, snap_path: Path | None = None, out_dir: Path | None = None, refs: dict | None = None) -> dict:
     from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade, UsdSkel, Vt
 
-    snap_path = snap_path or latest_snapshot(package)
+    refs = refs or CHARACTERS[package]
+    snap_path = snap_path or latest_snapshot(package, refs)
     data = json.loads(snap_path.read_text())
     # Only always-visible attachments (slot 0) join the rig; slot props are listed in mapping.json.
     props = [w for w in data['weapons'] if w.get('slot') not in (0, None)]
     data['weapons'] = [w for w in data['weapons'] if w.get('slot') in (0, None)]
-    out = out_dir or REPO / f'artifacts/genra-rigpacks/{package}-unity'
+    out = out_dir or pack_dir(package, refs)
     if out.exists():
         shutil.rmtree(out)
     (out / 'references').mkdir(parents=True)
@@ -351,13 +365,13 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
             mesh_names[name] = f"{wpn['prefab']}:{part['path']}"
             define_mesh(stage, skel, name, part['mesh'], np.full((n, 1), jindex[weapon_joint]), np.ones((n, 1)), geom_bind,
                         (part['materials'] or [None])[0])
-    labels = list(CHARACTERS[package])
-    write_animation(stage, skel, data['references'][CHARACTERS[package][labels[0]]])
+    labels = list(refs)
+    write_animation(stage, skel, data['references'][refs[labels[0]]])
     stage.GetRootLayer().Save()
     for label in labels:
         ref = Usd.Stage.CreateNew(str(out / 'references' / f'{label}.usda'))
         _, s = define_skeleton(ref)
-        write_animation(ref, s, data['references'][CHARACTERS[package][label]])
+        write_animation(ref, s, data['references'][refs[label]])
         ref.GetRootLayer().Save()
 
     mapping = {'package': package, 'prefab': data['prefab'], 'model': data['model'], 'avatar': data['avatar'],
@@ -372,14 +386,14 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
                              for w in props],
                'references': {label: {k: data['references'][sid][k] for k in ('name', 'path', 'sourceFps', 'fps', 'endFrame',
                                                                                  'durationSeconds', 'humanMotion')} | {'semanticId': sid}
-                              for label, sid in CHARACTERS[package].items()}}
+                              for label, sid in refs.items()}}
     (out / 'mapping.json').write_text(json.dumps(mapping, indent=2))
     (out / 'humanoid.json').write_text(json.dumps(humanoid_muscles(data, joint_of, path_index), indent=2))
     learn_anatomy(out, labels[:4])  # idle, run, jump, fall: attack clips add twist-distribution noise to the axes
     grip = learn_grip(out, labels)
     if grip:
         (out / 'grip.json').write_text(json.dumps(grip, indent=2))
-    report = validate(package, data, out, order, joint_of, labels)
+    report = validate(refs, data, out, order, joint_of, labels)
     (out / 'validation.json').write_text(json.dumps(report, indent=2))
     images(out, labels[:4])
     from genra.rigpack import sha256
@@ -434,7 +448,7 @@ def baked_world(bake, r) -> dict:
     return out
 
 
-def validate(package, data, out, order, joint_of, labels) -> dict:
+def validate(refs, data, out, order, joint_of, labels) -> dict:
     """Pack FK vs Unity bone samples; pack skinning vs Unity's baked vertices (same vertex order)."""
     from genra.clip import Clip
     from genra.rig import Rig
@@ -445,7 +459,7 @@ def validate(package, data, out, order, joint_of, labels) -> dict:
     worst_fk, worst_skin = 0.0, 0.0
     names = {m['name']: i for i, m in enumerate(skin.meshes)}
     for label in labels:
-        ref = data['references'][CHARACTERS[package][label]]
+        ref = data['references'][refs[label]]
         clip = Clip.from_reference(Rig(out / 'references' / f'{label}.usda'))
         world = rig.fk(clip.t, clip.q, clip.s)
         fk_err = 0.0
@@ -593,13 +607,24 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('command', choices=['snapshot', 'build', 'all'])
     parser.add_argument('packages', nargs='+', choices=sorted(CHARACTERS))
+    parser.add_argument('--reference', action='append', default=[], metavar='LABEL=SEMANTIC_ID',
+                        help='also carry this bound clip as references/LABEL.usda, e.g. dash=anim.wibou.r '
+                             '(builds <package>-unity-LABEL and leaves the shared pack alone)')
     args = parser.parse_args(argv)
+    extra = dict(item.partition('=')[::2] for item in args.reference)
+    if not all(extra) or not all(extra.values()):
+        parser.error('--reference takes LABEL=SEMANTIC_ID')
     sys.path.insert(0, str(HERE.parent))
     for package in args.packages:
+        if set(extra) & set(CHARACTERS[package]):
+            parser.error(f'{package} already carries {", ".join(CHARACTERS[package])}; name the extra clip differently')
+        refs = CHARACTERS[package] | extra
+        snap = None
         if args.command in ('snapshot', 'all'):
-            print(package, 'snapshot ->', snapshot(package), flush=True)
+            snap = snapshot(package, refs=refs)
+            print(package, 'snapshot ->', snap, flush=True)
         if args.command in ('build', 'all'):
-            report = build(package)
+            report = build(package, snap, refs=refs)
             print(package, json.dumps({k: report[k] for k in ('joints', 'meshes', 'maxJointErrorMetres', 'maxSkinErrorMetres', 'passed')}),
                   flush=True)
     return 0

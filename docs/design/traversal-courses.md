@@ -11,6 +11,14 @@ with implementation evidence in [Phase 4](arcade-phase-4.md) and the
 [Phase 5 spacing/art pass](arcade-phase-5.md). Its winding route, three forks,
 target count and dimensions are that course's choices, not templates for every map.
 
+The second, Manki's [Kaboom Quarry](stages/manki_quarry.design.md), inverts the target
+rule for a zoner: every crate stands on its own island off the route. Jumping out and
+punching always works; bombing or rocketing from the route is the faster play (about
+51 s against 96 s for the scripted inputs), clusters reward one well-placed blast, and a
+single Jump → E face is the traversal shortcut. Its whole shell, markers included, lives
+in [`layout.py`](../../tools/blender/manki_quarry/layout.py) and reaches Unity through
+`sloparena.stage.shell-apply` (no course-specific Editor code).
+
 ## Resolve traversal intent before building
 
 For a new course or a substantial route revision, ask the few unresolved questions
@@ -68,7 +76,10 @@ possible single-jump input fails. Do not change fighter physics or ability rules
 to rescue geometry unless that separate gameplay change is requested.
 
 Verify both complete branches with real inputs against the actual `.arena`, not
-fabricated collision approximations. Include all required targets, checkpoint
+fabricated collision approximations. When a course promises that projectiles beat
+jumping, prove both: a route that shoots every target and one that reaches each target
+on foot without A/R/E (`MankiQuarryRouteTests`). Calibrate legs one at a time from a
+teleported start before composing the full route; it surfaces every failing gap in one run. Include all required targets, checkpoint
 events, the finish and falls. Observe ordinary braking and takeoff state: coasting
 off a small ledge before pressing jump can look like an impossible gap or an ability
 bug. Shield braking is a legal diagnostic input, not a new course mechanic.

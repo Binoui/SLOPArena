@@ -191,7 +191,11 @@ For a directly authored native clip, skip unnecessary FBX steps. Confirm the
 current clip GUID/fileID, curve paths, length, sample rate and baked frame count.
 
 Toolkit results skip FBX: `unity_clip.py write` builds the hybrid clip directly,
-starts it where the entry clip actually plays, and measures it as the game plays it.
+starts a matched entry where the entry clip actually plays, and measures it as the game
+plays it. A free entry (`entry.match: false`, such as a crouched aim loop) keeps the
+toolkit's origin, and a loop from tick 0 is saved looping for aim holds. Brief directions
+and review views follow the fighter's facing; before 18 October they followed the entry
+hips, which fighting stances turn 40-90° away (see the toolkit README).
 Read its report before preview. `meshVsToolkit` shows where Unity's limb twist
 distribution changes the mesh even though joints match: in a 17 October test the
 forearm mesh rolled up to 81 mm differently during a punch. Review those ticks on the
@@ -204,6 +208,8 @@ collarbone 122° past its limits and missed by 72 mm per joint.
 materials and sword, through Animancer over the move's ticks, from the review views.
 Add the bound clip it would replace as a second `--clip` to compare both on the same
 clock. Show `real.mp4` to the owner for approval: it is the move as the game will play it.
+For loops and holds, also show the handoffs with `unity_clip.py timeline`: for example idle,
+then the held aim loop, then the release into the attack, with the game's crossfades and travel.
 
 For Manki's deformation rigs (`Presentation/MankiRig.prefab` and the legacy
 `Presentation/Legacy/MankiDeformRig.prefab`), fingers also have skin branches below
@@ -304,6 +310,7 @@ play the accepted package clip.
 | [Manki Head Slam](../research/2026-10-16-manki-ground4-head-slam.md) | Current-session authorship, quaternion conversion and finger correction | `artifacts/manki-g4-head-slam-20261016/` |
 | [Provider A/B](../research/2026-10-16-genra-opus-ab.md) | Opus 5.5 through the Claude CLI on the retained aerial prompt; bend-direction checks | `artifacts/genra-opus-ab-20261016/` |
 | [Bonk aerials](../research/2026-10-17-bonk-genra-aerials.md) | Toolkit concepts to an approved bind; Humanoid limits; real-character review with `unity_clip.py render` | `artifacts/bonk-aerials-integration-20261017/` |
+| [Bonk Blade Storm](../research/2026-10-18-bonk-blade-storm-spin.md) | A multi-hit ground special redone on its clock; hit coverage before and after; entry pelvis frame | `artifacts/bonk-f-redo-20261018/` |
 
 The aerial workspace's `README.md` indexes the reference/conversion/import
 helpers. Head Slam retains the later authoring and finger-repair passes. These

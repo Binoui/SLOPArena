@@ -35,9 +35,11 @@ blender -b --factory-startup --python-exit-code 1 --python tools/blender/slop_pi
 
 `python3 tools/blender/slop_pit/build.py --dry` runs the geometry and clearance
 checks without Blender in about a second. `--spec-only --no-export` previews an
-unbaked change to `SPEC`. A layout change is a gameplay change: rebuild the
-collision source scene from `python3 layout.py --unity-shell`, bake, update
-`tests/Shared.Tests/SlopPitArenaTests.cs`, then regenerate the art.
+unbaked change to `SPEC`. A layout change is a gameplay change: write the shell with
+`python3 layout.py --unity-shell > /tmp/slop_pit-shell.json`, rebuild the collision
+source scene with `sloparena.stage.shell-apply --stage slop_pit --from
+/tmp/slop_pit-shell.json`, bake, update `tests/Shared.Tests/SlopPitArenaTests.cs`, then
+regenerate the art.
 
 The report checks that ring and floor dressing stays inside its footprint at its
 walkable top, that wall dressing inside the blast corridor stands at most 2.5 cm
@@ -45,20 +47,27 @@ proud, that nothing intersects the corridor, and that nothing within 15 m of it 
 orbit camera's reach) rises above two metres under the kill plane or below 16 m over
 the top plane. It does not establish collision, performance or acceptance.
 
-To apply, take your own bounded canonical Editor lease under the
-[coordination protocol](../../../docs/contributing/unity-editor-coordination.md).
-Copy the six generated files into `Assets/Stages/slop_pit/Presentation/Ring` inside
-that lease, refresh, then run `sloparena.stage.art-slop-pit`. It rejects a stamp
-whose source-scene or arena hash differs, replaces only the previous factory roots
-and its own, configures the five materials, the key/overhead/slop lights and the
-stage atmosphere, and prunes orphaned sub-assets. Inspect with
-`sloparena.stage.inspect` without rebaking, and judge the look from real
+Apply the build with one gateway call under your own bounded lease; it copies only the
+changed files into `Assets/Stages/slop_pit/Presentation/Ring/` and imports only them:
+
+```bash
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
+  sloparena.stage.art-apply --stage slop_pit --from /tmp/slop-pit-generated
+```
+
+[`presentation.py`](presentation.py) holds what it applies: the five materials, shadow
+flags (only the ring, ringside floor and tower take part), the key, overhead and slop
+lights and the fight-night atmosphere. It rejects a stamp whose source-scene or arena
+hash differs, replaces only the previous factory roots and updates its own in place,
+and never writes gameplay data. A lighting or material change is a `presentation.py`
+edit applied without a Blender run (see the [shared kit](../README.md#shared-kit)).
+Inspect with `sloparena.stage.inspect` without rebaking, and judge the look from real
 gameplay-camera captures with the `sloparena.stage.views.*` batch in the
 [stage-authoring workflow](../../../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review).
 
-For HUD-free shots (the stage-select thumbnail, recovery, pit and ringside views),
-run `review_cameras.eval.cs` with `eval_file` inside that Play Mode batch and capture
-each camera with `sloparena.capture.game-view --source camera --camera <name>`.
+`presentation.py` also lists the review cameras (`thumbnail`, ringside, two recovery
+views, pit-down and a low hero shot). Capture them HUD-free with
+`sloparena.stage.views.cameras --stage slop_pit` inside that Play Mode batch, and install
+the card with `sloparena.stage.thumbnail --stage slop_pit --from <dir>/thumbnail.png`.
 
-The Resources prefab and generated FBX/textures/materials stay local/ignored; the
-stamp and `.meta` files are tracked so references survive a rebuild.
+The accepted art and Resources prefab are committed with the stage.

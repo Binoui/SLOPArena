@@ -1,0 +1,48 @@
+{
+ "generator": "tools/blender/log_off/build.py",
+ "seed": 20261016,
+ "source": "client/Unity/Assets/Stages/log_off/log_off.unity",
+ "sourceSha256": "70c98a389a9f6c6831637da19cadf7d01aaf98a326c43dfa7dcdd4be97aba3ed",
+ "arena": "data/arenas/log_off.arena",
+ "arenaSha256": "7df7d4163a0cb860044e5e7905a349835a6215b16b42c4a6d7aab717a26c2024",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "LO_Wood",
+  "LO_Stump",
+  "LO_Foliage",
+  "LO_Cloth",
+  "LO_Glow",
+  "LO_Sky"
+ ],
+ "lights": {
+  "campfire": [
+   6.0,
+   -14.739111279428577,
+   92.0
+  ],
+  "lantern": [
+   -23.0,
+   -5.8619442138656765,
+   81.0
+  ],
+  "tent": [
+   -48.0,
+   -8.847743095518801,
+   138.0
+  ]
+ },
+ "objects": [
+  "Camp",
+  "Camp Glow",
+  "Canopy",
+  "Far Forest",
+  "Fireflies",
+  "Forest Floor",
+  "Sky",
+  "Stump",
+  "Trees",
+  "Undergrowth"
+ ],
+ "geometryDigest": "ce294b5dc0a029cb3c44714d065afd016da5e71c5fb5cfe9faaed2fc7dac5f1e",
+ "problems": 0
+}

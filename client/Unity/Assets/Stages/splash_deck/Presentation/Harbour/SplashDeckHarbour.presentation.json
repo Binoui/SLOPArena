@@ -1,0 +1,504 @@
+{
+ "format": 1,
+ "stage": "splash_deck",
+ "folder": "Assets/Stages/splash_deck/Presentation/Harbour",
+ "model": "SplashDeckHarbour.fbx",
+ "stamp": "SplashDeckHarbour.layout.json",
+ "root": "Splash Deck Harbour",
+ "supersededRoots": [
+  "Playable Geometry",
+  "North Trim",
+  "South Trim",
+  "East Trim",
+  "West Trim",
+  "Spawn Points",
+  "Distant tropical port",
+  "Boardwalk Surface (preview)",
+  "Authoritative recovery hull presentation",
+  "Barge warm deck fill"
+ ],
+ "removeRootLights": true,
+ "textures": [
+  {
+   "file": "SplashDeckDeck.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "SplashDeckHull.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 8192,
+   "aniso": 8
+  },
+  {
+   "file": "SplashDeckAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "SplashDeckDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  },
+  {
+   "file": "SplashDeckRipples.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "SD_Deck",
+   "asset": "SplashDeckDeck",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SplashDeckDeck.png",
+   "baseColor": [
+    0.88,
+    0.88,
+    0.88,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SplashDeckDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.16,
+    "_Wrap": 0.3,
+    "_Specular": 0.12,
+    "_Gloss": 28,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.72,
+     0.86
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     -1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SD_Hull",
+   "asset": "SplashDeckHull",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SplashDeckHull.png",
+   "baseColor": [
+    0.9,
+    0.9,
+    0.9,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SplashDeckDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.2,
+    "_Wrap": 0.35,
+    "_Specular": 0.25,
+    "_Gloss": 28,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.72,
+     0.86
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     -1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SD_Wood",
+   "asset": "SplashDeckWood",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SplashDeckAtlas.png",
+   "baseColor": [
+    0.9,
+    0.9,
+    0.9,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SplashDeckDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.25,
+    "_Wrap": 0.35,
+    "_Specular": 0.1,
+    "_Gloss": 28,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.72,
+     0.86
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     -1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SD_Land",
+   "asset": "SplashDeckLand",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SplashDeckAtlas.png",
+   "baseColor": [
+    0.82,
+    0.82,
+    0.82,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SplashDeckDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.25,
+    "_DetailStrength": 0.4,
+    "_Wrap": 0.35,
+    "_Specular": 0,
+    "_Gloss": 28,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.72,
+     0.86
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     -1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SD_Foliage",
+   "asset": "SplashDeckFoliage",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SplashDeckAtlas.png",
+   "baseColor": [
+    0.85,
+    0.85,
+    0.85,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SplashDeckDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.1,
+    "_Wrap": 0.5,
+    "_Specular": 0,
+    "_Gloss": 28,
+    "_Emission": 0,
+    "_Wind": 0.3,
+    "_WindFrequency": 1.1,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.72,
+     0.86
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     -1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SD_Cloth",
+   "asset": "SplashDeckCloth",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "SplashDeckAtlas.png",
+   "baseColor": [
+    0.9,
+    0.9,
+    0.9,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "SplashDeckDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.45,
+    "_DetailStrength": 0.05,
+    "_Wrap": 0.5,
+    "_Specular": 0,
+    "_Gloss": 28,
+    "_Emission": 0,
+    "_Wind": 0.22,
+    "_WindFrequency": 1.7,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.66,
+     0.72,
+     0.86
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     -1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "SD_Water",
+   "asset": "SplashDeckWater",
+   "shader": "SLOPArena/StageWater",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_RippleMap": "SplashDeckRipples.png"
+   },
+   "colors": {
+    "_SkyColor": [
+     0.4,
+     0.62,
+     0.9
+    ],
+    "_HorizonColor": [
+     0.8,
+     0.88,
+     0.94
+    ]
+   }
+  },
+  {
+   "slot": "SD_Glow",
+   "asset": "SplashDeckGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "SplashDeckAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.85,
+    "_Ambient": 0.55,
+    "_Shade": 0.35,
+    "_Glow": 1.2,
+    "_FogAmount": 1,
+    "_TimeScale": 1,
+    "_Cull": 0.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.6,
+     0.75,
+     -0.25,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "SD_Sky",
+   "asset": "SplashDeckSky",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "SplashDeckAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0,
+    "_Shade": 0,
+    "_Glow": 1.4,
+    "_FogAmount": 0,
+    "_TimeScale": 1,
+    "_Cull": 0.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.6,
+     0.75,
+     -0.25,
+     0
+    ]
+   }
+  }
+ ],
+ "shadows": {
+  "cast": true,
+  "receive": true,
+  "objects": {
+   "Sky": {
+    "cast": false,
+    "receive": false
+   },
+   "Clouds": {
+    "cast": false,
+    "receive": false
+   },
+   "Gulls": {
+    "cast": false,
+    "receive": false
+   },
+   "Far Islands": {
+    "cast": false,
+    "receive": false
+   },
+   "Lighthouse Lamp": {
+    "cast": false,
+    "receive": false
+   },
+   "Sea": {
+    "cast": false,
+    "receive": true
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Morning Sun",
+   "type": "directional",
+   "sun": {
+    "azimuth": 112.0,
+    "elevation": 36.0
+   },
+   "color": [
+    1,
+    0.96,
+    0.88
+   ],
+   "intensity": 1.3,
+   "shadows": "soft",
+   "shadowStrength": 0.7
+  },
+  {
+   "name": "Deck Sky Fill",
+   "type": "point",
+   "position": [
+    2.5,
+    24,
+    -6
+   ],
+   "color": [
+    0.82,
+    0.9,
+    1
+   ],
+   "intensity": 0.55,
+   "range": 60
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.62,
+   0.78,
+   0.94
+  ],
+  "ambientSky": [
+   0.7,
+   0.8,
+   0.95
+  ],
+  "ambientGround": [
+   0.56,
+   0.5,
+   0.42
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.8,
+   0.87,
+   0.92
+  ],
+  "fogStart": 170,
+  "fogEnd": 1500
+ }
+}

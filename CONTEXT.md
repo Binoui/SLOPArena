@@ -232,6 +232,24 @@ _Avoid_: CPU Opponent, bot (when referring to a Course Target)
 A progress marker activated by reaching it after clearing every required target up to that point in the route. It supplies a fall-respawn location; visiting every checkpoint is not required to finish the Character Course.
 _Avoid_: save point (when referring to a checkpoint within an attempt)
 
+## Tutorial
+
+**Tutorial**:
+The offline guided introduction to the controls: a free-roam map with the player's chosen fighter and a Tutorial Dummy, where an ordered series of Tutorial Lessons ends at a completion card. It keeps no records or rewards.
+_Avoid_: Training (when referring to the guided lessons), Arcade challenge
+
+**Tutorial Lesson**:
+One step of the Tutorial, such as Jump or Shield & Dodge, with its own checklist of Tutorial Objectives. Only the current lesson's objectives count; the next lesson starts after all of them are done or the lesson is skipped.
+_Avoid_: level, stage, test (except as presentation copy)
+
+**Tutorial Objective**:
+A checklist entry observed from ordinary simulation results, such as landing on a block, a blocked hit or the dummy losing a life. Objectives never change gameplay.
+_Avoid_: target (Course Target is a different object), quest
+
+**Tutorial Dummy**:
+An ordinary fighter fed scripted input: idle in most lessons, approaching and swinging in the shield lesson. The lesson sets its position and damage, never its rules.
+_Avoid_: CPU Opponent, bot, training NPC
+
 ## PvP / Multiplayer
 
 **ServerBrowser**:
@@ -255,7 +273,7 @@ The SLOPArena-wide chat channel, not restricted to one GameServer, LobbyRoom, or
 _Avoid_: server chat
 
 **Server Chat**:
-The SLOPArena Chat channel shared by members attached to the same Master Room. A Room's Server Chat is isolated from other Rooms and from physical GameServer lobby membership.
+The SLOPArena Chat channel shared by members attached to the same Master Room. A Room's Server Chat is isolated from other Rooms and from physical GameServer lobby membership. The UI labels it ROOM.
 _Avoid_: lobby chat, match chat
 
 **Direct Message**:
@@ -289,6 +307,14 @@ _Avoid_: offline inbox
 **Personal Mute**:
 A player's choice to hide a sender's messages and alerts across SLOPArena Chat for the current game launch. It applies to the sender's identity, not their Display Name.
 _Avoid_: ban, account block
+
+**Speech Slip**:
+A Server Chat message from someone playing the current Match, shown over their fighter, or beside their fight card when the fighter is off-screen or out. The local player's own messages use their card. Presentation only; the message still belongs to Server Chat.
+_Avoid_: emote, taunt
+
+**Quick Line**:
+A fixed Server Chat message (`GG`, `NICE`, `ONE MORE?`) that a controller player sends from the D-pad during an online Match. It is an ordinary message with the same limits.
+_Avoid_: emote, ping
 
 **StockMode**:
 The win condition for PvP matches. Each player starts with N stocks (default 3). Getting KO'd (void death or blast zone) costs one stock. A player with 0 stocks is eliminated. Last player with stocks remaining wins. Scales naturally from 2 to 4+ players.

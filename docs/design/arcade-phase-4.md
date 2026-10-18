@@ -45,7 +45,10 @@ Falls use normal PvP fighter respawns at the saved location, refreshing the usua
 resources/cooldowns while preserving broken targets and the whole-run timer.
 Intentional falls are legal. No extra time penalty is added.
 
-**Backspace** starts a complete fresh attempt. **Escape/Start** opens normal local
+**Backspace**, a half-second **Select** hold on a controller, or **Retry** in the
+pause menu starts a complete fresh attempt; the control is rebindable as
+**Arcade Retry**. A retry restarts in place with a one-second READY…GO (see the
+[retry pass](#retry-pass--2026-10-17)). **Escape/Start** opens normal local
 pause, freezing gameplay and timing without invalidating records. Completion
 freezes the result and offers **RETRY** or **ARCADE**. Leaving or retrying an
 unfinished run creates no course record. Completed records use ticks; lower times
@@ -78,6 +81,11 @@ captures and restoration in one gateway batch. Without that boundary, ordinary
 human input and automatic lock-on resume between commands and may alter a replay.
 This native probe freeze is diagnostic, not a course rule or a player pause.
 
+`sloparena.arcade.course.retry` retries the live course and waits for the fresh
+attempt, reporting latency and the resulting state. `--via call` (default) calls
+the retry directly; `--via gamepad` holds and `--via keyboard` presses the bound
+Arcade Retry control on a temporary virtual device, also sampling the hold bar.
+
 ## Runtime and artifact contract
 
 `CharacterCourseDefinition` contains immutable ordered target identities, spherical
@@ -99,6 +107,104 @@ fighter, HUD, camera, projectile and presentation helpers. Its view renders Shar
 state. `ArcadeRecordCompatibility.Course` includes course markers and the existing
 fighter/stage gameplay projection with its own rules revision. Completed times
 reuse the separate `arcade-records.json` store and its atomic write/backup policy.
+
+## Retry pass — 2026-10-17
+
+Retry is the rebindable **Arcade Retry** action: Backspace restarts at once, a
+controller Select must be held for half a second (a thin bar fills under the
+controls line), and the pause menu offers **Retry** below Resume. The controls
+line follows the last device and its current bindings. Slopball uses the same
+action and pause entry but still reloads its scene.
+
+A Course retry no longer reloads the scene. `LocalSimulationBridge.Restart`
+swaps in a clean simulation on the same arena, so fighter, projectiles, queued
+effects, targets, checkpoint and clock start over, while the stage, fighter
+model, HUD, music and records stay loaded. The fighter renderer, hit feel,
+projectile visuals, timeline presentations, sword trails and aim presentation
+drop everything from the old attempt, and the camera cuts back to the start.
+Retries use a 60-tick READY…GO; entering from the menu keeps 3-2-1. The
+countdown never advances the simulation, so this does not affect times or the
+record fingerprint.
+
+Measured in the Editor before the change, a retry froze one frame for
+**2.1–2.5 s** while the scene reloaded. The in-place retry takes **1.4 ms** with no
+dropped frame. After a retry, replaying the first 260 ticks of the main route
+reproduced the first attempt exactly: one target broken, identical fighter
+position. A virtual gamepad hold retried after 499 ms with the bar shown; a
+0.4 s hold did not retry. Pause **Retry** resumed at normal time scale into a
+fresh READY countdown, and a virtual Backspace retried in the next frame. Unity
+compilation and the runtime console have zero errors; the Editor, Play Mode
+options and records directory were restored. Linux reported Backspace and Escape
+as control characters, so binding labels now fall back to the layout's control
+names (also fixing those rows in Settings). Physical controller feel and a
+player build remain unreviewed. Local evidence: `tmp/retry-slice/`.
+
+## Feel pass — 2026-10-18
+
+The course now gives feedback in the sanctuary's gold, red and jade rather than
+FightGuy's blue ki, so other fighters could run it later. The owner picked the
+paper-lantern look from the concept board (painted over real captures) on
+2026-10-18. There is no screen shake or slow motion, and gameplay is unchanged:
+targets keep their hit spheres and nothing here feeds back into Shared.
+
+- **Targets** are gold paper lanterns: ribbed paper lit from inside with a red
+  seal turned toward the camera, red lacquer caps, a tassel, a warm halo and a
+  pool of light on the floor. The body nearly fills the hit sphere.
+- **A break** shows a cream flash, a gold burst and ring, paper shreds that
+  flutter down and the candle's flame floating up. A running count ("7/20")
+  floats from the spot. A paper pop plays with the next note of the section's
+  five-note phrase (D major pentatonic, D5–B5), so the melody climbs in whatever
+  order the targets fall. The section's last break adds a soft rolled chord.
+- **Sections** are the target ranges between checkpoint prerequisites (5, 10, 15
+  and 20 here). The HUD shows one diamond per target, grouped by section, so a
+  skipped target is a gap and a missed one turns red.
+- **A checkpoint** lights its teal outline jade, with rising motes, once crossing
+  it will save. Saving flashes the frame away with a low bowl tone.
+- **A missed target**: reaching a checkpoint that cannot save turns its frame
+  red. A red light pillar rises over each missed lantern, with an edge marker
+  while it is off screen. A toast says "1 TARGET MISSED / Follow the red light
+  back to it", the checkpoint line reads "CHECKPOINT NOT SAVED" in red, and two
+  wood knocks play with a falling phrase. Reaching the shrine with targets left
+  does the same ("2 TARGETS LEFT"). To explain the miss, the client repeats
+  Shared's swept sensor test on the authoritative fighter position; Shared alone
+  decides saves.
+- **The last target** rings the great gong. An "ALL CLEAR!" stamp appears on the
+  gold start card and a gold pillar rises at the shrine. The music dips under
+  the gong, then swells by 30% for the run home.
+- **The finish** throws prayer-flag confetti and gold rings at the fighter's
+  feet, with the gate gong and a chime cascade. The results card follows a
+  second later.
+- **A retry** clears every cue, effect and queued sound.
+
+`SanctuaryCoursePresentationBuilder` (`sloparena.presentation.course.sanctuary.build`)
+generates the lantern mesh, textures, materials and prefabs in
+`Stages/fightguy_sanctuary/Presentation/Course/`, plus the course's
+`CoursePresentationSet` in `Resources/Courses/fightguy_sanctuary.asset`. Rebuilds are
+byte-identical. `PresentationBuilderKit.ForFolder` builds presentation that no
+character package owns. `CharacterCoursePresentation` plays the set from Shared
+course events. A course without a set keeps the plain orbs and silent cues, but
+still gets the pips, toasts and edge markers. The seven clips are synthesized by
+[`tools/sfx/course_clips.py`](../../tools/sfx/course_clips.py) into ignored
+`Resources/Audio/SFX/Course/`.
+
+Changes from the concept: the toast does not name a place, because the course
+has no place names; the pillar and edge marker show where to go. The music lift
+changes volume only, with no filter. The checkpoint frames light the stage's
+existing teal outlines instead of adding new ones.
+
+Verification (local evidence in `tmp/vfx/course/`):
+
+- The scripted main route still completed 20/20 targets with no falls and three
+  saves, and the console stayed clean. Over the run the course played 20 pops
+  and 20 bell notes, 3 chords, 3 saves, 1 all-clear gong and 1 finish.
+- A copy of the route that never shoots target 3 played the missed cue once,
+  raised one pillar and left checkpoint 1 red. A keyboard retry from that state
+  restored every lantern and cleared every cue within one frame (16.6 ms).
+- Before/after captures of every beat are in `after2/`, `missed2/` and
+  `finale/`.
+
+The sounds were checked only as waveforms and the effects only in captures:
+nobody has heard or played the pass in game yet.
 
 ## Winding layout verification — 2026-10-15
 

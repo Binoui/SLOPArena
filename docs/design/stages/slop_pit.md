@@ -5,7 +5,7 @@ target: pvp
 players: 2-4
 variant: static
 authoritative_capability: null
-availability: provisional-visual-and-gameplay-review-pending
+availability: accepted
 competitive_intent: mixed
 topology: raised central ring on a chamfered ringside floor with closed recovery walls
 source_scene: client/Unity/Assets/Stages/slop_pit/slop_pit.unity
@@ -15,7 +15,7 @@ design_brief: docs/design/stages/slop_pit.design.md
 art_source: tools/blender/slop_pit
 human_review:
   owner: project maintainer
-  status: pending
+  status: accepted 2026-10-17
   process: gameplay-camera orbit and recovery review, then normal PVP at 2 and 4 players
 ---
 
@@ -26,7 +26,7 @@ in the ring; a knockout from it lands on the ringside floor, one full jump below
 and the floor's solid walls drop to the KO line over a pit of glowing slop.
 Terraced stands packed with fans, a lighting rig and a SLOP PIT neon sign surround
 the pit beyond the blast corridor. The [design brief](slop_pit.design.md) holds the
-approved direction and the pending reviews.
+approved direction; the maintainer accepted the stage on 2026-10-17.
 
 ## Gameplay shell
 
@@ -58,9 +58,10 @@ roster portraits in `Assets/Resources/UI/Portraits`; lettering uses the bundled
 Archivo Black and Space Mono. The ring, floor and tower use
 `SLOPArena/StageVertexLit` under the stage's own key and fill lights; the venue uses
 `SLOPArena/StageNeon`, whose bob channel makes the crowd hop without scripts.
-`sloparena.stage.art-slop-pit` verifies the generator stamp against the source-scene
-and arena hashes, imports the art, sets the materials, lights and atmosphere, and
-removes the previous factory roots. The prefab has no Colliders and no
+`sloparena.stage.art-apply --stage slop_pit` verifies the generator stamp against the
+source-scene and arena hashes, imports the art, applies the materials, lights and
+atmosphere from `tools/blender/slop_pit/presentation.py`, and removes the previous
+factory roots. The prefab has no Colliders and no
 gameplay-owning components.
 
 Background geometry stays out of the blast corridor, and nothing within 15 m of the
@@ -84,9 +85,9 @@ the source.
   `.stage-authoring-cache/slop_pit/ring-20261016/` and gameplay-camera captures under
   PvP and Training lighting in `tmp/slop-pit-ring/`.
 
-The stage's key light, a warm overhead over the ring and two green slop lights carry
-PvP, where the arena scene has no lights. Training's arena adds three directional
-lights, so the ring canvas keeps headroom: tan in PvP, bright cream in Training. Human
-gameplay-camera, recovery-feel and two/four-player PVP review, measured rendering
-performance and packaged-player checks remain pending. These checks do not replace
-them.
+The stage's key light, a warm overhead over the ring and two green slop lights are its
+only lights: the prefab's `Stage Lights` rig makes the match switch off the scene's own
+directional lights, so Training, Solo and PvP look the same. (The passes before that
+fix kept the canvas print darker for Training's extra lights; it still reads tan.)
+Accepted by the maintainer on 2026-10-17 after the stage pass ("the maps are much
+better"). Frame time and the packaged build were not measured separately.

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Stop serving before a domain reload: close the listener, fail queued main-thread work and let admitted requests answer before ownership is persisted, keeping the discovery descriptor for the next domain. A request waiting for the main thread during the unload previously kept a thread in the old domain and hung the Editor.
+- Hold domain reloads while a command's returned Task is still running (test runs exempt), so a compile that finishes mid-command reloads after it instead of destroying its continuation and leaving its ownership operation unknown.
+- `editor_play` skips the domain reload unless `reload=true`, and restores the project's Enter Play Mode Options when Play Mode ends or on the next Editor start after a crash.
 - Add the human-only `Window/Pipeline/Recover Editor Lease...` action for a held, settled lease whose gateway lost its release token. Confirmation is bound to the current session, lease and revision; active/unknown work is refused and the previous token is revoked. No remote recovery endpoint or automatic timeout takeover.
 - Correlate package operations with persisted Editor ownership IDs and command identity; keep package status serviceable while work settles, and recover add/remove only from a matching native request or a changed manifest plus registered-package postcondition with a matching resolved version/source. Preserve failures and report unproven reloads as unknown without settling ownership.
 

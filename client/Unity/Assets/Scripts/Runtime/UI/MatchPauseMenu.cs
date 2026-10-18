@@ -8,7 +8,7 @@ namespace SlopArena.Client.UI
 {
     /// <summary>
     /// In-match pause menu (issue #77): Esc toggles a small centered panel with
-    /// Resume, Leave Match (back to stage select) and Quit Game. While paused the
+    /// Resume, an optional Arcade Retry, Leave Match (back to stage select) and Quit Game. While paused the
     /// simulation is frozen (Time.timeScale stops FixedUpdate, and the sim ticks
     /// only there), the cursor is released, and camera mouse input is suppressed
     /// via CameraMount.FreeCursor. Shared by TrainingMatch and PvPMatch through
@@ -23,6 +23,7 @@ namespace SlopArena.Client.UI
         private bool _freezeSimulation = true;
         private InputController? _inputController;
         private Action? _onLeaveMatch;
+        private Action? _onRetry;
         private VisualElement? _panel;
         private Button? _resumeButton;
         private SettingsOverlay? _settingsOverlay;
@@ -30,12 +31,13 @@ namespace SlopArena.Client.UI
         /// <summary>True while the match menu owns local gameplay input.</summary>
         public bool IsPaused => _paused;
         public static MatchPauseMenu? Active { get; private set; }
-        public void Init(CameraMount? cameraMount, InputController? inputController, Action? onLeaveMatch = null, UIDocument? hostDocument = null, bool freezeSimulation = true)
+        public void Init(CameraMount? cameraMount, InputController? inputController, Action? onLeaveMatch = null, UIDocument? hostDocument = null, bool freezeSimulation = true, Action? onRetry = null)
         {
             _freezeSimulation = freezeSimulation;
             _cameraMount = cameraMount;
             _inputController = inputController;
             _onLeaveMatch = onLeaveMatch;
+            _onRetry = onRetry;
             Active = this;
             // Explicit host (issue #210): the match's HUD document is passed in
             // rather than discovered as "whichever UIDocument is first".
@@ -154,6 +156,8 @@ namespace SlopArena.Client.UI
             _resumeButton = MakeButton("RESUME", () => SetPaused(false));
             _resumeButton.AddToClassList("match-pause-action--primary");
             box.Add(_resumeButton);
+            if (_onRetry != null)
+                box.Add(MakeButton("RETRY", Retry));
             box.Add(MakeButton("LEAVE MATCH", LeaveMatch));
             box.Add(MakeButton("QUIT GAME", QuitGame));
 
@@ -188,6 +192,13 @@ namespace SlopArena.Client.UI
             _settingsOverlay.Open(host);
         }
 
+
+        private void Retry()
+        {
+            Debug.Log("[PauseMenu] Retry.");
+            SetPaused(false); // restore timeScale + cursor before the fresh attempt
+            _onRetry?.Invoke();
+        }
 
         private void LeaveMatch()
         {

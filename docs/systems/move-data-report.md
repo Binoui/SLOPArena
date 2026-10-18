@@ -98,11 +98,13 @@ Use the payoff and DI/timing surface to choose playtest questions, not automatic
 ## Hit reliability
 
 `tools/HitReliabilityReport` measures how forgiving each admitted normal is against
-idle, standing FightGuy (medium) and Manki (small) targets, from the cooked roster:
+idle, standing FightGuy (medium) and Manki (small) targets, from the cooked roster.
+`--slots` picks other canonical slots, ground and air, for example `--slots F` for a
+special:
 
 ```bash
 dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk] \
-  [--out artifacts/hit-reliability]
+  [--slots 1,2,3,4] [--out artifacts/hit-reliability]
 ```
 
 Each character gets `<char>.md` and `<char>.json`:
@@ -117,13 +119,21 @@ Each character gets `<char>.md` and `<char>.json`:
 - **Vertical reach** (aerials) — target feet heights relative to the attacker's feet that
   any active tick touches within 3 m ahead. An aerial that reaches less than 0.5 m below
   its feet only hits grounded targets at the very end of a fall.
+- **Multi-hit coverage** (ground moves with several damaging hitboxes) — for each hit, how
+  many of 24 bearings around the attacker, at 1 m and 1.5 m, put a standing target where a
+  tested pose touches it. The target is never knocked away, so a zero means that hit cannot
+  land on that target at all. On 2026-10-18 Bonk's Blade Storm (F) swung over every
+  standing head: only its chip hitbox scored, and its four big hits were zero for both targets.
+  After the [hip-height spin](../characters/bonk.md#blade-storm-spin--2026-10-18) they touch
+  7–15 bearings each.
 - **Bone and weapon sampling** — positions a standing target occupies on the swing path
   between consecutive active ticks (the clip sampled 16 times per tick) that no tested pose
   touches. Tested poses are each tick's pose plus the swept poses Shared tests between
   active ticks, so this stays near zero; a rise means the sweep stopped covering the swing.
 
-Flags mark fast clips, point-blank whiffs, aerials that cannot reach below their feet and
-sampling loss above 10%. The attacker stays fixed for the geometry columns, and targets
+Flags mark fast clips, point-blank whiffs, aerials that cannot reach below their feet,
+hits of a multi-hit move that never touch a standing target, and sampling loss above 10%.
+The attacker stays fixed for the geometry columns, and targets
 are idle; human timing and movement belong to the [practice session log](practice-session-log.md).
 Compare a character's report before and after a re-authored attack is cooked.
 

@@ -418,6 +418,15 @@ def validated_candidate(value: dict) -> dict:
     return validate_candidate(value)
 
 
+def picker_roster(root: Path = ROOT) -> list[str]:
+    """The Stage Select picker roster, which Master admits online for this release."""
+    roster = read_json(root / "client/Unity/Assets/Resources/Stages/roster.json")
+    picker = roster.get("picker")
+    if not isinstance(picker, list) or not picker or not all(isinstance(name, str) for name in picker):
+        raise ReleaseError("client/Unity/Assets/Resources/Stages/roster.json has no picker list")
+    return picker
+
+
 def assemble(args) -> None:
     client = read_json(args.client)
     verify_client(client, args.version, args.source_revision, args.endpoint)
@@ -427,7 +436,8 @@ def assemble(args) -> None:
                  "images": {"gameplay": args.game_image, "master": args.master_image, "migration": args.migration_image},
                  "catalog_hash": client["catalogHash"], "master_endpoint": client["masterEndpoint"],
                  "schema": {"target_migration": args.target_migration, "compatible_migrations": [args.target_migration],
-                            "upgrade_from": [args.migration_from] if args.migration_from else []}, "steam": steam}
+                            "upgrade_from": [args.migration_from] if args.migration_from else []}, "steam": steam,
+                 "admitted_arenas": picker_roster()}
     write_json(args.output, validated_candidate(candidate))
     print(f"Candidate {args.release_id}: Steam BuildID {steam['build_id']}; manual default promotion required")
 
@@ -437,6 +447,9 @@ def verify_deployment(candidate: dict, result: dict) -> None:
     require(result, result.get("outcome") == "success", "VPS did not report successful deployment")
     for key in ("release_id", "source_revisions", "images", "catalog_hash", "master_endpoint", "steam"):
         require(result, result.get(key) == candidate[key], f"VPS {key} differs from the uploaded candidate")
+    if "admitted_arenas" in candidate:
+        require(result, result.get("admitted_arenas") == candidate["admitted_arenas"],
+                "VPS admitted_arenas differs from the uploaded candidate; is the receiver on the VPS current?")
     require(result, result.get("schema") in candidate["schema"]["compatible_migrations"], "VPS schema differs")
     services = result.get("services", {})
     require(services, isinstance(services, dict) and all(

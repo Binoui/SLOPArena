@@ -63,6 +63,7 @@ namespace Unity.Pipeline
         private readonly SemaphoreSlim m_ExecGate = new SemaphoreSlim(1, 1);
         private HttpListener m_HttpListener;
         private readonly Dispatcher m_Dispatcher = new Dispatcher();
+        private int m_InFlightRequests;
 
         /// <summary>This server's own progress-reporting state (see CliProgress).</summary>
         internal CliProgressState Progress { get; } = new CliProgressState();
@@ -316,6 +317,42 @@ namespace Unity.Pipeline
         }
 
         /// <summary>
+        /// Stop serving before a domain reload, keeping the discovery descriptor for the next
+        /// domain to rewrite. The unload waits for thread-pool work running in the old domain, so
+        /// a request still waiting there for the main thread hangs the Editor for good (main thread
+        /// on a futex, log silent). Close the listener so no request starts, fail queued
+        /// main-thread work so those waits return, then give admitted requests a bounded moment to
+        /// answer and release their ownership operations before the caller persists ownership.
+        /// </summary>
+        public void StopForReload(int drainMilliseconds = 2000)
+        {
+            if (!m_IsRunning)
+                return;
+
+            m_IsRunning = false;
+            DisarmWatchdog();
+            try
+            {
+                m_HttpListener?.Stop();
+                m_HttpListener?.Close();
+                ServerStopped();
+            }
+            catch
+            {
+                // The domain is going away; nothing to recover here.
+            }
+            finally
+            {
+                m_HttpListener = null;
+                m_Dispatcher.Shutdown();
+            }
+
+            var deadline = DateTime.UtcNow.AddMilliseconds(drainMilliseconds);
+            while (Volatile.Read(ref m_InFlightRequests) > 0 && DateTime.UtcNow < deadline)
+                Thread.Sleep(5);
+        }
+
+        /// <summary>
         /// Arm the watchdog (no-op if disabled or already armed). In the editor the tick rides
         /// EditorApplication.update; in a player it is driven by RuntimePipelineManager.Update via
         /// <see cref="WatchdogTick"/>.
@@ -431,6 +468,7 @@ namespace Unity.Pipeline
         /// </summary>
         private async Task ProcessRequestDetached(HttpListenerContext context)
         {
+            Interlocked.Increment(ref m_InFlightRequests);
             try
             {
                 await ProcessRequest(context);
@@ -438,6 +476,10 @@ namespace Unity.Pipeline
             catch (Exception ex)
             {
                 Debug.LogError(ex);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref m_InFlightRequests);
             }
         }
 
@@ -1990,7 +2032,7 @@ namespace Unity.Pipeline
             {
                 if (m_Dispatcher.IsMainThread())
                 {
-                    raw = ExecuteCommandInContext(command, parameters, ownershipContext);
+                    raw = ExecuteOnMainThread(command, parameters, ownershipContext);
                 }
                 else
                 {
@@ -2003,7 +2045,7 @@ namespace Unity.Pipeline
                             ? dispatcherTimeoutMs
                             : requestedTimeoutMs ?? dispatcherTimeoutMs;
                     raw = await Task.Run(() => m_Dispatcher.Invoke(
-                        () => ExecuteCommandInContext(command, parameters, ownershipContext), waitBudgetMs));
+                        () => ExecuteOnMainThread(command, parameters, ownershipContext), waitBudgetMs));
                 }
             }
             else
@@ -2019,6 +2061,27 @@ namespace Unity.Pipeline
         {
             using (context == null ? null : EditorCommandOwnershipContext.Push(context))
                 return ExecuteCommandDirect(command, parameters);
+        }
+
+        /// <summary>
+        /// Main thread. A command that returns a still-running Task keeps working across frames;
+        /// let the host hold domain reloads until it completes (see <see cref="HoldReloadsUntil"/>).
+        /// </summary>
+        private object ExecuteOnMainThread(CommandInfo command, object[] parameters,
+            EditorCommandOwnership.OperationContext context)
+        {
+            var raw = ExecuteCommandInContext(command, parameters, context);
+            if (raw is Task pending && !pending.IsCompleted)
+                HoldReloadsUntil(command, pending);
+            return raw;
+        }
+
+        /// <summary>
+        /// Main thread, called with a command's still-running Task. Default: nothing (a player
+        /// never reloads its domain). The Editor server defers reloads until the Task completes.
+        /// </summary>
+        protected virtual void HoldReloadsUntil(CommandInfo command, Task pending)
+        {
         }
 
         /// <summary>

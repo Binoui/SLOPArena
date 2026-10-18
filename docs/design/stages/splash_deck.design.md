@@ -1,10 +1,10 @@
 ---
 key: splash_deck
-status: locked
+status: accepted
 locked: 2026-10-16
 approved_by: maintainer
 approval_scope: selected boat hull with the same fight, Mediterranean fishing harbour and sunny morning implementation
-runtime_camera_review: pending
+accepted: 2026-10-17
 blockout:
   - tmp/splash-deck-harbour/tuned-pvp/
   - .ability-lab-cache/splash-deck-harbour-20261016/orbit-01/
@@ -16,8 +16,8 @@ On 2026-10-16 the maintainer asked to rework Splash Deck with the procedural sta
 pipeline: the fight is on a boat in a bay. From the presented options they selected
 **Boat hull, same fight**, **Fishing harbour** and **Sunny morning**. Those choices
 authorize this bounded rework of the 2026-10-10 moored barge. The implementation scope
-is decided; the new captures have not been approved by the maintainer. Human in-game
-camera and two/four-player PvP reviews remain pending. The key `splash_deck` and the
+is decided. The maintainer accepted the built stage on 2026-10-17 ("the maps are much
+better"). The key `splash_deck` and the
 display name are unchanged.
 
 ## Personality
@@ -128,8 +128,7 @@ extra lights.
 - Low recovery views along each side, round the bow and the transom: continuous hull,
   waterline foam, no under-deck pocket.
 - Full elevated orbit at 15° intervals and low views at 45° intervals.
-- Human free orbit from the deck, both raised tops, the bow tip and recovery positions
-  remains pending, followed by external two/four-player PvP acceptance.
+- The maintainer accepted the built stage on 2026-10-17.
 
 ## History
 

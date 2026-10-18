@@ -12,6 +12,7 @@ namespace SlopArena.Client.World
         public const string SceneName = "Arcade_Slopball";
         protected override string StageKey => ArenaKey;
         private SlopballView _view;
+        private SlopballCourtShow _court;
         private Transform _launcher;
         private float _launcherHeight;
         private ArcadeRecordKey _recordKey;
@@ -22,11 +23,13 @@ namespace SlopArena.Client.World
         private bool _banked;
         public ArcadeRecordUpdate LastRecordUpdate { get; private set; }
         public ulong SavedBest { get; private set; }
+        protected override Action PauseRetry => RestartAttempt;
 
         protected override void OnBallMatchReady(MatchContentEntry entry, ArenaDefinition arena)
         {
             _launcher = StageVisual != null ? StageVisual.Find("Ball Sender") : null;
             if (_launcher != null) _launcherHeight = _launcher.position.y;
+            _court = SlopballCourtShow.Find(StageVisual);
             _recordKey = new("slopball", arena.Arcade.ProfileId, entry.Identity.PackageId,
                 ArcadeRecordCompatibility.Slopball(arena, entry));
             using var hash = SHA256.Create();
@@ -47,6 +50,7 @@ namespace SlopArena.Client.World
             base.Update();
             _view?.SetPaused(IsPaused);
             _view?.Tick(Time.unscaledDeltaTime);
+            _court?.Tick(Time.unscaledDeltaTime);
         }
 
         protected override void OnChallengeTick()
@@ -73,7 +77,7 @@ namespace SlopArena.Client.World
             }
             foreach (var item in Simulation.LastTickSlopballEvents)
             {
-                if (item.Kind == SlopballEventKind.Returned) _view?.ShowStreakToast(false);
+                if (item.Kind == SlopballEventKind.Returned) { _view?.ShowStreakToast(false); _court?.Returned(); }
                 if (item.Kind == SlopballEventKind.Missed)
                 {
                     if (item.Returns > 0) _view?.ShowStreakToast(true);
@@ -81,6 +85,7 @@ namespace SlopArena.Client.World
                 }
             }
             _view?.Present(challenge, Simulation.ArcadeBall.Value, _personalBest, ArcadeRecordsStore.Instance.Feedback);
+            _court?.Present(challenge.Returns);
             if (challenge.Ended) BankBest();
         }
 

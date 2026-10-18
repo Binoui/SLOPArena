@@ -94,11 +94,42 @@ def loop_materials(me):
     return names[np.repeat(mat_index, totals)]
 
 
+def _deterministic_fbx_exporter():
+    """Make Blender's FBX writer repeatable: it derives object IDs from Python's per-process
+    randomised string hash and stamps the current time, so every rebuild of unchanged
+    geometry produced a different 15 MB file. Accepted stage art is committed, so an
+    unchanged build must leave the FBX byte-identical."""
+    import datetime
+    import types
+    from io_scene_fbx import export_fbx_bin, fbx_utils
+
+    original = fbx_utils._key_to_uuid
+
+    def stable_key_to_uuid(uuids, key):
+        if isinstance(key, int) and 0 <= key < 2**63:
+            return original(uuids, key)
+        stable = int.from_bytes(hashlib.sha256(repr(key).encode()).digest()[:8], "little") % 2**63
+        return original(uuids, stable)
+
+    fixed = datetime.datetime(2026, 1, 1)
+
+    class FixedDateTime(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed
+
+    fbx_utils._key_to_uuid = stable_key_to_uuid
+    fbx_utils._keys_to_uuids.clear()
+    fbx_utils._uuids_to_keys.clear()
+    export_fbx_bin.datetime = types.SimpleNamespace(datetime=FixedDateTime)
+
+
 def export_fbx(objects, path):
-    """Export with the project's Unity conventions (see geo.to_object)."""
+    """Export with the project's Unity conventions (see geo.to_object); repeatable bytes."""
     for o in bpy.context.scene.objects:
         o.select_set(o.name in objects)
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    _deterministic_fbx_exporter()
     bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={"MESH"}, axis_forward="-Z", axis_up="Y",
                              bake_space_transform=True, apply_scale_options="FBX_SCALE_ALL", mesh_smooth_type="FACE",
                              colors_type="SRGB", prioritize_active_color=True, use_mesh_modifiers=True,

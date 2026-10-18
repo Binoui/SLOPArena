@@ -16,16 +16,41 @@ namespace SlopArena.Client.UI
     /// Shared chat surface. The overlay owns presentation and focus only; all
     /// identity, routing, history, drafts, mute state, and send outcomes live
     /// in the persistent ChatSession.
+    ///
+    /// Menus dock one stream (filters, presence, a destination chip) or a slim
+    /// minimized tab. Gameplay keeps a quiet ticker and a one-line composer;
+    /// Room lines from the people in the match become HUD speech slips.
     /// </summary>
     [DefaultExecutionOrder(-10000)]
     public sealed class ChatOverlay : MonoBehaviour
     {
         private const int MaxMessageScalars = 500;
-        private const double CompactLifetimeSeconds = 8d;
+        private const float TickerLifetimeSeconds = 8f;
+        private const float TickerFadeSeconds = 2f;
+        private const float SystemLineSeconds = 5f;
+        private const int TickerLines = 3;
+        private const int ContextLines = 5;
+        private const int MaxArrivals = 16;
+        private const int MaxStreamRows = 100;
+        private const int MaxLineTextElements = 140;
+        private const int MaxRowNameElements = 16;
+        private const float QuickLineCooldownSeconds = 1.5f;
+        // Controller players cannot type; the free D-pad directions send these to the Room.
+        private static readonly string[] QuickLines = { "GG", "NICE", "ONE MORE?" };
 
         public const string DockOpenPlayerPrefsKey = "SlopArena.Chat.DockOpen";
         private const string WidthPlayerPrefsKey = "SlopArena.Chat.WidthPx";
         private const string HeightPlayerPrefsKey = "SlopArena.Chat.HeightPx";
+
+        private enum StreamFilter { All, Room, Global, Direct }
+
+        /// <summary>A live message (or local status line) for the gameplay ticker.</summary>
+        private sealed class Arrival
+        {
+            public ChatMessage? Message;
+            public string? SystemText;
+            public float At;
+        }
 
         private static ChatOverlay? _instance;
 
@@ -35,24 +60,40 @@ namespace SlopArena.Client.UI
 
         private VisualElement? _root;
         private VisualElement? _frame;
+        // Gameplay lane.
+        private VisualElement? _lane;
+        private VisualElement? _ticker;
+        private VisualElement? _hint;
+        private Label? _hintKeys;
+        private Label? _hintDm;
+        private VisualElement? _laneCompose;
+        // Menu, minimized.
         private VisualElement? _collapsed;
+        private Button? _open;
+        private Label? _unread;
+        private Label? _peek;
+        private Label? _presence;
+        // Menu, open.
         private VisualElement? _panel;
         private VisualElement? _main;
-        private VisualElement? _onlineList;
-        private VisualElement? _compactFeed;
-        private Label? _historyFeedback;
+        private VisualElement? _directory;
+        private ScrollView? _onlineList;
+        private Label? _onlineFeedback;
         private ScrollView? _history;
-        private Button? _open;
-        private Button? _close;
+        private Label? _historyFeedback;
         private Button? _newest;
         private Button? _refreshDirectory;
-        private Button? _send;
-        private Button? _globalTab;
-        private Button? _serverTab;
-        private Button? _directTab;
-        private Label? _onlineFeedback;
-        private Label? _unread;
+        private Button? _online;
+        private Label? _onlineText;
+        private VisualElement? _onlineDot;
+        private readonly Dictionary<StreamFilter, (Button Button, Label Count)> _filters = new();
+        private Button? _close;
+        // Composer: docked in the menu panel, moved into the lane in gameplay.
+        private VisualElement? _compose;
+        private Button? _to;
         private TextField? _draft;
+        private Label? _keys;
+        private Button? _send;
         private VisualElement? _resizeGrip;
         private int _resizePointerId = -1;
         private Vector2 _resizeStartPosition;
@@ -63,43 +104,48 @@ namespace SlopArena.Client.UI
         private bool _resizeDirty;
 
         private ChatSession? _session;
-        private IVisualElementScheduledItem? _compactTick;
+        private HUDManager? _hud;
+        private IVisualElementScheduledItem? _tickerTick;
         private bool _viewBound;
         private bool _expanded;
         private bool _suppressDraftChanged;
-        private string _lastConversationKey = string.Empty;
+        private string _lastViewKey = string.Empty;
         private string _lastDraft = string.Empty;
+        private string _streamSignature = string.Empty;
+        private string _tickerSignature = string.Empty;
         private bool _showDirectory;
         private bool _enterConsumed;
         private bool _pinToNewest = true;
-        private bool _ownsCursor;
-        private CursorLockMode _previousCursorLock;
-        private bool _previousCursorVisible;
+        private StreamFilter _filter = StreamFilter.All;
 
         // Social presentation preference (issues #214/#220). On shell-hosted
         // pages this is the remembered manual minimization: true keeps the
-        // compact cell visible, false keeps it minimized. Manual
+        // docked stream visible, false keeps it minimized. Manual
         // minimize/restore rewrites it; resizing never does.
         private bool _dockOpen;
-        // Per-conversation scroll anchors, launch-scoped presentation state:
-        // key -> pinned-to-newest and last scroll offset survive page changes,
+        // Per-view scroll anchors, launch-scoped presentation state:
+        // view -> pinned-to-newest and last scroll offset survive page changes,
         // gameplay and frontend recreation via this persistent overlay.
         private readonly Dictionary<string, bool> _pinnedNewest = new(StringComparer.Ordinal);
         private readonly Dictionary<string, Vector2> _scrollOffsets = new(StringComparer.Ordinal);
-        // Conversations whose reading anchor was evicted by the bounded
-        // buffer (issue #214): the next render returns them to newest with
-        // the explanation already written to the conversation Feedback.
+        // Views whose reading anchor was evicted by the bounded buffer
+        // (issue #214): the next render returns them to newest with the
+        // explanation already written to the conversation Feedback.
         private readonly HashSet<string> _evictionReset = new(StringComparer.Ordinal);
         // Frontend and gameplay are the only presentation hosts. Page changes
         // retain the same shell attachment; gameplay uses the HUD document.
         private bool _hostIsShell;
         // Zero-size focusable element parked on the gameplay HUD root when
-        // the panel collapses (issue #216): focus never rests on the chat
-        // surface while the panel hides, so UI Toolkit's focus fixup — which
-        // re-focuses the visible strip at the panel's next dirty pass and
-        // would re-arm the gate as if the player had navigated there — never
-        // has a lost focus to repair.
+        // the composer closes (issue #216): focus never rests on the chat
+        // surface while it hides, so UI Toolkit's focus fixup cannot re-arm
+        // the input gate as if the player had navigated there.
         private VisualElement? _focusParker;
+        // Gameplay ticker: live arrivals timed from local receipt, and the
+        // messages already printed as speech slips over a fighter.
+        private readonly List<Arrival> _arrivals = new();
+        private readonly HashSet<Guid> _spoken = new();
+        private float _lastSpeechAt = float.NegativeInfinity;
+        private float _nextQuickLineAt;
 
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -174,6 +220,7 @@ namespace SlopArena.Client.UI
             {
                 _session.Changed -= OnSessionChanged;
                 _session.ConversationHistoryTrimmed -= OnConversationHistoryTrimmed;
+                _session.MessageArrived -= OnMessageArrived;
             }
             _session = null;
         }
@@ -181,16 +228,16 @@ namespace SlopArena.Client.UI
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             FinishResize();
-            _ownsCursor = false;
             // Frontend recreation must not reset the conversation view
-            // (issue #214): scene loads keep the dock/expanded state and
-            // re-attach to the explicit host. Entering gameplay is the one
-            // deliberate collapse — match entry ends interactive chat while
-            // ChatSession keeps drafts and selection. The transient expanded
-            // state is reset with it (issue #220).
+            // (issue #214): scene loads keep the dock state and re-attach to
+            // the explicit host. Entering gameplay is the one deliberate
+            // collapse — match entry ends interactive chat while ChatSession
+            // keeps drafts. A Room match starts addressed to the Room.
             if (!FrontendController.IsFrontendActive && ChatInputGate.IsGameplayScene)
             {
                 SetExpanded(false, false);
+                if (_session?.JoinedRoomId is Guid roomId)
+                    SelectDestination(RoomKey(roomId));
             }
             AttachToScene(scene);
         }
@@ -210,10 +257,9 @@ namespace SlopArena.Client.UI
         /// <summary>
         /// The one shell attach (issue #219): the presenter moves into the
         /// absolute social host and stays there for every shell-hosted page
-        /// change. Compact ↔ expanded is presentation-only on this one
-        /// subtree (issue #220) — the compact cell is visible unless the
-        /// player explicitly minimized it, and the remembered preference
-        /// decides which presentation re-entry restores.
+        /// change. Docked ↔ minimized is presentation-only on this one
+        /// subtree (issue #220); the remembered preference decides which
+        /// presentation re-entry restores.
         /// </summary>
         private void AttachToShell(VisualElement socialHost)
         {
@@ -222,21 +268,25 @@ namespace SlopArena.Client.UI
             _root.RemoveFromHierarchy();
             socialHost.Add(_root);
             _hostIsShell = true;
+            _hud = null;
             _expanded = _dockOpen;
             FrontendController.Shell?.SetSocialCellSize(_preferredWidthPx, _preferredHeightPx);
             ApplyPresentation();
+            RenderSession();
             FrontendFocusRouter.NotifyPresentationChanged();
         }
 
         private void AttachToGameplayHost(Scene scene)
         {
-            var host = FindFirstObjectByType<HUDManager>()?.Document;
+            var hud = FindFirstObjectByType<HUDManager>();
+            var host = hud?.Document;
             if (host == null || !host.isActiveAndEnabled ||
                 host.gameObject.scene != scene || host.rootVisualElement == null)
             {
                 if (_root!.panel != null)
                     _root.RemoveFromHierarchy();
                 _hostIsShell = false;
+                _hud = null;
                 return;
             }
             if (_root!.parent != host.rootVisualElement)
@@ -245,8 +295,10 @@ namespace SlopArena.Client.UI
                 host.rootVisualElement.Add(_root);
             }
             _hostIsShell = false;
+            _hud = hud;
             _root.BringToFront();
             ApplyPresentation();
+            RenderSession();
         }
 
 
@@ -254,13 +306,6 @@ namespace SlopArena.Client.UI
         {
             // The shell attachment is stable across every page activation.
             AttachToScene(SceneManager.GetActiveScene());
-        }
-
-        private void LateUpdate()
-        {
-            if (!_ownsCursor) return;
-            UnityEngine.Cursor.lockState = CursorLockMode.None;
-            UnityEngine.Cursor.visible = true;
         }
 
         private void Update()
@@ -281,7 +326,10 @@ namespace SlopArena.Client.UI
             }
             // The shell router owns frontend input; the gameplay HUD uses this bridge.
             if (!FrontendController.IsFrontendActive)
+            {
                 GamepadUIBridge.Pump(_root?.panel);
+                PollQuickLines();
+            }
             if (!enterHeld || _enterConsumed)
                 return;
             _enterConsumed = true;
@@ -290,8 +338,8 @@ namespace SlopArena.Client.UI
             if (UiModalState.Presented)
             {
                 // The pause menu wins over chat (issue #216): chat neither
-                // opens over the modal nor keeps strip focus, so the pause
-                // owner's Escape is never swallowed by an armed gate.
+                // opens over the modal nor keeps focus, so the pause owner's
+                // Escape is never swallowed by an armed gate.
                 if (IsFocusInsideChatSurface())
                 {
                     (_root?.panel?.focusController?.focusedElement as VisualElement)?.Blur();
@@ -310,7 +358,7 @@ namespace SlopArena.Client.UI
         }
 
 
-        /// <summary>Gameplay chat owns Back only while its panel or focus is active.</summary>
+        /// <summary>Gameplay chat owns Back only while its composer or focus is active.</summary>
         private bool OwnsBackPress()
         {
             if (UiModalState.Presented || !ChatInputGate.IsGameplayScene)
@@ -320,7 +368,7 @@ namespace SlopArena.Client.UI
 
 
         /// <summary>Shell routing owns frontend focus; gameplay chat is
-        /// focusable only while deliberately open.</summary>
+        /// focusable only while the composer is deliberately open.</summary>
         private void ApplyRegionFocusability()
         {
             if (_hostIsShell && FrontendController.IsFrontendActive)
@@ -328,11 +376,12 @@ namespace SlopArena.Client.UI
                 FrontendFocusRouter.Instance?.ApplyRegionFocusability();
                 return;
             }
-            bool social = ChatInputGate.IsGameplayScene && _expanded;
-            _root?.Query<Button>().ForEach(button => button.focusable = social);
-            _root?.Query<TextField>().ForEach(field => field.focusable = social);
+            bool composing = ChatInputGate.IsGameplayScene && _expanded;
+            _root?.Query<Button>().ForEach(button => button.focusable = false);
+            if (_draft != null)
+                _draft.focusable = composing;
             if (_history != null)
-                _history.focusable = social;
+                _history.focusable = false;
         }
 
         private void BindView()
@@ -347,32 +396,35 @@ namespace SlopArena.Client.UI
             _root.style.top = 0;
             _root.style.bottom = 0;
             _root.pickingMode = PickingMode.Ignore;
-            _root.RegisterCallback<GeometryChangedEvent>(_ =>
-            {
-                if (!_hostIsShell)
-                    ApplyGameplayFrameSize();
-            });
-            var frame = _root.Q<VisualElement>("chat-root");
-            if (frame != null) frame.pickingMode = PickingMode.Ignore;
-            _frame = frame;
+            _frame = _root.Q<VisualElement>("chat-root");
+            if (_frame != null) _frame.pickingMode = PickingMode.Ignore;
+            _lane = _root.Q<VisualElement>("chat-lane");
+            _ticker = _root.Q<VisualElement>("chat-ticker");
+            _hint = _root.Q<VisualElement>("chat-hint");
+            _hintKeys = _root.Q<Label>("chat-hint-keys");
+            _hintDm = _root.Q<Label>("chat-hint-dm");
+            _laneCompose = _root.Q<VisualElement>("chat-lane-compose");
             _collapsed = _root.Q<VisualElement>("chat-collapsed");
+            _open = _root.Q<Button>("chat-open");
+            _unread = _root.Q<Label>("chat-unread");
+            _peek = _root.Q<Label>("chat-peek");
+            _presence = _root.Q<Label>("chat-presence");
             _panel = _root.Q<VisualElement>("chat-panel");
             _main = _root.Q<VisualElement>("chat-main");
-            _onlineList = _root.Q<VisualElement>("online-list");
-            _compactFeed = _root.Q<VisualElement>("chat-public-feed");
-            _historyFeedback = _root.Q<Label>("history-feedback");
+            _directory = _root.Q<VisualElement>("chat-directory");
+            _onlineList = _root.Q<ScrollView>("online-list");
+            _onlineFeedback = _root.Q<Label>("online-feedback");
             _history = _root.Q<ScrollView>("chat-history");
-            _open = _root.Q<Button>("chat-open");
-            _close = _root.Q<Button>("chat-close");
+            _historyFeedback = _root.Q<Label>("history-feedback");
             _newest = _root.Q<Button>("chat-newest");
             _refreshDirectory = _root.Q<Button>("directory-refresh");
-            _send = _root.Q<Button>("chat-send");
-            _globalTab = _root.Q<Button>("chat-tab-global");
-            _serverTab = _root.Q<Button>("chat-tab-server");
-            _directTab = _root.Q<Button>("chat-tab-direct");
-            _onlineFeedback = _root.Q<Label>("online-feedback");
-            _unread = _root.Q<Label>("chat-unread");
+            _online = _root.Q<Button>("chat-online");
+            _close = _root.Q<Button>("chat-close");
+            _compose = _root.Q<VisualElement>("chat-compose");
+            _to = _root.Q<Button>("chat-to");
             _draft = _root.Q<TextField>("chat-draft");
+            _keys = _root.Q<Label>("chat-keys");
+            _send = _root.Q<Button>("chat-send");
             _resizeGrip = _root.Q<VisualElement>("chat-resize-grip");
             if (_resizeGrip != null)
             {
@@ -382,14 +434,27 @@ namespace SlopArena.Client.UI
                 _resizeGrip.RegisterCallback<PointerCaptureOutEvent>(_ => FinishResize());
             }
 
+            BindFilter(StreamFilter.All, "chat-filter-all", "ALL");
+            BindFilter(StreamFilter.Room, "chat-filter-room", "ROOM");
+            BindFilter(StreamFilter.Global, "chat-filter-global", "GLOBAL");
+            BindFilter(StreamFilter.Direct, "chat-filter-direct", "DMS");
+            if (_online != null)
+            {
+                _onlineDot = new VisualElement { pickingMode = PickingMode.Ignore };
+                _onlineDot.AddToClassList("chat-presence-dot");
+                _onlineText = new Label { pickingMode = PickingMode.Ignore, enableRichText = false };
+                _online.Add(_onlineDot);
+                _online.Add(_onlineText);
+                _online.clicked += ToggleDirectory;
+            }
+
             if (_open != null) _open.clicked += OnOpenButtonClicked;
             if (_close != null) _close.clicked += OnCloseButtonClicked;
             if (_newest != null) _newest.clicked += ScrollToNewest;
             if (_refreshDirectory != null) _refreshDirectory.clicked += RefreshDirectory;
             if (_send != null) _send.clicked += () => SendDraft(ChatInputGate.IsGameplayScene);
-            if (_globalTab != null) _globalTab.clicked += SelectGlobal;
-            if (_serverTab != null) _serverTab.clicked += SelectServer;
-            if (_directTab != null) _directTab.clicked += SelectDirectTab;
+            if (_to != null) _to.clicked += () => CycleDestination(1);
+            if (_keys != null) _keys.text = "TAB CHANNEL · ESC CLOSE";
             if (_history != null)
             {
                 // Controller navigation of the retained history (issue #215):
@@ -402,24 +467,30 @@ namespace SlopArena.Client.UI
                 _history.verticalScroller.valueChanged += _ =>
                 {
                     UpdateScrollAnchor();
-                    TryMarkActiveRead();
+                    TryMarkViewRead();
                 };
             }
 
             if (_draft != null)
             {
                 _draft.maxLength = -1;
+                // Reopening the composer continues the kept draft instead of selecting it.
+                _draft.selectAllOnFocus = false;
+                _draft.selectAllOnMouseUp = false;
+                _draft.textEdition.placeholder = "Say something…";
                 _draft.RegisterValueChangedCallback(OnDraftChanged);
+                // Tab changes the destination instead of moving focus.
+                _draft.RegisterCallback<KeyDownEvent>(OnDraftKeyDown, TrickleDown.TrickleDown);
+                _draft.RegisterCallback<NavigationMoveEvent>(OnDraftNavigationMove, TrickleDown.TrickleDown);
                 RegisterEditorFocus(_draft);
             }
 
             _root.RegisterCallback<KeyDownEvent>(OnRootKeyDown, TrickleDown.TrickleDown);
             // Explicit chat interaction arms the gameplay input gate (issue
             // #216): any chat control gaining focus during a match suppresses
-            // fighter input until focus leaves the chat surface. The
-            // collapsed strip is unfocusable, so combat focus only reaches
-            // the panel after the player explicitly opens it. Focus events
-            // bubble, so these handlers cover the whole surface.
+            // fighter input until focus leaves the chat surface. Gameplay
+            // chat is unfocusable until the player opens the composer.
+            // Focus events bubble, so these handlers cover the whole surface.
             _root.RegisterCallback<FocusInEvent>(OnChatSurfaceFocusIn);
             _root.RegisterCallback<FocusOutEvent>(OnChatSurfaceFocusOut);
             // Gamepad B (and keyboard cancel) with focus inside the chat
@@ -427,9 +498,24 @@ namespace SlopArena.Client.UI
             // root is not an ancestor of the chat surface, so this handler is
             // the only cancel path for chat-focused presses.
             _root.RegisterCallback<NavigationCancelEvent>(OnRootNavigationCancel);
-            _compactTick = _compactFeed?.schedule.Execute(UpdateCompactFeed).Every(200);
+            _tickerTick = _ticker?.schedule.Execute(UpdateTicker).Every(200);
             _viewBound = true;
             SetExpanded(false, false);
+        }
+
+        private void BindFilter(StreamFilter filter, string name, string text)
+        {
+            var button = _root?.Q<Button>(name);
+            if (button == null)
+                return;
+            var title = new Label(text) { pickingMode = PickingMode.Ignore };
+            title.AddToClassList("chat-filter__name");
+            var count = new Label { pickingMode = PickingMode.Ignore };
+            count.AddToClassList("chat-filter__count");
+            button.Add(title);
+            button.Add(count);
+            button.clicked += () => SetFilter(filter);
+            _filters[filter] = (button, count);
         }
 
         private void RegisterEditorFocus(TextField field)
@@ -454,6 +540,7 @@ namespace SlopArena.Client.UI
             _session = session;
             _session.Changed += OnSessionChanged;
             _session.ConversationHistoryTrimmed += OnConversationHistoryTrimmed;
+            _session.MessageArrived += OnMessageArrived;
             RenderSession();
         }
 
@@ -462,6 +549,37 @@ namespace SlopArena.Client.UI
             if (this == null || !isActiveAndEnabled || _suppressDraftChanged)
                 return;
             RenderSession();
+        }
+
+        /// <summary>
+        /// Route one live message. In a match, Room lines from the people
+        /// playing become speech slips over their fighters; everything public
+        /// may reach the ticker. Muted senders reach neither.
+        /// </summary>
+        private void OnMessageArrived(ChatMessage message)
+        {
+            if (_session == null || !_session.IsMessageVisible(message))
+                return;
+            if (IsDirect(message))
+                return; // Direct Messages only raise the quiet unread count.
+            if (!_hostIsShell && _hud != null && IsRoomMessage(message) &&
+                _hud.ShowChatSpeech(message.Sender.PlayerId, message.Sender.DisplayName, message.Text))
+            {
+                _spoken.Add(message.MessageId);
+                _lastSpeechAt = Time.unscaledTime;
+            }
+            AddArrival(new Arrival { Message = message, At = Time.unscaledTime });
+        }
+
+        private void AddArrival(Arrival arrival)
+        {
+            _arrivals.Add(arrival);
+            while (_arrivals.Count > MaxArrivals)
+            {
+                if (_arrivals[0].Message is { } dropped)
+                    _spoken.Remove(dropped.MessageId);
+                _arrivals.RemoveAt(0);
+            }
         }
 
         private void RenderSession()
@@ -475,312 +593,722 @@ namespace SlopArena.Client.UI
                 return;
             }
 
-            ChatConversation? active = _session.ActiveConversation;
-
-            int directUnread = 0;
-            foreach (ChatConversation conversation in _session.Conversations)
+            RenderComposer();
+            if (_hostIsShell && FrontendController.IsFrontendActive && !ChatInputGate.IsGameplayScene)
             {
-                if (conversation.Key.StartsWith("direct:", StringComparison.Ordinal))
-                    directUnread += Math.Max(0, conversation.Unread);
+                RenderHead();
+                RenderCollapsed();
+                RenderDirectory();
+                RenderStream();
             }
-            if (_unread != null)
+            else
             {
-                _unread.text = directUnread > 0 ? directUnread.ToString() : string.Empty;
-                _unread.EnableInClassList("chat-unread--visible", directUnread > 0);
+                _tickerSignature = string.Empty;
+                UpdateTicker();
             }
-            _main?.SetDisplayed(true);
-
-            RenderTabs(active, _session.IsConnected);
-            RenderDirectory(active);
-            RenderHistory(active);
-            if (!_session.IsConnected && string.IsNullOrEmpty(active?.Feedback))
-                SetText(_historyFeedback, _session.Status);
-            RenderCompactFeed();
             // Dynamic rows are new Buttons with default focusability; re-apply
             // the active region's gating after every rebuild (issue #215).
             ApplyRegionFocusability();
         }
 
-        private void RenderTabs(ChatConversation? active, bool connected)
-        {
-            string key = active?.Key ?? string.Empty;
-            bool isGlobal = !_showDirectory && string.Equals(key, "global", StringComparison.Ordinal);
-            bool isServer = !_showDirectory && key.StartsWith("room:", StringComparison.Ordinal);
-            bool isDirect = _showDirectory || key.StartsWith("direct:", StringComparison.Ordinal);
+        // ── Destinations ────────────────────────────────────────────────────
 
-            _globalTab?.EnableInClassList("chat-tab--active", isGlobal);
-            _serverTab?.EnableInClassList("chat-tab--active", isServer);
-            _directTab?.EnableInClassList("chat-tab--active", isDirect);
-            _serverTab?.SetEnabled(connected && (_session?.JoinedRoomId.HasValue == true || isServer));
-            if (_directTab != null)
-            {
-                bool inDirectConversation = !_showDirectory && key.StartsWith("direct:", StringComparison.Ordinal);
-                _directTab.text = inDirectConversation ? active?.Title ?? "DIRECT" : "DIRECT";
-                _directTab.tooltip = inDirectConversation ? active?.Title ?? "Direct messages" : "Direct messages";
-            }
-            _directTab?.SetEnabled(true);
+        private string? RoomConversationKey =>
+            _session?.JoinedRoomId is Guid roomId ? RoomKey(roomId) : null;
+
+        private static string RoomKey(Guid roomId) => $"room:{roomId:D}";
+
+        private static bool IsDirectKey(string key) => key.StartsWith("direct:", StringComparison.Ordinal);
+
+        private static bool IsDirect(ChatMessage message) =>
+            string.Equals(message.Channel, "direct", StringComparison.OrdinalIgnoreCase);
+
+        private bool IsRoomMessage(ChatMessage message) =>
+            string.Equals(message.Channel, "server", StringComparison.OrdinalIgnoreCase) &&
+            message.RoomId is Guid roomId && _session?.JoinedRoomId == roomId;
+
+        private ChatConversation? Conversation(string? key) =>
+            key == null ? null : _session?.Conversations.FirstOrDefault(c => c.Key == key);
+
+        /// <summary>Room, then Global, then recent online Direct conversations.</summary>
+        private List<string> Destinations()
+        {
+            var keys = new List<string>();
+            if (_session == null)
+                return keys;
+            if (RoomConversationKey is { } room)
+                keys.Add(room);
+            keys.Add("global");
+            var online = new HashSet<string>(_session.OnlinePlayers.Select(p => p.PlayerId), StringComparer.Ordinal);
+            foreach (var conversation in _session.Conversations
+                         .Where(c => IsDirectKey(c.Key) && online.Contains(c.Key.Substring("direct:".Length)))
+                         .OrderByDescending(LastActivity))
+                keys.Add(conversation.Key);
+            string? active = _session.ActiveConversation?.Key;
+            if (active != null && !keys.Contains(active))
+                keys.Add(active);
+            return keys;
         }
 
+        private static DateTimeOffset LastActivity(ChatConversation conversation) =>
+            conversation.Messages.Count > 0 ? conversation.Messages[conversation.Messages.Count - 1].SentAt : DateTimeOffset.MinValue;
+
+        private void CycleDestination(int direction)
+        {
+            if (_session?.ActiveConversation == null)
+                return;
+            var keys = Destinations();
+            if (keys.Count < 2)
+                return;
+            int index = keys.IndexOf(_session.ActiveConversation.Key);
+            int next = index < 0 ? 0 : (index + direction + keys.Count) % keys.Count;
+            SelectDestination(keys[next]);
+            UISFX.PlayClick();
+        }
 
         /// <summary>
-        /// Conversation management stays available from the Direct channel,
-        /// without a separate maximized presentation.
+        /// Address the composer to another conversation. Text typed so far
+        /// moves with the destination: the chip changes who receives it.
         /// </summary>
-        private VisualElement BuildConversationRow(ChatConversation conversation, ChatConversation? active)
+        private void SelectDestination(string key)
         {
-            var row = new VisualElement();
-            row.AddToClassList("conversation-row");
-            row.EnableInClassList("conversation-row--active", active != null && conversation.Key == active.Key);
-
-            var select = new Button(() =>
-            {
-                _showDirectory = false;
-                _session.SelectConversation(conversation.Key);
-                RenderSession();
-            });
-            select.text = conversation.Title;
-            select.enableRichText = false;
-            select.AddToClassList("conversation-select");
-            row.Add(select);
-
-            if (conversation.Unread > 0 && active?.Key != conversation.Key)
-            {
-                var unread = new Label(conversation.Unread.ToString());
-                unread.enableRichText = false;
-                unread.AddToClassList("conversation-unread");
-                row.Add(unread);
-            }
-            return row;
-        }
-
-        private void RenderDirectory(ChatConversation? active)
-        {
-            bool showDirectory = _showDirectory;
-            _onlineList?.SetDisplayed(showDirectory);
-            _refreshDirectory?.SetDisplayed(showDirectory);
-            _onlineFeedback?.SetDisplayed(showDirectory);
-            // The directory view replaces the history while it is shown, so
-            // read acknowledgement is suppressed for it (issue #218).
-            _history?.SetDisplayed(!showDirectory);
-            if (!showDirectory || _onlineList == null || _session == null)
+            if (_session == null || _session.ActiveConversation?.Key == key)
                 return;
-
-            _onlineList.Clear();
-
-            // Conversation management lives behind the explicit DIRECT view
-            // (issue #220): switching conversations never needs a persistent
-            // list next to the messages.
-            var conversationsLabel = new Label("CONVERSATIONS") { enableRichText = false };
-            conversationsLabel.AddToClassList("chat-section-label");
-            _onlineList.Add(conversationsLabel);
-            foreach (ChatConversation conversation in _session.Conversations)
-                _onlineList.Add(BuildConversationRow(conversation, active));
-
-            var mutedLabel = new Label("MUTED PLAYERS") { enableRichText = false };
-            mutedLabel.AddToClassList("chat-section-label");
-            _onlineList.Add(mutedLabel);
-            foreach (var player in _session.MutedPlayers)
+            string text = _draft?.value ?? string.Empty;
+            bool carry = text.Length > 0;
+            _suppressDraftChanged = true;
+            try
             {
-                var unmute = new Button(() => _session.SetMuted(player.PlayerId, false))
+                if (carry) _session.SetDraft(string.Empty);
+                if (!_session.SelectConversation(key))
                 {
-                    text = $"UNMUTE {FormatIdentity(player)}",
-                    enableRichText = false
-                };
-                unmute.AddToClassList("chat-mute");
-                _onlineList.Add(unmute);
-            }
-            if (!_session.DirectoryAvailable)
-            {
-                SetText(_onlineFeedback, string.IsNullOrEmpty(_session.Status)
-                    ? "ONLINE DIRECTORY UNAVAILABLE"
-                    : _session.Status);
-                return;
-            }
-
-            SetText(_onlineFeedback, "SELECT A PLAYER FOR A DIRECT MESSAGE");
-            ChatPlayer? self = _session.Self;
-            foreach (ChatPlayer player in _session.OnlinePlayers)
-            {
-                if (self != null && player.PlayerId == self.PlayerId)
-                    continue;
-
-                var row = new VisualElement();
-                row.AddToClassList("online-row");
-                var select = new Button(() =>
-                {
-                    _showDirectory = false;
-                    _session.OpenDirect(player);
-                    if (ChatInputGate.IsGameplayScene)
-                        SetExpanded(true, false);
-                });
-                select.text = FormatIdentity(player);
-                select.enableRichText = false;
-                select.AddToClassList("online-player");
-                row.Add(select);
-
-                var mute = new Button(() =>
-                {
-                    _session.SetMuted(player.PlayerId, !_session.IsMuted(player.PlayerId));
-                    RenderSession();
-                });
-                mute.text = _session.IsMuted(player.PlayerId) ? "UNMUTE" : "MUTE";
-                mute.AddToClassList("chat-mute");
-                row.Add(mute);
-                _onlineList.Add(row);
-            }
-        }
-
-        private void RenderHistory(ChatConversation? active)
-        {
-            if (_history == null || _draft == null || _session == null)
-                return;
-
-            bool changedConversation = active?.Key != _lastConversationKey;
-            // A pending eviction reset (issue #214) wins over the live scroller
-            // state: the live anchor still reflects the evicted reading
-            // position, so return to newest instead of re-capturing it.
-            bool evictionReset = active != null && _evictionReset.Remove(active.Key);
-            if (!evictionReset && !changedConversation && active != null)
-            {
-                // Capture the live anchor before rebuilding so a re-render of
-                // the same conversation keeps its reading position (issue #214).
-                UpdateScrollAnchor();
-            }
-            string key = active?.Key ?? string.Empty;
-            bool atNewest = evictionReset || (changedConversation ? IsPinnedNewest(key) : _pinToNewest);
-            if (evictionReset)
-                _pinnedNewest[key] = true;
-            Vector2 oldOffset = changedConversation ? GetScrollOffset(key) : _history.scrollOffset;
-            _history.Clear();
-            bool hasMessages = false;
-
-            if (active == null)
-            {
-                if (_historyFeedback != null)
-                {
-                    _historyFeedback.RemoveFromClassList("chat-feedback--success");
-                    _historyFeedback.RemoveFromClassList("chat-feedback--pending");
-                    _history.Add(_historyFeedback);
+                    if (carry) _session.SetDraft(text);
+                    return;
                 }
-                SetText(_historyFeedback, _session.IsConnected ? string.Empty : _session.Status);
-                _newest?.SetDisplayed(false);
+                if (carry) _session.SetDraft(text);
+            }
+            finally
+            {
+                _suppressDraftChanged = false;
+            }
+            RenderSession();
+        }
+
+        private string DestinationLabel(ChatConversation? conversation)
+        {
+            if (conversation == null) return "GLOBAL";
+            if (conversation.Key == "global") return "GLOBAL";
+            if (conversation.Key.StartsWith("room:", StringComparison.Ordinal)) return "ROOM";
+            string name = conversation.Title;
+            int separator = name.IndexOf(" // ", StringComparison.Ordinal);
+            if (separator > 0) name = name.Substring(0, separator);
+            return ChatSpeechSlips.Shorten(name, 14);
+        }
+
+        private void RenderComposer()
+        {
+            if (_session == null || _draft == null)
                 return;
-            }
-
-            foreach (ChatMessage message in active.Messages)
+            var active = _session.ActiveConversation;
+            if (_to != null)
             {
-                if (!_session.IsMessageVisible(message))
-                    continue;
-                _history.Add(BuildMessageRow(message));
-                hasMessages = true;
+                string label = DestinationLabel(active);
+                _to.text = _hostIsShell ? $"TO: {label}" : label;
+                _to.enableRichText = false;
             }
-            if (!hasMessages && _session.IsConnected)
-            {
-                var empty = new Label("NO MESSAGES YET");
-                empty.AddToClassList("chat-empty");
-                _history.Add(empty);
-            }
-            if (_historyFeedback != null)
-                _history.Add(_historyFeedback);
-
-            _lastConversationKey = active.Key;
+            if (active == null)
+                return;
             if (_draft.value != active.Draft)
                 _draft.SetValueWithoutNotify(active.Draft);
             _lastDraft = active.Draft;
-            _pinToNewest = atNewest;
-
             bool canSend = active.CanSend && !active.IsSending && _session.IsConnected;
             _draft.SetEnabled(!active.IsSending);
             _send?.SetEnabled(canSend && IsMessageValid(active.Draft));
             if (_send != null)
-                _send.text = active.IsSending ? "SENDING" : "SEND";
-            SetText(_historyFeedback, active.Feedback);
-            _historyFeedback?.EnableInClassList("chat-feedback--success",
-                string.Equals(active.Feedback, "Sent", StringComparison.Ordinal));
-            _historyFeedback?.EnableInClassList("chat-feedback--pending", active.IsSending);
+                _send.text = active.IsSending ? "…" : "SEND";
+        }
 
+        // ── Menu: head, minimized tab, stream and directory ───────────────
+
+        private void SetFilter(StreamFilter filter)
+        {
+            _showDirectory = false;
+            _filter = filter;
+            switch (filter)
+            {
+                case StreamFilter.Room when RoomConversationKey is { } room:
+                    SelectDestination(room);
+                    break;
+                case StreamFilter.Global:
+                    SelectDestination("global");
+                    break;
+                case StreamFilter.Direct when _session?.ActiveConversation is { } active && !IsDirectKey(active.Key):
+                    var latest = _session.Conversations.Where(c => IsDirectKey(c.Key)).OrderByDescending(LastActivity).FirstOrDefault();
+                    if (latest != null)
+                        SelectDestination(latest.Key);
+                    break;
+            }
+            RenderSession();
+        }
+
+        private void ToggleDirectory()
+        {
+            _showDirectory = !_showDirectory;
+            RenderSession();
+            if (_showDirectory)
+                RefreshDirectory();
+        }
+
+        private void RenderHead()
+        {
+            if (_session == null)
+                return;
+            var room = Conversation(RoomConversationKey);
+            var global = Conversation("global");
+            int directUnread = _session.Conversations.Where(c => IsDirectKey(c.Key)).Sum(c => Math.Max(0, c.Unread));
+            if (_filter == StreamFilter.Room && room == null)
+                _filter = StreamFilter.All;
+            SetFilterState(StreamFilter.All, 0, true);
+            SetFilterState(StreamFilter.Room, room?.Unread ?? 0, room != null);
+            SetFilterState(StreamFilter.Global, global?.Unread ?? 0, true);
+            SetFilterState(StreamFilter.Direct, directUnread, true);
+
+            if (_onlineText != null)
+                _onlineText.text = PresenceText();
+            _onlineDot?.EnableInClassList("chat-presence-dot--offline", !_session.IsConnected);
+            _online?.EnableInClassList("chat-online--active", _showDirectory);
+        }
+
+        private void SetFilterState(StreamFilter filter, int unread, bool available)
+        {
+            if (!_filters.TryGetValue(filter, out var entry))
+                return;
+            entry.Button.SetEnabled(available);
+            entry.Button.EnableInClassList("chat-filter--active", !_showDirectory && _filter == filter);
+            entry.Count.text = unread > 99 ? "99+" : unread.ToString();
+            entry.Count.EnableInClassList("chat-filter__count--visible", unread > 0 && filter != StreamFilter.All);
+        }
+
+        private string PresenceText()
+        {
+            if (_session == null || !_session.IsConnected)
+                return "OFFLINE";
+            if (!_session.DirectoryAvailable)
+                return "PLAYERS";
+            string? self = _session.Self?.PlayerId;
+            int others = _session.OnlinePlayers.Count(p => p.PlayerId != self);
+            return $"{others + 1} ONLINE";
+        }
+
+        private void RenderCollapsed()
+        {
+            if (_session == null)
+                return;
+            int unread = _session.Conversations.Sum(c => Math.Max(0, c.Unread));
+            if (_unread != null)
+            {
+                _unread.text = unread > 99 ? "99+ NEW" : $"{unread} NEW";
+                _unread.EnableInClassList("chat-unread--visible", unread > 0);
+            }
+            ChatMessage? latest = null;
+            foreach (var conversation in _session.Conversations)
+            {
+                if (conversation.Unread <= 0 || IsDirectKey(conversation.Key))
+                    continue;
+                for (int i = conversation.Messages.Count - 1; i >= 0; i--)
+                {
+                    var message = conversation.Messages[i];
+                    if (IsSelf(message.Sender) || !_session.IsMessageVisible(message))
+                        continue;
+                    if (latest == null || message.SentAt > latest.SentAt)
+                        latest = message;
+                    break;
+                }
+            }
+            if (_peek != null)
+            {
+                _peek.enableRichText = false;
+                _peek.text = latest == null ? string.Empty : $"{latest.Sender.DisplayName}  {OneLine(latest.Text)}";
+                _peek.EnableInClassList("chat-peek--visible", latest != null);
+            }
+            if (_presence != null)
+                _presence.text = PresenceText();
+        }
+
+        /// <summary>The conversations a view shows, in no particular order.</summary>
+        private List<ChatConversation> ViewConversations(StreamFilter filter)
+        {
+            var result = new List<ChatConversation>();
+            if (_session == null)
+                return result;
+            string? room = RoomConversationKey;
+            foreach (var conversation in _session.Conversations)
+            {
+                bool isRoom = conversation.Key == room;
+                bool isGlobal = conversation.Key == "global";
+                bool isDirect = IsDirectKey(conversation.Key);
+                if (filter switch
+                    {
+                        StreamFilter.Room => isRoom,
+                        StreamFilter.Global => isGlobal,
+                        StreamFilter.Direct => isDirect,
+                        _ => isRoom || isGlobal || isDirect,
+                    })
+                    result.Add(conversation);
+            }
+            return result;
+        }
+
+        private string ViewKey => $"view:{_filter}";
+
+        private void RenderStream()
+        {
+            if (_history == null || _session == null)
+                return;
+            _history.SetDisplayed(!_showDirectory);
+            if (_showDirectory)
+            {
+                _newest?.SetDisplayed(false);
+                return;
+            }
+
+            var conversations = ViewConversations(_filter);
+            var rows = new List<(ChatMessage Message, string Key)>();
+            foreach (var conversation in conversations)
+                foreach (var message in conversation.Messages)
+                    if (_session.IsMessageVisible(message))
+                        rows.Add((message, conversation.Key));
+            rows.Sort((a, b) =>
+            {
+                int byTime = a.Message.SentAt.CompareTo(b.Message.SentAt);
+                return byTime != 0 ? byTime : a.Message.Sequence.CompareTo(b.Message.Sequence);
+            });
+            if (rows.Count > MaxStreamRows)
+                rows.RemoveRange(0, rows.Count - MaxStreamRows);
+
+            var active = _session.ActiveConversation;
+            string feedback = active?.Feedback ?? string.Empty;
+            if (string.IsNullOrEmpty(feedback) && !_session.IsConnected)
+                feedback = _session.Status;
+            string viewKey = ViewKey;
+            string signature = $"{viewKey}|{rows.Count}|{(rows.Count > 0 ? rows[rows.Count - 1].Message.MessageId : Guid.Empty)}|{_session.MutedPlayers.Count}|{_session.Self?.PlayerId}|{_session.IsConnected}";
+
+            bool changedView = viewKey != _lastViewKey;
+            // A pending eviction reset (issue #214) wins over the live scroller
+            // state: the live anchor still reflects the evicted reading
+            // position, so return to newest instead of re-capturing it.
+            bool evictionReset = _evictionReset.Remove(viewKey);
+            if (!evictionReset && !changedView)
+                UpdateScrollAnchor(); // keep the reading position across re-renders (issue #214)
+            bool atNewest = evictionReset || (changedView ? IsPinnedNewest(viewKey) : _pinToNewest);
+            if (evictionReset)
+                _pinnedNewest[viewKey] = true;
+            Vector2 oldOffset = changedView ? GetScrollOffset(viewKey) : _history.scrollOffset;
+
+            if (signature != _streamSignature || changedView)
+            {
+                _streamSignature = signature;
+                _history.Clear();
+                var names = DuplicateNames(rows.Select(r => r.Message.Sender));
+                foreach (var (message, key) in rows)
+                    _history.Add(BuildRow(message, key, names, ticker: false));
+                if (rows.Count == 0)
+                {
+                    var empty = new Label(EmptyViewText()) { enableRichText = false };
+                    empty.AddToClassList("chat-empty");
+                    _history.Add(empty);
+                }
+                if (_historyFeedback != null)
+                    _history.Add(_historyFeedback);
+            }
+            _lastViewKey = viewKey;
+            _pinToNewest = atNewest;
+            SetText(_historyFeedback, feedback);
+            _historyFeedback?.EnableInClassList("chat-feedback--success",
+                string.Equals(feedback, "Sent", StringComparison.Ordinal));
+            _historyFeedback?.EnableInClassList("chat-feedback--pending", active?.IsSending == true);
+
+            bool hasRows = rows.Count > 0;
             _history.schedule.Execute(() =>
             {
                 if (atNewest)
                     ScrollToNewest();
                 else
                     _history.scrollOffset = oldOffset;
-                // The directory view replaces history while it is shown, so
-                // the return-to-newest affordance stays hidden with it
-                // (issue #220).
-                _newest?.SetDisplayed(!atNewest && hasMessages && !_showDirectory);
-                TryMarkActiveRead();
+                _newest?.SetDisplayed(!atNewest && hasRows && !_showDirectory);
+                TryMarkViewRead();
             }).StartingIn(0);
-
         }
 
-        private VisualElement BuildMessageRow(ChatMessage message)
+        private string EmptyViewText() => _filter switch
         {
-            // Per-line mute buttons are gone (issue #220): personal mute is
-            // the explicit sender action in the directory view.
-            var row = new VisualElement();
-            row.AddToClassList("chat-message");
-            var text = new Label($"{message.Sender.DisplayName} [{message.Sender.SessionTag}]: {message.Text}");
-            text.enableRichText = false;
-            text.AddToClassList("chat-message__text");
-            row.Add(text);
-            return row;
-        }
+            StreamFilter.Room => "NO ROOM MESSAGES YET",
+            StreamFilter.Direct => "NO DIRECT MESSAGES. OPEN THE PLAYER LIST TO START ONE.",
+            _ => _session?.IsConnected == true ? "NO MESSAGES YET" : string.Empty,
+        };
 
-        private void RenderCompactFeed()
+        private void RenderDirectory()
         {
-            if (_compactFeed == null || _session == null)
+            _directory?.EnableInClassList("chat-directory--visible", _showDirectory);
+            if (!_showDirectory || _onlineList == null || _session == null)
                 return;
 
-            var publicMessages = new List<ChatMessage>();
-            foreach (ChatConversation conversation in _session.Conversations)
+            _onlineList.Clear();
+            if (!_session.DirectoryAvailable)
             {
-                if (conversation.Key != "global"
-                    && (!conversation.Key.StartsWith("room:", StringComparison.Ordinal)
-                        || !_session.JoinedRoomId.HasValue
-                        || conversation.Key != $"room:{_session.JoinedRoomId.Value}"))
-                    continue;
-                foreach (ChatMessage message in conversation.Messages)
+                SetText(_onlineFeedback, string.IsNullOrEmpty(_session.Status)
+                    ? "ONLINE DIRECTORY UNAVAILABLE"
+                    : _session.Status);
+            }
+            else
+            {
+                SetText(_onlineFeedback, "PICK A PLAYER TO MESSAGE THEM");
+                ChatPlayer? self = _session.Self;
+                var players = _session.OnlinePlayers.Where(p => self == null || p.PlayerId != self.PlayerId).ToList();
+                var names = DuplicateNames(players);
+                foreach (ChatPlayer player in players)
                 {
-                    if (_session.IsMessageVisible(message))
-                        publicMessages.Add(message);
+                    var row = new VisualElement();
+                    row.AddToClassList("online-row");
+                    var select = new Button(() => OpenDirect(player))
+                    {
+                        text = FormatIdentity(player, names.Contains(player.DisplayName)),
+                        enableRichText = false
+                    };
+                    select.AddToClassList("online-player");
+                    row.Add(select);
+
+                    var mute = new Button(() =>
+                    {
+                        _session.SetMuted(player.PlayerId, !_session.IsMuted(player.PlayerId));
+                        RenderSession();
+                    });
+                    mute.text = _session.IsMuted(player.PlayerId) ? "UNMUTE" : "MUTE";
+                    mute.AddToClassList("chat-mute");
+                    row.Add(mute);
+                    _onlineList.Add(row);
                 }
             }
 
-            publicMessages.Sort((left, right) => left.SentAt.CompareTo(right.SentAt));
-            _compactFeed.Clear();
-            int first = Math.Max(0, publicMessages.Count - 3);
-            for (int i = first; i < publicMessages.Count; i++)
+            if (_session.MutedPlayers.Count > 0)
             {
-                ChatMessage message = publicMessages[i];
-                var line = new Label($"{ChannelLabel(message.Channel)} // {FormatIdentity(message.Sender)}: {message.Text.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ')}");
-                line.enableRichText = false;
-                line.userData = message.SentAt;
-                line.AddToClassList("chat-public-line");
-                _compactFeed.Add(line);
+                var mutedLabel = new Label("MUTED PLAYERS") { enableRichText = false };
+                mutedLabel.AddToClassList("chat-section-label");
+                _onlineList.Add(mutedLabel);
+                foreach (var player in _session.MutedPlayers)
+                {
+                    var unmute = new Button(() => _session.SetMuted(player.PlayerId, false))
+                    {
+                        text = $"UNMUTE {FormatIdentity(player, true)}",
+                        enableRichText = false
+                    };
+                    unmute.AddToClassList("chat-mute");
+                    _onlineList.Add(unmute);
+                }
             }
-            UpdateCompactFeed();
         }
 
-        private void UpdateCompactFeed()
+        private void OpenDirect(ChatPlayer player)
         {
-            if (_compactFeed == null)
+            if (_session == null)
+                return;
+            string text = _draft?.value ?? string.Empty;
+            bool carry = text.Length > 0;
+            _suppressDraftChanged = true;
+            try
+            {
+                if (carry) _session.SetDraft(string.Empty);
+                if (!_session.OpenDirect(player))
+                {
+                    if (carry) _session.SetDraft(text);
+                    return;
+                }
+                if (carry) _session.SetDraft(text);
+            }
+            finally
+            {
+                _suppressDraftChanged = false;
+            }
+            _showDirectory = false;
+            if (_filter is StreamFilter.Room or StreamFilter.Global)
+                _filter = StreamFilter.All;
+            RenderSession();
+            if (_hostIsShell)
+                FocusComposerLater();
+        }
+
+        // ── Message rows (menu stream, gameplay ticker and context) ────────
+
+        private VisualElement BuildRow(ChatMessage message, string conversationKey,
+            HashSet<string> duplicateNames, bool ticker)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("chat-row");
+            if (ticker)
+            {
+                row.AddToClassList("chat-line");
+                row.pickingMode = PickingMode.Ignore;
+            }
+            else
+            {
+                // Clicking a line replies where it was said.
+                row.RegisterCallback<ClickEvent>(_ => SelectDestination(conversationKey));
+            }
+
+            string channel = conversationKey == "global" ? "GLOBAL" : IsDirectKey(conversationKey) ? "DM" : "ROOM";
+            var chip = new Label(channel) { enableRichText = false, pickingMode = PickingMode.Ignore };
+            chip.AddToClassList("chat-row__chip");
+            chip.EnableInClassList("chat-row__chip--room", channel == "ROOM");
+            chip.EnableInClassList("chat-row__chip--dm", channel == "DM");
+            row.Add(chip);
+
+            bool self = IsSelf(message.Sender);
+            string shownName = ChatSpeechSlips.Shorten(message.Sender.DisplayName, MaxRowNameElements);
+            var name = new Label(duplicateNames.Contains(message.Sender.DisplayName) && !string.IsNullOrEmpty(message.Sender.SessionTag)
+                ? $"{shownName} [{message.Sender.SessionTag}]"
+                : shownName)
+            {
+                enableRichText = false,
+                pickingMode = PickingMode.Ignore
+            };
+            name.AddToClassList("chat-row__name");
+            name.EnableInClassList("chat-row__name--you", self);
+            if (!self && ticker && channel == "ROOM" && _hud != null &&
+                _hud.TryGetSpeakerColor(message.Sender.PlayerId, out var identity))
+                name.style.color = identity;
+            row.Add(name);
+
+            if (channel == "DM")
+            {
+                string toText = self ? $"TO {DestinationLabel(Conversation(conversationKey))}" : "TO YOU";
+                var to = new Label(toText) { enableRichText = false, pickingMode = PickingMode.Ignore };
+                to.AddToClassList("chat-row__to");
+                row.Add(to);
+            }
+
+            string text = ticker ? ChatSpeechSlips.Shorten(OneLine(message.Text), MaxLineTextElements) : message.Text;
+            var body = new Label(text) { enableRichText = false, pickingMode = PickingMode.Ignore };
+            body.AddToClassList("chat-row__text");
+            row.Add(body);
+            return row;
+        }
+
+        private static VisualElement BuildSystemRow(string text)
+        {
+            var row = new VisualElement { pickingMode = PickingMode.Ignore };
+            row.AddToClassList("chat-row");
+            row.AddToClassList("chat-line");
+            row.AddToClassList("chat-row--system");
+            var body = new Label(ChatSpeechSlips.Shorten(OneLine(text), MaxLineTextElements))
+            {
+                enableRichText = false,
+                pickingMode = PickingMode.Ignore
+            };
+            body.AddToClassList("chat-row__text");
+            row.Add(body);
+            return row;
+        }
+
+        /// <summary>Display names used by more than one identity in a set (Session Tag needed).</summary>
+        private static HashSet<string> DuplicateNames(IEnumerable<ChatPlayer> players)
+        {
+            var owners = new Dictionary<string, string>(StringComparer.Ordinal);
+            var duplicates = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var player in players)
+            {
+                if (player == null) continue;
+                if (owners.TryGetValue(player.DisplayName, out var owner))
+                {
+                    if (owner != player.PlayerId)
+                        duplicates.Add(player.DisplayName);
+                }
+                else
+                {
+                    owners[player.DisplayName] = player.PlayerId;
+                }
+            }
+            return duplicates;
+        }
+
+        private bool IsSelf(ChatPlayer? player) =>
+            player != null && _session?.Self != null &&
+            string.Equals(player.PlayerId, _session.Self.PlayerId, StringComparison.Ordinal);
+
+        private static string OneLine(string text) =>
+            (text ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
+
+        // ── Gameplay: ticker, hint, context and quick lines ─────────────────
+
+        private bool IsGameplayPresentation =>
+            !(_hostIsShell && FrontendController.IsFrontendActive) && ChatInputGate.IsGameplayScene;
+
+        /// <summary>Rebuild the lane when its content changes; fade lines every tick.</summary>
+        private void UpdateTicker()
+        {
+            if (_ticker == null || _session == null || !IsGameplayPresentation)
                 return;
 
-            bool anyVisible = false;
-            foreach (VisualElement child in _compactFeed.Children())
+            float now = Time.unscaledTime;
+            var lines = new List<(VisualElement Row, float At, bool Fades)>();
+            string signature;
+            if (_expanded)
             {
-                if (child is not Label line || line.userData is not DateTimeOffset sentAt)
-                    continue;
-                double age = (DateTimeOffset.UtcNow - sentAt).TotalSeconds;
-                float opacity = Mathf.Clamp01(1f - (float)(age / CompactLifetimeSeconds));
-                line.style.opacity = opacity;
-                line.style.display = opacity <= 0f ? DisplayStyle.None : DisplayStyle.Flex;
-                anyVisible |= opacity > 0f;
+                // Composing: the last few lines from the Room, Global and the
+                // addressed Direct conversation, fully visible for context.
+                var keys = new List<string> { "global" };
+                if (RoomConversationKey is { } room) keys.Add(room);
+                if (_session.ActiveConversation is { } active && IsDirectKey(active.Key)) keys.Add(active.Key);
+                var context = new List<(ChatMessage Message, string Key)>();
+                foreach (var key in keys)
+                    if (Conversation(key) is { } conversation)
+                        foreach (var message in conversation.Messages)
+                            if (_session.IsMessageVisible(message))
+                                context.Add((message, key));
+                context.Sort((a, b) => a.Message.SentAt.CompareTo(b.Message.SentAt));
+                if (context.Count > ContextLines)
+                    context.RemoveRange(0, context.Count - ContextLines);
+                string feedback = _session.ActiveConversation?.Feedback ?? string.Empty;
+                if (string.Equals(feedback, "Sent", StringComparison.Ordinal) ||
+                    string.Equals(feedback, "Sending…", StringComparison.Ordinal))
+                    feedback = string.Empty;
+                if (string.IsNullOrEmpty(feedback) && !_session.IsConnected)
+                    feedback = _session.Status;
+                signature = $"ctx|{string.Join(",", context.Select(c => c.Message.MessageId))}|{feedback}";
+                if (signature != _tickerSignature)
+                {
+                    var names = DuplicateNames(context.Select(c => c.Message.Sender));
+                    foreach (var (message, key) in context)
+                        lines.Add((BuildRow(message, key, names, ticker: true), now, false));
+                    if (!string.IsNullOrEmpty(feedback))
+                        lines.Add((BuildSystemRow(feedback), now, false));
+                }
+                // The open composer shows these at their newest messages.
+                if (Application.isFocused && !UiModalState.Presented)
+                    foreach (var key in keys)
+                        _session.MarkRead(key);
             }
-            _compactFeed.style.display = anyVisible && !_expanded && ChatInputGate.IsGameplayScene
-                ? DisplayStyle.Flex : DisplayStyle.None;
+            else
+            {
+                var visible = new List<Arrival>();
+                string? room = RoomConversationKey;
+                for (int i = _arrivals.Count - 1; i >= 0 && visible.Count < TickerLines; i--)
+                {
+                    var arrival = _arrivals[i];
+                    float lifetime = arrival.SystemText != null ? SystemLineSeconds : TickerLifetimeSeconds;
+                    if (now - arrival.At >= lifetime)
+                        break;
+                    if (arrival.Message is { } message)
+                    {
+                        bool isPublic = message.Channel.Equals("global", StringComparison.OrdinalIgnoreCase) ||
+                            (IsRoomMessage(message) && room != null);
+                        if (!isPublic || _spoken.Contains(message.MessageId) || !_session.IsMessageVisible(message))
+                            continue;
+                    }
+                    visible.Add(arrival);
+                }
+                visible.Reverse();
+                signature = $"tick|{string.Join(",", visible.Select(a => a.Message?.MessageId.ToString() ?? a.SystemText))}";
+                if (signature != _tickerSignature)
+                {
+                    var names = DuplicateNames(visible.Where(a => a.Message != null).Select(a => a.Message!.Sender));
+                    foreach (var arrival in visible)
+                    {
+                        var row = arrival.Message is { } message
+                            ? BuildRow(message, message.Channel.Equals("global", StringComparison.OrdinalIgnoreCase) ? "global" : room ?? "global", names, ticker: true)
+                            : BuildSystemRow(arrival.SystemText!);
+                        lines.Add((row, arrival.At, true));
+                    }
+                }
+            }
+
+            if (signature != _tickerSignature)
+            {
+                _tickerSignature = signature;
+                _ticker.Clear();
+                foreach (var (row, at, fades) in lines)
+                {
+                    row.userData = fades ? at : (object?)null;
+                    _ticker.Add(row);
+                }
+            }
+
+            // Fade the passive ticker; the composer context stays fully visible.
+            bool anyLine = false;
+            foreach (var child in _ticker.Children())
+            {
+                anyLine = true;
+                if (child.userData is not float at)
+                {
+                    child.style.opacity = 1f;
+                    continue;
+                }
+                float lifetime = child.ClassListContains("chat-row--system") ? SystemLineSeconds : TickerLifetimeSeconds;
+                float remaining = lifetime - (now - at);
+                child.style.opacity = Mathf.Clamp01(remaining / TickerFadeSeconds);
+            }
+            RenderHint(anyLine);
         }
+
+        private void RenderHint(bool tickerVisible)
+        {
+            if (_hint == null || _session == null)
+                return;
+            int directUnread = _session.Conversations.Where(c => IsDirectKey(c.Key)).Sum(c => Math.Max(0, c.Unread));
+            bool recentSpeech = Time.unscaledTime - _lastSpeechAt < TickerLifetimeSeconds;
+            bool show = !_expanded && (tickerVisible || recentSpeech || directUnread > 0);
+            _hint.EnableInClassList("chat-hint--visible", show);
+            if (!show)
+                return;
+            bool pad = HumanInputActions.LastUsedGamepad && Gamepad.current != null;
+            if (_hintKeys != null)
+                _hintKeys.text = pad
+                    ? QuickLinesAvailable ? "D-PAD  ↑ GG  ← NICE  ↓ ONE MORE?" : "KEYBOARD  ENTER CHAT"
+                    : "ENTER  CHAT";
+            if (_hintDm != null)
+            {
+                _hintDm.text = $"DM {directUnread}";
+                _hintDm.EnableInClassList("chat-hint__dm--visible", directUnread > 0);
+            }
+        }
+
+        private bool QuickLinesAvailable =>
+            _session != null && _session.IsConnected && RoomConversationKey != null &&
+            MatchConfig.Mode == GameMode.PvP && ChatInputGate.IsGameplayScene;
+
+        /// <summary>D-pad up/left/down send a quick line to the Room during an online match.</summary>
+        private void PollQuickLines()
+        {
+            var pad = Gamepad.current;
+            if (pad == null || _expanded || _session == null || !QuickLinesAvailable)
+                return;
+            int index = pad.dpad.up.wasPressedThisFrame ? 0
+                : pad.dpad.left.wasPressedThisFrame ? 1
+                : pad.dpad.down.wasPressedThisFrame ? 2
+                : -1;
+            if (index < 0 || UiModalState.Presented || ChatInputGate.SuppressShortcuts ||
+                HumanInputActions.IsCapturing || SettingsOverlay.Active is { IsOpen: true } ||
+                MatchPauseMenu.Active is { IsPaused: true } || Time.unscaledTime < _nextQuickLineAt)
+                return;
+            _nextQuickLineAt = Time.unscaledTime + QuickLineCooldownSeconds;
+            _ = SendQuickLineAsync(RoomConversationKey!, QuickLines[index]);
+        }
+
+        private async Task SendQuickLineAsync(string key, string text)
+        {
+            if (_session == null)
+                return;
+            try { await _session.SendQuickLineAsync(key, text); }
+            catch (Exception exception) { Debug.LogException(exception); }
+            string feedback = Conversation(key)?.Feedback ?? string.Empty;
+            if (feedback.Length > 0 && !string.Equals(feedback, "Sent", StringComparison.Ordinal))
+            {
+                AddArrival(new Arrival { SystemText = feedback, At = Time.unscaledTime });
+                _tickerSignature = string.Empty;
+                UpdateTicker();
+            }
+        }
+
+        // ── Input ───────────────────────────────────────────────────────────
 
         private void OnRootKeyDown(KeyDownEvent evt)
         {
@@ -802,6 +1330,26 @@ namespace SlopArena.Client.UI
             evt.StopImmediatePropagation();
             SendDraft(false);
         }
+
+        /// <summary>Tab in the composer changes the destination instead of moving focus.</summary>
+        private void OnDraftKeyDown(KeyDownEvent evt)
+        {
+            if (evt.keyCode != KeyCode.Tab && evt.character != '\t')
+                return;
+            if (evt.keyCode == KeyCode.Tab)
+                CycleDestination(evt.shiftKey ? -1 : 1);
+            evt.PreventDefault();
+            evt.StopImmediatePropagation();
+        }
+
+        private void OnDraftNavigationMove(NavigationMoveEvent evt)
+        {
+            if (evt.direction is not (NavigationMoveEvent.Direction.Next or NavigationMoveEvent.Direction.Previous))
+                return;
+            _root?.panel?.focusController?.IgnoreEvent(evt);
+            evt.StopPropagation();
+        }
+
         /// <summary>Cancel with focus inside the chat surface (issue #215):
         /// one press leaves the interaction; it never reaches a page Back
         /// handler because the page root is not an ancestor of the chat
@@ -816,9 +1364,7 @@ namespace SlopArena.Client.UI
 
         /// <summary>Combat chat interaction is explicit (issue #216): any
         /// chat control gaining focus during gameplay arms the input gate.
-        /// The collapsed strip is unfocusable, so focus only lands here
-        /// inside the panel the player explicitly opened — navigation within
-        /// it suppresses fighter input just like typing does.</summary>
+        /// Gameplay chat is unfocusable until the composer opens.</summary>
         private void OnChatSurfaceFocusIn(FocusInEvent evt)
         {
             if (!ChatInputGate.IsGameplayScene)
@@ -827,8 +1373,8 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>Focus leaving the chat surface ends an unexpanded
-        /// gameplay navigation session. An open panel keeps the gate until it
-        /// is closed — SetExpanded/HandleEscape own that transition.</summary>
+        /// gameplay navigation session. An open composer keeps the gate until
+        /// it is closed — SetExpanded/HandleEscape own that transition.</summary>
         private void OnChatSurfaceFocusOut(FocusOutEvent evt)
         {
             if (!ChatInputGate.IsGameplayScene || _expanded)
@@ -845,9 +1391,9 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>Move gameplay focus off the chat surface onto a parked,
-        /// invisible focusable element on the HUD root before the panel
-        /// hides (issue #216). Focus then survives the panel hide, so no
-        /// rescue pass can re-focus the strip and re-arm the gate.</summary>
+        /// invisible focusable element on the HUD root before the composer
+        /// hides (issue #216). Focus then survives the hide, so no rescue
+        /// pass can re-focus chat and re-arm the gate.</summary>
         private void ParkFocusOutsideChat()
         {
             if (!ChatInputGate.IsGameplayScene)
@@ -877,8 +1423,11 @@ namespace SlopArena.Client.UI
             if (ChatTextValidation.CountUnicodeScalars(evt.newValue) > MaxMessageScalars)
             {
                 _draft?.SetValueWithoutNotify(_lastDraft);
-                SetText(_historyFeedback, "MESSAGE MUST BE 500 UNICODE CHARACTERS OR FEWER");
-                ScrollToNewest();
+                if (_session?.ActiveConversation is { } active)
+                {
+                    active.Feedback = "MESSAGE MUST BE 500 UNICODE CHARACTERS OR FEWER";
+                    RenderSession();
+                }
                 return;
             }
             _lastDraft = evt.newValue;
@@ -897,7 +1446,15 @@ namespace SlopArena.Client.UI
             if (conversation.IsSending) return;
             try { await _session.SendDraftAsync(); }
             catch (Exception exception) { Debug.LogException(exception); }
-            finally { RenderSession(); }
+            finally
+            {
+                // A failed send from the closed combat composer still needs a word.
+                string feedback = conversation.Feedback;
+                if (closeAfterSend && !_expanded && feedback.Length > 0 &&
+                    !string.Equals(feedback, "Sent", StringComparison.Ordinal))
+                    AddArrival(new Arrival { SystemText = feedback, At = Time.unscaledTime });
+                RenderSession();
+            }
         }
 
         private async void RefreshDirectory()
@@ -915,28 +1472,6 @@ namespace SlopArena.Client.UI
             }
         }
 
-        private void SelectGlobal()
-        {
-            _showDirectory = false;
-            if (_session?.SelectConversation("global") == true)
-                RenderSession();
-        }
-
-        private void SelectServer()
-        {
-            _showDirectory = false;
-            if (_session?.JoinedRoomId is Guid roomId
-                && _session.SelectConversation($"room:{roomId}"))
-                RenderSession();
-        }
-
-        private void SelectDirectTab()
-        {
-            _showDirectory = true;
-            RenderSession();
-            RefreshDirectory();
-        }
-
         private void SetExpanded(bool expanded, bool focusComposer)
         {
             _expanded = expanded;
@@ -951,47 +1486,44 @@ namespace SlopArena.Client.UI
                     (_root?.panel?.focusController?.focusedElement as VisualElement)?.Blur();
                 _draft?.Blur();
                 ChatInputGate.End();
-                ReleaseCursor();
             }
             if (ChatInputGate.IsGameplayScene)
             {
                 if (expanded)
-                {
                     ChatInputGate.Begin();
-                    if (!_ownsCursor)
-                    {
-                        _previousCursorLock = UnityEngine.Cursor.lockState;
-                        _previousCursorVisible = UnityEngine.Cursor.visible;
-                        _ownsCursor = true;
-                    }
-                }
                 else
-                {
                     // Park gameplay focus off the chat surface BEFORE the
-                    // panel hides: the fixup that re-focuses the strip runs
+                    // composer hides: the fixup that re-focuses chat runs
                     // only when focus was lost to the hide (issue #216).
                     ParkFocusOutsideChat();
-                }
             }
             ApplyPresentation();
-            if (expanded)
-                RenderSession();
+            RenderSession();
             if (focusComposer)
-                _root?.schedule.Execute(() => _draft?.Focus()).StartingIn(0);
+                FocusComposerLater();
         }
 
-        /// <summary>Restore the shell cell or open the gameplay chat.</summary>
+        /// <summary>Focus the composer next frame with the caret after any kept draft.</summary>
+        private void FocusComposerLater()
+        {
+            _root?.schedule.Execute(() =>
+            {
+                if (_draft == null)
+                    return;
+                _draft.Focus();
+                int end = _draft.value?.Length ?? 0;
+                _draft.SelectRange(end, end);
+            }).StartingIn(0);
+        }
+
+        /// <summary>Restore the docked stream from the minimized tab.</summary>
         private void OnOpenButtonClicked()
         {
             if (_hostIsShell && FrontendController.IsFrontendActive && !ChatInputGate.IsGameplayScene)
-            {
                 RestoreFromMinimized();
-                return;
-            }
-            OpenChat();
         }
 
-        /// <summary>Minimize the shell cell or close the gameplay chat.</summary>
+        /// <summary>Minimize the docked stream.</summary>
         private void OnCloseButtonClicked()
         {
             if (_hostIsShell && FrontendController.IsFrontendActive && !ChatInputGate.IsGameplayScene)
@@ -1002,25 +1534,8 @@ namespace SlopArena.Client.UI
             SetExpanded(false, false);
         }
 
-        /// <summary>Open gameplay chat after a deliberate action.</summary>
-        private void OpenChat()
-        {
-            // The topmost modal wins over chat (issue #216): a presented
-            // modal — e.g. the pause menu or the direct-connect dialog — is
-            // never covered by an opened conversation.
-            if (UiModalState.Presented)
-                return;
-            SetExpanded(true, true);
-        }
-
-        /// <summary>Close gameplay chat without rewriting the menu preference.</summary>
-        private void CloseChat()
-        {
-            SetExpanded(false, false);
-        }
-
         /// <summary>
-        /// Restore the compact cell from the minimized strip (issue #220):
+        /// Restore the docked stream from the minimized tab (issue #220):
         /// a manual restore is remembered across launches.
         /// </summary>
         private void RestoreFromMinimized()
@@ -1034,13 +1549,13 @@ namespace SlopArena.Client.UI
             ApplyPresentation();
             RenderSession();
             FrontendFocusRouter.NotifyPresentationChanged();
-            _root?.schedule.Execute(() => _draft?.Focus()).StartingIn(0);
+            FocusComposerLater();
         }
 
         /// <summary>
-        /// Explicit manual minimization (issue #220): the compact cell hides
-        /// into the strip inside the absolute host; the preference is
-        /// remembered and never rewritten by resizing.
+        /// Explicit manual minimization (issue #220): the dock hides into the
+        /// slim tab inside the absolute host; the preference is remembered
+        /// and never rewritten by resizing.
         /// </summary>
         private void MinimizeChat()
         {
@@ -1066,76 +1581,42 @@ namespace SlopArena.Client.UI
         }
 
 
-        /// <summary>Gameplay Escape closes chat; frontend Back belongs to the shell router.</summary>
+        /// <summary>Gameplay Escape closes the composer, keeping the draft.</summary>
         private void HandleEscape()
         {
             SetExpanded(false, false);
         }
 
-        private void ReleaseCursor()
-        {
-            if (!_ownsCursor)
-                return;
-            UnityEngine.Cursor.lockState = _previousCursorLock;
-            UnityEngine.Cursor.visible = _previousCursorVisible;
-            _ownsCursor = false;
-        }
 
-
-        /// <summary>Render the stable shell conversation or the gameplay overlay.</summary>
+        /// <summary>Docked stream or minimized tab in menus; ticker and composer line in gameplay.</summary>
         private void ApplyPresentation()
         {
             if (_root == null)
                 return;
-
-            // Shell-hosted presentation (issues #219/#220): the presenter
-            // fills the absolute bottom-left host; the host owns its user-sized
-            // geometry and density. No page space is reserved, so resizing
-            // and presentation changes do not rebalance the scene underneath.
-            // Open or hidden on the same user-sized subtree.
-            if (_hostIsShell && FrontendController.IsFrontendActive && !ChatInputGate.IsGameplayScene)
+            bool menu = _hostIsShell && FrontendController.IsFrontendActive && !ChatInputGate.IsGameplayScene;
+            _frame?.EnableInClassList("chat-root--menu", menu);
+            _frame?.EnableInClassList("chat-root--gameplay", !menu);
+            if (menu)
             {
-                if (_frame != null)
-                {
-                    _frame.style.position = Position.Absolute;
-                    _frame.style.left = 0;
-                    _frame.style.right = 0;
-                    _frame.style.top = 0;
-                    _frame.style.bottom = 0;
-                    _frame.style.width = StyleKeyword.Auto;
-                    _frame.style.height = StyleKeyword.Auto;
-                    _frame.pickingMode = PickingMode.Ignore;
-                }
-                // Both scenes use the same high-contrast chat control language.
-                _panel?.EnableInClassList("chat-panel--menu", true);
-                _root?.EnableInClassList("chat-root--menu", true);
-                _root?.EnableInClassList("chat-root--gameplay", false);
+                // The host owns the user-sized geometry; no page space is
+                // reserved, so resizing never rebalances the page underneath.
+                if (_compose != null && _main != null && _compose.parent != _main)
+                    _main.Add(_compose);
                 _panel?.SetDisplayed(_expanded);
                 _collapsed?.SetDisplayed(!_expanded);
-                ApplyRegionFocusability();
-                return;
+                _laneCompose?.EnableInClassList("chat-lane-compose--open", false);
             }
-
-            // Gameplay keeps its HUD overlay geometry; no frontend page is
-            // resized, replaced, or discovered through a document root. The
-            // frame mirrors from the right side to the left; the bottom
-            // anchor keeps the existing top-right grip drag directions.
-            if (_frame != null)
+            else
             {
-                _frame.style.position = Position.Absolute;
-                _frame.style.left = 24;
-                _frame.style.top = StyleKeyword.Auto;
-                _frame.style.right = StyleKeyword.Auto;
-                _frame.style.bottom = 94;
-                ApplyGameplayFrameSize();
+                if (_compose != null && _laneCompose != null && _compose.parent != _laneCompose)
+                    _laneCompose.Add(_compose);
+                _panel?.SetDisplayed(false);
+                _collapsed?.SetDisplayed(false);
+                _laneCompose?.EnableInClassList("chat-lane-compose--open", _expanded);
+                _tickerSignature = string.Empty;
             }
-            _panel?.EnableInClassList("chat-panel--menu", false);
-            _root?.EnableInClassList("chat-root--menu", false);
-            _root?.EnableInClassList("chat-root--gameplay", true);
-            _panel?.EnableInClassList("chat-panel--solid", false);
-            _panel?.SetDisplayed(_expanded);
-            _collapsed?.SetDisplayed(!_expanded);
-            if (_close != null) _close.tooltip = "Hide chat";
+            if (_draft != null)
+                _draft.textEdition.placeholder = menu ? "Say something…" : "Say something, Enter to send";
             ApplyRegionFocusability();
         }
 
@@ -1146,27 +1627,12 @@ namespace SlopArena.Client.UI
             return panelScale / Mathf.Max(0.01f, uiScale);
         }
 
-        private void ApplyGameplayFrameSize()
-        {
-            if (_frame == null || _root?.panel == null)
-                return;
-            if (_root.resolvedStyle.width <= 0f || _root.resolvedStyle.height <= 0f)
-                return;
-            float factor = PhysicalPixelsPerPoint();
-            float maxWidth = Mathf.Max(1f, _root.resolvedStyle.width - 48f);
-            float maxHeight = Mathf.Max(1f, _root.resolvedStyle.height - 110f);
-            float width = _preferredWidthPx > 0f ? _preferredWidthPx / factor : 540f;
-            float height = _preferredHeightPx > 0f ? _preferredHeightPx / factor : 620f;
-            _frame.style.width = Mathf.Clamp(width, Mathf.Min(400f / factor, maxWidth), maxWidth);
-            _frame.style.height = Mathf.Clamp(height, Mathf.Min(300f / factor, maxHeight), maxHeight);
-        }
-
         private void BeginResize(PointerDownEvent evt)
         {
             if (evt.button != 0 || _resizePointerId >= 0 || _resizeGrip == null || _root?.panel == null
-                || !_expanded || UiModalState.Presented)
+                || !_expanded || !_hostIsShell || UiModalState.Presented)
                 return;
-            var source = _hostIsShell ? FrontendController.Shell?.SocialHost : _frame;
+            var source = FrontendController.Shell?.SocialHost;
             if (source == null)
                 return;
             float factor = PhysicalPixelsPerPoint();
@@ -1184,14 +1650,12 @@ namespace SlopArena.Client.UI
             if (_resizePointerId != evt.pointerId || _resizeGrip?.HasPointerCapture(evt.pointerId) != true
                 || _root == null)
                 return;
-            var viewport = _hostIsShell ? FrontendController.Shell?.Root : _root;
+            var viewport = FrontendController.Shell?.Root;
             if (viewport == null)
                 return;
             float factor = PhysicalPixelsPerPoint();
             float widthLimit = Mathf.Max(120f, Mathf.Min(960f, viewport.resolvedStyle.width * factor - 48f));
-            float heightLimit = Mathf.Max(120f, Mathf.Min(720f,
-                viewport.resolvedStyle.height * factor * (_hostIsShell ? 0.65f : 1f)
-                - (_hostIsShell ? 0f : 120f)));
+            float heightLimit = Mathf.Max(120f, Mathf.Min(720f, viewport.resolvedStyle.height * factor * 0.65f));
             float deltaX = (evt.position.x - _resizeStartPosition.x) * factor;
             float deltaY = (_resizeStartPosition.y - evt.position.y) * factor;
             _preferredWidthPx = Mathf.Clamp(_resizeStartWidthPx + deltaX,
@@ -1199,10 +1663,7 @@ namespace SlopArena.Client.UI
             _preferredHeightPx = Mathf.Clamp(_resizeStartHeightPx + deltaY,
                 Mathf.Min(180f, heightLimit), heightLimit);
             _resizeDirty = true;
-            if (_hostIsShell)
-                FrontendController.Shell?.SetSocialCellSize(_preferredWidthPx, _preferredHeightPx);
-            else
-                ApplyGameplayFrameSize();
+            FrontendController.Shell?.SetSocialCellSize(_preferredWidthPx, _preferredHeightPx);
             evt.StopPropagation();
         }
 
@@ -1230,40 +1691,51 @@ namespace SlopArena.Client.UI
             PlayerPrefs.Save();
         }
 
-        /// <summary>The conversation must be visibly laid out, not minimized,
-        /// detached, replaced by a directory, or a passive gameplay preview.</summary>
-        private bool IsConversationShown()
+        /// <summary>The stream must be visibly laid out, not minimized,
+        /// detached, replaced by the directory, or a gameplay preview.</summary>
+        private bool IsStreamShown()
         {
-            return _expanded && !_showDirectory && _root?.panel != null
+            return _hostIsShell && _expanded && !_showDirectory && _root?.panel != null
                 && _history?.contentRect.height > 0f;
         }
 
-        /// <summary>Read requires a visible laid-out conversation, focused
+        /// <summary>Read requires a visible laid-out stream, focused
         /// application, unobscured modal state, and the newest messages.</summary>
-        private bool ShouldMarkActiveRead()
+        private bool ShouldMarkViewRead()
         {
-            if (_session?.ActiveConversation == null || !IsConversationShown()
-                || !Application.isFocused || UiModalState.Presented)
+            if (_session == null || !IsStreamShown() || !Application.isFocused || UiModalState.Presented)
                 return false;
             return _pinToNewest || IsAtNewest();
         }
 
-        private void TryMarkActiveRead()
+        private void TryMarkViewRead()
         {
-            if (_session?.ActiveConversation?.Unread > 0 && ShouldMarkActiveRead())
-                _session.MarkActiveRead();
+            if (_session == null || !ShouldMarkViewRead())
+                return;
+            bool changed = false;
+            foreach (var conversation in ViewConversations(_filter))
+            {
+                if (conversation.Unread <= 0)
+                    continue;
+                _session.MarkRead(conversation.Key);
+                changed = true;
+            }
+            if (changed)
+            {
+                RenderHead();
+                RenderCollapsed();
+            }
         }
 
-        /// <summary>Store the active conversation's reading anchor.</summary>
+        /// <summary>Store the current view's reading anchor while the stream is laid out.</summary>
         private void UpdateScrollAnchor()
         {
-            var active = _session?.ActiveConversation;
-            if (active == null || _history == null)
+            if (_history == null || !IsStreamShown())
                 return;
             bool pinned = IsAtNewest();
             _pinToNewest = pinned;
-            _pinnedNewest[active.Key] = pinned;
-            _scrollOffsets[active.Key] = _history.scrollOffset;
+            _pinnedNewest[ViewKey] = pinned;
+            _scrollOffsets[ViewKey] = _history.scrollOffset;
         }
 
         private bool IsPinnedNewest(string key) =>
@@ -1275,16 +1747,24 @@ namespace SlopArena.Client.UI
         /// <summary>
         /// The bounded history buffer evicted older messages the player was
         /// reading (issue #214). Record a pending return-to-newest for the
-        /// next render; the explanation lives on the conversation Feedback.
-        /// The normal read rule applies afterwards.
+        /// next render of every view showing that conversation; the
+        /// explanation lives on the conversation Feedback.
         /// </summary>
         private void OnConversationHistoryTrimmed(string key)
         {
             if (_session == null)
                 return;
-            if (IsPinnedNewest(key))
+            bool anyReading = false;
+            foreach (StreamFilter filter in Enum.GetValues(typeof(StreamFilter)))
+            {
+                string view = $"view:{filter}";
+                if (IsPinnedNewest(view) || ViewConversations(filter).All(c => c.Key != key))
+                    continue;
+                _evictionReset.Add(view);
+                anyReading = true;
+            }
+            if (!anyReading)
                 return;
-            _evictionReset.Add(key);
             var conversation = _session.Conversations.FirstOrDefault(c => c.Key == key);
             if (conversation != null && string.IsNullOrEmpty(conversation.Feedback))
                 conversation.Feedback =
@@ -1303,7 +1783,9 @@ namespace SlopArena.Client.UI
         {
             if (_history == null)
                 return true;
-            return _history.verticalScroller.value >= _history.verticalScroller.highValue - 1f;
+            float high = _history.verticalScroller.highValue;
+            // Nothing to scroll (or no layout yet) means the newest line is in view.
+            return !(high > 0f) || _history.verticalScroller.value >= high - 1f;
         }
 
         private bool IsEditorFocused()
@@ -1334,19 +1816,12 @@ namespace SlopArena.Client.UI
             return ChatTextValidation.TryValidateMessage(value, out _, out _);
         }
 
-
-        private static string FormatIdentity(ChatPlayer player)
+        /// <summary>Display Name, plus the Session Tag when another identity shares the name.</summary>
+        private static string FormatIdentity(ChatPlayer player, bool withTag)
         {
-            return string.IsNullOrEmpty(player.SessionTag)
+            return !withTag || string.IsNullOrEmpty(player.SessionTag)
                 ? player.DisplayName
                 : $"{player.DisplayName} [{player.SessionTag}]";
-        }
-
-        private static string ChannelLabel(string channel)
-        {
-            return string.Equals(channel, "server", StringComparison.OrdinalIgnoreCase)
-                ? "SERVER"
-                : "GLOBAL";
         }
 
         private static void SetText(Label? label, string? text)

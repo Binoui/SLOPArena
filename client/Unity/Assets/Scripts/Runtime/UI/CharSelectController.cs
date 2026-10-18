@@ -2,10 +2,12 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using SlopArena.Shared;
 using SlopArena.Shared.AI;
 using SlopArena.Client.Network;
+using SlopArena.Client.World;
 
 namespace SlopArena.Client.UI
 {
@@ -120,8 +122,52 @@ namespace SlopArena.Client.UI
                 InitRoom(_context);
             else if (MatchConfig.Mode == GameMode.PvP)
                 InitPvP(_context);
+            else if (MatchConfig.Mode == GameMode.Tutorial)
+                InitTutorial(_context);
             else
                 InitLocal(_context);
+        }
+
+        /// <summary>The tutorial picks only the player's fighter; its stage and dummy are fixed.</summary>
+        private void InitTutorial(FrontendPageContext context)
+        {
+            SetModeChrome(context, "TUTORIAL // SELECT YOUR FIGHTER", "ONE STEP  /  FIGHTER");
+            ApplyLocalSelectLayout(context);
+            context.Q<VisualElement>("page-summary")?.AddToClassList("char-summary-section--solo");
+            context.Q<VisualElement>("pvp-action-area")?.style.SetDisplay(false);
+            context.Q<VisualElement>("solo-config")?.style.SetDisplay(false);
+            context.Q<VisualElement>("roster-panel")?.style.SetDisplay(false);
+            var rosterMeta = context.Q<Label>("roster-meta");
+            if (rosterMeta != null)
+                rosterMeta.text = MenuRoster.Classes.Length == 0
+                    ? "NO ADMITTED FIGHTERS"
+                    : $"{MenuRoster.Classes.Length} FIGHTERS // TUTORIAL";
+
+            var startButton = context.Q<Button>("btn-select");
+            if (startButton != null)
+            {
+                startButton.style.display = DisplayStyle.Flex;
+                startButton.text = "START TUTORIAL";
+                startButton.SetEnabled(MenuRoster.Classes.Length > 0);
+                startButton.clicked += () =>
+                {
+                    if (_selected == CharacterClass.None) return;
+                    MatchConfig.Mode = GameMode.Tutorial;
+                    MatchConfig.ArenaName = TutorialMatch.Layout.ArenaKey;
+                    MatchConfig.IsHost = true;
+                    SceneManager.LoadScene(TutorialMatch.SceneName);
+                };
+            }
+
+            var btnBack = context.Q<Button>("btn-back");
+            Action back = () => FrontendController.Show(FrontendPage.Home);
+            if (btnBack != null)
+                btnBack.clicked += back;
+            ConfigureNavigation(context, _gridButtons.FirstOrDefault(b => b.name == $"char-{_selected}")
+                ?? _gridButtons.FirstOrDefault(), btnBack, back, startButton);
+
+            if (MenuRoster.Classes.Length == 0)
+                ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
         }
 
         private void InitLocal(FrontendPageContext context)

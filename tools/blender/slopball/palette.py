@@ -1,0 +1,45 @@
+"""Night Court colours (sRGB 0..1). The court keeps the Slopball teal/terracotta halves;
+murals and boards use the poster accents; the warehouse stays blue-black."""
+
+# court
+TEAL_HALF = (0.075, 0.30, 0.32)
+TERRACOTTA_HALF = (0.47, 0.18, 0.11)
+BORDER = (0.085, 0.09, 0.105)
+LINE = (0.90, 0.88, 0.80)
+
+# poster accents (atlas art)
+TEAL = (0.17, 0.70, 0.64)
+TEAL_DARK = (0.08, 0.36, 0.38)
+CORAL = (1.00, 0.42, 0.29)
+YELLOW = (1.00, 0.82, 0.25)
+CREAM = (0.96, 0.93, 0.85)
+INK = (0.063, 0.094, 0.10)
+MINT = (0.36, 0.75, 0.59)
+PINK = (1.00, 0.31, 0.60)
+CYAN = (0.24, 0.86, 1.00)
+
+# warehouse and cage
+CONCRETE = (0.30, 0.30, 0.31)
+CONCRETE_FLOOR = (0.20, 0.20, 0.21)
+ROOF = (0.08, 0.085, 0.10)
+STEEL = (0.22, 0.24, 0.27)
+STEEL_DARK = (0.10, 0.11, 0.12)
+WIRE = (0.42, 0.45, 0.49)
+ROPE = (0.16, 0.17, 0.19)
+CAP = (0.98, 0.78, 0.16)
+NET_CORD = (0.07, 0.08, 0.08)
+NET_TAPE = (0.92, 0.90, 0.82)
+CONTAINER = (0.62, 0.15, 0.10)
+COUCH = (0.30, 0.16, 0.40)
+DRUM_BLUE = (0.12, 0.28, 0.55)
+DRUM_ORANGE = (0.70, 0.40, 0.08)
+RUBBER = (0.07, 0.07, 0.075)
+
+# light colours (baked into vertex colours, and glow)
+FLOOD = (0.92, 0.96, 1.00)
+SODIUM = (1.00, 0.62, 0.26)
+MAGENTA = (1.00, 0.22, 0.60)
+CYAN_LIGHT = (0.30, 0.85, 1.00)
+WARM = (1.00, 0.80, 0.55)
+BULB = (1.00, 0.78, 0.42)
+EXIT_GREEN = (0.30, 1.00, 0.45)

@@ -1,8 +1,8 @@
 import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -31,7 +31,7 @@ async function descriptor(project: string): Promise<EditorDescriptor> {
   const path = join(project, 'Library', 'Pipeline', DESCRIPTOR);
   try { return parseDescriptor(JSON.parse(await readFile(path, 'utf8')), project); }
   catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw Object.assign(new Error(`No Pipeline Editor descriptor exists for ${project}.`), { code: 'ENOENT' });
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw Object.assign(new Error(`No Pipeline Editor descriptor exists for ${project}: the canonical Editor is not running (or is still starting). Starting it needs the user's OK: unity open client/Unity.`), { code: 'ENOENT' });
     if (error instanceof SyntaxError) throw new Error('The canonical project Pipeline descriptor is unreadable.');
     throw error;
   }
@@ -326,6 +326,36 @@ async function sourceCheckout(project: string, explicit?: string): Promise<{ pat
   try { return { path: await validateCheckout(candidate), resolution: 'derived-validated' }; }
   catch { return { path: null, resolution: 'not-derivable' }; }
 }
+// A script edited after the last compile is compiled by the next refresh, from any command, and
+// the reload that follows can land in the middle of a later command. Find the newest such source
+// so the batch can compile it first, as its own step. Null when the project has never compiled.
+export async function pendingScriptChange(project: string): Promise<string | null> {
+  const compiled = join(project, 'Library', 'ScriptAssemblies');
+  let lastCompile = 0;
+  try {
+    for (const entry of await readdir(compiled))
+      if (entry.endsWith('.dll')) lastCompile = Math.max(lastCompile, (await stat(join(compiled, entry))).mtimeMs);
+  } catch { return null; }
+  if (!lastCompile) return null;
+  let newest: { path: string; mtimeMs: number } | null = null;
+  const visit = async (folder: string): Promise<void> => {
+    let entries;
+    try { entries = await readdir(folder, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      // Unity skips hidden folders and folders ending in ~ (Samples~, Documentation~).
+      if (entry.name.startsWith('.') || entry.name.endsWith('~')) continue;
+      const path = join(folder, entry.name);
+      if (entry.isDirectory()) { await visit(path); continue; }
+      if (!/\.(?:cs|asmdef|asmref|dll)$/i.test(entry.name)) continue;
+      let mtimeMs: number;
+      try { mtimeMs = (await stat(path)).mtimeMs; } catch { continue; }
+      if (mtimeMs > lastCompile && (!newest || mtimeMs > newest.mtimeMs)) newest = { path, mtimeMs };
+    }
+  };
+  await visit(join(project, 'Assets'));
+  await visit(join(project, 'Packages'));
+  return newest ? relative(project, (newest as { path: string }).path) : null;
+}
 async function batchPlan(invocation: Invocation): Promise<{ commands: string[][]; restore: string[][] }> {
   if (invocation.batchPath) return parseBatch(JSON.parse(await readFile(resolve(invocation.batchPath), 'utf8')));
   return { commands: invocation.commandArgs.length ? [invocation.commandArgs] : [], restore: [] };
@@ -568,6 +598,9 @@ export async function run(args = process.argv.slice(2), options: RunOptions = {}
   process.on('SIGTERM', onSigterm);
   const reportTransition = statusReporter(secrets, process.stderr);
   const batch = plan!;
+  const pendingScript = process.env.SLOPARENA_GATEWAY_AUTO_RECOMPILE === '0' || batch.commands[0]?.[0] === 'recompile'
+    ? null : await pendingScriptChange(project);
+  if (pendingScript) process.stderr.write(`${pendingScript} changed after the last script compile; recompiling first so no later refresh reloads the Editor in the middle of this batch.\n`);
   const batchId = randomUUID();
   const interval = options.pollInterval ?? 500;
   try {
@@ -679,8 +712,20 @@ export async function run(args = process.argv.slice(2), options: RunOptions = {}
           }
           return true;
         };
-        for (const command of batch.commands) {
+        let compiledFirst = true;
+        if (pendingScript && !interruption) {
+          compiledFirst = await execute(['recompile']);
+          if (!compiledFirst) safeToRestore = false;
+          else if (operationError?.message === 'Unity command reported a semantic failure.') {
+            // Another writer's unfinished scripts must not block unrelated work: the Editor keeps
+            // its loaded assemblies and no reload follows a failed compile.
+            process.stderr.write('Scripts do not compile right now (see the recompile_status errors above); running the batch with the loaded scripts.\n');
+            operationError = undefined;
+          }
+        }
+        for (const command of compiledFirst ? batch.commands : []) {
           if (interruption) { operationError ||= new Error(`Batch interrupted by ${interruption}.`); break; }
+          if (operationError) break;
           if (!await execute(command)) { safeToRestore = false; break; }
           if (operationError) break;
         }

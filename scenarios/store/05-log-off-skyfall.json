@@ -1,0 +1,64 @@
+{
+ "stage": "log_off",
+ "notes": "Wibou's Skyfall (F) dives on FightGuy in front of the NO WI-FI, JUST LOGS sign.",
+ "capture": {
+  "from": 97,
+  "to": 111,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 94
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    -6.0,
+    0,
+    6.0
+   ],
+   "yaw": 90,
+   "damage": 35,
+   "target": 2,
+   "input": [
+    {
+     "at": 30,
+     "press": "F"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    -4.7,
+    0,
+    6.0
+   ],
+   "yaw": 270,
+   "damage": 90
+  }
+ ],
+ "cameras": [
+  {
+   "name": "c2",
+   "pos": [
+    -1.0,
+    1.6,
+    2.8
+   ],
+   "look": [
+    -5.6,
+    2.4,
+    6.8
+   ],
+   "fov": 50,
+   "far": 4000
+  }
+ ],
+ "pick": {
+  "camera": "c2",
+  "tick": 99
+ }
+}

@@ -35,12 +35,11 @@ Character: {character}
 {description}
 
 ## Clock and constraints (machine-checked)
-- Ticks 0..{duration} at 60 Hz, so the clip has {samples} samples. Contact at tick {contact}; active ticks {active}; \
-recovery (IASA) at tick {iasa}.
-- Tick 0 is the entry pose `b.entry_pose`; ticks {exit}..{duration} must equal it exactly.
+- Ticks 0..{duration} at 60 Hz, so the clip has {samples} samples.{timing}
+- {entry_rule}
 - Rotations animate, and the hips may translate (`move_hips`) for crouches, lunges and weight shifts; the fighter \
 itself stays in place. Other joint translations and all scales stay fixed.{planted}
-- Fast motion is expected in ticks {fast} (up to 90 degrees per tick in a joint). Elsewhere, more than 35 degrees per tick fails as a snap.
+- {fast}
 - Numeric targets: {targets}.
 - Attached images: {image_notes}
 
@@ -75,12 +74,27 @@ def build_prompt(brief: Brief) -> str:
     c = brief['clock']
     targets = '; '.join(f"{t['name']}" + (f" >= {t['min']}" if 'min' in t else '') + (f" <= {t['max']}" if 'max' in t else '')
                         for t in brief.get('targets', [])) or 'none'
-    fast = ', '.join(f'{a}-{b}' for a, b in brief.get('fast_windows', [])) or 'none'
+    windows = ', '.join(f'{a}-{b}' for a, b in brief.get('fast_windows', []))
+    fast = (f'Fast motion is expected in ticks {windows} (up to 90 degrees per tick in a joint). Elsewhere, more than '
+            '35 degrees per tick fails as a snap.' if windows else 'More than 35 degrees per tick in a joint fails as a snap.')
     guide = (HERE / 'GUIDE.md').read_text().split('\n', 2)[2]  # drop the title line
+    duration = c['duration_ticks']
+    timing = ''
+    if 'contact_tick' in c:
+        timing = (f" Contact at tick {c['contact_tick']}; active ticks {'-'.join(map(str, c['active']))}; "
+                  f"recovery (IASA) at tick {c['iasa_tick']}.")
+    if brief.entry_matches:
+        exit_from = brief['exit']['from_tick'] if 'exit' in brief.data else duration
+        entry_rule = f'Tick 0 is the entry pose `b.entry_pose`; ticks {exit_from}..{duration} must equal it exactly.'
+    else:
+        entry_rule = ('`b.entry_pose` only sets the character frame (its hips are the origin, its facing is front); '
+                      'tick 0 is free.')
+    if brief.loop_from is not None:
+        entry_rule += (f'\n- Ticks {brief.loop_from}..{duration} loop in the game: tick {duration} must equal tick '
+                       f'{brief.loop_from} exactly, and the motion must keep its speed across the seam. Key that stretch '
+                       f'with `Clip.from_keys(keys, {duration + 1}, cycle=({brief.loop_from}, {duration}))`.')
     return PROMPT.format(name=brief['name'], character=brief.get('character', ''), description=brief['description'],
-                         duration=c['duration_ticks'], samples=c['duration_ticks'] + 1, contact=c['contact_tick'],
-                         active='-'.join(map(str, c['active'])), iasa=c['iasa_tick'],
-                         exit=brief['exit']['from_tick'] if 'exit' in brief.data else c['duration_ticks'],
+                         duration=duration, samples=duration + 1, timing=timing, entry_rule=entry_rule,
                          fast=fast, targets=targets, image_notes=brief.get('image_notes', 'none'),
                          planted=(('\n- Planted (must not drift more than 1 cm): ' + ', '.join(brief['planted'])
                                    + '. Moving the hips or spine moves the legs: re-solve them with two_bone.')
@@ -112,19 +126,19 @@ def postprocess(brief: Brief, scratch: Path, run_dir: Path) -> dict:
     report = check_clip(clip, brief.check_spec(), skin=skin)
     text = format_report(report)
     seen = {}
-    if brief.strike:  # review information, not a check
-        contact = brief['clock']['contact_tick']
+    clock = brief['clock']
+    contact = clock.get('contact_tick')
+    if brief.strike and contact is not None:  # review information, not a check
         seen = strike_visibility(clip, brief.strike, contact, brief.review_views + ('gameplay',), skin=skin)
         text += f'\n  strike visible at contact (tick {contact}): ' + ', '.join(f'{v} {f:.0%}' for v, f in seen.items())
     (run_dir / 'check.json').write_text(json.dumps(report, indent=2, default=str))
     (run_dir / 'check.txt').write_text(text + '\n')
     usd = write_usd(clip, run_dir / 'usd' / f"{brief['name']}.usda")
     contact_sheet(clip, brief.review_ticks, brief.review_views, run_dir / 'sheet.png', skin=skin)
-    clock = brief['clock']
-    motion_overview(clip, clock['contact_tick'], run_dir / 'motion.png', ('front', brief.review_views[2], 'profile'), skin=skin)
+    motion_overview(clip, brief.split_tick, run_dir / 'motion.png', ('front', brief.review_views[2], 'profile'), skin=skin)
     try:  # timing can only be judged in motion: side and three-quarter views, real speed then slowed down
-        preview = str(preview_video(clip, run_dir / 'preview.mp4', brief.review_views[::2], skin=skin,
-                                    contact=clock['contact_tick'], active=clock['active']))
+        preview = str(preview_video(clip, run_dir / 'preview.mp4', brief.preview_views, skin=skin,
+                                    contact=contact, active=clock.get('active'), loop_from=brief.loop_from))
     except (OSError, RuntimeError) as error:
         preview = f'not written: {error}'
     return {'result': str(result), 'passed': report['passed'], 'failures': len(report['failures']),

@@ -687,11 +687,21 @@ namespace SlopArena.Client.Entities
         private float _hitstunAnimStartTime;
         private float _hitstunAnimLength;
         private string _lastHitstunAnimName = "";
-        // ── Airborne launch tumble tracking ──
+        // ── Airborne launch tumble (docs/design/airborne-tumble-animation.md) ──
+        // Strong launches play the hit clip's impact snap at its own speed, then the
+        // tumble's one-shot build-up, then its loop until the fighter acts or lands.
+        private const int TumbleMinHitstunTicks = 24;
+        private const float TumbleMinLaunchElevationDegrees = 15f;
+        private const int TumbleImpactSnapTicks = 10;
+        private const float TumbleEntryFadeSeconds = 8f / 60f;
+        // The shared tumble clip's build-up; clips imported without Loop Time cycle from here.
+        private const float TumbleLoopStartSeconds = 24f / 60f;
         private bool _tumbleActive;
+        private AnimancerState? _tumbleState;
+        private bool _tumbleLaunchPending;
+        private int _tumbleLaunchHitstunTicks;
         // ── Aerial landing-lag presentation ──
         private bool _landingLagActive;
-        private float _tumbleReleaseNormalizedTime = float.PositiveInfinity;
         // ── Hitstop freeze tracking (ADR-0012) ──
         // True while the current clip is paused at Speed 0 for a hitstop freeze;
         // _hitstopPausedSpeed holds the pre-freeze speed for the resume frame.
@@ -893,15 +903,26 @@ namespace SlopArena.Client.Entities
                 }
                 else if (snapshot.State == ActionState.Hitstun)
                 {
-                    id = !snapshot.IsGrounded && (snapshot.KVX * snapshot.KVX + snapshot.KVZ * snapshot.KVZ > 0.001f)
-                        && TryGetAnimation(_charDef.TumbleAnim, out _, out _)
-                        ? _charDef.TumbleAnim
-                        : snapshot.HitstunLevel switch
-                        {
-                            1 => _charDef.HitMediumAnim,
-                            2 => _charDef.HitHardAnim,
-                            _ => _charDef.HitSmallAnim,
-                        };
+                    id = snapshot.HitstunLevel switch
+                    {
+                        1 => _charDef.HitMediumAnim,
+                        2 => _charDef.HitHardAnim,
+                        _ => _charDef.HitSmallAnim,
+                    };
+                    // The pose clock restarts with each hit and holds through Hitstop, so it counts
+                    // hitstun ticks. Rebuild the applied hitstun and the launch's rise: horizontal KV
+                    // stays constant in hitstun and flight gravity takes the rise after the pop window.
+                    float launchRise = snapshot.KVY + (snapshot.IsGrounded ? 0f
+                        : SlopArena.Shared.Simulation.FlightGravity * SlopArena.Shared.Simulation.TickDt
+                            * Mathf.Max(0, snapshot.AirTimeTicks - SlopArena.Shared.Simulation.KnockbackPopTicks));
+                    if (elapsed >= TumbleImpactSnapTicks && !snapshot.IsGrounded
+                        && IsTumbleLaunch(snapshot.HitstunTicks + elapsed, snapshot.KVX, launchRise, snapshot.KVZ)
+                        && TryGetAnimation(_charDef.TumbleAnim, out var tumbleClip, out _))
+                    {
+                        clip = tumbleClip;
+                        time = TumbleTime(tumbleClip.isLooping, tumbleClip.length, (elapsed - TumbleImpactSnapTicks) / 60f);
+                        return true;
+                    }
                 }
                 else if (snapshot.State == ActionState.Crouching) id = _charDef.CrouchAnim;
                 else if (snapshot.State == ActionState.Sliding) id = _charDef.SlideAnim;
@@ -979,7 +1000,9 @@ namespace SlopArena.Client.Entities
         // ── Lifecycle ──
 
 
-        private void OnDisable()
+        private void OnDisable() => EndStateEffects();
+
+        private void EndStateEffects()
         {
             HideShield();
             _projectileVFX?.ClearHeldVisual(_entityId);
@@ -994,6 +1017,26 @@ namespace SlopArena.Client.Entities
                 _respawnInvincibilityEffect = null;
             }
             _respawnInvincibilityActive = false;
+        }
+
+        /// <summary>
+        /// An Arcade retry replaces the simulation. Present its first state as a fresh spawn:
+        /// no interpolation from the old position, stock transition, animation, trail or reaction.
+        /// </summary>
+        public void ResetForFreshSimulation()
+        {
+            EndStateEffects();
+            ResetAnimationState();
+            _hitFeel?.ResetForFreshSimulation();
+            _deathFlashTicks = 0;
+            var skin = _modelInstance != null ? _modelInstance.GetComponentInChildren<SkinnedMeshRenderer>() : null;
+            if (skin != null) skin.enabled = true;
+            _inHitstunAnim = false;
+            _presentedHitReactionSequence = 0;
+            _hasAppliedState = false;
+            _hasPresentedDeaths = false;
+            _hasInterpolationTarget = false;
+            _visualCorrection = Vector3.zero;
         }
         private void Start()
         {
@@ -1484,7 +1527,44 @@ namespace SlopArena.Client.Entities
         private void ClearTumble()
         {
             _tumbleActive = false;
-            _tumbleReleaseNormalizedTime = float.PositiveInfinity;
+            _tumbleState = null;
+            _tumbleLaunchPending = false;
+        }
+
+        /// <summary>
+        /// Strong launches tumble: enough applied hitstun, sent upward steeply enough.
+        /// Spikes, flat ground kicks and small pops keep the hit reaction.
+        /// </summary>
+        private static bool IsTumbleLaunch(int appliedHitstunTicks, float kvx, float kvy, float kvz)
+        {
+            if (appliedHitstunTicks < TumbleMinHitstunTicks || kvy <= 0f)
+                return false;
+            float horizontal = Mathf.Sqrt(kvx * kvx + kvz * kvz);
+            return Mathf.Atan2(kvy, horizontal) * Mathf.Rad2Deg >= TumbleMinLaunchElevationDegrees;
+        }
+
+        /// <summary>Clip time for a tumble that has played for `seconds`: the build-up once, then the loop.</summary>
+        private static float TumbleTime(bool clipLoops, float length, float seconds)
+        {
+            if (length <= 0f || seconds < length)
+                return Mathf.Max(0f, seconds);
+            if (clipLoops)
+                return seconds % length;
+            float loopStart = length > TumbleLoopStartSeconds + 0.1f ? TumbleLoopStartSeconds : 0f;
+            return loopStart + (seconds - loopStart) % (length - loopStart);
+        }
+
+        /// <summary>A launch that lands inside hitstun finishes the hit clip's ground recovery.</summary>
+        private void PlayHitRecovery(string hitName, CharacterState state)
+        {
+            if (!TryGetAnimation(hitName, out var clip, out _) || clip.length <= 0f)
+                return;
+            int applied = Math.Max(1, _tumbleLaunchHitstunTicks);
+            float progress = Mathf.Clamp01((float)(applied - state.HitstunTicks) / applied);
+            var recovery = _animancer.Play(clip, 0.1f);
+            recovery.Time = progress * clip.length;
+            recovery.Speed = clip.length * (1f - progress) / (Math.Max(1, (int)state.HitstunTicks) / 60f);
+            _currentAnimState = recovery;
         }
 
         private bool TryPlayFall(float fadeDuration)
@@ -1502,14 +1582,14 @@ namespace SlopArena.Client.Entities
             if (!TryGetAnimation(_charDef.TumbleAnim, out var clip, out _))
                 return false;
 
-            // Tumble loops while hitstun is active. Once the server makes the
-            // fighter actionable, the current cycle is allowed to finish before
-            // falling. The explicit release time handles Loop Time-enabled clips.
-            clip.wrapMode = WrapMode.Loop;
-            var tumbleState = _animancer.Play(clip, 0.5f);
+            // The build-up starts from its compact catch, whichever hit snap it blends from;
+            // MaintainTumbleLoop then cycles the rest until the fighter acts or lands.
+            var tumbleState = _animancer.Play(clip, TumbleEntryFadeSeconds);
+            tumbleState.Time = 0f;
             tumbleState.Speed = 1f;
             _tumbleActive = true;
-            _tumbleReleaseNormalizedTime = float.PositiveInfinity;
+            _tumbleState = tumbleState;
+            _tumbleLaunchPending = false;
             _currentAnimState = tumbleState;
             _activeExtrapolator = null;
             _currentExtrapolationMode = ExtrapolationMode.None;
@@ -1591,26 +1671,22 @@ namespace SlopArena.Client.Entities
                 bool newHit = HitstunPresentation.ShouldRestart(
                     _lastAnimState, _presentedHitReactionSequence, state);
                 if (newHit)
+                {
                     ClearTumble();
-                else if (_inHitstunAnim
-                    && Time.time - _hitstunAnimStartTime >= _hitstunAnimLength
-                    && IsStrongAirborneLaunch(state)
-                    && TryPlayTumble())
-                {
-                    _inHitstunAnim = false;
-                    _lastAnimState = ActionState.Hitstun;
-                    return;
-                }
-
-                if (newHit)
-                {
                     if (TryGetAnimation(hitName, out var clip, out _))
                     {
-                        float hsAnimSpeed = GetAnimSpeedFromDuration(hitName, state.HitstunTicks);
+                        // A strong launch shows only the reaction's impact snap at its own
+                        // speed; the tumble takes over after TumbleImpactSnapTicks. Other hits
+                        // stretch the whole reaction over hitstun.
+                        bool launch = IsTumbleLaunch(state.HitstunTicks, state.KVX, state.KVY, state.KVZ)
+                            && TryGetAnimation(_charDef.TumbleAnim, out _, out _);
+                        float hsAnimSpeed = launch ? 1f : GetAnimSpeedFromDuration(hitName, state.HitstunTicks);
                         var hsState = _animancer.Play(clip, 0f);
                         hsState.Speed = hsAnimSpeed;
                         _lastHitstunAnimName = hitName;
-                        _inHitstunAnim = true;
+                        _inHitstunAnim = !launch;
+                        _tumbleLaunchPending = launch;
+                        _tumbleLaunchHitstunTicks = state.HitstunTicks;
                         _presentedHitReactionSequence = state.HitReactionSequence;
                         _hitstunAnimStartTime = Time.time;
                         _hitstunAnimLength = clip.length / hsAnimSpeed;
@@ -1619,8 +1695,23 @@ namespace SlopArena.Client.Entities
                         Debug.Log($"[HitstunAnim] RESTART ent={_entityId} clip={hitName} " +
                             $"ticks={state.HitstunTicks} prevTicks={_lastState.HitstunTicks} " +
                             $"level={state.HitstunLevel} firstEntry={_lastAnimState != ActionState.Hitstun} " +
-                            $"speed={hsAnimSpeed:F2}");
+                            $"speed={hsAnimSpeed:F2} tumble={launch}");
                     }
+                }
+                else if (_tumbleLaunchPending
+                    && _tumbleLaunchHitstunTicks - state.HitstunTicks >= TumbleImpactSnapTicks)
+                {
+                    _tumbleLaunchPending = false;
+                    if (state.IsGrounded)
+                        PlayHitRecovery(hitName, state);
+                    else
+                        TryPlayTumble();
+                }
+                else if (_tumbleActive && state.IsGrounded)
+                {
+                    // Landed inside hitstun (on a platform): the reaction's ground recovery fills the rest.
+                    ClearTumble();
+                    PlayHitRecovery(hitName, state);
                 }
                 _lastAnimState = ActionState.Hitstun;
                 return;
@@ -1644,67 +1735,24 @@ namespace SlopArena.Client.Entities
                     _lastAnimState = state.State;
                     return;
                 }
-                if (elapsed >= _hitstunAnimLength
-                    && airborneLaunch
-                    && TryPlayTumble())
-                {
-                    _inHitstunAnim = false;
-                    _lastAnimState = state.State;
-                    return;
-                }
                 _inHitstunAnim = false;
             }
+            // Leaving hitstun before the impact snap ends (Burst) drops the pending tumble.
+            _tumbleLaunchPending = false;
 
-            // Tumble loops through hitstun, then releases into fall once the
-            // authoritative hitstun marker says the fighter is actionable.
+            // The tumble keeps carrying the fighter after hitstun, as in Melee, until it
+            // acts (the action's clip cuts in at once) or lands (locomotion blends in).
             if (_tumbleActive)
             {
                 bool jumpStarted = state.JumpsLeft < _lastState.JumpsLeft
                     || (_lastState.IsGrounded && !state.IsGrounded);
                 bool explicitAction = state.State != ActionState.Idle
-                    && state.State != ActionState.Run
-                    && state.State != ActionState.Hitstun;
-                bool actionable = state.State != ActionState.Hitstun
-                    && state.HitstunTicks == 0;
-
+                    && state.State != ActionState.Run;
                 if (state.IsGrounded || jumpStarted || explicitAction)
                 {
                     ClearTumble();
                 }
-                else if (actionable && !state.IsGrounded)
-                {
-                    var tumble = _animancer.States.Current;
-                    if (tumble != null && TryGetAnimation(_charDef.TumbleAnim, out var tumbleClip, out _) && tumble.Clip == tumbleClip)
-                    {
-                        if (float.IsPositiveInfinity(_tumbleReleaseNormalizedTime))
-                        {
-                            _tumbleReleaseNormalizedTime =
-                                Mathf.Floor(tumble.NormalizedTime) + 1f;
-                            // Disable the asset loop for the release phase. The
-                            // normalized-time boundary remains authoritative even
-                            // if Animancer cached the old loop mode.
-                            tumbleClip.wrapMode = WrapMode.ClampForever;
-                        }
-
-                        if (tumble.NormalizedTime >= _tumbleReleaseNormalizedTime)
-                        {
-                            ClearTumble();
-                            if (TryPlayFall(0.15f))
-                            {
-                                _lastAnimState = state.State;
-                                _wasGrounded = state.IsGrounded;
-                                return;
-                            }
-                        }
-                    }
-                }
-                else if (!isCombat)
-                {
-                    _lastAnimState = state.State;
-                    _wasGrounded = state.IsGrounded;
-                    return;
-                }
-                if (_tumbleActive)
+                else
                 {
                     _lastAnimState = state.State;
                     _wasGrounded = state.IsGrounded;
@@ -1935,17 +1983,16 @@ namespace SlopArena.Client.Entities
         private void MaintainTumbleLoop()
         {
             if (!_tumbleActive
-                || !(_animancer?.States.Current is { } tumble)
-                || !float.IsPositiveInfinity(_tumbleReleaseNormalizedTime)
-                || tumble.IsLooping
-                || tumble.Length <= 0f
-                || tumble.Time < tumble.Length)
+                || _tumbleState == null
+                || !ReferenceEquals(_animancer?.States.Current, _tumbleState)
+                || _tumbleState.IsLooping
+                || _tumbleState.Length <= 0f
+                || _tumbleState.Time < _tumbleState.Length)
                 return;
 
-            // Loop non-looping imports only while hitstun owns the phase.
-            // Keep release time monotonic so the pending cycle boundary can be reached.
-            tumble.Time %= tumble.Length;
-            tumble.IsPlaying = true;
+            // Clips imported without Loop Time play their build-up once, then cycle from its end.
+            _tumbleState.Time = TumbleTime(false, _tumbleState.Length, _tumbleState.Time);
+            _tumbleState.IsPlaying = true;
         }
 
         private void LateUpdate()
@@ -2292,7 +2339,7 @@ namespace SlopArena.Client.Entities
             _currentExtrapolationMode = ExtrapolationMode.None;
             _currentAnimState = null;
             _hitstopPaused = false;
-            _tumbleActive = false;
+            ClearTumble();
             ClearLandingLagPresentation();
             _wasAttacking = false;
             _attackStartedGrounded = false;

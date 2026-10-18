@@ -55,6 +55,9 @@ public sealed class CookedTimelineAbility : ServerAbility
         {
             if (_completed)
                 return false;
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].HoldsFighterPushboxPosition)
+                    return true;
             // Pulling victims into body contact must not push the caster out of the combo.
             foreach (var operation in CurrentStage.Operations)
                 if (operation is CookedSpawnHitboxOperation hitbox &&

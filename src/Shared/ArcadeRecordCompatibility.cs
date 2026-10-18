@@ -10,7 +10,8 @@ public static class ArcadeRecordCompatibility
 {
     // Bump for Shared primitive/capability/rule changes that alter Arcade comparability.
     // Data changes below are detected automatically; UI, art, audio and VFX are excluded.
-    public const uint RulesRevision = 3;
+    // 4: explosions hit everything in their radius, not only the first entity (2026-10-18).
+    public const uint RulesRevision = 4;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     public const uint CourseRulesRevision = 1;

@@ -26,7 +26,7 @@ namespace SlopArena.Client.UI
             _ball = AddLabel("", "arcade-eyebrow");
             _feedback = AddLabel("", "arcade-feedback");
             _feedback.style.display = DisplayStyle.None;
-            AddLabel("BACKSPACE RESTART  ·  ESC / START PAUSE", "slopball-controls");
+            AddLabel("BACKSPACE / HOLD SELECT RESTART  ·  ESC / START PAUSE", "slopball-controls");
             _streakToast = AddLabel("", "slopball-streak-toast");
             _streakToast.name = "slopball-streak-toast";
             _streakToast.style.display = DisplayStyle.None;

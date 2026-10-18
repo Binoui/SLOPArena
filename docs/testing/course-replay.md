@@ -92,11 +92,21 @@ starts at Go. Every chunk freezes on its final tick. A capture checks the exact
 elapsed tick, changes framing if requested, waits for a fresh composited Game View
 frame and confirms that simulation time did not advance. Screenshots include HUD
 at 1920×1080; wall-clock delays between commands do not add course time.
+Presentation keeps running in real time while the simulation is frozen, so
+particles, HUD animations and sounds in a capture are further along than its
+tick suggests. Capture several nearby ticks and judge effect timing in play.
 
 The saved Sanctuary fixture is a known ordinary-jump route for the wider Phase 5
 layout. It uses normal attacks and movement, all required targets and the three
 saves. It is not a route finder or an optimal-time claim. Geometry or kit changes
 can invalidate its inputs; inspect the failure and deliberately revise the trace.
+
+`scenarios/arcade/manki-quarry-jetpack.json` replays Kaboom Quarry with the cooked Manki
+kit: bombs and rockets from the route, the Jump → E Blast Face and the conveyor descent,
+with nine gameplay-camera captures. Its inputs come from the Shared route test
+(`MankiQuarryRouteTests.JumpThenJetpackSkipsTheBenches`); after a deliberate layout or
+kit change, rewrite them with `SLOPARENA_EXPORT_COURSE_INPUTS=$PWD/scenarios/arcade dotnet
+test tests/Shared.Tests --filter JumpThenJetpackSkipsTheBenches` and adjust capture ticks.
 
 ## Lifecycle, evidence and restoration
 
@@ -114,7 +124,7 @@ all-in-one Editor implementation was considered; keeping orchestration outside
 Play Mode reuses the gateway's failure/restoration lifecycle and avoids another
 Shared replay system.
 
-Setup temporarily disables domain reload for this Editor's known Play Mode stall,
+Setup temporarily disables domain reload (faster entry; reloads once hung this Editor),
 isolates records under the output directory, suppresses tips, and selects the
 capture viewport. The session saves the scene setup/selection, prior Play Mode
 options, pause/time scale, relevant course selection, records override and Game

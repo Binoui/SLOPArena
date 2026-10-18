@@ -280,6 +280,10 @@ public sealed class ShieldBlockTests
 
         sim.Tick(ShieldInput());
         Assert.True(Assert.Single(sim.LastTickHits).Blocked);
+
+        // The blast lasts its whole window but never blocks the same fighter twice.
+        sim.Tick(ShieldInput());
+        Assert.Empty(sim.LastTickHits);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
     }
 
@@ -406,10 +410,14 @@ public sealed class ShieldBlockTests
         Assert.Equal((byte)11, explosionBlock.AttackSequence);
         Assert.Equal(0f, explosionBlock.Damage);
         Assert.Equal((ushort)0, sim.GetState(AttackerId).HitstopTicks);
-        Assert.Empty(sim.Resolver.GetActiveHitboxes());
         var explosionEvent = Assert.Single(sim.GetPresentationEvents(clear: true));
         Assert.NotEqual(impactEvent.Key, explosionEvent.Key);
         Assert.Equal(impactEvent.MatchTick + 1, explosionEvent.MatchTick);
+
+        // The blast lasts its whole window but never blocks the same fighter twice.
+        sim.Tick(ShieldInput());
+        Assert.Empty(sim.LastTickHits);
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
     }
 
     [Fact]

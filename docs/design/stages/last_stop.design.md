@@ -1,10 +1,10 @@
 ---
 key: last_stop
-status: locked
+status: accepted
 locked: 2026-10-16
 approved_by: maintainer
 approval_scope: Mind the Gap shell, snowy summit dusk composition, lively presentation-only ambience
-runtime_camera_review: pending
+accepted: 2026-10-17
 blockout:
   - .stage-authoring-cache/last_stop/design/design-top.png
   - .stage-authoring-cache/last_stop/design/design-north.png
@@ -21,8 +21,8 @@ premise, a snowy mountain dusk setting and a lively presentation with weather an
 a moving background train. They authorized replacing every asset and the gameplay
 geometry. Vendor prefabs are not required. The previous vendor-based presentation and
 its rectangular shell are retired. After reviewing the gray-box shell diagram and
-blockout views, the maintainer locked this brief on 2026-10-16 ("Lock it, go"). The
-in-game camera review of the gray-box and human PVP acceptance remain pending.
+blockout views, the maintainer locked this brief on 2026-10-16 ("Lock it, go") and
+accepted the built stage on 2026-10-17 ("the maps are much better").
 
 Yaw follows the stage-design capture convention: yaw 0° puts the camera north of the
 stage, looking south. Yaw 180° puts the camera south of the platform, looking north

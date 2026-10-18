@@ -12,7 +12,6 @@ clearance report. Run with a fresh factory scene; it never opens or saves a .ble
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import os
@@ -28,10 +27,12 @@ import bpy  # noqa: E402
 
 from stagekit import blender as kit  # noqa: E402
 from stagekit import checks, geo  # noqa: E402
+from stagekit.presentation import write as write_presentation  # noqa: E402
 
 import camp as CAMP  # noqa: E402
 import forest as FOREST  # noqa: E402
 import layout as LAYOUT  # noqa: E402
+import presentation as PRESENTATION  # noqa: E402
 import stump as STUMP  # noqa: E402
 import textures  # noqa: E402
 
@@ -40,8 +41,8 @@ DEFAULT_OUT = "/tmp/log-off-generated"
 DEFAULT_REPORT = REPO / ".stage-authoring-cache/log_off/campsite"
 MATERIALS = ["LO_Wood", "LO_Stump", "LO_Foliage", "LO_Cloth", "LO_Glow", "LO_Sky"]
 GLOWING = ("LO_Glow", "LO_Sky")
-ENVELOPE = 25.0         # orbit radius 10 x 1.5 zoom plus the 10 m side blast margin
-ENVELOPE_CEILING = 2.0  # metres below the kill plane
+ENVELOPE = checks.CAMERA_REACH_FROM_OUTLINE  # measured from the playable outline
+ENVELOPE_CEILING = checks.CEILING_CLEARANCE
 NO_AO = {"Sky", "Fireflies", "Far Forest", "Camp Glow", "Canopy"}
 SEED = 20261016
 TRIANGLE_BUDGET = 300_000  # planning target, reported only (performance is measured in Unity)
@@ -49,17 +50,7 @@ STEM = "LogOffCampsite"
 
 
 def args():
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    p = argparse.ArgumentParser()
-    p.add_argument("--out", default=DEFAULT_OUT)
-    p.add_argument("--report", default=str(DEFAULT_REPORT))
-    p.add_argument("--preview", action="store_true")
-    p.add_argument("--views", default="")
-    p.add_argument("--no-bake", action="store_true")
-    p.add_argument("--no-export", action="store_true")
-    p.add_argument("--spec-only", action="store_true")
-    p.add_argument("--samples", type=int, default=48)
-    return p.parse_args(argv)
+    return checks.build_args(DEFAULT_OUT, DEFAULT_REPORT)
 
 
 def _inside(poly, x, z):
@@ -235,6 +226,7 @@ def main():
                        "lights": {k: list(v) for k, v in CAMP.LIGHTS.items()},
                        "objects": sorted(objects), "geometryDigest": digest, "problems": len(problems)}, fh, indent=1)
             fh.write("\n")
+        write_presentation(PRESENTATION.PRESENTATION, a.out)
     triangles = sum(g.triangle_count for g in b.groups.values())
     summary = {
         "source": data["source"], "sourceSha256": data["sourceSha256"], "arenaSha256": data["arenaSha256"],

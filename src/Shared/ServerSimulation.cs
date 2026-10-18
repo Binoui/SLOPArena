@@ -2419,6 +2419,9 @@ namespace SlopArena.Shared
 					ActivationAirborne = airborne,
 					AttackSequence = attackSequence,
 					CanHitOwner = explosion.CanHitOwner,
+					// A blast hits everything in its radius once (fighters, the owner when
+					// allowed, balls and course targets), not just the first entity it meets.
+					HitsMultipleOpponents = true,
 				});
                 if (!string.IsNullOrEmpty(explosion.ExplosionPresentationId))
                     _presentationEvents.Add(new TimelinePresentationEvent(

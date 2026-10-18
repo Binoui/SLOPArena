@@ -5418,7 +5418,6 @@ MonoBehaviour:
   _fogColor: {r: 0.12, g: 0.14, b: 0.28, a: 1}
   _fogStart: 35
   _fogEnd: 100
-  _replaceSceneSunlight: 1
 --- !u!1 &664242972501462597
 GameObject:
   m_ObjectHideFlags: 0
@@ -50394,7 +50393,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7138870385569084981}
   m_Layer: 0
-  m_Name: Lighting
+  m_Name: Stage Lights
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

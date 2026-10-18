@@ -42,7 +42,11 @@ use the previous full-body illustrations; the HUD does not show them.
    embeds the prompt from the generation manifest.
 3. Review the whole set inside the keys at real size over a stage frame before installing.
    If two icons blur together at 40 px, regenerate one.
-4. Overwrite the PNGs in place so their `.meta` GUIDs and import settings stay.
+4. Overwrite the PNGs in place, preserving `.meta` GUIDs and sprite IDs. If the image
+   dimensions change, update the existing sprite slice in Unity's Sprite Editor to the
+   full new canvas (`x: 0, y: 0, width: 256, height: 256` for prepared icons), then apply.
+   Reimport and verify `Resources.LoadAll<Sprite>` returns one sprite per icon; stale
+   slices outside the new canvas produce no sprites and make the HUD use the older art.
 
 ```text
 Game ability icon for a 56-pixel HUD key in SlopArena, a scrappy underground fight-club platform fighter. Square 1024x1024 canvas, transparent background.

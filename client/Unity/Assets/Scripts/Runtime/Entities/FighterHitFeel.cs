@@ -485,6 +485,15 @@ namespace SlopArena.Client.Entities
             _streaks = null;
         }
 
+        /// <summary>A fresh simulation (Arcade retry): drop reactions, glows and the motion history.</summary>
+        public void ResetForFreshSimulation()
+        {
+            _deaths = 0;
+            _hasPosition = false;
+            _glows.Clear();
+            ResetReaction();
+        }
+
         private void ResetReaction()
         {
             _hit = _frozen = _attacking = false;

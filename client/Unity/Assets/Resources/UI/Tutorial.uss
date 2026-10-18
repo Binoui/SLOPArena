@@ -1,0 +1,116 @@
+.tutorial-live {
+    position: absolute;
+    right: 18px;
+    top: 76px;
+    width: 340px;
+    padding: 14px 16px 12px 16px;
+    background-color: rgba(13, 13, 20, 0.88);
+    color: rgb(240, 238, 232);
+    border-left-width: 4px;
+    border-left-color: rgb(255, 204, 34);
+    transition-property: border-left-color;
+    transition-duration: 0.2s;
+}
+.tutorial-live--passed { border-left-color: rgb(120, 214, 120); }
+.tutorial-eyebrow { font-size: 12px; -unity-font-style: bold; letter-spacing: 1px; color: rgb(255, 204, 34); }
+.tutorial-title {
+    margin-top: 2px;
+    font-size: 30px;
+    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
+    letter-spacing: -1px;
+}
+.tutorial-hint { font-size: 14px; white-space: normal; margin-top: 4px; margin-bottom: 8px; color: rgb(205, 200, 190); }
+.tutorial-objective { flex-direction: row; align-items: center; margin-top: 7px; }
+.tutorial-check {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    border-width: 2px;
+    border-color: rgb(240, 238, 232);
+    -unity-background-scale-mode: scale-to-fit;
+}
+.tutorial-key {
+    flex-shrink: 0;
+    min-width: 30px;
+    margin-right: 9px;
+    padding: 2px 6px;
+    background-color: rgb(240, 238, 232);
+    color: rgb(23, 19, 27);
+    font-size: 12px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-radius: 3px;
+}
+.tutorial-text { flex-grow: 1; flex-shrink: 1; font-size: 14px; white-space: normal; }
+.tutorial-amount { flex-shrink: 0; margin-left: 8px; font-size: 12px; -unity-font-style: bold; color: rgb(255, 204, 34); }
+.tutorial-objective--done .tutorial-check {
+    background-color: rgb(255, 204, 34);
+    border-color: rgb(255, 204, 34);
+    background-image: url("../../UI/SelectionCheck.png");
+    -unity-background-image-tint-color: rgb(23, 19, 27);
+}
+.tutorial-objective--done .tutorial-text { color: rgb(150, 146, 138); }
+.tutorial-objective--done .tutorial-key { opacity: 0.45; }
+.tutorial-footer { font-size: 10px; margin-top: 12px; color: rgb(150, 146, 138); }
+.tutorial-results {
+    position: absolute;
+    left: 28%;
+    right: 28%;
+    top: 24%;
+    padding: 28px;
+    background-color: rgb(23, 19, 27);
+    color: rgb(240, 238, 232);
+    border-top-width: 5px;
+    border-top-color: rgb(255, 204, 34);
+}
+.tutorial-results-title {
+    margin-top: 4px;
+    font-size: 38px;
+    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
+    letter-spacing: -1px;
+}
+.tutorial-actions { flex-direction: row; margin-top: 16px; }
+.tutorial-actions Button {
+    flex-grow: 1;
+    margin-right: 8px;
+    min-height: 52px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(23, 19, 27);
+    border-width: 2px;
+    border-color: rgb(23, 19, 27);
+    border-radius: 0;
+}
+.tutorial-actions .btn-primary { background-color: rgb(255, 204, 34); }
+.tutorial-actions .btn-secondary { background-color: rgb(240, 238, 232); }
+.tutorial-actions Button:hover, .tutorial-actions Button:focus { border-color: rgb(224, 92, 42); }
+.tutorial-stamp {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 19%;
+    align-items: center;
+}
+.tutorial-stamp-plate {
+    align-items: center;
+    padding: 8px 36px 14px 36px;
+    background-color: rgba(13, 13, 20, 0.78);
+    border-width: 6px;
+    border-color: rgb(120, 214, 120);
+    border-radius: 12px;
+    rotate: -6deg;
+}
+.tutorial-stamp-detail { font-size: 15px; -unity-font-style: bold; letter-spacing: 3px; color: rgb(240, 238, 232); }
+.tutorial-stamp-word {
+    margin-top: -4px;
+    font-size: 86px;
+    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
+    -unity-font-style: normal;
+    letter-spacing: 6px;
+    color: rgb(120, 214, 120);
+}
+.tutorial-stamp--license .tutorial-stamp-plate { border-color: rgb(255, 204, 34); }
+.tutorial-stamp--license .tutorial-stamp-word { font-size: 62px; letter-spacing: 3px; color: rgb(255, 204, 34); }

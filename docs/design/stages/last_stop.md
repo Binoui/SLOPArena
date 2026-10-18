@@ -4,7 +4,7 @@ display_name: Last Stop
 target: pvp
 players: 2-4
 variant: static
-availability: provisional-human-camera-and-pvp-review-pending
+availability: accepted
 competitive_intent: mixed
 topology: island platform facing a parked train across an open gap, with a tunnel-rock perch
 source_scene: client/Unity/Assets/Stages/last_stop/last_stop.unity
@@ -13,7 +13,7 @@ cosmetic_prefab: client/Unity/Assets/Resources/Stages/last_stop.prefab
 design_brief: docs/design/stages/last_stop.design.md
 human_review:
   owner: project maintainer
-  status: pending
+  status: accepted 2026-10-17
   process: gameplay-camera orbit and gap-recovery review, then normal PVP at 2 and 4 players
 ---
 
@@ -100,11 +100,12 @@ cloud-bounce trilight ambient and four local point lights:
 - the station lantern;
 - the flickering red end-of-line lamp.
 
-The stage opts into `ArenaAtmosphere`'s new `replaceSceneSunlight` setting. While
-the stage is loaded it switches off the match scene's own directional lights and
-restores them when the stage is destroyed. The setting defaults to off, and other
-stages are unchanged. Without it, Training's three neutral scene lights washed out
-the dusk palette.
+Its lights sit under the prefab's `Stage Lights` root, the convention every
+stage that owns its lighting follows: when the stage spawns, the match switches
+off its scene's own directional lights. Without that, Training's three neutral
+scene lights washed out the dusk palette. (The stage first shipped with a
+separate `replaceSceneSunlight` switch; it was folded into the shared rule on
+2026-10-17.)
 
 ## Verification
 

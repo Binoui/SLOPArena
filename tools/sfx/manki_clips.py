@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Rebuild Manki's presentation clips from Kenney CC0 packs and generated noise.
 
-The clips live in the ignored client/Unity/Assets/Resources/Audio/SFX/Manki/ folder; without
-them Manki's effects are silent. Download Kenney's "Sci-Fi Sounds", "Impact Sounds" and
+The clips are tracked in client/Unity/Assets/Resources/Audio/SFX/Manki/ with their .meta files
+(Manki's prefabs reference them by GUID); rerun this only to change a clip, then commit it.
+Download Kenney's "Sci-Fi Sounds", "Impact Sounds" and
 "RPG Audio" (CC0, https://kenney.nl/assets) and unpack each so --kenney holds scifi/Audio,
 impact/Audio and rpg/Audio. Every clip is peak-normalized to -3 dBFS; needs ffmpeg with
 libvorbis. Provenance: docs/assets/credits-and-licenses.md.

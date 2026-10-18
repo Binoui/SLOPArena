@@ -271,6 +271,12 @@ namespace SlopArena.Client.Camera
             SetCameraPitchDeg(15f);
         }
 
+        /// <summary>Cut to the target's new position on the next update (Arcade retry) instead of damping across the map.</summary>
+        public void Cut()
+        {
+            if (_cmCam != null) _cmCam.PreviousStateIsValid = false;
+        }
+
 
         public float GetCameraYawDeg()
         {

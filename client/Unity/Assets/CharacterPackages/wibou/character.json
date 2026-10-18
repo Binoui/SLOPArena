@@ -1170,6 +1170,7 @@
       "behavior": "directionalDash",
       "aimMode": "groundVector",
       "aimMovement": "fixed",
+      "aimAnimationId": "anim.wibou.r-charge",
       "cooldownTicks": 90,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,

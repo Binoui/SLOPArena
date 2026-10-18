@@ -290,8 +290,14 @@ candidate through pinned-host SSH to the fixed restricted VPS receiver. The
 receiver runs a fresh off-host backup, validates its receipt against the active
 release, and supplies the private runtime configuration. It copies the active
 Master environment into an immutable release-specific private file, changing
-only `Room__CatalogHash`; old settings remain available for compatible recovery.
-Routine CI releases therefore need no manual admission-environment edit.
+only `Room__CatalogHash` and the `Room__AdmittedArenas__*` entries, which it
+rewrites from the candidate's `admitted_arenas`: the Stage Select roster
+(`client/Unity/Assets/Resources/Stages/roster.json`) of the release commit. Old
+settings remain available for compatible recovery. Routine CI releases
+therefore need no manual admission-environment edit. A receiver installed
+before 2026-10-17 rejects the roster field; update the installed helpers once
+([steps](../../deploy/vps/README.md#updating-installed-helpers)) after the change
+merges and before the first release that carries it.
 
 The guarded `release.py` enforces fresh zero-active-match registration under the
 release lock immediately before replacing existing Master/GameHost writers.

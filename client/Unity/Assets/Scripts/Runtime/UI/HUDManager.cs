@@ -35,13 +35,20 @@ namespace SlopArena.Client.UI
             public readonly string Label;
             public readonly CharacterClass Class;
             public readonly bool IsLocal;
+            /// <summary>Online player name for the fight card; null offline.</summary>
+            public readonly string DisplayName;
+            /// <summary>Chat identity of an online player, for speech slips; null offline.</summary>
+            public readonly string ChatPlayerId;
 
-            public HudPlayer(ulong entityId, string label, CharacterClass @class, bool isLocal)
+            public HudPlayer(ulong entityId, string label, CharacterClass @class, bool isLocal,
+                string displayName = null, string chatPlayerId = null)
             {
                 EntityId = entityId;
                 Label = label;
                 Class = @class;
                 IsLocal = isLocal;
+                DisplayName = displayName;
+                ChatPlayerId = chatPlayerId;
             }
         }
 
@@ -201,6 +208,10 @@ namespace SlopArena.Client.UI
         private SoloEndCardView _soloEndCard;
 
         private readonly Dictionary<ulong, OverheadPanel> _billboardPanels = new();
+        // Chat identity -> fight entity for online players; empty offline.
+        private readonly Dictionary<string, ulong> _speakers = new(StringComparer.Ordinal);
+        private ChatSpeechSlips _speech;
+        private UnityEngine.Camera _camera;
 
         private ActionSlot[] _abilitySlots = Array.Empty<ActionSlot>();
         private InputPromptAtlas _promptAtlas;
@@ -250,6 +261,7 @@ namespace SlopArena.Client.UI
             // Rebuild player panels from the roster (badge color by roster position).
             _billboardLayer?.Clear();
             _billboardPanels.Clear();
+            _speakers.Clear();
             for (int i = 0; i < players.Count; i++)
             {
                 var p = players[i];
@@ -258,7 +270,13 @@ namespace SlopArena.Client.UI
                 var billboard = BuildBillboardPanel(p, i);
                 _billboardPanels[p.EntityId] = billboard;
                 _billboardLayer?.Add(billboard.Root);
+                if (!string.IsNullOrEmpty(p.ChatPlayerId))
+                    _speakers[p.ChatPlayerId] = p.EntityId;
             }
+            _speech?.Detach();
+            _speech = new ChatSpeechSlips(root, _billboardLayer,
+                id => _billboardPanels.TryGetValue(id, out var card) ? card.Root : null,
+                () => TargetingRoot);
 
             SetupMoveDeck();
 
@@ -411,9 +429,19 @@ namespace SlopArena.Client.UI
             tape.Add(badge);
             details.Add(tape);
 
-            var fighterName = new Label(p.Class.ToString().ToUpperInvariant());
+            string character = p.Class.ToString().ToUpperInvariant();
+            bool named = !string.IsNullOrEmpty(p.DisplayName);
+            var fighterName = new Label(named ? p.DisplayName : character) { enableRichText = false };
             fighterName.AddToClassList("fighter-name");
+            fighterName.EnableInClassList("fighter-name--player", named);
             details.Add(fighterName);
+            if (named)
+            {
+                // Online cards say who is playing; the fighter stays as a quiet tag.
+                var fighterTag = new Label(character);
+                fighterTag.AddToClassList("fighter-character");
+                details.Add(fighterTag);
+            }
             copy.Add(details);
 
             var damage = new Label("0%");
@@ -590,6 +618,10 @@ namespace SlopArena.Client.UI
         public void ShowSoloCountdown(string text, float seconds)
             => _soloCountdown?.Show(text, seconds);
 
+        /// <summary>A headline on the gold start card, without the countdown beat (Character Course ALL CLEAR!).</summary>
+        public void ShowSoloStamp(string text, float seconds)
+            => _soloCountdown?.Show(text, seconds, wide: true, sound: false);
+
         public void ShowSoloEnding(bool playerWon, bool sharedVictory, CharacterClass player, CharacterClass cpu)
         {
             _soloCountdown?.Clear();
@@ -614,9 +646,36 @@ namespace SlopArena.Client.UI
 
         public void SetCamera(UnityEngine.Camera camera)
         {
+            _camera = camera;
             if (_textVfx == null)
                 _textVfx = gameObject.AddComponent<MatchTextVFX>();
             _textVfx.SetCamera(camera);
+        }
+
+        /// <summary>
+        /// Print a Room chat line over the speaker's fighter, or beside their card
+        /// when the fighter is not on screen. False when the sender is not playing
+        /// in this match; the chat overlay then shows the line itself.
+        /// </summary>
+        public bool ShowChatSpeech(string senderPlayerId, string senderName, string text)
+        {
+            if (_speech == null || string.IsNullOrEmpty(senderPlayerId) ||
+                !_speakers.TryGetValue(senderPlayerId, out ulong entityId) ||
+                !_billboardPanels.TryGetValue(entityId, out var panel))
+                return false;
+            _speech.Show(entityId, senderName, panel.IdentityColor, text, onCard: entityId == _localEntityId);
+            return true;
+        }
+
+        /// <summary>The fight-card identity color of a chat identity playing in this match.</summary>
+        public bool TryGetSpeakerColor(string senderPlayerId, out Color color)
+        {
+            color = default;
+            if (string.IsNullOrEmpty(senderPlayerId) || !_speakers.TryGetValue(senderPlayerId, out ulong entityId) ||
+                !_billboardPanels.TryGetValue(entityId, out var panel))
+                return false;
+            color = panel.IdentityColor;
+            return true;
         }
 
         /// <summary>
@@ -717,10 +776,18 @@ namespace SlopArena.Client.UI
                 TickPanelJuice(panel, dt);
         }
 
+        private void LateUpdate()
+        {
+            _speech?.LateTick(Time.unscaledDeltaTime,
+                _camera != null ? _camera : UnityEngine.Camera.main,
+                ClientSettingsService.Instance.ReducedFlashing);
+        }
+
         private void OnDisable()
         {
             _soloCountdown?.Clear();
             _soloEndCard?.Clear();
+            _speech?.Clear();
         }
 
         private void UpdateModifierFeedback()

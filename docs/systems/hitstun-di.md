@@ -87,6 +87,8 @@ Golden tests: movement/hitstop/DI snapshots regenerate (REGENERATE_GOLDENS) when
 
 `HitstunLevel` — 0 = small / 1 = medium / 2 = hard — is re-derived from applied hitstun at hit time (ADR-0019), not from authored `StunTicks`. The client maps the level to the package's semantic hit-reaction bindings and plays the resolved clip through Animancer at the server-provided duration.
 
+Strong launches (at least 24 ticks of applied hitstun, sent at least 15° upward) play only the first 10 ticks of that clip at normal speed. Then the package's `presentation.tumble` clip takes over: a one-shot build-up, then a loop that lasts until the fighter acts or lands. This is presentation only; see the [tumble design](../design/airborne-tumble-animation.md).
+
 ## References
 
 - **[ADR-0019](../adr/0019-melee-based-hit-response.md)** — authoritative decision record.

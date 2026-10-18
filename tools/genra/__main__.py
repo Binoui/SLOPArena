@@ -72,14 +72,15 @@ def main(argv=None):
         from .render import motion_sheet
         first, last = (int(x) for x in args.range.split('-')) if args.range else (0, len(clip) - 1)
         views = tuple(v for v in args.views.split(',') if v) if args.views else ('front', brief.review_views[2], 'profile')
-        motion_sheet(clip, views, args.out, ticks=range(first, last + 1), every=args.every, marks=(brief['clock']['contact_tick'],))
+        motion_sheet(clip, views, args.out, ticks=range(first, last + 1), every=args.every, marks=(brief.split_tick,))
         print(f'wrote {args.out} (ticks {first}-{last})')
         return 0
     if args.command == 'video':
         from .render import preview_video
         clock = brief['clock']
-        views = tuple(v for v in args.views.split(',') if v) if args.views else brief.review_views[::2]
-        preview_video(clip, args.out, views, contact=clock['contact_tick'], active=clock['active'])
+        views = tuple(v for v in args.views.split(',') if v) if args.views else brief.preview_views
+        preview_video(clip, args.out, views, contact=clock.get('contact_tick'), active=clock.get('active'),
+                      loop_from=brief.loop_from)
         print(f'wrote {args.out} ({len(clip)} ticks)')
         return 0
     if args.command == 'sheet':
@@ -97,8 +98,8 @@ def main(argv=None):
         print(f'sheet: {args.sheet} ({len(views)} views x ticks {ticks})')
     if args.motion:
         from .render import motion_overview
-        motion_overview(clip, brief['clock']['contact_tick'], args.motion, ('front', brief.review_views[2], 'profile'))
-        print(f'motion: {args.motion} (paths from entry to contact, then contact to the end)')
+        motion_overview(clip, brief.split_tick, args.motion, ('front', brief.review_views[2], 'profile'))
+        print(f'motion: {args.motion} (paths from entry to tick {brief.split_tick}, then to the end)')
     return 0 if report['passed'] else 1
 
 

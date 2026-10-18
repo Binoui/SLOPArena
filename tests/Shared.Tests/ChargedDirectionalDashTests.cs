@@ -159,6 +159,71 @@ public sealed class ChargedDirectionalDashTests
         Assert.InRange(sim.GetState(1).PZ, 6.398f, 6.402f);
     }
 
+    [Fact]
+    public void DashEndsOnItsMarkerWhenItFinishesInsideAFighter()
+    {
+        var sim = MakeSim();
+        RegisterTarget(sim, 0f, 6.25f, invincibilityTicks: 500);
+        BeginCharge(sim, 60, aimYaw: 0);
+        Tick(sim, default);
+
+        bool recovered = false;
+        for (int i = 0; i < 120 && sim.GetActiveAbility(1) != null; i++)
+        {
+            Tick(sim, default);
+            if (sim.GetActiveAbility(1) is not { IgnoresFighterPushboxes: false }) continue;
+            recovered = true;
+            Assert.InRange(sim.GetState(1).PZ, 6.398f, 6.402f);
+        }
+
+        Assert.True(recovered);
+        Assert.InRange(sim.GetState(1).PZ, 6.398f, 6.402f);
+        Assert.True(6.4f - sim.GetState(2).PZ >= Definition.CapsuleRadius + TargetDef.CapsuleRadius - 0.001f);
+    }
+
+    [Fact]
+    public void LandingDuringTheDashKeepsItsFullDistance()
+    {
+        var sim = MakeSim(FlatStage());
+        sim.SetState(1, TestHelpers.PlayerState() with
+        {
+            PY = GroundY + 0.12f,
+            IsGrounded = false,
+            AirTimeTicks = 100, // past the float window, so gravity pulls it down mid-dash
+        });
+        BeginCharge(sim, 1, aimYaw: 0);
+        Tick(sim, default);
+
+        bool landedWhileDashing = false;
+        for (int i = 0; i < 120 && sim.GetActiveAbility(1) != null; i++)
+        {
+            Tick(sim, default);
+            landedWhileDashing |= sim.GetState(1).IsGrounded
+                && sim.GetActiveAbility(1) is { IgnoresFighterPushboxes: true };
+        }
+
+        Assert.True(landedWhileDashing);
+        float expected = 1.2f + 5.2f / 60f;
+        Assert.InRange(sim.GetState(1).PZ, expected - 0.002f, expected + 0.002f);
+    }
+
+    [Fact]
+    public void DashClimbsARampToItsFullDistance()
+    {
+        float rampTop = 2f * MathF.Tan(20f * MathF.PI / 180f);
+        var sim = MakeSim(StageFrom(
+            Quad(-5f, 5f, -5f, 0f, 1f, 0f),
+            Quad(-5f, 5f, 1f, 0f, 3f, rampTop),
+            Quad(-5f, 5f, 3f, rampTop, 10f, rampTop)));
+        BeginCharge(sim, 60, aimYaw: 0);
+        TickUntilEnd(sim);
+
+        var state = sim.GetState(1);
+        Assert.Equal(ActionState.Idle, state.State);
+        Assert.InRange(state.PZ, 6.398f, 6.402f);
+        Assert.InRange(state.PY, GroundY + rampTop - 0.01f, GroundY + rampTop + 0.01f);
+    }
+
     [Theory]
     [InlineData(0.8f)]
     [InlineData(4f)]
@@ -411,6 +476,27 @@ public sealed class ChargedDirectionalDashTests
         arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
         return arena;
     }
+
+    private static ArenaDefinition FlatStage()
+        => StageFrom(Quad(-10f, 10f, -10f, 0f, 10f, 0f));
+
+    private static ArenaDefinition StageFrom(params CollisionTriangle[][] quads)
+    {
+        var arena = TestHelpers.TestArena();
+        arena.CollisionTriangles = quads.SelectMany(quad => quad).ToArray();
+        arena.MinX = arena.MinZ = -10f;
+        arena.MaxX = arena.MaxZ = 10f;
+        arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
+        return arena;
+    }
+
+    /// <summary>Upward-facing quad over x0..x1, rising linearly from (z0, y0) to (z1, y1).</summary>
+    private static CollisionTriangle[] Quad(float x0, float x1, float z0, float y0, float z1, float y1)
+        => new[]
+        {
+            new CollisionTriangle { AX = x0, AY = y0, AZ = z0, BX = x0, BY = y1, BZ = z1, CX = x1, CY = y0, CZ = z0 },
+            new CollisionTriangle { AX = x0, AY = y1, AZ = z1, BX = x1, BY = y1, BZ = z1, CX = x1, CY = y0, CZ = z0 },
+        };
 
     private static CollisionTriangle Floor(float y, float minX, float maxX, float minZ, float maxZ)
         => new()

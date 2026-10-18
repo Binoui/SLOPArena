@@ -47,19 +47,29 @@ no background face intersects the blast corridor, and that nothing within 25 m o
 the roof (the 15 m orbit camera plus the 10 m side margin) rises above two metres
 under the kill plane. It does not establish collision, performance or acceptance.
 
-To apply, take your own bounded canonical Editor lease under the
-[coordination protocol](../../../docs/contributing/unity-editor-coordination.md).
-Copy the four generated files into `Assets/Stages/after_hours/Presentation/Neon`
-inside that lease, refresh, then run `sloparena.stage.art-after-hours`. It rejects a
-stamp whose source-scene or arena hash differs, replaces only previous art roots,
-configures the four materials, the night light rig and the stage atmosphere, and
-prunes orphaned sub-assets. Inspect with `sloparena.stage.inspect` without rebaking.
+Apply the build with one gateway call under your own bounded lease; it copies only the
+changed files into `Assets/Stages/after_hours/Presentation/Neon/` and imports only them:
 
-The Resources prefab stays local/ignored. Its art can be reconstructed from this
-source, the generated files and the apply command. Judge appearance from real
-gameplay-camera captures with the `sloparena.stage.views.*` batch in the
+```bash
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
+  sloparena.stage.art-apply --stage after_hours --from /tmp/after-hours-generated
+```
+
+[`presentation.py`](presentation.py) holds what it applies: the four materials, the
+night light rig, the stage atmosphere and the fight-night poster face. It rejects a
+stamp whose source-scene or arena hash differs, replaces only previous art roots and
+updates its own in place, and prunes orphaned sub-assets. Inspect with
+`sloparena.stage.inspect` without rebaking. The accepted art and Resources prefab are
+committed. Judge appearance from real gameplay-camera captures with the
+`sloparena.stage.views.*` batch in the
 [stage-authoring workflow](../../../skills/sloparena-stage-authoring/SKILL.md#procedural-presentation-and-visual-review);
 it handles the Play Mode setup and restores the Editor afterwards.
+
+The collision shell predates the shared `stagekit.shell` format: `layout.py
+--unity-shell` writes the roof outline and risers for the original eval rebuild, which
+created the scene from scratch with cube risers. Port `layout.py` to `stagekit.shell`
+(meshes for the roof and both risers) before the shell next changes, then rebake and
+rerun the arena tests; until then the baked arena stays as accepted.
 
 ## Fight-night billboard artwork
 
@@ -69,16 +79,15 @@ generated from the project's existing roster portraits; the adjacent artwork JSO
 records the references and intent. The rest of the city's signs remain procedural.
 
 The 1254×1254 poster has its own texture/material so a close camera does not magnify
-the old 256×256 atlas cell. `sloparena.stage.billboard-after-hours` finds the two
-triangles belonging to `arena_tonight` in the generated atlas UVs, derives a matching
-poster face and installs it within the existing frame. It does not rebuild the FBX,
-alter the city, or write the authoritative scene/arena. The native mesh/material
-assets are reproducible through the command. Full `sloparena.stage.art-after-hours`
-also reinstalls the face when this poster PNG is present.
+the old 256×256 atlas cell. The `posters` entry in `presentation.py` names that cell:
+`sloparena.stage.art-apply` finds the two triangles belonging to `arena_tonight` in the
+generated atlas UVs, derives a matching poster face and installs it within the existing
+frame whenever the poster PNG is present. It does not rebuild the FBX, alter the city,
+or write the authoritative scene/arena.
 
 The fixed poster explicitly supplies zero animation/travel UV channels to StageNeon
 and disables its material clock. This keeps the artwork rigid and steadily lit while
 the surrounding city retains its sign and traffic animation.
 
-Apply under your own bounded gateway lease, then judge it in Unity. Retain the PNG
-alongside the generated stage files when reconstructing the full art checkout.
+Apply under your own bounded gateway lease, then judge it in Unity. The PNG is
+committed with the rest of the accepted art.

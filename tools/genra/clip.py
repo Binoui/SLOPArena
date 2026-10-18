@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from scipy.interpolate import PchipInterpolator
+from scipy.interpolate import CubicHermiteSpline, CubicSpline, PchipInterpolator
 from scipy.spatial.transform import Rotation, Slerp
 
 from .rig import Rig, rotation_part, unit
@@ -26,12 +26,21 @@ class CharFrame:
     up: np.ndarray
 
     @classmethod
-    def from_pose(cls, pose: 'Pose') -> 'CharFrame':
+    def from_pose(cls, pose: 'Pose', facing: bool = True) -> 'CharFrame':
+        """Front is the fighter's facing when the rig knows it (Unity rig packs): the direction the game moves
+        and attacks along and the match camera looks along. Fighting stances turn the hips 40-90 degrees away from
+        it (Bonk's idle 90, Wibou's 77), so the hip line only sets front for a rig without a facing, or with
+        facing=False (briefs with "frame": "hips", the convention before 2026-10-18)."""
         rig, world = pose.rig, pose.world()
         up = rig.up
+        origin = world[rig.index('Hips'), 3, :3].copy()
+        forward = rig.facing if facing else None
+        if forward is not None:
+            front = unit(forward - up * (forward @ up))
+            return cls(origin, np.cross(front, up), front, up)
         right = world[rig.index('RightUpLeg'), 3, :3] - world[rig.index('LeftUpLeg'), 3, :3]
         right = unit(right - up * (right @ up))
-        return cls(world[rig.index('Hips'), 3, :3].copy(), right, np.cross(up, right), up)
+        return cls(origin, right, np.cross(up, right), up)
 
     @property
     def basis(self) -> np.ndarray:
@@ -190,7 +199,7 @@ class Clip:
         return clip
 
     @classmethod
-    def from_keys(cls, keys: dict, n_ticks: int, method='pchip', ease=None) -> 'Clip':
+    def from_keys(cls, keys: dict, n_ticks: int, method='pchip', ease=None, cycle=None) -> 'Clip':
         """Interpolate key poses {tick: Pose} to `n_ticks` dense ticks (0..n_ticks-1).
 
         method: 'pchip' (monotone cubic on rotation vectors relative to each joint's
@@ -201,8 +210,21 @@ class Clip:
         starting at that key (slerp only). Translations (the hips) follow the same
         method; scales are interpolated linearly. Ticks outside the keyed range hold
         the nearest key.
+        cycle: (first, last) keyed ticks of a seamless loop (pchip only). Key the same pose
+        at both; the keys between them follow a periodic cubic spline, so the motion keeps
+        its speed across the seam when the game wraps from `last` back to `first` (it may
+        overshoot a little between keys). Keys before `first` (a build-up) arrive at `first`
+        with the loop's velocity. A cycle cannot contain a full turn.
         """
         ticks = sorted(int(k) for k in keys)
+        if cycle is not None:
+            cycle = (int(cycle[0]), int(cycle[1]))
+            if method != 'pchip':
+                raise ValueError("cycle needs method='pchip'")
+            if cycle[0] not in keys or cycle[1] not in keys or cycle[1] - cycle[0] < 2:
+                raise ValueError(f'cycle {cycle}: key the same pose at both ticks, at least 2 ticks apart')
+            if ticks[-1] > cycle[1]:
+                raise ValueError(f'cycle {cycle}: no keys after the loop (tick {ticks[-1]})')
         first = keys[ticks[0]]
         rig = first.rig
         poses = [keys[k] for k in ticks]
@@ -214,6 +236,8 @@ class Clip:
             values = np.array([p.t[j] for p in poses])
             if len(ticks) == 1 or np.ptp(values, axis=0).max() < 1e-12:
                 t[:, j] = values[0]
+            elif cycle is not None:
+                t[:, j] = _cyclic(ticks, values, dense, cycle, f'{rig.names[j]} translation')
             elif method == 'pchip':
                 t[:, j] = PchipInterpolator(ticks, values, axis=0)(clamped)
             else:
@@ -227,7 +251,8 @@ class Clip:
             elif method == 'pchip':
                 base = rots[0]
                 vec = _continuous_rotvecs((base.inv() * rots).as_rotvec())
-                curve = PchipInterpolator(ticks, vec, axis=0)(clamped)
+                curve = (_cyclic(ticks, vec, dense, cycle, f'{rig.names[j]} rotation') if cycle is not None
+                         else PchipInterpolator(ticks, vec, axis=0)(clamped))
                 q[:, j] = (base * Rotation.from_rotvec(curve)).as_quat()
             else:
                 q[:, j] = _slerp(ticks, rots, clamped, ease)
@@ -300,6 +325,38 @@ def _lerp(ticks, values, dense, ease):
     for i, x in enumerate(dense):
         k, u = _segment(ticks, x, ease)
         out[i] = values[k] + (values[k + 1] - values[k]) * u
+    return out
+
+
+def _cyclic(ticks, values, dense, cycle, what):
+    """One channel with a seamless loop over cycle = (first, last): periodic cubic between those keys,
+    monotone cubic before `first` that arrives with the loop's velocity, held after `last`."""
+    first, last = cycle
+    inside = [i for i, tick in enumerate(ticks) if first <= tick <= last]
+    if np.abs(values[inside[-1]] - values[inside[0]]).max() > 1e-6:
+        raise ValueError(f'cycle {cycle}: {what} differs between the two ends; key the same pose at both '
+                         'and keep full turns out of the loop')
+    loop_values = values[inside].copy()
+    loop_values[-1] = loop_values[0]
+    loop_ticks = [ticks[i] for i in inside]
+    if len(inside) == 2:
+        loop_ticks.insert(1, (first + last) / 2)  # two equal keys: hold the pose
+        loop_values = np.insert(loop_values, 1, loop_values[0], axis=0)
+    periodic = CubicSpline(loop_ticks, loop_values, axis=0, bc_type='periodic')
+    out = np.empty((len(dense),) + values.shape[1:])
+    looped = (dense >= first) & (dense <= last)
+    out[looped] = periodic(dense[looped])
+    out[dense > last] = loop_values[0]
+    before = [i for i, tick in enumerate(ticks) if tick <= first]
+    early = dense < first
+    if len(before) >= 2 and early.any():
+        build_ticks = [ticks[i] for i in before]
+        slopes = PchipInterpolator(build_ticks, values[before], axis=0).derivative()(build_ticks)
+        slopes[-1] = periodic.derivative()(first)
+        build = CubicHermiteSpline(build_ticks, values[before], slopes, axis=0)
+        out[early] = build(np.clip(dense[early], build_ticks[0], first))
+    elif early.any():
+        out[early] = values[before[0]]
     return out
 
 

@@ -32,10 +32,15 @@ namespace SlopArena.Client.UI
             _context.Q<Button>("menu-solo")!.clicked += () => FrontendController.StartMode(GameMode.Solo);
             _context.Q<Button>("menu-training")!.clicked += () => FrontendController.StartMode(GameMode.Training);
             _context.Q<Button>("menu-arcade")!.clicked += () => FrontendController.StartMode(GameMode.Arcade);
+            var tutorial = _context.Q<Button>("menu-tutorial")!;
+            tutorial.clicked += () => FrontendController.StartMode(GameMode.Tutorial);
+            // Newcomers land on the tutorial until they have finished it once.
+            bool tutorialDone = TutorialView.HasCompleted;
+            _context.Q<VisualElement>("menu-tutorial-new")?.style.SetDisplay(!tutorialDone);
             var discordButton = _context.Q<Button>("menu-discord")!;
             discordButton.clicked += OpenDiscord;
             _context.AddReleaseAction(() => discordButton.clicked -= OpenDiscord);
-            MenuNavigation.Configure(_context, _context.Q<Button>("menu-training"), ReturnToMainMenu);
+            MenuNavigation.Configure(_context, tutorialDone ? _context.Q<Button>("menu-training") : tutorial, ReturnToMainMenu);
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
             _artworkColumn?.RegisterCallback<GeometryChangedEvent>(FitArtwork);

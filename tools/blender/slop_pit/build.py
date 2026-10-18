@@ -12,7 +12,6 @@ Run with a fresh factory scene; it never opens or saves a .blend file.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import os
@@ -25,8 +24,10 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.dirname(HERE))  # tools/blender: the shared stagekit
 
 from stagekit import checks, geo  # noqa: E402
+from stagekit.presentation import write as write_presentation  # noqa: E402
 
 import layout as LAYOUT  # noqa: E402
+import presentation as PRESENTATION  # noqa: E402
 import ring as RING  # noqa: E402
 import textures  # noqa: E402
 import venue as VENUE  # noqa: E402
@@ -36,29 +37,19 @@ DEFAULT_OUT = "/tmp/slop-pit-generated"
 DEFAULT_REPORT = REPO / ".stage-authoring-cache/slop_pit/ring"
 MATERIALS = ["SP_Lit", "SP_Floor", "SP_Canvas", "SP_Venue", "SP_Haze"]
 NIGHT = ("SP_Venue", "SP_Haze")
-ENVELOPE = 15.0          # orbit camera reach (radius 10 x 1.5 zoom) beyond the blast corridor
-ENVELOPE_CEILING = 2.0   # metres below the kill plane
+ENVELOPE = checks.CAMERA_REACH  # measured from the blast corridor, which includes the side margin
+ENVELOPE_CEILING = checks.CEILING_CLEARANCE
 ENVELOPE_TOP = 16.0      # metres above the top blast plane the camera can still reach
 NO_AO = {"Haze", "Crowd", "Fences", "Banners", "Venue Glow"}
-SHADOWED = ("Ring", "Ringside Floor", "Ring Tower")
+SHADOWED = PRESENTATION.SHADOWED
 SEED = 20261016
 TRIANGLE_BUDGET = 320_000  # planning target, reported only (performance is measured in Unity)
-FILES = ("SlopPitArena.fbx", "SlopPitArena.layout.json", "SlopPitAtlas.png", "SlopPitCanvas.png",
-         "SlopPitFloor.png", "SlopPitDetail.png")
+FILES = ("SlopPitArena.fbx", "SlopPitArena.layout.json", "SlopPitArena.presentation.json", "SlopPitAtlas.png",
+         "SlopPitCanvas.png", "SlopPitFloor.png", "SlopPitDetail.png")
 
 
 def args():
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    p = argparse.ArgumentParser()
-    p.add_argument("--out", default=DEFAULT_OUT)
-    p.add_argument("--report", default=str(DEFAULT_REPORT))
-    p.add_argument("--preview", action="store_true")
-    p.add_argument("--views", default="")
-    p.add_argument("--no-bake", action="store_true")
-    p.add_argument("--no-export", action="store_true")
-    p.add_argument("--spec-only", action="store_true")
-    p.add_argument("--samples", type=int, default=48)
-    return p.parse_args(argv)
+    return checks.build_args(DEFAULT_OUT, DEFAULT_REPORT)
 
 
 class Build:
@@ -225,6 +216,7 @@ def main():
                        "blender": bpy.app.version_string, "materials": MATERIALS, "shadowed": list(SHADOWED),
                        "objects": sorted(objects), "geometryDigest": digest, "problems": len(problems)}, fh, indent=1)
             fh.write("\n")
+        write_presentation(PRESENTATION.PRESENTATION, a.out)
     triangles = sum(g.triangle_count for g in b.groups.values())
     summary = {
         "source": data["source"], "sourceSha256": data["sourceSha256"], "arenaSha256": data["arenaSha256"],

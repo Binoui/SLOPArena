@@ -26,29 +26,21 @@ and spawns against the selected shell specification. A mismatch blocks export.
 `--no-bake --no-export` gives a faster geometry/clearance pass. `--spec-only` also
 requires `--no-export`; it is for reviewing unbaked layout intent only.
 
-After any changed C# has compiled, copy the four generated files below into
-`client/Unity/Assets/Stages/table_manners/Presentation/CraftRoom/` within your own
-bounded canonical Editor gateway lease, then refresh/import:
-
-- `TableMannersCraftRoom.fbx`
-- `TableMannersCraftRoom.layout.json`
-- `TableMannersAtlas.png`
-- `TableMannersDetail.png`
-
-Apply and inspect through the gateway, keeping dependent import/application in
-one batch as described by the [stage workflow](../../../skills/sloparena-stage-authoring/SKILL.md):
+Apply the build with one gateway call under your own bounded lease; it copies only the
+changed files into `Assets/Stages/table_manners/Presentation/CraftRoom/` and imports only them:
 
 ```bash
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.stage.art-table-manners
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.stage.inspect \
-  --stage table_manners --output .stage-authoring-cache/table_manners/rebuild/inspection.json
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
+  sloparena.stage.art-apply --stage table_manners --from /tmp/table-manners-generated
 ```
 
-The apply command verifies the export's source-scene and arena hashes, maps four
-stage materials, configures stage-owned daylight/atmosphere, and replaces only the
-superseded room/table roots and its own generated roots. It does not rebake or
-write gameplay data. The generated art and Resources prefab stay local/ignored;
-the source collision scene and original collision mesh assets remain versionable.
+[`presentation.py`](presentation.py) holds what it applies: the four materials (the lit ones tinted to 0.5 so pale gingham and paper keep their detail), the north-window daylight rig and the bright indoor atmosphere. It rejects a stamp
+whose source-scene or arena hash differs, replaces only superseded roots and updates its
+own in place, and never writes gameplay data. A lighting or material change is a
+`presentation.py` edit applied without a Blender run (see the
+[shared kit](../README.md#shared-kit)). The accepted art and Resources prefab are committed.
+Then inspect with `sloparena.stage.inspect --stage table_manners --output
+.stage-authoring-cache/table_manners/rebuild/inspection.json`.
 The source scene can be rebaked with `sloparena.stage.bake --stage table_manners`.
 
 ## Source files

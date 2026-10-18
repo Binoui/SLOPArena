@@ -1,41 +1,61 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <ui:Style src="Chat.uss" />
     <ui:Label name="chat-region-hint" class="chat-region-hint" picking-mode="Ignore" />
-    <ui:VisualElement name="chat-root" class="chat-root">
-        <ui:VisualElement name="chat-public-feed" class="chat-public-feed" />
+    <ui:VisualElement name="chat-root" class="chat-root" picking-mode="Ignore">
 
-        <ui:VisualElement name="chat-collapsed" class="chat-collapsed">
-            <ui:Button name="chat-open" text="CHAT" class="chat-open" />
-            <ui:Label name="chat-unread" class="chat-unread" />
+        <!-- Gameplay: quiet ticker, reply hint and the one-line composer slot.
+             Room lines from the people in the match become speech slips on the HUD. -->
+        <ui:VisualElement name="chat-lane" class="chat-lane" picking-mode="Ignore">
+            <ui:VisualElement name="chat-ticker" class="chat-ticker" picking-mode="Ignore" />
+            <ui:VisualElement name="chat-hint" class="chat-hint" picking-mode="Ignore">
+                <ui:Label name="chat-hint-keys" class="chat-hint__keys" picking-mode="Ignore" />
+                <ui:Label name="chat-hint-dm" class="chat-hint__dm" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="chat-lane-compose" class="chat-lane-compose" />
         </ui:VisualElement>
 
-        <!-- The shell owns account identity. This presenter owns chat channels,
-             conversation state and its compact/expanded presentation. -->
+        <!-- Menu, minimized: one slim tab with unread count, latest line and presence. -->
+        <ui:VisualElement name="chat-collapsed" class="chat-collapsed" picking-mode="Ignore">
+            <ui:Button name="chat-open" class="chat-open">
+                <ui:Label text="CHAT" class="chat-open__title" picking-mode="Ignore" />
+                <ui:Label name="chat-unread" class="chat-unread" picking-mode="Ignore" />
+                <ui:Label name="chat-peek" class="chat-peek" picking-mode="Ignore" />
+                <ui:Label name="chat-presence" class="chat-presence" picking-mode="Ignore" />
+            </ui:Button>
+        </ui:VisualElement>
+
+        <!-- Menu, open: one stream with filters, presence and a destination chip.
+             The shell owns account identity. -->
         <ui:VisualElement name="chat-panel" class="chat-panel">
+            <ui:VisualElement name="chat-head" class="chat-head">
+                <ui:Button name="chat-filter-all" class="chat-filter" />
+                <ui:Button name="chat-filter-room" class="chat-filter" />
+                <ui:Button name="chat-filter-global" class="chat-filter" />
+                <ui:Button name="chat-filter-direct" class="chat-filter" />
+                <ui:VisualElement class="chat-head__spacer" picking-mode="Ignore" />
+                <ui:Button name="chat-online" class="chat-online" tooltip="Players online: message or mute" />
+            </ui:VisualElement>
 
             <ui:VisualElement name="chat-main" class="chat-main">
-                <ui:VisualElement class="chat-tabs">
-                    <ui:Button name="chat-tab-global" text="GLOBAL" class="chat-tab"><ui:VisualElement class="chat-tab-underline" picking-mode="Ignore" /></ui:Button>
-                    <ui:Button name="chat-tab-server" text="SERVER CHAT" class="chat-tab"><ui:VisualElement class="chat-tab-underline" picking-mode="Ignore" /></ui:Button>
-                    <ui:Button name="chat-tab-direct" text="DIRECT" class="chat-tab"><ui:VisualElement class="chat-tab-underline" picking-mode="Ignore" /></ui:Button>
-                </ui:VisualElement>
-
-                <ui:VisualElement class="chat-body">
-                    <ui:VisualElement class="chat-detail">
-                        <ui:Button name="directory-refresh" text="REFRESH PLAYERS" class="chat-action chat-action--small" />
+                <ui:VisualElement name="chat-directory" class="chat-directory">
+                    <ui:VisualElement class="chat-directory__bar">
                         <ui:Label name="online-feedback" class="chat-feedback" />
-                        <ui:ScrollView name="online-list" class="online-list" horizontal-scroller-visibility="Hidden" />
-                        <ui:ScrollView name="chat-history" class="chat-history" vertical-scroller-visibility="Auto" horizontal-scroller-visibility="Hidden">
-                            <ui:Label name="history-feedback" class="chat-feedback chat-feedback--in-history" />
-                        </ui:ScrollView>
-                        <ui:Button name="chat-newest" text="RETURN TO NEWEST" class="chat-newest" />
-                        <ui:VisualElement class="chat-compose">
-                            <ui:TextField name="chat-draft" placeholdertext="Message literally…" class="chat-draft" />
-                            <ui:Button name="chat-send" text="SEND" class="chat-action chat-action--primary" />
-                        </ui:VisualElement>
+                        <ui:Button name="directory-refresh" text="REFRESH" class="chat-action--small" />
                     </ui:VisualElement>
+                    <ui:ScrollView name="online-list" class="online-list" horizontal-scroller-visibility="Hidden" />
+                </ui:VisualElement>
+                <ui:ScrollView name="chat-history" class="chat-history" vertical-scroller-visibility="Auto" horizontal-scroller-visibility="Hidden">
+                    <ui:Label name="history-feedback" class="chat-feedback chat-feedback--in-history" />
+                </ui:ScrollView>
+                <ui:Button name="chat-newest" text="RETURN TO NEWEST" class="chat-newest" />
+                <ui:VisualElement name="chat-compose" class="chat-compose">
+                    <ui:Button name="chat-to" class="chat-to" tooltip="Change who receives this message (Tab)" />
+                    <ui:TextField name="chat-draft" class="chat-draft" />
+                    <ui:Label name="chat-keys" class="chat-keys" picking-mode="Ignore" />
+                    <ui:Button name="chat-send" text="SEND" class="chat-action chat-action--primary" />
                 </ui:VisualElement>
             </ui:VisualElement>
+
             <ui:VisualElement name="chat-corner-actions" class="chat-corner-actions">
                 <ui:Button name="chat-close" tooltip="Hide chat" class="chat-icon-button">
                     <ui:VisualElement name="chat-close-icon" class="chat-icon-minimize" picking-mode="Ignore" />

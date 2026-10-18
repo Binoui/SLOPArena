@@ -2,6 +2,7 @@
   "name": "bonk-air1-whirlwind-v2",
   "notes": "Second pass of the air.1 whirlwind (2026-10-17): the owner 'really liked' the first version, whose collarbones and upper arms went far past Unity's Humanoid limits. Existing move-data clock (88 ticks, hitbox 19-39, IASA 52).",
   "rigpack": "artifacts/genra-rigpacks/bonk-unity",
+  "frame": "hips",
   "character": "Bonk (55 joints, five fingers; a 1.84 m greatsword fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
   "references": {
     "fall": "references/fall.usda",

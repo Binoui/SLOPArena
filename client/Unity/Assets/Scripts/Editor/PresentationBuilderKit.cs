@@ -24,7 +24,8 @@ namespace SlopArena.EditorTools
     /// under <c>CharacterPackages/&lt;package&gt;/Presentation</c>, keeping their GUIDs and,
     /// for unchanged inputs, their bytes. It then binds them to the package catalog, the
     /// catalog's weapon-trail style and the projectile visual config. Effects are built in a
-    /// preview scene that closes on <see cref="Finish"/> or disposal.
+    /// preview scene that closes on <see cref="Finish"/> or disposal. <see cref="ForFolder"/>
+    /// builds presentation no package owns, such as a Character Course's look.
     /// Pair with <see cref="PresentationFx"/> and <see cref="ToonShapes"/>.
     /// </summary>
     public sealed class PresentationBuilderKit : IDisposable
@@ -57,6 +58,37 @@ namespace SlopArena.EditorTools
                 AssetDatabase.CreateFolder(PackageRoot, "Presentation");
             _scene = EditorSceneManager.NewPreviewScene();
             _sceneOpen = true;
+        }
+
+        /// <summary>
+        /// A rebuild into <paramref name="root"/> with no package catalog to bind (a Character
+        /// Course's look, say). Close it with <see cref="Close"/> instead of <see cref="Finish"/>.
+        /// </summary>
+        public static PresentationBuilderKit ForFolder(string root, string audioFolder) => new(root, audioFolder, 0);
+
+        // The unused tag only keeps this overload apart from the package constructor.
+        private PresentationBuilderKit(string root, string audioFolder, int _)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
+                throw new InvalidOperationException($"Build {root} in stopped, compiled Edit Mode.");
+            if (!root.StartsWith("Assets/", StringComparison.Ordinal))
+                throw new ArgumentException("Folder presentation must live under Assets/.", nameof(root));
+            Root = root.TrimEnd('/');
+            AudioRoot = $"Assets/Resources/Audio/SFX/{audioFolder}";
+            EnsureFolder(Root);
+            _scene = EditorSceneManager.NewPreviewScene();
+            _sceneOpen = true;
+        }
+
+        /// <summary>Creates <paramref name="path"/> and any missing parents under Assets/.</summary>
+        public static void EnsureFolder(string path)
+        {
+            string current = "Assets";
+            foreach (string part in path.Split('/').Skip(1))
+            {
+                if (!AssetDatabase.IsValidFolder($"{current}/{part}")) AssetDatabase.CreateFolder(current, part);
+                current = $"{current}/{part}";
+            }
         }
 
         // ── Assets ───────────────────────────────────────────────────────────────
@@ -316,10 +348,18 @@ namespace SlopArena.EditorTools
             };
         }
 
+        /// <summary>Closes the preview scene and saves: the end of a <see cref="ForFolder"/> rebuild.</summary>
+        public object Close(object outputs = null)
+        {
+            CloseScene();
+            AssetDatabase.SaveAssets();
+            return new { success = true, root = Root, outputs, warnings = Warnings.ToArray() };
+        }
+
         public void Dispose() => CloseScene();
 
         private CharacterAssetCatalog LoadCatalog()
-            => AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>($"{PackageRoot}/CharacterAssetCatalog.asset")
+            => PackageId == null ? throw new InvalidOperationException($"{Root} has no package catalog to bind.") : AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>($"{PackageRoot}/CharacterAssetCatalog.asset")
                 ?? throw new InvalidOperationException($"{PackageId}'s CharacterAssetCatalog is missing.");
 
         private void CloseScene()

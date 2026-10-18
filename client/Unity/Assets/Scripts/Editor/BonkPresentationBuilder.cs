@@ -504,15 +504,17 @@ namespace SlopArena.EditorTools
         // ── Blade Storm (F) ──────────────────────────────────────────────────────
 
         /// <summary>
-        /// The spin: three red smears whirling around him at chest height, in a slightly tilted
-        /// circle. Each is the camera-facing ribbon trail of a particle orbiting his body, so it
-        /// reads from any angle (flat discs collapse into lines at the gameplay camera's height).
+        /// The spin: three red smears whirling around him at the height of his flat blade, in a
+        /// slightly tilted circle. Each is the camera-facing ribbon trail of a particle orbiting
+        /// his body, so it reads from any angle (flat discs collapse into lines at the gameplay
+        /// camera's height).
         /// </summary>
         private static GameObject Whirl(string name)
         {
             var root = _kit.NewRoot(name, attackBound: true);
             var orbit = Child(Frame(root, upright: true), "Orbit");
-            orbit.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+            // The blade spins about 1 m off the floor, 0.2 m above his hips in the low stance.
+            orbit.transform.localPosition = new Vector3(0f, 0.2f, 0f);
             orbit.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
             var whirl = Particles(orbit, "Smears", _m.Ribbon, 0.8f, ParticleSystemSimulationSpace.Local);
             Burst(whirl, 3);

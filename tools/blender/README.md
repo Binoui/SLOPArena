@@ -1,7 +1,8 @@
 # Procedural environment art
 
 Stage presentation can be generated entirely from Python in headless Blender and
-applied in Unity by a stage-specific command. These generators show the approach:
+applied in Unity by one shared command, `sloparena.stage.art-apply`, from data the
+generator writes. These generators show the approach:
 
 - [FightGuy Sanctuary](fightguy_sanctuary/README.md): a solo course on Himalayan
   rock pillars, shaded by `SLOPArena/StageVertexLit`.
@@ -16,10 +17,17 @@ applied in Unity by a stage-specific command. These generators show the approach
 - [Splash Deck](splash_deck/README.md): a painted fishing boat anchored in a
   Mediterranean harbour bay on a sunny morning, with a village, lighthouse and an
   animated sea on the presentation-only `SLOPArena/StageWater` shader.
+- [Slopball Night Court](slopball/README.md): the enclosed Arcade court as a floodlit
+  chain-link cage in a graffiti warehouse, with night light baked into StageNeon
+  vertex colours, additive light shafts and a live combo board.
+- [Fighter's License](license_test/README.md): the Tutorial's rooftop driving-test
+  deck with a painted course, a barred fence see-through to the city, a booth and a
+  cone cage recessed into the walls, and a broken guardrail over a 60 m drop.
 
 Keep each generator's source with its stage: it records how to rebuild, vary and
-repair the art. Generated FBX/textures and the Resources prefab stay local and
-ignored; another art checkout rebuilds them from this source and the apply command.
+repair the art. Once the maintainer accepts a stage, its generated FBX, textures,
+materials and Resources prefab are committed too (listed in `.gitignore`), so a fresh
+clone and a release build show exactly that art; this source rebuilds it.
 
 ```bash
 blender -b --factory-startup --python-exit-code 1 --python tools/blender/<key>/build.py -- \
@@ -28,7 +36,7 @@ blender -b --factory-startup --python-exit-code 1 --python tools/blender/<key>/b
 
 Keep `--python-exit-code 1`: without it Blender exits 0 after an unexpected Python
 error, and a reused `--out` folder still holds the previous run's export, which the
-apply command accepts because its stamp checks only the scene and arena hashes.
+`sloparena.stage.art-apply` accepts because its stamp checks only the scene and arena hashes.
 
 Character rigs follow the same rule: [manki_rig](manki_rig/README.md) rebuilds
 Manki's Unity rig from a Mixamo-rigged FBX.
@@ -43,11 +51,13 @@ not a universal generator; add to it only what a second stage actually needs.
 | Module | Provides |
 | --- | --- |
 | [geo.py](stagekit/geo.py) | Mesh kit in Unity coordinates: boxes, prisms, lathes, tubes, grids, map outlines, vertex colour and alpha masks, StageNeon animation channels, Blender conversion |
-| [blender.py](stagekit/blender.py) | Scene reset, objects, Cycles AO bake into vertex colours, FBX export with the Unity conventions, geometry digest, mesh-health counts |
+| [blender.py](stagekit/blender.py) | Scene reset, objects, Cycles AO bake into vertex colours, FBX export with the Unity conventions (byte-repeatable: an unchanged build leaves committed art untouched), geometry digest, mesh-health counts |
 | [checks.py](stagekit/checks.py) | Blast-corridor face clipping and the planned triangle budget |
 | [arena.py](stagekit/arena.py) | Reading a baked `.arena` (blast corridor, spawns, collision triangles) and file hashes |
 | [preview.py](stagekit/preview.py) | Eevee camera placement on a gameplay orbit |
 | [noise.py](stagekit/noise.py) | Smooth value noise and fbm (numpy) for procedural textures and terrain |
+| [presentation.py](stagekit/presentation.py) | The Unity presentation document (`<Stem>.presentation.json`) and a CLI that writes it without Blender |
+| [shell.py](stagekit/shell.py) | The collision-shell document `sloparena.stage.shell-apply` reads: indexed meshes, mesh assets, spawn markers |
 
 Kit changes must not silently change existing art. Every build prints and records
 a `geometryDigest` (in `build-report.json` and the export stamp). Rebuild every
@@ -63,24 +73,29 @@ the foot of a distant peak.
 
 ## Starting a new stage
 
-1. Lock the gameplay shell first through the stage design and authoring skills.
-   PvP generators read the baked arena with `stagekit.arena` and check it against an
-   approved layout spec, as After Hours does; course generators may read the source
-   scene, as the Sanctuary does.
-2. Create `tools/blender/<key>/`, copy `build.py`, `preview.py` and any motif
-   modules from the closest example, then replace their content. Import the kit
-   (`from stagekit import geo`) rather than copying it.
+The [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md#a-stage-pass-in-order)
+lists the whole pass; the generator side is:
+
+1. Lock the gameplay shell first through the stage design and authoring skills. PvP
+   generators keep the approved layout as a `SPEC` in `layout.py`, read the baked arena
+   with `stagekit.arena` and refuse to build against a different bake; course
+   generators may read the source scene, as the Sanctuary does. `layout.py --unity-shell`
+   writes the collision through `stagekit.shell` for `sloparena.stage.shell-apply`.
+2. Create `tools/blender/<key>/`, copy `build.py`, `layout.py`, `presentation.py`,
+   `preview.py` and any motif modules from the closest example, then replace their
+   content. Import the kit (`from stagekit import geo`) rather than copying it.
 3. Set `TRIANGLE_BUDGET` before building and keep distant scenery cheap: use level
-   of detail and skip faces that can never be seen from the arena. Both examples
-   build 250–300k triangles. The report flags an overrun; Unity measures performance.
-4. Build the massing and key lighting, apply it in Unity and capture gameplay views
-   before detailing. Eevee previews are for quick iteration only; the match camera's
-   ACES grade and bloom decide how emission and colour read. Check PvP and Training
-   lighting: Training's arena adds three directional lights, so light walkable
-   surfaces (a ring canvas, a tablecloth) need headroom to stay below the bloom.
-5. Write the stage's apply command after `SlopArenaSanctuaryHimalayaCommands.cs` or
-   `SlopArenaAfterHoursArtCommands.cs`: verify the stamp against the source and arena
-   hashes, configure materials, lights and atmosphere, and replace only its own roots.
+   of detail and skip faces that can never be seen from the arena. The 2026-10 stages
+   build 60–320k triangles. The report flags an overrun; Unity measures performance.
+4. Describe the Unity side in `presentation.py`: texture imports, materials by shader
+   property, shadow flags per object, the `Stage Lights` rig, atmosphere, posters and
+   review cameras. `build.py` writes it beside the FBX on export; nothing about the
+   stage is written in C#.
+5. Build the massing and key lighting, apply it with `sloparena.stage.art-apply --stage
+   <key> --from /tmp/<key>-generated` and capture gameplay views before detailing. Eevee
+   previews are for quick iteration only; the match camera's ACES grade and bloom
+   decide how emission and colour read, and `tools/capture_exposure.py` flags clipping.
+   With a `Stage Lights` rig, Training, Solo and PvP light the stage the same way.
 
 ### Pitfalls seen in generator passes
 
@@ -95,9 +110,25 @@ the foot of a distant peak.
 - **Text and decals have a reading side.** Unity is left-handed: facing -X your
   right is +Z. Decide where players stand when they read a sign or roof marking and
   map the atlas U from that viewer's left to right (see `boat.py`'s `_wall_decal`).
+- **Opaque shaders show an atlas cell's whole rectangle.** StageVertexLit and StageNeon
+  draw every texel, so a sign cell on rock or glass shows its background as a box, and a
+  glow sprite shows its clear corners as a lit square. Paint that must sit straight on a
+  surface is geometry (Kaboom Quarry's googly eyes, grin and spray text in stagekit's
+  font); atlas cells go on boards, posters and stickers; glowing shapes are geometry that
+  samples an opaque lamp block (see `manki_quarry/parts.py`).
+- **Near-white sunlit tops clip.** Kaboom Quarry's first pass clipped 20–30% of every
+  course capture, mostly white concrete tops and surf foam. Keep large walkable-top albedo
+  around 0.5, keep foam soft and check with `tools/capture_exposure.py`.
 - **Visual water inside the corridor is a declared exception.** Give it its own
   check role (flat at its level, just above the KO plane) rather than exempting the
   whole background check.
+- **The gameplay camera never looks up.** The orbit pitch is clamped to 0–45°, so
+  ceilings, rigs and the tops of tall walls are rarely on screen. Put what must read
+  in the band the default and level views actually see, and check it in Unity
+  captures; a lob-angle concept render shows views players never get.
+- **An Eevee world volume absorbs sunlight.** Since Eevee Next it acts as infinite
+  fog between the sun and the scene, so a sunlit preview with world haze goes dark.
+  Use a local volume box for preview haze instead.
 
 Follow the [stage-authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md)
 for gameplay safety, the bake and inspection, and `sloparena.stage.views.*`

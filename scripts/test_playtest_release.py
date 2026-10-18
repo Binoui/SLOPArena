@@ -74,6 +74,22 @@ class DeploymentReceiptTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(release.ReleaseError):
                 release.verify_deployment(self.candidate, changed)
 
+    def test_roster_admission_must_come_back_from_the_vps(self):
+        candidate = copy.deepcopy(self.candidate)
+        candidate["admitted_arenas"] = ["slop_pit", "log_off"]
+        result = copy.deepcopy(self.result)
+        result["admitted_arenas"] = ["slop_pit", "log_off"]
+        release.verify_deployment(candidate, result)
+        for receipt in ({k: v for k, v in result.items() if k != "admitted_arenas"},
+                        {**result, "admitted_arenas": ["slop_pit"]}):
+            with self.subTest(receipt=receipt.get("admitted_arenas")), self.assertRaises(release.ReleaseError):
+                release.verify_deployment(candidate, receipt)
+
+    def test_picker_roster_comes_from_the_stage_select_roster_file(self):
+        roster = release.picker_roster()
+        self.assertIn("slop_pit", roster)
+        self.assertEqual(len(roster), len(set(roster)))
+
     def test_rejects_unready_service_stale_registration_or_unknown_schema(self):
         unready = copy.deepcopy(self.result)
         unready["services"]["game"]["readiness"] = False

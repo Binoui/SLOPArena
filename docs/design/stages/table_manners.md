@@ -4,7 +4,7 @@ display_name: Table Manners
 target: pvp
 players: 2-4
 variant: static
-availability: provisional-visual-and-gameplay-review-pending
+availability: accepted
 competitive_intent: mixed
 topology: round craft table with a central cake riser and closed cloth recovery walls
 source_scene: client/Unity/Assets/Stages/table_manners/table_manners.unity
@@ -22,7 +22,7 @@ human_review:
 Tiny fighters brawl on a child's round craft table around a play-dough birthday
 cake. The maintainer selected the kids' craft-room setting, centre cake layout and
 floor-length tablecloth on 2026-10-16. The [design brief](table_manners.design.md)
-records the approved implementation scope and pending human visual/PvP reviews.
+records the approved implementation scope. The maintainer accepted the stage on 2026-10-17.
 It supersedes the former green coffee-table living room and its vendor art.
 
 ## Gameplay shell and intent
@@ -54,8 +54,9 @@ train, chairs, bunting and balloons; the north window opens onto a garden and sk
 Room-floor clutter is below the lower death plane, and distant furniture stays
 outside both the blast corridor and the checked camera envelope.
 
-`SlopArenaTableMannersArtCommands` validates the generated source/arena hash stamp
-before mapping the materials and replacing the old presentation roots. The
+`sloparena.stage.art-apply --stage table_manners` validates the generated source/arena
+hash stamp before applying the materials, lights and atmosphere from
+`tools/blender/table_manners/presentation.py` and replacing the old presentation roots. The
 prefab stays identity-aligned, carries its own daylight and atmosphere, and uses
 StageVertexLit plus StageNeon. Animated decorations remain cosmetic. Its
 `Stage Lights` rig is the only lighting in PvP and Training alike: Training switches

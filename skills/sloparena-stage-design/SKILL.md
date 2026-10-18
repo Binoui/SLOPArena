@@ -30,6 +30,16 @@ It must NOT run `sloparena.stage.bake`, `sloparena.stage.inspect`, asset-selecti
 
 Early layout talk should prefer terminal-ASCII wireframes. They are throwaway thinking tools, not deliverables.
 
+### One question round with options
+
+The 2026-10 stage passes ran on one round of two or three questions (shell/layout,
+setting, time of day or mood), each with two or three concrete options and a
+recommended default. Check every option against real jump heights before offering it.
+Keep one deliberately bolder option per question: the maintainer took the
+recommendation 11 times out of 14, and the two overrides produced the most changed
+layouts. Answers lock the direction (section 5), so ask everything that would
+change the build in that one round, then build.
+
 For courses, show each fork's approach, ordinary detour, ability crossing and common landing together. Check that required target placement preserves the intended choice. Calibrate short/full/running/double jumps with the actual kit through the production path; a visually large gap or an apex estimate alone does not establish difficulty. For an approved spacing revision, tune gaps individually and record protected landmarks rather than uniformly scaling the scene.
 
 ### Geometry before dressing
@@ -151,6 +161,18 @@ For the approved solo path, distinguish the locked implementation scope from
 pending human review in the brief. Neither replaces purpose-appropriate human
 playability acceptance.
 
+**Pick-based lock (procedural rebuilds).** When the maintainer chooses among concrete
+options for a rebuild (the question round above) and the shell is verified by bake,
+movement tests and gameplay-camera captures, the picks lock the direction without a
+gray-box in-game review: write `status: locked`, `locked:`, `approved_by` and an
+`approval_scope` naming the picks. The maintainer judges the built stage in game
+instead.
+
+**Acceptance.** When the maintainer has played the built stage and accepts it, set
+`status: accepted` and `accepted:` (date), and quote the verdict in the brief. Only
+then does its generated art get committed and the stage join
+`client/Unity/Assets/Resources/Stages/roster.json` (see the production skill).
+
 ## 6. Stage Design Brief format
 
 Path: `docs/design/stages/<key>.design.md` — sibling of the production brief; `<key>` is the immutable stage key.
@@ -160,9 +182,11 @@ Front matter:
 ```yaml
 ---
 key: <stage key>
-status: draft | locked
-locked: <YYYY-MM-DD, set only on sign-off>
+status: draft | locked | accepted
+locked: <YYYY-MM-DD, set only on sign-off or the maintainer's picks>
 approved_by: <user>
+approval_scope: <what the sign-off or picks approved>
+accepted: <YYYY-MM-DD, set when the maintainer accepts the built stage>
 blockout:
   - .stage-authoring-cache/<key>/design/lock-default.png
 ---

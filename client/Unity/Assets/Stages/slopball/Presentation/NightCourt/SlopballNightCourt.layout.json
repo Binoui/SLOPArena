@@ -1,0 +1,36 @@
+{
+ "generator": "tools/blender/slopball/build.py",
+ "source": "client/Unity/Assets/Stages/slopball/slopball.unity",
+ "sourceSha256": "6de11e377f4b523ae71788dea0978808882025978fb5edb5937a786fd6c5bc86",
+ "arena": "data/arenas/slopball.arena",
+ "arenaSha256": "0967d504d7fe0f3b3ec5a4ad42312d4698d325bc9c601612ddc9b6b0dca3aca4",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "NC_Court",
+  "NC_Night",
+  "NC_Beam"
+ ],
+ "objects": [
+  "Cage",
+  "Combo Board",
+  "Combo Hundreds",
+  "Combo Ones",
+  "Combo Tens",
+  "Court Floor",
+  "Court Net",
+  "Fence",
+  "Flood Beams",
+  "Flood Panels",
+  "Glow",
+  "Hall"
+ ],
+ "centred": [
+  "Combo Hundreds",
+  "Combo Tens",
+  "Combo Ones"
+ ],
+ "digitCell": 128,
+ "atlasSize": 4096,
+ "geometryDigest": "3183e52cb4525a9e72339511fddb76e36b7bbd2e0a7b07c72b2aaea8b3c88aa3",
+ "problems": 0
+}

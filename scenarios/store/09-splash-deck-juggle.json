@@ -1,0 +1,70 @@
+{
+ "stage": "splash_deck",
+ "notes": "Wibou's Rising Slash (E) catches Manki at the top of his jump over the harbour town.",
+ "capture": {
+  "from": 46,
+  "to": 58,
+  "step": 2,
+  "width": 3840,
+  "height": 2160,
+  "quality": 95
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    2.6,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "target": 2,
+   "input": [
+    {
+     "at": 28,
+     "press": "E"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    1.5,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "damage": 70,
+   "input": [
+    {
+     "from": 20,
+     "to": 34,
+     "jump": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "t2",
+   "pos": [
+    8,
+    1.0,
+    9
+   ],
+   "look": [
+    2,
+    3.2,
+    5
+   ],
+   "fov": 36,
+   "far": 4000
+  }
+ ],
+ "pick": {
+  "camera": "t2",
+  "tick": 50
+ }
+}

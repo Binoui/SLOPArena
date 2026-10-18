@@ -8,6 +8,7 @@ their artifacts are absent.
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -109,6 +110,32 @@ class GenraTests(unittest.TestCase):
             flexion, alignment = self.rig.hinge_state(pose.world(), name)
             self.assertGreater(flexion, 60, name)
             self.assertGreater(alignment, 0.99, name)
+
+    def test_cycle_keys_loop_seamlessly(self):
+        a = self.entry.copy()
+        two_bone(a, 'Right', 'Arm', [0.12, 0.05, 0.75])
+        b = self.entry.copy()
+        b.rotate('Hips', [1, 0, 0], 25).move_hips([0, -0.05, 0.03])
+        two_bone(b, 'Left', 'Arm', [-0.3, 0.2, 0.5])
+        keys = {0: self.entry, 12: a, 20: b, 32: a, 41: self.entry, 50: b}
+        spec = {'loop_from_tick': 20, 'clearance': False, 'face': False}
+        looped = Clip.from_keys(keys, 51, cycle=(20, 50))
+        for tick, pose in keys.items():
+            self.assertLess(np.abs(looped.pose(tick).world() - pose.world()).max(), 1e-9, tick)
+        report = check_clip(looped, spec)
+        self.assertFalse([f for f in report['failures'] if f['check'] == 'loop'], report['failures'])
+        self.assertLess(report['metrics']['loopSeamMetres'], 1e-9)
+        # Without the cycle the motion stops at the last key and starts again from rest: a jerk at the seam.
+        plain = check_clip(Clip.from_keys(keys, 51), spec)
+        self.assertTrue([f for f in plain['failures'] if f['check'] == 'loop'])
+        # The build-up arrives at the loop start with the loop's own velocity: no acceleration spike there.
+        hand = looped.positions('RightHand')
+        accel = np.linalg.norm(hand[2:] - 2 * hand[1:-1] + hand[:-2], axis=1)  # row i is tick i + 1
+        self.assertLessEqual(accel[19], accel[11:18].max())
+        with self.assertRaises(ValueError):
+            Clip.from_keys({0: self.entry, 20: a, 50: b}, 51, cycle=(20, 50))
+        with self.assertRaises(ValueError):
+            Clip.from_keys({**keys, 55: a}, 56, cycle=(20, 50))
 
     def test_keys_interpolation_and_clip_file(self):
         raised = self.entry.copy()
@@ -298,6 +325,26 @@ class CurrentCharacterPackTests(unittest.TestCase):
         self.assertLess(held['maxMissMetres'], 0.005)
         self.assertNotIn('grip', {f['check'] for f in check_clip(drifting, dict(spec, two_hands=[8, 12]))['failures']})
 
+    def test_frame_front_is_the_fighters_facing(self):
+        """Fighting stances turn the hips 40-90 degrees off the facing; front follows the facing (the game's
+        forward and the match camera) unless a brief pins the old hip frame."""
+        from genra.brief import Brief
+        root = REPO / f'artifacts/genra-rigpacks/{CURRENT[0]}-unity'
+        with tempfile.TemporaryDirectory() as tmp:
+            frames = {}
+            for kind in ('facing', 'hips'):
+                path = Path(tmp) / f'{kind}.json'
+                path.write_text(json.dumps({'name': kind, 'rigpack': str(root), 'frame': kind, 'references': {'idle': 'references/idle.usda'},
+                                            'entry': {'reference': 'idle', 'tick': 0}, 'clock': {'duration_ticks': 10}}))
+                frames[kind] = Brief(path).entry_frame
+        rig = Rig(root / 'rig.usda')
+        facing, hips = frames['facing'], frames['hips']
+        np.testing.assert_allclose(facing.front, rig.facing, atol=1e-9)
+        for frame in (facing, hips):  # one handedness: front = up x right
+            np.testing.assert_allclose(np.cross(frame.up, frame.right), frame.front, atol=1e-9)
+        self.assertGreater(np.degrees(np.arccos(np.clip(facing.front @ hips.front, -1, 1))), 20)
+        np.testing.assert_allclose(facing.origin, hips.origin)
+
     def test_hips_can_drop_while_the_fighter_stays(self):
         from genra.clip import CharFrame
         package = CURRENT[0]
@@ -325,6 +372,35 @@ class CurrentCharacterPackTests(unittest.TestCase):
         moved.t[rig.index('LeftForeArm')] *= 1.1  # a bone length change still fails
         clip.set_pose(5, moved)
         self.assertIn('translations', {f['check'] for f in check_clip(clip, {'clearance': False, 'face': False}, skin=skin)['failures']})
+
+
+
+class UnityJobTests(unittest.TestCase):
+    """How results and timelines become Unity jobs; no Unity or rig pack needed."""
+
+    def test_free_entries_keep_their_origin_and_only_whole_loops_cycle(self):
+        from genra.brief import Brief
+        from genra.unity_clip import write_flags
+        cases = {  # entry, loop -> flags
+            'attack': ({'reference': 'idle', 'tick': 0}, None, {'alignOrigin': True, 'loopTime': False}),
+            'aim hold': ({'reference': 'idle', 'tick': 0, 'match': False}, {'from_tick': 0}, {'alignOrigin': False, 'loopTime': True}),
+            'tumble': ({'reference': 'fall', 'tick': 0, 'match': False}, {'from_tick': 24}, {'alignOrigin': False, 'loopTime': False}),
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, (entry, loop, flags) in cases.items():
+                data = {'name': name, 'rigpack': '.', 'entry': entry, 'clock': {'duration_ticks': 30}}
+                if loop:
+                    data['loop'] = loop
+                path = Path(tmp) / f'{name}.json'
+                path.write_text(json.dumps(data))
+                self.assertEqual(write_flags(Brief(path)), flags, name)
+
+    def test_timeline_events_name_assets_or_bound_clips(self):
+        from genra.unity_clip import timeline_rows
+        spec = {'ticks': 10, 'rows': [{'label': 'B', 'title': 'B: beckon', 'moves': [[3, 5, 0.2]], 'events': [
+            {'tick': 0, 'clip': 'anim.wibou.idle'}, {'tick': 2, 'clip': 'Assets/X/loop.anim', 'fade': 0.1}]}]}
+        self.assertEqual(timeline_rows(spec), [{'label': 'B', 'moves': [[3, 5, 0.2]], 'events': [
+            {'tick': 0, 'semanticId': 'anim.wibou.idle'}, {'tick': 2, 'fade': 0.1, 'asset': 'Assets/X/loop.anim'}]}])
 
 
 if __name__ == '__main__':

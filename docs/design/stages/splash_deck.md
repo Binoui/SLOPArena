@@ -5,7 +5,7 @@ target: pvp
 players: 2-4
 variant: static
 authoritative_capability: null
-availability: provisional-human-camera-and-pvp-review-pending
+availability: accepted
 competitive_intent: mixed
 topology: broad fishing-boat deck with an aft wheelhouse and a forward fish hatch, solid hull walls to the KO plane
 source_scene: client/Unity/Assets/Stages/splash_deck/splash_deck.unity
@@ -14,8 +14,8 @@ cosmetic_prefab: client/Unity/Assets/Resources/Stages/splash_deck.prefab
 design_brief: docs/design/stages/splash_deck.design.md
 human_review:
   owner: project maintainer
-  status: pending
-  process: gameplay-camera orbit and recovery review, then external normal PVP at 2 and 4 players
+  status: accepted 2026-10-17
+  process: gameplay-camera orbit and recovery review, then normal PVP at 2 and 4 players
 ---
 
 # Splash Deck — Fishing Harbour
@@ -122,10 +122,10 @@ haze fog from 170 to 1500 units. It contains no Colliders or gameplay-owning scr
 ## Rebuilding
 
 The [generator guide](../../../tools/blender/splash_deck/README.md) documents the build
-and the native apply command `sloparena.stage.art-splash-deck`. Generated FBX/textures
-and the Resources prefab remain local under the project's stage-art ignore rules; the
-generator source, layout specification, water shader, Shared tests and editor apply
-command are kept in the repository. Source/arena hashes in the export stamp must match
+and the shared apply command `sloparena.stage.art-apply --stage splash_deck`, which reads
+the generator's `presentation.py`. The accepted generated art, the Resources prefab, the
+generator source, layout specification, water shader and Shared tests are all in the
+repository. Source/arena hashes in the export stamp must match
 before art can be applied, and application preserves the baked data and prefab GUID.
 
 ## Verification — 2026-10-16
@@ -191,5 +191,5 @@ before art can be applied, and application preserves the baked data and prefab G
   empty error console and free/settled ownership.
 
 Receipts and the barge backup are local under
-`.stage-authoring-cache/splash_deck/fishing-harbour-20261016/`. Human gameplay-camera,
-recovery and two/four-player PvP reviews remain pending.
+`.stage-authoring-cache/splash_deck/fishing-harbour-20261016/`. Accepted by the maintainer on 2026-10-17 after the stage pass ("the maps are much
+better"). Frame time and the packaged build were not measured separately.

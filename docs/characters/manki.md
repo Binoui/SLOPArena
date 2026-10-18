@@ -193,6 +193,19 @@ see the [grounding tool](../../tools/character_sizes/README.md).
 | **R** | Bazooka | Short cast → fire rocket in camera direction | FPS-style fire-and-forget. Projectile arcs, explodes on impact. Rocket jump (4 self-dmg) |
 | **F** | Aerosol Inferno | Hold aerosol can → release into a tall orange flame column | 18-tick minimum charge while stationary; camera yaw tracks facing; queued release fires after 8 startup ticks; 44-tick flame window, five charge tiers (10–26 damage), 30° launch, 30 ticks stun |
 
+## Explosions and bomb aim — 2026-10-18
+
+Approved with Manki's [Kaboom Quarry](../design/stages/manki_quarry.design.md) course:
+
+- **Every blast reaches everything in range.** Round Bomb and Bazooka explosions hit each
+  fighter, ball or course target inside their radius once, instead of stopping at the first
+  entity. A rocket jump now also hits the opponent standing beside Manki.
+- **The bomb lands where the cursor points.** The ground cursor follows the stage's own
+  collision, so it sits on raised islands, roofs and platforms. The server throw is
+  unchanged (fixed 30° lob, 12 m reach at foot height); the client sends the distance whose
+  arc passes through the cursor point, so a raised target costs reach (about 8.5 m for an
+  island 2.4 m up) and a lower one gains it.
+
 ## Local cooldown tuning — 2026-10-03
 
 Round Bomb's ground and aliased air cooldown is **240 ticks / 4 s**, reduced
@@ -244,9 +257,9 @@ The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pa
   drives the held can from the replicated charge (`ChargeTiers.Progress`) after `WeaponAttach`
   poses it, moves the cue onto the growing nozzle and restores the can on release.
 - **Sounds and art:** the clips are CC0 Kenney sounds plus generated hiss, sizzle, sputter and
-  whistle, in the ignored `Resources/Audio/SFX/Manki/` (see
-  [provenance](../assets/credits-and-licenses.md)). `tools/sfx/manki_clips.py` rebuilds them.
-  Without them the effects are silent and the builder lists the missing clips. The bomb nests
+  whistle, tracked in `Resources/Audio/SFX/Manki/` with their `.meta` files (see
+  [provenance](../assets/credits-and-licenses.md)). `tools/sfx/manki_clips.py` rebuilds them
+  when a sound changes. The bomb nests
   the local-only `Art/Characters/manki/Models/bomb.fbx`.
 - **Known issue:** F's hit effect can appear up to a metre above a victim who stands deep
   inside a high-tier flame. Shared reports a capsule contact on the hitbox surface toward the

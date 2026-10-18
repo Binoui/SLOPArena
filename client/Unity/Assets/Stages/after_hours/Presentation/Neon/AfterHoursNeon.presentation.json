@@ -1,0 +1,325 @@
+{
+ "format": 1,
+ "stage": "after_hours",
+ "folder": "Assets/Stages/after_hours/Presentation/Neon",
+ "model": "AfterHoursNeon.fbx",
+ "stamp": "AfterHoursNeon.layout.json",
+ "root": "After Hours Neon City",
+ "supersededRoots": [
+  "PlayableRoof",
+  "City",
+  "SpawnMarkers",
+  "WarmRoofFill",
+  "CoolRoofFill"
+ ],
+ "textures": [
+  {
+   "file": "AfterHoursAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 4
+  },
+  {
+   "file": "AfterHoursDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 4
+  },
+  {
+   "file": "AfterHoursFightNight.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 4,
+   "optional": true
+  }
+ ],
+ "materials": [
+  {
+   "slot": "AH_Build",
+   "asset": "AfterHoursBuild",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "AfterHoursAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "AfterHoursDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.5,
+    "_DetailStrength": 0.25,
+    "_Wrap": 0.35,
+    "_Specular": 0.2,
+    "_Gloss": 30,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 1
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.55,
+     0.5,
+     0.75
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": true
+   }
+  },
+  {
+   "slot": "AH_Night",
+   "asset": "AfterHoursNight",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "AfterHoursAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.42,
+    "_Ambient": 0.5,
+    "_Shade": 0.35,
+    "_Glow": 1.4,
+    "_FogAmount": 1,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.35,
+     0.8,
+     0.45,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "AH_Far",
+   "asset": "AfterHoursFar",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "AfterHoursAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.42,
+    "_Ambient": 0.5,
+    "_Shade": 0.35,
+    "_Glow": 1.6,
+    "_FogAmount": 0.45,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.35,
+     0.8,
+     0.45,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "AH_Sky",
+   "asset": "AfterHoursSky",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "AfterHoursAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0,
+    "_Shade": 0,
+    "_Glow": 1,
+    "_FogAmount": 0,
+    "_TimeScale": 1,
+    "_Cull": 0.0
+   }
+  }
+ ],
+ "shadows": {
+  "cast": false,
+  "receive": false
+ },
+ "lights": [
+  {
+   "name": "Moonlight",
+   "type": "directional",
+   "rotation": [
+    52,
+    155,
+    0
+   ],
+   "color": [
+    0.66,
+    0.7,
+    1
+   ],
+   "intensity": 0.3
+  },
+  {
+   "name": "DJ Violet",
+   "type": "point",
+   "position": [
+    10.5,
+    4,
+    0
+   ],
+   "color": [
+    0.62,
+    0.38,
+    1
+   ],
+   "intensity": 4,
+   "range": 14
+  },
+  {
+   "name": "Bar Pink",
+   "type": "point",
+   "position": [
+    -10.5,
+    4,
+    0
+   ],
+   "color": [
+    1,
+    0.38,
+    0.68
+   ],
+   "intensity": 4,
+   "range": 14
+  },
+  {
+   "name": "Dance Floor Glow",
+   "type": "point",
+   "position": [
+    0,
+    3.5,
+    0
+   ],
+   "color": [
+    1,
+    0.45,
+    0.8
+   ],
+   "intensity": 2.5,
+   "range": 12
+  },
+  {
+   "name": "Neon Row Spill",
+   "type": "point",
+   "position": [
+    0,
+    10,
+    30
+   ],
+   "color": [
+    1,
+    0.72,
+    0.48
+   ],
+   "intensity": 3,
+   "range": 45
+  },
+  {
+   "name": "River Spill",
+   "type": "point",
+   "position": [
+    0,
+    10,
+    -30
+   ],
+   "color": [
+    0.45,
+    0.78,
+    1
+   ],
+   "intensity": 2,
+   "range": 45
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.06,
+   0.045,
+   0.12
+  ],
+  "ambientSky": [
+   0.42,
+   0.36,
+   0.62
+  ],
+  "ambientGround": [
+   0.1,
+   0.08,
+   0.14
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.22,
+   0.1,
+   0.24
+  ],
+  "fogStart": 30,
+  "fogEnd": 650
+ },
+ "posters": [
+  {
+   "name": "After Hours Fight Night Billboard",
+   "texture": "AfterHoursFightNight.png",
+   "mesh": "AfterHoursFightNightFace",
+   "uvPixels": [
+    1026,
+    1278,
+    1538,
+    1790
+   ],
+   "atlasSize": 2048,
+   "offset": 0.015,
+   "material": {
+    "asset": "AfterHoursFightNight",
+    "shader": "SLOPArena/StageNeon",
+    "baseColor": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "floats": {
+     "_Base": 0.42,
+     "_Ambient": 0.5,
+     "_Shade": 0.35,
+     "_Glow": 0.75,
+     "_FogAmount": 1,
+     "_TimeScale": 0,
+     "_Cull": 2.0
+    },
+    "vectors": {
+     "_ShadeDirection": [
+      0.35,
+      0.8,
+      0.45,
+      0
+     ]
+    }
+   }
+  }
+ ]
+}

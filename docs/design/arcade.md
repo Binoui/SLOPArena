@@ -16,10 +16,13 @@ mechanics happens through play. Arcade works without an online match or account.
 
 | Challenge | Initial roster and content | Result |
 | --- | --- | --- |
-| Slopball | All four fighters; one shared underground sports club court | Continuous ball play; a small return-combo counter and local best |
-| Character Course | FightGuy only; one mountain martial-arts sanctuary | Time to break every required target and reach the finish |
+| Slopball | All four fighters; one shared court, a floodlit cage in an after-hours warehouse | Continuous ball play; a small return-combo counter and local best |
+| Character Course | One map per fighter: FightGuy's mountain sanctuary, Manki's [Kaboom Quarry](stages/manki_quarry.design.md) (2026-10-18, greybox pending play) | Time to break every required target and reach the finish |
 
-The longer-term course goal is one map per character. The first release proves
+The longer-term course goal is one map per character. Arcade's Course card lists every
+fighter with a course in `CharacterCourseMatch.Courses` (stage key, title, finish name,
+tips) whose baked profile admits it; picking the fighter picks its course, and all courses
+play in the one course scene. The first release proves
 both challenge types before expanding. When Arcade implementation begins,
 **Slopball is the first playable slice**. Getting the first working remote match
 remains the immediate engineering priority.
@@ -104,8 +107,9 @@ stance, including Shield and dodge; neither provides a larger or powered deflect
 A body bank over the net can score as a trick shot after reception.
 
 The court must clearly show the floor, halves, net and ball. The approved finish
-is a playful underground sports club: warm concrete, teal padding with coral/mint
-accents, warm fixtures, sparse court graphics and one smiling-ball club sign.
+(2026-10-17) is the Night Court: the club after closing, a floodlit chain-link cage in
+a graffiti warehouse, with the SLOPBALL lettering and smiling-ball mural on the sender
+wall and a flip board that shows the live combo.
 Its shared sports identity
 is shared by the roster, independent of FightGuy's mountain course.
 
@@ -181,6 +185,13 @@ ball play is the focus. Misses never open a results overlay. The Course can show
 completion results and a quick Retry or return to challenge selection. A full
 retry clears the entire attempt, including projectiles, queued effects, targets,
 checkpoint, shot sequence and pending input.
+
+Retry is one rebindable control: an instant key (Backspace by default), a short
+controller hold (Select) so a brushed button never discards a run, or **Retry** in
+the pause menu. Approved 2026-10-17: a Course retry restarts in place, without
+reloading the stage, and uses a quick READY…GO of about one second instead of 3-2-1.
+Entering from the menu keeps 3-2-1. The countdown never advances the simulation,
+so retry times stay comparable with existing records.
 
 Persist personal bests locally, separately from online identity and settings resets:
 

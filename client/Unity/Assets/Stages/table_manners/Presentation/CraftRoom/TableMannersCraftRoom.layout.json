@@ -1,0 +1,34 @@
+{
+ "generator": "tools/blender/table_manners/build.py",
+ "seed": 20261016,
+ "source": "client/Unity/Assets/Stages/table_manners/table_manners.unity",
+ "sourceSha256": "5116c5715ce19261b9a75935e8f1f6a660e72d45521b4e5e6915a87ff4de82c8",
+ "arena": "data/arenas/table_manners.arena",
+ "arenaSha256": "005e98dc7638dabb1c117f45dd33dab5ba3693732680db449b5618ef36aac230",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "TM_Build",
+  "TM_Cloth",
+  "TM_Glow",
+  "TM_Sky"
+ ],
+ "objects": [
+  "Art Corner",
+  "Bunk Corner",
+  "Ceiling",
+  "Craft Table",
+  "Garden",
+  "Garden Far",
+  "Party",
+  "Play Corner",
+  "Play-Dough Cake",
+  "Room Floor",
+  "Room Walls",
+  "Sky",
+  "Table Decals",
+  "Toy Train",
+  "Wall Decals"
+ ],
+ "geometryDigest": "79e7d16521cf138f9165d1dc5a41ef5c6cafb5743a06900815882bc0db42dc3b",
+ "problems": 0
+}

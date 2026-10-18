@@ -94,12 +94,16 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 2c240d0aa8bf456f4b34bb2728f62aff, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.r
+  - _semanticId: anim.wibou.r-charge
+    _clip: {fileID: 7400000, guid: 9ed7f6806b6135bf4a4eb7f9c20b677c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.wibou.r-charge
   - _semanticId: anim.wibou.f
     _clip: {fileID: 7400000, guid: bdb392334e0abf1fe8f9c4027f78265e, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.f
   - _semanticId: anim.wibou.tumble
-    _clip: {fileID: -623603649343465320, guid: b79032c6c9e8aa56ab188264f01fff1c, type: 3}
+    _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.tumble
   - _semanticId: anim.wibou.crouch

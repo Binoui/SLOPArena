@@ -1,10 +1,10 @@
 ---
 key: table_manners
-status: locked
+status: accepted
 locked: 2026-10-16
 approved_by: maintainer
 approval_scope: selected kids' craft table, centre cake layout, and floor-length cloth implementation
-runtime_camera_review: pending
+accepted: 2026-10-17
 blockout:
   - .stage-authoring-cache/table_manners/craft-20261016/inspect-shell/
   - tmp/table-manners-craft/pass-01/
@@ -16,8 +16,8 @@ On 2026-10-16 the maintainer requested a rework using the procedural stage proce
 with the name and geometry open to change. From the presented options they selected
 **Kids' craft table**, **Centre cake**, and **Floor-length cloth**. Those choices
 authorize this bounded implementation. The earlier Cozy Interior living room is
-superseded. The new captures have not been approved by the maintainer; in-game
-visual review and two/four-player PvP acceptance remain pending. The stage keeps
+superseded. The maintainer accepted the built stage on 2026-10-17 ("the maps are much
+better"). The stage keeps
 the immutable key `table_manners` and its existing display name.
 
 ## Personality
@@ -103,8 +103,7 @@ Training's extra key/fill/rim lights; review both lighting setups.
   under both stage-only PvP lighting and the Training scene's additional lights.
 - Full elevated orbit at 15° intervals and low recovery views at 45° intervals.
 - Native inspection: top, front, back, left, right and isometric shell overlays.
-- Human free orbit from the floor, cake top, edge and recovery positions remains
-  pending, followed by external two/four-player PvP acceptance.
+- The maintainer accepted the built stage on 2026-10-17.
 
 ## History
 

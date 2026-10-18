@@ -7,6 +7,18 @@ investigation flow and [the VPS runbook](../../deploy/vps/README.md) for access.
 Release through [the current pipeline](release-pipeline.md); a log request does
 not require a release, container restart or shared-Editor session.
 
+## Steam shows the Unity Editor as playing SLOPArena
+
+Steam integration is off by default in the Editor. For online testing, enable
+**Tools → SLOPArena → Steam → Enable in Editor** while stopped, then enter Play
+Mode. This preference is local to your machine; packaged players always use Steam.
+Solo and Training remain available with Editor Steam integration disabled.
+
+If Steam already tracks the Editor, save your work and fully close and reopen
+Unity once. Stopping Play Mode calls `SteamAPI.Shutdown`, but Valve documents that
+[shutdown does not remove Steam overlay hooks](https://partner.steamgames.com/doc/api/steam_api#SteamAPI_Shutdown).
+An explicit `--steam-probe-client` run still initializes Steam for its network test.
+
 ## Start with evidence from the reported match
 
 1. Record approximate UTC time, match ID, installed client version and symptom.

@@ -95,8 +95,11 @@ the left stick for movement and right stick for aim.
 API `1.5.0`. It owns capped hold charge, release-locked manual direction,
 continuously scaled distance, fighter-pushbox-only phasing, separate traversal
 and tier-scaled sword hit histories, final-segment animation seek, and recovery.
-Shields/terrain stop travel; incoming attacks retain ordinary interruption and
-damage authority. Its slot uses `DirectionalDash`/`GroundVector`, one stage,
+Shields/terrain stop travel; terrain stops it when a tick keeps less than 60% of
+its forward travel, except on the landing tick, so seams, ramps and landings do
+not end it. Recovery holds its position against fighter pushboxes, so the dash
+ends on its marker. Incoming attacks retain ordinary interruption and damage
+authority. Its slot uses `DirectionalDash`/`GroundVector`, one stage,
 tick-zero activation and zero IASA. Competing lifecycle, startup correction,
 motion and external hitbox operations are rejected. Lead/seek/recovery timings
 must fit the stage; both nested hitboxes use independent hit group zero.

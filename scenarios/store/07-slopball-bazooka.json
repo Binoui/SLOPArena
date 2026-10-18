@@ -1,0 +1,61 @@
+{
+ "notes": "Manki's Bazooka (R) meets a live Slopball serve on the Night Court; HUD included. Serves are random per attempt, so --intercept plans the shot from the ball's predicted flight.",
+ "prepare": [
+  "sloparena.photo.prepare",
+  "--stage",
+  "slopball",
+  "--fighter",
+  "manki"
+ ],
+ "viewport": [
+  "sloparena.ui.viewport",
+  "--width",
+  "3840",
+  "--height",
+  "2160",
+  "--gizmos",
+  "off"
+ ],
+ "live": {
+  "intercept": {
+   "slot": "R",
+   "speed": 40,
+   "gravity": 15,
+   "delay": 5,
+   "hold": 1,
+   "spawnY": 1.0,
+   "min": 3.4,
+   "max": 4.4,
+   "approachX": 0.8,
+   "approachZ": -4.6,
+   "cameraYaw": -14,
+   "pitch": 7,
+   "before": 4,
+   "after": 26
+  },
+  "camera": {
+   "follow": "fighter",
+   "move": true,
+   "lookOffset": [
+    0.4,
+    1.7,
+    3.0
+   ],
+   "pos": [
+    3.6,
+    -1.4,
+    -5.4
+   ],
+   "look": [
+    0,
+    0,
+    0
+   ],
+   "fov": 60,
+   "ease": 0.2
+  },
+  "step": 2,
+  "quality": 94
+ },
+ "pick": "the frame about 6 ticks after the reported Bazooka hit (blast star fully open)"
+}

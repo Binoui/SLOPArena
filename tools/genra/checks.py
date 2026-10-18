@@ -58,6 +58,26 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None) -> dict:
         if bad:
             fail('exit', f'ticks {bad[0]}..{bad[-1]} differ from the exit pose by up to {errs.max() * 1000:.1f} mm', ticks=bad)
 
+    # Loops: the game wraps from the last tick back to loop_from_tick, so those poses must match and the motion
+    # must keep its speed across the seam (no stop, no kink). The seam may not jerk harder than the loop itself.
+    loop_from = s.get('loop_from_tick')
+    if loop_from is not None and n - 1 - loop_from >= 3:
+        last = n - 1
+        seam = np.linalg.norm(positions[last] - positions[loop_from], axis=1)
+        metrics['loopSeamMetres'] = float(seam.max())
+        if seam.max() > tol:
+            fail('loop', f'tick {last} differs from tick {loop_from} by up to {seam.max() * 1000:.1f} mm '
+                         f'({rig.names[int(seam.argmax())]}); the loop must close exactly', ticks=[loop_from, last])
+        else:
+            jerk = np.linalg.norm(positions[loop_from + 1] - 2 * positions[last] + positions[last - 1], axis=1)
+            inner = positions[loop_from:last + 1]
+            inside = np.linalg.norm(inner[2:] - 2 * inner[1:-1] + inner[:-2], axis=2).max()
+            metrics['loopSeamJerkMetres'] = float(jerk.max())
+            if jerk.max() > max(1.5 * inside, 0.002):
+                fail('loop', f'{rig.names[int(jerk.argmax())]} changes speed by {jerk.max() * 100:.1f} cm/tick across '
+                             f'the seam (tick {last} -> {loop_from}); at most {inside * 100:.1f} inside the loop. Key it '
+                             f'with Clip.from_keys(..., cycle=({loop_from}, {last}))', ticks=[loop_from, last])
+
     # Frozen channels and fixed root. The hips may translate (crouch, lunge, weight shift): Unity bakes that into
     # the pose, and the fighter itself never moves. Bone lengths, scales and any joint above the hips stay fixed.
     hips = rig.index('Hips')
@@ -235,10 +255,14 @@ def measure(clip: Clip, t: dict) -> float:
     distance: |a - b| at tick           ahead: a ahead of b (front axis) at tick
     below: b above a (up axis) at tick  char: component ('right'|'front'|'up') of a at tick
     fastest_drop: tick ending a's fastest downward step within [first, last]
+    range: how far a travels along an axis ('right'|'front'|'up') within window [first, last]
     """
     kind, tick = t['kind'], t.get('tick')
     a = t.get('a')
     b = t.get('b')
+    if kind == 'range':
+        first, last = t.get('window', [0, len(clip) - 1])
+        return float(np.ptp(clip.positions(a)[first:last + 1, {'right': 0, 'front': 1, 'up': 2}[t['axis']]]))
     if kind == 'fastest_drop':
         first, last = t.get('window', [0, len(clip) - 1])
         z = clip.positions(a)[:, 2]

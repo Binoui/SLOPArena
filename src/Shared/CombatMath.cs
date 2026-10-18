@@ -158,5 +158,28 @@ namespace SlopArena.Shared
             hSpeed = speed * cosθ;
             vSpeed = speed * MathF.Sin(launchAngleRad);
         }
+
+        /// <summary>
+        /// Inverse of <see cref="ComputeProjectileLaunch"/> for a throw whose distance is always
+        /// measured at one landing height: the distance to send so the same fixed-angle arc passes
+        /// through a point at another height. A ground cursor on a raised island sends a longer
+        /// distance and one on a lower surface a shorter one, so the throw lands where it points.
+        /// Gravity cancels out. Returns <see cref="float.PositiveInfinity"/> when the point is on or
+        /// above the launch line, where no arc at this angle reaches it.
+        /// </summary>
+        /// <param name="horizontalDistance">Horizontal distance to the point.</param>
+        /// <param name="heightOffset">Point height minus launch height.</param>
+        /// <param name="launchAngleRad">Fixed launch angle above horizontal.</param>
+        /// <param name="landingHeightOffset">The throw's own landing height minus launch height.</param>
+        public static float LobDistanceThrough(float horizontalDistance, float heightOffset,
+            float launchAngleRad, float landingHeightOffset)
+        {
+            float tanθ = MathF.Tan(launchAngleRad);
+            float rise = horizontalDistance * tanθ - heightOffset;
+            if (horizontalDistance <= 0.001f || rise <= 0.001f) return float.PositiveInfinity;
+            // y(x) = x·tanθ − k·x² through the point; solve k·D² − tanθ·D + landing = 0 for D.
+            float k = rise / (horizontalDistance * horizontalDistance);
+            return (tanθ + MathF.Sqrt(tanθ * tanθ - 4f * k * landingHeightOffset)) / (2f * k);
+        }
     }
 }
