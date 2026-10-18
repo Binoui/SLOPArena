@@ -254,6 +254,27 @@ class ControllerTests(unittest.TestCase):
             dispatch.assert_not_called()
         self.assertEqual(saved["steps"]["workflow"]["status"], "dispatch-unconfirmed")
 
+    def test_dispatch_waits_for_github_to_list_the_new_run(self):
+        listed = {**run(), "html_url": "https://github.com/example/run"}
+        with mock.patch.object(controller, "main_revision", return_value="a" * 40), \
+             mock.patch.object(controller, "api"), \
+             mock.patch.object(controller, "discover_run", side_effect=[None, None, listed]) as discover, \
+             mock.patch.object(controller.time, "sleep") as sleep:
+            controller.dispatch(self.root, self.path, self.state)
+        self.assertEqual(discover.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(self.state["steps"]["workflow"]["status"], "running")
+        self.assertEqual(self.state["steps"]["workflow"]["runId"], listed["id"])
+
+    def test_dispatch_stays_unconfirmed_when_the_run_never_appears(self):
+        with mock.patch.object(controller, "main_revision", return_value="a" * 40), \
+             mock.patch.object(controller, "api"), \
+             mock.patch.object(controller, "discover_run", return_value=None) as discover, \
+             mock.patch.object(controller.time, "sleep"):
+            controller.dispatch(self.root, self.path, self.state)
+        self.assertEqual(discover.call_count, len(controller.DISPATCH_DISCOVERY_DELAYS) + 1)
+        self.assertEqual(self.state["steps"]["workflow"]["status"], "dispatch-unconfirmed")
+
     def test_moved_main_refuses_before_dispatch(self):
         with mock.patch.object(controller, "main_revision", return_value="e" * 40), \
              mock.patch.object(controller, "api") as dispatch:
