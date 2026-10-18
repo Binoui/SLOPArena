@@ -38,6 +38,13 @@ bar (~15 px capitals) turns it into a smudge and keeps the plain O.
 python3 tools/key_art/key_art.py namemark in.png out.png --centre 812 488 --size 112 --angle 3.2 --bomb
 ```
 
+## Steam library hero
+
+The hero must carry no text or logo, and Steam checks automatically. A generated image can fail
+it without any lettering: the first upload was rejected for a glyph the generator drew on Wibou's
+pendant and the crown emblem on Bonk's loincloth. [`clean_hero.py`](clean_hero.py) inpaints both
+(NumPy) into `hero_steam_clean.png`, the set's `hero` source. A regenerated hero needs its own boxes.
+
 ## Checks
 
 Portraits: keep the face horizontally centred, since the tall fighter-select card shows only

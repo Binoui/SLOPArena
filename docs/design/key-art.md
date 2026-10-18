@@ -24,11 +24,11 @@ the shorthand SLOPA. On large marks (the Steam logo and capsules, the Home poste
 | `Assets/UI/Arcade/SlopballPoster.png` | `Bonk's Night Court Smash.png` (P8), 1983x793 | as generated |
 | `Assets/UI/Arcade/CoursesPoster.png` | `course.png` (P9), 1983x793 | as generated; replaces the card's flat green field and its ONE MAP PER FIGHTER label |
 | `Assets/UI/FrontendPaperBackground.png` | `Warm newsprint with torn edge scraps.png` (P10), 1672x941 | as generated |
-| Steam store and library (`steam` outputs) | P5, P6, P7 (`... wide newsprint showdown-2.png`), P10 | capsules with the name mark; text-free hero upscaled to 3840x1240; transparent 1280x312 logo; README and previews beside them |
+| Steam store and library (`steam` outputs) | P5, P6, P7 (`... wide newsprint showdown-2.png`, retouched as `hero_steam_clean.png`), P10 | capsules with the name mark; text-free hero upscaled to 3840x1240; transparent 1280x312 logo; README and previews beside them |
 | Steam community icon and client `.ico` | `Assets/UI/SlopArenaIcon.png` | the bomb on Action Yellow; replaces the X-eyed crowned smiley |
 | SlopArena-web portraits, nameplate and trailer poster | the portraits; the logo; P5 without the mark | the shadowless logo is the hero nameplate and the social card's; the trailer's play button sits on the empty plate |
 
-The top bar's wordmark reads `SLOPArena` too. The two Arcade cards and the wallpaper keep their
+Steam rejected the first library hero upload ("appears to contain text or a logo") although nothing was lettered on it. [`tools/key_art/clean_hero.py`](../../tools/key_art/clean_hero.py) removes the two likeliest marks: a letter-like glyph the generator drew on Wibou's pendant and the crown emblem on Bonk's loincloth. The set builds the hero from that retouched original. The top bar's wordmark reads `SLOPArena` too. The two Arcade cards and the wallpaper keep their
 5:2 and 16:9 proportions (`nPOTScale: None`). The Home poster and wallpaper were local-only before;
 they are versioned now, and the replaced versions are kept in the ignored
 `artifacts/key-art-import-20261018/`. The P5 variant `-2` and the other hero candidate
@@ -417,7 +417,7 @@ SAFE AREAS
 Faces between 15% and 72% of the height and between 11% and 89% of the width. Nothing important in the bottom 16%, which Steam darkens.
 
 TEXT ALLOWED
-None at all: Valve requires the library hero to be text-free.
+None at all: Valve requires the library hero to be text-free. Keep every costume and prop free of symbols, letters and emblems too: draw Wibou's pendant as a plain glossy drop and Bonk's loincloth plain, without its crown mark. Steam's automatic check rejects a hero with anything that reads as text or a logo.
 ```
 
 ### P8. Arcade card: Slopball
