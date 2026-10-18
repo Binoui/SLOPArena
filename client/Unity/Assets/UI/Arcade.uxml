@@ -27,10 +27,7 @@
                                 </ui:VisualElement>
                                 <ui:Label text="Break every target. Reach the finish. Beat your time." class="arcade-mode-rule" />
                             </ui:VisualElement>
-                            <ui:VisualElement class="arcade-mode-art arcade-mode-art--course" picking-mode="Ignore">
-                                <ui:Label text="ONE MAP&#10;PER FIGHTER." class="course-card-route" />
-                                <ui:Label text="FIGHTGUY · MANKI" class="arcade-section-label" />
-                            </ui:VisualElement>
+                            <ui:VisualElement class="arcade-mode-art arcade-mode-art--course" picking-mode="Ignore" />
                         </ui:Button>
                     </ui:ScrollView>
                 </ui:VisualElement>

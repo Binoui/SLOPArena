@@ -62,6 +62,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | Document | Use it for |
 | --- | --- |
 | [Visual language](design/visual-language.md) | Graphic identity, UI composition, palette, typography, motion, and presentation voice |
+| [Key art](design/key-art.md) | The 2026-10-18 game, Steam and website art: the SLOPArena name mark, live-model reference sheets, generation prompts and the derivation set |
 | [Stage concepts](design/stage-concepts.md) | Gameplay-first PVP stage concepts, readability, topology, and background hierarchy |
 | [Traversal courses](design/traversal-courses.md) | Solo course interviews, ordinary/ability route choices, jump calibration and repeatable tuning |
 | [Course replay and capture](testing/course-replay.md) | Scenario/input files, tick-based screenshots, observed checks and Editor restoration |

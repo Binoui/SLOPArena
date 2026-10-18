@@ -1,0 +1,61 @@
+{
+  "about": "The 2026-10-18 key art set: owner-generated originals (prompts P1-P10 in docs/design/key-art.md) and every derived game, Steam and website image. Crops are [left, top, right, bottom] in source pixels.",
+  "roots": {
+    "originals": "~/Downloads/sloparena/newart",
+    "repo": ".",
+    "game": "client/Unity/Assets",
+    "steam": "~/Downloads/sloparena/newart/steam",
+    "web": "../SlopArena-web"
+  },
+  "sources": {
+    "fightguy": "fightguy_splash.png",
+    "manki": "manki_splash.png",
+    "wibou": "wibou_splash.png",
+    "bonk": "bonk_splash.png",
+    "wide": "SlopArena Four-Fighter Fight Night-1.png",
+    "tall": "key_art.png",
+    "hero": "Four fighters in a wide newsprint showdown-2.png",
+    "slopball": "Bonk’s Night Court Smash.png",
+    "courses": "course.png",
+    "paper": "Warm newsprint with torn edge scraps.png",
+    "icon": "repo:client/Unity/Assets/UI/SlopArenaIcon.png"
+  },
+  "marks": {
+    "wide": {"centre": [812, 488], "size": 112, "angle": 3.2},
+    "home": {"centre": [814, 492], "size": 112, "angle": 3.2, "tagline": true},
+    "tall": {"centre": [500, 721], "size": 132}
+  },
+  "outputs": [
+    {"to": "game:UI/SplashArt/FightGuy.png", "from": "fightguy"},
+    {"to": "game:UI/SplashArt/Manki.png", "from": "manki"},
+    {"to": "game:UI/SplashArt/Wibou.png", "from": "wibou"},
+    {"to": "game:UI/SplashArt/Bonk.png", "from": "bonk"},
+    {"to": "game:Resources/UI/Portraits/FightGuy.png", "from": "fightguy", "crop": [260, 70, 780, 590], "size": [512, 512]},
+    {"to": "game:Resources/UI/Portraits/Manki.png", "from": "manki", "crop": [305, 190, 785, 670], "size": [512, 512]},
+    {"to": "game:Resources/UI/Portraits/Wibou.png", "from": "wibou", "crop": [310, 45, 810, 545], "size": [512, 512]},
+    {"to": "game:Resources/UI/Portraits/Bonk.png", "from": "bonk", "crop": [320, 200, 760, 640], "size": [512, 512]},
+    {"to": "game:UI/MainMenuBackground.png", "from": "wide", "mark": "home", "size": [1438, 810]},
+    {"to": "game:Stages/after_hours/Presentation/Neon/AfterHoursFightNight.png", "from": "tall", "mark": "tall", "crop": [0, 512, 1024, 1536], "size": [1254, 1254]},
+    {"to": "game:UI/Arcade/SlopballPoster.png", "from": "slopball"},
+    {"to": "game:UI/Arcade/CoursesPoster.png", "from": "courses"},
+    {"to": "game:UI/FrontendPaperBackground.png", "from": "paper"},
+
+    {"to": "steam:store/header_capsule_english.png", "from": "wide", "mark": "wide", "crop": [0, 30, 1672, 811], "size": [920, 430]},
+    {"to": "steam:store/small_capsule_english.png", "from": "wide", "mark": "wide", "crop": [345, 320, 1245, 659], "size": [462, 174]},
+    {"to": "steam:store/main_capsule_english.png", "from": "wide", "mark": "wide", "crop": [15, 0, 1657, 941], "size": [1232, 706]},
+    {"to": "steam:store/vertical_capsule_english.png", "from": "tall", "mark": "tall", "crop": [0, 155, 1024, 1381], "size": [748, 896]},
+    {"to": "steam:store/page_background_english.png", "from": "paper", "crop": [0, 0, 1671, 941], "size": [1438, 810]},
+    {"to": "steam:library/library_capsule_english.png", "from": "tall", "mark": "tall", "size": [600, 900]},
+    {"to": "steam:library/library_header_english.png", "from": "wide", "mark": "wide", "crop": [0, 30, 1672, 811], "size": [920, 430]},
+    {"to": "steam:library/library_hero_english.png", "from": "hero", "crop": [0, 0, 2206, 712], "size": [3840, 1240], "sharpen": true},
+    {"to": "steam:library/library_logo_english.png", "logo": {"width": 1280}},
+    {"to": "steam:community/community_icon_english.jpg", "from": "icon", "icon": {"background": "#FFCC22", "margin": 0.06}, "size": [184, 184], "quality": 95},
+    {"to": "steam:community/client_icon.ico", "from": "icon", "ico": [16, 24, 32, 48, 64, 96, 128, 256]},
+
+    {"to": "web:src/assets/key-art/trailer-poster.jpg", "from": "wide", "crop": [0, 0, 1672, 940], "size": [1600, 900], "quality": 88},
+    {"to": "web:src/assets/fighters/fightguy-portrait.png", "from": "repo:client/Unity/Assets/Resources/UI/Portraits/FightGuy.png"},
+    {"to": "web:src/assets/fighters/manki-portrait.png", "from": "repo:client/Unity/Assets/Resources/UI/Portraits/Manki.png"},
+    {"to": "web:src/assets/fighters/wibou-portrait.png", "from": "repo:client/Unity/Assets/Resources/UI/Portraits/Wibou.png"},
+    {"to": "web:src/assets/fighters/bonk-portrait.png", "from": "repo:client/Unity/Assets/Resources/UI/Portraits/Bonk.png"}
+  ]
+}

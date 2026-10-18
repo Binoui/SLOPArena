@@ -8,12 +8,12 @@ Staging the fight, placing the camera and choosing the frame are fine.
 
 ## Current set
 
-Shot 2026-10-18. The recipes in [`scenarios/store/`](../../scenarios/store/) reproduce each
+Shot 2026-10-18; 01, 02, 07 and 08 were re-shot the same day with the new portraits and the SLOPArena billboard. The upload set, with the store and library art, is built by [`tools/key_art`](../../tools/key_art/README.md). The recipes in [`scenarios/store/`](../../scenarios/store/) reproduce each
 shot; `pick` records the chosen camera, tick and crop.
 
 | # | Stage | Moment |
 | --- | --- | --- |
-| 01 | After Hours | Manki's Bazooka launches FightGuy; Manki's grin rises from the smoke under the SLOP ARENA billboard |
+| 01 | After Hours | Manki's Bazooka launches FightGuy; Manki's grin rises from the smoke under the SLOPArena billboard |
 | 02 | Splash Deck | Bonk's ground 4 launches Wibou at 142% past the NO FIGHTING ON DECK sign, HUD on |
 | 03 | Slop Pit | All four fighters: Rising Dragon on Wibou, Aerosol Inferno on Blade Storm |
 | 04 | Last Stop | Manki's Jetpack Boost out of the gap beside the train, Wibou's kunai in the air |
