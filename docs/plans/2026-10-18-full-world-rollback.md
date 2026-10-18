@@ -250,6 +250,11 @@ ship together as protocol 10.
 - **Noted for phase 5:** in the Editor no anchor was byte-exact while the opponent
   re-aimed every tick, whereas the .NET peer predicting the idle Editor fighter was exact
   89 % of the time; phase 5 must separate Mono/.NET drift from input changes.
+- **Noted for phase 5 (CI, 2026-10-18):** even .NET 8 on two Linux hosts diverges. The
+  seeded slop_pit FightGuy–Manki lab fight lands 12 GameHost hits on the maintainer's
+  machine (glibc 2.44, zlib-ng) and 7 on GitHub's ubuntu-latest (older glibc and zlib),
+  so the C library's float functions alone change fight outcomes. The lab tests now
+  check consistency, not an exact fight, and truncation by cutting into the compressed body.
 - **Remaining:** the Steam playtest against the checklist (TESTING-UNITY.md).
 
 ### Phase 5 — Parity measurement and diagnostics

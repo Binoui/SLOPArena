@@ -126,7 +126,13 @@ public class WorldFramePacketTests
         BinaryPrimitives.WriteUInt32LittleEndian(wrongTick.AsSpan(8), BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(8)) + 1);
         Assert.False(WorldFramePacket.TryDeserialize(wrongTick, out _));
         Assert.False(WorldFramePacket.TryDeserialize(bytes.AsSpan(0, WorldFramePacket.HeaderSize - 1), out _));
-        Assert.False(WorldFramePacket.TryDeserialize(bytes.AsSpan(0, bytes.Length - 1), out _));
+        // Cutting into the body always fails. Cutting only the last byte may remove nothing but
+        // DEFLATE's end-of-stream bits, depending on the zlib build that compressed the frame:
+        // such a frame may decode, but only to the original packet.
+        int payloadBytes = bytes.Length - WorldFramePacket.HeaderSize;
+        Assert.False(WorldFramePacket.TryDeserialize(bytes.AsSpan(0, WorldFramePacket.HeaderSize + payloadBytes / 2), out _));
+        if (WorldFramePacket.TryDeserialize(bytes.AsSpan(0, bytes.Length - 1), out var lastByteCut))
+            Assert.Equal(bytes, lastByteCut!.Serialize());
     }
 
     [Fact]
