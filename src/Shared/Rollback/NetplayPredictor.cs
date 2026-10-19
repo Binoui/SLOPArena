@@ -40,6 +40,9 @@ namespace SlopArena.Shared.Rollback
             new(static e => e.Key, static k => k.MatchTick);
         private readonly RollbackLedger<HitKey, SpellResolver.HitResult> _hits =
             new(static h => HitKey.Of(h), static k => k.MatchTick);
+        private readonly RollbackLedger<SlopballEventKey, SlopballTickEvent> _slopball =
+            new(static e => e.Key, static k => k.MatchTick);
+        private readonly List<SlopballTickEvent> _tickSlopball = new();
         private readonly List<TimelinePresentationEvent> _tickEvents = new();
         private readonly List<SpellResolver.HitResult> _tickHits = new();
         private CharacterState[] _presented = Array.Empty<CharacterState>();
@@ -163,6 +166,10 @@ namespace SlopArena.Shared.Rollback
         public void DrainHits(List<SpellResolver.HitResult> started, List<SpellResolver.HitResult> retracted)
             => _hits.Drain(started, retracted);
 
+        /// <summary>Slopball events to present, and predicted ones the GameHost ruled out, since the previous call (ADR-0040).</summary>
+        public void DrainSlopballEvents(List<SlopballTickEvent> started, List<SlopballTickEvent> retracted)
+            => _slopball.Drain(started, retracted);
+
         /// <summary>Prediction health since the previous call.</summary>
         public NetplayPredictorStats TakeStats()
         {
@@ -234,10 +241,12 @@ namespace SlopArena.Shared.Rollback
             SwapAssumed();
             _events.BeginResimulation(tick);
             _hits.BeginResimulation(tick);
+            _slopball.BeginResimulation(tick);
             for (uint t = tick + 1; t <= _localTick; t++)
                 SimulateTick(t);
             _events.EndResimulation();
             _hits.EndResimulation();
+            _slopball.EndResimulation();
             MeasureSnap();
 
             _window.ResimulatedTicks += (int)age;
@@ -288,6 +297,13 @@ namespace SlopArena.Shared.Rollback
             _sim.Tick(_tickInputs);
             _events.RecordPredicted(_sim.GetPresentationEvents(clear: true));
             _hits.RecordPredicted(_sim.LastTickHits);
+            if (_sim.Slopball.HasValue)
+            {
+                _tickSlopball.Clear();
+                foreach (var item in _sim.LastTickSlopballEvents)
+                    _tickSlopball.Add(new SlopballTickEvent(_sim.SimulationTick, item));
+                _slopball.RecordPredicted(_tickSlopball);
+            }
             StorePrediction(tick, _sim.CaptureSnapshot());
         }
 
@@ -305,6 +321,14 @@ namespace SlopArena.Shared.Rollback
                     if (hit.MatchTick == tick)
                         _tickHits.Add(hit);
                 _hits.RecordAuthoritative(tick, _tickHits);
+                if (_sim.Slopball.HasValue)
+                {
+                    _tickSlopball.Clear();
+                    foreach (var item in frame.SlopballEvents)
+                        if (item.MatchTick == tick)
+                            _tickSlopball.Add(item);
+                    _slopball.RecordAuthoritative(tick, _tickSlopball);
+                }
             }
         }
 

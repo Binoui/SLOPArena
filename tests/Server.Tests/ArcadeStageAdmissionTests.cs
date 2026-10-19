@@ -33,4 +33,28 @@ public class ArcadeStageAdmissionTests
         }
         finally { orchestrator.Shutdown(); }
     }
+
+    /// <summary>ADR-0040: a format admits only its own arena; co-op Slopball takes the court.</summary>
+    [Theory]
+    [InlineData("slopball", MatchFormat.SlopballCoop, true)]
+    [InlineData("slop_pit", MatchFormat.SlopballCoop, false)]
+    [InlineData("fightguy_pier", MatchFormat.SlopballCoop, false)]
+    [InlineData("arcade_ball_lab", MatchFormat.SlopballCoop, false)]
+    [InlineData("slopball", MatchFormat.Stock, false)]
+    public void FormatsAdmitOnlyTheirOwnArena(string stage, MatchFormat format, bool arenaAdmitted)
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data", "arenas"));
+        var orchestrator = new MultiMatchOrchestrator(new ServerConfig());
+        try
+        {
+            orchestrator.TryAssignMatch("format-admission-check", stage,
+                new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+                3, null, null, out _, out _, out _, out string? error, format);
+            // Past the arena check this test host has no cooked roster, so content is what stops it.
+            Assert.Equal(!arenaAdmitted, error?.Contains($"unavailable for {format.ToWire()}") == true);
+            Assert.Equal(0, orchestrator.CurrentMatchCount);
+        }
+        finally { orchestrator.Shutdown(); }
+    }
 }

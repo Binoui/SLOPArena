@@ -123,8 +123,10 @@ namespace SlopArena.Client
                 bool sharedVictory,
                 string stageName,
                 uint durationTicks,
-                IReadOnlyList<ResultEntry> entries)
+                IReadOnlyList<ResultEntry> entries,
+                Shared.SlopballRunResult? run = null)
             {
+                Run = run;
                 if (entries == null) throw new ArgumentNullException(nameof(entries));
                 var copy = new ResultEntry[entries.Count];
                 for (int i = 0; i < entries.Count; i++)
@@ -142,6 +144,8 @@ namespace SlopArena.Client
             public uint DurationTicks { get; }
             public int PlayerCount { get; }
             public IReadOnlyList<ResultEntry> Entries { get; }
+            /// <summary>A co-op Slopball run's team result; null for a stock fight.</summary>
+            public Shared.SlopballRunResult? Run { get; }
         }
 
         /// <summary>Store the server-authored final result without local re-ranking.</summary>
@@ -162,7 +166,8 @@ namespace SlopArena.Client
                 packet.SharedVictory,
                 UI.MatchConfig.ArenaName,
                 packet.DurationTicks,
-                entries);
+                entries,
+                packet.Run);
         }
         public static void SetLocalMatchResults(MatchResultsData results)
             => CurrentMatchResults = results;
@@ -303,6 +308,7 @@ namespace SlopArena.Client
             UI.MatchConfig.PlayerPackageId = catalog.Resolve(playerClass)?.Identity.PackageId ?? string.Empty;
             UI.MatchConfig.LocalEntityId = (ulong)local.EntityId;
             UI.MatchConfig.MaxStocks = config.MaxStocks;
+            UI.MatchConfig.Format = config.Format;
             UI.MatchConfig.Opponents.Clear();
             foreach (var player in config.Players)
             {

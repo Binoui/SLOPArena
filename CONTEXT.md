@@ -190,7 +190,15 @@ _Avoid_: control scheme
 ## Arcade
 
 **Arcade**:
-Solo minigames played with a selected fighter's movement and Character Kit, offering repeatable challenges and records to beat.
+Solo minigames played with a selected fighter's movement and Character Kit, offering repeatable challenges and records to beat. Online Rooms can play them too (see Match Format).
+
+**Match Format**:
+What an online Match plays: a stock fight on a PvP stage, or an Arcade format such as co-op Slopball ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)). The Room Pick, the Match start contract and the client's Master push carry it; each format admits its own arena, places its fighters and decides when the Match ends.
+_Avoid_: game mode (when referring to the online contract)
+
+**Co-op Slopball Run**:
+An online Slopball Match in which two to four fighters share the player half against the Launcher. Returns count for the team, and the run ends once the team has missed its miss budget.
+_Avoid_: versus volleyball (when referring to the co-op format)
 _Avoid_: Training (when referring to an Arcade challenge), CPU fight
 
 **Arcade Attempt**:
@@ -259,7 +267,7 @@ The normal Unity directory of named public Rooms from Master. It shows every Roo
 _Avoid_: matchmaking queue, GameHost list
 
 **Room** (LobbyRoom in the UI):
-The Master-managed, named group of up to four players. Membership and Server Chat survive Character Select, Arena selection, a Match, Results and rematch. The leader advances preparation; the Room admits new members only in Lobby. Master returns the matching Room to Lobby and clears preparation on a completed or canceled Match, without erasing membership or chat.
+The Master-managed, named group of up to four players. Membership and Server Chat survive Arena selection, Character Select, a Match, Results and rematch. The leader advances preparation; the Room admits new members only in Lobby. Master returns the matching Room to Lobby and clears preparation on a completed or canceled Match, without erasing membership or chat.
 _Avoid_: physical GameHost lobby, Match, waiting roster
 
 **GuestAuth**:
@@ -331,7 +339,7 @@ An operator-run, always-on GameHost available to Master for Match allocation. Pl
 _Avoid_: public Room, dedicated Room, hosted lobby
 
 **MatchFlow**:
-The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Character Select → Stage Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
+The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Stage Select → Character Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. The leader chooses what to play before anyone picks a fighter ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)); Solo and Training still pick fighters first. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
 _Avoid_: physical-server lobby flow, automatic rematch
 
 ## Replays & Spectating

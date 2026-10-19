@@ -17,8 +17,36 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="page-body" class="page-section stage-body-section">
+            <!-- Online Rooms choose what to play first (ADR-0040): PVP stages or Arcade modes.
+                 Solo and Training keep the plain stage grid; the tabs stay hidden there. -->
+            <ui:VisualElement name="stage-tabs" class="stage-tabs" style="display: none;">
+                <ui:Button name="stage-tab-pvp" text="PVP" class="shell-nav-tab stage-tab" />
+                <ui:Button name="stage-tab-arcade" text="ARCADE" class="shell-nav-tab stage-tab" />
+            </ui:VisualElement>
             <ui:ScrollView name="stage-scroll" class="stage-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden">
                 <ui:VisualElement name="stage-grid" class="stage-grid" />
+                <ui:VisualElement name="stage-arcade" class="stage-arcade" style="display: none;">
+                    <ui:Button name="stage-arcade-slopball" class="arcade-mode-card stage-arcade-card" tooltip="Slopball online is coming">
+                        <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
+                            <ui:VisualElement class="arcade-mode-heading">
+                                <ui:Label text="SLOPBALL" class="arcade-mode-title" />
+                                <ui:Label text="COMING ONLINE" class="stage-arcade-soon" />
+                            </ui:VisualElement>
+                            <ui:Label text="Volleyball across the net, or co-op against the Launcher." class="arcade-mode-rule" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="arcade-mode-art arcade-mode-art--slopball" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Button name="stage-arcade-course" class="arcade-mode-card stage-arcade-card" tooltip="Character Courses online are coming">
+                        <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
+                            <ui:VisualElement class="arcade-mode-heading">
+                                <ui:Label text="CHARACTER COURSES" class="arcade-mode-title" />
+                                <ui:Label text="COMING ONLINE" class="stage-arcade-soon" />
+                            </ui:VisualElement>
+                            <ui:Label text="Race or team up on a fighter's own course." class="arcade-mode-rule" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="arcade-mode-art arcade-mode-art--course" picking-mode="Ignore" />
+                    </ui:Button>
+                </ui:VisualElement>
             </ui:ScrollView>
         </ui:VisualElement>
         <ui:VisualElement name="page-summary" class="page-section stage-summary-section">

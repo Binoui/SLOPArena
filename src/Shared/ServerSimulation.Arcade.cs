@@ -40,6 +40,26 @@ namespace SlopArena.Shared
 
         private bool _arcadeInputReleaseRequired;
 
+        /// <summary>
+        /// Starts an online co-op Slopball run (ADR-0040). The GameHost's countdown has gated every fighter,
+        /// so there is no Slopball countdown or input release; the first serve follows the normal gap.
+        /// </summary>
+        public void BeginSlopballRun(uint sessionSeed)
+        {
+            if (_slopball == null || _rule is not SlopballCoopMatchRule coop)
+                throw new InvalidOperationException("A Slopball run needs a Slopball court and the co-op rule.");
+            _slopball.BeginRun(_arcadeBall!, sessionSeed, coop.MissBudget);
+        }
+
+        /// <summary>
+        /// The Match outcome under this simulation's rule. A co-op Slopball run ends when its misses run out:
+        /// the team finishes together, so it reads as a shared result.
+        /// </summary>
+        public MatchOutcome EvaluateMatch()
+            => _rule is SlopballCoopMatchRule
+                ? _slopball!.State.Ended ? new MatchOutcome(true, 0, true) : default
+                : _rule.Evaluate(_states);
+
         /// <summary>Admit a clean solo attempt; countdown ticks do not advance fighters or cooldowns.</summary>
         public void BeginSlopballAttempt(ushort countdownTicks, uint? sessionSeed = null)
         {

@@ -42,6 +42,8 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown, upgrade rounds, solo arcade and moving-platform directions; proposed rules and open decisions |
 | [Solo Arcade feature brief](design/arcade.md) | Approved Slopball and FightGuy Course scope, rules, offline entry and personal records |
 | [Solo Arcade implementation plan](design/arcade-implementation.md) | Focused Shared objects, unified stage migration, Slopball-first delivery and verification handoff |
+| [Online Arcade feature brief](design/online-arcade.md) | Stage-first Room flow, online Slopball (Versus, Co-op) and Character Course (Race, Co-op) formats, decisions and proposals |
+| [Online Arcade implementation options](design/online-arcade-implementation.md) | Room contract, admission, Match Format, Shared formats, rollback coverage and client hosting, for approval |
 | [Arcade Phase 1](design/arcade-phase-1.md) | Ball/contact foundation, test-court launch steps and verification status |
 | [Arcade Phase 2](design/arcade-phase-2.md) | Playable Slopball, court/shot rules, launch steps and native verification |
 | [Arcade Phase 3](design/arcade-phase-3.md) | Offline menu, locked starts, results/retry and compatible local personal bests |

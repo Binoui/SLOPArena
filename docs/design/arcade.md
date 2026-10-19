@@ -269,8 +269,8 @@ Implementation is ready for human review when:
 Exact platform positions, ball gravity/rebounds/speed, serve gap, countdown duration,
 difficulty values and camera occlusion are greybox/content tuning tasks under these
 rules. No numerical trajectory or finished map has been approved or tested here.
-Moving platforms, more Character Courses, online Arcade/volleyball, medals and
-leaderboards are later scopes.
+Online Arcade has its own [brief](online-arcade.md) (2026-10-19). Moving platforms,
+more Character Courses, medals and leaderboards are later scopes.
 
 ## Preparation references
 

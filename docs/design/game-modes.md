@@ -1,9 +1,9 @@
 # Game mode exploration
 
 **Status:** exploratory design notes, started 2026-10-13; solo arcade direction
-added 2026-10-14; upgrade rounds added 2026-10-17. These record the maintainer's
-preferred directions and proposed rules to try; they are not an implementation
-specification or a claim of supported features. The
+added 2026-10-14; upgrade rounds added 2026-10-17; online Arcade added 2026-10-19.
+These record the maintainer's preferred directions and proposed rules to try; they
+are not an implementation specification or a claim of supported features. The
 [friends demo](../plans/2026-09-05-playable-demo-reset.md) remains the current
 delivery baseline.
 
@@ -19,7 +19,8 @@ upgrades between rounds.
 - **Volleyball:** play in enclosed box courts, inspired by squash. The ball spawns
   in a player's camp, can be hit in any direction, and touching the ground ends
   the round. Own-side combos and a ball whose speed increases with damage percent
-  remain part of the direction. This mode needs a dedicated map.
+  remain part of the direction. This mode needs a dedicated map. Online volleyball
+  starts on Slopball's netted Night Court instead (2026-10-19, see Online Arcade).
 - **Crown:** carrying the crown and escaping pursuers is the attraction. A larger
   map with more movement choices should support that chase.
 - **Upgrade rounds:** one PvP Match made of short fights, with upgrades drafted
@@ -31,6 +32,10 @@ upgrades between rounds.
   low-stress way to explore kits and movement beyond Training or CPU fights.
   Slopball and combined Character Courses are the selected initial solo release.
   Their records are balls returned and time to complete the course.
+- **Online Arcade:** Slopball and the Character Courses in online Rooms. Selected
+  on 2026-10-19 as the next multiplayer modes, ahead of upgrade rounds: volleyball
+  Versus (1v1, 2v2) and Co-op against the Launcher, course Race and Co-op, behind a
+  stage-first Room flow. See the [Online Arcade brief](online-arcade.md).
 
 Rules below are design proposals. No capture duration, score target, map size,
 player maximum or ball-speed value has been selected.
@@ -65,6 +70,10 @@ exposed shortcuts and positions with multiple entrances. Size alone can produce
 long walks; the useful addition is more decisions during approach and retreat.
 
 ## Volleyball
+
+The [Online Arcade brief](online-arcade.md) selects the first online form
+(2026-10-19): Versus and Co-op on Slopball's netted Night Court. The box court
+below remains a direction; that brief's Four Square idea is its closest form.
 
 The maintainer's selected direction is an **enclosed box court**: the ball spawns
 in a player's camp, that player can hit it in any direction, and ball contact with
@@ -131,8 +140,9 @@ The selected architecture is focused Shared ball/target support with challenge
 data bundled into an expanded baked stage artifact. **Slopball is the first
 playable Arcade slice**, then the Course; see the
 [implementation plan](arcade-implementation.md). This preparation does not
-reorder the immediate first-working-online-match priority. Additional courses,
-multiplayer volleyball, medals and leaderboards are later scopes.
+reorder the immediate first-working-online-match priority. Playing both challenges
+online has its own [brief](online-arcade.md); additional courses, medals and
+leaderboards are later scopes.
 
 ## Crown
 
@@ -176,7 +186,9 @@ The maintainer has selected:
   upgrades are the more fun direction and should become the heart of the mode.
 - A local prototype against CPU Opponents is an acceptable first step; the
   destination is PvP.
-- It is the first multiplayer mode experiment, ahead of capture (2026-10-17).
+- It was selected as the first multiplayer mode experiment, ahead of capture
+  (2026-10-17). On 2026-10-19 online Slopball and Character Courses moved ahead
+  of it ([Online Arcade](online-arcade.md)).
 - Balance stays out of scope while the shape of the mode is explored.
 
 A first rules proposal:
@@ -292,7 +304,9 @@ natural host for the prototype.
 
 Multiplayer-mode architecture options and approval belong to a later design step.
 Solo Arcade's selected foundation is documented in its own implementation plan;
-these broader notes do not select a general framework.
+these broader notes do not select a general framework. Online Arcade's gaps and
+options await approval in its
+[implementation options](online-arcade-implementation.md).
 
 ## Proposed multiplayer delivery sequence
 
@@ -312,24 +326,27 @@ arcade appeal can be tested through the local simulation independently.
    joining, combat readability and another-round interest. Record concrete
    failures and what players enjoyed. An early session supplies evidence while
    the game is still rough; it does not require a finished casual-mode offering.
-3. **Build one bounded upgrade rounds experiment.** It needs no new map: use
+3. **Bring Arcade online.** Selected 2026-10-19 ahead of upgrade rounds: the
+   stage-first Room flow, Co-op Slopball, Versus Slopball, then course Race and
+   Co-op. See the [Online Arcade brief](online-arcade.md) and its
+   [delivery slices](online-arcade-implementation.md#delivery-slices).
+4. **Build one bounded upgrade rounds experiment.** It needs no new map: use
    the current stages and stock fights. Prototype the round and draft loop
    against CPU Opponents with generic upgrades, add a first character upgrade
    for each fighter, then play the same Match online. Resolve the necessary
    architecture options before implementation.
-4. **Test upgrade rounds with mixed-skill friends.** Play online Matches in 1v1
+5. **Test upgrade rounds with mixed-skill friends.** Play online Matches in 1v1
    and with three or four players. Check whether players understand the draft,
    read each other's builds, stay involved across rounds and choose another
    Match. Fix the problems that prevent that experience, then invite more small
    groups to play the tested offering.
-5. **Choose the next addition from observed play.** Capture keeps its bounded
+6. **Choose the next addition from observed play.** Capture keeps its bounded
    experiment: free-for-all and teams with equal priority, one existing static
    map or a simple route graybox, unlimited respawns, full-capture scoring and
    zone relocation, plus explicitly scoped capacity work for four or more
    players. Crown can reuse that objective infrastructure and route-map work.
-   Volleyball keeps its dedicated ball/court experiment; moving platforms keep
-   their separate movement/collision scope. Their order should follow player
-   interest and the remaining technical risk.
+   Moving platforms keep their separate movement/collision scope. Their order
+   should follow player interest and the remaining technical risk.
 
 Connection and match-breaking failures take priority whenever they prevent a
 session. Once players can complete and repeat matches, casual-mode experiments

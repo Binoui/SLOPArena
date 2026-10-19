@@ -14,16 +14,23 @@ namespace SlopArena.Shared
         private readonly List<SpellResolver.HitResult> _hits = new();
         private readonly List<TimelinePresentationEvent> _frameEvents = new();
         private readonly List<SpellResolver.HitResult> _frameHits = new();
+        private readonly List<SlopballTickEvent> _slopball = new();
+        private readonly List<SlopballTickEvent> _frameSlopball = new();
 
         /// <summary>Events refused because the frame wire cannot encode them (cosmetic only).</summary>
         public int DroppedEvents { get; private set; }
 
         /// <summary>Add what the simulation produced at <paramref name="tick"/>.</summary>
-        public void Record(uint tick, IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits)
+        public void Record(uint tick, IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits,
+            IReadOnlyList<SlopballEvent>? slopballEvents = null)
         {
             uint from = WorldFramePacket.EventsFrom(tick);
             _events.RemoveAll(e => e.MatchTick < from || e.MatchTick > tick);
             _hits.RemoveAll(h => h.MatchTick < from || h.MatchTick > tick);
+            _slopball.RemoveAll(e => e.MatchTick < from || e.MatchTick > tick);
+            if (slopballEvents != null)
+                foreach (var item in slopballEvents)
+                    _slopball.Add(new SlopballTickEvent(tick, item));
             foreach (var evt in events)
             {
                 if (evt.MatchTick < from || evt.MatchTick > tick)
@@ -66,10 +73,25 @@ namespace SlopArena.Shared
             return _frameHits;
         }
 
+        /// <summary>The Slopball events a frame of <paramref name="tick"/> carries (newest kept if over the
+        /// frame limit); the list is reused by the next call.</summary>
+        public IReadOnlyList<SlopballTickEvent> SlopballEventsForFrame(uint tick)
+        {
+            uint from = WorldFramePacket.EventsFrom(tick);
+            _frameSlopball.Clear();
+            foreach (var item in _slopball)
+                if (item.MatchTick >= from && item.MatchTick <= tick)
+                    _frameSlopball.Add(item);
+            if (_frameSlopball.Count > WorldFramePacket.MaxSlopballEvents)
+                _frameSlopball.RemoveRange(0, _frameSlopball.Count - WorldFramePacket.MaxSlopballEvents);
+            return _frameSlopball;
+        }
+
         public void Clear()
         {
             _events.Clear();
             _hits.Clear();
+            _slopball.Clear();
         }
     }
 }

@@ -119,6 +119,8 @@ namespace SlopArena.Shared
             }
             if (arena.Arcade?.Course is CharacterCourseDefinition course)
             { course.ValidateArena(in arena); _course = new CharacterCourseSimulation(course); }
+            if (_rule is SlopballCoopMatchRule && _slopball == null)
+                throw new ArgumentException("Co-op Slopball needs a Slopball court.", nameof(rule));
 		}
 
 		// ── Hitstop tuning (ADR-0012). Game-wide defaults; per-ability overrides via
@@ -140,7 +142,8 @@ namespace SlopArena.Shared
 
 		public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
 		{
-            if ((_slopball != null || _course != null) && _states.Count > 0 && !_states.ContainsKey(id))
+            if ((_slopball != null || _course != null) && _rule is not SlopballCoopMatchRule
+                && _states.Count > 0 && !_states.ContainsKey(id))
                 throw new ArgumentException("Solo Arcade challenges admit one fighter.", nameof(id));
 			if (_course != null && id >= CharacterCourseSimulation.FirstInputAlias)
 				throw new ArgumentException("Course target aliases and object identities are reserved.", nameof(id));

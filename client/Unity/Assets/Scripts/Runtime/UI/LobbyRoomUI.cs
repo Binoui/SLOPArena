@@ -358,8 +358,9 @@ namespace SlopArena.Client.UI
             else if (string.Equals(room.Phase, "Match Starting", StringComparison.Ordinal) ||
                 string.Equals(room.Phase, "In Match", StringComparison.Ordinal))
             {
+                // Character Select is the last preparation page and shows the launch.
                 MatchConfig.Mode = GameMode.PvP;
-                FrontendController.Show(FrontendPage.StageSelect);
+                FrontendController.Show(FrontendPage.FighterSelect);
             }
         }
 
@@ -557,10 +558,10 @@ namespace SlopArena.Client.UI
                     return;
                 _startPending = true;
                 _btnStart?.SetEnabled(false);
-                SetStatus("Opening character select…", false);
+                SetStatus("Opening stage select…", false);
                 if (_startWatchdog != null) StopCoroutine(_startWatchdog);
                 _startWatchdog = StartCoroutine(StartWatchdog());
-                _ = StartRoomCharacterSelect();
+                _ = StartRoomStageSelect();
                 return;
             }
             _startPending = true;
@@ -571,16 +572,17 @@ namespace SlopArena.Client.UI
             _ = StartMatchRequest();
         }
 
-        private async Task StartRoomCharacterSelect()
+        /// <summary>Rooms choose what to play before fighters (ADR-0040).</summary>
+        private async Task StartRoomStageSelect()
         {
             try
             {
-                var room = await _lobby!.RoomStartCharacterSelectAsync();
+                var room = await _lobby!.RoomStartStageSelectAsync();
                 if (_alive) OnRoomUpdated(room);
             }
             catch (Exception ex)
             {
-                if (_alive) OnError($"Couldn’t start character select: {ex.Message}");
+                if (_alive) OnError($"Couldn’t open stage select: {ex.Message}");
             }
         }
 
@@ -609,7 +611,7 @@ namespace SlopArena.Client.UI
                 _startPending = false;
                 RenderPlayers();
                 SetStatus(_roomMode
-                    ? "Character select did not open in time. Check the Room, then try again."
+                    ? "Stage select did not open in time. Check the Room, then try again."
                     : "The match did not start in time. Check the room, then try again.", true);
             }
         }
@@ -629,7 +631,7 @@ namespace SlopArena.Client.UI
                 if (_btnStart != null)
                 {
                     _btnStart.style.display = leader && lobbyPhase ? DisplayStyle.Flex : DisplayStyle.None;
-                    _btnStart.text = "CHOOSE FIGHTERS";
+                    _btnStart.text = "CHOOSE WHAT TO PLAY";
                     _btnStart.SetEnabled(leader && lobbyPhase && members.Length >= 2 &&
                         !_startPending && _lobby?.IsConnected == true);
                 }

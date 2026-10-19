@@ -54,6 +54,39 @@ public class WorldFramePacketTests
         Assert.True(client.CaptureSnapshot().ContentEquals(server.CaptureSnapshot()));
     }
 
+    /// <summary>ADR-0040: a co-op run's frames carry its Slopball events next to the hits.</summary>
+    [Fact]
+    public void CoopRunFramesCarryTheirSlopballEvents()
+    {
+        var arena = WorldSnapshotTests.LoadArena("slopball");
+        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Bonk };
+        var server = ArcadeSnapshotTests.NewRun(arena, roster, reverseRegistration: false);
+        var history = new WorldFrameHistory();
+        var inputs = new Dictionary<ulong, InputState>();
+        int served = 0, carried = 0;
+        for (int tick = 0; tick < 600; tick++)
+        {
+            server.Tick(inputs);
+            history.Record(server.SimulationTick, server.GetPresentationEvents(clear: true), server.LastTickHits,
+                server.LastTickSlopballEvents);
+            served += server.LastTickSlopballEvents.Count(e => e.Kind == SlopballEventKind.Served);
+            var snapshot = server.CaptureSnapshot();
+            var frame = new WorldFramePacket(MatchState.Playing, snapshot, Array.Empty<RelayedInput>(),
+                history.EventsForFrame(snapshot.Tick), history.HitsForFrame(snapshot.Tick),
+                history.SlopballEventsForFrame(snapshot.Tick));
+            var decoded = WorldFramePacket.Deserialize(frame.Serialize());
+            Assert.Equal(frame.SlopballEvents, decoded.SlopballEvents);
+            carried += decoded.SlopballEvents.Count(e => e.MatchTick == snapshot.Tick);
+        }
+        Assert.True(served >= 2, $"served {served}");
+        Assert.True(carried >= served, $"carried {carried} of {served} same-tick events");
+
+        var stale = new WorldFramePacket(MatchState.Playing, server.CaptureSnapshot(), Array.Empty<RelayedInput>(),
+            Array.Empty<TimelinePresentationEvent>(), Array.Empty<SpellResolver.HitResult>(),
+            new[] { new SlopballTickEvent(1, new SlopballEvent(SlopballEventKind.Served, 1, 0, 0f)) });
+        Assert.Throws<ArgumentOutOfRangeException>(() => stale.Serialize());
+    }
+
     [Fact]
     public void UncompressedBodiesDecodeLikeCompressedOnes()
     {

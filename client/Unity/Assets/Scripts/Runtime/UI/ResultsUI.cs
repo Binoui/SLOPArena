@@ -179,6 +179,13 @@ namespace SlopArena.Client.UI
             _stage.text = $"MATCH COMPLETE // {stage.ToUpperInvariant()}";
             _metadata.text = $"{FormatDuration(results.DurationTicks)} // {results.PlayerCount} PLAYERS";
             _headline.text = results.SharedVictory ? "SHARED VICTORY" : "FIGHT OVER";
+            if (results.Run is { } run)
+            {
+                // A co-op Slopball run ends together: its team result is the headline (ADR-0040).
+                _stage.text = "RUN OVER // SLOPBALL CO-OP";
+                _headline.text = run.TotalReturns == 1 ? "1 RETURN" : $"{run.TotalReturns} RETURNS";
+                _metadata.text = $"{FormatDuration(results.DurationTicks)} // BEST COMBO {run.BestCombo} // {results.PlayerCount} PLAYERS";
+            }
 
             var ordered = new List<ClientSession.ResultEntry>(results.Entries);
             ordered.Sort((a, b) =>
@@ -188,7 +195,7 @@ namespace SlopArena.Client.UI
             });
 
             var hero = ordered[0];
-            BuildWinnerCard(hero, results.SharedVictory);
+            BuildWinnerCard(hero, results.SharedVictory, results.Run.HasValue);
             for (int i = 1; i < ordered.Count; i++)
                 _standings.Add(BuildStandingRow(ordered[i]));
 
@@ -202,7 +209,7 @@ namespace SlopArena.Client.UI
             }).StartingIn(40);
         }
 
-        private void BuildWinnerCard(ClientSession.ResultEntry entry, bool sharedVictory)
+        private void BuildWinnerCard(ClientSession.ResultEntry entry, bool sharedVictory, bool team = false)
         {
             var metadata = ResolveMetadata(entry);
             var card = new VisualElement();
@@ -213,7 +220,7 @@ namespace SlopArena.Client.UI
             placement.AddToClassList("results-winner-placement");
             card.Add(placement);
 
-            var label = new Label(sharedVictory ? "TOP FINISHER" : "WINNER");
+            var label = new Label(team ? "TEAM" : sharedVictory ? "TOP FINISHER" : "WINNER");
             label.AddToClassList("results-winner-label");
             card.Add(label);
 

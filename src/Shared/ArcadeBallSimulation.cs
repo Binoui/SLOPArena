@@ -201,6 +201,49 @@ namespace SlopArena.Shared
             return speed;
         }
 
+        /// <summary>The ball's state for a World Snapshot (ADR-0039/0040); the path and contacts are per-tick scratch.</summary>
+        internal readonly struct Snapshot
+        {
+            public readonly ulong EntityId;
+            public readonly float X, Y, Z, VX, VY, VZ, Percent, Curve;
+            public readonly ushort Hitstop;
+            public readonly bool Active;
+
+            public Snapshot(ulong entityId, float x, float y, float z, float vx, float vy, float vz,
+                float percent, float curve, ushort hitstop, bool active)
+            {
+                EntityId = entityId; X = x; Y = y; Z = z; VX = vx; VY = vy; VZ = vz;
+                Percent = percent; Curve = curve; Hitstop = hitstop; Active = active;
+            }
+
+            public void Write(SnapshotWriter w)
+            {
+                w.WriteULong(EntityId);
+                w.WriteFloat(X); w.WriteFloat(Y); w.WriteFloat(Z);
+                w.WriteFloat(VX); w.WriteFloat(VY); w.WriteFloat(VZ);
+                w.WriteFloat(Percent); w.WriteFloat(Curve); w.WriteUShort(Hitstop); w.WriteBool(Active);
+            }
+
+            public static Snapshot Read(SnapshotReader r)
+            {
+                ulong id = r.ReadULong();
+                if (id < FirstEntityId) throw SnapshotReader.Malformed("Arcade ball identity");
+                return new Snapshot(id, r.ReadFloat(), r.ReadFloat(), r.ReadFloat(), r.ReadFloat(), r.ReadFloat(),
+                    r.ReadFloat(), r.ReadFloat(), r.ReadFloat(), r.ReadUShort(), r.ReadBool());
+            }
+        }
+
+        internal Snapshot Capture() => new(_entityId, _x, _y, _z, _vx, _vy, _vz, _percent, _curve, _hitstop, _active);
+
+        internal void Apply(in Snapshot snapshot)
+        {
+            _entityId = snapshot.EntityId;
+            _x = snapshot.X; _y = snapshot.Y; _z = snapshot.Z;
+            _vx = snapshot.VX; _vy = snapshot.VY; _vz = snapshot.VZ;
+            _percent = snapshot.Percent; _curve = snapshot.Curve; _hitstop = snapshot.Hitstop; _active = snapshot.Active;
+            _path.Clear(); _contacts.Clear();
+        }
+
         private static bool SweepBody(ArcadePoint start, ArcadePoint end, in CharacterState body,
             CharacterDefinition def, float radius, out float time,
             out float nx, out float ny, out float nz, out float penetration)

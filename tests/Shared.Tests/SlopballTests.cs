@@ -637,7 +637,7 @@ public class SlopballTests
         Assert.Equal(SlopballServe.Lob, rules.State.Shot.Kind);
     }
 
-    private static void ReceiveAndArm(ArenaDefinition arena, ArcadeBallSimulation ball, SlopballSimulation rules)
+    internal static void ReceiveAndArm(ArenaDefinition arena, ArcadeBallSimulation ball, SlopballSimulation rules)
     {
         ball.Reset(new(0, 3, -1), default);
         rules.BeginTick(ball); ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>()); rules.PlanMotion(ball);
@@ -649,9 +649,9 @@ public class SlopballTests
         var rules = new SlopballSimulation(arena.Arcade.Slopball!, arena.Arcade.Ball, ball); Serve(rules, ball);
         return (arena, ball, rules);
     }
-    private static void Serve(SlopballSimulation rules, ArcadeBallSimulation ball)
+    internal static void Serve(SlopballSimulation rules, ArcadeBallSimulation ball)
     { while (rules.State.Phase == SlopballPhase.WaitingServe) rules.BeginTick(ball); }
-    private static void Advance(SlopballSimulation rules, ArcadeBallSimulation ball, ArenaDefinition arena)
+    internal static void Advance(SlopballSimulation rules, ArcadeBallSimulation ball, ArenaDefinition arena)
     {
         if (!rules.BeginTick(ball)) return;
         ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());

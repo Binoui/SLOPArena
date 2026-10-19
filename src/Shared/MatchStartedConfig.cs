@@ -16,4 +16,5 @@ public sealed record MatchStartedConfig(
     SteamMatchDescriptor? Descriptor = null,
     Guid? RoomId = null,
     string? ServerAddress = null,
-    Guid MatchId = default);
+    Guid MatchId = default,
+    MatchFormat Format = MatchFormat.Stock);

@@ -21,27 +21,34 @@ namespace SlopArena.Shared
     public sealed class WorldFramePacket
     {
         public const uint Magic = 0x4D524657; // "WFRM"
-        public const byte FormatVersion = 1;
+        /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040).</summary>
+        public const byte FormatVersion = 2;
         public const int HeaderSize = 16;
         public const int MaxBodyBytes = 64 * 1024;
         public const int MaxPresentationEvents = 256;
         public const int MaxHits = 128;
+        public const int MaxSlopballEvents = 32;
+        private const int SlopballEventBytes = 4 + 1 + 8 + 8 + 4;
         /// <summary>Ticks whose complete event and hit record each frame carries, ending at its own tick.</summary>
         public const uint EventHistoryTicks = 3;
         private const byte CompressedFlag = 1;
 
         public WorldFramePacket(MatchState matchState, WorldSnapshot snapshot, IReadOnlyList<RelayedInput> inputs,
-            IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits)
+            IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits,
+            IReadOnlyList<SlopballTickEvent>? slopballEvents = null)
         {
             MatchState = matchState;
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
             Inputs = inputs ?? throw new ArgumentNullException(nameof(inputs));
             Events = events ?? throw new ArgumentNullException(nameof(events));
             Hits = hits ?? throw new ArgumentNullException(nameof(hits));
+            SlopballEvents = slopballEvents ?? Array.Empty<SlopballTickEvent>();
             if (events.Count > MaxPresentationEvents)
                 throw new ArgumentOutOfRangeException(nameof(events));
             if (hits.Count > MaxHits)
                 throw new ArgumentOutOfRangeException(nameof(hits));
+            if (SlopballEvents.Count > MaxSlopballEvents)
+                throw new ArgumentOutOfRangeException(nameof(slopballEvents));
         }
 
         public uint Tick => Snapshot.Tick;
@@ -52,6 +59,8 @@ namespace SlopArena.Shared
         public IReadOnlyList<TimelinePresentationEvent> Events { get; }
         /// <summary>Every hit (blocked or not) of the ticks <see cref="EventsFromTick"/> to <see cref="Tick"/>.</summary>
         public IReadOnlyList<SpellResolver.HitResult> Hits { get; }
+        /// <summary>Every Slopball event of the ticks <see cref="EventsFromTick"/> to <see cref="Tick"/>; empty for a stock fight.</summary>
+        public IReadOnlyList<SlopballTickEvent> SlopballEvents { get; }
 
         /// <summary>First tick whose complete event and hit record this frame carries.</summary>
         public uint EventsFromTick => EventsFrom(Tick);
@@ -111,6 +120,18 @@ namespace SlopArena.Shared
                     throw new ArgumentOutOfRangeException(nameof(Hits),
                         $"Hit of tick {hit.MatchTick} is outside frame {Tick}'s event ticks.");
                 WriteHit(w, hit);
+            }
+            w.WriteInt(SlopballEvents.Count);
+            foreach (var item in SlopballEvents)
+            {
+                if (item.MatchTick < EventsFromTick || item.MatchTick > Tick)
+                    throw new ArgumentOutOfRangeException(nameof(SlopballEvents),
+                        $"Slopball event of tick {item.MatchTick} is outside frame {Tick}'s event ticks.");
+                w.WriteUInt(item.MatchTick);
+                w.WriteByte((byte)item.Event.Kind);
+                w.WriteULong(item.Event.BallId);
+                w.WriteULong(item.Event.Returns);
+                w.WriteFloat(item.Event.ContactTime);
             }
 
             byte[] body = w.ToArray();
@@ -235,9 +256,26 @@ namespace SlopArena.Shared
                 if (hits[i].MatchTick < EventsFrom(tick) || hits[i].MatchTick > tick)
                     throw Malformed("hit tick");
             }
+
+            int slopballCount = r.ReadCount(SlopballEventBytes);
+            if (slopballCount > MaxSlopballEvents)
+                throw Malformed("Slopball event count");
+            var slopball = new SlopballTickEvent[slopballCount];
+            for (int i = 0; i < slopballCount; i++)
+            {
+                uint eventTick = r.ReadUInt();
+                byte kind = r.ReadByte();
+                if (kind > (byte)SlopballEventKind.Stopped)
+                    throw Malformed("Slopball event kind");
+                ulong ballId = r.ReadULong(), returns = r.ReadULong();
+                float time = r.ReadFloat();
+                if (eventTick < EventsFrom(tick) || eventTick > tick)
+                    throw Malformed("Slopball event tick");
+                slopball[i] = new SlopballTickEvent(eventTick, new SlopballEvent((SlopballEventKind)kind, ballId, returns, time));
+            }
             if (!r.AtEnd)
                 throw Malformed("trailing data");
-            return new WorldFramePacket(matchState, snapshot, inputs, events, hits);
+            return new WorldFramePacket(matchState, snapshot, inputs, events, hits, slopball);
         }
 
         private const int HitBytes = 8 + 8 + 1 + 8 + 1 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 2 + 2 + 1 + 1 + 12 + 4 + 2 + 1 + 4 + 4;

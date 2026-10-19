@@ -83,7 +83,10 @@ namespace SlopArena.Client.UI
 
         public void Present(SlopballState state, ArcadeBallState ball, ulong personalBest, string feedback)
         {
-            _count.text = $"Combo {state.Returns}  ·  Best {Math.Max(personalBest, state.BestStreak)}";
+            // A co-op run (ADR-0040) counts the team's returns and the misses it has left.
+            _count.text = state.MissBudget > 0
+                ? $"Team {state.TotalReturns}  ·  Combo {state.Returns}  ·  Misses {state.Misses}/{state.MissBudget}"
+                : $"Combo {state.Returns}  ·  Best {Math.Max(personalBest, state.BestStreak)}";
             _cue.text = state.Phase switch
             {
                 SlopballPhase.Countdown => "Get ready. Release held controls.",

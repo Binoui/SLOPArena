@@ -24,6 +24,8 @@ namespace SlopArena.Client.Simulation
         private readonly List<SpellResolver.HitResult> _retractedHits = new();
         private readonly List<TimelinePresentationEvent> _events = new();
         private readonly List<TimelinePresentationEvent> _retractedEvents = new();
+        private readonly List<SlopballTickEvent> _slopballEvents = new();
+        private readonly List<SlopballTickEvent> _retractedSlopballEvents = new();
 
         public RollbackSimulationBridge(ArenaDefinition arena, NetworkClient client, ulong selfEntityId, IMatchRule rule)
         {
@@ -47,6 +49,10 @@ namespace SlopArena.Client.Simulation
         public IReadOnlyList<TimelinePresentationEvent> RetractedPresentationEvents => _retractedEvents;
         /// <summary>Predicted hits the GameHost ruled out during the latest update.</summary>
         public IReadOnlyList<SpellResolver.HitResult> RetractedHits => _retractedHits;
+        /// <summary>Slopball events to present from the latest update, each once (ADR-0040).</summary>
+        public IReadOnlyList<SlopballTickEvent> SlopballEvents => _slopballEvents;
+        /// <summary>Predicted Slopball events a rollback ruled out during the latest update.</summary>
+        public IReadOnlyList<SlopballTickEvent> RetractedSlopballEvents => _retractedSlopballEvents;
 
         /// <summary>A new connection must receive a World Frame before it reports Ready.</summary>
         public void ResetConnection() => _session.ResetConnection();
@@ -92,6 +98,9 @@ namespace SlopArena.Client.Simulation
             _hits.Clear();
             _retractedHits.Clear();
             _session.Predictor.DrainHits(_hits, _retractedHits);
+            _slopballEvents.Clear();
+            _retractedSlopballEvents.Clear();
+            _session.Predictor.DrainSlopballEvents(_slopballEvents, _retractedSlopballEvents);
         }
 
         public CharacterState GetState(ulong id) => _session.Predictor.GetState(id);
