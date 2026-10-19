@@ -62,9 +62,11 @@ namespace SlopArena.Server
         public Action<Guid, string>? ReportMatchCancellation { get; set; }
 
         /// <summary>Assigns a match only after building its match-scoped catalog.</summary>
+        /// <param name="format">What the Match plays (ADR-0040); the arena must suit it.</param>
         public bool TryAssignMatch(string matchId, string arenaName, IReadOnlyList<MatchPlayer> roster, byte maxStocks,
             DateTimeOffset? admissionDeadlineUtc, string? expectedCatalogHash,
-            out int port, out MatchContentHandleMap? content, out string? contentHash, out string? error)
+            out int port, out MatchContentHandleMap? content, out string? contentHash, out string? error,
+            MatchFormat format = MatchFormat.Stock)
         {
             port = -1; content = null; contentHash = null; error = null;
             lock (_admissionGate)
@@ -76,10 +78,13 @@ namespace SlopArena.Server
                 error = "Steam game-server listener or match deadline unavailable.";
                 return false;
             }
-            if (ArenaRegistry.Get(arenaName) is ArenaDefinition selectedArena && selectedArena.Purpose == ArenaPurpose.Arcade
-                || steamTransport && !ArenaRegistry.GetPvP(arenaName).HasValue)
+            // Stock fights take PvP stages and Arcade formats their own court; a development stock
+            // fight on an unknown name still reaches the match, which reports it.
+            if (ArenaRegistry.Get(arenaName) is ArenaDefinition selectedArena
+                    ? !format.Admits(selectedArena)
+                    : steamTransport || format != MatchFormat.Stock)
             {
-                error = $"Arena '{arenaName}' is unavailable.";
+                error = $"Arena '{arenaName}' is unavailable for {format.ToWire()}.";
                 return false;
             }
             if (_contentProvider is null ||
@@ -120,7 +125,7 @@ namespace SlopArena.Server
                         match = new MatchInstance(0, matchId, arenaName, roster, catalog,
                             _ => { }, maxStocks, ReportMatchResult, OnSteamMatchEnd, ReportMatchCancellation,
                             admissionDeadlineUtc, contentHash, _steamHost!.SendToMatchEntity,
-                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound);
+                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound, format: format);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (!_steamMatches.TryAdd(matchGuid, match))
@@ -144,7 +149,7 @@ namespace SlopArena.Server
                     {
                         match = new MatchInstance(candidate, matchId, arenaName, roster, catalog,
                             OnMatchEnd, maxStocks, ReportMatchResult, onMatchCancelled: ReportMatchCancellation,
-                            admissionDeadlineUtc: admissionDeadlineUtc);
+                            admissionDeadlineUtc: admissionDeadlineUtc, format: format);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (_activeMatches.TryAdd(candidate, match))

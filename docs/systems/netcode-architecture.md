@@ -1,10 +1,14 @@
 # SLOPArena Netcode & Simulation Architecture
 
-## Full-world rollback — protocol 10
+## Full-world rollback — protocol 11
 
 Online play predicts the whole world from complete GameHost snapshots
 ([ADR-0039](../adr/0039-full-world-rollback.md), [plan](../plans/2026-10-18-full-world-rollback.md)
-phases 0–4). Release client, GameHost and Master together; protocol 9 peers are rejected.
+phases 0–4). Release client, GameHost and Master together; older peers are rejected.
+Protocol 11 ([ADR-0040](../adr/0040-online-arcade-room-pick-and-match-format.md)) adds
+Match formats: World Snapshot format 2 carries the Arcade ball and Slopball rules, and
+World Frame format 2 carries the Slopball events of its event ticks, so co-op Slopball
+predicts and presents like a stock fight. Character Courses are not covered yet.
 
 - **World Frames.** Each tick the GameHost sends every client the same `WorldFramePacket`
   (Steam tag `Frame`, unreliable; a raw datagram on development UDP) in place of
@@ -401,13 +405,13 @@ Validate the exact envelope, input count and supported version before endpoint
 registration or reconnect/countdown side effects. This is a coordinated cutover, not
 backward-compatible partial decoding.
 
-### 4b. Server → Client: World Frame (protocol 10)
+### 4b. Server → Client: World Frame (protocol 11)
 
 ```
 Header (16 bytes)
 [0..3]    magic "WFRM"
-[4]       frame format (1)
-[5]       SimulationProtocol.Version (10)
+[4]       frame format (2)
+[5]       SimulationProtocol.Version (11)
 [6]       flags — bit 0: body DEFLATE-compressed
 [7]       MatchState
 [8..11]   tick — the World Snapshot's tick
@@ -418,6 +422,8 @@ Body
                           entityId(8) + hasInput(1) [+ InputState(22)]
   presentation events     ticks tick−2..tick, the complete record of each
   hits                    ticks tick−2..tick, the complete record of each
+  Slopball events         ticks tick−2..tick: tick(4) + kind(1) + ballId(8) +
+                          returns(8) + contactTime(4); empty for a stock fight
 ```
 
 [`WorldFramePacket`](../../src/Shared/WorldFramePacket.cs) is the contract; malformed

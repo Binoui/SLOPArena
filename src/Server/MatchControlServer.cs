@@ -135,8 +135,8 @@ namespace SlopArena.Server
                     return new StartOutcome(0, null, "Invalid or expired development match admission.");
 
                 var arena = string.IsNullOrEmpty(request.ArenaName) ? _defaultArena : request.ArenaName;
-                if (!ArenaRegistry.GetPvP(arena).HasValue)
-                    return new StartOutcome(0, null, $"Unknown arena '{arena}'.");
+                if (ArenaRegistry.Get(arena) is not ArenaDefinition selectedArena || !request.Format.Admits(selectedArena))
+                    return new StartOutcome(0, null, $"Unknown arena '{arena}' for {request.Format.ToWire()}.");
                 if (steam && (!_orchestrator.TryRefreshCatalogHash(out _) ||
                     !string.Equals(request.CatalogHash, _orchestrator.CatalogHash, StringComparison.Ordinal) ||
                     !_isReady()))
@@ -144,7 +144,7 @@ namespace SlopArena.Server
                 if (!_orchestrator.TryAssignMatch(request.MatchId, arena, request.Players, (byte)request.MaxStocks,
                     request.AdmissionExpiresAtUtc,
                     steam ? request.CatalogHash : null,
-                    out int port, out var content, out var contentHash, out var error))
+                    out int port, out var content, out var contentHash, out var error, request.Format))
                     return new StartOutcome(0, null, error ?? "Failed to build match content.");
                 if (steam && _steamHost!.CurrentSteamId != serverSteamId)
                 {

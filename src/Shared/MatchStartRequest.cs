@@ -25,7 +25,8 @@ public sealed record MatchStartRequest(
     int ProtocolVersion = 0,
     int VirtualPort = SteamMatchDescriptor.GameplayVirtualPort,
     DateTimeOffset? AdmissionExpiresAtUtc = null,
-    string? CatalogHash = null);
+    string? CatalogHash = null,
+    MatchFormat Format = MatchFormat.Stock);
 
 /// <summary>
 /// Parses the <c>POST /match/start</c> JSON body (<see cref="MatchStartRequest"/>).
@@ -151,7 +152,17 @@ public static class MatchStartRequestCodec
                 return null;
             admissionExpiresAtUtc = developmentExpiry;
         }
+        // format is optional (absent → a stock fight, ADR-0040); an unknown name is malformed.
+        string? formatName = null;
+        if (element.TryGetProperty("format", out var formatElement))
+        {
+            if (formatElement.ValueKind != JsonValueKind.String)
+                return null;
+            formatName = formatElement.GetString();
+        }
+        if (!MatchFormats.TryParseWire(formatName, out var format))
+            return null;
         return new MatchStartRequest(matchId, arenaName, list, maxStocks,
-            protocolVersion, virtualPort, admissionExpiresAtUtc, catalogHash);
+            protocolVersion, virtualPort, admissionExpiresAtUtc, catalogHash, format);
     }
 }

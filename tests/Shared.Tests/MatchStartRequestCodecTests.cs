@@ -41,6 +41,33 @@ public class MatchStartRequestCodecTests
     }
 
     [Fact]
+    public void TryParse_Format_OmittedIsAStockFight_AndCoopSlopballIsPreserved()
+    {
+        Assert.Equal(MatchFormat.Stock, MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody))!.Format);
+        var coop = MatchStartRequestCodec.TryParse(Parse("""
+        {"matchId":"abc-123","arenaName":"slopball","format":"slopball-coop","players":[
+            {"steamId":1,"characterClass":"Manki","entityId":1},
+            {"steamId":2,"characterClass":"FightGuy","entityId":2}
+        ]}
+        """));
+        Assert.Equal(MatchFormat.SlopballCoop, coop!.Format);
+    }
+
+    [Theory]
+    [InlineData("\"volleyball\"")]
+    [InlineData("1")]
+    [InlineData("null")]
+    public void TryParse_UnknownOrNonStringFormat_ReturnsNull(string format)
+    {
+        Assert.Null(MatchStartRequestCodec.TryParse(Parse($$"""
+        {"matchId":"abc-123","arenaName":"slopball","format":{{format}},"players":[
+            {"steamId":1,"characterClass":"Manki","entityId":1},
+            {"steamId":2,"characterClass":"FightGuy","entityId":2}
+        ]}
+        """)));
+    }
+
+    [Fact]
     public void TryParse_MaxStocks_Omitted_DefaultsToThree()
     {
         // maxStocks is optional — absent means the stock-mode default of 3 (issue #37).

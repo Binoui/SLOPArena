@@ -13,6 +13,15 @@ namespace SlopArena.Shared
         public SlopballEvent(SlopballEventKind kind, ulong ballId, ulong returns, float time)
         { Kind = kind; BallId = ballId; Returns = returns; ContactTime = time; }
     }
+    /// <summary>A Slopball event and the Match tick it happened in, as World Frames carry it (ADR-0040).</summary>
+    public readonly record struct SlopballTickEvent(uint MatchTick, SlopballEvent Event)
+    {
+        public SlopballEventKey Key => new(MatchTick, Event.Kind, Event.BallId);
+    }
+
+    /// <summary>One Slopball event per kind, ball and tick: its identity across rollbacks.</summary>
+    public readonly record struct SlopballEventKey(uint MatchTick, SlopballEventKind Kind, ulong BallId);
+
     public readonly struct SlopballState
     {
         public readonly SlopballPhase Phase;
@@ -23,18 +32,25 @@ namespace SlopArena.Shared
         public readonly bool Received, ReturnArmed, ClearedNet;
         public readonly SlopballShot Shot;
         public readonly float Difficulty;
+        /// <summary>Balls missed this attempt; a co-op run stops when they reach <see cref="MissBudget"/>.</summary>
+        public readonly byte Misses, MissBudget;
+        /// <summary>Every return of the attempt, across combos: a co-op run's team score.</summary>
+        public readonly ulong TotalReturns;
         public bool Ended => Phase == SlopballPhase.Stopped;
         /// <summary>Rally heat (0-4): one step per five returns in the combo; it changes the serve mix.</summary>
         public int Heat => SlopballDefinition.HeatOf(Returns);
         public SlopballState(SlopballPhase phase, ulong returns, ushort serveInTicks, bool received,
             bool returnArmed, SlopballShot shot, float difficulty, ushort countdownTicks = 0, bool clearedNet = false,
-            ulong bestStreak = 0, uint sessionSeed = 0)
+            ulong bestStreak = 0, uint sessionSeed = 0, byte misses = 0, byte missBudget = 0, ulong totalReturns = 0)
         { Phase = phase; Returns = returns; ServeInTicks = serveInTicks; Received = received;
             ReturnArmed = returnArmed; Shot = shot; Difficulty = difficulty; CountdownTicks = countdownTicks; ClearedNet = clearedNet;
-            BestStreak = bestStreak; SessionSeed = sessionSeed; }
+            BestStreak = bestStreak; SessionSeed = sessionSeed; Misses = misses; MissBudget = missBudget; TotalReturns = totalReturns; }
     }
 
-    /// <summary>Solo challenge rules and chronological goals; normal fighter simulation continues between shots.</summary>
+    /// <summary>
+    /// Slopball rules and chronological goals; normal fighter simulation continues between shots. A solo
+    /// attempt never ends on a miss; a co-op run (ADR-0040) stops once its miss budget is spent.
+    /// </summary>
     internal sealed class SlopballSimulation
     {
         private enum TraceKind : byte { Floor, Receive, Body, Clear }
@@ -51,16 +67,20 @@ namespace SlopArena.Shared
         private readonly List<Trace> _trace = new();
         private readonly List<SlopballEvent> _events = new();
         private SlopballPhase _phase = SlopballPhase.WaitingServe;
-        private ulong _returns, _bestStreak, _shotIndex;
+        private ulong _returns, _bestStreak, _shotIndex, _totalReturns;
         private uint _seed;
         private ushort _serveIn;
         private ushort _countdown;
-        private bool _received, _armed, _cleared, _attacked;
+        private byte _misses, _missBudget;
+        private bool _received, _armed, _cleared;
+        // Per-tick scratch, reset by BeginTick: never part of a World Snapshot.
+        private bool _attacked;
         private int _cursor;
         private SlopballShot _shot;
         public IReadOnlyList<SlopballEvent> Events => _events;
         public SlopballState State => new(_phase, _returns, _serveIn, _received, _armed, _shot,
-            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared, _bestStreak, _seed);
+            (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared, _bestStreak, _seed,
+            _misses, _missBudget, _totalReturns);
 
         /// <param name="ceiling">The court's ceiling height, which keeps moonball serves under it.</param>
         public SlopballSimulation(SlopballDefinition rules, ArcadeBallDefinition definition, ArcadeBallSimulation ball,
@@ -81,6 +101,22 @@ namespace SlopArena.Shared
             _seed = sessionSeed ?? _rules.Seed;
             _shot = _rules.CreateShot(_ballDefinition, 0, 0, _seed, _ceiling);
             _phase = SlopballPhase.Countdown; _countdown = ticks; _serveIn = 0;
+            ball.Retire();
+        }
+
+        /// <summary>
+        /// Starts an online co-op run: the GameHost's own countdown has already gated the fighters, so the
+        /// first serve follows the normal gap. The run stops once <paramref name="missBudget"/> balls are missed.
+        /// </summary>
+        public void BeginRun(ArcadeBallSimulation ball, uint sessionSeed, byte missBudget)
+        {
+            if (sessionSeed == 0) throw new ArgumentOutOfRangeException(nameof(sessionSeed));
+            if (missBudget == 0) throw new ArgumentOutOfRangeException(nameof(missBudget));
+            if (_phase != SlopballPhase.WaitingServe || _returns != 0 || _shotIndex != 0 || _misses != 0)
+                throw new InvalidOperationException("A run requires a clean Slopball attempt.");
+            _seed = sessionSeed; _missBudget = missBudget;
+            _shot = _rules.CreateShot(_ballDefinition, 0, 0, _seed, _ceiling);
+            _serveIn = _rules.ServeGapTicks;
             ball.Retire();
         }
 
@@ -184,12 +220,17 @@ namespace SlopArena.Shared
                     if (item.Position.Z <= _rules.NetZ)
                     {
                         Emit(SlopballEventKind.Missed, ball, item.Time);
-                        _returns = 0; Schedule();
+                        _returns = 0;
+                        if (_misses < byte.MaxValue) _misses++;
+                        if (_missBudget > 0 && _misses >= _missBudget)
+                        { _phase = SlopballPhase.Stopped; Emit(SlopballEventKind.Stopped, ball, item.Time); }
+                        else Schedule();
                     }
                     else if (_received && _armed && _cleared)
                     {
-                        if (_returns == ulong.MaxValue) throw new InvalidOperationException("Slopball counter exhausted.");
-                        _returns++;
+                        if (_returns == ulong.MaxValue || _totalReturns == ulong.MaxValue)
+                            throw new InvalidOperationException("Slopball counter exhausted.");
+                        _returns++; _totalReturns++;
                         _bestStreak = Math.Max(_bestStreak, _returns);
                         Schedule(); Emit(SlopballEventKind.Returned, ball, item.Time);
                     }
@@ -204,6 +245,72 @@ namespace SlopArena.Shared
                 }
             }
         }
+        /// <summary>The rules' state for a World Snapshot (ADR-0039/0040); per-tick scratch is excluded.</summary>
+        internal readonly struct Snapshot
+        {
+            public readonly SlopballPhase Phase;
+            public readonly ulong Returns, BestStreak, ShotIndex, TotalReturns;
+            public readonly uint Seed;
+            public readonly ushort ServeIn, Countdown;
+            public readonly byte Misses, MissBudget;
+            public readonly bool Received, Armed, Cleared;
+            public readonly SlopballShot Shot;
+
+            public Snapshot(SlopballPhase phase, ulong returns, ulong bestStreak, ulong shotIndex, ulong totalReturns,
+                uint seed, ushort serveIn, ushort countdown, byte misses, byte missBudget,
+                bool received, bool armed, bool cleared, SlopballShot shot)
+            {
+                Phase = phase; Returns = returns; BestStreak = bestStreak; ShotIndex = shotIndex; TotalReturns = totalReturns;
+                Seed = seed; ServeIn = serveIn; Countdown = countdown; Misses = misses; MissBudget = missBudget;
+                Received = received; Armed = armed; Cleared = cleared; Shot = shot;
+            }
+
+            public void Write(SnapshotWriter w)
+            {
+                w.WriteByte((byte)Phase);
+                w.WriteULong(Returns); w.WriteULong(BestStreak); w.WriteULong(ShotIndex); w.WriteULong(TotalReturns);
+                w.WriteUInt(Seed); w.WriteUShort(ServeIn); w.WriteUShort(Countdown);
+                w.WriteByte(Misses); w.WriteByte(MissBudget);
+                w.WriteBool(Received); w.WriteBool(Armed); w.WriteBool(Cleared);
+                w.WriteULong(Shot.Index);
+                WritePoint(w, Shot.Spawn); WritePoint(w, Shot.Velocity);
+                w.WriteUShort(Shot.FlightTicks); w.WriteByte((byte)Shot.Kind); w.WriteFloat(Shot.Curve);
+            }
+
+            public static Snapshot Read(SnapshotReader r)
+            {
+                byte phase = r.ReadByte();
+                if (phase > (byte)SlopballPhase.Countdown) throw SnapshotReader.Malformed("Slopball phase");
+                ulong returns = r.ReadULong(), best = r.ReadULong(), shotIndex = r.ReadULong(), total = r.ReadULong();
+                uint seed = r.ReadUInt(); ushort serveIn = r.ReadUShort(), countdown = r.ReadUShort();
+                byte misses = r.ReadByte(), budget = r.ReadByte();
+                bool received = r.ReadBool(), armed = r.ReadBool(), cleared = r.ReadBool();
+                ulong index = r.ReadULong();
+                var spawn = ReadPoint(r); var velocity = ReadPoint(r);
+                ushort flight = r.ReadUShort(); byte kind = r.ReadByte(); float curve = r.ReadFloat();
+                if (kind > (byte)SlopballServe.Curveball) throw SnapshotReader.Malformed("Slopball serve");
+                return new Snapshot((SlopballPhase)phase, returns, best, shotIndex, total, seed, serveIn, countdown,
+                    misses, budget, received, armed, cleared,
+                    new SlopballShot(index, spawn, velocity, flight, (SlopballServe)kind, curve));
+            }
+
+            private static void WritePoint(SnapshotWriter w, ArcadePoint p) { w.WriteFloat(p.X); w.WriteFloat(p.Y); w.WriteFloat(p.Z); }
+            private static ArcadePoint ReadPoint(SnapshotReader r) => new(r.ReadFloat(), r.ReadFloat(), r.ReadFloat());
+        }
+
+        internal Snapshot Capture() => new(_phase, _returns, _bestStreak, _shotIndex, _totalReturns, _seed, _serveIn,
+            _countdown, _misses, _missBudget, _received, _armed, _cleared, _shot);
+
+        internal void Apply(in Snapshot snapshot)
+        {
+            _phase = snapshot.Phase; _returns = snapshot.Returns; _bestStreak = snapshot.BestStreak;
+            _shotIndex = snapshot.ShotIndex; _totalReturns = snapshot.TotalReturns; _seed = snapshot.Seed;
+            _serveIn = snapshot.ServeIn; _countdown = snapshot.Countdown; _misses = snapshot.Misses;
+            _missBudget = snapshot.MissBudget; _received = snapshot.Received; _armed = snapshot.Armed;
+            _cleared = snapshot.Cleared; _shot = snapshot.Shot;
+            _events.Clear(); _trace.Clear(); _cursor = 0; _attacked = false;
+        }
+
         private void Schedule()
         {
             if (_shotIndex == ulong.MaxValue) throw new InvalidOperationException("Slopball shot sequence exhausted.");

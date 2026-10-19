@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SlopArena.Shared;
@@ -92,5 +93,29 @@ public sealed class NoWinMatchRule : IMatchRule
 
     public bool IsEliminated(CharacterState state) => false;
 
+    public MatchOutcome Evaluate(IReadOnlyDictionary<ulong, CharacterState> states) => default;
+}
+
+/// <summary>
+/// Co-op Slopball against the Launcher (ADR-0040): nobody is eliminated, and the run ends once
+/// the team has missed <see cref="MissBudget"/> balls. The simulation decides the end
+/// (<see cref="ServerSimulation.EvaluateMatch"/>) because it owns the Slopball state.
+/// </summary>
+public sealed class SlopballCoopMatchRule : IMatchRule
+{
+    /// <summary>Provisional (2026-10-19): the brief leaves the count unselected until play.</summary>
+    public const byte DefaultMissBudget = 3;
+
+    public byte MissBudget { get; }
+
+    public SlopballCoopMatchRule(byte missBudget = DefaultMissBudget)
+    {
+        if (missBudget == 0) throw new ArgumentOutOfRangeException(nameof(missBudget));
+        MissBudget = missBudget;
+    }
+
+    public bool IsEliminated(CharacterState state) => false;
+
+    /// <summary>Fighter states alone never end a run; see <see cref="ServerSimulation.EvaluateMatch"/>.</summary>
     public MatchOutcome Evaluate(IReadOnlyDictionary<ulong, CharacterState> states) => default;
 }

@@ -164,7 +164,16 @@ public static class LobbyPayloadCodec
             return null;
         if (descriptor != null && matchId != descriptor.MatchId)
             return null;
+        // format is optional (absent → a stock fight, ADR-0040); an unknown name is refused.
+        string? formatName = null;
+        if (element.TryGetProperty("format", out var formatElement) && formatElement.ValueKind != JsonValueKind.Null)
+        {
+            if (formatElement.ValueKind != JsonValueKind.String) return null;
+            formatName = formatElement.GetString();
+        }
+        if (!MatchFormats.TryParseWire(formatName, out var format))
+            return null;
         return new MatchStartedConfig(snap.ServerId, snap.Players, matchPort, arenaName,
-            maxStocks, content, descriptor, roomId, serverAddress, matchId);
+            maxStocks, content, descriptor, roomId, serverAddress, matchId, format);
     }
 }

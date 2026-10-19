@@ -117,5 +117,12 @@ public sealed class SteamMatchRoutingWireTests
         using var changed = JsonDocument.Parse(tampered);
         Assert.Null(LobbyPayloadCodec.TryParseMatchStarted(changed.RootElement));
 
+        // ADR-0040: a missing format is a stock fight; Master names Arcade formats on the wire.
+        Assert.Equal(MatchFormat.Stock, LobbyPayloadCodec.TryParseMatchStarted(valid.RootElement)!.Format);
+        using var coop = JsonDocument.Parse(serialized.Insert(serialized.LastIndexOf('}'), ",\"format\":\"slopball-coop\""));
+        Assert.Equal(MatchFormat.SlopballCoop, LobbyPayloadCodec.TryParseMatchStarted(coop.RootElement)!.Format);
+        using var unknown = JsonDocument.Parse(serialized.Insert(serialized.LastIndexOf('}'), ",\"format\":\"volleyball\""));
+        Assert.Null(LobbyPayloadCodec.TryParseMatchStarted(unknown.RootElement));
+
     }
 }

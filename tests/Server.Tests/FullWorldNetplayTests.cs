@@ -94,6 +94,79 @@ public class FullWorldNetplayTests
         }
     }
 
+    /// <summary>
+    /// ADR-0040 slice 2: a co-op Slopball run over the same transport. The GameHost seeds and serves;
+    /// both peers learn the run from World Frames alone and predict the ball and rally state.
+    /// </summary>
+    [Fact]
+    public void TwoUdpPeersPredictACoopSlopballRun()
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        string cooked = Path.Combine(root, "content-cooked");
+        var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(cooked, "roster/manifest.json"));
+        var packages = manifest.Entries.ToDictionary(x => x.PackageId,
+            x => CookedCharacterPackageLoader.LoadDirectory(Path.Combine(cooked, x.PackageId), x.Requirement));
+        var built = new MatchContentCatalogBuilder().Build(manifest, packages);
+        Assert.True(built.IsValid, string.Join("; ", built.Diagnostics));
+        var catalog = built.Catalog!;
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
+        var arena = ArenaRegistry.Get("slopball")!.Value;
+
+        using var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
+        reservation.Close();
+        using var ended = new ManualResetEventSlim();
+        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Bonk) };
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+            roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog, _ => ended.Set(),
+            format: MatchFormat.SlopballCoop);
+        var endpoint = new IPEndPoint(IPAddress.Loopback, port);
+        Func<IMatchRule> rule = () => new SlopballCoopMatchRule();
+        var first = new Peer(1, arena, catalog, roster, endpoint, rule);
+        var second = new Peer(2, arena, catalog, roster, endpoint, rule);
+        first.Input = tick => tick - first.FirstPredictedTick is >= 10 and < 40 ? new InputState { MoveX = -1f } : default;
+        try
+        {
+            match.Start();
+            var clock = Stopwatch.StartNew();
+            while (clock.Elapsed < TimeSpan.FromSeconds(16) &&
+                (first.PredictedTicks < 300 || second.PredictedTicks < 300))
+            {
+                double now = NetplayNow();
+                first.Step(now);
+                second.Step(now);
+                Thread.Sleep(15);
+            }
+
+            var server = first.ViewOf(first.LatestFrame!);
+            var run = server.Slopball!.Value;
+            Assert.NotEqual(0u, run.SessionSeed);
+            Assert.True(run.Phase == SlopballPhase.Live || run.Shot.Index > 0, $"no serve yet: {run.Phase}");
+            foreach (var peer in new[] { first, second })
+            {
+                Assert.True(peer.PredictedTicks >= 300, $"peer {peer.Id} predicted only {peer.PredictedTicks} ticks");
+                Assert.Equal(0, peer.Totals.RejectedFrames);
+                Assert.Equal(MatchState.Playing, peer.Session.MatchState);
+                var predicted = peer.Session.Predictor.Simulation.Slopball!.Value;
+                Assert.Equal(run.SessionSeed, predicted.SessionSeed);
+                Assert.InRange((long)predicted.Shot.Index - (long)run.Shot.Index, -1, 1);
+                Assert.Equal(SlopballCoopMatchRule.DefaultMissBudget, predicted.MissBudget);
+                // The serve reached presentation once through the predictor's Slopball ledger.
+                Assert.True(peer.ServedEvents >= 1, $"peer {peer.Id} presented {peer.ServedEvents} serves");
+            }
+            // Fighters start on the co-op line, not stacked on the court's one start.
+            var start = arena.SpawnPoints[0];
+            Assert.True(server.GetState(2).PX - start.X > 0.5f, $"fighter 2 at {server.GetState(2).PX:F2}");
+        }
+        finally
+        {
+            first.Dispose();
+            second.Dispose();
+            match.Stop();
+            Assert.True(ended.Wait(3000), "Local match did not stop.");
+        }
+    }
+
     private static double NetplayNow() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
 
     /// <summary>A headless client: the Unity bridge's protocol over a raw UDP socket.</summary>
@@ -105,20 +178,22 @@ public class FullWorldNetplayTests
         private readonly ArenaDefinition _arena;
         private readonly MatchContentCatalog _catalog;
         private readonly (ulong Id, CharacterClass Character)[] _roster;
+        private readonly Func<IMatchRule> _rule;
         private bool _clockReceived;
         private uint _startTick;
         private double _nextHandshake;
         private double _nextPing;
 
         public Peer(ulong id, ArenaDefinition arena, MatchContentCatalog catalog,
-            (ulong Id, CharacterClass Character)[] roster, IPEndPoint server)
+            (ulong Id, CharacterClass Character)[] roster, IPEndPoint server, Func<IMatchRule>? rule = null)
         {
             Id = id;
             _server = server;
             _arena = arena;
             _catalog = catalog;
             _roster = roster;
-            Session = new NetplaySession(arena, id, new StockMatchRule(MatchDefaults.DefaultMaxStocks));
+            _rule = rule ?? (() => new StockMatchRule(MatchDefaults.DefaultMaxStocks));
+            Session = new NetplaySession(arena, id, _rule());
             foreach (var (entity, character) in roster)
             {
                 var content = catalog.Resolve(character)!;
@@ -130,6 +205,9 @@ public class FullWorldNetplayTests
         public NetplaySession Session { get; }
         public Func<uint, InputState> Input { get; set; } = _ => default;
         public uint FirstPredictedTick { get; private set; }
+        public int ServedEvents { get; private set; }
+        private readonly List<SlopballTickEvent> _slopballStarted = new();
+        private readonly List<SlopballTickEvent> _slopballRetracted = new();
         public int PredictedTicks { get; private set; }
         public WorldFramePacket? LatestFrame { get; private set; }
         public NetplayPredictorStats Totals;
@@ -186,6 +264,10 @@ public class FullWorldNetplayTests
                 InputBundle.Write(bundle, Id, Session.LocalTick, Session.RecentInputs);
                 _udp.Send(bundle, bundle.Length, _server);
             }
+            _slopballStarted.Clear();
+            _slopballRetracted.Clear();
+            Session.Predictor.DrainSlopballEvents(_slopballStarted, _slopballRetracted);
+            ServedEvents += _slopballStarted.Count(e => e.Event.Kind == SlopballEventKind.Served);
             // Judge prediction from the first predicted tick on; countdown frames are plain jumps.
             var stats = Session.TakeStats(now).Prediction;
             if (FirstPredictedTick != 0)
@@ -193,16 +275,19 @@ public class FullWorldNetplayTests
         }
 
         /// <summary>A fighter's state in a frame, decoded with this peer's own simulation setup.</summary>
-        public CharacterState StateAt(WorldFramePacket frame, ulong fighter)
+        public CharacterState StateAt(WorldFramePacket frame, ulong fighter) => ViewOf(frame).GetState(fighter);
+
+        /// <summary>The GameHost's world at a frame, decoded with this peer's own simulation setup.</summary>
+        public ServerSimulation ViewOf(WorldFramePacket frame)
         {
-            var view = new ServerSimulation(_arena);
+            var view = new ServerSimulation(_arena, _rule());
             foreach (var (entity, character) in _roster)
             {
                 var content = _catalog.Resolve(character)!;
                 view.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
             }
             view.RestoreSnapshot(frame.Snapshot);
-            return view.GetState(fighter);
+            return view;
         }
 
         private void Send(NetplayControlPacket control)

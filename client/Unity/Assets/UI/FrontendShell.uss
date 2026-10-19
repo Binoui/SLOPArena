@@ -1316,6 +1316,32 @@
     color: var(--shell-canvas);
 }
 
+/* Online Room tabs (ADR-0040): the shell's mode-tab plates, PVP stages or Arcade modes.
+   The Arcade cards reuse Arcade.uss, which StageSelectController loads in room mode. */
+.stage-tabs {
+    flex-direction: row;
+    flex-shrink: 0;
+    margin: 0 0 8px 10px;
+}
+
+.stage-arcade {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 4px 10px;
+}
+
+.stage-arcade-soon {
+    flex-shrink: 0;
+    margin: 0 0 0 12px;
+    padding: 4px 8px;
+    background-color: var(--shell-canvas);
+    color: var(--shell-action);
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
 .stage-player-cards {
     flex-grow: 1;
     min-width: 0;

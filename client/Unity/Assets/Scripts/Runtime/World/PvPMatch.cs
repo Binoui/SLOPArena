@@ -46,6 +46,7 @@ namespace SlopArena.Client.World
         private int _clockAcknowledgedGeneration = -1;
         private bool _resultsScheduled;
         private Coroutine? _countdownPresentation;
+        private OnlineSlopball? _slopball;
         protected override ISimulationBridge Bridge => _bridge;
 
         protected override void LeaveMatch()
@@ -117,9 +118,11 @@ namespace SlopArena.Client.World
                 ClientSession.RejectMatchStart($"Baked arena could not be loaded: {arenaPath}");
                 return;
             }
-            if (arena.Purpose != ArenaPurpose.PvP)
+            // The Match format (ADR-0040) decides the arena: stock fights take PvP stages, co-op
+            // Slopball its court. Solo-only Arcade stages never run online.
+            if (!MatchConfig.Format.Admits(arena))
             {
-                ClientSession.RejectMatchStart("Solo Arcade stages cannot run as PvP matches.");
+                ClientSession.RejectMatchStart($"This stage cannot host {MatchConfig.Format.ToWire()} online.");
                 return;
             }
             Debug.Log($"[PvPMatch] Loaded arena: {arenaPath}");
@@ -133,7 +136,7 @@ namespace SlopArena.Client.World
             }
             _networkClient.EntityId = PlayerEntityId;
             _bridge = new RollbackSimulationBridge(arena, _networkClient, PlayerEntityId,
-                new StockMatchRule((byte)MatchConfig.MaxStocks));
+                MatchConfig.Format.CreateRule((byte)MatchConfig.MaxStocks));
             SpawnStageVisual(arena);
             if (_combatFeedback == null)
                 _combatFeedback = FindFirstObjectByType<CombatFeedback>();
@@ -166,6 +169,9 @@ namespace SlopArena.Client.World
                 return;
             }
             SetupHUD(playerDef);
+            if (MatchConfig.Format == MatchFormat.SlopballCoop && _hudManager != null)
+                _slopball = new OnlineSlopball(transform, StageVisual, arena, _hudManager,
+                    () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
 
             // Opponent renderers — one per MatchConfig.Opponents entry. The scene's
             // _opponentRenderer is the first opponent + the clone template for the rest.
@@ -279,15 +285,21 @@ namespace SlopArena.Client.World
         {
             float frameMs = Time.unscaledDeltaTime * 1000f;
             if (frameMs > _windowMaxFrameMs) _windowMaxFrameMs = frameMs;
+            if (_slopball != null && _bridge != null)
+                _slopball.Update(Time.deltaTime, _bridge.Simulation, _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
             if (IsPaused) return; // pause menu owns Esc + skips polling (issue #77)
             _inputController.Poll();
         }
 
         /// <summary>Roster spawn point for an entity (entityId 1..N ↔ spawnPoints[0..N-1]),
-        /// matching the server's PickSpawn fallback (issue #35).</summary>
+        /// matching the server's PickSpawn fallback (issue #35). Arcade formats place
+        /// fighters themselves, as the GameHost does (co-op Slopball spreads the court's start).</summary>
         private static SpawnPoint SpawnPointFor(ArenaDefinition arena, ulong entityId)
         {
             int idx = (int)entityId - 1;
+            int fighters = MatchConfig.Opponents.Count + 1;
+            if (MatchConfig.Format != MatchFormat.Stock && idx >= 0 && idx < fighters)
+                return MatchConfig.Format.StartFor(arena, idx, fighters);
             if (idx < 0 || arena.SpawnPoints == null || idx >= arena.SpawnPoints.Length)
                 return new SpawnPoint { X = 40f, Y = 0.5f, Z = 40f, Yaw = 0f };
             return arena.SpawnPoints[idx];
@@ -339,9 +351,11 @@ namespace SlopArena.Client.World
                 : AimContext.None;
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
 
-            byte targetEntityId = PickScreenTarget(
-                _opponentArray,
-                _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
+            _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main;
+            // Co-op Slopball locks on the ball, never a teammate.
+            byte targetEntityId = _slopball != null
+                ? OnlineSlopball.PickTarget(_bridge.Simulation, _mainCamera, playerState)
+                : PickScreenTarget(_opponentArray, _mainCamera);
 
             var (input, _, _) = _inputController.BuildInputState(
                 _cameraMount,
@@ -377,13 +391,27 @@ namespace SlopArena.Client.World
             PresentTimelineEvents();
 
             var presentationState = _bridge.GetState(PlayerEntityId);
-            _opponentRenderers.TryGetValue(presentationState.TargetEntityId, out var presentationTarget);
-            ushort targetDamagePercent = presentationTarget != null
-                ? _bridge.GetState(presentationState.TargetEntityId).DamagePercent
-                : (ushort)0;
-            _aimHandler?.UpdateTargetPresentation(presentationState, presentationTarget, targetDamagePercent);
-
-            UpdateLockCamera();
+            if (_slopball != null)
+            {
+                _slopball.AfterUpdate(_bridge.Simulation, _bridge.LastTickHits, _bridge.SlopballEvents);
+                var ball = _bridge.Simulation.ArcadeBall!.Value;
+                bool selected = ball.Active && presentationState.TargetEntityId == ball.EntityId;
+                _aimHandler?.UpdateObjectTargetPresentation(presentationState, selected ? _slopball.BallAnchor : null,
+                    ball.Radius, (ushort)ball.DamagePercent);
+                if (presentationState.LockOn && selected)
+                    _cameraMount?.SetLockFocus(_playerRenderer.transform, _slopball.BallAnchor.position);
+                else
+                    _cameraMount?.ClearLockFocus(_playerRenderer.transform);
+            }
+            else
+            {
+                _opponentRenderers.TryGetValue(presentationState.TargetEntityId, out var presentationTarget);
+                ushort targetDamagePercent = presentationTarget != null
+                    ? _bridge.GetState(presentationState.TargetEntityId).DamagePercent
+                    : (ushort)0;
+                _aimHandler?.UpdateTargetPresentation(presentationState, presentationTarget, targetDamagePercent);
+                UpdateLockCamera();
+            }
 
             PresentStockLosses();
 
@@ -405,7 +433,7 @@ namespace SlopArena.Client.World
                 }
                 else if (matchState == MatchState.Ended)
                 {
-                    _hudManager?.ShowMatchCallout("MATCH COMPLETE", 1.4f);
+                    _hudManager?.ShowMatchCallout(_slopball != null ? "RUN OVER" : "MATCH COMPLETE", 1.4f);
                     _aimHandler?.ResetPresentation();
                 }
             }
@@ -593,6 +621,7 @@ namespace SlopArena.Client.World
         {
             if (_networkClient != null)
                 _networkClient.ConnectionFailed -= OnSteamConnectionFailed;
+            _slopball?.Dispose();
             base.OnDestroy();
         }
     }

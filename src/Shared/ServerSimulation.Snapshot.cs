@@ -9,7 +9,8 @@ namespace SlopArena.Shared
     public partial class ServerSimulation
     {
         /// <summary>World Snapshot encoding version; bump with any layout change.</summary>
-        public const uint SnapshotFormatVersion = 1;
+        /// <summary>World Snapshot encoding version; 2 adds the Arcade ball and Slopball rules (ADR-0040).</summary>
+        public const uint SnapshotFormatVersion = 2;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -24,8 +25,8 @@ namespace SlopArena.Shared
         /// </summary>
         public WorldSnapshot CaptureSnapshot()
         {
-            if (_arcadeBall != null || _course != null)
-                throw new NotSupportedException("World snapshots cover PvP simulations; Arcade objects are not captured.");
+            if (_course != null)
+                throw new NotSupportedException("World snapshots do not cover Character Courses yet.");
 
             var w = new SnapshotWriter(2048);
             w.WriteUInt(SnapshotFormatVersion);
@@ -67,6 +68,15 @@ namespace SlopArena.Shared
                 }
             }
             _spellResolver.WriteSnapshot(w, OwnerContent);
+            // Arcade objects (ADR-0040): the ball, then the Slopball rules that own it.
+            w.WriteBool(_arcadeBall != null);
+            if (_arcadeBall != null)
+            {
+                _arcadeBall.Capture().Write(w);
+                w.WriteBool(_slopball != null);
+                _slopball?.Capture().Write(w);
+                w.WriteBool(_arcadeInputReleaseRequired);
+            }
             return new WorldSnapshot(w.ToArray());
         }
 
@@ -78,8 +88,8 @@ namespace SlopArena.Shared
         public void RestoreSnapshot(WorldSnapshot snapshot)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
-            if (_arcadeBall != null || _course != null)
-                throw new NotSupportedException("World snapshots cover PvP simulations; Arcade objects are not captured.");
+            if (_course != null)
+                throw new NotSupportedException("World snapshots do not cover Character Courses yet.");
 
             var r = new SnapshotReader(snapshot.Data);
             r.ReadUInt(); // format version, checked by WorldSnapshot
@@ -125,6 +135,21 @@ namespace SlopArena.Shared
                 fighters[i] = fighter;
             }
             var resolver = SpellResolver.ReadSnapshot(r, OwnerContent);
+            bool hasBall = r.ReadBool();
+            if (hasBall != (_arcadeBall != null))
+                throw SnapshotReader.Malformed("Arcade ball presence");
+            ArcadeBallSimulation.Snapshot ball = default;
+            SlopballSimulation.Snapshot rules = default;
+            bool inputRelease = false;
+            if (hasBall)
+            {
+                ball = ArcadeBallSimulation.Snapshot.Read(r);
+                bool hasRules = r.ReadBool();
+                if (hasRules != (_slopball != null))
+                    throw SnapshotReader.Malformed("Slopball presence");
+                if (hasRules) rules = SlopballSimulation.Snapshot.Read(r);
+                inputRelease = r.ReadBool();
+            }
             if (!r.AtEnd)
                 throw SnapshotReader.Malformed("trailing data");
 
@@ -147,6 +172,12 @@ namespace SlopArena.Shared
                     _activeAbilities[id] = fighter.Ability;
             }
             _spellResolver.ApplySnapshot(resolver);
+            if (_arcadeBall != null)
+            {
+                _arcadeBall.Apply(ball);
+                _slopball?.Apply(rules);
+                _arcadeInputReleaseRequired = inputRelease;
+            }
 
             // Outputs of the tick that produced the replaced state.
             LastTickHits.Clear();

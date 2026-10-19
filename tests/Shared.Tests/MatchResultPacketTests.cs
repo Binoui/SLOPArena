@@ -5,6 +5,25 @@ namespace SlopArena.Shared.Tests;
 public sealed class MatchResultPacketTests
 {
     [Fact]
+    public void RoundTrip_CarriesACoopSlopballRunAndStockFightsCarryNone()
+    {
+        var entries = new[] { new MatchResultEntry(1, 1, 0, 0), new MatchResultEntry(2, 2, 0, 0) };
+        var run = new MatchResultPacket(900, sharedVictory: true, entries, new SlopballRunResult(27, 11, 3));
+        var buffer = new byte[run.WireSize];
+        run.Serialize(buffer);
+        Assert.True(MatchResultPacket.TryDeserialize(buffer, out var decoded));
+        Assert.Equal(new SlopballRunResult(27, 11, 3), decoded!.Run);
+        Assert.True(run.WireSize <= MatchResultPacket.MaxSize);
+
+        var fight = new MatchResultPacket(900, sharedVictory: false, entries);
+        var fightBuffer = new byte[fight.WireSize];
+        fight.Serialize(fightBuffer);
+        Assert.True(MatchResultPacket.TryDeserialize(fightBuffer, out var stock));
+        Assert.Null(stock!.Run);
+        Assert.Equal(buffer.Length - 10, fightBuffer.Length);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesAuthoritativePlacementsAndStats()
     {
         var packet = new MatchResultPacket(

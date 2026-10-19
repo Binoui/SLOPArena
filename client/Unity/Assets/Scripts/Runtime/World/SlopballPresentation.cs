@@ -187,6 +187,14 @@ namespace SlopArena.Client.World
 
         /// <summary>Consumes one completed Shared tick (countdown ticks included): hits on the ball, its bounces and the Slopball events.</summary>
         public void AfterTick(ServerSimulation simulation)
+            => Present(simulation, simulation.LastTickHits, simulation.LastTickArcadeBallContacts, simulation.LastTickSlopballEvents);
+
+        /// <summary>
+        /// Consumes what one update brings: hits on the ball, its bounces and the Slopball events. Online, the
+        /// rollback ledgers hand hits and events out once each, so a re-simulated tick never sounds twice (ADR-0040).
+        /// </summary>
+        public void Present(ServerSimulation simulation, IReadOnlyList<SpellResolver.HitResult> hits,
+            IReadOnlyList<ArcadeBallContact> contacts, IReadOnlyList<SlopballEvent> events)
         {
             if (simulation.Slopball is not SlopballState state || simulation.ArcadeBall is not ArcadeBallState ball) return;
             _senderTarget = new Vector3(state.Shot.Spawn.X, _senderHeight, state.Shot.Spawn.Z);
@@ -195,13 +203,13 @@ namespace SlopArena.Client.World
             // A hit ends the ball's path at its contact time: later contacts in that tick never happened.
             _ballVelocity = Position(ball.Velocity);
             float hitTime = float.MaxValue;
-            foreach (var hit in simulation.LastTickHits)
+            foreach (var hit in hits)
                 if (hit.TargetEntityId == ball.EntityId && !hit.Blocked) hitTime = Mathf.Min(hitTime, hit.ContactTime);
-            OnContacts(simulation.LastTickArcadeBallContacts, hitTime);
-            foreach (var hit in simulation.LastTickHits)
+            OnContacts(contacts, hitTime);
+            foreach (var hit in hits)
                 if (hit.TargetEntityId == ball.EntityId && !hit.Blocked) OnHit(hit, ball);
 
-            foreach (var e in simulation.LastTickSlopballEvents)
+            foreach (var e in events)
             {
                 switch (e.Kind)
                 {

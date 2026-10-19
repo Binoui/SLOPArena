@@ -54,8 +54,12 @@ namespace SlopArena.Client.UI
         /// server's rule; the master server push carries it when present, else 3.</summary>
         public static int MaxStocks = SlopArena.Shared.MatchDefaults.DefaultMaxStocks;
 
+        /// <summary>What the online Match plays (ADR-0040); Master's push carries it, else a stock fight.</summary>
+        public static MatchFormat Format = MatchFormat.Stock;
+
         public static void ClearActiveMatch()
         {
+            Format = MatchFormat.Stock;
             Mode = GameMode.Training;
             Transport = MatchTransport.None;
             SteamDescriptor = null;

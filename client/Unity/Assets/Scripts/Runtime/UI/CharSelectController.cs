@@ -376,7 +376,7 @@ namespace SlopArena.Client.UI
         private void InitRoom(FrontendPageContext context)
         {
             _roomMode = true;
-            SetModeChrome(context, "ROOM // CHOOSE YOUR FIGHTER", "ROOM PREPARATION  /  FIGHTER");
+            SetModeChrome(context, "ROOM // CHOOSE YOUR FIGHTER", "STEP 2 OF 2  /  FIGHTER");
             context.Q<Button>("btn-select")?.style.SetDisplay(false);
             context.Q<VisualElement>("solo-config")?.style.SetDisplay(false);
             _rosterPanel = context.Q<VisualElement>("roster-panel");
@@ -394,8 +394,8 @@ namespace SlopArena.Client.UI
             }
             if (_btnStartMatch != null)
             {
-                _btnStartMatch.text = "CHOOSE ARENA";
-                _btnStartMatch.clicked += OnRoomStartStageSelectClicked;
+                _btnStartMatch.text = "START MATCH";
+                _btnStartMatch.clicked += OnRoomStartMatchClicked;
             }
             var back = context.Q<Button>("btn-back");
             if (back != null) back.clicked += OnRoomBackClicked;
@@ -532,15 +532,36 @@ namespace SlopArena.Client.UI
                 FrontendController.Show(FrontendPage.StageSelect);
                 return;
             }
+            ShowRoomArena(room);
             if (string.Equals(room.Phase, "Match Starting", StringComparison.Ordinal) ||
                 string.Equals(room.Phase, "In Match", StringComparison.Ordinal))
             {
-                FrontendController.Show(FrontendPage.StageSelect);
+                // ChatSession enters the match when Master's MatchStarted arrives.
+                _roomActionPending = true;
+                RenderRoomRoster();
+                UpdateRoomControls();
+                if (_btnStartMatch != null) _btnStartMatch.text = "MATCH STARTING";
+                SetRoomStatus(room.Phase == "In Match"
+                    ? "Match host allocated. Waiting for the Room match descriptor…"
+                    : "Master is preparing the Room match…", false);
                 return;
             }
             ApplyRoomCharacterAllowlist();
             RenderRoomRoster();
             UpdateRoomControls();
+        }
+
+        /// <summary>The Room chose its arena in Stage Select; show it while fighters are picked.</summary>
+        private void ShowRoomArena(RoomSnapshot room)
+        {
+            if (string.IsNullOrWhiteSpace(room.ArenaName)) return;
+            ArenaDefinition? arena = ArenaRegistry.Get(room.ArenaName);
+            string name = string.Equals(room.Format, MatchFormats.SlopballCoopWire, StringComparison.Ordinal)
+                ? "Slopball co-op"
+                : arena.HasValue && !string.IsNullOrWhiteSpace(arena.Value.DisplayName)
+                    ? arena.Value.DisplayName
+                    : room.ArenaName.Replace('_', ' ');
+            SetModeChrome(_context, "ROOM // CHOOSE YOUR FIGHTER", $"STEP 2 OF 2  /  {name.ToUpperInvariant()}");
         }
 
         private void ApplyRoomCharacterAllowlist()
@@ -624,6 +645,7 @@ namespace SlopArena.Client.UI
             if (_btnStartMatch != null)
             {
                 _btnStartMatch.style.SetDisplay(leader);
+                _btnStartMatch.text = "START MATCH";
                 _btnStartMatch.SetEnabled(leader && allLocked && !_roomActionPending &&
                     _lobby?.IsConnected == true);
             }
@@ -632,8 +654,8 @@ namespace SlopArena.Client.UI
                 ? "Master has not admitted any characters for this Room."
                 : localLocked
                     ? (leader
-                        ? allLocked ? "Everyone is locked in. Choose the arena." : "Locked in. Waiting for the other members."
-                        : "Locked in. Waiting for the Room leader.")
+                        ? allLocked ? "Everyone is locked in. Start the match." : "Locked in. Waiting for the other members."
+                        : "Locked in. Waiting for the Room leader to start.")
                     : "Choose your fighter, then lock in.", admittedCharacters.Length == 0);
             RenderRoomCardMarkers();
         }
@@ -679,11 +701,12 @@ namespace SlopArena.Client.UI
             }
         }
 
-        private async void OnRoomStartStageSelectClicked()
+        private async void OnRoomStartMatchClicked()
         {
             var lobby = _lobby;
             var snapshot = _roomSnapshot;
-            if (_roomActionPending || lobby == null || snapshot == null)
+            Guid roomId = ClientSession.SelectedRoomId;
+            if (_roomActionPending || lobby == null || snapshot == null || !lobby.IsConnected)
                 return;
             var members = snapshot.Members ?? Array.Empty<RoomMemberInfo>();
             bool isLeader = false;
@@ -696,18 +719,21 @@ namespace SlopArena.Client.UI
             if (!isLeader || !allLocked) return;
             _roomActionPending = true;
             UpdateRoomControls();
+            SetRoomStatus("Starting the Room match with Master…", false);
             try
             {
-                var room = await lobby.RoomStartStageSelectAsync();
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
-                    OnRoomUpdated(room);
+                await lobby.RoomStartMatchAsync();
             }
             catch (Exception ex)
             {
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby)) return;
+                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) ||
+                    ClientSession.SelectedRoomId != roomId)
+                    return;
+                if (_roomSnapshot?.Phase is "Match Starting" or "In Match")
+                    return;
                 _roomActionPending = false;
                 UpdateRoomControls();
-                SetRoomStatus($"Stage select rejected: {ex.Message}", true);
+                SetRoomStatus($"Could not start the Room match: {ex.Message}. You can retry.", true);
             }
         }
 
@@ -1089,7 +1115,7 @@ namespace SlopArena.Client.UI
                 {
                     UnbindRoomLobby(_lobby);
                     if (_btnLockIn != null) _btnLockIn.clicked -= OnRoomLockInClicked;
-                    if (_btnStartMatch != null) _btnStartMatch.clicked -= OnRoomStartStageSelectClicked;
+                    if (_btnStartMatch != null) _btnStartMatch.clicked -= OnRoomStartMatchClicked;
                     var backButton = _context.Q<Button>("btn-back");
                     if (backButton != null) backButton.clicked -= OnRoomBackClicked;
                 }

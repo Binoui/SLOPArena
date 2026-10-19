@@ -55,6 +55,7 @@ namespace SlopArena.Server
 		private ushort _countdownTicks;
 		private const ushort CountdownDuration = 300; // 5 seconds at 60Hz
 		private readonly IMatchRule _rule;
+		private readonly MatchFormat _format;
 		private ulong _winnerEntityId;
 		private MatchResultPacket? _matchResultPacket;
 
@@ -96,9 +97,11 @@ namespace SlopArena.Server
 			Action<Guid>? onSteamMatchEnd = null, Action<Guid, string>? onMatchCancelled = null,
 			DateTimeOffset? admissionDeadlineUtc = null, string? contentHash = null,
 			Action<Guid, ulong, byte[], bool>? steamSend = null, TimeProvider? clock = null,
-			MatchContentHandleMap? contentHandleMap = null, Action? steamFlush = null)
+			MatchContentHandleMap? contentHandleMap = null, Action? steamFlush = null,
+			MatchFormat format = MatchFormat.Stock)
 		{
 			_steamFlush = steamFlush;
+			_format = format;
 			_port = port;
 			_matchId = matchId;
 			_arenaName = arenaName;
@@ -114,7 +117,7 @@ namespace SlopArena.Server
 			_clock = clock ?? TimeProvider.System;
 			Diagnostics = new MatchDiagnostics(matchId, arenaName, steamSend is null ? "development-udp" : "steam-p2p", _clock);
 			_contentHandleMap = contentHandleMap;
-			_rule = new StockMatchRule(maxStocks);
+			_rule = format.CreateRule(maxStocks);
 
 			_slots = new List<PlayerSlot>(roster.Count);
 			foreach (var p in roster)
@@ -294,8 +297,8 @@ namespace SlopArena.Server
 		{
 			Log($"Starting on port {_port} ({_slots.Count} players)");
 
-			var arenaOpt = ArenaRegistry.GetPvP(_arenaName);
-			if (!arenaOpt.HasValue)
+			var arenaOpt = ArenaRegistry.Get(_arenaName);
+			if (!arenaOpt.HasValue || !_format.Admits(arenaOpt.Value))
 			{
 				Console.WriteLine($"[Match:{_matchId}] Unknown arena '{_arenaName}' — aborting match.");
 				Diagnostics.Log(_serverTick, "Arena unavailable; match aborted.", "error");
@@ -318,6 +321,12 @@ namespace SlopArena.Server
 				var respawnSpawn = PickSpawn(i);
 				_sim.SetRespawnPosition(slot.EntityId, respawnSpawn.X, respawnSpawn.Y, respawnSpawn.Z, respawnSpawn.Yaw);
 				Log($"Slot {i}: entity {slot.EntityId} = {slot.CharacterClass}");
+			}
+			if (_format == MatchFormat.SlopballCoop)
+			{
+				// Snapshots carry the seed, so clients serve the same sequence without being told.
+				_sim.BeginSlopballRun((uint)System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue));
+				Log($"Co-op Slopball run: {_slots.Count} fighters, {((SlopballCoopMatchRule)_rule).MissBudget} misses.");
 			}
 
 			if (_steamSend is null)
@@ -523,9 +532,12 @@ namespace SlopArena.Server
 		}
 
 		/// <summary>Distributed spawn: spawn point by slot index, falling back to a
-		/// hardcoded default when the arena has fewer points than players.</summary>
+		/// hardcoded default when the arena has fewer points than players. Arcade
+		/// formats place fighters themselves (co-op Slopball spreads the court's start).</summary>
 		private SpawnPoint PickSpawn(int spawnIndex)
 		{
+			if (_format != MatchFormat.Stock)
+				return _format.StartFor(_arena, spawnIndex, _slots.Count);
 			if (_arena.SpawnPoints.Length > spawnIndex)
 				return _arena.SpawnPoints[spawnIndex];
 			return new SpawnPoint { X = 40f, Y = 0.5f, Z = 40f, Yaw = 0f };
@@ -775,20 +787,23 @@ namespace SlopArena.Server
 			_serverTick = targetTick;
 			_sim.Tick(inputs);
 			int droppedEvents = _frameHistory.DroppedEvents;
-			_frameHistory.Record(_serverTick, _sim.GetPresentationEvents(clear: true), _sim.LastTickHits);
+			_frameHistory.Record(_serverTick, _sim.GetPresentationEvents(clear: true), _sim.LastTickHits,
+				_sim.LastTickSlopballEvents);
 			if (_frameHistory.DroppedEvents != droppedEvents)
 				// Cosmetic only: an unencodable event must not cost the match.
 				Diagnostics.ReportError(_serverTick, "Unencodable presentation event dropped.");
-			var outcome = _rule.Evaluate(_sim.GetAllStates());
+			var outcome = _sim.EvaluateMatch();
 			if (outcome.IsEnded)
 			{
 				_matchState = MatchState.Ended;
 				_winnerEntityId = outcome.WinnerEntityId;
 				_matchResultPacket = BuildMatchResultPacket(outcome);
 				_postMatchTicks = PostMatchDuration;
-				Log(outcome.IsSharedVictory
-					? "Shared victory — all players eliminated simultaneously."
-					: $"Winner: {_winnerEntityId}");
+				Log(_format == MatchFormat.SlopballCoop && _sim.Slopball is { } run
+					? $"Co-op run over: {run.TotalReturns} returns, best combo {run.BestStreak}."
+					: outcome.IsSharedVictory
+						? "Shared victory — all players eliminated simultaneously."
+						: $"Winner: {_winnerEntityId}");
 
 				if (_onMatchResult != null && Guid.TryParse(_matchId, out var matchGuid))
 				{
@@ -882,7 +897,8 @@ namespace SlopArena.Server
 			_relayedInputs.Sort(static (a, b) => a.EntityId.CompareTo(b.EntityId));
 			var snapshot = _sim.CaptureSnapshot();
 			return new WorldFramePacket(_matchState, snapshot, _relayedInputs,
-				_frameHistory.EventsForFrame(snapshot.Tick), _frameHistory.HitsForFrame(snapshot.Tick)).Serialize();
+				_frameHistory.EventsForFrame(snapshot.Tick), _frameHistory.HitsForFrame(snapshot.Tick),
+				_frameHistory.SlopballEventsForFrame(snapshot.Tick)).Serialize();
 		}
 
 		private void SendNetplayControl(PlayerSlot slot, NetplayControlKind kind)
@@ -946,7 +962,11 @@ namespace SlopArena.Server
 				ranked[i] = new MatchResultEntry(entry.EntityId, (byte)(i + 1), entry.KOs, entry.Falls);
 			}
 
-			return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked);
+			SlopballRunResult? run = _sim.Slopball is { } slopball && _format == MatchFormat.SlopballCoop
+				? new SlopballRunResult((uint)Math.Min(slopball.TotalReturns, uint.MaxValue),
+					(uint)Math.Min(slopball.BestStreak, uint.MaxValue), slopball.Misses)
+				: null;
+			return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run);
 		}
 
 

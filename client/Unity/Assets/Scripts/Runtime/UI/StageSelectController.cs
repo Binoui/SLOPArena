@@ -34,6 +34,12 @@ namespace SlopArena.Client.UI
         private bool _roomMode;
         private RoomSnapshot _roomSnapshot;
         private bool _roomActionPending;
+        private bool _confirmInFlight;
+        private bool _arcadeTab;
+        // The leader's local Arcade choice before it is confirmed: co-op Slopball, the one online format so far.
+        private bool _arcadePick;
+        private const string SlopballArena = "slopball";
+        private static readonly string CoopFormat = MatchFormats.SlopballCoopWire;
 
         public void InjectPageContext(FrontendPageContext context)
         {
@@ -45,6 +51,7 @@ namespace SlopArena.Client.UI
             _selectedArena = "";
             _roomSnapshot = null;
             _roomActionPending = false;
+            _confirmInFlight = false;
             _grid = _context.Q<VisualElement>("stage-grid");
             _grid?.Clear();
             _btnConfirm = _context.Q<Button>("btn-confirm");
@@ -57,21 +64,21 @@ namespace SlopArena.Client.UI
             bool isOnline = MatchConfig.Mode == GameMode.PvP;
             bool isTraining = MatchConfig.Mode == GameMode.Training;
             bool isHost = _roomMode ? false : !isOnline || ClientSession.IsLobbyHost;
-            SetModeChrome(_roomMode ? "ROOM // SELECT ARENA" : isOnline ? "ONLINE // SELECT STAGE" :
+            SetModeChrome(_roomMode ? "ROOM // WHAT DO WE PLAY?" : isOnline ? "ONLINE // SELECT STAGE" :
                 isTraining ? "TRAINING // SELECT STAGE" : "SOLO // SELECT STAGE",
-                _roomMode ? "ROOM PREPARATION  /  ARENA" : "STEP 2 OF 2  /  STAGE");
+                _roomMode ? "STEP 1 OF 2  /  WHAT TO PLAY" : "STEP 2 OF 2  /  STAGE");
             _context.Q<Label>("subtitle").text = _roomMode
-                ? (isHost ? "CHOOSE THE ROOM ARENA" : "THE ROOM LEADER WILL CHOOSE THE ARENA")
+                ? (isHost ? "CHOOSE WHAT THE ROOM PLAYS" : "THE ROOM LEADER IS CHOOSING WHAT TO PLAY")
                 : isHost ? "CHOOSE YOUR BATTLEGROUND" : "THE HOST WILL CHOOSE THE BATTLEGROUND";
             _context.Q<Label>("lbl-host").text = _roomMode
-                ? (isHost ? "ROOM LEADER CHOOSES THE ARENA" : "WAITING FOR ROOM LEADER")
+                ? (isHost ? "ROOM LEADER CHOOSES" : "WAITING FOR ROOM LEADER")
                 : isOnline ? (isHost ? "HOST CHOOSES THE STAGE" : "WAITING FOR HOST")
                 : "YOU CHOOSE THE STAGE";
 
             if (_btnConfirm != null)
             {
                 _btnConfirm.style.display = DisplayStyle.None;
-                _btnConfirm.text = _roomMode ? "CONFIRM ARENA" : isOnline ? "START MATCH" :
+                _btnConfirm.text = _roomMode ? "PICK FIGHTERS" : isOnline ? "START MATCH" :
                     isTraining ? "ENTER TRAINING" : "START SOLO";
             }
             if (_lblWaiting != null)
@@ -165,6 +172,8 @@ namespace SlopArena.Client.UI
                 SelectStage(firstStageButton.name.Substring("stage-".Length));
             }
 
+            BindRoomTabs();
+
             var btnBack = _context.Q<Button>("btn-back");
             Action back = _roomMode ? BackToRoom : BackToFighterSelect;
             if (btnBack != null)
@@ -220,7 +229,107 @@ namespace SlopArena.Client.UI
                 _lobby = null;
             }
             if (_btnConfirm != null) _btnConfirm.clicked -= OnConfirmClicked;
+            UnbindRoomTabs();
         }
+
+        /// <summary>
+        /// Online Rooms choose what to play before fighters (ADR-0040). PVP lists the stages;
+        /// ARCADE shows the Slopball and Character Course cards, which come online in later slices.
+        /// </summary>
+        private void BindRoomTabs()
+        {
+            _arcadeTab = false;
+            _arcadePick = false;
+            _context.Q<VisualElement>("stage-tabs")?.style.SetDisplay(_roomMode);
+            _grid?.style.SetDisplay(true);
+            _context.Q<VisualElement>("stage-arcade")?.style.SetDisplay(false);
+            if (!_roomMode) return;
+            var style = Resources.Load<StyleSheet>("UI/Arcade");
+            if (style != null)
+                foreach (var root in _context.OwnedRoots)
+                    if (!root.styleSheets.Contains(style)) root.styleSheets.Add(style);
+            if (_context.Q<Button>("stage-tab-pvp") is { } pvp) pvp.clicked += ShowPvpTab;
+            if (_context.Q<Button>("stage-tab-arcade") is { } arcade) arcade.clicked += ShowArcadeTab;
+            if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked += PickSlopball;
+            if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked += ShowArcadeComing;
+            ShowRoomTab(false);
+        }
+
+        private void UnbindRoomTabs()
+        {
+            if (_context.Q<Button>("stage-tab-pvp") is { } pvp) pvp.clicked -= ShowPvpTab;
+            if (_context.Q<Button>("stage-tab-arcade") is { } arcade) arcade.clicked -= ShowArcadeTab;
+            if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked -= PickSlopball;
+            if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked -= ShowArcadeComing;
+        }
+
+        private void ShowPvpTab() => ShowRoomTab(false);
+        private void ShowArcadeTab() => ShowRoomTab(true);
+
+        private void ShowRoomTab(bool arcade)
+        {
+            SetTabVisuals(arcade);
+            if (arcade) ApplyArcadeTabState();
+            else if (_roomSnapshot != null) OnRoomUpdated(_roomSnapshot);
+        }
+
+        private void SetTabVisuals(bool arcade)
+        {
+            _arcadeTab = arcade;
+            _context.Q<Button>("stage-tab-pvp")?.EnableInClassList("shell-nav-tab--selected", !arcade);
+            _context.Q<Button>("stage-tab-arcade")?.EnableInClassList("shell-nav-tab--selected", arcade);
+            _grid?.style.SetDisplay(!arcade);
+            _context.Q<VisualElement>("stage-arcade")?.style.SetDisplay(arcade);
+        }
+
+        private bool CoopAdmitted => _roomSnapshot?.AdmitsArcade(CoopFormat, SlopballArena) == true;
+
+        private static bool IsCoopPick(RoomSnapshot room)
+            => string.Equals(room.Format, CoopFormat, StringComparison.Ordinal) &&
+               string.Equals(room.ArenaName, SlopballArena, StringComparison.Ordinal);
+
+        /// <summary>The ARCADE tab's cards, label and start action; Slopball co-op is the format Master admits so far.</summary>
+        private void ApplyArcadeTabState()
+        {
+            bool admitted = CoopAdmitted;
+            bool roomPicked = _roomSnapshot != null && IsCoopPick(_roomSnapshot);
+            bool leader = ClientSession.IsLobbyHost;
+            var card = _context.Q<Button>("stage-arcade-slopball");
+            card?.EnableInClassList("arcade-mode-card--selected", leader ? _arcadePick : roomPicked);
+            if (card?.Q<Label>(className: "stage-arcade-soon") is { } badge)
+                badge.text = admitted ? "CO-OP ONLINE" : "COMING ONLINE";
+            if (card?.Q<Label>(className: "arcade-mode-rule") is { } rule)
+                rule.text = admitted
+                    ? "Co-op: two to four of you against the Launcher. Versus comes next."
+                    : "Volleyball across the net, or co-op against the Launcher.";
+            if (_lblSelectedStage != null)
+                _lblSelectedStage.text = roomPicked && (!leader || _arcadePick) ? "ROOM PICK: SLOPBALL CO-OP"
+                    : leader && _arcadePick ? "PICK TO CONFIRM: SLOPBALL CO-OP"
+                    : admitted ? "CHOOSE SLOPBALL TO PLAY CO-OP" : "ARCADE IS COMING ONLINE";
+            if (_btnConfirm != null)
+            {
+                _btnConfirm.style.display = DisplayStyle.Flex;
+                _btnConfirm.text = leader ? "PICK FIGHTERS" : "WAITING FOR LEADER";
+                _btnConfirm.SetEnabled(leader && admitted && _arcadePick && !_roomActionPending &&
+                    _lobby?.IsConnected == true);
+            }
+            ShowRoomStatus(!admitted
+                ? "Online Arcade is on its way: Slopball first, then the Character Courses."
+                : roomPicked && !leader ? "The Room leader picked co-op Slopball."
+                : "Co-op Slopball is online. Versus and the Character Courses come next.", false);
+        }
+
+        /// <summary>The leader picks co-op Slopball when Master admits it; otherwise it is still on its way.</summary>
+        private void PickSlopball()
+        {
+            if (!CoopAdmitted) { ShowArcadeComing(); return; }
+            if (!ClientSession.IsLobbyHost) return;
+            _arcadePick = true;
+            ApplyArcadeTabState();
+        }
+
+        private void ShowArcadeComing()
+            => ShowRoomStatus("Not online yet. Pick a PVP stage for now; Slopball comes online first.", false);
 
         private static void SetModeChrome(string title, string progress)
         {
@@ -402,49 +511,52 @@ namespace SlopArena.Client.UI
             if (string.Equals(room.Phase, "Match Starting", StringComparison.Ordinal) ||
                 string.Equals(room.Phase, "In Match", StringComparison.Ordinal))
             {
-                _roomSnapshot = room;
-                _roomActionPending = true;
-                ClientSession.IsLobbyHost = IsLocalRoomLeader(room);
-                if (_btnConfirm != null)
-                {
-                    _btnConfirm.style.display = DisplayStyle.Flex;
-                    _btnConfirm.text = "MATCH STARTING";
-                    _btnConfirm.SetEnabled(false);
-                }
-                ShowRoomStatus(room.Phase == "In Match"
-                    ? "Match host allocated. Waiting for the Room match descriptor…"
-                    : "Master is preparing the Room match…", false);
+                // Character Select is the last preparation page and shows the launch.
+                FrontendController.Show(FrontendPage.FighterSelect);
                 return;
             }
             _roomSnapshot = room;
-            _roomActionPending = false;
+            _roomActionPending = _confirmInFlight;
             ClientSession.IsLobbyHost = IsLocalRoomLeader(room);
             if (_context.Q<Label>("subtitle") is { } subtitle)
-                subtitle.text = ClientSession.IsLobbyHost ? "CHOOSE THE ROOM ARENA" : "THE ROOM LEADER WILL CHOOSE THE ARENA";
+                subtitle.text = ClientSession.IsLobbyHost ? "CHOOSE WHAT THE ROOM PLAYS" : "THE ROOM LEADER IS CHOOSING WHAT TO PLAY";
             if (_context.Q<Label>("lbl-host") is { } hostLabel)
-                hostLabel.text = ClientSession.IsLobbyHost ? "ROOM LEADER CHOOSES THE ARENA" : "WAITING FOR ROOM LEADER";
+                hostLabel.text = ClientSession.IsLobbyHost ? "ROOM LEADER CHOOSES" : "WAITING FOR ROOM LEADER";
             ApplyRoomArenaAllowlist();
             RenderPlayerCards();
             if (_btnConfirm != null)
             {
                 _btnConfirm.style.display = DisplayStyle.Flex;
-                _btnConfirm.text = ClientSession.IsLobbyHost ? "CONFIRM ARENA" : "WAITING FOR LEADER";
+                _btnConfirm.text = ClientSession.IsLobbyHost ? "PICK FIGHTERS" : "WAITING FOR LEADER";
+            }
+            if (IsCoopPick(room))
+            {
+                // The Room's pick is Arcade: everyone sees it on the ARCADE tab.
+                if (!_arcadeTab) SetTabVisuals(true);
+                if (ClientSession.IsLobbyHost) _arcadePick = true;
+                ApplyArcadeTabState();
+                return;
             }
             if (!string.IsNullOrWhiteSpace(room.ArenaName) &&
                 _grid?.Q<VisualElement>($"stage-{room.ArenaName}") != null)
             {
-                SelectStage(room.ArenaName);
+                // The leader confirmed this arena; Character Select opens next. A leader who
+                // has since picked another card keeps it until they confirm again.
+                bool leaderPickedAnother = ClientSession.IsLobbyHost && !string.IsNullOrEmpty(_selectedArena) &&
+                    !string.Equals(_selectedArena, room.ArenaName, StringComparison.OrdinalIgnoreCase);
+                if (!leaderPickedAnother)
+                    SelectStage(room.ArenaName);
                 if (_lblSelectedStage != null)
-                    _lblSelectedStage.text = $"ROOM ARENA: {DisplayArenaName(room.ArenaName)}";
+                    _lblSelectedStage.text = leaderPickedAnother
+                        ? $"ARENA TO CONFIRM: {DisplayArenaName(_selectedArena)}"
+                        : $"ROOM ARENA: {DisplayArenaName(room.ArenaName)}";
                 if (_btnConfirm != null)
-                    _btnConfirm.text = ClientSession.IsLobbyHost
-                        ? string.Equals(_selectedArena, room.ArenaName, StringComparison.OrdinalIgnoreCase)
-                            ? "START MATCH"
-                            : "CHANGE ARENA"
-                        : "ARENA CONFIRMED";
+                    _btnConfirm.text = ClientSession.IsLobbyHost ? "PICK FIGHTERS" : "ARENA CHOSEN";
                 _btnConfirm?.SetEnabled(ClientSession.IsLobbyHost && !_roomActionPending &&
                     _lobby?.IsConnected == true);
-                ShowRoomStatus("Arena selection is confirmed for every Room member.", false);
+                ShowRoomStatus(ClientSession.IsLobbyHost
+                    ? "Arena confirmed. Pick fighters when the Room is ready."
+                    : $"The Room leader chose {DisplayArenaName(room.ArenaName)}.", false);
             }
             else if (string.IsNullOrWhiteSpace(room.ArenaName))
             {
@@ -465,6 +577,7 @@ namespace SlopArena.Client.UI
                 _btnConfirm?.SetEnabled(false);
                 ShowRoomStatus($"The chosen arena ({room.ArenaName}) is not available in this client build.", true);
             }
+            if (_arcadeTab) ApplyArcadeTabState();
         }
 
 
@@ -520,63 +633,46 @@ namespace SlopArena.Client.UI
             else _lblWaiting.RemoveFromClassList("error");
         }
 
-        private async void ChooseRoomArena()
+        /// <summary>Confirms the leader's arena with Master, then opens Character Select.</summary>
+        private async void ConfirmRoomPick()
         {
             var lobby = _lobby;
-            string arena = _selectedArena;
-            if (_roomActionPending || lobby == null || _roomSnapshot == null ||
-                !ClientSession.IsLobbyHost || string.IsNullOrEmpty(arena))
+            bool arcade = _arcadeTab;
+            string format = arcade ? CoopFormat : MatchFormats.StockWire;
+            string arena = arcade ? SlopballArena : _selectedArena;
+            Guid roomId = ClientSession.SelectedRoomId;
+            if (_roomActionPending || lobby == null || _roomSnapshot?.Id != roomId ||
+                !ClientSession.IsLobbyHost || !lobby.IsConnected || string.IsNullOrEmpty(arena) ||
+                arcade && (!_arcadePick || !CoopAdmitted))
                 return;
+            _confirmInFlight = true;
             _roomActionPending = true;
             ApplyRoomArenaAllowlist();
             _btnConfirm?.SetEnabled(false);
             ShowRoomStatus("Confirming the arena with Master…", false);
             try
             {
-                var room = await lobby.RoomChooseArenaAsync(arena);
+                if (!string.Equals(_roomSnapshot.ArenaName, arena, StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(_roomSnapshot.Format, format, StringComparison.Ordinal))
+                    await lobby.RoomChoosePickAsync(format, arena);
+                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) || ClientSession.SelectedRoomId != roomId)
+                    return;
+                ShowRoomStatus("Opening Character Select…", false);
+                var room = await lobby.RoomStartCharacterSelectAsync();
+                _confirmInFlight = false;
                 if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
                     OnRoomUpdated(room);
             }
             catch (Exception ex)
             {
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby)) return;
+                _confirmInFlight = false;
+                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) || ClientSession.SelectedRoomId != roomId)
+                    return;
                 _roomActionPending = false;
                 ApplyRoomArenaAllowlist();
                 _btnConfirm?.SetEnabled(ClientSession.IsLobbyHost && !string.IsNullOrEmpty(_selectedArena) &&
                     _lobby?.IsConnected == true);
-                if (_lblSelectedStage != null)
-                    _lblSelectedStage.text = $"ARENA NOT CONFIRMED: {DisplayArenaName(arena)}";
-                ShowRoomStatus($"Master rejected this arena: {ex.Message}", true);
-            }
-        }
-        private async void StartRoomMatch()
-        {
-            var lobby = _lobby;
-            Guid roomId = ClientSession.SelectedRoomId;
-            if (_roomActionPending || lobby == null || _roomSnapshot?.Id != roomId ||
-                !ClientSession.IsLobbyHost || !lobby.IsConnected ||
-                !string.Equals(_selectedArena, _roomSnapshot.ArenaName, StringComparison.OrdinalIgnoreCase))
-                return;
-            _roomActionPending = true;
-            _btnConfirm?.SetEnabled(false);
-            ShowRoomStatus("Starting the Room match with Master…", false);
-            try
-            {
-                await lobby.RoomStartMatchAsync();
-            }
-            catch (Exception ex)
-            {
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) ||
-                    ClientSession.SelectedRoomId != roomId)
-                    return;
-                if (_roomSnapshot?.Id == roomId &&
-                    (_roomSnapshot.Phase == "Match Starting" || _roomSnapshot.Phase == "In Match"))
-                    return;
-                _roomActionPending = false;
-                ApplyRoomArenaAllowlist();
-                _btnConfirm?.SetEnabled(ClientSession.IsLobbyHost &&
-                    !string.IsNullOrEmpty(_selectedArena) && lobby.IsConnected);
-                ShowRoomStatus($"Could not start the Room match: {ex.Message}. You can retry.", true);
+                ShowRoomStatus($"Master didn't accept the pick: {ex.Message}", true);
             }
         }
 
@@ -686,6 +782,11 @@ namespace SlopArena.Client.UI
 
         private void OnConfirmClicked()
         {
+            if (_roomMode && _arcadeTab)
+            {
+                if (_arcadePick) ConfirmRoomPick();
+                return;
+            }
             if (string.IsNullOrEmpty(_selectedArena))
             {
                 if (_lblWaiting != null)
@@ -697,11 +798,7 @@ namespace SlopArena.Client.UI
             }
             if (_roomMode)
             {
-                if (_roomSnapshot != null &&
-                    string.Equals(_roomSnapshot.ArenaName, _selectedArena, StringComparison.OrdinalIgnoreCase))
-                    StartRoomMatch();
-                else
-                    ChooseRoomArena();
+                ConfirmRoomPick();
                 return;
             }
 
@@ -751,7 +848,7 @@ namespace SlopArena.Client.UI
                 if (_btnConfirm != null)
                     _btnConfirm.SetEnabled(ClientSession.IsLobbyHost && !string.IsNullOrEmpty(_selectedArena) &&
                         _lobby?.IsConnected == true);
-                ShowRoomStatus($"Master rejected the arena choice: {message}", true);
+                ShowRoomStatus($"Master rejected the pick: {message}", true);
                 return;
             }
             _btnConfirm?.SetEnabled(true);
@@ -792,10 +889,7 @@ namespace SlopArena.Client.UI
             {
                 _btnConfirm.style.display = DisplayStyle.Flex;
                 if (_roomMode)
-                    _btnConfirm.text = _roomSnapshot != null &&
-                        string.Equals(name, _roomSnapshot.ArenaName, StringComparison.OrdinalIgnoreCase)
-                        ? "START MATCH"
-                        : "CONFIRM ARENA";
+                    _btnConfirm.text = "PICK FIGHTERS";
                 _btnConfirm.SetEnabled(!_roomMode || ClientSession.IsLobbyHost &&
                     !_roomActionPending && _lobby?.IsConnected == true);
             }

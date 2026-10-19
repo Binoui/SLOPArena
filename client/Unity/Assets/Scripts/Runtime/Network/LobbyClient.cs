@@ -34,9 +34,24 @@ namespace SlopArena.Client.Network
     public sealed class RoomSnapshot : RoomSummary
     {
         public string? ArenaName { get; set; }
+        /// <summary>The pick's format: <c>stock</c> or an Arcade format such as <c>slopball-coop</c> (ADR-0040).</summary>
+        public string Format { get; set; } = MatchFormats.StockWire;
         public string[] AdmittedArenas { get; set; } = Array.Empty<string>();
+        public RoomArcadeEntry[] AdmittedArcade { get; set; } = Array.Empty<RoomArcadeEntry>();
         public string[] AdmittedCharacters { get; set; } = Array.Empty<string>();
         public RoomMemberInfo[] Members { get; set; } = Array.Empty<RoomMemberInfo>();
+
+        public bool AdmitsArcade(string format, string arena)
+            => Array.Exists(AdmittedArcade, entry => entry != null &&
+                string.Equals(entry.Format, format, StringComparison.Ordinal) &&
+                string.Equals(entry.Arena, arena, StringComparison.Ordinal));
+    }
+
+    /// <summary>An Arcade format and its arena that Master admits for Rooms.</summary>
+    public sealed class RoomArcadeEntry
+    {
+        public string Format { get; set; } = string.Empty;
+        public string Arena { get; set; } = string.Empty;
     }
     public readonly struct RoomMembershipResult
     {
@@ -168,7 +183,8 @@ namespace SlopArena.Client.Network
             if (_conn == null)
             {
                 _conn = new HubConnectionBuilder()
-                    .WithUrl($"{_masterServerUrl}/lobby", options =>
+                    // Master refuses Room entry from a build whose protocol differs (ADR-0040).
+                    .WithUrl($"{_masterServerUrl}/lobby?protocol={_protocolVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)}", options =>
                     {
                         options.AccessTokenProvider = () => Task.FromResult(_authTokenProvider());
                         // Unity Mono/Proton requires the existing long-poll transport.
@@ -740,6 +756,9 @@ namespace SlopArena.Client.Network
             InvokeRoomAsync<RoomSnapshot>("RoomStartStageSelect");
         public Task<RoomSnapshot> RoomChooseArenaAsync(string arena) =>
             InvokeRoomAsync<RoomSnapshot>("RoomChooseArena", arena);
+        /// <summary>The leader's pick: <c>stock</c> with a PvP arena, or an admitted Arcade format and its arena.</summary>
+        public Task<RoomSnapshot> RoomChoosePickAsync(string format, string arena) =>
+            InvokeRoomAsync<RoomSnapshot>("RoomChoosePick", format, arena);
         public Task RoomStartMatchAsync() =>
             InvokeRoomAsync<JsonElement>("RoomStartMatch");
         public Task SelectCharacterAsync(string characterClass) => InvokeSafe("SelectCharacter", characterClass);
