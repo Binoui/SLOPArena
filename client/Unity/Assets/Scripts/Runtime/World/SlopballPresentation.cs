@@ -12,7 +12,7 @@ namespace SlopArena.Client.World
     /// dotted drop line), the sender's 3-2-1 lights and POP!, hit bursts and kicks, cage and net
     /// bounces, the SLOP! splat with a climbing note per return, the X_X pancake on a miss and the
     /// NEW BEST! stamp, rally heat (HEAT UP!, the sender's serve colours, a curveball's green streak)
-    /// and trick-shot callouts (bank shot, sky ball, net cord, juggle, body bank). It reads Shared
+    /// and trick-shot callouts (bank shot, sky ball, net cord, juggle). It reads Shared
     /// ball state, contacts, hits and Slopball events after each tick and never feeds back.
     /// </summary>
     internal sealed class SlopballPresentation : IDisposable
@@ -43,7 +43,7 @@ namespace SlopArena.Client.World
         private static readonly int CoreProperty = Shader.PropertyToID("_Core");
         private static readonly int ColorProperty = Shader.PropertyToID("_Color");
 
-        private enum Surface { Cage, Net, Ceiling, Floor, Body }
+        private enum Surface { Cage, Net, Ceiling, Floor }
 
         private readonly SlopballPresentationSet _set;
         private readonly Transform _root, _anchor, _sender, _senderDressing;
@@ -63,7 +63,7 @@ namespace SlopArena.Client.World
         private readonly List<(float at, AudioClip clip, float volume, float pitch)> _queued = new();
         private readonly List<GameObject> _effects = new();
         private readonly Dictionary<string, int> _played = new();
-        private readonly float[] _surfaceReady = new float[5];
+        private readonly float[] _surfaceReady = new float[4];
         private readonly float _radius, _floorY, _netZ, _netHalf, _netTop;
         private readonly float _senderHeight;
         private readonly Vector3 _senderScale;
@@ -72,7 +72,7 @@ namespace SlopArena.Client.World
         private Vector3 _ballVelocity;
         // Trick bookkeeping for the live ball: attack touches, and what it hit since the last touch.
         private int _hits;
-        private bool _bodyTouch, _bankSince, _skySince, _netSince;
+        private bool _bankSince, _skySince, _netSince;
         private int _beat;
         private float _lampFlash, _recoil, _recoilSpeed;
         private ulong _combo;
@@ -230,7 +230,7 @@ namespace SlopArena.Client.World
             _ball.Respawn(centre, _radius, Position(ball.Velocity));
             _lampFlash = 1f; _beat = 0;
             _recoil = .16f; _recoilSpeed = 0f;
-            _hits = 0; _bodyTouch = _bankSince = _skySince = _netSince = false;
+            _hits = 0; _bankSince = _skySince = _netSince = false;
             Spawn(_set.ServePuff, centre + Vector3.down * _radius * .3f, 1f, 2f);
             Play(_pop, .75f, UnityEngine.Random.Range(.97f, 1.03f));
         }
@@ -250,7 +250,7 @@ namespace SlopArena.Client.World
             // In front of the ball's face, toward the hit: the body would hide a burst at its centre.
             var burst = centre + toContact.normalized * _radius * .55f + toViewer * _radius * 1.05f;
             _ball.Hit(launch.sqrMagnitude > 1e-4f ? launch.normalized : -toContact.normalized, strength, hit.HitstopTicks / 60f);
-            _hits++; _bodyTouch = _bankSince = _skySince = _netSince = false;
+            _hits++; _bankSince = _skySince = _netSince = false;
             Spawn(heavy ? _set.HitHeavy : _set.HitLight, burst, _radius / Mathf.Max(.01f, _set.BallRadius), 1.5f);
             Play(heavy ? _kickHeavy : _kickLight, Mathf.Lerp(.5f, .85f, strength), Mathf.Lerp(1.08f, .94f, strength) * UnityEngine.Random.Range(.97f, 1.03f));
         }
@@ -264,16 +264,15 @@ namespace SlopArena.Client.World
             foreach (var contact in contacts)
             {
                 if (contact.Time > before) break;
+                if (contact.Body) continue;
                 var p = Position(contact.Position);
-                if (!contact.Body && contact.NormalY > .5f && p.y <= _floorY + _radius + .02f) break;
+                if (contact.NormalY > .5f && p.y <= _floorY + _radius + .02f) break;
                 var normal = new Vector3(contact.NormalX, contact.NormalY, contact.NormalZ);
-                Surface surface = contact.Body ? Surface.Body
-                    : contact.NormalY < -.5f ? Surface.Ceiling
+                Surface surface = contact.NormalY < -.5f ? Surface.Ceiling
                     : Mathf.Abs(p.z - _netZ) <= _netHalf + _radius + .05f && p.y <= _netTop + _radius + .05f ? Surface.Net
                     : Surface.Cage;
                 switch (surface)
                 {
-                    case Surface.Body: _bodyTouch = true; _bankSince = _skySince = _netSince = false; break;
                     case Surface.Ceiling: _skySince = true; break;
                     case Surface.Net: _netSince = true; break;
                     default: _bankSince = true; break;
@@ -342,12 +341,11 @@ namespace SlopArena.Client.World
             return (floor + Vector3.up * SlopWordMiddle + right * (side * SlopWordClearance), side);
         }
 
-        /// <summary>The scoring ball's tricks: a juggle of three or more hits, a body bank, the ceiling, a wall and the net since its last touch.</summary>
+        /// <summary>The scoring ball's tricks: a juggle of three or more hits, the ceiling, a wall and the net since its last hit.</summary>
         private List<string> Tricks()
         {
             var tricks = new List<string>(3);
             if (_hits >= 3) tricks.Add($"JUGGLE ×{_hits}");
-            if (_bodyTouch) tricks.Add("BODY BANK");
             if (_skySince) tricks.Add("SKY BALL");
             if (_bankSince) tricks.Add("BANK SHOT");
             if (_netSince) tricks.Add("NET CORD");

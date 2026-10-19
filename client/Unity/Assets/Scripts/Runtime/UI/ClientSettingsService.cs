@@ -14,6 +14,7 @@ namespace SlopArena.Client.UI
     public sealed class ClientSettingsService : MonoBehaviour
     {
         private const string PrefsKey = "sloparena.client-settings.v1";
+        private const int RumbleStopAttempts = 3;
         private static ClientSettingsService? _instance;
         [SerializeField] private AudioMixer? _mixer;
         private SettingsPayload _settings = SettingsPayload.Defaults;
@@ -23,6 +24,7 @@ namespace SlopArena.Client.UI
         private readonly Dictionary<PanelSettings, float> _panelBaseScales = new();
         private readonly List<Gamepad> _rumblingPads = new();
         private float _rumbleUntil;
+        private int _rumbleStopAttempts;
 
         [Serializable]
         private sealed class SettingsPayload
@@ -162,22 +164,20 @@ namespace SlopArena.Client.UI
             bool menuOwnsInput = SettingsOverlay.Active is { IsOpen: true } || MatchPauseMenu.Active is { IsPaused: true };
             if (!Application.isFocused || !_settings.vibration || menuOwnsInput || Time.unscaledTime >= _rumbleUntil)
                 StopRumble();
-            else
-                _rumblingPads.RemoveAll(pad => pad == null || !pad.added);
         }
 
         public void PlayConfirmedImpact()
         {
-            if (!_settings.vibration || !Application.isFocused ||
+            if (!isActiveAndEnabled || !_settings.vibration || !Application.isFocused ||
                 SettingsOverlay.Active is { IsOpen: true } || MatchPauseMenu.Active is { IsPaused: true })
                 return;
-            _rumblingPads.Clear();
+            _rumbleStopAttempts = 0;
             foreach (var pad in Gamepad.all)
             {
                 try
                 {
                     pad.SetMotorSpeeds(0.18f, 0.32f);
-                    _rumblingPads.Add(pad);
+                    if (!_rumblingPads.Contains(pad)) _rumblingPads.Add(pad);
                 }
                 catch (NotSupportedException) { }
             }
@@ -186,11 +186,18 @@ namespace SlopArena.Client.UI
 
         private void StopRumble()
         {
-            foreach (var pad in _rumblingPads)
-                if (pad != null && pad.added)
-                    try { pad.SetMotorSpeeds(0f, 0f); } catch (NotSupportedException) { }
-            _rumblingPads.Clear();
             _rumbleUntil = 0f;
+            if (_rumblingPads.Count == 0) return;
+            foreach (var pad in _rumblingPads)
+                if (pad != null)
+                    try { pad.SetMotorSpeeds(0f, 0f); } catch (NotSupportedException) { }
+            // Motor commands have no delivery result. Retry over a few Updates before
+            // forgetting a pad, including removed pads whose cached speeds need clearing.
+            if (++_rumbleStopAttempts >= RumbleStopAttempts)
+            {
+                _rumblingPads.Clear();
+                _rumbleStopAttempts = 0;
+            }
         }
 
         public void SetMaster(float value) { _settings.master = Clamp(value); ChangedAndApply(); }
@@ -270,6 +277,8 @@ namespace SlopArena.Client.UI
             Apply();
         }
 
+        private void OnDisable() => StopRumble();
+        private void OnApplicationPause(bool paused) { if (paused) StopRumble(); }
         private void OnApplicationQuit() { StopRumble(); Save(); }
         private void OnDestroy()
         {

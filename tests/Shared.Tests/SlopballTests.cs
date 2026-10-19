@@ -343,24 +343,58 @@ public class SlopballTests
         Assert.Equal(SlopballPhase.WaitingServe, rules.State.Phase);
     }
 
-    [Fact]
-    public void BodyBankAfterReceivingCanScoreWithoutDamageOrAddedSpeed()
+    [Theory]
+    [InlineData(ActionState.Idle)]
+    [InlineData(ActionState.Shielding)]
+    [InlineData(ActionState.AirDodgeMovement)]
+    public void BallPassesThroughFighterWithoutArmingAReturn(ActionState stance)
     {
         var (arena, ball, rules) = Fixture();
         var def = TestHelpers.EngineDef;
         var body = TestHelpers.PlayerState(); body.PY = def.CapsuleHeight * .5f; body.PZ = -2;
+        body.State = stance;
         ball.Reset(new(0, 1.5f, -.7f), new(0, 0, -180));
         rules.BeginTick(ball);
         ball.Step(arena, new Dictionary<ulong, CharacterState> { [1] = body }, new Dictionary<ulong, CharacterDefinition> { [1] = def });
         rules.PlanMotion(ball); rules.FinishTick(ball);
         Assert.Equal(0UL, rules.State.Returns);
-        Assert.True(rules.State.ClearedNet);
+        Assert.True(rules.State.Received);
+        Assert.False(rules.State.ReturnArmed);
+        Assert.False(rules.State.ClearedNet);
         Assert.Equal(SlopballPhase.Live, rules.State.Phase);
+        Assert.True(ball.State.Position.Z < body.PZ - def.CapsuleRadius);
+        Assert.Equal(-180f, ball.State.Velocity.Z);
+        Assert.DoesNotContain(ball.Contacts, c => c.Body);
+        Assert.DoesNotContain(rules.Events, e => e.Kind == SlopballEventKind.Redirected);
         ball.Reset(new(0, .35f, 2), new(0, -120, 0));
         Advance(rules, ball, arena);
-        Assert.Equal(1UL, rules.State.Returns);
+        Assert.Equal(0UL, rules.State.Returns);
+        Assert.Contains(rules.Events, e => e.Kind == SlopballEventKind.ReServe);
         Assert.Equal(0f, ball.State.DamagePercent);
         Assert.Equal(0, body.DamagePercent);
+    }
+
+    [Fact]
+    public void AttackInsideFighterBodyCanHitAnIncomingBall()
+    {
+        var (arena, ball, rules) = Fixture();
+        var def = TestHelpers.EngineDef;
+        var body = TestHelpers.PlayerState() with { PY = def.CapsuleHeight * .5f, PZ = -2 };
+        ball.Reset(new(0, .75f, -.7f), new(0, 0, -180));
+        rules.BeginTick(ball);
+        ball.Step(arena, new Dictionary<ulong, CharacterState> { [1] = body }, new Dictionary<ulong, CharacterDefinition> { [1] = def });
+        rules.PlanMotion(ball);
+        var resolver = new SpellResolver();
+        resolver.Spawn(new Hitbox
+        {
+            OwnerId = 1, X = 0, Y = .75f, Z = -2, Radius = .05f,
+            Shape = HitboxShape.Sphere, Damage = 3, DurationTicks = 2,
+        });
+        var hit = Assert.Single(resolver.Tick(new() { ball.CollisionTarget }, orderMovingTargetContacts: true));
+        Assert.Equal(ball.State.EntityId, hit.TargetEntityId);
+        Assert.True(rules.BeforeAttack(ball, hit.ContactTime));
+        Assert.True(rules.State.ReturnArmed);
+        Assert.Contains(rules.Events, e => e.Kind == SlopballEventKind.Redirected);
     }
 
     [Fact]
@@ -459,71 +493,83 @@ public class SlopballTests
         Assert.Single(resolver.GetActiveHitboxes());
     }
 
-    [Fact]
-    public void WeakHitInThePlayerHalfPopsOverTheNetAndScores()
+    [Theory]
+    [InlineData(false, 0f, .1f, 10f, false)]
+    [InlineData(true, 0f, .1f, 10f, false)]
+    [InlineData(false, 0f, -.1f, 10f, true)]
+    [InlineData(true, 0f, -.1f, 10f, true)]
+    [InlineData(false, .1f, 0f, 10f, false)]
+    [InlineData(true, .1f, 0f, 10f, false)]
+    [InlineData(false, 0f, -.1f, -45f, false)]
+    [InlineData(true, 0f, -.1f, -45f, false)]
+    public void WeakHitsKeepTheirDirectionAndAngle(bool coop, float offsetX, float offsetZ, float angle, bool scores)
     {
-        var sim = new ServerSimulation(Court(), NoWinMatchRule.Instance);
-        var def = TestHelpers.EngineDef; var state = TestHelpers.PlayerState();
-        state.PX = 5; state.PZ = -5; state.PY = def.CapsuleHeight * .5f;
-        sim.RegisterEntity(1, def, state);
-        for (int i = 0; i < 400; i++)
-        {
-            sim.Tick(new());
-            var live = sim.ArcadeBall!.Value;
-            if (live.Active && live.Position.Z < -1.5f && live.Velocity.Y < 0) break;
-        }
-        var ball = sim.ArcadeBall!.Value;
-        Assert.True(ball.Active && ball.Position.Z < -1.5f);
-        // A feeble tap: on its own it would barely move the ball.
+        var (sim, ball) = ReceivedBallSimulation(coop);
+        // Close enough for the ball and fighter body to overlap: the attack must still reach it.
+        sim.SetState(1, sim.GetState(1) with
+        { PX = ball.Position.X + offsetX, PY = ball.Position.Y, PZ = ball.Position.Z + offsetZ });
         sim.Resolver.Spawn(new Hitbox
         {
             OwnerId = 1, AttackSlot = 1, ActivationId = 3, X = ball.Position.X, Y = ball.Position.Y, Z = ball.Position.Z,
             EndX = ball.Position.X, EndY = ball.Position.Y, EndZ = ball.Position.Z, Radius = .45f, Shape = HitboxShape.Sphere,
-            Damage = 3f, BaseKnockback = 2f, KnockbackGrowth = 2f, KnockbackAngle = 10, DurationTicks = 2,
+            Damage = 3f, BaseKnockback = 2f, KnockbackGrowth = 2f, KnockbackAngle = (sbyte)angle, DurationTicks = 2,
         });
         sim.Tick(new());
         var hit = Assert.Single(sim.LastTickHits, x => x.TargetEntityId == ball.EntityId);
-        // The hit reports the tap's own launch (about 1.8 m/s); the ball pops as a faster, rising lob toward the sender half.
-        var popped = sim.ArcadeBall!.Value.Velocity;
-        float speed = MathF.Sqrt(popped.X * popped.X + popped.Y * popped.Y + popped.Z * popped.Z);
-        Assert.True(hit.ImpactForce < 3f && speed > 3f, $"reported {hit.ImpactForce}, popped at {speed}");
-        Assert.True(popped.Z > 0f && popped.Y > 0f);
-        bool returned = false;
+        var launched = sim.ArcadeBall!.Value;
+        var velocity = launched.Velocity;
+        float horizontal = MathF.Sqrt(velocity.X * velocity.X + velocity.Z * velocity.Z);
+        float speed = MathF.Sqrt(horizontal * horizontal + velocity.Y * velocity.Y);
+        Assert.True(hit.ImpactForce < 3f);
+        Assert.Equal(hit.ImpactForce, speed, 4);
+        Assert.Equal(angle, MathF.Atan2(velocity.Y, horizontal) * 180f / MathF.PI, 3);
+        if (offsetX != 0f) Assert.Equal(-MathF.Sign(offsetX), MathF.Sign(velocity.X));
+        if (offsetZ != 0f) Assert.Equal(-MathF.Sign(offsetZ), MathF.Sign(velocity.Z));
+        Assert.Equal(3f, launched.DamagePercent);
+        Assert.True(launched.HitstopTicks > 0);
+        Assert.True(sim.Slopball!.Value.ReturnArmed);
+        Assert.DoesNotContain(sim.LastTickArcadeBallContacts, c => c.Body);
+        bool landed = false;
+        var expected = scores ? SlopballEventKind.Returned : SlopballEventKind.Missed;
+        var unexpected = scores ? SlopballEventKind.Missed : SlopballEventKind.Returned;
+        for (int i = 0; i < 400 && !landed; i++)
+        {
+            sim.Tick(new());
+            landed = sim.LastTickSlopballEvents.Any(e => e.Kind == expected);
+            Assert.DoesNotContain(sim.LastTickSlopballEvents, e => e.Kind == unexpected);
+        }
+        Assert.True(landed);
+        Assert.Equal(scores ? 1UL : 0UL, sim.Slopball!.Value.Returns);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BackwardHitCanBankOffTheBackWallAndScore(bool coop)
+    {
+        var (sim, ball) = ReceivedBallSimulation(coop);
+        sim.SetState(1, sim.GetState(1) with
+        { PX = ball.Position.X, PY = ball.Position.Y, PZ = ball.Position.Z + .1f });
+        sim.Resolver.Spawn(new Hitbox
+        {
+            OwnerId = 1, AttackSlot = 1, ActivationId = 3, X = ball.Position.X, Y = ball.Position.Y, Z = ball.Position.Z,
+            Radius = .45f, Shape = HitboxShape.Sphere, Damage = 3f, BaseKnockback = 40f, KnockbackAngle = 0, DurationTicks = 2,
+        });
+        sim.Tick(new());
+        Assert.Single(sim.LastTickHits, x => x.TargetEntityId == ball.EntityId);
+        Assert.True(sim.ArcadeBall!.Value.Velocity.Z < 0f);
+        Assert.Equal(0f, sim.ArcadeBall.Value.Velocity.Y);
+        bool banked = false, returned = false;
         for (int i = 0; i < 400 && !returned; i++)
         {
             sim.Tick(new());
+            banked |= sim.LastTickArcadeBallContacts.Any(c => c.Position.Z < -5f && c.NormalZ > .5f);
             returned = sim.LastTickSlopballEvents.Any(e => e.Kind == SlopballEventKind.Returned);
             Assert.DoesNotContain(sim.LastTickSlopballEvents, e => e.Kind == SlopballEventKind.Missed);
         }
+        Assert.True(banked);
         Assert.True(returned);
         Assert.Equal(1UL, sim.Slopball!.Value.Returns);
-    }
-
-    [Fact]
-    public void ReturnAssistLeavesClearingHitsAndSenderHalfContactsAlone()
-    {
-        var arena = Court(); var rules = arena.Arcade!.Slopball!; var ball = arena.Arcade.Ball;
-        // Already over the net in free flight: untouched.
-        Assert.Null(rules.ReturnAssist(ball, new(0, 2, -2), new(0, 6, 9), 11));
-        // Contact past the net: untouched.
-        Assert.Null(rules.ReturnAssist(ball, new(0, 2, 1), new(0, 0, -1), 2));
-        // Driven down into the net, or hit away from it: a lob that clears and lands on the sender floor.
-        foreach (var (position, velocity, launch) in new (ArcadePoint, ArcadePoint, float)[]
-                 { (new(0, 1, -1), new(0, -2, 6), 6), (new(-1, 2.5f, -4), new(-1, .5f, -3), 3), (new(1.5f, .6f, -2), new(0, 0, 25), 25) })
-        {
-            var assisted = rules.ReturnAssist(ball, position, velocity, launch);
-            Assert.True(assisted.HasValue);
-            var sim = new ArcadeBallSimulation(ball, arena); sim.Reset(position, assisted!.Value);
-            ArcadePoint? landing = null;
-            for (int tick = 0; tick < 600 && landing == null; tick++)
-            {
-                sim.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>());
-                Assert.DoesNotContain(sim.Contacts, c => MathF.Abs(c.Position.Z - rules.NetZ) < rules.NetHalfThickness + ball.Radius + .01f
-                    && c.Position.Y < rules.NetTop + ball.Radius);
-                foreach (var contact in sim.Contacts) if (contact.NormalY > .5f) { landing = contact.Position; break; }
-            }
-            Assert.True(landing.HasValue && landing.Value.Z > rules.NetZ);
-        }
     }
 
     [Fact]
@@ -642,6 +688,25 @@ public class SlopballTests
         ball.Reset(new(0, 3, -1), default);
         rules.BeginTick(ball); ball.Step(arena, new Dictionary<ulong, CharacterState>(), new Dictionary<ulong, CharacterDefinition>()); rules.PlanMotion(ball);
         Assert.True(rules.BeforeAttack(ball, .5f)); rules.FinishTick(ball);
+    }
+    private static (ServerSimulation Simulation, ArcadeBallState Ball) ReceivedBallSimulation(bool coop)
+    {
+        var sim = new ServerSimulation(Court(), coop ? new SlopballCoopMatchRule() : NoWinMatchRule.Instance);
+        var def = TestHelpers.EngineDef;
+        var state = TestHelpers.PlayerState() with { PX = 5, PZ = -5, PY = def.CapsuleHeight * .5f };
+        sim.RegisterEntity(1, def, state);
+        if (coop)
+        {
+            sim.RegisterEntity(2, def, state with { EntityId = 2, PX = -5 });
+            sim.BeginSlopballRun(1337);
+        }
+        for (int i = 0; i < 400; i++)
+        {
+            sim.Tick(new());
+            var ball = sim.ArcadeBall!.Value;
+            if (ball.Active && ball.Position.Z < -1.5f && ball.Velocity.Y < 0) return (sim, ball);
+        }
+        throw new InvalidOperationException("The serve never reached the player half while descending.");
     }
     private static (ArenaDefinition Arena, ArcadeBallSimulation Ball, SlopballSimulation Rules) Fixture()
     {

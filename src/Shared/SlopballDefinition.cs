@@ -153,34 +153,6 @@ namespace SlopArena.Shared
             return null;
         }
 
-        /// <summary>
-        /// "Every touch pops": null when a hit at <paramref name="position"/> starts outside the player half or its
-        /// free flight already clears the net; otherwise the velocity of a lob that does. It lands on the sender floor
-        /// (the mirror of the receiving area) along the hit's sideways direction. A stronger hit (<paramref name="launch"/>,
-        /// m/s) lands deeper on a quicker, flatter arc that rises only as much as the net needs.
-        /// </summary>
-        internal ArcadePoint? ReturnAssist(ArcadeBallDefinition ball, ArcadePoint position, ArcadePoint velocity, float launch)
-        {
-            float r = ball.Radius;
-            if (position.Z >= NetZ - NetHalfThickness - r) return null;
-            if (Fly(ball, position, velocity, 0f, 600).NetClear >= NetTop + r + .05f) return null;
-            float strength = Math.Clamp((launch - 4f) / 22f, 0f, 1f);
-            float near = 2f * NetZ - LandingMaxZ, far = 2f * NetZ - LandingMinZ;
-            float targetZ = near + (far - near) * (.25f + .75f * strength);
-            float horizontal = MathF.Sqrt(velocity.X * velocity.X + velocity.Z * velocity.Z);
-            float sideways = horizontal > .5f ? velocity.X / horizontal : 0f;
-            float targetX = Math.Clamp(position.X + sideways * (targetZ - position.Z) * .5f, -2f * LandingHalfWidth, 2f * LandingHalfWidth);
-            // A weak touch pops up (it leaves rising); a strong one may drive straight down over the net.
-            float rise = strength > .6f ? float.NegativeInfinity : 2f - 2.5f * strength;
-            var lob = default(ArcadePoint);
-            for (int ticks = Math.Max(20, (int)MathF.Round(HardFlightTicks * (.75f - .3f * strength))); ticks <= 240; ticks += 4)
-            {
-                lob = Solve(ball, position, targetX, FloorY + r, targetZ, ticks, 0f);
-                if (lob.Y >= rise && Fly(ball, position, lob, 0f, ticks).NetClear >= NetTop + r + .3f) return lob;
-            }
-            return lob;
-        }
-
         /// <summary>The launch velocity that reaches (x, y, z) after exactly <paramref name="ticks"/> steps of the ball's damped, curving flight.</summary>
         private static ArcadePoint Solve(ArcadeBallDefinition ball, ArcadePoint start, float x, float y, float z, int ticks, float curve)
         {

@@ -175,7 +175,6 @@ namespace SlopArena.Shared
             { dirX = -dirX; dirZ = -dirZ; }
             ushort freeze = ComputeHitstopTicks(damage, spec);
             float launch = ball.Hit(hit, damage, force, dirX, dirZ, freeze);
-            if (_slopball != null && damage > 0f) _slopball.AssistReturn(ball, launch);
             if (ownerExists)
             {
                 if (hit.FreezesOwner) owner.HitstopTicks = freeze;

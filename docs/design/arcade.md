@@ -89,7 +89,7 @@ walls. The serve cue names the next special serve before it fires.
 A valid return follows this order:
 
 1. The ball enters the player half.
-2. The player redirects it with an attack, projectile or passive Body Deflection.
+2. The player redirects it with an attack or projectile.
 3. It clears the net into the sender half, including via wall or ceiling rebounds.
 4. It lands on the sender-side floor. Crossing alone stays live and scores nothing.
 
@@ -115,23 +115,22 @@ Between contacts the ball follows gravity-driven arcs with linear air resistance
 The current profile uses gravity 6 with quicker opening serves, short/deep landing
 targets and a wider lateral fan. It uses drag .35 per second (roughly half of free-flight velocity
 remaining after two seconds, excluding gravity) and restitution .8 on room/net
-surfaces. Body contacts keep their harmless direction-only reflection. Serves solve
-the same discrete damped motion so shots still reach their receiving region. Damaging hits build its
-percent during that shot and use the move's direction and relative strength to
+surfaces. The ball passes through passive fighter bodies so they cannot deflect it
+before an attack connects. Serves solve the same discrete damped motion so shots
+still reach their receiving region. Damaging hits build its percent during that
+shot and use the move's direction and relative strength to
 launch it. Percent strengthens later attack responses; incoming serve speed is
 controlled separately by the shot profile.
 
-**Every touch pops** (2026-10-18). A damaging hit in the player half whose free flight
-would not clear the net is relaunched as a lob that does. The lob lands on the sender
-floor along the hit's sideways direction. Weak touches pop up softly and land short;
-stronger ones fly quicker and flatter and land deeper. Hits that already clear the net,
-body contacts and contacts past the net keep their own flight. The hit still reports its
-own strength, so a feeble tap looks and sounds like one.
+**Room rebounds** (2026-10-19). Hits keep their launch direction, authored angle and
+strength. There is no automatic correction toward the sender half. A backward hit can
+bank off the back wall, a high hit can rebound from the ceiling, and a weak or downward
+hit can land on the player floor unless another attack saves it. Positioning, move
+choice and court collisions determine the return.
 
-Body contact redirects existing ball velocity without adding speed. It causes no
-damage or Knockback to the fighter. The body has the same physical shape in every
-stance, including Shield and dodge; neither provides a larger or powered deflection.
-A body bank over the net can score as a trick shot after reception.
+Passive body contact does not change the ball or fighter, including during Shield
+and dodge. Only accepted attack/projectile hits redirect the ball and arm a return;
+body banks are retired (2026-10-19).
 
 The court must clearly show the floor, halves, net and ball. The approved finish
 (2026-10-17) is the Night Court: the club after closing, a floodlit chain-link cage in
@@ -256,8 +255,9 @@ Implementation is ready for human review when:
 
 - Both challenges can be entered, paused, completed/stopped and retried offline
   without account or match allocation.
-- Slopball follows receive/contact/clear ordering, one score per ball, harmless
-  body rebounds, live net contacts and fresh random serves after every floor landing.
+- Slopball follows receive/contact/clear ordering, one score per ball, passive
+  bodies that the ball passes through, live net contacts and fresh random serves
+  after every floor landing.
 - Every roster fighter can play the shared capped profile using its normal kit.
 - The Course supports a readable ordinary-jump route and faster ability crossings, cumulative
   checkpoint prerequisites, persistent targets and legal fall-reset routes.

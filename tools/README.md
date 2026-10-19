@@ -59,6 +59,10 @@ needs Pillow.
 [`sfx/manki_clips.py`](sfx/manki_clips.py) rebuilds Manki's ignored presentation clips
 from Kenney's CC0 Sci-Fi, Impact and RPG packs plus generated noise; it needs `ffmpeg`
 with libvorbis.
+[`music/loop_stage_music.py`](music/loop_stage_music.py) cuts a generated track into the
+loop a stage plays, `Resources/Audio/Music/Stages/<stage key>.ogg` (ignored like the rest of
+the music). It drops the intro and outro at matching beats whole phrases apart, aligns and
+crossfades the seam and evens the loudness; it needs numpy and `ffmpeg` with libvorbis.
 
 [`character_sizes/`](character_sizes/README.md) holds two read-only Unity evals:
 a roster lineup render with heights, and per-clip foot contact (floating or sinking).

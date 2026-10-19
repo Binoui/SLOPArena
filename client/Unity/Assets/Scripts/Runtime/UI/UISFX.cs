@@ -88,13 +88,29 @@ namespace SlopArena.Client.UI
             _instance._musicSource.Play();
         }
 
-        public static void PlayMatchMusic()
+        /// <summary>
+        /// Plays the stage's own loop from <c>Resources/Audio/Music/Stages/&lt;stage key&gt;</c>
+        /// (tools/music/loop_stage_music.py cuts them), else a random match theme. A stage
+        /// loop that is already playing carries on, so a retry that reloads the scene keeps it.
+        /// </summary>
+        public static void PlayMatchMusic(string stageKey)
         {
             EnsureInstance();
-            if (_instance._matchThemes.Length == 0)
+            AudioClip clip = string.IsNullOrEmpty(stageKey)
+                ? null
+                : Resources.Load<AudioClip>("Audio/Music/Stages/" + stageKey);
+            if (clip != null && _instance._musicSource.isPlaying && _instance._musicSource.clip == clip)
+            {
+                ResetMusicLift();
                 return;
+            }
+            if (clip == null)
+            {
+                if (_instance._matchThemes.Length == 0)
+                    return;
+                clip = _instance._matchThemes[Random.Range(0, _instance._matchThemes.Length)];
+            }
 
-            AudioClip clip = _instance._matchThemes[Random.Range(0, _instance._matchThemes.Length)];
             ResetMusicLift();
             _instance._musicSource.Stop();
             _instance._musicSource.clip = clip;

@@ -36,8 +36,8 @@ namespace SlopArena.Shared
     }
 
     /// <summary>
-    /// Authoritative ball physics, separate from future Slopball scoring. The Phase 1
-    /// playground rebounds from floors too; the challenge will retire a missed ball.
+    /// Authoritative ball physics. Slopball ignores passive fighter bodies so attacks can reach
+    /// the ball; the playground keeps body rebounds. Slopball rules retire floor contacts.
     /// </summary>
     internal sealed class ArcadeBallSimulation
     {
@@ -78,13 +78,6 @@ namespace SlopArena.Shared
             _vx = velocity.X; _vy = velocity.Y; _vz = velocity.Z;
             _percent = 0f; _hitstop = 0; _active = true; _curve = curve;
             _path.Clear(); _contacts.Clear();
-        }
-
-        /// <summary>Replaces the launch velocity of the hit just applied (Slopball's return assist); hitstop and percent stay.</summary>
-        public void Relaunch(ArcadePoint velocity)
-        {
-            _vx = velocity.X; _vy = velocity.Y; _vz = velocity.Z;
-            _curve = 0f;
         }
 
         public void Retire(float time = 1f)
@@ -152,15 +145,20 @@ namespace SlopArena.Shared
                 float penetration = contact ? solid.Penetration : 0f;
                 bool body = false;
                 ulong bodyId = ulong.MaxValue;
-                foreach (var pair in fighters)
+                // Passive bodies must not push a Slopball serve away before an attack connects.
+                // Keep body rebounds in the independent ball playground.
+                if (arena.Arcade?.Slopball == null)
                 {
-                    if (!definitions.TryGetValue(pair.Key, out var def)) continue;
-                    if (!SweepBody(start, end, pair.Value, def, _definition.Radius,
-                            out float t, out float bx, out float by, out float bz, out float depth)) continue;
-                    if (t < fraction || t == fraction && body && pair.Key < bodyId || !contact)
+                    foreach (var pair in fighters)
                     {
-                        contact = body = true; bodyId = pair.Key; fraction = t;
-                        nx = bx; ny = by; nz = bz; penetration = depth;
+                        if (!definitions.TryGetValue(pair.Key, out var def)) continue;
+                        if (!SweepBody(start, end, pair.Value, def, _definition.Radius,
+                                out float t, out float bx, out float by, out float bz, out float depth)) continue;
+                        if (t < fraction || t == fraction && body && pair.Key < bodyId || !contact)
+                        {
+                            contact = body = true; bodyId = pair.Key; fraction = t;
+                            nx = bx; ny = by; nz = bz; penetration = depth;
+                        }
                     }
                 }
                 float nextTime = time + (1f - time) * fraction;

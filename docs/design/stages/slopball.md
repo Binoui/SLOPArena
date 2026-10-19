@@ -47,6 +47,10 @@ touch pops (G1), rally heat (G2) and trick-shot callouts (G3); G4–G6 wait. The
 rules for G1 and G2 live in the [Arcade brief](../arcade.md#slopball). There is no screen
 shake or slow motion.
 
+On 2026-10-19 the owner retired G1's automatic return lob to preserve the squash-room
+feel. Hits now keep their direction and angle; wall and ceiling rebounds shape bank
+shots, and another attack can rescue a poor shot before it hits the player floor.
+
 - **The ball** wears the mural's face. Its painted front always turns to the camera,
   like the course lanterns, and it changes face by beat: a grin in flight, "uh-oh"
   while it drops toward your floor, a wince through a hit, a laugh when it scores,
@@ -61,8 +65,8 @@ shake or slow motion.
 - **Hit:** during hitstop the ball flashes white, shivers and winces, with a coral
   comic star, an impact ring and BOP! (weak) or WHAP! (strong, with sparks). A
   rubber kick plays over the fighter's hit sound, pitched by launch speed.
-- **Bounces:** the chain-link rattles with a dust puff, the net and cargo net swish,
-  and a fighter's body thumps. The client reads Shared's exact ball contacts each tick
+- **Bounces:** the chain-link rattles with a dust puff, and the net and cargo net swish.
+  The client reads Shared's exact ball contacts each tick
   (`ServerSimulation.LastTickArcadeBallContacts`) for sound, squash and trick shots.
 - **Score:** a SLOP! splat and droplets on the sender floor, the ball laughing into
   it, the running combo popping up beside the word ("7!"), the board's flip clack and the floods
@@ -77,10 +81,14 @@ shake or slow motion.
   amber to pink. The sender's countdown lights take the next serve's colour (amber
   lob, cyan zinger, violet moonball, green curveball), and the cue line names it.
 - **Trick shots (G3):** a scoring return calls up to three tricks under the combo pop,
-  with a quick run of bells. JUGGLE ×N means three or more hits on that ball. BODY BANK
-  means its last touch was a body deflection. SKY BALL, BANK SHOT and NET CORD mean it
+  with a quick run of bells. JUGGLE ×N means three or more hits on that ball.
+  SKY BALL, BANK SHOT and NET CORD mean it
   hit the ceiling, a wall or the net after the last touch. The combo still counts one
   per return.
+
+**Contact correction (2026-10-19):** passive fighter bodies no longer bounce the
+ball away before an attack can connect, in solo or co-op. Attack/projectile hits
+and court bounces still apply. BODY BANK is retired.
 
 `SlopballPresentationBuilder` (`sloparena.presentation.slopball.build`) bakes the
 faces, words, splats and effects into `Stages/slopball/Presentation/Ball/` and the

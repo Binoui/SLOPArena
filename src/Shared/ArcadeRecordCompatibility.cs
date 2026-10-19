@@ -14,7 +14,9 @@ public static class ArcadeRecordCompatibility
     // 5: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
     // 6: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
     // 7: Slopball hits always pop over the net, and rally heat mixes zingers, moonballs and curveballs in (2026-10-18).
-    public const uint RulesRevision = 7;
+    // 8: Slopball passes through passive fighter bodies; only attacks redirect it (2026-10-19).
+    // 9: Slopball keeps each hit's launch direction and angle without automatic return assistance (2026-10-19).
+    public const uint RulesRevision = 9;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).

@@ -105,9 +105,10 @@ and are never fabricated fighters or character packages.
 2. Add a Shared Arcade session coordinating normal fighter simulation with ball
    state, target progress, checkpoints, serve scheduling, score, course time and
    attempt phase. Pin the selected baked challenge and fighter gameplay for the run.
-3. Implement deterministic moving-ball sweeps against court, net, fighter body and
-   active attacks/projectiles. Order contacts within a tick so earlier floor failure
-   cannot become a later return. Distinguish floor, wall, ceiling, net and half
+3. Implement deterministic moving-ball sweeps against court, net and
+   active attacks/projectiles. Passive fighter bodies let the ball pass through.
+   Order contacts within a tick so earlier floor failure cannot become a later
+   return. Distinguish floor, wall, ceiling, net and half
    crossing explicitly; contact with the net's top must remain live.
 4. Add a Shared fighter-only court-half constraint. Static geometry has no existing
    object-specific mask, so an ordinary invisible baked wall cannot implement a
@@ -299,8 +300,8 @@ Focused behavioral checks should cover:
   resolver pass; unchanged normal fighter/PvP behavior and kit resources.
 - Fast-ball sweeps, floor/net distinctions and contact ordering; one score per
   ball; receive-first handling of early intercepts and wall/ceiling banks.
-- Passive body speed conservation and harmlessness in every stance; percent reset,
-  same-shot re-serve state, continuing fighter/projectiles and fresh identities.
+- Passive fighter pass-through in every stance and attack hits during overlap;
+  percent reset, same-shot re-serve state, continuing fighter/projectiles and fresh identities.
 - Full reset of pending inputs, active/queued effects, objects and profile sequence;
   locked Go boundary; pause eligibility; stable terminal score/time.
 - Course target persistence, cumulative checkpoint saves with optional visits,

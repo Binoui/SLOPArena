@@ -56,7 +56,7 @@ namespace SlopArena.Client.World
 
         private void Start()
         {
-            UISFX.PlayMatchMusic();
+            UISFX.PlayMatchMusic(MatchConfig.ArenaName);
             _pauseMenu = gameObject.AddComponent<MatchPauseMenu>();
             _pauseMenu.Init(_cameraMount, _inputController, LeaveMatch,
                 _hudManager != null ? _hudManager.Document : null,

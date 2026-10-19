@@ -53,7 +53,7 @@ namespace SlopArena.Shared
     /// </summary>
     internal sealed class SlopballSimulation
     {
-        private enum TraceKind : byte { Floor, Receive, Body, Clear }
+        private enum TraceKind : byte { Floor, Receive, Clear }
         private readonly struct Trace
         {
             public readonly TraceKind Kind;
@@ -156,8 +156,7 @@ namespace SlopArena.Shared
             }
             foreach (var contact in ball.Contacts)
             {
-                if (contact.Body) _trace.Add(new(TraceKind.Body, contact.Time, contact.Position));
-                else if (contact.NormalY > .5f && contact.Position.Y <= _rules.FloorY + ball.State.Radius + .001f)
+                if (!contact.Body && contact.NormalY > .5f && contact.Position.Y <= _rules.FloorY + ball.State.Radius + .001f)
                     _trace.Add(new(TraceKind.Floor, contact.Time, contact.Position));
             }
             _trace.Sort((a, b) => { int time = a.Time.CompareTo(b.Time); return time != 0 ? time : a.Kind.CompareTo(b.Kind); });
@@ -182,20 +181,6 @@ namespace SlopArena.Shared
             return true;
         }
 
-        /// <summary>
-        /// "Every touch pops": after a damaging hit's launch, a ball in the player half that would not clear the
-        /// net on its own is relaunched as a lob that does (SlopballDefinition.ReturnAssist). The hit still reports
-        /// its own launch, so a feeble tap reads as one. Returns whether the ball was relaunched.
-        /// </summary>
-        public bool AssistReturn(ArcadeBallSimulation ball, float launch)
-        {
-            if (_phase != SlopballPhase.Live) return false;
-            var state = ball.State;
-            if (_rules.ReturnAssist(_ballDefinition, state.Position, state.Velocity, launch) is not ArcadePoint velocity) return false;
-            ball.Relaunch(velocity);
-            return true;
-        }
-
         public void FinishTick(ArcadeBallSimulation ball)
         { if (!_attacked) CommitThrough(ball, 1f); }
 
@@ -212,8 +197,6 @@ namespace SlopArena.Shared
                 var item = _trace[_cursor++];
                 if (item.Kind == TraceKind.Receive && !_received)
                 { _received = true; Emit(SlopballEventKind.Received, ball, item.Time); }
-                else if (item.Kind == TraceKind.Body && _received)
-                { _armed = true; Emit(SlopballEventKind.Redirected, ball, item.Time); }
                 else if (item.Kind == TraceKind.Floor)
                 {
                     ball.RetireAt(item.Position);
