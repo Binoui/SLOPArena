@@ -194,14 +194,20 @@ namespace SlopArena.Client.UI
                 _headline.text = score.Winner.ToString().ToUpperInvariant() + " WINS";
                 _metadata.text = $"TEAL {score.TealScore} — {score.ClayScore} CLAY // FIRST TO 21 // {FormatDuration(results.DurationTicks)}";
             }
+            if (results.Course is { } course)
+            {
+                _stage.text = (course.Cooperative ? "COURSE CO-OP // " : "COURSE RACE // ") + stage.Replace('_', ' ').ToUpperInvariant();
+                _headline.text = !course.Completed ? "RUN ENDED" : course.Cooperative ? "TEAM COMPLETE" : results.SharedVictory ? "TIED FINISH" : "RACE COMPLETE";
+                _metadata.text = $"{CharacterCourseView.FormatTime(course.ElapsedTicks)} // {results.PlayerCount} PLAYERS";
+            }
             ordered.Sort((a, b) =>
             {
-                int byPlacement = a.Placement.CompareTo(b.Placement);
+                int byPlacement = (a.Placement == 0 ? 255 : a.Placement).CompareTo(b.Placement == 0 ? 255 : b.Placement);
                 return byPlacement != 0 ? byPlacement : a.EntityId.CompareTo(b.EntityId);
             });
 
             var hero = ordered[0];
-            BuildWinnerCard(hero, results.SharedVictory, results.Run.HasValue || results.Versus.HasValue);
+            BuildWinnerCard(hero, results.SharedVictory, results.Run.HasValue || results.Versus.HasValue || results.Course is { Cooperative: true });
             for (int i = 1; i < ordered.Count; i++)
                 _standings.Add(BuildStandingRow(ordered[i]));
 
@@ -222,11 +228,11 @@ namespace SlopArena.Client.UI
             card.AddToClassList("results-winner-card");
             card.style.borderLeftColor = AccentForPlacement(entry.Placement);
 
-            var placement = new Label(entry.Placement.ToString("00"));
+            var placement = new Label(entry.Placement == 0 ? "DNF" : entry.Placement.ToString("00"));
             placement.AddToClassList("results-winner-placement");
             card.Add(placement);
 
-            var label = new Label(team ? "TEAM" : sharedVictory ? "TOP FINISHER" : "WINNER");
+            var label = new Label(entry.Placement == 0 ? "UNFINISHED" : team ? "TEAM" : sharedVictory ? "TOP FINISHER" : "WINNER");
             label.AddToClassList("results-winner-label");
             card.Add(label);
 
@@ -255,7 +261,7 @@ namespace SlopArena.Client.UI
             row.AddToClassList("results-player-row");
             row.style.borderLeftColor = AccentForPlacement(entry.Placement);
 
-            var placement = new Label(entry.Placement.ToString("00"));
+            var placement = new Label(entry.Placement == 0 ? "DNF" : entry.Placement.ToString("00"));
             placement.AddToClassList("results-row-placement");
             row.Add(placement);
 
@@ -288,6 +294,15 @@ namespace SlopArena.Client.UI
                 label.AddToClassList("results-stat-label");
                 label.style.color = camp == SlopballCamp.Teal ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
                 stats.Add(label);
+                return stats;
+            }
+            if (ClientSession.CurrentMatchResults?.Course is { } course)
+            {
+                var finish = System.Linq.Enumerable.First(course.Players, p => p.EntityId == entry.EntityId);
+                var label = new Label(finish.FinishTicks != 0 ? CharacterCourseView.FormatTime(finish.FinishTicks)
+                    : (finish.Withdrawn ? "DISCONNECTED" : "DNF") + $" · {finish.BrokenTargets}/{finish.TotalTargets} TARGETS");
+                label.AddToClassList("results-stat-label"); stats.Add(label);
+                AddStat(stats, "FALLS", entry.Falls);
                 return stats;
             }
             AddStat(stats, "KOs", entry.KOs);

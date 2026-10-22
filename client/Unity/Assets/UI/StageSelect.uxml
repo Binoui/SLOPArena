@@ -46,7 +46,7 @@
                         </ui:VisualElement>
                         <ui:VisualElement class="arcade-mode-art arcade-mode-art--slopball" picking-mode="Ignore" />
                     </ui:Button>
-                    <ui:Button name="stage-arcade-course" class="arcade-mode-card stage-arcade-card" tooltip="Character Courses online are coming">
+                    <ui:Button name="stage-arcade-course" class="arcade-mode-card stage-arcade-card" tooltip="Race or co-op on a character course">
                         <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
                             <ui:VisualElement class="arcade-mode-heading">
                                 <ui:Label text="CHARACTER COURSES" class="arcade-mode-title" />
@@ -56,6 +56,7 @@
                         </ui:VisualElement>
                         <ui:VisualElement class="arcade-mode-art arcade-mode-art--course" picking-mode="Ignore" />
                     </ui:Button>
+                    <ui:VisualElement name="stage-course-options" class="stage-course-options" style="display: none;" />
                 </ui:VisualElement>
             </ui:ScrollView>
         </ui:VisualElement>

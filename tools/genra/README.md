@@ -46,6 +46,25 @@ A run writes `artifacts/genra-runs/<id>/`: brief, prompt, CLI command and settin
 stream, tool audit, usage summary, the model's scratch files, `check.txt`, `sheet.png`,
 `motion.png`, `preview.mp4` and `usd/<name>.usda`.
 
+Every authoring scratch starts with a loadable `result.json`, a working `author.py`, and a local
+`API.md` generated from the installed toolkit's signatures. It uses the prior take or approved keys on the same
+clock; otherwise it starts from an explicitly labeled entry/exit placeholder. `Clip.save()` replaces files atomically.
+The runner archives changed, structurally valid saves as `checkpoint-result.json`, restores that file if the last
+save is incomplete, and records completed, failed, interrupted, timed-out or stalled status in `summary.json`.
+Missing provider cost stays unknown. The original seed is `initial-result.json`; an unchanged seed is labeled
+`checkpointOnly`, cannot qualify as final motion, and does not trigger a paid director review.
+
+The overall `--timeout` still bounds each job. `run.py --checkpoint-timeout SECONDS` also stops a job after that
+long without a changed, loadable save (default 1200 seconds). Checkpoints may still fail motion checks: they preserve
+reviewable work and do not certify quality. New saves cannot extend the overall time limit.
+
+A `--stage keys` brief carries its stage into the scratch CLI. Reports judge anatomy, grip and targets at the story
+ticks separately from provisional interpolation (`transitionRisks`); window/arc targets and snaps belong to that
+motion report. `./genra check result.json --stage full` checks the complete clip explicitly. A blocking pass never
+substitutes for the full motion gate. Flow and `chatter` diagnostics stay advisory; do not add motion just to make
+the score green. Chatter warns about bursts of repeated 1-2 tick joint reversals, including within fast windows,
+where an intended body spin can still have unintended leg jitter.
+
 - **Iteration checks:** `./genra check result.json --fast` runs numerical checks without
   mesh clearances, face visibility, the gait's forearm-to-torso mesh gap, or automatic
   sheet/motion renders. The Python equivalent is `check_clip(clip, b.check_spec(), mode='fast')`.

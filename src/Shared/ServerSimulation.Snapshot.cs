@@ -12,7 +12,8 @@ namespace SlopArena.Shared
         /// <summary>World Snapshot encoding version; 2 adds the Arcade ball and Slopball rules (ADR-0040).</summary>
         // 3: hitboxes carry returning projectiles (Sir Bonk's pot lid).
         // 4: Versus Slopball rally, score and serve rotation.
-        public const uint SnapshotFormatVersion = 4;
+        // 5: solo and multiplayer Character Course progress, clocks, finish order and withdrawals.
+        public const uint SnapshotFormatVersion = 5;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -27,9 +28,6 @@ namespace SlopArena.Shared
         /// </summary>
         public WorldSnapshot CaptureSnapshot()
         {
-            if (_course != null)
-                throw new NotSupportedException("World snapshots do not cover Character Courses yet.");
-
             var w = new SnapshotWriter(2048);
             w.WriteUInt(SnapshotFormatVersion);
             w.WriteUInt(_tick);
@@ -81,6 +79,11 @@ namespace SlopArena.Shared
                 _volley?.Capture().Write(w);
                 w.WriteBool(_arcadeInputReleaseRequired);
             }
+            w.WriteBool(_course != null);
+            _course?.WriteSnapshot(w);
+            w.WriteBool(_onlineCourse != null);
+            _onlineCourse?.WriteSnapshot(w);
+            if (_course != null) w.WriteBool(_arcadeInputReleaseRequired);
             return new WorldSnapshot(w.ToArray());
         }
 
@@ -92,9 +95,6 @@ namespace SlopArena.Shared
         public void RestoreSnapshot(WorldSnapshot snapshot)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
-            if (_course != null)
-                throw new NotSupportedException("World snapshots do not cover Character Courses yet.");
-
             var r = new SnapshotReader(snapshot.Data);
             r.ReadUInt(); // format version, checked by WorldSnapshot
             uint tick = r.ReadUInt();
@@ -162,6 +162,13 @@ namespace SlopArena.Shared
                 }
                 inputRelease = r.ReadBool();
             }
+            bool hasCourse = r.ReadBool();
+            if (hasCourse != (_course != null)) throw SnapshotReader.Malformed("solo course presence");
+            CharacterCourseSimulation.Snapshot? course = hasCourse ? _course!.ReadSnapshot(r) : null;
+            bool hasOnlineCourse = r.ReadBool();
+            if (hasOnlineCourse != (_onlineCourse != null)) throw SnapshotReader.Malformed("online course presence");
+            var onlineCourse = hasOnlineCourse ? _onlineCourse!.ReadSnapshot(r) : null;
+            if (hasCourse) inputRelease = r.ReadBool();
             if (!r.AtEnd)
                 throw SnapshotReader.Malformed("trailing data");
 
@@ -184,6 +191,9 @@ namespace SlopArena.Shared
                     _activeAbilities[id] = fighter.Ability;
             }
             _spellResolver.ApplySnapshot(resolver);
+            if (course.HasValue) _course!.Apply(course.Value);
+            if (onlineCourse != null) _onlineCourse!.Apply(onlineCourse);
+            if (_course != null) _arcadeInputReleaseRequired = inputRelease;
             if (_arcadeBall != null)
             {
                 _arcadeBall.Apply(ball);

@@ -23,14 +23,16 @@ namespace SlopArena.Client.UI
         private readonly List<VisualElement> _markers = new();
         private byte[] _pipLooks = Array.Empty<byte>();
         private bool _controlsGamepad, _paused;
+        private readonly bool _online;
         private int _controlsRevision = -1;
         private float _toastAge = -1f, _notSaved, _completedAge = -1f;
         private readonly SlopArena.Client.World.CharacterCourseInfo _info;
-        public CharacterCourseView(VisualElement hud, SlopArena.Client.World.CharacterCourseInfo info, Action retry, Action leave)
+        public CharacterCourseView(VisualElement hud, SlopArena.Client.World.CharacterCourseInfo info, Action retry, Action leave, bool online = false)
         {
-            _hud = hud; _info = info;
+            _hud = hud; _info = info; _online = online;
             _live = new VisualElement { name = "course-live", pickingMode = PickingMode.Ignore };
             _live.AddToClassList("slopball-live");
+            if (online) _live.AddToClassList("course-live--online");
             var style = Resources.Load<StyleSheet>("UI/Arcade");
             if (style != null) _live.styleSheets.Add(style);
             Add(_live, info.Title, "arcade-eyebrow");
@@ -237,7 +239,7 @@ namespace SlopArena.Client.UI
         {
             _paused = paused;
             bool completed = state.Phase == CharacterCoursePhase.Completed;
-            bool results = completed && _completedAge >= ResultsDelay;
+            bool results = !_online && completed && _completedAge >= ResultsDelay;
             bool newlyShown = results && _results.style.display == DisplayStyle.None && !paused;
             _live.style.display = paused || results ? DisplayStyle.None : DisplayStyle.Flex;
             _results.style.display = results && !paused ? DisplayStyle.Flex : DisplayStyle.None;
@@ -258,6 +260,14 @@ namespace SlopArena.Client.UI
             _feedback.text = feedback ?? "";
             if (newlyShown) _retry.Focus();
         }
+        public void AttachOnlineRoster(VisualElement roster) => _live.Add(roster);
+
+        public void PresentOnlineStatus(string status, string controls)
+        {
+            _cue.text = status; _controls.text = controls;
+            _hold.style.display = DisplayStyle.None;
+        }
+
         private static Label Add(VisualElement parent, string text, string css)
         { var label = new Label(text) { pickingMode = PickingMode.Ignore }; label.AddToClassList(css); parent.Add(label); return label; }
         public void Dispose()

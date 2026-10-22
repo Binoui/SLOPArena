@@ -99,6 +99,14 @@ namespace SlopArena.Server
                 error ??= "Cooked roster unavailable.";
                 return false;
             }
+            if (format.IsCourse())
+            {
+                var courseArena = ArenaRegistry.Get(arenaName)!.Value;
+                if (courseArena.Arcade!.AllowedPackageIds.Count != 1 || roster.Any(p => p.EntityId <= 0 || p.EntityId >= 128 || p.Colour > 3
+                    || catalog.Resolve(p.CharacterClass) is not { } entry || !courseArena.Arcade.AllowsPackage(entry.Identity.PackageId))
+                    || roster.Select(p => p.Colour).Distinct().Count() != roster.Count)
+                { error = "Course roster must use its fighter and distinct colours."; return false; }
+            }
             contentHash = SteamMatchDescriptor.HashContent(content!);
             Volatile.Write(ref _catalogHash, contentHash);
             if (steamTransport && !string.Equals(expectedCatalogHash, contentHash, StringComparison.Ordinal))

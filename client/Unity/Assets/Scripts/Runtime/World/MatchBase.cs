@@ -321,6 +321,7 @@ namespace SlopArena.Client.World
             int maxStocks = MatchConfig.Mode is GameMode.Solo or GameMode.PvP
                 ? MatchConfig.MaxStocks
                 : 0;
+            if (MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse()) maxStocks = 0;
             _hudManager?.Initialize(Bridge.GetState, players, maxStocks);
             _hudManager?.SetCharacterDefinition(def);
             _hudManager?.SetCamera(_cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
@@ -366,7 +367,7 @@ namespace SlopArena.Client.World
             var indicator = go.AddComponent<TargetIndicator>();
             indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
-                    ? camp : SlopballCamp.None);
+                    ? camp : SlopballCamp.None, CourseColours.ForEntity);
         }
 
 

@@ -1,5 +1,17 @@
 # SLOPArena Netcode & Simulation Architecture
 
+## Online Character Courses — protocol 15
+
+Race and Co-op reuse the same full-world prediction as Slopball (ADR-0040).
+World Snapshot 5 captures every course's phase, elapsed ticks, target hit counts,
+checkpoint, finish place and withdrawal state, plus the Race's 30-second finish
+window. World Frame 4 carries course events with stable tick/player/kind/target
+identities and a per-tick sequence; a rollback ledger starts and retracts them.
+Presentation reads the restored target flags and bonus hit counts, so a corrected
+break restores the target. Match Results carry finish times and DNF progress;
+colours travel with the immutable roster. Master, GameHost and clients ship
+protocol 15 together; older peers are rejected.
+
 ## Sir Bonk's lid and joust — protocol 12
 
 Protocol 12 carries the engine work for Sir Bonk's pot lid and joust
@@ -19,7 +31,7 @@ phases 0–4). Release client, GameHost and Master together; older peers are rej
 Protocol 11 ([ADR-0040](../adr/0040-online-arcade-room-pick-and-match-format.md)) adds
 Match formats: World Snapshot format 2 carries the Arcade ball and Slopball rules, and
 World Frame format 2 carries the Slopball events of its event ticks, so co-op Slopball
-predicts and presents like a stock fight. Character Courses are not covered yet.
+predicts and presents like a stock fight. Character Courses join this path in protocol 15 (above).
 
 - **World Frames.** Each tick the GameHost sends every client the same `WorldFramePacket`
   (Steam tag `Frame`, unreliable; a raw datagram on development UDP) in place of

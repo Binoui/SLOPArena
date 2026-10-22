@@ -16,7 +16,7 @@ the already accepted [ADR-0040](../adr/0040-online-arcade-room-pick-and-match-fo
 - First to 21 points, as selected by the user, without a win-by-two requirement.
 - Teal serves first. The conceding camp serves next; in 2v2, rotate that camp's
   server through its members in entity order. The ball waits at the server's start
-  until that player hits it. A serve must cross the net to become an ordinary rally.
+  until that player hits it. Touches are unlimited, including setups before crossing.
 - A floor contact awards the other camp one point. Reset ball percent, fighter
   damage, positions, active attacks/projectiles and transient combat state between
   points. Cooldowns also reset so a point starts cleanly.
@@ -55,3 +55,35 @@ break prediction. Neither alternative is needed.
 Preserve all pre-existing dirty work in both repositories. No commit, push,
 deployment, character cook, tool installation or Steam publication is included.
 Two-account/four-account remote gamefeel acceptance remains a human playtest.
+
+## Verification record
+
+- Shared: **3,321 passed**, two existing skips. Coverage includes first-to-21
+  completion, both scoring floors, server rotation, point resets, team filtering,
+  snapshot restore equivalence, malformed snapshots/setup, event codecs and a
+  reachable held serve for every admitted fighter. Point resets normalize height
+  per fighter, keeping tall and short fighters grounded during the inter-point gap.
+- GameHost: **52 passed**, including real two-client and four-client UDP Versus
+  matches through the prediction, snapshot and event-ledger contracts.
+- Master: **210 passed** in the companion repository. Versus tests cover 1v1/2v2
+  admission, camp changes/unlocking, balanced launch, Ball only, actual SignalR
+  pushes/GameHost requests, and Return to Lobby.
+- Documentation checks and whitespace checks pass. Unity compilation reported no
+  compiler errors and an empty current error console.
+- Live 2v2: one canonical Unity client on Clay with three headless UDP peers,
+  using FightGuy, Manki, Wibou and Bonk, reached **1–1**. Prediction was seeded
+  and three ticks ahead; all four camp rings and the first-to-21 HUD passed the
+  rendered-frame check. The HUD uses camp badges and hides stock counters.
+  Ground indicators remove each rig's visual alignment offset before testing
+  floor clearance, so Manki's ring remains visible. The composited capture was
+  inspected. The clean Frontend scene and prior client settings were restored,
+  and the independent Editor lease was released settled.
+
+`sloparena.arcade.slopball.test-online --points 2 --seconds 35` now observes a
+disposable online Versus session, waiting for real points and checking camp halves,
+camp rings and the first-to-21 HUD. It creates no opponents and changes no gameplay.
+Run it under the normal bounded gateway lease. The root `TESTING-UNITY.md` keeps
+human acceptance separate from this automated check.
+
+Master, GameHost and clients must ship together on protocol **14** (World Snapshot
+4, World Frame 3). This task does not deploy or activate that release.

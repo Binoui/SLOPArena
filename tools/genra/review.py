@@ -190,7 +190,7 @@ def check_result(brief_path: Path, result: Path, run_dir: Path) -> dict:
     from genra.clip import Clip
     brief = Brief(resolved_brief_path(brief_path, result))
     clip = Clip.load(brief.rig, result, frame=brief.entry_frame)
-    report = check_clip(clip, brief.check_spec())
+    report = check_clip(clip, brief.check_spec(stage='full'))
     (run_dir / 'checks.json').write_text(json.dumps(report, indent=2, default=str))
     (run_dir / 'checks.txt').write_text(format_report(report) + '\n')
     return report

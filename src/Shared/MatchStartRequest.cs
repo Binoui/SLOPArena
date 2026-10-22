@@ -15,7 +15,7 @@ namespace SlopArena.Shared;
 /// <param name="SteamId">Master-verified SteamID (development guests only in development mode).</param>
 /// <param name="CharacterClass">Locked-in character class the game server must spawn.</param>
 /// <param name="EntityId">Server entity ID (1..N) the player drives and the server broadcasts state for.</param>
-public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None);
+public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None, byte Colour = 0);
 
 /// <summary>Master match-start command. Protocol 2 adds Steam admission coordinates;
 /// protocol 0 is retained only for explicit development UDP sessions.</summary>
@@ -100,7 +100,10 @@ public static class MatchStartRequestCodec
             if (item.TryGetProperty("camp", out var campElement)
                 && (campElement.ValueKind != JsonValueKind.String || !SlopballCamps.TryParse(campElement.GetString(), out camp)))
                 return null;
-            list.Add(new MatchPlayer(steamId, characterClass, entityId, camp));
+            byte colour = 0;
+            if (item.TryGetProperty("colour", out var colourElement)
+                && (colourElement.ValueKind != JsonValueKind.Number || !colourElement.TryGetByte(out colour) || colour > 3)) return null;
+            list.Add(new MatchPlayer(steamId, characterClass, entityId, camp, colour));
         }
 
         if (list.Count is < 2 or > 4)
@@ -186,6 +189,8 @@ public static class MatchStartRequestCodec
         if (format == MatchFormat.SlopballVersus && list.Any(p => p.EntityId >= ServerSimulation.ArcadeBallTargetInputId)) return null;
         if (list.Select(p => p.EntityId).Distinct().Count() != list.Count
             || list.Select(p => p.SteamId).Distinct().Count() != list.Count) return null;
+        if (format.IsCourse() && (list.Any(p => p.EntityId >= CharacterCourseSimulation.FirstInputAlias)
+            || list.Select(p => p.Colour).Distinct().Count() != list.Count)) return null;
         return new MatchStartRequest(matchId, arenaName, list, maxStocks,
             protocolVersion, virtualPort, admissionExpiresAtUtc, catalogHash, format, friendlyFire, ballOnly);
     }

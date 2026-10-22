@@ -59,6 +59,7 @@ namespace SlopArena.Client.UI
         public static bool FriendlyFire;
         public static bool BallOnly;
         public static Dictionary<ulong, SlopballCamp> Camps = new();
+        public static Dictionary<ulong, byte> Colours = new();
 
         public static void ClearActiveMatch()
         {
@@ -66,6 +67,7 @@ namespace SlopArena.Client.UI
             FriendlyFire = false;
             BallOnly = false;
             Camps.Clear();
+            Colours.Clear();
             Mode = GameMode.Training;
             Transport = MatchTransport.None;
             SteamDescriptor = null;

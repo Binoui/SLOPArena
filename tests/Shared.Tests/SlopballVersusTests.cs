@@ -138,6 +138,26 @@ public class SlopballVersusTests
     }
 
     [Fact]
+    public void PointResetKeepsDifferentSizedFightersGroundedThroughoutTheGap()
+    {
+        var sim = new ServerSimulation(Court(), new SlopballVersusMatchRule(Camps()));
+        var tall = TestHelpers.EngineDef; tall.CapsuleHeight = 2.4f;
+        var shortFighter = TestHelpers.EngineDef; shortFighter.CapsuleHeight = .8f;
+        sim.RegisterEntity(1, tall, TestHelpers.PlayerState());
+        sim.RegisterEntity(2, shortFighter, TestHelpers.PlayerState());
+        sim.BeginVersusSlopball(); sim.Tick(new());
+        Strike(sim, 1);
+        for (int i = 0; i < 150 && sim.SlopballVersus!.Value.ClayScore == 0; i++) sim.Tick(new());
+        Assert.Equal(1, sim.SlopballVersus!.Value.ClayScore);
+        for (int i = 0; i < 20; i++)
+        {
+            Assert.Equal(tall.CapsuleHeight * .5f, sim.GetState(1).PY);
+            Assert.Equal(shortFighter.CapsuleHeight * .5f, sim.GetState(2).PY);
+            sim.Tick(new());
+        }
+    }
+
+    [Fact]
     public void FirstToTwentyOneEndsTheMatchAndSnapshotsRestoreEveryPointTransition()
     {
         var sim = Match();
@@ -216,8 +236,8 @@ public class SlopballVersusTests
         var sim = Match();
         var before = sim.CaptureSnapshot();
         var data = before.Data.ToArray();
-        // The versus footer ends in winner, two serve counters, then the input-release flag.
-        data[^6] = (byte)SlopballCamp.Clay;
+        // The versus footer precedes the input-release flag and two course-presence flags.
+        data[^8] = (byte)SlopballCamp.Clay;
         Assert.Throws<System.IO.InvalidDataException>(() => sim.RestoreSnapshot(new WorldSnapshot(data)));
         Assert.True(before.ContentEquals(sim.CaptureSnapshot()));
     }
@@ -238,10 +258,14 @@ public class SlopballVersusTests
     [Fact]
     public void MatchPushRequiresBalancedCampsWithDistinctUsableEntityIds()
     {
+        var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(1), CharacterClass.Manki,
+            new MatchContentIdentity("manki", "0.0.0-dev", new string('a', 64), new string('b', 64), new string('c', 64)), "Manki") });
+        using var content = JsonDocument.Parse(MatchContentHandleMapCodec.Serialize(map));
         string json = JsonSerializer.Serialize(new
         {
             serverId = Guid.NewGuid(), matchId = Guid.NewGuid(), matchPort = 15000, arenaName = "slopball",
             format = "slopball-versus", ballOnly = true,
+            content = content.RootElement,
             players = new[]
             {
                 new { steamId = 101L, name = "A", isHost = true, entityId = 1, camp = "teal", characterSelection = "Manki" },

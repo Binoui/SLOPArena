@@ -39,12 +39,25 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     if mode not in ('full', 'fast'):
         raise ValueError(f'check mode must be full or fast, not {mode!r}')
     s = {**DEFAULT_SPEC, **(spec or {})}
+    if s.get('stage') == 'keys':
+        # Judge actual poses independently of their provisional interpolation. A worst
+        # Humanoid sample between keys must not hide a smaller violation on a key.
+        ticks = sorted(set(s['key_ticks']))
+        risks = check_clip(clip, s | {'stage': 'full'}, mode='fast')
+        poses = s | {'stage': 'full', 'pose_ticks': ticks, 'motion': False,
+                     'clearance_ticks': ticks, 'face': False, 'life': False, 'flow': False,
+                     'targets': [t for t in s.get('targets', []) if t.get('tick') in ticks]}
+        report = check_clip(clip, poses, skin, mode=mode)
+        report.update(stage='keys', keyTicks=ticks, transitionRisks=risks['failures'])
+        return report
     skipped = []
     if mode == 'fast':
         skipped = ['clearance', 'face', 'arm_gap']
         s.update({name: False for name in skipped})
     rig, world = clip.rig, clip.world()
     n = len(clip)
+    checked = np.array([t for t in s.get('pose_ticks', range(n)) if 0 <= t < n], dtype=int)
+    motion = s.get('motion', True)
     failures, warnings, metrics = [], [], {}
 
     def fail(kind, message, **detail):
@@ -69,9 +82,12 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     exit_from = s.get('exit_from_tick')
     if exit_from is not None:
         target = (s.get('exit') or entry).world()[:, 3, :3]
-        errs = np.linalg.norm(positions[exit_from:] - target, axis=2).max(axis=1)
+        exit_ticks = checked[checked >= exit_from]
+        errs = np.linalg.norm(positions[exit_ticks] - target, axis=2).max(axis=1)
+        if not len(errs):
+            errs = np.array([0.0])
         metrics['exitErrorMetres'] = float(errs.max())
-        bad = [exit_from + i for i, e in enumerate(errs) if e > tol]
+        bad = [int(t) for t, e in zip(exit_ticks, errs) if e > tol]
         if bad:
             fail('exit', f'ticks {bad[0]}..{bad[-1]} differ from the exit pose by up to {errs.max() * 1000:.1f} mm', ticks=bad)
 
@@ -85,7 +101,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
         if seam.max() > tol:
             fail('loop', f'tick {last} differs from tick {loop_from} by up to {seam.max() * 1000:.1f} mm '
                          f'({rig.names[int(seam.argmax())]}); the loop must close exactly', ticks=[loop_from, last])
-        else:
+        elif motion:
             jerk = np.linalg.norm(positions[loop_from + 1] - 2 * positions[last] + positions[last - 1], axis=1)
             inner = positions[loop_from:last + 1]
             inside = np.linalg.norm(inner[2:] - 2 * inner[1:-1] + inner[:-2], axis=2).max()
@@ -99,13 +115,13 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # the pose, and the fighter itself never moves. Bone lengths, scales and any joint above the hips stay fixed.
     hips = rig.index('Hips')
     if s.get('freeze_translations', True):
-        moved = np.abs(clip.t - clip.t[0]).max(axis=(0, 2))
+        moved = np.abs(clip.t[checked] - clip.t[0]).max(axis=(0, 2))
         moved[hips] = 0.0
         if moved.max() > 1e-4:  # skeleton units; float32 storage noise is ~1e-5
             fail('translations', f'{rig.names[int(np.argmax(moved))]} translation changes by up to {moved.max():.2e}; '
                                  'only the hips may translate')
     if s.get('freeze_scales', True):
-        d = float(np.abs(clip.s - clip.s[0]).max())
+        d = float(np.abs(clip.s[checked] - clip.s[0]).max())
         if d > 1e-3:  # USD stores scales as half floats
             fail('scales', f'joint scales change by up to {d:.2e}')
     h = positions[:, hips]
@@ -116,7 +132,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
             above.append(int(j))
             j = rig.parents[j]
         for j in above:
-            d = float(np.abs(world[:, j] - world[0, j]).max())
+            d = float(np.abs(world[checked, j] - world[0, j]).max())
             if d > 1e-5:
                 fail('root', f'{rig.names[j]} (above the hips) moves; only the hips and below may animate')
 
@@ -125,11 +141,11 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     if planted:
         tol = s.get('plant_tolerance_metres', 0.01)
         for joint in planted:
-            p = positions[:, rig.index(joint)]
+            p = positions[checked, rig.index(joint)]
             drift = np.linalg.norm(p - p[0], axis=1)
             metrics[f'{joint} drift (m)'] = float(drift.max())
             if drift.max() > tol:
-                bad = np.where(drift > tol)[0]
+                bad = checked[drift > tol]
                 fail('planted', f'{joint} drifts {drift.max() * 100:.1f} cm (ticks {bad[0]}..{bad[-1]}); keep it planted '
                      f'within {tol * 100:.0f} cm with two_bone leg IK', joint=joint, ticks=bad.tolist())
 
@@ -142,7 +158,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
         reversed_min = max(s.get('finger_reversed_min_degrees', 30.0) if finger else s['flexion_min_degrees'],
                            rig.reversed_allowance(name))
         sideways_min = None if finger else s.get('sideways_min_degrees', 30.0)
-        for tick in range(n):
+        for tick in checked:
             flex, align = rig.hinge_state(world[tick], name)
             if align <= -0.5 and flex > reversed_min:
                 kind = 'reversed'
@@ -158,9 +174,9 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # Unity's Humanoid plays finger, thumb and toe rotations only about each joint's own muscle axes; anything
     # else is lost in the game (rig packs with humanoid.json).
     if rig.humanoid_digits and s.get('humanoid_digits', True):
-        off = np.array([[rig.humanoid_split(j, clip.q[tick, j])[1] for j in rig.humanoid_digits] for tick in range(n)])
+        off = np.array([[rig.humanoid_split(j, clip.q[tick, j])[1] for j in rig.humanoid_digits] for tick in checked])
         metrics['humanoid digit off-axis (deg)'] = float(off.max())
-        bad = [(rig.names[j], float(off[:, c].max()), int(off[:, c].argmax())) for c, j in enumerate(rig.humanoid_digits)
+        bad = [(rig.names[j], float(off[:, c].max()), int(checked[off[:, c].argmax()])) for c, j in enumerate(rig.humanoid_digits)
                if off[:, c].max() > s['humanoid_degrees']]
         if bad:
             name, degrees, tick = max(bad, key=lambda row: row[1])
@@ -172,12 +188,13 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # game shows a different pose (rig.humanoid_bounds; a collarbone cannot roll at all).
     limited = rig.humanoid_limited
     if limited and s.get('humanoid_limits', True):
-        excess = np.array([[rig.humanoid_excess(j, clip.q[tick, j])[0] for j in limited] for tick in range(n)])
+        excess = np.array([[rig.humanoid_excess(j, clip.q[tick, j])[0] for j in limited] for tick in checked])
         metrics['humanoid limits exceeded by (deg)'] = float(excess.max())
         bad = [c for c in range(len(limited)) if excess[:, c].max() > s['humanoid_degrees']]
         if bad:
             c = max(bad, key=lambda col: excess[:, col].max())
-            tick, ticks = int(excess[:, c].argmax()), np.where(excess[:, c] > s['humanoid_degrees'])[0]
+            tick = int(checked[excess[:, c].argmax()])
+            ticks = checked[excess[:, c] > s['humanoid_degrees']]
             degrees, muscle = rig.humanoid_excess(limited[c], clip.q[tick, limited[c]])
             fail('humanoid', f"{len(bad)} joints turn past what Unity's Humanoid plays, worst {rig.names[limited[c]]} "
                              f'{degrees:.0f} deg past {muscle} at tick {tick} (ticks {ticks[0]}..{ticks[-1]}); '
@@ -185,7 +202,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
                  joints=[rig.names[limited[col]] for col in bad], tick=tick)
 
     # Snaps: per-tick local rotation change.
-    speed = clip.angular_speed()  # (n-1, joints); row i is tick i -> i+1
+    speed = clip.angular_speed() if motion else np.empty((0, len(rig.names)))
     fast = set()
     for a, b in s['fast_windows']:
         fast.update(range(a, b + 1))
@@ -208,9 +225,9 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # elbow and roll solutions (Sir Bonk's E1 slam: LeftArm 158 deg in one tick, 153 of them a roll; a review read it as
     # a rotation taking the long way round). Slowing it down only shows the roll for longer: the retimed flight still
     # rolled 153 deg in 3 ticks. Approved clips roll at most 37 deg in a tick and 80 in three.
-    flips, rolling = [], twist_speed(clip)
+    flips, rolling = [], twist_speed(clip) if motion else {}
     for span, limit in ((1, s['flip_degrees_per_tick']), (3, s['flip_degrees_per_3_ticks'])):
-        for joint, rolls in (rolling if span == 1 else twist_speed(clip, span)).items():
+        for joint, rolls in (rolling if span == 1 or not motion else twist_speed(clip, span)).items():
             flips += [(int(i) + span, joint, float(rolls[i]), span) for i in np.where(rolls > limit)[0]]
     metrics['max roll about a limb bone (deg/tick)'] = max((float(r.max()) for r in rolling.values() if len(r)), default=0.0)
     if flips:
@@ -244,13 +261,16 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # the weapon hand: a hand-to-hand distance passes a hand floating beside it (Sir Bonk's E1 aim and leap held the
     # plank 10-13 cm off the handle with "both hands on the handle" targets of 28 cm between the hands).
     span = s.get('two_hands')
+    grip_ticks = [int(t) for t in checked if span and span[0] <= t <= span[1]]
+    if not grip_ticks:
+        span = None
     if span and rig.grip and s.get('two_hands_hold', 'exact') == 'loose':
         # A loose hold (solve.handle_target): the fist on the handle beside the weapon hand, any turn about it, within
         # the hold's own slack, tilt and place plus grip_metres / grip_degrees.
         from .solve import _handle_error, handle_target
         target = handle_target(rig)
         lo, hi = target['along']
-        rows = [(tick, _handle_error(clip.pose(tick), target)[1]) for tick in range(span[0], min(span[1], n - 1) + 1)]
+        rows = [(tick, _handle_error(clip.pose(tick), target)[1]) for tick in grip_ticks]
         off = [(t, r) for t, r in rows if r['offHandleMetres'] > target['slack'] + s['grip_metres']
                or r['tiltDegrees'] > target['tilt'] + s['grip_degrees']
                or abs(r['gapMetres']) < target['gap'] - s['grip_metres']
@@ -266,7 +286,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
                          "carry(..., hold='loose') or hold_grip(..., hold='loose')", ticks=[t for t, _ in off])
     elif span and rig.grip:
         from .solve import grip_report
-        misses = [(tick, grip_report(clip.pose(tick))) for tick in range(span[0], min(span[1], n - 1) + 1)]
+        misses = [(tick, grip_report(clip.pose(tick))) for tick in grip_ticks]
         off = [(t, r) for t, r in misses if r['leftHandMissMetres'] > s['grip_metres'] or r['leftHandMissDegrees'] > s['grip_degrees']
                or abs(r['leftHandRollDegrees']) > s['grip_roll_degrees']]
         metrics['left hand off the grip (m)'] = max(r['leftHandMissMetres'] for _, r in misses)
@@ -279,7 +299,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
                          'it with hold_grip()', ticks=[t for t, _ in off])
     elif span and {'bladeHilt', 'bladeEnd'} <= set(rig.names):
         from .rig import handle_offsets
-        ticks = np.arange(span[0], min(span[1], n - 1) + 1)
+        ticks = np.array(grip_ticks)
         weapon_side = rig.side('bladeEnd')
         other = 'Left' if weapon_side == 'Right' else 'Right'
         own = float(np.median(handle_offsets(rig, world[ticks], weapon_side)[0]))
@@ -345,7 +365,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # outside its hand, forearms glued to the torso while running, knees that never straighten, legs that are
     # mirror copies of each other, and curves that are plain sine waves.
     if s.get('form', True):
-        form(clip, fail, warn, metrics, s, skin, loop=s.get('loop_from_tick') is not None)
+        form(clip, fail, warn, metrics, s, skin, loop=motion and s.get('loop_from_tick') is not None)
 
     # Life: the motion reads robotic when the limbs work but the body around them stays rigid or rides the hips in
     # one piece (Sir Bonk's first run, 2026-10-20: spine and neck within 2 degrees, head bobbing exactly with the
@@ -359,6 +379,14 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     # hand-made liveliness corpus (44 attacks on Sir Bonk, 2026-10-21; README "Flow"), so they need no reference.
     if s.get('flow', True) and s.get('loop_from_tick') is None and n >= 30:
         flow_checks(clip, warn, metrics, s)
+
+    if motion and s.get('chatter', True) and n >= 8:
+        from .curves import chatter
+        for row in chatter(clip, s['fast_windows']):
+            warn('chatter', f"{row['channel']} repeatedly reverses every 1-2 ticks over ticks "
+                 f"{row['ticks'][0]}..{row['ticks'][-1]} (largest step {row['maxStepDegrees']:.1f} deg); "
+                 'inspect for IK jitter at game speed. Intentional shaking is allowed; do not smooth the whole move',
+                 **row)
 
     # Brief-specific numeric targets.
     for t in s.get('targets', []):
@@ -430,6 +458,8 @@ def form(clip: Clip, fail, warn, metrics: dict, spec: dict, skin=None, loop: boo
         from .brief import exempt_ranges
         for first, last in exempt_ranges(spec.get('wrist_exempt_ticks')):  # a matched entry's or exit's own fold
             angle[first:last + 1] = 0.0
+        if 'pose_ticks' in spec:
+            angle[np.setdiff1d(np.arange(n), spec['pose_ticks'])] = 0.0
         metrics[f'{side.lower()} wrist bend max (deg)'] = float(angle.max())
         over = np.where(angle > spec.get('wrist_fail_degrees', 105.0))[0]
         if len(over):
@@ -439,6 +469,9 @@ def form(clip: Clip, fail, warn, metrics: dict, spec: dict, skin=None, loop: boo
         elif loop and angle.max() > spec.get('wrist_loop_warn_degrees', 85.0):
             warn('wrist', f'the {side.lower()} wrist bends {angle.max():.0f} deg in a loop (approved loops stay under 45)',
                  joint=side + 'Hand')
+
+    if not spec.get('motion', True):
+        return
 
     # Forearms glued to the torso while running (vertex gap between the forearm and hand and the spine's skin).
     if locomotion and spec.get('arm_gap', True):
@@ -611,11 +644,18 @@ def measure(clip: Clip, t: dict) -> float:
 
 def format_report(report: dict) -> str:
     lines = ['PASS' if report['passed'] else f"FAIL ({len(report['failures'])})"]
+    if report.get('checkpointOnly'):
+        lines[0] += ' (starting checkpoint only; no authored changes)'
+    if report.get('stage') == 'keys':
+        lines[0] = 'KEY POSES ' + lines[0] + ' (blocking only)'
     if report.get('mode') == 'fast':
         lines[0] = 'FAST ' + lines[0] + ' (iteration only)'
         lines.append('  skipped: ' + ', '.join(report['skipped']) + '; run full checks before review or delivery')
     lines += [f"  x {f['check']}: {f['message']}" for f in report['failures']]
     lines += [f"  ! {w['check']}: {w['message']}" for w in report['warnings']]
+    if report.get('transitionRisks'):
+        lines.append('  Interpolated motion risks (deferred to the motion stage):')
+        lines += [f"  ~ {f['check']}: {f['message']}" for f in report['transitionRisks']]
     m = report['metrics']
     lines.append(f"  max {m.get('maxDegreesPerTick', 0):.0f} deg/tick; hip travel {m.get('hipTravelMetres', 0) * 1000:.2f} mm")
     for k, v in m.items():

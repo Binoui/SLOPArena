@@ -1,8 +1,9 @@
 # ADR-0040: Stage-first Room preparation and typed formats for online Arcade
 
 **Status:** Accepted — 2026-10-19. Slices 1 (stage-first Room phases, Room entry check)
-and 2 (co-op Slopball online, protocol 11) are implemented; their two-client playtests
-and slices 3–4 are pending. Decisions 4, 6 and 8 were refined while building slice 2;
+and 2 (co-op Slopball online, initially protocol 11) are implemented. Slice 3
+(Versus Slopball 1v1/2v2, protocol 14) is implemented and awaits human playtests;
+slice 4 (Course Race and Co-op, protocol 15) is implemented and awaits human playtests. Decisions 4, 6 and 8 were refined while building slice 2;
 see [Revisions](#revisions-during-slice-2) and the
 [implementation options](../design/online-arcade-implementation.md).
 **Extends:** [ADR-0037](0037-arcade-shared-objects-and-unified-stage-artifact.md) (focused
@@ -87,3 +88,22 @@ online stack only knows stock fights:
 - Rejected alternatives: a Mode step before today's order (courses would still pick
   fighters after stages), a simulation class per mode (duplicates the tick and
   contradicts ADR-0037) and server-only Arcade objects (players would hit a late ball).
+
+## Slice 4 implementation
+
+- `PvPMatch` also hosts `OnlineCharacterCourse`, reusing the course presentation and
+  pips. Race has private target collision identities filtered by attack owner; Co-op
+  shares each accepted hit across the small per-player course states so checkpoints
+  remain personal. Both reuse the solo target/hit-count/swept-sensor implementation.
+- Online starts use the documented offset fallback without rebaking Solo starts.
+  Safe four-player idle starts are checked on Pier, Sanctuary, Quarry and Neo Mall.
+- First Race finish opens the maintainer-selected 30-second finish window; ties use
+  60 Hz finish ticks. Finished/withdrawn players stop interacting. Co-op ends after
+  all targets and any finish. Online runs do not write Solo records.
+- World Snapshot 5 carries course clocks, target hit counts, checkpoints, places and
+  withdrawals; World Frame 4 carries course events through the rollback ledger.
+  Results carry finish times and DNF progress. Master/GameHost/client protocol is 15.
+- Course Room admission uses `format:arena:fighter`, alongside the existing
+  `format:arena` Slopball entries. The fighter is the existing Room roster selector;
+  GameHost admission validates its package against the baked course. `roster.json`
+  lists the same offerings; release-written VPS admission remains a separate step.

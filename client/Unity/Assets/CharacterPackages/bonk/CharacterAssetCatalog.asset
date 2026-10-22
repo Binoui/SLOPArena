@@ -63,7 +63,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.g3
   - _semanticId: anim.bonk.g4
-    _clip: {fileID: 7400000, guid: 77adee449636536078c538b0fe0e02df, type: 2}
+    _clip: {fileID: 7400000, guid: dcb57a703ac0fd3478495721f6e76f47, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.g4
   - _semanticId: anim.bonk.ga
@@ -107,11 +107,11 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.gf
   - _semanticId: anim.bonk.a1
-    _clip: {fileID: 7400000, guid: d9b3e2504f93b3627902832b098e225e, type: 2}
+    _clip: {fileID: 7400000, guid: 88df3f8c586a026d69f58f26f038c778, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.a1
   - _semanticId: anim.bonk.a2
-    _clip: {fileID: 7400000, guid: a9cc09b2cba80652b85b96f51b9f8c0a, type: 2}
+    _clip: {fileID: 7400000, guid: f442c7959b991d13e99d69966429120a, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.a2
   - _semanticId: anim.bonk.a3

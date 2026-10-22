@@ -14,6 +14,8 @@ namespace SlopArena.Shared
         private readonly List<SpellResolver.HitResult> _hits = new();
         private readonly List<TimelinePresentationEvent> _frameEvents = new();
         private readonly List<SpellResolver.HitResult> _frameHits = new();
+        private readonly List<CourseTickEvent> _courses = new();
+        private readonly List<CourseTickEvent> _frameCourses = new();
         private readonly List<SlopballTickEvent> _slopball = new();
         private readonly List<SlopballTickEvent> _frameSlopball = new();
 
@@ -22,9 +24,11 @@ namespace SlopArena.Shared
 
         /// <summary>Add what the simulation produced at <paramref name="tick"/>.</summary>
         public void Record(uint tick, IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits,
-            IReadOnlyList<SlopballEvent>? slopballEvents = null)
+            IReadOnlyList<SlopballEvent>? slopballEvents = null, IReadOnlyList<CourseTickEvent>? courseEvents = null)
         {
             uint from = WorldFramePacket.EventsFrom(tick);
+            _courses.RemoveAll(e => e.MatchTick < from || e.MatchTick > tick);
+            if (courseEvents != null) _courses.AddRange(courseEvents);
             _events.RemoveAll(e => e.MatchTick < from || e.MatchTick > tick);
             _hits.RemoveAll(h => h.MatchTick < from || h.MatchTick > tick);
             _slopball.RemoveAll(e => e.MatchTick < from || e.MatchTick > tick);
@@ -87,11 +91,23 @@ namespace SlopArena.Shared
             return _frameSlopball;
         }
 
+        public IReadOnlyList<CourseTickEvent> CourseEventsForFrame(uint tick)
+        {
+            _frameCourses.Clear();
+            uint from = WorldFramePacket.EventsFrom(tick);
+            foreach (var item in _courses)
+                if (item.MatchTick >= from && item.MatchTick <= tick) _frameCourses.Add(item);
+            if (_frameCourses.Count > WorldFramePacket.MaxCourseEvents)
+                _frameCourses.RemoveRange(0, _frameCourses.Count - WorldFramePacket.MaxCourseEvents);
+            return _frameCourses;
+        }
+
         public void Clear()
         {
             _events.Clear();
             _hits.Clear();
             _slopball.Clear();
+            _courses.Clear();
         }
     }
 }

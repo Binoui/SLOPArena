@@ -7,6 +7,7 @@ then interpolates between them (``Clip.from_keys``).
 from __future__ import annotations
 
 import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -345,11 +346,20 @@ class Clip:
         return np.degrees(2 * np.arccos(dots))
 
     def save(self, path) -> Path:
-        """Write the dense clip (the runner's output contract) as JSON."""
+        """Atomically replace the dense clip, preserving the last save on interruption."""
         path = Path(path)
-        path.write_text(json.dumps({'format': 'genra-clip-1', 'joints': self.rig.names, 'fps': self.rig.fps,
-                                    't': np.round(self.t, 7).tolist(), 'q': np.round(self.q, 9).tolist(),
-                                    's': np.round(self.s, 7).tolist()}))
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, prefix=f'.{path.name}.',
+                                             suffix='.tmp', delete=False) as stream:
+                temporary = Path(stream.name)
+                json.dump({'format': 'genra-clip-1', 'joints': self.rig.names, 'fps': self.rig.fps,
+                           't': np.round(self.t, 7).tolist(), 'q': np.round(self.q, 9).tolist(),
+                           's': np.round(self.s, 7).tolist()}, stream, allow_nan=False)
+            temporary.replace(path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
         return path
 
     @classmethod

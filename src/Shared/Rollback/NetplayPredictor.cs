@@ -42,6 +42,9 @@ namespace SlopArena.Shared.Rollback
             new(static h => HitKey.Of(h), static k => k.MatchTick);
         private readonly RollbackLedger<SlopballEventKey, SlopballTickEvent> _slopball =
             new(static e => e.Key, static k => k.MatchTick);
+        private readonly RollbackLedger<CourseEventKey, CourseTickEvent> _courses =
+            new(static e => e.Key, static k => k.MatchTick);
+        private readonly List<CourseTickEvent> _tickCourses = new();
         private readonly List<SlopballTickEvent> _tickSlopball = new();
         private readonly List<TimelinePresentationEvent> _tickEvents = new();
         private readonly List<SpellResolver.HitResult> _tickHits = new();
@@ -167,6 +170,9 @@ namespace SlopArena.Shared.Rollback
             => _hits.Drain(started, retracted);
 
         /// <summary>Slopball events to present, and predicted ones the GameHost ruled out, since the previous call (ADR-0040).</summary>
+        public void DrainCourseEvents(List<CourseTickEvent> started, List<CourseTickEvent> retracted)
+            => _courses.Drain(started, retracted);
+
         public void DrainSlopballEvents(List<SlopballTickEvent> started, List<SlopballTickEvent> retracted)
             => _slopball.Drain(started, retracted);
 
@@ -242,11 +248,13 @@ namespace SlopArena.Shared.Rollback
             _events.BeginResimulation(tick);
             _hits.BeginResimulation(tick);
             _slopball.BeginResimulation(tick);
+            _courses.BeginResimulation(tick);
             for (uint t = tick + 1; t <= _localTick; t++)
                 SimulateTick(t);
             _events.EndResimulation();
             _hits.EndResimulation();
             _slopball.EndResimulation();
+            _courses.EndResimulation();
             MeasureSnap();
 
             _window.ResimulatedTicks += (int)age;
@@ -287,7 +295,7 @@ namespace SlopArena.Shared.Rollback
             foreach (ulong id in _fighters)
             {
                 // As the GameHost: eliminated and disconnected fighters consume no input.
-                if (_rule.IsEliminated(_sim.GetState(id)))
+                if (_sim.IsEntityInactive(id))
                     continue;
                 if (id == _selfId)
                     _tickInputs[id] = TryGetRecordedInput(tick, out var own) ? own : default;
@@ -304,6 +312,7 @@ namespace SlopArena.Shared.Rollback
                     _tickSlopball.Add(new SlopballTickEvent(_sim.SimulationTick, item));
                 _slopball.RecordPredicted(_tickSlopball);
             }
+            if (_sim.OnlineCourse.HasValue) _courses.RecordPredicted(_sim.LastTickOnlineCourseEvents);
             StorePrediction(tick, _sim.CaptureSnapshot());
         }
 
@@ -316,6 +325,13 @@ namespace SlopArena.Shared.Rollback
                     if (evt.MatchTick == tick)
                         _tickEvents.Add(evt);
                 _events.RecordAuthoritative(tick, _tickEvents);
+                if (_sim.OnlineCourse.HasValue)
+                {
+                    _tickCourses.Clear();
+                    foreach (var item in frame.CourseEvents)
+                        if (item.MatchTick == tick) _tickCourses.Add(item);
+                    _courses.RecordAuthoritative(tick, _tickCourses);
+                }
                 _tickHits.Clear();
                 foreach (var hit in frame.Hits)
                     if (hit.MatchTick == tick)

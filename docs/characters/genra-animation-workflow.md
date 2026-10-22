@@ -238,6 +238,21 @@ builds the transitions, and the check keeps the approved poses. E1's upright
 launch and hunched haul were pose misses. They survived two 30–45 minute
 revisions that spent their time solving transitions.
 
+Blocking checks now distinguish story-pose validity from provisional motion risks. A Humanoid violation between
+valid poses is a transition problem; a violation on a story tick is a pose problem. Window/arc checks stay visible
+in the transition report. The scratch CLI inherits the stage; `--stage full` explicitly checks all motion.
+
+Each job starts with a recoverable candidate, `author.py` and a local `API.md` with live signatures. Saves are atomic
+and archived outside writable scratch. The runner stops after 20 minutes without a changed, loadable checkpoint,
+or at its overall timeout; `run.py --checkpoint-timeout` overrides the former. An unchanged starting checkpoint
+cannot qualify as a finished take or trigger paid review. Interrupted jobs retain unknown cost when the provider
+did not report it. See the [toolkit guide](../../tools/genra/README.md) for the artifacts.
+
+Preserve the approved gesture and personality. Do not impose new exact-pose locks on a brief that allows variation.
+Flow and repeated-reversal diagnostics help locate visible problems; they are advisory, and do not justify adding
+imperceptible sway or spending the job clearing scores. Repair a diagnosed interval, keep intentional holds and
+impact snap, and explain any conflict between an acceptable variation and the machine constraints.
+
 Use `./genra check result.json --fast` while iterating on numerical constraints.
 It retains timing, anatomy, contacts and approved-key checks, and skips mesh
 clearance, visibility and automatic renders. Run the default full check and inspect

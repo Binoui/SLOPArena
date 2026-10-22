@@ -19,6 +19,7 @@ namespace SlopArena.Client.Network
         public string? CharacterSelection { get; set; }
         public bool LockedIn { get; set; }
         public string Camp { get; set; } = "";
+        public byte Colour { get; set; }
     }
 
     public class RoomSummary
@@ -54,6 +55,7 @@ namespace SlopArena.Client.Network
     /// <summary>An Arcade format and its arena that Master admits for Rooms.</summary>
     public sealed class RoomArcadeEntry
     {
+        public string? Fighter { get; set; }
         public string Format { get; set; } = string.Empty;
         public string Arena { get; set; } = string.Empty;
     }
@@ -767,6 +769,9 @@ namespace SlopArena.Client.Network
             InvokeRoomAsync<RoomSnapshot>("RoomSetFriendlyFire", enabled);
         public Task<RoomSnapshot> RoomSetBallOnlyAsync(bool enabled) =>
             InvokeRoomAsync<RoomSnapshot>("RoomSetBallOnly", enabled);
+        public Task<RoomSnapshot> RoomSelectColourAsync(byte colour) =>
+            InvokeRoomAsync<RoomSnapshot>("RoomSelectColour", colour);
+
         public Task<RoomSnapshot> RoomSelectCampAsync(string camp) =>
             InvokeRoomAsync<RoomSnapshot>("RoomSelectCamp", camp);
         public Task RoomStartMatchAsync() =>

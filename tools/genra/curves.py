@@ -99,6 +99,30 @@ def mirror_error(left, right) -> float:
     return float(np.abs(np.roll(a, len(a) // 2) - b).mean())
 
 
+def chatter(clip, fast_windows=()) -> list[dict]:
+    """Advisory bursts of substantial angle reversals every one or two ticks.
+
+    A single snap, smooth step or small numerical noise is not chatter. Annotate
+    fast windows; they may allow the body's spin while its legs still chatter.
+    """
+    fast = {t for a, b in fast_windows for t in range(a, b + 1)}
+    rows = []
+    for name, values in channels(clip).items():
+        if not any(label in name for label in ('knee bend', 'elbow bend', 'foot pitch', 'wrist angle')):
+            continue
+        delta = np.diff(values)
+        reversals = np.flatnonzero((delta[:-1] * delta[1:] < 0)
+                                  & (np.abs(delta[:-1]) >= 3) & (np.abs(delta[1:]) >= 3)) + 1
+        for group in np.split(reversals, np.flatnonzero(np.diff(reversals) > 2) + 1):
+            if len(group) < 4:
+                continue
+            first, last = int(group[0]), int(group[-1])
+            rows.append({'channel': name, 'ticks': [first, last], 'reversals': int(len(group)),
+                         'maxStepDegrees': float(np.abs(delta[first - 1:last + 1]).max()),
+                         'inFastWindow': any(t in fast for t in range(first, last + 1))})
+    return rows
+
+
 def curves_sheet(clip, path=None, reference=None, title=None, size=(1500, 860)) -> Image.Image:
     """Small multiples of channels(clip); `reference` (another Clip) is drawn in grey under it, time-normalised."""
     ch = channels(clip)

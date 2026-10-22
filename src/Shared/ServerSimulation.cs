@@ -107,7 +107,7 @@ namespace SlopArena.Shared
 			_arena = arena;
 			_blastLines = ArenaCollision.ResolveBlastLines(in arena);
 			_rule = rule ?? new StockMatchRule(3);
-			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule ? CanAttackTarget : null;
+			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule or CourseMatchRule ? CanAttackTarget : null;
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
 			if (arena.Arcade?.Ball is ArcadeBallDefinition ball)
@@ -122,7 +122,13 @@ namespace SlopArena.Shared
                 }
             }
             if (arena.Arcade?.Course is CharacterCourseDefinition course)
-            { course.ValidateArena(in arena); _course = new CharacterCourseSimulation(course); }
+            {
+                course.ValidateArena(in arena);
+                if (_rule is CourseMatchRule courseRule) _onlineCourse = new OnlineCourseSimulation(course, courseRule.Cooperative);
+                else _course = new CharacterCourseSimulation(course);
+            }
+            if (_rule is CourseMatchRule && _onlineCourse == null)
+                throw new ArgumentException("Online courses need a course arena.", nameof(rule));
             if (_rule is SlopballCoopMatchRule && _slopball == null)
                 throw new ArgumentException("Co-op Slopball needs a Slopball court.", nameof(rule));
             if (_rule is SlopballVersusMatchRule && _volley == null)
@@ -151,11 +157,12 @@ namespace SlopArena.Shared
             if ((_slopball != null || _course != null) && _rule is not SlopballCoopMatchRule
                 && _states.Count > 0 && !_states.ContainsKey(id))
                 throw new ArgumentException("Solo Arcade challenges admit one fighter.", nameof(id));
-			if (_course != null && id >= CharacterCourseSimulation.FirstInputAlias)
+			if ((_course != null || _onlineCourse != null) && id >= CharacterCourseSimulation.FirstInputAlias)
 				throw new ArgumentException("Course target aliases and object identities are reserved.", nameof(id));
 			if (_arcadeBall != null && (id == ArcadeBallSimulation.TargetInputId || id >= ArcadeBallSimulation.FirstEntityId))
 				throw new ArgumentException("Arcade reserves the ball target alias and object identity range.", nameof(id));
 			_defs[id] = def;
+                if (_onlineCourse != null) _onlineCourse.Register(id);
 			initialState.EntityId = id;
 			_states[id] = initialState;
 			_kos[id] = 0;
@@ -674,7 +681,7 @@ namespace SlopArena.Shared
             foreach (var pair in _states)
             {
                 var target = pair.Value;
-                if (pair.Key == attacker.EntityId || !CanAttackTarget(attacker.EntityId, pair.Key) || _rule.IsEliminated(target)
+                if (pair.Key == attacker.EntityId || !CanAttackTarget(attacker.EntityId, pair.Key) || IsEliminated(target)
                     || (target.PX - attacker.PX) * sin + (target.PZ - attacker.PZ) * cos <= 0f)
                     continue;
                 var def = _defs[pair.Key];
@@ -1159,7 +1166,7 @@ namespace SlopArena.Shared
 			{
 				if (targetId == grabberId || !CanAttackTarget(grabberId, targetId) || target.InteractionId != 0
 					|| !_defs.TryGetValue(targetId, out var targetDef)
-					|| _rule.IsEliminated(target) || target.InvincibilityTicks > 0)
+					|| IsEliminated(target) || target.InvincibilityTicks > 0)
 					continue;
 				float dx = target.PX - grabber.PX, dz = target.PZ - grabber.PZ;
 				float forward = dx * sin + dz * cos;
@@ -1352,7 +1359,7 @@ namespace SlopArena.Shared
 					|| partner.InteractionPartnerId != ownerId
 					|| partner.InteractionPhase != owner.InteractionPhase
 					|| partner.State != ActionState.Grabbed
-					|| !owner.IsGrounded || _rule.IsEliminated(owner) || _rule.IsEliminated(partner)
+					|| !owner.IsGrounded || IsEliminated(owner) || IsEliminated(partner)
 					|| !CanPlaceVictim(in owner, in partner, _defs[ownerId], _defs[partnerId],
 						out float x, out float y, out float z))
 				{
@@ -1476,7 +1483,7 @@ namespace SlopArena.Shared
 			{
 				if (!_states.TryGetValue(id, out var state)) continue;
 				// Eliminated (0 stocks / rule) — frozen spectator, no physics (issue #37).
-				if (_rule.IsEliminated(state)) continue;
+				if (IsEliminated(state)) continue;
 				if (!_defs.TryGetValue(id, out var def)) continue; // state exists but no definition — invalid entity, skip (never simulate)
 				if (state.InteractionId != 0
 					&& (IsOutsideBlastZone(in state)
@@ -1575,7 +1582,7 @@ namespace SlopArena.Shared
 				ulong firstId = simIds[i];
 				if (!_states.TryGetValue(firstId, out var first)
 				    || !_defs.TryGetValue(firstId, out var firstDef)
-				    || _rule.IsEliminated(first))
+				    || IsEliminated(first))
 					continue;
 
 				for (int j = i + 1; j < simIds.Length; j++)
@@ -1583,7 +1590,7 @@ namespace SlopArena.Shared
 					ulong secondId = simIds[j];
 					if (!_states.TryGetValue(secondId, out var second)
 					    || !_defs.TryGetValue(secondId, out var secondDef)
-					    || _rule.IsEliminated(second))
+					    || IsEliminated(second))
 						continue;
                     if ((_activeAbilities.TryGetValue(firstId, out var firstAbility)
                             && firstAbility.IgnoresFighterPushboxes)
@@ -1667,7 +1674,7 @@ namespace SlopArena.Shared
 				ulong id = simIds[k];
 				if (!_states.TryGetValue(id, out var state)
 				    || !_defs.TryGetValue(id, out var def)
-				    || _rule.IsEliminated(state))
+				    || IsEliminated(state))
 					continue;
 				Simulation.RecoverStageOverlap(ref state, def, _arena);
 				_states[id] = state;
@@ -1683,7 +1690,7 @@ namespace SlopArena.Shared
 		{
 			foreach (var (id, state) in _states)
 			{
-				if (!_defs.ContainsKey(id) || _rule.IsEliminated(state)
+				if (!_defs.ContainsKey(id) || IsEliminated(state)
 					|| !state.IsGrounded || state.State != ActionState.Crouching
 					|| state.VX != 0f || state.VZ != 0f
 					|| state.HitstopTicks != 0
@@ -1724,7 +1731,7 @@ namespace SlopArena.Shared
 			float maxRange, out float distanceSquared)
 		{
 			distanceSquared = 0f;
-			if (targetId == selfId || _rule is SlopballCoopMatchRule && _states.ContainsKey(targetId)
+			if (targetId == selfId || _onlineCourse != null && !CanAttackTarget(selfId, targetId) || _rule is SlopballCoopMatchRule && _states.ContainsKey(targetId)
 				|| _rule is SlopballVersusMatchRule versus && _states.ContainsKey(targetId)
 				    && (versus.BallOnly || versus.CampOf(selfId) == versus.CampOf(targetId))
 				|| !TryGetCombatTargetPosition(targetId, out var target))
@@ -1761,7 +1768,7 @@ namespace SlopArena.Shared
 
 		private ulong ResolveClientTarget(ulong selfId, float selfX, float selfZ, in InputState input)
 		{
-			ulong selected = ResolveObjectTargetAlias(input.TargetEntityId);
+			ulong selected = ResolveObjectTargetAlias(input.TargetEntityId, selfId);
 			return selected != 0 && IsEligibleEnemy(selfId, selected, selfX, selfZ,
 				LockRangeMeters, out _) ? selected : 0;
 		}
@@ -1799,7 +1806,7 @@ namespace SlopArena.Shared
 			state.AttackCorrectionStartYaw = state.FacingYaw;
 			state.AttackPosePitch = 0f;
 			ulong preferred = state.LockOn && !input.ToggleLock && !input.RetargetPressed
-				? state.TargetEntityId : ResolveObjectTargetAlias(input.TargetEntityId);
+				? state.TargetEntityId : ResolveObjectTargetAlias(input.TargetEntityId, state.EntityId);
 			ulong targetId = 0;
 			float bestDistance = float.MaxValue;
 			if (!input.RetargetPressed && IsStartupCorrectionTarget(state, preferred, operation, acquire: true, out _))
@@ -1989,7 +1996,7 @@ namespace SlopArena.Shared
 				var def = _defs[id];
 
 				// Eliminated (0 stocks / rule) — untargetable spectator (issue #37).
-				if (_rule.IsEliminated(state)) continue;
+				if (IsEliminated(state)) continue;
 
 				if (ResolveBoneAnimFrame(id, state, def, out var baked, out var targetAnim, out var bakedFrame))
 				{
@@ -2003,6 +2010,7 @@ namespace SlopArena.Shared
 			}
 			if (_arcadeBall != null && _arcadeBall.State.Active) entityList.Add(_arcadeBall.CollisionTarget);
             if (_course != null) entityList.AddRange(_course.CollisionTargets());
+            if (_onlineCourse != null) entityList.AddRange(_onlineCourse.CollisionTargets());
 			_lastEntityList = entityList;
 			return entityList;
 		}
@@ -2011,7 +2019,7 @@ namespace SlopArena.Shared
 		{
 			bool hasShield = false;
 			foreach (var (_, state) in _states)
-				if (state.State == ActionState.Shielding && !_rule.IsEliminated(state))
+				if (state.State == ActionState.Shielding && !IsEliminated(state))
 				{
 					hasShield = true;
 					break;
@@ -2032,7 +2040,7 @@ namespace SlopArena.Shared
 			}
 			// Missing bone tracks do not remove a fighter's active guard.
 			foreach (var (id, state) in _states)
-				if (state.State == ActionState.Shielding && !_rule.IsEliminated(state)
+				if (state.State == ActionState.Shielding && !IsEliminated(state)
 					&& _shieldSurfaceEntities.Add(id))
 					AddShieldSurface(id, state);
 			return _attackEntities;
@@ -2188,7 +2196,7 @@ namespace SlopArena.Shared
 		/// <summary>Where a returning projectile homes in: its owner's chest, while he is in the match.</summary>
 		private (bool Exists, float X, float Y, float Z) ReturnTarget(ulong ownerId)
 			=> _states.TryGetValue(ownerId, out var owner) && _defs.TryGetValue(ownerId, out var def)
-			   && !_rule.IsEliminated(owner)
+			   && !IsEliminated(owner)
 				? (true, owner.PX, owner.PY + def.CapsuleHeight * .25f, owner.PZ)
 				: (false, 0f, 0f, 0f);
 
@@ -2290,7 +2298,12 @@ namespace SlopArena.Shared
 					ResolveArcadeBallHit(hit, inputs, hitContactOperationIndex++);
 					continue;
 				}
-				if (_course != null && _course.TryIndex(hit.TargetEntityId, out int courseTarget))
+				if (_onlineCourse != null && _onlineCourse.TryTarget(hit.TargetEntityId, out var racerCourse, out int racerTarget))
+                {
+                    ResolveCourseTargetHit(hit, racerTarget, inputs, hitContactOperationIndex++, racerCourse);
+                    continue;
+                }
+                if (_course != null && _course.TryIndex(hit.TargetEntityId, out int courseTarget))
 				{
 					ResolveCourseTargetHit(hit, courseTarget, inputs, hitContactOperationIndex++);
 					continue;
@@ -2698,7 +2711,7 @@ namespace SlopArena.Shared
 				// The last terminal interaction identity survives KO to prevent a delayed
 				// capture from resurrecting a pair after respawn.
 
-				if (_rule.IsEliminated(respawned))
+				if (IsEliminated(respawned))
 				{
 					// Lost (0 stocks / rule) — spectator: frozen at its spawn point,
 					// excluded from hurtboxes and physics (see BuildHurtboxList/
@@ -2762,6 +2775,12 @@ namespace SlopArena.Shared
                 }
                 if (_slopball != null && !_slopball.BeginTick(_arcadeBall!))
                 { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                if (_onlineCourse != null)
+                {
+                    if (!_onlineCourse.BeginTick())
+                    { _tick++; LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                    CaptureCoursePositions();
+                }
                 if (_course != null && !_course.BeginTick())
                 { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
                 if (_slopball != null || _course != null) inputs = GateArcadeStartInput(inputs);
@@ -2803,6 +2822,7 @@ namespace SlopArena.Shared
 
 				CheckBlastDeaths();
                 FinishCourseTick(coursePrevious);
+                FinishOnlineCourseTick();
 				MirrorReturningProjectileSlots();
                 if (_volley != null && _volley.Events.Any(e => e.Kind == SlopballEventKind.PointScored))
                     ResetVersusPoint();

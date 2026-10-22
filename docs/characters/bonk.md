@@ -68,7 +68,7 @@ Seedance 2.5 reference the owner approved (`artifacts/video-refs/sir-bonk-normal
 | `ground.1` | `Animations/bonk_sir_g1_squires_cut.anim` (`anim.bonk.g1`, 60 ticks, 1× playback) | Bound and cooked 2026-10-21 |
 | `ground.2` | `Animations/bonk_sir_g2_barn_door.anim` (`anim.bonk.g2`, 93 ticks, 1× playback) | Bound and cooked 2026-10-22; misses a standing Manki (below) |
 | `ground.3` | `Animations/bonk_sir_g3_sunrise.anim` (`anim.bonk.g3`, 125 ticks, 1× playback) | Bound and cooked 2026-10-22 |
-| `ground.4` | the old Bonk clip | Next |
+| `ground.4` | `Animations/bonk_sir_g4_the_bonk.anim` (`anim.bonk.g4`, 118 ticks, 1× playback) | Bound and cooked 2026-10-22 |
 
 The first Squire's Cut moved pose to pose: the owner found the hand-made clip it replaced "much smoother". GenRA
 now measures flow against 44 hand-made attacks ([toolkit README, "Flow"](../../tools/genra/README.md)); the bound
@@ -95,6 +95,56 @@ shown. Against the old Reverse Rising Slash, the hit-reliability report has it a
 5 of 20 active ticks touching a target 1 m ahead (8 before), and reach 0.30–3.40 m against FightGuy and 0.30–3.10 m
 against Manki (0.30–2.15 m and 0.30–1.75 m before); the arc map reaches targets standing in front and up to 3 m
 above the floor. The move data is unchanged; the move was renamed from Reverse Rising Slash to Sunrise.
+
+The BONK took one motion run on the approved keys (a one-leg tell, a stamp, the plank over the top and flat onto the
+floor). The hit-reliability report has it at 1.00× playback instead of 0.79×, all 16 active ticks touching a target
+1 m ahead instead of 4, and reach 0.30–3.35 m against FightGuy and Manki (0.30–3.10 m and 0.30–3.00 m before). The
+move data is unchanged; the move was renamed from Heavy Double Slice to The BONK.
+
+### Aerial normals — approved direction and timing, 2026-10-22
+
+The owner approved aerial partners for all four ground normals, with new clocks. `air.1` and
+`air.2` are integrated; `air.3`–`air.4` remain authoring targets. Each uses the airborne fall
+pose for entry and recovery, with torso and leg counterbalance instead of planted feet. Ordinary
+gravity stays in effect. The plank's path through the active window determines its coverage.
+
+| Slot | Motion | First hit | Active ticks, inclusive | Recovery ticks | Free / end | Landing lag | Late auto-cancel from |
+| --- | --- | ---: | --- | --- | ---: | ---: | ---: |
+| `air.1` | Squire's Cut — quick one-handed diagonal cut in front | 12 | 12–21 | 22–39 | 40 | 12 | 34 |
+| `air.2` | Barn Door — broad two-handed horizontal sweep | 18 | 18–29 | 30–49 | 50 | 16 | 42 |
+| `air.3` | Sunrise — low-to-high scoop through the front and overhead | 20 | 20–33 | 34–53 | 54 | 18 | 46 |
+| `air.4` | The BONK — loaded two-handed chop below his boots | 28 | 28–37 | 38–65 | 66 | 24 | 58 |
+
+All values are 60 Hz ticks from entry tick 0. Entry auto-cancel is ticks 0–3 for each move;
+late auto-cancel starts when its fall pose is restored. Clip duration equals the free tick,
+without a long neutral tail. Damage, launch angles and hitbox tuning are separate from this
+timing approval. Author one move at a time: review its actual-rig key poses before motion,
+then review its animation before live binding or gameplay integration.
+
+`air.1` uses the [Squire's Cut brief](../../tools/genra/briefs/bonk-sir-a1-squires-cut.json).
+The owner approved its keys and first motion take on 2026-10-22 ("looks good keep it").
+The accepted Humanoid clip is `bonk_sir_a1_squires_cut.anim`, bound to `anim.bonk.a1`,
+cooked at 1× with the clock above and a refreshed roster pin. Damage, launch angle,
+knockback and hitbox radius are unchanged; the slash effect follows active ticks 12–21.
+The motion check passes with advisory clearance warnings at ticks 6 and 24 and two flow
+warnings; the owner kept the take after actual-prefab playback review. The full Shared
+suite passes (3,324 passed, two skipped), including cooked-path hit, shield and miss checks.
+Ability Lab confirms an 8-damage contact and the return to airborne idle after recovery.
+
+`air.2` uses the [Barn Door brief](../../tools/genra/briefs/bonk-sir-a2-barn-door.json), the
+approved 50-tick clock and loose two-hand grip. The owner approved its repaired r1 keys
+and first motion take on 2026-10-22 ("looks very good"). `bonk_sir_a2_barn_door.anim` is
+bound to `anim.bonk.a2`, cooked at 1× and pinned in the refreshed roster. Its current
+9 damage, 30° launch angle, knockback, stun and radius are preserved; the slash effect
+follows active ticks 18–29. The motion check passes with the disclosed contact and flow
+advisories, including the handle near the torso at tick 22; the left arm is nearly straight
+at the finish. The 58 focused tests and full Shared suite pass (3,339 passed, two skipped),
+including low-aerial hit, shield and miss coverage. Ability Lab confirms the integrated
+clip and recovery; its higher aerial start misses the standing dummy as expected.
+
+`air.3` is next: the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a3-sunrise.json)
+uses the approved 54-tick clock and a rising front-to-overhead rainbow. Key-pose authoring
+and a provisional weapon-arc check are underway; motion follows owner key approval.
 
 ## The Joust (R) — wired 2026-10-21
 
@@ -611,30 +661,30 @@ hashes from its cooked manifest. Character Select discovers it from that roster.
 ## WIP gameplay kit
 
 The table describes the local source candidate, in authored 60-Hz ticks.
-Each normal uses a `hitGroup: 0` capsule from `_weapon_hilt` to `_weapon_tip`;
-the existing air.2 probe is noninterruptible, while the other normals are interruptible.
+Each normal uses a `hitGroup: 0` capsule from `_weapon_hilt` to `_weapon_tip`.
 
 | Slot | Role | Duration | IASA | Trigger / active | Radius | Damage / angle | Base / growth | Stun |
 | --- | --- | ---: | ---: | --- | ---: | --- | --- | ---: |
 | `ground.1` | Squire's Cut — fast one-handed slash | 60 | 38 | 11 / 13 | 0.5 | 6 / 30° | 4 / 20 | 12 |
 | `ground.2` | Barn Door — flat two-handed sweep | 93 | 47 | 20 / 15 | 0.5 | 10 / 35° | 7 / 30 | 16 |
 | `ground.3` | Sunrise — two-handed upward slice | 125 | 44 | 21 / 20 | 0.5 | 10 / 35° | 7 / 30 | 16 |
-| `ground.4` | Heavy Double Slice — kill read | 118 | 71 | 48 / 16 | 0.5 | 15 / 25° | 10 / 42 | 22 |
-| `air.1` | Reverse Air Slash — spacing | 88 | 52 | 19 / 24 | 0.5 | 8 / 35° | 5 / 24 | 14 |
-| `air.2` | Existing air.2 probe, recovery retimed | 53 | 45 | 15 / 14 | 0.5 | 1 / 45° | 5 / 80 | 8 |
+| `ground.4` | The BONK — overhead smash, kill read | 118 | 71 | 48 / 16 | 0.5 | 15 / 25° | 10 / 42 | 22 |
+| `air.1` | Squire's Cut — fast diagonal aerial slash | 40 | 40 | 12 / 10 | 0.5 | 8 / 35° | 5 / 24 | 14 |
+| `air.2` | Barn Door — broad two-handed aerial sweep | 50 | 50 | 18 / 12 | 0.5 | 9 / 30° | 6 / 26 | 16 |
 | `air.3` | Downward Sweep — spike | 100 | 60 | 19 / 16 | 0.5 | 11 / -45° | 7 / 30 | 20 |
 | `air.4` | Acrobatic Double Slice — kill read | 73 | 63 | 37 / 4 | 0.5 | 14 / 25° | 9 / 40 | 22 |
 
 Grounded landing/auto-cancel fields remain zero. Aerial landing lag / early
-auto-cancel / late auto-cancel: `air.1: 20 / 19 / 43`, `air.2: 18 / 0 / 45`,
+auto-cancel / late auto-cancel: `air.1: 12 / 3 / 34`, `air.2: 16 / 3 / 42`,
 `air.3: 22 / 20 / 50`, `air.4: 24 / 20 / 62`. Zero early auto-cancel is disabled.
 
 On 2026-10-17 two windows were lined up with the drawn strike, after sword hitboxes started
 sweeping between ticks ([clip clock and sweep](../systems/hitbox-system.md#clip-clock-and-swept-bone-hitboxes--since-2026-10-17)).
-`air.1` Reverse Air Slash runs t19–t42 instead of t19–t39: the greatsword kept full speed for
-three ticks after the window. `air.4` Acrobatic Double Slice runs t37–t40 instead of t37–t48:
-the slice is over at t39, and its end pose no longer hits for nine more ticks. These aerial
-animations are due to be redone; their windows will need another pass then.
+The former `air.1` Reverse Air Slash ran t19–t42 instead of t19–t39: the greatsword kept full
+speed for three ticks after the window. It was replaced by Squire's Cut on 2026-10-22.
+`air.4` Acrobatic Double Slice runs t37–t40 instead of t37–t48: the slice is over at t39,
+and its end pose no longer hits for nine more ticks. The remaining aerial animations
+will receive the approved clocks above after their animation reviews.
 
 `ground.E` and `air.E` use the same reusable targeted-leap lifecycle:
 `groundCursor` hold/release aim, a 240-tick cooldown, and a 112-tick authored

@@ -101,7 +101,8 @@ def full_checks_passed(path: Path) -> bool:
     if not path.is_file():
         return False
     report = json.loads(path.read_text())
-    return report.get('mode', 'full') == 'full' and report.get('passed') is True
+    return (report.get('mode', 'full') == 'full' and report.get('stage', 'full') == 'full'
+            and report.get('passed') is True and not report.get('checkpointOnly', False))
 
 
 def select_final(rounds):
@@ -152,6 +153,9 @@ def main(argv=None):
     previous = None
     rounds = []  # (round, run dir, review dir, checks passed)
     for number in range(args.rounds + 1):
+        if json.loads((run_dir / 'summary.json').read_text()).get('checkpointOnly'):
+            lines += [f'Round {number} has only its starting checkpoint; no paid review or revision was started.', '']
+            break
         review_dir = root / f'review-{number}'
         result = run_dir / 'scratch' / 'result.json'
         resolved = resolved_brief_path(brief_path, result)

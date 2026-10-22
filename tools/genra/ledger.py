@@ -20,6 +20,8 @@ def row(run: Path) -> dict | None:
     if not summary.exists():
         return None
     s = json.loads(summary.read_text())
+    if s.get('status') == 'running':
+        return None
     c = json.loads(config.read_text()) if config.exists() else {}
     u = s.get('usage') or {}
     write_rate = RATES['cache_write_5m'] if c.get('cache5m') else RATES['cache_write_1h']
@@ -38,10 +40,14 @@ def table(rows) -> str:
              '| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |']
     for r in rows:
         sp = r['split']
+        fmt = lambda value, spec: format(value, spec) if value is not None else 'unknown'
         checks = 'PASS' if r['passed'] else f"{r['failures']} failures" if r['passed'] is not None else 'no result'
-        lines.append(f"| {r['run']}{' (5m cache)' if r['cache5m'] else ''} | {r['wall']:.0f} s | {r['turns']} | {r['tools']} | "
-                     f"{r['output']:,} ({r['thinking'] or 0:,}) | {r['read'] / 1e6:.2f}M | {r['write'] / 1e3:.0f}K | "
-                     f"{r['cost']:.2f} ({sp['output']:.2f} / {sp['cacheRead']:.2f} / {sp['cacheWrite']:.2f}) | "
+        read = f"{r['read'] / 1e6:.2f}M" if r['read'] is not None else 'unknown'
+        write = f"{r['write'] / 1e3:.0f}K" if r['write'] is not None else 'unknown'
+        cost = (f"{r['cost']:.2f} ({sp['output']:.2f} / {sp['cacheRead']:.2f} / {sp['cacheWrite']:.2f})"
+                if r['cost'] is not None else 'unknown')
+        lines.append(f"| {r['run']}{' (5m cache)' if r['cache5m'] else ''} | {fmt(r['wall'], '.0f')} s | {r['turns']} | {r['tools']} | "
+                     f"{fmt(r['output'], ',')} ({fmt(r['thinking'], ',')}) | {read} | {write} | {cost} | "
                      f"{checks}, {r['warnings'] or 0} warnings |")
     return '\n'.join(lines)
 

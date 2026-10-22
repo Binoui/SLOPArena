@@ -3,7 +3,7 @@
 **Status:** Recommendations approved 2026-10-19 and recorded in
 [ADR-0040](../adr/0040-online-arcade-room-pick-and-match-format.md). Slices 1 and 2 are
 implemented; slice 3 (Versus 1v1/2v2) is built and awaits human multiplayer acceptance.
-Slice 4 is not started. Building slice 2
+Slice 4 (Course Race and Co-op, protocol 15) is implemented and awaits human playtests. Building slice 2
 refined admission, starts and client hosting (below and in the ADR). The
 [feature brief](online-arcade.md) owns gameplay and UX; this page covers the
 architecture choices that brief needs.
@@ -12,16 +12,16 @@ architecture choices that brief needs.
 
 | Area | Current behavior |
 | --- | --- |
-| Room order | Master (separate repository, `Rooms/RoomManager.cs`) moves a Room Lobby → Character Select → Stage Select → Match Starting → In Match. Stage Select requires every member locked in; `BeginMatch` requires locked fighters and an arena. A finished or canceled Match resets preparation and returns to Lobby. |
-| Room admission | Master admits fighters and arenas from the `Room:AdmittedCharacters` and `Room:AdmittedArenas` lists; releases write the arena list from `roster.json`'s `picker`. |
-| Client pages | `LobbyRoomUI`, `CharSelectController` and `StageSelectController` route on Master's phase names; `RoomSteamPresence` and `SteamRoomJoinCoordinator` read them for Steam presence and joining. |
-| Match start | `MatchStartedConfig` → `MatchStartRequest` carries the arena, each player's fighter and entity, and stock count. It has no format, rules or camp. |
-| GameHost | `MultiMatchOrchestrator` refuses Arcade arenas; `MatchInstance` always builds a `StockMatchRule`. |
-| Shared | `ServerSimulation` builds the ball, Slopball and course components from the arena's Arcade section. `BeginSlopballAttempt` and `BeginCourseAttempt` require exactly one fighter, course progress runs only for one fighter, and `ConstrainSlopballFighters` keeps every fighter in the player half. |
-| Rollback | The GameHost broadcasts `CaptureSnapshot()` in a `WorldFramePacket` each tick, and `NetplayPredictor` restores it ([ADR-0039](../adr/0039-full-world-rollback.md)). Capture and restore throw `NotSupportedException` for Arcade objects. |
-| Results | `MatchResultEntry` carries placement, KOs and falls for up to four players. |
-| Client hosting | The Slopball and course scenes run `LocalSimulationBridge`; online `PvPMatch` runs `RollbackSimulationBridge`. |
-| Stages | Slopball and each course author exactly one player start, and the Arcade scenes reject any other count. Arcade record fingerprints hash every spawn point and the course and shot definitions. |
+| Room order | Master uses Lobby → Stage Select → Character Select → Match Starting → In Match. Results return to Lobby. |
+| Room admission | PvP arenas use `Room:AdmittedArenas`; Arcade uses `Room:AdmittedArcade`. Course entries also name the locked fighter. |
+| Client pages | Stage Select offers Slopball and courses. Courses constrain Character Select to their fighter and distinct player colours. |
+| Match start | Shared typed formats, immutable rules and player colours reach GameHost and client through the existing contract. |
+| GameHost | Validates format/arena and course package/colour admission, builds the Shared rule, and broadcasts course results. |
+| Shared | Slopball supports Co-op and Versus. Courses compose the tested solo rules for personal Race or shared-target Co-op. |
+| Rollback | World Snapshot 5 covers course progress; World Frame 4 carries course events through the predictor ledger. |
+| Results | Stock statistics, Slopball scores, or course finish times, places and DNF target counts for up to four players. |
+| Client hosting | `PvPMatch` hosts `OnlineSlopball` or `OnlineCharacterCourse`; Solo retains its dedicated scenes. |
+| Stages | Solo starts remain unchanged; online formats derive their grids. No Solo records are written online. |
 
 ## 1. Room preparation contract
 
@@ -126,7 +126,7 @@ Each slice needs its own approval and ends at a playable check.
 3. **Versus Slopball** (implemented): 1v1/2v2 camps, held serves, first to 21 points,
    hits across the net, Ball only and camp colours. See the
    [implementation plan](../plans/2026-10-22-versus-slopball.md).
-4. **Course Race, then Co-op:** per-racer progress, mirror colours and finish order.
+4. **Course Race and Co-op** (implemented): personal/shared targets, per-player checkpoints, mirror colours, a 30-second Race finish window and course Results.
 
 ### Slice 2, as built
 
@@ -163,6 +163,22 @@ Each slice needs its own approval and ends at a playable check.
   leader can change it before Stage Select. Match setup freezes the value.
 - **Not built:** called serves, multiball and assists (brief proposals), the
   enclosed-court camera hiding the Solo court uses, and release-written Arcade admission.
+
+### Slice 4, as built
+
+`CourseMatchRule` and `OnlineCourseSimulation` compose ordinary course simulations.
+Race assigns target identities per fighter and filters contacts before a projectile
+can be consumed. Co-op shares target hits and keeps checkpoint visits individual.
+`CourseRunResult` carries finish ticks, tied places and DNF progress. Finished and
+withdrawn players become spectators; disconnects cannot hold a race open.
+
+`PvPMatch` hosts the existing target/checkpoint presentation with predicted state
+and deduplicated course events. Target visibility and bonus damage stages follow
+restored state, including a retracted predicted break. Online HUD/results exclude
+Solo retry actions and personal records. All four current course bakes have safe
+four-player offset starts. Master admits `course-race:<arena>:<fighter>` and
+`course-coop:<arena>:<fighter>`; selecting an occupied colour swaps it and unlocks
+both players. Protocol 15 requires compatible Master/GameHost/client releases.
 
 ## Verification
 

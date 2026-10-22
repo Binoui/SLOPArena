@@ -22,7 +22,7 @@ namespace SlopArena.Shared
         /// <summary>Hits a course target still needs (0 once broken); a bonus target starts above 1.</summary>
         public int CourseTargetHitsLeft(int index) => _course?.HitsLeft(index) ?? 0;
         public byte CourseTargetInputAlias(int index)
-            => _course != null && index >= 0 && index < _arena.Arcade!.Course!.Targets.Count
+            => (_course != null || _onlineCourse != null) && index >= 0 && index < _arena.Arcade!.Course!.Targets.Count
                 ? (byte)(CharacterCourseSimulation.FirstInputAlias + index) : (byte)0;
         public ulong CourseTargetEntityId(int index)
             => CourseTargetInputAlias(index) != 0 ? CharacterCourseSimulation.FirstEntityId + (ulong)index : 0;
@@ -78,8 +78,10 @@ namespace SlopArena.Shared
         private SpawnPoint VersusStart(ulong id)
         {
             var ids = SortedEntityIds();
-            return MatchFormat.SlopballVersus.StartFor(_arena, ids.IndexOf(id), ids.Count,
+            var start = MatchFormat.SlopballVersus.StartFor(_arena, ids.IndexOf(id), ids.Count,
                 ids.Select(CampOf).ToArray());
+            start.Y = _arena.Arcade!.Slopball!.FloorY + _defs[id].CapsuleHeight * .5f;
+            return start;
         }
 
         private void ResetVersusPoint()
@@ -112,7 +114,8 @@ namespace SlopArena.Shared
         /// co-op Slopball run finishes together, so it reads as a shared result.
         /// </summary>
         public MatchOutcome EvaluateMatch()
-            => _rule is SlopballVersusMatchRule versus
+            => _onlineCourse != null ? _onlineCourse.Outcome
+                : _rule is SlopballVersusMatchRule versus
                 ? _volley!.State.Ended
                     ? new MatchOutcome(true, versus.Camps.First(x => x.Value == _volley.State.Winner).Key, false)
                     : default
@@ -163,7 +166,7 @@ namespace SlopArena.Shared
 
         public bool TryGetCombatTargetPosition(ulong id, out ArcadePoint position)
         {
-            if (_states.TryGetValue(id, out var state) && _defs.ContainsKey(id) && !_rule.IsEliminated(state))
+            if (_states.TryGetValue(id, out var state) && _defs.ContainsKey(id) && !IsEliminated(state))
             {
                 position = new(state.PX, state.PY, state.PZ);
                 return true;
@@ -171,6 +174,11 @@ namespace SlopArena.Shared
             if (_arcadeBall != null && _arcadeBall.State.Active && _arcadeBall.State.EntityId == id)
             {
                 position = _arcadeBall.State.Position;
+                return true;
+            }
+            if (_onlineCourse != null && _onlineCourse.TryTarget(id, out var racerCourse, out int racerIndex) && !racerCourse!.IsBroken(racerIndex))
+            {
+                position = _arena.Arcade!.Course!.Targets[racerIndex].Position;
                 return true;
             }
             if (_course != null && _course.TryIndex(id, out int index) && !_course.IsBroken(index))
@@ -182,8 +190,9 @@ namespace SlopArena.Shared
             return false;
         }
 
-        private ulong ResolveObjectTargetAlias(byte id)
-            => _course != null && id >= CharacterCourseSimulation.FirstInputAlias ? _course.ResolveAlias(id)
+        private ulong ResolveObjectTargetAlias(byte id, ulong selfId)
+            => _onlineCourse != null && id >= CharacterCourseSimulation.FirstInputAlias ? _onlineCourse.For(selfId)?.ResolveAlias(id) ?? 0
+                : _course != null && id >= CharacterCourseSimulation.FirstInputAlias ? _course.ResolveAlias(id)
                 : _arcadeBall != null && id == ArcadeBallTargetInputId
                 ? (_arcadeBall.State.Active ? _arcadeBall.State.EntityId : 0) : id;
 
@@ -193,12 +202,15 @@ namespace SlopArena.Shared
             if (_arcadeBall != null && _arcadeBall.State.Active) yield return _arcadeBall.State.EntityId;
             if (_course != null)
                 foreach (var target in _course.CollisionTargets()) yield return target.Id;
+            if (_onlineCourse != null)
+                foreach (var target in _onlineCourse.CollisionTargets()) yield return target.Id;
         }
 
         // With co-op friendly fire off, keep ball/body collision and returning projectiles'
         // owner contact, but attacks and grabs pass through teammates.
         private bool CanAttackTarget(ulong ownerId, ulong targetId)
         {
+            if (_onlineCourse != null && !_onlineCourse.CanAttack(ownerId, targetId)) return false;
             if (_rule is SlopballVersusMatchRule versus)
             {
                 if (_arcadeBall?.State.EntityId == targetId)
@@ -297,20 +309,21 @@ namespace SlopArena.Shared
         }
 
         private void ResolveCourseTargetHit(in SpellResolver.HitResult hit, int index,
-            Dictionary<ulong, InputState> inputs, int operationIndex)
+            Dictionary<ulong, InputState> inputs, int operationIndex, CharacterCourseSimulation? course = null)
         {
-            if (_course!.IsBroken(index) || hit.Damage <= 0f || !_states.TryGetValue(hit.OwnerEntityId, out var owner)) return;
+            course ??= _course!;
+            if (course.IsBroken(index) || hit.Damage <= 0f || !_states.TryGetValue(hit.OwnerEntityId, out var owner)) return;
             var definition = _defs[hit.OwnerEntityId];
             float damage = hit.Damage, force = hit.BaseKnockback;
             if (ContactAbility(hit) is { } ability)
                 ability.OnHitObject(ref owner, definition, ref damage, ref force);
             if (damage <= 0f) { _states[hit.OwnerEntityId] = owner; return; }
-            if (!_course.Hit(index)) return;
+            if (!(_onlineCourse != null ? _onlineCourse.Hit(hit.OwnerEntityId, index) : course.Hit(index))) return;
             var spec = hit.AttackSlot > 0 ? definition.GetSlotAbility(hit.AttackSlot - 1, hit.Airborne) : null;
             ushort freeze = ComputeHitstopTicks(damage, spec);
             if (hit.FreezesOwner) owner.HitstopTicks = freeze;
             // A bonus target that still needs hits keeps the lock; a broken one releases it.
-            if (_course.IsBroken(index) && owner.TargetEntityId == hit.TargetEntityId) { owner.TargetEntityId = 0; owner.LockOn = false; }
+            if (course.IsBroken(index) && owner.TargetEntityId == hit.TargetEntityId) { owner.TargetEntityId = 0; owner.LockOn = false; }
             _states[hit.OwnerEntityId] = owner;
             var accepted = hit;
             accepted.MatchTick = _tick; accepted.Damage = damage; accepted.HitstopTicks = freeze;

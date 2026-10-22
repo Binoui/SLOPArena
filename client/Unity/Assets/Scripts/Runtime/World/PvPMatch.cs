@@ -48,6 +48,7 @@ namespace SlopArena.Client.World
         private bool _resultsScheduled;
         private Coroutine? _countdownPresentation;
         private OnlineSlopball? _slopball;
+        private OnlineCharacterCourse? _course;
         private LobbyClient? _roomLobby;
         private RoomSnapshot? _roomSnapshot;
         private bool _returnToLobbyPending;
@@ -228,11 +229,17 @@ namespace SlopArena.Client.World
                 ClientSession.RejectMatchStart("Player render content could not be loaded.");
                 return;
             }
+            if (MatchConfig.Format.IsCourse() && (!arena.Arcade.AllowsPackage(playerEntry.Identity.PackageId)
+                || MatchConfig.Opponents.Any(p => !arena.Arcade.AllowsPackage(p.PackageId))))
+            { ClientSession.RejectMatchStart("Course roster uses a fighter this course does not admit."); return; }
             SetupHUD(playerDef);
+            if (MatchConfig.Format.IsCourse() && _hudManager != null)
+                _course = new OnlineCharacterCourse(transform, arena, _hudManager,
+                    () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
             if (MatchConfig.Format.IsSlopball() && _hudManager != null)
                 _slopball = new OnlineSlopball(transform, StageVisual, arena, _hudManager,
                     () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
-            if (MatchConfig.Format.IsSlopball() &&
+            if ((MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse()) &&
                 ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room &&
                 ClientSession.ActiveLobby is { } roomLobby)
             {
@@ -355,6 +362,7 @@ namespace SlopArena.Client.World
         {
             float frameMs = Time.unscaledDeltaTime * 1000f;
             if (frameMs > _windowMaxFrameMs) _windowMaxFrameMs = frameMs;
+            _course?.Update();
             if (_slopball != null && _bridge != null)
                 _slopball.Update(Time.deltaTime, _bridge.Simulation, _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
             if (IsPaused) return; // pause menu owns Esc + skips polling (issue #77)
@@ -427,6 +435,7 @@ namespace SlopArena.Client.World
             // Co-op Slopball locks on the ball, never a teammate.
             byte targetEntityId = _slopball != null
                 ? OnlineSlopball.PickTarget(_bridge.Simulation, _mainCamera, playerState)
+                : _course != null ? _course.PickTarget(_bridge.Simulation, _mainCamera, playerState, _opponentArray)
                 : PickScreenTarget(_opponentArray, _mainCamera);
 
             var (input, _, _) = _inputController.BuildInputState(
@@ -463,6 +472,7 @@ namespace SlopArena.Client.World
             PresentTimelineEvents();
 
             var presentationState = _bridge.GetState(PlayerEntityId);
+            _course?.AfterUpdate(_bridge.Simulation, _bridge.CourseEvents, _bridge.RetractedCourseEvents, IsPaused);
             if (_slopball != null)
             {
                 _slopball.AfterUpdate(_bridge.Simulation, _bridge.LastTickHits, _bridge.SlopballEvents);
@@ -474,6 +484,12 @@ namespace SlopArena.Client.World
                     _cameraMount?.SetLockFocus(_playerRenderer.transform, _slopball.BallAnchor.position);
                 else
                     _cameraMount?.ClearLockFocus(_playerRenderer.transform);
+            }
+            else if (_course != null && _course.TryTarget(_bridge.Simulation, presentationState, out var courseTarget, out float courseRadius))
+            {
+                _aimHandler?.UpdateObjectTargetPresentation(presentationState, courseTarget, courseRadius, 0);
+                if (presentationState.LockOn) _cameraMount?.SetLockFocus(_playerRenderer.transform, courseTarget.position);
+                else _cameraMount?.ClearLockFocus(_playerRenderer.transform);
             }
             else
             {
@@ -639,7 +655,7 @@ namespace SlopArena.Client.World
                 return;
 
             _lastPresentedDeaths[entityId] = state.Deaths;
-            _hudManager?.ShowStockToast(entityId, $"{PlayerLabel(entityId)} · −1 LIFE");
+            _hudManager?.ShowStockToast(entityId, MatchConfig.Format.IsCourse() ? $"{PlayerLabel(entityId)} · FALL · CHECKPOINT RESET" : $"{PlayerLabel(entityId)} · −1 LIFE");
         }
 
         private string PlayerLabel(ulong entityId)
@@ -701,6 +717,7 @@ namespace SlopArena.Client.World
             if (_networkClient != null)
                 _networkClient.ConnectionFailed -= OnSteamConnectionFailed;
             _slopball?.Dispose();
+            _course?.Dispose();
             base.OnDestroy();
         }
     }

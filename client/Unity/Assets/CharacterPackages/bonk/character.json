@@ -570,8 +570,8 @@
     },
     {
       "id": "ground.4",
-      "name": "Heavy Double Slice",
-      "description": "Grounded kill read",
+      "name": "The BONK",
+      "description": "Two-handed overhead smash, a kill read",
       "iconId": "icon.4",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1207,8 +1207,8 @@
     },
     {
       "id": "air.1",
-      "name": "Reverse Air Slash",
-      "description": "Aerial spacing check",
+      "name": "Squire's Cut",
+      "description": "Quick one-handed diagonal cut off the shoulder in the air",
       "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1220,11 +1220,11 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 88,
-            "iasaTicks": 52,
-            "landingLagTicks": 20,
-            "autoCancelBeforeTicks": 19,
-            "autoCancelAfterTicks": 43,
+            "durationTicks": 40,
+            "iasaTicks": 40,
+            "landingLagTicks": 12,
+            "autoCancelBeforeTicks": 3,
+            "autoCancelAfterTicks": 34,
             "attackRange": 0,
             "warpRange": 0,
             "animationIds": [
@@ -1235,7 +1235,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 19,
+                "endTick": 12,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -1245,7 +1245,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 11,
+                "tick": 4,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.glint",
                 "placement": {
@@ -1262,7 +1262,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 19,
+                "tick": 12,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1280,7 +1280,7 @@
                   "baseKnockback": 5,
                   "knockbackGrowth": 24,
                   "stunTicks": 14,
-                  "durationTicks": 24,
+                  "durationTicks": 10,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1288,7 +1288,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 19,
+                "tick": 12,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -1300,7 +1300,7 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 20
+                  "durationTicks": 10
                 }
               }
             ]
@@ -1311,8 +1311,8 @@
     },
     {
       "id": "air.2",
-      "name": "Air Cleave",
-      "description": "A broad aerial sword cut that sends opponents outward.",
+      "name": "Barn Door",
+      "description": "Broad two-handed horizontal sweep across the front in the air",
       "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1324,11 +1324,11 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 53,
-            "iasaTicks": 45,
-            "landingLagTicks": 18,
-            "autoCancelBeforeTicks": 0,
-            "autoCancelAfterTicks": 45,
+            "durationTicks": 50,
+            "iasaTicks": 50,
+            "landingLagTicks": 16,
+            "autoCancelBeforeTicks": 3,
+            "autoCancelAfterTicks": 42,
             "attackRange": 2.5,
             "warpRange": 0,
             "animationIds": [
@@ -1339,7 +1339,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 15,
+                "endTick": 18,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -1349,7 +1349,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 7,
+                "tick": 10,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.glint",
                 "placement": {
@@ -1366,7 +1366,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 15,
+                "tick": 18,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1384,7 +1384,7 @@
                   "baseKnockback": 6,
                   "knockbackGrowth": 26,
                   "stunTicks": 16,
-                  "durationTicks": 14,
+                  "durationTicks": 12,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1392,7 +1392,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 15,
+                "tick": 18,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -1404,7 +1404,7 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 20
+                  "durationTicks": 12
                 }
               }
             ]

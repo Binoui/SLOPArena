@@ -396,6 +396,11 @@ namespace SlopArena.Client.UI
         private OverheadPanel BuildBillboardPanel(HudPlayer p, int colorIndex)
         {
             var identityColor = BadgeColors[colorIndex % BadgeColors.Length];
+            var camp = MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(p.EntityId, out var selectedCamp)
+                ? selectedCamp : SlopballCamp.None;
+            if (camp != SlopballCamp.None) identityColor = camp == SlopballCamp.Teal
+                ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
+            if (CourseColours.ForEntity(p.EntityId) is { } courseColour) identityColor = courseColour;
             var root = new VisualElement { name = $"billboard-{p.EntityId}" };
             root.AddToClassList("billboard-card");
             root.AddToClassList("billboard-left");
@@ -424,6 +429,7 @@ namespace SlopArena.Client.UI
             var tape = new VisualElement();
             tape.AddToClassList("fighter-tape");
             var badge = new Label(p.Label);
+            if (camp != SlopballCamp.None) badge.text += " · " + camp.ToString().ToUpperInvariant();
             badge.AddToClassList("badge");
             badge.style.backgroundColor = identityColor;
             tape.Add(badge);

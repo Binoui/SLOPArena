@@ -161,10 +161,15 @@ class Brief:
             return clock['contact_tick']
         return self.loop_from if self.loop_from is not None else clock['duration_ticks'] // 2
 
-    def check_spec(self) -> dict:
+    def check_spec(self, *, stage=None) -> dict:
         clock = self.data['clock']
         spec = {'duration_ticks': clock['duration_ticks'],
                 'fast_windows': self.data.get('fast_windows', []), 'targets': self.data.get('targets', [])}
+        stage = stage or self.data.get('authoring_stage', 'full')
+        if stage not in ('full', 'keys'):
+            raise ValueError(f'authoring stage must be full or keys, not {stage!r}')
+        if stage == 'keys':
+            spec.update(stage='keys', key_ticks=list(self.key_beats))
         if self.entry_matches:
             spec['entry'] = self.entry_pose
         if 'exit' in self.data:

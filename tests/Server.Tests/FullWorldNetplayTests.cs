@@ -243,6 +243,50 @@ public class FullWorldNetplayTests
     private static double NetplayNow() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
 
     /// <summary>A headless client: the Unity bridge's protocol over a raw UDP socket.</summary>
+    [Theory]
+    [InlineData(MatchFormat.CourseRace)]
+    [InlineData(MatchFormat.CourseCoop)]
+    public void TwoUdpPeersPredictAnOnlineCharacterCourse(MatchFormat format)
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        string cooked = Path.Combine(root, "content-cooked");
+        var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(cooked, "roster/manifest.json"));
+        var packages = manifest.Entries.ToDictionary(x => x.PackageId,
+            x => CookedCharacterPackageLoader.LoadDirectory(Path.Combine(cooked, x.PackageId), x.Requirement));
+        var catalog = new MatchContentCatalogBuilder().Build(manifest, packages).Catalog!;
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
+        var arena = ArenaRegistry.Get("fightguy_pier")!.Value;
+        using var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port; reservation.Close();
+        using var ended = new ManualResetEventSlim();
+        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.FightGuy) };
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+            roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1, Colour: (byte)i)).ToArray(),
+            catalog, _ => ended.Set(), format: format);
+        var endpoint = new IPEndPoint(IPAddress.Loopback, port);
+        using var first = new Peer(1, arena, catalog, roster, endpoint, () => format.CreateRule(3));
+        using var second = new Peer(2, arena, catalog, roster, endpoint, () => format.CreateRule(3));
+        try
+        {
+            match.Start(); var clock = Stopwatch.StartNew();
+            while (clock.Elapsed < TimeSpan.FromSeconds(12) && (first.PredictedTicks < 90 || second.PredictedTicks < 90))
+            { double now = NetplayNow(); first.Step(now); second.Step(now); Thread.Sleep(15); }
+            foreach (var peer in new[] { first, second })
+            {
+                Assert.True(peer.PredictedTicks >= 90, $"peer {peer.Id}: {peer.PredictedTicks} ticks");
+                Assert.Equal(0, peer.Totals.RejectedFrames);
+                Assert.Equal(MatchState.Playing, peer.Session.MatchState);
+                var host = peer.ViewOf(peer.LatestFrame!);
+                Assert.Equal(format == MatchFormat.CourseCoop, host.OnlineCourse!.Value.Cooperative);
+                Assert.Equal(2, host.CoursePlayers.Count);
+                Assert.All(host.CoursePlayers, p => Assert.Equal(CharacterCoursePhase.Running, p.Course.Phase));
+                Assert.True(host.OnlineCourse.Value.ElapsedTicks > 60);
+                Assert.NotEqual(host.GetState(1).PX, host.GetState(2).PX);
+            }
+        }
+        finally { match.Stop(); Assert.True(ended.Wait(3000)); }
+    }
+
     private sealed class Peer : IDisposable
     {
         private readonly UdpClient _udp = new(new IPEndPoint(IPAddress.Loopback, 0));

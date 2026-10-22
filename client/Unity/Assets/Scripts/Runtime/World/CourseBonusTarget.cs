@@ -41,6 +41,13 @@ namespace SlopArena.Client.World
             Present();
         }
 
+        public void PresentDamage(int taken, int total)
+        {
+            if (_taken == taken && _total == total) return;
+            _taken = Mathf.Clamp(taken, 0, total); _total = Mathf.Max(1, total);
+            Present();
+        }
+
         private void Present()
         {
             int stage = Stages.Length == 0 ? 0 : Mathf.Clamp(_taken * Stages.Length / Mathf.Max(1, _total), 0, Stages.Length - 1);

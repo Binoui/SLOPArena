@@ -2,7 +2,7 @@
 
 **Status:** Direction selected 2026-10-19; not an implementation specification.
 Co-op Slopball online (slice 2) and Versus 1v1/2v2 (slice 3) are built.
-Versus still needs human multiplayer playtest acceptance.
+Character Course Race and Co-op (slice 4) are implemented. Versus and courses still need human multiplayer playtest acceptance.
 The maintainer named online Character Courses and volleyball as the most important
 modes going forward, and moved them ahead of upgrade rounds. The Room flow, the four
 decisions below and the format list are selected. Everything marked *proposal* is a
@@ -52,8 +52,8 @@ format decides the camps. Smash Ultimate also asks for the stage before fighters
 | Shape | Used by | Players choose |
 | --- | --- | --- |
 | Free pick | PvP, Slopball Co-op | Any admitted fighter; mirrors allowed |
-| Camps | Slopball Versus | A camp, Teal or Clay after the court's halves, then any fighter. Members switch camps; the leader can shuffle. |
-| Locked | Character Courses | A colour; the course sets the fighter |
+| Camps | Slopball Versus | A camp, Teal or Clay after the court's halves, then any fighter. Members switch camps; leader shuffle remains a follow-up. |
+| Locked | Character Courses | A distinct ring colour; the course sets the fighter. Swapping colours unlocks both affected players |
 
 Versus uses Teal and Clay ground rings, with the local fighter's yellow notch.
 Individual player colour selection remains a follow-up.
@@ -138,18 +138,22 @@ take two to four players.
 
 - One course, one fighter, one countdown. The first to clear the targets and reach the
   finish wins.
-- *Proposal:* each racer breaks **their own set** of targets and sees only theirs, so a
-  leader can't strip the course from the pack.
+- Each racer breaks **their own set** of targets and sees only theirs. Bonus targets
+  retain their personal hit counts, and attacks cannot consume another racer's targets.
 - Rivals share the world and can be hit and bombed. A knocked-off rival respawns at their
   own checkpoint.
+- The first finish starts a **30-second** window for the others, as selected on
+  2026-10-22. End earlier once everyone finishes or withdraws. Finished racers are
+  frozen and untargetable. Same-tick finishes tie; unfinished racers show DNF.
 - The HUD shows rivals' target pips. Results show finish order and times.
 
 ### Co-op
 
-- *Proposal:* one shared set of targets: broken by anyone, broken for all. One team
-  timer.
-- *Proposal:* the run completes when every target is down and one fighter reaches the
-  finish, so the team splits up to cover both branches.
+- One shared set of targets: broken by anyone, broken for all. One team timer.
+  Friendly fire is off; attacks and grabs pass through teammates. Each player visits
+  checkpoints for their own fall-respawn location.
+- The run completes when every target is down and one fighter reaches the finish,
+  so the team can split up to cover both branches.
 - *Proposal:* team bests are saved locally per party size.
 - *Wild variant, Scramble:* one shared set where each break scores for whoever lands
   it, and the finish opens after the last target.

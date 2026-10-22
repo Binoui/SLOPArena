@@ -512,10 +512,13 @@ public sealed class BonkKitTests
     }
 
     [Theory]
-    [InlineData(2.2f, false, true)]
-    [InlineData(2.2f, true, true)]
-    [InlineData(8f, false, false)]
-    public void BonkAir2_CookedSwordPathHitsBlocksAndMisses(float distance, bool shielding, bool expectContact)
+    [InlineData(AbilitySlots.Slot1, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Slot1, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Slot1, 8f, false, false)]
+    [InlineData(AbilitySlots.Slot2, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Slot2, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Slot2, 8f, false, false)]
+    public void BonkAerialNormals_CookedSwordPathHitsBlocksAndMisses(byte slot, float distance, bool shielding, bool expectContact)
     {
         var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
         var def = content.Definition;
@@ -542,7 +545,7 @@ public sealed class BonkKitTests
         {
             sim.Tick(new Dictionary<ulong, InputState>
             {
-                [1] = new() { ActiveSlot = tick == 0 ? AbilitySlots.Slot2 : AbilitySlots.None },
+                [1] = new() { ActiveSlot = tick == 0 ? slot : AbilitySlots.None },
                 [100] = new()
                 {
                     FacingYaw = -18000,
@@ -557,7 +560,7 @@ public sealed class BonkKitTests
         if (expectContact)
         {
             var hit = Assert.Single(hits);
-            Assert.Equal(AbilitySlots.Slot2, hit.AttackSlot);
+            Assert.Equal(slot, hit.AttackSlot);
             Assert.Equal(shielding, hit.Blocked);
             if (shielding)
             {

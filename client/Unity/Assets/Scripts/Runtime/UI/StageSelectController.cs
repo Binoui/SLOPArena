@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using SlopArena.Client.World;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
@@ -39,6 +41,7 @@ namespace SlopArena.Client.UI
         // The leader's local Arcade choice before it is confirmed: co-op Slopball, the one online format so far.
         private bool _arcadePick;
         private string _arcadeFormat = MatchFormats.SlopballCoopWire;
+        private string _arcadeArena = SlopballArena;
         private const string SlopballArena = "slopball";
         private static readonly string CoopFormat = MatchFormats.SlopballCoopWire;
 
@@ -253,7 +256,7 @@ namespace SlopArena.Client.UI
             if (_context.Q<Button>("stage-tab-arcade") is { } arcade) arcade.clicked += ShowArcadeTab;
             if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked += PickSlopball;
             if (_context.Q<Button>("stage-arcade-versus") is { } versus) versus.clicked += PickVersus;
-            if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked += ShowArcadeComing;
+            if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked += ShowCourses;
             ShowRoomTab(false);
         }
 
@@ -263,7 +266,7 @@ namespace SlopArena.Client.UI
             if (_context.Q<Button>("stage-tab-arcade") is { } arcade) arcade.clicked -= ShowArcadeTab;
             if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked -= PickSlopball;
             if (_context.Q<Button>("stage-arcade-versus") is { } versus) versus.clicked -= PickVersus;
-            if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked -= ShowArcadeComing;
+            if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked -= ShowCourses;
         }
 
         private void ShowPvpTab() => ShowRoomTab(false);
@@ -288,11 +291,11 @@ namespace SlopArena.Client.UI
         private bool CoopAdmitted => _roomSnapshot?.AdmitsArcade(CoopFormat, SlopballArena) == true;
 
         private static bool IsSlopballPick(RoomSnapshot room)
-            => (room.Format == CoopFormat || room.Format == MatchFormats.SlopballVersusWire) &&
-               string.Equals(room.ArenaName, SlopballArena, StringComparison.Ordinal);
+            => MatchFormats.TryParseWire(room.Format, out var format) && format != MatchFormat.Stock;
 
         /// <summary>The ARCADE tab's cards, label and start action; Slopball co-op is the format Master admits so far.</summary>
-        private bool ArcadeAdmitted(string format) => _roomSnapshot?.AdmitsArcade(format, SlopballArena) == true
+        private bool ArcadeAdmitted(string format, string arena = null) => _roomSnapshot?.AdmitsArcade(format, arena ?? _arcadeArena) == true
+            && _roomSnapshot.Members.Length is >= 2 and <= 4
             && (format != MatchFormats.SlopballVersusWire || _roomSnapshot.Members.Length is 2 or 4);
 
         private void ApplyArcadeTabState()
@@ -303,19 +306,24 @@ namespace SlopArena.Client.UI
                 ("stage-arcade-versus", MatchFormats.SlopballVersusWire) })
             {
                 var card = _context.Q<Button>(id);
-                bool admitted = ArcadeAdmitted(format);
+                bool admitted = ArcadeAdmitted(format, SlopballArena);
                 card?.EnableInClassList("arcade-mode-card--selected", selected == format);
                 card?.SetEnabled(admitted && !_roomActionPending);
                 if (card?.Q<Label>(className: "stage-arcade-soon") is { } badge)
-                    badge.text = !admitted ? "NEEDS " + (format == CoopFormat ? "2–4 PLAYERS" : "2 OR 4 PLAYERS")
+                    badge.text = _roomSnapshot?.AdmitsArcade(format, SlopballArena) != true ? "NOT AVAILABLE"
+                        : !admitted ? "NEEDS " + (format == CoopFormat ? "2–4 PLAYERS" : "2 OR 4 PLAYERS")
                         : format == CoopFormat ? "CO-OP ONLINE" : _roomSnapshot.Members.Length == 4 ? "2v2 ONLINE" : "1v1 ONLINE";
                 if (format == CoopFormat && card?.Q<Label>(className: "arcade-mode-rule") is { } rule)
                     rule.text = "Two to four of you against the Launcher. Unlimited misses.";
             }
-            string label = selected == MatchFormats.SlopballVersusWire ? "SLOPBALL VERSUS · FIRST TO 21" : "SLOPBALL CO-OP";
+            BuildCourseOptions();
+            string selectedArena = leader && _arcadePick ? _arcadeArena : _roomSnapshot?.ArenaName;
+            bool courseSelected = MatchFormats.TryParseWire(selected, out var selectedFormat) && selectedFormat.IsCourse();
+            string label = courseSelected ? CharacterCourseMatch.Course(selectedArena).Title + (selectedFormat == MatchFormat.CourseRace ? " · RACE" : " · CO-OP")
+                : selected == MatchFormats.SlopballVersusWire ? "SLOPBALL VERSUS · FIRST TO 21" : "SLOPBALL CO-OP";
             if (_lblSelectedStage != null)
                 _lblSelectedStage.text = _arcadePick || _roomSnapshot != null && IsSlopballPick(_roomSnapshot)
-                    ? "ROOM PICK: " + label : "CHOOSE A SLOPBALL FORMAT";
+                    ? "ROOM PICK: " + label : "CHOOSE AN ARCADE FORMAT";
             if (_btnConfirm != null)
             {
                 _btnConfirm.style.display = DisplayStyle.Flex;
@@ -323,7 +331,7 @@ namespace SlopArena.Client.UI
                 _btnConfirm.SetEnabled(leader && _arcadePick && ArcadeAdmitted(_arcadeFormat)
                     && !_roomActionPending && _lobby?.IsConnected == true);
             }
-            ShowRoomStatus(leader ? "Choose co-op or Versus, then pick fighters. Versus needs two or four players."
+            ShowRoomStatus(leader ? "Choose Slopball or a Character Course. Courses set the fighter; each player picks a colour."
                 : "The Room leader chooses the format.", false);
         }
 
@@ -331,14 +339,55 @@ namespace SlopArena.Client.UI
         private void PickVersus() => PickSlopballFormat(MatchFormats.SlopballVersusWire);
         private void PickSlopballFormat(string format)
         {
-            if (!ArcadeAdmitted(format) || !ClientSession.IsLobbyHost) return;
+            if (!ArcadeAdmitted(format, SlopballArena) || !ClientSession.IsLobbyHost) return;
             _arcadePick = true;
             _arcadeFormat = format;
+            _arcadeArena = SlopballArena;
             ApplyArcadeTabState();
         }
 
-        private void ShowArcadeComing()
-            => ShowRoomStatus("Not online yet. Pick a PVP stage for now; Slopball comes online first.", false);
+        private void ShowCourses()
+        {
+            _context.Q<VisualElement>("stage-course-options")?.style.SetDisplay(true);
+            BuildCourseOptions();
+        }
+
+        private void BuildCourseOptions()
+        {
+            var root = _context.Q<VisualElement>("stage-course-options");
+            if (root == null) return;
+            root.Clear();
+            bool available = false;
+            foreach (var course in CharacterCourseMatch.Courses)
+            {
+                var entries = _roomSnapshot?.AdmittedArcade.Where(e => e.Arena == course.Key &&
+                    MatchFormats.TryParseWire(e.Format, out var f) && f.IsCourse()).ToArray();
+                if (entries == null || entries.Length == 0) continue;
+                available = true;
+                var row = new VisualElement(); row.AddToClassList("stage-course-row");
+                row.Add(new Label(course.Title) { enableRichText = false });
+                foreach (var entry in entries)
+                {
+                    var option = entry;
+                    var button = new Button(() =>
+                    {
+                        if (!ClientSession.IsLobbyHost || !ArcadeAdmitted(option.Format, option.Arena)) return;
+                        _arcadePick = true; _arcadeFormat = option.Format; _arcadeArena = option.Arena;
+                        ApplyArcadeTabState();
+                    }) { name = "course-" + entry.Arena + "-" + entry.Format,
+                        text = entry.Format == MatchFormats.CourseRaceWire ? "RACE" : "CO-OP" };
+                    button.AddToClassList("selection-target-button");
+                    button.EnableInClassList("active", _arcadePick && _arcadeFormat == entry.Format && _arcadeArena == entry.Arena);
+                    button.SetEnabled(ClientSession.IsLobbyHost && !_roomActionPending && ArcadeAdmitted(entry.Format, entry.Arena));
+                    row.Add(button);
+                }
+                root.Add(row);
+            }
+            var card = _context.Q<Button>("stage-arcade-course");
+            card?.SetEnabled(available);
+            if (card?.Q<Label>(className: "stage-arcade-soon") is { } badge) badge.text = available ? "RACE / CO-OP ONLINE" : "NOT AVAILABLE";
+            if (MatchFormats.TryParseWire(_roomSnapshot?.Format, out var format) && format.IsCourse()) root.style.SetDisplay(true);
+        }
 
         private static void SetModeChrome(string title, string progress)
         {
@@ -542,7 +591,7 @@ namespace SlopArena.Client.UI
             {
                 // The Room's pick is Arcade: everyone sees it on the ARCADE tab.
                 if (!_arcadeTab) SetTabVisuals(true);
-                if (ClientSession.IsLobbyHost) { _arcadePick = true; _arcadeFormat = room.Format; }
+                if (ClientSession.IsLobbyHost) { _arcadePick = true; _arcadeFormat = room.Format; _arcadeArena = room.ArenaName; }
                 ApplyArcadeTabState();
                 return;
             }
@@ -648,7 +697,7 @@ namespace SlopArena.Client.UI
             var lobby = _lobby;
             bool arcade = _arcadeTab;
             string format = arcade ? _arcadeFormat : MatchFormats.StockWire;
-            string arena = arcade ? SlopballArena : _selectedArena;
+            string arena = arcade ? _arcadeArena : _selectedArena;
             Guid roomId = ClientSession.SelectedRoomId;
             if (_roomActionPending || lobby == null || _roomSnapshot?.Id != roomId ||
                 !ClientSession.IsLobbyHost || !lobby.IsConnected || string.IsNullOrEmpty(arena) ||

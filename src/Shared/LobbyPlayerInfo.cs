@@ -18,4 +18,4 @@ public sealed record LobbyPlayerInfo(
     bool LockedIn,
     bool IsHost,
     int EntityId = 0,
-    SlopballCamp Camp = SlopballCamp.None);
+    SlopballCamp Camp = SlopballCamp.None, byte Colour = 0);

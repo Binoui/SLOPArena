@@ -8,6 +8,8 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -15,7 +17,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 try:
-    import numpy  # noqa: F401
+    import numpy as np
     from pxr import Usd  # noqa: F401
 except ImportError as error:
     raise unittest.SkipTest(f'GenRA environment unavailable: {error}')
@@ -27,7 +29,7 @@ sys.path.insert(0, str(TOOLS))
 from genra.brief import Brief, resolved_brief_path
 from genra.checks import check_clip, format_report
 from genra.clip import Clip
-from genra.run import prepare_brief
+from genra.run import author, capture_checkpoint, prepare_brief, seed_candidate
 
 PACK = REPO / 'artifacts/genra-rigpacks/manki-sr199'
 
@@ -242,6 +244,189 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(full_checks_passed(report))
         report.unlink()
         self.assertFalse(full_checks_passed(report))
+
+    def test_blocking_or_placeholder_cannot_qualify_as_finished_motion(self):
+        from genra.loop import full_checks_passed
+        report = self.root / 'check.json'
+        for flags in ({'stage': 'keys'}, {'checkpointOnly': True}):
+            report.write_text(json.dumps({'mode': 'full', 'passed': True, **flags}))
+            self.assertFalse(full_checks_passed(report))
+
+    def test_key_stage_defers_interpolation_and_window_targets(self):
+        clip = Clip.from_keys({0: self.entry, 12: self.entry}, 13)
+        clip.set_pose(3, clip.pose(3).rotate('RightArm', [0, 1, 0], 150))
+        spec = Brief(self.source).check_spec(stage='keys')
+        spec['targets'] = [{'name': 'window target', 'kind': 'range', 'a': 'LeftHand', 'axis': 'up',
+                            'window': [0, 12], 'min': 10},
+                           {'name': 'key target', 'kind': 'distance', 'a': 'LeftHand', 'b': 'RightHand',
+                            'tick': 6, 'min': 10}]
+        report = check_clip(clip, spec, mode='fast')
+        self.assertNotIn('snap', {f['check'] for f in report['failures']})
+        self.assertIn('snap', {f['check'] for f in report['transitionRisks']})
+        self.assertEqual([f['target'] for f in report['failures'] if f['check'] == 'target'], ['key target'])
+        self.assertIn('KEY POSES', format_report(report))
+
+    def test_key_stage_does_not_lose_a_bad_key_when_worst_humanoid_sample_is_between_keys(self):
+        from scipy.spatial.transform import Rotation
+        clip = Clip.from_keys({0: self.entry, 12: self.entry}, 13)
+        clip.set_pose(3, clip.pose(3).rotate('RightArm', [0, 1, 0], 90))
+        clip.set_pose(6, clip.pose(6).rotate('RightArm', [0, 1, 0], 30))
+        j = clip.rig.index('RightArm')
+        reference = Rotation.from_quat(self.entry.q[j])
+
+        def excess(index, q):
+            return float(np.degrees((reference.inv() * Rotation.from_quat(q)).magnitude())), 'test muscle'
+
+        with patch.object(clip.rig, 'humanoid_limited', [j]), patch.object(clip.rig, 'humanoid_excess', side_effect=excess):
+            report = check_clip(clip, Brief(self.source).check_spec(stage='keys'), mode='fast')
+        self.assertEqual(next(f['tick'] for f in report['failures'] if f['check'] == 'humanoid'), 6)
+        self.assertEqual(next(f['tick'] for f in report['transitionRisks'] if f['check'] == 'humanoid'), 3)
+
+    def test_cli_inherits_saved_blocking_stage_and_allows_full_motion_check(self):
+        from genra.__main__ import main
+        run, _ = self.make_run()
+        for directory in (run, run / 'scratch'):
+            data = json.loads((directory / 'brief.json').read_text())
+            data['authoring_stage'] = 'keys'
+            (directory / 'brief.json').write_text(json.dumps(data))
+        for flags, expected in (([], 'keys'), (['--stage', 'full'], None)):
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                main(['check', str(run / 'scratch/result.json'), '--brief', str(self.source), '--fast', '--json', *flags])
+            self.assertEqual(json.loads(output.getvalue()).get('stage'), expected)
+
+    def test_atomic_save_preserves_the_previous_clip_when_serialization_fails(self):
+        before = self.keys.read_bytes()
+
+        def partial(value, stream, **kwargs):
+            stream.write('{')
+            raise ValueError('interrupted serialization')
+
+        with patch('genra.clip.json.dump', side_effect=partial), self.assertRaises(ValueError):
+            self.clip.save(self.keys)
+        self.assertEqual(self.keys.read_bytes(), before)
+        self.assertFalse(list(self.root.glob('*.tmp')))
+
+    def test_scaffold_runs_offline_and_checkpoint_keeps_the_last_loadable_save(self):
+        run, brief = self.make_run()
+        scratch = run / 'scratch'
+        checkpoint = seed_candidate(brief, scratch, run)
+        self.assertIn('Clip.load(rig:', (scratch / 'API.md').read_text())
+        previous = Path.cwd()
+        try:
+            os.chdir(scratch)
+            with contextlib.redirect_stdout(io.StringIO()):
+                exec(compile((scratch / 'author.py').read_text(), 'author.py', 'exec'), {})
+        finally:
+            os.chdir(previous)
+        clip = Clip.load(brief.rig, scratch / 'result.json', frame=brief.entry_frame)
+        clip.set_pose(6, clip.pose(6).move_hips([0, 0, 0.01]))
+        clip.save(scratch / 'result.json')
+        self.assertTrue(capture_checkpoint(brief, scratch, run, checkpoint))
+        saved = (run / 'checkpoint-result.json').read_bytes()
+        (scratch / 'result.json').write_text('{')
+        self.assertFalse(capture_checkpoint(brief, scratch, run, checkpoint))
+        self.assertEqual((run / 'checkpoint-result.json').read_bytes(), saved)
+
+    def test_timeout_recovers_a_saved_candidate_and_reports_unknown_cost(self):
+        def provider(prompt, images, scratch, evidence, *args, **kwargs):
+            brief = Brief(scratch / 'brief.json')
+            clip = Clip.load(brief.rig, scratch / 'result.json', frame=brief.entry_frame)
+            clip.set_pose(6, clip.pose(6).move_hips([0, 0, 0.01]))
+            clip.save(scratch / 'result.json')
+            self.assertTrue(kwargs['progress']())
+            (scratch / 'result.json').write_text('{')
+            return None, None
+
+        with patch('genra.run.build_prompt', return_value='Test'), \
+                patch('genra.run.verify_rigpack', return_value={'files': {}}), \
+                patch('genra.run.claude_runner.run', side_effect=provider), \
+                patch('genra.run.postprocess', return_value={'passed': False}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            code, run = author(self.source, name='offline-timeout', out_root=self.root / 'runs')
+        self.addCleanup(__import__('shutil').rmtree, Path('/tmp/genra-runs') / run.name)
+        summary = json.loads((run / 'summary.json').read_text())
+        self.assertEqual(code, 1)
+        self.assertEqual(summary['status'], 'timed_out')
+        self.assertIsNone(summary['total_cost_usd'])
+        self.assertTrue(summary['recoveredCheckpoint'])
+        self.assertFalse(summary['checkpointOnly'])
+        self.assertEqual((run / 'scratch/result.json').read_bytes(), (run / 'checkpoint-result.json').read_bytes())
+
+    def test_chatter_warning_does_not_add_a_hard_failure(self):
+        sample = {'channel': 'Left knee bend', 'ticks': [2, 10], 'reversals': 6, 'maxStepDegrees': 15.0}
+        spec = {'clearance': False, 'face': False, 'arm_gap': False}
+        before = check_clip(self.clip, spec | {'chatter': False})
+        with patch('genra.curves.chatter', return_value=[sample]):
+            after = check_clip(self.clip, spec)
+        self.assertEqual(before['failures'], after['failures'])
+        self.assertIn('chatter', {w['check'] for w in after['warnings']})
+
+    def test_loop_does_not_buy_a_review_for_an_unchanged_starting_checkpoint(self):
+        from genra.loop import main
+        run, _ = self.make_run()
+        (run / 'summary.json').write_text(json.dumps({'checkpointOnly': True}))
+        with patch('genra.loop.REPO', self.root), patch('genra.loop.preflight', return_value=[]), \
+                patch('genra.loop.review') as review, patch('genra.loop.author') as author_job, \
+                contextlib.redirect_stdout(io.StringIO()):
+            code = main([str(self.source), '--from', str(run)])
+        self.assertEqual(code, 1)
+        review.assert_not_called()
+        author_job.assert_not_called()
+
+
+class RunnerAndChatterTests(unittest.TestCase):
+    def test_chatter_ignores_noise_smooth_motion_and_isolated_snap(self):
+        from genra.curves import chatter
+        curves = {'Left knee bend': np.tile([0.0, 15.0], 20)}
+        with patch('genra.curves.channels', return_value=curves):
+            self.assertTrue(chatter(None))
+            self.assertTrue(chatter(None, [[0, 40]])[0]['inFastWindow'])
+        for values in (np.tile([0.0, 0.01], 20), np.linspace(0, 90, 40),
+                       np.r_[np.zeros(20), np.ones(20) * 50], np.sin(np.linspace(0, 2 * np.pi, 60)) * 30):
+            with patch('genra.curves.channels', return_value={'Left knee bend': values}):
+                self.assertEqual(chatter(None), [])
+
+    def runner(self, timeout, stall, saves=False, interrupted=False):
+        from genra.claude_runner import run
+        from unittest.mock import MagicMock
+        clock = [0.0]
+        process = MagicMock()
+        process.poll.return_value = None
+
+        def communicate(payload, timeout):
+            if interrupted:
+                raise KeyboardInterrupt
+            clock[0] += timeout
+            raise subprocess.TimeoutExpired('mocked provider', timeout)
+
+        process.communicate.side_effect = communicate
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch('genra.claude_runner.subprocess.Popen', return_value=process), \
+                patch('genra.claude_runner.shutil.which', return_value='/mocked/claude'), \
+                patch('genra.claude_runner.time.monotonic', side_effect=lambda: clock[0]), \
+                patch('genra.claude_runner.os.killpg') as kill:
+            code, event = run('test', [], tmp, tmp, [], [], timeout=timeout,
+                              progress=lambda: saves, progress_timeout=stall)
+            kill.assert_called_once()
+            process.wait.assert_called_once()
+        return code, process.communicate.call_args_list
+
+    def test_stall_timeout_stops_the_process_and_sends_prompt_only_once(self):
+        code, calls = self.runner(30, 10)
+        self.assertEqual(code, 124)
+        self.assertEqual(len(calls), 2)
+        self.assertIsInstance(calls[0].args[0], str)
+        self.assertIsNone(calls[1].args[0])
+
+    def test_checkpoints_cannot_extend_the_overall_timeout(self):
+        code, calls = self.runner(6, 10, saves=True)
+        self.assertIsNone(code)
+        self.assertEqual(len(calls), 2)
+
+    def test_interruption_still_cleans_up_the_provider(self):
+        code, _ = self.runner(30, 10, interrupted=True)
+        self.assertEqual(code, 130)
 
 
 if __name__ == '__main__':

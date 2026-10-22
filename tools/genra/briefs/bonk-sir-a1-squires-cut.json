@@ -1,0 +1,135 @@
+{
+  "name": "bonk-sir-a1-squires-cut",
+  "notes": "Sir Bonk air.1 (anim.bonk.a1), 2026-10-22. Owner approved matched aerial shapes, new clocks and the r0 key poses ('look good'). The approved key run is 20261022-194451-bonk-sir-a1-squires-cut-t3-r0-keys. One motion pass follows, preserving the accepted poses. Clock: first hit 12, active 12-21 inclusive, recovery 22-39, actionable/end40; landing lag12, entry auto-cancel0-3 and late auto-cancel34. Gameplay values remain notes until concrete animation acceptance. No live binding or package changes during motion authoring.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk: a huge good-hearted self-appointed knight, bucket helm and broom crest, cream tabard, pot-lid pauldrons, bedsheet cape, wooden plank greatsword. 68 joints, Humanoid body with Mixamo names and full fingers; cape chains Cape_L/C/R1..4 stay at rest because the game drives them. Weapon0 is the 2.26 m plank on his right hand, with bladeHilt/bladeEnd anchors around its 1.42 m blade.",
+  "description": "Airborne Squire's Cut: the aerial partner of ground.1, one short, strong one-handed cut off his right shoulder, diagonally across the space in front of him. The owner approved this shape and a new 40-tick clock. This is the fast aerial check of the four; Barn Door is the broad horizontal sweep, Sunrise reaches above, and The BONK reaches below. Keep this one a clean short slash with the same confident body-driven energy as the approved ground Squire's Cut. No gag, spin, extra strike or planted-foot gesture.\n\nUse the real Sir Bonk fall pose as entry and exit (reference fall, tick 0), not the grounded idle. The right knee starts lifted, the left leg hangs, the chest is proud, the left arm balances outside the body, and the plank rises back above his right shoulder. The game moves the fighter: no actor-root motion, added lift, forced descent or hover. Small local hip shifts and genuine counterbalancing leg/torso changes are allowed. The two feet never plant on an imaginary floor.\n\nApproved timing, 60 Hz: tick 0 entry, first contact 12, active ticks 12-21 inclusive, recovery 22-39, free at 40. The plank itself will be the hitbox, so its active path is the main deliverable. At 12 it has already come off the shoulder and reaches ahead/right at chest height; through 17 it sweeps across the front with a slight downward diagonal; at 21 it finishes ahead/left and below the hilt, still clear of the thighs. Cover the front over the active window, not a tiny twitch beside the head followed by a parked plank. Nothing before tick 12 hits, and nothing after 21 hits. Return to the airborne home pose by 34 (the approved late auto-cancel) and match it exactly at 34 and 40.\n\nThe key poses:\n- 0: fall reference tick 0 exactly.\n- 4: the right shoulder starts to draw back; the hips coil a little first, the chest follows, the blade still behind/right of his shoulder. The free left hand opens out for balance, never joins the handle. The raised leg begins to tuck.\n- 10: the complete short coil, ready to cut. Chest about 25-40 degrees to his right, hips less, the right shoulder back, right hand in front of that shoulder (not behind his head), tip behind him and safely outside the bucket/crest. Knees and free arm balance the loaded side. No huge overhead wind-up: this has only twelve startup ticks.\n- 12: contact. Hips have unwound first and the chest follows, right shoulder/hand delivering the plank forward and to his right, tip at least 1 m in front of the hips. The arm is reaching but not locked straight; the hand remains in line with its forearm.\n- 17: middle of the cut. Chest continues turning left, carrying the hand across the front at chest-to-waist height. Plank points forward and a little down, tip well in front (at least 1 m), passing across rather than aimed end-on for the whole strike. The left arm opens against the swing and the legs swing in counterbalance.\n- 21: follow-through on his left. The right hand is in front of the left chest, not buried in the torso; the plank tip is at least 0.5 m left of the hips, below the hilt and still clear of his knees. The chest has turned left, the hips lead less far, and the legs have followed the counterbalance. The hand/plank never pass through his face.\n- 27: the return. The plank's weight has carried on; he reins it in and brings it around the outside of his right shoulder. Let the body undo the turn. Do not raise it through the bucket or change grip with a wrist flip.\n- 34: his fall pose, reference fall tick 0 exactly; both arms and legs restored.\n- 40: same fall pose exactly.\n\nBody mechanics: the hips and chest drive the one-handed arc; the right arm follows rather than doing the whole swing on a still torso. The legs visibly balance it: the lifted knee tucks on load, the hanging leg shifts against the blade during the cut, then they return to the asymmetrical fall stance. Keep those changes clear but compact. His left arm stays a free balancing arm throughout. The body may turn through the cut, but there is no full-body spin, somersault or grounded stamp. Keep the bucket above the shoulders and the plank clear of head, crest, pauldron, cape and thighs. Cape chains stay at their rest rotations.\n\nReference images: the approved grounded Squire's Cut demonstrates the one-handed shoulder slash and whole-body commitment; adapt that energy to the airborne fall entry and approved shorter clock, without copying its planted feet or long idle tail. The model/concept retain the actual knight identity.\n\nThe owner approved these r0 keys ('look good'). This job is the MOTION PASS between them. Preserve the story poses and their times; add only the breakdowns, arcs and overlap needed to join them. Specific repairs from the key review: add tick11 so the shoulder-to-contact motion travels round an arc instead of along a straight chord; route21-27 around the outside of the right shoulder instead of pulling the plank through the face/chest; the handle nearly touches the torso at17 (minimum vertex gap about2.3mm), so give it a little room without changing the accepted pose's silhouette or violating the approved-key tolerance. Right-wrist bend is51-54degrees on active keys; improve alignment only if this fits the accepted gesture, and report any tradeoff rather than silently changing the pose. Use hips/chest lead and free-arm/leg counterbalance, keep the fast contact readable, and do not freeze the body at every story tick. Flow/life metrics are advisory: no arbitrary sway to clear a score. Save a changed loadable result early, run fast checks while working and a full motion check at delivery, and inspect normal-speed profile and rear-three-quarter playback yourself. No new authoring round or live integration: the owner reviews this take first.",
+  "references": {
+    "fall": "references/fall.usda",
+    "idle": "references/idle.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 34
+  },
+  "clock": {
+    "duration_ticks": 40,
+    "contact_tick": 12,
+    "active": [
+      12,
+      21
+    ],
+    "iasa_tick": 40
+  },
+  "timing": {
+    "fixed": [
+      "Owner approved 2026-10-22: 40 ticks at 60 Hz, first hit 12, active 12-21 inclusive, recovery 22-39, free/end 40.",
+      "Tick 0 is the accepted fall reference at 0; ticks 34-40 restore that pose for late auto-cancel and the fall handoff.",
+      "Gameplay planning notes: landing lag 12 ticks; auto-cancel 0-3 and from 34. No live gameplay data changes before animation acceptance.",
+      "Actor root is fixed and gravity is unchanged. One one-handed cut, not a full spin or multi-hit."
+    ],
+    "adjustable": [
+      "Pose amplitude, compact leg counterbalance and detailed weapon arc may be refined within the approved shape and fixed story times.",
+      "Do not move contact, active, recovery, late-auto-cancel or end ticks without owner feedback."
+    ]
+  },
+  "fast_windows": [
+    [
+      10,
+      23
+    ]
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../video-refs/sir-bonk-normals/g1-squires-cut/beats/key-poses.png",
+    "images/fall-entry.png"
+  ],
+  "image_notes": "1: actual Sir Bonk model proportions and equipment. 2: owner-approved knight attitude. 3: accepted ground Squire's Cut reference: reuse its one-handed shoulder slash and torso drive, replacing all ground contacts with airborne balance and the new clock. 4: actual rig-pack fall entry, debugging colours; use its raised right knee, hanging left leg and free left arm, not its material colours.",
+  "keys": [
+    0,
+    4,
+    10,
+    12,
+    17,
+    21,
+    27,
+    34,
+    40
+  ],
+  "review_ticks": [
+    0,
+    4,
+    10,
+    12,
+    17,
+    21,
+    27,
+    34,
+    40
+  ],
+  "targets": [
+    {
+      "name": "coil: plank tip behind the hips (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 10,
+      "max": -0.4
+    },
+    {
+      "name": "contact: plank tip ahead of hips (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 12,
+      "min": 1.0
+    },
+    {
+      "name": "middle: plank tip ahead of hips (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 17,
+      "min": 1.0
+    },
+    {
+      "name": "middle: plank slopes down from hilt (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 17,
+      "min": 0.15,
+      "max": 0.85
+    },
+    {
+      "name": "finish: plank tip to the left (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 21,
+      "max": -0.5
+    },
+    {
+      "name": "finish: plank tip below hilt (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 21,
+      "min": 0.25,
+      "max": 1.0
+    }
+  ]
+}

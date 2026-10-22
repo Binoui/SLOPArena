@@ -1,0 +1,213 @@
+{
+  "name": "bonk-sir-a2-barn-door",
+  "notes": "Sir Bonk air.2 (anim.bonk.a2), 2026-10-22. Owner approved the aerial shape and new clock, then accepted repaired r1 keys ('looks good'). Approved key run: 20261022-203218-bonk-sir-a2-barn-door-t3-r1-repair-keys. This is one MOTION PASS preserving those poses and their story times. Fixed clock: first hit 18, active 18-29 inclusive, recovery 30-49, end/free 50; landing lag 16, entry auto-cancel 0-3 and late auto-cancel 42. No live binding, gameplay or cooked changes before concrete animation acceptance.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk: a huge good-hearted self-appointed knight, bucket helm and broom crest, cream tabard, pot-lid pauldrons, bedsheet cape, wooden plank greatsword. 68 joints, Humanoid body with Mixamo names and full fingers; cape chains Cape_L/C/R1..4 stay at rest because the game drives them. Weapon0 is the 2.26 m plank on his right hand, with bladeHilt/bladeEnd anchors around its 1.42 m blade.",
+  "description": "Airborne Barn Door: the aerial partner of ground.2, one broad two-handed horizontal sweep across the whole space in front of Sir Bonk. The owner approved this shape and a 50-tick clock. It is wider and more deliberate than the fast one-handed Squire's Cut, without becoming a full spin. No gag, extra strike, somersault, step or imaginary foot plant. The plank itself will be the hitbox, so the active keys must describe one continuous front-right to front-left sweep, with the middle clearly reaching straight ahead.\n\nUse the real airborne fall reference at tick0 for entry and exit, never his grounded idle. It has the right knee raised, the left leg hanging, the left arm out balancing and the plank behind/above the right shoulder. The simulation owns the fighter's position and ordinary gravity. Keep the actor root fixed: no added lift, hover, forced descent or travel. Small local hip shifts and compact airborne torso/leg counterbalance are welcome. Both feet remain in the air. Cape_L/C/R1..4 stay at rest for the runtime spring.\n\nTiming is fixed at 60 Hz: first hit18, active18-29 inclusive, recovery30-49 and free/end50. Match fall exactly at0,42 and50. Do not stretch the clock to copy the grounded video reference. No damage, launch-angle or hitbox tuning in this pass.\n\nApproved story keys (the accepted r1 result is authoritative):\n- 0: exact fall reference tick0.\n- 5: second grip. The left hand joins the lower handle, the plank comes near vertical outside the right shoulder and safely away from bucket/crest. The right knee tucks a little as the torso starts to coil. Establish a loose two-hand hold without pulling both elbows up to the face.\n- 12: complete coil. Chest turns roughly50-65 degrees to his right, hips less (about20-30), both hands in front of his right shoulder and tip behind him. His shoulders/hips and asymmetrical tucked legs show the load; no grounded squat or stance. The tip can be up during startup; it must become flat for the active sweep.\n- 18: first contact, already out ahead/right at waist-to-chest height. Hips have led the unwind and chest follows. Both arms reach forward, not folded against the belly. The hands lead the plank, with its tip out right and also in front of the hips, not parked behind his body. The blade is approximately horizontal (tip within30cm vertically of hilt).\n- 24: through the front. The plank points strongly ahead at chest height, with the tip at least1.4m ahead of the hips; the body has turned toward the front and slightly past it. Both hands/arms reach out about50-70cm from the chest, elbows below the hands and shoulders. The hips/chest carry the swing; do not rotate the sword through180degrees while holding the torso still. The legs swing opposite the blade to balance its momentum, compact enough to preserve a fighter silhouette.\n- 29: follow-through on his left, still flat. The tip is at least0.8m to the left and still ahead of the hips, not a full360-degree spin. Chest is turned roughly45-65degrees left, hips less (about25-40). Keep both hands on the handle in front of the left chest and out of the torso. The sword is still moving as the active window ends. Feet/legs counterbalance to his right.\n- 35: unwind. The blade's momentum has carried on and he is drawing it up and around the OUTSIDE of his right shoulder toward the fall carry, with the second hand still helping. It does not make a second deliberate swipe, pass through his bucket, or demand a wrist flip. The left hand can release after this key and open back into its fall balance.\n- 42: exact fall reference tick0, both arms and legs restored for the approved late auto-cancel.\n- 50: same fall reference exactly.\n\nGrip and anatomy lessons already approved for the grounded Barn Door: the hands only need to be approximately on the handle, loosely side by side, with the left fist about8-16cm below the right. Do not force an exact mirrored grip that crosses the forearms or wings both elbows up beside the head. Use two_hand_grip(..., hold='loose', elbows=True), and solve each key from its neighbour. If helping interpolation is needed for the checker, carry(..., hold='loose', elbows=True, both_ways=True) is available. The owner approved the repaired r1 poses. This job builds motion between them, preserving every approved key within the documented 2 cm tolerance. Use carry with hold=\"loose\", elbows=True and both_ways=True where appropriate, then add coherent spacing, breakdowns and restrained overlap. Keep the active arms extended and elbows down, wrists aligned with forearms where the accepted fall entry allows. Keep the plank and handle clear of the bucket, crest, pauldrons, torso, thighs and cape. No cape animation or new prop.\n\nThe grounded Barn Door reference gives the loose grip, flat sword path and body drive only. Replace its planted feet, deep hip sink and long idle tail with the approved airborne balance and shorter clock. Model/concept and fall image keep the actual knight identity. Inspect your key renders from profile, front, rear three-quarter on the striking side and gameplay. Run the full MOTION check at delivery and report warnings and transition risks honestly. Save a changed loadable result early. One motion take only; the owner reviews it before revision or live integration.\n\nMOTION PASS after owner approval (looks good): start from keys/result.json, not the failed r0 take or an imagined version of these story poses. Preserve times 0, 5, 12, 18, 24, 29, 35, 42 and 50. At 29 the repaired right/left arm reaches are 0.574/0.694 m: the left is nearly straight, so avoid elbow overshoot or grip flips on arrival/departure. The repaired hilt was solved with hilt_weight=2.0, requested at (-0.10, 1.05, 0.25), because default 0.3 pulled it back toward the chest. Preserve that achieved finish rather than reintroducing a tucked grip.\n\nSpecific transition work: route the high/back coil at 12 into the flat front-right contact at 18 along a readable shoulder arc, not a straight chord through the bucket. The active plank must keep sweeping through 18-29, never parking between story poses. Carry the weight beyond the finish and draw it up outside the right shoulder into 35 without a second deliberate swipe, face crossing or low handle collision. Between 35 and 42, release the left grip cleanly and restore both arms and legs to the exact fall. An earlier scratch revision had a right-wrist snap around 32; inspect that interval under the full motion check.\n\nKnown accepted-key contact advisories: tick 5 plank/bucket and left hand/right knee; tick 35 handle/torso or right leg and hands close together; tick 29 left hand/handle is intentional. These were shown on the actual model and accepted. Give transitions room and improve actual clearance at keys only within the 2 cm key lock; do not redesign accepted poses to clear advisory scores. Retain loose handle contact rather than floating the second hand. Hips lead, chest and arms follow, head and legs provide restrained overlap; stagger between anchors without shifting the approved story poses. Cape joints remain at rest for the runtime spring. Exact fall from 42 through 50 is intentional, not a flow defect. No arbitrary sway to pass a metric. Save early, check fast while working, and deliver a full check plus inspected semantic and hand renders. Inspect normal-speed profile and rear-three-quarter playback if the available viewer supports it; report honestly if you can inspect only stills and paths, so the parent can complete timed playback review.",
+  "references": {
+    "fall": "references/fall.usda",
+    "idle": "references/idle.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 42
+  },
+  "clock": {
+    "duration_ticks": 50,
+    "contact_tick": 18,
+    "active": [
+      18,
+      29
+    ],
+    "iasa_tick": 50
+  },
+  "timing": {
+    "fixed": [
+      "Owner approved2026-10-22:50ticks at60Hz; first hit18, active18-29inclusive, recovery30-49, free/end50.",
+      "Exact fall at0 and42-50 for late auto-cancel and airborne handoff.",
+      "Gameplay planning notes:landing lag16; auto-cancel0-3 and from42. No live changes before animation acceptance.",
+      "One broad two-handed front sweep; root fixed and ordinary gravity unchanged."
+    ],
+    "adjustable": [
+      "Detailed pose amplitude, compact leg counterbalance and weapon arc within the approved shape and story times.",
+      "Do not change contact, active, recovery, auto-cancel or free ticks without owner feedback."
+    ]
+  },
+  "fast_windows": [
+    [
+      14,
+      31
+    ]
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../video-refs/sir-bonk-normals/g2-barn-door/beats/key-poses.png",
+    "images/fall-entry.png"
+  ],
+  "image_notes": "1: actual Sir Bonk model and equipment.2: approved knight attitude.3: accepted grounded Barn Door reference for the loose two-hand grip, flat sweep and torso drive; replace all ground contacts with airborne balance and use the new clock.4: actual rig-pack fall entry, debugging colours; use its anatomy and asymmetrical leg/arm balance, not its material colours.",
+  "keys": [
+    0,
+    5,
+    12,
+    18,
+    24,
+    29,
+    35,
+    42,
+    50
+  ],
+  "review_ticks": [
+    0,
+    5,
+    12,
+    18,
+    24,
+    29,
+    35,
+    42,
+    50
+  ],
+  "targets": [
+    {
+      "name": "coil: plank tip behind hips (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 12,
+      "max": -0.5
+    },
+    {
+      "name": "contact: tip reaches out to the right (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 18,
+      "min": 0.8
+    },
+    {
+      "name": "contact: tip already ahead of hips (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 18,
+      "min": 0.3
+    },
+    {
+      "name": "middle: tip strongly ahead of hips (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 24,
+      "min": 1.4
+    },
+    {
+      "name": "finish: tip carried left (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 29,
+      "max": -0.8
+    },
+    {
+      "name": "finish: sweep remains in front (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 29,
+      "min": 0.15
+    },
+    {
+      "name": "flat sweep: tip near hilt height at18 (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 18,
+      "min": -0.3,
+      "max": 0.3
+    },
+    {
+      "name": "reach: right arm extended at18 (m)",
+      "kind": "distance",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 18,
+      "min": 0.5
+    },
+    {
+      "name": "reach: left arm extended at18 (m)",
+      "kind": "distance",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 18,
+      "min": 0.5
+    },
+    {
+      "name": "flat sweep: tip near hilt height at24 (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 24,
+      "min": -0.3,
+      "max": 0.3
+    },
+    {
+      "name": "reach: right arm extended at24 (m)",
+      "kind": "distance",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 24,
+      "min": 0.5
+    },
+    {
+      "name": "reach: left arm extended at24 (m)",
+      "kind": "distance",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 24,
+      "min": 0.5
+    },
+    {
+      "name": "flat sweep: tip near hilt height at29 (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 29,
+      "min": -0.3,
+      "max": 0.3
+    },
+    {
+      "name": "reach: right arm extended at29 (m)",
+      "kind": "distance",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 29,
+      "min": 0.5
+    },
+    {
+      "name": "reach: left arm extended at29 (m)",
+      "kind": "distance",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 29,
+      "min": 0.5
+    }
+  ],
+  "two_hands": [
+    5,
+    35
+  ],
+  "two_hands_hold": "loose"
+}

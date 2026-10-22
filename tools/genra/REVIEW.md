@@ -21,6 +21,10 @@ that reads as well as them at gameplay distance is ready, even if you would poli
 - Judge fast moves at their speed. An attack is seen for a fraction of a second from the gameplay camera: its key
   poses and its read at real speed matter, and a pose that looks odd only in a still frame is minor.
 - The look decides. Measurements explain what you see; they never make a clip good on their own.
+- Respect the owner's fixed gameplay clock and physical contacts. Allow pose variations that keep the approved
+  gesture, silhouette and personality unless the owner explicitly locked a detail. A score or suggested angle is
+  not an independent reason to demand another calculation pass. Name a conflicting hard constraint and the visible
+  benefit before proposing changes to it.
 
 ## Known failure modes of generated clips
 
@@ -52,8 +56,8 @@ Generated clips fail in recurring ways. Look for each one, and confirm it in the
    hand-made animation even when each pose is good and nothing is jerky (Sir Bonk's first GenRA Squire's Cut,
    2026-10-21: the owner found the hand-made clip it replaced "much smoother"). Read the speed map: dark columns are
    much of the body stopping on the same tick, dark blocks are dead holds. Hand-made attacks stop at most about a
-   quarter of the body together, freeze at most 12% of their joint-ticks and keep holds moving. Major when the check
-   warns about flow and the map shows it; the fix is staggered arrivals (hips first, then the chest, the arms and the
+   quarter of the body together, freeze at most 12% of their joint-ticks and keep holds moving. Major when it visibly
+   interrupts the intended motion; a warning or dark map column alone is insufficient. A useful fix is staggered arrivals (hips first, then the chest, the arms and the
    head trailing a tick or more apart, the weapon on its tick) and moving holds (a hold's end keyed a few degrees on
    from its start), not slower motion.
 9. **Flips.** A limb that pops in one tick. When the check reports a flip (a bone rolling about its own length), it
@@ -87,6 +91,9 @@ The prompt lists the images.
   below at the same length. The flow numbers in the check report compare the clip with 44 hand-made attacks.
 - **The check report** lists measured failures, which the clip cannot ship with, and warnings. Warnings are evidence,
   not verdicts: judge them in the images.
+- **Chatter warnings** locate repeated 1-2 tick reversals that can survive a good flow score. Check the affected
+  curves and actual-character motion; intentional shaking and fast strikes are legal. Do not request whole-clip
+  smoothing or tiny extra movement to clear a diagnostic.
 
 ## Your notes
 

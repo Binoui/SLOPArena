@@ -82,7 +82,7 @@ namespace SlopArena.Client.Combat
 
         public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers,
             ArenaDefinition arena, ulong localEntityId = 0, UnityEngine.Camera renderCamera = null,
-            Func<ulong, SlopballCamp> campOf = null)
+            Func<ulong, SlopballCamp> campOf = null, Func<ulong, Color?> colourOf = null)
         {
             _getState = getState;
             _heightmap = arena.Heightmap;
@@ -116,7 +116,9 @@ namespace SlopArena.Client.Combat
                 var camp = renderer != null ? campOf?.Invoke(renderer.EntityId) ?? SlopballCamp.None : SlopballCamp.None;
                 Color campColor = camp == SlopballCamp.None ? Color.clear : camp == SlopballCamp.Teal
                     ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
-                if (camp != SlopballCamp.None && renderer.EntityId != localEntityId) accent = campColor;
+                var courseColour = renderer != null ? colourOf?.Invoke(renderer.EntityId) : null;
+                if (courseColour.HasValue) campColor = courseColour.Value;
+                if ((camp != SlopballCamp.None || courseColour.HasValue) && renderer.EntityId != localEntityId) accent = campColor;
                 _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor);
                 ringGO.SetActive(false);
             }
@@ -156,6 +158,9 @@ namespace SlopArena.Client.Combat
                 }
 
                 Vector3 pos = renderer.transform.position;
+                // The rendered root includes a model alignment offset; floor clearance
+                // is measured from the collision capsule centre instead.
+                pos.y -= renderer.ModelYOffset;
                 float floorY = _heightmap.Sample(pos.x, pos.z);
                 // Renderer roots are at capsule centre, not at the fighter's feet.
                 float heightAboveFloor = pos.y - floorY - renderer.CapsuleHeight * 0.5f;

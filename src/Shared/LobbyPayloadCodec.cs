@@ -62,13 +62,16 @@ public static class LobbyPayloadCodec
         if (element.TryGetProperty("camp", out var campElement)
             && (campElement.ValueKind != JsonValueKind.String || !SlopballCamps.TryParse(campElement.GetString(), out camp)))
             return null;
+        byte colour = 0;
+        if (element.TryGetProperty("colour", out var colourElement)
+            && (colourElement.ValueKind != JsonValueKind.Number || !colourElement.TryGetByte(out colour) || colour > 3)) return null;
         return new LobbyPlayerInfo(
             steam.GetInt64(),
             name.GetString()!,
             selection,
             lockedIn,
             host.GetBoolean(),
-            entityId, camp);
+            entityId, camp, colour);
     }
 
     /// <summary>
@@ -195,6 +198,11 @@ public static class LobbyPayloadCodec
             : ballOnly || snap.Players.Any(p => p.Camp != SlopballCamp.None)) return null;
         if (format == MatchFormat.SlopballVersus && (snap.Players.Any(p => p.EntityId <= 0 || p.EntityId >= ServerSimulation.ArcadeBallTargetInputId)
             || snap.Players.Select(p => p.EntityId).Distinct().Count() != snap.Players.Count)) return null;
+        if (format.IsCourse() && (snap.Players.Count is < 2 or > 4
+            || snap.Players.Any(p => p.EntityId <= 0 || p.EntityId >= CharacterCourseSimulation.FirstInputAlias)
+            || snap.Players.Select(p => p.EntityId).Distinct().Count() != snap.Players.Count
+            || snap.Players.Select(p => p.Colour).Distinct().Count() != snap.Players.Count
+            || snap.Players.Select(p => p.CharacterSelection).Distinct().Count() != 1)) return null;
         return new MatchStartedConfig(snap.ServerId, snap.Players, matchPort, arenaName,
             maxStocks, content, descriptor, roomId, serverAddress, matchId, format, friendlyFire, ballOnly);
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Buffers.Binary;
 
 namespace SlopArena.Shared;
@@ -41,11 +42,14 @@ public sealed class MatchResultPacket
     private const int RunSize = 10;
     private const byte VersusMarker = 2;
     private const int VersusSize = 6;
+    private const byte CourseMarker = 3;
+    private const int CourseHeaderSize = 12;
+    private const int CoursePlayerSize = 22;
     public const int MaxPlayers = 4;
-    public const int MaxSize = HeaderSize + EntrySize * MaxPlayers + RunSize;
+    public const int MaxSize = HeaderSize + EntrySize * MaxPlayers + CourseHeaderSize + CoursePlayerSize * MaxPlayers;
 
     public MatchResultPacket(uint durationTicks, bool sharedVictory, MatchResultEntry[] entries,
-        SlopballRunResult? run = null, SlopballVersusResult? versus = null)
+        SlopballRunResult? run = null, SlopballVersusResult? versus = null, CourseRunResult? course = null)
     {
         if (entries == null) throw new ArgumentNullException(nameof(entries));
         if (entries.Length is < 1 or > MaxPlayers)
@@ -57,6 +61,9 @@ public sealed class MatchResultPacket
         Run = run;
         if (run.HasValue && versus.HasValue) throw new ArgumentException("A result has one Slopball format.");
         Versus = versus;
+        if (course != null && (run.HasValue || versus.HasValue || !ValidCourse(course, entries)))
+            throw new ArgumentException("Invalid course result.", nameof(course));
+        Course = course;
     }
 
     public uint DurationTicks { get; }
@@ -65,7 +72,17 @@ public sealed class MatchResultPacket
     /// <summary>The team result of a co-op Slopball run; null for a stock fight.</summary>
     public SlopballRunResult? Run { get; }
     public SlopballVersusResult? Versus { get; }
-    public int WireSize => HeaderSize + EntrySize * Entries.Length + (Run.HasValue ? RunSize : Versus.HasValue ? VersusSize : 0);
+    public CourseRunResult? Course { get; }
+    public int WireSize => HeaderSize + EntrySize * Entries.Length + (Run.HasValue ? RunSize : Versus.HasValue ? VersusSize : Course != null ? CourseHeaderSize + Course.Players.Count * CoursePlayerSize : 0);
+
+    private static bool ValidCourse(CourseRunResult course, MatchResultEntry[] entries)
+        => course.Players != null && course.Players.Count == entries.Length
+            && course.Players.Select(x => x.EntityId).Distinct().Count() == entries.Length
+            && course.Players.All(x => Array.Exists(entries, e => e.EntityId == x.EntityId && e.Placement == x.Place)
+                && x.TotalTargets is > 0 and <= CharacterCourseDefinition.MaxTargets && x.BrokenTargets <= x.TotalTargets
+                && x.Place <= entries.Length && (x.Place == 0) == (x.FinishTicks == 0)
+                && x.FinishTicks <= course.ElapsedTicks && (x.Place == 0 || x.BrokenTargets == x.TotalTargets))
+            && course.Completed == course.Players.Any(x => x.Place != 0);
 
     public void Serialize(Span<byte> buffer)
     {
@@ -100,6 +117,21 @@ public sealed class MatchResultPacket
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset + 3, 2), versus.ClayScore);
             buffer[offset + 5] = (byte)versus.Winner;
         }
+        else if (Course is { } course)
+        {
+            buffer[offset++] = CourseMarker; buffer[offset++] = course.Cooperative ? (byte)1 : (byte)0;
+            buffer[offset++] = course.Completed ? (byte)1 : (byte)0;
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(offset, 8), course.ElapsedTicks); offset += 8;
+            buffer[offset++] = (byte)course.Players.Count;
+            foreach (var player in course.Players)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(offset, 8), player.EntityId); offset += 8;
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(offset, 8), player.FinishTicks); offset += 8;
+                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.BrokenTargets); offset += 2;
+                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.TotalTargets); offset += 2;
+                buffer[offset++] = player.Place; buffer[offset++] = player.Withdrawn ? (byte)1 : (byte)0;
+            }
+        }
     }
 
     public static bool TryDeserialize(ReadOnlySpan<byte> buffer, out MatchResultPacket? packet)
@@ -127,7 +159,29 @@ public sealed class MatchResultPacket
 
         SlopballRunResult? run = null;
         SlopballVersusResult? versus = null;
-        if (buffer.Length > offset && buffer[offset] == VersusMarker)
+        CourseRunResult? course = null;
+        if (buffer.Length > offset && buffer[offset] == CourseMarker)
+        {
+            if (buffer.Length < offset + CourseHeaderSize || buffer[offset + 1] > 1 || buffer[offset + 2] > 1
+                || buffer[offset + 11] != count || buffer.Length != offset + CourseHeaderSize + count * CoursePlayerSize) return false;
+            bool cooperative = buffer[offset + 1] == 1, completed = buffer[offset + 2] == 1;
+            ulong elapsed = BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset + 3, 8));
+            offset += CourseHeaderSize;
+            var players = new CourseFinishResult[count];
+            for (int i = 0; i < count; i++)
+            {
+                ulong id = BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset, 8));
+                ulong time = BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset + 8, 8));
+                ushort broken = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 16, 2));
+                ushort total = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 18, 2));
+                if (buffer[offset + 21] > 1) return false;
+                players[i] = new(id, time, broken, total, buffer[offset + 20], buffer[offset + 21] == 1);
+                offset += CoursePlayerSize;
+            }
+            course = new(cooperative, completed, elapsed, Array.AsReadOnly(players));
+            if (!ValidCourse(course, entries)) return false;
+        }
+        else if (buffer.Length > offset && buffer[offset] == VersusMarker)
         {
             if (buffer.Length < offset + VersusSize || buffer[offset + 5] is < 1 or > 2) return false;
             ushort teal = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 1, 2));
@@ -147,7 +201,7 @@ public sealed class MatchResultPacket
             BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(4, 4)),
             buffer[8] != 0,
             entries,
-            run, versus);
+            run, versus, course);
         return true;
     }
 }

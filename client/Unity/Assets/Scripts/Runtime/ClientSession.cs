@@ -124,10 +124,11 @@ namespace SlopArena.Client
                 string stageName,
                 uint durationTicks,
                 IReadOnlyList<ResultEntry> entries,
-                Shared.SlopballRunResult? run = null, Shared.SlopballVersusResult? versus = null)
+                Shared.SlopballRunResult? run = null, Shared.SlopballVersusResult? versus = null, Shared.CourseRunResult? course = null)
             {
                 Run = run;
                 Versus = versus;
+                Course = course;
                 if (entries == null) throw new ArgumentNullException(nameof(entries));
                 var copy = new ResultEntry[entries.Count];
                 for (int i = 0; i < entries.Count; i++)
@@ -148,6 +149,7 @@ namespace SlopArena.Client
             /// <summary>A co-op Slopball run's team result; null for a stock fight.</summary>
             public Shared.SlopballRunResult? Run { get; }
             public Shared.SlopballVersusResult? Versus { get; }
+            public Shared.CourseRunResult? Course { get; }
         }
 
         /// <summary>Store the server-authored final result without local re-ranking.</summary>
@@ -169,7 +171,7 @@ namespace SlopArena.Client
                 UI.MatchConfig.ArenaName,
                 packet.DurationTicks,
                 entries,
-                packet.Run, packet.Versus);
+                packet.Run, packet.Versus, packet.Course);
         }
         public static void SetLocalMatchResults(MatchResultsData results)
             => CurrentMatchResults = results;
@@ -319,6 +321,7 @@ namespace SlopArena.Client
             UI.MatchConfig.FriendlyFire = config.FriendlyFire;
             UI.MatchConfig.BallOnly = config.BallOnly;
             UI.MatchConfig.Camps = config.Players.ToDictionary(p => (ulong)p.EntityId, p => p.Camp);
+            UI.MatchConfig.Colours = config.Players.ToDictionary(p => (ulong)p.EntityId, p => p.Colour);
             UI.MatchConfig.Opponents.Clear();
             foreach (var player in config.Players)
             {

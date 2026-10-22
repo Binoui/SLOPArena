@@ -23,6 +23,15 @@ the hips can (crouch, lunge, weight shift), and Unity keeps that motion in the p
   lands on. View PNGs with the Read tool.
 - Work only in the current directory. The rig is already summarised below; do not explore
   the toolkit source unless something fails.
+- Start from the supplied `author.py` and `result.json`. `API.md` is readable with the Read tool
+  and has the actual signatures and return shapes. `Pose` lives in `genra.clip`, not `genra.pose`.
+  Use `Pose.copy()` or load a clip again; do not deepcopy/pickle the rig's USD stage.
+- `Clip.save('result.json')` is atomic. Save before checks, even with unresolved failures. The runner
+  archives changed, loadable checkpoints and stops after 20 minutes without one (unless the caller sets
+  another checkpoint timeout), or at the overall limit. A starting checkpoint is not a finished animation.
+- A keys job reports **KEY POSES PASS/FAIL** and lists interpolated motion risks separately.
+  Fix invalid story poses here; do not spend the blocking job polishing transitions. `--stage full`
+  explicitly checks the complete motion. A blocking pass cannot qualify as final motion.
 
 ## Visual direction
 
@@ -163,8 +172,8 @@ Interpolating keys lets hands slide off a handle and planted points drift. Hold 
 ## Life (secondary motion)
 
 A loop or big move reads robotic when the limbs work but the body around them stays rigid or rides the hips in one
-piece. The check warns about that (`life`). Treat those warnings like failures for loops (idle, run, walk) and big
-moves. Motion travels through the body:
+piece. The check warns about that (`life`). Use those warnings to inspect visible mechanics; they do not require
+polish when the intended personality and motion already read. Motion can travel through the body:
 
 - **Pelvis:** in steps it turns 5-10 degrees toward the forward leg, tilts 3-6 degrees down on the swing-leg side
   and shifts 2-5 cm over the stance foot.
@@ -191,13 +200,17 @@ cycle. Re-check planted feet, held weapons and clearances afterwards.
 Hand-made attacks never stop much of the body at once and never park it. Keying a pose for the whole body on one
 tick, interpolating, and repeating a pose to hold it does both: every joint that turns back halts on the key's tick,
 and holds go dead. The check measures it against 44 hand-made attacks (`flow` warnings; `./genra` reports the
-numbers) and the review shows a speed map. Treat the warnings like failures:
+numbers) and the review shows a speed map. Scores are advisory: judge the visible motion and the intended vibe.
+Do not add arbitrary sway to reduce counted stops, chase imperceptible offsets, or smooth away an intentional hold
+or strike. A `chatter` warning names a short burst of repeated knee, elbow, wrist or foot reversals; inspect it for
+solver jitter at game speed. A fast window can permit a spin while its legs still jitter. Intentional shaking is
+allowed. If the motion needs a repair, useful approaches include:
 
 - **Stagger the arrivals.** At a big pose (the end of a strike, a landing), the hips arrive first, the chest a tick
   later, the arms one to two ticks after it and the head last. Key those parts at their own ticks, or `Clip.overlap`
   the joints that carry no contact (neck, head, the free arm, 1-2.5 ticks). The approved-key check lets the body meet
   its key pose up to two ticks early or late; a weapon keeps its tick.
-- **Moving holds.** Never key the same pose at both ends of a hold, except the exit hold the brief fixes. Key the
+- **Moving holds.** When a hold should keep breathing, key the
   hold's end a few degrees on from its start (the chest still sinking and twisting, the head settling, the free arm
   drifting), so the body moves slowly through the hold instead of stopping in it. A hold that goes out and back
   stops at its turn: drift one way.

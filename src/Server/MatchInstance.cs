@@ -330,6 +330,7 @@ namespace SlopArena.Server
 				Log($"Co-op Slopball run: {_slots.Count} fighters, unlimited misses.");
 			}
             if (_format == MatchFormat.SlopballVersus) _sim.BeginVersusSlopball();
+            if (_format.IsCourse()) _sim.BeginOnlineCourse();
 
 			if (_steamSend is null)
 			{
@@ -741,7 +742,8 @@ namespace SlopArena.Server
 			{
 				lock (_steamGate)
 				{
-					if (slot.Disconnected || _rule.IsEliminated(_sim.GetState(slot.EntityId)))
+					if (slot.Disconnected) _sim.WithdrawCoursePlayer(slot.EntityId);
+                    if (slot.Disconnected || _sim.IsEntityInactive(slot.EntityId))
 					{
 						slot.Inputs.Reset();
 						slot.MissingInputTicks = 0;
@@ -791,7 +793,7 @@ namespace SlopArena.Server
 			_sim.Tick(inputs);
 			int droppedEvents = _frameHistory.DroppedEvents;
 			_frameHistory.Record(_serverTick, _sim.GetPresentationEvents(clear: true), _sim.LastTickHits,
-				_sim.LastTickSlopballEvents);
+				_sim.LastTickSlopballEvents, _sim.LastTickOnlineCourseEvents);
 			if (_frameHistory.DroppedEvents != droppedEvents)
 				// Cosmetic only: an unencodable event must not cost the match.
 				Diagnostics.ReportError(_serverTick, "Unencodable presentation event dropped.");
@@ -894,14 +896,14 @@ namespace SlopArena.Server
 				if (_lastTickInputs != null)
 					hasInput = _lastTickInputs.TryGetValue(slot.EntityId, out input);
 				else
-					hasInput = !slot.Disconnected && !_rule.IsEliminated(_sim.GetState(slot.EntityId));
+					hasInput = !slot.Disconnected && !_sim.IsEntityInactive(slot.EntityId);
 				_relayedInputs.Add(new RelayedInput(slot.EntityId, hasInput, input));
 			}
 			_relayedInputs.Sort(static (a, b) => a.EntityId.CompareTo(b.EntityId));
 			var snapshot = _sim.CaptureSnapshot();
 			return new WorldFramePacket(_matchState, snapshot, _relayedInputs,
 				_frameHistory.EventsForFrame(snapshot.Tick), _frameHistory.HitsForFrame(snapshot.Tick),
-				_frameHistory.SlopballEventsForFrame(snapshot.Tick)).Serialize();
+				_frameHistory.SlopballEventsForFrame(snapshot.Tick), _frameHistory.CourseEventsForFrame(snapshot.Tick)).Serialize();
 		}
 
 		private void SendNetplayControl(PlayerSlot slot, NetplayControlKind kind)
@@ -980,7 +982,18 @@ namespace SlopArena.Server
 				: null;
 			var versus = _sim.SlopballVersus is { } score
                 ? new SlopballVersusResult(score.TealScore, score.ClayScore, score.Winner) : (SlopballVersusResult?)null;
-            return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run, versus);
+            CourseRunResult? course = _sim.OnlineCourse.HasValue ? CourseRunResult.From(_sim) : null;
+            if (course != null)
+            {
+                ranked = entries.Select(entry => new MatchResultEntry(entry.EntityId,
+                    course.Players.Single(p => p.EntityId == entry.EntityId).Place, entry.KOs, entry.Falls)).ToArray();
+                Array.Sort(ranked, (a, b) =>
+                {
+                    int order = (a.Placement == 0 ? 255 : a.Placement).CompareTo(b.Placement == 0 ? 255 : b.Placement);
+                    return order != 0 ? order : a.EntityId.CompareTo(b.EntityId);
+                });
+            }
+            return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run, versus, course);
 		}
 
 

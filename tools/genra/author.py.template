@@ -1,0 +1,23 @@
+"""Working starting point. Run with ./py author.py after adding the requested motion."""
+from genra.brief import Brief
+from genra.clip import Clip, Pose
+from genra.checks import check_clip, format_report
+from genra.solve import carry, solve, track, two_bone, two_hand_grip
+
+b = Brief('brief.json')
+rig = b.rig
+clip = Clip.load(rig, 'result.json', frame=b.entry_frame)
+keys = {tick: clip.pose(tick) for tick in b.key_beats}
+
+# Edit a copy of a pose, then install it with clip.set_pose(tick, pose).
+# For new blocking: edit keys, then Clip.from_keys(keys, b['clock']['duration_ticks'] + 1).
+# For a two-handed key, seed from its neighbour to keep the same elbow/roll branch:
+# pose, report = two_hand_grip(keys[tick], blade=direction, hilt=position,
+#                             seed=keys[previous_tick], hold=b.get('two_hands_hold', 'exact'))
+# solve() returns (Pose, list[dict]); two_bone() edits a Pose and returns a miss in metres.
+# carry()/track() edit a Clip and return a report. API.md has the live signatures.
+
+# Save BEFORE checking: failed checks are useful, recoverable work too.
+clip.save('result.json')  # atomic; do not use deepcopy on a Pose, Clip or USD rig
+report = check_clip(clip, b.check_spec(), mode='fast')
+print(format_report(report))

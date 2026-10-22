@@ -32,6 +32,7 @@ def main(argv=None):
     check.add_argument('--brief', default='brief.json')
     check.add_argument('--fast', action='store_true',
                        help='iteration only: numeric checks, no mesh checks or automatic renders; full checks remain the default')
+    check.add_argument('--stage', choices=['keys', 'full'], help='default: the saved authoring stage')
     check.add_argument('--sheet', help="contact sheet path (default sheet.png, none with --fast; '' to skip)")
     check.add_argument('--motion', help="motion paths (default motion.png, none with --fast; '' to skip)")
     check.add_argument('--ticks', type=_ints)
@@ -133,7 +134,7 @@ def main(argv=None):
                      title=f'Joint curves: {args.clip}' + (f' (grey: {args.reference}, time-normalised)' if reference else ''))
         print(f'wrote {args.out}')
         return 0
-    report = check_clip(clip, brief.check_spec(), mode='fast' if args.fast else 'full')
+    report = check_clip(clip, brief.check_spec(stage=args.stage), mode='fast' if args.fast else 'full')
     if args.json:
         print(json.dumps({k: v for k, v in report.items()}, indent=2, default=str))
     else:

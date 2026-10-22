@@ -400,6 +400,10 @@ namespace SlopArena.Client.UI
             }
             var back = context.Q<Button>("btn-back");
             if (back != null) back.clicked += OnRoomBackClicked;
+            if (context.Q<Button>("btn-colour-0") is { } c0) c0.clicked += SelectColour0;
+            if (context.Q<Button>("btn-colour-1") is { } c1) c1.clicked += SelectColour1;
+            if (context.Q<Button>("btn-colour-2") is { } c2) c2.clicked += SelectColour2;
+            if (context.Q<Button>("btn-colour-3") is { } c3) c3.clicked += SelectColour3;
             if (context.Q<Button>("btn-camp-teal") is { } teal) teal.clicked += SelectTealCamp;
             if (context.Q<Button>("btn-camp-clay") is { } clay) clay.clicked += SelectClayCamp;
             ConfigureNavigation(context, _btnLockIn, back, OnRoomBackClicked);
@@ -565,12 +569,18 @@ namespace SlopArena.Client.UI
                 : arena.HasValue && !string.IsNullOrWhiteSpace(arena.Value.DisplayName)
                     ? arena.Value.DisplayName
                     : room.ArenaName.Replace('_', ' ');
-            SetModeChrome(_context, "ROOM // CHOOSE YOUR FIGHTER", $"STEP 2 OF 2  /  {name.ToUpperInvariant()}");
+            SetModeChrome(_context, CourseRoom ? "ROOM // CHOOSE YOUR COLOUR" : "ROOM // CHOOSE YOUR FIGHTER", $"STEP 2 OF 2  /  {name.ToUpperInvariant()}");
         }
+
+        private string CourseFighter => _roomSnapshot?.AdmittedArcade.FirstOrDefault(e =>
+            e.Format == _roomSnapshot.Format && e.Arena == _roomSnapshot.ArenaName)?.Fighter;
+        private bool CourseRoom => _roomMode && MatchFormats.TryParseWire(_roomSnapshot?.Format, out var format) && format.IsCourse();
+        private string[] RoomFighters => CourseRoom ? (string.IsNullOrEmpty(CourseFighter) ? Array.Empty<string>() : new[] { CourseFighter })
+            : _roomSnapshot?.AdmittedCharacters ?? Array.Empty<string>();
 
         private void ApplyRoomCharacterAllowlist()
         {
-            var admitted = _roomSnapshot?.AdmittedCharacters ?? Array.Empty<string>();
+            var admitted = RoomFighters;
             CharacterClass firstAllowed = CharacterClass.None;
             for (int i = 0; i < _gridButtons.Count; i++)
             {
@@ -605,7 +615,7 @@ namespace SlopArena.Client.UI
                 var member = members[i];
                 bool hasCharacter = Enum.TryParse(member.CharacterSelection, true, out CharacterClass cls);
                 _rosterPanel.Add(BuildPlayerCard(
-                    string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
+                    CourseRoom ? $"P{i + 1} · {CourseColours.Names[member.Colour % 4]}" : string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
                     hasCharacter ? cls : (CharacterClass?)null,
                     member.LockedIn ? "LOCKED" : "WAITING",
                     member.SteamId == ClientSession.SteamId,
@@ -630,6 +640,15 @@ namespace SlopArena.Client.UI
                     button.SetEnabled(versus && !_roomActionPending && _lobby?.IsConnected == true);
                     button.style.color = camp == "teal" ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
                 }
+            _context.Q<VisualElement>("colour-select")?.style.SetDisplay(CourseRoom);
+            var own = members.FirstOrDefault(m => m.SteamId == ClientSession.SteamId);
+            for (byte i = 0; i < 4; i++)
+                if (_context.Q<Button>("btn-colour-" + i) is { } colourButton)
+                {
+                    colourButton.EnableInClassList("active", own?.Colour == i);
+                    colourButton.style.color = CourseColours.For(i);
+                    colourButton.SetEnabled(CourseRoom && !_roomActionPending && _lobby?.IsConnected == true);
+                }
             bool localLocked = false;
             bool leader = false;
             bool allLocked = members.Length >= 2 && balanced;
@@ -644,7 +663,7 @@ namespace SlopArena.Client.UI
             }
             _lockedIn = localLocked;
             ClientSession.IsLobbyHost = leader;
-            var admittedCharacters = _roomSnapshot?.AdmittedCharacters ?? Array.Empty<string>();
+            var admittedCharacters = RoomFighters;
             for (int i = 0; i < _gridButtons.Count; i++)
             {
                 string characterName = _gridButtons[i].name.Substring("char-".Length);
@@ -674,9 +693,33 @@ namespace SlopArena.Client.UI
                     ? (leader
                         ? allLocked ? "Everyone is locked in. Start the match." : "Locked in. Waiting for the other members."
                         : "Locked in. Waiting for the Room leader to start.")
+                    : CourseRoom ? "Choose a colour, then lock in. Choosing an occupied colour swaps it and unlocks both players."
                     : "Choose your fighter, then lock in.", admittedCharacters.Length == 0);
             RenderRoomCardMarkers();
             if (!balanced) SetRoomStatus("Choose equal Teal and Clay camps before starting. Switching camp unlocks your fighter.", false);
+        }
+
+        private void SelectColour0() => SelectColour(0);
+        private void SelectColour1() => SelectColour(1);
+        private void SelectColour2() => SelectColour(2);
+        private void SelectColour3() => SelectColour(3);
+        private async void SelectColour(byte colour)
+        {
+            var lobby = _lobby;
+            if (!CourseRoom || _roomActionPending || lobby?.IsConnected != true) return;
+            _roomActionPending = true; UpdateRoomControls();
+            string failure = null;
+            try
+            {
+                var room = await lobby.RoomSelectColourAsync(colour);
+                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby)) OnRoomUpdated(room);
+            }
+            catch (Exception ex) { failure = "Could not change colour: " + ex.Message; }
+            finally
+            {
+                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                { _roomActionPending = false; UpdateRoomControls(); if (failure != null) SetRoomStatus(failure, true); }
+            }
         }
 
         private void SelectTealCamp() => SelectCamp("teal");
@@ -687,17 +730,21 @@ namespace SlopArena.Client.UI
             if (_roomActionPending || lobby?.IsConnected != true || _roomSnapshot?.Format != MatchFormats.SlopballVersusWire) return;
             _roomActionPending = true;
             UpdateRoomControls();
+            string failure = null;
             try
             {
                 var room = await lobby.RoomSelectCampAsync(camp);
                 if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby)) OnRoomUpdated(room);
             }
             catch (Exception ex)
-            { if (isActiveAndEnabled) SetRoomStatus("Could not change camp: " + ex.Message, true); }
+            { failure = "Could not change camp: " + ex.Message; }
             finally
             {
                 if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
-                { _roomActionPending = false; UpdateRoomControls(); }
+                {
+                    _roomActionPending = false; UpdateRoomControls();
+                    if (failure != null) SetRoomStatus(failure, true);
+                }
             }
         }
 
@@ -1104,7 +1151,7 @@ namespace SlopArena.Client.UI
 
         private void SelectCharacter(CharacterClass cls, FrontendPageContext context)
         {
-            if (cls == CharacterClass.None)
+            if (cls == CharacterClass.None || CourseRoom && !string.Equals(cls.ToString(), CourseFighter, StringComparison.OrdinalIgnoreCase))
                 return;
 
             _selected = cls;
@@ -1157,6 +1204,10 @@ namespace SlopArena.Client.UI
                     UnbindRoomLobby(_lobby);
                     if (_btnLockIn != null) _btnLockIn.clicked -= OnRoomLockInClicked;
                     if (_btnStartMatch != null) _btnStartMatch.clicked -= OnRoomStartMatchClicked;
+                    if (_context.Q<Button>("btn-colour-0") is { } c0) c0.clicked -= SelectColour0;
+                    if (_context.Q<Button>("btn-colour-1") is { } c1) c1.clicked -= SelectColour1;
+                    if (_context.Q<Button>("btn-colour-2") is { } c2) c2.clicked -= SelectColour2;
+                    if (_context.Q<Button>("btn-colour-3") is { } c3) c3.clicked -= SelectColour3;
                     if (_context.Q<Button>("btn-camp-teal") is { } teal) teal.clicked -= SelectTealCamp;
                     if (_context.Q<Button>("btn-camp-clay") is { } clay) clay.clicked -= SelectClayCamp;
                     var backButton = _context.Q<Button>("btn-back");

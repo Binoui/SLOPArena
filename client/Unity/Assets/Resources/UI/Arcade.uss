@@ -366,3 +366,14 @@
     letter-spacing: 1px;
     -unity-font-style: bold;
 }
+
+/* Online courses share the Solo course panel and add the other runners' progress. */
+.stage-course-options { flex-direction: column; width: 100%; margin-top: 12px; }
+.stage-course-row { flex-direction: row; align-items: center; margin-bottom: 8px; }
+.stage-course-row > Label { flex-grow: 1; color: rgb(235, 224, 199); font-size: 18px; }
+.course-online-roster { margin-top: 12px; padding-top: 8px; border-top-width: 1px; border-top-color: rgba(235, 224, 199, .3); }
+.course-online-player { border-left-width: 4px; padding-left: 8px; margin-bottom: 10px; }
+.course-online-player > Label { color: rgb(235, 224, 199); font-size: 16px; }
+.course-online-player .course-pips { flex-wrap: wrap; }
+
+.course-live--online { right: 18px; top: 76px; width: 320px; }

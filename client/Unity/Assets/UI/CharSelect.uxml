@@ -25,6 +25,15 @@
     </ui:VisualElement>
     <ui:VisualElement name="page-summary" class="page-section char-summary-section">
         <ui:VisualElement name="roster-panel" class="roster-panel" />
+        <ui:VisualElement name="colour-select" class="solo-config" style="display: none;">
+            <ui:Label text="YOUR COLOUR" class="selection-target" />
+            <ui:VisualElement class="selection-target-buttons">
+                <ui:Button name="btn-colour-0" text="TEAL" class="selection-target-button" />
+                <ui:Button name="btn-colour-1" text="CLAY" class="selection-target-button" />
+                <ui:Button name="btn-colour-2" text="GOLD" class="selection-target-button" />
+                <ui:Button name="btn-colour-3" text="LILAC" class="selection-target-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:VisualElement name="camp-select" class="solo-config" style="display: none;">
             <ui:Label name="camp-label" text="YOUR CAMP" class="selection-target" />
             <ui:VisualElement class="selection-target-buttons">

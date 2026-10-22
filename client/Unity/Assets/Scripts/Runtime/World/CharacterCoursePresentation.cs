@@ -205,11 +205,11 @@ namespace SlopArena.Client.World
         private static Vector2 HalfSize(ArcadeVolume volume) => new(volume.HalfSize.X, volume.HalfSize.Z);
 
         /// <summary>Consumes one completed Shared tick: its course events and the fighter's position.</summary>
-        public void AfterTick(ServerSimulation simulation, in CharacterState fighter)
+        public void AfterTick(ServerSimulation simulation, in CharacterState fighter, IReadOnlyList<CharacterCourseEvent> suppliedEvents = null)
         {
-            var state = simulation.Course.Value;
-            for (int i = 0; i < _broken.Length; i++) _broken[i] = simulation.IsCourseTargetBroken(i);
-            var events = simulation.LastTickCourseEvents;
+            var state = simulation.CourseFor(fighter.EntityId).Value;
+            for (int i = 0; i < _broken.Length; i++) _broken[i] = simulation.IsCourseTargetBroken(fighter.EntityId, i);
+            var events = suppliedEvents ?? simulation.LastTickCourseEvents;
             int pendingBreaks = 0;
             foreach (var e in events) if (e.Kind == CharacterCourseEventKind.TargetBroken) pendingBreaks++;
             bool respawned = false;
@@ -223,7 +223,7 @@ namespace SlopArena.Client.World
                         Break(e.Index, state.BrokenTargets - pendingBreaks, state.TotalTargets);
                         break;
                     case CharacterCourseEventKind.TargetHit:
-                        BonusHit(e.Index, simulation.CourseTargetHitsLeft(e.Index));
+                        BonusHit(e.Index, simulation.CourseTargetHitsLeft(fighter.EntityId, e.Index));
                         break;
                     case CharacterCourseEventKind.CheckpointSaved:
                         if (e.Index >= 0 && e.Index < _markers.Length) _markers[e.Index]?.Saved();
@@ -233,7 +233,7 @@ namespace SlopArena.Client.World
                         respawned = true;
                         break;
                     case CharacterCourseEventKind.Completed:
-                        Finish(position);
+                        Finish(simulation.OnlineCourse is { Cooperative: true } ? Position(_course.Finish.Center) : position);
                         break;
                 }
             }
