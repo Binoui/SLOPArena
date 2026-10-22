@@ -2,8 +2,7 @@
 """Synthesize Sir Bonk's storybook sounds (no third-party source).
 
 Leap of Faith plays bonk_choir (a heavenly "aah" while the plank is stuck) and bonk_pop (a cork
-pop when it comes out); Blade Storm plays bonk_creak (a wooden windmill creak) under its whirl
-and, higher, under the tiny windmill afterwards. The Joust plays bonk_neigh (his own neigh at the
+pop when it comes out); The Joust plays bonk_neigh (his own neigh at the
 rear), bonk_clip and bonk_clop (coconut hooves, one knock per footfall of the 24-tick gallop loop),
 bonk_poof (the hobby horse arriving and leaving in a puff of straw), bonk_squeal (his own brakes in
 the skid) and bonk_gulp (the look-down on thin air). The Pot-Lid Throw plays bonk_lid_fwip (the release),
@@ -85,21 +84,6 @@ def pop():
     body = np.sin(2 * np.pi * 180 * time) * np.exp(-time / 0.04) * 0.3
     air = spectral(rng.standard_normal(len(time)), lambda f: np.exp(-((f - 3500) / 2500) ** 2)) * np.exp(-time / 0.05) * 0.06
     return thwop + click + body + air
-
-
-def creak():
-    """A wooden windmill creak: stick-slip clicks at a wandering rate, ringing a wooden body."""
-    seconds = 0.85
-    time = t(seconds)
-    rng = np.random.default_rng(23)
-    rate = 38 + 22 * np.sin(np.pi * time / seconds) + 4 * np.sin(2 * np.pi * 3.1 * time)
-    ticks = np.diff(np.floor(np.cumsum(rate) / SR), prepend=0) > 0
-    impulses = ticks * rng.uniform(0.7, 1.0, len(time))
-    kernel_time = t(0.04)
-    kernel = sum(a * np.sin(2 * np.pi * f * kernel_time) * np.exp(-kernel_time / tau)
-                 for f, tau, a in ((620, 0.012, 1.0), (1180, 0.008, 0.6), (2300, 0.004, 0.3)))
-    wood = np.convolve(impulses, kernel)[:len(time)]
-    return spectral(wood, lambda f: 1 / (1 + (f / 4000) ** 2)) * envelope(len(time), 0.15, 0.25)
 
 
 def formant(frequencies, bands_):
@@ -272,7 +256,7 @@ def hm():
     return np.concatenate([np.zeros(int(0.16 * SR)), x])
 
 
-CLIPS = {'bonk_choir': choir, 'bonk_pop': pop, 'bonk_creak': creak, 'bonk_neigh': neigh, 'bonk_clip': clip,
+CLIPS = {'bonk_choir': choir, 'bonk_pop': pop, 'bonk_neigh': neigh, 'bonk_clip': clip,
          'bonk_clop': clop, 'bonk_poof': poof, 'bonk_squeal': squeal, 'bonk_gulp': gulp, 'bonk_lid_fwip': lid_fwip,
          'bonk_lid_whirr': lid_whirr, 'bonk_lid_tink': lid_tink, 'bonk_lid_clank': lid_clank, 'bonk_hm': hm}
 

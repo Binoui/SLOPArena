@@ -1,9 +1,9 @@
 {
   "name": "bonk-sir-g3-sunrise",
-  "notes": "Sir Bonk ground.3 (anim.bonk.g3), 2026-10-22: Sunrise, the owner's 'upward slice meant to catch airbourne target', from the normals board (tmp/bonk-normals) and the Seedance 2.5 reference the owner approved (artifacts/video-refs/sir-bonk-normals/g3-sunrise), without its crouch (owner: 'the crouch for g3 is not necessary'). Two-handed like the video (the board had a free arm); no 'if you wait' wobble (normals stay simple). Today's move-data clock (125 ticks, plank hitbox 21-40, IASA 44). Replaces Reverse Rising Slash. Lessons from Barn Door built in: loose two-handed hold with elbows down (elbows='hands' overhead), carry both ways, flow in the first take, straight to idle after the return. Owner rule: show the keys, then the first take, before any revision.",
+  "notes": "Sir Bonk ground.3 (anim.bonk.g3), 2026-10-22: Sunrise, the owner's 'upward slice meant to catch airbourne target', from the normals board (tmp/bonk-normals) and the Seedance 2.5 reference the owner approved (artifacts/video-refs/sir-bonk-normals/g3-sunrise), without its crouch (owner: 'the crouch for g3 is not necessary'). Two-handed like the video (the board had a free arm); no 'if you wait' wobble (normals stay simple). Today's move-data clock (125 ticks, plank hitbox 21-40, IASA 44). Replaces Reverse Rising Slash. Lessons from Barn Door built in: loose two-handed hold with elbows down (elbows='hands' overhead), carry both ways, flow in the first take, straight to idle after the return. Owner rule: show the keys, then the first take, before any revision. Second keys (2026-10-22): owner on the first keys: 'the arc of the sword will not give a satisfying hitbox like this. i think for those moves it's the most important part'; picked option A, the rainbow from in front over his head onto his shoulder (artifacts/sir-bonk-normals-20261021/g3-arc-options.png). Keys and targets now follow the arc, with arc targets (hitarc.py against the game's hurtboxes; v1 brief in artifacts/sir-bonk-normals-20261021). Third keys (2026-10-22): owner on the first take: 'the feet are too static, the overall sword movement is unrealistic, the arms are fucked, the overall motion is alright but the execution is not good. needs more body motion and torso rotation to allow a good arc'. The v2 keys (artifacts/sir-bonk-normals-20261021/bonk-sir-g3-sunrise.v2.json) pinned the toes within 6 cm, kept the chest nearly square and swung the plank by the arms alone. Now: chest coil and uncoil, a stride, a pivoting right foot, the hands to the right of his face; chest-yaw and foot targets replace the static-toes targets.",
   "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
   "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip)",
-  "description": "Sir Bonk's ground 3, Sunrise: his anti-air normal, one rising two-handed slash that scoops the plank up off the floor in front of him and up over his head, to catch someone jumping in at him. It replaces his old Reverse Rising Slash (reference 'rising' is not in this pack: there is no style reference; the video sets the poses).\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He is proud and determined. The owner wants his normals clean: no gags, the energy comes from his body.\n\nHis idle, where this move starts and ends (measured in the character frame, metres from the entry hips): feet wide and square to the front (foot joints about -0.89 up, the floor at -1.025). The plank rests back over his right shoulder: the right hand in front of the right chest (about 0.46 m above the hips), the blade rising behind him to his right, its tip about 1.15 m behind his hips and 0.9 m above the hilt. The left fist sits on his left hip. His shoulders are about 0.53 m above the hips and his head joint 0.66 m; each arm reaches about 0.70 m from shoulder to wrist.\n\nHow the game plays it. Ticks 0-125 at 60 Hz, played once; the game stretches the whole clip over the move, so author exactly these ticks. The game crossfades into the clip from his idle or his run over 0.05 s. The plank itself is the hitbox (a 0.65 m capsule along it) from tick 21 to tick 40: from tick 21 it sweeps up through the space in front of him, and until tick 40 it covers the space above him that an opponent jumps in through. From tick 44 the player can act again: the scoop, the stretch and the return to the shoulder must all read by tick 44. Tick 0 is his idle pose exactly, and ticks 50-125 are his idle pose exactly (`b.exit_pose`); the game blends into the idle anyway, and the owner does not care about the part after the return.\n\nThe reference (image 3: nine frames of the video the owner approved, seen from his front three-quarter right, the camera of `front-three-quarter-right`; each frame's tick is in the brief's review beats). It sets the poses and the body mechanics, not the timing: the video takes about 4.5 s and holds every pose. Its dark flying blob and orange smears are video artifacts. The owner dropped the video's deep crouch (frames 3 and 4 squat to the floor): here he only dips.\n\nThe beats:\n- Ticks 0-3: he leaves the idle. Its plank hand is folded back about 137 degrees off the forearm (hidden behind the plank); straighten that wrist by tick 4. The check skips ticks 0-3 for it.\n- Ticks 3-7, the grip (video beat 2): the left hand leaves his hip and closes on the handle just below the right hand; the plank comes upright in front of his right shoulder and the knees start to give.\n- Ticks 7-13, the drop (video beat 3, without its squat): a small dip, the hips 5-8 cm down, his eyes up and forward where an opponent jumps in. The plank swings down and back past his right leg, tip trailing behind him.\n- Ticks 13-17, low (video beat 4, without its squat): the plank low by his right side, its tip a hand's width off the floor ahead of his right foot, both hands low by the right hip, the weight loaded into the legs. This is the squash.\n- Ticks 17-21, rising (video beat 5): the legs drive him up and the plank scoops up through the space in front of him. At tick 21 (contact) it points forward and up, about 45 degrees, in front of his chest.\n- Ticks 21-26, up (video beat 6): the plank passes vertical in front of him, his body stretching up behind it, the heels lifting. Fast.\n- Ticks 26-30, sky (video beat 7): the stretch. Tall on his toes (both heels up), both hands overhead, the plank straight up at the sky, chest lifted and head up, hips 2-6 cm above the idle. A clean silhouette from the match camera.\n- Ticks 30-38: a moving hold up there (the plank covers above him until tick 40): the stretch eases, the plank drifts a little back, the heels settle. Nothing parks.\n- Ticks 38-40, down (video beat 8): the plank vertical in front of his face, heels down.\n- Ticks 40-44, shoulder (video beat 9): the plank tips back onto his right shoulder and the left fist returns to his hip. By tick 44 he stands in his hero stance.\n- Ticks 44-50: straight into his idle pose, no separate settle. The plank wrist bends back into the idle's fold over ticks 41-50 (the check skips ticks 41-125 for it). Ticks 50-125 hold the idle pose exactly.\n\nBoth hands, loosely. Both hands hold the handle from tick 5 to tick 40 (the brief's `two_hands`, held loosely: `two_hands_hold`). The left fist only has to sit on the handle beside the right hand, free to turn about it and slide along it: `two_hand_grip(..., hold='loose', elbows=True)` for the keys with the hands below the shoulders (grip, drop, low, rising), and `elbows='hands'` for the keys with the hands at or above the head (up, sky, the hold, down), where the elbows belong above the shoulders but still under the hands. Between the keys use `carry(clip, keys, hold='loose', elbows=..., both_ways=True)` (guide, Contacts), one call per stretch with the same elbows option as its keys (for example ticks 5-21 with elbows=True and 21-40 with 'hands'). The elbows never wing up and out sideways: Barn Door's first keys did, and the owner saw it at once.\n\nThe body drives the swing. The scoop comes from the legs: the dip loads them, and from tick 17 the knees and hips extend while the chest lifts, so the plank rises with his whole body and not his arms alone; the stretch at tick 30 is the release of the dip.\n\nFlow from the first take. Barn Door's first take came out pose to pose (5.1 stops per joint per second) and needed a separate smoothing pass; this one should land in the hand-made range in one go. Follow the guide's Flow section: stagger the arrivals (the hips lead, the chest a tick or two later, the arms and head trail; a body part may meet its key up to 2 ticks early or late, the plank keeps its key ticks), make every hold a moving hold, let the spine flex against the hips and the head lag. Before saving, check the `flow:` metrics: under 1.0 stops per joint per second and under 30% of the body stopping together.\n\nBoth feet stay planted: the toes do not slide and the heels may lift. The plank stays clear of his bucket, crest, pauldrons, cape and legs, and its tip never goes into the floor (the floor is at up = -1.025 m in the character frame). The fighter does not move; the hips may shift. Do not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank. Keep each hand in line with its forearm (wrists under 45 degrees) outside the exempt ticks.",
+  "description": "Sir Bonk's ground 3, Sunrise: his anti-air normal, one rising two-handed slash that scoops the plank up off the floor in front of him and up over his head, to catch someone jumping in at him. It replaces his old Reverse Rising Slash (reference 'rising' is not in this pack: there is no style reference; the video sets the poses).\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He is proud and determined. The owner wants his normals clean: no gags, the energy comes from his body.\n\nHis idle, where this move starts and ends (measured in the character frame, metres from the entry hips): feet wide and square to the front (foot joints about -0.89 up, the floor at -1.025). The plank rests back over his right shoulder: the right hand in front of the right chest (about 0.46 m above the hips), the blade rising behind him to his right, its tip about 1.15 m behind his hips and 0.9 m above the hilt. The left fist sits on his left hip. His shoulders are about 0.53 m above the hips and his head joint 0.66 m; each arm reaches about 0.70 m from shoulder to wrist.\n\nHow the game plays it. Ticks 0-125 at 60 Hz, played once; the game stretches the whole clip over the move, so author exactly these ticks. The game crossfades into the clip from his idle or his run over 0.05 s. The plank itself is the hitbox (a 0.65 m capsule along it) from tick 21 to tick 40: from tick 21 it sweeps up through the space in front of him, and until tick 40 it covers the space above him that an opponent jumps in through. From tick 44 the player can act again: the scoop, the stretch and the return to the shoulder must all read by tick 44. Tick 0 is his idle pose exactly, and ticks 50-125 are his idle pose exactly (`b.exit_pose`); the game blends into the idle anyway, and the owner does not care about the part after the return.\n\nThe reference (image 3: nine frames of the video the owner approved, seen from his front three-quarter right, the camera of `front-three-quarter-right`; each frame's tick is in the brief's review beats). It sets the poses and the body mechanics, not the timing: the video takes about 4.5 s and holds every pose. Its dark flying blob and orange smears are video artifacts. The owner dropped the video's deep crouch (frames 3 and 4 squat to the floor): here he only dips.\n\nThe arc is the move. The plank itself is the hitbox, so where it sweeps during ticks 21-40 decides whether Sunrise catches anyone (owner: \"for those moves it's the most important part\"). It is one rainbow: from in front of him, up over his head and down onto his right shoulder, sweeping the whole window. The plank passes horizontal ahead of him at tick 21, points straight up at tick 27, passes over his head at tick 31 and lands back on his right shoulder at tick 40, ready for the idle. Never park it: the first keys held it vertical overhead from tick 25 to 40 and covered 151 FightGuy positions with 23 behind him, against 266 for the old hand-made rising slash (`hitarc.py`, tools/genra/README.md \"Weapon arcs\"). The brief's `arc` targets count the positions the plank touches (`./genra check` reports them); the rainbow sketched for the owner touched 253, 167 ahead and 75 behind.\n\nThe first take's problems (owner, 2026-10-22): \"the feet are too static, the overall sword movement is unrealistic, the arms are fucked, the overall motion is alright but the execution is not good. needs more body motion and torso rotation to allow a good arc.\" The first keys held his toes within 2 cm all through the move, his chest nearly square, and swung the plank by the arms alone (the hands crossed in front of his face at ticks 22-24). The torso is what makes this arc: the plank is swung by his whole body turning, not by his arms winding it.\n\nThe beats:\n- Ticks 0-3: he leaves the idle. Its plank hand is folded back about 137 degrees off the forearm (hidden behind the plank); straighten that wrist by tick 4. The check skips ticks 0-3 for it.\n- Ticks 3-8, the grip (video beat 2): the left hand leaves his hip and closes on the handle just below the right hand; the plank comes forward and upright in front of his right shoulder; his weight starts to move onto the right leg and the chest begins to turn to his right.\n- Ticks 8-12, the coil (video beat 3, without its squat): he winds up like a batter for an upswing. The chest turns 45-60 degrees to his right (the right shoulder behind the left), the hips 25-35 degrees, the weight on the right leg, the hips 5-8 cm down, his eyes up and forward at where an opponent comes from. The plank swings down past his right leg, tip trailing behind him, both hands by his right hip.\n- Ticks 12-17, stride and load (video beat 4, without its squat): the left foot steps out ahead and to his left, about 0.3-0.4 m, and plants at tick 17, the knee bent over it, the hips 8-14 cm down; the right heel starts to lift, the ball stays put. The chest is still turned to his right against the planted hips: the torso is wound. Hands low by his right hip, the plank pointing forward-down, its tip a hand's width off the floor ahead of his right foot. This is the squash.\n- Ticks 17-21, the uncoil: the hips drive first, turning left, the legs extend, the chest follows a tick or two later and comes round to square by tick 21. The hands travel up and forward from the hip, leading; the plank trails and then whips round behind them, and at tick 21 (contact) it points straight ahead at chest height.\n- Ticks 21-27, drive up: the right foot pivots on its ball (heel up, the foot turning about 30 degrees to his left), the left leg straightens; the chest keeps turning to 20-30 degrees to his left and leans back a little. The hands rise in an arc in front of his chest and to the right of his face, never across it: the plank is about 55 degrees at tick 24 and straight up at tick 27, both hands overhead, both heels up on his toes, the hips 3-6 cm above the idle. Fast.\n- Ticks 27-35, over: the swing carries the plank over his head and back (the chest leaning back, still 20-30 degrees left), pointing up and behind him at tick 31 and low behind him at tick 35. The right hand takes the weight; the left hand lets go of the handle (by tick 33) and heads for his hip. The heels come down, the chest turns back toward square.\n- Ticks 35-40, shoulder (video beat 9): the plank's weight settles it onto his right shoulder exactly where his idle carries it (tip about 1.15 m behind the hips and 0.9 m above the hilt), the left fist back on the hip by tick 40; the left foot steps back toward its idle place.\n- Ticks 40-44: his hero stance, both feet in their idle places; he can act from tick 44.\n- Ticks 44-50: straight into his idle pose, no separate settle. The plank wrist folds back into the idle's 137 degrees as the plank lands on the shoulder (the check skips ticks 36-125 for it). Ticks 50-125 hold the idle pose exactly.\n\nBoth hands, loosely. Both hands hold the handle from tick 5 to tick 33 (the brief's `two_hands`, held loosely: `two_hands_hold`). The left fist only has to sit on the handle beside the right hand, free to turn about it and slide along it: `two_hand_grip(..., hold='loose', elbows=True)` for the keys with the hands below the shoulders (grip, drop, low, ahead), and `elbows='hands'` for the keys with the hands at or above the head (24, 27, 31), where the elbows belong above the shoulders but still under the hands. Between the keys use `carry(clip, keys, hold='loose', elbows=..., both_ways=True)` (guide, Contacts), one call per stretch with the same elbows option as its keys (for example ticks 5-21 with elbows=True and 21-31 with 'hands'); from tick 33 the right hand carries the plank alone. The elbows never wing up and out sideways: Barn Door's first keys did, and the owner saw it at once.\n\nThe body drives the swing. From the coil (chest 45-60 degrees right at tick 11) to the top (chest 20-30 degrees left at tick 27) is 70-90 degrees of chest turn and about 60 of hips, led by the hips; the arms and plank ride with the chest, so the arms only reach and the plank sweeps its arc because his whole body turns and rises. The scoop comes from the legs too: the stride and the dip load them and from tick 17 the knees and hips extend while the chest lifts, so the stretch at ticks 27-31 is the release of the load. The hands lead the plank: its tip trails behind them on the way up and whips through, and its direction turns smoothly about the hands, with no sudden flips.\n\nFlow from the first take. Barn Door's first take came out pose to pose (5.1 stops per joint per second) and needed a separate smoothing pass; this one should land in the hand-made range in one go. Follow the guide's Flow section: stagger the arrivals (the hips lead, the chest a tick or two later, the arms and head trail; a body part may meet its key up to 2 ticks early or late, the plank keeps its key ticks), make every hold a moving hold, let the spine flex against the hips and the head lag. Before saving, check the `flow:` metrics: under 1.0 stops per joint per second and under 30% of the body stopping together.\n\nHis feet are not static: the left foot steps out and plants, the right heel lifts and the foot pivots on its ball, both heels are up at the top, and both return to their idle places by tick 44-50. The right ball of the foot and the planted left foot do not slide while they carry his weight. The plank stays clear of his bucket, crest, pauldrons, cape and legs, and its tip never goes into the floor (the floor is at up = -1.025 m in the character frame). The fighter does not move; the hips may shift and travel with the stride. Do not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank. Keep each hand in line with its forearm (wrists under 45 degrees) outside the exempt ticks.",
   "references": {
     "idle": "references/idle.usda",
     "run": "references/run.usda"
@@ -43,7 +43,7 @@
   ],
   "two_hands": [
     5,
-    40
+    33
   ],
   "two_hands_hold": "loose",
   "strike": [
@@ -60,15 +60,17 @@
     "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
     "../../video-refs/sir-bonk-normals/g3-sunrise/beats/key-poses.png"
   ],
-  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: the reference video the owner approved for this move (Seedance 2.5, his front three-quarter right): 9 frames, idle, grip, drop, low, rising, up, sky, down, shoulder, mapped to ticks 0, 5, 11, 17, 21, 25, 30, 40 and 44. Frames 3 and 4 squat to the floor: the brief keeps only a small dip.",
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: the reference video the owner approved for this move (Seedance 2.5, his front three-quarter right): 9 frames, idle, grip, drop, low, rising, up, sky, down, shoulder. Frames 3 and 4 squat to the floor: the brief keeps only a small dip. Frames 7 and 8 hold the plank up in front: the brief carries it on over his head onto his shoulder instead (the arc).",
   "keys": [
     0,
     5,
     11,
+    14,
     17,
     21,
-    25,
-    30,
+    24,
+    27,
+    31,
     35,
     40,
     44,
@@ -78,14 +80,17 @@
   "review_ticks": [
     0,
     5,
+    8,
     11,
-    15,
+    14,
     17,
     19,
     21,
     23,
-    25,
-    30,
+    24,
+    27,
+    29,
+    31,
     35,
     40,
     44,
@@ -103,10 +108,9 @@
         "drop": 11,
         "low": 17,
         "rising": 21,
-        "up": 25,
-        "sky": 30,
-        "down": 40,
-        "shoulder": 44
+        "up": 24,
+        "sky": 27,
+        "shoulder": 40
       }
     }
   },
@@ -117,15 +121,23 @@
         3
       ],
       [
-        41,
+        36,
         125
       ]
     ],
-    "why": "his approved idle folds the plank hand 137 degrees behind the plank: the clip starts on it and straightens the wrist by tick 4, and bends back into it over ticks 41-50 to end on the idle"
+    "why": "his approved idle folds the plank hand 137 degrees behind the plank: the clip starts on it and straightens the wrist by tick 4, and folds back into it as the plank lands on his shoulder over ticks 36-40 to end on the idle"
   },
   "targets": [
     {
-      "name": "drop: a small dip, hips 3-10 cm down at tick 11 (m)",
+      "name": "coil: chest turned to his right at tick 11 (m)",
+      "kind": "ahead",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "tick": 11,
+      "max": -0.2
+    },
+    {
+      "name": "coil: a small dip, hips 3-10 cm down at tick 11 (m)",
       "kind": "char",
       "a": "Hips",
       "axis": "up",
@@ -134,7 +146,40 @@
       "max": -0.03
     },
     {
-      "name": "low: plank tip low, near the floor at tick 17 (m)",
+      "name": "coil: plank tip trailing behind him at tick 11 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 11,
+      "max": -0.3
+    },
+    {
+      "name": "stride: left foot stepped out ahead at tick 17 (m)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "front",
+      "tick": 17,
+      "min": 0.3
+    },
+    {
+      "name": "stride: hips down in the load at tick 17 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 17,
+      "min": -0.16,
+      "max": -0.05
+    },
+    {
+      "name": "stride: chest still turned right, torso wound, at tick 17 (m)",
+      "kind": "ahead",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "tick": 17,
+      "max": -0.1
+    },
+    {
+      "name": "low: plank tip near the floor at tick 17 (m)",
       "kind": "char",
       "a": "bladeEnd",
       "axis": "up",
@@ -142,78 +187,166 @@
       "max": -0.55
     },
     {
-      "name": "low: still only a dip, not a crouch, at tick 17 (m)",
+      "name": "low: hands low by the right hip at tick 17 (m)",
       "kind": "char",
-      "a": "Hips",
+      "a": "RightHand",
       "axis": "up",
       "tick": 17,
-      "min": -0.12,
-      "max": -0.03
+      "max": 0.2
     },
     {
-      "name": "rising: plank in front of him at tick 21 (m)",
+      "name": "low: hands on his right at tick 17 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 17,
+      "min": 0.15
+    },
+    {
+      "name": "ahead: chest about square at tick 21 (m)",
+      "kind": "ahead",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "tick": 21,
+      "min": -0.12,
+      "max": 0.12
+    },
+    {
+      "name": "ahead: plank pointing straight ahead at tick 21 (m)",
       "kind": "ahead",
       "a": "bladeEnd",
       "b": "Hips",
       "tick": 21,
-      "min": 0.8
+      "min": 1.4
     },
     {
-      "name": "rising: plank rising forward-up at tick 21 (m)",
+      "name": "ahead: plank about horizontal, chest height, at tick 21 (m)",
       "kind": "char",
       "a": "bladeEnd",
       "axis": "up",
       "tick": 21,
-      "min": 0.0,
-      "max": 1.5
+      "min": -0.1,
+      "max": 0.9
     },
     {
-      "name": "sky: plank straight up, tip high above the hilt at tick 30 (m)",
+      "name": "rising: plank ahead of its hilt at tick 24 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 24,
+      "min": 0.5
+    },
+    {
+      "name": "rising: plank well up from its hilt at tick 24 (m)",
       "kind": "below",
       "a": "bladeHilt",
       "b": "bladeEnd",
-      "tick": 30,
-      "min": 1.2
+      "tick": 24,
+      "min": 0.8
     },
     {
-      "name": "sky: hands overhead at tick 30 (m)",
-      "kind": "char",
-      "a": "RightHand",
-      "axis": "up",
-      "tick": 30,
-      "min": 0.85
-    },
-    {
-      "name": "sky: stretched up, hips above the idle at tick 30 (m)",
-      "kind": "char",
-      "a": "Hips",
-      "axis": "up",
-      "tick": 30,
-      "min": 0.02
-    },
-    {
-      "name": "sky: right heel up at tick 30 (m)",
+      "name": "rising: right heel up at tick 24 (m)",
       "kind": "char",
       "a": "RightFoot",
       "axis": "up",
-      "tick": 30,
+      "tick": 24,
+      "min": -0.86
+    },
+    {
+      "name": "up: plank straight up at tick 27 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 27,
+      "min": 1.25
+    },
+    {
+      "name": "up: hands overhead at tick 27 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 27,
+      "min": 0.8
+    },
+    {
+      "name": "up: stretched, hips above the idle at tick 27 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 27,
+      "min": 0.02
+    },
+    {
+      "name": "up: right heel up at tick 27 (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "up",
+      "tick": 27,
       "min": -0.85
     },
     {
-      "name": "sky: left heel up at tick 30 (m)",
+      "name": "up: left heel up at tick 27 (m)",
       "kind": "char",
       "a": "LeftFoot",
       "axis": "up",
-      "tick": 30,
+      "tick": 27,
       "min": -0.85
     },
     {
-      "name": "down: plank upright at tick 40 (m)",
+      "name": "up: chest turned to his left at tick 27 (m)",
+      "kind": "ahead",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "tick": 27,
+      "min": 0.12
+    },
+    {
+      "name": "over: plank pointing back over his head at tick 31 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 31,
+      "max": -0.5
+    },
+    {
+      "name": "over: plank still up at tick 31 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 31,
+      "min": 0.6
+    },
+    {
+      "name": "over: chest still turned to his left at tick 31 (m)",
+      "kind": "ahead",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "tick": 31,
+      "min": 0.08
+    },
+    {
+      "name": "back: tip behind him at tick 35 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 35,
+      "max": -0.9
+    },
+    {
+      "name": "shoulder: tip behind the hips at tick 40 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 40,
+      "max": -0.9
+    },
+    {
+      "name": "shoulder: tip above the hilt at tick 40 (m)",
       "kind": "below",
       "a": "bladeHilt",
       "b": "bladeEnd",
       "tick": 40,
-      "min": 1.0
+      "min": 0.6
     },
     {
       "name": "shoulder: tip behind the hips at tick 44 (m)",
@@ -224,15 +357,71 @@
       "max": -0.7
     },
     {
-      "name": "shoulder: tip above the hilt at tick 44 (m)",
-      "kind": "below",
-      "a": "bladeHilt",
-      "b": "bladeEnd",
+      "name": "shoulder: left foot back near its idle place at tick 44 (m)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "front",
       "tick": 44,
-      "min": 0.6
+      "max": 0.2
     },
     {
-      "name": "right toes stay put, front to back (m)",
+      "kind": "arc",
+      "window": [
+        21,
+        40
+      ],
+      "radius": 0.65,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "name": "arc: FightGuy positions the plank touches, ticks 21-40",
+      "defender": "FightGuy",
+      "side": "all",
+      "min": 230
+    },
+    {
+      "kind": "arc",
+      "window": [
+        21,
+        40
+      ],
+      "radius": 0.65,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "name": "arc: FightGuy positions ahead of him",
+      "defender": "FightGuy",
+      "side": "ahead",
+      "min": 140
+    },
+    {
+      "kind": "arc",
+      "window": [
+        21,
+        40
+      ],
+      "radius": 0.65,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "name": "arc: FightGuy positions behind him",
+      "defender": "FightGuy",
+      "side": "behind",
+      "min": 55
+    },
+    {
+      "kind": "arc",
+      "window": [
+        21,
+        40
+      ],
+      "radius": 0.65,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "name": "arc: Manki positions the plank touches, ticks 21-40",
+      "defender": "Manki",
+      "side": "all",
+      "min": 200
+    },
+    {
+      "name": "right ball of the foot stays put, front to back (m)",
       "kind": "range",
       "a": "RightToeBase",
       "axis": "front",
@@ -240,10 +429,10 @@
         0,
         125
       ],
-      "max": 0.06
+      "max": 0.08
     },
     {
-      "name": "right toes stay put, side to side (m)",
+      "name": "right ball of the foot stays put, side to side (m)",
       "kind": "range",
       "a": "RightToeBase",
       "axis": "right",
@@ -251,27 +440,27 @@
         0,
         125
       ],
-      "max": 0.06
+      "max": 0.08
     },
     {
-      "name": "left toes stay put, front to back (m)",
+      "name": "left foot planted from tick 17 to 38, front to back (m)",
       "kind": "range",
       "a": "LeftToeBase",
       "axis": "front",
       "window": [
-        0,
-        125
+        17,
+        38
       ],
       "max": 0.06
     },
     {
-      "name": "left toes stay put, side to side (m)",
+      "name": "left foot planted from tick 17 to 38, side to side (m)",
       "kind": "range",
       "a": "LeftToeBase",
       "axis": "right",
       "window": [
-        0,
-        125
+        17,
+        38
       ],
       "max": 0.06
     }

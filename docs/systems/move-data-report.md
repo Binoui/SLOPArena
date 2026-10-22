@@ -127,6 +127,15 @@ Each character gets `<char>.md` and `<char>.json`:
   After the [hip-height spin](../characters/bonk.md#blade-storm-spin--2026-10-18) they touched
   7–15 bearings each, and since the [storm rework](../characters/bonk.md#storm-rework), with
   one window per turn of the spin, each of its three hits touches all 24.
+- **Arc** (ground moves) — a side view of where an idle target is touched by any active tick:
+  rows are the target's feet height (0–3 m, 25 cm apart), columns its distance along the
+  attacker's facing from 2.5 m behind to 3.5 m ahead. For weapon normals the weapon is the
+  hitbox, so this is the move (owner, 2026-10-22). Sir Bonk's old Reverse Rising Slash
+  touches a full front-to-back rainbow; the new Barn Door hits Manki only in the air, never
+  standing. The JSON adds each move's `ActiveHitboxes` (tick, start xyz, end xyz, radius in
+  the grounded origin frame) and the targets' idle contact volumes (`targets`), which
+  [GenRA's `hitarc.py`](../../tools/genra/README.md#weapon-arcs) uses to judge an arc before
+  it is cooked.
 - **Bone and weapon sampling** — positions a standing target occupies on the swing path
   between consecutive active ticks (the clip sampled 16 times per tick) that no tested pose
   touches. Tested poses are each tick's pose plus the swept poses Shared tests between

@@ -692,7 +692,7 @@ namespace SlopArena.EditorTools
         /// Blade Storm's wind stripes (owner's pick B, 2026-10-22, replacing the windmill sails that hid him): three thin
         /// cream streaks riding the plank's tip, stacked a little apart, each a short world-space trail that draws the
         /// plank's own arc and fades within about a quarter turn. The cue rides <c>_weapon_tip</c> for the spin's hit
-        /// windows; the whum and the wooden creak stay.
+        /// windows. The whum stays; the owner dropped the wooden creak ("croaking wood", 2026-10-22).
         /// </summary>
         private static GameObject Whirl(string name)
         {
@@ -717,7 +717,6 @@ namespace SlopArena.EditorTools
                 trail.receiveShadows = false;
             }
             _kit.Sound(root, "bonk_storm", 0.7f, 1f);
-            _kit.Sound(frame, "bonk_creak", 0.45f, 1f);
             return Save(root);
         }
 
@@ -741,7 +740,6 @@ namespace SlopArena.EditorTools
             SizeOverLife(mill, Curve((0f, 0.3f), (0.12f, 1.1f), (0.22f, 1f), (0.85f, 1f), (1f, 0.4f)));
             Fade(mill, 0.85f);
             InFront(mill);
-            _kit.Sound(root, "bonk_creak", 0.3f, 1.35f);
             return Save(root);
         }
 

@@ -225,6 +225,7 @@ Require all of the following for an accepted package:
 - source and cooked-source hashes match;
 - the real character prefab shows the intended static hold and entry/exit, or the motion's applicable semantic beats; do not require anticipation/recoil phases for a static pose;
 - Ability Lab or Training exercises the semantic animation through the normal presentation path when available;
+- for weapon normals the weapon is the hitbox, so design the arc first: check key poses or sketched arcs with GenRA's `hitarc.py` (tools/genra/README.md, "Weapon arcs") and the bound move with the report's Arc maps (owner, 2026-10-22: "for those moves it's the most important part");
 - for attack clips, rerun `tools/HitReliabilityReport --char <character>` after the cook and compare the move with its previous row: playback speed, active ticks touching a target 1 m ahead, aerial reach below the feet, multi-hit coverage and bone/weapon sampling loss should not regress unintentionally. Specials need their slot, for example `--slots F`. See [hit reliability](../../docs/systems/move-data-report.md#hit-reliability).
 
 Record Unity-facing verification in the ignored root `TESTING-UNITY.md`.

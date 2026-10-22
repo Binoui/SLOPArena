@@ -125,7 +125,7 @@ the one rule she enforces, on everyone else.
 | Slot | Special | Shape | The opening |
 | --- | --- | --- | --- |
 | A | Hose Down | She pulls a toy water blaster out of her shell. Hold to pump it, release to fire a gush that shoves rather than hurts; more pumping makes a bigger gush. In the air the recoil pushes her back. Sign: NO SPLASHING! | Pumping keeps her in place, and the recoil can push her away from the stage. |
-| E | Ring Bounce | Her recovery: she slams the life ring under her feet and bounces off it (BOING, squash and stretch). Press again at the top for a cannonball drop with a splash. Sign: NO BOMBS! | The cannonball commits her downward, even off the stage. |
+| E | Ring Bounce | Her necessary vertical recovery: she automatically throws the life ring and hops onto it, squashes it and bounces off (BOING). Movement input aims the jump. An optional fresh second press at the top starts a cannonball drop with a splash. Sign: NO BOMBS! | The cannonball commits her downward, even off the stage. |
 | R | Shell Slide | She tucks into her shell and slides off fast on a little wave; the stick steers, and the shell shrugs off hits. The first fighter she meets is bowled over, and she pops out with a pose. In the air she slides on thin air, looks down and drops. No sign (owner, 2026-10-22). | A miss (a shield, a wall, or the slide running out) leaves her flipped on her back, paddling, until she rocks herself over. |
 | F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! Everyone around her can't run or dash and walks slowly for a while, under a NO RUNNING! sign. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
 
@@ -183,9 +183,28 @@ gush; it became a stream.
 
 ![Ring Bounce](../design/references/bashie/bashie-e-ring-bounce.jpg)
 
+**Control direction (owner, 2026-10-22):** "i agree, aiming the ring is too much, aiming the jump is nice".
+
+- One E performs the throw and hop as one continuous move: the ring goes slightly ahead and below her, her feet
+  plant on it, it squashes under her weight, then springs her upward. It works offstage.
+- Ring placement and getting onto it are automatic. The player uses movement input to aim the bounce's launch.
+- Direction can change during the squash and locks when the ring springs. Neutral launches straight up for
+  maximum height; holding a direction trades some height for horizontal reach. Ordinary air control returns
+  after launch.
+
+**Priority (owner, 2026-10-22):** the cannonball sounds cool, but "the first part is most important cause its her
+necessary vertical recovery".
+
+- Build and validate the throw, squash and upward launch first. A single E must provide the recovery with no
+  second press or spare ordinary jump needed for the automatic hop.
+- Keep the setup short and arrest her descent while she prepares the bounce, so the throw does not waste the
+  height she needs to recover. The ring works in mid-air without a floor beneath it.
+- Recovery acceptance is returning from below the stage onto a playable surface; ledge hang is disabled.
+- The cannonball is an optional follow-up near the top, entered only by a fresh second E. Holding the initial
+  press or choosing no follow-up must leave the upward recovery intact. It comes after the core recovery works.
 - A cannonball is *une bombe* in French, hence the sign.
-- Fallbacks if the bounce doesn't work out: a FLUDD-style hover with the blaster, or a whistle blast that launches
-  her.
+- Still to tune: startup and squash duration, launch height and reach, post-launch actionability, cooldown and
+  air-use limits. Cannonball timing and impact values are also unset. None of this is implemented yet.
 
 ### Shell Slide (R)
 
@@ -236,7 +255,7 @@ rendered on her rig, they picked A, her hat and face peeking out of the front: "
 | --- | --- | --- |
 | R | `slop.ability.steered-charge.v1` (Sir Bonk's Joust) already steers, gives armour, ends on a hit or a miss and handles thin air ([ability architecture](../systems/ability-architecture.md)). | Done 2026-10-22: the data, and the tuck in presentation (`ShellTuck`, client only). Her own clips are next. |
 | A | Ki Shot's hold-and-release, and `stunTicks` 0 already shoves without hitstun. | Done 2026-10-22: `slop.ability.charged-stream.v1` (FLUDD: pump, stream, air push back) and no hitstop for pure pushes. |
-| E | Close to Manki's Jetpack Boost and existing landing hits. | An upward burst with an optional slam. |
+| E | Close to Manki's Jetpack Boost and existing landing hits. | Automatic ring throw/hop and an aimed upward bounce first; the optional cannonball follows once recovery works. |
 | F | Nothing: nothing in Shared slows another fighter yet. | A timed state in the simulation (no run, no dash, slower walk), plus a sign in presentation. |
 
 ## Concept images

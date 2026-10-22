@@ -23,7 +23,26 @@ internal sealed class MoveReliability
     public List<SamplingRow> Sampling = new();
     /// <summary>Ground moves with several damaging hitboxes: where around the attacker each one can land.</summary>
     public List<HitCoverage> Hits = new();
+    /// <summary>Ground moves: where in front of, above and behind the attacker an idle target is touched.</summary>
+    public List<ArcMap> Arc = new();
+    /// <summary>Each active tick's tested hitboxes in the grounded origin frame: tick, start xyz, end xyz, radius
+    /// (metres; x right, y up from the floor, z ahead).</summary>
+    public List<float[]> ActiveHitboxes = new();
     public List<string> Flags = new();
+}
+
+/// <summary>
+/// The side view of a ground move's reach (owner, 2026-10-22: for weapon normals the arc is the most important part):
+/// for each target feet height (rows, highest first) and distance along the attacker's facing (columns, behind to
+/// ahead), whether any active tick touches the idle target placed there, from the cooked hitbox geometry with the
+/// attacker fixed (as <see cref="VerticalBand"/>). '#' touched, '.' not.
+/// </summary>
+internal sealed class ArcMap
+{
+    public string Target = "";
+    public List<float> Distances = new();
+    public List<float> Heights = new();
+    public List<string> Rows = new();
 }
 
 /// <summary>Contiguous starting distances (metres) at which a ground normal connects with an idle target.</summary>
@@ -79,6 +98,7 @@ internal static class Reliability
     /// <summary>Ignore sampling loss measured over too few swept positions to mean anything.</summary>
     internal const int MinSweptForFlag = 20;
     private const float Origin = 100f;
+    internal const float OriginMeters = Origin;
     private const int SubSteps = 8;
     /// <summary>Clip samples per tick for the reference swing path in <see cref="SamplingLoss"/>.</summary>
     private const int PathSamplesPerTick = 16;
@@ -141,6 +161,14 @@ internal static class Reliability
             }
             move.Sampling.AddRange(SamplingLoss(attacker, spec, wire, air, medium));
             if (!air) move.Hits.AddRange(Coverage(attacker, spec, wire, volumes));
+            if (!air)
+                foreach (var (target, targetVolumes) in volumes)
+                    move.Arc.Add(ArcAgainst(samples, target.Definition.Class.ToString(), targetVolumes));
+            int firstActive = (spec.Stages[0].HitboxEvents ?? Array.Empty<HitboxEvent>()).Where(x => x.Damage > 0f)
+                .Select(x => (int)x.TriggerTick).DefaultIfEmpty(0).Min();
+            for (int i = 0; i < samples.Count; i++)
+                foreach (var h in samples[i])
+                    move.ActiveHitboxes.Add(new[] { firstActive + i, h.X - Origin, h.Y, h.Z - Origin, h.EndX - Origin, h.EndY, h.EndZ - Origin, h.Radius });
             Flag(move);
             moves.Add(move);
         }
@@ -262,6 +290,23 @@ internal static class Reliability
             Lowest = heights.Count == 0 ? null : heights.Min(),
             Highest = heights.Count == 0 ? null : heights.Max(),
         };
+    }
+
+    internal static readonly float[] ArcDistances = Enumerable.Range(0, 25).Select(i => -2.5f + i * 0.25f).ToArray();
+    internal static readonly float[] ArcHeights = Enumerable.Range(0, 13).Select(i => 3f - i * 0.25f).ToArray();
+
+    /// <summary>The target, idle on the attacker's facing line, at every <see cref="ArcDistances"/> (behind to ahead)
+    /// and feet height <see cref="ArcHeights"/> (highest first): touched by any active tick.</summary>
+    internal static ArcMap ArcAgainst(List<List<Hitbox>> samples, string target, IReadOnlyList<SpellResolver.EntityData> volumes)
+    {
+        var map = new ArcMap { Target = target, Distances = ArcDistances.ToList(), Heights = ArcHeights.ToList() };
+        foreach (float dy in ArcHeights)
+            map.Rows.Add(new string(ArcDistances.Select(d =>
+            {
+                var placed = Shift(volumes, 0f, dy, d);
+                return samples.Any(tick => tick.Any(h => Touches(h, placed))) ? '#' : '.';
+            }).ToArray()));
+        return map;
     }
 
     /// <summary>

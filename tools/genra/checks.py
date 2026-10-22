@@ -6,6 +6,8 @@ skipped checks; a fast pass is not a delivery pass.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 
 from .clip import Clip, Pose
@@ -572,6 +574,10 @@ def measure(clip: Clip, t: dict) -> float:
     below: b above a (up axis) at tick  char: component ('right'|'front'|'up') of a at tick
     fastest_drop: tick ending a's fastest downward step within [first, last]
     range: how far a travels along an axis ('right'|'front'|'up') within window [first, last]
+    arc: how many defender positions a weapon normal's capsule touches over window [first, last] (hitarc.py: the
+      report's Arc grid, behind to ahead and 0-3 m up), with `radius` (move data), `report` (a HitReliabilityReport
+      JSON with the defenders' volumes, repo-relative), `defender` ('FightGuy' or 'Manki'), `side` ('all', 'ahead'
+      or 'behind') and `calibration` (hitarc.CALIBRATION, e.g. 'bonk')
     """
     kind, tick = t['kind'], t.get('tick')
     a = t.get('a')
@@ -579,6 +585,12 @@ def measure(clip: Clip, t: dict) -> float:
     if kind == 'range':
         first, last = t.get('window', [0, len(clip) - 1])
         return float(np.ptp(clip.positions(a)[first:last + 1, {'right': 0, 'front': 1, 'up': 2}[t['axis']]]))
+    if kind == 'arc':
+        from .hitarc import CALIBRATION, arc_cells, arc_grid
+        repo = Path(__file__).resolve().parents[2]
+        grid = arc_grid(clip, t['window'], t['radius'], repo / t['report'], t.get('defender', 'FightGuy'),
+                        CALIBRATION.get(t.get('calibration')))
+        return float(arc_cells(grid, t.get('side', 'all')))
     if kind == 'fastest_drop':
         first, last = t.get('window', [0, len(clip) - 1])
         z = clip.positions(a)[:, 2]

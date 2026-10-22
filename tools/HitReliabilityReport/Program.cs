@@ -27,6 +27,7 @@ internal static class Program
 
         Writes <char>.md and <char>.json per character. Targets are idle, standing FightGuy
         (medium) and Manki (small); measurements read the admitted content-cooked roster.
+        Ground moves also get an arc map (target feet height x distance, behind to ahead).
         --slots picks canonical slots (1-4, A, E, R, F), ground and air; the default is the normals.
         """;
 
@@ -79,6 +80,12 @@ internal static class Program
             File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new
             {
                 attacker.Identity, generatedUtc = DateTime.UtcNow.ToString("u", CultureInfo.InvariantCulture), moves,
+                // The idle targets' contact volumes at the origin facing the attacker: start xyz, end xyz, radius
+                // (x right, y up from the floor, z toward the attacker's front), for tools that test other arcs.
+                targets = targets.ToDictionary(t => t.Definition.Class.ToString(),
+                    t => Reliability.Volumes(t, arena).Select(v => new[] { v.PosX - Reliability.OriginMeters, v.PosY,
+                        v.PosZ - Reliability.OriginMeters, v.EndX - Reliability.OriginMeters, v.EndY,
+                        v.EndZ - Reliability.OriginMeters, v.Radius }).ToList()),
             }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
             int flagged = moves.Count(x => x.Flags.Count > 0);
             Console.WriteLine($"{name}: {moves.Count} moves, {flagged} flagged → {Path.GetFullPath(Path.Combine(output, name + ".md"))}");
@@ -139,6 +146,29 @@ internal static class Program
                     md.AppendLine(FormattableString.Invariant($"| {move.Slot} | {hit.FirstTick}–{hit.LastTick} | {hit.Damage:0.#} | {hit.Radius:F2} | ")
                         + string.Join(" | ", hit.Touched.Select(x => x.Bearings.ToString(CultureInfo.InvariantCulture))) + " |");
             md.AppendLine();
+        }
+
+        var arcs = moves.Where(x => x.Arc.Count > 0).ToList();
+        if (arcs.Count > 0)
+        {
+            md.AppendLine("## Arc (ground moves)").AppendLine();
+            md.AppendLine("Side view of where an idle target is touched by any active tick, from the cooked hitbox geometry with "
+                + "the attacker fixed: rows are the target's feet height above the floor (3 m at the top, 0 = standing), "
+                + "columns its distance along the attacker's facing from 2.5 m behind to 3.5 m ahead, 25 cm apart. "
+                + "`#` touched, `.` not, `|` the attacker's own column.").AppendLine();
+            foreach (var move in arcs)
+                foreach (var arc in move.Arc)
+                {
+                    md.AppendLine($"{move.Slot} {move.Name} vs {arc.Target}:").AppendLine().AppendLine("```");
+                    int zero = arc.Distances.FindIndex(d => Math.Abs(d) < 1e-3f);
+                    for (int r = 0; r < arc.Rows.Count; r++)
+                    {
+                        var row = arc.Rows[r].ToCharArray();
+                        if (zero >= 0 && row[zero] == '.') row[zero] = '|';
+                        md.AppendLine(FormattableString.Invariant($"{arc.Heights[r],4:0.00} {new string(row)}"));
+                    }
+                    md.AppendLine(FormattableString.Invariant($"     {"-2.5",-10}{"0",-10}{"+2.5",-5}")).AppendLine("```").AppendLine();
+                }
         }
 
         md.AppendLine("## Bone and weapon sampling").AppendLine();

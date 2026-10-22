@@ -43,6 +43,24 @@ public sealed class HitReliabilityReportTests
     }
 
     [Fact]
+    public void ArcAgainst_MapsWhereAFlatBladeTouchesAStandingButNotAHighTarget()
+    {
+        // A target pillar at the origin (0.2-1.4 m up) and a flat blade 1 m up from 0.5 to 2 m ahead.
+        var target = new List<SpellResolver.EntityData>
+        {
+            new() { Id = 2, Shape = HitboxShape.Capsule, Active = true, Radius = 0.3f, PosY = 0.2f, EndY = 1.4f },
+        };
+        var blade = new Hitbox { Shape = HitboxShape.Capsule, Radius = 0.1f, Y = 1f, Z = 0.5f, EndY = 1f, EndZ = 2f };
+
+        var arc = Reliability.ArcAgainst(new List<List<Hitbox>> { new() { blade } }, "T", target);
+
+        string standing = arc.Rows[arc.Heights.IndexOf(0f)];
+        Assert.Equal('#', standing[arc.Distances.IndexOf(1f)]);
+        Assert.Equal('.', standing[arc.Distances.IndexOf(-1f)]);
+        Assert.DoesNotContain('#', arc.Rows[arc.Heights.IndexOf(3f)]);
+    }
+
+    [Fact]
     public void Swept_IgnoresATargetTheSwingNeverCrosses()
     {
         Assert.False(Reliability.Swept(new[] { Blade(-2f), Blade(-1.5f) }, Pillar));

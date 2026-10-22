@@ -318,7 +318,10 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
     brief = prepare_brief(brief, scratch, run_dir, keys)
     wrappers(scratch, python)
     venv = Path(python).parent.parent
-    readable = [HERE, brief.rigpack, venv]
+    # A weapon normal's arc targets read the defenders' hurtboxes from a hit-reliability report: let the check see it
+    # (Sunrise's keys, 2026-10-22: the sandbox hid it and `./genra check` crashed on the arc).
+    reports = sorted({(REPO / t['report']).resolve() for t in brief.get('targets', []) if t.get('kind') == 'arc'})
+    readable = [HERE, brief.rigpack, venv] + reports
     if probe:
         prompt = PROBE.format(denied=REPO / 'artifacts/genra-manki-aerial-20261014/generated/raw-response.json', repo=REPO,
                               rigpack=brief.rigpack)

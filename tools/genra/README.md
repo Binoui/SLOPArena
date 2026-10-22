@@ -19,6 +19,7 @@ turns the result into a Humanoid clip on the character's own prefab.
 | `run.py`, `claude_runner.py` | One sandboxed authoring job (or a revision of one), end to end |
 | `review.py`, `REVIEW.md`, `loop.py`, `review_benchmark.py` | The director's review in Unity, the review-and-revise loop, and the reviewer's benchmark against the owner's verdicts |
 | `unity_rigpack.py`, `unity_clip.py` | Rig packs from the game's own data; the way back to a Unity clip, measured in Unity |
+| `hitarc.py` | Where a weapon normal hits: its capsule swept over the active ticks against the game's idle hurtboxes, as a side-view map (see Weapon arcs) |
 | `flow_corpus.py` | The hand-made liveliness corpus the flow checks are calibrated on (`benchmarks/flow-corpus.json`) |
 | `GUIDE.md` | The toolkit guide included in the model's prompt |
 
@@ -520,6 +521,19 @@ and blends them (the arms land on each key's own solution: Barn Door's worst lan
 and `hold='loose'` with `elbows=True` carries the loose hold. The owner asked whether one arm should decide the
 weapon: in the game it does (the plank hangs on the right hand bone), but authoring solves both arms together, holds
 the weapon's direction and lets its position give (`path`).
+
+## Weapon arcs
+
+For a weapon normal the weapon is the hitbox, so its arc is the move (owner, 2026-10-22: "for those moves it's the most
+important part"). `hitarc.py` sweeps the weapon capsule (`bladeHilt` to `bladeEnd`, the move's radius) over the active
+ticks of a toolkit clip and tests it against the defenders' real idle hurtboxes, read from a HitReliabilityReport JSON
+(`targets`), on a grid of positions from 2.5 m behind to 3.5 m ahead and 0-3 m up: the same map as the report's Arc
+section, before anything is cooked. `CALIBRATION` maps the rig pack's frame into the game's: Sir Bonk's cooked plank sits
+about 0.2 m higher than his pack's, fitted on Barn Door's active ticks; with it the estimate matched the game's maps for
+Squire's Cut and Barn Door on 97-99% of cells. Use it on key poses and sketched arcs before authoring a weapon normal's
+motion, and check the bound move with the report. On Sunrise's first keys it showed what the owner saw: the plank held
+still overhead for most of the window covered 151 FightGuy positions (23 behind him) against the old hand-made rising
+slash's 266 (front to back).
 
 ## Visual references
 

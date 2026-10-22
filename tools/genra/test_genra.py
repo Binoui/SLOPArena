@@ -863,6 +863,38 @@ class ContactTests(unittest.TestCase):
         self.assertGreater(json.loads((WEAPON_PACKS[0] / 'grip.json').read_text())['weaponHandOffAxisMetres'], 0.03)
 
 
+class HitArcTests(unittest.TestCase):
+    """Weapon arcs against the game's hurtbox spheres (hitarc.py), no rig pack needed."""
+
+    def test_a_flat_swing_hits_what_it_passes_and_misses_below(self):
+        from genra.hitarc import coverage, intervals, report_spheres
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / 'r.json'  # one 0.2 m head sphere 1.2 m up (game axes: x right, y up, z ahead)
+            report.write_text(json.dumps({'targets': {'T': [[0, 1.2, 0, 0, 1.2, 0, 0.2]]}}))
+            head = report_spheres(report, 'T')
+        self.assertEqual(head.tolist(), [[0, 0, 1.2, 0.2]])
+        plank = np.array([[[0.0, 0.3, 1.5], [0.0, 2.0, 1.5]]])  # ahead of the attacker, 1.5 m up, r 0.2
+        distances, heights = np.round(np.arange(-1, 3.01, 0.25), 2), np.array([0.0, 1.0])
+        grid = coverage(plank, 0.2, head, distances, heights)
+        self.assertEqual(intervals(grid[0], distances, 0.25), [(0.25, 2.25)])  # standing: the head passes under it (the round ends reach 26 cm past it)
+        self.assertFalse(grid[1].any())  # feet 1 m up: the head is 2.2 m up, far above the plank
+
+    def test_the_calibration_lifts_sir_bonks_plank_into_the_games_frame(self):
+        from genra.hitarc import CALIBRATION, weapon_segments
+
+        class Pose:
+            def pos(self, joint):
+                return np.array([0.0, 1.0, 0.4 if joint == 'bladeHilt' else 1.0])
+
+        class Clip:
+            def pose(self, tick):
+                return Pose()
+
+        seg = weapon_segments(Clip(), [0], floor=-1.0, calibration=CALIBRATION['bonk'])
+        self.assertAlmostEqual(float(seg[0, 1, 2]), 1.262 * 2.0 - 0.124, places=5)  # up from the floor, then lifted
+        self.assertAlmostEqual(float(seg[0, 1, 1]), 1.024 * 1.0 + 0.156, places=5)
+
+
 class UnityJobTests(unittest.TestCase):
     """How results and timelines become Unity jobs; no Unity or rig pack needed."""
 

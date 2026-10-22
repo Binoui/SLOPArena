@@ -284,6 +284,20 @@ def evidence(brief_path: Path, result: Path, run_dir: Path, asset=None, referenc
                     + (f", with the reference '{reference}' below at the same length" if reference else '')
                     + '. Hand-made motion stays lit; dark columns are the whole body halting on a key, dark blocks are '
                       'dead holds. The check report has the flow numbers and the hand-made range.')
+    arcs = [t for t in brief.get('targets', []) if t.get('kind') == 'arc']
+    if arcs:  # a weapon normal: where its weapon hits is the move
+        from genra.hitarc import ARC_DISTANCES, ARC_HEIGHTS, CALIBRATION, arc_grid, draw, floor_of, weapon_segments
+        arc = arcs[0]
+        report, cal = REPO / arc['report'], CALIBRATION.get(arc.get('calibration'))
+        seg = weapon_segments(clip, range(arc['window'][0], arc['window'][1] + 1), floor_of(clip.pose(0)), calibration=cal)
+        grids = {name: arc_grid(clip, arc['window'], arc['radius'], report, name, cal) for name in ('FightGuy', 'Manki')}
+        path = run_dir / 'arc.png'
+        draw(path, None, ARC_DISTANCES, ARC_HEIGHTS, {'the clip': (seg, grids)},
+             f"Where the weapon hits, ticks {arc['window'][0]}-{arc['window'][1]}")
+        images.append(path)
+        captions.append(f"Hit arc: the weapon on each active tick (light to dark), side view facing right, and the defender "
+                        f"positions it touches (FightGuy's feet green squares, Manki's yellow dots), from 2.5 m behind to "
+                        f"3.5 m ahead and 0-3 m up. The brief's arc targets count them; for a weapon normal the arc is the move.")
     close = [round(i * (n - 1) / 4) for i in range(4)]
     path = run_dir / 'hands.png'
     closeup_sheet(clip, ['LeftHand', 'RightHand'], close, path)

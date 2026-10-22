@@ -224,6 +224,15 @@ The check measures anatomy and gait the way the roster's approved clips do:
 
 `./genra curves` shows all of these against a reference.
 
+## Weapon arcs
+
+- For a weapon normal the weapon is the hitbox, so its arc over the active ticks is the move (owner, 2026-10-22). A
+  brief's `arc` targets count the defender positions (the hit report's grid: 2.5 m behind to 3.5 m ahead, feet 0-3 m
+  up) the weapon's capsule touches over the window, against the game's own hurtboxes; `./genra check` reports them.
+  Sweep the weapon through the whole window: a weapon parked still for half of it covers a narrow column and fails
+  them (Sunrise's first keys: the plank held up overhead touched 151 positions against the old rising slash's 266).
+  `hitarc.py --out arc.png` draws where it hits.
+
 ## Check and look
 
 - While solving numerical problems, use `./genra check result.json --fast`, or
