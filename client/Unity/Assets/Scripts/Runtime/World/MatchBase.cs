@@ -64,7 +64,49 @@ namespace SlopArena.Client.World
             OnMatchStart();
             gameObject.AddComponent<MatchVisualStyle>().Apply();
         }
-        private void FixedUpdate() => OnMatchFixedUpdate();
+        private void FixedUpdate()
+        {
+            OnMatchFixedUpdate();
+            UpdateCameraFraming();
+        }
+
+        private void UpdateCameraFraming()
+        {
+            if (_cameraMount == null || _playerRenderer == null || Bridge == null) return;
+
+            var states = Bridge.GetAllStates();
+            if (!states.TryGetValue(PlayerEntityId, out var player)) return;
+            var playerPosition = new Vector3(player.PX, player.PY, player.PZ);
+            var bounds = new Bounds(playerPosition, Vector3.zero);
+            Vector3? target = null;
+            float nearestDistance = float.PositiveInfinity;
+            ulong nearestId = ulong.MaxValue;
+            bool stockMatch = MatchConfig.Mode == GameMode.Solo
+                || MatchConfig.Mode == GameMode.PvP && MatchConfig.Format == MatchFormat.Stock;
+            foreach (var pair in states)
+            {
+                if (pair.Key == PlayerEntityId || stockMatch && pair.Value.Deaths >= MatchConfig.MaxStocks)
+                    continue;
+                var state = pair.Value;
+                var position = new Vector3(state.PX, state.PY, state.PZ);
+                bounds.Encapsulate(position);
+                // Prefer Shared's selected target. The nearest fallback is camera-only:
+                // it never changes target selection, facing, or attack admission.
+                float distance = (position - playerPosition).sqrMagnitude;
+                if (pair.Key == player.TargetEntityId)
+                {
+                    target = position;
+                    nearestDistance = -1f;
+                }
+                else if (distance < nearestDistance || distance == nearestDistance && pair.Key < nearestId)
+                {
+                    target = position;
+                    nearestDistance = distance;
+                    nearestId = pair.Key;
+                }
+            }
+            _cameraMount.SetFramingSubjects(playerPosition, target, bounds);
+        }
         protected virtual void OnDestroy()
         {
             PresentationFloor.Clear();

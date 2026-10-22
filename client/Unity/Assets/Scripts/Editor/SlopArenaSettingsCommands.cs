@@ -4,6 +4,7 @@ using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SlopArena.Client.UI;
+using SlopArena.Client.Camera;
 using Unity.Pipeline.Commands;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -87,6 +88,7 @@ namespace SlopArena.EditorTools
                 if (parsed.ReducedFlashing.HasValue) { owner.SetReducedFlashing(parsed.ReducedFlashing.Value); result.AppliedFields.Add("reducedFlashing"); }
                 if (parsed.ScreenShake.HasValue) { owner.SetScreenShake(parsed.ScreenShake.Value); result.AppliedFields.Add("screenShake"); }
                 if (parsed.RecordSessionLog.HasValue) { owner.SetRecordSessionLog(parsed.RecordSessionLog.Value); result.AppliedFields.Add("recordSessionLog"); }
+                if (parsed.CameraStyle.HasValue) { owner.SetCameraStyle(parsed.CameraStyle.Value); result.AppliedFields.Add("cameraStyle"); }
                 result.PersistenceStatus = "save-failed-or-partial";
                 owner.Save();
                 result.Success = true;
@@ -163,6 +165,17 @@ namespace SlopArena.EditorTools
             {
                 switch (property.Name)
                 {
+                    case "cameraStyle":
+                        if (property.Value.Type != JTokenType.String
+                            || !Enum.TryParse(property.Value.Value<string>(), out CameraStyle style)
+                            || property.Value.Value<string>() != style.ToString()
+                            || !Enum.IsDefined(typeof(CameraStyle), style))
+                        {
+                            error = "cameraStyle must be Manual, AutoCombat, Arena, AirDuel, SideDuel, or Shoulder.";
+                            return false;
+                        }
+                        patch.CameraStyle = style;
+                        break;
                     case "uiScale":
                         if (!TryReadNumber(property.Value, "uiScale", 80, 140, true, out double uiScale, out error)) return false;
                         if (uiScale is not (80 or 90 or 100 or 110 or 120 or 130 or 140))
@@ -256,7 +269,8 @@ namespace SlopArena.EditorTools
                 ShowOverheadDamage = owner.ShowOverheadDamage,
                 ReducedFlashing = owner.ReducedFlashing,
                 ScreenShake = owner.ScreenShake * 100f,
-                RecordSessionLog = owner.RecordSessionLog
+                RecordSessionLog = owner.RecordSessionLog,
+                CameraStyle = owner.CameraStyle.ToString()
             };
 
         private static SlopArenaSettingsPatchValues ToRequested(SettingsPatch patch)
@@ -267,7 +281,8 @@ namespace SlopArena.EditorTools
                 ShowOverheadDamage = patch.ShowOverheadDamage,
                 ReducedFlashing = patch.ReducedFlashing,
                 ScreenShake = patch.ScreenShake,
-                RecordSessionLog = patch.RecordSessionLog
+                RecordSessionLog = patch.RecordSessionLog,
+                CameraStyle = patch.CameraStyle?.ToString()
             };
 
         private static SlopArenaSettingsSnapshot ApplyPatch(SlopArenaSettingsSnapshot before, SettingsPatch patch)
@@ -278,7 +293,8 @@ namespace SlopArena.EditorTools
                 ShowOverheadDamage = patch.ShowOverheadDamage ?? before.ShowOverheadDamage,
                 ReducedFlashing = patch.ReducedFlashing ?? before.ReducedFlashing,
                 ScreenShake = patch.ScreenShake.HasValue ? Mathf.Round(patch.ScreenShake.Value) : before.ScreenShake,
-                RecordSessionLog = patch.RecordSessionLog ?? before.RecordSessionLog
+                RecordSessionLog = patch.RecordSessionLog ?? before.RecordSessionLog,
+                CameraStyle = patch.CameraStyle?.ToString() ?? before.CameraStyle
             };
 
         private static SlopArenaSettingsCommandResult Failure(string message, SlopArenaSettingsPatchValues requested = null)
@@ -302,6 +318,7 @@ namespace SlopArena.EditorTools
             internal bool? ReducedFlashing;
             internal float? ScreenShake;
             internal bool? RecordSessionLog;
+            internal CameraStyle? CameraStyle;
         }
     }
 
@@ -327,6 +344,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("reducedFlashing", NullValueHandling = NullValueHandling.Ignore)] public bool? ReducedFlashing { get; set; }
         [JsonProperty("screenShake", NullValueHandling = NullValueHandling.Ignore)] public float? ScreenShake { get; set; }
         [JsonProperty("recordSessionLog", NullValueHandling = NullValueHandling.Ignore)] public bool? RecordSessionLog { get; set; }
+        [JsonProperty("cameraStyle", NullValueHandling = NullValueHandling.Ignore)] public string CameraStyle { get; set; }
     }
 
 
@@ -338,6 +356,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("reducedFlashing")] public bool ReducedFlashing { get; set; }
         [JsonProperty("screenShake")] public float ScreenShake { get; set; }
         [JsonProperty("recordSessionLog")] public bool RecordSessionLog { get; set; }
+        [JsonProperty("cameraStyle")] public string CameraStyle { get; set; }
     }
 
     public sealed class SlopArenaSettingsDiagnostic

@@ -2,6 +2,7 @@ using System;
 using SlopArena.Shared;
 using System.Collections.Generic;
 using SlopArena.Client.Input;
+using SlopArena.Client.Camera;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
@@ -41,6 +42,7 @@ namespace SlopArena.Client.UI
             public bool vibration = true;
             public float cameraSensitivity = 100f;
             public float stickLookSpeed = 100f;
+            public int cameraStyle = (int)CameraStyle.Manual;
             public bool invertCameraHorizontal;
             public bool invertCameraVertical;
             public int displayMode = (int)FullScreenMode.Windowed;
@@ -84,6 +86,7 @@ namespace SlopArena.Client.UI
         public float StickLookSpeed => _settings.stickLookSpeed / 100f;
         /// <summary>Stick-driven aim camera and cursor gain, on the same half scale as <see cref="CameraInputGain"/>.</summary>
         public float StickInputGain => StickLookSpeed * 0.5f;
+        public CameraStyle CameraStyle => (CameraStyle)_settings.cameraStyle;
         public bool InvertCameraHorizontal => _settings.invertCameraHorizontal;
         public bool InvertCameraVertical => _settings.invertCameraVertical;
         public event Action? Changed;
@@ -219,6 +222,13 @@ namespace SlopArena.Client.UI
         }
         public void SetCameraSensitivity(float percent) { _settings.cameraSensitivity = Mathf.Clamp(Mathf.Round(percent), 10f, 200f); ChangedAndApply(); }
         public void SetStickLookSpeed(float percent) { _settings.stickLookSpeed = Mathf.Clamp(Mathf.Round(percent), 10f, 200f); ChangedAndApply(); }
+        public void SetCameraStyle(CameraStyle value)
+        {
+            _settings.cameraStyle = value is CameraStyle.Manual or CameraStyle.AutoCombat or CameraStyle.Arena
+                or CameraStyle.AirDuel or CameraStyle.SideDuel or CameraStyle.Shoulder
+                ? (int)value : (int)CameraStyle.Manual;
+            ChangedAndApply();
+        }
         public void SetInvertCameraHorizontal(bool value) { _settings.invertCameraHorizontal = value; ChangedAndApply(); }
         public void SetInvertCameraVertical(bool value) { _settings.invertCameraVertical = value; ChangedAndApply(); }
         public void SetNetworkStats(int value) { _settings.networkStats = Mathf.Clamp(value, 0, 2); ChangedAndApply(); }
@@ -304,6 +314,8 @@ namespace SlopArena.Client.UI
                 _settings.stickDeadzone = ValidRange(_settings.stickDeadzone, HumanInputActions.DefaultDeadzone * 100f, 5f, 50f);
                 _settings.cameraSensitivity = ValidRange(_settings.cameraSensitivity, 100f, 10f, 200f);
                 _settings.stickLookSpeed = ValidRange(_settings.stickLookSpeed, 100f, 10f, 200f);
+                if (_settings.cameraStyle is < (int)CameraStyle.Manual or > (int)CameraStyle.Shoulder)
+                    _settings.cameraStyle = (int)CameraStyle.Manual;
                 _settings.quality = _settings.quality is >= 0 and <= 2 ? _settings.quality : 2;
                 _settings.targetFps = _settings.targetFps is 60 or 120 or 144 or 240 or -1 ? _settings.targetFps : 120;
                 _settings.uiScale = _settings.uiScale is 80 or 90 or 100 or 110 or 120 or 130 or 140 ? _settings.uiScale : 100;

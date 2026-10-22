@@ -274,7 +274,7 @@ namespace SlopArena.Client.Combat
                 if (desired == CameraMode.Aiming && _characterTransform != null)
                 {
                     float yawRad      = _cameraMount?.GetCameraYawRad() ?? 0f;
-                    float orbitRadius = _cameraMount?.GetOrbitRadius()  ?? 2.5f;
+                    float orbitRadius = _cameraMount?.GetAimOrbitRadius() ?? 2.5f;
                     _aimCameraMount?.Activate(_characterTransform, yawRad, orbitRadius);
                     _lastAimYawRad   = yawRad;
                     _lastAimPitchRad = 0f;

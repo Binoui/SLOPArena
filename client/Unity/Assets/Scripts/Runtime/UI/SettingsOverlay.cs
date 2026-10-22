@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SlopArena.Client.Input;
+using SlopArena.Client.Camera;
 using SlopArena.Shared;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -280,7 +281,34 @@ namespace SlopArena.Client.UI
         private static void BuildGameplay(VisualElement root)
         {
             var settings = ClientSettingsService.Instance;
+            var cameraChoices = new List<string> { "Manual", "Auto Combat", "Arena", "Air Duel", "Side Duel", "Shoulder" };
+            var cameraStyles = new[] { CameraStyle.Manual, CameraStyle.AutoCombat, CameraStyle.Arena,
+                CameraStyle.AirDuel, CameraStyle.SideDuel, CameraStyle.Shoulder };
+            var cameraStyle = new DropdownField("CAMERA STYLE", cameraChoices,
+                Array.IndexOf(cameraStyles, settings.CameraStyle)) { name = "camera-style" };
+            var cameraNote = new Label { name = "camera-style-description" };
+            cameraNote.AddToClassList("sa-settings-note");
+            void DescribeCamera() => cameraNote.text = settings.CameraStyle switch
+            {
+                CameraStyle.AutoCombat => "Follows you and turns toward your target, even without target lock. Automatically frames both fighters. Right stick or mouse overrides the turn briefly.",
+                CameraStyle.Arena => "A wider, elevated view that follows and zooms to frame the fighters. The viewing direction stays steady; right stick or mouse adjusts the angle.",
+                CameraStyle.AirDuel => "Follows both fighters and smoothly looks up or down as your opponent changes height. Leaves room for landings. Right stick or mouse overrides the turn and tilt briefly.",
+                CameraStyle.SideDuel => "Views your duel from the side to make jumps and height differences easier to judge. Slowly turns with the fight and frames both fighters. Right stick or mouse overrides briefly.",
+                CameraStyle.Shoulder => "A closer view over your fighter's right shoulder. Turns and tilts toward the opponent, then pulls back when needed to keep both fighters visible. Right stick or mouse overrides briefly.",
+                _ => "The original player-following camera. Turn with the right stick or mouse.",
+            };
+            cameraStyle.RegisterValueChangedCallback(evt =>
+            {
+                int index = cameraChoices.IndexOf(evt.newValue);
+                if (index < 0) return;
+                settings.SetCameraStyle(cameraStyles[index]);
+                DescribeCamera();
+            });
+            DescribeCamera();
+            root.Add(cameraStyle);
+            root.Add(cameraNote);
             AddSlider(root, "Mouse Sensitivity", settings.CameraSensitivity * 100f, 10f, 200f, settings.SetCameraSensitivity);
+            AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
             var horizontal = new Toggle("INVERT HORIZONTAL CAMERA") { value = settings.InvertCameraHorizontal };
             horizontal.RegisterValueChangedCallback(evt => settings.SetInvertCameraHorizontal(evt.newValue));
             root.Add(horizontal);

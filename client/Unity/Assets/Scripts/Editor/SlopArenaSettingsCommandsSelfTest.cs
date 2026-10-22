@@ -12,6 +12,12 @@ namespace SlopArena.EditorTools
             RequireValid("{\"uiScale\":80,\"targetOpacity\":20,\"screenShake\":0,\"showOverheadDamage\":false,\"reducedFlashing\":true}");
             RequireValid("{\"uiScale\":140,\"targetOpacity\":100,\"screenShake\":100}");
             RequireValid("{\"recordSessionLog\":true}");
+            RequireValid("{\"cameraStyle\":\"Manual\"}");
+            RequireValid("{\"cameraStyle\":\"AutoCombat\"}");
+            RequireValid("{\"cameraStyle\":\"Arena\"}");
+            RequireValid("{\"cameraStyle\":\"AirDuel\"}");
+            RequireValid("{\"cameraStyle\":\"SideDuel\"}");
+            RequireValid("{\"cameraStyle\":\"Shoulder\"}");
             RequireInvalid(null);
             RequireInvalid("{}");
             RequireInvalid("[]");
@@ -25,6 +31,10 @@ namespace SlopArena.EditorTools
             RequireInvalid("{\"showOverheadDamage\":1}");
             RequireInvalid("{\"reducedFlashing\":\"true\"}");
             RequireInvalid("{\"recordSessionLog\":1}");
+            RequireInvalid("{\"cameraStyle\":1}");
+            RequireInvalid("{\"cameraStyle\":\"1\"}");
+            RequireInvalid("{\"cameraStyle\":\"autoCombat\"}");
+            RequireInvalid("{\"cameraStyle\":\"Missing\"}");
             RequireInvalid("{\"uiScale\":100,\"unknown\":true}");
             RequireInvalid("{\"uiScale\":100,\"uiScale\":110}");
             RequireInvalid("{\"uiScale\":100} trailing");
