@@ -1,0 +1,523 @@
+{
+  "name": "bonk-sir-gf-windmill",
+  "notes": "Sir Bonk ground.F / air.F, Blade Storm remade as 'the windmill' (2026-10-22). Shape board tmp/vfx/sirbonk-f/board/shape.html: the owner keeps the 2026-10-18 tuning (planted spin with slow steering, one hit window per turn, pull then launch) and gets a new body animation; pose sheet image 1 approved ('looks perfect'). The plank path is pinned to today's clip on his body (references/storm, measured in tmp/bonk-f/measure/storm-path.json) and the hit coverage per window to at least 90% of today's (arc targets). Rig pack bonk-unity-sirf: the live Sir Bonk with the plank (Weapon0) and his pot lid on his left shoulder (Weapon1).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirf",
+  "character": "Sir Bonk (69 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip; and his pot lid fixed on his left upper arm as Weapon1, where it stays through this move).",
+  "references": {
+    "idle": "references/idle.usda",
+    "storm": "references/storm.usda",
+    "cut": "references/cut.usda",
+    "barn": "references/barn.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 94
+  },
+  "clock": {
+    "duration_ticks": 100,
+    "contact_tick": 50,
+    "active": [
+      8,
+      58
+    ],
+    "iasa_tick": 100
+  },
+  "timing": {
+    "fixed": [
+      "100 ticks at 60 Hz, played once over the move's 100 ticks",
+      "the plank is the hitbox: windows 8-28, 29-42 and the finisher 43-58, changing while the plank is behind him (ticks 29 and 43)",
+      "the plank's path: today's, flat about 0.6 m above the floor, its tip 2.2-2.4 m from his hips, behind him at ticks 13, 29, 43, 59 and ahead at 21, 36, 50",
+      "he stays on his spot: the game steers the spin at 35% of his speed until tick 66",
+      "tick 0 and ticks 94-100 are his idle pose exactly"
+    ],
+    "adjustable": [
+      "his posture (the owner picked upright and proud), his steps, the dizzy wobble over ticks 66-94"
+    ]
+  },
+  "keys": [
+    0,
+    5,
+    9,
+    13,
+    21,
+    29,
+    36,
+    43,
+    50,
+    58,
+    66,
+    76,
+    86,
+    94,
+    100
+  ],
+  "fast_windows": [
+    [
+      6,
+      66
+    ]
+  ],
+  "two_hands": [
+    5,
+    66
+  ],
+  "two_hands_hold": "loose",
+  "views": [
+    "front-three-quarter-left",
+    "top",
+    "gameplay",
+    "profile"
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "images": [
+    "../../sir-bonk-f-20261022/pose-sheet-1.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-f-20261022/today-on-sir-bonk.png"
+  ],
+  "image_notes": "1: the key-pose sheet the owner approved for this move (2026-10-22, his front three-quarter left): coil, the first turn's front sweep, the back of the turn, the finisher and the dizzy end, mapped to ticks 9, 21, 29, 50 and 76. Its stars are an effect; the game draws a tiny windmill over his bucket instead. 2: the Sir Bonk model in its rest T-pose. 3: today's clip on him, which this replaces: the plank path is right, the hunched body is wrong.",
+  "review": {
+    "reference": "cut",
+    "travel": 0.0
+  },
+  "wrist_exempt": {
+    "ticks": [
+      [
+        0,
+        4
+      ],
+      [
+        88,
+        100
+      ]
+    ],
+    "why": "his approved idle folds the plank hand 137 degrees behind the plank: the clip starts on it and straightens the wrist by tick 5, and bends back into it as the plank returns to his shoulder to end on the idle"
+  },
+  "description": "Blade Storm (ground and air F), \"the windmill\", remade for Sir Bonk's own body. The owner keeps the windmill idea and the tuned storm, but today's clip was made for the old, hunched Bonk and \"doesn't fit\" him (2026-10-22): on Sir Bonk it spins bent double with his head down (image 3 is today's clip on him; his head sits 0.4 m below its idle height the whole spin).\n\nWho: Sir Bonk is a big, good-hearted wannabe knight in homemade armour: a bucket helm with a broom crest, a tabard with a painted crown, a bedsheet cape, his pot-lid pauldron on his left shoulder, and a plank for a greatsword. He is proud and upright: chest up, head up, looking along the plank. Never hunched, never bent double, never head down.\n\nThe move (the owner approved image 1, five poses): he spins on the spot like a hammer thrower, three turns to his LEFT (counter-clockwise seen from above), both hands on the plank's grip, arms nearly straight, the plank held out flat and level at hip height like a windmill's sail. He leans back a little against its pull. The cape streams out behind the turn on its own (the game's spring), so leave the cape chain at rest. Then he ends dizzy: that is the opening.\n\nThe game fixes the plank's path, because the plank is the hitbox (three hit windows: ticks 8-28, 29-42 and the finisher 43-58, which change while the plank is behind him). Keep today's path exactly (measured on him): the plank flat and level about 0.6 m above the floor (tip 0.32-0.42 m and hilt about 0.25 m below his idle hips), its tip 2.2-2.4 m from his hips, passing straight behind him at ticks 13, 29, 43 and 59 and straight ahead at 21, 36 and 50: one turn every 14-16 ticks, steady, never stopping. His arms angle down to it from his shoulders: he stays tall and lets the straight arms reach down and out, rather than crouching to the plank.\n\nFeet: the floor is where his soles are in the idle pose. He turns with short, heavy pivot steps, one foot at a time stepping around the other, so his feet stay under his hips; a foot on the floor stays on its spot (it may turn there) without sliding or sinking. His hips stay over the same spot (the game steers him slowly; the clip must not travel).\n\nBeats. Tick 0 is the idle pose: the plank rests on his right shoulder. Ticks 1-5: the left hand comes up and takes the grip beside the right. Ticks 1-9 (pose 1, the coil): feet wide, knees bent, torso twisted hard to his right, both hands swing the plank down off the shoulder until it lies flat behind him at hip height (at tick 9 it points back and to his left), head up. Ticks 9-13: unwind to his left, hips first, then chest, then arms, the plank last; it passes straight behind him at 13. Ticks 13-58: three steady turns with the plank flat at hip height (poses 2 and 3: ahead at 21, behind at 29, ahead at 36, behind at 43), chest up, leaning back against the pull. Ticks 43-58 (pose 4, the finisher): the biggest turn: a slightly lower stance, arms fully out, the back heel lifting, the plank ahead at 50 and behind at 58. Ticks 58-66: the momentum carries him round to a stop with the plank out to his right at tick 66. Ticks 66-86 (pose 5, dizzy): his left hand lets go and goes to the side of his helm, his knees bend inward, the plank droops in his right hand until its tip rests on the floor by tick 76, and his whole body sways in a slow wobble on the spot. Ticks 86-94: he shakes it off and swings the plank back up onto his right shoulder. Ticks 94-100 equal the idle pose.",
+  "targets": [
+    {
+      "name": "plank tip flat at hip height, tick 13 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 13,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 13 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 13,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight behind his hips, tick 13 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 13,
+      "max": -1.9
+    },
+    {
+      "name": "plank tip flat at hip height, tick 21 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 21,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 21 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 21,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight ahead of his hips, tick 21 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 21,
+      "min": 1.9
+    },
+    {
+      "name": "plank tip flat at hip height, tick 29 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 29,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 29 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 29,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight behind his hips, tick 29 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 29,
+      "max": -1.9
+    },
+    {
+      "name": "plank tip flat at hip height, tick 36 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 36,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 36 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 36,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight ahead of his hips, tick 36 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 36,
+      "min": 1.9
+    },
+    {
+      "name": "plank tip flat at hip height, tick 43 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 43,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 43 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 43,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight behind his hips, tick 43 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 43,
+      "max": -1.9
+    },
+    {
+      "name": "plank tip flat at hip height, tick 50 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 50,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 50 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 50,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight ahead of his hips, tick 50 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 50,
+      "min": 1.9
+    },
+    {
+      "name": "plank tip flat at hip height, tick 58 (m, up from the idle hips)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 58,
+      "min": -0.5,
+      "max": -0.2
+    },
+    {
+      "name": "plank hilt at hip height, tick 58 (m)",
+      "kind": "char",
+      "a": "bladeHilt",
+      "axis": "up",
+      "tick": 58,
+      "min": -0.4,
+      "max": -0.12
+    },
+    {
+      "name": "plank tip straight behind his hips, tick 58 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 58,
+      "max": -1.9
+    },
+    {
+      "name": "upright: his head near standing height, tick 21 (m, idle 0.66)",
+      "kind": "char",
+      "a": "Head",
+      "axis": "up",
+      "tick": 21,
+      "min": 0.45
+    },
+    {
+      "name": "upright: his head near standing height, tick 36 (m, idle 0.66)",
+      "kind": "char",
+      "a": "Head",
+      "axis": "up",
+      "tick": 36,
+      "min": 0.45
+    },
+    {
+      "name": "upright: his head near standing height, tick 50 (m, idle 0.66)",
+      "kind": "char",
+      "a": "Head",
+      "axis": "up",
+      "tick": 50,
+      "min": 0.45
+    },
+    {
+      "kind": "arc",
+      "window": [
+        8,
+        28
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "all",
+      "min": 71,
+      "name": "arc: FightGuy positions the plank touches in the first turn, ticks 8-28"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        8,
+        28
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "ahead",
+      "min": 34,
+      "name": "arc: FightGuy positions the plank touches in the first turn, ticks 8-28, ahead"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        8,
+        28
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "behind",
+      "min": 33,
+      "name": "arc: FightGuy positions the plank touches in the first turn, ticks 8-28, behind"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        8,
+        28
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "Manki",
+      "side": "all",
+      "min": 71,
+      "name": "arc: Manki positions the plank touches in the first turn, ticks 8-28"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        29,
+        42
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "all",
+      "min": 70,
+      "name": "arc: FightGuy positions the plank touches in the second turn, ticks 29-42"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        29,
+        42
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "ahead",
+      "min": 35,
+      "name": "arc: FightGuy positions the plank touches in the second turn, ticks 29-42, ahead"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        29,
+        42
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "behind",
+      "min": 32,
+      "name": "arc: FightGuy positions the plank touches in the second turn, ticks 29-42, behind"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        29,
+        42
+      ],
+      "radius": 0.35,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "Manki",
+      "side": "all",
+      "min": 72,
+      "name": "arc: Manki positions the plank touches in the second turn, ticks 29-42"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        43,
+        58
+      ],
+      "radius": 0.42,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "all",
+      "min": 77,
+      "name": "arc: FightGuy positions the plank touches in the finisher, ticks 43-58"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        43,
+        58
+      ],
+      "radius": 0.42,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "ahead",
+      "min": 38,
+      "name": "arc: FightGuy positions the plank touches in the finisher, ticks 43-58, ahead"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        43,
+        58
+      ],
+      "radius": 0.42,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "FightGuy",
+      "side": "behind",
+      "min": 36,
+      "name": "arc: FightGuy positions the plank touches in the finisher, ticks 43-58, behind"
+    },
+    {
+      "kind": "arc",
+      "window": [
+        43,
+        58
+      ],
+      "radius": 0.42,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "calibration": "bonk",
+      "defender": "Manki",
+      "side": "all",
+      "min": 75,
+      "name": "arc: Manki positions the plank touches in the finisher, ticks 43-58"
+    },
+    {
+      "name": "the spin stops with the plank out to his right, tick 66 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 66,
+      "min": 1.0
+    },
+    {
+      "name": "dizzy: the plank's tip on the floor, tick 76 (m; the floor is about -0.98)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 76,
+      "max": -0.75
+    },
+    {
+      "name": "dizzy: his left hand on the side of his helm, tick 76 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Head",
+      "tick": 76,
+      "max": 0.3
+    },
+    {
+      "name": "he stays on his spot, side to side (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "right",
+      "window": [
+        8,
+        66
+      ],
+      "max": 0.2
+    },
+    {
+      "name": "he stays on his spot, front to back (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "front",
+      "window": [
+        8,
+        66
+      ],
+      "max": 0.2
+    }
+  ]
+}

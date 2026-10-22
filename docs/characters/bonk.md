@@ -33,7 +33,7 @@ bit wrong for him, and what goes wrong is the opening.
 | Q (`A`) | Pot-Lid Throw | He skims the pot lid off his left shoulder like a frisbee. It hits the first fighter it meets (DOOONG), curves back and hits on the way back too, knocking them toward him, and he catches it. One lid: no second throw while it is out. | If he is busy when it comes back, it rings off his own bucket and he wobbles under a "?". |
 | E | Leap of Faith | Kept: the aim, the plank-first slam on a ring, the stuck plank and the handstand ([phase clips](#targeted-jump-slam-e--sir-bonk-phase-clips--2026-10-21)). | The handstand and hauling the plank out. |
 | R | The Joust | He pulls out a hobby horse, rears and does the neigh himself, then gallops a long way with the plank couched as a lance and armour on. The first fighter he meets is unhorsed (BONK!). In the air he gallops a few strides on thin air, looks down and drops, which makes it a sideways recovery. It replaces Charging Double Slash; Shoulder Bash's snort and armour move into it. | A miss: he skids to a dramatic stop (the owner dropped the turn-round, 2026-10-21). |
-| F | Blade Storm | Kept as tuned on 2026-10-18, with a new clip on his body. | A tiny windmill spins over his bucket until he can act. |
+| F | Blade Storm | Kept as tuned on 2026-10-18. Since 2026-10-22 it plays a GenRA clip made for his body ("the windmill"): upright like a hammer thrower, both hands on the plank, three turns to his left on today's plank path, then a dizzy wobble. Brief `tools/genra/briefs/bonk-sir-gf-windmill.json`. | He ends dizzy, under the tiny windmill. |
 
 New pieces: a projectile that returns to its thrower and can hit him (Q), steering and a skid after a
 miss (R), a hobby horse model, and his left pauldron as its own piece of the model so the lid can
@@ -128,9 +128,29 @@ back, hits again on the way and returns to his shoulder.
   slot 11, shows from the grab to the release (`ShowFromTicks` 6, `HideAfterTicks` 19).
 - **In flight:** `BonkPotLidProjectile` (the same lid under a `PropSpin`, 3 turns a second) is the Q projectile
   visual, ground and air, in `ProjectileVisuals.asset`.
-- **Not yet:** the effects. Concepts come first for the DOOONG on a hit, the catch clang and the self-hit "?". Q
-  shows the normal hit and nothing on the catch. The Shoulder Bash cues (`presentation.bonk.bash.*`) are no longer
-  used.
+- **Effects:** see [the Pot-Lid Throw's effects](#the-pot-lid-throws-effects). The Shoulder Bash cues
+  (`presentation.bonk.bash.*`) are no longer used.
+
+### The Pot-Lid Throw's effects
+
+The owner picked from the concept board (`tmp/vfx/sirbonk-q/concepts/`) and the sound tour
+(`tmp/vfx/sirbonk-q/q-sounds.mp4`): the wake, the tink instead of a DOOONG for the hit, and the gleam with a clank for the
+catch; the rest as recommended. Before the pass the flying lid was a small grey disc that almost disappeared on After
+Hours.
+
+| Beat | Presentation |
+| --- | --- |
+| The release (tick 19) | `presentation.bonk.lid.throw` on his left hand: a quick rising fwip (`bonk_lid_fwip`). |
+| In flight | `BonkPotLidProjectile`: the lid spins flat (`PropSpin`, 3 turns a second) inside two broken cream spin rings that lie flat round it (a `HorizontalBillboard` particle), with a slim cream wake trailing about a metre behind (`LingerAfterProjectile`, so a caught lid's wake fades). The wake is a camera-facing trail a little thicker than the lid seen edge-on, as the camera sees it; as wide as the lid's face it hid the lid in a white sheet. The builder measures the lid from its vertices in the lid's own frame, since the mesh sits tilted inside the prefab. A quiet whirr loops while it flies (`bonk_lid_whirr`). |
+| Each hit, out and back | `presentation.bonk.lid.hit` (Q's `hitPresentationId`): a small red thunk, the lid ringing twice, tin chips, and a wobbly DOOOONG in his hit lettering rising away. The sound is a bright tink (`bonk_lid_tink`). |
+| The catch | `presentation.bonk.lid.catch`: a big cream gleam on his left shoulder, where the lid is back, drawn toward the camera so the lid and the plank don't hide it, and a tin clank (`bonk_lid_clank`). The event fires where the lid reached him, his chest, so `SnapToOwnerBone` moves the gleam to `mixamorig:LeftArm`. |
+| The self-hit | Q's hit plays on him, then `presentation.bonk.lid.selfhit`: his bucket rings twice, his blue-paint "?" pops over it, and his own puzzled "hm?" (`bonk_hm`) follows the tink. |
+
+The "after" captures (`tmp/vfx/sirbonk-q/after3-*`) land the "before" hits at frames 29 and 64; the review video is `tmp/vfx/sirbonk-q/q-effects.mp4`. The self-hit is checked in Training: the capture rig can't make him busy when the lid comes home.
+
+The DOOOONG mask is `Presentation/Source/Dooong.png` (`tools/glyph_mask.py 'DOOOONG' … --size 1024 --weight 800 --fill
+0.86 --bounce 9`, Baloo 2 like the BONK!), baked with his hit red. The candidate DOOONG sounds (a big gong, a wobbly one
+and a short dong) were turned down for the tink; their synthesis is in `tmp/vfx/sirbonk-q/sounds.py`.
 
 ## Sir Bonk effects — 2026-10-21
 
@@ -144,7 +164,7 @@ same hits as the "before" ones (E at frame 89, F at 19, 41 and 60).
 | --- | --- |
 | Every hit | Contacts throw wood splinters instead of steel chips: it's a plank. The armour's "?" keeps its steel chips, since his armour is tin. |
 | Leap of Faith (E) landing | Six attack ticks after touchdown, once he is up in the handstand and past the impact's BONK!, a shaft of storybook light comes down on him and the stuck plank, with rays fanning from its foot, a few gleams and a choir "aah" (`bonk_choir`). It is flat painted cream, alpha-blended with no glow, drawn a metre behind him so he stays in front of it, and it is gone at tick 40 when the haul starts. At tick 53 the plank comes out with a cork POP! in his blue paint (`bonk_pop`), a puff and splinters at the hole, 1.3 m in front of him. Both live in the landing cue (`presentation.bonk.slam.landing`) and run on his attack clock through `AttackTickWindow`, so Hitstop delays them with the clip and a hit that knocks him out of the landing clears them. |
-| Blade Storm (F) spin | The three red smears are four windmill sails: cream canvas on a wooden lattice with a spar along the outer edge, each the camera-facing trail of a particle orbiting him (about 2 m of trail each, so they stay apart). A wooden creak (`bonk_creak`) plays under the whum-whum. |
+| Blade Storm (F) spin | Since 2026-10-22 (owner's pick B): three thin cream wind stripes ride the plank's tip (`presentation.bonk.storm.wind` on `_weapon_tip`, ticks 8-60), each a short trail that draws the plank's own arc and fades within a quarter turn, with a low ring of dust kicked up round his feet (`storm.dust`). They replace the four windmill sails, which hid him and his target from the match camera. The whum and the wooden creak (`bonk_creak`) stay. |
 | Blade Storm (F) recovery | `presentation.bonk.storm.dizzy` at tick 60 of both F slots: a tiny windmill spins over his bucket and slows down until he can act, his dizzy stars, with a higher creak. |
 
 The sounds are synthesized by `tools/sfx/sir_bonk_clips.py`. The POP! mask is

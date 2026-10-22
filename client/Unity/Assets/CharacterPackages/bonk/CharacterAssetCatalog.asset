@@ -195,3 +195,11 @@ MonoBehaviour:
     _prefab: {fileID: 980516581017664842, guid: f5bdac6a2e7386fac9332d504e329fdf, type: 3}
   - _semanticId: presentation.bonk.joust.lookdown
     _prefab: {fileID: 6734896568803692412, guid: 0ef20ded96f1575398709b49fc051244, type: 3}
+  - _semanticId: presentation.bonk.lid.throw
+    _prefab: {fileID: 4581793979697799724, guid: 84c590e51f88ef41fabce1fc09bebe6d, type: 3}
+  - _semanticId: presentation.bonk.lid.hit
+    _prefab: {fileID: 8314868448589690229, guid: 03f7bd7a2ecc3c788a652bb15ba023ed, type: 3}
+  - _semanticId: presentation.bonk.lid.catch
+    _prefab: {fileID: 2411651201643451955, guid: 4314d5ca9c94fac739bfabe514f82b9a, type: 3}
+  - _semanticId: presentation.bonk.lid.selfhit
+    _prefab: {fileID: 2187791123144010484, guid: e24ecdabfffd7770e9ee284de08e5afb, type: 3}

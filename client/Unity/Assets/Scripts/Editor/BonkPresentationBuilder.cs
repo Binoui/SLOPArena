@@ -43,7 +43,10 @@ namespace SlopArena.EditorTools
         // Lifetime of each smear sample behind the plank (the weapon config's HitboxMotionTime).
         private const float SmearSeconds = 0.12f;
         // Blade Storm's whirl: orbit radius (about the plank's reach) and spin in radians per second.
-        private const float WhirlRadius = 1.7f, WhirlSpin = 15f;
+        // Blade Storm's wind stripes on the plank tip: count, spacing (m), width (m) and trail length (s, about a
+        // quarter turn of the tip at the spin's speed).
+        private const int StripeCount = 3;
+        private const float StripeGap = 0.14f, StripeWidth = 0.09f, StripeSeconds = 0.12f;
         // Leap of Faith's landing clip (bonk_sir_e1_land), in attack ticks after touchdown: the
         // holy light comes once he is up in the handstand, after the impact's BONK!, and is gone
         // when the haul starts; the plank leaves the floor at the pop. The plank's hole lies about
@@ -104,7 +107,7 @@ namespace SlopArena.EditorTools
         private sealed class Materials
         {
             public Material Glow, Thunk, Rings, Letters, Balloon, Question, Dust, Puff, Rock, Chip, Cracks, Eye, Line,
-                Glint, Ribbon, SmearBand, Splinter, Sail, Gleam, Beam, Rays, Pop, Pinwheel,
+                Glint, Ribbon, SmearBand, Splinter, Gleam, Beam, Rays, Pop, Pinwheel,
                 Neigh, Clip, Clop, Gulp, QuestionPaint, Straw, Disc, Sweat, Pennant, Dooong, SpinRings, Wake;
             // Width over height of the lettering textures (each is baked around its own ink).
             public float NeighAspect, ClipAspect, ClopAspect, GulpAspect, DooongAspect;
@@ -686,64 +689,35 @@ namespace SlopArena.EditorTools
         // ── Blade Storm (F) ──────────────────────────────────────────────────────
 
         /// <summary>
-        /// The spin, the windmill technique: four windmill sails whirling around him at the height
-        /// of his flat blade, in a slightly tilted circle, with a wooden creak under the whum-whum.
-        /// Each sail is the camera-facing ribbon trail of a particle orbiting his body, painted as
-        /// cream canvas on a wooden lattice, so it reads from any angle (flat discs collapse into
-        /// lines at the gameplay camera's height).
+        /// Blade Storm's wind stripes (owner's pick B, 2026-10-22, replacing the windmill sails that hid him): three thin
+        /// cream streaks riding the plank's tip, stacked a little apart, each a short world-space trail that draws the
+        /// plank's own arc and fades within about a quarter turn. The cue rides <c>_weapon_tip</c> for the spin's hit
+        /// windows; the whum and the wooden creak stay.
         /// </summary>
         private static GameObject Whirl(string name)
         {
             var root = _kit.NewRoot(name, attackBound: true);
-            var orbit = Child(Frame(root, upright: true), "Orbit");
-            // The blade spins about 1 m off the floor, 0.2 m above his hips in the low stance.
-            orbit.transform.localPosition = new Vector3(0f, 0.2f, 0f);
-            orbit.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
-            var whirl = Particles(orbit, "Sails", _m.Sail, 0.8f, ParticleSystemSimulationSpace.Local);
-            Burst(whirl, 4);
-            var main = whirl.main;
-            main.startLifetime = 0.78f;
-            main.startSize = 0.55f;
-            main.startSpeed = 0f;
-            var shape = whirl.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = WhirlRadius;
-            shape.radiusThickness = 0f;
-            shape.arcMode = ParticleSystemShapeMultiModeValue.BurstSpread;
-            shape.rotation = new Vector3(90f, 0f, 0f);
-            var velocity = whirl.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.y = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
-            // Radians per second about the orbit's up axis: about 2.5 turns a second, like the spin.
-            // Every axis shares one curve mode, or Unity ignores the orbit.
-            velocity.orbitalX = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.orbitalY = new ParticleSystem.MinMaxCurve(-WhirlSpin, -WhirlSpin);
-            velocity.orbitalZ = new ParticleSystem.MinMaxCurve(0f, 0f);
-            var trails = whirl.trails;
-            trails.enabled = true;
-            trails.mode = ParticleSystemTrailMode.PerParticle;
-            // About 2 m of trail per sail at 25 m/s, so the four sails stay apart on the 10.7 m orbit.
-            trails.lifetime = new ParticleSystem.MinMaxCurve(0.085f);
-            trails.minVertexDistance = 0.05f;
-            trails.worldSpace = false;
-            trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
-            trails.sizeAffectsWidth = true;
-            trails.inheritParticleColor = true;
-            trails.dieWithParticles = true;
-            trails.widthOverTrail = new ParticleSystem.MinMaxCurve(1f, Curve((0f, 1f), (1f, 0.7f)));
-            var renderer = whirl.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.None;
-            renderer.trailMaterial = _m.Sail;
-            var color = whirl.colorOverLifetime;
-            color.enabled = true;
-            color.color = GradientOf(new[] { (0f, Color.white), (1f, Color.white) },
-                new[] { (0f, 0f), (0.06f, 1f), (0.85f, 0.9f), (1f, 0f) });
+            var frame = Frame(root);
+            for (int k = 0; k < StripeCount; k++)
+            {
+                var stripe = Child(frame, $"Stripe {k + 1}");
+                stripe.transform.localPosition = new Vector3(0f, (k - (StripeCount - 1) * 0.5f) * StripeGap, 0f);
+                var trail = stripe.AddComponent<TrailRenderer>();
+                trail.time = StripeSeconds * (1f - 0.15f * k);
+                trail.minVertexDistance = 0.05f;
+                trail.widthMultiplier = StripeWidth * (1f - 0.2f * k);
+                trail.widthCurve = Curve((0f, 1f), (1f, 0f));
+                trail.colorGradient = GradientOf(new[] { (0f, Color.white), (1f, Color.white) },
+                    new[] { (0f, 0.95f), (0.5f, 0.7f), (1f, 0f) }).gradient;
+                trail.textureMode = LineTextureMode.Stretch;
+                trail.alignment = LineAlignment.View;
+                trail.numCapVertices = 2;
+                trail.sharedMaterial = _m.Wake;
+                trail.shadowCastingMode = ShadowCastingMode.Off;
+                trail.receiveShadows = false;
+            }
             _kit.Sound(root, "bonk_storm", 0.7f, 1f);
-            _kit.Sound(orbit, "bonk_creak", 0.45f, 1f);
+            _kit.Sound(frame, "bonk_creak", 0.45f, 1f);
             return Save(root);
         }
 
@@ -787,14 +761,15 @@ namespace SlopArena.EditorTools
             var shape = dust.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.95f;
-            shape.radiusThickness = 0.2f;
+            // A low ring kicked up round his feet (owner's pick B): wide and flat, so it never hides him.
+            shape.radius = 1.15f;
+            shape.radiusThickness = 0.15f;
             shape.rotation = new Vector3(90f, 0f, 0f);
             var velocity = dust.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.Local;
             velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.y = new ParticleSystem.MinMaxCurve(0.4f, 1.1f);
+            velocity.y = new ParticleSystem.MinMaxCurve(0.15f, 0.45f);
             velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.orbitalX = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.orbitalY = new ParticleSystem.MinMaxCurve(-5f, -4f);
@@ -1162,19 +1137,20 @@ namespace SlopArena.EditorTools
             var root = _kit.NewRoot("BonkPotLidProjectile", attackBound: false);
             var spin = Child(root, "Spin");
             spin.AddComponent<PropSpin>().DegreesPerSecond = LidSpinDegreesPerSecond;
-            float across = LidAcross(_kit.NestModel(spin, PotLidPrefabPath, "Lid"));
+            var (across, thick) = LidSize(_kit.NestModel(spin, PotLidPrefabPath, "Lid"));
 
-            // A cream wake as wide as the lid, thinning to nothing behind it, so it reads on dark stages and from behind and
-            // draws the curve home. It outlives a caught lid by a moment.
+            // A cream wake a little thicker than the lid seen edge-on, as the camera sees it, thinning to nothing behind it,
+            // so it reads on dark stages and from behind and draws the curve home. As wide as the lid's face, a camera-facing
+            // trail swallowed the lid in a white sheet (2026-10-22). It outlives a caught lid by a moment.
             var wake = Child(root, "Wake");
             wake.AddComponent<LingerAfterProjectile>().Seconds = 0.25f;
             var trail = wake.AddComponent<TrailRenderer>();
             trail.time = LidWakeSeconds;
             trail.minVertexDistance = 0.04f;
-            trail.widthMultiplier = across * 0.9f;
+            trail.widthMultiplier = Mathf.Max(0.08f, thick * 1.4f);
             trail.widthCurve = Curve((0f, 1f), (1f, 0f));
             trail.colorGradient = GradientOf(new[] { (0f, Color.white), (1f, Color.white) },
-                new[] { (0f, 1f), (0.6f, 0.85f), (1f, 0f) }).gradient;
+                new[] { (0f, 0.95f), (0.5f, 0.75f), (1f, 0f) }).gradient;
             trail.textureMode = LineTextureMode.Stretch;
             trail.alignment = LineAlignment.View;
             trail.numCapVertices = 2;
@@ -1197,14 +1173,28 @@ namespace SlopArena.EditorTools
             return Save(root);
         }
 
-        /// <summary>The lid's width across its face, from the nested model (0.37 m when the local model is missing).</summary>
-        private static float LidAcross(GameObject lid)
+        /// <summary>
+        /// The lid's width across its face and its thickness, from the nested model's vertices in the lid's own frame (+Y
+        /// its face); 0.37 m by 0.09 m when the local model is missing. Renderer bounds are world-aligned boxes round the
+        /// mesh, which sits tilted inside the prefab, so they measured it 0.5 m thick.
+        /// </summary>
+        private static (float across, float thick) LidSize(GameObject lid)
         {
-            var renderers = lid != null ? lid.GetComponentsInChildren<Renderer>() : System.Array.Empty<Renderer>();
-            if (renderers.Length == 0) return 0.37f;
-            var bounds = renderers[0].bounds;
-            foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
-            return Mathf.Max(bounds.size.x, bounds.size.z);
+            var filters = lid != null ? lid.GetComponentsInChildren<MeshFilter>() : System.Array.Empty<MeshFilter>();
+            var bounds = new Bounds();
+            bool any = false;
+            foreach (var filter in filters)
+            {
+                if (filter.sharedMesh == null) continue;
+                foreach (var vertex in filter.sharedMesh.vertices)
+                {
+                    var point = lid.transform.InverseTransformPoint(filter.transform.TransformPoint(vertex));
+                    if (any) bounds.Encapsulate(point);
+                    else bounds = new Bounds(point, Vector3.zero);
+                    any = true;
+                }
+            }
+            return any ? (Mathf.Max(bounds.size.x, bounds.size.z), bounds.size.y) : (0.37f, 0.09f);
         }
 
         /// <summary>
@@ -1241,15 +1231,17 @@ namespace SlopArena.EditorTools
             var shoulder = Child(root, "Shoulder");
             var snap = shoulder.AddComponent<SnapToOwnerBone>();
             snap.BoneId = "mixamorig:LeftArm";
-            snap.Offset = new Vector3(0f, 0.08f, 0f);
+            snap.Offset = new Vector3(0f, 0.03f, 0f);
             var gleam = Particles(shoulder, "Gleam", _m.Gleam, 0.4f, ParticleSystemSimulationSpace.Local);
             Burst(gleam, 1);
             var main = gleam.main;
-            main.startLifetime = 0.26f;
-            main.startSize = 0.5f;
+            main.startLifetime = 0.28f;
+            main.startSize = 0.72f;
             SizeOverLife(gleam, Curve((0f, 0.2f), (0.25f, 1.15f), (1f, 0f)));
             Spin(gleam, 220f);
             InFront(gleam);
+            // Drawn toward the camera, so the lid and the plank over his shoulder don't hide it.
+            gleam.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, 0.8f);
             _kit.Sound(root, "bonk_lid_clank", 0.75f, 1f);
             return Save(root);
         }
@@ -1593,7 +1585,6 @@ namespace SlopArena.EditorTools
                 Ribbon = Mat("BonkRibbon", 128, 64, RibbonPixel),
                 SmearBand = Mat("BonkSmearBand", 64, 128, SmearBandPixel),
                 Splinter = Mat("BonkSplinter", 64, 64, (u, v) => SplinterPixel(P(u, v))),
-                Sail = Mat("BonkSail", 128, 64, SailPixel),
                 Gleam = Mat("BonkGleam", 128, 128, (u, v) => GleamPixel(P(u, v))),
                 Beam = Mat("BonkHolyBeam", 64, 256, BeamPixel),
                 Rays = Mat("BonkHolyRays", 512, 256, RaysPixel),
@@ -1909,9 +1900,9 @@ namespace SlopArena.EditorTools
             return (p - new Vector2(Mathf.Cos(end), Mathf.Sin(end)) * radius).magnitude - width;
         }
 
-        /// <summary>The lid's wake across V: a dust rim, cream and a white core; the trail's gradient fades it.</summary>
+        /// <summary>The lid's wake across V: a dust rim, a cream body and a white core line; the trail's gradient fades it.</summary>
         private static Color WakePixel(float u, float v)
-            => ToonShapes.Bands((Mathf.Abs(v - 0.5f) - 0.47f) * 32f, 2f, 5f, DustRim, Cream, Color.white);
+            => ToonShapes.Bands((Mathf.Abs(v - 0.5f) - 0.47f) * 32f, 2.5f, 8f, DustRim, Cream, Color.white);
 
         /// <summary>
         /// A ribbon band across V for particle trails (FightGuy's ribbon shape): rust rims, bucket
@@ -1954,27 +1945,6 @@ namespace SlopArena.EditorTools
             return ToonShapes.Bands(Polygon(p, outline) * 32f, 1.5f, 2.5f, WoodRim, Wood, WoodLight);
         }
 
-        /// <summary>
-        /// A windmill sail for the storm's trails: cream canvas on a wooden lattice, a spar along the
-        /// outer edge and a wood rim, fading from the head at U = 0 toward the tail like the ribbon.
-        /// </summary>
-        private static Color SailPixel(float u, float v)
-        {
-            float across = Mathf.Abs(v * 2f - 1f);
-            float body = (across - 0.9f) * 32f;
-            Color color = ToonShapes.Bands(body, 2f, 99f, WoodRim, Cream, Cream);
-            float inside = Mathf.Clamp01(0.5f - body - 2f);
-            float cell = Mathf.Repeat(u * 7f, 1f);
-            float bar = Mathf.Min(cell, 1f - cell) * (128f / 7f) - 1.2f;
-            Color lattice = Flat(bar, Wood);
-            lattice.a *= inside;
-            color = Over(color, lattice);
-            Color spar = ToonShapes.Bands((Mathf.Abs(v - 0.84f) - 0.07f) * 64f, 1.2f, 99f, WoodRim, Wood, Wood);
-            spar.a *= inside;
-            color = Over(color, spar);
-            color.a *= Mathf.Min(Mathf.Clamp01(u / 0.04f), Mathf.Clamp01((1f - u) / 0.2f));
-            return color;
-        }
 
         /// <summary>A knightly gleam: a four-point star in cream with a white core and a dust rim.</summary>
         private static Color GleamPixel(Vector2 p)

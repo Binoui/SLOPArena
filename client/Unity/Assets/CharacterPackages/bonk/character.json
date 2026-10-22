@@ -1049,23 +1049,6 @@
                 "kind": "emitPresentation",
                 "tick": 2,
                 "unit": "ticks",
-                "presentationId": "presentation.bonk.storm.wind",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.hips",
-                  "localPositionX": 0,
-                  "localPositionY": 0,
-                  "localPositionZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 48
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 2,
-                "unit": "ticks",
                 "presentationId": "presentation.bonk.storm.dust",
                 "placement": {
                   "attachmentMode": "bone",
@@ -1077,6 +1060,23 @@
                   "localScaleY": 1,
                   "localScaleZ": 1,
                   "durationTicks": 60
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.bonk.storm.wind",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_tip",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 52
                 }
               },
               {
@@ -1992,19 +1992,19 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 2,
+                "tick": 8,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.storm.air-wind",
                 "placement": {
                   "attachmentMode": "bone",
-                  "boneId": "bone.hips",
+                  "boneId": "_weapon_tip",
                   "localPositionX": 0,
                   "localPositionY": 0,
                   "localPositionZ": 0,
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 48
+                  "durationTicks": 52
                 }
               },
               {
