@@ -290,6 +290,9 @@ hit sparks. Camera shake and impact frames are deliberately absent; the owner wa
 read through the fighters themselves (see the
 [combat presentation plan](../plans/2026-10-16-combat-presentation-pass.md)).
 
+A pure push (no damage, no stun: a drop of Bashie's Hose Down stream, up to 20 a second) skips the hit
+feel, the impact sound and the rumble. Only its own presentation shows (`CombatFeedback`).
+
 | Layer | Behaviour | Hook |
 |-------|-----------|------|
 | Victim shake | Alternating jitter along the knockback while `HitstopTicks > 0`, decaying across the freeze. Scales by tier; armour halves it. | Deform pivot position |
@@ -460,7 +463,11 @@ Wibou is the reference.
   (`FighterHitFeel.BeginGlow`/`EndGlow`) and plays a detached copy of a child when that armour
   absorbs a hit (`FighterHitFeel.ArmorAbsorbed`, from the accepted hit's `ArmorProtected`).
   `SnapToOwnerBone` moves part of a hit effect onto one of the attacker's bones, such as
-  Bonk's bucket ringing on his own head.
+  Bonk's bucket ringing on his own head. It also takes a rig bone name (`mixamorig:LeftArm`).
+- A returning projectile's catch and self-hit cues (`catchPresentationId`, `selfHitPresentationId`) spawn where it
+  reached its owner, at his chest; move parts onto him with `SnapToOwnerBone`. A self-hit is an ordinary hit, so the
+  slot's hit effect plays at the contact too. `PropSpin` spins part of a projectile visual about its own axis (Sir
+  Bonk's pot lid), and a `HorizontalBillboard` particle lies flat round it (its spin rings).
 - `AttackTickWindow` turns on an inactive child of a cue a set number of its fighter's attack
   ticks after the spawn, so Hitstop delays it with the clip, and clears it if the attack ends
   before a set tick. It times moments inside capability cues, which are not attack-bound:
@@ -481,6 +488,17 @@ Wibou is the reference.
     back and swings over, and its ribbon is turned toward each camera before that camera renders
     (`RenderPipelineManager.beginCameraRendering`), with the texture's top kept up. A pull exactly
     along such a chain balances it upright after a swing, so its gravity tips toward the hilt.
+- `ShellTuck`, on an attack-bound cue, folds its fighter into her own shell through the model's
+  `ShellTuckRig` after the clip each frame (Bashie's Shell Slide). The body lies prone with a straight
+  back so the grown shell is on top, the arms and legs shrink into it, hidden bones (her whistle) vanish,
+  and the head is held upright where it peeks out of the shell's front. It holds while the attack shows
+  one of its named clips, eases in and out with a little overshoot, and the rig puts every bone back
+  when no cue asks. Humanoid clips never write bone scale, so the rig restores scales itself. The
+  simulated hurtbox still follows the clip.
+- `AttackClipShow` shows part of an attack-bound cue only while the attack shows one of its named clips
+  (and, optionally, while the fighter is grounded): it scales a `Grow` child in and out, stops its
+  particles emitting and fades its looping audio. Bashie's surf wave rides under her only while she
+  slides on the ground.
 - `SnapToFloor` moves a cosmetic child (a blast ring, a scorch, a debris landing plane) onto
   the stage floor from the heightmap `MatchBase` publishes as `PresentationFloor`, or hides it
   when there is no floor below.
@@ -515,8 +533,9 @@ The general rules still apply:
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
 | Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon timing/placement corrected 2026-10-22; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
 | Bonk "BONK!": bucket-red smear, blunt thunks, a comic BONK! on big hits, armour glow, snort, dust, cracks and rubble | Implemented 2026-10-17; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#combat-presentation--2026-10-17) |
-| Sir Bonk: wood splinters, Leap of Faith's holy light and POP!, Blade Storm's windmill sails and tiny windmill | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#sir-bonk-effects--2026-10-21) |
+| Sir Bonk: wood splinters, Leap of Faith's holy light and POP!, Blade Storm's wind stripes and dust ring (sails until 2026-10-22) and tiny windmill | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#sir-bonk-effects--2026-10-21) |
 | Sir Bonk's Joust: straw poofs for the hobby horse, NEIGH!, a pennant on the lance, clip-clop hooves, heel gouges in the skid, the look-down gag | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-jousts-effects) |
+| Sir Bonk's Pot-Lid Throw: a cream wake and flat spin rings on the flying lid, a whirr, a tink and a wobbly DOOOONG on each hit, a gleam and clank on the catch, a ringing bucket, "?" and "hm?" on a self-hit | Implemented 2026-10-22; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-pot-lid-throws-effects) |
 | Character-specific hit layers | All four fighters | Per-slot `hitPresentationId` |
 | Character Course feel (Sanctuary): paper-lantern targets, breaks, checkpoint frames, missed-target pillars, ALL CLEAR! and the finish | Implemented 2026-10-18; concepts approved, in-game check pending | `SanctuaryCoursePresentationBuilder.cs` + `CharacterCoursePresentation.cs`; see [Phase 4](../design/arcade-phase-4.md#feel-pass--2026-10-18) |
 

@@ -121,6 +121,10 @@ the affected writer or task owner; an Editor lease holder is not a coordinator.
   waiter may win the atomic claim. Waiters are not promised FIFO ordering.
 - `held`/`releasing` means wait in the gateway, not owner-inbox delegation.
   Only a definitively rejected claim can be retried after settled availability.
+  If the holder's batch has outlived its own timeout while the Editor sits idle (no compiler
+  process, nothing new in `Editor.log`), tell the user: a dialog or an unfocused Editor may be
+  waiting. On 2026-10-22 a gateway auto-recompile hung that way for about 35 minutes inside another
+  thread's capture batch, then cleared.
 - `blocked`, unknown/inconsistent status, missing discovery, ambiguous claim,
   process/session mismatch or unproven completion means stop, preserve evidence,
   and reconcile. Never replay a command or infer takeover from silence/timeouts.
