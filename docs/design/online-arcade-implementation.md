@@ -2,7 +2,8 @@
 
 **Status:** Recommendations approved 2026-10-19 and recorded in
 [ADR-0040](../adr/0040-online-arcade-room-pick-and-match-format.md). Slices 1 and 2 are
-implemented and await two-client playtests; slices 3–4 are not started. Building slice 2
+implemented; slice 3 (Versus 1v1/2v2) is built and awaits human multiplayer acceptance.
+Slice 4 is not started. Building slice 2
 refined admission, starts and client hosting (below and in the ADR). The
 [feature brief](online-arcade.md) owns gameplay and UX; this page covers the
 architecture choices that brief needs.
@@ -122,8 +123,9 @@ Each slice needs its own approval and ends at a playable check.
    Match. Arcade cards read "coming online". The camp and locked Character Select shapes
    arrive with the formats that use them.
 2. **Online Arcade foundations, proven by Co-op Slopball** (implemented): see below.
-3. **Versus Slopball** 1v1, then 2v2: camps, held serves, points, hits across the net and
-   player colours.
+3. **Versus Slopball** (implemented): 1v1/2v2 camps, held serves, first to 21 points,
+   hits across the net, Ball only and camp colours. See the
+   [implementation plan](../plans/2026-10-22-versus-slopball.md).
 4. **Course Race, then Co-op:** per-racer progress, mirror colours and finish order.
 
 ### Slice 2, as built
@@ -131,20 +133,34 @@ Each slice needs its own approval and ends at a playable check.
 - **Shared:** `MatchFormat` (`stock`, `slopball-coop`) with its arena check, rule and
   starts; `SlopballCoopMatchRule` admits two to four fighters, and
   `ServerSimulation.BeginSlopballRun` starts a run with no Slopball countdown or input
-  release, serving after the normal gap. A miss spends the run's budget, provisionally
-  three (`SlopballCoopMatchRule.DefaultMissBudget`); returns add to the team total, and
-  `EvaluateMatch` ends the Match with a shared result. World Snapshot format 2 carries the
+  release, serving after the normal gap. The default miss budget is zero (unlimited):
+  a miss resets combo and heat while returns add to the team total across combos.
+  Each serve auto-locks the ball unless manually suppressed; fighter targets are rejected.
+  With friendly fire off (the default), attack contacts and grabs exclude teammates
+  before collision can consume a projectile. `SlopballCoopMatchRule.FriendlyFire` is
+  immutable and is passed through Match setup to both server and client prediction.
+  World Snapshot format 2 carries the
   ball and the rally; World Frame format 2 carries Slopball events; the predictor runs
-  them through a rollback ledger. Protocol 11.
+  them through a rollback ledger. Protocol 13 adds the co-op friendly fire selection;
+  older clients/hosts cannot join that release. World Snapshot is now format 3 for
+  returning projectiles, independently of this fixed Match setting.
 - **GameHost:** the start request's `format` picks the rule and arena; Arcade arenas are
   admitted only by their format. The run's seed is random per Match and reaches clients
   in the snapshot. Results append the team's returns, best combo and misses.
 - **Master:** `Room:AdmittedArcade` (default `slopball-coop:slopball`),
   `RoomChoosePick(format, arena)`, the Room snapshot's `format` and `admittedArcade`, and
-  `format` in the Match start body and the clients' push.
+  `format` in the Match start body and the clients' push. `RoomReturnToLobby(matchId)`
+  checks the current co-op Match and leader, calls the existing GameHost abort endpoint,
+  then uses match completion to reset preparation and notify the roster without clearing
+  membership or chat. A stale request cannot stop a rematch; a failed abort allows retry.
+  `RoomSetFriendlyFire(enabled)` is leader-only and Lobby-only. Its preference defaults
+  off in new Rooms, survives rematches, and is projected only into co-op Match starts.
 - **Client:** the ARCADE tab's Slopball card picks co-op when Master admits it; Character
   Select labels the pick; `PvPMatch` hosts `OnlineSlopball` (ball, Launcher, combo board,
-  team HUD, ball lock-on); Results show the team's returns.
+  team HUD, ball lock-on); the leader's pause menu offers Return to Lobby. The team HUD
+  shows total returns, combo and best combo instead of a miss allowance.
+  The Room lobby shows the current co-op friendly fire preference; only the connected
+  leader can change it before Stage Select. Match setup freezes the value.
 - **Not built:** called serves, multiball and assists (brief proposals), the
   enclosed-court camera hiding the Solo court uses, and release-written Arcade admission.
 

@@ -36,6 +36,19 @@ class PresentationReviewTests(unittest.TestCase):
         self.assertNotIn("--orbit", first)
         self.assertEqual(second[second.index("--orbit") + 1], "70")
 
+    def test_airborne_capture_requests_a_real_jump(self) -> None:
+        batch = review.build_batch("bashie", "manki", "splash_deck", "tmp/x", ["2"], ["2:airborne=1"],
+                                   "normal:1", "960x540", False)
+        command = batch["commands"][2]
+        self.assertEqual(command[command.index("--airborne") + 1], "true")
+
+    def test_air_duel_capture_requests_both_jumps(self) -> None:
+        batch = review.build_batch("bashie", "manki", "splash_deck", "tmp/x", ["4"],
+                                   ["4:airborne=1", "4:victim-airborne=1"], "normal:1", "960x540", False)
+        command = batch["commands"][2]
+        self.assertEqual(command[command.index("--airborne") + 1], "true")
+        self.assertEqual(command[command.index("--victim-airborne") + 1], "true")
+
     def test_batch_rejects_overrides_for_uncaptured_moves(self) -> None:
         with self.assertRaises(SystemExit):
             review.build_batch("wibou", "manki", "splash_deck", "tmp/x", ["1"], ["F:ticks=9"],

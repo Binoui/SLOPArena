@@ -449,8 +449,8 @@
     },
     {
       "id": "ground.3",
-      "name": "Reverse Rising Slash",
-      "description": "Faster vertical anti-air",
+      "name": "Sunrise",
+      "description": "Two-handed upward slice that catches airborne targets",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -963,7 +963,7 @@
                 "parameters": {
                   "gallopSpeed": 12,
                   "turnDegreesPerSecond": 180,
-                  "maxGallopTicks": 60,
+                  "maxGallopTicks": 240,
                   "armored": true,
                   "lanceHitbox": {
                     "shape": "capsule",
@@ -990,7 +990,7 @@
                   "missEndingTicks": 36,
                   "skidTicks": 18,
                   "turnAroundOnMiss": false,
-                  "airStrideTicks": 24,
+                  "airStrideTicks": 120,
                   "lookDownTicks": 20,
                   "gallopAnimationId": "anim.bonk.gr-gallop",
                   "gallopLoopTicks": 24,
@@ -1908,7 +1908,7 @@
                 "parameters": {
                   "gallopSpeed": 12,
                   "turnDegreesPerSecond": 180,
-                  "maxGallopTicks": 60,
+                  "maxGallopTicks": 240,
                   "armored": true,
                   "lanceHitbox": {
                     "shape": "capsule",
@@ -1935,7 +1935,7 @@
                   "missEndingTicks": 36,
                   "skidTicks": 18,
                   "turnAroundOnMiss": false,
-                  "airStrideTicks": 24,
+                  "airStrideTicks": 120,
                   "lookDownTicks": 20,
                   "gallopAnimationId": "anim.bonk.gr-gallop",
                   "gallopLoopTicks": 24,

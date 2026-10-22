@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System;
 using UnityEngine;
@@ -47,7 +48,66 @@ namespace SlopArena.Client.World
         private bool _resultsScheduled;
         private Coroutine? _countdownPresentation;
         private OnlineSlopball? _slopball;
+        private LobbyClient? _roomLobby;
+        private RoomSnapshot? _roomSnapshot;
+        private bool _returnToLobbyPending;
         protected override ISimulationBridge Bridge => _bridge;
+
+        private void OnRoomUpdated(RoomSnapshot room)
+        {
+            if (room.Id != ClientSession.SelectedRoomId) return;
+            _roomSnapshot = room;
+            UpdateReturnToLobbyAction();
+        }
+
+        private void UpdateReturnToLobbyAction(string? error = null)
+        {
+            bool leader = _roomLobby?.IsConnected == true && _roomSnapshot is { Phase: "In Match" } room
+                && room.Id == ClientSession.SelectedRoomId && room.ActiveMatchId == MatchConfig.MatchId
+                && room.LeaderSteamId == ClientSession.SteamId;
+            _pauseMenu.SetReturnToLobbyAction(leader ? ReturnToLobby : null, _returnToLobbyPending, error);
+        }
+
+        private void OnRoomConnected() => _ = RefreshRoomAsync();
+        private void OnRoomDisconnected(Exception? _) => UpdateReturnToLobbyAction();
+
+        private async System.Threading.Tasks.Task RefreshRoomAsync()
+        {
+            var lobby = _roomLobby;
+            if (lobby == null) return;
+            try
+            {
+                var room = await lobby.GetMyRoomAsync();
+                if (this != null && _roomLobby == lobby && room != null) OnRoomUpdated(room);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PvPMatch] Could not refresh Room leader: {ex.Message}");
+            }
+        }
+
+        private void ReturnToLobby() => _ = ReturnToLobbyAsync();
+
+        private async System.Threading.Tasks.Task ReturnToLobbyAsync()
+        {
+            if (_returnToLobbyPending || _roomLobby == null || MatchConfig.MatchId is not Guid matchId) return;
+            _returnToLobbyPending = true;
+            UpdateReturnToLobbyAction();
+            try
+            {
+                await _roomLobby.RoomReturnToLobbyAsync(matchId);
+                ClientSession.ApplyMatchAborted(matchId, "leader_returned_to_lobby");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PvPMatch] Could not return the group to the lobby: {ex.Message}");
+                if (this != null)
+                {
+                    _returnToLobbyPending = false;
+                    UpdateReturnToLobbyAction("Couldn’t return to the lobby. Please retry.");
+                }
+            }
+        }
 
         protected override void LeaveMatch()
         {
@@ -136,7 +196,7 @@ namespace SlopArena.Client.World
             }
             _networkClient.EntityId = PlayerEntityId;
             _bridge = new RollbackSimulationBridge(arena, _networkClient, PlayerEntityId,
-                MatchConfig.Format.CreateRule((byte)MatchConfig.MaxStocks));
+                MatchConfig.Format.CreateRule((byte)MatchConfig.MaxStocks, MatchConfig.FriendlyFire, MatchConfig.Camps, MatchConfig.BallOnly));
             SpawnStageVisual(arena);
             if (_combatFeedback == null)
                 _combatFeedback = FindFirstObjectByType<CombatFeedback>();
@@ -169,9 +229,19 @@ namespace SlopArena.Client.World
                 return;
             }
             SetupHUD(playerDef);
-            if (MatchConfig.Format == MatchFormat.SlopballCoop && _hudManager != null)
+            if (MatchConfig.Format.IsSlopball() && _hudManager != null)
                 _slopball = new OnlineSlopball(transform, StageVisual, arena, _hudManager,
                     () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
+            if (MatchConfig.Format.IsSlopball() &&
+                ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room &&
+                ClientSession.ActiveLobby is { } roomLobby)
+            {
+                _roomLobby = roomLobby;
+                roomLobby.RoomUpdated += OnRoomUpdated;
+                roomLobby.Connected += OnRoomConnected;
+                roomLobby.Disconnected += OnRoomDisconnected;
+                _ = RefreshRoomAsync();
+            }
 
             // Opponent renderers — one per MatchConfig.Opponents entry. The scene's
             // _opponentRenderer is the first opponent + the clone template for the rest.
@@ -299,7 +369,9 @@ namespace SlopArena.Client.World
             int idx = (int)entityId - 1;
             int fighters = MatchConfig.Opponents.Count + 1;
             if (MatchConfig.Format != MatchFormat.Stock && idx >= 0 && idx < fighters)
-                return MatchConfig.Format.StartFor(arena, idx, fighters);
+                return MatchConfig.Format.StartFor(arena, idx, fighters,
+                    Enumerable.Range(1, fighters).Select(i => MatchConfig.Camps.TryGetValue((ulong)i, out var camp)
+                        ? camp : SlopballCamp.None).ToArray());
             if (idx < 0 || arena.SpawnPoints == null || idx >= arena.SpawnPoints.Length)
                 return new SpawnPoint { X = 40f, Y = 0.5f, Z = 40f, Yaw = 0f };
             return arena.SpawnPoints[idx];
@@ -619,6 +691,13 @@ namespace SlopArena.Client.World
 
         protected override void OnDestroy()
         {
+            if (_roomLobby != null)
+            {
+                _roomLobby.RoomUpdated -= OnRoomUpdated;
+                _roomLobby.Connected -= OnRoomConnected;
+                _roomLobby.Disconnected -= OnRoomDisconnected;
+                _roomLobby = null;
+            }
             if (_networkClient != null)
                 _networkClient.ConnectionFailed -= OnSteamConnectionFailed;
             _slopball?.Dispose();

@@ -1,0 +1,172 @@
+{
+  "name": "bashie-e-ring-bounce-v2",
+  "notes": "Owner requested a clearly separated throw, small forward jump onto the ring, connection/compression, then high jump. Timing may change to express these parts; the old spring/plant/squash/rise body poses are liked and are reused at the new provisional ticks. KEYS ONLY before motion. No live E data/binding/cook is changed in this candidate task.",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie, a small round female turtle lifeguard. Current verified 49-joint Humanoid body with four-finger cartoon hands (thumb/index/middle/ring), rigid Shell and Whistle joints, red bucket hat and sandals. Very short limbs; use anatomical solvers and measured skin, not stretched proportions.",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 54
+  },
+  "keys": [
+    0,
+    12,
+    18,
+    26,
+    34,
+    40,
+    44,
+    54
+  ],
+  "review_ticks": [
+    0,
+    12,
+    18,
+    26,
+    34,
+    40,
+    44,
+    54
+  ],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "preview_views": [
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../bashie-r-20261022/inputs/model.png",
+    "../../bashie-e-20261022/ring-bounce-reference-v1.png",
+    "../../../tmp/bashie-model/review/lifebuoy-v1/q3.png"
+  ],
+  "image_notes": "Actual current Bashie and life-ring mesh, plus the earlier approved pose sheet. Preserve her identity and the liked final plant/squash/spring/rise poses. The change is the CLEAR separate throw and small forward hop before those poses; the old sheet compresses this too much.",
+  "timing": {
+    "fixed": [
+      "One E automatically handles ring placement, the small forward hop and high bounce, even offstage with no ordinary jumps left. Movement input aims the BIG launch, not the ring.",
+      "No cannonball. Preserve body proportions, rigid shell/hat, the existing rig and actor root. Reuse the liked old core body poses at the retimed keys in keys/result.json."
+    ],
+    "adjustable": [
+      "The owner explicitly says the first part is too quick and needs separate parts; replace the old 12-tick setup. PROVISIONAL review clock: release 12, small-hop takeoff 18, apex 26, contact 34, squash 40, high spring 44, rising handoff 54 (60 Hz). Keep this clock for this candidate; it is not live move data.",
+      "New throw/takeoff/apex poses and later in-betweens may change to explain two distinct jumps. The final high-bounce shape remains liked."
+    ]
+  },
+  "approved_keys": {
+    "file": "../../../artifacts/bashie-e-v2-20261022/retimed-approved-core.json",
+    "ticks": [
+      0,
+      34,
+      40,
+      44,
+      54
+    ]
+  },
+  "fast_windows": [
+    [
+      40,
+      44
+    ]
+  ],
+  "planted": [],
+  "description": "Bashie E Ring Bounce, revision TWO. The owner likes the motion but says the move needs four clearly separated parts: (1) Bashie throws the ring, clearly ahead of her; (2) she makes a SMALL FORWARD JUMP onto it; (3) her feet CONNECT and squash the ring; (4) she jumps HIGH. The first attempt happened almost in place and was far too quick, so it did not read as a two-part jump. This is a staging and body-mechanics revision, not uniform slow motion of the old clip.\n\nCreate KEYS ONLY for the new throw, takeoff and small-hop apex, reusing the liked old body poses for ready, plant, squash, big spring and rise. The original clip is in previous/result.json; its scripts show the anatomical arm/leg solving. The protected core poses are already retimed in keys/result.json. Copy those poses exactly at their listed ticks. No new motion/secondary pass yet.\n\nThe ring is an INDEPENDENT prop outside this Humanoid body clip. It will leave her hands and be visibly about 0.9-1.0 m AHEAD of her starting root, with its top about 0.18 m ABOVE the entry sole plane, then wait there. Her scripted small hop moves her ROOT about 0.72 m FORWARD, with a roughly 0.5 m apex, landing on that ring. The big launch follows only after compression. Those actor translations and ring transforms are applied by preview staging now, and Shared gameplay later. Do NOT put forward travel or the hop's vertical arc into Hips/root animation; pose her short legs and arms for the motion while her actor stays in place in the body file. Hips can compress for weight only.\n\nKey clock at 60 Hz:\n0 READY: COPY the old approved t0, already in keys/result.json. Hands hold the ring in front at waist height. Free entry from standing or falling.\n12 THROW/RELEASE: NEW. She is still at her starting place, BEFORE the small jump. Feet on the ordinary sole plane, knees softly bent, torso leans a little forward, both hands open and extend forward at reachable waist/chest height. Read 'she threw the ring AHEAD', not 'she is already jumping on it'. No huge arm swing through her hat or face. The ring will be visibly away by tick 16. Give her eyes/chin a small forward/down intent toward the ring.\n18 SMALL-HOP TAKEOFF: NEW. The automatic forward hop begins only here, AFTER the ring has been established ahead. Compact push off, heels/toes roll, short legs begin extending and the arms open/pull back for balance. A small forward lean says forward travel; this is a modest hop, not the later BOING. Its actor travel is separate.\n26 SMALL-HOP APEX: NEW. Clearly airborne between the start and the ring: knees tuck the sandals up over its rim, short lower legs under/behind her, feet together enough to clear it, arms balancing forward/out. Body has a readable mild forward lean and looks down toward the waiting ring. She has NOT launched high yet. Hands/forearms stay clear of the whistle, shell, hat and thighs.\n34 PLANT/CONNECT: COPY old approved t7 from keys/result.json. Both feet apart on the near padded rim, normal sole plane in body coordinates. Staging places the whole actor forward and 0.18 m higher; the ring stays there. This is the end of the SMALL hop, a distinct contact before the big bounce.\n40 SQUASH: COPY old approved t10. Both soles pinned, hips about 0.08 m down. Independent ring squashes vertically.\n44 BIG SPRING/BOING: COPY old approved t12. Opposite tall silhouette, arms UP/OUT beside hat, legs extend. This is where the BIG vertical recovery launches.\n54 HIGH RISE: COPY old approved t18. Relaxed rising handoff. Actual high ascent is separate actor movement.\n\nActual proportions are authoritative: about 1 m tall, very short arms/legs, huge rigid hat/head and shell, four-finger cartoon hands. Preserve bone lengths and scales. No leg stretches to reach a distant ring: the actor translation brings her to it. Normal sole plane up=-0.305 relative entry hips; Foot about -0.184, ToeBase about -0.300. At release tick12, keep soles near their ordinary plane; no early jump/tuck. Use anatomical solvers for all new poses.\n\nThe new poses must contrast: THROW = open forward arms + feet down, SMALL HOP = forward lean + tucked knees, BIG SPRING = tall upward stretch. Do not just duplicate the same standing pose at 12/18/26, or make the small hop as energetic/tall as the big launch. The small hop and actual two-arc travel must be legible at normal speed. We will review these actual-rig keys and timed blocking with the ring before authoring transitions.",
+  "targets": [
+    {
+      "name": "throw left hand ahead",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.15
+    },
+    {
+      "name": "throw right hand ahead",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.15
+    },
+    {
+      "name": "Left foot still down at throw",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Left sole on ring at 34",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 34,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Left sole on ring at 40",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 40,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Right foot still down at throw",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Right sole on ring at 34",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 34,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Right sole on ring at 40",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 40,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "squash hips loaded",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 40,
+      "min": -0.13,
+      "max": -0.055
+    },
+    {
+      "name": "spring hips extended",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 44,
+      "min": -0.015,
+      "max": 0.055
+    }
+  ]
+}

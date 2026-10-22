@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 namespace SlopArena.Shared;
@@ -57,13 +58,17 @@ public static class LobbyPayloadCodec
             entityId = eid.GetInt32();
         }
 
+        SlopballCamp camp = SlopballCamp.None;
+        if (element.TryGetProperty("camp", out var campElement)
+            && (campElement.ValueKind != JsonValueKind.String || !SlopballCamps.TryParse(campElement.GetString(), out camp)))
+            return null;
         return new LobbyPlayerInfo(
             steam.GetInt64(),
             name.GetString()!,
             selection,
             lockedIn,
             host.GetBoolean(),
-            entityId);
+            entityId, camp);
     }
 
     /// <summary>
@@ -173,7 +178,24 @@ public static class LobbyPayloadCodec
         }
         if (!MatchFormats.TryParseWire(formatName, out var format))
             return null;
+        bool friendlyFire = false;
+        if (element.TryGetProperty("friendlyFire", out var friendly))
+        {
+            if (friendly.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
+            friendlyFire = friendly.GetBoolean();
+        }
+        if (friendlyFire && format != MatchFormat.SlopballCoop) return null;
+        bool ballOnly = false;
+        if (element.TryGetProperty("ballOnly", out var ballOnlyElement))
+        {
+            if (ballOnlyElement.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
+            ballOnly = ballOnlyElement.GetBoolean();
+        }
+        if (format == MatchFormat.SlopballVersus ? !SlopballCamps.AreBalanced(snap.Players.Select(p => p.Camp))
+            : ballOnly || snap.Players.Any(p => p.Camp != SlopballCamp.None)) return null;
+        if (format == MatchFormat.SlopballVersus && (snap.Players.Any(p => p.EntityId <= 0 || p.EntityId >= ServerSimulation.ArcadeBallTargetInputId)
+            || snap.Players.Select(p => p.EntityId).Distinct().Count() != snap.Players.Count)) return null;
         return new MatchStartedConfig(snap.ServerId, snap.Players, matchPort, arenaName,
-            maxStocks, content, descriptor, roomId, serverAddress, matchId, format);
+            maxStocks, content, descriptor, roomId, serverAddress, matchId, format, friendlyFire, ballOnly);
     }
 }

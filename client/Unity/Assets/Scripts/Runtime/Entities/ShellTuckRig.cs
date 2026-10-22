@@ -23,6 +23,8 @@ namespace SlopArena.Client.Entities
         public Vector3 Head;
         [Tooltip("Rock about the travel direction while tucked: degrees, and cycles per second.")]
         public float WobbleDegrees, WobbleHz;
+        [Tooltip("Keep the clip's horizontal turn while fully tucked, rotating the body around the shell centre.")]
+        public bool FollowAnimatedHeading;
 
         /// <summary>
         /// Bashie's look A, picked by the owner on 2026-10-22 from Blender renders of her rig
@@ -146,6 +148,7 @@ namespace SlopArena.Client.Entities
         private void Apply(in ShellTuckPose pose, float w)
         {
             float held = Mathf.Clamp01(w);
+            Vector3 animatedForward = Vector3.ProjectOnPlane(_head.position - _hips.position, _root.up);
             _clock += Time.deltaTime;
             Quaternion facing = _root.rotation;
             float wobble = pose.WobbleDegrees * held * Mathf.Sin(_clock * 2f * Mathf.PI * pose.WobbleHz);
@@ -169,6 +172,9 @@ namespace SlopArena.Client.Entities
                 Vector3.LerpUnclamped(animated, peek, w),
                 Quaternion.Slerp(_head.rotation, facing * _headRest, held));
             Scale(_head, Mathf.LerpUnclamped(1f, pose.HeadScale, w));
+            if (pose.FollowAnimatedHeading && held >= 0.999f && animatedForward.sqrMagnitude > 0.000001f)
+                _hips.RotateAround(_shell.position, _root.up,
+                    Vector3.SignedAngle(_root.forward, animatedForward, _root.up));
         }
 
         private void Restore()

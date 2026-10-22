@@ -80,6 +80,7 @@ public sealed class AbilityLabPresentationPreviewer
                 _instances[key] = instance;
             }
             EvaluateInstance(instance, (tick - operation.Tick) / AbilityLab.TickRate);
+            SamplePose(instance, renderer);
         }
         RemoveInactive(active);
     }
@@ -127,6 +128,7 @@ public sealed class AbilityLabPresentationPreviewer
                 _instances[key] = instance;
             }
             EvaluateInstance(instance, (currentTick - presentationEvent.MatchTick) / (float)AbilityLab.TickRate);
+            SamplePose(instance, renderer);
         }
         RemoveInactive(active);
     }
@@ -198,6 +200,12 @@ public sealed class AbilityLabPresentationPreviewer
             if (particleSystem != null)
                 particleSystem.Simulate(elapsedSeconds, false, true, false);
         _particleSystems.Clear();
+    }
+
+    private static void SamplePose(GameObject instance, PlayerRenderer renderer)
+    {
+        foreach (var pose in instance.GetComponentsInChildren<IPresentationPoseReceiver>(true))
+            pose.SamplePresentation(renderer);
     }
 
     private void RemoveInactive(HashSet<PresentationEventKey> active)

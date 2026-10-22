@@ -196,7 +196,8 @@ namespace SlopArena.Client.World
         public void Present(ServerSimulation simulation, IReadOnlyList<SpellResolver.HitResult> hits,
             IReadOnlyList<ArcadeBallContact> contacts, IReadOnlyList<SlopballEvent> events)
         {
-            if (simulation.Slopball is not SlopballState state || simulation.ArcadeBall is not ArcadeBallState ball) return;
+            if (simulation.ArcadeBall is not ArcadeBallState ball) return;
+            var state = simulation.Slopball ?? default;
             _senderTarget = new Vector3(state.Shot.Spawn.X, _senderHeight, state.Shot.Spawn.Z);
             if (!_senderPlaced && _sender != null) { _sender.position = _senderTarget; _senderPlaced = true; }
 
@@ -214,12 +215,14 @@ namespace SlopArena.Client.World
                 switch (e.Kind)
                 {
                     case SlopballEventKind.Served: OnServe(ball); break;
+                    case SlopballEventKind.ServeReady: OnServe(ball); break;
+                    case SlopballEventKind.PointScored: OnVersusPoint(ball); break;
                     case SlopballEventKind.Returned: OnScore(e, ball); break;
                     case SlopballEventKind.Missed: OnMiss(e, ball, state); break;
                     case SlopballEventKind.ReServe: OnFizzle(ball); break;
                 }
             }
-            Telegraph(state);
+            if (simulation.Slopball.HasValue) Telegraph(state);
             _combo = state.Returns;
         }
 
@@ -233,6 +236,14 @@ namespace SlopArena.Client.World
             _hits = 0; _bankSince = _skySince = _netSince = false;
             Spawn(_set.ServePuff, centre + Vector3.down * _radius * .3f, 1f, 2f);
             Play(_pop, .75f, UnityEngine.Random.Range(.97f, 1.03f));
+        }
+
+        private void OnVersusPoint(in ArcadeBallState ball)
+        {
+            var floor = Floor(ball.Position);
+            Spawn(_set.Score, floor, 1f, 2.4f);
+            _ball.PlayOutro(scored: true, fizzle: false, floor);
+            Play(_splat, .7f); Queue(_chord, .14f, .55f);
         }
 
         private void OnHit(in SpellResolver.HitResult hit, in ArcadeBallState ball)

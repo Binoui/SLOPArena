@@ -576,6 +576,13 @@ public sealed class CookedCompleteTimelineOperation : CookedTimelineOperation
         : base(tick, unit, CookedOperationKind.CompleteTimeline) { }
 }
 public abstract record CookedCapabilityParameters;
+public sealed record CookedAimedRecoveryCapabilityParameters(
+    ushort StartupTicks,
+    float VerticalSpeed,
+    float DirectionalVerticalSpeed,
+    float HorizontalSpeed,
+    float PreparationRiseSpeed,
+    RecoveryHopParameters? Hop = null) : CookedCapabilityParameters;
 public sealed record CookedRisingDragonCapabilityParameters(float RiseSpeed, ushort RiseTicks, ushort RiseDelay) : CookedCapabilityParameters;
 public sealed record CookedCycloneKickCapabilityParameters(
     float ForwardSpeed, ushort WindupTicks, ushort HitboxEndTick, ushort DurationTicks, float BodyRadius,

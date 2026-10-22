@@ -38,6 +38,7 @@ namespace SlopArena.Client.UI
         private bool _arcadeTab;
         // The leader's local Arcade choice before it is confirmed: co-op Slopball, the one online format so far.
         private bool _arcadePick;
+        private string _arcadeFormat = MatchFormats.SlopballCoopWire;
         private const string SlopballArena = "slopball";
         private static readonly string CoopFormat = MatchFormats.SlopballCoopWire;
 
@@ -251,6 +252,7 @@ namespace SlopArena.Client.UI
             if (_context.Q<Button>("stage-tab-pvp") is { } pvp) pvp.clicked += ShowPvpTab;
             if (_context.Q<Button>("stage-tab-arcade") is { } arcade) arcade.clicked += ShowArcadeTab;
             if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked += PickSlopball;
+            if (_context.Q<Button>("stage-arcade-versus") is { } versus) versus.clicked += PickVersus;
             if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked += ShowArcadeComing;
             ShowRoomTab(false);
         }
@@ -260,6 +262,7 @@ namespace SlopArena.Client.UI
             if (_context.Q<Button>("stage-tab-pvp") is { } pvp) pvp.clicked -= ShowPvpTab;
             if (_context.Q<Button>("stage-tab-arcade") is { } arcade) arcade.clicked -= ShowArcadeTab;
             if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked -= PickSlopball;
+            if (_context.Q<Button>("stage-arcade-versus") is { } versus) versus.clicked -= PickVersus;
             if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked -= ShowArcadeComing;
         }
 
@@ -284,47 +287,53 @@ namespace SlopArena.Client.UI
 
         private bool CoopAdmitted => _roomSnapshot?.AdmitsArcade(CoopFormat, SlopballArena) == true;
 
-        private static bool IsCoopPick(RoomSnapshot room)
-            => string.Equals(room.Format, CoopFormat, StringComparison.Ordinal) &&
+        private static bool IsSlopballPick(RoomSnapshot room)
+            => (room.Format == CoopFormat || room.Format == MatchFormats.SlopballVersusWire) &&
                string.Equals(room.ArenaName, SlopballArena, StringComparison.Ordinal);
 
         /// <summary>The ARCADE tab's cards, label and start action; Slopball co-op is the format Master admits so far.</summary>
+        private bool ArcadeAdmitted(string format) => _roomSnapshot?.AdmitsArcade(format, SlopballArena) == true
+            && (format != MatchFormats.SlopballVersusWire || _roomSnapshot.Members.Length is 2 or 4);
+
         private void ApplyArcadeTabState()
         {
-            bool admitted = CoopAdmitted;
-            bool roomPicked = _roomSnapshot != null && IsCoopPick(_roomSnapshot);
             bool leader = ClientSession.IsLobbyHost;
-            var card = _context.Q<Button>("stage-arcade-slopball");
-            card?.EnableInClassList("arcade-mode-card--selected", leader ? _arcadePick : roomPicked);
-            if (card?.Q<Label>(className: "stage-arcade-soon") is { } badge)
-                badge.text = admitted ? "CO-OP ONLINE" : "COMING ONLINE";
-            if (card?.Q<Label>(className: "arcade-mode-rule") is { } rule)
-                rule.text = admitted
-                    ? "Co-op: two to four of you against the Launcher. Versus comes next."
-                    : "Volleyball across the net, or co-op against the Launcher.";
+            string selected = leader && _arcadePick ? _arcadeFormat : _roomSnapshot?.Format;
+            foreach (var (id, format) in new[] { ("stage-arcade-slopball", CoopFormat),
+                ("stage-arcade-versus", MatchFormats.SlopballVersusWire) })
+            {
+                var card = _context.Q<Button>(id);
+                bool admitted = ArcadeAdmitted(format);
+                card?.EnableInClassList("arcade-mode-card--selected", selected == format);
+                card?.SetEnabled(admitted && !_roomActionPending);
+                if (card?.Q<Label>(className: "stage-arcade-soon") is { } badge)
+                    badge.text = !admitted ? "NEEDS " + (format == CoopFormat ? "2–4 PLAYERS" : "2 OR 4 PLAYERS")
+                        : format == CoopFormat ? "CO-OP ONLINE" : _roomSnapshot.Members.Length == 4 ? "2v2 ONLINE" : "1v1 ONLINE";
+                if (format == CoopFormat && card?.Q<Label>(className: "arcade-mode-rule") is { } rule)
+                    rule.text = "Two to four of you against the Launcher. Unlimited misses.";
+            }
+            string label = selected == MatchFormats.SlopballVersusWire ? "SLOPBALL VERSUS · FIRST TO 21" : "SLOPBALL CO-OP";
             if (_lblSelectedStage != null)
-                _lblSelectedStage.text = roomPicked && (!leader || _arcadePick) ? "ROOM PICK: SLOPBALL CO-OP"
-                    : leader && _arcadePick ? "PICK TO CONFIRM: SLOPBALL CO-OP"
-                    : admitted ? "CHOOSE SLOPBALL TO PLAY CO-OP" : "ARCADE IS COMING ONLINE";
+                _lblSelectedStage.text = _arcadePick || _roomSnapshot != null && IsSlopballPick(_roomSnapshot)
+                    ? "ROOM PICK: " + label : "CHOOSE A SLOPBALL FORMAT";
             if (_btnConfirm != null)
             {
                 _btnConfirm.style.display = DisplayStyle.Flex;
                 _btnConfirm.text = leader ? "PICK FIGHTERS" : "WAITING FOR LEADER";
-                _btnConfirm.SetEnabled(leader && admitted && _arcadePick && !_roomActionPending &&
-                    _lobby?.IsConnected == true);
+                _btnConfirm.SetEnabled(leader && _arcadePick && ArcadeAdmitted(_arcadeFormat)
+                    && !_roomActionPending && _lobby?.IsConnected == true);
             }
-            ShowRoomStatus(!admitted
-                ? "Online Arcade is on its way: Slopball first, then the Character Courses."
-                : roomPicked && !leader ? "The Room leader picked co-op Slopball."
-                : "Co-op Slopball is online. Versus and the Character Courses come next.", false);
+            ShowRoomStatus(leader ? "Choose co-op or Versus, then pick fighters. Versus needs two or four players."
+                : "The Room leader chooses the format.", false);
         }
 
-        /// <summary>The leader picks co-op Slopball when Master admits it; otherwise it is still on its way.</summary>
-        private void PickSlopball()
+        private void PickSlopball() => PickSlopballFormat(CoopFormat);
+        private void PickVersus() => PickSlopballFormat(MatchFormats.SlopballVersusWire);
+        private void PickSlopballFormat(string format)
         {
-            if (!CoopAdmitted) { ShowArcadeComing(); return; }
-            if (!ClientSession.IsLobbyHost) return;
+            if (!ArcadeAdmitted(format) || !ClientSession.IsLobbyHost) return;
             _arcadePick = true;
+            _arcadeFormat = format;
             ApplyArcadeTabState();
         }
 
@@ -529,11 +538,11 @@ namespace SlopArena.Client.UI
                 _btnConfirm.style.display = DisplayStyle.Flex;
                 _btnConfirm.text = ClientSession.IsLobbyHost ? "PICK FIGHTERS" : "WAITING FOR LEADER";
             }
-            if (IsCoopPick(room))
+            if (IsSlopballPick(room))
             {
                 // The Room's pick is Arcade: everyone sees it on the ARCADE tab.
                 if (!_arcadeTab) SetTabVisuals(true);
-                if (ClientSession.IsLobbyHost) _arcadePick = true;
+                if (ClientSession.IsLobbyHost) { _arcadePick = true; _arcadeFormat = room.Format; }
                 ApplyArcadeTabState();
                 return;
             }
@@ -638,12 +647,12 @@ namespace SlopArena.Client.UI
         {
             var lobby = _lobby;
             bool arcade = _arcadeTab;
-            string format = arcade ? CoopFormat : MatchFormats.StockWire;
+            string format = arcade ? _arcadeFormat : MatchFormats.StockWire;
             string arena = arcade ? SlopballArena : _selectedArena;
             Guid roomId = ClientSession.SelectedRoomId;
             if (_roomActionPending || lobby == null || _roomSnapshot?.Id != roomId ||
                 !ClientSession.IsLobbyHost || !lobby.IsConnected || string.IsNullOrEmpty(arena) ||
-                arcade && (!_arcadePick || !CoopAdmitted))
+                arcade && (!_arcadePick || !ArcadeAdmitted(_arcadeFormat)))
                 return;
             _confirmInFlight = true;
             _roomActionPending = true;

@@ -22,13 +22,13 @@ namespace SlopArena.Shared
     {
         public const uint Magic = 0x4D524657; // "WFRM"
         /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040).</summary>
-        public const byte FormatVersion = 2;
+        public const byte FormatVersion = 3;
         public const int HeaderSize = 16;
         public const int MaxBodyBytes = 64 * 1024;
         public const int MaxPresentationEvents = 256;
         public const int MaxHits = 128;
         public const int MaxSlopballEvents = 32;
-        private const int SlopballEventBytes = 4 + 1 + 8 + 8 + 4;
+        private const int SlopballEventBytes = 4 + 1 + 8 + 8 + 4 + 1;
         /// <summary>Ticks whose complete event and hit record each frame carries, ending at its own tick.</summary>
         public const uint EventHistoryTicks = 3;
         private const byte CompressedFlag = 1;
@@ -124,6 +124,11 @@ namespace SlopArena.Shared
             w.WriteInt(SlopballEvents.Count);
             foreach (var item in SlopballEvents)
             {
+                if (item.Event.Kind > SlopballEventKind.PointScored || item.Event.Camp > SlopballCamp.Clay
+                    || !float.IsFinite(item.Event.ContactTime) || item.Event.ContactTime is < 0f or > 1f
+                    || item.Event.Kind is SlopballEventKind.ServeReady or SlopballEventKind.PointScored
+                        && item.Event.Camp == SlopballCamp.None)
+                    throw new ArgumentOutOfRangeException(nameof(SlopballEvents), "Invalid Slopball event.");
                 if (item.MatchTick < EventsFromTick || item.MatchTick > Tick)
                     throw new ArgumentOutOfRangeException(nameof(SlopballEvents),
                         $"Slopball event of tick {item.MatchTick} is outside frame {Tick}'s event ticks.");
@@ -132,6 +137,7 @@ namespace SlopArena.Shared
                 w.WriteULong(item.Event.BallId);
                 w.WriteULong(item.Event.Returns);
                 w.WriteFloat(item.Event.ContactTime);
+                w.WriteByte((byte)item.Event.Camp);
             }
 
             byte[] body = w.ToArray();
@@ -265,13 +271,17 @@ namespace SlopArena.Shared
             {
                 uint eventTick = r.ReadUInt();
                 byte kind = r.ReadByte();
-                if (kind > (byte)SlopballEventKind.Stopped)
+                if (kind > (byte)SlopballEventKind.PointScored)
                     throw Malformed("Slopball event kind");
                 ulong ballId = r.ReadULong(), returns = r.ReadULong();
                 float time = r.ReadFloat();
+                byte camp = r.ReadByte();
+                if (camp > (byte)SlopballCamp.Clay || !float.IsFinite(time) || time is < 0f or > 1f
+                    || (SlopballEventKind)kind is SlopballEventKind.ServeReady or SlopballEventKind.PointScored && camp == 0)
+                    throw Malformed("Slopball event camp or time");
                 if (eventTick < EventsFrom(tick) || eventTick > tick)
                     throw Malformed("Slopball event tick");
-                slopball[i] = new SlopballTickEvent(eventTick, new SlopballEvent((SlopballEventKind)kind, ballId, returns, time));
+                slopball[i] = new SlopballTickEvent(eventTick, new SlopballEvent((SlopballEventKind)kind, ballId, returns, time, (SlopballCamp)camp));
             }
             if (!r.AtEnd)
                 throw Malformed("trailing data");

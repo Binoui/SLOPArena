@@ -121,6 +121,16 @@ public sealed class SteamMatchRoutingWireTests
         Assert.Equal(MatchFormat.Stock, LobbyPayloadCodec.TryParseMatchStarted(valid.RootElement)!.Format);
         using var coop = JsonDocument.Parse(serialized.Insert(serialized.LastIndexOf('}'), ",\"format\":\"slopball-coop\""));
         Assert.Equal(MatchFormat.SlopballCoop, LobbyPayloadCodec.TryParseMatchStarted(coop.RootElement)!.Format);
+        Assert.False(LobbyPayloadCodec.TryParseMatchStarted(coop.RootElement)!.FriendlyFire);
+        foreach (string value in new[] { "true", "false", "null", "1", "\"true\"" })
+        {
+            using var rules = JsonDocument.Parse(coop.RootElement.GetRawText().Insert(1, $"\"friendlyFire\":{value},"));
+            var parsed = LobbyPayloadCodec.TryParseMatchStarted(rules.RootElement);
+            if (value is "true" or "false") Assert.Equal(value == "true", parsed!.FriendlyFire);
+            else Assert.Null(parsed);
+        }
+        using var stockFriendly = JsonDocument.Parse(serialized.Insert(1, "\"friendlyFire\":true,"));
+        Assert.Null(LobbyPayloadCodec.TryParseMatchStarted(stockFriendly.RootElement));
         using var unknown = JsonDocument.Parse(serialized.Insert(serialized.LastIndexOf('}'), ",\"format\":\"volleyball\""));
         Assert.Null(LobbyPayloadCodec.TryParseMatchStarted(unknown.RootElement));
 

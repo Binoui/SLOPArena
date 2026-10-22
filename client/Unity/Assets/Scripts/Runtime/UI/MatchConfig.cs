@@ -56,10 +56,16 @@ namespace SlopArena.Client.UI
 
         /// <summary>What the online Match plays (ADR-0040); Master's push carries it, else a stock fight.</summary>
         public static MatchFormat Format = MatchFormat.Stock;
+        public static bool FriendlyFire;
+        public static bool BallOnly;
+        public static Dictionary<ulong, SlopballCamp> Camps = new();
 
         public static void ClearActiveMatch()
         {
             Format = MatchFormat.Stock;
+            FriendlyFire = false;
+            BallOnly = false;
+            Camps.Clear();
             Mode = GameMode.Training;
             Transport = MatchTransport.None;
             SteamDescriptor = null;

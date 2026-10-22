@@ -15,7 +15,7 @@ namespace SlopArena.Shared;
 /// <param name="SteamId">Master-verified SteamID (development guests only in development mode).</param>
 /// <param name="CharacterClass">Locked-in character class the game server must spawn.</param>
 /// <param name="EntityId">Server entity ID (1..N) the player drives and the server broadcasts state for.</param>
-public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId);
+public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None);
 
 /// <summary>Master match-start command. Protocol 2 adds Steam admission coordinates;
 /// protocol 0 is retained only for explicit development UDP sessions.</summary>
@@ -26,7 +26,9 @@ public sealed record MatchStartRequest(
     int VirtualPort = SteamMatchDescriptor.GameplayVirtualPort,
     DateTimeOffset? AdmissionExpiresAtUtc = null,
     string? CatalogHash = null,
-    MatchFormat Format = MatchFormat.Stock);
+    MatchFormat Format = MatchFormat.Stock,
+    bool FriendlyFire = false,
+    bool BallOnly = false);
 
 /// <summary>
 /// Parses the <c>POST /match/start</c> JSON body (<see cref="MatchStartRequest"/>).
@@ -94,7 +96,11 @@ public static class MatchStartRequestCodec
                 !eid.TryGetInt32(out var entityId) || entityId <= 0)
                 return null;
 
-            list.Add(new MatchPlayer(steamId, characterClass, entityId));
+            SlopballCamp camp = SlopballCamp.None;
+            if (item.TryGetProperty("camp", out var campElement)
+                && (campElement.ValueKind != JsonValueKind.String || !SlopballCamps.TryParse(campElement.GetString(), out camp)))
+                return null;
+            list.Add(new MatchPlayer(steamId, characterClass, entityId, camp));
         }
 
         if (list.Count is < 2 or > 4)
@@ -162,7 +168,25 @@ public static class MatchStartRequestCodec
         }
         if (!MatchFormats.TryParseWire(formatName, out var format))
             return null;
+        bool friendlyFire = false;
+        if (element.TryGetProperty("friendlyFire", out var friendly))
+        {
+            if (friendly.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
+            friendlyFire = friendly.GetBoolean();
+        }
+        if (friendlyFire && format != MatchFormat.SlopballCoop) return null;
+        bool ballOnly = false;
+        if (element.TryGetProperty("ballOnly", out var ballOnlyElement))
+        {
+            if (ballOnlyElement.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
+            ballOnly = ballOnlyElement.GetBoolean();
+        }
+        if (format == MatchFormat.SlopballVersus ? !SlopballCamps.AreBalanced(list.Select(p => p.Camp))
+            : ballOnly || list.Any(p => p.Camp != SlopballCamp.None)) return null;
+        if (format == MatchFormat.SlopballVersus && list.Any(p => p.EntityId >= ServerSimulation.ArcadeBallTargetInputId)) return null;
+        if (list.Select(p => p.EntityId).Distinct().Count() != list.Count
+            || list.Select(p => p.SteamId).Distinct().Count() != list.Count) return null;
         return new MatchStartRequest(matchId, arenaName, list, maxStocks,
-            protocolVersion, virtualPort, admissionExpiresAtUtc, catalogHash, format);
+            protocolVersion, virtualPort, admissionExpiresAtUtc, catalogHash, format, friendlyFire, ballOnly);
     }
 }

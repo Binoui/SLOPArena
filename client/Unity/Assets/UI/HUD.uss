@@ -920,6 +920,12 @@
 
 .match-pause-action--primary { background-color: #ffcc22; }
 
+.match-pause-error {
+    margin-bottom: 10px;
+    color: #9b3028;
+    font-size: 16px;
+}
+
 /* Focus: a paper button turns ink with a yellow frame; the yellow primary
    keeps its yellow and takes a heavier ink frame. */
 .match-pause-action:hover,

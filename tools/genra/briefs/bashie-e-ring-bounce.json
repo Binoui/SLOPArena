@@ -1,0 +1,298 @@
+{
+  "name": "bashie-e-ring-bounce",
+  "notes": "Bashie E Ring Bounce, integrated 2026-10-22. Owner accepted the actual-model reference, new timing, actual-rig keys and full motion, then approved the Shared aimed-recovery capability. The accepted clip is live in ground/air E: launch 12, handoff 18. The ring is separate package presentation; actual travel belongs to Shared. Native cook/verify/roster refresh and ground/air Play Mode captures pass; full Shared suite: 3246 passed, 2 existing skips. The original authoring preview lift was schematic. Cannonball remains deferred.",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie, a small round female turtle lifeguard. Current verified 49-joint Humanoid body with four-finger cartoon hands (thumb/index/middle/ring), rigid Shell and Whistle joints, red bucket hat and sandals. Very short limbs; use anatomical solvers and measured skin, not stretched proportions.",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "planted": [],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../bashie-r-20261022/inputs/model.png",
+    "../../bashie-e-20261022/ring-bounce-reference-v1.png",
+    "../../../tmp/bashie-model/review/lifebuoy-v1/q3.png"
+  ],
+  "image_notes": "1: the actual current body model turnaround; its identity and proportions are authoritative. 2: owner-approved image direction: THROW, PLANT, SQUASH, BOING, RISE left to right. Treat as pose energy and silhouettes; its body and ring placement are not measured rig data. 3: the actual existing life ring model. It will be a separate prop in the candidate preview.",
+  "description": "Bashie's necessary vertical recovery, Ring Bounce (E), CORE BOUNCE ONLY. The owner approved the attached generated pose direction and said the first part matters most because it is her necessary vertical recovery. The optional cannonball is deferred.\n\nShe automatically throws her own life ring slightly ahead/down, gets both feet onto its padded rim, squashes it under her weight and springs UP. One press does the whole thing even when her ordinary jumps are spent. Input aims the launch; neutral is vertical. The model must read: quick toss, feet plant, compact weight, sudden tall stretch, rise. This is cheerful slapstick lifeguard energy, not a dive or an attack.\n\nUse the ACTUAL rig proportions. She is about 1 m tall, with a huge solid hat/head, a domed olive rigid shell and very short arms and legs. No limb stretching, finger hyperextension, shell tucking or head clipping. Her arms cannot reach far over the brim: open them upward and outward beside the head, rather than through the hat. Keep the shell rigid on its existing joint and the whistle clear.\n\nThe ring is a separate prop, NOT part of this Humanoid body clip. It will be drawn independently in the candidate review at the throw and beneath her feet, with exaggerated vertical squash. The actual existing ring mesh and approved direction are inputs. Do not add a new skeleton, stretch a body bone to be a ring, move the actor root, or bake the recovery trajectory into the pose. Hips may move slightly for anticipation and compression, as existing clips do. The actual height gain belongs to Shared movement; review-stage actor travel is separate. The lack of a ring mesh in the body-only pack is intentional.\n\nThe character frame is right/front/up, origin at her idle hips. Her normal sole plane is up=-0.305 m; ToeBase is about -0.300 and Foot about -0.184 in idle. For PLANT and SQUASH keep both sole planes here, feet apart symmetrically with the toes pointing mostly forward and only a little out. The independent ring's top contacts the soles on its near/front padded arcs, not through its hole. Its outside diameter is 0.66 m. Do NOT lengthen the legs to span the outer diameter; only the soles need land on the padded surface. Widen the ankle gap to about 0.22-0.30 m. Bent knees open over the toes, never inward or backward.\n\nONE short clip, free entry because it can start from standing, falling or a spent air jump. Proposed timing, not an existing game contract:\n- tick 0 READY/START TOSS (extra setup key): compact suspended stance, both hands forward and down as if holding the rear rim of a horizontal ring ahead/below her waist. Wrists about 0.16-0.24 m ahead of hips and near hip height. Elbows soft, fingers naturally curled on the rim. No face occlusion. Knees slightly bent; not the idle's visor-hand salute.\n- tick 4 THROW (image pose 1): both hands release and open forward/down, trunk tips only a little forward, knees tuck so the sandals clear the floating ring as she gets above it. It is a compact toss and hop, not a long descent. Hands remain ahead of hips.\n- tick 7 PLANT (image pose 2): both soles contact the ring's top plane; knees softly bent, arms open to the sides and slightly forward for balance, chin/eyes looking toward the upward escape. Hips near neutral height. Both feet are supported.\n- tick 10 SQUASH (image pose 3): strong low comic crouch. Hips about 0.07-0.10 m lower, knees bent correctly and opened, chest tilted a little forward, chin tucked. Arms spread slightly forward of the shell. Both soles stay where they were at plant; no foot slide or toe clipping. The head/hat and shell must not touch hands, feet or legs. Ring deformation will supply the extra squash; do not scale her body.\n- tick 12 BOING (image pose 4): the opposite silhouette: hips up near neutral, short legs almost extended, spine upright, head/chin up, arms fling UP and OUT beside the hat, sandals just leaving the same support plane. Strong upward stretch, no horizontal lunge. All anatomy and rigid shell/hat must remain sound.\n- tick 18 RISE (image pose 5): a relaxed tall airborne rising pose. Torso upright, arms still up/out but beginning to open for air steering, knees lightly bent with lower legs trailing down/back. Body ready to hand off to ordinary air control. Actual rise is simulation travel, not a hip/root move in this clip.\n\nThe owner approved these six ACTUAL-RIG key poses and the new short timing with \"perfect\". Author the motion BETWEEN the approved keys, preserving every approved body key at ticks 0, 4, 7, 10, 12 and 18. Do not redesign the poses or add a cannonball. The key file handed to this run is authoritative; start from it rather than re-solving the key poses. The main contrast remains tick 10's loaded crouch versus tick 12's UPWARD spring. During 7-10, keep both sandals on the ring plane, using anatomical leg IK if interpolation drifts; no sliding or ankle flips. During the toss, fingers naturally release and hands follow through; keep the forearms off the whistle. Make the 10-12 spring crisp within its explicit fast window and let the arms and fingers open toward the rising handoff at 18. Secondary whistle/shell motion may follow a little, only where the approved keys and clearances permit; no gratuitous oscillation or held dead frames. Inspect full normal-speed and slowed playback from profile and three-quarter rear. Diagnose and repair transition-local clearance, wrist, anatomical hinge and continuity failures within this ONE authoring pass. Preserve rigid body scales, bone lengths, actor root and all approved keys. The independent ring and review lift are animated outside this Humanoid clip; do not invent a ring bone or root ascent.",
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 18
+  },
+  "timing": {
+    "fixed": [
+      "One automatic E handles throw, hop, squash and upward launch; it works offstage without a spare ordinary jump.",
+      "No cannonball in this pass; no animated actor-root ascent or gameplay data changes.",
+      "Owner-approved key clock: ready 0, release 4, plant 7, squash 10, spring 12, rising handoff 18 at 60 Hz. Preserve the approved poses and launch beat."
+    ],
+    "adjustable": [
+      "Spacing, interpolation and small secondary motion BETWEEN the approved keys, within the 18-tick clip; no gameplay retiming."
+    ]
+  },
+  "keys": [
+    0,
+    4,
+    7,
+    10,
+    12,
+    18
+  ],
+  "review_ticks": [
+    0,
+    4,
+    7,
+    10,
+    12,
+    18
+  ],
+  "targets": [
+    {
+      "name": "throw: left hand reaches ahead",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 4,
+      "min": 0.12
+    },
+    {
+      "name": "left toe stays on ring plane at 7",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 7,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "left toe stays on ring plane at 10",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 10,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "left hand above chest on rise at 12",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "LeftHand",
+      "tick": 12,
+      "min": 0.025
+    },
+    {
+      "name": "left hand above chest on rise at 18",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "LeftHand",
+      "tick": 18,
+      "min": 0.025
+    },
+    {
+      "name": "throw: right hand reaches ahead",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 4,
+      "min": 0.12
+    },
+    {
+      "name": "right toe stays on ring plane at 7",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 7,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "right toe stays on ring plane at 10",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 10,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "right hand above chest on rise at 12",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "RightHand",
+      "tick": 12,
+      "min": 0.025
+    },
+    {
+      "name": "right hand above chest on rise at 18",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "RightHand",
+      "tick": 18,
+      "min": 0.025
+    },
+    {
+      "name": "squash: hips visibly loaded down",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 10,
+      "min": -0.13,
+      "max": -0.055
+    },
+    {
+      "name": "spring: hips extend back up",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.015,
+      "max": 0.055
+    },
+    {
+      "name": "both feet spread on rim at 7",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 7,
+      "min": 0.2,
+      "max": 0.38
+    },
+    {
+      "name": "both feet spread on rim at 10",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 10,
+      "min": 0.2,
+      "max": 0.38
+    },
+    {
+      "name": "left ankle planted during compression at 8 (right)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "right",
+      "tick": 8,
+      "min": -0.14700000000000002,
+      "max": -0.12300000000000001
+    },
+    {
+      "name": "left ankle planted during compression at 8 (front)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "front",
+      "tick": 8,
+      "min": 0.008,
+      "max": 0.032
+    },
+    {
+      "name": "left ankle planted during compression at 8 (up)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.196,
+      "max": -0.172
+    },
+    {
+      "name": "left ankle planted during compression at 9 (right)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "right",
+      "tick": 9,
+      "min": -0.14700000000000002,
+      "max": -0.12300000000000001
+    },
+    {
+      "name": "left ankle planted during compression at 9 (front)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "front",
+      "tick": 9,
+      "min": 0.008,
+      "max": 0.032
+    },
+    {
+      "name": "left ankle planted during compression at 9 (up)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "up",
+      "tick": 9,
+      "min": -0.196,
+      "max": -0.172
+    },
+    {
+      "name": "right ankle planted during compression at 8 (right)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 8,
+      "min": 0.12300000000000001,
+      "max": 0.14700000000000002
+    },
+    {
+      "name": "right ankle planted during compression at 8 (front)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "front",
+      "tick": 8,
+      "min": 0.008,
+      "max": 0.032
+    },
+    {
+      "name": "right ankle planted during compression at 8 (up)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.196,
+      "max": -0.172
+    },
+    {
+      "name": "right ankle planted during compression at 9 (right)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 9,
+      "min": 0.12300000000000001,
+      "max": 0.14700000000000002
+    },
+    {
+      "name": "right ankle planted during compression at 9 (front)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "front",
+      "tick": 9,
+      "min": 0.008,
+      "max": 0.032
+    },
+    {
+      "name": "right ankle planted during compression at 9 (up)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "up",
+      "tick": 9,
+      "min": -0.196,
+      "max": -0.172
+    }
+  ],
+  "fast_windows": [
+    [
+      4,
+      7
+    ],
+    [
+      10,
+      12
+    ]
+  ]
+}

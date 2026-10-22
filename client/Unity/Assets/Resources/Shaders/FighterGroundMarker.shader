@@ -4,6 +4,7 @@ Shader "SLOPArena/Fighter Ground Marker"
     {
         _Airborne("Airborne visibility", Range(0, 1)) = 0
         _Accent("Local fighter notch", Color) = (0.941, 0.933, 0.910, 1)
+        _CampColor("Camp colour and visibility", Color) = (0, 0, 0, 0)
     }
     SubShader
     {
@@ -23,6 +24,7 @@ Shader "SLOPArena/Fighter Ground Marker"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Accent;
+                half4 _CampColor;
                 half _Airborne;
             CBUFFER_END
 
@@ -55,10 +57,10 @@ Shader "SLOPArena/Fighter Ground Marker"
                 float border = (1.0 - smoothstep(0.062 - edge, 0.062 + edge, distanceToRing)) * segments;
                 float rim = (1.0 - smoothstep(0.026 - edge, 0.026 + edge, distanceToRing)) * segments;
                 float notch = smoothstep(0.975, 0.990, sin(angle));
-                float visibility = lerp(0.12, 0.95, _Airborne);
+                float visibility = max(lerp(0.12, 0.95, _Airborne), _CampColor.a * 0.65);
                 float rimAlpha = border * visibility;
                 half3 ringColor = lerp(half3(0.106, 0.102, 0.094),
-                    lerp(half3(0.941, 0.933, 0.910), _Accent.rgb, notch), rim);
+                    lerp(lerp(half3(0.941, 0.933, 0.910), _CampColor.rgb, _CampColor.a), _Accent.rgb, notch), rim);
 
                 // Combine the shadow and outline in one transparent pass, with an open centre.
                 float alpha = rimAlpha + shadow * (1.0 - rimAlpha);

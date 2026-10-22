@@ -97,21 +97,23 @@ public sealed class NoWinMatchRule : IMatchRule
 }
 
 /// <summary>
-/// Co-op Slopball against the Launcher (ADR-0040): nobody is eliminated, and the run ends once
-/// the team has missed <see cref="MissBudget"/> balls. The simulation decides the end
+/// Co-op Slopball against the Launcher (ADR-0040): nobody is eliminated and play continues
+/// until the leader returns the group to the lobby. An explicit nonzero miss budget can limit a run.
+/// The simulation decides the end
 /// (<see cref="ServerSimulation.EvaluateMatch"/>) because it owns the Slopball state.
 /// </summary>
 public sealed class SlopballCoopMatchRule : IMatchRule
 {
-    /// <summary>Provisional (2026-10-19): the brief leaves the count unselected until play.</summary>
-    public const byte DefaultMissBudget = 3;
+    /// <summary>Zero means unlimited misses.</summary>
+    public const byte DefaultMissBudget = 0;
 
     public byte MissBudget { get; }
+    public bool FriendlyFire { get; }
 
-    public SlopballCoopMatchRule(byte missBudget = DefaultMissBudget)
+    public SlopballCoopMatchRule(byte missBudget = DefaultMissBudget, bool friendlyFire = false)
     {
-        if (missBudget == 0) throw new ArgumentOutOfRangeException(nameof(missBudget));
         MissBudget = missBudget;
+        FriendlyFire = friendlyFire;
     }
 
     public bool IsEliminated(CharacterState state) => false;

@@ -30,6 +30,8 @@ public sealed class CharacterCompileResult
 
 public static class CharacterPackageCompiler
 {
+    public const string AimedRecoveryCapabilityId = "slop.ability.aimed-recovery.v1";
+    public const string AimedRecoveryCapabilityVersion = "1";
     public const string ChargedProjectileCapabilityId = "slop.ability.charged-projectile.v1";
     public const string ChargedProjectileCapabilityVersion = "1";
     public const string ChargedStreamCapabilityId = "slop.ability.charged-stream.v1";
@@ -72,7 +74,8 @@ public static class CharacterPackageCompiler
     };
     internal static bool IsTrustedCapability(string id) => TrustedCapabilities.Contains(id);
     public static bool IsPublicCapability(string id, string version)
-        => id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
+        => id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
+            || id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
             || id == ChargedDirectionalDashCapabilityId && version == ChargedDirectionalDashCapabilityVersion
             || id == ChargedProjectileCapabilityId && version == ChargedProjectileCapabilityVersion
             || id == ChargedStreamCapabilityId && version == ChargedStreamCapabilityVersion
@@ -163,7 +166,8 @@ public static class CharacterPackageCompiler
                 else if (!IsTrustedCapability(requirement.CapabilityId) || requirement.CapabilityVersion != "1")
                     d.Error("capability.unknown", requirementPath, "Capability is not admitted by the trusted profile.");
             }
-            else if (requirement.CapabilityId == TargetedLeapCapabilityId ||
+            else if (requirement.CapabilityId == AimedRecoveryCapabilityId ||
+                     requirement.CapabilityId == TargetedLeapCapabilityId ||
                      requirement.CapabilityId == ChargedDirectionalDashCapabilityId ||
                      requirement.CapabilityId == ChargedProjectileCapabilityId ||
                      requirement.CapabilityId == ChargedStreamCapabilityId ||
@@ -217,7 +221,11 @@ public static class CharacterPackageCompiler
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            RequiresRuntimeApi18(c) ? "1.8.0"
+            c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+                operation is StartCapabilityOperationSource { Parameters: AimedRecoveryCapabilityParameters { Hop: not null } }))) ? "1.10.0"
+            : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+                operation is StartCapabilityOperationSource { CapabilityId: AimedRecoveryCapabilityId }))) ? "1.9.0"
+            : RequiresRuntimeApi18(c) ? "1.8.0"
             : c.Slots.Any(slot => slot.AimMovementSpeedScale != 1f) ? "1.7.0"
             : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                 operation is StartCapabilityOperationSource { Parameters: ChargedProjectileCapabilityParameters }))) ? "1.6.0"
@@ -267,6 +275,23 @@ public static class CharacterPackageCompiler
             stage.Operations.Count(operation =>
                 operation is StartCapabilityOperationSource capability &&
                 capability.CapabilityId == TargetedLeapCapabilityId));
+        var recoveries = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>()
+            .Where(operation => operation.CapabilityId == AimedRecoveryCapabilityId).ToArray();
+        if (recoveries.Length > 0)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (recoveries.Length != 1 || slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0
+                || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
+                || !slot.IsRecoveryMove || recoveries[0].Tick != 0
+                || recoveries[0].Parameters is not AimedRecoveryCapabilityParameters
+                || stage.Operations.Any(op => op != recoveries[0] && op is not EmitPresentationOperationSource))
+                d.Error("capability.ambiguous", $"character.slots[{index}]",
+                    "Aimed recovery requires one tick-zero lifecycle in one recovery stage, no aim or IASA, and only presentation operations alongside it.");
+            if (recoveries[0].Parameters is AimedRecoveryCapabilityParameters recovery && recovery.StartupTicks >= stage.DurationTicks)
+                d.Error("value.out-of-range", $"character.slots[{index}].timeline",
+                    "Aimed recovery must launch before its stage ends.");
+        }
         var chargedProjectiles = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
             .OfType<StartCapabilityOperationSource>()
             .Where(operation => operation.CapabilityId == ChargedProjectileCapabilityId).ToArray();
@@ -600,6 +625,16 @@ public static class CharacterPackageCompiler
     }
 
 
+    internal static bool ValidAimedRecovery(ushort startup, float vertical, float directional, float horizontal, float preparation,
+        RecoveryHopParameters? hop = null)
+        => startup is > 0 and <= 120 && vertical is > 0f and <= 60f
+            && directional > 0f && directional <= vertical && horizontal is >= 0f and <= 60f
+            && preparation is >= 0f and <= 4f
+            && (hop == null || preparation == 0f && hop.StartTicks > 0
+                && hop.ContactTicks >= hop.StartTicks + 4 && hop.ContactTicks < startup
+                && hop.ForwardDistance is > 0f and <= 3f
+                && hop.ArcHeight is > 0f and <= 3f && hop.LandingHeight is >= 0f and <= 1f);
+
     private static bool IsKnownAnimation(string id, CharacterAuthoringDocument c)
         => id.StartsWith("anim.", StringComparison.Ordinal);
 
@@ -609,6 +644,17 @@ public static class CharacterPackageCompiler
         if (operation.Unit != expected) d.Error("unit.unknown", "character.operation.unit", "Unit does not match operation contract.");
         switch (operation)
         {
+            case StartCapabilityOperationSource capability when capability.Parameters is AimedRecoveryCapabilityParameters recovery:
+                ValidateFiniteValues(new[] { recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,
+                    recovery.HorizontalSpeed, recovery.PreparationRiseSpeed }, "character.operation.parameters", d);
+                if (recovery.Hop is { } hop)
+                    ValidateFiniteValues(new[] { hop.ForwardDistance, hop.ArcHeight, hop.LandingHeight },
+                        "character.operation.parameters.hop", d);
+                if (!ValidAimedRecovery(recovery.StartupTicks, recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,
+                    recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop))
+                    d.Error("value.out-of-range", "character.operation.parameters",
+                        "Aimed recovery needs bounded speeds and startup 1–120 ticks. An optional hop requires zero preparation rise, start>0, at least 4 flight ticks, contact before launch, forward/arc distances in (0,3] m and landing lift in [0,1] m.");
+                break;
             case SetVelocityOperationSource velocity:
                 ValidateFiniteValues(new[] { velocity.X, velocity.Y, velocity.Z }, "character.operation", d);
                 break;
@@ -1089,6 +1135,7 @@ public static class CharacterPackageCompiler
     private static TypedCapabilityParameters CloneParameters(TypedCapabilityParameters p)
         => p switch
         {
+            AimedRecoveryCapabilityParameters x => x with { },
             RisingDragonCapabilityParameters x => x with { },
             ChargedProjectileCapabilityParameters x => x with { Projectile = x.Projectile with { } },
             ChargedStreamCapabilityParameters x => x with { Projectile = x.Projectile with { } },
@@ -1163,6 +1210,8 @@ public static class CharacterPackageCompiler
 
     private static CookedCapabilityParameters CookParameters(TypedCapabilityParameters p) => p switch
     {
+        AimedRecoveryCapabilityParameters x => new CookedAimedRecoveryCapabilityParameters(
+            x.StartupTicks, x.VerticalSpeed, x.DirectionalVerticalSpeed, x.HorizontalSpeed, x.PreparationRiseSpeed, x.Hop),
         ChargedProjectileCapabilityParameters x => new CookedChargedProjectileCapabilityParameters(
             x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.FireTriggerTick, x.Tier2Radius, x.Tier3Radius,
             new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ,
@@ -1418,6 +1467,11 @@ public static class CharacterPackageCompiler
         w.WriteStartObject();
         switch (p)
         {
+            case CookedAimedRecoveryCapabilityParameters x:
+                w.WriteNumber("startupTicks", x.StartupTicks); Number(w, "verticalSpeed", x.VerticalSpeed);
+                Number(w, "directionalVerticalSpeed", x.DirectionalVerticalSpeed); Number(w, "horizontalSpeed", x.HorizontalSpeed);
+                Number(w, "preparationRiseSpeed", x.PreparationRiseSpeed);
+                WriteRecoveryHop(w, x.Hop); break;
             case CookedChargedProjectileCapabilityParameters x:
                 w.WriteNumber("maxChargeTicks", x.MaxChargeTicks); w.WriteNumber("tier2Ticks", x.Tier2Ticks);
                 w.WriteNumber("tier3Ticks", x.Tier3Ticks); w.WriteNumber("fireTriggerTick", x.FireTriggerTick);
@@ -1484,6 +1538,15 @@ public static class CharacterPackageCompiler
         }
         w.WriteEndObject();
     }
+    internal static void WriteRecoveryHop(Utf8JsonWriter w, RecoveryHopParameters? hop)
+    {
+        if (hop == null) return;
+        w.WritePropertyName("hop"); w.WriteStartObject();
+        w.WriteNumber("startTicks", hop.StartTicks); w.WriteNumber("contactTicks", hop.ContactTicks);
+        Number(w, "forwardDistance", hop.ForwardDistance); Number(w, "arcHeight", hop.ArcHeight);
+        Number(w, "landingHeight", hop.LandingHeight); w.WriteEndObject();
+    }
+
     private static void Number(Utf8JsonWriter w, string name, float value) => w.WriteNumber(name, value);
     private static void OptionalString(Utf8JsonWriter w, string name, string value)
     {

@@ -98,7 +98,7 @@ namespace SlopArena.Server
 			DateTimeOffset? admissionDeadlineUtc = null, string? contentHash = null,
 			Action<Guid, ulong, byte[], bool>? steamSend = null, TimeProvider? clock = null,
 			MatchContentHandleMap? contentHandleMap = null, Action? steamFlush = null,
-			MatchFormat format = MatchFormat.Stock)
+			MatchFormat format = MatchFormat.Stock, bool friendlyFire = false, bool ballOnly = false)
 		{
 			_steamFlush = steamFlush;
 			_format = format;
@@ -117,7 +117,8 @@ namespace SlopArena.Server
 			_clock = clock ?? TimeProvider.System;
 			Diagnostics = new MatchDiagnostics(matchId, arenaName, steamSend is null ? "development-udp" : "steam-p2p", _clock);
 			_contentHandleMap = contentHandleMap;
-			_rule = format.CreateRule(maxStocks);
+			_rule = format.CreateRule(maxStocks, friendlyFire,
+                roster.ToDictionary(p => (ulong)p.EntityId, p => p.Camp), ballOnly);
 
 			_slots = new List<PlayerSlot>(roster.Count);
 			foreach (var p in roster)
@@ -326,8 +327,9 @@ namespace SlopArena.Server
 			{
 				// Snapshots carry the seed, so clients serve the same sequence without being told.
 				_sim.BeginSlopballRun((uint)System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue));
-				Log($"Co-op Slopball run: {_slots.Count} fighters, {((SlopballCoopMatchRule)_rule).MissBudget} misses.");
+				Log($"Co-op Slopball run: {_slots.Count} fighters, unlimited misses.");
 			}
+            if (_format == MatchFormat.SlopballVersus) _sim.BeginVersusSlopball();
 
 			if (_steamSend is null)
 			{
@@ -537,7 +539,8 @@ namespace SlopArena.Server
 		private SpawnPoint PickSpawn(int spawnIndex)
 		{
 			if (_format != MatchFormat.Stock)
-				return _format.StartFor(_arena, spawnIndex, _slots.Count);
+				return _format.StartFor(_arena, spawnIndex, _slots.Count,
+                    _slots.Select(s => (_rule as SlopballVersusMatchRule)?.CampOf(s.EntityId) ?? SlopballCamp.None).ToArray());
 			if (_arena.SpawnPoints.Length > spawnIndex)
 				return _arena.SpawnPoints[spawnIndex];
 			return new SpawnPoint { X = 40f, Y = 0.5f, Z = 40f, Yaw = 0f };
@@ -944,6 +947,12 @@ namespace SlopArena.Server
 
 			entries.Sort((a, b) =>
 			{
+				if (_sim.SlopballVersus is { } score)
+                {
+                    int campOrder = (_sim.CampOf(b.EntityId) == score.Winner ? 1 : 0)
+                        .CompareTo(_sim.CampOf(a.EntityId) == score.Winner ? 1 : 0);
+                    return campOrder != 0 ? campOrder : a.EntityId.CompareTo(b.EntityId);
+                }
 				int winnerOrder = outcome.IsSharedVictory
 					? 0
 					: (a.EntityId == outcome.WinnerEntityId ? -1 : b.EntityId == outcome.WinnerEntityId ? 1 : 0);
@@ -959,14 +968,19 @@ namespace SlopArena.Server
 			for (int i = 0; i < entries.Count; i++)
 			{
 				var entry = entries[i];
-				ranked[i] = new MatchResultEntry(entry.EntityId, (byte)(i + 1), entry.KOs, entry.Falls);
+				ranked[i] = new MatchResultEntry(entry.EntityId,
+                    _sim.SlopballVersus is { } volley
+                        ? (byte)(_sim.CampOf(entry.EntityId) == volley.Winner ? 1 : 2) : (byte)(i + 1),
+                    entry.KOs, entry.Falls);
 			}
 
 			SlopballRunResult? run = _sim.Slopball is { } slopball && _format == MatchFormat.SlopballCoop
 				? new SlopballRunResult((uint)Math.Min(slopball.TotalReturns, uint.MaxValue),
 					(uint)Math.Min(slopball.BestStreak, uint.MaxValue), slopball.Misses)
 				: null;
-			return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run);
+			var versus = _sim.SlopballVersus is { } score
+                ? new SlopballVersusResult(score.TealScore, score.ClayScore, score.Winner) : (SlopballVersusResult?)null;
+            return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run, versus);
 		}
 
 

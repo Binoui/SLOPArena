@@ -197,8 +197,12 @@ What an online Match plays: a stock fight on a PvP stage, or an Arcade format su
 _Avoid_: game mode (when referring to the online contract)
 
 **Co-op Slopball Run**:
-An online Slopball Match in which two to four fighters share the player half against the Launcher. Returns count for the team, and the run ends once the team has missed its miss budget.
+An online Slopball Match in which two to four fighters share the player half against the Launcher. Returns count for the team; misses reset the combo and heat without ending the run. Fighters automatically target each new ball. Friendly fire defaults off: teammates cannot damage, block or grab one another unless the leader enables it in the Room lobby before preparation. The setting stays fixed during the Match. The leader can return everyone to the same Room from the match menu, preserving membership and chat.
 _Avoid_: versus volleyball (when referring to the co-op format)
+
+**Versus Slopball Match**:
+An online Slopball Match between equal Teal and Clay camps: 1v1 or 2v2. Each camp stays on its own half. A ball touching a camp's floor awards the other camp a point; first to 21 wins. Teal serves first, the conceding camp serves next, and 2v2 servers rotate within their camp. The ball waits for its server to hit it. Points reset ball percent, fighter damage, positions and combat resources. Teammates cannot hurt, block or grab each other; rivals can fight across the net unless the Room leader selects Ball only before preparation.
+_Avoid_: Co-op Slopball Run (when referring to Versus)
 _Avoid_: Training (when referring to an Arcade challenge), CPU fight
 
 **Arcade Attempt**:

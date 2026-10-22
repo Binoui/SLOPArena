@@ -114,6 +114,13 @@ namespace SlopArena.Shared
             return new(_x, _y, _z);
         }
 
+        /// <summary>A hittable, stationary serve, without gravity or body rebounds.</summary>
+        public void Hold()
+        {
+            _path.Clear(); _contacts.Clear();
+            if (_active) _path.Add(new(0f, 1f, new(_x, _y, _z), new(_x, _y, _z)));
+        }
+
         public void Step(in ArenaDefinition arena, IReadOnlyDictionary<ulong, CharacterState> fighters,
             IReadOnlyDictionary<ulong, CharacterDefinition> definitions)
         {

@@ -302,6 +302,19 @@ public sealed record ProjectileReturnSource(
 
 public abstract record TypedCapabilityParameters;
 
+/// <summary>Automatic setup followed by a movement-input-aimed ballistic recovery (runtime API 1.9.0).</summary>
+public sealed record AimedRecoveryCapabilityParameters(
+    ushort StartupTicks,
+    float VerticalSpeed,
+    float DirectionalVerticalSpeed,
+    float HorizontalSpeed,
+    float PreparationRiseSpeed,
+    RecoveryHopParameters? Hop = null) : TypedCapabilityParameters;
+
+/// <summary>Optional automatic setup hop (API 1.10.0), in ticks and world metres. ArcHeight is above the entry-to-landing chord.</summary>
+public sealed record RecoveryHopParameters(
+    ushort StartTicks, ushort ContactTicks, float ForwardDistance, float ArcHeight, float LandingHeight);
+
 public sealed record ChargedProjectileCapabilityParameters(
     ushort MaxChargeTicks,
     ushort Tier2Ticks,

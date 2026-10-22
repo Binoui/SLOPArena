@@ -237,6 +237,7 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_run.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_hose_*.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_sr_*.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_e_ring_bounce.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/crouch.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/tumble.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/g4.anim
@@ -430,6 +431,7 @@ videos/*
 !client/Unity/Assets/Art/Characters/bonk/Prefabs/bonk_sword.prefab*
 !client/Unity/Assets/Art/Characters/bashie/Models/bashie.fbx*
 !client/Unity/Assets/Art/Characters/bashie/Models/BashieBlaster.fbx*
+!client/Unity/Assets/Art/Characters/bashie/Models/BashieRing.fbx*
 !client/Unity/Assets/Art/Characters/bashie/Materials/Bashie_*.mat*
 !client/Unity/Assets/Art/Characters/bashie/Textures/Bashie_*.png*
 # Project-authored shared tumble from the GenRA toolkit (2026-10-18); all four packages bind it.

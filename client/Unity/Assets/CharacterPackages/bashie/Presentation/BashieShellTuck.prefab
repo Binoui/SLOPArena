@@ -70,9 +70,23 @@ MonoBehaviour:
     Head: {x: 0, y: -0.16, z: 0.33}
     WobbleDegrees: 4
     WobbleHz: 1.6
+    FollowAnimatedHeading: 0
   HoldAnimationIds:
   - anim.bashie.gr
   - anim.bashie.gr-slide
   InSeconds: 0.1
   OutSeconds: 0.12
   Overshoot: 1.7
+  WeightByAttackTick:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  ForwardByAttackTick:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  ReachDirection: {x: 0, y: 0, z: 1}

@@ -169,7 +169,14 @@ APPROVED_KEYS = """
 The owner approved the key poses at ticks {ticks} in `keys/result.json`: load it with
 `keys = Clip.load(rig, 'keys/result.json', frame=b.entry_frame)` and start each key from `keys.pose(t)`. Keep them:
 the check fails a clip whose joints move more than 2 cm from them at those ticks (fingers may still close). Build the
-motion between them: breakdowns, arcs, contacts (track, pin, hold_grip), overlap and polish."""
+motion between them: breakdowns, arcs, contacts (track, pin, hold_grip), overlap and polish.
+
+Save early and keep saving. Within your first 15 minutes write a complete `result.json` (the keys interpolated, with
+`carry` between the two-handed keys if the brief has them) and run `./genra check` on it; then overwrite it each time
+a version is better. A job that reaches its time limit without a saved clip loses everything (Sunrise take 2,
+2026-10-22: an hour spent chasing one arm twist, nothing saved, about $9). If one problem resists after 20 minutes
+of measuring, save the best version, say what is left in your reply and stop; the director and the owner can look at
+a clip, not at an investigation."""
 
 
 def key_sheets(brief: Brief, clip, run_dir: Path, skin) -> list[Path]:

@@ -22,6 +22,14 @@ namespace SlopArena.Client.World
         public float OutSeconds = 0.12f;
         [Tooltip("Overshoot of the ease (ease-out-back): 1.7 goes about 10% past and settles.")]
         public float Overshoot = 1.7f;
+        [Tooltip("Optional tuck weight on the authoritative attack clock. Empty uses the clip-held slide tuck.")]
+        public AnimationCurve WeightByAttackTick = new();
+
+        [Tooltip("Optional forward shell reach in model metres, on the attack clock. Returns to the normal tuck when empty.")]
+        public AnimationCurve ForwardByAttackTick = new();
+
+        [Tooltip("Direction of the shell reach in model space: +Z forward, +Y up. Does not move the gameplay root.")]
+        public Vector3 ReachDirection = Vector3.forward;
 
         private PlayerRenderer? _owner;
         private ShellTuckRig? _rig;
@@ -49,6 +57,15 @@ namespace SlopArena.Client.World
             if (!_owner.isActiveAndEnabled)
             {
                 _done = true;                               // a knockout: the rig puts her back at once
+                return;
+            }
+            if (WeightByAttackTick.length > 0)
+            {
+                if (!Holding()) { _done = true; return; }
+                float tick = _owner.CurrentAttackElapsedTicks;
+                var pose = Pose;
+                pose.Hips += ReachDirection * ForwardByAttackTick.Evaluate(tick);
+                _rig.Request(pose, WeightByAttackTick.Evaluate(tick));
                 return;
             }
             if (!_leaving && Holding())

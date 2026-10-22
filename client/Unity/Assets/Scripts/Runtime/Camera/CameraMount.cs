@@ -112,10 +112,6 @@ namespace SlopArena.Client.Camera
         private void Update()
         {
             if (_orbital == null) return;
-            if (_framingAnchor != null && _player != null)
-                _framingAnchor.position = _player.position + _framingOffset;
-            if (_lookAnchor != null && _player != null)
-                _lookAnchor.position = _player.position + _lookOffset;
 
             bool suppressCameraInput = ChatInputGate.SuppressGameplay ||
                 SettingsOverlay.Active is { IsOpen: true } || SettingsOverlay.ClosedThisFrame ||
@@ -171,7 +167,6 @@ namespace SlopArena.Client.Camera
                     if (_manualOrbitGraceRemaining <= 0f && _style == CameraStyle.Manual)
                         UpdateLockOrbit(Time.deltaTime, controller);
                 }
-                UpdateAutomaticFraming(Time.deltaTime, _manualOrbitGraceRemaining <= 0f);
                 var settings = ClientSettingsService.Instance;
                 Vector2 stickDegrees = StickDegrees(stickLook, settings.StickLookSpeed, Time.deltaTime);
                 Vector2 delta = mouseLook * settings.CameraInputGain + stickDegrees;
@@ -196,18 +191,22 @@ namespace SlopArena.Client.Camera
                 SetCameraPitchDeg(_frozenPitch);
             }
 
-            // Frozen/aim/menu modes keep the framing offset and orbit unchanged,
-            // while following the player just as the original camera does.
-            if (_framingAnchor != null && _player != null)
-                _framingAnchor.position = _player.position + _framingOffset;
-            if (_lookAnchor != null && _player != null)
-                _lookAnchor.position = _player.position + _lookOffset;
-
         }
 
         private void LateUpdate()
         {
             if (_orbital == null) return;
+
+            // PlayerRenderer interpolates in Update. Frame that finished pose before
+            // CinemachineBrain's LateUpdate (execution order 100), including the anchors.
+            if (_mode == CameraMode.Normal && !_chatInputSuppressed)
+                UpdateAutomaticFraming(Time.deltaTime, _manualOrbitGraceRemaining <= 0f);
+
+            // Frozen/aim/menu modes retain their offsets while following the player.
+            if (_framingAnchor != null && _player != null)
+                _framingAnchor.position = _player.position + _framingOffset;
+            if (_lookAnchor != null && _player != null)
+                _lookAnchor.position = _player.position + _lookOffset;
 
             if (_chatInputSuppressed)
             {

@@ -345,6 +345,7 @@ namespace SlopArena.Shared
         {
             _hitboxes.Clear();
             _lastTickChecked.Clear();
+            _pendingExplosions.Clear();
         }
 
         /// <summary>World Snapshot: live hitboxes in resolution order and undrained explosions.
@@ -513,7 +514,7 @@ namespace SlopArena.Shared
         /// move's other live windows. They still test contact. Projectiles keep their own time.
         /// </summary>
         public List<HitResult> Tick(List<EntityData> entities, bool orderMovingTargetContacts = false,
-            HashSet<ulong>? frozenOwners = null)
+            HashSet<ulong>? frozenOwners = null, Func<ulong, ulong, bool>? canHitTarget = null)
         {
             var results = new List<HitResult>();
             var hitThisTick = new HashSet<ulong>();
@@ -560,6 +561,8 @@ namespace SlopArena.Shared
                 {
                     if (!entity.Active) continue;
                     if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
+                    // Reject friendly contacts before consuming a projectile or its hit history.
+                    if (canHitTarget != null && !canHitTarget(hb.OwnerId, entity.Id)) continue;
                     if (hitThisTick.Contains(entity.Id)) continue;
                     if (entity.InvincibilityTicks > 0) continue;
                     // One-hit-per-opponent: skip entities this hitbox already tagged.

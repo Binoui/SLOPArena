@@ -79,12 +79,16 @@ public sealed class BonkSpecialTests
         Assert.Empty(shielded.DamagingContacts);
         Assert.True(shielded.EndZ < 106f, $"the shield stops him short (at {shielded.EndZ})");
 
-        var missed = RunJoust(bonk, baked, victimDef, 140f, shield: false);
+        var charge = Assert.IsType<CookedSteeredChargeCapabilityParameters>(bonk
+            .GetCookedSlotAbility(AbilitySlots.R, airborne: false)!.Timeline.Stages.Single().Operations
+            .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+        float gallopDistance = charge.GallopSpeed * charge.MaxGallopTicks * Simulation.TickDt;
+        var missed = RunJoust(bonk, baked, victimDef, 100f + gallopDistance + 10f, shield: false);
         Assert.Equal(0, missed.FinalDamage);
         Assert.Empty(missed.BlockedContacts);
         Assert.Empty(missed.DamagingContacts);
-        // 60 ticks at 12 m/s, then an even 18-tick skid from 12 m/s: about 12 + 1.9 m.
-        Assert.InRange(missed.EndZ - 100f, 12.5f, 15f);
+        // The full authored gallop, then an even 18-tick skid from 12 m/s: about 1.9 m more.
+        Assert.InRange(missed.EndZ - 100f, gallopDistance + 0.5f, gallopDistance + 3f);
         Assert.InRange(missed.EndYaw, -0.01f, 0.01f);       // the owner dropped the turn-round
     }
 
@@ -104,7 +108,7 @@ public sealed class BonkSpecialTests
 
         var blocked = new List<SpellResolver.HitResult>();
         var damaging = new List<SpellResolver.HitResult>();
-        for (int tick = 0; tick < 300 && (tick == 0 || sim.GetActiveAbility(BonkId) != null); tick++)
+        for (int tick = 0; tick < 600 && (tick == 0 || sim.GetActiveAbility(BonkId) != null); tick++)
         {
             sim.Tick(new Dictionary<ulong, InputState>
             {

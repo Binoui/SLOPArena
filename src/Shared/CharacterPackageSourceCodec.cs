@@ -428,6 +428,7 @@ public static class CharacterPackageSourceCodec
     private static TypedCapabilityParameters CloneParameters(TypedCapabilityParameters p)
         => p switch
         {
+            AimedRecoveryCapabilityParameters x => x with { },
             RisingDragonCapabilityParameters x => x with { },
             ChargedProjectileCapabilityParameters x => x with { Projectile = x.Projectile with { } },
             ChargedStreamCapabilityParameters x => x with { Projectile = x.Projectile with { } },
@@ -665,6 +666,11 @@ public static class CharacterPackageSourceCodec
         w.WriteStartObject();
         switch (x)
         {
+            case AimedRecoveryCapabilityParameters p:
+                w.WriteNumber("startupTicks", p.StartupTicks); Number(w, "verticalSpeed", p.VerticalSpeed);
+                Number(w, "directionalVerticalSpeed", p.DirectionalVerticalSpeed); Number(w, "horizontalSpeed", p.HorizontalSpeed);
+                Number(w, "preparationRiseSpeed", p.PreparationRiseSpeed);
+                CharacterPackageCompiler.WriteRecoveryHop(w, p.Hop); break;
             case ChargedProjectileCapabilityParameters p:
                 w.WriteNumber("maxChargeTicks", p.MaxChargeTicks); w.WriteNumber("tier2Ticks", p.Tier2Ticks);
                 w.WriteNumber("tier3Ticks", p.Tier3Ticks); w.WriteNumber("fireTriggerTick", p.FireTriggerTick);
@@ -1160,6 +1166,7 @@ public static class CharacterPackageSourceCodec
         if (!parent.TryGetValue("parameters", out var element)) { d.Error("operation.parameter-missing", path + ".parameters", "Capability parameters are required."); return new RisingDragonCapabilityParameters(0, 0, 0); }
         var allowed = id switch
         {
+            "slop.ability.aimed-recovery.v1" => new[] { "startupTicks", "verticalSpeed", "directionalVerticalSpeed", "horizontalSpeed", "preparationRiseSpeed", "hop" },
             "slop.ability.charged-projectile.v1" => new[] { "maxChargeTicks", "tier2Ticks", "tier3Ticks", "fireTriggerTick", "tier2Radius", "tier3Radius", "projectile" },
             "slop.ability.charged-stream.v1" => new[] { "maxChargeTicks", "fireTriggerTick", "emitIntervalTicks", "minStreamTicks", "maxStreamTicks", "recoveryTicks", "maxBaseKnockback", "minRecoilSpeed", "maxRecoilSpeed", "projectile", "sprayAnimationId", "sprayLoopTicks", "endAnimationId" },
             "slop.internal.fightguy.rising-dragon.v1" => new[] { "riseSpeed", "riseTicks", "riseDelay" },
@@ -1179,6 +1186,29 @@ public static class CharacterPackageSourceCodec
         var p = ReadObjectWithCode(element, path + ".parameters", d, "operation.parameter-unknown", allowed);
         if (id == CharacterPackageCompiler.SteeredChargeCapabilityId)
             return ParseSteeredCharge(p, path + ".parameters", d);
+        if (id == CharacterPackageCompiler.AimedRecoveryCapabilityId)
+        {
+            foreach (var required in allowed)
+                if (required != "hop" && !p.ContainsKey(required))
+                    d.Error("operation.parameter-missing", path + ".parameters." + required, "Required capability parameter is missing.");
+            RecoveryHopParameters? hop = null;
+            if (p.TryGetValue("hop", out var elementHop))
+            {
+                string hp = path + ".parameters.hop";
+                var values = ReadObjectWithCode(elementHop, hp, d, "operation.parameter-unknown",
+                    "startTicks", "contactTicks", "forwardDistance", "arcHeight", "landingHeight");
+                hop = new RecoveryHopParameters(UShort(values, "startTicks", hp + ".startTicks", d),
+                    UShort(values, "contactTicks", hp + ".contactTicks", d),
+                    Float(values, "forwardDistance", hp + ".forwardDistance", d),
+                    Float(values, "arcHeight", hp + ".arcHeight", d),
+                    Float(values, "landingHeight", hp + ".landingHeight", d));
+            }
+            return new AimedRecoveryCapabilityParameters(UShort(p, "startupTicks", path + ".parameters.startupTicks", d),
+                Float(p, "verticalSpeed", path + ".parameters.verticalSpeed", d),
+                Float(p, "directionalVerticalSpeed", path + ".parameters.directionalVerticalSpeed", d),
+                Float(p, "horizontalSpeed", path + ".parameters.horizontalSpeed", d),
+                Float(p, "preparationRiseSpeed", path + ".parameters.preparationRiseSpeed", d), hop);
+        }
         foreach (var required in allowed) if (!string.Equals(required, "explosionPresentationId", StringComparison.Ordinal) && !string.Equals(required, "launchPresentationId", StringComparison.Ordinal) && !string.Equals(required, "landingPresentationId", StringComparison.Ordinal) && !string.Equals(required, "minimumChargeTicks", StringComparison.Ordinal) && !string.Equals(required, "chargeTiers", StringComparison.Ordinal) && !string.Equals(required, "sprayAnimationId", StringComparison.Ordinal) && !string.Equals(required, "sprayLoopTicks", StringComparison.Ordinal) && !string.Equals(required, "endAnimationId", StringComparison.Ordinal) && !p.ContainsKey(required)) d.Error("operation.parameter-missing", path + ".parameters." + required, "Required capability parameter is missing.");
         if (id == CharacterPackageCompiler.ChargedProjectileCapabilityId)
             return new ChargedProjectileCapabilityParameters(

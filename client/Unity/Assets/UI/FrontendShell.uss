@@ -1820,6 +1820,19 @@
 /* Capacity lines up with the PLAYER ROSTER title, not between its two lines. */
 .lobby-body-section .lobby-panel__capacity { margin-top: 7px; }
 
+.lobby-volleyball-rules {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.lobby-volleyball-rules .btn-secondary {
+    min-height: 40px;
+    margin-left: 12px;
+    font-size: 14px;
+}
+
 .lobby-body-section .panel-title {
     color: var(--shell-paper);
     font-size: 23px;

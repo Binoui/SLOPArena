@@ -42,6 +42,10 @@ namespace SlopArena.Client.UI
         private Button? _btnLeave;
         private Button? _btnInvite;
         private Button? _btnRetry;
+        private Button? _btnFriendlyFire;
+        private Button? _btnBallOnly;
+        private VisualElement? _volleyballRules;
+        private bool _friendlyFirePending;
         private Button? _backButton;
         private Label? _lblStatus;
         private Label? _lblServer;
@@ -73,6 +77,7 @@ namespace SlopArena.Client.UI
             // attempt left by a previous visit must not outlive its page.
             _snapshot = null;
             _startPending = false;
+            _friendlyFirePending = false;
             _roomMode = ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room;
             _roomSnapshot = null;
             _lifecycleCts = new CancellationTokenSource();
@@ -82,6 +87,17 @@ namespace SlopArena.Client.UI
             _btnLeave = _context.Q<Button>("btn-leave");
             _btnInvite = _context.Q<Button>("btn-invite");
             _btnRetry = _context.Q<Button>("btn-retry");
+            _btnFriendlyFire = _context.Q<Button>("btn-friendly-fire");
+            _btnBallOnly = _context.Q<Button>("btn-ball-only");
+            if (_btnBallOnly != null) { _btnBallOnly.SetEnabled(false); _btnBallOnly.clicked += ToggleBallOnly; }
+            _volleyballRules = _context.Q<VisualElement>("volleyball-rules");
+            if (_volleyballRules != null)
+                _volleyballRules.style.display = _roomMode ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_btnFriendlyFire != null)
+            {
+                _btnFriendlyFire.SetEnabled(false);
+                _btnFriendlyFire.clicked += ToggleFriendlyFire;
+            }
             _backButton = _context.Q<Button>("btn-back");
             _lblStatus = _context.Q<Label>("lbl-status");
             _lblInviteHint = _context.Q<Label>("lbl-invite-hint");
@@ -547,9 +563,42 @@ namespace SlopArena.Client.UI
             }
         }
 
+        private void ToggleFriendlyFire() => ToggleSlopballRule(false);
+        private void ToggleBallOnly() => ToggleSlopballRule(true);
+        private async void ToggleSlopballRule(bool ballOnly)
+        {
+            var lobby = _lobby;
+            if (!_alive || !_roomMode || _leaving || _overlayBlocked || _friendlyFirePending || _startPending ||
+                lobby?.IsConnected != true || _roomSnapshot is not { Phase: "Lobby" } room || !IsLocalRoomLeader(room))
+                return;
+            int generation = _attempt;
+            _friendlyFirePending = true;
+            RenderPlayers();
+            string? failure = null;
+            try
+            {
+                var updated = ballOnly ? await lobby.RoomSetBallOnlyAsync(!room.BallOnly)
+                    : await lobby.RoomSetFriendlyFireAsync(!room.FriendlyFire);
+                if (_alive && _attempt == generation && _lobby == lobby) OnRoomUpdated(updated);
+            }
+            catch (Exception ex)
+            {
+                failure = $"Couldn’t change the Slopball rule: {ex.Message}";
+            }
+            finally
+            {
+                if (_alive && _attempt == generation && _lobby == lobby)
+                {
+                    _friendlyFirePending = false;
+                    RenderPlayers();
+                    if (failure != null) SetStatus(failure, true);
+                }
+            }
+        }
+
         private void OnStartClicked()
         {
-            if (!_alive || _lobby == null || _startPending || !_lobby.IsConnected)
+            if (!_alive || _lobby == null || _startPending || _friendlyFirePending || !_lobby.IsConnected)
                 return;
             if (_roomMode)
             {
@@ -558,6 +607,7 @@ namespace SlopArena.Client.UI
                     return;
                 _startPending = true;
                 _btnStart?.SetEnabled(false);
+                _btnFriendlyFire?.SetEnabled(false);
                 SetStatus("Opening stage select…", false);
                 if (_startWatchdog != null) StopCoroutine(_startWatchdog);
                 _startWatchdog = StartCoroutine(StartWatchdog());
@@ -628,12 +678,26 @@ namespace SlopArena.Client.UI
                     _playerList.Add(CreateRoomSlot(i, members));
                 bool leader = _roomSnapshot != null && IsLocalRoomLeader(_roomSnapshot);
                 bool lobbyPhase = string.Equals(_roomSnapshot?.Phase, "Lobby", StringComparison.Ordinal);
+                if (_btnFriendlyFire != null)
+                {
+                    _btnFriendlyFire.text = _friendlyFirePending ? "UPDATING…"
+                        : "CO-OP FRIENDLY FIRE: " + (_roomSnapshot?.FriendlyFire == true ? "ON" : "OFF");
+                    _btnFriendlyFire.SetEnabled(leader && lobbyPhase && !_friendlyFirePending &&
+                        !_startPending && _lobby?.IsConnected == true);
+                }
+                if (_btnBallOnly != null)
+                {
+                    _btnBallOnly.text = _friendlyFirePending ? "UPDATING…"
+                        : "VERSUS BALL ONLY: " + (_roomSnapshot?.BallOnly == true ? "ON" : "OFF");
+                    _btnBallOnly.SetEnabled(leader && lobbyPhase && !_friendlyFirePending
+                        && !_startPending && _lobby?.IsConnected == true);
+                }
                 if (_btnStart != null)
                 {
                     _btnStart.style.display = leader && lobbyPhase ? DisplayStyle.Flex : DisplayStyle.None;
                     _btnStart.text = "CHOOSE WHAT TO PLAY";
                     _btnStart.SetEnabled(leader && lobbyPhase && members.Length >= 2 &&
-                        !_startPending && _lobby?.IsConnected == true);
+                        !_startPending && !_friendlyFirePending && _lobby?.IsConnected == true);
                 }
                 if (_roomSnapshot != null)
                     SetStatus($"{_roomSnapshot.Phase} — {_roomSnapshot.MemberCount}/{_roomSnapshot.Capacity} members.", false);
@@ -793,6 +857,8 @@ namespace SlopArena.Client.UI
             if (_btnLeave != null) _btnLeave.clicked -= Leave;
             if (_btnInvite != null) _btnInvite.clicked -= InviteFriend;
             if (_btnRetry != null) _btnRetry.clicked -= RetryConnection;
+            if (_btnFriendlyFire != null) _btnFriendlyFire.clicked -= ToggleFriendlyFire;
+            if (_btnBallOnly != null) _btnBallOnly.clicked -= ToggleBallOnly;
             if (_btnStart != null) _btnStart.clicked -= OnStartClicked;
             if (_chatSession != null)
             {

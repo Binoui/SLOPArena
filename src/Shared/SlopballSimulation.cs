@@ -4,14 +4,15 @@ using System.Collections.Generic;
 namespace SlopArena.Shared
 {
     public enum SlopballPhase : byte { WaitingServe, Live, Stopped, Countdown }
-    public enum SlopballEventKind : byte { Served, Received, Redirected, Returned, ReServe, Missed, Stopped }
+    public enum SlopballEventKind : byte { Served, Received, Redirected, Returned, ReServe, Missed, Stopped, ServeReady, PointScored }
     public readonly struct SlopballEvent
     {
         public readonly SlopballEventKind Kind;
         public readonly ulong BallId, Returns;
         public readonly float ContactTime;
-        public SlopballEvent(SlopballEventKind kind, ulong ballId, ulong returns, float time)
-        { Kind = kind; BallId = ballId; Returns = returns; ContactTime = time; }
+        public readonly SlopballCamp Camp;
+        public SlopballEvent(SlopballEventKind kind, ulong ballId, ulong returns, float time, SlopballCamp camp = SlopballCamp.None)
+        { Kind = kind; BallId = ballId; Returns = returns; ContactTime = time; Camp = camp; }
     }
     /// <summary>A Slopball event and the Match tick it happened in, as World Frames carry it (ADR-0040).</summary>
     public readonly record struct SlopballTickEvent(uint MatchTick, SlopballEvent Event)
@@ -32,7 +33,7 @@ namespace SlopArena.Shared
         public readonly bool Received, ReturnArmed, ClearedNet;
         public readonly SlopballShot Shot;
         public readonly float Difficulty;
-        /// <summary>Balls missed this attempt; a co-op run stops when they reach <see cref="MissBudget"/>.</summary>
+        /// <summary>Balls missed this attempt (saturates at 255); a zero budget allows unlimited misses.</summary>
         public readonly byte Misses, MissBudget;
         /// <summary>Every return of the attempt, across combos: a co-op run's team score.</summary>
         public readonly ulong TotalReturns;
@@ -49,7 +50,7 @@ namespace SlopArena.Shared
 
     /// <summary>
     /// Slopball rules and chronological goals; normal fighter simulation continues between shots. A solo
-    /// attempt never ends on a miss; a co-op run (ADR-0040) stops once its miss budget is spent.
+    /// attempt and the default co-op run never end on a miss. An explicit nonzero budget limits a run.
     /// </summary>
     internal sealed class SlopballSimulation
     {
@@ -106,12 +107,11 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Starts an online co-op run: the GameHost's own countdown has already gated the fighters, so the
-        /// first serve follows the normal gap. The run stops once <paramref name="missBudget"/> balls are missed.
+        /// first serve follows the normal gap. A zero <paramref name="missBudget"/> allows unlimited misses.
         /// </summary>
         public void BeginRun(ArcadeBallSimulation ball, uint sessionSeed, byte missBudget)
         {
             if (sessionSeed == 0) throw new ArgumentOutOfRangeException(nameof(sessionSeed));
-            if (missBudget == 0) throw new ArgumentOutOfRangeException(nameof(missBudget));
             if (_phase != SlopballPhase.WaitingServe || _returns != 0 || _shotIndex != 0 || _misses != 0)
                 throw new InvalidOperationException("A run requires a clean Slopball attempt.");
             _seed = sessionSeed; _missBudget = missBudget;

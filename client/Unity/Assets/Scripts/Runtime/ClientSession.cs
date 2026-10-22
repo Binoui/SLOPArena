@@ -124,9 +124,10 @@ namespace SlopArena.Client
                 string stageName,
                 uint durationTicks,
                 IReadOnlyList<ResultEntry> entries,
-                Shared.SlopballRunResult? run = null)
+                Shared.SlopballRunResult? run = null, Shared.SlopballVersusResult? versus = null)
             {
                 Run = run;
+                Versus = versus;
                 if (entries == null) throw new ArgumentNullException(nameof(entries));
                 var copy = new ResultEntry[entries.Count];
                 for (int i = 0; i < entries.Count; i++)
@@ -146,6 +147,7 @@ namespace SlopArena.Client
             public IReadOnlyList<ResultEntry> Entries { get; }
             /// <summary>A co-op Slopball run's team result; null for a stock fight.</summary>
             public Shared.SlopballRunResult? Run { get; }
+            public Shared.SlopballVersusResult? Versus { get; }
         }
 
         /// <summary>Store the server-authored final result without local re-ranking.</summary>
@@ -167,7 +169,7 @@ namespace SlopArena.Client
                 UI.MatchConfig.ArenaName,
                 packet.DurationTicks,
                 entries,
-                packet.Run);
+                packet.Run, packet.Versus);
         }
         public static void SetLocalMatchResults(MatchResultsData results)
             => CurrentMatchResults = results;
@@ -305,10 +307,18 @@ namespace SlopArena.Client
                 return;
             }
             UI.MatchConfig.PlayerClass = playerClass;
+            if (config.Format == Shared.MatchFormat.SlopballVersus
+                && (!Shared.SlopballCamps.AreBalanced(config.Players.Select(p => p.Camp))
+                    || config.Players.Any(p => p.EntityId <= 0 || p.EntityId >= Shared.ServerSimulation.ArcadeBallTargetInputId)
+                    || config.Players.Select(p => p.EntityId).Distinct().Count() != config.Players.Count))
+            { RejectMatchStart("Versus Slopball needs balanced Teal and Clay camps."); return; }
             UI.MatchConfig.PlayerPackageId = catalog.Resolve(playerClass)?.Identity.PackageId ?? string.Empty;
             UI.MatchConfig.LocalEntityId = (ulong)local.EntityId;
             UI.MatchConfig.MaxStocks = config.MaxStocks;
             UI.MatchConfig.Format = config.Format;
+            UI.MatchConfig.FriendlyFire = config.FriendlyFire;
+            UI.MatchConfig.BallOnly = config.BallOnly;
+            UI.MatchConfig.Camps = config.Players.ToDictionary(p => (ulong)p.EntityId, p => p.Camp);
             UI.MatchConfig.Opponents.Clear();
             foreach (var player in config.Players)
             {
@@ -364,7 +374,9 @@ namespace SlopArena.Client
                 UI.MatchConfig.Transport is not (UI.MatchTransport.SteamP2P or UI.MatchTransport.DevelopmentUdp) ||
                 UI.MatchConfig.MatchId != matchId)
                 return false;
-            EndActiveMatch($"Match aborted ({reason}).");
+            EndActiveMatch(reason == "leader_returned_to_lobby"
+                ? "The leader returned the group to the lobby."
+                : $"Match aborted ({reason}).");
             return true;
         }
 

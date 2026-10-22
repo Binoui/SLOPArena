@@ -70,7 +70,7 @@ namespace SlopArena.EditorTools
             [CliArg("output", "Fresh repository-relative directory below tmp/, .impeccable/, .ability-lab-cache/ or client/Unity/Temp/.", Required = true)] string output,
             [CliArg("attacker", "Roster package ID of the attacker.")] string attacker = "fightguy",
             [CliArg("victim", "Roster package ID of the idle victim.")] string victim = "manki",
-            [CliArg("slot", "Ground canonical label: 1, 2, 3, 4, A, E, R or F.")] string slot = "4",
+            [CliArg("slot", "Canonical label: 1, 2, 3, 4, A, E, R or F.")] string slot = "4",
             [CliArg("distance", "Metres between the fighters, 0.4–4.")] float distance = 1.2f,
             [CliArg("damage", "Victim starting percent, 0–300.")] int damage = 0,
             [CliArg("ticks", "Ticks captured after the press, 10–240.")] int ticks = 90,
@@ -81,7 +81,9 @@ namespace SlopArena.EditorTools
             [CliArg("track", "Let the wide camera follow both fighters each tick, for leaps and launches.")] bool track = false,
             [CliArg("hold", "Ticks to keep aiming after the press, 0–120; charges aim-hold specials such as Ki Shot.")] int hold = 0,
             [CliArg("orbit", "Degrees both cameras orbit around the fighters, -180–180: 0 is the side view, 90 looks from behind the attacker like the gameplay camera.")] float orbit = 0f,
-            [CliArg("shield", "The victim holds its shield the whole duel, to capture a move's blocked path.")] bool shield = false)
+            [CliArg("shield", "The victim holds its shield the whole duel, to capture a move's blocked path.")] bool shield = false,
+            [CliArg("airborne", "Jump twelve ticks before pressing the move, using normal simulation input.")] bool airborne = false,
+            [CliArg("victim-airborne", "The victim also jumps twelve ticks before the attack, for aerial contact review.")] bool victimAirborne = false)
         {
             var saved = Read();
             if (!EditorApplication.isPlaying)
@@ -147,6 +149,8 @@ namespace SlopArena.EditorTools
                     review.HoldTicks = hold;
                     review.CameraOrbitDegrees = orbit;
                     review.VictimShield = shield;
+                    review.Airborne = airborne;
+                    review.VictimAirborne = victimAirborne;
                     review.Strength = Scaled(selected, scale);
                     review.CloseCamera = close;
                     review.WideCamera = wide;
@@ -191,7 +195,7 @@ namespace SlopArena.EditorTools
             }
             return new
             {
-                success = true, stage = saved.stage, output, attacker, victim, slot, distance, damage, ticks, track, hold, shield,
+                success = true, stage = saved.stage, output, attacker, victim, slot, distance, damage, ticks, track, hold, shield, airborne, victimAirborne,
                 layers = selected, editorPausesResumed = resumed, runs
             };
         }

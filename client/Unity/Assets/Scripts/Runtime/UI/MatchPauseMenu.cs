@@ -24,13 +24,27 @@ namespace SlopArena.Client.UI
         private InputController? _inputController;
         private Action? _onLeaveMatch;
         private Action? _onRetry;
+        private Action? _onReturnToLobby;
         private VisualElement? _panel;
         private Button? _resumeButton;
+        private Button? _returnToLobbyButton;
+        private Label? _returnToLobbyError;
         private SettingsOverlay? _settingsOverlay;
 
         /// <summary>True while the match menu owns local gameplay input.</summary>
         public bool IsPaused => _paused;
         public static MatchPauseMenu? Active { get; private set; }
+
+        public void SetReturnToLobbyAction(Action? action, bool pending = false, string? error = null)
+        {
+            _onReturnToLobby = action;
+            if (_returnToLobbyButton == null) return;
+            _returnToLobbyButton.style.display = action != null ? DisplayStyle.Flex : DisplayStyle.None;
+            _returnToLobbyButton.SetEnabled(!pending);
+            _returnToLobbyButton.text = pending ? "RETURNING…" : "RETURN TO LOBBY";
+            _returnToLobbyError!.text = error ?? string.Empty;
+            _returnToLobbyError.style.display = string.IsNullOrEmpty(error) ? DisplayStyle.None : DisplayStyle.Flex;
+        }
         public void Init(CameraMount? cameraMount, InputController? inputController, Action? onLeaveMatch = null, UIDocument? hostDocument = null, bool freezeSimulation = true, Action? onRetry = null)
         {
             _freezeSimulation = freezeSimulation;
@@ -151,6 +165,14 @@ namespace SlopArena.Client.UI
             if (_onRetry != null)
                 box.Add(MakeButton("RETRY", Retry));
             box.Add(MakeButton("SETTINGS", OpenSettings));
+            _returnToLobbyButton = MakeButton("RETURN TO LOBBY", () => _onReturnToLobby?.Invoke());
+            _returnToLobbyButton.style.display = DisplayStyle.None;
+            box.Add(_returnToLobbyButton);
+            _returnToLobbyError = new Label { name = "pause-return-error" };
+            _returnToLobbyError.AddToClassList("match-pause-error");
+            _returnToLobbyError.style.whiteSpace = WhiteSpace.Normal;
+            _returnToLobbyError.style.display = DisplayStyle.None;
+            box.Add(_returnToLobbyError);
             box.Add(MakeButton("LEAVE MATCH", LeaveMatch));
             box.Add(MakeButton("QUIT GAME", QuitGame));
 

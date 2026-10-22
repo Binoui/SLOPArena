@@ -185,13 +185,15 @@
     "presentation.bashie.shell.tuck",
     "presentation.bashie.shell.plop",
     "presentation.bashie.shell.surf",
-    "presentation.bashie.shell.hit"
+    "presentation.bashie.shell.hit",
+    "presentation.bashie.shell.spin-tuck",
+    "presentation.bashie.shell.spin-water",
+    "presentation.bashie.ring.bounce",
+    "presentation.bashie.ring.rebound",
+    "presentation.bashie.shell.rise-tuck",
+    "presentation.bashie.shell.air-strike-tuck"
   ],
   "capabilityRequirements": [
-    {
-      "capabilityId": "slop.internal.manki.jetpack-boost.v1",
-      "capabilityVersion": "1"
-    },
     {
       "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
       "capabilityVersion": "1"
@@ -202,6 +204,10 @@
     },
     {
       "capabilityId": "slop.ability.steered-charge.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.aimed-recovery.v1",
       "capabilityVersion": "1"
     }
   ],
@@ -378,8 +384,8 @@
     },
     {
       "id": "ground.2",
-      "name": "Straight Punch",
-      "description": "Straight Punch",
+      "name": "Whirlpool Spin",
+      "description": "Tuck into your shell and spin once, splashing fighters around you before popping back out.",
       "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -391,8 +397,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 58,
-            "iasaTicks": 26,
+            "durationTicks": 40,
+            "iasaTicks": 36,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -418,26 +424,60 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 4,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.spin-tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 40
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 10,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.spin-water",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 24
+                }
+              },
+              {
                 "kind": "spawnHitbox",
-                "tick": 9,
+                "tick": 10,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
-                  "radius": 0.5,
+                  "radius": 0.85,
                   "offsetX": 0,
-                  "offsetY": 0.2,
-                  "offsetZ": 0.21,
+                  "offsetY": -0.1,
+                  "offsetZ": 0,
                   "endOffsetX": 0,
                   "endOffsetY": 0,
                   "endOffsetZ": 0,
-                  "startBoneId": "bone.right-hand",
+                  "startBoneId": null,
                   "endBoneId": null,
                   "damage": 7,
                   "angle": 25,
                   "baseKnockback": 5,
                   "knockbackGrowth": 26,
                   "stunTicks": 18,
-                  "durationTicks": 6,
+                  "durationTicks": 20,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -450,24 +490,24 @@
     },
     {
       "id": "air.2",
-      "name": "Air Swing",
-      "description": "Air Swing",
+      "name": "Air Whirlpool Spin",
+      "description": "Spin in your shell while carrying your airborne momentum, then pop out and fall.",
       "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
+      "preserveMomentumOnStart": true,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 48,
-            "iasaTicks": 41,
+            "durationTicks": 40,
+            "iasaTicks": 36,
             "landingLagTicks": 9,
-            "autoCancelBeforeTicks": 6,
-            "autoCancelAfterTicks": 33,
+            "autoCancelBeforeTicks": 10,
+            "autoCancelAfterTicks": 36,
             "attackRange": 0,
             "warpRange": 0,
             "useTargetLock": false,
@@ -481,63 +521,71 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 8,
+                "endTick": 9,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
-                "maxPitchDegrees": 15,
+                "maxPitchDegrees": 0,
                 "yawDegreesPerSecond": 360,
-                "pitchDegreesPerSecond": 180
+                "pitchDegreesPerSecond": 0
               },
               {
-                "kind": "spawnHitbox",
-                "tick": 8,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.left-foot",
-                  "endBoneId": "bone.hips",
-                  "damage": 8,
-                  "angle": 25,
-                  "baseKnockback": 5,
-                  "knockbackGrowth": 26,
-                  "stunTicks": 18,
-                  "durationTicks": 6,
-                  "interruptible": true,
-                  "hitGroup": 1,
-                  "knockbackDirection": "awayFromOwner"
+                "kind": "emitPresentation",
+                "tick": 4,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.spin-tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 40
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 10,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.spin-water",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 24
                 }
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 14,
+                "tick": 10,
                 "unit": "meters",
                 "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.5,
+                  "shape": "sphere",
+                  "radius": 0.85,
                   "offsetX": 0,
-                  "offsetY": 0,
+                  "offsetY": -0.1,
                   "offsetZ": 0,
                   "endOffsetX": 0,
                   "endOffsetY": 0,
                   "endOffsetZ": 0,
-                  "startBoneId": "bone.left-foot",
-                  "endBoneId": "bone.hips",
-                  "damage": 5,
-                  "angle": 20,
-                  "baseKnockback": 3,
-                  "knockbackGrowth": 16,
-                  "stunTicks": 12,
-                  "durationTicks": 23,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 7,
+                  "angle": 25,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 26,
+                  "stunTicks": 18,
+                  "durationTicks": 20,
                   "interruptible": true,
-                  "hitGroup": 1,
+                  "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
                 }
               }
@@ -692,8 +740,8 @@
     },
     {
       "id": "ground.4",
-      "name": "Head Slam",
-      "description": "Brief wind-up, then drive the skull forward and down into the target.",
+      "name": "Rising Shell",
+      "description": "Tuck into your shell, strike diagonally forward and up, then pull back and land on the same spot.",
       "iconId": "icon.4",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -701,12 +749,12 @@
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
-      "allowSlideCarry": true,
+      "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 40,
-            "iasaTicks": 35,
+            "durationTicks": 48,
+            "iasaTicks": 48,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -723,7 +771,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 10,
+                "endTick": 13,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -732,56 +780,520 @@
                 "pitchDegreesPerSecond": 0
               },
               {
-                "kind": "spawnHitbox",
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.rise-tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 41
+                }
+              },
+              {
+                "kind": "gravityWindow",
                 "tick": 10,
+                "unit": "normalized",
+                "gravityScale": 0,
+                "durationTicks": 19
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 10,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 2.444444,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 11,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 6.111111,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 12,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 7.944444,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 13,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 7.944444,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 14,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 6.111111,
+                "z": 0
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.plop",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 36
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.spin-water",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 24
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 14,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
-                  "radius": 0.5,
+                  "radius": 0.65,
                   "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.688889,
                   "endOffsetX": 0,
                   "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.head",
-                  "endBoneId": "bone.head",
+                  "endOffsetZ": 0.688889,
+                  "startBoneId": null,
+                  "endBoneId": null,
                   "damage": 14,
-                  "angle": 28,
+                  "angle": 45,
                   "baseKnockback": 9,
                   "knockbackGrowth": 42,
                   "stunTicks": 26,
-                  "durationTicks": 5,
+                  "durationTicks": 1,
                   "interruptible": true,
-                  "hitGroup": 0,
+                  "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 15,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 2.444444,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 15,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.811111,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.811111,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 16,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -0.666667,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 16,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.86,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.86,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 17,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -1.666667,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 17,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.843704,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.843704,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 18,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -2.166667,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 18,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.802963,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.802963,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 19,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -2.166667,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 19,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.75,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.75,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 20,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -1.666667,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 20,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.697037,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.697037,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 21,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -0.666667,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 21,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.656296,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.656296,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 22,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -1.777778,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 22,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.64,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.64,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 23,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -4.444444,
+                "z": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 23,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.4,
+                  "offsetZ": 0.607407,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.607407,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 24,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -5.777778,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 25,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -5.777778,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 26,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -4.444444,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 27,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": -1.777778,
+                "z": 0
+              },
+              {
+                "kind": "setVelocity",
+                "tick": 28,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 0,
+                "z": 0
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bashie.shell.hit"
     },
     {
       "id": "air.4",
-      "name": "Air Smash",
-      "description": "Air Smash",
+      "name": "Air Diagonal Shell",
+      "description": "Strike forward and up from your shell while carrying airborne momentum, then unfold back into falling.",
       "iconId": "icon.4",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
+      "preserveMomentumOnStart": true,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 62,
-            "iasaTicks": 57,
+            "durationTicks": 48,
+            "iasaTicks": 48,
             "landingLagTicks": 12,
-            "autoCancelBeforeTicks": 6,
-            "autoCancelAfterTicks": 44,
+            "autoCancelBeforeTicks": 10,
+            "autoCancelAfterTicks": 36,
             "attackRange": 0,
             "warpRange": 0,
             "useTargetLock": false,
@@ -795,7 +1307,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 5,
+                "endTick": 13,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -804,35 +1316,304 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 7,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.air-strike-tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 41
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.spin-water",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 24
+                }
+              },
+              {
                 "kind": "spawnHitbox",
-                "tick": 5,
+                "tick": 14,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
-                  "radius": 0.5,
+                  "radius": 0.65,
                   "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": -0.2,
+                  "offsetY": 0.007407,
+                  "offsetZ": 0.688889,
                   "endOffsetX": 0,
                   "endOffsetY": 0,
-                  "endOffsetZ": 0.2,
-                  "startBoneId": "bone.left-foot",
+                  "endOffsetZ": 0.688889,
+                  "startBoneId": null,
                   "endBoneId": null,
-                  "damage": 13,
-                  "angle": 25,
-                  "baseKnockback": 8,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
                   "knockbackGrowth": 42,
                   "stunTicks": 26,
-                  "durationTicks": 38,
+                  "durationTicks": 1,
                   "interruptible": true,
-                  "hitGroup": 0,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 15,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": 0.109259,
+                  "offsetZ": 0.811111,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.811111,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 16,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": 0.15,
+                  "offsetZ": 0.86,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.86,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 17,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": 0.13642,
+                  "offsetZ": 0.843704,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.843704,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 18,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": 0.102469,
+                  "offsetZ": 0.802963,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.802963,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 19,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": 0.058333,
+                  "offsetZ": 0.75,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.75,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 20,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": 0.014197,
+                  "offsetZ": 0.697037,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.697037,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 21,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.019753,
+                  "offsetZ": 0.656296,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.656296,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 22,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.033333,
+                  "offsetZ": 0.64,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.64,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 23,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0,
+                  "offsetY": -0.060494,
+                  "offsetZ": 0.607407,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.607407,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 45,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 1,
+                  "interruptible": true,
+                  "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bashie.shell.hit"
     },
     {
       "id": "ground.A",
@@ -970,8 +1751,8 @@
     },
     {
       "id": "ground.E",
-      "name": "Jetpack Boost",
-      "description": "Explode upward with a strong vertical boost; drift after reaching the apex.",
+      "name": "Ring Bounce",
+      "description": "Throw the ring ahead, hop automatically onto it, compress, then spring high. Movement input at the spring trades some height for horizontal reach; neutral maximizes height. Works with ordinary jumps spent.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -983,7 +1764,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 60,
+            "durationTicks": 54,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1001,20 +1782,42 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+                "capabilityId": "slop.ability.aimed-recovery.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "startupTicks": 3,
+                  "startupTicks": 44,
                   "verticalSpeed": 15,
-                  "horizontalSpeed": 3.5,
-                  "explosionRadius": 1.5,
-                  "explosionDamage": 10,
-                  "explosionKbAngle": 30,
-                  "explosionKbBase": 2.4,
-                  "explosionKbGrowth": 24,
-                  "explosionStunTicks": 18,
-                  "explosionDurationTicks": 8,
-                  "explosionPresentationId": ""
+                  "directionalVerticalSpeed": 13,
+                  "horizontalSpeed": 8,
+                  "preparationRiseSpeed": 0,
+                  "hop": {
+                    "startTicks": 18,
+                    "contactTicks": 34,
+                    "forwardDistance": 0.792,
+                    "arcHeight": 0.495,
+                    "landingHeight": 0.198
+                  }
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.ring.bounce",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 44
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 44,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.ring.rebound",
+                "placement": {
+                  "attachmentMode": "world",
+                  "durationTicks": 10
                 }
               }
             ]
@@ -1127,7 +1930,7 @@
                 "parameters": {
                   "gallopSpeed": 13,
                   "turnDegreesPerSecond": 200,
-                  "maxGallopTicks": 54,
+                  "maxGallopTicks": 240,
                   "armored": true,
                   "lanceHitbox": {
                     "shape": "capsule",
@@ -1154,7 +1957,7 @@
                   "missEndingTicks": 48,
                   "skidTicks": 12,
                   "turnAroundOnMiss": false,
-                  "airStrideTicks": 24,
+                  "airStrideTicks": 120,
                   "lookDownTicks": 20,
                   "gallopAnimationId": "anim.bashie.gr-slide",
                   "gallopLoopTicks": 24,

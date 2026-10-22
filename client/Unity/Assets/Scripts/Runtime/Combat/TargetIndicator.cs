@@ -25,9 +25,10 @@ namespace SlopArena.Client.Combat
             public readonly MeshRenderer Mesh;
             public readonly LineRenderer DropLine;
             public readonly Color Accent;
+            public readonly Color CampColor;
 
             public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh,
-                LineRenderer dropLine, Color accent)
+                LineRenderer dropLine, Color accent, Color campColor)
             {
                 Renderer = renderer;
                 EntityId = renderer != null ? renderer.EntityId : 0;
@@ -35,6 +36,7 @@ namespace SlopArena.Client.Combat
                 Mesh = mesh;
                 DropLine = dropLine;
                 Accent = accent;
+                CampColor = campColor;
             }
         }
         private const float RingHeightAboveFloor = 0.025f;
@@ -43,6 +45,7 @@ namespace SlopArena.Client.Combat
         private static readonly Color DropLineOrange = new Color(1f, 176f / 255f, 59f / 255f);
         private static readonly int AirborneProperty = Shader.PropertyToID("_Airborne");
         private static readonly int AccentProperty = Shader.PropertyToID("_Accent");
+        private static readonly int CampColorProperty = Shader.PropertyToID("_CampColor");
         private static readonly int LengthInWidthsProperty = Shader.PropertyToID("_LengthInWidths");
         private static readonly int SpacingProperty = Shader.PropertyToID("_Spacing");
         private static readonly int CoreProperty = Shader.PropertyToID("_Core");
@@ -78,7 +81,8 @@ namespace SlopArena.Client.Combat
         private bool[] _arcActive = Array.Empty<bool>();
 
         public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers,
-            ArenaDefinition arena, ulong localEntityId = 0, UnityEngine.Camera renderCamera = null)
+            ArenaDefinition arena, ulong localEntityId = 0, UnityEngine.Camera renderCamera = null,
+            Func<ulong, SlopballCamp> campOf = null)
         {
             _getState = getState;
             _heightmap = arena.Heightmap;
@@ -109,7 +113,11 @@ namespace SlopArena.Client.Combat
                 mr.receiveShadows = false;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 Color accent = renderer != null && renderer.EntityId == localEntityId ? LocalAccent : Paper;
-                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent);
+                var camp = renderer != null ? campOf?.Invoke(renderer.EntityId) ?? SlopballCamp.None : SlopballCamp.None;
+                Color campColor = camp == SlopballCamp.None ? Color.clear : camp == SlopballCamp.Teal
+                    ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
+                if (camp != SlopballCamp.None && renderer.EntityId != localEntityId) accent = campColor;
+                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor);
                 ringGO.SetActive(false);
             }
         }
@@ -168,6 +176,7 @@ namespace SlopArena.Client.Combat
                     : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.05f, 0.75f, heightAboveFloor));
                 _markerProperties.SetFloat(AirborneProperty, airborne);
                 _markerProperties.SetColor(AccentProperty, ring.Accent);
+                _markerProperties.SetColor(CampColorProperty, ring.CampColor);
                 ring.Mesh.SetPropertyBlock(_markerProperties);
                 UpdateDropLine(ring, ring.Transform.position, floorY + heightAboveFloor, airborne);
                 UpdateLaunchArc(i, ring, state);

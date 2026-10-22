@@ -11,7 +11,8 @@ namespace SlopArena.Shared
         /// <summary>World Snapshot encoding version; bump with any layout change.</summary>
         /// <summary>World Snapshot encoding version; 2 adds the Arcade ball and Slopball rules (ADR-0040).</summary>
         // 3: hitboxes carry returning projectiles (Sir Bonk's pot lid).
-        public const uint SnapshotFormatVersion = 3;
+        // 4: Versus Slopball rally, score and serve rotation.
+        public const uint SnapshotFormatVersion = 4;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -76,6 +77,8 @@ namespace SlopArena.Shared
                 _arcadeBall.Capture().Write(w);
                 w.WriteBool(_slopball != null);
                 _slopball?.Capture().Write(w);
+                w.WriteBool(_volley != null);
+                _volley?.Capture().Write(w);
                 w.WriteBool(_arcadeInputReleaseRequired);
             }
             return new WorldSnapshot(w.ToArray());
@@ -141,6 +144,7 @@ namespace SlopArena.Shared
                 throw SnapshotReader.Malformed("Arcade ball presence");
             ArcadeBallSimulation.Snapshot ball = default;
             SlopballSimulation.Snapshot rules = default;
+            SlopballVersusSimulation.Snapshot volley = default;
             bool inputRelease = false;
             if (hasBall)
             {
@@ -149,6 +153,13 @@ namespace SlopArena.Shared
                 if (hasRules != (_slopball != null))
                     throw SnapshotReader.Malformed("Slopball presence");
                 if (hasRules) rules = SlopballSimulation.Snapshot.Read(r);
+                bool hasVolley = r.ReadBool();
+                if (hasVolley != (_volley != null)) throw SnapshotReader.Malformed("Versus Slopball presence");
+                if (hasVolley)
+                {
+                    volley = SlopballVersusSimulation.Snapshot.Read(r);
+                    _volley!.Validate(volley);
+                }
                 inputRelease = r.ReadBool();
             }
             if (!r.AtEnd)
@@ -177,6 +188,7 @@ namespace SlopArena.Shared
             {
                 _arcadeBall.Apply(ball);
                 _slopball?.Apply(rules);
+                _volley?.Apply(volley);
                 _arcadeInputReleaseRequired = inputRelease;
             }
 

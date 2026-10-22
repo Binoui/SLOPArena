@@ -16,6 +16,10 @@ public static class InternalCapabilityRegistry
 
         switch (capabilityId)
         {
+            case CharacterPackageCompiler.AimedRecoveryCapabilityId
+                when parameters is CookedAimedRecoveryCapabilityParameters recovery:
+                capability = new AimedRecoveryAbility(recovery);
+                return true;
             case CharacterPackageCompiler.ChargedProjectileCapabilityId
                 when parameters is CookedChargedProjectileCapabilityParameters projectile:
                 capability = new ChargedProjectileAbility(projectile);

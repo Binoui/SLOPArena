@@ -61,14 +61,16 @@ public class ArcadeSnapshotTests
                 Assert.Equal(field.GetValue(original), field.GetValue(copy));
     }
 
-    [Fact]
-    public void CoopRunRestoredMidRallyMatchesTheContinuousOneEveryTick()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CoopRunRestoredMidRallyMatchesTheContinuousOneEveryTick(bool friendlyFire)
     {
         var arena = WorldSnapshotTests.LoadArena("slopball");
         var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk };
         var ids = Enumerable.Range(1, roster.Length).Select(i => (ulong)i).ToArray();
-        var continuous = NewRun(arena, roster, reverseRegistration: false);
-        var restored = NewRun(arena, roster, reverseRegistration: true);
+        var continuous = NewRun(arena, roster, reverseRegistration: false, friendlyFire);
+        var restored = NewRun(arena, roster, reverseRegistration: true, friendlyFire);
         restored.RestoreSnapshot(continuous.CaptureSnapshot());
 
         var rng = new Random(2026);
@@ -90,7 +92,7 @@ public class ArcadeSnapshotTests
             Assert.True(expected.ContentEquals(actual), $"Restored co-op run diverged at tick {tick}.");
             if (--nextRestore == 0)
             {
-                restored = NewRun(arena, roster, reverseRegistration: true);
+                restored = NewRun(arena, roster, reverseRegistration: true, friendlyFire);
                 restored.RestoreSnapshot(expected);
                 restores++;
                 nextRestore = rng.Next(1, 41);
@@ -118,9 +120,10 @@ public class ArcadeSnapshotTests
     }
 
     /// <summary>A co-op run as the GameHost sets it up: fighters 1..N on the co-op starts.</summary>
-    internal static ServerSimulation NewRun(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration)
+    internal static ServerSimulation NewRun(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration,
+        bool friendlyFire = false)
     {
-        var sim = new ServerSimulation(arena, new SlopballCoopMatchRule(250));
+        var sim = new ServerSimulation(arena, new SlopballCoopMatchRule(friendlyFire: friendlyFire));
         var order = Enumerable.Range(0, roster.Length).ToList();
         if (reverseRegistration) order.Reverse();
         foreach (int slot in order)

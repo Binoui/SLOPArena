@@ -297,7 +297,7 @@ namespace SlopArena.Shared.Rollback
             _sim.Tick(_tickInputs);
             _events.RecordPredicted(_sim.GetPresentationEvents(clear: true));
             _hits.RecordPredicted(_sim.LastTickHits);
-            if (_sim.Slopball.HasValue)
+            if (_sim.Slopball.HasValue || _sim.SlopballVersus.HasValue)
             {
                 _tickSlopball.Clear();
                 foreach (var item in _sim.LastTickSlopballEvents)
@@ -321,7 +321,7 @@ namespace SlopArena.Shared.Rollback
                     if (hit.MatchTick == tick)
                         _tickHits.Add(hit);
                 _hits.RecordAuthoritative(tick, _tickHits);
-                if (_sim.Slopball.HasValue)
+                if (_sim.Slopball.HasValue || _sim.SlopballVersus.HasValue)
                 {
                     _tickSlopball.Clear();
                     foreach (var item in frame.SlopballEvents)

@@ -36,6 +36,16 @@
                         </ui:VisualElement>
                         <ui:VisualElement class="arcade-mode-art arcade-mode-art--slopball" picking-mode="Ignore" />
                     </ui:Button>
+                    <ui:Button name="stage-arcade-versus" class="arcade-mode-card stage-arcade-card" tooltip="Versus Slopball: 1v1 or 2v2, first to 21">
+                        <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
+                            <ui:VisualElement class="arcade-mode-heading">
+                                <ui:Label text="SLOPBALL VERSUS" class="arcade-mode-title" />
+                                <ui:Label text="1v1 / 2v2" class="stage-arcade-soon" />
+                            </ui:VisualElement>
+                            <ui:Label text="Teal against Clay. Player serves. First to 21." class="arcade-mode-rule" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="arcade-mode-art arcade-mode-art--slopball" picking-mode="Ignore" />
+                    </ui:Button>
                     <ui:Button name="stage-arcade-course" class="arcade-mode-card stage-arcade-card" tooltip="Character Courses online are coming">
                         <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
                             <ui:VisualElement class="arcade-mode-heading">

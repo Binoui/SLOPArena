@@ -18,6 +18,7 @@ namespace SlopArena.Client.Network
         public bool IsLeader { get; set; }
         public string? CharacterSelection { get; set; }
         public bool LockedIn { get; set; }
+        public string Camp { get; set; } = "";
     }
 
     public class RoomSummary
@@ -33,6 +34,9 @@ namespace SlopArena.Client.Network
 
     public sealed class RoomSnapshot : RoomSummary
     {
+        public Guid? ActiveMatchId { get; set; }
+        public bool FriendlyFire { get; set; }
+        public bool BallOnly { get; set; }
         public string? ArenaName { get; set; }
         /// <summary>The pick's format: <c>stock</c> or an Arcade format such as <c>slopball-coop</c> (ADR-0040).</summary>
         public string Format { get; set; } = MatchFormats.StockWire;
@@ -759,8 +763,16 @@ namespace SlopArena.Client.Network
         /// <summary>The leader's pick: <c>stock</c> with a PvP arena, or an admitted Arcade format and its arena.</summary>
         public Task<RoomSnapshot> RoomChoosePickAsync(string format, string arena) =>
             InvokeRoomAsync<RoomSnapshot>("RoomChoosePick", format, arena);
+        public Task<RoomSnapshot> RoomSetFriendlyFireAsync(bool enabled) =>
+            InvokeRoomAsync<RoomSnapshot>("RoomSetFriendlyFire", enabled);
+        public Task<RoomSnapshot> RoomSetBallOnlyAsync(bool enabled) =>
+            InvokeRoomAsync<RoomSnapshot>("RoomSetBallOnly", enabled);
+        public Task<RoomSnapshot> RoomSelectCampAsync(string camp) =>
+            InvokeRoomAsync<RoomSnapshot>("RoomSelectCamp", camp);
         public Task RoomStartMatchAsync() =>
             InvokeRoomAsync<JsonElement>("RoomStartMatch");
+        public Task RoomReturnToLobbyAsync(Guid matchId) =>
+            InvokeRoomAsync<object?>("RoomReturnToLobby", matchId);
         public Task SelectCharacterAsync(string characterClass) => InvokeSafe("SelectCharacter", characterClass);
         public Task StartStageSelectAsync() => InvokeSafe("StartStageSelect");
         public Task StartMatchAsync(string arenaName) => InvokeSafe("StartMatch", arenaName);

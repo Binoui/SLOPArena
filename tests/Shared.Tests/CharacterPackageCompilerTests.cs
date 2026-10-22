@@ -10,6 +10,82 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageCompilerTests
 {
+    [Theory]
+    [InlineData("startupTicks", 0)]
+    [InlineData("startupTicks", 18)]
+    [InlineData("startupTicks", 121)]
+    [InlineData("verticalSpeed", 0)]
+    [InlineData("verticalSpeed", 61)]
+    [InlineData("directionalVerticalSpeed", 16)]
+    [InlineData("directionalVerticalSpeed", 0)]
+    [InlineData("horizontalSpeed", -1)]
+    [InlineData("preparationRiseSpeed", 5)]
+    public void AimedRecoveryRejectsUnboundedParameters(string field, int value)
+        => AssertError(CompileRecovery(c => Recovery(c)["parameters"]![field] = value), "value.out-of-range");
+
+    [Fact]
+    public void AimedRecoveryIsPublicAndRejectsCompetingMotionOrEarlyCancel()
+    {
+        Assert.True(CharacterPackageCompiler.IsPublicCapability(CharacterPackageCompiler.AimedRecoveryCapabilityId, "1"));
+        Assert.False(CharacterPackageCompiler.IsPublicCapability(CharacterPackageCompiler.AimedRecoveryCapabilityId, "2"));
+        var valid = CompileRecovery();
+        Assert.NotNull(valid.CookedPackage);
+        Assert.Equal("1.10.0", valid.CookedPackage!.Metadata.RuntimeApiMin);
+        AssertError(CompileRecovery(c => Recovery(c)["tick"] = 1), "capability.ambiguous");
+        AssertError(CompileRecovery(c => RecoverySlot(c)["isRecoveryMove"] = false), "capability.ambiguous");
+        AssertError(CompileRecovery(c => RecoverySlot(c)["timeline"]!["stages"]![0]!["iasaTicks"] = 2), "capability.ambiguous");
+        AssertError(CompileRecovery(c => RecoverySlot(c)["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+            .Add(JsonNode.Parse("""{"kind":"setVelocity","tick":1,"unit":"metersPerSecond","velocityMode":"absolute","x":0,"y":1,"z":0}"""))), "capability.ambiguous");
+        AssertError(CompileRecovery(c => Recovery(c)["parameters"]!["unknownField"] = 1), "operation.parameter-unknown");
+        AssertError(CompileRecovery(c => Recovery(c)["parameters"]!.AsObject().Remove("horizontalSpeed")), "operation.parameter-missing");
+        AssertError(CompileRecovery(c => Recovery(c)["parameters"]!["hop"]!["unknownField"] = 1), "operation.parameter-unknown");
+        Assert.Null(CompileRecovery(c => Recovery(c)["parameters"]!["hop"]!.AsObject().Remove("arcHeight")).CookedPackage);
+    }
+
+    [Theory]
+    [InlineData("startTicks", 0)]
+    [InlineData("startTicks", 34)]
+    [InlineData("contactTicks", 18)]
+    [InlineData("contactTicks", 44)]
+    [InlineData("forwardDistance", 0)]
+    [InlineData("forwardDistance", 4)]
+    [InlineData("arcHeight", 0)]
+    [InlineData("arcHeight", 4)]
+    [InlineData("landingHeight", -1)]
+    [InlineData("landingHeight", 2)]
+    public void AimedRecoveryRejectsUnboundedOrAmbiguousSetupHop(string field, int value)
+        => AssertError(CompileRecovery(c => Recovery(c)["parameters"]!["hop"]![field] = value), "value.out-of-range");
+
+    [Fact]
+    public void AimedRecoveryWithoutHopRetainsItsLegacyContract()
+    {
+        var legacy = CompileRecovery(c =>
+        {
+            var stage = RecoverySlot(c)["timeline"]!["stages"]![0]!;
+            var capability = Recovery(c).DeepClone();
+            capability["parameters"]!.AsObject().Remove("hop");
+            capability["parameters"]!["startupTicks"] = 12;
+            capability["parameters"]!["preparationRiseSpeed"] = .8f;
+            stage["durationTicks"] = 18;
+            stage["operations"] = new JsonArray(capability);
+        });
+        Assert.NotNull(legacy.CookedPackage);
+        Assert.Equal("1.9.0", legacy.CookedPackage!.Metadata.RuntimeApiMin);
+        Assert.DoesNotContain("\"hop\"", System.Text.Encoding.UTF8.GetString(legacy.CookedPackage.CanonicalBytes));
+    }
+
+    private static CharacterCompileResult CompileRecovery(Action<JsonObject>? edit = null)
+    {
+        string root = Path.GetDirectoryName(FindRepoFile("client/Unity/Assets/CharacterPackages/bashie/character.json"))!;
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+        edit?.Invoke(character);
+        return CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+    }
+
+    private static JsonNode RecoverySlot(JsonObject c) => c["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.E")!;
+    private static JsonNode Recovery(JsonObject c) => RecoverySlot(c)["timeline"]!["stages"]![0]!["operations"]![0]!;
+
     private static string Fixture(string name)
     {
         string relative = name == "cooked.expected.hex"

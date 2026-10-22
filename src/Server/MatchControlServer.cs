@@ -144,7 +144,7 @@ namespace SlopArena.Server
                 if (!_orchestrator.TryAssignMatch(request.MatchId, arena, request.Players, (byte)request.MaxStocks,
                     request.AdmissionExpiresAtUtc,
                     steam ? request.CatalogHash : null,
-                    out int port, out var content, out var contentHash, out var error, request.Format))
+                    out int port, out var content, out var contentHash, out var error, request.Format, request.FriendlyFire, request.BallOnly))
                     return new StartOutcome(0, null, error ?? "Failed to build match content.");
                 if (steam && _steamHost!.CurrentSteamId != serverSteamId)
                 {

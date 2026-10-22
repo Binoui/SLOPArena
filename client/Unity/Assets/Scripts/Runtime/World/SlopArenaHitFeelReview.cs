@@ -41,6 +41,7 @@ namespace SlopArena.EditorTools
         /// <summary>The victim holds its shield the whole duel, so blocked moves show their blocked path (Sir Bonk's
         /// Joust skids to a stop on a shield).</summary>
         public bool VictimShield;
+        public bool Airborne, VictimAirborne;
         public UnityEngine.Camera CloseCamera = null!, WideCamera = null!;
         public RenderTexture CloseTarget = null!, WideTarget = null!;
         public string OutputDirectory = "";
@@ -220,9 +221,16 @@ namespace SlopArena.EditorTools
                 // Ground-cursor specials (Manki's Round Bomb) land at the victim, as a player aims.
                 AimDistance = (ushort)Mathf.RoundToInt(Distance * 100f),
                 ActiveSlot = Tick == PressTick ? SlotWire : AbilitySlots.None,
+                Jump = Airborne && Tick == PressTick - 12,
+                JumpHeld = Airborne && Tick >= PressTick - 12 && Tick < PressTick,
                 IsAiming = HoldTicks > 0 && Tick >= PressTick && Tick < PressTick + HoldTicks
             };
-            _inputs[VictimId] = new InputState { FacingYaw = _victimYaw, AimYaw = _victimYaw, ShieldHeld = VictimShield };
+            _inputs[VictimId] = new InputState
+            {
+                FacingYaw = _victimYaw, AimYaw = _victimYaw, ShieldHeld = VictimShield,
+                Jump = VictimAirborne && Tick == PressTick - 12,
+                JumpHeld = VictimAirborne && Tick >= PressTick - 12 && Tick < PressTick
+            };
             _bridge.Tick(_inputs);
             Tick++;
             foreach (var hit in _bridge.LastTickHits)

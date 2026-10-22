@@ -64,7 +64,12 @@ namespace SlopArena.EditorTools
                 ("presentation.bashie.shell.plop", Plop()),
                 ("presentation.bashie.shell.surf", Surf()),
                 ("presentation.bashie.shell.hit", ShellHit()),
+                ("presentation.bashie.shell.spin-tuck", SpinTuck()),
+                ("presentation.bashie.shell.spin-water", SpinWater()),
+                ("presentation.bashie.shell.rise-tuck", RiseTuck()),
+                ("presentation.bashie.shell.air-strike-tuck", RiseTuck(airborne: true)),
             };
+            built.AddRange(BashieRingBounceBuilder.BuildPrefabs());
             var drop = StreamDrop();
             kit.BindProjectile(CharacterClass.Bashie, AbilitySlots.A, drop);
             return kit.Finish(built, new { drop = AssetDatabase.GetAssetPath(drop), muzzle = muzzle.ToString("F3") });
@@ -101,6 +106,64 @@ namespace SlopArena.EditorTools
             var tuck = root.AddComponent<ShellTuck>();
             tuck.Pose = ShellTuckPose.Bashie;
             tuck.HoldAnimationIds = new[] { "anim.bashie.gr", "anim.bashie.gr-slide" };
+            return _kit.Save(root);
+        }
+
+        private static GameObject SpinTuck()
+        {
+            var root = _kit.NewRoot("BashieShellSpinTuck", attackBound: true);
+            var tuck = root.AddComponent<ShellTuck>();
+            tuck.Pose = ShellTuckPose.Bashie;
+            tuck.Pose.FollowAnimatedHeading = true;
+            tuck.Pose.WobbleDegrees = 0f;
+            tuck.HoldAnimationIds = new[] { "anim.bashie.g2", "anim.bashie.a2" };
+            // Zero tangents reproduce the approved smooth tuck and pop-out, and pause with Hitstop.
+            tuck.WeightByAttackTick = new AnimationCurve(new Keyframe(4f, 0f), new Keyframe(10f, 1f),
+                new Keyframe(30f, 1f), new Keyframe(40f, 0f));
+            _kit.Sound(root, "bashie_shell_tuck", 0.3f, 1.1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject RiseTuck(bool airborne = false)
+        {
+            var root = _kit.NewRoot(airborne ? "BashieShellAirStrikeTuck" : "BashieShellRiseTuck", attackBound: true);
+            var tuck = root.AddComponent<ShellTuck>();
+            tuck.Pose = ShellTuckPose.Bashie;
+            tuck.Pose.WobbleDegrees = 0f;
+            tuck.HoldAnimationIds = new[] { airborne ? "anim.bashie.a4" : "anim.bashie.g4" };
+            if (airborne) tuck.ReachDirection = new Vector3(0f, 5f / 6f, 1f);
+            tuck.WeightByAttackTick = new AnimationCurve(
+                new Keyframe(7f, 0f), new Keyframe(14f, 1f), new Keyframe(24f, 1f), new Keyframe(32f, 0f));
+            tuck.ForwardByAttackTick = new AnimationCurve(
+                new Keyframe(10f, 0f), new Keyframe(16f, 0.6f), new Keyframe(22f, 0.4f), new Keyframe(28f, 0f));
+            _kit.Sound(root, "bashie_shell_tuck", 0.3f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject SpinWater()
+        {
+            var root = _kit.NewRoot("BashieShellSpinWater", attackBound: true);
+            var frame = new GameObject("Frame");
+            frame.transform.SetParent(root.transform, false);
+            var pf = frame.AddComponent<PresentationFrame>();
+            pf.UnitScale = true;
+            pf.Upright = true;
+            var floor = new GameObject("Floor");
+            floor.transform.SetParent(frame.transform, false);
+            floor.transform.localPosition = new Vector3(0f, -TuckedHipsHeight + 0.06f, 0f);
+            var ring = Particles(floor, "Water ring", _m.Crown, 0.4f, ParticleSystemSimulationSpace.Local);
+            Burst(ring, 1);
+            var main = ring.main;
+            main.startLifetime = 0.34f;
+            main.startSize = 1.9f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            ring.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+            var rotation = ring.rotationOverLifetime;
+            rotation.enabled = true;
+            rotation.z = Mathf.PI * 6f;
+            SizeOverLife(ring, Curve((0f, 0.65f), (0.2f, 1f), (1f, 1.1f)));
+            Fade(ring, 0.3f);
+            _kit.Sound(root, "bashie_shell_slide", 0.24f, 1.15f);
             return _kit.Save(root);
         }
 

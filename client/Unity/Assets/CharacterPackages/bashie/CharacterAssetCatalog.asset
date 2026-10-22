@@ -23,7 +23,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.a1
   - _semanticId: anim.bashie.a2
-    _clip: {fileID: 7400000, guid: e3cb0933ffa0a4928a9650f5f0088e67, type: 2}
+    _clip: {fileID: 7400000, guid: bcab864f54828546abdb455791f2cc90, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.a2
   - _semanticId: anim.bashie.a3
@@ -31,7 +31,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.a3
   - _semanticId: anim.bashie.a4
-    _clip: {fileID: 7400000, guid: 8166a973f1f91d7abbaf073e68c5339e, type: 2}
+    _clip: {fileID: 7400000, guid: 350fcd55cc96fa8f49af7446e44586e4, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.a4
   - _semanticId: anim.bashie.crouch
@@ -51,7 +51,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.g1
   - _semanticId: anim.bashie.g2
-    _clip: {fileID: 7400000, guid: 451898cd6fb7adf5789f210975d071ae, type: 2}
+    _clip: {fileID: 7400000, guid: bcab864f54828546abdb455791f2cc90, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g2
   - _semanticId: anim.bashie.g3
@@ -59,11 +59,11 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.g3
   - _semanticId: anim.bashie.g4
-    _clip: {fileID: 7400000, guid: ad0d872c97ff0e840927103fa828a4ae, type: 2}
+    _clip: {fileID: 7400000, guid: 350fcd55cc96fa8f49af7446e44586e4, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g4
   - _semanticId: anim.bashie.ge
-    _clip: {fileID: 7400000, guid: 48caf5864497749928be3a8b932b86eb, type: 2}
+    _clip: {fileID: 7400000, guid: a4b82b7cbeeba814abf93587596d4018, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.ge
   - _semanticId: anim.bashie.gf-atk
@@ -159,3 +159,15 @@ MonoBehaviour:
     _prefab: {fileID: 403047681026994723, guid: 68b6a118937167f548f7e31d445ca92d, type: 3}
   - _semanticId: presentation.bashie.shell.hit
     _prefab: {fileID: 8596268164351727478, guid: 2f213f808c57d8156922cdd251780dc6, type: 3}
+  - _semanticId: presentation.bashie.shell.spin-tuck
+    _prefab: {fileID: 2755817277866476307, guid: 6e7a1ac990ebb5adcbf812b35ca5d6d6, type: 3}
+  - _semanticId: presentation.bashie.shell.spin-water
+    _prefab: {fileID: 7675189977689644394, guid: d98da50120621a9609a4d06c76915a4f, type: 3}
+  - _semanticId: presentation.bashie.shell.rise-tuck
+    _prefab: {fileID: 6302717232837139324, guid: fe1eff96796114aa1909778daa488d52, type: 3}
+  - _semanticId: presentation.bashie.shell.air-strike-tuck
+    _prefab: {fileID: 4185853069914809720, guid: 377b85d28fb137f6b9dd9987c4192ece, type: 3}
+  - _semanticId: presentation.bashie.ring.bounce
+    _prefab: {fileID: 517856996095854005, guid: 9225ed2d42dccad728d84469e1770e71, type: 3}
+  - _semanticId: presentation.bashie.ring.rebound
+    _prefab: {fileID: 6741874939935604705, guid: a79d6fb931198771d85f65ce202b128a, type: 3}

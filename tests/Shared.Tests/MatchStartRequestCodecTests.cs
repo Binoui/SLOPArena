@@ -24,6 +24,18 @@ public class MatchStartRequestCodecTests
     """;
 
     [Fact]
+    public void FriendlyFireDefaultsOffAndOnlyAcceptsACoopBoolean()
+    {
+        Assert.False(MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody))!.FriendlyFire);
+        string Coop(string value) => TwoPlayerBody.Insert(1, $"\"format\":\"slopball-coop\",\"friendlyFire\":{value},");
+        Assert.True(MatchStartRequestCodec.TryParse(Parse(Coop("true")))!.FriendlyFire);
+        Assert.False(MatchStartRequestCodec.TryParse(Parse(Coop("false")))!.FriendlyFire);
+        foreach (string value in new[] { "null", "1", "\"true\"", "{}" })
+            Assert.Null(MatchStartRequestCodec.TryParse(Parse(Coop(value))));
+        Assert.Null(MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody.Insert(1, "\"friendlyFire\":true,"))));
+    }
+
+    [Fact]
     public void TryParse_TwoPlayers_DifferentClasses_PreservesEach()
     {
         var req = MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody));

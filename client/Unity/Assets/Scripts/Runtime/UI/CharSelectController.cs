@@ -60,6 +60,7 @@ namespace SlopArena.Client.UI
             _roomSnapshot = null;
             _roomActionPending = false;
             _lockedIn = false;
+            _context?.Q<VisualElement>("camp-select")?.style.SetDisplay(false);
             _gridButtons.Clear();
             _selectingCpu = false;
             if (_context == null)
@@ -399,6 +400,8 @@ namespace SlopArena.Client.UI
             }
             var back = context.Q<Button>("btn-back");
             if (back != null) back.clicked += OnRoomBackClicked;
+            if (context.Q<Button>("btn-camp-teal") is { } teal) teal.clicked += SelectTealCamp;
+            if (context.Q<Button>("btn-camp-clay") is { } clay) clay.clicked += SelectClayCamp;
             ConfigureNavigation(context, _btnLockIn, back, OnRoomBackClicked);
 
             _chatSession = ChatSession.Instance;
@@ -556,7 +559,8 @@ namespace SlopArena.Client.UI
         {
             if (string.IsNullOrWhiteSpace(room.ArenaName)) return;
             ArenaDefinition? arena = ArenaRegistry.Get(room.ArenaName);
-            string name = string.Equals(room.Format, MatchFormats.SlopballCoopWire, StringComparison.Ordinal)
+            string name = room.Format == MatchFormats.SlopballVersusWire ? "Slopball versus · First to 21"
+                : string.Equals(room.Format, MatchFormats.SlopballCoopWire, StringComparison.Ordinal)
                 ? "Slopball co-op"
                 : arena.HasValue && !string.IsNullOrWhiteSpace(arena.Value.DisplayName)
                     ? arena.Value.DisplayName
@@ -601,7 +605,7 @@ namespace SlopArena.Client.UI
                 var member = members[i];
                 bool hasCharacter = Enum.TryParse(member.CharacterSelection, true, out CharacterClass cls);
                 _rosterPanel.Add(BuildPlayerCard(
-                    $"P{i + 1}", member.Name,
+                    string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
                     hasCharacter ? cls : (CharacterClass?)null,
                     member.LockedIn ? "LOCKED" : "WAITING",
                     member.SteamId == ClientSession.SteamId,
@@ -612,9 +616,23 @@ namespace SlopArena.Client.UI
         private void UpdateRoomControls()
         {
             var members = _roomSnapshot?.Members ?? Array.Empty<RoomMemberInfo>();
+            bool versus = _roomSnapshot?.Format == MatchFormats.SlopballVersusWire;
+            bool balanced = !versus || members.Length is 2 or 4
+                && members.All(m => m.Camp is "teal" or "clay")
+                && members.Count(m => m.Camp == "teal") == members.Length / 2;
+            _context.Q<VisualElement>("camp-select")?.style.SetDisplay(versus);
+            string ownCamp = members.FirstOrDefault(m => m.SteamId == ClientSession.SteamId)?.Camp ?? "";
+            if (_context.Q<Label>("camp-label") is { } campLabel) campLabel.text = "YOUR CAMP: " + ownCamp.ToUpperInvariant();
+            foreach (string camp in new[] { "teal", "clay" })
+                if (_context.Q<Button>("btn-camp-" + camp) is { } button)
+                {
+                    button.EnableInClassList("active", ownCamp == camp);
+                    button.SetEnabled(versus && !_roomActionPending && _lobby?.IsConnected == true);
+                    button.style.color = camp == "teal" ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
+                }
             bool localLocked = false;
             bool leader = false;
-            bool allLocked = members.Length >= 2;
+            bool allLocked = members.Length >= 2 && balanced;
             for (int i = 0; i < members.Length; i++)
             {
                 allLocked &= members[i].LockedIn;
@@ -658,6 +676,29 @@ namespace SlopArena.Client.UI
                         : "Locked in. Waiting for the Room leader to start.")
                     : "Choose your fighter, then lock in.", admittedCharacters.Length == 0);
             RenderRoomCardMarkers();
+            if (!balanced) SetRoomStatus("Choose equal Teal and Clay camps before starting. Switching camp unlocks your fighter.", false);
+        }
+
+        private void SelectTealCamp() => SelectCamp("teal");
+        private void SelectClayCamp() => SelectCamp("clay");
+        private async void SelectCamp(string camp)
+        {
+            var lobby = _lobby;
+            if (_roomActionPending || lobby?.IsConnected != true || _roomSnapshot?.Format != MatchFormats.SlopballVersusWire) return;
+            _roomActionPending = true;
+            UpdateRoomControls();
+            try
+            {
+                var room = await lobby.RoomSelectCampAsync(camp);
+                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby)) OnRoomUpdated(room);
+            }
+            catch (Exception ex)
+            { if (isActiveAndEnabled) SetRoomStatus("Could not change camp: " + ex.Message, true); }
+            finally
+            {
+                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                { _roomActionPending = false; UpdateRoomControls(); }
+            }
         }
 
         private void RenderRoomCardMarkers()
@@ -1116,6 +1157,8 @@ namespace SlopArena.Client.UI
                     UnbindRoomLobby(_lobby);
                     if (_btnLockIn != null) _btnLockIn.clicked -= OnRoomLockInClicked;
                     if (_btnStartMatch != null) _btnStartMatch.clicked -= OnRoomStartMatchClicked;
+                    if (_context.Q<Button>("btn-camp-teal") is { } teal) teal.clicked -= SelectTealCamp;
+                    if (_context.Q<Button>("btn-camp-clay") is { } clay) clay.clicked -= SelectClayCamp;
                     var backButton = _context.Q<Button>("btn-back");
                     if (backButton != null) backButton.clicked -= OnRoomBackClicked;
                 }

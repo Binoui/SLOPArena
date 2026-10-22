@@ -67,7 +67,8 @@ Seedance 2.5 reference the owner approved (`artifacts/video-refs/sir-bonk-normal
 | --- | --- | --- |
 | `ground.1` | `Animations/bonk_sir_g1_squires_cut.anim` (`anim.bonk.g1`, 60 ticks, 1× playback) | Bound and cooked 2026-10-21 |
 | `ground.2` | `Animations/bonk_sir_g2_barn_door.anim` (`anim.bonk.g2`, 93 ticks, 1× playback) | Bound and cooked 2026-10-22; misses a standing Manki (below) |
-| `ground.3`–`ground.4` | the old Bonk clips | Next |
+| `ground.3` | `Animations/bonk_sir_g3_sunrise.anim` (`anim.bonk.g3`, 125 ticks, 1× playback) | Bound and cooked 2026-10-22 |
+| `ground.4` | the old Bonk clip | Next |
 
 The first Squire's Cut moved pose to pose: the owner found the hand-made clip it replaced "much smoother". GenRA
 now measures flow against 44 hand-made attacks ([toolkit README, "Flow"](../../tools/genra/README.md)); the bound
@@ -87,6 +88,14 @@ before) but **never** against a standing Manki (1.00–2.00 m before): the plank
 over the 1.5 m fighters (Manki and Bashie). The move data is unchanged; the move was renamed from Greatsword Swing to Barn Door. Its
 hitbox (a 0.5 m capsule along the plank) needs the owner's tuning.
 
+Sunrise took three motion runs. The first parked the plank (an arm-only swing, too narrow an arc), so the brief
+asked for a rainbow from in front of him, over his head and onto his shoulder, with a real torso turn and a
+pivoting back foot, and the clip was measured against the game's hurtboxes (`tools/genra/hitarc.py`) before it was
+shown. Against the old Reverse Rising Slash, the hit-reliability report has it at 1.00× playback instead of 0.72×,
+5 of 20 active ticks touching a target 1 m ahead (8 before), and reach 0.30–3.40 m against FightGuy and 0.30–3.10 m
+against Manki (0.30–2.15 m and 0.30–1.75 m before); the arc map reaches targets standing in front and up to 3 m
+above the floor. The move data is unchanged; the move was renamed from Reverse Rising Slash to Sunrise.
+
 ## The Joust (R) — wired 2026-10-21
 
 Both R slots play `slop.ability.steered-charge.v1`. The owner approved the Seedance references
@@ -95,10 +104,10 @@ Both R slots play `slop.ability.steered-charge.v1`. The owner approved the Seeda
 | Phase | Clip (semantic ID) | Game rule |
 | --- | --- | --- |
 | Mount | `bonk_sir_r_mount` (`anim.bonk.gr`, `anim.bonk.ar` in the air) | The 31-tick stage. The charge starts at tick 30 and the rear is the tell: no armour. The air version keeps half gravity until then. |
-| Gallop | `bonk_sir_r_gallop` (`anim.bonk.gr-gallop`) | A 24-tick loop at 12 m/s for up to 60 ticks, steered at 180°/s, armoured. The lance is a 0.5 m capsule on the plank (`_weapon_hilt`–`_weapon_tip`): 11 damage, 40°, knockback 8/30, 18 stun. |
+| Gallop | `bonk_sir_r_gallop` (`anim.bonk.gr-gallop`) | A 24-tick loop at 12 m/s for up to 240 ticks (4 s), steered at 180°/s, armoured. The lance is a 0.5 m capsule on the plank (`_weapon_hilt`–`_weapon_tip`): 11 damage, 40°, knockback 8/30, 18 stun. |
 | Hit | `bonk_sir_r_hit` (`anim.bonk.gr-hit`) | He stops dead on the hit, then 36 ticks of the proud rear. The hit is the big BONK! (`presentation.bonk.heavy.hit`). |
 | Miss | `bonk_sir_r_stop` (`anim.bonk.gr-stop`) | 36 ticks, with an even 18-tick skid from 12 m/s and the dust effect. No turn-round (`turnAroundOnMiss: false`, the owner's call). |
-| Air | the gallop, then `bonk_sir_r_lookdown` (`anim.bonk.gr-lookdown`) | 24 ticks of strides on thin air, then a 20-tick look-down held in mid-air, then his fall. A hit in the air also leads into the look-down. |
+| Air | the gallop, then `bonk_sir_r_lookdown` (`anim.bonk.gr-lookdown`) | 120 ticks (2 s) of strides on thin air, then a 20-tick look-down held in mid-air, then his fall. A hit in the air also leads into the look-down. |
 
 - **Horse:** `sir_bonk_hobby_horse.prefab` (1.9 m) rides `mixamorig:Hips` on attack slot R
   (`BonkWeaponAttachConfig`), placed as it rides on his idle.
@@ -265,7 +274,7 @@ Native Ability Lab scenarios, a Bonk dummy 1.5 m ahead:
 Bonk ends every run in Idle. In game (Splash Deck, FightGuy 1.3 m ahead at 60%, planted
 version) the string lands at frames 19, 39 and 59, and the finisher's BONK! sends him off. The
 Tutorial's Bonk combo hint changed with it: Blade Storm can no longer chase the launched dummy,
-so the hint is now Reverse Rising Slash → jump and Reverse Air Slash (see
+so the hint is now Sunrise → jump and Reverse Air Slash (see
 [Tutorial](../design/tutorial.md#findings-that-shape-the-lessons)).
 
 ### Before the rework
@@ -609,7 +618,7 @@ the existing air.2 probe is noninterruptible, while the other normals are interr
 | --- | --- | ---: | ---: | --- | ---: | --- | --- | ---: |
 | `ground.1` | Squire's Cut — fast one-handed slash | 60 | 38 | 11 / 13 | 0.5 | 6 / 30° | 4 / 20 | 12 |
 | `ground.2` | Barn Door — flat two-handed sweep | 93 | 47 | 20 / 15 | 0.5 | 10 / 35° | 7 / 30 | 16 |
-| `ground.3` | Reverse Rising Slash | 125 | 44 | 21 / 20 | 0.5 | 10 / 35° | 7 / 30 | 16 |
+| `ground.3` | Sunrise — two-handed upward slice | 125 | 44 | 21 / 20 | 0.5 | 10 / 35° | 7 / 30 | 16 |
 | `ground.4` | Heavy Double Slice — kill read | 118 | 71 | 48 / 16 | 0.5 | 15 / 25° | 10 / 42 | 22 |
 | `air.1` | Reverse Air Slash — spacing | 88 | 52 | 19 / 24 | 0.5 | 8 / 35° | 5 / 24 | 14 |
 | `air.2` | Existing air.2 probe, recovery retimed | 53 | 45 | 15 / 14 | 0.5 | 1 / 45° | 5 / 80 | 8 |

@@ -86,6 +86,25 @@ seek plus recovery fits the authored stage, and its hitbox lifetime fits
 recovery. Ability Lab edits the same typed source contract, not a separate
 simulation or a Bonk-specific ability.
 
+`slop.ability.aimed-recovery.v1` requires runtime API `1.9.0` (Bashie's Ring Bounce).
+One tick-zero lifecycle in a single recovery stage suppresses gravity and horizontal momentum during a fixed
+automatic setup, then samples world-plane movement input exactly once at `startupTicks`. Neutral uses `verticalSpeed`;
+stick magnitude interpolates toward `directionalVerticalSpeed` and adds up to `horizontalSpeed` along the normalized
+input. Preparation rises at `preparationRiseSpeed`; no floor, target or ordinary jump is needed. Launch resumes normal
+ballistic gravity, and the outer timeline ends the follow-through. Hitstop pauses the clock; generic interruption
+removes the pending launch. It neither refills jumps/dodges nor grants armour or damage. The stage uses `meleeCombo`,
+no aim or IASA, and only presentation operations alongside the capability. Startup is 1–120 ticks and must precede
+stage end; vertical speeds are positive and at most 60 m/s, directional height cannot exceed neutral, horizontal
+speed is 0–60 m/s and preparation rise 0–4 m/s. Compiler and cooked loading enforce the same contract.
+
+An optional `hop` requires runtime API `1.10.0` and zero preparation rise. Its `startTicks`/`contactTicks` define
+at least four ticks of automatic travel before the high launch. Shared fixes entry facing and writes the next
+interval's velocity through normal capsule collision: forward distance is linear, with a parabolic `arcHeight`
+above the entry-to-`landingHeight` chord. Contact holds position until `startupTicks`; input still aims only the
+high launch. Forward/arc distances are positive and at most 3 m; landing lift is 0–1 m. The heading is snapshotted,
+Hitstop freezes both phases, and interruption removes every pending phase. Omitting `hop` preserves the original
+API 1.9 parameters, cooked bytes and no-hop snapshot layout.
+
 The roster's ground-cursor, directional, and camera-aimed holds use
 `aimMovement: fixed`: they stop grounded horizontal velocity and reject movement
 input until release. Airborne holds retain incoming horizontal momentum with the

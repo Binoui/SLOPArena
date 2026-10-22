@@ -66,12 +66,18 @@ namespace SlopArena.Server
         public bool TryAssignMatch(string matchId, string arenaName, IReadOnlyList<MatchPlayer> roster, byte maxStocks,
             DateTimeOffset? admissionDeadlineUtc, string? expectedCatalogHash,
             out int port, out MatchContentHandleMap? content, out string? contentHash, out string? error,
-            MatchFormat format = MatchFormat.Stock)
+            MatchFormat format = MatchFormat.Stock, bool friendlyFire = false, bool ballOnly = false)
         {
             port = -1; content = null; contentHash = null; error = null;
             lock (_admissionGate)
                 if (_stopping) { error = "GameServer is shutting down."; return false; }
             if (roster == null || roster.Count is < 2 or > 4) { error = "Roster must contain 2-4 players."; return false; }
+            if (roster.Select(p => p.EntityId).Distinct().Count() != roster.Count
+                || (format == MatchFormat.SlopballVersus ? !SlopballCamps.AreBalanced(roster.Select(p => p.Camp))
+                        || roster.Any(p => p.EntityId <= 0 || p.EntityId >= ServerSimulation.ArcadeBallTargetInputId)
+                    : ballOnly || roster.Any(p => p.Camp != SlopballCamp.None))
+                || friendlyFire && format != MatchFormat.SlopballCoop)
+            { error = "Invalid Slopball camps or format rules."; return false; }
             bool steamTransport = _config.IsVps;
             if (steamTransport && (_steamHost is null || !_steamHost.IsReady || admissionDeadlineUtc is null))
             {
@@ -125,7 +131,7 @@ namespace SlopArena.Server
                         match = new MatchInstance(0, matchId, arenaName, roster, catalog,
                             _ => { }, maxStocks, ReportMatchResult, OnSteamMatchEnd, ReportMatchCancellation,
                             admissionDeadlineUtc, contentHash, _steamHost!.SendToMatchEntity,
-                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound, format: format);
+                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound, format: format, friendlyFire: friendlyFire, ballOnly: ballOnly);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (!_steamMatches.TryAdd(matchGuid, match))
@@ -149,7 +155,7 @@ namespace SlopArena.Server
                     {
                         match = new MatchInstance(candidate, matchId, arenaName, roster, catalog,
                             OnMatchEnd, maxStocks, ReportMatchResult, onMatchCancelled: ReportMatchCancellation,
-                            admissionDeadlineUtc: admissionDeadlineUtc, format: format);
+                            admissionDeadlineUtc: admissionDeadlineUtc, format: format, friendlyFire: friendlyFire, ballOnly: ballOnly);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (_activeMatches.TryAdd(candidate, match))

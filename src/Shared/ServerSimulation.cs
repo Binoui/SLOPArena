@@ -75,6 +75,7 @@ namespace SlopArena.Shared
 		public IReadOnlyDictionary<ulong, DownActionAdmissionReason> LastTickDownAdmissions
 			=> _lastTickDownAdmissions;
 		private readonly SpellResolver _spellResolver = new();
+		private readonly Func<ulong, ulong, bool>? _attackTargetFilter;
 		/// <summary>Authoritative KOs credited during the current match.</summary>
 		public byte GetKOs(ulong entityId) => _kos.TryGetValue(entityId, out var kos) ? kos : (byte)0;
 
@@ -106,6 +107,7 @@ namespace SlopArena.Shared
 			_arena = arena;
 			_blastLines = ArenaCollision.ResolveBlastLines(in arena);
 			_rule = rule ?? new StockMatchRule(3);
+			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule ? CanAttackTarget : null;
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
 			if (arena.Arcade?.Ball is ArcadeBallDefinition ball)
@@ -114,13 +116,17 @@ namespace SlopArena.Shared
                 if (arena.Arcade.Slopball is SlopballDefinition rules)
                 {
                     rules.ValidateCourt(in arena);
-                    _slopball = new SlopballSimulation(rules, ball, _arcadeBall, rules.CeilingOf(in arena));
+                    if (_rule is SlopballVersusMatchRule versus)
+                        _volley = new SlopballVersusSimulation(rules, versus, _arcadeBall);
+                    else _slopball = new SlopballSimulation(rules, ball, _arcadeBall, rules.CeilingOf(in arena));
                 }
             }
             if (arena.Arcade?.Course is CharacterCourseDefinition course)
             { course.ValidateArena(in arena); _course = new CharacterCourseSimulation(course); }
             if (_rule is SlopballCoopMatchRule && _slopball == null)
                 throw new ArgumentException("Co-op Slopball needs a Slopball court.", nameof(rule));
+            if (_rule is SlopballVersusMatchRule && _volley == null)
+                throw new ArgumentException("Versus Slopball needs a Slopball court.", nameof(rule));
 		}
 
 		// ── Hitstop tuning (ADR-0012). Game-wide defaults; per-ability overrides via
@@ -668,7 +674,7 @@ namespace SlopArena.Shared
             foreach (var pair in _states)
             {
                 var target = pair.Value;
-                if (pair.Key == attacker.EntityId || _rule.IsEliminated(target)
+                if (pair.Key == attacker.EntityId || !CanAttackTarget(attacker.EntityId, pair.Key) || _rule.IsEliminated(target)
                     || (target.PX - attacker.PX) * sin + (target.PZ - attacker.PZ) * cos <= 0f)
                     continue;
                 var def = _defs[pair.Key];
@@ -1151,7 +1157,7 @@ namespace SlopArena.Shared
 			float closestSide = float.PositiveInfinity;
 			foreach (var (targetId, target) in _states)
 			{
-				if (targetId == grabberId || target.InteractionId != 0
+				if (targetId == grabberId || !CanAttackTarget(grabberId, targetId) || target.InteractionId != 0
 					|| !_defs.TryGetValue(targetId, out var targetDef)
 					|| _rule.IsEliminated(target) || target.InvincibilityTicks > 0)
 					continue;
@@ -1718,7 +1724,10 @@ namespace SlopArena.Shared
 			float maxRange, out float distanceSquared)
 		{
 			distanceSquared = 0f;
-			if (targetId == selfId || !TryGetCombatTargetPosition(targetId, out var target))
+			if (targetId == selfId || _rule is SlopballCoopMatchRule && _states.ContainsKey(targetId)
+				|| _rule is SlopballVersusMatchRule versus && _states.ContainsKey(targetId)
+				    && (versus.BallOnly || versus.CampOf(selfId) == versus.CampOf(targetId))
+				|| !TryGetCombatTargetPosition(targetId, out var target))
 				return false;
 
 			float dx = target.X - selfX;
@@ -1898,6 +1907,8 @@ namespace SlopArena.Shared
 				bool hasInput = inputs.TryGetValue(id, out var input);
 				var mode = hasInput && (byte)input.LockMode <= (byte)TargetLockMode.OnHit
 					? input.LockMode : TargetLockMode.Never;
+				// Each fresh ball is the co-op objective. Manual unlock still suppresses auto-lock.
+				if (_rule is SlopballCoopMatchRule or SlopballVersusMatchRule) mode = TargetLockMode.Always;
 				bool acquiring = false;
 				bool retarget = hasInput && input.RetargetPressed;
 				if (hasInput && input.ToggleLock)
@@ -2253,7 +2264,7 @@ namespace SlopArena.Shared
 			var attackEntities = BuildAttackEntities(entityList);
 			LastTickAttackEntities = attackEntities;
 			var hits = _spellResolver.Tick(attackEntities, orderMovingTargetContacts: _slopball != null,
-				frozenOwners: _hitstopFrozenThisTick);
+				frozenOwners: _hitstopFrozenThisTick, canHitTarget: _attackTargetFilter);
 			for (int i = 0; i < hits.Count; i++)
 			{
 				var contact = hits[i];
@@ -2743,6 +2754,12 @@ namespace SlopArena.Shared
 				_settledCrouchCandidates.Clear();
 				_damagedThisTick.Clear();
 				_hitstopFrozenThisTick.Clear();
+                if (_volley != null)
+                {
+                    _volley.BeginTick(_arcadeBall!, VersusServePosition);
+                    if (_volley.State.Phase is SlopballVersusPhase.WaitingServe or SlopballVersusPhase.Ended)
+                    { _tick++; _arcadeBall!.Hold(); LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                }
                 if (_slopball != null && !_slopball.BeginTick(_arcadeBall!))
                 { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
                 if (_course != null && !_course.BeginTick())
@@ -2767,13 +2784,16 @@ namespace SlopArena.Shared
 				// Settlement is finalized after all movement, ability, lag, and pushbox work,
 				// but before hurtbox construction and hit resolution.
 				FinalizeSettledCrouch();
-				_arcadeBall?.Step(in _arena, _states, _defs);
+				if (_volley?.State.Phase == SlopballVersusPhase.HeldServe) _arcadeBall!.Hold();
+                else _arcadeBall?.Step(in _arena, _states, _defs);
                 if (_slopball != null) _slopball.PlanMotion(_arcadeBall!);
+                _volley?.PlanMotion(_arcadeBall!);
 
 				var entityList = BuildHurtboxList();
 
 				ResolveHits(entityList, inputs);
                 if (_slopball != null) _slopball.FinishTick(_arcadeBall!);
+                _volley?.FinishTick(_arcadeBall!);
 				ResolveGrabAttempts();
 				if (PredictCoupledInteractions && HasCoupledInteraction())
 					UpdateCoupledInteractions(releaseDue: true, inputs);
@@ -2784,6 +2804,8 @@ namespace SlopArena.Shared
 				CheckBlastDeaths();
                 FinishCourseTick(coursePrevious);
 				MirrorReturningProjectileSlots();
+                if (_volley != null && _volley.Events.Any(e => e.Kind == SlopballEventKind.PointScored))
+                    ResetVersusPoint();
 			}
 			finally
 			{

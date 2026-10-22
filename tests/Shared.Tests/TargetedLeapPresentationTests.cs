@@ -208,6 +208,12 @@ public sealed class TargetedLeapPresentationTests
                 for (int index = operations.Count - 1; index >= 0; index--)
                     if (operations[index]!["kind"]!.GetValue<string>() == "emitPresentation") operations.RemoveAt(index);
                 foreach (var operation in operations)
+                    if (operation!["projectile"]?["return"] is JsonObject returning)
+                    {
+                        returning.Remove("catchPresentationId");
+                        returning.Remove("selfHitPresentationId");
+                    }
+                foreach (var operation in operations)
                     if (operation!["kind"]!.GetValue<string>() == "startCapability" && operation["capabilityId"]!.GetValue<string>() == CharacterPackageCompiler.SteeredChargeCapabilityId)
                         foreach (var effect in new[] { "gallopPresentationId", "hitEndingPresentationId", "missEndingPresentationId", "airEndingPresentationId" })
                             operation["parameters"]!.AsObject().Remove(effect);

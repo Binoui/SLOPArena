@@ -22,15 +22,16 @@ namespace SlopArena.EditorTools
         public static async Task<object> Run(
             [CliArg("verify", "Fail if the camera follows an older fighter pose; false returns diagnostic measurements.")] bool verify = true)
         {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
             var match = UnityEngine.Object.FindFirstObjectByType<TrainingMatch>();
             var mount = UnityEngine.Object.FindFirstObjectByType<CameraMount>();
-            var input = UnityEngine.Object.FindFirstObjectByType<InputController>();
+            var input = match == null ? null
+                : (InputController)typeof(MatchBase).GetField("_inputController", flags).GetValue(match);
             if (!EditorApplication.isPlaying || EditorApplication.isPaused || match == null
                 || !match.CaptureSequenceReady || match.CaptureInputOverrideActive || mount == null
                 || input == null || input.GetMovement().sqrMagnitude > 0.01f)
                 throw new InvalidOperationException("Use an initialized, unpaused disposable Training session with neutral human input and no input override.");
 
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
             var playerField = typeof(CameraMount).GetField("_player", flags);
             var offsetField = typeof(CameraMount).GetField("_framingOffset", flags);
             var lookOffsetField = typeof(CameraMount).GetField("_lookOffset", flags);
@@ -42,6 +43,9 @@ namespace SlopArena.EditorTools
             float maximumFollowError = 0f, maximumLookError = 0f, maximumFacingStep = 0f;
             float previousFacing = 0f;
             bool haveFacing = false;
+            var startingState = match.GetCaptureState(MatchConfig.LocalEntityId);
+            var startingPosition = new Vector3(startingState.PX, startingState.PY, startingState.PZ);
+            float maximumTravel = 0f;
 
             void Observe(CinemachineBrain brain)
             {
@@ -62,7 +66,10 @@ namespace SlopArena.EditorTools
                     Vector3 expectedLook = cm.LookAt == cm.Follow
                         ? player.position + offset : player.position + lookOffset;
                     maximumLookError = Mathf.Max(maximumLookError, Vector3.Distance(cm.LookAt.position, expectedLook));
-                    float facing = match.GetCaptureState(MatchConfig.LocalEntityId).FacingYaw * Mathf.Rad2Deg;
+                    var state = match.GetCaptureState(MatchConfig.LocalEntityId);
+                    maximumTravel = Mathf.Max(maximumTravel,
+                        Vector3.Distance(startingPosition, new Vector3(state.PX, state.PY, state.PZ)));
+                    float facing = state.FacingYaw * Mathf.Rad2Deg;
                     if (haveFacing && frames > 40)
                         maximumFacingStep = Mathf.Max(maximumFacingStep, Mathf.Abs(Mathf.DeltaAngle(previousFacing, facing)));
                     previousFacing = facing;
@@ -82,13 +89,13 @@ namespace SlopArena.EditorTools
             try
             {
                 await completed.Task;
-                if (movingFrames < 30)
-                    throw new InvalidOperationException($"The real held-stick input path was not exercised: {movingFrames} moving frames.");
+                if (movingFrames < 30 || maximumTravel < 0.2f)
+                    throw new InvalidOperationException($"The real held-stick input path was not exercised: {movingFrames} moving frames, {maximumTravel:F3} m travelled.");
                 if (verify && Mathf.Max(maximumFollowError, maximumLookError) > 0.005f)
                     throw new InvalidOperationException(
                         $"{mount.Style} sampled an older fighter pose: follow error {maximumFollowError:F4} m, look error {maximumLookError:F4} m over {movingFrames} movement frames.");
                 return new { success = true, style = mount.Style.ToString(), frames, movingFrames,
-                    maximumFollowError, maximumLookError, maximumFacingStep };
+                    maximumFollowError, maximumLookError, maximumFacingStep, maximumTravel };
             }
             finally
             {

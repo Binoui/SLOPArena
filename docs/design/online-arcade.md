@@ -1,12 +1,13 @@
 # Online Arcade feature brief
 
 **Status:** Direction selected 2026-10-19; not an implementation specification.
-Co-op Slopball online is built (slice 2) and awaits a two-client playtest.
+Co-op Slopball online (slice 2) and Versus 1v1/2v2 (slice 3) are built.
+Versus still needs human multiplayer playtest acceptance.
 The maintainer named online Character Courses and volleyball as the most important
 modes going forward, and moved them ahead of upgrade rounds. The Room flow, the four
 decisions below and the format list are selected. Everything marked *proposal* is a
-rule to try in play, not a commitment. No score target, miss count or other value has
-been selected. Technical options for approval live in the
+rule to try in play, not a commitment. Versus uses the user-selected first-to-21
+target; co-op permits unlimited misses. Technical choices live in the
 [implementation options](online-arcade-implementation.md).
 
 Online Arcade brings the two [Solo Arcade](arcade.md) challenges into online Rooms:
@@ -54,8 +55,8 @@ format decides the camps. Smash Ultimate also asks for the stage before fighters
 | Camps | Slopball Versus | A camp, Teal or Clay after the court's halves, then any fighter. Members switch camps; the leader can shuffle. |
 | Locked | Character Courses | A colour; the course sets the fighter |
 
-Mirrors and camps need **player colours**: a ring, outline or name tag that tells four
-Mankis, or two camps, apart. None exist yet.
+Versus uses Teal and Clay ground rings, with the local fighter's yellow notch.
+Individual player colour selection remains a follow-up.
 
 *Proposal:* **Again** on Results returns the Room to Character Select with the same
 pick, and everyone locks in again. Again skips Lobby, so new members can join only when
@@ -72,19 +73,21 @@ The match rhythm is **serve → receive → set, bank or spike → floor contact
 
 - The net splits the camps. Every fighter stays in its own half, as the solo fighter
   does today.
-- Ball contact with a camp's floor scores a point for the other camp. The first camp to
-  a score target *(not selected)* wins.
+- Ball contact with a camp's floor scores a point for the other camp. First to
+  **21**, as selected on 2026-10-22, wins; no win-by-two requirement.
 - The ball's percent builds through a rally, so it flies faster, and resets when a point
-  is scored.
-- Players serve: the ball hangs over the server's spot until the server hits it, so
-  each serve is a move choice. The serve order is not selected.
+  is scored. Fighter damage, positions, cooldowns, active attacks/projectiles and
+  transient combat state also reset each point.
+- Players serve: the ball waits just ahead of the server's spot at a height suited
+  to the fighter until that player hits it. Teal serves first; the conceding camp
+  serves next. In 2v2, that camp's servers rotate in entity order.
 - Anything goes across the net. Melee can trade at the net and projectiles can hit the
   receiver; Ball only switches this off.
-- *Proposal:* in 2v2 teammates can't hurt each other. A teammate's hit **boosts**
-  instead, popping you up without damage, so a setter can launch the spiker.
+- In 2v2 teammates cannot damage, block or grab one another. Teammate **boosts**
+  remain a future proposal.
 
-Open choices: whether a fighter's own percent resets each point, serve order, and what
-a hit does to a fighter inside the enclosed court.
+Fighter combat keeps ordinary Knockback and respawn behavior inside the enclosed
+court, without stock elimination. Human playtests will decide subsequent tuning.
 
 ### Co-op vs the Launcher: 2–4 players
 
@@ -92,9 +95,15 @@ Today's Slopball with friends: **serve → anyone receives → pass → return �
 
 - Everyone shares the teal half. The Launcher serves, with one shared combo, rally heat
   and the same special serves.
-- A run ends after a few misses, so the Room reaches Results: team returns and best
-  combo. Slice 2 plays three misses provisionally until play picks the count; assists
-  remain a proposal.
+- Play continues through unlimited misses; a miss resets the combo and heat while
+  team returns and best combo stay. The leader's match menu offers **Return to Lobby**
+  for the whole group, keeping the Room and chat. This replaces the provisional
+  three-miss limit after the 2026-10-22 co-op playtest.
+- Fighters auto-lock each new ball; manual unlock still works. Friendly fire defaults
+  off, so teammates cannot damage, block or grab one another, and attacks pass through
+  teammates to the ball. The leader can toggle it in the Room lobby before preparation;
+  everyone sees the setting. It stays fixed during a Match and is retained for the next
+  Match in the same Room. Auto-lock keeps choosing the ball with either setting.
 - *Proposal:* keep four players busy with **called serves** (the Launcher's face turns
   to one player and their ring says YOURS) or **multiball** once the rally is hot.
 - *Proposal:* **assists**: a return touched by two teammates gets its own callout and
@@ -157,7 +166,7 @@ take two to four players.
 
 ## Open choices
 
-- Score target, miss count and serve order, all unselected.
+- Versus balance and teammate boosts after first-to-21 playtests.
 - Whether online Race times count as personal bests, given rival interference.
 - Three-player Rooms can play Slopball Co-op and both course formats. A three-player
   volleyball versus waits for Launcher Boss or a 2v1 decision.

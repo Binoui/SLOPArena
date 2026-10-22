@@ -17,4 +17,6 @@ public sealed record MatchStartedConfig(
     Guid? RoomId = null,
     string? ServerAddress = null,
     Guid MatchId = default,
-    MatchFormat Format = MatchFormat.Stock);
+    MatchFormat Format = MatchFormat.Stock,
+    bool FriendlyFire = false,
+    bool BallOnly = false);

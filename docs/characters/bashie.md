@@ -10,15 +10,17 @@ Playable with a stand-in kit. On 2026-10-21 the owner approved the look (concept
 the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22 she got her package and joined the
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
 own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
-shell, with her own clips, a surf wave and sounds. Her normals, E and F are still open.
+shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery, and ground/air 2 have
+her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike; the other normals and F still use stand-ins.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her character data is Manki's: movement, the normals and E and F with their capabilities (jetpack, aerosol). Her
+- Her movement, other normals and F still come from Manki (the aerosol capability). Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
-  place of his Round Bomb and the Shell Slide in place of his Bazooka.
+  place of his Round Bomb, Shell Slide in place of his Bazooka, Ring Bounce in place of his Jetpack Boost, and Whirlpool
+  Spin on ground and air 2, plus the diagonal shell strikes on ground and air 4.
 - Every other clip is a copy of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body. Played on her as
   they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -119,6 +121,67 @@ For the 3D model:
 
 ## Kit
 
+### Whirlpool Spin (ground and air 2)
+
+**Integrated 2026-10-22**, after the owner approved the actual-rig key poses, motion and in-game integration.
+She tucks into her own shell with her face and bucket hat peeking out, spins once in place, then pops back up.
+The image concept's elaborate seated pose was dropped in favour of the existing shell tuck.
+
+- **Clock:** 40 ticks at 60 Hz. Tuck through tick 10, one turn from 10 to 30, then pop out; actionable at tick 36.
+- **Hit:** one sphere around her, radius 0.85 m, active ticks 10–29. It deals 7% once per opponent with the existing
+  medium knockback (25°, base 5, growth 26). No armour or special movement.
+- **Animation:** `anim.bashie.g2`, bound to `Animations/bashie_g2_shell_spin.anim`, authored with GenRA/Opus 5.5
+  on her actual rig. `anim.bashie.a2` reuses the approved clip and shell/water cues.
+- **Air 2:** same clock and single hit; preserves takeoff momentum and uses the normal aerial gravity rules.
+  Landing lag is 9 ticks, with auto-cancel through tick 10 and from tick 36. No recovery impulse or extra jump.
+- **Presentation:** the package's `shell.spin-tuck` cue follows the attack clock, including Hitstop, and preserves
+  the clip's heading while fully tucked. `shell.spin-water` adds a compact blue splash ring and the existing soft
+  shell/water sounds. Cues end with the attack. Shell Slide keeps its existing tuck behaviour.
+- **Verification:** Shared hits once from eight directions; shield and whiff recovery pass. Ability Lab records
+  one 7% hit, one blocked contact or a miss at 3 m. Play Mode captures show the turn and return to standing.
+
+### Rising Shell (ground 4)
+
+A short diagonal shell strike that pulls back to its starting spot. She makes a real hop (about 0.55 m); her tucked
+body reaches forward (up to 0.66 m at visual scale 1.1), then retracts as she lands. The gameplay root keeps its X/Z
+position, and input cannot steer the hop.
+
+- **Clock:** 48 ticks: 14 wind-up, 10 strike, 24 recovery. The fixed hop leaves the floor during the last part of
+  the tuck and lands by tick 29; she stays committed until tick 48. No early cancel, slide carry or forward lunge.
+- **Hit:** root-relative spheres follow the real hop and forward shell reach each tick from 14–23, radius 0.65 m.
+  Their forward offset is 0.2 m plus the shell reach. They share hit group 1, so the move deals 14% once per opponent;
+  angle 45°, base knockback 9, growth 42, stun 26.
+  This stays in Shared rather than reading Unity bones or animation callbacks.
+- **Motion:** `anim.bashie.g4` uses the accepted bare native clip, `Animations/bashie_g4_rising_shell.anim`.
+  Shared timeline velocity samples own the short vertical arc, with gravity suppressed only during that arc.
+  The `shell.rise-tuck` cue folds the body and drives its forward reach on the attack clock (10=0,16=0.6,22=0.4,
+  28=0 model metres). Emerge by 32, settle to idle by 48. Hitstop freezes the hop and reach;
+  interruption clears the hitboxes and tuck. Ordinary movement, jump, dodge and fast-fall inputs cannot steer
+  or cancel it. The hop belongs only to ground 4; air 4 remains separate.
+- **Effects:** reuses the existing shell plop, water ring, shell-hit splash and soft water/shell sounds.
+- **Verification:** focused Shared tests cover one hit, shield, whiff, an airborne target, interruption and resisted
+  steering/jump-cancel inputs. Normal Training records a real airborne hop, unchanged X/Z and return to the original
+  floor height; live captures show hit, block and miss with no console errors.
+
+### Air Diagonal Shell (air 4)
+
+Reuses the accepted G4 clip under `anim.bashie.a4`. The tucked body reaches diagonally forward and up, then
+retracts and unfolds into falling. Her gameplay root preserves airborne momentum and follows normal gravity:
+there are no velocity writes, gravity windows, recovery impulses or air-resource resets.
+
+- **Clock/hit:** 48 ticks, active 14–23, one 14% hit per opponent at 45° (base 9, growth 42, stun 26).
+  The Shared hitboxes follow the same forward reach as G4 plus a local upward reach (5/6 of forward, up to
+  0.55 m in game). These offsets do not move the fighter's gameplay position.
+- **Landing:** 12 ticks of landing lag, auto-cancel through tick 10 and from tick 36. Landing/interruption
+  clears the strike and tuck through the existing ability/presentation lifetime.
+- **Presentation:** `shell.air-strike-tuck` applies the accepted fold/reach with an upward component, using the
+  attack clock so Hitstop pauses it. Existing water ring and shell-hit splash; no grounded plop cue.
+- **Verification:** aerial contacts in all four cardinal facings, momentum/fall equivalence to baseline, shield,
+  whiff, landing windows and interruption pass. Runtime captures show an airborne hit and clean falling/landing;
+  the native Training probe records air 4 activation and return to grounded idle, with no console errors.
+
+### Specials
+
 Each special uses one thing she carries, and each one pops up a pool-rule sign that she is breaking. The whistle is
 the one rule she enforces, on everyone else.
 
@@ -185,8 +248,8 @@ gush; it became a stream.
 
 **Control direction (owner, 2026-10-22):** "i agree, aiming the ring is too much, aiming the jump is nice".
 
-- One E performs the throw and hop as one continuous move: the ring goes slightly ahead and below her, her feet
-  plant on it, it squashes under her weight, then springs her upward. It works offstage.
+- One E runs four readable beats: throw the ring clearly ahead, make a small forward hop onto it, connect and
+  squash, then spring high. It works offstage.
 - Ring placement and getting onto it are automatic. The player uses movement input to aim the bounce's launch.
 - Direction can change during the squash and locks when the ring springs. Neutral launches straight up for
   maximum height; holding a direction trades some height for horizontal reach. Ordinary air control returns
@@ -197,14 +260,49 @@ necessary vertical recovery".
 
 - Build and validate the throw, squash and upward launch first. A single E must provide the recovery with no
   second press or spare ordinary jump needed for the automatic hop.
-- Keep the setup short and arrest her descent while she prepares the bounce, so the throw does not waste the
+- Arrest her descent while she prepares the bounce, so the throw does not waste the
   height she needs to recover. The ring works in mid-air without a floor beneath it.
 - Recovery acceptance is returning from below the stage onto a playable surface; ledge hang is disabled.
 - The cannonball is an optional follow-up near the top, entered only by a fresh second E. Holding the initial
   press or choosing no follow-up must leave the upward recovery intact. It comes after the core recovery works.
 - A cannonball is *une bombe* in French, hence the sign.
-- Still to tune: startup and squash duration, launch height and reach, post-launch actionability, cooldown and
-  air-use limits. Cannonball timing and impact values are also unset. None of this is implemented yet.
+- First playable values remain open to feel tuning. Cannonball timing and impact values are unset.
+
+**Pose direction (owner, 2026-10-22):** approved the actual-model throw → plant → squash → spring → rise sheet
+("very good lets go for it") and chose new recovery timing over the temporary jetpack's. The first GenRA body
+keys set the spring at tick 12 (0.2 s). Their actual-prefab Unity review uses
+her existing life-ring model, squashed independently of her body. The owner approved the actual-rig keys with
+"perfect". One GenRA motion pass preserves the six keys (ticks 0, 4, 7, 10, 12 and 18); it passes the full rig
+checks. The original actual-prefab motion review is `artifacts/bashie-e-20261022/motion-review.html`, with side and
+rear views at 1x or quarter speed. The ring toss clears her sandals, both soles stay on the rim through compression,
+and the ring rebounds as she rises. The owner accepted the full motion ("it's probably a bit too fast but it's fine")
+and asked to put it in game. That first version used an 18-tick action; the owner subsequently requested the
+separate throw and forward hop described below.
+
+**Built 2026-10-22:** the owner approved the public Shared recovery capability in
+[the integration plan](../plans/2026-10-22-bashie-ring-bounce.md). The owner accepted revised keys ("this looks really good")
+and full motion ("good") in the [four-beat revision](../plans/2026-10-22-bashie-ring-bounce-v2.md). Ground and air E share
+a 54-tick cooked timeline and `bashie_e_ring_bounce.anim`. The throw holds her position until the small hop starts
+at 18. The automatic hop travels 0.792 m forward on her entry heading, with a 0.495 m arc above its chord, reaching
+the ring 0.198 m higher at 34. These world distances account for the existing 1.1 visual scale. She compresses through 40,
+then springs at 44. Setup suppresses gravity and incoming momentum. At tick 44, current movement input selects the
+launch: neutral is 15 m/s up; full direction is 13 m/s up
+and 8 m/s horizontally, with analog interpolation and normalized diagonals. Ordinary gravity applies after launch;
+normal air steering and actions return at 54. The existing 210-tick cooldown starts at completion/cancellation.
+The setup consumes/refills no ordinary jump or air dodge, adds no air-use rule, and has no hitbox or invulnerability.
+Holding E never adds a cannonball.
+
+The ring is a separate package prop sampled on attack ticks. It waits ahead in the entry model frame while she
+hops toward it, then follows the feet during compression. A second world-placed cue at launch leaves its rebound
+behind as she rises and shrinks it away; neither cue controls movement or collision. The body rig/Avatar are unchanged.
+The original review's lift was schematic; the integrated Play Mode captures use actual Shared movement.
+
+Verification of the revision: 42 focused recovery/schema/loader checks; full Shared suite 3,312 passed / 2 existing skips; Shared and
+Server builds; native Unity compile with no errors; valid fresh cook/verify and roster refresh; authoritative Lab
+ground/air runs with no contacts, deaths or diagnostics; and inspected ground/air Play Mode captures on Splash Deck
+with an empty error console. A Shared scenario returns from 2 m below a solid ledge, 3 m out, with both jumps spent.
+Human controller feel and offstage routes remain on `TESTING-UNITY.md`. Local evidence:
+`artifacts/bashie-e-v2-20261022/integration/` and `tmp/bashie-e-v2-integrated-20261022/`.
 
 ### Shell Slide (R)
 
@@ -222,10 +320,10 @@ rendered on her rig, they picked A, her hat and face peeking out of the front: "
   look changes: the simulated hurtbox follows the clip. [tools/blender/bashie_rig](../../tools/blender/bashie_rig/README.md)
   previews looks in Blender.
 - **Data, a first pass from the Joust:** `slop.ability.steered-charge.v1` starts at tick 14 (Sir Bonk rears for 30).
-  She slides at 13 m/s for up to 54 ticks, turns 200°/s and is armoured. The hitbox is a capsule round the shell
+  She slides at 13 m/s for up to 240 ticks (4 s), turns 200°/s and is armoured. The hitbox is a capsule round the shell
   (radius 0.5, from 0.1 m behind her to 0.6 m ahead, 0.45 m below her capsule's centre): damage 9, angle 40, knockback
   9 + 28, stun 18. The hit ending lasts 30 ticks and the miss 48 (a 12-tick skid, then she lies there); thin air is
-  24 + 20. Cooldown 240.
+  120 ticks (2 s) of sliding + 20 ticks of look-down. Cooldown 240.
 - **Her clips (GenRA, briefs `bashie-sr-*`):** key poses from Codex pose sheets, approved by the owner ("motion looks
   good"), then motion on the approved keys, written to `Animations/bashie_sr_*.anim`:
   - the dive (`anim.bashie.gr`, 15 ticks): squat, a racing dive, a belly-flop, tucked

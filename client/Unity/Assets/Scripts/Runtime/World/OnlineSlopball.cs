@@ -23,14 +23,19 @@ namespace SlopArena.Client.World
         private readonly GameObject _plainBall;
         private readonly Material _plainMaterial;
         private readonly List<SlopballEvent> _events = new();
+        private readonly bool _versus;
 
         public OnlineSlopball(Transform parent, Transform stage, in ArenaDefinition arena, HUDManager hud,
             Func<UnityEngine.Camera> camera)
         {
-            _launcher = stage != null ? stage.Find("Ball Sender") : null;
+            _versus = MatchConfig.Format == MatchFormat.SlopballVersus;
+            var launcher = stage != null ? stage.Find("Ball Sender") : null;
+            if (_versus && launcher != null) launcher.gameObject.SetActive(false);
+            _launcher = _versus ? null : launcher;
             if (_launcher != null) _launcherHeight = _launcher.position.y;
             _court = SlopballCourtShow.Find(stage);
-            _view = new SlopballView(hud.Document.rootVisualElement);
+            if (_versus) _court?.ClearCombo();
+            _view = new SlopballView(hud.Document.rootVisualElement, cooperative: true);
             var anchor = new GameObject("Online Slopball Anchor") { layer = LayerMask.NameToLayer("Ignore Raycast") };
             anchor.transform.SetParent(parent, false);
             _anchor = anchor.transform;
@@ -68,7 +73,8 @@ namespace SlopArena.Client.World
         public void AfterUpdate(ServerSimulation simulation, IReadOnlyList<SpellResolver.HitResult> hits,
             IReadOnlyList<SlopballTickEvent> events)
         {
-            if (simulation.Slopball is not SlopballState run || simulation.ArcadeBall is not ArcadeBallState ball) return;
+            if (simulation.ArcadeBall is not ArcadeBallState ball) return;
+            var run = simulation.Slopball ?? default;
             _anchor.position = new Vector3(ball.Position.X, ball.Position.Y, ball.Position.Z);
             if (_plainBall != null)
             {
@@ -82,11 +88,18 @@ namespace SlopArena.Client.World
             {
                 _events.Add(item.Event);
                 if (item.Event.Kind == SlopballEventKind.Returned) _court?.Returned();
+                if (item.Event.Kind == SlopballEventKind.PointScored)
+                { _court?.Returned(); _view.ShowPoint(item.Event.Camp); }
             }
             _presentation?.Present(simulation, hits, simulation.LastTickArcadeBallContacts, _events);
-            _view.Present(run, ball, 0, null);
-            _court?.Present(run.Returns);
-            _court?.SetHeat(run.Heat);
+            if (simulation.SlopballVersus is { } versus)
+                _view.PresentVersus(versus, ball, MatchConfig.LocalEntityId, simulation.CampOf(MatchConfig.LocalEntityId));
+            else
+            {
+                _view.Present(run, ball, 0, null);
+                _court?.Present(run.Returns);
+                _court?.SetHeat(run.Heat);
+            }
         }
 
         public void Update(float deltaTime, ServerSimulation simulation, UnityEngine.Camera camera)

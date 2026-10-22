@@ -188,6 +188,12 @@ namespace SlopArena.Client.UI
             }
 
             var ordered = new List<ClientSession.ResultEntry>(results.Entries);
+            if (results.Versus is { } score)
+            {
+                _stage.text = "MATCH COMPLETE // SLOPBALL VERSUS";
+                _headline.text = score.Winner.ToString().ToUpperInvariant() + " WINS";
+                _metadata.text = $"TEAL {score.TealScore} — {score.ClayScore} CLAY // FIRST TO 21 // {FormatDuration(results.DurationTicks)}";
+            }
             ordered.Sort((a, b) =>
             {
                 int byPlacement = a.Placement.CompareTo(b.Placement);
@@ -195,7 +201,7 @@ namespace SlopArena.Client.UI
             });
 
             var hero = ordered[0];
-            BuildWinnerCard(hero, results.SharedVictory, results.Run.HasValue);
+            BuildWinnerCard(hero, results.SharedVictory, results.Run.HasValue || results.Versus.HasValue);
             for (int i = 1; i < ordered.Count; i++)
                 _standings.Add(BuildStandingRow(ordered[i]));
 
@@ -275,6 +281,15 @@ namespace SlopArena.Client.UI
         {
             var stats = new VisualElement();
             stats.AddToClassList(className);
+            if (ClientSession.CurrentMatchResults?.Versus is { } score
+                && MatchConfig.Camps.TryGetValue(entry.EntityId, out var camp))
+            {
+                var label = new Label(camp.ToString().ToUpperInvariant() + (camp == score.Winner ? " · WINNER" : " · RUNNER-UP"));
+                label.AddToClassList("results-stat-label");
+                label.style.color = camp == SlopballCamp.Teal ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
+                stats.Add(label);
+                return stats;
+            }
             AddStat(stats, "KOs", entry.KOs);
             AddStat(stats, "FALLS", entry.Falls);
             return stats;

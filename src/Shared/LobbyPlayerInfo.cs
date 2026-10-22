@@ -17,4 +17,5 @@ public sealed record LobbyPlayerInfo(
     string? CharacterSelection,
     bool LockedIn,
     bool IsHost,
-    int EntityId = 0);
+    int EntityId = 0,
+    SlopballCamp Camp = SlopballCamp.None);

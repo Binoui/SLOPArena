@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SlopArena.Shared
 {
@@ -7,11 +8,14 @@ namespace SlopArena.Shared
     {
         private readonly ArcadeBallSimulation? _arcadeBall;
         private readonly SlopballSimulation? _slopball;
+        private readonly SlopballVersusSimulation? _volley;
         private readonly CharacterCourseSimulation? _course;
         /// <summary>Local input alias only; the ball retains a distinct ulong collision identity.</summary>
         public const byte ArcadeBallTargetInputId = byte.MaxValue;
         public ArcadeBallState? ArcadeBall => _arcadeBall?.State;
         public SlopballState? Slopball => _slopball?.State;
+        public SlopballVersusState? SlopballVersus => _volley?.State;
+        public SlopballCamp CampOf(ulong id) => (_rule as SlopballVersusMatchRule)?.CampOf(id) ?? SlopballCamp.None;
         public CharacterCourseState? Course => _course?.State;
         public IReadOnlyList<CharacterCourseEvent> LastTickCourseEvents => _course?.Events ?? Array.Empty<CharacterCourseEvent>();
         public bool IsCourseTargetBroken(int index) => _course?.IsBroken(index) ?? false;
@@ -23,7 +27,7 @@ namespace SlopArena.Shared
         public ulong CourseTargetEntityId(int index)
             => CourseTargetInputAlias(index) != 0 ? CharacterCourseSimulation.FirstEntityId + (ulong)index : 0;
         public uint SimulationTick => _tick;
-        public IReadOnlyList<SlopballEvent> LastTickSlopballEvents => _slopball?.Events ?? Array.Empty<SlopballEvent>();
+        public IReadOnlyList<SlopballEvent> LastTickSlopballEvents => _volley?.Events ?? _slopball?.Events ?? Array.Empty<SlopballEvent>();
         /// <summary>The Arcade ball's bounces during the last tick (walls, net, ceiling, floor and fighter bodies), for presentation.</summary>
         public IReadOnlyList<ArcadeBallContact> LastTickArcadeBallContacts => _arcadeBall?.Contacts ?? Array.Empty<ArcadeBallContact>();
 
@@ -51,12 +55,68 @@ namespace SlopArena.Shared
             _slopball.BeginRun(_arcadeBall!, sessionSeed, coop.MissBudget);
         }
 
+        public void BeginVersusSlopball()
+        {
+            if (_volley == null || _rule is not SlopballVersusMatchRule rule
+                || rule.Camps.Count != _states.Count || rule.Camps.Keys.Any(id => !_states.ContainsKey(id))
+                || _volley.State.ServerEntityId != 0 || _volley.State.TealScore != 0 || _volley.State.ClayScore != 0)
+                throw new InvalidOperationException("Versus Slopball needs its complete camp roster.");
+            ResetVersusPoint();
+            _volley.Begin();
+        }
+
+        private ArcadePoint VersusServePosition(ulong id)
+        {
+            var start = VersusStart(id);
+            float direction = CampOf(id) == SlopballCamp.Teal ? 1f : -1f;
+            float floor = _arena.Arcade!.Slopball!.FloorY;
+            float height = MathF.Max(floor + _arcadeBall!.State.Radius + .15f,
+                floor + _defs[id].CapsuleHeight * .5f + .35f);
+            return new(start.X, height, start.Z + direction * 1.1f);
+        }
+
+        private SpawnPoint VersusStart(ulong id)
+        {
+            var ids = SortedEntityIds();
+            return MatchFormat.SlopballVersus.StartFor(_arena, ids.IndexOf(id), ids.Count,
+                ids.Select(CampOf).ToArray());
+        }
+
+        private void ResetVersusPoint()
+        {
+            foreach (ulong id in SortedEntityIds())
+            {
+                var previous = _states[id];
+                if (previous.InteractionId != 0) InterruptInteraction(ref previous);
+                CancelAttackRuntime(id, ref previous, removeProjectiles: true);
+                var start = VersusStart(id);
+                _states[id] = new CharacterState
+                {
+                    EntityId = id, PX = start.X, PY = start.Y, PZ = start.Z, FacingYaw = start.Yaw,
+                    IsGrounded = true, State = ActionState.Idle, MatchState = previous.MatchState,
+                    JumpsLeft = _defs[id].Movement.MaxJumps, AirDodgesLeft = 1,
+                    AttackSequence = previous.AttackSequence,
+                    AutoLockSuppressed = previous.AutoLockSuppressed,
+                    LastTerminalInteractionId = previous.LastTerminalInteractionId,
+                    InteractionTerminalTick = previous.InteractionTerminalTick,
+                };
+                _animFrames[id] = 0; _prevAnimIndex[id] = -1;
+                SetRespawnPosition(id, start.X, start.Y, start.Z, start.Yaw);
+            }
+            _spellResolver.Clear();
+            _lastHitCredits.Clear(); _lastHitContexts.Clear(); _lastActivationIds.Clear();
+        }
+
         /// <summary>
-        /// The Match outcome under this simulation's rule. A co-op Slopball run ends when its misses run out:
-        /// the team finishes together, so it reads as a shared result.
+        /// The Match outcome under this simulation's rule. An explicitly stopped or miss-limited
+        /// co-op Slopball run finishes together, so it reads as a shared result.
         /// </summary>
         public MatchOutcome EvaluateMatch()
-            => _rule is SlopballCoopMatchRule
+            => _rule is SlopballVersusMatchRule versus
+                ? _volley!.State.Ended
+                    ? new MatchOutcome(true, versus.Camps.First(x => x.Value == _volley.State.Winner).Key, false)
+                    : default
+                : _rule is SlopballCoopMatchRule
                 ? _slopball!.State.Ended ? new MatchOutcome(true, 0, true) : default
                 : _rule.Evaluate(_states);
 
@@ -135,6 +195,22 @@ namespace SlopArena.Shared
                 foreach (var target in _course.CollisionTargets()) yield return target.Id;
         }
 
+        // With co-op friendly fire off, keep ball/body collision and returning projectiles'
+        // owner contact, but attacks and grabs pass through teammates.
+        private bool CanAttackTarget(ulong ownerId, ulong targetId)
+        {
+            if (_rule is SlopballVersusMatchRule versus)
+            {
+                if (_arcadeBall?.State.EntityId == targetId)
+                    return _volley!.State.Phase != SlopballVersusPhase.HeldServe
+                        || ownerId == _volley.State.ServerEntityId;
+                if (_states.ContainsKey(ownerId) && _states.ContainsKey(targetId) && ownerId != targetId)
+                    return !versus.BallOnly && versus.CampOf(ownerId) != versus.CampOf(targetId);
+            }
+            return _rule is not SlopballCoopMatchRule { FriendlyFire: false } || ownerId == targetId
+                || !_states.ContainsKey(ownerId) || !_states.ContainsKey(targetId);
+        }
+
         private byte CombatTargetDeaths(ulong id) => _states.TryGetValue(id, out var state) ? state.Deaths : (byte)0;
         private float CombatTargetAimY(ulong id, float y)
             => _defs.TryGetValue(id, out var def) ? y + def.CapsuleHeight * .25f : y;
@@ -144,6 +220,7 @@ namespace SlopArena.Shared
         {
             var ball = _arcadeBall!;
             if (_slopball != null && !_slopball.BeforeAttack(ball, hit.ContactTime, _states.ContainsKey(hit.OwnerEntityId))) return;
+            if (_volley != null && !_volley.BeforeAttack(ball, hit.ContactTime, hit.OwnerEntityId)) return;
             float damage = hit.Damage;
             float afterPercent = Math.Clamp(ball.State.DamagePercent + MathF.Max(0f, damage), 0f, 999f);
             float forceDefault = hit.BaseKnockback + hit.KnockbackGrowth * (afterPercent * .01f);
@@ -202,17 +279,19 @@ namespace SlopArena.Shared
 
         private void ConstrainSlopballFighters()
         {
-            if (_slopball == null) return;
+            if (_slopball == null && _volley == null) return;
             var rules = _arena.Arcade!.Slopball!;
             var ids = new ulong[_states.Count]; _states.Keys.CopyTo(ids, 0);
             foreach (ulong id in ids)
             {
                 var state = _states[id];
-                float limit = rules.NetZ - rules.NetHalfThickness - _defs[id].CapsuleRadius;
-                if (state.PZ <= limit) continue;
+                bool clay = CampOf(id) == SlopballCamp.Clay;
+                float sign = clay ? -1f : 1f;
+                float limit = rules.NetZ - sign * (rules.NetHalfThickness + _defs[id].CapsuleRadius);
+                if (sign * (state.PZ - limit) <= 0f) continue;
                 state.PZ = limit;
-                if (state.VZ > 0f) state.VZ = 0f;
-                if (state.KVZ > 0f) state.KVZ = 0f;
+                if (sign * state.VZ > 0f) state.VZ = 0f;
+                if (sign * state.KVZ > 0f) state.KVZ = 0f;
                 _states[id] = state;
             }
         }

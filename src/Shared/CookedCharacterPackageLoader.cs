@@ -83,7 +83,7 @@ public static class CookedCharacterPackageLoader
         {
             var m=ParseManifest(copied[CharacterPackageAssembler.ManifestPath]);
             if(m.PackageId!=requirement!.PackageId||m.Version!=requirement.Version||m.CookedContentHash!=requirement.CookedContentHash||m.PackageHash!=requirement.PackageHash) d.Add(Error("package.identity.mismatch","manifest","Package identity does not match the requested requirement."));
-            if(m.CookedSchemaVersion!=3||(m.RuntimeApiMin!="1.0.0"&&m.RuntimeApiMin!="1.1.0"&&m.RuntimeApiMin!="1.2.0"&&m.RuntimeApiMin!="1.3.0"&&m.RuntimeApiMin!="1.4.0"&&m.RuntimeApiMin!="1.5.0"&&m.RuntimeApiMin!="1.6.0"&&m.RuntimeApiMin!="1.7.0"&&m.RuntimeApiMin!="1.8.0")||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
+            if(m.CookedSchemaVersion!=3||(m.RuntimeApiMin!="1.0.0"&&m.RuntimeApiMin!="1.1.0"&&m.RuntimeApiMin!="1.2.0"&&m.RuntimeApiMin!="1.3.0"&&m.RuntimeApiMin!="1.4.0"&&m.RuntimeApiMin!="1.5.0"&&m.RuntimeApiMin!="1.6.0"&&m.RuntimeApiMin!="1.7.0"&&m.RuntimeApiMin!="1.8.0"&&m.RuntimeApiMin!="1.9.0"&&m.RuntimeApiMin!="1.10.0")||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
             if(m.Dependencies.Count!=0) d.Add(Error("package.dependencies.unsupported","manifest.dependencies","Unresolved package dependencies are not supported."));
             foreach (var c in m.Capabilities)
             {
@@ -107,6 +107,7 @@ public static class CookedCharacterPackageLoader
             ValidateStartupAimCorrections(package.Definition, m.RuntimeApiMin, d);
             ValidateAimMovementSpeeds(package.Definition, m.RuntimeApiMin, d);
             ValidateSteeredCharges(package.Definition, m.RuntimeApiMin, d);
+            ValidateAimedRecoveries(package.Definition, m.RuntimeApiMin, d);
             ValidateReturningProjectiles(package.Definition, m.RuntimeApiMin, d);
             if(package.Metadata.PackageId!=m.PackageId||package.Metadata.Version!=m.Version||package.Metadata.CookedSchemaVersion!=m.CookedSchemaVersion) d.Add(Error("package.runtime.metadata-mismatch",CharacterPackageAssembler.RuntimePath,"Runtime package metadata does not match manifest."));
             var baked=BakedAnimationData.LoadFromBin(copied[CharacterPackageAssembler.PosePath]);
@@ -172,7 +173,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedStreamCapabilityId).ToArray();
             if (streams.Length == 0) continue;
-            if (runtimeApiMin != "1.8.0")
+            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged stream requires runtime API 1.8.0."));
             bool invalid = streams.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
@@ -218,7 +219,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedProjectileCapabilityId).ToArray();
             if (charges.Length == 0) continue;
-            if (runtimeApiMin is not ("1.6.0" or "1.7.0" or "1.8.0"))
+            if (runtimeApiMin is not ("1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged projectile requires runtime API 1.6.0 or later."));
             bool invalid = charges.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
@@ -264,7 +265,7 @@ public static class CookedCharacterPackageLoader
                         continue;
                     lifecycleCount++;
                     string path = slot.Id + ".chargedDirectionalDash";
-                    if (runtimeApiMin is not ("1.5.0" or "1.6.0" or "1.7.0" or "1.8.0"))
+                    if (runtimeApiMin is not ("1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
                         diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                             "Charged directional dash requires runtime API 1.5.0."));
                     if (capability.Parameters is not CookedChargedDirectionalDashCapabilityParameters dash)
@@ -367,7 +368,7 @@ public static class CookedCharacterPackageLoader
                 ValidateFixedHitstun(leap.Hitbox.FixedHitstunTicks, leap.Hitbox.StunTicks,
                     slot.Id, diagnostics, ref requiresApi13);
         }
-        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0"))
+        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                 "Armor windows and fixed hitstun require runtime API 1.3.0 or later."));
     }
@@ -378,13 +379,39 @@ public static class CookedCharacterPackageLoader
         foreach (var slot in definition.Slots)
         {
             if (slot.AimMovementSpeedScale == 1f) continue;
-            if (runtimeApiMin is not ("1.7.0" or "1.8.0"))
+            if (runtimeApiMin is not ("1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Aim movement speed scale requires runtime API 1.7.0."));
             if (!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f)
                 || slot.AimMovement != AuthoringAimMovementMode.Mobile)
                 diagnostics.Add(Error("package.slot.invalid", slot.Id,
                     "Aim movement speed scale must be in (0, 1] on a mobile aim slot."));
+        }
+    }
+
+    private static void ValidateAimedRecoveries(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.Slots)
+        {
+            var recoveries = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+                .OfType<CookedStartCapabilityOperation>()
+                .Where(operation => operation.CapabilityId == CharacterPackageCompiler.AimedRecoveryCapabilityId).ToArray();
+            if (recoveries.Length == 0) continue;
+            if (runtimeApiMin is not ("1.9.0" or "1.10.0") || recoveries.Any(op =>
+                op.Parameters is CookedAimedRecoveryCapabilityParameters { Hop: not null }) && runtimeApiMin != "1.10.0")
+                diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Aimed recovery requires runtime API 1.9.0, or 1.10.0 with a setup hop."));
+            var stage = slot.Timeline.Stages[0];
+            if (recoveries.Length != 1 || slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0
+                || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
+                || !slot.IsRecoveryMove || recoveries[0].Tick != 0
+                || stage.Operations.Any(op => op != recoveries[0] && op is not CookedEmitPresentationOperation)
+                || recoveries[0].Parameters is not CookedAimedRecoveryCapabilityParameters recovery
+                || !CharacterPackageCompiler.ValidAimedRecovery(recovery.StartupTicks, recovery.VerticalSpeed,
+                    recovery.DirectionalVerticalSpeed, recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop)
+                || recovery.StartupTicks >= stage.DurationTicks)
+                diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id,
+                    "Aimed recovery requires bounded movement parameters and one tick-zero recovery lifecycle that launches within its stage, with no competing operations, aim or IASA."));
         }
     }
 
@@ -399,7 +426,7 @@ public static class CookedCharacterPackageLoader
                 .ToArray();
             if (charges.Length == 0) continue;
             string path = slot.Id + ".steeredCharge";
-            if (runtimeApiMin != "1.8.0")
+            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Steered charge requires runtime API 1.8.0."));
             if (charges.Length != 1 || slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0)
@@ -446,7 +473,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedSpawnProjectileOperation>()
                 .Where(operation => operation.Projectile.Return != null).ToArray();
             if (throws.Length == 0) continue;
-            if (runtimeApiMin != "1.8.0")
+            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Returning projectiles require runtime API 1.8.0."));
             if (throws.Length > 1)
@@ -486,7 +513,7 @@ public static class CookedCharacterPackageLoader
                 {
                     if (operation is CookedStartupAimCorrectionOperation correction)
                     {
-                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0"))
+                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
                             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                                 "Startup aim correction requires runtime API 1.4.0 or later."));
                         windowCount++;
@@ -807,6 +834,7 @@ public static class CookedCharacterPackageLoader
                 throw new InvalidDataException("Retired capability: the Wibou dash-slash capability is not supported.");
             return id switch
             {
+                "slop.ability.aimed-recovery.v1" => AimedRecovery(OOptional(e, new[] { "hop" }, "startupTicks", "verticalSpeed", "directionalVerticalSpeed", "horizontalSpeed", "preparationRiseSpeed")),
                 "slop.ability.charged-projectile.v1" => ChargedProjectile(O(e, "maxChargeTicks", "tier2Ticks", "tier3Ticks", "fireTriggerTick", "tier2Radius", "tier3Radius", "projectile")),
                 "slop.ability.charged-stream.v1" => ChargedStream(OOptional(e, new[] { "sprayAnimationId", "sprayLoopTicks", "endAnimationId" }, "maxChargeTicks", "fireTriggerTick", "emitIntervalTicks", "minStreamTicks", "maxStreamTicks", "recoveryTicks", "maxBaseKnockback", "minRecoilSpeed", "maxRecoilSpeed", "projectile", "sprayAnimationId", "sprayLoopTicks", "endAnimationId")),
                 "slop.internal.fightguy.rising-dragon.v1" => RisingDragon(O(e, "riseSpeed", "riseTicks", "riseDelay")),
@@ -824,6 +852,12 @@ public static class CookedCharacterPackageLoader
                 _ => throw new InvalidDataException("Unknown capability parameters.")
             };
         }
+        private static CookedCapabilityParameters AimedRecovery(Dictionary<string, JsonElement> q)
+            => new CookedAimedRecoveryCapabilityParameters(U(q, "startupTicks"), F(q, "verticalSpeed"),
+                F(q, "directionalVerticalSpeed"), F(q, "horizontalSpeed"), F(q, "preparationRiseSpeed"),
+                q.TryGetValue("hop", out var hop) ? RecoveryHop(O(hop, "startTicks", "contactTicks", "forwardDistance", "arcHeight", "landingHeight")) : null);
+        private static RecoveryHopParameters RecoveryHop(Dictionary<string, JsonElement> q)
+            => new(U(q, "startTicks"), U(q, "contactTicks"), F(q, "forwardDistance"), F(q, "arcHeight"), F(q, "landingHeight"));
         private static CookedCapabilityParameters RisingDragon(Dictionary<string, JsonElement> q) => new CookedRisingDragonCapabilityParameters(F(q, "riseSpeed"), U(q, "riseTicks"), U(q, "riseDelay"));
         private static CookedCapabilityParameters CycloneKick(Dictionary<string, JsonElement> q) => new CookedCycloneKickCapabilityParameters(F(q, "forwardSpeed"), U(q, "windupTicks"), U(q, "hitboxEndTick"), U(q, "durationTicks"), F(q, "bodyRadius"), F(q, "sideRadius"), F(q, "sideOffset"), F(q, "damage"), F(q, "knockbackAngle"), F(q, "knockbackBase"), F(q, "knockbackGrowth"), U(q, "stunTicks"), F(q, "bodyY"), F(q, "sideY"));
         private static CookedCapabilityParameters ChargedDirectionalDash(Dictionary<string, JsonElement> q)

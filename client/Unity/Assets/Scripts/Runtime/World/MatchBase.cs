@@ -364,7 +364,9 @@ namespace SlopArena.Client.World
             var go = new GameObject("LockTargetIndicator");
             go.transform.SetParent(transform, false);
             var indicator = go.AddComponent<TargetIndicator>();
-            indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera);
+            indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera,
+                id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
+                    ? camp : SlopballCamp.None);
         }
 
 

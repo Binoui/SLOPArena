@@ -12,6 +12,64 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AimedRecoveryRoundTripsSourceAndCookedAdmissionAndRejectsDowngrades(bool hop)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/bashie");
+        string manifest = File.ReadAllText(Path.Combine(root, "package.json"));
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
+        if (!hop)
+        {
+            var p = character["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.E")!
+                ["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!.AsObject();
+            p.Remove("hop"); p["startupTicks"] = 12; p["preparationRiseSpeed"] = .8f;
+        }
+        var source = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
+        Assert.True(source.IsValid, string.Join("; ", source.Diagnostics));
+        var rewritten = CharacterPackageSourceCodec.Load(manifest,
+            CharacterPackageSourceCodec.SerializeCharacter(source.Source!.Character));
+        Assert.True(rewritten.IsValid, string.Join("; ", rewritten.Diagnostics));
+        var compiled = CharacterPackageCompiler.Compile(rewritten.Source!, CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var loaded = Load(package);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
+        foreach (string id in new[] { "ground.E", "air.E" })
+        {
+            var operation = loaded.Package!.Definition.Slots.Single(s => s.Id == id).Timeline.Stages.Single()
+                .Operations.OfType<CookedStartCapabilityOperation>().Single();
+            Assert.Equal(hop ? new CookedAimedRecoveryCapabilityParameters(44, 15, 13, 8, 0f,
+                new RecoveryHopParameters(18, 34, .792f, .495f, .198f))
+                : new CookedAimedRecoveryCapabilityParameters(12, 15, 13, 8, .8f), operation.Parameters);
+        }
+
+        foreach (bool downgrade in new[] { true, false })
+        {
+            var runtime = JsonNode.Parse(package.CanonicalBytes)!.AsObject();
+            string api = downgrade ? (hop ? "1.9.0" : "1.8.0") : (hop ? "1.10.0" : "1.9.0");
+            runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = api;
+            if (!downgrade)
+            {
+                var p = runtime["character"]!["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.E")!
+                    ["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!;
+                if (hop) p["hop"]!["arcHeight"] = 100;
+                else p["directionalVerticalSpeed"] = 100;
+            }
+            var tampered = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = api }, package.Definition,
+                package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+            var rejected = Load(tampered);
+            Assert.False(rejected.IsValid);
+            Assert.Contains(rejected.Diagnostics, d => d.Code == (downgrade
+                ? "package.compatibility.unsupported" : "package.capability.parameters-invalid"));
+        }
+
+        static CookedCharacterPackageLoadResult Load(CookedCharacterPackage p)
+            => CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(p,
+                Array.Empty<PackageDependencySource>(), p.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+    }
+
     [Fact]
     public void ChargedStreamRoundTripsTheVerifiedCookedPackage()
     {

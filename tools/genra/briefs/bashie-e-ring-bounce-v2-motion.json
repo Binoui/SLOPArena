@@ -1,0 +1,175 @@
+{
+  "name": "bashie-e-ring-bounce-v2-motion",
+  "notes": "Owner approved the actual-rig v2 keys and 54-tick clock: \"this looks really good\". Author one full motion take between those accepted keys. Preserve the separate throw, small forward hop, contact/compression and big launch. Unbound candidate only; full-animation review precedes live integration.",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie, a small round female turtle lifeguard. Current verified 49-joint Humanoid body with four-finger cartoon hands (thumb/index/middle/ring), rigid Shell and Whistle joints, red bucket hat and sandals. Very short limbs; use anatomical solvers and measured skin, not stretched proportions.",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 54
+  },
+  "keys": [
+    0,
+    12,
+    18,
+    26,
+    34,
+    40,
+    44,
+    54
+  ],
+  "review_ticks": [
+    0,
+    12,
+    18,
+    26,
+    34,
+    40,
+    44,
+    54
+  ],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "preview_views": [
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../bashie-r-20261022/inputs/model.png",
+    "../../bashie-e-20261022/ring-bounce-reference-v1.png",
+    "../../../tmp/bashie-model/review/lifebuoy-v1/q3.png"
+  ],
+  "image_notes": "Actual current Bashie and life-ring mesh, plus the earlier approved pose sheet. Preserve her identity and the liked final plant/squash/spring/rise poses. The change is the CLEAR separate throw and small forward hop before those poses; the old sheet compresses this too much.",
+  "timing": {
+    "fixed": [
+      "OWNER APPROVED clock at 60 Hz: ready 0; throw/release 12; small-hop takeoff 18; small-hop apex 26; contact 34; squash 40; high spring 44; rising handoff 54. Do not retime these beats or extend duration.",
+      "Keep the approved body keys at ALL eight ticks exactly, including the liked old bounce poses. Actor travel and ring staging are separate from this Humanoid body clip.",
+      "One E automatically throws the ring and hops onto it, including offstage without ordinary jumps. Only the big launch is aimed. No cannonball; no new rig, bone scaling or actor-root displacement."
+    ],
+    "adjustable": [
+      "Author breakdowns, arcs, contacts, spacing, limited overlap and follow-through BETWEEN the approved keys. These transitions are the task; do not redesign the poses or timing."
+    ]
+  },
+  "approved_keys": {
+    "file": "../../../artifacts/bashie-e-v2-20261022/keys-v2.result.json",
+    "ticks": [
+      0,
+      12,
+      18,
+      26,
+      34,
+      40,
+      44,
+      54
+    ]
+  },
+  "fast_windows": [
+    [
+      40,
+      44
+    ]
+  ],
+  "planted": [],
+  "description": "Bashie E Ring Bounce, v2 FULL MOTION. The owner approved the actual-character keys and their timed blocking: \"this looks really good\". Make ONE full take that connects these exact poses. The eight approved keys are in keys/result.json. Load them as the source of every semantic key; preserve their transforms exactly. This is motion authoring after key acceptance, not another keys-only job or a redesign.\n\nThe move has FOUR distinct parts: throw the ring clearly ahead while still down; small forward hop to it; a definite contact and compression; then a MUCH bigger upward bounce. Its readable two-jump structure is the primary goal. Do not smooth the whole thing into a single uninterrupted upward move. The body shapes and clock were accepted together.\n\nClock (60 Hz, 55 samples, 0.9 seconds):\n0 ready, both hands carrying the ring at waist height.\n12 throw/release, feet still down, open hands forward.\n18 small-hop takeoff, ring already waiting ahead; arms open/back for balance.\n26 small-hop apex, knees tucked, modest forward lean, down/forward intent.\n34 both sandals connect to the near padded rim, a distinct first landing.\n40 loaded crouch; hips lower about 0.08 m and the independent ring squashes.\n44 big spring; long upward silhouette with arms raised/out beside hat.\n54 high-rise handoff to air control.\n\nThis is a body-only clip. Do NOT animate the actor root or put the actual hop's vertical/forward arc into Hips. Only the already accepted local hips/torso compression and weight shifts belong here. Preview staging handles a small automatic root hop, 0.72 m forward: tick18 offset0, tick26 about0.54m up/0.36m ahead, tick34 at0.18m up/0.72m ahead. Ring top waits about0.18m above entry sole plane, ring center about0.97m ahead. It leaves the hands around8, travels forward on a small throw arc to16, then WAITS independently until feet connect at34. From34..40 the feet stay planted while the ring compresses. High actor ascent begins at44 at15m/s, separate from body animation. Preserve this staged action; no recovery-height change here.\n\nConcentrate on natural mechanics within that clock. Throw: short anticipation, shoulders/chest and hands follow through, feet remain on the ordinary sole plane until the small hop. Keep contact with the carried ring plausible through8; its geometric center comes from both hands. Before18, heels may load without inventing an early leap. Small hop: modest push and compact legs, feet clear the rim, preserve the accepted tuck at26; on the way down open the legs into34 without abrupt knee/ankle flips. The first landing must visibly absorb into the crouch at40, then the high spring at44 has a sharp upward release, with arm/head follow-through into54. Preserve body/ring contact: keep both sandals near their approved sole plane and stance over34..40; solve planted feet as hips lower, rather than letting interpolation slide them. Do not let a uniform ease-to-each-key turn the throw/hop into a succession of freezes. Use a few breakdowns and deliberate per-channel spacing; protected semantic ticks still stay exact. No full-body overlap that moves those keys.\n\nActual short-limbed turtle rig is authoritative: 49 joints, rigid hat/head and shell, four cartoon fingers per hand, short arms and legs, sandals. Keep anatomy, proportions and all non-hips translations/scales unchanged. Forearms/hands must stay clear of torso, whistle, shell and hat; inspect the tucked apex and big raised-arm release on the actual mesh. Fingers remain plausible, no new fist or hand design. Keep actual knee/elbow bend direction and no elbow roll flips. The previous blocking's flow warnings are a reason to improve transitions, not to change protected poses.\n\nSave result.json early, check fast while solving and full before finishing, inspect semantic sheets and complete timed playback. Do not buy additional references or start an unattended creative revision. Show the one resulting take to the owner before integration.\n",
+  "targets": [
+    {
+      "name": "throw left hand ahead",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.15
+    },
+    {
+      "name": "throw right hand ahead",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.15
+    },
+    {
+      "name": "Left foot still down at throw",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Left sole on ring at 34",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 34,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Left sole on ring at 40",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 40,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Right foot still down at throw",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Right sole on ring at 34",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 34,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "Right sole on ring at 40",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 40,
+      "min": -0.335,
+      "max": -0.265
+    },
+    {
+      "name": "squash hips loaded",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 40,
+      "min": -0.13,
+      "max": -0.055
+    },
+    {
+      "name": "spring hips extended",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 44,
+      "min": -0.015,
+      "max": 0.055
+    }
+  ]
+}

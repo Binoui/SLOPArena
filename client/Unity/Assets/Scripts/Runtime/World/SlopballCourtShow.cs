@@ -84,6 +84,8 @@ namespace SlopArena.Client.World
         }
 
         public void Returned() => _flash = 1f;
+        public void ClearCombo()
+        { foreach (var card in _cards) Show(card, BlankCard); }
 
         /// <summary>Rally heat (0-4) tints the floods and the key light; the change eases in.</summary>
         public void SetHeat(int heat)

@@ -13,6 +13,7 @@ namespace SlopArena.Client.UI
         private readonly Label _count, _cue, _ball, _feedback, _pace, _toastTitle, _toastLine, _chipHeight;
         private readonly VisualElement[] _heatPips = new VisualElement[SlopballDefinition.MaxHeat];
         private readonly StyleSheet _arcade, _slopball;
+        private readonly bool _cooperative;
         // A pop floats up from a world point; callouts stack under the combo pop (line 1, 2, …). Side 0 centres the
         // column on the point, +1 starts it there (left-aligned) and -1 ends it there (right-aligned).
         private readonly System.Collections.Generic.List<(Label label, Vector3 world, float age, int line, int side)> _pops = new();
@@ -20,8 +21,9 @@ namespace SlopArena.Client.UI
         private float _toastAge = -1f;
         private bool _paused;
 
-        public SlopballView(VisualElement hud)
+        public SlopballView(VisualElement hud, bool cooperative = false)
         {
+            _cooperative = cooperative;
             _hud = hud;
             _live = new VisualElement { name = "slopball-live", pickingMode = PickingMode.Ignore };
             _live.AddToClassList("slopball-live");
@@ -47,7 +49,8 @@ namespace SlopArena.Client.UI
             _pace.style.display = DisplayStyle.None;
             _feedback = AddLabel(_live, "", "arcade-feedback");
             _feedback.style.display = DisplayStyle.None;
-            AddLabel(_live, "BACKSPACE / HOLD SELECT RESTART  ·  ESC / START PAUSE", "slopball-controls");
+            AddLabel(_live, cooperative ? "ESC / START MENU  ·  LEADER CAN RETURN TO LOBBY"
+                : "BACKSPACE / HOLD SELECT RESTART  ·  ESC / START PAUSE", "slopball-controls");
             // The dropped-combo card sits beside the panel, like the course's toasts.
             _toast = new VisualElement { name = "slopball-toast", pickingMode = PickingMode.Ignore };
             _toast.AddToClassList("course-toast");
@@ -83,9 +86,8 @@ namespace SlopArena.Client.UI
 
         public void Present(SlopballState state, ArcadeBallState ball, ulong personalBest, string feedback)
         {
-            // A co-op run (ADR-0040) counts the team's returns and the misses it has left.
-            _count.text = state.MissBudget > 0
-                ? $"Team {state.TotalReturns}  ·  Combo {state.Returns}  ·  Misses {state.Misses}/{state.MissBudget}"
+            _count.text = _cooperative
+                ? $"Team {state.TotalReturns}  ·  Combo {state.Returns}  ·  Best {state.BestStreak}"
                 : $"Combo {state.Returns}  ·  Best {Math.Max(personalBest, state.BestStreak)}";
             _cue.text = state.Phase switch
             {
@@ -103,6 +105,29 @@ namespace SlopArena.Client.UI
         {
             SlopballServe.Zinger => "  ·  ZINGER", SlopballServe.Moonball => "  ·  MOONBALL", SlopballServe.Curveball => "  ·  CURVEBALL", _ => "",
         };
+
+        public void PresentVersus(SlopballVersusState state, ArcadeBallState ball, ulong localId, SlopballCamp ownCamp)
+        {
+            _count.text = $"<color=#38E6D9>TEAL {state.TealScore}</color>  —  <color=#FF8C59>{state.ClayScore} CLAY</color>";
+            _heat.style.display = DisplayStyle.None;
+            _cue.text = state.Phase switch
+            {
+                SlopballVersusPhase.WaitingServe => $"{state.ServingCamp} serves in {state.ServeInTicks / 60f:0.0}s",
+                SlopballVersusPhase.HeldServe => state.ServerEntityId == localId ? "YOUR SERVE · HIT THE BALL"
+                    : $"{state.ServingCamp.ToString().ToUpperInvariant()} P{state.ServerEntityId} SERVES",
+                SlopballVersusPhase.Ended => state.Winner.ToString().ToUpperInvariant() + " WINS",
+                _ => "Hit, set, bank or spike. Unlimited touches.",
+            };
+            _ball.text = $"FIRST TO 21 · YOU ARE {ownCamp.ToString().ToUpperInvariant()}"
+                + (ball.Active ? $" · BALL {ball.DamagePercent:0}%" : "");
+        }
+
+        public void ShowPoint(SlopballCamp scorer)
+        {
+            _toastTitle.text = scorer.ToString().ToUpperInvariant() + " POINT";
+            _toastLine.text = "First to 21 · conceding camp serves next";
+            _toastAge = 0f; _toast.style.display = DisplayStyle.Flex; AnimateToast();
+        }
 
         private void SetHeat(int heat)
         {

@@ -22,7 +22,7 @@ namespace SlopArena.HitReliabilityReport;
 internal static class Program
 {
     private const string Usage = """
-        Usage: dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk]
+        Usage: dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk|bashie]
                [--slots 1,2,3,4] [--out artifacts/hit-reliability]
 
         Writes <char>.md and <char>.json per character. Targets are idle, standing FightGuy
@@ -35,6 +35,7 @@ internal static class Program
     {
         ["fightguy"] = CharacterClass.FightGuy, ["manki"] = CharacterClass.Manki,
         ["wibou"] = CharacterClass.Wibou, ["bonk"] = CharacterClass.Bonk,
+        ["bashie"] = CharacterClass.Bashie,
     };
 
     private static int Main(string[] args)

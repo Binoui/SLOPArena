@@ -27,6 +27,11 @@
                 </ui:ScrollView>
                 <!-- Connection feedback and retry stay with the roster, clear of the
                      bottom-left chat overlay. -->
+                <ui:VisualElement name="volleyball-rules" class="lobby-volleyball-rules" style="display: none;">
+                    <ui:Label text="SLOPBALL RULES" class="panel-note" />
+                    <ui:Button name="btn-friendly-fire" text="CO-OP FRIENDLY FIRE: OFF" class="btn-secondary" />
+                    <ui:Button name="btn-ball-only" text="VERSUS BALL ONLY: OFF" class="btn-secondary" />
+                </ui:VisualElement>
                 <ui:VisualElement class="lobby-panel__footer">
                     <ui:VisualElement class="lobby-panel__feedback">
                         <ui:Label name="lbl-status" text="Connecting to the room…" class="lobby-status" />

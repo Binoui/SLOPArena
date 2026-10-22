@@ -12,12 +12,16 @@ public enum MatchFormat : byte
     Stock = 0,
     /// <summary>Two to four fighters on Slopball's player half against the Launcher.</summary>
     SlopballCoop = 1,
+    SlopballVersus = 2,
 }
 
 public static class MatchFormats
 {
     public const string StockWire = "stock";
     public const string SlopballCoopWire = "slopball-coop";
+    public const string SlopballVersusWire = "slopball-versus";
+    public static bool IsSlopball(this MatchFormat format)
+        => format is MatchFormat.SlopballCoop or MatchFormat.SlopballVersus;
 
     /// <summary>Lateral spacing between co-op Slopball starts, metres.</summary>
     public const float SlopballCoopStartSpacing = 2.5f;
@@ -26,6 +30,7 @@ public static class MatchFormats
     {
         MatchFormat.Stock => StockWire,
         MatchFormat.SlopballCoop => SlopballCoopWire,
+        MatchFormat.SlopballVersus => SlopballVersusWire,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
@@ -41,6 +46,9 @@ public static class MatchFormats
             case SlopballCoopWire:
                 format = MatchFormat.SlopballCoop;
                 return true;
+            case SlopballVersusWire:
+                format = MatchFormat.SlopballVersus;
+                return true;
             default:
                 format = MatchFormat.Stock;
                 return false;
@@ -52,14 +60,17 @@ public static class MatchFormats
     {
         MatchFormat.Stock => arena.Purpose == ArenaPurpose.PvP,
         MatchFormat.SlopballCoop => arena.Arcade?.Slopball != null,
+        MatchFormat.SlopballVersus => arena.Arcade?.Slopball != null,
         _ => false,
     };
 
     /// <summary>The rule a format plays under; stock fights keep the Match's stock count.</summary>
-    public static IMatchRule CreateRule(this MatchFormat format, byte maxStocks) => format switch
+    public static IMatchRule CreateRule(this MatchFormat format, byte maxStocks, bool friendlyFire = false,
+        System.Collections.Generic.IReadOnlyDictionary<ulong, SlopballCamp>? camps = null, bool ballOnly = false) => format switch
     {
         MatchFormat.Stock => new StockMatchRule(maxStocks),
-        MatchFormat.SlopballCoop => new SlopballCoopMatchRule(),
+        MatchFormat.SlopballCoop => new SlopballCoopMatchRule(friendlyFire: friendlyFire),
+        MatchFormat.SlopballVersus => new SlopballVersusMatchRule(camps!, ballOnly),
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
@@ -68,14 +79,31 @@ public static class MatchFormats
     /// the arena's spawn points; co-op Slopball spreads the court's one start sideways, so the solo
     /// start, and with it solo record fingerprints, stays as authored.
     /// </summary>
-    public static SpawnPoint StartFor(this MatchFormat format, in ArenaDefinition arena, int index, int count)
+    public static SpawnPoint StartFor(this MatchFormat format, in ArenaDefinition arena, int index, int count,
+        System.Collections.Generic.IReadOnlyList<SlopballCamp>? camps = null)
     {
         if (index < 0 || count < 1 || index >= count) throw new ArgumentOutOfRangeException(nameof(index));
         if (arena.SpawnPoints == null || arena.SpawnPoints.Length == 0)
             throw new ArgumentException("The arena has no spawn points.", nameof(arena));
-        if (format != MatchFormat.SlopballCoop)
+        if (!format.IsSlopball())
             return arena.SpawnPoints[index % arena.SpawnPoints.Length];
         var start = arena.SpawnPoints[0];
+        if (format == MatchFormat.SlopballVersus)
+        {
+            if (camps == null || camps.Count != count || camps[index] is not (SlopballCamp.Teal or SlopballCamp.Clay))
+                throw new ArgumentException("Versus starts need a camp for every fighter.", nameof(camps));
+            var camp = camps[index];
+            int ownIndex = 0, ownCount = 0;
+            for (int i = 0; i < count; i++)
+                if (camps[i] == camp) { if (i < index) ownIndex++; ownCount++; }
+            start.X += (ownIndex - (ownCount - 1) * .5f) * SlopballCoopStartSpacing;
+            if (camp == SlopballCamp.Clay)
+            {
+                start.Z = 2f * arena.Arcade!.Slopball!.NetZ - start.Z;
+                start.Yaw += MathF.PI;
+            }
+            return start;
+        }
         start.X += (index - (count - 1) * .5f) * SlopballCoopStartSpacing;
         return start;
     }

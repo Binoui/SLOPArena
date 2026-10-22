@@ -1262,7 +1262,9 @@ namespace SlopArena.Client.Network
         {
             if (!ClientSession.ApplyMatchAborted(notification.MatchId, notification.Reason))
                 return;
-            SetStatus($"Match aborted ({notification.Reason}). Returned to the lobby.");
+            SetStatus(notification.Reason == "leader_returned_to_lobby"
+                ? "The leader returned the group to the lobby."
+                : $"Match aborted ({notification.Reason}). Returned to the lobby.");
             NotifyChanged();
         }
 

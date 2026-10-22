@@ -69,8 +69,8 @@ def build_batch(attacker: str, victim: str, stage: str, output: str, moves: list
     for override in overrides:
         move, _, assignment = override.partition(":")
         key, _, value = assignment.partition("=")
-        if move not in settings or key not in ("distance", "damage", "ticks", "hold", "orbit", "shield") or not value:
-            raise SystemExit(f"--set {override}: expected MOVE:distance|damage|ticks|hold|orbit|shield=VALUE for a captured move")
+        if move not in settings or key not in ("distance", "damage", "ticks", "hold", "orbit", "shield", "airborne", "victim-airborne") or not value:
+            raise SystemExit(f"--set {override}: expected MOVE:distance|damage|ticks|hold|orbit|shield|airborne|victim-airborne=VALUE for a captured move")
         settings[move][key] = float(value) if key in ("distance", "orbit") else int(value)
     width, _, height = size.partition("x")
     commands = [["sloparena.hitfeel.prepare", "--stage", stage], ["editor_play"]]
@@ -86,6 +86,10 @@ def build_batch(attacker: str, victim: str, stage: str, output: str, moves: list
             command += ["--hold", str(s["hold"])]
         if s.get("orbit"):
             command += ["--orbit", number(s["orbit"])]
+        if s.get("airborne"):
+            command += ["--airborne", "true"]
+        if s.get("victim-airborne"):
+            command += ["--victim-airborne", "true"]
         if s.get("shield"):
             command += ["--shield", "true"]
         commands.append(command)
@@ -295,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     batch.add_argument("--output", required=True, help="fresh repository-relative directory below tmp/")
     batch.add_argument("--moves", default="1,2,3,4,A,E,R,F", help="comma list of ground slots")
     batch.add_argument("--set", action="append", default=[], metavar="MOVE:KEY=VALUE",
-                       help="override distance, damage, ticks, hold, orbit or shield for one move")
+                       help="override distance, damage, ticks, hold, orbit, shield, airborne or victim-airborne for one move")
     batch.add_argument("--preset", default="high:1.6", help="hit-feel preset name:scale (default: the shipped strength)")
     batch.add_argument("--size", default="960x540", help="frame size WxH")
     batch.add_argument("--track", action=argparse.BooleanOptionalAction, default=True,
