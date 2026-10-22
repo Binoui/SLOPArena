@@ -86,6 +86,25 @@ Hose Down's GenRA clips (briefs `bashie-hose-pump.json` and `bashie-hose-spray.j
 `bind_catalog.eval.cs` binds them, with her idle as the end clip until hers exists. Re-run both, then cook, after each
 write the owner should see in game.
 
+## Shell tuck (Shell Slide, R)
+
+```bash
+# Look A, the owner's pick (2026-10-22), from the front, side and match-camera angles. Add "frames" for a timeline,
+# or "report": true for the tucked bone positions on Unity's model root.
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/bashie_rig/tuck_preview.py -- \
+  "$PWD/tmp/bashie-model/rig-build-v4/Bashie_rig.blend" <out_dir> \
+  '{"variants": {"A": {"shell": 1.7, "arm": 0.15, "leg": 0.3, "headScale": 0.8, "peek": [0, -0.33, -0.16], "whistle": 0.01}}}'
+```
+
+She tucks into her own shell without a new model: `ShellTuckRig` changes her bones after the clip, and
+`tuck_preview.py` makes the same changes in Blender, so a look can be judged there first. Her body pitches prone with
+the shell on top, the shell grows 1.7×, her upper arms and legs shrink into it, the whistle vanishes, and her head
+(0.8×) is held upright where it peeks out of the shell's front. `ShellTuckPose.Bashie` carries look A's numbers from
+the report, with her hips moved back so the shell is over her position.
+- **Gotcha:** turning her neck to lift her face swings her big head back through the shell. Pin the head instead.
+- **Gotcha:** prone, her shell bowl opens only underneath, so the head must sit in front of the shell's front edge to
+  show.
+
 ## Unity candidate and in-game previews
 
 Before her package existed, these scripts previewed her on Manki's fighter:

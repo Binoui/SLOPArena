@@ -177,14 +177,19 @@
     }
   ],
   "attachmentBoneIds": [],
-  "presentationIds": [],
+  "presentationIds": [
+    "presentation.bashie.hose.pump",
+    "presentation.bashie.hose.release",
+    "presentation.bashie.hose.sign",
+    "presentation.bashie.hose.hit",
+    "presentation.bashie.shell.tuck",
+    "presentation.bashie.shell.plop",
+    "presentation.bashie.shell.surf",
+    "presentation.bashie.shell.hit"
+  ],
   "capabilityRequirements": [
     {
       "capabilityId": "slop.internal.manki.jetpack-boost.v1",
-      "capabilityVersion": "1"
-    },
-    {
-      "capabilityId": "slop.internal.manki.bazooka.v1",
       "capabilityVersion": "1"
     },
     {
@@ -193,6 +198,10 @@
     },
     {
       "capabilityId": "slop.ability.charged-stream.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.steered-charge.v1",
       "capabilityVersion": "1"
     }
   ],
@@ -892,11 +901,72 @@
                   "sprayLoopTicks": 12,
                   "endAnimationId": "anim.bashie.hose-end"
                 }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.hose.pump",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 600
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 1,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.hose.release",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "localPositionX": 0,
+                  "localPositionY": 0.0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 60
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 1,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.hose.sign",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": 0.62,
+                  "localPositionZ": 1.0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 70
+                }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bashie.hose.hit"
     },
     {
       "id": "ground.E",
@@ -954,11 +1024,11 @@
     },
     {
       "id": "ground.R",
-      "name": "Bazooka",
-      "description": "Launch a rocket that explodes on impact",
+      "name": "Shell Slide",
+      "description": "Tuck into your shell and slide off fast, armoured and steered with the stick. The first fighter you meet is bowled over and you pop out. A miss leaves you flipped on your back, paddling. Off a ledge you slide on thin air, look down and drop.",
       "iconId": "icon.r",
-      "behavior": "projectile",
-      "aimMode": "cameraForward3D",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
       "aimMovement": "fixed",
       "cooldownTicks": 240,
       "isRecoveryMove": false,
@@ -967,7 +1037,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 600,
+            "durationTicks": 15,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -978,39 +1048,126 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.gr"
+              "anim.bashie.gr",
+              "anim.bashie.gr-flip",
+              "anim.bashie.gr-lookdown",
+              "anim.bashie.gr-pop",
+              "anim.bashie.gr-slide"
             ],
             "operations": [
               {
-                "kind": "startCapability",
+                "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.bazooka.v1",
+                "endTick": 8,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 600
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 8,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.plop",
+                "placement": {
+                  "attachmentMode": "world",
+                  "boneId": null,
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0.3,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 60
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.surf",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0.0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 600
+                }
+              },
+              {
+                "kind": "startCapability",
+                "tick": 14,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.steered-charge.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "fireTriggerTick": 6,
-                  "projectileSpeed": 40,
-                  "hitboxRadius": 0.6,
-                  "damage": 15,
-                  "gravity": 15,
-                  "maxFlightTicks": 45,
-                  "stunTicks": 24,
-                  "explosionRadius": 3,
-                  "kbAngle": 25,
-                  "explosionKbBase": 6,
-                  "explosionKbGrowth": 42,
-                  "explosionStunTicks": 22,
-                  "explosionDurationTicks": 6,
-                  "explosionKbAngle": 25,
-                  "castDuration": 20,
-                  "recoveryDuration": 15,
-                  "explosionPresentationId": ""
+                  "gallopSpeed": 13,
+                  "turnDegreesPerSecond": 200,
+                  "maxGallopTicks": 54,
+                  "armored": true,
+                  "lanceHitbox": {
+                    "shape": "capsule",
+                    "radius": 0.5,
+                    "offsetX": 0,
+                    "offsetY": -0.45,
+                    "offsetZ": -0.1,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0.6,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 9,
+                    "angle": 40,
+                    "baseKnockback": 9,
+                    "knockbackGrowth": 28,
+                    "stunTicks": 18,
+                    "durationTicks": 1,
+                    "interruptible": false,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner"
+                  },
+                  "hitEndingTicks": 30,
+                  "missEndingTicks": 48,
+                  "skidTicks": 12,
+                  "turnAroundOnMiss": false,
+                  "airStrideTicks": 24,
+                  "lookDownTicks": 20,
+                  "gallopAnimationId": "anim.bashie.gr-slide",
+                  "gallopLoopTicks": 24,
+                  "hitEndingAnimationId": "anim.bashie.gr-pop",
+                  "missEndingAnimationId": "anim.bashie.gr-flip",
+                  "airEndingAnimationId": "anim.bashie.gr-lookdown"
                 }
               }
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.bashie.shell.hit"
     },
     {
       "id": "ground.F",

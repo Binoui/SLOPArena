@@ -207,16 +207,17 @@ namespace SlopArena.EditorTools
 
         /// <summary>
         /// A one-shot 2D AudioSource on the SFX mixer group. It plays when the cue spawns and dies
-        /// with the instance, so the cue's durationTicks must outlast the clip.
+        /// with the instance, so the cue's durationTicks must outlast the clip. Returns the source (null when the
+        /// clip is missing) for a cue that drives it itself, such as a loop.
         /// </summary>
-        public void Sound(GameObject root, string clipName, float volume, float pitch)
+        public AudioSource? Sound(GameObject root, string clipName, float volume, float pitch)
         {
             var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioRoot}/{clipName}.ogg");
             if (clip == null)
             {
                 // Resources/Audio is a local-only folder; a missing clip leaves the effect silent.
                 Warnings.Add($"{root.name}: missing local clip {AudioRoot}/{clipName}.ogg");
-                return;
+                return null;
             }
             var source = root.AddComponent<AudioSource>();
             source.clip = clip;
@@ -229,6 +230,7 @@ namespace SlopArena.EditorTools
                 .OfType<AudioMixerGroup>().FirstOrDefault(group => group.name == "SFX");
             if (source.outputAudioMixerGroup == null)
                 Warnings.Add($"{root.name}: SFX mixer group not found in {MixerPath}");
+            return source;
         }
 
         public GameObject Save(GameObject root)

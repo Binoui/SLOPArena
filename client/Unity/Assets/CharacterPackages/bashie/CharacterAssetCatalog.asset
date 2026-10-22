@@ -75,9 +75,25 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.gf-loop
   - _semanticId: anim.bashie.gr
-    _clip: {fileID: 7400000, guid: dc09d946fb5d866af905a039b6344ae1, type: 2}
+    _clip: {fileID: 7400000, guid: bd5d1a687f9b7531890a35e230f592bd, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.gr
+  - _semanticId: anim.bashie.gr-flip
+    _clip: {fileID: 7400000, guid: 2c7c17f34a06e2dabb63223759151535, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gr-flip
+  - _semanticId: anim.bashie.gr-lookdown
+    _clip: {fileID: 7400000, guid: 6bf1f1718569bbca98bfc4f661f89844, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gr-lookdown
+  - _semanticId: anim.bashie.gr-pop
+    _clip: {fileID: 7400000, guid: 215ba6d4b00832ca3b0847513a6fbc2e, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gr-pop
+  - _semanticId: anim.bashie.gr-slide
+    _clip: {fileID: 7400000, guid: 8ec0e275d789e1a38afc5161e682e7c2, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gr-slide
   - _semanticId: anim.bashie.hit-hard
     _clip: {fileID: 7400000, guid: 1646e28d38ae8c61eaa335b4a30f9ad7, type: 2}
     _extrapolation: 0
@@ -126,4 +142,20 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 76e81443b7e72a384beeddef88178732, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.tumble
-  _presentations: []
+  _presentations:
+  - _semanticId: presentation.bashie.hose.pump
+    _prefab: {fileID: 1521471548995300166, guid: 271d349aee8a6c5dc8a948d0bc448bfe, type: 3}
+  - _semanticId: presentation.bashie.hose.release
+    _prefab: {fileID: 7733751994440535698, guid: c679158ce452b12b4b78e1ba19e21db3, type: 3}
+  - _semanticId: presentation.bashie.hose.sign
+    _prefab: {fileID: 8064585994916213162, guid: 534c4120ecd11a72e90f2b40f13c83d5, type: 3}
+  - _semanticId: presentation.bashie.hose.hit
+    _prefab: {fileID: 189327356592904366, guid: 92517fabdd23e7a3dadbc027f02d9fa6, type: 3}
+  - _semanticId: presentation.bashie.shell.tuck
+    _prefab: {fileID: 8101341052854985472, guid: af713e86c0cc0c922ab59d36bef37cac, type: 3}
+  - _semanticId: presentation.bashie.shell.plop
+    _prefab: {fileID: 5241778233117381681, guid: a6afc64b6c5ac63258394545e1838ad6, type: 3}
+  - _semanticId: presentation.bashie.shell.surf
+    _prefab: {fileID: 403047681026994723, guid: 68b6a118937167f548f7e31d445ca92d, type: 3}
+  - _semanticId: presentation.bashie.shell.hit
+    _prefab: {fileID: 8596268164351727478, guid: 2f213f808c57d8156922cdd251780dc6, type: 3}

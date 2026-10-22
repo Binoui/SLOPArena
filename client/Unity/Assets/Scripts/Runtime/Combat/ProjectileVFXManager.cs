@@ -240,7 +240,8 @@ namespace SlopArena.Client.Combat
             float vx, float vy, float vz)
         {
             bool pointFirst = (character == CharacterClass.Wibou && slot == AbilitySlots.A)
-                || (character == CharacterClass.Manki && slot == AbilitySlots.R);
+                || (character == CharacterClass.Manki && slot == AbilitySlots.R)
+                || (character == CharacterClass.Bashie && slot == AbilitySlots.A);
             if (!pointFirst) return;
             var velocity = new Vector3(vx, vy, vz);
             if (velocity.sqrMagnitude > 0.0001f)

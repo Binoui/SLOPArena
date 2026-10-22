@@ -60,6 +60,9 @@ namespace SlopArena.Client.Combat
                 // Overrides arrive through the authoritative semantic event dispatcher.
                 if (string.IsNullOrEmpty(slot?.HitPresentationId))
                     GraphicHitEffect.Spawn(in hit, tier);
+                // A pure push (no damage, no stun: a drop of Bashie's Hose Down stream) shows only its own
+                // presentation. No flash, impact sound or rumble, at up to 20 drops a second.
+                if (hit.Damage <= 0f && hit.StunTicks == 0) continue;
                 if (_renderers.TryGetValue(hit.TargetEntityId, out var victim) && victim != null)
                     victim.HitFeel?.ReceiveHit(in hit, tier, MatchVisualStyle.RimColorFor(hit.OwnerEntityId));
                 _sfx.Play(tier, definition?.Class ?? CharacterClass.FightGuy);

@@ -1,0 +1,154 @@
+{
+  "name": "bashie-sr-flip",
+  "notes": "Bashie's Shell Slide (R), the miss ending anim.bashie.gr-flip (48 ticks), 2026-10-22. The punishable opening of the move. Keys approved by the owner 2026-10-22 ('motion looks good'); the paddling between keys was added for the motion run.",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie (49 joints: a Humanoid body with Mixamo names and four-fingered cartoon hands (thumb, index, middle and ring), plus rigid props on joints of their own: her turtle shell on joint Shell under Spine1, pivoting on her mid-back; her whistle on joint Whistle under Spine2, pivoting on its ring at the top of her chest (a red cord runs from the ring round her neck). The shell is a domed bowl on her back: it reaches from her hips to her neck and its outer dome is about 0.22 m behind her spine. She is small and round: 1.0 m to the top of her hat in the rig, a big head under a wide bucket hat, short legs (hip joints 0.305 m above the floor, thigh 0.10 m, shin 0.07 m, ankle to toe joint 0.17 m) and short arms (upper arm 0.115 m, forearm 0.107 m, shoulders 0.22 m apart).",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "planted": [],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../bashie-r-20261022/inputs/model.png",
+    "../../bashie-r-20261022/r-flip.png"
+  ],
+  "image_notes": "1: the Bashie model in its rest T-pose (front, three-quarter, side, back, three-quarter back): the bucket hat, the whistle on its red cord and the shell. 2: the pose sheet (image-generated from her model; she moves toward the left of the image). It is a drawing: match the poses and the energy, not exact angles. Its four poses read left to right: 1 PADDLING, 2 PADDLING the other way, 3 ROCKING onto the shell's edge, 4 BACK UP.",
+  "description": "Who she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, red pool slides and a domed olive shell on her back. She is bossy about the pool rules, comic and energetic.\n\nThe move: Shell Slide, her R special. She dives into her shell and slides off fast like a hockey puck, steered with the stick; the first fighter she meets is bowled over and she pops out with a pose. A miss leaves her flipped on her back, paddling, until she rocks herself over. Off a ledge she slides on thin air, pops out, looks down and drops.\n\nThe tuck. While she dives and slides the game folds her into her shell on top of the clip (no clip can do it): it lays her body prone with a straight back, grows the shell 1.7 times, shrinks her arms and legs into it and holds her head upright peeking out of the shell's front. It folds in over 6 ticks and pops back out over 7 ticks with a little overshoot when the slide ends. So every clip that starts after the slide must start from the TUCKED POSE below, and the dive must end on it.\n\nTUCKED POSE (her pose in the shell): lying on her belly, body horizontal with the head toward the front, the hips joint about 0.16 m above the floor (up about -0.15) and about 0.1 m behind the origin (front about -0.10), the spine level, the shell on top; upper arms tight along her sides with the forearms tucked under her chest, thighs pulled up under her belly, knees bent, feet under the shell's back rim; her chin up so she looks forward, the hat's brim forward.\n\nThe camera. The match camera sits behind her and a little above; poses must read from behind as well as from the side.\n\nThe floor is at up = -0.305 m in this character frame (origin: her hips in her idle). Never push a foot, a hand, her head or the shell through the floor: lying on her back, the shell's dome touches the floor about 0.22 m below her spine.\n\nThis clip: she missed (a shield, a wall, or the slide ran out). The game skids her to a stop over ticks 0-12 and then holds her in place to tick 48: she is helpless, the opening the opponent punishes. The tuck lets go over ticks 0-7, so tick 0 is the TUCKED POSE.\n- Tick 0: the TUCKED POSE.\n- Ticks 0-9: the shell tips over sideways (a roll about her front axis toward her right) and she lands flat on her back on top of the shell, head still toward the front: belly up, the shell's dome on the floor.\n- Tick 10, PADDLING (pose 1): on her back, arms and legs paddling wildly in the air (hands and feet up above her belly), head lifted, wailing.\n- Ticks 10-32: two big paddling cycles. The keys at ticks 16, 24 and 32 are one phase of the paddle; between them, at ticks 20 and 28, the limbs are in the opposite phase (pose 2: left arm and right leg up where the others were down, and the other way round), so she visibly churns her arms and legs in the air, the shell rocking 5-10 degrees under her. Never let the shell go through the floor; her spine stays about 0.2 m above it (hips up about -0.10).\n- Tick 36, ROCKING (pose 3): she throws all four limbs to her right so the shell tips up onto its edge, body twisting.\n- Tick 42: she rolls over onto her hands and knees, then scrambles up (pose 4).\n- Tick 48: her idle's first pose, a little dizzy, hat askew (the head tilted).",
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "exit": {
+    "from_tick": 48,
+    "reference": "idle",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 48
+  },
+  "timing": {
+    "fixed": [
+      "48 ticks at 60 Hz: a 12-tick skid then held in place",
+      "tick 0 is the TUCKED POSE, tick 48 her idle"
+    ],
+    "adjustable": [
+      "how the paddling and the roll-over share ticks 10-44"
+    ]
+  },
+  "keys": [
+    0,
+    9,
+    16,
+    24,
+    32,
+    36,
+    42,
+    48
+  ],
+  "review_ticks": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    15,
+    16,
+    18,
+    21,
+    24,
+    27,
+    30,
+    32,
+    33,
+    36,
+    39,
+    42,
+    45,
+    48
+  ],
+  "targets": [
+    {
+      "name": "tucked: hips low at tick 0 (up, m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.2,
+      "max": -0.1
+    },
+    {
+      "name": "tucked: lying head-first at tick 0 (m the head is ahead of the hips)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.25
+    },
+    {
+      "name": "tucked: belly down, shell on top at tick 0 (m the shell is above the chest)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Shell",
+      "tick": 0,
+      "min": 0.04
+    },
+    {
+      "name": "on her back: belly up at tick 16 (m the chest is above the shell)",
+      "kind": "below",
+      "a": "Shell",
+      "b": "Spine2",
+      "tick": 16,
+      "min": 0.04
+    },
+    {
+      "name": "on her back: belly up at tick 24 (m the chest is above the shell)",
+      "kind": "below",
+      "a": "Shell",
+      "b": "Spine2",
+      "tick": 24,
+      "min": 0.04
+    },
+    {
+      "name": "on her back: lying low at tick 16 (hips up, m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 16,
+      "max": -0.02
+    },
+    {
+      "name": "paddling: feet up in the air at tick 16 (m above the hips)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftFoot",
+      "tick": 16,
+      "min": 0.05
+    },
+    {
+      "name": "back up: hips at standing height at tick 48 (up, m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.04
+    },
+    {
+      "name": "paddling: the left hand moves between keys (m, ticks 16-24)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "up",
+      "window": [
+        16,
+        24
+      ],
+      "min": 0.08
+    }
+  ]
+}

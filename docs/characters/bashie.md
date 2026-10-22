@@ -9,16 +9,16 @@
 Playable with a stand-in kit. On 2026-10-21 the owner approved the look (concept A below, redesigned the same day),
 the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22 she got her package and joined the
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
-own capability, her water blaster and key-pose animation. Her normals, her other specials, her effects and her sounds
-are still open.
+own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
+shell, with her own clips, a surf wave and sounds. Her normals, E and F are still open.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her character data is Manki's: movement, the normals and E, R and F with their capabilities (jetpack, bazooka,
-  aerosol). Her own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run,
-  and Hose Down in place of his Round Bomb.
+- Her character data is Manki's: movement, the normals and E and F with their capabilities (jetpack, aerosol). Her
+  own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
+  place of his Round Bomb and the Shell Slide in place of his Bazooka.
 - Every other clip is a copy of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body. Played on her as
   they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -126,7 +126,7 @@ the one rule she enforces, on everyone else.
 | --- | --- | --- | --- |
 | A | Hose Down | She pulls a toy water blaster out of her shell. Hold to pump it, release to fire a gush that shoves rather than hurts; more pumping makes a bigger gush. In the air the recoil pushes her back. Sign: NO SPLASHING! | Pumping keeps her in place, and the recoil can push her away from the stage. |
 | E | Ring Bounce | Her recovery: she slams the life ring under her feet and bounces off it (BOING, squash and stretch). Press again at the top for a cannonball drop with a splash. Sign: NO BOMBS! | The cannonball commits her downward, even off the stage. |
-| R | Shell Slide | She tucks into her shell and slides off fast; the stick steers, and the shell shrugs off hits. The first fighter she meets is bowled over, and she pops out with a pose. In the air she slides on thin air, looks down and drops. Sign: NO HORSEPLAY! | A miss (a shield, a wall, or the slide running out) leaves her flipped on her back, paddling, until she rocks herself over. |
+| R | Shell Slide | She tucks into her shell and slides off fast on a little wave; the stick steers, and the shell shrugs off hits. The first fighter she meets is bowled over, and she pops out with a pose. In the air she slides on thin air, looks down and drops. No sign (owner, 2026-10-22). | A miss (a shield, a wall, or the slide running out) leaves her flipped on her back, paddling, until she rocks herself over. |
 | F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! Everyone around her can't run or dash and walks slowly for a while, under a NO RUNNING! sign. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
 
 ### Hose Down (A)
@@ -163,8 +163,21 @@ gush; it became a stream.
     loops: a 24-tick pump and a 12-tick spray judder.
   - Their key poses are bound in game until the motion pass and the owner's check. Her idle stands in for the end
     clip.
-- **Open:** the end clip, the water and splash effects (concepts first; the drops are the default white projectile
-  for now) and the NO SPLASHING! sign. The cooldown is 90 ticks.
+- **Effects (2026-10-22):** the owner picked the hose-spray look ("C") from three painted concepts (a toon jet,
+  water bullets, a spray). The concept boards were painted over "before" captures in `tmp/vfx/bashie-a/concepts/`.
+  `BashiePresentationBuilder` (`sloparena.presentation.bashie.build`) builds them in toon bands of pool water: a deep
+  blue rim, blue, light cyan and white foam.
+  - Each drop's visual fires five streaks at its own speed in a narrow cone. Twenty drops a second make a spray that
+    fans out as it flies, with mist and drips peeling off.
+  - While she pumps, each stroke spits drops out of the muzzle.
+  - The release puts a splash crown at the muzzle and throws a gush of water forward. Like Manki's F flame, it grows
+    with the pump: a full pump is nearly twice the size, with three and a half times the water. The NO SPLASHING!
+    pool sign she is breaking pops just over her hat.
+  - A drop that lands throws a splash crown, drops and mist, and leaves a little puddle on the floor.
+  - The drops skip the white hit flash, the impact sound and the rumble that every hit had.
+  - Her sounds are synthesized by `tools/sfx/bashie_clips.py`: the pump's squish, the hose, the splash and the
+    sign's pop. They are low and soft, because the owner found the first set too shrill.
+- **Open:** the end clip. The cooldown is 90 ticks.
 
 ### Ring Bounce (E)
 
@@ -180,6 +193,36 @@ gush; it became a stream.
 
 ![Flipped after a miss](../design/references/bashie/bashie-r-flipped.jpg)
 
+**Built 2026-10-22.** The owner asked how she could retract into her shell. Of three looks
+rendered on her rig, they picked A, her hat and face peeking out of the front: "A is very good! nice job".
+- **The tuck:** `presentation.bashie.shell.tuck` (a `ShellTuck` cue, emitted at tick 6) folds her into her own shell
+  through `ShellTuckRig`, with no new model. She lies prone with the shell on top. The shell grows 1.7×, her arms
+  shrink to 0.15× and her legs to 0.3×, the whistle vanishes, and her head (0.8×) is held upright in the shell's front.
+  It is emitted at tick 8 and eases in over 0.1 s and out over 0.12 s, a little past each way. It holds while the attack shows `anim.bashie.gr`
+  or `anim.bashie.gr-slide`, and pops her out on the hit, miss or look-down clip, or when the attack ends. Only her
+  look changes: the simulated hurtbox follows the clip. [tools/blender/bashie_rig](../../tools/blender/bashie_rig/README.md)
+  previews looks in Blender.
+- **Data, a first pass from the Joust:** `slop.ability.steered-charge.v1` starts at tick 14 (Sir Bonk rears for 30).
+  She slides at 13 m/s for up to 54 ticks, turns 200°/s and is armoured. The hitbox is a capsule round the shell
+  (radius 0.5, from 0.1 m behind her to 0.6 m ahead, 0.45 m below her capsule's centre): damage 9, angle 40, knockback
+  9 + 28, stun 18. The hit ending lasts 30 ticks and the miss 48 (a 12-tick skid, then she lies there); thin air is
+  24 + 20. Cooldown 240.
+- **Her clips (GenRA, briefs `bashie-sr-*`):** key poses from Codex pose sheets, approved by the owner ("motion looks
+  good"), then motion on the approved keys, written to `Animations/bashie_sr_*.anim`:
+  - the dive (`anim.bashie.gr`, 15 ticks): squat, a racing dive, a belly-flop, tucked
+  - the slide loop (`gr-slide`, 24 ticks): the tucked pose, hidden by the tuck; it lays her hurtbox low while she slides
+  - the pop-out (`gr-pop`, 30 ticks): she springs up like a starfish, lands and points at the fighter she bowled over
+  - the miss (`gr-flip`, 48 ticks): the shell tips over, she paddles on her back, rocks onto its edge, rolls and gets up
+  - the look-down (`gr-lookdown`, 20 ticks): she pops out in mid-air, looks down, gulps, flaps and falls
+  Every clip after the slide starts on the tucked pose the dive ends on.
+- **Water (concept C, "surf"; the owner: "i like the wave"):** `presentation.bashie.shell.surf` (tick 14, on her hips)
+  is a toon wave mesh curling just ahead of her, low in front of her face and higher at the sides, with foam on its crest,
+  spray thrown back off its sides and a wet streak on the floor. `AttackClipShow` shows it only while the slide clip plays
+  on the ground. `presentation.bashie.shell.plop` splashes round her as she dives in, and `presentation.bashie.shell.hit`
+  is the splash on the fighter she hits. The owner dropped the NO HORSEPLAY! sign.
+- **Sounds** (`tools/sfx/bashie_clips.py`, under 2 kHz): `bashie_shell_tuck` (a soft fwump), `bashie_shell_slide` (a
+  looping rush of water that fades with the wave) and `bashie_shell_hit` (a hollow knock on the shell and a splash).
+
 ### NO RUNNING! (F)
 
 ![NO RUNNING!](../design/references/bashie/bashie-f-no-running.jpg)
@@ -191,7 +234,7 @@ gush; it became a stream.
 
 | Special | What exists | What's new |
 | --- | --- | --- |
-| R | `slop.ability.steered-charge.v1` (Sir Bonk's Joust) already steers, gives armour, ends on a hit or a miss and handles thin air ([ability architecture](../systems/ability-architecture.md)). | Mostly new clips and data. |
+| R | `slop.ability.steered-charge.v1` (Sir Bonk's Joust) already steers, gives armour, ends on a hit or a miss and handles thin air ([ability architecture](../systems/ability-architecture.md)). | Done 2026-10-22: the data, and the tuck in presentation (`ShellTuck`, client only). Her own clips are next. |
 | A | Ki Shot's hold-and-release, and `stunTicks` 0 already shoves without hitstun. | Done 2026-10-22: `slop.ability.charged-stream.v1` (FLUDD: pump, stream, air push back) and no hitstop for pure pushes. |
 | E | Close to Manki's Jetpack Boost and existing landing hits. | An upward burst with an optional slam. |
 | F | Nothing: nothing in Shared slows another fighter yet. | A timed state in the simulation (no run, no dash, slower walk), plus a sign in presentation. |

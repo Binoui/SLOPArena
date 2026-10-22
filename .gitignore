@@ -165,6 +165,8 @@ client/Unity/Assets/Resources/Audio/SFX/*
 !client/Unity/Assets/Resources/Audio/SFX/Manki.meta
 !client/Unity/Assets/Resources/Audio/SFX/Bonk/
 !client/Unity/Assets/Resources/Audio/SFX/Bonk.meta
+!client/Unity/Assets/Resources/Audio/SFX/Bashie/
+!client/Unity/Assets/Resources/Audio/SFX/Bashie.meta
 # The air dodge's "fwip", generated from noise by tools/sfx/air_dodge_clips.py.
 !client/Unity/Assets/Resources/Audio/SFX/AirDodge/
 !client/Unity/Assets/Resources/Audio/SFX/AirDodge.meta
@@ -234,6 +236,7 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_idle.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_run.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_hose_*.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_sr_*.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/crouch.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/tumble.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/g4.anim
@@ -260,6 +263,8 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.png
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Bonk*.png
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Source/*.png
+!client/Unity/Assets/CharacterPackages/bashie/Presentation/Bashie*.png
+!client/Unity/Assets/CharacterPackages/bashie/Presentation/Source/*.png
 # Local Kenney prompt sheets, atlas maps, and Unity-generated metadata.
 client/Unity/Assets/Resources/InputPrompts/
 client/Unity/Assets/Resources/InputPrompts.meta
@@ -274,6 +279,7 @@ client/Unity/Assets/Resources/InputPrompts.meta
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Readability/MankiWornMetal.mat
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.mat
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Bonk*.mat
+!client/Unity/Assets/CharacterPackages/bashie/Presentation/Bashie*.mat
 *.mask
 *.exr
 *.hdr

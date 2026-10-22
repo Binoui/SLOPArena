@@ -1,0 +1,109 @@
+{
+  "name": "bashie-sr-dive",
+  "notes": "Bashie's Shell Slide (R), the stage clip anim.bashie.gr: the dive into her shell, 2026-10-22. Owner: 'very good, go for it' (her own R clips after the stand-ins).",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie (49 joints: a Humanoid body with Mixamo names and four-fingered cartoon hands (thumb, index, middle and ring), plus rigid props on joints of their own: her turtle shell on joint Shell under Spine1, pivoting on her mid-back; her whistle on joint Whistle under Spine2, pivoting on its ring at the top of her chest (a red cord runs from the ring round her neck). The shell is a domed bowl on her back: it reaches from her hips to her neck and its outer dome is about 0.22 m behind her spine. She is small and round: 1.0 m to the top of her hat in the rig, a big head under a wide bucket hat, short legs (hip joints 0.305 m above the floor, thigh 0.10 m, shin 0.07 m, ankle to toe joint 0.17 m) and short arms (upper arm 0.115 m, forearm 0.107 m, shoulders 0.22 m apart).",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "planted": [],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../bashie-r-20261022/inputs/model.png",
+    "../../bashie-r-20261022/r-dive.png"
+  ],
+  "image_notes": "1: the Bashie model in its rest T-pose (front, three-quarter, side, back, three-quarter back): the bucket hat, the whistle on its red cord and the shell. 2: the pose sheet (image-generated from her model; she moves toward the left of the image). It is a drawing: match the poses and the energy, not exact angles. Its four poses read left to right: 1 SQUAT, 2 LAUNCH, 3 BELLY-FLOP, 4 TUCKED.",
+  "description": "Who she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, red pool slides and a domed olive shell on her back. She is bossy about the pool rules, comic and energetic.\n\nThe move: Shell Slide, her R special. She dives into her shell and slides off fast like a hockey puck, steered with the stick; the first fighter she meets is bowled over and she pops out with a pose. A miss leaves her flipped on her back, paddling, until she rocks herself over. Off a ledge she slides on thin air, pops out, looks down and drops.\n\nThe tuck. While she dives and slides the game folds her into her shell on top of the clip (no clip can do it): it lays her body prone with a straight back, grows the shell 1.7 times, shrinks her arms and legs into it and holds her head upright peeking out of the shell's front. It folds in over 6 ticks and pops back out over 7 ticks with a little overshoot when the slide ends. So every clip that starts after the slide must start from the TUCKED POSE below, and the dive must end on it.\n\nTUCKED POSE (her pose in the shell): lying on her belly, body horizontal with the head toward the front, the hips joint about 0.16 m above the floor (up about -0.15) and about 0.1 m behind the origin (front about -0.10), the spine level, the shell on top; upper arms tight along her sides with the forearms tucked under her chest, thighs pulled up under her belly, knees bent, feet under the shell's back rim; her chin up so she looks forward, the hat's brim forward.\n\nThe camera. The match camera sits behind her and a little above; poses must read from behind as well as from the side.\n\nThe floor is at up = -0.305 m in this character frame (origin: her hips in her idle). Never push a foot, a hand, her head or the shell through the floor: lying on her back, the shell's dome touches the floor about 0.22 m below her spine.\n\nThis clip: the dive. The game crossfades into it from her idle or run and plays it over the 15-tick start-up while she stays in place (the slide sets off at tick 14 at full speed). The tuck folds her in from tick 8 to tick 14, so ticks 0-9 must sell the dive and the clip must end on the TUCKED POSE.\n- Tick 0: her idle stance, the start of the dip.\n- Tick 4, SQUAT (pose 1): a deep squat, knees bent, body leaning forward, arms swung back behind her, eyes ahead.\n- Tick 8, LAUNCH (pose 2): she springs forward and low like a swimmer's racing dive: body stretched and tipping toward horizontal, arms reaching forward past her hat, legs pushing off behind, both feet leaving the floor. The hips stay within 0.25 m of the origin (she does not travel: the slide does).\n- Tick 11, BELLY-FLOP (pose 3): body horizontal just above the floor, belly down, arms pulling in to her sides, legs tucking.\n- Tick 15: the TUCKED POSE.\nThe whistle and the shell follow through a couple of ticks late.",
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 15
+  },
+  "timing": {
+    "fixed": [
+      "15 ticks at 60 Hz, played once over the start-up, in place",
+      "the tuck covers her from tick 8 to tick 14; tick 15 is the TUCKED POSE the slide loop starts on"
+    ],
+    "adjustable": [
+      "the squat and launch ticks within 2-10"
+    ]
+  },
+  "keys": [
+    0,
+    4,
+    8,
+    11,
+    15
+  ],
+  "review_ticks": [
+    0,
+    3,
+    4,
+    6,
+    8,
+    9,
+    11,
+    12,
+    15
+  ],
+  "targets": [
+    {
+      "name": "squat: hips down at tick 4 (up, m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 4,
+      "max": -0.07
+    },
+    {
+      "name": "launch: head well ahead of the hips at tick 8 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 8,
+      "min": 0.2
+    },
+    {
+      "name": "launch: hands reach forward at tick 8 (m ahead of the head)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 8,
+      "min": 0.15
+    },
+    {
+      "name": "tucked: hips low at tick 15 (up, m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 15,
+      "min": -0.2,
+      "max": -0.1
+    },
+    {
+      "name": "tucked: lying head-first at tick 15 (m the head is ahead of the hips)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 15,
+      "min": 0.25
+    },
+    {
+      "name": "tucked: belly down, shell on top at tick 15 (m the shell is above the chest)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Shell",
+      "tick": 15,
+      "min": 0.04
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 // Eval body: bind Bashie's package catalog after borrow_clips.eval.cs. The rig is her package's BashieRig.prefab; every
 // animation ID her character.json uses gets one binding with its own pose track. Her idle and run are her own clips;
 // the other IDs bind the borrowed copies of Manki's clips (his anim.manki.X -> her anim.bashie.X), with Manki's
-// extrapolation. Her own weapon config (blaster_import.eval.cs) when it exists, and no presentation prefabs: she borrows
-// none of his props or effects.
+// extrapolation. Her own weapon config (blaster_import.eval.cs) when it exists. It leaves her presentation bindings to
+// BashiePresentationBuilder (sloparena.presentation.bashie.build); she borrows none of Manki's props or effects.
 // Saving the catalog makes Unity import it, and the cook postprocessor then cooks her package (only hers: no other
 // package's source changes). Run sloparena.character.cook afterwards for the reported, explicit cook.
 const string Package = "Assets/CharacterPackages/bashie";
@@ -20,6 +20,12 @@ var own = new Dictionary<string, string>
     ["anim.bashie.hose"] = Package + "/Animations/bashie_hose_spray.anim",
     ["anim.bashie.hose-spray"] = Package + "/Animations/bashie_hose_spray.anim",
     ["anim.bashie.hose-end"] = Package + "/Animations/bashie_idle.anim",
+    // Shell Slide (R), her own GenRA clips (briefs bashie-sr-*), written by unity_clip.py into Animations/.
+    ["anim.bashie.gr"] = Package + "/Animations/bashie_sr_dive.anim",
+    ["anim.bashie.gr-slide"] = Package + "/Animations/bashie_sr_slide.anim",
+    ["anim.bashie.gr-pop"] = Package + "/Animations/bashie_sr_pop.anim",
+    ["anim.bashie.gr-flip"] = Package + "/Animations/bashie_sr_flip.anim",
+    ["anim.bashie.gr-lookdown"] = Package + "/Animations/bashie_sr_lookdown.anim",
 };
 // Her own moves' IDs with no clip yet would borrow a Manki clip until theirs exists.
 var standIns = new Dictionary<string, string>();
@@ -51,7 +57,6 @@ catalog.PackageId = "bashie";
 catalog.Rig = AssetDatabase.LoadAssetAtPath<GameObject>(Package + "/Presentation/BashieRig.prefab") ?? throw new InvalidOperationException("Missing rig prefab");
 catalog.WeaponConfig = AssetDatabase.LoadAssetAtPath<SlopArena.Client.Entities.WeaponAttachConfig>(Package + "/Presentation/BashieWeaponAttachments.asset");
 catalog.SampleRate = 60;
-catalog.Presentations = new SlopArena.Client.Animation.CharacterAssetCatalog.PresentationBinding[0];
 catalog.Bindings = bindings.ToArray();
 EditorUtility.SetDirty(catalog);
 AssetDatabase.SaveAssetIfDirty(catalog);
