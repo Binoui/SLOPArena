@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="docs/design/references/sloparena-visual-identity/visual-reference-study.png" alt="SLOPArena key art: the SLOPArena logo and a grumpy bomb mascot next to a rooftop arena" width="760">
+  <img src="client/Unity/Assets/UI/MainMenuBackground.png" alt="SLOPArena key art: the SLOPArena logo and a grumpy bomb mascot next to a rooftop arena" width="760">
 </p>
 
 # SLOPArena
 
-**A free, open-source 3D platform fighter: rack up damage, then launch your friends off the stage.**
+**A free, open-source 3D platform fighter**
 
 [Discord](https://discord.gg/VvfaxDCF6Z) · [Play it](#play-it) · [Try it in five minutes](#try-it-in-five-minutes-no-unity-needed) · [Make stuff](#make-stuff) · [Docs](docs/README.md)
 
 ## Hi!
 
-> **TODO (Binoui):** your intro goes here, in your own words.
+> I'm Binoui, the dev behind SLOPArena. I work as a software engineer and I saw what AI could do first hand. In early 2026, I decided to use it to learn gamedev and make the game i've always wanted to play. I figured if I could create a solid base and make it free and open source, I would be able to find people to burn tokens with me to create the best game ever. Creating SLOPArena has been an amazing experience, full of learnings and discoveries. This repository contains all those experiments, thoughts, decisions and plenty of documentation about the process itself. Oh, and there's also basically the whole game, playable on steam ! If you're curious I suggest browsing it with an agent, they love it in here. Thanks a lot !
 
 <!--
 Things friends usually want from this part:
