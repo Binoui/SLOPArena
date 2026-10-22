@@ -7,8 +7,9 @@ namespace SlopArena.Shared.Tests;
 
 public static class TestHelpers
 {
-    /// <summary>Compile saved authoring for lifecycle checks before asset cooking.</summary>
-    public static CharacterDefinition ResolveSourceDef(string packageId)
+    /// <summary>Compile saved authoring for lifecycle checks before asset cooking, optionally edited first.</summary>
+    public static CharacterDefinition ResolveSourceDef(string packageId,
+        Action<System.Text.Json.Nodes.JsonObject>? edit = null)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         string relative = Path.Combine("client", "Unity", "Assets", "CharacterPackages", packageId);
@@ -16,9 +17,15 @@ public static class TestHelpers
             directory = directory.Parent;
         Assert.NotNull(directory);
         string source = Path.Combine(directory!.FullName, relative);
+        string character = File.ReadAllText(Path.Combine(source, "character.json"));
+        if (edit != null)
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(character)!.AsObject();
+            edit(json);
+            character = json.ToJsonString();
+        }
         var compiled = CharacterPackageCompiler.Compile(
-            File.ReadAllText(Path.Combine(source, "package.json")),
-            File.ReadAllText(Path.Combine(source, "character.json")), CharacterCookProfile.TrustedBuiltIn);
+            File.ReadAllText(Path.Combine(source, "package.json")), character, CharacterCookProfile.TrustedBuiltIn);
         Assert.True(compiled.CookedPackage != null,
             string.Join("; ", compiled.Diagnostics.Select(d => $"{d.Code}: {d.Message}")));
         return CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);

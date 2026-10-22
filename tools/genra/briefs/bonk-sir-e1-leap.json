@@ -1,0 +1,236 @@
+{
+  "name": "bonk-sir-e1-leap",
+  "notes": "Sir Bonk E1 (Leap of Faith) leap clip, 2026-10-21: landing seek at tick 96, recovery 52 (stage 148); reference video Seedance 2.5. Superseded for a redo: the game now plays E as aim, fly (with the swing in its last ticks) and land clips with a 2 m ring hit (docs/characters/bonk.md). Before rerunning, rewrite it as phase briefs (flight; impact and handstand; haul and pop) and change: a timing contract (the owner allows E's physics and timing to change if aim, flight and hit with recovery stay); key poses first (run.py --stage keys); pin only the stuck plank's tip (pin(..., 'bladeEnd', grip='roll')), not the hand, so the handle can rock with the yanks; the tip-ahead target served the old plank-capsule hit, and the video drives the plank in steeply under him; two_hands spans instead of hand-distance targets (the left hand floated 10-13 cm off the handle); solve the slam's keys from their neighbours (r1 rolled LeftArm 153 deg at t98-99). Analysis: tools/genra/README.md, Contacts, flips and key poses.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip)",
+  "description": "Sir Bonk's E1, the Leap of Faith: the clip he plays from the moment the player releases E. He leaps to the ring, comes down plank-first, the plank sticks in the floor, his momentum flips him into a handstand on top of it, he flops back down, hauls on it until it pops free, stumbles, and shoulders it again. It replaces his old E (reference 'oldleap', the old clip on his new body).\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He believes he is the hero of the story: proud and determined, chest out, chin up. His idle holds the plank on his right shoulder with the left fist on his hip, and he runs like a proud charge with the plank still on the shoulder.\n\nThe owner chose a reference video (Seedance 2.5, image 3: the key-pose sheet of its 11 beats). It sets the poses, the silhouettes and the gag, not the timing: the video takes 7.75 s, the game gives 148 ticks (2.47 s) and only about 0.9 s for everything after the impact. The owner loves the handstand: keep it.\n\nHow the game plays it, tick by tick (60 Hz):\n- Before tick 0 he holds his aim crouch (reference 'sirgeaim', a loop). Tick 0 is that crouch exactly; the game crossfades from it as he jumps.\n- Ticks 0-96, the flight. The game launches him at tick 0 and carries him through the air. He lands somewhere between about tick 30 (a short hop) and tick 96 (the longest flight); today's leaps land around tick 75-80. The moment he lands, the game jumps this clip to tick 96, wherever it was. So ticks 0-96 must look good up to any tick, and the late flight must be a pose that can cut straight to the slam.\n- Tick 96, the landing: the clip jumps here and the hit opens for 6 ticks (96-102). The hit is the plank itself: whoever the plank sweeps through on ticks 96-102 gets bonked, so the slam must sweep down in front of him into the floor.\n- Ticks 96-148, the recovery (52 ticks): he cannot act. This is the punish window, and the gag must read as one.\n- Tick 148: the move ends and the game crossfades to his idle or run. The last ticks are exactly his idle pose (`b.exit_pose`).\n\nThe beats (reference beats in brackets):\n- Ticks 0-6, launch [3]: explosive. The legs drive him up and extend, toes pointed. Both hands swing the plank up off the shoulder.\n- Ticks 6-30, the rise [4]: a heroic arc. The body leans into the flight, the knees come up, and the plank goes overhead in both hands (the left hand on the handle just below the right, 12-20 cm apart).\n- Ticks 30-44, the top: the plank is raised behind his head, ready to slam, chest proud, eyes on the landing spot below and ahead.\n- Ticks 44-96, the descent hold: the slam-ready pose held through the fall, knees tucked, plank cocked behind the head. Keep it alive but nearly still (a slow drift, the plank settling). The landing can cut it at any tick.\n- Ticks 96-100, the slam [5]: the plank whips down from behind the head and strikes the floor point-first, diagonally in front of him (the tip about 1.2-1.6 m ahead of his hips), with both hands still on the handle. This is the fast part.\n- Ticks 100-110, the handstand [6]: the plank sticks, and his momentum carries his body up and over it. He ends upside down in a handstand on the handle, both hands on it, legs up and kicking, cape flying. The plank does not move: it is stuck in the floor.\n- Ticks 110-116, the flop [7]: he tips back the way he came and drops down on his own side of the plank, landing in a crouch with both hands still on the handle.\n- Ticks 116-132, the haul [8, 9]: he leans back and pulls with all his weight, knees bent, heels dug in. The plank still does not budge. Cartoon strain: a couple of yanks.\n- Ticks 132-138, the pop [10]: the plank pops free all at once, he stumbles back a step, one leg kicks up.\n- Ticks 138-148, the recovery [11]: he catches his balance, swings the plank back onto his right shoulder (rising steeply over it, as in his idle), the left hand returns to his hip, and he settles into his idle pose by tick 146. His approved idle holds the plank with the hand folded back about 137 degrees off the forearm (hidden behind the plank), so the right wrist bends into that fold over the last ticks; the check skips ticks 142-148 for it.\n\nWhile the plank is stuck (ticks 100-132) the right hand stays on the handle and the plank stays put: the hand is fixed in space while his body moves around it.\n\nThe floor is at up = -1.025 m in the character frame. With a flat foot, the toe joint (ToeBase) sits about 0.05 m above it (up about -0.975). The plank's tip goes into the floor at the slam, about 5-15 cm deep. The game moves him through the air, so in the clip his feet leave the floor only by how the pose tucks them; in the handstand his body rises over the plank (the hips may rise up to 1.8 m above his idle hips).\n\nFast motion belongs to the launch (ticks 0-8), the slam (96-102), the flip (102-112) and the pop (132-138). Use Clip.overlap() for follow-through. Do not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank. Keep each hand in line with its forearm (wrists under 45 degrees).",
+  "references": {
+    "idle": "references/idle.usda",
+    "sirgeaim": "references/sirgeaim.usda",
+    "oldleap": "references/oldleap.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "sirgeaim",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 146,
+    "reference": "idle",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 148,
+    "contact_tick": 98,
+    "active": [
+      96,
+      102
+    ],
+    "iasa_tick": 148
+  },
+  "fast_windows": [
+    [
+      0,
+      8
+    ],
+    [
+      96,
+      102
+    ],
+    [
+      102,
+      112
+    ],
+    [
+      132,
+      138
+    ]
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../video-refs/sir-bonk-e1/seedance-beats/key-poses.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: the key-pose sheet from the reference video the owner chose (Seedance 2.5): 11 beats of the whole E1 move; beats 3-11 are this clip.",
+  "review_ticks": [
+    0,
+    6,
+    24,
+    40,
+    70,
+    96,
+    99,
+    106,
+    114,
+    126,
+    135,
+    148
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "review": {
+    "reference": "oldleap",
+    "travel": 0.0,
+    "beats": {
+      "file": "artifacts/video-refs/sir-bonk-e1/seedance-beats/beats.json",
+      "view": "profile",
+      "ticks": {
+        "launch": 6,
+        "arc": 24,
+        "impact": 99,
+        "handstand": 106,
+        "drop": 114,
+        "grab": 120,
+        "strain": 128,
+        "pop": 135,
+        "recover": 146
+      }
+    }
+  },
+  "targets": [
+    {
+      "name": "launch: legs extend, feet far below the hips at tick 6 (m)",
+      "kind": "below",
+      "a": "LeftToeBase",
+      "b": "Hips",
+      "tick": 6,
+      "min": 0.8
+    },
+    {
+      "name": "rise: hilt above the head at tick 24 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "bladeHilt",
+      "tick": 24,
+      "min": 0.1
+    },
+    {
+      "name": "rise: both hands on the handle at tick 24 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 24,
+      "max": 0.28
+    },
+    {
+      "name": "top: plank cocked behind the head at tick 40 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Head",
+      "tick": 40,
+      "max": -0.3
+    },
+    {
+      "name": "descent hold: both hands on the handle at tick 70 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 70,
+      "max": 0.28
+    },
+    {
+      "name": "descent hold: knees tucked, right knee high at tick 70 (m)",
+      "kind": "below",
+      "a": "RightLeg",
+      "b": "Hips",
+      "tick": 70,
+      "max": 0.4
+    },
+    {
+      "name": "slam: plank tip in the floor at tick 100 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 100,
+      "max": -0.95
+    },
+    {
+      "name": "slam: plank tip well ahead of the hips at tick 100 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 100,
+      "min": 0.9
+    },
+    {
+      "name": "stuck plank: tip stays put front to back, ticks 100-132 (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "front",
+      "window": [
+        100,
+        132
+      ],
+      "max": 0.03
+    },
+    {
+      "name": "stuck plank: tip stays put side to side, ticks 100-132 (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "right",
+      "window": [
+        100,
+        132
+      ],
+      "max": 0.03
+    },
+    {
+      "name": "stuck plank: tip stays put up and down, ticks 100-132 (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "up",
+      "window": [
+        100,
+        132
+      ],
+      "max": 0.03
+    },
+    {
+      "name": "handstand: hips above the head at tick 106 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 106,
+      "min": 0.2
+    },
+    {
+      "name": "haul: leaning back, head behind the hips at tick 128 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 128,
+      "max": -0.05
+    },
+    {
+      "name": "haul: both hands on the handle at tick 128 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 128,
+      "max": 0.28
+    },
+    {
+      "name": "pop: plank tip out of the floor at tick 136 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 136,
+      "min": -0.7
+    }
+  ],
+  "wrist_exempt": {
+    "ticks": [
+      142,
+      148
+    ],
+    "why": "the last ticks are the approved idle, whose plank hand folds 137 degrees behind the plank"
+  }
+}

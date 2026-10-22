@@ -35,6 +35,9 @@ namespace SlopArena.Client.Entities
 
         private void OnEnable() => _reset = true;
 
+        /// <summary>Snaps the chain to rest on the next step (a new clip in an offline preview).</summary>
+        public void ResetSimulation() => _reset = true;
+
         private bool EnsureRest()
         {
             if (_restLocal != null)
@@ -63,11 +66,17 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
-        private void LateUpdate()
+        private void LateUpdate() => Step(Time.deltaTime);
+
+        /// <summary>
+        /// Advances the spring by <paramref name="deltaTime"/> seconds after the pose is evaluated. LateUpdate calls it
+        /// in Play Mode; offline previews (the genra real-character render) call it once per evaluated tick.
+        /// </summary>
+        public void Step(float deltaTime)
         {
             if (!EnsureRest())
                 return;
-            float dt = Mathf.Min(Time.deltaTime, 1f / 20f);
+            float dt = Mathf.Min(deltaTime, 1f / 20f);
             float frames = dt * 60f;
             float pull = 1f - Mathf.Pow(1f - _stiffness, frames);
             float keep = Mathf.Pow(1f - _damping, frames);

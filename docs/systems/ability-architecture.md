@@ -87,8 +87,10 @@ recovery. Ability Lab edits the same typed source contract, not a separate
 simulation or a Bonk-specific ability.
 
 The roster's ground-cursor, directional, and camera-aimed holds use
-`aimMovement: fixed`: they stop horizontal velocity and reject movement input
-until release. Vertical physics and the released ability's travel still run.
+`aimMovement: fixed`: they stop grounded horizontal velocity and reject movement
+input until release. Airborne holds retain incoming horizontal momentum with the
+fighter's normal air drag; landing restores the fixed stance. Vertical physics
+and capability-owned travel still run.
 Controller left-stick input aims during these holds; the right stick also remains
 available. Directional aim follows the stick direction, ground targeting moves a
 virtual cursor, and camera aiming adjusts yaw/pitch. Mouse aiming is unchanged.
@@ -126,6 +128,53 @@ projectile operations are rejected. Target-assisted slots resolve the opponent
 at launch; manually aimed slots retain the release direction. Ability Lab edits
 the typed charge and nested projectile parameters. Projectile visual packet v2
 carries radius so remote visuals match authoritative collision size.
+`slop.ability.charged-stream.v1` requires runtime API `1.8.0` (Bashie's Hose
+Down, like FLUDD). Holding pumps it, in place, up to `maxChargeTicks`; a manually
+aimed slot turns the fighter to its aim while she pumps. Release sprays a stream:
+one projectile every `emitIntervalTicks` from `fireTriggerTick`, along the release
+aim. The pump scales the stream linearly, from a tap to a full pump:
+- its length, from `minStreamTicks` to `maxStreamTicks`;
+- each projectile's push, from the projectile's `baseKnockback` to `maxBaseKnockback`;
+- in the air, a push back on its owner, from `minRecoilSpeed` to `maxRecoilSpeed` (m/s).
+
+On the ground she stays put. The capability owns the end of its move: the end comes
+`recoveryTicks` after the stream. `sprayAnimationId` plays from the release, looped
+every `sprayLoopTicks`, and `endAnimationId` plays for the recovery. Both are phase
+clips: they sort after the stage's first clip and play in real time. Its slot has one
+`chargeAttack` stage with IASA zero and one lifecycle. Motion, hitbox, projectile,
+aim and other capability operations are rejected. Ability Lab does not edit it yet.
+
+`slop.ability.steered-charge.v1` requires runtime API `1.8.0` (Sir Bonk's Joust). It
+gallops at a fixed speed whose heading the stick turns at a capped rate (at most
+1440°/s), with a lance hitbox that follows the fighter and optional armour while it
+gallops. The first fighter the lance hits ends it with the hit ending; a shield, a
+terrain stop (under 60% of a tick's forward travel, as the directional dash) or the
+end of the gallop ends it with the miss ending, a skid that can turn the fighter round.
+With no ground under it (started in the air, or more than four ticks off a ledge) it
+strides level on thin air with gravity off, hangs for the look-down and ends, so the
+fighter falls and can act. It owns the end of its move. Its slot has one stage with
+IASA zero and one lifecycle; motion, hitbox, projectile, aim, other capability and
+completion operations are rejected, and startup aim correction, gravity and armour
+windows must end by its start tick. Phase clips (gallop loop, hit, miss, air ending)
+must be listed in the stage after the startup clip. Ability Lab does not edit it yet.
+
+A `spawnProjectile` may carry a `return` block (runtime API `1.8.0`; Sir Bonk's pot
+lid). The projectile needs a positive speed and no gravity. It flies out for
+`outboundTicks`, or until it meets the stage (it bounces back at half speed) or a
+shield (it turns back, and that shield counts as hit on the way back), then steers to
+its owner's chest at `returnSpeed`, its velocity changing by at most `returnAcceleration`
+m/s². Each leg
+hits each fighter once; the return leg's knockback pulls toward the owner. The owner
+catches it when free (idle, running, crouching, sliding or in jump squat, with no
+hitstop, blockstun or landing lag), shielding, hanging on a ledge (a self-hit there would
+knock him off the stage), held or already being hit. Otherwise it hits him for
+`selfHitDamage` with `selfHitStunTicks` of fixed hitstun (1–240) and no launch; armour
+takes the stun. The two outcomes emit `ProjectileCatch` and `ProjectileSelfHit`
+presentation events. A slot throws at most one returning projectile, and refuses its
+press while it is out, until it is caught, hits him, reaches `maxFlightTicks` or he is
+KO'd; `CharacterState.ReturningProjectileSlot` mirrors that for the CPU and the HUD
+(the key stays pressed). A charged projectile cannot return. Ability Lab does not edit
+the block yet.
 
 
 ## Engine-owned mechanics
@@ -150,6 +199,13 @@ while its authored cooldown is pending.
 ## Interruption and lifecycle ownership
 
 The generic runtime owns interruption. Hitstun, death, Burst, a new ability, and simulation-owned overrides cancel active timelines/capabilities through the cancellation path. Natural completion uses the completion path. Both paths must deterministically clear or preserve the state they own; authored timelines must not rely on a cleanup branch that may never execute.
+
+Hit, block and stage-contact hooks (`OnHitEntity`, `OnShieldBlock`, `OnHitObject`) run
+only on the activation whose hitbox made the contact, matched by activation ID. A
+projectile that lands after its owner has started another move does not reach the new
+move's hooks. A timeline forwards its capabilities' armour (`HasArmor`) and gravity
+(`GravityMultiplier`, the lowest wins); fighters move before abilities tick, so a
+capability that holds its height must switch gravity off, not only zero its speed.
 
 `ServerSimulation` owns shared exit cleanup and cooldown application. Gameplay
 interruption removes activation-owned melee windows, clears armor, startup aim

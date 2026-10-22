@@ -3,15 +3,14 @@ using System;
 namespace SlopArena.Shared.Abilities;
 
 /// <summary>
-/// Wibou's E — Rising Slash. Movement and charge refunds for the cooked timeline.
+/// Wibou's E — Rising Slash. Movement for the cooked timeline.
 ///
 /// - Rises vertically for "rise_ticks", carrying Wibou up (doubles as vertical recovery).
 /// - Moves horizontally in the camera direction captured when the move starts, so the
 ///   recovery remains controllable and does not pull Wibou toward a target.
 /// - The cooked timeline owns authored hitboxes and completion.
-/// - Limited by a refundable charge pool (see ServerSimulation charge-stock gate): each cast
-///   spends one charge; landing a hit refunds it (OnHitEntity) so a connected juggle sustains,
-///   while whiffing in empty air burns charges — capping recovery to the pool size.
+/// - Limited by the cooked charge pool (see ServerSimulation charge-stock gate): each cast
+///   spends one charge, and charges return only through regen. Hits never refund them.
 ///
 /// HomingRange remains reserved in the cooked schema; recovery uses camera direction.
 /// </summary>
@@ -62,26 +61,6 @@ public sealed class WibouRisingSlash : ServerAbility
         s.VZ = MathF.Cos(_recoveryYaw) * horizontalSpeed;
     }
 
-    /// <summary>Refund the spent charge on a connect so a landed juggle keeps its charges.</summary>
-    public override void OnHitEntity(ref CharacterState attacker, ref CharacterState target,
-        CharacterDefinition attackerDef, CharacterDefinition targetDef,
-        ref float damage, ref float knockbackForce)
-        => RefundCharge(ref attacker);
-
-    public override void OnHitObject(ref CharacterState attacker, CharacterDefinition attackerDef,
-        ref float damage, ref float knockbackForce) => RefundCharge(ref attacker);
-
-    private static void RefundCharge(ref CharacterState attacker)
-    {
-        if (attacker.ChargeStockSpent > 0)
-        {
-            attacker.ChargeStockSpent--;
-            // Refunding to a full pool stops regen; clear the stale timer so the NEXT spend
-            // starts a fresh full regen period rather than reusing the partial countdown.
-            if (attacker.ChargeStockSpent == 0)
-                attacker.ChargeStockRegenTicks = 0;
-        }
-    }
     public override void OnCancel(ref CharacterState s)
     {
         ClearVelocityOwnership(ref s);

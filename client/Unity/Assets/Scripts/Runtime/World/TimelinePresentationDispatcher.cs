@@ -104,6 +104,9 @@ namespace SlopArena.Client.World
                 }
                 if (!_entries.TryGetValue(presentationEvent.EntityId, out Entry entry)) continue;
                 if (entry.Renderer == null || entry.Catalog == null) continue;
+                // An empty ID is the authored "no effect" (an optional explosionPresentationId left blank, as on
+                // Bashie's borrowed Manki specials), not a missing binding.
+                if (string.IsNullOrEmpty(presentationEvent.PresentationId)) continue;
                 CharacterAnimationCatalog.PresentationEntry binding = FindBinding(
                     entry.Catalog.Presentations, presentationEvent.PresentationId);
                 if (binding == null)

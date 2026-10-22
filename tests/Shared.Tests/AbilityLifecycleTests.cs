@@ -171,7 +171,7 @@ public class AbilityLifecycleTests
         Assert.Equal((byte)AbilitySlots.F, released.AttackSlot);
         Assert.Equal((byte)1, released.ComboStage);
 
-        TestHelpers.TickDefault(sim, 60);
+        TestHelpers.TickDefault(sim, 70);  // the 62-tick fire, flame and recovery
         var completed = sim.GetState(1);
         Assert.Equal(ActionState.Idle, completed.State);
         Assert.Equal((byte)0, completed.AttackSlot);

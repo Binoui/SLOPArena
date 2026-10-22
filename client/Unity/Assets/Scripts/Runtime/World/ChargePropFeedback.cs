@@ -7,10 +7,12 @@ namespace SlopArena.Client.World
     /// <summary>
     /// Makes the owner's held prop for <see cref="Slot"/> show the charge (Manki's spray can for
     /// Aerosol Inferno): it grows, shakes harder and heats toward <see cref="Hot"/> as the charge
-    /// builds, kicks at each new tier and throbs once the charge is full. The cue root follows the
-    /// prop's tip as it grows, so effects placed there (a pilot flame) stay on it. Put it on an
-    /// attack-bound cue spawned at tick 0, attached to the bone that holds the prop. Cosmetic
-    /// only: it reads the replicated charge and restores the prop on release or when the cue ends.
+    /// builds, kicks at each new tier and throbs once the charge is full. While the hold clip shakes
+    /// it, the prop stretches along fast strokes and squashes when a stroke stops, like a cartoon
+    /// smear. The cue root follows the prop's tip as it grows, so effects placed there (a pilot
+    /// flame) stay on it. Put it on an attack-bound cue spawned at tick 0, attached to the bone that
+    /// holds the prop. Cosmetic only: it reads the replicated charge and restores the prop on release
+    /// or when the cue ends.
     /// </summary>
     [DefaultExecutionOrder(100)] // after WeaponAttach poses the prop in its LateUpdate
     public sealed class ChargePropFeedback : MonoBehaviour, IPresentationOwnerReceiver
@@ -27,16 +29,23 @@ namespace SlopArena.Client.World
         [Tooltip("Optional shake marks whose emission rate rises with the charge.")]
         public ParticleSystem Marks;
         public float MarksBoost = 2.5f;
+        [Tooltip("Extra length along the prop's motion at StretchSpeed and faster: 0.35 is 35% longer. Volume is kept.")]
+        public float Stretch = 0.35f;
+        [Tooltip("Speed in metres per second, relative to the fighter, at which the stretch is full.")]
+        public float StretchSpeed = 6f;
+        [Tooltip("Squash along the motion when a fast stroke stops: 0.3 is 30% shorter, easing out over SquashSeconds.")]
+        public float Squash = 0.3f;
+        public float SquashSeconds = 0.09f;
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         private PlayerRenderer _owner;
         private Transform _prop;
-        private Vector3 _propScale, _cueLocal;
+        private Vector3 _propScale, _cueLocal, _lastLocal, _axis = Vector3.up;
         private Renderer[] _renderers;
         private MaterialPropertyBlock _block;
-        private float _marksRate, _kick;
+        private float _marksRate, _kick, _peak, _squash;
         private int _tier = -1;
-        private bool _applied;
+        private bool _applied, _tracking;
 
         public void BindOwner(PlayerRenderer owner) => _owner = owner;
 
@@ -68,11 +77,16 @@ namespace SlopArena.Client.World
             bool full = progress >= 1f;
             float throb = full ? 0.5f + 0.5f * Mathf.Sin(Time.time * Mathf.PI * 10f) : 0f;
 
-            // Grow about the prop's pivot and keep the cue on the prop's tip.
+            // Grow about the prop's pivot, smear it along its motion and keep the cue on the prop's tip.
             float size = 1f + Grow * progress + 0.08f * _kick + 0.04f * throb;
+            Vector3 scale = Smear() * size;
             Vector3 pivot = transform.parent != null ? transform.parent.InverseTransformPoint(_prop.position) : Vector3.zero;
-            _prop.localScale = _propScale * size;
-            if (transform.parent != null) transform.localPosition = pivot + (_cueLocal - pivot) * size;
+            _prop.localScale = Vector3.Scale(_propScale, scale);
+            if (transform.parent != null)
+            {
+                Vector3 tip = Quaternion.Inverse(_prop.rotation) * transform.parent.TransformVector(_cueLocal - pivot);
+                transform.localPosition = pivot + transform.parent.InverseTransformVector(_prop.rotation * Vector3.Scale(tip, scale));
+            }
 
             // Shake harder as the charge builds, with a kick at each tier.
             float degrees = Mathf.Lerp(ShakeStart, ShakeFull, progress) * (1f + _kick);
@@ -89,6 +103,35 @@ namespace SlopArena.Client.World
                 emission.rateOverTimeMultiplier = _marksRate * (1f + MarksBoost * progress);
             }
             _applied = true;
+        }
+
+        /// <summary>
+        /// The prop's scale on its own axes for a cartoon smear: longer along its motion while it moves fast, and
+        /// shorter along it for a moment when a fast stroke stops, keeping its volume. The motion is measured relative
+        /// to the fighter, so turning with the camera or falling through an air hold does not stretch it.
+        /// </summary>
+        private Vector3 Smear()
+        {
+            Transform fighter = _owner.transform;
+            Vector3 local = fighter.InverseTransformPoint(_prop.position);
+            float dt = Time.deltaTime;
+            Vector3 velocity = _tracking && dt > 0f ? fighter.TransformVector(local - _lastLocal) / dt : Vector3.zero;
+            _lastLocal = local;
+            _tracking = true;
+            float speed = velocity.magnitude;
+            if (speed > 0.1f * StretchSpeed) _axis = velocity / speed;  // a stopped prop squashes along its last stroke
+            _peak = Mathf.Max(_peak, speed);
+            if (_peak > 0.5f * StretchSpeed && speed < 0.2f * _peak)
+            {
+                _squash = Mathf.Clamp01(_peak / StretchSpeed);
+                _peak = 0f;
+            }
+            _squash = Mathf.MoveTowards(_squash, 0f, dt / Mathf.Max(SquashSeconds, 0.001f));
+            float length = Mathf.Max(0.2f, 1f + Stretch * Mathf.Clamp01(speed / StretchSpeed) - Squash * _squash);
+            float across = 1f / Mathf.Sqrt(length);
+            Vector3 d = Quaternion.Inverse(_prop.rotation) * _axis;
+            return new Vector3(across + (length - across) * d.x * d.x, across + (length - across) * d.y * d.y,
+                across + (length - across) * d.z * d.z);
         }
 
         private bool Capture()
@@ -117,6 +160,8 @@ namespace SlopArena.Client.World
 
         private void Restore()
         {
+            _tracking = false;
+            _peak = _squash = 0f;
             if (!_applied) return;
             _applied = false;
             if (_prop != null) _prop.localScale = _propScale;

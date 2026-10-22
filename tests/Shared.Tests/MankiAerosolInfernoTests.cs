@@ -68,6 +68,13 @@ public sealed class MankiAerosolInfernoTests
         sim.Tick(new());
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        // Ten recovery ticks after the flame (owner, 2026-10-22): he lowers the can before he can act at tick 62.
+        for (int recoveryFrame = 52; recoveryFrame < 62; recoveryFrame++)
+        {
+            sim.Tick(new());
+            Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+            Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        }
         sim.Tick(new());
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());

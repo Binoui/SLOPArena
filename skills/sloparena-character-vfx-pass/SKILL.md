@@ -94,6 +94,12 @@ materials, one method per prefab, then the bindings and `kit.Finish(built)`. Nam
 | Draw lettering and other must-read pops in front of the fighters with a positive billboard `pivot.z` (in units of the particle's Z size). | Bonk's BONK! at the contact sat inside the victim's body; 1 m toward the camera keeps it in front without moving it on screen much. |
 | Keep a big weapon's trail band on its outer part: transparent along the inner blade, opaque near the tip. | A full-plank band on Bonk's overhead swings painted over his whole body. |
 | For looks held on the fighter, use `ArmorGlowPresentation` (a rim glow for the cue's life, plus a detached child on `FighterHitFeel.ArmorAbsorbed`); move part of a hit effect onto the attacker with `SnapToOwnerBone`. | Bonk's armour read, his "?" when armour shrugs off a hit, and his bucket ringing on his own head need no Shared change. |
+| Time a moment inside a capability cue (a landing, a launch) with `AttackTickWindow` on an inactive child: the start tick, and the tick until which the attack ending clears it. | Capability cues are not attack-bound and particle delays run on wall time, so Hitstop or a hit that ends the landing early would put Sir Bonk's POP! out of step with the plank. |
+| Judge floor marks from behind at the gameplay angle (`--set E:orbit=65`) before painting a concept on them. | The low match camera squashes a flat floor mark into a strip: Sir Bonk's painted landing crown read as a blue line, so his landing got an upright holy light instead. |
+| Capability cues stay where their event happened. To follow the fighter use `FollowOwnerBone`, for a looping phase clip use `LoopFootfalls`, and for the attack's end use `AttackEndCue`. Don't put an `Upright` frame in them. | They are world-placed and not attack-bound, and an upright frame finds no fighter above them (yaw 0). Sir Bonk's old gallop dust stayed at the start, emitting nothing by distance. |
+| Key footstep cues (knocks, dust, words) to the clip's measured contacts: `cd tools && $PY -m genra contacts RESULT.json --brief BRIEF.json` on the GenRA run that made the clip. | The brief's beats are the intent. Sir Bonk's gallop lands a tick after its "contact 0" beats, so its clip-clops first played a frame early. |
+| Burst a puff that hides a prop popping in or out at full size from its first frame, with a positive renderer `pivot.z` so it draws in front of the prop. | A puff that grows from 40% hid nothing: the hobby horse showed beside it, and its head covered the rest. |
+| For cloth on a point chain, use quadratic drag (`v / (1 + c\|v\|dt)`) and tip its gravity a little off the chain's axis. Simulate a gallop and a dead stop offline before capturing. | Linear drag let the pennant whip over the top when the gallop yanked it. Gravity along the chain balanced it pointing straight up after a swing. |
 | Use `ToonShapes.Step` for shader-style smoothstep. | `Mathf.SmoothStep(a, b, t)` interpolates from a to b; it is not a 0–1 step. |
 | Delete prefabs, textures and materials you stop generating. | The builder overwrites, it never removes. |
 | Give every object in a prefab a unique name (Bonk's builder suffixes repeats before `kit.Save`). | Unity keeps fileIDs by matching names when it overwrites a prefab, so a repeated name (Spin/Thunk and Finisher/Thunk) gets a new fileID on every rebuild. |
@@ -138,7 +144,7 @@ warnings. Check it with `presentation_review.py summary`.
 
 ## 5. Capture "after" and review
 
-Rerun the step 2 batches into `after` folders. `summary` must show the same hit frames.
+Rerun the step 2 batches into `after` folders, a fresh one for each run, since the capture never overwrites earlier evidence. `summary` must show the same hit frames.
 
 ```bash
 python3 tools/presentation_review.py sheet tmp/vfx/<package>/after/4 --frames 30-60:3 --out tmp/vfx/<package>/sheets/4.jpg

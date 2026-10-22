@@ -532,6 +532,115 @@ public sealed class CharacterPackageCompilerTests
         => character["slots"]!.AsArray().Select(node => node!.AsObject())
             .Single(slot => (string?)slot["id"] == "ground.R");
 
+    [Fact]
+    public void SteeredCharge_IsPublicCooksRuntimeApi18AndValidatesBounds()
+    {
+        string manifest = Fixture("package.json");
+        var character = JsonNode.Parse(Fixture("character.json"))!.AsObject();
+        SteeredChargeFixture.Apply(character);
+        var compiled = CharacterPackageCompiler.Compile(manifest, character.ToJsonString(), CharacterCookProfile.Workshop);
+        Assert.True(compiled.CookedPackage != null,
+            string.Join("; ", compiled.Diagnostics.Select(d => $"{d.Code}: {d.Message} ({d.Path})")));
+        Assert.Equal("1.8.0", compiled.CookedPackage!.Metadata.RuntimeApiMin);
+        var charge = Assert.IsType<CookedSteeredChargeCapabilityParameters>(compiled.CookedPackage.Definition.Slots
+            .Single(x => x.Id == "ground.R").Timeline.Stages.Single().Operations
+            .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+        Assert.Equal((12f, 180f, (ushort)60, true), (charge.GallopSpeed, charge.TurnDegreesPerSecond, charge.MaxGallopTicks, charge.Armored));
+        Assert.Equal(("anim.fix.r-gallop", (ushort)24, "anim.fix.r-air"),
+            (charge.GallopAnimationId, charge.GallopLoopTicks, charge.AirEndingAnimationId));
+        Assert.Equal(10f, charge.LanceHitbox.Damage);
+
+        var loadedSource = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
+        Assert.True(loadedSource.IsValid, string.Join("; ", loadedSource.Diagnostics.Select(x => x.Message)));
+        string roundTripped = CharacterPackageSourceCodec.SerializeCharacter(loadedSource.Source!.Character);
+        Assert.Equal(compiled.CookedPackage.CanonicalBytes, CharacterPackageCompiler.Compile(manifest, roundTripped,
+            CharacterCookProfile.Workshop).CookedPackage!.CanonicalBytes);
+
+        CharacterCompileResult Mutated(Action<JsonObject> mutate)
+        {
+            var copy = (JsonObject)character.DeepClone();
+            mutate(copy);
+            return CharacterPackageCompiler.Compile(manifest, copy.ToJsonString(), CharacterCookProfile.Workshop);
+        }
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["gallopSpeed"] = 0), "value.out-of-range");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["turnDegreesPerSecond"] = 5000), "value.out-of-range");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["skidTicks"] = 31), "value.out-of-range");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["gallopLoopTicks"] = 0), "value.out-of-range");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["lanceHitbox"]!["hitGroup"] = 1), "value.out-of-range");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["hitEndingAnimationId"] = "anim.fix.r-elsewhere"),
+            "reference.unresolved");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["missEndingAnimationId"] = "anim.fix.r"),
+            "value.out-of-range");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["unknownField"] = 1), "operation.parameter-unknown");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!.AsObject().Remove("lookDownTicks")),
+            "operation.parameter-missing");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["capabilityVersion"] = "2"), "capability.version-mismatch");
+        AssertError(Mutated(c => SteeredChargeFixture.Slot(c, "ground.R")["timeline"]!["stages"]![0]!["iasaTicks"] = 1),
+            "capability.ambiguous");
+        AssertError(Mutated(c => ((JsonArray)SteeredChargeFixture.Slot(c, "ground.R")["timeline"]!["stages"]![0]!["operations"]!)
+            .Add(JsonNode.Parse("""
+                {"kind":"forwardLunge","tick":2,"unit":"metersPerSecond","speed":4,"durationTicks":4}
+                """))), "capability.ambiguous");
+        AssertError(Mutated(c => ((JsonArray)SteeredChargeFixture.Slot(c, "ground.R")["timeline"]!["stages"]![0]!["operations"]!)
+            .Add(JsonNode.Parse("""
+                {"kind":"startupAimCorrection","tick":0,"unit":"ticks","endTick":14,"acquisitionRange":8,"acquisitionHalfAngleDegrees":90,"maxYawDegrees":90,"maxPitchDegrees":0,"yawDegreesPerSecond":720,"pitchDegreesPerSecond":0}
+                """))), "operation.cutoff-after-commitment");
+    }
+
+    [Fact]
+    public void ReturningProjectile_IsPublicCooksRuntimeApi18AndValidatesItsReturn()
+    {
+        string manifest = Fixture("package.json");
+        var character = JsonNode.Parse(Fixture("character.json"))!.AsObject();
+        ReturningProjectileFixture.Apply(character);
+        var compiled = CharacterPackageCompiler.Compile(manifest, character.ToJsonString(), CharacterCookProfile.Workshop);
+        Assert.True(compiled.CookedPackage != null,
+            string.Join("; ", compiled.Diagnostics.Select(d => $"{d.Code}: {d.Message} ({d.Path})")));
+        Assert.Equal("1.8.0", compiled.CookedPackage!.Metadata.RuntimeApiMin);
+        var lid = compiled.CookedPackage.Definition.Slots.Single(x => x.Id == "ground.1").Timeline.Stages.Single()
+            .Operations.OfType<CookedSpawnProjectileOperation>().Single().Projectile;
+        Assert.Equal(new CookedProjectileReturn(20, 16f, 80f, 0f, 30, ReturningProjectileFixture.CatchPresentationId, ""),
+            lid.Return);
+
+        var loadedSource = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
+        Assert.True(loadedSource.IsValid, string.Join("; ", loadedSource.Diagnostics.Select(x => x.Message)));
+        string roundTripped = CharacterPackageSourceCodec.SerializeCharacter(loadedSource.Source!.Character);
+        Assert.Equal(compiled.CookedPackage.CanonicalBytes, CharacterPackageCompiler.Compile(manifest, roundTripped,
+            CharacterCookProfile.Workshop).CookedPackage!.CanonicalBytes);
+
+        CharacterCompileResult Mutated(Action<JsonObject> mutate)
+        {
+            var copy = (JsonObject)character.DeepClone();
+            mutate(copy);
+            return CharacterPackageCompiler.Compile(manifest, copy.ToJsonString(), CharacterCookProfile.Workshop);
+        }
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["outboundTicks"] = 0), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["outboundTicks"] = 240), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["returnSpeed"] = 0), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["returnAcceleration"] = -1), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["selfHitDamage"] = -1), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["selfHitStunTicks"] = 0), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["selfHitStunTicks"] = 241), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Projectile(c)["gravity"] = -9.8), "value.out-of-range");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["catchPresentationId"] = "presentation.fightguy.undeclared"),
+            "reference.unresolved");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["selfHitPresentationId"] = "lid.bonk"), "id.invalid");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c)["bounces"] = 2), "field.unknown");
+        AssertError(Mutated(c => ReturningProjectileFixture.Return(c).Remove("returnSpeed")), "schema.missing");
+        AssertError(Mutated(c => ReturningProjectileFixture.Operations(c).Add(ReturningProjectileFixture.Operation())),
+            "capability.ambiguous");
+
+        var chargedWithReturn = CompileCharacter(c =>
+        {
+            var charge = ((JsonArray)SteeredChargeFixture.Slot(c, "ground.A")["timeline"]!["stages"]![0]!["operations"]!)
+                .Single(x => (string?)x!["kind"] == "startCapability")!;
+            charge["parameters"]!["projectile"]!["return"] = ReturningProjectileFixture.Operation()["projectile"]!["return"]!.DeepClone();
+        });
+        Assert.Contains(chargedWithReturn.Diagnostics, x => x.Code == "value.out-of-range"
+            && x.Path == "character.operation.parameters.projectile.return");
+        Assert.Null(chargedWithReturn.CookedPackage);
+    }
+
     private static JsonObject DashOperation(JsonObject character)
         => DashSlot(character)["timeline"]!["stages"]![0]!["operations"]![0]!.AsObject();
 

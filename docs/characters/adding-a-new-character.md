@@ -62,7 +62,8 @@ skeleton binary.
 Bind each required semantic animation ID to the exact imported clip in
 `CharacterAssetCatalog.asset`. Assign one unique deterministic pose-track ID per semantic
 ID. Confirm catalog package ID, schema version, sample rate, rig, and binding paths. Do not
-use another character's clip as a fallback.
+use another character's clip as a fallback. An owner-approved stand-in is different: Bashie's package
+(2026-10-22) plays raised copies of Manki's clips, labelled in [her page](bashie.md), until her own moves replace them.
 
 Optional `presentation.crouch` and `presentation.slide` IDs require real bound clips and
 distinct deterministic pose-track IDs when nonempty. They may share one static low clip.

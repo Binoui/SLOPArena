@@ -1,0 +1,217 @@
+{
+  "name": "manki-gf-fire",
+  "notes": "Manki Aerosol Inferno fire (ground.F / air.F stage animation anim.manki.gf-atk), 2026-10-22. Owner: 'next we will try to redo the 2nd part of the move because it doesn't work that well. ideally manki is holding the aerosol and the lighter a bit in front, thats where the fire comes out. right now his arms are flailing too much'. Owner picks: pose sheet B (artifacts/manki-f-shake-20261021/fire-sheet-B-upright.png: the can held upright like a real spray can, firing from the nozzle on top through the lighter, at head height where the game's flame already starts) and a 10-tick recovery (the move went from 52 to 62 ticks; flame and hitbox unchanged). Replaces reference 'oldfire' (lunges forward, the lighter low at his knee, the can swung back through the hand). Entry: the shake loop (reference 'shake', keys revision r1 with the lighter in the left fist).",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-fire",
+  "character": "Manki (64 joints: a Humanoid body with Mixamo names, a big head and ears, overalls; a five-joint tail Tail1..5 that a spring drives in the game, so leave it at rest; his cartoon aerosol can fixed to the right hand as joint Weapon0 at the can's centre, 0.65 m long and 0.31 m across, with Prop0Tip at its nozzle end and Prop0Base at its bottom; his chunky red lighter fixed to the left hand as joint Weapon1, 0.32 m long, with LighterBase at its bottom and LighterHood at its top, where it lights)",
+  "references": {
+    "idle": "references/idle.usda",
+    "shake": "references/shake.usda",
+    "oldfire": "references/oldfire.usda"
+  },
+  "entry": {
+    "reference": "shake",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 60,
+    "reference": "idle",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 62,
+    "contact_tick": 8,
+    "active": [
+      8,
+      51
+    ]
+  },
+  "timing": {
+    "fixed": [
+      "62 ticks at 60 Hz, played once from the release: the game crossfades over 3 ticks from the shake loop, whatever tick it is on, into tick 0, which is the shake's tick 0",
+      "the lighter flicks on at its hood (LighterHood) at tick 3: sparks and a small flame 0.13 m above the hood",
+      "the flame stream and its hitbox start at tick 8 and last to tick 52, straight forward along his facing, starting about 0.55 m in front of his body centre at about head height (0.44 m above the hips' rest height): the nozzle (Prop0Tip) must be there",
+      "ticks 52-62 are the recovery the owner added: the move ends at tick 62, the game crossfades into idle over 0.1 s and hides the can and the lighter",
+      "in the air (air F) he hangs still for the whole move"
+    ],
+    "adjustable": []
+  },
+  "description": "The second half of Manki's Aerosol Inferno, his homemade flamethrower. He has just shaken his giant spray can (reference `shake`, the clip the game plays before this one: the can pumping upright on his right, the red lighter upright in his left fist out to his left). When the player releases F, the game crossfades over 3 ticks into this clip: he brings the can and the lighter together in front of his face, flicks the lighter, and sprays through its flame, so a long column of cartoon fire blasts forward out of the nozzle. Today's clip (reference `oldfire`) lunges forward with the can, holds the lighter low by his knee and swings the can back through his hand at the end; the owner: 'ideally manki is holding the aerosol and the lighter a bit in front, thats where the fire comes out. right now his arms are flailing too much'.\n\nWhere the fire comes out. The game's flame and its hitbox start about 0.55 m in front of his body centre at about head height (0.44 m above the hips' rest height) and go straight forward along his facing, whatever the hands do. So the can's nozzle (Prop0Tip) sits right there from tick 3 to tick 50, with the lighter's hood (LighterHood) just in front of and a little below the nozzle: the lighter's flame burns 0.13 m above the hood, so it licks across the front of the nozzle, and the stream comes out through it.\n\nThe pose: owner's pick, image 1, sheet B. The can stays upright, nozzle on top, like a real spray can: he holds it in his right fist in front of his chest and face, a little right of centre, and the nozzle sprays forward. The left fist holds the lighter up against the front of the nozzle. Both hands stay together and steady the whole time. Beats:\n- Tick 0: the shake's tick 0 pose (matched): the can upright beside his right shoulder, the lighter upright in his left fist out to his left.\n- Tick 3, CLICK (sheet B pose 1): both hands snap together in front of his face: the can upright, the nozzle at the fire's start point; the lighter at the nozzle, thumb on the wheel, as it flicks on. Knees bent and braced, head turned to the target, eyes over the can. A snap: most of the travel happens in ticks 1-2.\n- Tick 8, WHOOSH (pose 2): the spray ignites. The recoil pushes him back: the torso tips back 10-15 degrees, the head jerks back, the knees bend deeper, the tail flicks; the can and the lighter stay together and the nozzle moves only a few centimetres.\n- Ticks 12-48, BLAST (pose 3): the sustained stream. He leans back into it in a wide braced stance, the hands steady at the nozzle with a little tremble from the spray pressure (a centimetre or less, every 2-3 ticks), and the body keeps alive: a slow drift of the chest forward as he gets into it, a small bob, the head steady on the target. Never a dead hold, never big moves.\n- Tick 50, SPUTTER (pose 4): the flame dies at tick 52: the can dips a little and his shoulders relax.\n- Ticks 52-60, recovery: he lowers the can and the lighter to his sides and settles into idle's pose (exact from tick 60; the game then crossfades into idle and hides both props).\n\nIdentity: Manki is a chaotic, gadget-loving mad bomber monkey; the moment should feel like a gleeful, slightly dangerous homemade flamethrower. The feet stay planted (no step, the fighter does not move), the can stays upright through the fire, neither prop passes through his head or body, and the arms never flail.",
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "fast_windows": [
+    [
+      0,
+      10
+    ]
+  ],
+  "strike": [
+    "Prop0Tip"
+  ],
+  "views": [
+    "front-three-quarter-right",
+    "profile",
+    "gameplay",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../manki-f-shake-20261021/fire-sheet-B-upright.png",
+    "../../manki-f-shake-20261021/keys-r1-real.png"
+  ],
+  "image_notes": "1: the pose sheet the owner picked (image-generated from his real render; drawn a little too frontally): 1 CLICK, 2 WHOOSH, 3 BLAST, 4 SPUTTER, mapped to ticks 3, 8, 12-48 and 50. It is a drawing: match the idea (the can upright in front of his face, the lighter at the nozzle, the flame from the nozzle forward, both hands together and steady) and the energy, not exact angles; in the game the flame starts at head height. 2: the shake loop this clip starts from, on the real character (top: front three-quarter, bottom: the gameplay camera): the can on his right, the lighter upright in his left fist.",
+  "keys": [
+    0,
+    3,
+    8,
+    12,
+    30,
+    48,
+    52,
+    60,
+    62
+  ],
+  "review_ticks": [
+    0,
+    2,
+    3,
+    5,
+    8,
+    10,
+    12,
+    20,
+    30,
+    40,
+    48,
+    50,
+    52,
+    56,
+    60,
+    62
+  ],
+  "targets": [
+    {
+      "name": "nozzle in front at the flame's start, tick 8 (m ahead of the hips)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "front",
+      "tick": 8,
+      "min": 0.3
+    },
+    {
+      "name": "nozzle at head height, tick 8 (m above the hips' rest)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "up",
+      "tick": 8,
+      "min": 0.33,
+      "max": 0.55
+    },
+    {
+      "name": "nozzle near the middle, tick 8 (m to his right)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "right",
+      "tick": 8,
+      "min": -0.15,
+      "max": 0.2
+    },
+    {
+      "name": "nozzle at head height, tick 30 (m)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "up",
+      "tick": 30,
+      "min": 0.33,
+      "max": 0.55
+    },
+    {
+      "name": "nozzle in front, tick 30 (m)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "front",
+      "tick": 30,
+      "min": 0.3
+    },
+    {
+      "name": "can upright at CLICK, tick 3 (nozzle above the base, m)",
+      "kind": "below",
+      "a": "Prop0Base",
+      "b": "Prop0Tip",
+      "tick": 3,
+      "min": 0.4
+    },
+    {
+      "name": "can upright through the stream, tick 30 (m)",
+      "kind": "below",
+      "a": "Prop0Base",
+      "b": "Prop0Tip",
+      "tick": 30,
+      "min": 0.4
+    },
+    {
+      "name": "lighter at the nozzle at CLICK, tick 3 (m)",
+      "kind": "distance",
+      "a": "LighterHood",
+      "b": "Prop0Tip",
+      "tick": 3,
+      "max": 0.15
+    },
+    {
+      "name": "lighter at the nozzle at WHOOSH, tick 8 (m)",
+      "kind": "distance",
+      "a": "LighterHood",
+      "b": "Prop0Tip",
+      "tick": 8,
+      "max": 0.15
+    },
+    {
+      "name": "lighter at the nozzle through the stream, tick 30 (m)",
+      "kind": "distance",
+      "a": "LighterHood",
+      "b": "Prop0Tip",
+      "tick": 30,
+      "max": 0.15
+    },
+    {
+      "name": "lighter at the nozzle before it dies, tick 48 (m)",
+      "kind": "distance",
+      "a": "LighterHood",
+      "b": "Prop0Tip",
+      "tick": 48,
+      "max": 0.15
+    },
+    {
+      "name": "lighter hood below the nozzle, tick 8 (m)",
+      "kind": "below",
+      "a": "LighterHood",
+      "b": "Prop0Tip",
+      "tick": 8,
+      "min": 0.0
+    },
+    {
+      "name": "nozzle steady through the stream, up and down (m)",
+      "kind": "range",
+      "a": "Prop0Tip",
+      "axis": "up",
+      "window": [
+        12,
+        48
+      ],
+      "max": 0.06
+    },
+    {
+      "name": "nozzle steady through the stream, front and back (m)",
+      "kind": "range",
+      "a": "Prop0Tip",
+      "axis": "front",
+      "window": [
+        12,
+        48
+      ],
+      "max": 0.08
+    }
+  ]
+}

@@ -227,7 +227,9 @@ public readonly struct PresentationEventPacket
             || source == PresentationEventSource.BlockContact
             || source == PresentationEventSource.HitContact
             || source == PresentationEventSource.CapabilityLaunch
-            || source == PresentationEventSource.CapabilityLanding;
+            || source == PresentationEventSource.CapabilityLanding
+            || source == PresentationEventSource.ProjectileCatch
+            || source == PresentationEventSource.ProjectileSelfHit;
 
     private static void ValidateTransform(float value, string name)
     {

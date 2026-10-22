@@ -1,0 +1,26 @@
+// genra clip promotion: an accepted clip's content replaces a package clip's, keeping the package clip's GUID and name, so
+// every catalog binding and ability that names it plays the new motion. A missing target is created as a copy (bind it). Rendered by tools/genra/unity_clip.py promote
+// ({{JOB}} {{OUTPUT}}) and run with the gateway's eval_file in Edit Mode. Cook, verify and refresh the roster afterwards.
+var job = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("{{JOB}}"));
+var output = "{{OUTPUT}}";
+if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("genra clip promotion requires Edit Mode");
+string source = (string)job["source"], target = (string)job["target"];
+var from = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(source);
+if (from == null) throw new System.Exception("No clip at " + source);
+bool created = UnityEditor.AssetDatabase.LoadMainAssetAtPath(target) == null;
+if (created && !UnityEditor.AssetDatabase.CopyAsset(source, target))  // a first package copy: bind it afterwards
+  throw new System.Exception("Could not copy " + source + " to " + target);
+var to = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(target);
+if (to == null) throw new System.Exception("No clip at " + target);
+string keep = System.IO.Path.GetFileNameWithoutExtension(target);
+UnityEditor.EditorUtility.CopySerialized(from, to);
+to.name = keep;
+UnityEditor.EditorUtility.SetDirty(to);
+UnityEditor.AssetDatabase.SaveAssetIfDirty(to);
+var settings = UnityEditor.AnimationUtility.GetAnimationClipSettings(to);
+var result = new System.Collections.Generic.Dictionary<string, object> {
+  ["source"] = source, ["target"] = target, ["created"] = created, ["guid"] = UnityEditor.AssetDatabase.AssetPathToGUID(target), ["name"] = to.name,
+  ["lengthSeconds"] = to.length, ["frameRate"] = to.frameRate, ["loopTime"] = settings.loopTime, ["humanMotion"] = to.humanMotion,
+  ["curves"] = UnityEditor.AnimationUtility.GetCurveBindings(to).Length };
+System.IO.File.WriteAllText(output, Newtonsoft.Json.JsonConvert.SerializeObject(result));
+return result;

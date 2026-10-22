@@ -1,27 +1,41 @@
 // genra rig-pack snapshot: read-only, Edit Mode, preview scene; no asset or scene changes.
-// Rendered by tools/genra/unity_rigpack.py (fields {{PACKAGE}} {{OUTPUT}} {{CLIPS}} {{BAKES}}) and run with
-// the gateway's eval_file. Captures the package's catalog prefab exactly as the game renders it: skinned meshes
+// Rendered by tools/genra/unity_rigpack.py (fields {{PACKAGE}} {{OUTPUT}} {{CLIPS}} {{BAKES}} {{PREFAB}}
+// {{WEAPON_CONFIG}}) and run with the gateway's eval_file. Captures the package's catalog prefab (or an unbound
+// candidate prefab, with its own weapon config, played with the package's bound clips) exactly as the game renders it: skinned meshes
 // (vertices, UVs, triangles, weights, bindposes), runtime weapon attachments (WeaponAttach placement), rotation
-// constraints, bound clips played at 60 Hz as PlayerRenderer plays them, and baked skinned vertices at chosen frames.
+// constraints, bound clips (or clip assets, retargeted onto the prefab) played at 60 Hz as PlayerRenderer plays them,
+// and baked skinned vertices at chosen frames.
 var package = "{{PACKAGE}}";
 var output = "{{OUTPUT}}";
 var semantics = new string[] { {{CLIPS}} };
 var bakeFrames = new int[] { {{BAKES}} };
+var prefabOverride = "{{PREFAB}}";          // "" = the catalog's _rig
+var weaponConfigOverride = "{{WEAPON_CONFIG}}";  // "" = every weapon config in the package
 if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("Rig-pack snapshot requires Edit Mode");
 var packageRoot = "Assets/CharacterPackages/" + package;
 var catalog = UnityEditor.AssetDatabase.LoadMainAssetAtPath(packageRoot + "/CharacterAssetCatalog.asset");
 if (catalog == null) throw new System.Exception("No catalog for " + package);
 var catalogObject = new UnityEditor.SerializedObject(catalog);
-var prefab = (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+var prefab = prefabOverride.Length > 0
+  ? UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(prefabOverride)
+  : (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+if (prefab == null) throw new System.Exception("No prefab " + (prefabOverride.Length > 0 ? prefabOverride : "_rig of " + package));
 var bindings = catalogObject.FindProperty("_bindings");
 var clips = new System.Collections.Generic.Dictionary<string, UnityEngine.AnimationClip>();
 foreach (var semantic in semantics) {
-  for (int i = 0; i < bindings.arraySize; i++) {
+  if (semantic.StartsWith("Assets/")) {  // a clip asset: "Assets/...anim", or "Assets/...fbx|Take" for one clip of a model
+    var parts = semantic.Split('|');
+    foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(parts[0])) {
+      var clip = asset as UnityEngine.AnimationClip;
+      if (clip != null && !clip.name.StartsWith("__preview__") && (parts.Length == 1 || clip.name == parts[1])) { clips[semantic] = clip; break; }
+    }
+  }
+  for (int i = 0; i < bindings.arraySize && !semantic.StartsWith("Assets/"); i++) {
     var entry = bindings.GetArrayElementAtIndex(i);
     if (entry.FindPropertyRelative("_semanticId").stringValue == semantic)
       clips[semantic] = (UnityEngine.AnimationClip)entry.FindPropertyRelative("_clip").objectReferenceValue;
   }
-  if (!clips.ContainsKey(semantic) || clips[semantic] == null) throw new System.Exception("Missing bound clip " + semantic);
+  if (!clips.ContainsKey(semantic) || clips[semantic] == null) throw new System.Exception("Missing clip " + semantic);
 }
 
 float[] Flat(UnityEngine.Matrix4x4 m) { var a = new float[16]; for (int r = 0; r < 4; r++) for (int c = 0; c < 4; c++) a[r * 4 + c] = m[r, c]; return a; }
@@ -88,8 +102,10 @@ try {
     return null;
   }
   var weapons = new System.Collections.Generic.List<object>();
-  foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:ScriptableObject", new[] { packageRoot })) {
-    var configPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+  var configPaths = weaponConfigOverride.Length > 0 ? new[] { weaponConfigOverride }
+    : System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(UnityEditor.AssetDatabase.FindAssets("t:ScriptableObject", new[] { packageRoot }), UnityEditor.AssetDatabase.GUIDToAssetPath));
+  foreach (var configPath in configPaths) {
+    if (UnityEditor.AssetDatabase.LoadMainAssetAtPath(configPath) == null) throw new System.Exception("No weapon config " + configPath);
     var config = new UnityEditor.SerializedObject(UnityEditor.AssetDatabase.LoadMainAssetAtPath(configPath));
     var entries = config.FindProperty("Entries");
     if (entries == null || !entries.isArray) continue;

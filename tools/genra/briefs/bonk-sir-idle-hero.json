@@ -1,0 +1,212 @@
+{
+  "name": "bonk-sir-idle-hero",
+  "notes": "Sir Bonk (new model, candidate SirBonkRig.prefab) idle for presentation.idle, 2026-10-20. Owner picked idle A, the hero pose: fist on hip, plank resting on the right shoulder, one slow proud breath per 2 s loop. 2026-10-21: frame text and floor targets moved to the rebuilt pack, whose idle is this clip (floor at up -1.025).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 1.84 m plank greatsword fixed to the right hand as joint Weapon0, with bladeHilt and bladeEnd anchors)",
+  "description": "Sir Bonk's idle: the clip he plays whenever he stands in a fight, between moves, while waiting and after landing.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself. His armour is homemade (images 1 and 2): a blue mop bucket worn as a helm with a broom-head crest, a cream tabard with a crown he painted himself, pot-lid pauldrons, tin vambraces, a cream cape, and a plank greatsword painted silver. He is not a joke to himself. He believes he is the hero of the story, and every pose is something he copied from his book and performs with total sincerity: proud, calm, chest out, chin up.\n\nHow the game plays it. The idle loops (ticks 0-120 are 2 s, wrapping from 120 back to 0). The game crossfades into it from every move, and out of it into the run and every attack, over about 0.1-0.2 s. The match camera sits straight behind him, so players mostly see his back: the cape, the bucket and crest, and the plank. The plank must stay readable from behind, rising over his right shoulder. The entry pose is this idle itself (the version the owner approved on 2026-10-20); it only sets the frame.\n\nThe pose at tick 0: the hero pose. Stand square to the front, with chest and hips turned to the front.\n- Feet: planted wide and side by side, about 0.7 m apart at the ankles. Toes turned out 10-20 degrees, both soles flat on the floor. Knees soft (10-20 degrees), never locked and never deeply bent.\n- The floor is at up = -1.025 m in the character frame. With a flat foot, the toe joint (ToeBase) sits about 0.05 m above it (up about -0.84) and the ankle (Foot) about 0.14 m above it.\n- Chest out and shoulders back: the spine leans back a few degrees and the upper chest lifts.\n- Head up, chin slightly raised, looking straight ahead. The bucket sits high and clear above the shoulders, never sunk between them.\n- Left arm: the classic hero fist on the hip. The left hand closes into a fist (fist()) resting on the left side of the waist, on the sash, knuckles against the hip. The elbow points out to the left side and a little back.\n- Right arm and the plank: the plank rests on his right shoulder. The right hand holds the grip at about chest height, in front of and slightly inside the right shoulder, with the fist closed around it. The blade's flat lies on the right pauldron and points back and up, about 40-55 degrees above level, so the tip ends high behind his right shoulder. It passes to the right of the head and above the cape, clear of the bucket, the crest, the cape, the arms and the torso. The plank is long: 1.84 m from bladeHilt to bladeEnd.\n\nThe loop (ticks 0-120). One slow, deep, proud breath: calm, not a dance.\n- Inhale over about the first 60 ticks. The chest swells and rises 2-4 cm, the shoulders lift and roll back a little, the knees straighten slightly so the hips rise 1-2 cm, and the head lifts a touch higher: a picture of pride.\n- Exhale over the rest. He settles back down and gives one small, satisfied nod around ticks 85-100: the head dips about 5 degrees and comes back.\n- The plank rides on the shoulder and moves with it. The left fist stays on the hip; the elbow can flex slightly with the breath.\n- Offset the parts so they never all peak on the same tick: the chest leads, and the shoulders and head follow a few ticks later.\n- The feet stay planted the whole time.\n\nDo not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank, no steps, no spins and no attack.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 120
+  },
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). The cape hangs from the shoulders to the calves and the book is on his right hip. 2: concept art for his attitude: proud, sincere, the plank held like a real knight's sword (the costume in image 1 is the final one).",
+  "review_ticks": [
+    0,
+    30,
+    60,
+    90,
+    120
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.0,
+      "max": -0.95
+    },
+    {
+      "name": "right toe joint on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.0,
+      "max": -0.95
+    },
+    {
+      "name": "feet planted wide (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.6,
+      "max": 0.9
+    },
+    {
+      "name": "hips stand tall above the left toe joint (m)",
+      "kind": "below",
+      "a": "LeftToeBase",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.85,
+      "max": 1.0
+    },
+    {
+      "name": "head high above the upper chest at tick 0 (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 0,
+      "min": 0.26
+    },
+    {
+      "name": "head high above the upper chest in the nod, tick 92 (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 92,
+      "min": 0.24
+    },
+    {
+      "name": "left fist out on the left side (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.25
+    },
+    {
+      "name": "left fist at waist height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": -0.05,
+      "max": 0.25
+    },
+    {
+      "name": "left fist beside the body, not in front (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": -0.2,
+      "max": 0.2
+    },
+    {
+      "name": "left elbow out to the side (m)",
+      "kind": "char",
+      "a": "LeftForeArm",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.45
+    },
+    {
+      "name": "right hand at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 0,
+      "min": 0.3,
+      "max": 0.65
+    },
+    {
+      "name": "right hand in front of the body (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.05
+    },
+    {
+      "name": "plank tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 0,
+      "max": -0.7
+    },
+    {
+      "name": "plank tip high above the hilt (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 0,
+      "min": 1.0
+    },
+    {
+      "name": "plank tip to the right of the centre line (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.15
+    },
+    {
+      "name": "chest rises with the breath (m)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        0,
+        120
+      ],
+      "min": 0.015,
+      "max": 0.06
+    },
+    {
+      "name": "hips stay calm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        120
+      ],
+      "min": 0.005,
+      "max": 0.03
+    },
+    {
+      "name": "head moves with the breath and the nod (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        120
+      ],
+      "min": 0.015,
+      "max": 0.07
+    }
+  ]
+}

@@ -127,7 +127,7 @@ namespace SlopArena.Client.Input
             string action = SlotAction(slotIdx);
             if (action != null)
                 foreach (var control in HumanInputActions.Get(action).controls)
-                    if (control.device is Keyboard && control is ButtonControl button && button.isPressed)
+                    if (control.device is Keyboard or Mouse && control.IsPressed())
                         return true;
             foreach (byte heldSlot in _controllerSlots)
                 if (heldSlot == slotIdx + 1) return true;
@@ -165,7 +165,7 @@ namespace SlopArena.Client.Input
             return HumanInputActions.Get("MoveStick").ReadValue<Vector2>().sqrMagnitude > 0.01f
                 || HumanInputActions.StickLook.ReadValue<Vector2>().sqrMagnitude > 0.01f
                 || HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f
-                || Mathf.Abs(HumanInputActions.Zoom.ReadValue<float>()) > 0.01f;
+                || Mathf.Abs(HumanInputActions.ZoomDelta) > 0.01f;
         }
 
         // ── AI injection ──
@@ -240,7 +240,7 @@ namespace SlopArena.Client.Input
         /// Uses AI input if InjectAI() was called, otherwise reads from InputSystem.
         ///
         /// ActiveSlot retains existing wire values: 1→3, E→4, R→5, F→6, 2→7,
-        /// 3→8, 4→9, A→11. LMB/RMB are utility actions, not attack Slots.
+        /// 3→8, 4→9, A→11. Physical controls follow the player's bindings.
         /// Consume via <see cref="ConsumePendingSlotPress"/> after BuildInputState.
         /// </summary>
         public void Poll()
@@ -304,15 +304,16 @@ namespace SlopArena.Client.Input
                 var action = HumanInputActions.Get(FaceActions[face]);
                 foreach (var control in action.controls)
                 {
-                    if (control is not ButtonControl button) continue;
-                    if (control.device is Gamepad && button.wasPressedThisFrame && _controllerButtons[face] == null)
+                    if (control.device is Gamepad && control is ButtonControl button &&
+                        button.wasPressedThisFrame && _controllerButtons[face] == null)
                     {
                         _controllerButtons[face] = button;
                         _controllerSlots[face] = DefenseInputEdges.ResolveFaceSlot(
                             true, modifier, NormalSlots[face], SpecialSlots[face]);
                         if (_pendingSlotPress == 0) _pendingSlotPress = _controllerSlots[face];
                     }
-                    else if (control.device is Keyboard && button.wasPressedThisFrame && _pendingSlotPress == 0)
+                    else if (control.device is Keyboard or Mouse &&
+                        WasControlPressedThisFrame(control, action) && _pendingSlotPress == 0)
                         _pendingSlotPress = DefenseInputEdges.ResolveFaceSlot(
                             false, false, NormalSlots[face], SpecialSlots[face]);
                 }
@@ -331,23 +332,26 @@ namespace SlopArena.Client.Input
             var modifier = HumanInputActions.Get("SpecialModifier");
             bool rtHeld = false;
             bool rtPressed = false;
-            bool keyboardShieldPressed = false;
+            bool desktopShieldPressed = false;
             foreach (var control in shield.controls)
             {
-                if (control is not ButtonControl button) continue;
-                if (control.device is Gamepad)
+                if (control.device is Gamepad && control is ButtonControl button)
                 {
                     rtHeld |= button.isPressed;
                     rtPressed |= button.wasPressedThisFrame;
                 }
-                else if (control.device is Keyboard)
-                    keyboardShieldPressed |= button.wasPressedThisFrame;
+                else if (control.device is Keyboard or Mouse)
+                    desktopShieldPressed |= WasControlPressedThisFrame(control, shield);
             }
             _defenseInputEdges.Update(
                 shield.IsPressed(), rtHeld, rtPressed, modifier.IsPressed(),
-                modifier.WasPressedThisFrame(), keyboardShieldPressed,
+                modifier.WasPressedThisFrame(), desktopShieldPressed,
                 HumanInputActions.Get("Grab").WasPressedThisFrame());
         }
+
+        private static bool WasControlPressedThisFrame(InputControl control, InputAction action) =>
+            control is ButtonControl button ? button.wasPressedThisFrame
+                : control.IsPressed() && action.WasPressedThisFrame();
 
 
 

@@ -168,6 +168,12 @@ Do not nest a new gateway claim inside your own retained lease. Offline release/
 builds require a separately authorized exclusive window and a confirmed closed
 project; never close another owner's Editor or start competing batchmode.
 
+In eval scripts, save only the assets you changed (`AssetDatabase.SaveAssetIfDirty(asset)`).
+`AssetDatabase.SaveAssets()` also writes every other dirty asset in the shared Editor,
+including another thread's unsaved edits. When one of those assets is a package
+dependency, the cook postprocessor then recooks the roster. On 2026-10-21 this flushed
+Sir Bonk's plank material and recooked Bonk.
+
 A lease does not expand task approval: cook, persistence, mode changes, installs,
 commits, pushes, asset edits and process restart retain their existing permissions.
 Record/preserve scene/mode, Lab draft/scenario/cursor/playback, camera and protected

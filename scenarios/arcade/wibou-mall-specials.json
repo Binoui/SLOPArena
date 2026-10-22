@@ -1,0 +1,190 @@
+{
+  "version": 1,
+  "stage": "wibou_mall",
+  "fighter": "wibou",
+  "inputs": "wibou-mall-specials.inputs.json",
+  "captures": [
+    {
+      "tick": 3,
+      "name": "start",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 3,
+      "name": "start-back",
+      "camera": {
+        "yaw": 180,
+        "pitch": 12
+      }
+    },
+    {
+      "tick": 120,
+      "name": "row-dash",
+      "camera": {
+        "yaw": 0,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 270,
+      "name": "podium-fan",
+      "camera": {
+        "yaw": 90,
+        "pitch": 15
+      }
+    },
+    {
+      "tick": 400,
+      "name": "tubeman",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 640,
+      "name": "skybridge",
+      "camera": {
+        "yaw": 90,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 690,
+      "name": "skybridge-e",
+      "camera": {
+        "yaw": 90,
+        "pitch": 22
+      }
+    },
+    {
+      "tick": 760,
+      "name": "east-gallery",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 900,
+      "name": "escalator",
+      "camera": {
+        "yaw": 0,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 960,
+      "name": "missing-steps",
+      "camera": {
+        "yaw": 0,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 1150,
+      "name": "the-agent",
+      "camera": {
+        "yaw": 90,
+        "pitch": 15
+      }
+    },
+    {
+      "tick": 1450,
+      "name": "bridge3-dash",
+      "camera": {
+        "yaw": 270,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 1580,
+      "name": "grand-court-low",
+      "camera": {
+        "yaw": 180,
+        "pitch": 5
+      }
+    },
+    {
+      "tick": 1600,
+      "name": "food-court",
+      "camera": {
+        "yaw": 0,
+        "pitch": 20
+      }
+    },
+    {
+      "tick": 1900,
+      "name": "hotdog",
+      "camera": {
+        "yaw": 0,
+        "pitch": 15
+      }
+    },
+    {
+      "tick": 2265,
+      "name": "peeking-agents",
+      "camera": {
+        "yaw": 90,
+        "pitch": 10
+      }
+    },
+    {
+      "tick": 2320,
+      "name": "tower-face",
+      "camera": {
+        "yaw": 90,
+        "pitch": 25
+      }
+    },
+    {
+      "tick": 2360,
+      "name": "tower-climb",
+      "camera": {
+        "yaw": 90,
+        "pitch": 10
+      }
+    },
+    {
+      "tick": 2450,
+      "name": "top-bridge",
+      "camera": {
+        "yaw": 90,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 2452,
+      "name": "katana-view",
+      "camera": {
+        "yaw": 180,
+        "pitch": 0
+      }
+    },
+    {
+      "tick": 2700,
+      "name": "level-4",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    },
+    {
+      "tick": 2923,
+      "name": "finish",
+      "camera": {
+        "yaw": 0,
+        "pitch": 18
+      }
+    }
+  ],
+  "expect": {
+    "completed": true,
+    "targets": 31,
+    "falls": 0,
+    "checkpoints": 3
+  }
+}

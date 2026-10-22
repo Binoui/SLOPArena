@@ -278,6 +278,66 @@ class Clip:
         """Per-tick char-frame positions (n_ticks, 3) of a joint."""
         return self.frame.to_char(self.world()[:, self.rig.index(joint), 3, :3])
 
+    def overlap(self, delays: dict, cycle=None) -> 'Clip':
+        """Follow-through: a copy in which each listed joint's local rotation plays `delays[joint]` ticks late
+        (fractions interpolate), so it trails its parent instead of moving with it in one piece. Typical delays:
+        forearm 1-2 and hand 2-3 behind the upper arm; neck 1-2 and head 2-3 behind the chest; a hand that holds a
+        weapon 2-4, so the weapon bobs after the body. Delays add up along a chain, because each joint's rotation is
+        relative to its parent.
+        cycle=(first, last) for a loop: the delay wraps inside the cycle, so the seam stays closed. Otherwise the
+        first tick holds while the delayed motion starts. Translations (the hips) keep their path. Re-check planted
+        feet, held weapons and clearances afterwards."""
+        out = Clip(self.rig, self.t.copy(), self.q.copy(), self.s.copy(), self.frame)
+        n = len(self)
+        for joint, delay in delays.items():
+            j = self.rig.index(joint)
+            src = self.q[:, j].copy()
+            for tick in range(n):
+                if cycle is not None and cycle[0] <= tick <= cycle[1]:
+                    period = cycle[1] - cycle[0]
+                    x = cycle[0] + (tick - delay - cycle[0]) % period
+                else:
+                    x = max(0.0, tick - delay)
+                a = int(np.floor(x))
+                b = min(a + 1, n - 1)
+                f = float(x - a)
+                if f < 1e-9 or a == b:
+                    out.q[tick, j] = src[a]
+                    continue
+                out.q[tick, j] = Slerp([0.0, 1.0], Rotation.from_quat([src[a], src[b]]))([f]).as_quat()[0]
+        out._world = None
+        return out
+
+    def segment(self, first: int, last: int) -> 'Clip':
+        """Ticks first..last as a clip of their own: one phase of a move the game plays as several clips (a leap's
+        flight, then its landing)."""
+        return Clip(self.rig, self.t[first:last + 1], self.q[first:last + 1], self.s[first:last + 1], self.frame)
+
+    def retime(self, anchors) -> 'Clip':
+        """A time-warped copy. `anchors` are (source tick, new tick) pairs, both increasing, the first new tick 0;
+        time runs linearly between them, so one section can play slower (more new ticks than source ticks) while
+        another keeps its speed: a slam stays snappy while the haul after it gets room. The last anchor sets the
+        length. Rotations slerp; translations and scales lerp between neighbouring source ticks."""
+        src = np.array([a[0] for a in anchors], float)
+        dst = np.array([a[1] for a in anchors], float)
+        if dst[0] != 0 or (np.diff(src) <= 0).any() or (np.diff(dst) <= 0).any() or src[-1] > len(self) - 1:
+            raise ValueError('anchors must increase, start at new tick 0 and stay inside the clip')
+        times = np.interp(np.arange(int(dst[-1]) + 1), dst, src)
+        a = np.floor(times).astype(int)
+        b = np.minimum(a + 1, len(self) - 1)
+        f = (times - a)[:, None, None]
+        q0, q1 = self.q[a], self.q[b]
+        dot = np.sum(q0 * q1, axis=-1, keepdims=True)
+        q1 = np.where(dot < 0, -q1, q1)
+        theta = np.arccos(np.clip(np.abs(dot), 0, 1))
+        sin = np.where(theta < 1e-6, 1.0, np.sin(theta))
+        w0 = np.where(theta < 1e-6, 1 - f, np.sin((1 - f) * theta) / sin)
+        w1 = np.where(theta < 1e-6, f, np.sin(f * theta) / sin)
+        q = w0 * q0 + w1 * q1
+        q /= np.linalg.norm(q, axis=-1, keepdims=True)
+        lerp = lambda x: x[a] * (1 - f) + x[b] * f
+        return Clip(self.rig, lerp(self.t), q, lerp(self.s), self.frame)
+
     def angular_speed(self) -> np.ndarray:
         """Per tick (from 1) and joint: local rotation change in degrees per tick."""
         a, b = self.q[1:], self.q[:-1]
@@ -294,10 +354,26 @@ class Clip:
 
     @classmethod
     def load(cls, rig: Rig, path, frame=None) -> 'Clip':
+        """A saved clip on `rig`. A clip saved before a held prop joined the pack (unity_rigpack.py --prop) loads with
+        that prop's fixed joints (Weapon<k> and its anchors) at their bind locals; any other difference is another rig."""
         data = json.loads(Path(path).read_text())
-        if data.get('format') != 'genra-clip-1' or data['joints'] != rig.names:
+        if data.get('format') != 'genra-clip-1':
             raise ValueError('Not a genra-clip-1 file for this rig')
-        clip = cls(rig, data['t'], data['q'], data['s'], frame)
+        t, q, s = (np.array(data[k], float) for k in ('t', 'q', 's'))
+        if data['joints'] != rig.names:
+            known = {n: k for k, n in enumerate(data['joints'])}
+            props = {d for j, n in enumerate(rig.names) if n.startswith('Weapon') for d in rig.descendants(j)}
+            if not set(known) <= set(rig.names) or any(j not in props for j, n in enumerate(rig.names) if n not in known):
+                raise ValueError('Not a genra-clip-1 file for this rig')
+
+            def fill(values, bind):
+                out = np.repeat(np.asarray(bind, float)[None], len(values), axis=0)
+                for j, n in enumerate(rig.names):
+                    if n in known:
+                        out[:, j] = values[:, known[n]]
+                return out
+            t, q, s = fill(t, rig.bind_t), fill(q, rig.bind_q), fill(s, rig.bind_s)
+        clip = cls(rig, t, q, s, frame)
         clip.q /= np.linalg.norm(clip.q, axis=-1, keepdims=True)
         if clip.frame is None:
             clip.frame = CharFrame.from_pose(clip.pose(0))

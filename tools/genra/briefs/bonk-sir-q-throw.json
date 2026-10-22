@@ -1,0 +1,259 @@
+{
+  "name": "bonk-sir-q-throw",
+  "notes": "Sir Bonk ground.A / air.A (key Q), the Pot-Lid Throw (a returning projectile), 2026-10-22. The images-only trial: the owner approved the key-pose sheet in image 3 (Codex image generation from his own renders) and the timing. Rig pack bonk-unity-sirlid = the live Sir Bonk without his left pauldron in the body mesh, the pauldron as two pack props: the lid in his left hand (Weapon1, a frisbee grip) and the lid on his shoulder at the owner's placement B (Weapon2). Keys stage first; the owner approves the keys before any motion.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirlid",
+  "character": "Sir Bonk (74 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip; and his pot lid twice. Weapon1 is the lid in his LEFT hand: a 0.37 m dome of cream-painted tin with his crown painted on its outer face, held by the rim with the thumb on top and the fingers under it; lidCentre is its middle and lidOut sits 0.15 m out from its painted face. Weapon2 is the same lid on his left shoulder (shoulderLidCentre, shoulderLidOut), fixed to the upper arm. The game shows only one of them at a time: the shoulder lid until the grab at tick 4, the hand lid from the grab until the release at tick 14, then neither, because the lid is flying. Your renders draw both all the time.)",
+  "description": "Sir Bonk's Q, the Pot-Lid Throw. He skims the pot lid off his own left shoulder like a frisbee. It flies out about 5.5 m, swings round and comes back to him: it hits the first fighter it meets with a DOOONG on the way out and on the way back, and he catches it back on his shoulder. One lid: he can't throw again while it is out, and if he is busy when it comes back it rings off his own bucket. The owner approved the key-pose sheet in image 3 as the direction.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He does everything from his book completely seriously, and it goes a bit wrong for him. Here he throws his own shoulder pad, proudly.\n\nThe lid (Weapon1 in the hand, Weapon2 on the shoulder; see the character notes). It is rigid: the hand lid moves only with his left hand, the shoulder lid only with his left upper arm. Measured on his idle in the character frame: the shoulder lid's centre is 0.20 m to his left, 0.01 m ahead and 0.50 m above the hips, its painted face turned forward, out and up; his left shoulder joint is 0.23 m left, 0.09 m behind and 0.52 m above the hips; his head 0.66 m above.\n\nHis idle (measured in the character frame): feet wide and square to the front, toes 0.97 m below the hips and about 0.5 m either side. The plank rests back over his right shoulder: the right hand in front of the right chest (0.22 m right, 0.14 m ahead, 0.46 m up), the blade rising behind him to his right, its tip 1.16 m behind the hips and 1.5 m up. The left fist sits on his left hip (0.33 m left, 0.10 m up). The idle's plank hand is folded back about 137 degrees off the forearm (hidden behind the plank).\n\nHow the game plays it. Ticks 0-36 at 60 Hz (0.6 s), played once; the game stretches the whole clip over the move. The fighter does not move: no travel. At tick 4 the game swaps the shoulder lid for the hand lid, so they must be in the same place then. At tick 14 the game spawns the flying lid where the hand lid is, flying straight ahead along his facing, and hides the hand lid. From tick 30 the player can act again, so he must be close to his idle by then; ticks 33-36 are the idle exactly, so the game blends back into it without a pop. The wind-up is the opponent's warning: it must read big and clear from the front and from the match camera straight behind him.\n\nThe reference (image 3, his front three-quarter left, the camera of `front-three-quarter-left`): grab, cock, skim, follow-through and recover, mapped to ticks 4, 9, 14, 20 and 30-36. It sets the poses, not the angles. One correction from the owner's review: the sheet's skim throws up and to his left; in the game the lid flies straight ahead, so at the release the arm points forward and the lid leaves flat, and the swing carries out to his left only in the follow-through.\n\nThe beats:\n- Ticks 0-4, the grab (sheet pose 1): from the idle, the left fist leaves the hip and reaches up to the lid on his left shoulder: bend the elbow hard and bring the hand up to the shoulder's front. By tick 4 the hand lid (lidCentre, lidOut) sits exactly on the shoulder lid (shoulderLidCentre, shoulderLidOut): fingers under the rim, thumb on top. The plank stays on his right shoulder. Straighten the idle's folded plank wrist by tick 4 if the arm moves (the check skips ticks 0-3 for it).\n- Ticks 4-9, the cock (pose 2, the tell): he pulls the lid off the shoulder and across his chest to his right side at shoulder height, the left arm folded across his body, the lid held flat with its painted face up. The shoulders turn about 45 degrees to his right, the knees bend into a wider, lower stance (the left foot may step out a little), and the right hand lowers the plank behind him, its tip down behind his right side. Hold the coil briefly around tick 9.\n- Ticks 9-14, the skim (pose 3): the torso unwinds hard to the left and the left arm whips across his body, flat and level. At tick 14 the lid leaves his fingers in front of his chest, about 0.6 m ahead of the hips, flat (painted face up), the arm pointing forward along his facing. His weight shifts onto the front (left) foot.\n- Ticks 14-20, the follow-through (pose 4): the arm keeps swinging out to his left, the hand open and empty (in the game the lid is gone after tick 14: let the drawn hand lid simply follow the open hand), the chest proud, the body leaning into the throw, a little over-committed.\n- Ticks 20-30, the recovery (pose 5): he settles back: the left fist returns to his hip and the plank comes back up onto his right shoulder. By tick 30 he is nearly in his idle.\n- Ticks 30-36: he settles exactly into the idle (ticks 33-36 equal it).\n\nKeep it heavy and proud rather than quick and light: he is a big brute throwing a pot lid as if it were a knight's discus. Keep the cape at rest, the plank clear of his body and of the lid, and the left hand clear of his helm.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda",
+    "shuriken": "references/shuriken.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 33
+  },
+  "clock": {
+    "duration_ticks": 36,
+    "contact_tick": 14,
+    "iasa_tick": 30
+  },
+  "timing": {
+    "fixed": [
+      "36 ticks at 60 Hz, played once: the game stretches the whole clip over the move",
+      "the grab at tick 4: the game swaps the shoulder lid for the hand lid there",
+      "the release at tick 14: the game spawns the flying lid at the hand lid, flying straight ahead",
+      "the player can act from tick 30",
+      "tick 0 and ticks 33-36 are his idle pose exactly"
+    ],
+    "adjustable": [
+      "the owner may retime the wind-up (ticks 4-14) or the recovery later, so keep each beat one clean motion"
+    ]
+  },
+  "fast_windows": [
+    [
+      2,
+      5
+    ],
+    [
+      10,
+      16
+    ]
+  ],
+  "views": [
+    "front-three-quarter-left",
+    "profile-left",
+    "gameplay",
+    "front"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../sir-bonk-q-20261022/pose-sheet-1.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: the key-pose sheet the owner approved for this move (2026-10-22, his front three-quarter left): grab, cock, skim, follow-through and recover, mapped to ticks 4, 9, 14, 20 and 30-36. Its skim throws up and to his left; the game throws straight ahead (see the beats).",
+  "keys": [
+    0,
+    4,
+    9,
+    14,
+    20,
+    26,
+    30,
+    36
+  ],
+  "review_ticks": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    9,
+    11,
+    13,
+    14,
+    16,
+    18,
+    20,
+    23,
+    26,
+    30,
+    33,
+    36
+  ],
+  "review": {
+    "reference": "shuriken",
+    "travel": 0.0
+  },
+  "wrist_exempt": {
+    "ticks": [
+      [
+        0,
+        3
+      ],
+      [
+        31,
+        36
+      ]
+    ],
+    "why": "his approved idle folds the plank hand 137 degrees behind the plank: the clip starts on it and settles back into it to end on the idle"
+  },
+  "targets": [
+    {
+      "name": "grab: the hand lid on the shoulder lid at tick 4 (m)",
+      "kind": "distance",
+      "a": "lidCentre",
+      "b": "shoulderLidCentre",
+      "tick": 4,
+      "max": 0.06
+    },
+    {
+      "name": "grab: the hand lid turned like the shoulder lid at tick 4 (m)",
+      "kind": "distance",
+      "a": "lidOut",
+      "b": "shoulderLidOut",
+      "tick": 4,
+      "max": 0.08
+    },
+    {
+      "name": "cock: the lid across to his right side at tick 9 (m)",
+      "kind": "char",
+      "a": "lidCentre",
+      "axis": "right",
+      "tick": 9,
+      "min": 0.05
+    },
+    {
+      "name": "cock: the lid in front of his chest at tick 9 (m)",
+      "kind": "char",
+      "a": "lidCentre",
+      "axis": "front",
+      "tick": 9,
+      "min": -0.05,
+      "max": 0.45
+    },
+    {
+      "name": "cock: the lid at chest-to-shoulder height at tick 9 (m)",
+      "kind": "char",
+      "a": "lidCentre",
+      "axis": "up",
+      "tick": 9,
+      "min": 0.15,
+      "max": 0.6
+    },
+    {
+      "name": "cock: the lid held flat, face up, at tick 9 (m)",
+      "kind": "below",
+      "a": "lidCentre",
+      "b": "lidOut",
+      "tick": 9,
+      "min": 0.07
+    },
+    {
+      "name": "cock: the plank lowered behind him at tick 9 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 9,
+      "max": 0.6
+    },
+    {
+      "name": "release: the lid ahead of him at tick 14 (m)",
+      "kind": "ahead",
+      "a": "lidCentre",
+      "b": "Hips",
+      "tick": 14,
+      "min": 0.5
+    },
+    {
+      "name": "release: the lid in front, not off to his left, at tick 14 (m)",
+      "kind": "char",
+      "a": "lidCentre",
+      "axis": "right",
+      "tick": 14,
+      "min": -0.35,
+      "max": 0.2
+    },
+    {
+      "name": "release: the lid at chest-to-shoulder height at tick 14 (m)",
+      "kind": "char",
+      "a": "lidCentre",
+      "axis": "up",
+      "tick": 14,
+      "min": 0.2,
+      "max": 0.6
+    },
+    {
+      "name": "release: the lid flat, face up, at tick 14 (m)",
+      "kind": "below",
+      "a": "lidCentre",
+      "b": "lidOut",
+      "tick": 14,
+      "min": 0.09
+    },
+    {
+      "name": "follow-through: the left hand swung out to his left at tick 20 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 20,
+      "max": -0.45
+    },
+    {
+      "name": "follow-through: the left hand still ahead at tick 20 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 20,
+      "min": 0.1
+    },
+    {
+      "name": "recovery: the left fist back down near the hip at tick 30 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "up",
+      "tick": 30,
+      "max": 0.3
+    },
+    {
+      "name": "right toes stay put, front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        36
+      ],
+      "max": 0.08
+    },
+    {
+      "name": "right toes stay put, side to side (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "right",
+      "window": [
+        0,
+        36
+      ],
+      "max": 0.08
+    }
+  ],
+  "props_shown": {
+    "Weapon1": [
+      [
+        4,
+        14
+      ]
+    ],
+    "Weapon2": [
+      [
+        0,
+        3
+      ]
+    ]
+  }
+}

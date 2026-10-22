@@ -1,0 +1,1131 @@
+{
+  "authoringSchemaVersion": 3,
+  "displayName": "Bashie",
+  "weight": 100,
+  "movement": {
+    "runSpeed": 11.5,
+    "runAccelerationA": 20,
+    "runAccelerationB": 12,
+    "dashSpeed": 20,
+    "airDodgeSpeed": 11,
+    "airSpeedMax": 9,
+    "airAccelStick": 20,
+    "airAccelBase": 4,
+    "jumpForce": 10.4,
+    "shortHopForce": 6.6,
+    "airJumpVMultiplier": 0.8,
+    "airJumpHMultiplier": 0.85,
+    "gravity": 24,
+    "airFloatGravity": 0,
+    "dashDurationTicks": 18,
+    "dashCooldownTicks": 48,
+    "groundFriction": 8,
+    "airFriction": 6,
+    "maxFallSpeed": 11,
+    "fastFallSpeed": 18,
+    "maxJumps": 2,
+    "jumpSquatTicks": 4,
+    "floatWindowTicks": 30,
+    "rushTicks": 10
+  },
+  "presentation": {
+    "idle": "anim.bashie.idle",
+    "run": "anim.bashie.run",
+    "dash": "anim.bashie.dash",
+    "jump": "anim.bashie.jump",
+    "fall": "anim.bashie.fall",
+    "hitSmall": "anim.bashie.hit-small",
+    "hitMedium": "anim.bashie.hit-medium",
+    "hitHard": "anim.bashie.hit-hard",
+    "tumble": "anim.bashie.tumble",
+    "crouch": "anim.bashie.crouch",
+    "slide": "anim.bashie.slide",
+    "landStartOffsetSeconds": 0.49,
+    "modelResourcePath": "",
+    "visualScale": 1.1,
+    "hurtboxBoneScale": 0.85,
+    "modelYOffset": -0.75,
+    "modelSoleOffset": 0,
+    "autoModelYOffset": false
+  },
+  "capsuleRadius": 0.3,
+  "capsuleHeight": 1.5,
+  "hipHeight": 0.34,
+  "hurtboxRadius": 1,
+  "shieldRadius": 0.95,
+  "captureGeometry": {
+    "reach": 1.7,
+    "width": 0.58,
+    "height": 0.98,
+    "offsetY": 0.49,
+    "attackerAnchor": {
+      "x": 0,
+      "y": 0.49,
+      "z": 0.21
+    },
+    "victimAnchor": {
+      "x": 0,
+      "y": 0.49,
+      "z": 0.33
+    }
+  },
+  "hurtboxCapsules": [
+    {
+      "startX": 0,
+      "startY": 0.18,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 0.79,
+      "endZ": 0,
+      "radius": 0.26
+    },
+    {
+      "startX": 0,
+      "startY": 1.06,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 1.06,
+      "endZ": 0,
+      "radius": 0.2
+    },
+    {
+      "startX": 0.26,
+      "startY": 0.7,
+      "startZ": 0,
+      "endX": 0.53,
+      "endY": 0.53,
+      "endZ": 0.18,
+      "radius": 0.11
+    },
+    {
+      "startX": -0.26,
+      "startY": 0.7,
+      "startZ": 0,
+      "endX": -0.53,
+      "endY": 0.53,
+      "endZ": 0.18,
+      "radius": 0.11
+    },
+    {
+      "startX": 0.13,
+      "startY": 0,
+      "startZ": 0,
+      "endX": 0.13,
+      "endY": -0.7,
+      "endZ": 0,
+      "radius": 0.14
+    },
+    {
+      "startX": -0.13,
+      "startY": 0,
+      "startZ": 0,
+      "endX": -0.13,
+      "endY": -0.7,
+      "endZ": 0,
+      "radius": 0.14
+    }
+  ],
+  "hurtboxBoneDefs": [
+    {
+      "boneId": "bone.head",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.22
+    },
+    {
+      "boneId": "bone.spine2",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.26
+    },
+    {
+      "boneId": "bone.hips",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.26
+    },
+    {
+      "boneId": "bone.right-hand",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.12
+    },
+    {
+      "boneId": "bone.left-hand",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.12
+    },
+    {
+      "boneId": "bone.right-foot",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.16
+    },
+    {
+      "boneId": "bone.left-foot",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.16
+    }
+  ],
+  "attachmentBoneIds": [],
+  "presentationIds": [],
+  "capabilityRequirements": [
+    {
+      "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.internal.manki.bazooka.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.charged-stream.v1",
+      "capabilityVersion": "1"
+    }
+  ],
+  "slots": [
+    {
+      "id": "ground.1",
+      "name": "Monkey Punch",
+      "description": "Right punch with a target-locking lunge",
+      "iconId": "icon.1",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 35,
+            "iasaTicks": 18,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 2,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.g1"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 9,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 9,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.3,
+                  "offsetZ": 0.3,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 4,
+                  "angle": 8,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 20,
+                  "stunTicks": 14,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.1",
+      "name": "Air Kick",
+      "description": "Quick aerial kick that lunges toward the target",
+      "iconId": "icon.1",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 38,
+            "iasaTicks": 33,
+            "landingLagTicks": 9,
+            "autoCancelBeforeTicks": 6,
+            "autoCancelAfterTicks": 26,
+            "attackRange": 1.75,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.a1"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 7,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 15,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 180
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 7,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 55,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 24,
+                  "stunTicks": 12,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 18,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.left-hand",
+                  "endBoneId": null,
+                  "damage": 5,
+                  "angle": 45,
+                  "baseKnockback": 7,
+                  "knockbackGrowth": 30,
+                  "stunTicks": 16,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.2",
+      "name": "Straight Punch",
+      "description": "Straight Punch",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 58,
+            "iasaTicks": 26,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.g2"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 9,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 9,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.2,
+                  "offsetZ": 0.21,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 7,
+                  "angle": 25,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 26,
+                  "stunTicks": 18,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.2",
+      "name": "Air Swing",
+      "description": "Air Swing",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 48,
+            "iasaTicks": 41,
+            "landingLagTicks": 9,
+            "autoCancelBeforeTicks": 6,
+            "autoCancelAfterTicks": 33,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.a2"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 8,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 15,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 180
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 8,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.left-foot",
+                  "endBoneId": "bone.hips",
+                  "damage": 8,
+                  "angle": 25,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 26,
+                  "stunTicks": 18,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 14,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.left-foot",
+                  "endBoneId": "bone.hips",
+                  "damage": 5,
+                  "angle": 20,
+                  "baseKnockback": 3,
+                  "knockbackGrowth": 16,
+                  "stunTicks": 12,
+                  "durationTicks": 23,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.3",
+      "name": "Sweeping Kick",
+      "description": "Sweeping Kick",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 44,
+            "iasaTicks": 29,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.g3"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 9,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 9,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.2,
+                  "offsetZ": 0.21,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 7,
+                  "angle": 25,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 26,
+                  "stunTicks": 18,
+                  "durationTicks": 12,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.3",
+      "name": "Double Fist Slam",
+      "description": "Overhead double-fist aerial strike",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 62,
+            "iasaTicks": 57,
+            "landingLagTicks": 12,
+            "autoCancelBeforeTicks": 6,
+            "autoCancelAfterTicks": 44,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.a3"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 23,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 23,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0.14,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 8,
+                  "angle": 65,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 26,
+                  "stunTicks": 20,
+                  "durationTicks": 8,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.4",
+      "name": "Head Slam",
+      "description": "Brief wind-up, then drive the skull forward and down into the target.",
+      "iconId": "icon.4",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 40,
+            "iasaTicks": 35,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.g4"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 10,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 10,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.head",
+                  "endBoneId": "bone.head",
+                  "damage": 14,
+                  "angle": 28,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.4",
+      "name": "Air Smash",
+      "description": "Air Smash",
+      "iconId": "icon.4",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 62,
+            "iasaTicks": 57,
+            "landingLagTicks": 12,
+            "autoCancelBeforeTicks": 6,
+            "autoCancelAfterTicks": 44,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.a4"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 5,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 5,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": -0.2,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0.2,
+                  "startBoneId": "bone.left-foot",
+                  "endBoneId": null,
+                  "damage": 13,
+                  "angle": 25,
+                  "baseKnockback": 8,
+                  "knockbackGrowth": 42,
+                  "stunTicks": 26,
+                  "durationTicks": 38,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.A",
+      "name": "Hose Down",
+      "description": "Hold to pump the water blaster while aiming with the camera, release to spray a stream that pushes instead of hurting. The longer she pumps, the longer and stronger the stream; in the air it pushes her back.",
+      "iconId": "icon.a",
+      "behavior": "chargeAttack",
+      "aimMode": "cameraForward3D",
+      "aimMovement": "fixed",
+      "aimAnimationId": "anim.bashie.hose-pump",
+      "cooldownTicks": 90,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 4,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.hose",
+              "anim.bashie.hose-end",
+              "anim.bashie.hose-spray"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.charged-stream.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "maxChargeTicks": 60,
+                  "fireTriggerTick": 4,
+                  "emitIntervalTicks": 3,
+                  "minStreamTicks": 12,
+                  "maxStreamTicks": 45,
+                  "recoveryTicks": 14,
+                  "maxBaseKnockback": 40,
+                  "minRecoilSpeed": 1.5,
+                  "maxRecoilSpeed": 4.5,
+                  "projectile": {
+                    "launchOffsetX": 0,
+                    "launchOffsetY": -0.1,
+                    "launchOffsetZ": 0.65,
+                    "speed": 16,
+                    "gravity": 4,
+                    "radius": 0.35,
+                    "damage": 0,
+                    "angle": 0,
+                    "baseKnockback": 22,
+                    "knockbackGrowth": 2,
+                    "stunTicks": 0,
+                    "maxFlightTicks": 26,
+                    "yawOffsetDegrees": 0
+                  },
+                  "sprayAnimationId": "anim.bashie.hose-spray",
+                  "sprayLoopTicks": 12,
+                  "endAnimationId": "anim.bashie.hose-end"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.E",
+      "name": "Jetpack Boost",
+      "description": "Explode upward with a strong vertical boost; drift after reaching the apex.",
+      "iconId": "icon.e",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 210,
+      "isRecoveryMove": true,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 60,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.ge"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "startupTicks": 3,
+                  "verticalSpeed": 15,
+                  "horizontalSpeed": 3.5,
+                  "explosionRadius": 1.5,
+                  "explosionDamage": 10,
+                  "explosionKbAngle": 30,
+                  "explosionKbBase": 2.4,
+                  "explosionKbGrowth": 24,
+                  "explosionStunTicks": 18,
+                  "explosionDurationTicks": 8,
+                  "explosionPresentationId": ""
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.R",
+      "name": "Bazooka",
+      "description": "Launch a rocket that explodes on impact",
+      "iconId": "icon.r",
+      "behavior": "projectile",
+      "aimMode": "cameraForward3D",
+      "aimMovement": "fixed",
+      "cooldownTicks": 240,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 600,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.gr"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.internal.manki.bazooka.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "fireTriggerTick": 6,
+                  "projectileSpeed": 40,
+                  "hitboxRadius": 0.6,
+                  "damage": 15,
+                  "gravity": 15,
+                  "maxFlightTicks": 45,
+                  "stunTicks": 24,
+                  "explosionRadius": 3,
+                  "kbAngle": 25,
+                  "explosionKbBase": 6,
+                  "explosionKbGrowth": 42,
+                  "explosionStunTicks": 22,
+                  "explosionDurationTicks": 6,
+                  "explosionKbAngle": 25,
+                  "castDuration": 20,
+                  "recoveryDuration": 15,
+                  "explosionPresentationId": ""
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.F",
+      "name": "Aerosol Inferno",
+      "description": "Shake and point an aerosol can, then project a forward fire column",
+      "iconId": "icon.f",
+      "behavior": "areaDenial",
+      "aimMode": "cameraForward3D",
+      "aimMovement": "fixed",
+      "aimAnimationId": "anim.bashie.gf-loop",
+      "cooldownTicks": 600,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 62,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.gf-atk"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 8,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 45,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 360,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "minimumChargeTicks": 18,
+                  "chargeTiers": [
+                    {
+                      "chargeTicks": 18,
+                      "damage": 10,
+                      "reachScale": 0.6
+                    },
+                    {
+                      "chargeTicks": 30,
+                      "damage": 14,
+                      "reachScale": 0.8
+                    },
+                    {
+                      "chargeTicks": 42,
+                      "damage": 18,
+                      "reachScale": 1
+                    },
+                    {
+                      "chargeTicks": 54,
+                      "damage": 22,
+                      "reachScale": 1.25
+                    },
+                    {
+                      "chargeTicks": 66,
+                      "damage": 26,
+                      "reachScale": 1.5
+                    }
+                  ],
+                  "fireTriggerTick": 8,
+                  "fireDurationTicks": 62,
+                  "hitboxDurationTicks": 44,
+                  "hitboxRadius": 0.7,
+                  "offsetY": 0.25,
+                  "offsetZ": 1.25,
+                  "endOffsetZ": 3,
+                  "damage": 15,
+                  "knockbackAngle": 30,
+                  "knockbackBase": 12,
+                  "knockbackGrowth": 20,
+                  "stunTicks": 30,
+                  "hitGroup": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "aliases": [
+    {
+      "from": "air.A",
+      "to": "ground.A"
+    },
+    {
+      "from": "air.E",
+      "to": "ground.E"
+    },
+    {
+      "from": "air.R",
+      "to": "ground.R"
+    },
+    {
+      "from": "air.F",
+      "to": "ground.F"
+    }
+  ]
+}

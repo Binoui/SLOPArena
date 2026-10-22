@@ -1,4 +1,5 @@
-// genra clip writer: toolkit poses -> hybrid Humanoid clip on the package's catalog prefab, measured in Unity.
+// genra clip writer: toolkit poses -> hybrid Humanoid clip on the package's catalog prefab (or the rig pack's
+// candidate prefab, job["prefab"]), measured in Unity.
 // Rendered by tools/genra/unity_clip.py ({{JOB}} {{OUTPUT}}) and run with the gateway's eval_file in Edit Mode.
 // Mapped Humanoid bones become muscle and body (RootT/RootQ) curves from HumanPoseHandler; every other joint keeps
 // exact local transform curves. Root motion is baked into the pose: PlayerRenderer plays clips through Animancer
@@ -29,7 +30,12 @@ if (assetPath != null && UnityEditor.AssetDatabase.LoadMainAssetAtPath(assetPath
 var catalog = UnityEditor.AssetDatabase.LoadMainAssetAtPath("Assets/CharacterPackages/" + package + "/CharacterAssetCatalog.asset");
 if (catalog == null) throw new System.Exception("No catalog for " + package);
 var catalogObject = new UnityEditor.SerializedObject(catalog);
-var prefab = (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+// A candidate pack (unity_rigpack.py --prefab) names its own unbound prefab; otherwise the catalog's _rig.
+string prefabPath = job["prefab"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["prefab"] : null;
+var prefab = !string.IsNullOrEmpty(prefabPath)
+  ? UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(prefabPath)
+  : (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+if (prefab == null) throw new System.Exception("No prefab " + (prefabPath ?? "_rig of " + package));
 UnityEngine.AnimationClip Bound(string semantic) {
   if (semantic == null) return null;
   var bindings = catalogObject.FindProperty("_bindings");
@@ -40,7 +46,17 @@ UnityEngine.AnimationClip Bound(string semantic) {
   }
   throw new System.Exception("Missing bound clip " + semantic);
 }
-var referenceClip = reference != null ? Bound((string)reference["semanticId"]) : null;
+UnityEngine.AnimationClip LoadClip(string source) {  // "Assets/...anim", or "Assets/...fbx|Take" for one clip of a model
+  var parts = source.Split('|');
+  foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(parts[0])) {
+    var clip = asset as UnityEngine.AnimationClip;
+    if (clip != null && !clip.name.StartsWith("__preview__") && (parts.Length == 1 || clip.name == parts[1])) return clip;
+  }
+  throw new System.Exception("No clip at " + source);
+}
+// The entry clip: one bound in the catalog, or a clip asset (an unbound entry such as a new aim loop).
+var referenceClip = reference == null ? null
+  : reference["asset"] != null ? LoadClip((string)reference["asset"]) : Bound((string)reference["semanticId"]);
 float referenceTime = reference != null ? (int)reference["tick"] / (float)fps : 0f;
 var compareClip = Bound(compareId);
 float[] P(UnityEngine.Vector3 v) => new[] { v.x, v.y, v.z };
@@ -427,7 +443,7 @@ try {
     lengthSeconds = result.length, looping = result.isLooping, alignOrigin, curves = UnityEditor.AnimationUtility.GetCurveBindings(result).Length,
     muscleAttributes = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(UnityEngine.HumanTrait.MuscleName, MuscleAttribute)),
     mapped, generic = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(generic, i => paths[i])), inBetween,
-    reference = referenceClip != null ? new { clip = referenceClip.name, semanticId = (string)reference["semanticId"], tick = (int)reference["tick"], positions = referencePositions } : null,
+    reference = referenceClip != null ? new { clip = referenceClip.name, semanticId = (string)(reference["semanticId"] ?? reference["asset"]), tick = (int)reference["tick"], positions = referencePositions } : null,
     originBodyOffset = P(origin), compare = compareClip?.name,
     fit = new { beforeMetres = fitBefore, afterMetres = fitAfter, afterDegrees = fitAngle, worstJoint = System.Array.ConvertAll(fitWorst, i => paths[i]),
                 worstAngleJoint = System.Array.ConvertAll(fitAngleJoint, i => paths[i]) },

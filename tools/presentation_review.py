@@ -33,7 +33,8 @@ FONT = ROOT / "client/Unity/Assets/Fonts/ArchivoBlack-Regular.ttf"
 # Starting points per canonical ground slot: metres apart, victim percent, ticks captured
 # after the press. Override per character with --set, e.g. A:distance=4, F:ticks=160,
 # A:hold=50 (ticks of aiming after the press, which charges aim-hold specials) or
-# F:orbit=70 (degrees the cameras orbit toward the attacker's back, for the gameplay angle).
+# F:orbit=70 (degrees the cameras orbit toward the attacker's back, for the gameplay angle) or
+# R:shield=1 (the victim holds its shield, for a move's blocked path).
 MOVE_DEFAULTS = {
     "1": {"distance": 1.3, "damage": 40, "ticks": 50},
     "2": {"distance": 1.3, "damage": 40, "ticks": 50},
@@ -68,8 +69,8 @@ def build_batch(attacker: str, victim: str, stage: str, output: str, moves: list
     for override in overrides:
         move, _, assignment = override.partition(":")
         key, _, value = assignment.partition("=")
-        if move not in settings or key not in ("distance", "damage", "ticks", "hold", "orbit") or not value:
-            raise SystemExit(f"--set {override}: expected MOVE:distance|damage|ticks|hold|orbit=VALUE for a captured move")
+        if move not in settings or key not in ("distance", "damage", "ticks", "hold", "orbit", "shield") or not value:
+            raise SystemExit(f"--set {override}: expected MOVE:distance|damage|ticks|hold|orbit|shield=VALUE for a captured move")
         settings[move][key] = float(value) if key in ("distance", "orbit") else int(value)
     width, _, height = size.partition("x")
     commands = [["sloparena.hitfeel.prepare", "--stage", stage], ["editor_play"]]
@@ -85,20 +86,28 @@ def build_batch(attacker: str, victim: str, stage: str, output: str, moves: list
             command += ["--hold", str(s["hold"])]
         if s.get("orbit"):
             command += ["--orbit", number(s["orbit"])]
+        if s.get("shield"):
+            command += ["--shield", "true"]
         commands.append(command)
     commands.append(["get_console_logs", "--severity", "error", "--limit", "20"])
     return {"commands": commands, "restore": [["sloparena.hitfeel.stop"], ["sloparena.hitfeel.restore"]]}
 
 
 def read_stream(text: str) -> list[dict]:
-    """The gateway prints one JSON document per command plus status documents."""
+    """The gateway prints one JSON document per command plus status documents, and plain-text notes between them
+    (such as the recompile it runs before a batch after C# edits), which are skipped."""
     decoder, index, documents = json.JSONDecoder(), 0, []
     while index < len(text):
         while index < len(text) and text[index].isspace():
             index += 1
         if index >= len(text):
             break
-        document, index = decoder.raw_decode(text, index)
+        try:
+            document, index = decoder.raw_decode(text, index)
+        except json.JSONDecodeError:
+            newline = text.find("\n", index)
+            index = len(text) if newline < 0 else newline + 1
+            continue
         documents.append(document)
     return documents
 
@@ -286,7 +295,7 @@ def main(argv: list[str] | None = None) -> int:
     batch.add_argument("--output", required=True, help="fresh repository-relative directory below tmp/")
     batch.add_argument("--moves", default="1,2,3,4,A,E,R,F", help="comma list of ground slots")
     batch.add_argument("--set", action="append", default=[], metavar="MOVE:KEY=VALUE",
-                       help="override distance, damage or ticks for one move")
+                       help="override distance, damage, ticks, hold, orbit or shield for one move")
     batch.add_argument("--preset", default="high:1.6", help="hit-feel preset name:scale (default: the shipped strength)")
     batch.add_argument("--size", default="960x540", help="frame size WxH")
     batch.add_argument("--track", action=argparse.BooleanOptionalAction, default=True,

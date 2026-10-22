@@ -83,9 +83,13 @@ Record a short brief before posing. This is a task note, not a new package schem
 ```text
 Package / canonical slot / semantic animation ID:
 Motion and visual reference:
+Reference source / model if generated / revision / usage:
 Grounded or airborne; entry and recovery reference:
-Timing: fixed existing clock, or authorized provisional clock:
+Timing contract: fixed by the game / adjustable to suit the animation (the owner's answer):
 Beats: entry, wind-up, contact, follow-through, recovery, endpoint:
+Key poses for approval before transitions (story beats and their ticks):
+Body mechanics: foot contacts, weight shifts, leading body part, limb/weapon arcs:
+Phases: one clip, or one authoring job per clip the game plays:
 Root / foot-contact constraints:
 Permitted exaggeration and preserved regions:
 Authoring route and tool versions:
@@ -99,6 +103,20 @@ to place contact and recovery; do not assume 1× playback. Keep authored gamepla
 time in 60 Hz ticks. When retiming is authorized, label the proposed clock
 provisional until the candidate is accepted; otherwise preserve the existing one.
 
+Ask the owner which timing the game must keep and what may change to suit the
+animation, before authoring. Record the answer in the brief's `timing` field;
+the animator and the director both see it. Sir Bonk's E1 leap (2026-10-21) was
+authored as one 148-tick clip to keep the leap's rules. Only afterwards did the
+owner say the physics and timing could change as long as aim, flight and the hit
+with its recovery stay. The move was then cut into phase clips.
+
+Split a long move into one authoring job per clip the game plays, such as a
+leap's flight and its landing. Chain the jobs with the brief's `entry`/`exit`
+references, so each job starts on the previous job's pose and an accepted phase
+is not rebuilt. Give a section that needs room, such as a struggle, its own
+job at its final timing. Squeezing it afterwards changes its speeds, and
+`unity_clip.py write` re-checks a cut or retimed phase for that reason.
+
 Create a fresh isolated workspace under `artifacts/` and candidate assets at new
 Unity paths. Record hashes and back up the affected source assets, importer
 metadata and live package bindings. Preserve the currently accepted version.
@@ -107,6 +125,62 @@ All live Editor sampling/import/preview work follows the
 [Unity CLI guide](../contributing/unity-cli.md) and
 [Editor coordination protocol](../contributing/unity-editor-coordination.md), using
 this caller's own bounded gateway lease.
+
+### Choose visual references
+
+Use image pose references by default when a new visual direction is needed
+(21 October 2026). Reuse accepted references when they already explain the action.
+For ordinary attacks and holds, start with one coherent pose sheet grounded in the
+actual character render: about 4–6 labelled poses for an attack, or a single pose
+for a hold. Choose only the beats the move needs. Keep the camera, proportions,
+weapon dimensions and grip consistent; use a plain background and clear silhouettes.
+
+Nano Banana 2 (`gemini-3.1-flash-image`) is the suggested starting model for the
+first trial through an available, authorized image tool. Check current availability,
+reference-image support and pricing before spending; this choice does not require
+a new dependency. Follow the task's existing provider and budget authorization.
+Record the actual model, prompt, input render, output revision and usage. See the
+[image-model documentation](https://ai.google.dev/gemini-api/docs/image-generation).
+
+Map each pose to the gameplay clock. Describe which foot stays planted, where
+weight transfers, which body part leads and how the weapon or limb travels between
+poses. Attach the sheet through the brief's existing `images` and `image_notes`,
+with explicit `keys` ticks. The current `review.beats` comparison expects extracted
+video frames and timestamps; leave it unset for a still-image sheet and compare
+the reference directly beside `keys.png` and the Unity captures.
+
+Block the poses on the real rig and use the key-pose approval step below. As soon
+as transitions exist, inspect rough playback for timing, weight, arcs and contacts;
+stills alone cannot establish those qualities. Repair the animation's observed
+defects before buying more reference variations.
+
+Use Seedance only for a question stills can't answer: a prop or mount that changes how
+the body works, or an unusual gait, stumble or elaborate recovery. Ask the owner first,
+with the movement question and the cost. Make one take of 8 s or less: Seedance 2.5 at
+720p cost $1.17 for 8 s and $2.32 for 10 s on 2026-10-21. When a move has several
+endings, shoot the shared opening once and start each ending's take where it differs.
+Preserve useful approved video references and extract their beats and movement notes
+as needed. Generating video solely to obtain key poses is no longer the default. See the
+[toolkit reference instructions](../../tools/genra/README.md#visual-references).
+
+The video route, measured on Sir Bonk's Joust (2026-10-21, five clips: mount, gallop
+loop, hit, stop, look-down; [bonk.md](bonk.md#the-joust-r--wired-2026-10-21)):
+
+| Stage | Spend | What it gave |
+| --- | --- | --- |
+| Seedance 2.5, four 10 s takes | $9.28 | The grip: his left hand on the horse's neck, the plank couched under his right arm, the broom tail between his legs. The owner kept the take where "he is actually holding the fake horse". Each take replayed the same mount and gallop before its own ending ("4 times the same anim"). |
+| GenRA keys, five briefs | $2.88 | The key poses the owner approved before any motion. |
+| GenRA motion, round 0 of each clip | $3.57 | The clips in the game. The gallop's gait came from the approved keys: Seedance's gallop was a heroic scissor run. |
+| An unattended gallop revision | $2.75 | Nothing: its review pulled it toward his run and the owner kept round 0. |
+| Director reviews | $0.62 | Two reviews. |
+
+That is $19.10 in total. A shared opening with short ending takes, and no revision without
+the owner, would have made the same move for about $11.
+
+Try the image-only route on Sir Bonk's Q, the pot-lid throw, or his next normal attack.
+Record reference spend and authoring revisions through user acceptance, then compare
+with the Joust. The choice is a production trial; quality and total cost savings remain
+to be established on an accepted rigged animation.
 
 ## 2. Prepare the actual rig and prove conversion
 
@@ -154,7 +228,39 @@ Manki lessons from the retained runs:
 
 Block the important poses on the measured rig, then add breakdowns and
 interpolation. Fit the requested wind-up, strike and recovery to the recorded
-clock. Keep the actor root fixed unless gameplay displacement is explicitly
+clock.
+
+For a new move with a reference, get the key poses approved before the motion
+between them. `tools/genra/run.py BRIEF --stage keys` authors only the story
+poses and renders them next to the reference beats (`keys.png`,
+`beats-keys.png`). After the owner approves, `run.py BRIEF --keys <that run>`
+builds the transitions, and the check keeps the approved poses. E1's upright
+launch and hunched haul were pose misses. They survived two 30–45 minute
+revisions that spent their time solving transitions.
+
+Use `./genra check result.json --fast` while iterating on numerical constraints.
+It retains timing, anatomy, contacts and approved-key checks, and skips mesh
+clearance, visibility and automatic renders. Run the default full check and inspect
+its renders when a pose pass is ready to judge and before delivery. The runner's
+final checks and the director's review always run full checks. Review uses the
+run's saved brief and approved poses; reused reviews get fresh full checks too.
+The loop only selects a candidate that passes both authoring and review checks.
+
+Hold contacts with the toolkit's contact tools rather than by searching poses
+(see the [toolkit README](../../tools/genra/README.md#contacts-flips-and-key-poses)):
+
+- Pin what is physically fixed. A weapon stuck in the floor pins its tip and
+  lets its handle rock (`pin`). Fixing the hand that carries it freezes that
+  hand's orientation, so the wrists fold as the body moves around it.
+- Solve each key from its neighbour (`seed`), and hold contacts between keys
+  tick by tick (`track`, `pin`, `hold_grip`), so elbows do not flip. A flip is
+  never speed, and slowing it down only shows the roll for longer.
+- A second hand closes around the handle. A target on the distance between the
+  hands passes a hand floating beside the handle.
+
+When the game moves the character (a leap, a dash), preview the clip on the
+game's trajectory early with `unity_clip.py timeline`, for short and long cases.
+E1's late swing at touchdown first showed up in game. Keep the actor root fixed unless gameplay displacement is explicitly
 authorized; a permitted local pelvis shift is distinct from moving the actor.
 Grounded motions need foot-contact constraints; airborne motions need compatible
 fall/landing transitions rather than artificially planted feet.

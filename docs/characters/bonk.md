@@ -1,6 +1,12 @@
 # Bonk
 
-> **Identity (owner, 2026-10-17):** a big, simple, good-natured brute, the "big hits"
+> **Identity (owner, 2026-10-20): Sir Bonk.** He knighted himself. A big, good-natured brute in
+> homemade armour: a bucket for a helm, a plank for a sword, pot lids on his shoulders and a
+> bedsheet cape with a crown he painted himself. He wants to be a hero, protects anyone smaller
+> than him (everyone) and can't tell a windmill from a giant. Big hits, easy to play. **BONK!** is
+> his battle cry, and the gags are on him.
+>
+> **Before the rework (owner, 2026-10-17):** a big, simple, good-natured brute, the "big hits"
 > character and one of the easier fighters to play. His name is the sound his hits make,
 > so a comic **BONK!** is his brand. The gags are on him: he's dense. His headbutt rings his
 > own bucket, and when armour shrugs off a hit a little "?" pops over his head. His colour
@@ -12,6 +18,164 @@ Bonk is a package-native greatsword kit admitted to the built-in roster.
 It exercises the authoritative Shared compiler, trusted built-in capability
 admission, cooked package loading, Character Select discovery, and match
 content admission. Avatar visual/pose review remains a release prerequisite.
+
+## Sir Bonk kit — 2026-10-21
+
+The owner approved this kit for the Sir Bonk rework on 2026-10-21. The engine for Q and R is built
+(a returning projectile and `slop.ability.steered-charge.v1`, see the
+[engine plan](../plans/2026-10-21-sir-bonk-pot-lid-and-joust.md#built-2026-10-21)). R plays
+[the Joust](#the-joust-r--wired-2026-10-21) since 2026-10-21; Q still plays Shoulder Bash until the lid's model,
+animation and effects are in. Each special is something from his book, done completely seriously, that goes a
+bit wrong for him, and what goes wrong is the opening.
+
+| Slot | Special | Shape | The opening |
+| --- | --- | --- | --- |
+| Q (`A`) | Pot-Lid Throw | He skims the pot lid off his left shoulder like a frisbee. It hits the first fighter it meets (DOOONG), curves back and hits on the way back too, knocking them toward him, and he catches it. One lid: no second throw while it is out. | If he is busy when it comes back, it rings off his own bucket and he wobbles under a "?". |
+| E | Leap of Faith | Kept: the aim, the plank-first slam on a ring, the stuck plank and the handstand ([phase clips](#targeted-jump-slam-e--sir-bonk-phase-clips--2026-10-21)). | The handstand and hauling the plank out. |
+| R | The Joust | He pulls out a hobby horse, rears and does the neigh himself, then gallops a long way with the plank couched as a lance and armour on. The first fighter he meets is unhorsed (BONK!). In the air he gallops a few strides on thin air, looks down and drops, which makes it a sideways recovery. It replaces Charging Double Slash; Shoulder Bash's snort and armour move into it. | A miss: he skids to a dramatic stop (the owner dropped the turn-round, 2026-10-21). |
+| F | Blade Storm | Kept as tuned on 2026-10-18, with a new clip on his body. | A tiny windmill spins over his bucket until he can act. |
+
+New pieces: a projectile that returns to its thrower and can hit him (Q), steering and a skid after a
+miss (R), a hobby horse model, and his left pauldron as its own piece of the model so the lid can
+leave his shoulder.
+
+His effects look homemade, like the pictures in his book: paint, wood, tin, straw and dust, with no
+energy and no glow.
+
+- Cream, from his cape and tabard, is the base. Plank red stays the hit colour: BONK!, smears and
+  thunks. His blue paint is only for heraldry (crowns, pennants, lettering), because a lot of blue
+  reads as FightGuy's ki.
+- His crown is his mark: painted on the lid and on his finisher. On E the owner picked a holy light
+  instead (2026-10-21): a crown flat on the floor reads as a squashed strip from the low match
+  camera.
+- He makes his own sounds: a neigh, coconut clip-clop, a pot-lid DOOONG, a windmill creak, a cork pop.
+- Each move has one loud moment: DOOONG on Q, the holy light on E, NEIGH! on R, the sails on F.
+  BONK! marks the big hits.
+- From the [BONK! pass](#combat-presentation--2026-10-17), BONK!, the thunks, dust, cracks, the "?"
+  and the bucket ring stay. Steel chips become wood splinters, the bull snort becomes his neigh,
+  Blade Storm's smears become windmill sails and the plank's smear becomes wet paint.
+
+## Sir Bonk normals — 2026-10-21
+
+The owner picked four new ground normals from a design board (`tmp/bonk-normals/`), one swing direction each:
+1 Squire's Cut (a fast one-handed slash off the shoulder), 2 Barn Door (a flat two-handed sweep), 3 Sunrise (a
+rising anti-air slash, without the board's crouch) and 4 The BONK (an overhead kill strike). Normals stay
+simple, without gags. Each move keeps today's move-data clock and is authored with GenRA one at a time, from a
+Seedance 2.5 reference the owner approved (`artifacts/video-refs/sir-bonk-normals/`, front three-quarter view).
+
+| Slot | Clip | Status |
+| --- | --- | --- |
+| `ground.1` | `Animations/bonk_sir_g1_squires_cut.anim` (`anim.bonk.g1`, 60 ticks, 1× playback) | Bound and cooked 2026-10-21 |
+| `ground.2` | `Animations/bonk_sir_g2_barn_door.anim` (`anim.bonk.g2`, 93 ticks, 1× playback) | Bound and cooked 2026-10-22; misses a standing Manki (below) |
+| `ground.3`–`ground.4` | the old Bonk clips | Next |
+
+The first Squire's Cut moved pose to pose: the owner found the hand-made clip it replaced "much smoother". GenRA
+now measures flow against 44 hand-made attacks ([toolkit README, "Flow"](../../tools/genra/README.md)); the bound
+revision stops 1.0 times a joint a second, 15% of the body together and 1% frozen, inside the hand-made range.
+Against the old Reverse Slash, the hit-reliability report has it at 1.00× playback instead of 1.42×, all 13 active
+ticks touching a target 1 m ahead instead of 3, and reach 0.30–2.75 m against FightGuy and Manki (0.30–2.95 m and
+0.30–2.35 m before). The move data is unchanged; the move was renamed from Reverse Slash to Squire's Cut.
+
+The Barn Door took four sets of keys. Take 2's hands folded at his belt, and the third keys locked the left hand to
+one exact grip, which winged both elbows up in front of his face. The owner's fix: the hands only need to be "side
+by side, as long as they're both approximately on the handle". GenRA now has a loose two-handed hold with the elbows
+kept down, and carries the plank both ways between keys ([toolkit README](../../tools/genra/README.md), "Carry fixes").
+One smoothing pass, keeping the approved poses, brought it to 0.61 stops a joint a second and 15% of the body
+together. Against the old Greatsword Swing, the hit-reliability report has it at 1.00× playback instead of 0.95×,
+the same 3 of 15 active ticks touching a target 1 m ahead, and reach 0.75–3.35 m against FightGuy (0.30–2.80 m
+before) but **never** against a standing Manki (1.00–2.00 m before): the plank sweeps about 1.4 m off the floor,
+over the 1.5 m fighters (Manki and Bashie). The move data is unchanged; the move was renamed from Greatsword Swing to Barn Door. Its
+hitbox (a 0.5 m capsule along the plank) needs the owner's tuning.
+
+## The Joust (R) — wired 2026-10-21
+
+Both R slots play `slop.ability.steered-charge.v1`. The owner approved the Seedance references
+(`artifacts/video-refs/sir-bonk-r-joust/`), the GenRA keys and the timing.
+
+| Phase | Clip (semantic ID) | Game rule |
+| --- | --- | --- |
+| Mount | `bonk_sir_r_mount` (`anim.bonk.gr`, `anim.bonk.ar` in the air) | The 31-tick stage. The charge starts at tick 30 and the rear is the tell: no armour. The air version keeps half gravity until then. |
+| Gallop | `bonk_sir_r_gallop` (`anim.bonk.gr-gallop`) | A 24-tick loop at 12 m/s for up to 60 ticks, steered at 180°/s, armoured. The lance is a 0.5 m capsule on the plank (`_weapon_hilt`–`_weapon_tip`): 11 damage, 40°, knockback 8/30, 18 stun. |
+| Hit | `bonk_sir_r_hit` (`anim.bonk.gr-hit`) | He stops dead on the hit, then 36 ticks of the proud rear. The hit is the big BONK! (`presentation.bonk.heavy.hit`). |
+| Miss | `bonk_sir_r_stop` (`anim.bonk.gr-stop`) | 36 ticks, with an even 18-tick skid from 12 m/s and the dust effect. No turn-round (`turnAroundOnMiss: false`, the owner's call). |
+| Air | the gallop, then `bonk_sir_r_lookdown` (`anim.bonk.gr-lookdown`) | 24 ticks of strides on thin air, then a 20-tick look-down held in mid-air, then his fall. A hit in the air also leads into the look-down. |
+
+- **Horse:** `sir_bonk_hobby_horse.prefab` (1.9 m) rides `mixamorig:Hips` on attack slot R
+  (`BonkWeaponAttachConfig`), placed as it rides on his idle.
+- **Effects:** built 2026-10-21, see [the Joust's effects](#the-jousts-effects).
+- **Gaps:** the air mount reuses the ground clip.
+- **How the clips were made:** a GenRA pack `bonk-unity-sirjoust` carries the horse as joint Weapon1 for the
+  animator. Its briefs are `tools/genra/briefs/bonk-sir-r-*.json`, and the review renders are in
+  `artifacts/genra-unity-clips/`. The owner kept the gallop's round 0 over the reviewed revision, which hunched him
+  like his run.
+
+## The Pot-Lid Throw (Q) — wired 2026-10-22
+
+He skims his left pauldron, a pot lid, off his shoulder like a frisbee. The lid flies out flat, hits, curves
+back, hits again on the way and returns to his shoulder.
+
+| Part | What | Notes |
+| --- | --- | --- |
+| Clip | `bonk_sir_q_lid_throw` (`anim.bonk.ga`, `anim.bonk.aa` in the air) | 41 ticks. GenRA revision r1 (he leans into the throw), cut from 36 ticks with a slower wind-up (owner, 2026-10-22). Grab at 6, release at 19, can act at 35, idle from 38. |
+| Throw | `spawnProjectile` on tick 19 with a `return` block | 15 m/s out for 22 ticks, back at up to 16 m/s turning at 80 m/s². Standing still, he catches it around tick 84. 5 damage, 35°, knockback 4/12, 14 stun, radius 0.45. The self-hit stuns for 30 ticks with no damage. The hit numbers are first values for Training. |
+| Aim | `startupAimCorrection` 0–16 | Up to 45° of yaw toward a target, no pitch. The lid flies where he faces. Auto-aimed projectiles (`aimedProjectile`) would snap his facing at the release. |
+| Height | launch (-0.24, 0.45, 0.97) from his capsule centre | About 1.3 m off the floor, 20 cm under his hand. From his hand (1.5 m) it flew over Manki; this height hits all four fighters on both legs. |
+| Air | the same clip, half gravity for 30 ticks | As the Shoulder Bash did. |
+
+- **The lid:** `sir_bonk_pot_lid.prefab` is split out of the body (`tools/blender/bonk_rig` step 8). In
+  `BonkWeaponAttachConfig`, the shoulder lid rides `mixamorig:LeftArm` with `HiddenBySlot` 11 from tick 6: it leaves
+  at the grab and stays off while his returning projectile is out. A second entry, on `mixamorig:LeftHand` for
+  slot 11, shows from the grab to the release (`ShowFromTicks` 6, `HideAfterTicks` 19).
+- **In flight:** `BonkPotLidProjectile` (the same lid under a `PropSpin`, 3 turns a second) is the Q projectile
+  visual, ground and air, in `ProjectileVisuals.asset`.
+- **Not yet:** the effects. Concepts come first for the DOOONG on a hit, the catch clang and the self-hit "?". Q
+  shows the normal hit and nothing on the catch. The Shoulder Bash cues (`presentation.bonk.bash.*`) are no longer
+  used.
+
+## Sir Bonk effects — 2026-10-21
+
+The owner approved these from concept paint-overs on real captures (`tmp/vfx/sirbonk/concepts/`)
+and picked the holy landing over a crown of his paint or of splinters. `BonkPresentationBuilder`
+generates them on top of the [BONK! pass](#combat-presentation--2026-10-17); only
+`presentationIds` and one cue per F slot changed in `character.json`. The "after" captures land the
+same hits as the "before" ones (E at frame 89, F at 19, 41 and 60).
+
+| Move | Presentation |
+| --- | --- |
+| Every hit | Contacts throw wood splinters instead of steel chips: it's a plank. The armour's "?" keeps its steel chips, since his armour is tin. |
+| Leap of Faith (E) landing | Six attack ticks after touchdown, once he is up in the handstand and past the impact's BONK!, a shaft of storybook light comes down on him and the stuck plank, with rays fanning from its foot, a few gleams and a choir "aah" (`bonk_choir`). It is flat painted cream, alpha-blended with no glow, drawn a metre behind him so he stays in front of it, and it is gone at tick 40 when the haul starts. At tick 53 the plank comes out with a cork POP! in his blue paint (`bonk_pop`), a puff and splinters at the hole, 1.3 m in front of him. Both live in the landing cue (`presentation.bonk.slam.landing`) and run on his attack clock through `AttackTickWindow`, so Hitstop delays them with the clip and a hit that knocks him out of the landing clears them. |
+| Blade Storm (F) spin | The three red smears are four windmill sails: cream canvas on a wooden lattice with a spar along the outer edge, each the camera-facing trail of a particle orbiting him (about 2 m of trail each, so they stay apart). A wooden creak (`bonk_creak`) plays under the whum-whum. |
+| Blade Storm (F) recovery | `presentation.bonk.storm.dizzy` at tick 60 of both F slots: a tiny windmill spins over his bucket and slows down until he can act, his dizzy stars, with a higher creak. |
+
+The sounds are synthesized by `tools/sfx/sir_bonk_clips.py`. The POP! mask is
+`Presentation/Source/Pop.png` (`tools/glyph_mask.py 'POP!' … --size 1024 --weight 800 --fill 0.86
+--bounce 7`, Baloo 2 like the BONK!). Not built yet: the plank's smear as wet paint (with the
+normals), and Q's effects (after its animation). The F spin clip is still the old Bonk's,
+so the sails follow its blade path for now.
+
+### The Joust's effects
+
+The owner approved the recommended picks from the concept board (`tmp/vfx/sirbonk-r/concepts/`) and the sound tour
+(`tmp/vfx/sirbonk-r/joust-sounds.mp4`): "Go for it, I like it picks". He does every sound himself, and
+NEIGH! is the move's one word. In both R slots, three timeline cues replace the borrowed snort, and the
+steered charge's gallop, miss and air-ending cues replace the bash dust. The "after" captures land the
+"before" hits: the lance at frame 36, the shield at 33.
+
+| Beat | Presentation |
+| --- | --- |
+| The press | `presentation.bonk.joust.horse` on his hips: a puff of straw dust, stalks flying out and a soft fwump (`bonk_poof`) hide the hobby horse appearing. The puff is full size at once and drawn half a metre toward the camera, over the horse's head. |
+| The end, however it ends | The same cue plays a second puff where the horse is at that moment (`AttackEndCue`), so the horse never just vanishes. |
+| The lance | `presentation.bonk.joust.pennant` on `_weapon_tip`: a cream pennant with his blue crown, tied 12 cm back from the tip (`PennantPresentation`). It hangs while he rears, streams back at a gallop and swings over when he stops dead. It comes and goes in a small puff. |
+| The rear (tick 10) | `presentation.bonk.joust.neigh` on his head: NEIGH! in his lettering (cream faces, a wood extrusion, since red stays for hits) pops over his bucket, with sound lines from the eye slit and his own neigh (`bonk_neigh`). |
+| The gallop | `presentation.bonk.joust.gallop` (`gallopPresentationId`): a ring of dust where he sets off. Then on every hoof (loop ticks 1 and 13, measured on the rig), a small "clip!" or "clop!" pops beside the landing foot with a coconut knock (`bonk_clip`, `bonk_clop`) and a kick of dust (`LoopFootfalls`). On thin air the knocks play without the dust. |
+| A miss or a shield | `presentation.bonk.joust.skid` (`missEndingPresentationId`): both heels gouge the deck. Dark grooves on a pale lip follow each heel (`FollowOwnerBone`), with wood chips and a wave of dust that piles up ahead of the front (left) heel as he slows. He squeals his own brakes (`bonk_squeal`). |
+| The hit | Unchanged: the big BONK! and splinters at the lance (`presentation.bonk.heavy.hit`). |
+| Off a ledge | `presentation.bonk.joust.lookdown` (`airEndingPresentationId`): a "?" in his blue paint pops over his bucket and stays in the air as he drops. Six ticks in come a sweat drop, a small "gulp" and the gulp sound (`bonk_gulp`). Then the horse leaves in its puff. |
+
+The masks are `Presentation/Source/{Neigh,Clip,Clop,Gulp}.png`. They use the POP! command with
+`'NEIGH!' … --size 1024` and the default size with `--bounce 9` (6 for gulp) for the small words. The
+builder bakes each word around its own ink. Rerunning `tools/sfx/sir_bonk_clips.py` rewrites the clips
+byte for byte (bitexact Ogg). The capture rig can't play air moves, so the look-down is checked in Training.
 
 ## Blade Storm spin — 2026-10-18
 
@@ -288,6 +452,55 @@ on landing at frame 91 and recovered at frame 143 despite whiffing. Recorded
 frame captures show the airborne hold and distinct impact/follow-through poses;
 Training and human feel acceptance remain unverified.
 
+## Targeted Jump Slam (E) — Sir Bonk phase clips — 2026-10-21
+
+Sir Bonk's E plays one clip per phase. This replaces four parts of the 2026-10-02 contract
+above: the 112-tick stage, the seek into a single clip, the 52-tick recovery and the
+hilt-to-tip blade hitbox.
+
+| Phase | Semantic ID | Clip | Length | Clock |
+|---|---|---|---|---|
+| Aim (held) | `anim.bonk.ge-aim` | `bonk_sir_e1_aim` | 40-tick loop | `aimAnimationId`, `ground.E` only |
+| Flight | `anim.bonk.ge` | `bonk_sir_e1_leap` | 74 ticks | ground-aware pose clock; `durationTicks` 74 = its baked frames |
+| Landing and recovery | `anim.bonk.ge-land` | `bonk_sir_e1_land` | 68 ticks | real time from the landing |
+
+- The flight always lasts the same time on flat ground, whatever the distance: the launch is a
+  fixed 16 m/s up, and the horizontal speed fits the distance into it. With gravity 26 m/s² he
+  touches down after 73 flight ticks. The flight clip swings the plank over his head in its last
+  ~10 authored ticks (from tick 62). Shared eases through the final 18 pose ticks using the predicted
+  time to touchdown, so the swing starts before contact and slows into the impact pose.
+- A longer flight (landing below the launch height, or `air.E` from higher up) holds before the
+  final swing until ground approaches. A higher platform brings that swing forward. The bounded
+  lookahead uses the existing Shared capsule/triangle collision and gravity, with the same
+  heightmap fallback as movement; walls and void do not count as landing surfaces. Only the
+  replicated pose clock changes: flight timeout, trajectory, landing damage and recovery keep
+  their original clocks. Single-clip targeted leaps retain their existing playback.
+- At landing, `TargetedLeapAbility` moves to the stage's second clip when it lists one
+  (`ComboStage` 1) and starts it at tick 0 (`landingSeekTick` 0). Recovery runs the whole
+  68-tick clip. A stage with one clip keeps the old seek into that clip.
+- A phase clip is one listed after the stages' own clips: `ComboStage` modulo the clip count is at
+  or past the stage count. It plays in real time from the landing (the baked frame is the elapsed
+  tick, clamped to the clip) for the server's hurtboxes, the client's weapon sampler
+  (`PlayerRenderer.TryGetBakedWeaponPose`, which poses Sir Bonk every attacking frame) and the
+  rendered clip. Abilities that only raise `ComboStage` (Manki's releases) keep their stage clip
+  and its timing.
+- The renderer cuts to a phase clip instead of crossfading. A crossfade from the swing's end (plank
+  forward) to the impact (plank in the floor) blends them in muscle space and flips the plank up and
+  back for a frame or two.
+- The hit is a ring around the landing point: a 2 m sphere centred 0.35 m below Bonk's
+  centre, with no bones. Damage, knockback (away from Bonk), stun and the six-tick window
+  are unchanged.
+- Both clips are cut from one GenRA leap (the plank stays behind his back from tick 40 to 96, then
+  swings into the floor over ticks 96–100):
+  - flight: `unity_clip.py write --ticks 0-100 --retime 0:0,40:40,96:62,97:66,98:69,99:72,100:73`.
+    A held tick extends the clip to 74 ticks so the cook includes the impact key at tick 73;
+    the flight's final sampled pose now matches the landing clip's first pose.
+  - landing: `--ticks 100-148 --retime 0:0,2:8,4:12,10:30,14:40,18:46,32:52,38:58,48:68`. The
+    handstand and getting back up take ticks 0–40; pulling the plank out and returning to idle
+    take 40–68. Recovery went from 52 to 68 ticks.
+
+`air.E` has no aim clip yet.
+
 ## Grounded hit coverage
 
 The 2026-10-12 hitbox retune broadens ground.3's blade capsule to 0.65 m
@@ -374,8 +587,8 @@ the existing air.2 probe is noninterruptible, while the other normals are interr
 
 | Slot | Role | Duration | IASA | Trigger / active | Radius | Damage / angle | Base / growth | Stun |
 | --- | --- | ---: | ---: | --- | ---: | --- | --- | ---: |
-| `ground.1` | Reverse Slash — forward check | 60 | 38 | 11 / 13 | 0.5 | 6 / 30° | 4 / 20 | 12 |
-| `ground.2` | Greatsword Swing — forward spacing | 93 | 47 | 20 / 15 | 0.5 | 10 / 35° | 7 / 30 | 16 |
+| `ground.1` | Squire's Cut — fast one-handed slash | 60 | 38 | 11 / 13 | 0.5 | 6 / 30° | 4 / 20 | 12 |
+| `ground.2` | Barn Door — flat two-handed sweep | 93 | 47 | 20 / 15 | 0.5 | 10 / 35° | 7 / 30 | 16 |
 | `ground.3` | Reverse Rising Slash | 125 | 44 | 21 / 20 | 0.5 | 10 / 35° | 7 / 30 | 16 |
 | `ground.4` | Heavy Double Slice — kill read | 118 | 71 | 48 / 16 | 0.5 | 15 / 25° | 10 / 42 | 22 |
 | `air.1` | Reverse Air Slash — spacing | 88 | 52 | 19 / 24 | 0.5 | 8 / 35° | 5 / 24 | 14 |
@@ -560,7 +773,9 @@ Intentionally bound semantic clips:
 | `anim.hit-light` | shared `Assets/Art/Characters/shared/Animations/hit_light.anim` | `anim.hit-light` |
 | `anim.hit-medium` | shared `Assets/Art/Characters/shared/Animations/hit_medium.anim` | `anim.hit-medium` |
 | `anim.hit-hard` | shared `Assets/Art/Characters/shared/Animations/hit_hard.anim` | `anim.hit-hard` |
-| `anim.bonk.g1` … `anim.bonk.g4` | `Animations/bonk_g_1.FBX` … `bonk_g_4.FBX` | matching semantic ID |
+| `anim.bonk.g1` | `CharacterPackages/bonk/Animations/bonk_sir_g1_squires_cut.anim` (GenRA, 2026-10-21) | matching semantic ID |
+| `anim.bonk.g2` | `CharacterPackages/bonk/Animations/bonk_sir_g2_barn_door.anim` (GenRA, 2026-10-22) | matching semantic ID |
+| `anim.bonk.g3`, `anim.bonk.g4` | `Animations/bonk_g_3.anim`, `bonk_g_4_n.anim` | matching semantic ID |
 | `anim.bonk.a1`, `anim.bonk.a3`, `anim.bonk.a4` | matching Bonk air FBX | matching semantic ID |
 | remaining `anim.bonk.*` move IDs | `Animations/idle.FBX` fallback | matching semantic ID |
 

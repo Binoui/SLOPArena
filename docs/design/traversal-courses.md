@@ -25,6 +25,15 @@ Ki Shot, and one bonus target per section that takes eight hits (one Fist of Fur
 course targets carry a hit count for that (`CourseTargetDefinition.Hits`). Jumps and punches
 still finish it, about twice as slowly as the specials.
 
+The fourth, Wibou's [Neo Mall](stages/wibou_mall.design.md), was measured before it was drawn,
+because his kit moves differently from the others'. Rising Slash keeps carrying him forward for
+its whole duration (about 13 m on the flat) and is a recovery move, once per airtime; Dash
+Slash's charge stops his drift, so Jump → R never beats a plain running jump. The skybridge's
+missing span is therefore an E crossing (a double jump falls short), the elevator tower takes
+Jump, jump, E (7.5 m; Jump → E reaches 5), rows are R's shape rather than gaps, and every E
+climb or crossing lands on a deck that continues ahead or against the mall's walls. Bosses
+take five hits: Skyfall lands two on a fixed target within about 2 m, a close kunai volley three.
+
 ## Resolve traversal intent before building
 
 For a new course or a substantial route revision, ask the few unresolved questions

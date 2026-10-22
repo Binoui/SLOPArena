@@ -314,7 +314,14 @@ namespace SlopArena.EditorTools
                 entry.Scale = scale;
                 bound++;
             }
-            if (bound == 0) Warnings.Add($"{ProjectileConfigPath}: no {character} slot {slot} entry.");
+            if (bound == 0)
+            {
+                // A slot's first projectile (Sir Bonk's pot lid, 2026-10-22) adds its ground and air entries.
+                var entries = new List<ProjectileVisualEntry>(config.ProjectileEntries ?? Array.Empty<ProjectileVisualEntry>());
+                foreach (bool airborne in new[] { false, true })
+                    entries.Add(new ProjectileVisualEntry { Character = character, AttackSlot = slot, Airborne = airborne, Prefab = prefab, Scale = scale });
+                config.ProjectileEntries = entries.ToArray();
+            }
             EditorUtility.SetDirty(config);
         }
 

@@ -1,0 +1,129 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e24271275a4fc0af82df0240843b6bf, type: 3}
+  m_Name: CharacterAssetCatalog
+  m_EditorClassIdentifier: 
+  _packageId: bashie
+  _catalogSchemaVersion: 1
+  _rig: {fileID: 214534977138470835, guid: 70e9fca74a636335989fca2166d526b7, type: 3}
+  _weaponConfig: {fileID: 11400000, guid: dcfa54cbcfd82de45aafe07cfcd4865b, type: 2}
+  _sampleRate: 60
+  _bindings:
+  - _semanticId: anim.bashie.a1
+    _clip: {fileID: 7400000, guid: 973124f3e1d7a5332a5845cf9899f902, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.a1
+  - _semanticId: anim.bashie.a2
+    _clip: {fileID: 7400000, guid: e3cb0933ffa0a4928a9650f5f0088e67, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.a2
+  - _semanticId: anim.bashie.a3
+    _clip: {fileID: 7400000, guid: f946c224fd7866101a6104403890bb18, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.a3
+  - _semanticId: anim.bashie.a4
+    _clip: {fileID: 7400000, guid: 8166a973f1f91d7abbaf073e68c5339e, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.a4
+  - _semanticId: anim.bashie.crouch
+    _clip: {fileID: 7400000, guid: 7257ffad1c2f8cc35a5da14ba5ee8c56, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.crouch
+  - _semanticId: anim.bashie.dash
+    _clip: {fileID: 7400000, guid: 22a7d582685576d2985024752002da00, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.dash
+  - _semanticId: anim.bashie.fall
+    _clip: {fileID: 7400000, guid: 48caf5864497749928be3a8b932b86eb, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.fall
+  - _semanticId: anim.bashie.g1
+    _clip: {fileID: 7400000, guid: 7bd096afe8f027514ad818a9a871c22a, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.g1
+  - _semanticId: anim.bashie.g2
+    _clip: {fileID: 7400000, guid: 451898cd6fb7adf5789f210975d071ae, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.g2
+  - _semanticId: anim.bashie.g3
+    _clip: {fileID: 7400000, guid: 2de9bea7f1ad6cf0d8abfa252b362d8a, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.g3
+  - _semanticId: anim.bashie.g4
+    _clip: {fileID: 7400000, guid: ad0d872c97ff0e840927103fa828a4ae, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.g4
+  - _semanticId: anim.bashie.ge
+    _clip: {fileID: 7400000, guid: 48caf5864497749928be3a8b932b86eb, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.ge
+  - _semanticId: anim.bashie.gf-atk
+    _clip: {fileID: 7400000, guid: a60e42539975cce118b1f430dd382fe6, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gf-atk
+  - _semanticId: anim.bashie.gf-loop
+    _clip: {fileID: 7400000, guid: e1deb519ffd3d191f9d910284ef832e2, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gf-loop
+  - _semanticId: anim.bashie.gr
+    _clip: {fileID: 7400000, guid: dc09d946fb5d866af905a039b6344ae1, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.gr
+  - _semanticId: anim.bashie.hit-hard
+    _clip: {fileID: 7400000, guid: 1646e28d38ae8c61eaa335b4a30f9ad7, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hit-hard
+  - _semanticId: anim.bashie.hit-medium
+    _clip: {fileID: 7400000, guid: c34be2b612cf1129f84f534f27c832a7, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hit-medium
+  - _semanticId: anim.bashie.hit-small
+    _clip: {fileID: 7400000, guid: 0d2e505b910d14de5a9b5a78c134503d, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hit-small
+  - _semanticId: anim.bashie.hose
+    _clip: {fileID: 7400000, guid: 205969b614b2dde928357c31cf6ba26b, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hose
+  - _semanticId: anim.bashie.hose-end
+    _clip: {fileID: 7400000, guid: 0d096e5a39f069fcab00476ba4133fdc, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hose-end
+  - _semanticId: anim.bashie.hose-pump
+    _clip: {fileID: 7400000, guid: bb322e6053486c294aecf2d78960ebbb, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hose-pump
+  - _semanticId: anim.bashie.hose-spray
+    _clip: {fileID: 7400000, guid: 205969b614b2dde928357c31cf6ba26b, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.hose-spray
+  - _semanticId: anim.bashie.idle
+    _clip: {fileID: 7400000, guid: 0d096e5a39f069fcab00476ba4133fdc, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.idle
+  - _semanticId: anim.bashie.jump
+    _clip: {fileID: 7400000, guid: 0da920714c5d6e03c95563b9e70bf752, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.jump
+  - _semanticId: anim.bashie.run
+    _clip: {fileID: 7400000, guid: 288073ffc564518ca95686145a15ff2f, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.run
+  - _semanticId: anim.bashie.slide
+    _clip: {fileID: 7400000, guid: 7257ffad1c2f8cc35a5da14ba5ee8c56, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.slide
+  - _semanticId: anim.bashie.tumble
+    _clip: {fileID: 7400000, guid: 76e81443b7e72a384beeddef88178732, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.tumble
+  _presentations: []

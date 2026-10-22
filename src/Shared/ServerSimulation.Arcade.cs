@@ -153,7 +153,7 @@ namespace SlopArena.Shared
             if (ownerExists && _defs.TryGetValue(hit.OwnerEntityId, out var def))
             {
                 if (hit.AttackSlot > 0) spec = def.GetSlotAbility(hit.AttackSlot - 1, hit.Airborne);
-                if (_activeAbilities.TryGetValue(hit.OwnerEntityId, out var ability))
+                if (ContactAbility(hit) is { } ability)
                     ability.OnHitObject(ref owner, def, ref damage, ref force);
             }
             if (force == forceDefault)
@@ -223,7 +223,7 @@ namespace SlopArena.Shared
             if (_course!.IsBroken(index) || hit.Damage <= 0f || !_states.TryGetValue(hit.OwnerEntityId, out var owner)) return;
             var definition = _defs[hit.OwnerEntityId];
             float damage = hit.Damage, force = hit.BaseKnockback;
-            if (_activeAbilities.TryGetValue(hit.OwnerEntityId, out var ability))
+            if (ContactAbility(hit) is { } ability)
                 ability.OnHitObject(ref owner, definition, ref damage, ref force);
             if (damage <= 0f) { _states[hit.OwnerEntityId] = owner; return; }
             if (!_course.Hit(index)) return;

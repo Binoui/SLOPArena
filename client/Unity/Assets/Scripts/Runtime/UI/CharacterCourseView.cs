@@ -87,7 +87,7 @@ namespace SlopArena.Client.UI
             if (gamepad != _controlsGamepad || HumanInputActions.BindingRevision != _controlsRevision)
             {
                 _controlsGamepad = gamepad; _controlsRevision = HumanInputActions.BindingRevision;
-                string group = gamepad ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardGroup;
+                string group = gamepad ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardMouseGroup;
                 string retry = HumanInputActions.BindingLabel("Retry", group).ToUpperInvariant();
                 string pause = HumanInputActions.BindingLabel("Pause", group).ToUpperInvariant();
                 _controls.text = gamepad ? $"HOLD {retry} RETRY  ·  {pause} PAUSE" : $"{retry} RETRY  ·  {pause} PAUSE";

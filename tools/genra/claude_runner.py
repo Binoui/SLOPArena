@@ -45,8 +45,9 @@ def message(prompt, images) -> str:
 
 
 def run(prompt, images, scratch, evidence, readable, read_dirs, model='claude-opus-5-5', effort='medium',
-        tools='Bash,Read,Grep,Glob', timeout=1800, cache_5m=False):
-    """Run one job in `scratch`. Returns (returncode or None on timeout, final result event or None)."""
+        tools='Bash,Read,Grep,Glob', timeout=1800, cache_5m=False, schema=None):
+    """Run one job in `scratch`. Returns (returncode or None on timeout, final result event or None). With a JSON
+    `schema`, the reply is validated against it and the result event carries it as `structured_output`."""
     scratch, evidence = Path(scratch), Path(evidence)
     settings_path = evidence / 'claude-settings.json'
     settings_path.write_text(json.dumps(settings(readable), indent=2))
@@ -56,6 +57,8 @@ def run(prompt, images, scratch, evidence, readable, read_dirs, model='claude-op
             '--tools', tools, '--permission-mode', 'dontAsk', '--permission-prompts', 'none', '--settings', str(settings_path)]
     for d in read_dirs:
         argv += ['--add-dir', str(d)]
+    if schema is not None:
+        argv += ['--json-schema', json.dumps(schema)]
     env, removed = environment(cache_5m=cache_5m)
     (evidence / 'claude-command.json').write_text(json.dumps({
         'argv': argv, 'cwd': str(scratch), 'timeoutSeconds': timeout, 'images': [str(p) for p in images],

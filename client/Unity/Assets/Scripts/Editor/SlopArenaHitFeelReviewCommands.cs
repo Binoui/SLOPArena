@@ -80,7 +80,8 @@ namespace SlopArena.EditorTools
             [CliArg("height", "Frame height, 180–1080.")] int height = 540,
             [CliArg("track", "Let the wide camera follow both fighters each tick, for leaps and launches.")] bool track = false,
             [CliArg("hold", "Ticks to keep aiming after the press, 0–120; charges aim-hold specials such as Ki Shot.")] int hold = 0,
-            [CliArg("orbit", "Degrees both cameras orbit around the fighters, -180–180: 0 is the side view, 90 looks from behind the attacker like the gameplay camera.")] float orbit = 0f)
+            [CliArg("orbit", "Degrees both cameras orbit around the fighters, -180–180: 0 is the side view, 90 looks from behind the attacker like the gameplay camera.")] float orbit = 0f,
+            [CliArg("shield", "The victim holds its shield the whole duel, to capture a move's blocked path.")] bool shield = false)
         {
             var saved = Read();
             if (!EditorApplication.isPlaying)
@@ -145,6 +146,7 @@ namespace SlopArena.EditorTools
                     review.TrackWide = track;
                     review.HoldTicks = hold;
                     review.CameraOrbitDegrees = orbit;
+                    review.VictimShield = shield;
                     review.Strength = Scaled(selected, scale);
                     review.CloseCamera = close;
                     review.WideCamera = wide;
@@ -189,7 +191,7 @@ namespace SlopArena.EditorTools
             }
             return new
             {
-                success = true, stage = saved.stage, output, attacker, victim, slot, distance, damage, ticks, track, hold,
+                success = true, stage = saved.stage, output, attacker, victim, slot, distance, damage, ticks, track, hold, shield,
                 layers = selected, editorPausesResumed = resumed, runs
             };
         }

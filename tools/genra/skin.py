@@ -15,7 +15,8 @@ DEFAULT_PAIRS = [('LeftHand', 'Head'), ('RightHand', 'Head'), ('LeftForeArm', 'H
                  ('LeftHand', 'LeftLeg'), ('LeftHand', 'RightLeg'), ('RightHand', 'LeftLeg'), ('RightHand', 'RightLeg'),
                  ('LeftLeg', 'RightLeg'), ('LeftFoot', 'RightFoot'), ('LeftFoot', 'Torso'), ('RightFoot', 'Torso'),
                  ('LeftHand', 'LeftFoot'), ('RightHand', 'RightFoot'),
-                 ('Weapon', 'Head'), ('Weapon', 'Torso'), ('Weapon', 'LeftLeg'), ('Weapon', 'RightLeg'), ('Weapon', 'LeftHand')]
+                 ('Weapon', 'Head'), ('Weapon', 'Torso'), ('Weapon', 'LeftLeg'), ('Weapon', 'RightLeg'), ('Weapon', 'LeftHand'),
+                 ('LeftForeArm', 'Prop'), ('RightForeArm', 'Prop'), ('LeftHand', 'Prop'), ('RightHand', 'Prop'), ('Head', 'Prop')]
 
 
 def region_of(rig: Rig) -> dict:
@@ -81,10 +82,23 @@ class Skin:
                                         'triangles': _triangulate(counts, indices),
                                         'dominant': joint_idx[np.arange(len(joint_idx)), joint_w.argmax(1)]})
         regions = region_of(rig)
-        names = sorted(set(regions.values()))
-        self.region_names = names
+        # Rigid props, such as Bashie's shell and whistle: a mesh skinned entirely to one leaf joint outside the Humanoid
+        # mapping, hung directly on a mapped bone. Under the ancestor rule they joined the Torso, and an arm swung into
+        # the shell went unreported (2026-10-22): arms are never checked against the torso they join at the shoulder.
+        # Helper joints that share a mesh with the body (Manki's arm stretch and offset) stay in its regions.
+        mapped = set(rig.humanoid)
+        props = []
         for m in self.meshes:
-            m['region'] = np.array([names.index(regions.get(int(j), 'Torso')) for j in m['dominant']])
+            joints = {int(j) for j in np.unique(m['dominant'])}
+            j = next(iter(joints)) if len(joints) == 1 else -1
+            m['prop'] = j >= 0 and j not in mapped and int(rig.parents[j]) in mapped and not rig.children(j)
+            props += [m['name']] if m['prop'] else []
+        names = sorted(set(regions.values()) | ({'Prop'} if props else set()))
+        self.region_names = names
+        self.props = props
+        for m in self.meshes:
+            m['region'] = (np.full(len(m['dominant']), names.index('Prop')) if m['prop'] else
+                           np.array([names.index(regions.get(int(j), 'Torso')) for j in m['dominant']]))
 
     def points(self, world) -> list[np.ndarray]:
         """World-space skinned vertices per mesh for world joint transforms (N, 4, 4)."""

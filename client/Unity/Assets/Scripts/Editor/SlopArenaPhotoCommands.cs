@@ -50,8 +50,8 @@ namespace SlopArena.EditorTools
             CharacterClass selected = fighter switch
             {
                 "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
-                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk,
-                _ => throw new ArgumentException("fighter must be fightguy, manki, wibou or bonk.")
+                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
+                _ => throw new ArgumentException("fighter must be fightguy, manki, wibou, bonk or bashie.")
             };
             // Save before the first mutation so the declared restore also handles partial setup failure.
             SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate }));

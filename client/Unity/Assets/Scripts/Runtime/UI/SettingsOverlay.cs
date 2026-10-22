@@ -26,7 +26,7 @@ namespace SlopArena.Client.UI
         private Action? _onClose;
         private PickingMode _originalPickingMode;
         private bool _open;
-        private string _deviceName = "Keyboard";
+        private string _deviceName = "Keyboard & Mouse";
         private string _category = Audio;
         private FullScreenMode _displayRevertMode;
         private int _displayRevertWidth;
@@ -161,8 +161,8 @@ namespace SlopArena.Client.UI
         {
             var settings = ClientSettingsService.Instance;
             _device = new DropdownField("DEVICE",
-                new System.Collections.Generic.List<string> { "Keyboard", "Mouse", "Controller" },
-                _deviceName == "Mouse" ? 1 : _deviceName == "Controller" ? 2 : 0);
+                new System.Collections.Generic.List<string> { "Keyboard & Mouse", "Controller" },
+                _deviceName == "Controller" ? 1 : 0);
             _device.AddToClassList("sa-settings-field");
             _device.RegisterValueChangedCallback(evt => { _deviceName = evt.newValue; SelectCategory(Controls); });
             root.Add(_device);
@@ -180,11 +180,12 @@ namespace SlopArena.Client.UI
             }
             else
             {
-                // Keyboard and Mouse list only actions this device can bind; an
-                // unbindable row (the analog stick on Keyboard) was dead weight.
                 foreach (var action in HumanInputActions.RebindableActions)
                     if (action != "SpecialModifier" && HumanInputActions.BindingIndex(action, SelectedGroup) >= 0)
                         AddBindingRow(root, action, ActionLabel(action));
+                var help = new Label("Use any key, mouse button or wheel direction. Clear a binding to free its control for another action. Wheel directions assigned to actions stop zooming the camera.");
+                help.AddToClassList("sa-settings-note");
+                root.Add(help);
             }
             if (_deviceName == "Controller")
             {
@@ -209,7 +210,7 @@ namespace SlopArena.Client.UI
         {
             var group = SelectedGroup;
             int index = HumanInputActions.BindingIndex(action, group);
-            var row = new VisualElement();
+            var row = new VisualElement { name = $"settings-binding-{action}" };
             row.AddToClassList("sa-settings-binding-row");
             var name = new Label(label.ToUpperInvariant());
             name.AddToClassList("sa-settings-row-label");
@@ -217,10 +218,20 @@ namespace SlopArena.Client.UI
             var current = new Label(HumanInputActions.BindingLabel(action, group));
             current.AddToClassList("sa-settings-binding-current");
             row.Add(current);
-            var bind = new Button(() => BeginCapture(action, label)) { text = "REMAP" };
+            var bind = new Button(() => BeginCapture(action, label)) { name = $"settings-rebind-{action}", text = "REMAP" };
             bind.AddToClassList("sa-settings-action");
             bind.SetEnabled(index >= 0);
             row.Add(bind);
+            var clear = new Button(() =>
+            {
+                HumanInputActions.ClearBinding(action, group);
+                ClientSettingsService.Instance.SetBindingOverrides(HumanInputActions.SaveOverrides());
+                SelectCategory(Controls);
+                _status!.text = $"{label} binding cleared.";
+            }) { name = $"settings-clear-{action}", text = "CLEAR" };
+            clear.AddToClassList("sa-settings-action");
+            clear.SetEnabled(index >= 0 && !string.IsNullOrEmpty(HumanInputActions.Get(action).bindings[index].effectivePath));
+            row.Add(clear);
             root.Add(row);
         }
 
@@ -229,7 +240,7 @@ namespace SlopArena.Client.UI
             string group = SelectedGroup;
             _status!.text = _deviceName == "Controller"
                 ? $"Press a {group} control for {label}. Select/View/Back cancels."
-                : $"Press a {group} control for {label}. Escape cancels.";
+                : $"Press a key, mouse button or wheel direction for {label}. Escape cancels.";
             HumanInputActions.Rebind(action, group, (path, error) =>
             {
                 if (_open && _category == Controls) SelectCategory(Controls);
@@ -245,9 +256,8 @@ namespace SlopArena.Client.UI
 
         private string SelectedGroup => _device?.value switch
         {
-            "Mouse" => HumanInputActions.MouseGroup,
             "Controller" => HumanInputActions.GamepadGroup,
-            _ => HumanInputActions.KeyboardGroup,
+            _ => HumanInputActions.KeyboardMouseGroup,
         };
 
         private static string ActionLabel(string action, bool controller = false) => action switch

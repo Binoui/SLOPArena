@@ -8,6 +8,10 @@ public enum PresentationEventSource : byte
     HitContact = 3,
     CapabilityLaunch = 4,
     CapabilityLanding = 5,
+    /// <summary>A returning projectile reached its free owner and is caught (back on his shoulder).</summary>
+    ProjectileCatch = 6,
+    /// <summary>A returning projectile hit its busy owner.</summary>
+    ProjectileSelfHit = 7,
 }
 
 public readonly record struct PresentationEventKey(

@@ -100,7 +100,7 @@ public readonly struct ProjectileVisualPacket
     private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     private static bool Valid(in ProjectileVisualState value)
         => value.OwnerId != 0 && value.ActivationId != 0 && value.OperationIndex >= 0
-            && value.Character is > CharacterClass.None and <= CharacterClass.Bonk
+            && value.Character is (> CharacterClass.None and <= CharacterClass.Bonk) or CharacterClass.Bashie
             && value.AttackSlot > 0 && value.AttackSlot <= AbilitySlots.Count
             && Finite(value.X) && Finite(value.Y) && Finite(value.Z)
             && Finite(value.VX) && Finite(value.VY) && Finite(value.VZ)

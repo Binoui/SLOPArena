@@ -2,7 +2,8 @@
 
 A brief is JSON. Paths are relative to the rig pack. Keys:
   name, rigpack, character, description (creative direction, verbatim)
-  references {name: usda}, entry {reference, tick}, exit {from_tick} (exit pose = entry)
+  references {name: usda}, entry {reference, tick}, exit {from_tick} (exit pose = entry, or exit {from_tick, reference,
+    tick} for a clip that ends where the next one starts, such as a jump ending on its fall loop's first pose)
   entry.match false: the entry pose only sets the character frame; tick 0 is free (e.g. a clip that blends
     in from several different reactions)
   loop {from_tick}: ticks from_tick..duration loop in the game; the last tick equals from_tick and the
@@ -15,9 +16,25 @@ A brief is JSON. Paths are relative to the rig pack. Keys:
   planted [joints that must not drift, e.g. feet for grounded moves]
   strike [joints that deliver the hit, e.g. RightHand or bladeEnd: pick the review side, measure visibility]
   two_hands [first, last]: ticks where both hands hold the weapon (the left hand stays on grip.json's grip)
+  two_hands_hold: 'exact' (default: grip.json's transform) or 'loose' (solve.handle_target: the left fist anywhere on
+    the handle beside the right hand, free to turn and slide; the exact grip winged Sir Bonk's elbows in Barn Door)
+  wrist_exempt {ticks [first, last] or [[first, last], ...], why}: ticks the wrist check skips, for a matched entry or
+    exit whose own pose folds a wrist (the clip straightens it after them, or bends into it at the end); say why. A
+    move that starts and ends on Sir Bonk's idle needs two ranges
+  review {reference, travel}: review.py's defaults, the rig pack reference to compare with and the ground speed (metres
+    per tick) that trails a cape in the renders
   frame: "facing" (default) puts the character frame's front on the fighter's facing, where the game moves,
     attacks and points the match camera; "hips" keeps the pre-2026-10-18 frame square to the entry hips,
     which fighting stances turn 40-90 degrees away (kept only so older briefs reproduce)
+  timing {fixed [...], adjustable [...]}: what the game holds the clip to and what may change to suit the animation,
+    as the owner decided before authoring (Sir Bonk's E1 squeezed a 148-tick leap into rules the owner was happy to
+    change; nobody had asked). Shown to the animator and the director.
+  keys [ticks]: the key poses a blocking stage authors for approval (run.py --stage keys); default the ticks the review
+    beats map to, else review_ticks, always with the first and last tick
+  approved_keys {file, ticks}: written by run.py --keys into the run's brief copy; the check keeps those poses
+  props_shown {"Weapon<k>": [[first, last], ...]}: ticks a pack weapon (the k-th in mapping.json) shows in the Unity
+    renders, as the game's hide rules show it; unlisted weapons always show. Sir Bonk's pot lid rides his shoulder
+    (Weapon2) until the grab and his hand (Weapon1) until the release, so the renders draw it once
 """
 from __future__ import annotations
 
@@ -29,6 +46,39 @@ from .clip import CharFrame, Clip, Pose
 from .rig import Rig
 
 REPO = Path(__file__).resolve().parents[2]
+
+
+def resolved_brief_path(brief_path, result) -> Path:
+    """A saved authoring result is checked against its run's brief, including --keys.
+
+    Older runs kept the key file only in scratch/. Use that copy only when its
+    brief still agrees with the run snapshot; never silently drop a missing lock.
+    Standalone clips use the supplied brief.
+    """
+    result = Path(result).resolve()
+    run = result.parent.parent
+    snapshot = run / 'brief.json'
+    if (result.name != 'result.json' or result.parent.name != 'scratch'
+            or not (run / 'run-config.json').is_file()):
+        return Path(brief_path).resolve()
+    data = json.loads(snapshot.read_text())
+    keys = data.get('approved_keys')
+    if keys and not (run / keys['file']).is_file():
+        archived = result.parent / 'brief.json'
+        if (json.loads(archived.read_text()) != data
+                or not (archived.parent / keys['file']).is_file()):
+            raise ValueError(f'{run}: the saved approved keys are missing or the brief copies disagree')
+        return archived
+    return snapshot
+
+
+def exempt_ranges(ticks) -> tuple[tuple[int, int], ...]:
+    """Tick ranges from one [first, last] pair or a list of pairs (wrist_exempt), as ((first, last), ...)."""
+    if not ticks:
+        return ()
+    if all(isinstance(t, (int, float)) for t in ticks):
+        ticks = [ticks]
+    return tuple((int(a), int(b)) for a, b in ticks)
 
 
 class Brief:
@@ -53,7 +103,8 @@ class Brief:
         return Rig(self.file('rig.usda'))
 
     def reference(self, name) -> Clip:
-        source = Rig(self.file(self.data['references'][name]))
+        """A reference clip on the brief's skeleton: one the brief lists, or any in the rig pack's references/."""
+        source = Rig(self.file(self.data['references'].get(name, f'references/{name}.usda')))
         clip = Clip.from_reference(source)
         clip.rig = self.rig  # same skeleton; evaluate against the rig pack
         clip.frame = self.entry_frame
@@ -66,6 +117,18 @@ class Brief:
         t, q, s = source.sample_local([e['tick']])
         pose = Pose(self.rig, t[0], q[0], s[0])
         pose.frame = CharFrame.from_pose(pose, facing=self.frame_kind == 'facing')
+        return pose
+
+    @cached_property
+    def exit_pose(self) -> Pose:
+        """The pose the clip ends on: the entry pose, or exit.reference's pose at exit.tick (in the entry frame)."""
+        e = self.data.get('exit', {})
+        if 'reference' not in e:
+            return self.entry_pose
+        source = Rig(self.file(self.data['references'].get(e['reference'], f"references/{e['reference']}.usda")))
+        t, q, s = source.sample_local([e.get('tick', 0)])
+        pose = Pose(self.rig, t[0], q[0], s[0])
+        pose.frame = self.entry_frame
         return pose
 
     @property
@@ -106,14 +169,55 @@ class Brief:
             spec['entry'] = self.entry_pose
         if 'exit' in self.data:
             spec['exit_from_tick'] = self.data['exit']['from_tick']
-            spec['exit'] = self.entry_pose
+            spec['exit'] = self.exit_pose
         if self.loop_from is not None:
             spec['loop_from_tick'] = self.loop_from
         if self.data.get('planted'):
             spec['planted'] = self.data['planted']
         if self.data.get('two_hands'):
             spec['two_hands'] = self.data['two_hands']
+        if self.data.get('two_hands_hold'):
+            if self.data['two_hands_hold'] not in ('exact', 'loose'):
+                raise ValueError(f"two_hands_hold is 'exact' or 'loose', not {self.data['two_hands_hold']!r}")
+            spec['two_hands_hold'] = self.data['two_hands_hold']
+        if self.data.get('wrist_exempt'):
+            spec['wrist_exempt_ticks'] = self.wrist_exempt_ranges
+        if self.data.get('approved_keys'):
+            keys = self.data['approved_keys']
+            spec['keys'] = {'clip': Clip.load(self.rig, self.path.parent / keys['file'], frame=self.entry_frame),
+                            'ticks': keys['ticks']}
         return spec
+
+    @property
+    def wrist_exempt_ranges(self) -> tuple[tuple[int, int], ...]:
+        """The wrist exemption as (first, last) tick ranges: one [first, last] pair or a list of them."""
+        return exempt_ranges((self.data.get('wrist_exempt') or {}).get('ticks'))
+
+    @property
+    def timing(self) -> dict:
+        """What the game holds the clip to ('fixed') and what may change to suit the animation ('adjustable')."""
+        return self.data.get('timing') or {}
+
+    def timing_text(self) -> str:
+        """The timing contract in one paragraph, or '' without one."""
+        t = self.timing
+        parts = [f"{label}: {'; '.join(t[key])}" for key, label in (('fixed', 'Fixed by the game'),
+                                                                     ('adjustable', 'Adjustable to suit the animation'))
+                 if t.get(key)]
+        return '. '.join(parts) + ('.' if parts else '')
+
+    @property
+    def key_beats(self) -> dict[int, str]:
+        """The key poses a blocking stage authors for approval, tick -> beat label: the brief's keys, else the ticks
+        its review beats map to, else its review ticks; always with the first and last tick."""
+        n = self.data['clock']['duration_ticks']
+        beats = (self.data.get('review') or {}).get('beats')
+        named = {int(t): label for label, t in beats['ticks'].items()} if beats else {}  # labels listed keys too
+        ticks = self.data.get('keys') or list(named) or self.review_ticks
+        out = {int(t): named.get(int(t), '') for t in ticks}
+        out.setdefault(0, 'entry')
+        out.setdefault(n, 'end')
+        return dict(sorted(out.items()))
 
     @property
     def images(self) -> list[Path]:

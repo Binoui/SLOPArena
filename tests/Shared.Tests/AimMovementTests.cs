@@ -26,15 +26,12 @@ public sealed class AimMovementTests
         Assert.Equal(ActionState.Aiming, s.State);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void FixedHold_StopsHorizontalMomentumAndSteering(bool airborne)
+    [Fact]
+    public void FixedHold_Grounded_StopsHorizontalMomentumAndSteering()
     {
         var def = TestHelpers.EngineDef;
         var s = TestHelpers.PlayerState(20f, 20f);
-        s.PY = TestHelpers.GroundPY(def) + (airborne ? 5f : 0f);
-        s.IsGrounded = !airborne;
+        s.PY = TestHelpers.GroundPY(def);
         s.State = ActionState.Aiming;
         s.AttackSlot = AbilitySlots.Slot1;
         s.VX = 6f;
@@ -50,8 +47,120 @@ public sealed class AimMovementTests
         Assert.Equal(0f, s.VZ);
         Assert.Equal(ActionState.Aiming, s.State);
         Assert.Equal((byte)2, s.JumpsLeft);
-        if (airborne)
-            Assert.False(s.IsGrounded); // A stationary aim does not pin vertical physics.
+    }
+
+    [Theory]
+    [InlineData(6f, -4f)]
+    [InlineData(-4f, 6f)]
+    [InlineData(0f, 0f)]
+    public void FixedHold_Airborne_CoastsWithoutSteeringOrJumping(float vx, float vz)
+    {
+        var def = TestHelpers.EngineDef;
+        var s = TestHelpers.PlayerState(20f, 20f);
+        s.PY = TestHelpers.GroundPY(def) + 5f;
+        s.IsGrounded = false;
+        s.State = ActionState.Aiming;
+        s.AttackSlot = AbilitySlots.Slot1;
+        s.VX = vx;
+        s.VZ = vz;
+        s.VY = 3f;
+        s.FacingYaw = 0.75f;
+        var coasting = s;
+        coasting.State = ActionState.Idle;
+        coasting.AttackSlot = 0;
+        var arena = TestHelpers.TestArena();
+
+        Simulation.SimulateTick(ref coasting, def, default, arena,
+            out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
+        Simulation.SimulateTick(ref s, def,
+            new InputState { IsAiming = true, MoveX = 1f, MoveY = 1f, Jump = true }, arena,
+            out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
+
+        Assert.Equal(coasting.VX, s.VX);
+        Assert.Equal(coasting.VZ, s.VZ);
+        Assert.Equal(coasting.PX, s.PX);
+        Assert.Equal(coasting.PZ, s.PZ);
+        Assert.Equal(coasting.PY, s.PY);
+        Assert.Equal(coasting.VY, s.VY);
+        Assert.Equal(0.75f, s.FacingYaw);
+        Assert.Equal((byte)2, s.JumpsLeft);
+        Assert.Equal(ActionState.Aiming, s.State);
+        Assert.False(s.IsGrounded);
+    }
+
+    [Theory]
+    [InlineData(AbilitySlots.A)]
+    [InlineData(AbilitySlots.R)]
+    public void MankiAirborneHold_PreservesMomentumThroughReleaseAndCompletion(byte slot)
+    {
+        var def = TestHelpers.ResolveSourceDef("manki");
+        var sim = TestHelpers.MakeSim();
+        var s = TestHelpers.PlayerState(20f, 20f);
+        s.PY = TestHelpers.GroundPY(def) + 20f;
+        s.IsGrounded = false;
+        s.VX = 6f;
+        s.VZ = -4f;
+        s.VY = 5f;
+        sim.RegisterEntity(1, def, s);
+        var hold = new InputState
+        {
+            ActiveSlot = slot, IsAiming = true, MoveX = -1f, MoveY = 1f,
+            AimYaw = 9000, AimPitch = 3000, AimDistance = 400,
+        };
+
+        var held = TestHelpers.TickHold(sim, hold, 10);
+
+        Assert.Equal(ActionState.Aiming, held.State);
+        Assert.True(held.PX > s.PX);
+        Assert.True(held.PZ < s.PZ);
+        Assert.True(held.VX > 0f);
+        Assert.True(held.VZ < 0f);
+        Assert.False(held.IsGrounded);
+
+        bool fired = false;
+        var current = held;
+        for (int tick = 0; tick < 80 && current.AttackSlot != 0; tick++)
+        {
+            var previous = current;
+            current = TestHelpers.TickDefault(sim, 1);
+            fired |= sim.Resolver.GetActiveHitboxes().Any(h => h.AttackSlot == slot);
+            Assert.True(current.VX > 0f, $"lost X momentum on release tick {tick}");
+            Assert.True(current.VZ < 0f, $"lost Z momentum on release tick {tick}");
+            Assert.True(current.PX > previous.PX);
+            Assert.True(current.PZ < previous.PZ);
+            Assert.False(current.IsGrounded);
+        }
+
+        Assert.True(fired);
+        Assert.Equal(ActionState.Idle, current.State);
+        Assert.Equal((byte)0, current.AttackSlot);
+    }
+
+    [Theory]
+    [InlineData(AbilitySlots.A)]
+    [InlineData(AbilitySlots.R)]
+    public void MankiAirborneHold_LandingStopsDriftAndKeepsAim(byte slot)
+    {
+        var def = TestHelpers.ResolveSourceDef("manki");
+        var sim = TestHelpers.MakeSim();
+        var s = TestHelpers.PlayerState(20f, 20f);
+        s.PY = TestHelpers.GroundPY(def) + 0.05f;
+        s.IsGrounded = false;
+        s.VX = 6f;
+        s.VZ = -4f;
+        s.VY = -5f;
+        sim.RegisterEntity(1, def, s);
+
+        var landed = TestHelpers.TickHold(sim,
+            new InputState { ActiveSlot = slot, IsAiming = true, MoveX = 1f, MoveY = 1f }, 3);
+
+        Assert.True(landed.IsGrounded);
+        Assert.Equal(ActionState.Aiming, landed.State);
+        Assert.Equal(slot, landed.AttackSlot);
+        Assert.Equal(0f, landed.VX);
+        Assert.Equal(0f, landed.VZ);
+        Assert.True(landed.PX > s.PX);
+        Assert.True(landed.PZ < s.PZ);
     }
 
     [Theory]

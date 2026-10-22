@@ -1,4 +1,5 @@
-// genra real-character render: candidate or bound clips on the package's catalog prefab, played as the game plays them.
+// genra real-character render: candidate or bound clips on the package's catalog prefab (or the rig pack's candidate
+// prefab, job["prefab"]), played as the game plays them.
 // Rendered by tools/genra/unity_clip.py ({{JOB}} {{OUTPUT}}) and run with the gateway's eval_file in Edit Mode.
 // Everything lives in a preview scene and is destroyed afterwards: no asset, scene or binding changes. Each clip is
 // stretched over the stage's ticks the way PlayerRenderer does (speed = baked frames / stage ticks), with Animancer and
@@ -20,7 +21,12 @@ var background = job["background"].ToObject<float[]>();
 var catalog = UnityEditor.AssetDatabase.LoadMainAssetAtPath("Assets/CharacterPackages/" + package + "/CharacterAssetCatalog.asset");
 if (catalog == null) throw new System.Exception("No catalog for " + package);
 var catalogObject = new UnityEditor.SerializedObject(catalog);
-var prefab = (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+// A candidate pack (unity_rigpack.py --prefab) names its own unbound prefab; otherwise the catalog's _rig.
+string prefabPath = job["prefab"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["prefab"] : null;
+var prefab = !string.IsNullOrEmpty(prefabPath)
+  ? UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(prefabPath)
+  : (UnityEngine.GameObject)catalogObject.FindProperty("_rig").objectReferenceValue;
+if (prefab == null) throw new System.Exception("No prefab " + (prefabPath ?? "_rig of " + package));
 UnityEngine.AnimationClip Bound(string semantic) {
   var bindings = catalogObject.FindProperty("_bindings");
   for (int i = 0; i < bindings.arraySize; i++) {
@@ -30,9 +36,17 @@ UnityEngine.AnimationClip Bound(string semantic) {
   }
   throw new System.Exception("Missing bound clip " + semantic);
 }
+UnityEngine.AnimationClip LoadClip(string source) {  // "Assets/...anim", or "Assets/...fbx|Take" for one clip of a model
+  var parts = source.Split('|');
+  foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(parts[0])) {
+    var clip = asset as UnityEngine.AnimationClip;
+    if (clip != null && !clip.name.StartsWith("__preview__") && (parts.Length == 1 || clip.name == parts[1])) return clip;
+  }
+  return null;
+}
 UnityEngine.AnimationClip Resolve(Newtonsoft.Json.Linq.JToken c) {
   string asset = c["asset"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)c["asset"] : null;
-  var clip = asset != null ? UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(asset) : Bound((string)c["semanticId"]);
+  var clip = asset != null ? LoadClip(asset) : Bound((string)c["semanticId"]);
   if (clip == null) throw new System.Exception("Missing clip " + (asset ?? (string)c["semanticId"]));
   return clip;
 }
@@ -64,16 +78,40 @@ try {
   var restT = new UnityEngine.Vector3[all.Length]; var restR = new UnityEngine.Quaternion[all.Length]; var restS = new UnityEngine.Vector3[all.Length];
   for (int i = 0; i < all.Length; i++) { restT[i] = all[i].localPosition; restR[i] = all[i].localRotation; restS[i] = all[i].localScale; }
   var constraints = actor.GetComponentsInChildren<UnityEngine.Animations.RotationConstraint>(true);
+  // Presentation springs (Manki's tail, Sir Bonk's cape) run in Play Mode only; step them once per evaluated tick so the
+  // preview shows them as the game does (job["springs"] false keeps them at rest). job["travel"] carries a single clip
+  // forward (metres per tick, the run's ground speed) so a spring trails as it does while the fighter moves.
+  var springs = actor.GetComponentsInChildren<SlopArena.Client.Entities.BoneChainSpring>(true);
+  bool simulate = job["springs"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean || (bool)job["springs"];
+  float travel = job["travel"] != null && job["travel"].Type != Newtonsoft.Json.Linq.JTokenType.Null ? (float)job["travel"] : 0f;
+  // The rig pack was snapshotted with the prefab at its own root transform (Bonk's sits 1 m down), so review cameras
+  // are placed relative to that pose: they follow only the fighter's travel away from it.
+  var basePosition = actor.transform.position;
+  float travelled = 0f;
+  void StepSprings() { if (simulate) foreach (var s in springs) s.Step(1f / 60f); }
+  void ResetSprings() { foreach (var s in springs) s.ResetSimulation(); }
 
   // Runtime weapon attachments (WeaponAttach): bone.TransformPoint(PositionOffset), bone.rotation * Euler(RotationOffset).
-  var weapons = new System.Collections.Generic.List<(UnityEngine.Transform bone, UnityEngine.GameObject weapon, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation)>();
+  // A weapon's `shown` tick windows (the brief's props_shown, or a timeline row's) hide it outside them, as the game's hide
+  // rules do: a prop that changes hands is drawn once.
+  var weapons = new System.Collections.Generic.List<(UnityEngine.Transform bone, UnityEngine.GameObject weapon, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation, string name, int[][] shown)>();
+  int[][] Windows(Newtonsoft.Json.Linq.JToken t) => t != null && t.Type == Newtonsoft.Json.Linq.JTokenType.Array ? t.ToObject<int[][]>() : null;
   foreach (var w in job["weapons"]) {
     if (!byPath.TryGetValue((string)w["bone"], out var bone)) throw new System.Exception("Missing weapon bone " + (string)w["bone"]);
     var weaponPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>((string)w["prefab"]);
     if (weaponPrefab == null) throw new System.Exception("Missing weapon prefab " + (string)w["prefab"]);
     var p = w["positionOffset"].ToObject<float[]>(); var r = w["rotationOffset"].ToObject<float[]>();
     weapons.Add((bone, Add((UnityEngine.GameObject)UnityEngine.Object.Instantiate(weaponPrefab)),
-                 new UnityEngine.Vector3(p[0], p[1], p[2]), UnityEngine.Quaternion.Euler(r[0], r[1], r[2])));
+                 new UnityEngine.Vector3(p[0], p[1], p[2]), UnityEngine.Quaternion.Euler(r[0], r[1], r[2]),
+                 (string)w["name"] ?? "Weapon" + weapons.Count, Windows(w["shown"])));
+  }
+  void ShowWeapons(int tick, Newtonsoft.Json.Linq.JToken overrides) {
+    foreach (var w in weapons) {
+      var windows = (overrides as Newtonsoft.Json.Linq.JObject)?[w.name] is Newtonsoft.Json.Linq.JToken o ? Windows(o) : w.shown;
+      bool shown = windows == null;
+      if (windows != null) foreach (var s in windows) shown |= tick >= s[0] && tick <= s[1];
+      w.weapon.SetActive(shown);
+    }
   }
 
   // Skinned meshes are drawn by rigid copies baked each pose.
@@ -92,7 +130,9 @@ try {
   void Rest() { for (int i = 0; i < all.Length; i++) { all[i].localPosition = restT[i]; all[i].localRotation = restR[i]; all[i].localScale = restS[i]; } }
   void Pose(UnityEngine.AnimationClip clip, float time) {
     Rest();
+    actor.transform.position = basePosition + new UnityEngine.Vector3(0f, 0f, travelled);
     var state = animancer.Play(clip, 0f); state.Speed = 0f; state.Time = time; animancer.Evaluate(0f);
+    StepSprings();
     Settle();
   }
   void Settle() {
@@ -134,7 +174,7 @@ try {
   }
   void Capture(string label, int tick) {
     foreach (var view in views) {
-      camera.transform.SetPositionAndRotation(view.position + actor.transform.position, view.rotation);
+      camera.transform.SetPositionAndRotation(view.position + (actor.transform.position - basePosition), view.rotation);
       camera.orthographicSize = view.size;
       var right = camera.transform.right; var up = camera.transform.up; var forward = camera.transform.forward;
       key.transform.rotation = UnityEngine.Quaternion.LookRotation(forward - 0.8f * up + 0.35f * right, up);
@@ -151,10 +191,18 @@ try {
     int baked = Baked(clip);
     float speed = baked / (float)ticks;
     foreach (var view in views) System.IO.Directory.CreateDirectory(frames + "/" + label + "/" + view.name);
+    ResetSprings();
+    travelled = 0f;
+    if (simulate && springs.Length > 0 && clip.isLooping)  // a loop's springs are already swinging when the preview starts
+      for (int tick = 0; tick < ticks; tick++) { travelled += travel; Pose(clip, UnityEngine.Mathf.Min(tick / 60f * speed, clip.length)); }
     for (int tick = 0; tick <= ticks; tick++) {
+      if (tick > 0) travelled += travel;
       Pose(clip, UnityEngine.Mathf.Min(tick / 60f * speed, clip.length));
+      ShowWeapons(tick, null);
       Capture(label, tick);
     }
+    actor.transform.position = basePosition;
+    travelled = 0f;
     receipts.Add(new { label, source, clip = clip.name, lengthSeconds = clip.length, frameRate = clip.frameRate, bakedFrames = baked, speed, humanMotion = clip.humanMotion });
   }
   foreach (var row in job["rows"] ?? new Newtonsoft.Json.Linq.JArray()) {
@@ -164,8 +212,9 @@ try {
     var moves = row["moves"]?.ToObject<float[][]>() ?? new float[0][];  // [first tick, last tick, metres per tick forward]
     foreach (var view in views) System.IO.Directory.CreateDirectory(frames + "/" + label + "/" + view.name);
     Rest();
-    actor.transform.position = UnityEngine.Vector3.zero;
+    actor.transform.position = basePosition;
     animancer.Stop();
+    ResetSprings();
     var played = new System.Collections.Generic.List<object>();
     for (int tick = 0; tick <= ticks; tick++) {
       // As in the game, a clip starts on the tick its state changes and that frame already advances one tick.
@@ -182,14 +231,17 @@ try {
         animancer.Evaluate(1f / 60f);
         foreach (var m in moves) if (tick >= m[0] && tick <= m[1]) actor.transform.position += new UnityEngine.Vector3(0f, 0f, m[2]);
       } else animancer.Evaluate(0f);
+      StepSprings();
       Settle();
+      ShowWeapons(tick, row["props_shown"]);
       Capture(label, tick);
     }
-    receipts.Add(new { label, events = played, travelMetres = actor.transform.position.z });
+    receipts.Add(new { label, events = played, travelMetres = actor.transform.position.z - basePosition.z });
   }
   camera.targetTexture = null;
   var data = new { package, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), ticks, size, frames, clips = receipts,
     views = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(views, v => v.name)), skinnedCopies = copies.Count, weapons = weapons.Count,
+    springs = simulate ? springs.Length : 0, travelMetresPerTick = travel,
     renderPipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null ? UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline.name : "built-in",
     seconds = (System.DateTime.UtcNow - started).TotalSeconds };
   System.IO.File.WriteAllText(output, Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented));

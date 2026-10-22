@@ -39,7 +39,7 @@ public class WorldSnapshotTests
         restored.RestoreSnapshot(continuous.CaptureSnapshot());
 
         var ids = Enumerable.Range(1, roster.Length).Select(i => (ulong)i).ToArray();
-        var driver = new FightDriver(seed, ids);
+        var driver = new ScriptedFight(seed, ids);
         var rng = new Random(seed * 7919);
         var inputs = new Dictionary<ulong, InputState>();
         var coverage = new Coverage();
@@ -58,13 +58,14 @@ public class WorldSnapshotTests
             if (!expected.ContentEquals(actual))
                 Assert.Fail(DescribeDivergence(tick, continuous, restored, ids, expected, actual));
 
-            if (--nextRestore == 0)
+            bool due = --nextRestore == 0;
+            if (due || coverage.WantsRestore)
             {
                 // A brand-new simulation, registered in reverse order, takes over from the snapshot.
                 restored = NewMatch(arena, roster, reverseRegistration: true);
                 restored.RestoreSnapshot(expected);
-                coverage.Restores++;
-                nextRestore = rng.Next(1, 41);
+                coverage.Restored();
+                if (due) nextRestore = rng.Next(1, 41);
             }
         }
 
@@ -299,49 +300,220 @@ public class WorldSnapshotTests
         }
     }
 
-    /// <summary>Guards against a vacuous fight: the restore points must land during the
-    /// states that hold runtime the snapshot has to carry. Thresholds sit well below what
-    /// every fight above produces.</summary>
+    /// <summary>
+    /// A fight that reaches every state the snapshot must carry by script, not by luck: drills between the first two
+    /// fighters (attacker and defender swap each round) for hits, a held shield under attack, a grab and its throw,
+    /// air dodges, aimed specials and a walk off the stage, with short FightDriver stretches between them for variety
+    /// (any further fighters always free-fight). A bot-like random fight met AssertMeaningful only by luck, so a
+    /// content change (2026-10-22: Sir Bonk's Barn Door and specials) failed it with every restore still matching.
+    /// </summary>
+    internal sealed class ScriptedFight
+    {
+        private enum Drill { Free, Hits, Specials, Shield, Grab, AirDodge, Aim, WalkOff }
+        private static readonly Drill[] Round =
+            { Drill.Free, Drill.Hits, Drill.Specials, Drill.Shield, Drill.Grab, Drill.AirDodge, Drill.Aim, Drill.Free, Drill.Specials, Drill.Grab };
+        private static readonly byte[] Normals = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+        private static readonly byte[] Aimed = { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F };
+        private const int FreeTicks = 120, CapTicks = 420, WalkOffAfter = 1200;
+        private readonly FightDriver _free;
+        private readonly ulong[] _ids;
+        private int _step, _round, _tick, _count, _wait, _total;
+        private bool _walked, _seen, _finishing;
+        private float _lastDistance = float.MaxValue;
+        private int _climb;
+        private Drill _drill = Drill.Free;
+
+        public ScriptedFight(int seed, ulong[] ids)
+        {
+            _free = new FightDriver(seed, ids);
+            _ids = ids;
+        }
+
+        public void Next(ServerSimulation sim, Dictionary<ulong, InputState> inputs)
+        {
+            _free.Next(sim, inputs); // fighters beyond the first two keep these
+            _total++;
+            ulong a = _ids[_round % 2 == 0 ? 0 : 1], d = _ids[_round % 2 == 0 ? 1 : 0];
+            var me = sim.GetState(a);
+            var them = sim.GetState(d);
+            if (_drill == Drill.Free)
+            {
+                if (++_tick >= FreeTicks) Advance();
+                return;
+            }
+            // On another level the attacker keeps walking at the defender: up a ledge with Climb, or off one to drop down.
+            bool level = MathF.Abs(them.PY - me.PY) < 0.5f;
+            var attack = Toward(me, them, !level ? 0f : _drill == Drill.Grab ? 0.8f : 1.1f);
+            var hold = Toward(them, me, float.MaxValue); // the defender faces the attacker and stays put
+            Climb(me, them, ref attack);
+            bool ready = me.State is ActionState.Idle or ActionState.Run && me.IsGrounded;
+            bool close = level && Distance(me, them) <= (_drill == Drill.Grab ? 1.0f : 1.4f);
+            switch (_drill)
+            {
+                case Drill.Hits: // every normal, three times, at close range on a standing target
+                case Drill.Specials: // every special, twice, tapped (an aimed one fires straight away)
+                case Drill.Shield: // the normals into a held shield
+                    if (_drill == Drill.Shield) hold.ShieldHeld = true;
+                    var slots = _drill == Drill.Specials ? Aimed : Normals;
+                    int presses = slots.Length * (_drill == Drill.Hits ? 3 : 2);
+                    if (_count < presses && ready && close && them.State is not ActionState.Hitstun && --_wait <= 0)
+                    {
+                        attack.ActiveSlot = slots[_count % slots.Length];
+                        _wait = 4;
+                        if (++_count >= presses) Advance(after: 90);
+                    }
+                    break;
+                case Drill.Grab: // grab when adjacent; the hold runs out into the throw
+                    if (me.State is ActionState.Grabbing or ActionState.Throwing) _seen = true;
+                    else if (_seen && ready) { Advance(); break; }
+                    else if (ready && close && --_wait <= 0)
+                    {
+                        attack.GrabPressed = true;
+                        _wait = 20;
+                    }
+                    break;
+                case Drill.AirDodge: // jump, then dodge sideways in the air
+                    attack.MoveX = attack.MoveY = 0f;
+                    if (ready && --_wait <= 0) { attack.Jump = true; _wait = 8; }
+                    else if (_count < 2 && !me.IsGrounded && me.State is not (ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery) && --_wait <= 0)
+                    {
+                        attack.ShieldPressed = true;
+                        attack.MoveX = 1f;
+                        _wait = 40;
+                        if (++_count >= 2) Advance(after: 60);
+                    }
+                    break;
+                case Drill.Aim: // hold each aimed special for 40 ticks, then release it
+                    attack.MoveX = attack.MoveY = 0f;
+                    if (_wait > 0) { _wait--; attack.ActiveSlot = Aimed[_count % Aimed.Length]; attack.IsAiming = _wait > 0; }
+                    else if (ready)
+                    {
+                        if (_count >= Aimed.Length) { Advance(after: 30); break; }
+                        attack.ActiveSlot = Aimed[_count % Aimed.Length];
+                        attack.IsAiming = true;
+                        _wait = 40;
+                        _count++;
+                    }
+                    break;
+                case Drill.WalkOff: // walk straight off the stage into the blast zone, once
+                    attack = new InputState { MoveX = 1f, AimYaw = 9000, FacingYaw = 9000 };
+                    break;
+            }
+            if (Environment.GetEnvironmentVariable("SNAPSHOT_DRILL_TRACE") == "1" && _total % 20 == 0)
+                Console.WriteLine($"t{_total} {_drill} a{a} {me.State} ({me.PX:F1},{me.PY:F1},{me.PZ:F1}) d{d} {them.State} ({them.PX:F1},{them.PY:F1},{them.PZ:F1}) dist {Distance(me, them):F2}");
+            if (_drill != Drill.Free && ++_tick >= CapTicks) Advance();
+            inputs[a] = attack;
+            inputs[d] = hold;
+        }
+
+        /// <summary>The way to the defender can be a ledge up (table_manners' tables): jump, and keep the jump held,
+        /// while the attacker stops closing in or the defender stands higher.</summary>
+        private void Climb(in CharacterState me, in CharacterState them, ref InputState input)
+        {
+            if (_drill is Drill.Free or Drill.WalkOff or Drill.AirDodge) return;
+            float distance = Distance(me, them);
+            if (_total % 15 == 0)
+            {
+                bool stuck = distance > 1.5f && distance > _lastDistance - 0.1f;
+                bool above = them.PY - me.PY > 0.6f && distance < 4f;
+                if ((stuck || above) && me.IsGrounded) _climb = 14;
+                else if ((stuck || above) && !me.IsGrounded && me.JumpsLeft > 0) { input.Jump = true; _climb = 14; }
+                _lastDistance = distance;
+            }
+            if (_climb > 0)
+            {
+                if (_climb == 14 && me.IsGrounded) input.Jump = true;
+                input.JumpHeld = true;
+                _climb--;
+            }
+        }
+
+        private void Advance(int after = 0)
+        {
+            if (after > 0) // let the last action play out
+            {
+                if (!_finishing) _tick = Math.Max(_tick, CapTicks - after);
+                _finishing = true;
+                return;
+            }
+            _tick = _count = _wait = 0;
+            _seen = _finishing = false;
+            if (!_walked && _total >= WalkOffAfter) { _walked = true; _drill = Drill.WalkOff; return; }
+            if (++_step >= Round.Length) { _step = 0; _round++; }
+            _drill = Round[_step];
+        }
+
+        private static float Distance(in CharacterState a, in CharacterState b)
+            => MathF.Sqrt((b.PX - a.PX) * (b.PX - a.PX) + (b.PZ - a.PZ) * (b.PZ - a.PZ));
+
+        /// <summary>Walk toward the other fighter until within `range`, facing and aiming at them.</summary>
+        private static InputState Toward(in CharacterState me, in CharacterState them, float range)
+        {
+            float dx = them.PX - me.PX, dz = them.PZ - me.PZ, d = MathF.Sqrt(dx * dx + dz * dz);
+            short yaw = (short)Math.Clamp(MathF.Atan2(dx, dz) * 180f / MathF.PI * 100f, -18000f, 18000f);
+            var input = new InputState { AimYaw = yaw, FacingYaw = yaw, AimDistance = (ushort)Math.Min(6500f, d * 100f) };
+            if (d > range && d > 1e-3f) { input.MoveX = dx / d; input.MoveY = dz / d; }
+            return input;
+        }
+    }
+
+    /// <summary>Guards against a vacuous fight: restore points must land during every state that holds runtime the
+    /// snapshot has to carry. A restore is forced while a fighter is in a state that has had fewer than RestoresEach
+    /// restores, so the check asks only that the script reaches each state, not how long a move or a hitbox lasts.</summary>
     private sealed class Coverage
     {
+        private const int RestoresEach = 3;
+        private static readonly string[] Wanted =
+        {
+            "ability", "capability", "hitbox", "hitstop", nameof(ActionState.Hitstun), nameof(ActionState.Shielding),
+            nameof(ActionState.Aiming), nameof(ActionState.Grabbing), nameof(ActionState.Grabbed),
+            nameof(ActionState.Throwing), nameof(ActionState.Thrown), nameof(ActionState.AirDodgeMovement),
+        };
         public int Restores;
-        private int _abilityTicks, _capabilityTicks, _hitstopTicks, _hitboxTicks, _deaths, _hits;
-        private readonly Dictionary<ActionState, int> _states = new();
+        private int _deaths, _hits;
+        private readonly HashSet<string> _now = new();
+        private readonly Dictionary<string, int> _restoredDuring = new();
 
         public void Observe(ServerSimulation sim, ulong[] ids)
         {
+            _now.Clear();
             foreach (ulong id in ids)
             {
                 var state = sim.GetState(id);
-                _states[state.State] = _states.GetValueOrDefault(state.State) + 1;
+                _now.Add(state.State.ToString());
                 if (sim.GetActiveAbility(id) is { } ability)
                 {
-                    _abilityTicks++;
+                    _now.Add("ability");
                     if (ability is Abilities.CookedTimelineAbility { RunningCapabilities: > 0 })
-                        _capabilityTicks++;
+                        _now.Add("capability");
                 }
-                if (state.HitstopTicks > 0) _hitstopTicks++;
+                if (state.HitstopTicks > 0) _now.Add("hitstop");
             }
-            if (sim.Resolver.GetActiveHitboxes().Count > 0) _hitboxTicks++;
+            if (sim.Resolver.GetActiveHitboxes().Count > 0) _now.Add("hitbox");
             _deaths += sim.LastTickDeaths.Count;
             _hits += sim.LastTickHits.Count;
         }
 
+        public bool WantsRestore => _now.Any(x => Wanted.Contains(x) && _restoredDuring.GetValueOrDefault(x) < RestoresEach);
+
+        public void Restored()
+        {
+            Restores++;
+            foreach (string x in _now) _restoredDuring[x] = _restoredDuring.GetValueOrDefault(x) + 1;
+        }
+
+        public override string ToString()
+            => $"restores {Restores}, hits {_hits}, deaths {_deaths}; restored during "
+               + string.Join(", ", Wanted.Select(x => $"{x} {_restoredDuring.GetValueOrDefault(x)}"));
+
         public void AssertMeaningful()
         {
+            if (Environment.GetEnvironmentVariable("SNAPSHOT_DRILL_TRACE") == "1") Console.WriteLine($"coverage: {this}");
             Assert.True(Restores >= 100, $"restores {Restores}");
-            Assert.True(_abilityTicks >= 1000, $"ability ticks {_abilityTicks}");
-            Assert.True(_capabilityTicks >= 500, $"capability ticks {_capabilityTicks}");
-            Assert.True(_hitboxTicks >= 500, $"hitbox ticks {_hitboxTicks}");
-            Assert.True(_hits >= 12, $"hits {_hits}");
-            Assert.True(_hitstopTicks >= 100, $"hitstop ticks {_hitstopTicks}");
-            Assert.True(_deaths >= 1, $"deaths {_deaths}");
-            foreach (var (state, minimum) in new[]
-            {
-                (ActionState.Hitstun, 100), (ActionState.Shielding, 100), (ActionState.Aiming, 100),
-                (ActionState.Grabbed, 20), (ActionState.Thrown, 40), (ActionState.AirDodgeMovement, 20),
-            })
-                Assert.True(_states.GetValueOrDefault(state) >= minimum, $"{state} ticks {_states.GetValueOrDefault(state)}");
+            Assert.True(_hits >= 5, $"hits {_hits}: {this}");
+            Assert.True(_deaths >= 1, $"deaths {_deaths}: {this}");
+            foreach (string x in Wanted)
+                Assert.True(_restoredDuring.GetValueOrDefault(x) >= RestoresEach, $"never restored {RestoresEach} times during {x}: {this}");
         }
     }
 }

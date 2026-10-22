@@ -82,6 +82,13 @@ namespace SlopArena.Shared
         /// </summary>
         public ProjectileExplosion? Explosion;
 
+        /// <summary>Optional boomerang behaviour: the projectile flies out, turns and comes back to its owner.</summary>
+        public ProjectileReturn? Return;
+        /// <summary>True once a returning projectile has turned back toward its owner.</summary>
+        public bool ReturnLeg;
+        /// <summary>Ticks a returning projectile has spent on its current leg.</summary>
+        public ushort LegTicks;
+
         /// <summary>If true, this hitbox can hit the entity that spawned it.</summary>
         public bool CanHitOwner;
 

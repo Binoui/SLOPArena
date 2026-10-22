@@ -461,6 +461,26 @@ Wibou is the reference.
   absorbs a hit (`FighterHitFeel.ArmorAbsorbed`, from the accepted hit's `ArmorProtected`).
   `SnapToOwnerBone` moves part of a hit effect onto one of the attacker's bones, such as
   Bonk's bucket ringing on his own head.
+- `AttackTickWindow` turns on an inactive child of a cue a set number of its fighter's attack
+  ticks after the spawn, so Hitstop delays it with the clip, and clears it if the attack ends
+  before a set tick. It times moments inside capability cues, which are not attack-bound:
+  Sir Bonk's landing plays its holy light while the plank is stuck and the POP! when it comes out.
+- Capability cues (a leap's landing, a steered charge's gallop and endings) spawn where the event
+  happened and stay there: they do not follow the fighter, and an `Upright` `PresentationFrame`
+  finds no fighter above them. Sir Bonk's Joust uses four components for that:
+  - `FollowOwnerBone` drags part of a cue along one of the fighter's bones for a while, across
+    the floor only, so world-space particles under it trace the bone's path (his heels gouging the
+    deck in the skid).
+  - `LoopFootfalls` plays footfalls on a looping phase clip: a steered charge sets the attack clock
+    to the loop's own tick, so it reads that clock while `ComboStage` shows the loop's clip. It
+    places them beside the lower foot, with dust only on the ground (the gallop's clip-clop).
+  - `AttackEndCue` plays a detached copy of a child when the fighter's attack ends, however it
+    ends, and hides parts of its cue (the hobby horse leaves in a puff of straw). Put it on a cue
+    that is not attack-bound, so it outlives the attack.
+  - `PennantPresentation` is a cloth pennant on a weapon's tip. A short point chain hangs, streams
+    back and swings over, and its ribbon is turned toward each camera before that camera renders
+    (`RenderPipelineManager.beginCameraRendering`), with the texture's top kept up. A pull exactly
+    along such a chain balances it upright after a swing, so its gravity tips toward the hilt.
 - `SnapToFloor` moves a cosmetic child (a blast ring, a scorch, a debris landing plane) onto
   the stage floor from the heightmap `MatchBase` publishes as `PresentationFloor`, or hides it
   when there is no floor below.
@@ -493,8 +513,10 @@ The general rules still apply:
 | Air dodge print slip: paper swooshes, misprint while invulnerable, printed bars, fwip | Implemented 2026-10-18; concept approved, in-game check pending | `AirDodgePresentation.cs` + `Resources/Shaders/AirDodgePrint*.shader`; see [Air dodge print slip](#air-dodge-print-slip) |
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
-| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; concepts approved, in-game check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
+| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon timing/placement corrected 2026-10-22; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
 | Bonk "BONK!": bucket-red smear, blunt thunks, a comic BONK! on big hits, armour glow, snort, dust, cracks and rubble | Implemented 2026-10-17; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#combat-presentation--2026-10-17) |
+| Sir Bonk: wood splinters, Leap of Faith's holy light and POP!, Blade Storm's windmill sails and tiny windmill | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#sir-bonk-effects--2026-10-21) |
+| Sir Bonk's Joust: straw poofs for the hobby horse, NEIGH!, a pennant on the lance, clip-clop hooves, heel gouges in the skid, the look-down gag | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-jousts-effects) |
 | Character-specific hit layers | All four fighters | Per-slot `hitPresentationId` |
 | Character Course feel (Sanctuary): paper-lantern targets, breaks, checkpoint frames, missed-target pillars, ALL CLEAR! and the finish | Implemented 2026-10-18; concepts approved, in-game check pending | `SanctuaryCoursePresentationBuilder.cs` + `CharacterCoursePresentation.cs`; see [Phase 4](../design/arcade-phase-4.md#feel-pass--2026-10-18) |
 

@@ -38,7 +38,7 @@ public sealed class TargetedLeapPresentationTests
             foreach (var item in sim.GetPresentationEvents(clear: true))
             {
                 Assert.True(sim.GetState(1).IsGrounded);
-                Assert.Equal((ushort)56, sim.GetState(1).AttackElapsedTicks);
+                Assert.Equal((ushort)0, sim.GetState(1).AttackElapsedTicks);  // E1: the landing clip's first frame
                 TestHelpers.AssertNear(sim.GetState(1).PX, item.WorldX);
                 TestHelpers.AssertNear(sim.GetState(1).PY - def.CapsuleHeight * 0.5f, item.WorldY);
                 TestHelpers.AssertNear(sim.GetState(1).PZ, item.WorldZ);
@@ -50,6 +50,94 @@ public sealed class TargetedLeapPresentationTests
         Assert.Equal(LandingId, landing.PresentationId);
         Assert.Equal(launch.AttackSequence, landing.AttackSequence);
         Assert.NotEqual(launch.Key, landing.Key);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void LandingPlaysTheStagesSecondClipOnlyWhenItListsOne(bool landingClip)
+    {
+        var source = Source();
+        if (!landingClip)
+            foreach (var slot in source["slots"]!.AsArray())
+                foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
+                {
+                    var ids = stage!["animationIds"]!.AsArray();
+                    for (int index = ids.Count - 1; index > 0; index--)
+                        if (ids[index]!.GetValue<string>() == "anim.bonk.ge-land") ids.RemoveAt(index);
+                }
+        var compiled = Compile(source);
+        Assert.NotNull(compiled.CookedPackage);
+        var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
+        var sim = TestHelpers.MakeSim();
+        var state = TestHelpers.PlayerState(x: 20f, z: 10f);
+        state.PY = TestHelpers.GroundPY(def);
+        sim.RegisterEntity(1, def, state);
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = 4, IsAiming = true, AimDistance = 400 } });
+        for (int tick = 0; tick < 20; tick++)
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { IsAiming = true, AimDistance = 400 } });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+        Assert.Equal((byte)0, sim.GetState(1).ComboStage);  // the flight plays the first clip
+        bool landed = false;
+        for (int tick = 0; tick < 200 && !landed; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+            foreach (var item in sim.GetPresentationEvents(clear: true))
+                if (item.Source == PresentationEventSource.CapabilityLanding)
+                {
+                    landed = true;
+                    Assert.Equal(landingClip ? (byte)1 : (byte)0, sim.GetState(1).ComboStage);
+                }
+        }
+        Assert.True(landed);
+        // The landing clip plays through the whole recovery.
+        for (int tick = 0; tick < 60; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+            Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+            Assert.Equal(landingClip ? (byte)1 : (byte)0, sim.GetState(1).ComboStage);
+        }
+    }
+
+    [Fact]
+    public void LandingClipSurvivesTheHitstopOfALandingHit()
+    {
+        var def = Definition();
+        void Leap(ServerSimulation sim)
+        {
+            var state = TestHelpers.PlayerState(x: 20f, z: 10f);
+            state.PY = TestHelpers.GroundPY(def);
+            sim.RegisterEntity(1, def, state);
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = 4, IsAiming = true, AimDistance = 400 } });
+            for (int tick = 0; tick < 20; tick++)
+                sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { IsAiming = true, AimDistance = 400 } });
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+        }
+        var probe = TestHelpers.MakeSim();
+        Leap(probe);
+        for (int tick = 0; tick < 200 && !probe.GetPresentationEvents(clear: true).Any(e => e.Source == PresentationEventSource.CapabilityLanding); tick++)
+            probe.Tick(new Dictionary<ulong, InputState> { [1] = default });
+        var landing = probe.GetState(1);
+
+        var sim = TestHelpers.MakeSim();
+        var target = TestHelpers.PlayerState(x: landing.PX + 0.8f, z: landing.PZ);
+        target.PY = TestHelpers.GroundPY(def);
+        sim.RegisterEntity(2, def, target);
+        Leap(sim);
+        bool hitstop = false, landed = false;
+        for (int tick = 0; tick < 200; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = default, [2] = default });
+            var s = sim.GetState(1);
+            if (s.State != ActionState.Attacking)
+                break;
+            hitstop |= s.HitstopTicks > 0;
+            landed |= s.ComboStage == 1;
+            if (landed)
+                Assert.Equal((byte)1, s.ComboStage);  // the freeze and the recovery stay on the landing clip
+        }
+        Assert.True(hitstop);
+        Assert.True(landed);
     }
 
     [Fact]
@@ -119,6 +207,10 @@ public sealed class TargetedLeapPresentationTests
                 var operations = stage!["operations"]!.AsArray();
                 for (int index = operations.Count - 1; index >= 0; index--)
                     if (operations[index]!["kind"]!.GetValue<string>() == "emitPresentation") operations.RemoveAt(index);
+                foreach (var operation in operations)
+                    if (operation!["kind"]!.GetValue<string>() == "startCapability" && operation["capabilityId"]!.GetValue<string>() == CharacterPackageCompiler.SteeredChargeCapabilityId)
+                        foreach (var effect in new[] { "gallopPresentationId", "hitEndingPresentationId", "missEndingPresentationId", "airEndingPresentationId" })
+                            operation["parameters"]!.AsObject().Remove(effect);
                 foreach (var operation in operations)
                     if (operation!["kind"]!.GetValue<string>() == "startCapability" && operation["capabilityId"]!.GetValue<string>() == CharacterPackageCompiler.TargetedLeapCapabilityId)
                     {

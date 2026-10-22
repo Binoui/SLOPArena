@@ -72,7 +72,7 @@ namespace SlopArena.EditorTools
             var selected = fighter switch
             {
                 "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
-                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk,
+                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
                 _ => throw new ArgumentException("Unknown roster fighter.", nameof(fighter)),
             };
             var view = GameView();

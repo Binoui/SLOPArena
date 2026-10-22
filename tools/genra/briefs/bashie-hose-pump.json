@@ -1,0 +1,206 @@
+{
+  "name": "bashie-hose-pump",
+  "notes": "Bashie's Hose Down (A, like FLUDD) pump loop: the slot's aimAnimationId anim.bashie.hose-pump, 2026-10-22. The owner: 'i like C pose. i think like fludd in smash. more you charge, more water comes out and more push it does. barely any dmg. i think we want aim like manki F'. Direction C ('big comic pumps') from tmp/bashie-model/anim-directions/hose-c-big-pumps.png. The 24-tick cycle is a proposal shown to the owner with the key poses. Rig pack bashie-unity-hose (--prop A): the blaster on her right hand with Pump and Muzzle joints.",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity-hose",
+  "character": "Bashie (52 joints: a Humanoid body with Mixamo names and four-fingered cartoon hands (thumb, index, middle and ring), plus rigid props on joints of their own: her turtle shell on joint Shell under Spine1, pivoting on her mid-back; her whistle on joint Whistle under Spine2, pivoting on its ring at the top of her chest (a red cord runs from the ring round her neck); and her toy water blaster fixed to her right hand as joint Weapon0, which sits in her right fist at the middle of the blaster's pistol grip. The blaster is 0.44 m long, a chunky red pump-action water squirter with a blue tank on top; its barrel runs forward from the top of her fist. Joint Muzzle is the barrel's tip, 0.38 m ahead of the fist and 0.11 m above it; joint Pump is the middle of the cream pump grip under the barrel, 0.22 m ahead of the fist and 0.04 m above it, where her left hand holds it. She is small and round: 1.0 m to the top of her hat in the rig, a big head under a wide bucket hat, short legs (hip joints 0.305 m above the floor, thigh 0.10 m, shin 0.07 m, ankle to toe joint 0.17 m) and short arms (upper arm 0.115 m, forearm 0.107 m, shoulders 0.22 m apart).",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda"
+  },
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../bashie-hose-20261022/bashie-model.png",
+    "../../bashie-hose-20261022/hose-c-big-pumps.png"
+  ],
+  "image_notes": "1: the Bashie model in its rest T-pose (front, three-quarter, side, back, three-quarter back): the bucket hat, the whistle on its red cord and the shell; the blaster is not in it. 2: the pose sheet the owner picked (image-generated from her model; she aims and fires toward the left of the image). Its four poses read left to right: 1 READY, 2 PUMP BACK, 3 PUMP FORWARD, 4 FIRE. It is a drawing: match the poses and the energy, not exact angles; its blaster differs a little from hers and its hands drift on the blaster. In the game her right fist holds the pistol grip and her left hand the pump grip.",
+  "description": "Bashie's Hose Down pump loop: the clip she plays while the player holds A to pump her water blaster.\n\nWho she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, red pool slides and a domed olive shell on her back. She is bossy about the pool rules, comic and energetic.\n\nThe move: Hose Down, her A special, like Mario's FLUDD in Smash. The player holds A to pump her toy water blaster (the longer she pumps, the more water: a longer, stronger stream), then releases to spray a stream of water that shoves the opponent away; it barely hurts. The player aims with the camera while pumping and she turns to face the aim. The owner picked pose direction C, 'big comic pumps' (image 2): every pump is a whole-body effort, like pumping up a pool float, and the spray is a fire-hose lean.\n\nHow the game plays it. The game crossfades into this clip over 0.1 s from her idle or run and loops it (ticks 0-24, wrapping from 24 back to 0) for as long as A is held: a tap shows only a few ticks, a full pump a second or more. The same clip plays in the air while she falls. On release the game crossfades over 3 ticks into the spray clip (her fire-hose lean: arms locked straight, the blaster level at chest height) from whatever tick the loop is on. She stands still while she pumps: the game turns her to face the camera's aim, so the loop never steps or turns. The match camera sits behind her and a little above, so players see her shell, her hat and the blaster's barrel out in front; the big pumps must read from behind: the hat bobbing, the shell rocking, the elbows working.\n\nThe floor. This character frame's origin is her hips in her idle; the floor is at up = -0.305 m. With a flat foot the toe joint (ToeBase) sits about 0.005 m above the floor (up about -0.300) and the ankle (Foot) about 0.12 m above it (up about -0.184). Never push a foot through the floor.\n\nThe blaster. It is rigid and fixed to her right fist: the right hand always holds the pistol grip with the barrel pointing forward from the top of the fist. Her left hand holds the cream pump grip under the barrel (joint Pump): the left wrist (LeftHand) stays within 7 cm of Pump at every key, the left fingers wrapped under it. The pump grip does not slide on its own, so a pump moves the whole blaster: both hands pull it back toward her chest together, then shove it forward together. The blaster never goes into her belly, her shell, her hat or her face (keep at least 3 cm clear), and the barrel points forward, give or take 25 degrees, at every tick: it is aimed at the opponent the whole time.\n\nThe pump (image 2, poses 2 and 3), one big pump per cycle:\n- Tick 0, PUMP BACK (pose 2): she leans back hard and pulls the blaster all the way back toward her chest, its grip (Weapon0) about 0.10-0.16 m in front of her chest and a little below it, both elbows bent and tucked against her sides, knees bent, chin tucked, cheeks puffed (her face is a texture: say it with the head, a little down and back). Her head is a little behind her hips.\n- Tick 6: the push starts: hips drive forward first, the chest follows a tick later, the arms last.\n- Tick 12, PUMP FORWARD (pose 3): she lunges forward over the blaster and shoves it forward, arms nearly straight, the grip 0.25 m or more in front of her chest at chest height; her weight is over her front foot, her head ahead of her hips, her shell rocking up on her back and her hat bouncing.\n- Tick 18: the pull starts: she rocks back, the blaster comes back toward her chest.\n- Tick 24 = tick 0 (the loop wraps).\nFeet stay planted, wide apart (wider than her hips), the right foot (the blaster side) back, the left foot forward, both flat on the floor; the knees and hips carry the rocking. The blaster stays roughly level and pointing forward through the whole cycle (it may bob 10-20 degrees up and down with the pump, the muzzle never dropping below her knees' height or rising above her hat). The hat, the whistle and the shell follow through: the whistle swings forward on the push and back on the pull, a few ticks late; the shell rocks 3-6 degrees on joint Shell, 2-3 ticks behind her spine. Offset the parts so they never all stop on the same tick; use the guide's Life and Flow helpers.\n\nNo steps, no turns, no jumps, no other props.",
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 24
+  },
+  "timing": {
+    "fixed": [
+      "it loops for as long as A is held (a few ticks to a second or more), in place, also in the air",
+      "the game crossfades in from the idle or run over 0.1 s and out into the spray clip over 3 ticks from any tick"
+    ],
+    "adjustable": [
+      "the cycle length (24 ticks proposed: 2.5 pumps a second)"
+    ]
+  },
+  "keys": [
+    0,
+    6,
+    12,
+    18,
+    24
+  ],
+  "review_ticks": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    15,
+    18,
+    21,
+    24
+  ],
+  "fast_windows": [
+    [
+      0,
+      24
+    ]
+  ],
+  "targets": [
+    {
+      "name": "left hand on the pump grip, tick 0 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Pump",
+      "tick": 0,
+      "max": 0.07
+    },
+    {
+      "name": "left hand on the pump grip, tick 6 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Pump",
+      "tick": 6,
+      "max": 0.07
+    },
+    {
+      "name": "left hand on the pump grip, tick 12 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Pump",
+      "tick": 12,
+      "max": 0.07
+    },
+    {
+      "name": "left hand on the pump grip, tick 18 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Pump",
+      "tick": 18,
+      "max": 0.07
+    },
+    {
+      "name": "left hand on the pump grip, tick 24 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Pump",
+      "tick": 24,
+      "max": 0.07
+    },
+    {
+      "name": "barrel forward, tick 0 (m the muzzle is ahead of the fist)",
+      "kind": "ahead",
+      "a": "Muzzle",
+      "b": "Weapon0",
+      "tick": 0,
+      "min": 0.24
+    },
+    {
+      "name": "barrel forward, tick 6 (m the muzzle is ahead of the fist)",
+      "kind": "ahead",
+      "a": "Muzzle",
+      "b": "Weapon0",
+      "tick": 6,
+      "min": 0.24
+    },
+    {
+      "name": "barrel forward, tick 12 (m the muzzle is ahead of the fist)",
+      "kind": "ahead",
+      "a": "Muzzle",
+      "b": "Weapon0",
+      "tick": 12,
+      "min": 0.24
+    },
+    {
+      "name": "barrel forward, tick 18 (m the muzzle is ahead of the fist)",
+      "kind": "ahead",
+      "a": "Muzzle",
+      "b": "Weapon0",
+      "tick": 18,
+      "min": 0.24
+    },
+    {
+      "name": "barrel forward, tick 24 (m the muzzle is ahead of the fist)",
+      "kind": "ahead",
+      "a": "Muzzle",
+      "b": "Weapon0",
+      "tick": 24,
+      "min": 0.24
+    },
+    {
+      "name": "blaster pulled back to her chest, tick 0 (m the grip is ahead of the hips)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "front",
+      "tick": 0,
+      "max": 0.17
+    },
+    {
+      "name": "blaster shoved forward, tick 12 (m the grip is ahead of the hips)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "front",
+      "tick": 12,
+      "min": 0.25
+    },
+    {
+      "name": "leaning back on the pull, tick 0 (m the head is ahead of the hips)",
+      "kind": "char",
+      "a": "Head",
+      "axis": "front",
+      "tick": 0,
+      "max": -0.01
+    },
+    {
+      "name": "lunging forward on the push, tick 12 (m the head is ahead of the hips)",
+      "kind": "char",
+      "a": "Head",
+      "axis": "front",
+      "tick": 12,
+      "min": 0.05
+    },
+    {
+      "name": "blaster at chest height on the push, tick 12 (m above the hips)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "up",
+      "tick": 12,
+      "min": 0.08,
+      "max": 0.24
+    },
+    {
+      "name": "the push's travel: how far the grip moves front to back over the loop (m)",
+      "kind": "range",
+      "a": "Weapon0",
+      "axis": "front",
+      "window": [
+        0,
+        24
+      ],
+      "min": 0.1
+    }
+  ]
+}

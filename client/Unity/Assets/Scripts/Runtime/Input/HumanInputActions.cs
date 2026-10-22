@@ -8,8 +8,8 @@ namespace SlopArena.Client.Input
     /// <summary>One action map for human gameplay, camera, utilities, and rebinding.</summary>
     public static class HumanInputActions
     {
-        public const string KeyboardGroup = "Keyboard";
-        public const string MouseGroup = "Mouse";
+        public const string KeyboardMouseGroup = "KeyboardMouse";
+        private const string MouseGroup = "Mouse";
         public const string GamepadGroup = "Gamepad";
 
         private static readonly Dictionary<string, InputAction> Actions = new();
@@ -32,6 +32,7 @@ namespace SlopArena.Client.Input
             public string path;
             public string interactions;
             public string processors;
+            public string group;
         }
 
         public static float DefaultDeadzone { get { EnsureCreated(); return _defaultDeadzone; } }
@@ -39,6 +40,20 @@ namespace SlopArena.Client.Input
         public static InputAction MouseLook => Get("MouseLook");
         public static InputAction StickLook => Get("StickLook");
         public static InputAction Zoom => Get("Zoom");
+        public static float ZoomDelta
+        {
+            get
+            {
+                float delta = Zoom.ReadValue<float>();
+                if (delta == 0f) return 0f;
+                string direction = delta > 0f ? "<Mouse>/scroll/up" : "<Mouse>/scroll/down";
+                foreach (string name in RebindableActions)
+                    foreach (var binding in Get(name).bindings)
+                        if (string.Equals(binding.effectivePath, direction, StringComparison.OrdinalIgnoreCase))
+                            return 0f;
+                return delta;
+            }
+        }
         public static IReadOnlyList<string> RebindableActions { get; } = new[]
         {
             "MoveUp", "MoveDown", "MoveLeft", "MoveRight", "MoveStick", "Jump", "Down",
@@ -55,8 +70,34 @@ namespace SlopArena.Client.Input
         }
 
         public static InputAction Get(string name) { EnsureCreated(); return Actions[name]; }
-        public static string SaveOverrides() { EnsureCreated(); return _asset!.SaveBindingOverridesAsJson(); }
+        public static string SaveOverrides()
+        {
+            EnsureCreated();
+            string json = _asset!.SaveBindingOverridesAsJson();
+            if (string.IsNullOrEmpty(json)) return json;
+            var data = JsonUtility.FromJson<BindingOverridesJson>(json);
+            // Runtime-created binding IDs change between launches. Keep the device group even
+            // for cleared paths, which cannot identify their original binding by device.
+            foreach (var entry in data.bindings)
+                if (TryGetOverrideAction(entry, out var action))
+                    foreach (var binding in action.bindings)
+                        if (binding.id.ToString() == entry.id)
+                        {
+                            entry.group = binding.groups;
+                            break;
+                        }
+            return JsonUtility.ToJson(data);
+        }
         public static void CancelCapture() => _operation?.Cancel();
+
+        public static void ClearBinding(string actionName, string group)
+        {
+            if (_capturing) return;
+            int index = BindingIndex(actionName, group);
+            if (index < 0) return;
+            Get(actionName).ApplyBindingOverride(index, "");
+            BindingRevision++;
+        }
 
         public static void ApplyOverrides(string json)
         {
@@ -97,6 +138,7 @@ namespace SlopArena.Client.Input
             int index = BindingIndex(actionName, group);
             if (index < 0) return "Unbound";
             var action = Get(actionName);
+            if (string.IsNullOrEmpty(action.bindings[index].effectivePath)) return "Unbound";
             string label = action.GetBindingDisplayString(index);
             // Some platform keyboards name non-printing keys with control characters (Backspace
             // and Escape on Linux render as boxes); the layout's control name reads everywhere.
@@ -116,14 +158,9 @@ namespace SlopArena.Client.Input
             string priorOverride = action.bindings[bindingIndex].overridePath;
             _capturing = true;
             _map!.Disable();
-            string devicePath = group == GamepadGroup ? "<Gamepad>" : group == MouseGroup ? "<Mouse>" : "<Keyboard>";
             string cancelPath = group == GamepadGroup ? "<Gamepad>/select" : "<Keyboard>/escape";
             _operation = action.PerformInteractiveRebinding(bindingIndex)
-                .WithControlsHavingToMatchPath(devicePath)
                 .WithCancelingThrough(cancelPath)
-                .WithControlsExcluding("<Mouse>/delta")
-                .WithControlsExcluding("<Mouse>/position")
-                .WithControlsExcluding("<Mouse>/scroll")
                 .OnComplete(op =>
                 {
                     string path = action.bindings[bindingIndex].overridePath ?? action.bindings[bindingIndex].path;
@@ -131,16 +168,28 @@ namespace SlopArena.Client.Input
                     if (conflict != null)
                     {
                         action.ApplyBindingOverride(bindingIndex, new InputBinding { overridePath = priorOverride });
-                        completed(null, $"Already bound to {conflict}; choose another control.");
+                        FinishCapture(op);
+                        completed(null, $"Already bound to {conflict}; clear that binding or choose another control.");
                     }
                     else
                     {
                         BindingRevision++;
+                        FinishCapture(op);
                         completed(path, null);
                     }
-                    FinishCapture(op);
                 })
-                .OnCancel(op => { completed(null, null); FinishCapture(op); });
+                .OnCancel(op => { FinishCapture(op); completed(null, null); });
+            if (group == GamepadGroup)
+                _operation.WithControlsHavingToMatchPath("<Gamepad>");
+            else
+                _operation.WithControlsHavingToMatchPath("<Keyboard>")
+                    .WithControlsHavingToMatchPath("<Mouse>")
+                    // Wheel directions are Axis controls; the signed x/y controls would
+                    // bind both directions. Buttons also derive from Axis.
+                    .WithExpectedControlType("Axis")
+                    .WithControlsExcluding("<Mouse>/scroll/x")
+                    .WithControlsExcluding("<Mouse>/scroll/y")
+                    .OnMatchWaitForAnother(0f);
             _operation.Start();
         }
 
@@ -150,13 +199,12 @@ namespace SlopArena.Client.Input
             if (data?.bindings == null) return json;
             foreach (var entry in data.bindings)
             {
-                if (string.IsNullOrEmpty(entry.action) || string.IsNullOrEmpty(entry.path)) continue;
-                int slash = entry.action.LastIndexOf('/');
-                string name = slash >= 0 ? entry.action.Substring(slash + 1) : entry.action;
-                if (!Actions.TryGetValue(name, out var action)) continue;
-                string group = entry.path.StartsWith("<Gamepad>", StringComparison.OrdinalIgnoreCase)
+                if (!TryGetOverrideAction(entry, out var action) || entry.path == null) continue;
+                string name = action.name;
+                string group = !string.IsNullOrEmpty(entry.group) ? entry.group
+                    : entry.path.StartsWith("<Gamepad>", StringComparison.OrdinalIgnoreCase)
                     ? GamepadGroup
-                    : entry.path.StartsWith("<Mouse>", StringComparison.OrdinalIgnoreCase) ? MouseGroup : KeyboardGroup;
+                    : name is "MouseLook" or "Zoom" ? MouseGroup : KeyboardMouseGroup;
                 if (group == GamepadGroup && (name == "SlotA" || name == "SlotE" ||
                     name == "SlotR" || name == "SlotF" ||
                     name.StartsWith("Move", StringComparison.Ordinal) && name != "MoveStick"))
@@ -169,6 +217,15 @@ namespace SlopArena.Client.Input
                     }
             }
             return JsonUtility.ToJson(data);
+        }
+
+        private static bool TryGetOverrideAction(BindingOverrideJson entry, out InputAction action)
+        {
+            action = null;
+            if (string.IsNullOrEmpty(entry.action)) return false;
+            int slash = entry.action.LastIndexOf('/');
+            string name = slash >= 0 ? entry.action.Substring(slash + 1) : entry.action;
+            return Actions.TryGetValue(name, out action);
         }
 
         private static string FindConflict(string actionName, string path, string group)
@@ -248,8 +305,7 @@ namespace SlopArena.Client.Input
         private static void AddButton(string name, string keyboardOrMouse, string gamepad = null)
         {
             var action = _map!.AddAction(name, InputActionType.Button);
-            string group = keyboardOrMouse.StartsWith("<Mouse>", StringComparison.Ordinal) ? MouseGroup : KeyboardGroup;
-            action.AddBinding(keyboardOrMouse).WithGroup(group);
+            action.AddBinding(keyboardOrMouse).WithGroup(KeyboardMouseGroup);
             if (gamepad != null) action.AddBinding(gamepad).WithGroup(GamepadGroup);
             Actions.Add(name, action);
         }

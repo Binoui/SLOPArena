@@ -4,6 +4,7 @@
     <genra python> tools/genra/unity_clip.py write RESULT.json --brief BRIEF.json [--save | --asset Assets/...anim]
     <genra python> tools/genra/unity_clip.py render --brief BRIEF.json --clip new=Assets/...anim --clip current=anim.bonk.a1
     <genra python> tools/genra/unity_clip.py timeline SPEC.json --brief BRIEF.json [--result RESULT.json]
+    <genra python> tools/genra/unity_clip.py promote Assets/...accepted.anim --over Assets/CharacterPackages/<pkg>/...anim
 
 Rig packs mirror Unity's x axis (unity_rigpack.py); this inverts that exactly. unity/write_clip.cs.template turns
 mapped Humanoid bones into muscle and body (RootT/RootQ) curves with HumanPoseHandler, keeps exact local transform
@@ -16,13 +17,18 @@ actual playback at the entry tick (a free entry keeps the toolkit's origin), a l
 and the clip is saved as a new, unbound asset only with --save or --asset.
 `render` draws clips on the actual prefab (materials, weapons, Animancer, stretched over the brief's ticks) from the
 toolkit's review views, so a candidate can be judged next to the clip it would replace before anything is bound.
+Every Unity job plays on the prefab the rig pack was snapshotted from (mapping.json `prefab`): the catalog rig, or
+a candidate model's unbound prefab for a pack built with unity_rigpack.py --prefab.
 `timeline` plays clip sequences there as PlayerRenderer drives them (crossfades, speeds, travel): the handoffs into
-and out of a candidate. Evidence goes to artifacts/genra-unity-clips/<id>/.
+and out of a candidate. `promote` copies an accepted clip's content over a package clip, keeping its GUID and name, so
+its bindings play the new motion; the old file is kept as before.anim. Cook, verify and refresh the roster afterwards.
+Evidence goes to artifacts/genra-unity-clips/<id>/.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -102,7 +108,10 @@ def fit(data) -> dict:
 
 def mesh_vs_toolkit(rig, world, mapping, bakes, offset) -> dict:
     """Max distance (metres) between Unity's skinned vertices as the game plays the clip and the toolkit's own
-    skinning of the same ticks (which matches Unity per vertex for the same pose), after the origin offset."""
+    skinning of the same ticks (which matches Unity per vertex for the same pose), after the origin offset. A mesh
+    whose vertex count no longer matches the pack's (the model was re-exported after the pack was snapshotted, as Sir
+    Bonk's was mid-session on 2026-10-22) is listed under 'meshChanged' (pack, Unity) instead: re-snapshot the pack
+    (unity_rigpack.py) before trusting the toolkit's skin for that mesh."""
     from genra.skin import Skin
     skin = Skin(rig)
     by_path = {mapping['meshes'][m['name']]: k for k, m in enumerate(skin.meshes) if m['name'] in mapping['meshes']}
@@ -114,16 +123,26 @@ def mesh_vs_toolkit(rig, world, mapping, bakes, offset) -> dict:
             if k is None:
                 continue
             ours = points[k] * [-1.0, 1.0, 1.0] + offset  # pack space mirrors Unity's x
-            error = float(distances(np.array(renderer['vertices']).reshape(-1, 3), ours).max())
+            theirs = np.array(renderer['vertices']).reshape(-1, 3)
+            if len(theirs) != len(ours):
+                worst.setdefault('meshChanged', {})[renderer['path'].rsplit('/', 1)[-1]] = [len(ours), len(theirs)]
+                continue
+            error = float(distances(theirs, ours).max())
             if error > worst['maxMetres']:
                 worst = {'maxMetres': error, 'tick': bake['tick'], 'renderer': renderer['path'].rsplit('/', 1)[-1]}
     return worst
 
 
-def job_for(package, name, paths, local, reference=None, compare=None, asset=None) -> dict:
+def pack_prefab(mapping) -> str | None:
+    """The prefab a rig pack was snapshotted from. Unity jobs play on it, so a candidate pack (unity_rigpack.py
+    --prefab) writes and renders on its unbound candidate rather than on the catalog's rig."""
+    return mapping.get('prefab')
+
+
+def job_for(package, name, paths, local, reference=None, compare=None, asset=None, prefab=None) -> dict:
     ticks = len(local)
     bake = {0, ticks // 2, ticks - 1} if compare else set(range(0, ticks, 4)) | {ticks - 1}  # conversions: whole clip
-    return {'package': package, 'name': name, 'fps': 60, 'paths': paths, 'local': np.round(local, 7).tolist(),
+    return {'package': package, 'prefab': prefab, 'name': name, 'fps': 60, 'paths': paths, 'local': np.round(local, 7).tolist(),
             'reference': reference, 'compare': compare, 'asset': asset, 'bakeTicks': sorted(bake)}
 
 
@@ -138,7 +157,7 @@ def roundtrip(package: str, label: str) -> dict:
     semantic = mapping['references'][label]['semanticId']
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-roundtrip-{package}-{label}'
     data = run_unity(job_for(package, f'genra_roundtrip_{package}_{label}', paths, local,
-                             reference={'semanticId': semantic, 'tick': 0}, compare=semantic), run_dir)
+                             reference={'semanticId': semantic, 'tick': 0}, compare=semantic, prefab=pack_prefab(mapping)), run_dir)
     new_sample, new_runtime = np.array(data['newSample']), np.array(data['newRuntime'])
     old_sample, old_runtime = np.array(data['compareSample']), np.array(data['compareRuntime'])
     report = {
@@ -163,19 +182,62 @@ def write_flags(brief) -> dict:
     return {'alignOrigin': brief.entry_matches, 'loopTime': brief.loop_from == 0}
 
 
-def write(result: Path, brief_path: Path, asset: str | None, name: str | None) -> dict:
+def phase_check(clip, brief, ticks=None, retime=None) -> dict:
+    """The motion checks again on a phase cut (`ticks`) or time-warped (`retime`) out of an authored result: a squeezed
+    section turns faster than the authored clip did, so it can snap or flip where the run's own check passed. The
+    brief's fast windows move with the cut and the warp; poses, contacts and targets are the authored ones."""
+    from genra.brief import exempt_ranges
+    from genra.checks import check_clip
+    first = ticks[0] if ticks else 0
+    length = (ticks[1] - ticks[0] + 1) if ticks else (int(retime[-1][0]) + 1 if retime else len(clip))
+
+    def moved(a, b):  # a brief's tick window in the phase's ticks, or None outside it
+        a, b = max(a - first, 0), min(b - first, length - 1)
+        if a > b:
+            return None
+        if retime:
+            a, b = np.interp([a, b], [s for s, _ in retime], [d for _, d in retime])
+        return [int(np.floor(a)), int(np.ceil(b))]
+
+    windows = [w for w in (moved(a, b) for a, b in brief.get('fast_windows', [])) if w]
+    spec = {'fast_windows': windows, 'clearance': False, 'face': False, 'life': False}
+    exempt = [w for w in (moved(a, b) for a, b in exempt_ranges((brief.get('wrist_exempt') or {}).get('ticks'))) if w]
+    if exempt:  # a documented fold (e.g. the idle's own plank wrist at the end) stays exempt
+        spec['wrist_exempt_ticks'] = tuple(tuple(w) for w in exempt)
+    report = check_clip(clip, spec)
+    return {'passed': report['passed'], 'fastWindows': windows,
+            'failures': [f"{f['check']}: {f['message']}" for f in report['failures']],
+            'maxDegreesPerTick': round(report['metrics']['maxDegreesPerTick'], 1)}
+
+
+def write(result: Path, brief_path: Path, asset: str | None, name: str | None, ticks=None, retime=None) -> dict:
+    """`ticks` (first, last) writes one phase of the result as its own clip (a leap's flight or its landing); a phase
+    that starts after tick 0 keeps the toolkit's origin. `retime` is Clip.retime's (source tick, new tick) anchors,
+    counted from the phase's first tick: a section can play slower without regenerating anything. A cut or warped phase
+    is checked again (phase_check) and its failures are printed and reported as phaseCheck."""
     from genra.brief import Brief
     from genra.clip import Clip
     brief = Brief(brief_path)
     mapping = json.loads((brief.rigpack / 'mapping.json').read_text())
     clip = Clip.load(brief.rig, result, frame=brief.entry_frame)
+    if ticks:
+        clip = clip.segment(*ticks)
+    if retime:
+        clip = clip.retime(retime)
+    checked = phase_check(clip, brief, ticks, retime) if ticks or retime else None
+    if checked and not checked['passed']:
+        print('warning: the written phase fails checks: ' + '; '.join(checked['failures']), file=sys.stderr)
     paths, local, intended = unity_pose(brief.rig, clip.world(), mapping)
     entry = brief['entry']
-    reference = {'semanticId': mapping['references'][entry['reference']]['semanticId'], 'tick': int(entry['tick'])}
+    source = mapping['references'][entry['reference']]  # a bound clip, or a clip asset (an unbound aim loop)
+    reference = {k: source[k] for k in ('semanticId', 'asset') if k in source} | {'tick': int(entry['tick'])}
     name = name or brief['name']
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-{name}'
     flags = write_flags(brief)
-    data = run_unity(job_for(mapping['package'], name, paths, local, reference=reference, asset=asset) | flags, run_dir)
+    if ticks and ticks[0] > 0:
+        flags['alignOrigin'] = False  # the phase does not start on the entry pose
+    data = run_unity(job_for(mapping['package'], name, paths, local, reference=reference, asset=asset,
+                             prefab=pack_prefab(mapping)) | flags, run_dir)
     runtime = np.array(data['newRuntime'])
     start = np.array(data['reference']['positions'])
     offset = (runtime[0] - intended[0]).mean(axis=0)  # the constant origin correction, in metres
@@ -192,6 +254,8 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None) -
         'exitVsEntryClip': worst(distances(runtime[-1:], start[None]), paths),
         'playbackVsSampling': worst(distances(runtime, np.array(data['newSample'])), paths),
         'inBetweenJoints': data['inBetween'], 'asset': data['asset'], 'evidence': str(run_dir.relative_to(REPO))}
+    if checked:
+        report['phaseCheck'] = checked
     if brief.loop_from is not None:  # the last tick replays the loop's first: the seam as the game plays it
         report['loopSeam'] = worst(distances(runtime[-1:], runtime[brief.loop_from][None]), paths)
         if brief.loop_from:
@@ -228,17 +292,25 @@ def review_cameras(brief, result: Path | None, views, margin: float, offset=None
     return cameras
 
 
-def weapon_attachments(mapping) -> list[dict]:
-    return [{'bone': w['bone'], 'prefab': w['prefab'], 'positionOffset': w['positionOffset'], 'rotationOffset': w['rotationOffset']}
-            for w in mapping.get('weapons', [])]
+def weapon_attachments(mapping, shown=None) -> list[dict]:
+    """The pack's weapons for a render job, named as the pack's joints (Weapon<k>, the k-th in mapping.json). `shown` (a
+    brief's props_shown) gives a weapon the tick windows it shows in, as the game's hide rules do: a prop that changes
+    hands (Sir Bonk's pot lid: shoulder, then hand, then thrown) is drawn once, not on every bone that carries it."""
+    shown = shown or {}
+    return [{'name': f'Weapon{k}', 'bone': w['bone'], 'prefab': w['prefab'], 'positionOffset': w['positionOffset'],
+             'rotationOffset': w['rotationOffset']} | ({'shown': shown[f'Weapon{k}']} if f'Weapon{k}' in shown else {})
+            for k, w in enumerate(mapping.get('weapons', []))]
 
 
 def render(brief_path: Path, clips: list[dict], result: Path | None = None, views=('gameplay', 'three-quarter-right', 'profile'),
-           size=360, slow=4, name=None, offset=None, margin=1.3) -> dict:
+           size=360, slow=4, name=None, offset=None, margin=1.3, springs=True, travel=0.0, background=None) -> dict:
     """Render clips on the character's actual prefab (materials, weapons, Animancer playback stretched over the brief's
     ticks, as the game plays them) from the toolkit's review views and framing, into one synchronized video: a row per
     clip, a column per view. `clips` are {'label', 'asset'} (an Assets/... .anim) or {'label', 'semanticId'} (the clip
-    bound in the package catalog, e.g. the move it would replace). `result` (the toolkit clip) sets the framing."""
+    bound in the package catalog, e.g. the move it would replace). `result` (the toolkit clip) sets the framing.
+    Presentation springs (BoneChainSpring: a tail, a cape) are stepped once per tick as in Play Mode unless `springs` is
+    False; `travel` (metres per tick) carries the fighter forward so they trail as they do in a run. `background` is an
+    RGB colour (0-255) for the frames, e.g. a light studio grey for first frames of generated videos."""
     from PIL import Image, ImageDraw
     from genra.brief import Brief
     from genra.render import BACKGROUND, _font, encode_video, tick_label
@@ -247,9 +319,10 @@ def render(brief_path: Path, clips: list[dict], result: Path | None = None, view
     clock = brief['clock']
     name = name or brief['name']
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-render-{name}'
-    job = {'package': mapping['package'], 'clips': clips, 'ticks': clock['duration_ticks'], 'size': size * 2,
-           'frames': str(run_dir / 'frames'), 'background': [c / 255 for c in BACKGROUND],
-           'views': review_cameras(brief, result, views, margin, offset), 'weapons': weapon_attachments(mapping)}
+    job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'clips': clips, 'ticks': clock['duration_ticks'], 'size': size * 2,
+           'frames': str(run_dir / 'frames'), 'background': [c / 255 for c in (background or BACKGROUND)],
+           'views': review_cameras(brief, result, views, margin, offset), 'weapons': weapon_attachments(mapping, brief.get('props_shown')),
+           'springs': springs, 'travel': travel}
     data = run_unity(job, run_dir, 'render_clip')
     header, font, small = 28, _font(16), _font(13)
     def cell(label, view, tick):
@@ -280,21 +353,39 @@ def render(brief_path: Path, clips: list[dict], result: Path | None = None, view
     return report
 
 
+def promote(source: str, target: str) -> dict:
+    """Copy an accepted clip's content over a package clip (same GUID and name); before.anim keeps the old file. A missing
+    target is created as a copy: bind it with sloparena.character.bind."""
+    for path in (source, target):
+        if not path.startswith('Assets/') or not path.endswith('.anim') or '..' in path:
+            raise SystemExit(f'promote takes Assets/... .anim paths, not {path}')
+    run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-promote-{Path(target).stem}'
+    run_dir.mkdir(parents=True)
+    if (UNITY / target).exists():
+        shutil.copy2(UNITY / target, run_dir / 'before.anim')
+    data = run_unity({'source': source, 'target': target}, run_dir, 'promote_clip')
+    (run_dir / 'report.json').write_text(json.dumps(data, indent=2))
+    return data | {'evidence': str(run_dir.relative_to(REPO))}
+
+
 def timeline_rows(spec: dict) -> list[dict]:
-    """The timeline spec's rows as render_clip jobs take them: each event's `clip` becomes an asset or semantic id."""
+    """The timeline spec's rows as render_clip jobs take them: each event's `clip` becomes an asset or semantic id. A
+    row's `props_shown` (as a brief's, in the row's ticks) hides pack weapons outside their windows."""
     return [{'label': row['label'], 'moves': row.get('moves', []),
              'events': [{k: v for k, v in e.items() if k != 'clip'} | clip_source(e['clip']) for e in row['events']]}
+            | ({'props_shown': row['props_shown']} if 'props_shown' in row else {})
             for row in spec['rows']]
 
 
 def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, views=('gameplay', 'three-quarter-right', 'front'),
-             size=300, slow=4, name=None, margin=1.9) -> dict:
+             size=300, slow=4, name=None, margin=1.9, springs=True) -> dict:
     """Play clip sequences on the actual prefab as PlayerRenderer drives them, a row per variant: the handoffs a
     single-clip `render` cannot show (idle -> aim loop -> release into the attack, an attack's exit into idle).
     The spec is JSON: {"name", "ticks", "phases": [[tick, label]], "review_ticks": [...], "rows": [{"label", "title",
     "moves": [[first tick, last tick, metres per tick forward]], "events": [{"tick", "clip" (an Assets/... .anim or a
     bound semantic id), "fade" (seconds), "time" (seconds), "speed", or "ticks" to stretch the clip over that many
-    stage ticks as an ability does}]}]}. The brief and toolkit result frame the views; the cameras follow the travel."""
+    stage ticks as an ability does}], "props_shown": {"Weapon<k>": [[first tick, last tick]]}}]}. The brief and toolkit
+    result frame the views; the cameras follow the travel."""
     from PIL import Image, ImageDraw
     from genra.brief import Brief
     from genra.render import BACKGROUND, _font, encode_video
@@ -306,9 +397,9 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
     phases = sorted(spec.get('phases', []))
     name = name or spec.get('name') or Path(spec_path).stem
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-timeline-{name}'
-    job = {'package': mapping['package'], 'rows': rows, 'ticks': ticks, 'size': size * 2, 'frames': str(run_dir / 'frames'),
+    job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'rows': rows, 'ticks': ticks, 'size': size * 2, 'frames': str(run_dir / 'frames'),
            'background': [c / 255 for c in BACKGROUND], 'views': review_cameras(brief, result, views, margin),
-           'weapons': weapon_attachments(mapping)}
+           'weapons': weapon_attachments(mapping), 'springs': springs}
     data = run_unity(job, run_dir, 'render_clip')
     header, font, small = 28, _font(16), _font(13)
     def cell(label, view, tick):
@@ -350,6 +441,8 @@ def main(argv=None):
     out.add_argument('result')
     out.add_argument('--brief', required=True)
     out.add_argument('--name')
+    out.add_argument('--ticks', help='write one phase only, first-last (e.g. 96-148)')
+    out.add_argument('--retime', help="time warp of the phase: source:new tick pairs, e.g. '0:0,6:6,20:23,36:51'")
     target = out.add_mutually_exclusive_group()
     target.add_argument('--save', action='store_true', help='save to Assets/Art/Experiments/GenRA/<package>/<name>.anim')
     target.add_argument('--asset', help='save to this new Assets/... .anim path')
@@ -364,6 +457,10 @@ def main(argv=None):
     show.add_argument('--margin', type=float, default=1.3,
                       help='framing around the motion; raise it when no --result frames the clip (another character)')
     show.add_argument('--name')
+    show.add_argument('--no-springs', action='store_true', help='keep tails and capes (BoneChainSpring) at rest')
+    show.add_argument('--background', help='frame colour r,g,b (0-255; default the review dark blue)')
+    show.add_argument('--travel', type=float, default=0.0,
+                      help='carry the fighter forward this many metres per tick (a run at ground speed), for springs')
     line = sub.add_parser('timeline', help='play clip sequences on the actual prefab as the game drives them (handoffs)')
     line.add_argument('spec', help='timeline JSON: rows of clip events and travel (see timeline())')
     line.add_argument('--brief', required=True, help='brief whose rig pack and entry pose frame the views')
@@ -372,6 +469,11 @@ def main(argv=None):
     line.add_argument('--size', type=int, default=300)
     line.add_argument('--margin', type=float, default=1.9, help='framing around the motion')
     line.add_argument('--name')
+    line.add_argument('--no-springs', action='store_true', help='keep tails and capes (BoneChainSpring) at rest')
+    up = sub.add_parser('promote', help="copy an accepted clip's content over a package clip (same GUID and name)")
+    up.add_argument('source', help='the accepted Assets/... .anim')
+    up.add_argument('--over', required=True, help='the package clip it replaces, Assets/CharacterPackages/<pkg>/...anim '
+                                                  '(created if missing; then bind it)')
     args = parser.parse_args(argv)
     sys.path.insert(0, str(HERE.parent))
     if args.command == 'roundtrip':
@@ -383,17 +485,23 @@ def main(argv=None):
             clips.append({'label': label} | clip_source(source))
         offset = np.array(json.loads(Path(args.write_report).read_text())['originOffsetMetres']) if args.write_report else None
         report = render(Path(args.brief), clips, Path(args.result) if args.result else None, tuple(args.views.split(',')),
-                        args.size, name=args.name, offset=offset, margin=args.margin)
+                        args.size, name=args.name, offset=offset, margin=args.margin, springs=not args.no_springs,
+                        travel=args.travel, background=[int(c) for c in args.background.split(',')] if args.background else None)
+    elif args.command == 'promote':
+        report = promote(args.source, args.over)
     elif args.command == 'timeline':
         report = timeline(Path(args.spec), Path(args.brief), Path(args.result) if args.result else None,
-                          tuple(args.views.split(',')), args.size, name=args.name, margin=args.margin)
+                          tuple(args.views.split(',')), args.size, name=args.name, margin=args.margin,
+                          springs=not args.no_springs)
     else:
         from genra.brief import Brief
         brief = Brief(args.brief)
         name = args.name or brief['name']
         package = json.loads((brief.rigpack / 'mapping.json').read_text())['package']
         asset = args.asset or (f'Assets/Art/Experiments/GenRA/{package}/{name}.anim' if args.save else None)
-        report = write(Path(args.result), Path(args.brief), asset, name)
+        ticks = tuple(int(x) for x in args.ticks.split('-')) if args.ticks else None
+        retime = [tuple(int(v) for v in pair.split(':')) for pair in args.retime.split(',')] if args.retime else None
+        report = write(Path(args.result), Path(args.brief), asset, name, ticks, retime)
     print(json.dumps(report, indent=2))
     return 0
 

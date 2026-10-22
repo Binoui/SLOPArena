@@ -40,6 +40,8 @@ error, and a reused `--out` folder still holds the previous run's export, which 
 
 Character rigs follow the same rule: [manki_rig](manki_rig/README.md) rebuilds
 Manki's Unity rig from a Mixamo-rigged FBX.
+[wibou_coat](wibou_coat/README.md) fits, skins and binds Wibou's coat.
+[bashie_rig](bashie_rig/README.md) makes Bashie's Mixamo rig Unity-ready.
 
 ## Shared kit
 

@@ -113,6 +113,11 @@ with nine gameplay-camera captures. Its inputs come from the Shared route test
 kit change, rewrite them with `SLOPARENA_EXPORT_COURSE_INPUTS=$PWD/scenarios/arcade dotnet
 test tests/Shared.Tests --filter JumpThenJetpackSkipsTheBenches` and adjust capture ticks.
 
+`scenarios/arcade/wibou-mall-specials.json` replays Neo Mall with the cooked Wibou kit: rows cut
+by Dash Slash, fans by Shuriken Toss, E over the skybridge and Jump, jump, E up the elevator tower,
+Skyfall and kunai on the four bosses, with 22 captures. Its inputs come from
+`WibouMallRouteTests.TheSpecialsClearTheirShapesAndFinish`.
+
 `scenarios/arcade/fightguy-pier-specials.json` replays Fight Night Pier with the cooked
 FightGuy kit: each balloon group broken by its special, the four bonus targets wrecked by
 Fist of Fury, Jump → R to the old pier and Jump → E up the wheel tower, with 25 captures.

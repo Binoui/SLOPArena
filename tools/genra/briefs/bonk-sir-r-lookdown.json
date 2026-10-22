@@ -1,0 +1,116 @@
+{
+  "name": "bonk-sir-r-lookdown",
+  "notes": "Sir Bonk ground.R / air.R, the Joust: the air ending (airEndingAnimationId), 2026-10-21. The strides on thin air replay the gallop loop (the game holds his height); this clip is the look-down after them. Keys stage first; for the motion stage the entry becomes the accepted gallop loop's tick 0. Proposed timing: 20 ticks, then his fall.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirjoust",
+  "character": "Sir Bonk (71 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip; and his 1.9 m hobby horse fixed rigidly to the hips as joint Weapon1, at the saddle point where its stick passes under his crotch, with horseGrip on the bare stick just under the horse's head and horseMuzzle at its nose)",
+  "description": "Sir Bonk's R, the Joust: the air ending, the look-down. When he gallops off a ledge, or presses R in the air, he keeps galloping on thin air for a few strides like a cartoon character who has not noticed yet (that part replays the gallop loop). Then this clip: he stops, looks down, realises, looks back up, and drops. The owner approved the reference video in image 4 as the direction.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He does everything from his book completely seriously, and it goes a bit wrong for him.\n\nThe hobby horse (image 3: him on it, from his left). Joint Weapon1 is his homemade hobby horse: a stuffed brown sock head with button eyes, a red yarn mane and a rope bridle on a broom handle, with the straw broom head as its tail. It is fixed rigidly to his hips and moves only with them: turning, tilting, raising or lowering the hips points and lifts the whole horse. Measured on his idle in the character frame: the saddle (Weapon1) sits 6 cm below the hips joint; the stick rises from it forward at 48.6 degrees to the head in front of his belly, so horseGrip (0.34 m up the stick) is 0.23 m ahead of the hips and 0.19 m above them and horseMuzzle is 0.94 m ahead and 0.30 m above; behind, the stick runs down to the straw tail about 0.5 m behind and 0.6 m below the saddle, behind his knees. The stick passes between his thighs. Keep the legs clear of it and of the straw tail behind, and keep both hands off the horse's head.\n\nHow the game plays it. Ticks 0-20 at 60 Hz (0.33 s), played once. The game cuts into it from the gallop loop in the air and holds him still in mid-air for its 20 ticks (no gravity, no travel). At tick 20 the move ends and he falls: the game crossfades into his fall clip and the horse vanishes with a puff. So tick 20 is the fall clip's first pose exactly (the exit reference 'fall'): his fall, with the plank back on his right shoulder and no horse in his hand.\n\nThe reference (image 4: five frames of the video from his left side, the camera of `profile-left`): his last step, off the edge, two strides on thin air and still going. They show the strides before this clip (the gallop) and the pose he is in when it starts; the video never looks down, so the look-down is described here.\n\nThe beats:\n- Tick 0: the gallop's first pose, in the air, which this clip cuts in from. The gallop's first pose (tick 0 of the gallop loop, authored in its own job): the left foot striking the floor ahead of the hips, flat; the right leg pushing off behind; the torso leaning forward 15-20 degrees from the hips, chest proud, chin up, eyes ahead; the lance couched under the right arm and level, its tip about 1.7-2.0 m ahead of the hips at chest height, over the right side of the horse's head; the left fist on horseGrip.\n- Ticks 0-5, the stop: his legs stop cycling and hang, the knees bent; the body comes upright out of the forward lean. A beat of stillness.\n- Ticks 5-11, the look-down: he looks straight down between his feet, the head tipping 40-60 degrees forward and the chest curling a little, the lance drooping. He holds it, realising.\n- Ticks 11-15, the look at the camera: his head comes back up and turns a little toward the match camera behind him, a tiny shrug of the shoulders: oh no.\n- Ticks 15-20, the drop: everything flies up as gravity arrives. The arms swing up, the plank goes back up onto the right shoulder, the left hand lets go of the horse, and he lands exactly in the fall clip's first pose at tick 20.\n\nThe couched lance: the right fist in front of his right chest or belly, the forearm level, the pommel end tucked back under the right armpit, the blade pointing ahead over the right side of the horse's head. The left fist holds the horse at horseGrip: close it around the stick (fist), the stick running through the fist from the little finger to the thumb, the thumb toward the horse's head. The horse moves with the hips, so key the hand onto horseGrip at each key and hold it there between keys with track() on the left arm (a 'pos' target at pose.pos('horseGrip'), or an 'attach' target to Weapon1 with the hand's transform from your first good key). Until tick 15.\n\nThe floor is far below: no foot touches anything. Use Clip.overlap() for follow-through: the head trails the chest, the free arm trails the body. Do not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game. Keep each hand in line with its forearm (wrists under 45 degrees) outside the exempt ticks.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda",
+    "charge": "references/charge.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "exit": {
+    "from_tick": 20,
+    "reference": "fall",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 20
+  },
+  "timing": {
+    "fixed": [
+      "20 ticks at 60 Hz, played once, cut in from the gallop loop in mid-air",
+      "the game holds him still in the air for the whole clip, then he falls",
+      "tick 20 is his fall clip's first pose exactly: the move ends and the horse vanishes"
+    ],
+    "adjustable": [
+      "the owner may lengthen the look-down for comic timing later (retime ticks 5-15)"
+    ]
+  },
+  "fast_windows": [
+    [
+      15,
+      20
+    ]
+  ],
+  "views": [
+    "profile-left",
+    "front-three-quarter-left",
+    "gameplay",
+    "profile"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../video-refs/sir-bonk-r-joust/first-frame-profile-left.jpg",
+    "../../video-refs/sir-bonk-r-joust/joust-air/air-beats/key-poses.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: Sir Bonk on his hobby horse at its game size, on his idle, from his left (his left fist is still on his hip there). 4: the reference video the owner approved (Seedance 2.5, from his left side): his last step, off the edge, two strides on thin air and still going: the gallop before this clip and the pose it starts in.",
+  "keys": [
+    0,
+    5,
+    8,
+    11,
+    15,
+    20
+  ],
+  "review_ticks": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    8,
+    10,
+    11,
+    13,
+    15,
+    17,
+    18,
+    20
+  ],
+  "review": {
+    "reference": "fall",
+    "travel": 0.0
+  },
+  "targets": [
+    {
+      "name": "look-down: head tipped down at tick 8 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Spine2",
+      "tick": 8,
+      "min": 0.12
+    },
+    {
+      "name": "stop: body upright, out of the lean at tick 5 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 5,
+      "max": 0.15
+    },
+    {
+      "name": "left fist on the horse at tick 5 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "horseGrip",
+      "tick": 5,
+      "max": 0.12
+    },
+    {
+      "name": "left fist on the horse at tick 11 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "horseGrip",
+      "tick": 11,
+      "max": 0.12
+    }
+  ]
+}

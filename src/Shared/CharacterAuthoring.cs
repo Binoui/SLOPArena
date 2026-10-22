@@ -281,7 +281,24 @@ public sealed record ProjectileSource(
     float KnockbackGrowth,
     ushort StunTicks,
     ushort MaxFlightTicks,
-    float YawOffsetDegrees = 0f);
+    float YawOffsetDegrees = 0f,
+    ProjectileReturnSource? Return = null);
+
+/// <summary>
+/// A projectile's optional "return" block: it flies out for outboundTicks (or until it meets the stage
+/// or a shield), then steers back to its thrower at up to returnSpeed, its velocity changing by at most
+/// returnAcceleration. It hits each fighter at most once per leg, pulling them toward the thrower on the
+/// way back. The thrower catches it when free; busy, it hits him for selfHitDamage and a fixed stun of
+/// selfHitStunTicks with no launch. Its slot cannot be used again while it is out.
+/// </summary>
+public sealed record ProjectileReturnSource(
+    ushort OutboundTicks,
+    float ReturnSpeed,
+    float ReturnAcceleration,
+    float SelfHitDamage,
+    ushort SelfHitStunTicks,
+    string CatchPresentationId = "",
+    string SelfHitPresentationId = "");
 
 public abstract record TypedCapabilityParameters;
 
@@ -293,6 +310,31 @@ public sealed record ChargedProjectileCapabilityParameters(
     float Tier2Radius,
     float Tier3Radius,
     ProjectileSource Projectile) : TypedCapabilityParameters;
+
+/// <summary>
+/// Hold to pump, release to spray a stream of projectiles (runtime API 1.8.0; Bashie's Hose Down, like FLUDD). The longer
+/// the pump, up to <see cref="MaxChargeTicks"/>, the longer the stream and the harder each projectile pushes: from the
+/// projectile's own <c>BaseKnockback</c> and <see cref="MinStreamTicks"/> after a tap to <see cref="MaxBaseKnockback"/>
+/// and <see cref="MaxStreamTicks"/> after a full pump. Fired in the air, the stream pushes its owner back at
+/// <see cref="MinRecoilSpeed"/> to <see cref="MaxRecoilSpeed"/> (m/s). The capability owns the end of its move.
+/// <see cref="SprayAnimationId"/> plays from the release, looped every <see cref="SprayLoopTicks"/> while the stream runs,
+/// and <see cref="EndAnimationId"/> for the recovery: phase clips listed in the stage after its first clip, played in
+/// real time.
+/// </summary>
+public sealed record ChargedStreamCapabilityParameters(
+    ushort MaxChargeTicks,
+    ushort FireTriggerTick,
+    ushort EmitIntervalTicks,
+    ushort MinStreamTicks,
+    ushort MaxStreamTicks,
+    ushort RecoveryTicks,
+    float MaxBaseKnockback,
+    float MinRecoilSpeed,
+    float MaxRecoilSpeed,
+    ProjectileSource Projectile,
+    string SprayAnimationId = "",
+    ushort SprayLoopTicks = 0,
+    string EndAnimationId = "") : TypedCapabilityParameters;
 
 
 public sealed record RisingDragonCapabilityParameters(
@@ -341,6 +383,35 @@ public sealed record WibouRisingSlashCapabilityParameters(
 public sealed record WibouBladeFlurryCapabilityParameters(
     float ForwardSpeed,
     ushort MoveTicks) : TypedCapabilityParameters;
+/// <summary>
+/// A steerable charge (slop.ability.steered-charge.v1): a gallop at a fixed speed whose heading the
+/// stick turns within a capped rate, with a lance hitbox and optional armour for as long as it lasts.
+/// The first fighter the lance hits ends it with the hit ending; a shield, a wall or running out of
+/// gallop ends it with the miss ending (a skid, optionally turning round). With no ground under it the
+/// charge strides level on thin air, hangs for the look-down and ends, so the fighter falls and can act.
+/// Each phase can show its own clip, named here and listed in the capability's stage.
+/// </summary>
+public sealed record SteeredChargeCapabilityParameters(
+    float GallopSpeed,
+    float TurnDegreesPerSecond,
+    ushort MaxGallopTicks,
+    bool Armored,
+    HitboxSource LanceHitbox,
+    ushort HitEndingTicks,
+    ushort MissEndingTicks,
+    ushort SkidTicks,
+    bool TurnAroundOnMiss,
+    ushort AirStrideTicks,
+    ushort LookDownTicks,
+    string GallopAnimationId = "",
+    ushort GallopLoopTicks = 0,
+    string HitEndingAnimationId = "",
+    string MissEndingAnimationId = "",
+    string AirEndingAnimationId = "",
+    string GallopPresentationId = "",
+    string HitEndingPresentationId = "",
+    string MissEndingPresentationId = "",
+    string AirEndingPresentationId = "") : TypedCapabilityParameters;
 public sealed record TargetedLeapCapabilityParameters(
     ushort MaxAimTicks,
     ushort MaxFlightTicks,

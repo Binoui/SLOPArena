@@ -174,6 +174,7 @@ namespace SlopArena.Shared
 				InterruptInteraction(ref state);
 			state = _states.TryGetValue(id, out var current) ? current : default;
 			CancelAttackRuntime(id, ref state, removeProjectiles: true);
+			_spellResolver.RemoveReturningProjectiles(id);
 			_states.Remove(id);
 			_defs.Remove(id);
 			_bakedData.Remove(id);
@@ -584,11 +585,7 @@ namespace SlopArena.Shared
                 bool airborne = !state.IsGrounded;
                 var cooked = def.GetCookedSlotAbility(state.AttackSlot, airborne);
                 if (cooked != null)
-                {
-                    int stageIdx = Math.Min(state.ComboStage, (byte)(cooked.Timeline.Stages.Count - 1));
-                    var stage = cooked.Timeline.Stages[stageIdx];
-                    targetAnim = stage.AnimationIds.Count > 0 ? stage.AnimationIds[0] : "idle";
-                }
+                    targetAnim = AttackAnimation(cooked, state.ComboStage) ?? "idle";
             }
             else if (state.State == ActionState.Hitstun) targetAnim = state.HitstunLevel switch
             {
@@ -625,12 +622,45 @@ namespace SlopArena.Shared
                     int stageElapsed = state.AttackElapsedTicks;
                     for (int i = 0; i < stageIdx; i++)
                         stageElapsed -= cooked.Timeline.Stages[i].DurationTicks;
-                    bakedFrame = HitboxGeometry.AttackFrame(Math.Max(0, stageElapsed), fc,
-                        cooked.Timeline.Stages[stageIdx].DurationTicks);
+                    // A phase clip (a leap's landing) plays in real time, as rendered.
+                    bakedFrame = IsPhaseClip(cooked, state.ComboStage)
+                        ? Math.Clamp(stageElapsed, 0, fc - 1)
+                        : HitboxGeometry.AttackFrame(Math.Max(0, stageElapsed), fc,
+                            cooked.Timeline.Stages[stageIdx].DurationTicks);
                 }
             }
 
             return true;
+        }
+
+        /// <summary>The clip an attack shows: its slot's clip IDs in order (one per stage, then phase clips such as
+        /// a leap's landing), indexed by ComboStage as the renderer does.</summary>
+        private static string? AttackAnimation(CookedSlotDefinition cooked, int comboStage)
+        {
+            int total = 0;
+            foreach (var stage in cooked.Timeline.Stages)
+                total += stage.AnimationIds.Count;
+            if (total == 0)
+                return null;
+            int index = comboStage % total;
+            foreach (var stage in cooked.Timeline.Stages)
+            {
+                if (index < stage.AnimationIds.Count)
+                    return stage.AnimationIds[index];
+                index -= stage.AnimationIds.Count;
+            }
+            return null;
+        }
+
+        /// <summary>Whether ComboStage shows a phase clip, listed after the stages' own clips: the renderer's clip
+        /// index (ComboStage modulo the clip count) at or past the stage count. Abilities that only raise ComboStage
+        /// (Manki's releases) keep their stage clip and its timing.</summary>
+        private static bool IsPhaseClip(CookedSlotDefinition cooked, int comboStage)
+        {
+            int total = 0;
+            foreach (var stage in cooked.Timeline.Stages)
+                total += stage.AnimationIds.Count;
+            return total > cooked.Timeline.Stages.Count && comboStage % total >= cooked.Timeline.Stages.Count;
         }
 
         internal bool LungeReachesOpponent(in CharacterState attacker, ReadOnlySpan<Hitbox> reach, float sin, float cos)
@@ -759,6 +789,8 @@ namespace SlopArena.Shared
 					continue;
 				int maxCharges = cooked.ChargePool?.MaxCharges ?? 0;
 				if (maxCharges > 0 && state.ChargeStockSpent >= maxCharges)
+					continue;
+				if (_spellResolver.HasReturningProjectile(state.EntityId, slot))
 					continue;
 				return true;
 			}
@@ -930,8 +962,10 @@ namespace SlopArena.Shared
 				}
 
                 int maxCharges = cookedSlot.ChargePool?.MaxCharges ?? 0;
-				if (maxCharges > 0 && state.ChargeStockSpent >= maxCharges)
+				if (maxCharges > 0 && state.ChargeStockSpent >= maxCharges
+				    || _spellResolver.HasReturningProjectile(id, input.ActiveSlot))
 				{
+					// A spent charge pool, or this slot's returning projectile still in flight (one lid).
 					var blockedInput = input;
 					blockedInput.ActiveSlot = 0;
 					inputs[id] = blockedInput;
@@ -960,7 +994,7 @@ namespace SlopArena.Shared
                 ability.AnimationNames = cookedSlot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray();
 				ActivateAbility(id, ability, (byte)(input.ActiveSlot - 1), def, input.AimYaw, input);
 
-                // Spend charges from the cooked pool; capabilities refund valid hits.
+                // Spend charges from the cooked pool; they return only through regen.
                 if (maxCharges > 0 && _states.TryGetValue(id, out var afterState))
                 {
                     afterState.ChargeStockSpent++;
@@ -997,6 +1031,21 @@ namespace SlopArena.Shared
 				if (state.InteractionId != 0)
 					return true;
 			return false;
+		}
+
+		/// <summary>Copies each fighter's returning projectile slot into its state, for the CPU and the HUD.</summary>
+		private void MirrorReturningProjectileSlots()
+		{
+			int count = CopyInteractionIds();
+			for (int i = 0; i < count; i++)
+			{
+				ulong id = _interactionScratch[i];
+				var state = _states[id];
+				byte slot = _spellResolver.ReturningProjectileSlot(id);
+				if (state.ReturningProjectileSlot == slot) continue;
+				state.ReturningProjectileSlot = slot;
+				_states[id] = state;
+			}
 		}
 
 		private int CopyInteractionIds()
@@ -2118,11 +2167,87 @@ namespace SlopArena.Shared
 			state.TargetEntityId = targetId;
 		}
 
+		/// <summary>
+		/// The activation whose hitbox, projectile or blast made this contact, if its owner is still
+		/// running it. Hit, block and object hooks belong to that move: a projectile from an earlier
+		/// move must not reach the move its owner is in now (a blocked shuriken stopping a later dash).
+		/// </summary>
+		private Func<ulong, (bool Exists, float X, float Y, float Z)>? _returnTarget;
+
+		/// <summary>Where a returning projectile homes in: its owner's chest, while he is in the match.</summary>
+		private (bool Exists, float X, float Y, float Z) ReturnTarget(ulong ownerId)
+			=> _states.TryGetValue(ownerId, out var owner) && _defs.TryGetValue(ownerId, out var def)
+			   && !_rule.IsEliminated(owner)
+				? (true, owner.PX, owner.PY + def.CapsuleHeight * .25f, owner.PZ)
+				: (false, 0f, 0f, 0f);
+
+		/// <summary>
+		/// A returning projectile reached its owner. He catches it when he could act now (idle, running,
+		/// crouching, sliding or starting a jump, on the ground or in the air, with no stun, freeze or
+		/// landing lag), and when he is shielding, being hit or in a grab it is simply back on his
+		/// shoulder. Busy (attacking, aiming, air dodging, grabbing, dropping a shield, landing), it hits
+		/// him: an ordinary hit with no launch and a fixed stun, so armour and hitstop apply as usual.
+		/// Returns true when the contact stays in the list as that self-hit.
+		/// </summary>
+		private bool ResolveReturnToOwner(ref SpellResolver.HitResult contact)
+		{
+			if (!_spellResolver.TryTakeReturningProjectile(contact.OwnerEntityId, contact.ActivationId, out var lid)
+			    || !_states.TryGetValue(contact.OwnerEntityId, out var owner))
+				return false;
+			var config = lid.Return!.Value;
+			if (CatchesReturningProjectile(in owner))
+			{
+				EmitReturnEvent(in lid, PresentationEventSource.ProjectileCatch, config.CatchPresentationId, in owner);
+				return false;
+			}
+			EmitReturnEvent(in lid, PresentationEventSource.ProjectileSelfHit, config.SelfHitPresentationId, in owner);
+			contact.Damage = config.SelfHitDamage;
+			contact.BaseKnockback = 0f;
+			contact.KnockbackGrowth = 0f;
+			contact.KnockbackAngle = 0;
+			contact.StunTicks = Math.Max((ushort)1, config.SelfHitStunTicks);
+			contact.FixedHitstunTicks = config.SelfHitStunTicks;
+			contact.FreezesOwner = false;
+			return true;
+		}
+
+		/// <summary>
+		/// Whether a returning projectile coming home is caught rather than hitting its owner: he is free
+		/// (idle on the ground or in the air, running, crouching, sliding or in jump squat, with no hitstop,
+		/// blockstun or landing lag), shielding, hanging on a ledge (a self-hit would knock him off the
+		/// stage), held or already being hit. Anything else is busy: it bonks him.
+		/// </summary>
+		internal static bool CatchesReturningProjectile(in CharacterState owner)
+		{
+			bool held = owner.InteractionId != 0 || owner.State is ActionState.Grabbed or ActionState.Thrown
+				or ActionState.Grabbing or ActionState.Throwing;
+			bool beingHit = owner.State == ActionState.Hitstun || owner.HitstunTicks > 0 || Simulation.HasKnockback(owner);
+			bool free = owner.HitstopTicks == 0 && owner.BlockStunTicks == 0 && owner.LandingLagTicks == 0
+				&& owner.State is ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
+					or ActionState.JumpSquat;
+			return held || beingHit || free || owner.State is ActionState.Shielding or ActionState.LedgeHang;
+		}
+
+		private void EmitReturnEvent(in Hitbox lid, PresentationEventSource source, string presentationId, in CharacterState owner)
+		{
+			if (string.IsNullOrEmpty(presentationId)) return;
+			_presentationEvents.Add(new TimelinePresentationEvent(_tick, lid.OwnerId, lid.VisualOperationIndex,
+				presentationId, lid.AttackSequence, source, lid.X, lid.Y, lid.Z, owner.FacingYaw)
+			{
+				Placement = new PresentationPlacement(DurationTicks: 90),
+			});
+		}
+
+		private ServerAbility? ContactAbility(in SpellResolver.HitResult hit)
+			=> _activeAbilities.TryGetValue(hit.OwnerEntityId, out var ability) && ability.ActivationId == hit.ActivationId
+				? ability : null;
+
         private void ResolveHits(List<SpellResolver.EntityData> entityList, Dictionary<ulong, InputState> inputs)
 		{
 			// Bone-tracked hitboxes sweep with their limb: re-resolve positions from
 			// the owners' current (post-movement) states before the collision pass.
 			_spellResolver.UpdateBoneHitboxes(_states);
+			_spellResolver.UpdateReturningProjectiles(_returnTarget ??= ReturnTarget, _arena);
 
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
@@ -2135,6 +2260,15 @@ namespace SlopArena.Shared
 				contact.ArmorProtected = _activeAbilities.TryGetValue(contact.TargetEntityId, out var defender)
 					&& defender.HasArmor;
 				hits[i] = contact;
+			}
+			for (int i = hits.Count - 1; i >= 0; i--)
+			{
+				var contact = hits[i];
+				if (contact.ReturnPhase != 2 || contact.TargetEntityId != contact.OwnerEntityId) continue;
+				if (ResolveReturnToOwner(ref contact))
+					hits[i] = contact;
+				else
+					hits.RemoveAt(i);
 			}
 			LastTickHits.Clear();
 			int hitContactOperationIndex = 0;
@@ -2158,8 +2292,11 @@ namespace SlopArena.Shared
 				if (!PredictCoupledInteractions && targetState.InteractionId != 0) continue;
 				if (targetState.State == ActionState.Shielding)
 				{
+					// A shield turns a returning projectile back on its way out.
+					if (hit.ReturnPhase == 1)
+						_spellResolver.TurnReturningProjectile(hit.OwnerEntityId, hit.ActivationId, hit.TargetEntityId);
 					ResolveShieldBlock(hit, ref targetState, ref attackerState, attackerExists);
-					if (attackerExists && _activeAbilities.TryGetValue(hit.OwnerEntityId, out var blockingAbility))
+					if (attackerExists && ContactAbility(hit) is { } blockingAbility)
 					{
 						blockingAbility.OnShieldBlock(ref attackerState, ref targetState);
 						_states[hit.OwnerEntityId] = attackerState;
@@ -2233,7 +2370,7 @@ namespace SlopArena.Shared
                 bool hookZeroForce = false;
                 CharacterState armoredReaction = default;
                 if (attackerExists
-                    && _activeAbilities.TryGetValue(hit.OwnerEntityId, out var attackerAbility)
+                    && ContactAbility(hit) is { } attackerAbility
                     && _defs.TryGetValue(hit.OwnerEntityId, out var attackerDef))
                 {
                     if (hit.ArmorProtected)
@@ -2266,7 +2403,9 @@ namespace SlopArena.Shared
                 bool ordinaryFormulaLaunch = !hookSuppliedForce;
                 float launchBase = hookSuppliedForce ? 0f : hit.BaseKnockback;
                 float launchGrowth = hookSuppliedForce ? 0f : hit.KnockbackGrowth;
-                freeze = ComputeHitstopTicks(finalDamage, hitstopSpec);
+                // A pure push (no damage, no stun: a shove such as one drop of Bashie's Hose Down stream) does not
+                // freeze its target, so a stream of them keeps pushing instead of stuttering it in place.
+                freeze = finalDamage <= 0f && hit.StunTicks == 0 ? (ushort)0 : ComputeHitstopTicks(finalDamage, hitstopSpec);
 				if (freeze > 0)
 				{
 					targetState.HitstopTicks = freeze;
@@ -2501,6 +2640,8 @@ namespace SlopArena.Shared
 					InterruptInteraction(ref oldState);
 
 				CancelAttackRuntime(id, ref oldState);
+				// A returning projectile in flight is back on his shoulder when he respawns.
+				_spellResolver.RemoveReturningProjectiles(id);
 				if (killerEntityId != 0 && _kos[killerEntityId] < byte.MaxValue)
 					_kos[killerEntityId]++;
 				_lastHitCredits.Remove(id);
@@ -2642,6 +2783,7 @@ namespace SlopArena.Shared
 
 				CheckBlastDeaths();
                 FinishCourseTick(coursePrevious);
+				MirrorReturningProjectileSlots();
 			}
 			finally
 			{

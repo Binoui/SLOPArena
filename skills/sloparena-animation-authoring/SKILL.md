@@ -19,6 +19,37 @@ It records rig preparation, conversion controls, both documented authorship rout
 bounded repair and the candidate review handoff. Existing sourced clips and direct
 native-clip corrections keep the applicable import/verification path below.
 
+## A new move, end to end
+
+Sir Bonk's Joust went from an idea to a finished move in one day (2026-10-21): a new
+mechanic, a prop, five clips and their effects
+([bonk.md](../../docs/characters/bonk.md#the-joust-r--wired-2026-10-21)). Each step ends on
+an owner check before the next one spends money or time. The two costly misses both
+skipped one: four video takes ran without asking, and an unattended revision was thrown
+away.
+
+1. **Shape.** Pitch the move on a board. For a new mechanic, write an options page with
+   shape questions and recommended answers, then build the mechanic with tests before any
+   animation ([combat engine skill](../sloparena-combat-engine/SKILL.md)).
+2. **Timing.** The owner sets each phase's ticks and speeds and what may change. Record it
+   in each brief's `timing`.
+3. **Props.** A new prop is a model the owner supplies (Tripo for the hobby horse). Build it
+   into a prefab with named anchors, and add it to a rig pack so GenRA animates with it
+   (`tools/genra/unity_rigpack.py --weapon-config`).
+4. **Reference, only if needed.** Use stills by default. Use video only for a prop or mount
+   interaction or an unusual gait, after asking
+   ([visual references](../../docs/characters/genra-animation-workflow.md#choose-visual-references)).
+5. **Keys.** Write one brief per clip the game plays. The owner approves the key poses
+   (`tools/genra/run.py --stage keys`) before any motion.
+6. **Motion.** Run one authoring round per clip. Show each take on its own, and let the owner
+   pick before any revision.
+7. **In game.** Promote, bind and wire the clips, cook, and show the move from Play Mode
+   captures. The owner then plays it in Training (`TESTING-UNITY.md`).
+8. **Effects.** Paint concepts over real captures and make a sound tour video. After the
+   owner's picks, build the effects, then capture "after" frames and a review video
+   ([VFX pass](../sloparena-character-vfx-pass/SKILL.md)). Key footstep cues to the clip's
+   measured contacts (`python -m genra contacts`).
+
 ## Authority
 
 ```text
@@ -71,6 +102,14 @@ Static poses need pose invariants and entry/exit behavior, not a beat plan or bl
 breakdown and interpolation passes. For Unity-native `.anim` assets, skip Blender/FBX
 export and reimport steps; retain actual-prefab, binding and applicable cook checks.
 
+Reuse accepted visual references. When new visual direction is needed, default to an
+image-generated pose sheet grounded in the actual character render. Reserve generated
+video for an unresolved movement question, such as a stumble, gait or elaborate
+recovery. Carry foot contacts, weight shifts and limb/weapon arcs into the brief, then
+review blocking and timed playback on the actual rig. See the
+[visual-reference guide](../../docs/characters/genra-animation-workflow.md#choose-visual-references)
+for reference selection, the first image-only trial and the toolkit handoff.
+
 1. Identify the package, semantic animation ID, catalog entry, FBX asset, take name, clip duration/fps/frame range, and the ability event tick(s).
 2. Map authoritative event ticks to source frames before posing. For constant forward playback:
    ```text
@@ -82,6 +121,7 @@ export and reimport steps; retain actual-prefab, binding and applicable cook che
 3. Record the current Unity import state: Humanoid/Generic rig mode, avatar validity, root-motion settings, clip name, and embedded clip `fileID`.
 4. Preserve a byte-identical FBX and `.meta` backup before reimporting. Do not overwrite a working source asset without a recovery copy.
 5. Define pose invariants: start/end neutral pose, no unapproved root translation, fire/active-frame silhouette, recoil/settle, and transition compatibility with the adjacent animation.
+6. For GenRA motion, ask the owner which timing the game must keep and what may change, and record it in the brief's `timing` field. Plan the key poses the owner approves before transitions (`tools/genra/run.py --stage keys`), and one authoring job per clip the game plays for a long move. See the [GenRA workflow](../../docs/characters/genra-animation-workflow.md#1-capture-the-brief-and-clock).
 
 Before editing, record a `tick | source frame | beat` plan using the actual playback mapping. Mark authoritative contact/fire events separately from optional presentation beats: entry, anticipation/load, compression, follow-through/recoil, settle, and handoff. Use only the beats that explain this move; short attacks, holds, loops, and airborne actions need not share a phase count. Fit presentation inside the gameplay envelope, or label an authorized proposed clock as provisional for user review; never import generic attack durations or cancel-window percentages.
 

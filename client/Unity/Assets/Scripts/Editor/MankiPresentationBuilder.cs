@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Linq;
+using SlopArena.Client.Entities;
 using SlopArena.Client.World;
 using SlopArena.Shared;
 using Unity.Pipeline.Commands;
@@ -95,10 +96,16 @@ namespace SlopArena.EditorTools
             };
             var bomb = LitBomb();
             var rocket = Rocket();
+            var lighter = HeldLighter();
             // The bomb root is unscaled now (the model carries its import scale), so bind at 1x.
             kit.BindProjectile(CharacterClass.Manki, AbilitySlots.A, bomb);
             kit.BindProjectile(CharacterClass.Manki, AbilitySlots.R, rocket);
-            return kit.Finish(built, new { bomb = AssetDatabase.GetAssetPath(bomb), rocket = AssetDatabase.GetAssetPath(rocket) });
+            BindHeldLighter(lighter);
+            return kit.Finish(built, new
+            {
+                bomb = AssetDatabase.GetAssetPath(bomb), rocket = AssetDatabase.GetAssetPath(rocket),
+                lighter = AssetDatabase.GetAssetPath(lighter),
+            });
         }
 
         [MenuItem("Tools/SLOPArena/Presentation/Rebuild Manki Presentation")]
@@ -720,39 +727,75 @@ namespace SlopArena.EditorTools
             return _kit.Save(root);
         }
 
+        // The held lighter's grip in the left hand's bone space (bone units, 1.2487 m each on Manki): inside the
+        // fist, where the release cue's lighter used to sit, with its hood out past the index knuckle (the left
+        // hand's +X), so the hood points up when the fist is upright. The release cue sits on the hood, so
+        // character.json places it at LighterGrip + Rz(-90) (0, LighterTop / 1.2487, 0).
+        private static readonly Vector3 LighterGrip = new(0.019f, 0.11f, 0.014f);
+        private static readonly Vector3 LighterGripRotation = new(0f, 0f, -90f);
+
         /// <summary>
-        /// The homemade flamethrower's other half: a chunky red lighter, sized like his cartoon spray
-        /// can, in his free hand while the stream fires. The fire clip keeps that hand under the can,
-        /// so the lighter leans back toward the cap, at an angle measured from the fist, can axis and
-        /// cap to clear the can from tick 4 to tick 37 with its flame beside the cap. It shows from
-        /// tick 3, sparks fly off the wheel as it flicks on, and as the stream lights at tick 8 its
-        /// flame flares toward the cap. The cue ends at tick 39, before the clip swings the can back
-        /// through that hand.
+        /// The lighter he holds in his free hand through the whole of Aerosol Inferno, from the first
+        /// shake of the can to the end of the stream: a slot prop like the can (owner, 2026-10-21).
+        /// LighterBase and LighterHood mark its ends, which the animation toolkit's rig packs read as
+        /// anchors; <see cref="Lighter"/> lights the hood on release.
+        /// </summary>
+        private static GameObject HeldLighter()
+        {
+            var root = _kit.NewRoot("MankiLighterHeld", attackBound: false);
+            var body = new GameObject("Lighter");
+            body.transform.SetParent(root.transform, false);
+            body.AddComponent<MeshFilter>().sharedMesh = _m.LighterMesh;
+            body.AddComponent<MeshRenderer>().sharedMaterial = _m.Rocket;
+            new GameObject("LighterBase").transform.SetParent(root.transform, false);
+            root.transform.Find("LighterBase").localPosition = new Vector3(0f, LighterBottom, 0f);
+            new GameObject("LighterHood").transform.SetParent(root.transform, false);
+            root.transform.Find("LighterHood").localPosition = new Vector3(0f, LighterTop, 0f);
+            return _kit.Save(root);
+        }
+
+        /// <summary>
+        /// Shows the held lighter in his left hand whenever Aerosol Inferno is held or fired. The can's
+        /// entry stays first, so <see cref="WeaponAttach.PropFor"/> (the can's charge feedback) still finds it.
+        /// </summary>
+        private static void BindHeldLighter(GameObject prefab)
+        {
+            const string path = "Assets/CharacterPackages/manki/Presentation/MankiWeaponAttachments.asset";
+            var config = AssetDatabase.LoadAssetAtPath<WeaponAttachConfig>(path)
+                ?? throw new System.InvalidOperationException($"No weapon config at {path}.");
+            var entries = config.Entries.ToList();
+            var entry = entries.FirstOrDefault(e => e.AttackSlot == AbilitySlots.F && e.BoneName == "mixamorig:LeftHand");
+            if (entry == null)
+                entries.Add(entry = new WeaponEntry { AttackSlot = AbilitySlots.F, BoneName = "mixamorig:LeftHand" });
+            entry.Prefab = prefab;
+            entry.PositionOffset = LighterGrip;
+            entry.RotationOffset = LighterGripRotation;
+            entry.HideAfterTicks = 0;
+            entry.TrailHiltAnchor = "LighterBase";  // no trail style: only rig packs read these
+            entry.TrailTipAnchor = "LighterHood";
+            config.Entries = entries.ToArray();
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssetIfDirty(config);
+        }
+
+        /// <summary>
+        /// The homemade flamethrower's other half: he holds the chunky red lighter in his free hand
+        /// from the first shake (<see cref="HeldLighter"/>), and this cue lights it on release. It sits
+        /// on the lighter's hood, upright: sparks fly off the wheel as it flicks on at tick 3, and as the
+        /// stream lights at tick 8 its flame flares forward into the stream, away from his face. The cue
+        /// burns until the stream ends at tick 52 (character.json).
         /// </summary>
         private static GameObject Lighter()
         {
             var root = _kit.NewRoot("MankiLighter", attackBound: true);
             var upright = Frame(root, upright: true);
-            var aim = new GameObject("Lean");
-            aim.transform.SetParent(upright.transform, false);
-            aim.transform.localRotation = Quaternion.Euler(-30f, 0f, -10f);
             const float show = 2f / 60f;
-            var body = Particles(aim, "Lighter", _m.Rocket, 1f, ParticleSystemSimulationSpace.Local);
-            Burst(body, 1);
-            var main = body.main;
-            main.startDelay = show;
-            main.startLifetime = 60f;
-            main.startSize = 1f;
-            var renderer = body.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Mesh;
-            renderer.mesh = _m.LighterMesh;
-            renderer.alignment = ParticleSystemRenderSpace.Local;
 
             var nozzle = new GameObject("Flame");
-            nozzle.transform.SetParent(aim.transform, false);
-            nozzle.transform.localPosition = new Vector3(0f, LighterTop + 0.13f, 0f);
+            nozzle.transform.SetParent(upright.transform, false);
+            nozzle.transform.localPosition = new Vector3(0f, 0.13f, 0f);
             var glow = Particles(nozzle, "Glow", _m.Glow, 1f, ParticleSystemSimulationSpace.Local);
-            main = glow.main;
+            var main = glow.main;
             main.loop = true;
             main.startDelay = show + 0.03f;
             main.startLifetime = 0.15f;
@@ -775,8 +818,8 @@ namespace SlopArena.EditorTools
             SizeOverLife(flame, Curve((0f, 0.6f), (0.35f, 1f), (1f, 0.8f)));
             InFront(flame);
 
-            var flick = Particles(aim, "Flick", _m.Spark, 0.3f);
-            flick.transform.localPosition = new Vector3(-0.02f, LighterTop - 0.02f, 0f);
+            var flick = Particles(upright, "Flick", _m.Spark, 0.3f);
+            flick.transform.localPosition = new Vector3(-0.02f, -0.02f, 0f);
             Burst(flick, 6);
             main = flick.main;
             main.startDelay = show;
@@ -793,7 +836,7 @@ namespace SlopArena.EditorTools
             // the stream, away from his face.
             var flareAt = new GameObject("Flare");
             flareAt.transform.SetParent(upright.transform, false);
-            flareAt.transform.localPosition = aim.transform.localRotation * nozzle.transform.localPosition;
+            flareAt.transform.localPosition = nozzle.transform.localPosition;
             var flare = Particles(flareAt, "Flare", _m.Flame, 0.5f);
             main = flare.main;
             main.startDelay = 7f / 60f;
@@ -1605,8 +1648,8 @@ namespace SlopArena.EditorTools
                 Mathf.Min(Circle(o, new Vector2(-0.7f, 0.4f), 0.58f), Circle(o, new Vector2(0.7f, 0.4f), 0.58f)));
         }
 
-        // The lighter's hood top in its mesh (metres above the grip at the origin).
-        private const float LighterTop = 0.17f;
+        // The lighter's hood top and base in its mesh (metres from the grip at the origin).
+        private const float LighterTop = 0.17f, LighterBottom = -0.15f;
 
         /// <summary>
         /// A chunky disposable lighter along +Y in metres, held at the origin, at the cartoon scale
@@ -1615,7 +1658,7 @@ namespace SlopArena.EditorTools
         /// </summary>
         private static Mesh LighterMesh(string name)
         {
-            const float halfWidth = 0.05f, halfDepth = 0.028f, chamfer = 0.014f, bottom = -0.15f, shoulder = 0.12f;
+            const float halfWidth = 0.05f, halfDepth = 0.028f, chamfer = 0.014f, bottom = LighterBottom, shoulder = 0.12f;
             var light = new Vector3(0.45f, 0.35f, 0.82f).normalized;
             var vertices = new List<Vector3>();
             var uvs = new List<Vector2>();

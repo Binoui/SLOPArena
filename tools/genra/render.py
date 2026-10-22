@@ -23,19 +23,23 @@ def camera_direction(yaw_degrees=0.0, pitch_degrees=20.0) -> tuple:
 
 VIEWS = {
     'profile': (1, 0, 0.12),      # from the character's right side
+    'profile-left': (-1, 0, 0.12),  # from the character's left side (Sir Bonk's Joust references)
     'front': (0, 1, 0.25),        # facing the character
     'back': (0, -1, 0.25),
     'top': (0.05, -0.2, 1),
     # Review angle: behind one shoulder, where the strike stays visible (see Brief.review_views).
     'three-quarter-right': camera_direction(35, 20),
     'three-quarter-left': camera_direction(-35, 20),
+    # Showing the character, not the strike: in front of him, 35 degrees toward his right and 15 up (turnarounds, video frames).
+    'front-three-quarter-right': camera_direction(145, 15),
+    'front-three-quarter-left': camera_direction(-145, 15),
     'gameplay': camera_direction(0, 20),  # the match camera's default: straight behind, 20 degrees up
 }
 COLORS = {'Head': (232, 150, 110), 'Torso': (120, 128, 140), 'Tail': (220, 120, 70),
           'LeftUpperArm': (90, 150, 220), 'LeftForeArm': (60, 120, 200), 'LeftHand': (255, 210, 60),
           'RightUpperArm': (220, 110, 110), 'RightForeArm': (200, 70, 70), 'RightHand': (255, 150, 40),
           'LeftLeg': (110, 190, 140), 'LeftFoot': (70, 150, 100), 'RightLeg': (180, 160, 220), 'RightFoot': (140, 110, 190),
-          'Weapon': (210, 220, 235)}
+          'Weapon': (210, 220, 235), 'Prop': (190, 175, 110)}
 BACKGROUND = (24, 28, 36)
 
 
@@ -68,9 +72,11 @@ class Renderer:
         lo, hi = char.min(axis=0), char.max(axis=0)
         return float(np.linalg.norm(hi - lo) * margin), (lo + hi) / 2
 
-    def image(self, world, view='profile', size=320, span=None, center=None, label=None) -> Image.Image:
+    def image(self, world, view='profile', size=320, span=None, center=None, label=None, focus=None,
+              hide=()) -> Image.Image:
         """Render one pose. `span` is the visible width in metres and `center` a char-frame point;
-        both default to fitting this pose."""
+        both default to fitting this pose. `focus` (metres) keeps only triangles that near the centre, so a
+        close-up of a hand is not hidden behind the body; `hide` drops regions (e.g. {'Weapon'})."""
         if span is None or center is None:
             fit_span, fit_center = self.fit([world])
             span = fit_span if span is None else span
@@ -88,6 +94,13 @@ class Renderer:
             sy = size - rel @ up * scale
             depth = rel @ toward
             tri = m['triangles']
+            keep = np.ones(len(tri), bool)
+            if focus is not None:
+                keep &= np.linalg.norm(rel[tri].mean(axis=1), axis=1) < focus
+            if hide:
+                keep &= ~np.isin(m['region'][tri[:, 0]], [self.skin.region_names.index(r) for r in hide
+                                                          if r in self.skin.region_names])
+            tri, colors = tri[keep], colors[keep]
             a, b, c = pts[tri[:, 0]], pts[tri[:, 1]], pts[tri[:, 2]]
             normal = np.cross(b - a, c - a)
             normal /= np.linalg.norm(normal, axis=1, keepdims=True) + 1e-12
@@ -272,8 +285,9 @@ def encode_passes(passes, path) -> Path:
 
 
 def contact_sheet(clip, ticks, views=('profile', 'front', 'three-quarter-right'), path=None, size=260, span=None,
-                  center=None, skin=None):
-    """Grid image: one row per view, one column per tick. Returns the PIL image (saved if path).
+                  center=None, skin=None, cols=None):
+    """Grid image: one row per view, one column per tick (a view wraps onto more rows past `cols` ticks: a dense
+    filmstrip). Returns the PIL image (saved if path).
 
     Framing defaults to one fit over all shown ticks, so poses stay comparable across columns.
     """
@@ -285,10 +299,50 @@ def contact_sheet(clip, ticks, views=('profile', 'front', 'three-quarter-right')
         fit_span, fit_center = renderer.fit([world[t] for t in ticks])
         span = fit_span if span is None else span
         center = fit_center if center is None else center
-    sheet = Image.new('RGB', (size * len(ticks), size * len(views)), BACKGROUND)
+    ticks = list(ticks)
+    cols = min(cols or len(ticks), len(ticks))
+    lines = -(-len(ticks) // cols)
+    sheet = Image.new('RGB', (size * cols, size * len(views) * lines), BACKGROUND)
     for r, view in enumerate(views):
         for c, tick in enumerate(ticks):
-            sheet.paste(renderer.image(world[tick], view, size, span, center, f'{view} t{tick}'), (c * size, r * size))
+            sheet.paste(renderer.image(world[tick], view, size, span, center, f'{view} t{tick}'),
+                        ((c % cols) * size, (r * lines + c // cols) * size))
+    if path:
+        sheet.save(path)
+    return sheet
+
+
+def closeup_sheet(clip, joints, ticks, path=None, size=220, span=None, skin=None, weapons=False):
+    """Joint-centred close-ups (hands, feet): for each joint, a row per view (front, its outer side, above), a column
+    per tick, framed on the joint at every tick and showing only the nearby mesh, so a folded wrist is not hidden
+    behind the body (or, unless `weapons`, behind what the hand holds). `span` defaults to 2.4 forearms for a hand."""
+    from .skin import Skin
+    rig = clip.rig
+    skin = skin or Skin(rig)
+    renderer = Renderer(skin, clip.frame)
+    world = clip.world()
+    rows = []
+    for joint in joints:
+        side = rig.side(joint)
+        outside = (-1, 0, 0.12) if side == 'Left' else (1, 0, 0.12)
+        views = (('front', VIEWS['front']), (f'{side.lower() or "side"} side', outside), ('above', (0.05, -0.25, 1)))
+        parent = rig.names[rig.parents[rig.index(joint)]]
+        child = next((rig.names[c] for c in rig.children(joint)
+                      if rig.names[c].endswith(('Middle1', 'ToeBase', 'Index1'))), None)
+        reach = span
+        if reach is None:
+            bone = world[0, rig.index(joint), 3, :3] - world[0, rig.index(parent), 3, :3]
+            if child is not None and 'Foot' in joint:
+                bone = 1.6 * (world[0, rig.index(child), 3, :3] - world[0, rig.index(joint), 3, :3])
+            reach = 2.4 * float(np.linalg.norm(bone))
+        for label, view in views:
+            rows.append([renderer.image(world[t], view, size, reach, clip.frame.to_char(world[t, rig.index(joint), 3, :3]),
+                                        f'{joint} {label} t{t}', focus=reach * 0.75, hide=() if weapons else ('Weapon',))
+                         for t in ticks])
+    sheet = Image.new('RGB', (size * len(ticks), size * len(rows)), BACKGROUND)
+    for r, row in enumerate(rows):
+        for c, image in enumerate(row):
+            sheet.paste(image, (c * size, r * size))
     if path:
         sheet.save(path)
     return sheet

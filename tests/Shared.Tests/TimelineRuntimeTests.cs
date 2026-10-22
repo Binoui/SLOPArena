@@ -900,13 +900,18 @@ public sealed class TimelineRuntimeTests
             int commitmentTick = slot.Timeline.Stages[0].Operations.Select(operation => operation switch
             {
                 CookedSpawnHitboxOperation hit => (int)hit.Tick,
+                CookedSpawnProjectileOperation throwOperation => (int)throwOperation.Tick,
                 CookedForwardLungeOperation lunge => (int)lunge.Tick,
                 CookedStartCapabilityOperation { Parameters: CookedMankiAerosolInfernoCapabilityParameters flame }
                     => flame.FireTriggerTick,
                 CookedStartCapabilityOperation { Parameters: CookedCycloneKickCapabilityParameters cyclone }
                     => cyclone.WindupTicks + 1,
+                // The Joust launches into its gallop on the tick the capability starts.
+                CookedStartCapabilityOperation { Parameters: CookedSteeredChargeCapabilityParameters } charge
+                    => (int)charge.Tick,
                 _ => int.MaxValue,
             }).Min();
+            Assert.True(commitmentTick < 1000, $"{package} {label} has no attack or launch this test knows");
             bool aimedHold = package == "manki";
             sim.Tick(new() { [1] = new InputState
                 { ActiveSlot = wireSlot, IsAiming = aimedHold, TargetEntityId = 100 } });
@@ -938,7 +943,7 @@ public sealed class TimelineRuntimeTests
             sim.Tick(inputs);
             TestHelpers.AssertNear(previousYaw, sim.GetState(1).FacingYaw);
             Assert.False(sim.GetState(1).AttackCorrectionActive);
-            if (package == "bonk")
+            if (package == "bonk" && label != "A")  // his Q throws the pot lid; the others launch him
             {
                 var launched = sim.GetState(1);
                 Assert.True(launched.VX * launched.VX + launched.VZ * launched.VZ > 0f);

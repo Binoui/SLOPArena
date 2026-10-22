@@ -406,6 +406,13 @@ namespace SlopArena.Client.Entities
         public int CurrentAttackElapsedTicks => _lastState.AttackElapsedTicks;
         /// <summary>Identity of the last applied attack, for attached presentation cleanup.</summary>
         public byte CurrentAttackSequence => _lastState.AttackSequence;
+        /// <summary>Stage or phase clip the current attack shows (a steered charge's gallop, say). Read by presentation cues.</summary>
+        public byte CurrentComboStage => _lastState.ComboStage;
+        /// <summary>Whether the last applied state stood on the ground. Read by presentation cues (no dust on thin air).</summary>
+        public bool CurrentIsGrounded => _lastState.IsGrounded;
+        /// <summary>Wire slot whose returning projectile is still out (Sir Bonk's pot lid), 0 when none. Read by weapon
+        /// attach components: the lid stays off his shoulder until the catch.</summary>
+        public byte CurrentReturningProjectileSlot => _lastState.ReturningProjectileSlot;
         /// <summary>Charge of the current charged attack while aiming or firing; 0 otherwise.</summary>
         public ushort CurrentChargeTicks => _lastState.ChargeTicks;
         /// <summary>
@@ -555,15 +562,20 @@ namespace SlopArena.Client.Entities
             if (spec?.Stages is not { Length: > 0 } || spec.AnimationNames is not { Length: > 0 })
                 return false;
             int stageIndex = Math.Min(state.ComboStage, spec.Stages.Length - 1);
-            animationName = spec.AnimationNames[stageIndex % spec.AnimationNames.Length];
+            // A phase clip, listed after the stages' own clips (Bonk E's landing), plays in real time, as the
+            // server samples it.
+            bool phaseClip = IsPhaseClip(spec, state.ComboStage);
+            animationName = spec.AnimationNames[(phaseClip ? state.ComboStage : stageIndex) % spec.AnimationNames.Length];
             int bakedIndex = _bakedData.FindAnimIndex(animationName);
             if (bakedIndex < 0)
                 return false;
             var animation = _bakedData.Animations[bakedIndex];
             if (animation.FrameCount <= 0)
                 return false;
-            frame = HitboxGeometry.AttackFrame(StageElapsedTicks(state, spec, stageIndex),
-                animation.FrameCount, spec.Stages[stageIndex].DurationTicks);
+            frame = phaseClip
+                ? Math.Clamp(state.AttackElapsedTicks, 0, animation.FrameCount - 1)
+                : HitboxGeometry.AttackFrame(StageElapsedTicks(state, spec, stageIndex),
+                    animation.FrameCount, spec.Stages[stageIndex].DurationTicks);
             int frame0 = (int)frame;
             int hiltOffset = _weaponHiltBoneIndex * 3;
             int tipOffset = _weaponTipBoneIndex * 3;
@@ -1305,6 +1317,8 @@ namespace SlopArena.Client.Entities
             CharacterClass.FightGuy => new Color(0.28f, 0.72f, 1f, 0.95f),
             CharacterClass.Wibou => new Color(0.76f, 0.9f, 1f, 0.95f),
             CharacterClass.Bonk => new Color(0.96f, 0.58f, 0.18f, 0.95f),
+            CharacterClass.Bashie => new Color(0.98f, 0.3f, 0.27f, 0.95f),
+            _ => new Color(1f, 1f, 1f, 0.95f),
         };
 
         private void EmitMovementFeedback(CharacterState state, Vector3 position)
@@ -1411,6 +1425,13 @@ namespace SlopArena.Client.Entities
             return Math.Max(0, elapsed);
         }
 
+        /// <summary>Whether ComboStage shows a phase clip, listed after the stages' own clips (a leap's landing).
+        /// Abilities that only raise ComboStage (Manki's releases) keep their stage clip.</summary>
+        private static bool IsPhaseClip(AbilitySpec spec, int comboStage)
+            => spec.AnimationNames is { Length: > 0 } && spec.Stages is { Length: > 0 }
+                && spec.AnimationNames.Length > spec.Stages.Length
+                && comboStage % spec.AnimationNames.Length >= spec.Stages.Length;
+
         private float GetAbilityAnimationSpeed(AbilitySpec spec, int comboStage, string animationName)
         {
             if (spec.AnimSpeed > 0f) return spec.AnimSpeed;
@@ -1452,6 +1473,10 @@ namespace SlopArena.Client.Entities
                 return false;
 
             float fadeDuration = _lastAnimState is ActionState.Crouching or ActionState.Sliding ? 0f : 0.05f;
+            // A phase clip continues the attack from the previous clip's last pose (Bonk E lands on his swing's
+            // end). A crossfade would blend two far-apart poses of the swing in muscle space and flip the plank.
+            if (_lastAnimState == ActionState.Attacking && IsPhaseClip(spec, comboStage))
+                fadeDuration = 0f;
             var animState = _animancer.Play(clip, fadeDuration);
             // Animancer intentionally preserves a reused state's time. Attack
             // restarts, including same-slot IASA, must rewind the clip.

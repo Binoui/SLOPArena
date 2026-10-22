@@ -220,6 +220,12 @@ launch appears when the window expires. Grabs bypass armor.
 - Ordinary Hitstun is derived from launch magnitude; `stunTicks` is a gate.
   An opt-in hitbox `fixedHitstunTicks` gives a bounded linking duration without
   increasing displacement. It does not bypass armor or a zero stun gate.
+- A **shove** is a hit with `stunTicks` 0: the launch applies without Hitstun, and
+  until the push stops the victim cannot move, jump, shield or dodge. Landing ends such a push, so a
+  shove meant to slide a grounded fighter is flat (`angle` 0); any upward angle
+  pops the victim up and drops it within a few centimetres. A pure push, which also
+  deals no damage, has no Hitstop either, so a stream of them keeps the victim sliding
+  (Bashie's Hose Down, 2026-10-22).
 
 Visual hit reactions, VFX, audio, and camera effects are presentation only. Damage and state transitions occur in Shared simulation.
 
@@ -268,6 +274,16 @@ A projectile stops at the first entity it touches. Its explosion is different: s
 bomb or rocket that lands between two fighters, between course targets or next to its
 own owner (Manki's rocket jump) reaches all of them. Before that change the blast also
 stopped at its first contact.
+
+A returning projectile (Sir Bonk's pot lid, a `return` block on `spawnProjectile`) does
+not stop at fighters: each leg hits each fighter once, and the way back pulls them toward
+its owner. It turns at the end of its outbound time, at the stage (bouncing back at half
+speed) or at a shield. Its owner catches it when free, shielding, hanging on a ledge, held
+or being hit; an
+owner who is busy (in a move, hitstop, blockstun or landing lag) takes its self-hit
+instead: fixed hitstun and no launch. Thrown point-blank into a shield, it is home inside
+the throw itself, so it bonks him. Rules and limits:
+[ability architecture](ability-architecture.md).
 
 No Unity physics query or client-only trajectory determines gameplay.
 

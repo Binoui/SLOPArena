@@ -59,6 +59,13 @@ namespace SlopArena.Client.World
                 "Jump then E up the blast face, or climb the benches on the left.",
                 "Dive-bomb the crates below on your way down to the detonator.",
             }),
+            new("wibou_mall", "NEO MALL", "the game store", new[]
+            {
+                "R cuts a row in one dash, A fans three kunai. E carries you over the closed skybridge, or hop the planters.",
+                "Jump the missing escalator steps. Bosses take five hits: Skyfall lands two, close kunai three.",
+                "Jump, jump, E up the elevator tower, or climb the hanging signs. Kunai the agents peeking over level 4.",
+                "R the top bridge row, cut the agents at the railing, then get past Officer Doug to the game store.",
+            }),
         };
         public static CharacterCourseInfo Course(string key)
             => Array.Find(Courses, c => c.Key == key) ?? new CharacterCourseInfo(key, "CHARACTER COURSE", "the finish", Array.Empty<string>());

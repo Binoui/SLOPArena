@@ -20,6 +20,10 @@ public static class InternalCapabilityRegistry
                 when parameters is CookedChargedProjectileCapabilityParameters projectile:
                 capability = new ChargedProjectileAbility(projectile);
                 return true;
+            case CharacterPackageCompiler.ChargedStreamCapabilityId
+                when parameters is CookedChargedStreamCapabilityParameters stream:
+                capability = new ChargedStreamAbility(stream);
+                return true;
             case "slop.internal.fightguy.rising-dragon.v1" when parameters is CookedRisingDragonCapabilityParameters rising:
                 capability = new FightGuyRisingKick(rising);
                 return true;
@@ -40,6 +44,9 @@ public static class InternalCapabilityRegistry
                 return true;
             case CharacterPackageCompiler.TargetedLeapCapabilityId when parameters is CookedTargetedLeapCapabilityParameters leap:
                 capability = new TargetedLeapAbility(leap);
+                return true;
+            case CharacterPackageCompiler.SteeredChargeCapabilityId when parameters is CookedSteeredChargeCapabilityParameters charge:
+                capability = new SteeredChargeAbility(charge);
                 return true;
             case "slop.internal.manki.round-bomb.v1" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
                 capability = new MankiRoundBomb(bomb);

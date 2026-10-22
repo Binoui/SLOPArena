@@ -1,0 +1,120 @@
+{
+  "name": "wibou-r-charge-loop-b",
+  "notes": "Reviewer benchmark copy of briefs/wibou-r-charge-loop-b.json (hips frame, as authored) without the two targets the approved clip missed: ['head ahead of the hips, torso pitched forward (m)', 'blade tip out to the right (m)'].",
+  "rigpack": "artifacts/genra-rigpacks/wibou-unity-r",
+  "frame": "hips",
+  "character": "Wibou (37 joints; one index-finger chain and a thumb per hand; a 1.52 m katana fixed to the right hand as joint Weapon0 with bladeHilt and bladeEnd anchors)",
+  "description": "Wibou's Dash Slash charge loop. In the game the player holds R to aim and charge the dash (anywhere from a tap to a full second, and it can be held longer at full charge), then releases to dash forward and slash. Until now the charge played the dash clip itself, so Wibou ran and lunged on the spot while charging. This clip replaces that: a coiled, ready-to-spring dash stance that plays while R is held.\n\nHow the game plays it. The game crossfades into this clip over 0.1 s from idle or run and loops it (ticks 0-30, wrapping from 30 back to 0) for as long as R is held. On release it crossfades over 3 ticks into the dash clip (reference `dash`) at its tick 0, whose ticks 2-6 lunge forward and to the left, low, with the sword arm out to the right holding the blade about level (image 1: dash ticks 0-6 from the side, the three-quarter rear view and the front). So the stance must read as the instant before that lunge: from it, the dash's tick 3-4 pose must be a short forward continuation, never a pop back upright. Render the dash reference yourself (reference:dash, ticks 0-6) to match it. The same clip also plays in the air while Wibou charges and falls, so it must also read as a mid-air coil.\n\nThe stance (tick 0). Low and wide: sink the hips about 0.2 m from idle, knees well bent and pointing over the toes, feet planted wide, about where the dash puts them at tick 2 (left foot about 0.5 m to the left, right foot about 0.8 m to the right). Torso pitched forward 30-40 degrees and leaning slightly to the left, toward where the lunge goes; head up, eyes locked forward along the dash. Sword: the right hand low beside the right hip, the blade out to the right and angled back about 30-45 degrees behind the shoulder line, roughly level, the tip about hip height, well clear of the floor and the legs. Left arm: Neo's 'come at me' beckon. The left hand is held forward at about chest height, palm up, elbow bent, clear of the blade and the face.\n\nThe loop (ticks 0-30). Small, tense and alive, not a dance: it should read as power building. The hips bob down and up 3-5 cm once per cycle; the chest and shoulders breathe with it a couple of ticks behind; the blade tip quivers a few centimetres twice per cycle as the grip tightens. The left index finger curls in toward the palm and straightens again twice per cycle (Neo's beckon), the thumb relaxed; the hand itself stays steady. The head stays steady and focused forward the whole time. Offset the parts so they never all peak on the same tick.\n\nIdentity: Wibou is an ironic mall-ninja weeaboo, a cringe Neo from The Matrix with a katana. The stance can be a little over-the-top anime (very low, very wide, very focused), but no props, no sheath, no spins, no step and no attack. The feet stay planted, the fighter does not move, and the blade never passes through the legs, torso, arms or head.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "dash": "references/dash.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 30
+  },
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "images": [
+    "../../wibou-r-charge-20261018/current-r-t0-6.png",
+    "images/idle-entry.png"
+  ],
+  "image_notes": "1: the current dash clip (reference dash) at ticks 0-6 on the real character: rows are the side view (front is to the right), the three-quarter rear view and the front view; the release crossfades from this loop into it. 2: the idle entry pose with the sword (profile, front, three-quarter rear).",
+  "review_ticks": [
+    0,
+    4,
+    8,
+    12,
+    15,
+    19,
+    23,
+    27,
+    30
+  ],
+  "targets": [
+    {
+      "name": "hips sunk from idle at tick 0 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "max": -0.15
+    },
+    {
+      "name": "hips sunk from idle at tick 15 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 15,
+      "max": -0.15
+    },
+    {
+      "name": "feet planted wide (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 1.0
+    },
+    {
+      "name": "blade angled back behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 0,
+      "max": -0.5
+    },
+    {
+      "name": "blade tip above the floor at tick 0 (m)",
+      "kind": "below",
+      "a": "RightToeBase",
+      "b": "bladeEnd",
+      "tick": 0,
+      "min": 0.25
+    },
+    {
+      "name": "blade tip above the floor at tick 15 (m)",
+      "kind": "below",
+      "a": "RightToeBase",
+      "b": "bladeEnd",
+      "tick": 15,
+      "min": 0.25
+    },
+    {
+      "name": "hips bob over the loop (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        30
+      ],
+      "min": 0.025,
+      "max": 0.07
+    },
+    {
+      "name": "blade tip quiver over the loop (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "up",
+      "window": [
+        0,
+        30
+      ],
+      "min": 0.03,
+      "max": 0.15
+    }
+  ]
+}

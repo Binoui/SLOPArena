@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _packageId: bonk
   _catalogSchemaVersion: 1
-  _rig: {fileID: 2885432827554059921, guid: 77650c3385e50499387e656d1abf9631, type: 3}
+  _rig: {fileID: 996956790671633796, guid: c9b31b06ccef030b7910054845350b4c, type: 3}
   _weaponConfig: {fileID: 11400000, guid: e39ce81cb942475ddadbde1245b85bd5, type: 2}
   _sampleRate: 60
   _bindings:
   - _semanticId: anim.idle
-    _clip: {fileID: 7400000, guid: 7e3b7df525f7bdf018c81568e85307c0, type: 3}
+    _clip: {fileID: 7400000, guid: ae5af9fda5b7b6b308b7459a840cd5b6, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.idle
   - _semanticId: anim.run
-    _clip: {fileID: 7400000, guid: 119276cc04387a9e385a895171856dac, type: 3}
+    _clip: {fileID: 7400000, guid: f879cfbc8daca2adbbd53b2d91ba6f12, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.run
   - _semanticId: anim.dash
@@ -31,11 +31,11 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.dash
   - _semanticId: anim.jump
-    _clip: {fileID: 7400000, guid: 7335c181ca660db0ca7692057b084efb, type: 3}
+    _clip: {fileID: 7400000, guid: 655e5e37b66c98038a29970024dca27e, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.jump
   - _semanticId: anim.fall
-    _clip: {fileID: 7400000, guid: 970d37ba3d492f5b6999e9a169b7eed0, type: 3}
+    _clip: {fileID: 7400000, guid: 8c9365c52835a63c9b9ea483a691b916, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.fall
   - _semanticId: anim.hit-light
@@ -51,11 +51,11 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.hit-hard
   - _semanticId: anim.bonk.g1
-    _clip: {fileID: 7400000, guid: 4f502aaf0c0768b65bdd358b45029792, type: 2}
+    _clip: {fileID: 7400000, guid: 9f746866a5c67f01e93786ff68ac7ffa, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.g1
   - _semanticId: anim.bonk.g2
-    _clip: {fileID: 7400000, guid: 5749cf25830adcca4bd3750b4afcf904, type: 2}
+    _clip: {fileID: 7400000, guid: eea2f543728c675fb97996076a031a57, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.g2
   - _semanticId: anim.bonk.g3
@@ -67,17 +67,41 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.g4
   - _semanticId: anim.bonk.ga
-    _clip: {fileID: 7400000, guid: 6e19a07b540610cedb493c62d38b4fe8, type: 3}
+    _clip: {fileID: 7400000, guid: f2fba6082afa3058d8f7485f8f461795, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.ga
   - _semanticId: anim.bonk.ge
-    _clip: {fileID: 7400000, guid: 077331672ec1814afa7b0c8ae3453219, type: 3}
+    _clip: {fileID: 7400000, guid: b5443c2d2807944efa8d32a4026ab7bf, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.ge
+  - _semanticId: anim.bonk.ge-aim
+    _clip: {fileID: 7400000, guid: c803b44ee5edb1110a2fb1ef4fd4cae8, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.ge-aim
+  - _semanticId: anim.bonk.ge-land
+    _clip: {fileID: 7400000, guid: 9831915d674241a70bd43ce0f005af30, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.ge-land
   - _semanticId: anim.bonk.gr
-    _clip: {fileID: 7400000, guid: ae25c3f5ce8678103b5a90a1be9f72be, type: 2}
+    _clip: {fileID: 7400000, guid: b0362a1eafbcf8e518391a881c22b88f, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.gr
+  - _semanticId: anim.bonk.gr-gallop
+    _clip: {fileID: 7400000, guid: 699572dbf8faab5e5a3189ff1827c6b1, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.gr-gallop
+  - _semanticId: anim.bonk.gr-hit
+    _clip: {fileID: 7400000, guid: d62d97131d3dee7efa18b84201ecf923, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.gr-hit
+  - _semanticId: anim.bonk.gr-lookdown
+    _clip: {fileID: 7400000, guid: 71d8f6b25d9ae4cb69883b4dbd3b4edd, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.gr-lookdown
+  - _semanticId: anim.bonk.gr-stop
+    _clip: {fileID: 7400000, guid: 792fd35d3fae15815a10f94ed4cde27f, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.gr-stop
   - _semanticId: anim.bonk.gf
     _clip: {fileID: 7400000, guid: 329af6dd5822ef756a62b6f23762f9cc, type: 2}
     _extrapolation: 0
@@ -99,11 +123,11 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bonk.a4
   - _semanticId: anim.bonk.aa
-    _clip: {fileID: 7400000, guid: 6e19a07b540610cedb493c62d38b4fe8, type: 3}
+    _clip: {fileID: 7400000, guid: f2fba6082afa3058d8f7485f8f461795, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.aa
   - _semanticId: anim.bonk.ar
-    _clip: {fileID: 7400000, guid: ae25c3f5ce8678103b5a90a1be9f72be, type: 2}
+    _clip: {fileID: 7400000, guid: b0362a1eafbcf8e518391a881c22b88f, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bonk.ar
   - _semanticId: anim.tumble
@@ -157,3 +181,17 @@ MonoBehaviour:
     _prefab: {fileID: 7450579461409076994, guid: f355bd2f5bfdbd0648aceb13ad1694fb, type: 3}
   - _semanticId: presentation.bonk.storm.dust
     _prefab: {fileID: 9050730634436919200, guid: d54459ecb377533dcb8c2bcb1277aa98, type: 3}
+  - _semanticId: presentation.bonk.storm.dizzy
+    _prefab: {fileID: 4437521522640036939, guid: 57f4ff0b782a49c83a0a550dc0725a1c, type: 3}
+  - _semanticId: presentation.bonk.joust.horse
+    _prefab: {fileID: 3623188290830624384, guid: b0e636ee475ef73b2832f9fa3e55a3a0, type: 3}
+  - _semanticId: presentation.bonk.joust.pennant
+    _prefab: {fileID: 6624417944782980845, guid: 21799d3af3524d810b8c8a8a1eeb4c3a, type: 3}
+  - _semanticId: presentation.bonk.joust.neigh
+    _prefab: {fileID: 4542369051184081090, guid: 5a93aa3bdd53b8df69acce44f298ce26, type: 3}
+  - _semanticId: presentation.bonk.joust.gallop
+    _prefab: {fileID: 6149078467703981728, guid: 9be15f335b0708910ac43d431f899996, type: 3}
+  - _semanticId: presentation.bonk.joust.skid
+    _prefab: {fileID: 980516581017664842, guid: f5bdac6a2e7386fac9332d504e329fdf, type: 3}
+  - _semanticId: presentation.bonk.joust.lookdown
+    _prefab: {fileID: 6734896568803692412, guid: 0ef20ded96f1575398709b49fc051244, type: 3}

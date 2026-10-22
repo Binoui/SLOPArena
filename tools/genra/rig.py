@@ -346,3 +346,16 @@ def decompose(matrices) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     lead = m.shape[:-2]
     q = Rotation.from_matrix(np.swapaxes(rot_row, -1, -2).reshape(-1, 3, 3)).as_quat().reshape(*lead, 4)
     return t, q, s
+
+
+def handle_offsets(rig, world, side) -> tuple[np.ndarray, np.ndarray]:
+    """Per frame, where one hand's grip point (between the wrist and its middle knuckle) sits on the weapon's handle
+    line, the bladeEnd-bladeHilt line: (metres off the line, metres past the hilt toward the pommel). `world` is
+    (frames, joints, 4, 4)."""
+    knuckle = next(f'{side}Hand{f}1' for f in ('Middle', 'Index') if f'{side}Hand{f}1' in rig.names)
+    hilt, tip, hand, k = (rig.index(n) for n in ('bladeHilt', 'bladeEnd', f'{side}Hand', knuckle))
+    axis = world[:, hilt, 3, :3] - world[:, tip, 3, :3]
+    axis /= np.linalg.norm(axis, axis=1, keepdims=True)  # toward the pommel
+    rel = (world[:, hand, 3, :3] + world[:, k, 3, :3]) / 2 - world[:, hilt, 3, :3]
+    along = np.sum(rel * axis, axis=1)
+    return np.linalg.norm(rel - axis * along[:, None], axis=1), along

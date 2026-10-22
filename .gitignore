@@ -215,6 +215,9 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Original project-authored Manki animations.
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_air3_double_fist.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_ground4_head_slam.anim
+# Approved Manki Aerosol Inferno shake loop and fire (ground and air F) from the GenRA toolkit (2026-10-22).
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_gf_shake_loop.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_gf_fire.anim
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
 # Approved project-authored Bonk horizontal aerial.
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim
@@ -226,6 +229,17 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/wibou/Animations/wibou_crouch.anim
 # Approved Wibou Dash Slash charge loop (R held) from the GenRA toolkit (2026-10-18).
 !client/Unity/Assets/CharacterPackages/wibou/Animations/wibou_r_charge_loop.anim
+# Bashie's own idle and run (GenRA, 2026-10-22), and her stand-in copies of Manki's project-authored clips. Her
+# copies of his vendor-pack clips stay local, like their sources (tools/blender/bashie_rig/README.md).
+!client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_idle.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_run.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_hose_*.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/crouch.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/tumble.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/g4.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/a3.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/gf-loop.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/gf-atk.anim
 *.png
 !client/Unity/Assets/UI/SplashArt/*.png
 !client/Unity/Assets/UI/Arcade/SlopballPoster.png
@@ -408,6 +422,10 @@ videos/*
 !client/Unity/Assets/Art/Characters/bonk/Models/bonk.fbx*
 !client/Unity/Assets/Art/Characters/bonk/Models/bonk_sword.fbx*
 !client/Unity/Assets/Art/Characters/bonk/Prefabs/bonk_sword.prefab*
+!client/Unity/Assets/Art/Characters/bashie/Models/bashie.fbx*
+!client/Unity/Assets/Art/Characters/bashie/Models/BashieBlaster.fbx*
+!client/Unity/Assets/Art/Characters/bashie/Materials/Bashie_*.mat*
+!client/Unity/Assets/Art/Characters/bashie/Textures/Bashie_*.png*
 # Project-authored shared tumble from the GenRA toolkit (2026-10-18); all four packages bind it.
 !client/Unity/Assets/Art/Characters/shared/Animations/tumble_laid_out.anim*
 # Not listed yet: manki/Models/bazooka.fbx is 61.5 MB. GitHub warns above 50 MB and

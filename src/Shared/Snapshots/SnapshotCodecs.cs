@@ -118,6 +118,7 @@ namespace SlopArena.Shared
             w.WriteUShort(s.Cooldown8);
             w.WriteUShort(s.Cooldown9);
             w.WriteUShort(s.Cooldown10);
+            w.WriteByte(s.ReturningProjectileSlot);
         }
 
         public static CharacterState ReadCharacterState(SnapshotReader r)
@@ -229,6 +230,7 @@ namespace SlopArena.Shared
             s.Cooldown8 = r.ReadUShort();
             s.Cooldown9 = r.ReadUShort();
             s.Cooldown10 = r.ReadUShort();
+            s.ReturningProjectileSlot = r.ReadByte();
             return s;
         }
 
@@ -396,6 +398,30 @@ namespace SlopArena.Shared
             return explosion;
         }
 
+        public static void Write(SnapshotWriter w, in ProjectileReturn projectileReturn)
+        {
+            w.WriteUShort(projectileReturn.OutboundTicks);
+            w.WriteFloat(projectileReturn.ReturnSpeed);
+            w.WriteFloat(projectileReturn.ReturnAcceleration);
+            w.WriteFloat(projectileReturn.SelfHitDamage);
+            w.WriteUShort(projectileReturn.SelfHitStunTicks);
+            w.WriteString(projectileReturn.CatchPresentationId);
+            w.WriteString(projectileReturn.SelfHitPresentationId);
+        }
+
+        public static ProjectileReturn ReadProjectileReturn(SnapshotReader r)
+        {
+            var projectileReturn = new ProjectileReturn();
+            projectileReturn.OutboundTicks = r.ReadUShort();
+            projectileReturn.ReturnSpeed = r.ReadFloat();
+            projectileReturn.ReturnAcceleration = r.ReadFloat();
+            projectileReturn.SelfHitDamage = r.ReadFloat();
+            projectileReturn.SelfHitStunTicks = r.ReadUShort();
+            projectileReturn.CatchPresentationId = r.ReadString()!;
+            projectileReturn.SelfHitPresentationId = r.ReadString()!;
+            return projectileReturn;
+        }
+
         public static void Write(SnapshotWriter w, in HitboxPose pose)
         {
             w.WriteFloat(pose.X);
@@ -484,6 +510,11 @@ namespace SlopArena.Shared
             w.WriteBool(hb.Explosion.HasValue);
             if (hb.Explosion.HasValue)
                 Write(w, hb.Explosion.Value);
+            w.WriteBool(hb.Return.HasValue);
+            if (hb.Return.HasValue)
+                Write(w, hb.Return.Value);
+            w.WriteBool(hb.ReturnLeg);
+            w.WriteUShort(hb.LegTicks);
             w.WriteBool(hb.CanHitOwner);
             w.WriteBool(hb.FreezesOwner);
             w.WriteBool(hb.HitsMultipleOpponents);
@@ -547,6 +578,10 @@ namespace SlopArena.Shared
             hb.Gravity = r.ReadFloat();
             if (r.ReadBool())
                 hb.Explosion = ReadProjectileExplosion(r);
+            if (r.ReadBool())
+                hb.Return = ReadProjectileReturn(r);
+            hb.ReturnLeg = r.ReadBool();
+            hb.LegTicks = r.ReadUShort();
             hb.CanHitOwner = r.ReadBool();
             hb.FreezesOwner = r.ReadBool();
             hb.HitsMultipleOpponents = r.ReadBool();

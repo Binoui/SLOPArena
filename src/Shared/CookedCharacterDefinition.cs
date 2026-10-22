@@ -466,7 +466,17 @@ public sealed record CookedProjectile(
     float KnockbackGrowth,
     ushort StunTicks,
     ushort MaxFlightTicks,
-    float YawOffsetDegrees = 0f);
+    float YawOffsetDegrees = 0f,
+    CookedProjectileReturn? Return = null);
+
+public sealed record CookedProjectileReturn(
+    ushort OutboundTicks,
+    float ReturnSpeed,
+    float ReturnAcceleration,
+    float SelfHitDamage,
+    ushort SelfHitStunTicks,
+    string CatchPresentationId = "",
+    string SelfHitPresentationId = "");
 
 public sealed record CookedChargedProjectileCapabilityParameters(
     ushort MaxChargeTicks,
@@ -483,6 +493,34 @@ public sealed record CookedChargedProjectileCapabilityParameters(
     public float GetRadius(ushort chargeTicks)
         => GetChargeTier(chargeTicks) == 2 ? Tier3Radius
             : GetChargeTier(chargeTicks) == 1 ? Tier2Radius : Projectile.Radius;
+}
+
+public sealed record CookedChargedStreamCapabilityParameters(
+    ushort MaxChargeTicks,
+    ushort FireTriggerTick,
+    ushort EmitIntervalTicks,
+    ushort MinStreamTicks,
+    ushort MaxStreamTicks,
+    ushort RecoveryTicks,
+    float MaxBaseKnockback,
+    float MinRecoilSpeed,
+    float MaxRecoilSpeed,
+    CookedProjectile Projectile,
+    string SprayAnimationId = "",
+    ushort SprayLoopTicks = 0,
+    string EndAnimationId = "") : CookedCapabilityParameters
+{
+    /// <summary>How full the pump is: 0 after a tap, 1 at <see cref="MaxChargeTicks"/> or more.</summary>
+    public float GetCharge(ushort chargeTicks) => Math.Min(chargeTicks, MaxChargeTicks) / (float)MaxChargeTicks;
+
+    public ushort GetStreamTicks(ushort chargeTicks)
+        => (ushort)(MinStreamTicks + (int)MathF.Round((MaxStreamTicks - MinStreamTicks) * GetCharge(chargeTicks)));
+
+    public float GetBaseKnockback(ushort chargeTicks)
+        => Projectile.BaseKnockback + (MaxBaseKnockback - Projectile.BaseKnockback) * GetCharge(chargeTicks);
+
+    public float GetRecoilSpeed(ushort chargeTicks)
+        => MinRecoilSpeed + (MaxRecoilSpeed - MinRecoilSpeed) * GetCharge(chargeTicks);
 }
 
 public sealed class CookedSetAimStateOperation : CookedTimelineOperation
@@ -580,6 +618,27 @@ public sealed record CookedWibouRisingSlashCapabilityParameters(
 public sealed record CookedWibouBladeFlurryCapabilityParameters(
     float ForwardSpeed,
     ushort MoveTicks) : CookedCapabilityParameters;
+public sealed record CookedSteeredChargeCapabilityParameters(
+    float GallopSpeed,
+    float TurnDegreesPerSecond,
+    ushort MaxGallopTicks,
+    bool Armored,
+    CookedHitbox LanceHitbox,
+    ushort HitEndingTicks,
+    ushort MissEndingTicks,
+    ushort SkidTicks,
+    bool TurnAroundOnMiss,
+    ushort AirStrideTicks,
+    ushort LookDownTicks,
+    string GallopAnimationId = "",
+    ushort GallopLoopTicks = 0,
+    string HitEndingAnimationId = "",
+    string MissEndingAnimationId = "",
+    string AirEndingAnimationId = "",
+    string GallopPresentationId = "",
+    string HitEndingPresentationId = "",
+    string MissEndingPresentationId = "",
+    string AirEndingPresentationId = "") : CookedCapabilityParameters;
 public sealed record CookedTargetedLeapCapabilityParameters(
     ushort MaxAimTicks,
     ushort MaxFlightTicks,

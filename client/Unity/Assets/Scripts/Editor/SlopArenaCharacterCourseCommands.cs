@@ -243,7 +243,7 @@ namespace SlopArena.EditorTools
                     // Press the actual Retry binding for that device, so rebinding is respected.
                     device = via == "gamepad" ? InputSystem.AddDevice<Gamepad>("CourseRetryProbePad") : InputSystem.AddDevice<Keyboard>("CourseRetryProbeKeyboard");
                     var action = HumanInputActions.Get("Retry");
-                    var binding = action.bindings[HumanInputActions.BindingIndex("Retry", via == "gamepad" ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardGroup)];
+                    var binding = action.bindings[HumanInputActions.BindingIndex("Retry", via == "gamepad" ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardMouseGroup)];
                     if (InputControlPath.TryFindControl(device, binding.effectivePath) is not ButtonControl button)
                         throw new InvalidOperationException("The Retry binding is not a button on a " + via + ": " + binding.effectivePath);
                     using (UnityEngine.InputSystem.LowLevel.StateEvent.From(device, out var eventPtr)) { button.WriteValueIntoEvent(1f, eventPtr); InputSystem.QueueEvent(eventPtr); }

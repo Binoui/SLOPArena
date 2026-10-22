@@ -9,6 +9,19 @@ lease; blocked/unknown ownership is not free. Routine Steam release builds use
 canonical Editor lease or shutdown. Dated verification records below are
 historical evidence, not a checklist to repeat for every release.
 
+## Human playtest checklist
+
+Keep the gitignored root `TESTING-UNITY.md` to at most five short, actionable checks
+for current work. Each check names where to go, what to do, and what to look for.
+Merge overlapping checks and retire resolved or superseded ones. Before trimming a
+large backlog, preserve the original under ignored `tmp/testing-unity/` and link it
+from the current file.
+
+Record human feedback briefly, with only the scope actually reported. General
+"looks good" feedback does not establish that every historical scenario passed.
+Keep automated test totals, technical evidence and capture logs in task/PR reports
+or linked artifacts so the checklist stays easy to use.
+
 ## Local iteration
 
 Source or asset tuning uses the existing Editor development catalog and the affected
@@ -501,9 +514,9 @@ Shared suite still had gameplay/content failures. The next pass should prioritiz
 3. Verify PostgreSQL result persistence and the complete lifecycle with two packaged clients.
 4. Exercise reconnects, restarts, impaired networks, and concurrent match isolation.
 
-The gitignored root `TESTING-UNITY.md` records the session-specific checks. Temporary
-evidence under `/tmp/sloparena-chat-evidence/` is local and disposable, not durable CI
-coverage or a prerequisite for running this procedure.
+Use the [human playtest checklist](#human-playtest-checklist) for current manual
+follow-up. Temporary evidence under `/tmp/sloparena-chat-evidence/` is local and
+disposable, not durable CI coverage or a prerequisite for running this procedure.
 
 ### Verification evidence
 

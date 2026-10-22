@@ -31,6 +31,12 @@ namespace SlopArena.Client.Entities
         public Vector3 RotationOffset;
         [Tooltip("Hide the prop this many ticks after the attack starts (0 = keep for the whole attack).")]
         public int HideAfterTicks;
+        [Tooltip("Show the prop only from this many ticks after its attack starts (0 = from the start). With HideAfterTicks, a prop held for part of a move: Sir Bonk's pot lid is in his hand from the grab to the release.")]
+        public int ShowFromTicks;
+        [Tooltip("Attack slot that takes this prop away (0 = none; the AttackSlot wire value, e.g. 11 = A): hidden from HiddenBySlotFromTicks into that attack and while that slot's returning projectile is out. Sir Bonk's pot lid leaves his shoulder for Q and comes back on the catch.")]
+        public byte HiddenBySlot;
+        [Tooltip("Ticks into the HiddenBySlot attack when the prop leaves (the grab).")]
+        public int HiddenBySlotFromTicks;
         [Tooltip("Optional prefab supplying the TECH material and color for a blade-motion trail.")]
         public GameObject TrailStylePrefab;
         [Tooltip("How much recent blade movement stays visible, in seconds.")]

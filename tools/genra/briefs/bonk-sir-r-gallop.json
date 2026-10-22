@@ -1,0 +1,305 @@
+{
+  "name": "bonk-sir-r-gallop",
+  "notes": "Sir Bonk ground.R / air.R, the Joust (slop.ability.steered-charge.v1), 2026-10-21: the gallop loop, the hub phase (the mount clip lands on its tick 0 and the endings cut in from it). The owner approved the Seedance 2.5 references in artifacts/video-refs/sir-bonk-r-joust ('they look great, keep it') and asked for GenRA. Rig pack bonk-unity-sirjoust = the live Sir Bonk with his 1.9 m hobby horse on the hips (SirBonkJoustWeaponAttachConfig, tools/blender/bonk_rig/horse_review.eval.cs). Proposed timing: 24-tick loop at 12 m/s.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirjoust",
+  "character": "Sir Bonk (71 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip; and his 1.9 m hobby horse fixed rigidly to the hips as joint Weapon1, at the saddle point where its stick passes under his crotch, with horseGrip on the bare stick just under the horse's head and horseMuzzle at its nose)",
+  "description": "Sir Bonk's R, the Joust: the gallop loop. He rides his homemade hobby horse into battle with his plank couched as a lance, galloping a long way, armoured and steered by the player, until the lance hits someone (BONK!), he skids to a stop, or he gallops off a ledge. This clip is the gallop itself, looping. The owner approved the reference video in image 4 as the direction.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He does everything from his book completely seriously, and it goes a bit wrong for him.\n\nThe hobby horse (image 3: him on it, from his left). Joint Weapon1 is his homemade hobby horse: a stuffed brown sock head with button eyes, a red yarn mane and a rope bridle on a broom handle, with the straw broom head as its tail. It is fixed rigidly to his hips and moves only with them: turning, tilting, raising or lowering the hips points and lifts the whole horse. Measured on his idle in the character frame: the saddle (Weapon1) sits 6 cm below the hips joint; the stick rises from it forward at 48.6 degrees to the head in front of his belly, so horseGrip (0.34 m up the stick) is 0.23 m ahead of the hips and 0.19 m above them and horseMuzzle is 0.94 m ahead and 0.30 m above; behind, the stick runs down to the straw tail about 0.5 m behind and 0.6 m below the saddle, behind his knees. The stick passes between his thighs. Keep the legs clear of it and of the straw tail behind, and keep both hands off the horse's head.\n\nHow the game plays it. Ticks 0-24 at 60 Hz (0.4 s), looping from tick 24 back to tick 0: two steps per loop. The game carries him forward at 12 m/s for up to a second and steers him with the stick; the fighter does not move in the clip, so the feet cycle under the body as on a treadmill. He arrives in tick 0 from the mount clip (he lowers the plank into a couched lance, rears the horse up and neighs, then lands into the gallop), and an ending clip cuts in from whatever tick the gallop is on. He wears armour for the whole gallop: he must look unstoppable, a proud knight charging, not a man running. The match camera sits straight behind him: from there the lance on his right, the horse's head and ears bobbing in front of him and the straw tail bouncing behind are what read.\n\nThe reference (image 4: four frames of one step from the video, seen from his front three-quarter left, the camera of `front-three-quarter-left`): contact, push, flight and reach, mapped to ticks 0, 3, 6 and 9. The second step, ticks 12-21, is the same with the other leg. It sets the poses and the body mechanics, not the timing: the video's step takes about 0.4 s, the game gives 12 ticks. Its cape and the plank bending are video artifacts.\n\nThe gallop, a heroic bounding charge:\n- Legs. The left foot strikes at tick 0 and the right at tick 12. Each foot lands ahead of the hips, flat or heel first, and stays planted for about 3-4 ticks while it travels back under the body; then the toes bend as it pushes off and the knee drives up high in front, the thigh near level, for the next strike. Between the steps there is a real flight (ticks 5-10 and 17-22): both feet off the floor, the trailing leg kicked out low behind, under the straw tail, and the leading knee coming through. Each foot travels about 1.0-1.4 m front to back over the loop. The knees stay apart around the stick.\n- Hips: they drop 8-12 cm into each landing (heavy) and rise into the flight. They turn 4-7 degrees toward the forward leg on each step; keep that small, because the horse turns with them and must not wag. The horse's head bobbing up and down with every landing is the joke; let it bob.\n- Torso: leaning forward 15-20 degrees from the hips, chest proud, chin up, eyes fixed straight ahead on his target. The chest counter-rotates a little against the hips. The head is steadier than the hips: its bob is smaller and arrives 2-3 ticks later.\n- The lance (the plank, joint Weapon0): couched under his right arm and pointing ahead, as in the reference: the right fist in front of his right chest or belly, the forearm level, the pommel end tucked back under the right armpit, the blade forward over the right side of the horse's head, level or a little up, the tip about 1.7-2.0 m ahead of the hips at chest height. It rides the body's bob but stays pointed forward on every tick: it is the hitbox.\n- The left fist holds the horse at horseGrip on every tick: close it around the stick (fist), the stick running through the fist from the little finger to the thumb, the thumb toward the horse's head. Because the horse moves with the hips, key the hand onto horseGrip at each key, then hold it there between keys with track() on the left arm (a 'pos' target at pose.pos('horseGrip'), or an 'attach' target to Weapon1 with the hand's transform taken from your first good key). The left elbow stays out from the body.\n\nThe floor is at up = -1.025 m in the character frame (the entry is his idle); with a flat foot the toe joint ToeBase sits about 0.05 m above it. Never push a foot through the floor. Use Clip.overlap() for the head and the collarbones. Do not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game. Keep each hand in line with its forearm (wrists under 45 degrees). The loop must close seamlessly from tick 24 to tick 0.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda",
+    "charge": "references/charge.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 24
+  },
+  "timing": {
+    "fixed": [
+      "24 ticks at 60 Hz, looping from tick 0: the game repeats it while he gallops (up to 60 ticks)",
+      "the game carries him forward at 12 m/s and steers him: the fighter does not move in the clip",
+      "tick 0 is where the mount clip lands and where the ending clips cut in"
+    ],
+    "adjustable": [
+      "the owner may change the gallop speed or the loop length later: keep the two steps even, so a retime stays clean"
+    ]
+  },
+  "views": [
+    "profile-left",
+    "front-three-quarter-left",
+    "gameplay",
+    "profile"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../video-refs/sir-bonk-r-joust/first-frame-profile-left.jpg",
+    "../../video-refs/sir-bonk-r-joust/joust-front34/gallop-beats/key-poses.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: Sir Bonk on his hobby horse at its game size, on his idle, from his left (the video's first frame; his left fist is still on his hip there). 4: the reference video the owner approved (Seedance 2.5, his front three-quarter left): one step of the gallop, contact, push, flight and reach, mapped to ticks 0, 3, 6 and 9.",
+  "keys": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    15,
+    18,
+    21,
+    24
+  ],
+  "review_ticks": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24
+  ],
+  "review": {
+    "reference": "run",
+    "travel": 0.1818,
+    "beats": {
+      "file": "artifacts/video-refs/sir-bonk-r-joust/joust-front34/gallop-beats/beats.json",
+      "view": "front-three-quarter-left",
+      "ticks": {
+        "contact": 0,
+        "push": 3,
+        "flight": 6,
+        "reach": 9
+      }
+    }
+  },
+  "targets": [
+    {
+      "name": "left toes on the floor just after the left strike, tick 1 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 1,
+      "max": -0.93
+    },
+    {
+      "name": "right toes on the floor just after the right strike, tick 13 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 13,
+      "max": -0.93
+    },
+    {
+      "name": "flight: left toes off the floor at tick 8 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.94
+    },
+    {
+      "name": "flight: right toes off the floor at tick 8 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.94
+    },
+    {
+      "name": "flight: left toes off the floor at tick 20 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.94
+    },
+    {
+      "name": "flight: right toes off the floor at tick 20 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.94
+    },
+    {
+      "name": "hips bob between landing and flight (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        24
+      ],
+      "min": 0.08,
+      "max": 0.2
+    },
+    {
+      "name": "right knee driven up for the right strike, tick 9 (m)",
+      "kind": "char",
+      "a": "RightLeg",
+      "axis": "up",
+      "tick": 9,
+      "min": -0.3
+    },
+    {
+      "name": "left knee driven up for the left strike, tick 21 (m)",
+      "kind": "char",
+      "a": "LeftLeg",
+      "axis": "up",
+      "tick": 21,
+      "min": -0.3
+    },
+    {
+      "name": "left foot stride front to back (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "front",
+      "window": [
+        0,
+        24
+      ],
+      "min": 0.9,
+      "max": 1.5
+    },
+    {
+      "name": "right foot stride front to back (m)",
+      "kind": "range",
+      "a": "RightFoot",
+      "axis": "front",
+      "window": [
+        0,
+        24
+      ],
+      "min": 0.9,
+      "max": 1.5
+    },
+    {
+      "name": "lance pointing ahead at tick 0 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 0,
+      "min": 1.5
+    },
+    {
+      "name": "lance pointing ahead at tick 6 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 6,
+      "min": 1.5
+    },
+    {
+      "name": "lance pointing ahead at tick 12 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 12,
+      "min": 1.5
+    },
+    {
+      "name": "lance pointing ahead at tick 18 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 18,
+      "min": 1.5
+    },
+    {
+      "name": "lance tip at chest height at tick 0 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 0,
+      "min": 0.1,
+      "max": 0.8
+    },
+    {
+      "name": "lance tip at chest height at tick 12 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 12,
+      "min": 0.1,
+      "max": 0.8
+    },
+    {
+      "name": "lance level or a little up at tick 0 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 0,
+      "min": -0.25,
+      "max": 0.45
+    },
+    {
+      "name": "lance level or a little up at tick 12 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 12,
+      "min": -0.25,
+      "max": 0.45
+    },
+    {
+      "name": "left fist on the horse at tick 0 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "horseGrip",
+      "tick": 0,
+      "max": 0.12
+    },
+    {
+      "name": "left fist on the horse at tick 6 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "horseGrip",
+      "tick": 6,
+      "max": 0.12
+    },
+    {
+      "name": "left fist on the horse at tick 12 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "horseGrip",
+      "tick": 12,
+      "max": 0.12
+    },
+    {
+      "name": "left fist on the horse at tick 18 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "horseGrip",
+      "tick": 18,
+      "max": 0.12
+    },
+    {
+      "name": "leaning forward, head ahead of the hips at tick 0 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.1
+    },
+    {
+      "name": "leaning forward, head ahead of the hips at tick 12 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.1
+    }
+  ]
+}

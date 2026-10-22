@@ -1,0 +1,436 @@
+{
+ "format": 1,
+ "stage": "wibou_mall",
+ "folder": "Assets/Stages/wibou_mall/Presentation/Mall",
+ "model": "NeoMall.fbx",
+ "stamp": "NeoMall.layout.json",
+ "root": "Neo Mall",
+ "textures": [
+  {
+   "file": "NeoMallGround.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 4096,
+   "aniso": 8
+  },
+  {
+   "file": "NeoMallAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 4096,
+   "aniso": 8
+  },
+  {
+   "file": "NeoMallDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 512,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "NM_Lit",
+   "asset": "NeoMallLit",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "NeoMallAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "NeoMallDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.6,
+    "_DetailStrength": 0.18,
+    "_Wrap": 0.4,
+    "_Specular": 0.0,
+    "_Gloss": 24,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.5,
+     0.54,
+     0.8
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "NM_Ground",
+   "asset": "NeoMallGroundSurface",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "NeoMallGround.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "NeoMallDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.7,
+    "_DetailStrength": 0.22,
+    "_Wrap": 0.35,
+    "_Specular": 0.25,
+    "_Gloss": 40,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.5,
+     0.54,
+     0.8
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "NM_Glass",
+   "asset": "NeoMallGlass",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "NeoMallAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "NeoMallDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.6,
+    "_DetailStrength": 0.1,
+    "_Wrap": 0.3,
+    "_Specular": 0.9,
+    "_Gloss": 90,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_WindFrequency": 1,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.5,
+     0.54,
+     0.8
+    ]
+   },
+   "vectors": {
+    "_WindDirection": [
+     1,
+     0,
+     0.3,
+     0
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "NM_Glow",
+   "asset": "NeoMallGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "NeoMallAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.8,
+    "_Ambient": 0.4,
+    "_Shade": 0.2,
+    "_Glow": 2.6,
+    "_FogAmount": 0.4,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     -0.181,
+     0.848,
+     -0.498,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "NM_Sky",
+   "asset": "NeoMallSky",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "NeoMallAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1.0,
+    "_Ambient": 0.0,
+    "_Shade": 0.0,
+    "_Glow": 1.0,
+    "_FogAmount": 0.0,
+    "_TimeScale": 1,
+    "_Cull": 0.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     -0.181,
+     0.848,
+     -0.498,
+     0
+    ]
+   }
+  }
+ ],
+ "shadows": {
+  "cast": true,
+  "receive": true,
+  "objects": {
+   "Vault": {
+    "cast": false,
+    "receive": false
+   },
+   "Cables": {
+    "cast": false,
+    "receive": false
+   },
+   "Katana": {
+    "cast": false,
+    "receive": false
+   },
+   "Floor": {
+    "cast": false,
+    "receive": true
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Moonlight",
+   "type": "directional",
+   "sun": {
+    "azimuth": 200.0,
+    "elevation": 58.0
+   },
+   "color": [
+    0.7,
+    0.76,
+    1.0
+   ],
+   "intensity": 0.6,
+   "shadows": "soft",
+   "shadowStrength": 0.5
+  },
+  {
+   "name": "House Fill",
+   "type": "directional",
+   "rotation": [
+    32,
+    225,
+    0
+   ],
+   "color": [
+    1.0,
+    0.86,
+    0.7
+   ],
+   "intensity": 0.55,
+   "shadows": "none"
+  },
+  {
+   "name": "Shopfront Fill",
+   "type": "directional",
+   "rotation": [
+    18,
+    70,
+    0
+   ],
+   "color": [
+    1.0,
+    0.84,
+    0.66
+   ],
+   "intensity": 0.3,
+   "shadows": "none"
+  },
+  {
+   "name": "Kiosk Row Glow",
+   "type": "point",
+   "position": [
+    -11.5,
+    7.5,
+    -32.0
+   ],
+   "color": [
+    1.0,
+    0.82,
+    0.6
+   ],
+   "intensity": 0.7,
+   "range": 18.0
+  },
+  {
+   "name": "Skybridge Glow",
+   "type": "point",
+   "position": [
+    0.0,
+    8.0,
+    -12.0
+   ],
+   "color": [
+    1.0,
+    0.82,
+    0.6
+   ],
+   "intensity": 0.6,
+   "range": 14.0
+  },
+  {
+   "name": "Escalator Glow",
+   "type": "point",
+   "position": [
+    10.0,
+    10.0,
+    8.0
+   ],
+   "color": [
+    1.0,
+    0.82,
+    0.6
+   ],
+   "intensity": 0.6,
+   "range": 15.0
+  },
+  {
+   "name": "Food Court Glow",
+   "type": "point",
+   "position": [
+    -13.0,
+    13.0,
+    20.0
+   ],
+   "color": [
+    1.0,
+    0.7,
+    0.45
+   ],
+   "intensity": 0.8,
+   "range": 18.0
+  },
+  {
+   "name": "Arcade Glow",
+   "type": "point",
+   "position": [
+    12.5,
+    18.5,
+    28.0
+   ],
+   "color": [
+    0.55,
+    0.85,
+    1.0
+   ],
+   "intensity": 0.7,
+   "range": 15.0
+  },
+  {
+   "name": "Game Store Glow",
+   "type": "point",
+   "position": [
+    12.0,
+    18.5,
+    41.0
+   ],
+   "color": [
+    0.8,
+    0.6,
+    1.0
+   ],
+   "intensity": 0.7,
+   "range": 12.0
+  },
+  {
+   "name": "Fountain Glow",
+   "type": "point",
+   "position": [
+    0.0,
+    2.0,
+    0.0
+   ],
+   "color": [
+    0.5,
+    0.85,
+    1.0
+   ],
+   "intensity": 0.6,
+   "range": 10.0
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.05,
+   0.06,
+   0.12
+  ],
+  "ambientSky": [
+   0.46,
+   0.47,
+   0.58
+  ],
+  "ambientGround": [
+   0.36,
+   0.3,
+   0.26
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.1,
+   0.11,
+   0.2
+  ],
+  "fogStart": 70,
+  "fogEnd": 260
+ }
+}

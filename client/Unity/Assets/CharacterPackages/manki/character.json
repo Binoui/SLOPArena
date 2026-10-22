@@ -937,22 +937,22 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 10,
+                "tick": 6,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.normal.heavy",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.head",
                   "localPositionX": 0,
-                  "localPositionY": 0,
-                  "localPositionZ": 0.1,
+                  "localPositionY": 0.24,
+                  "localPositionZ": 0,
                   "localRotationX": 0,
                   "localRotationY": 0,
                   "localRotationZ": 0,
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 8
+                  "durationTicks": 12
                 }
               }
             ]
@@ -1367,7 +1367,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 52,
+            "durationTicks": 62,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1429,7 +1429,7 @@
                     }
                   ],
                   "fireTriggerTick": 8,
-                  "fireDurationTicks": 52,
+                  "fireDurationTicks": 62,
                   "hitboxDurationTicks": 44,
                   "hitboxRadius": 0.7,
                   "offsetY": 0.25,
@@ -1471,7 +1471,7 @@
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.left-hand",
-                  "localPositionX": 0.019,
+                  "localPositionX": 0.155,
                   "localPositionY": 0.11,
                   "localPositionZ": 0.014,
                   "localRotationX": 0,
@@ -1480,7 +1480,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 38
+                  "durationTicks": 51
                 }
               },
               {

@@ -82,7 +82,7 @@ public sealed class ChargedProjectileTests
     }
 
     [Fact]
-    public void AirChargeDoesNotDriftHorizontallyOrEndOnLanding()
+    public void AirChargeCoastsUntilLandingThenHoldsPositionWithoutEnding()
     {
         var def = Definition();
         var sim = TestHelpers.MakeSim();
@@ -91,17 +91,48 @@ public sealed class ChargedProjectileTests
             PY = TestHelpers.GroundPY(def) + .01f, IsGrounded = false, VY = -1f, VX = 6f,
         };
         sim.RegisterEntity(1, def, state);
-        TestHelpers.TickHold(sim, new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true, MoveX = 1f }, 90);
+        var landed = TestHelpers.TickHold(sim,
+            new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true, MoveX = 1f }, 1);
+        Assert.True(landed.IsGrounded);
+        Assert.True(landed.PX > state.PX);
+        TestHelpers.TickHold(sim, new InputState { IsAiming = true, MoveX = 1f }, 89);
         var held = sim.GetState(1);
         Assert.True(held.IsGrounded);
         Assert.Equal(ActionState.Aiming, held.State);
-        Assert.Equal(state.PX, held.PX);
+        Assert.Equal(landed.PX, held.PX);
+        Assert.Equal(0f, held.VX);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
     }
 
-    private static CharacterDefinition Definition()
+    [Fact]
+    public void ZeroStunShotShovesWithoutHitstun()
     {
-        var def = TestHelpers.ResolveSourceDef("fightguy");
+        // Bashie's Hose Down: a gush with no stun pushes the target away and leaves it free to act.
+        var def = Definition(character => KiShotParameters(character)["projectile"]!["stunTicks"] = 0);
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(def) });
+        sim.RegisterEntity(2, def, TestHelpers.PlayerState(23f, 20f) with { EntityId = 2, PY = TestHelpers.GroundPY(def) });
+        TestHelpers.TickN(sim, new InputState { ActiveSlot = AbilitySlots.A }, 9);
+        Assert.Single(sim.Resolver.GetActiveHitboxes());
+        CharacterState target = default;
+        for (int tick = 0; tick < 20 && target.KVX <= 0f; tick++)
+        {
+            TestHelpers.TickDefault(sim, 1);
+            target = sim.GetState(2);
+        }
+        Assert.True(target.KVX > 0f);
+        Assert.Equal(0, target.HitstunTicks);
+        Assert.NotEqual(ActionState.Hitstun, target.State);
+    }
+
+    private static System.Text.Json.Nodes.JsonObject KiShotParameters(System.Text.Json.Nodes.JsonObject character)
+        => character["slots"]!.AsArray().Single(slot => slot!["id"]!.GetValue<string>() == "ground.A")!
+            ["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+            .Single(op => op!["kind"]!.GetValue<string>() == "startCapability")!["parameters"]!.AsObject();
+
+    private static CharacterDefinition Definition(Action<System.Text.Json.Nodes.JsonObject>? edit = null)
+    {
+        var def = TestHelpers.ResolveSourceDef("fightguy", edit);
         def.Class = CharacterClass.FightGuy;
         return def;
     }

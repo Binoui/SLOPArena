@@ -1,0 +1,275 @@
+{
+  "name": "bonk-sir-run-charge-v2",
+  "notes": "Sir Bonk run v2, 2026-10-21. Owner on v1 (bonk-sir-run-charge): the idle is good; the run's arms are too close to the body and the movement is too robotic, lacking subtle motion in the other parts. v2 keeps the proud charge and adds secondary motion (life checks).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip)",
+  "description": "Sir Bonk's run, version 2: the clip he plays while moving on the ground. He is the roster's heaviest and slowest runner.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He believes he is the hero charging to the rescue: proud and determined, chest out, chin up.\n\nWhat was wrong with version 1 (image 3, the real character in Unity). The owner said the arms are too close to his body and the movement is too robotic: it lacks the subtle motion in the rest of the body that makes a run feel real. Measured on version 1:\n- The spine, neck and collarbones barely turn (0-2 degrees).\n- The pelvis neither twists nor shifts.\n- Head, chest, plank hand and hips all bob exactly the same 15.5 cm, so the whole upper body rides the hips like one block.\n- The toes never bend.\n- The plank arm is locked.\n- The free fist swings only 17-30 cm out from the chest line, across his belly.\nKeep what worked: the forward lean with a proud chest, the plank resting on the right shoulder, the heavy flat-footed landings, the timing, and the feet on the floor.\n\nHow the game plays it. The run loops at full ground speed: ticks 0-44 are 0.73 s and two steps, wrapping from 44 back to 0. The fighter does not move in the clip; the game carries him forward, so the feet cycle under the body as on a treadmill. The game crossfades into the run from his idle and out of it into the idle, jumps and attacks. The idle is the entry pose: the hero pose, with the plank resting on the right shoulder and the left fist on the hip. The match camera sits straight behind him.\n\nThe run, the proud charge, now alive:\n- Legs, the timing kept from version 1. The left foot strikes at tick 0 and the right at tick 22. Each foot lands heel first and ahead of the hips, rolls flat and stays planted for about 8-10 ticks while it travels back under the body. Then the heel lifts, the toes bend 25-40 degrees as the foot pushes off, the knee lifts high in front (proud, like a parade) and the foot swings forward for the next strike. There is a short flight between steps. Each foot travels about 1.1-1.4 m front to back over the cycle.\n- The floor is at up = -1.025 m in this character frame (the entry is his new idle). With a flat foot, the toe joint (ToeBase) sits about 0.05 m above it (up about -0.975) and the ankle (Foot) about 0.14 m above it. Never push a foot through the floor.\n- Pelvis: it turns 6-10 degrees toward the forward leg on every step, drops 3-5 degrees on the swing-leg side, and shifts 2-4 cm sideways over the stance foot. The hips drop 8-14 cm into each landing (heavy) and rise in the push-off.\n- Chest: it counter-rotates against the pelvis by 6-10 degrees, so the left shoulder swings forward with the left fist. The spine folds 3-5 degrees forward into each landing, absorbing it, and straightens on the push-off.\n- Head: steadier than the body. Its bob is clearly smaller than the hips' and arrives 2-3 ticks later. It partly counters the chest's turn, so he keeps looking straight ahead, chin up.\n- Collarbones: the left one lifts and rolls 4-8 degrees with the arm swing. The right one dips a little under the plank's weight at each landing.\n- Left arm: a big brute's arms cannot hug a torso this wide. The elbow stays bent about 80-100 degrees and out to the side, and the fist swings in a wide arc outside the body. It goes forward and up to about chin height, then back past and outside the hip, opposite to the left leg (left foot forward, left fist back). The elbow leads and the fist follows 1-3 ticks later.\n- Right arm and the plank: the plank stays resting on the right shoulder (right hand at chest height in front of the shoulder, blade back and up over the shoulder, clear of the head, crest and cape), but it is alive. The elbow sits a little out from the body. The arm absorbs the bounce, so the plank bobs and settles 2-4 ticks after the body, and the tip rocks a few centimetres front to back.\n- Asymmetry: the right side carries the plank, so the two steps need not mirror exactly.\n- Use Clip.overlap() for the follow-through after the main keys (see the guide's Life section). The check's life warnings must be gone.\n\nDo not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank, no spins and no attack. The plank never passes through the head, the crest, the cape or the arms.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 44
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../sir-bonk-idle-run-20261020/run-v1-real-sheet.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: version 1 of this run on the real character in Unity. Rows are the match camera from behind, the three-quarter view, the profile and the front, at ticks 0, 6, 11, 17, 22, 28, 33, 39, 44. It shows the old sword; he now carries the wooden plank.",
+  "review_ticks": [
+    0,
+    6,
+    11,
+    17,
+    22,
+    28,
+    33,
+    39,
+    44
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor just after the left strike, tick 3 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 3,
+      "min": -1.02,
+      "max": -0.93
+    },
+    {
+      "name": "right toe joint on the floor just after the right strike, tick 25 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 25,
+      "min": -1.02,
+      "max": -0.93
+    },
+    {
+      "name": "left foot stride front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.9,
+      "max": 1.6
+    },
+    {
+      "name": "right foot stride front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.9,
+      "max": 1.6
+    },
+    {
+      "name": "hips drop into the landings (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.08,
+      "max": 0.16
+    },
+    {
+      "name": "head bob smaller than the hips' (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        44
+      ],
+      "max": 0.09
+    },
+    {
+      "name": "pelvis shifts over the stance foot (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "right",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.02,
+      "max": 0.08
+    },
+    {
+      "name": "chest counter-rotation moves the left shoulder front to back (m)",
+      "kind": "range",
+      "a": "LeftArm",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.08
+    },
+    {
+      "name": "chest counter-rotation moves the right shoulder front to back (m)",
+      "kind": "range",
+      "a": "RightArm",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.05
+    },
+    {
+      "name": "left fist outside the body on the back swing, tick 0 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.38
+    },
+    {
+      "name": "left fist outside the body on the front swing, tick 22 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 22,
+      "max": -0.3
+    },
+    {
+      "name": "left elbow out to the side, tick 0 (m)",
+      "kind": "char",
+      "a": "LeftForeArm",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.5
+    },
+    {
+      "name": "left elbow out to the side, tick 22 (m)",
+      "kind": "char",
+      "a": "LeftForeArm",
+      "axis": "right",
+      "tick": 22,
+      "max": -0.48
+    },
+    {
+      "name": "left fist up to chin height on the front swing (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 22,
+      "min": 0.42,
+      "max": 0.7
+    },
+    {
+      "name": "left fist swings front to back (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.6,
+      "max": 1.1
+    },
+    {
+      "name": "head ahead of the hips, forward lean at tick 0 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.1
+    },
+    {
+      "name": "head ahead of the hips, forward lean at tick 22 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 22,
+      "min": 0.1
+    },
+    {
+      "name": "head high above the upper chest (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 11,
+      "min": 0.24
+    },
+    {
+      "name": "right hand at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 11,
+      "min": 0.3,
+      "max": 0.7
+    },
+    {
+      "name": "plank tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 11,
+      "max": -0.5
+    },
+    {
+      "name": "plank tip high above the hilt (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 11,
+      "min": 0.6
+    },
+    {
+      "name": "plank bobs (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "up",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.1
+    },
+    {
+      "name": "plank tip rocks front to back (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.05
+    }
+  ],
+  "review": {
+    "reference": "oldrun",
+    "travel": 0.1515
+  }
+}

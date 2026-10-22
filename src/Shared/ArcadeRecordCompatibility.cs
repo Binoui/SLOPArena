@@ -16,12 +16,14 @@ public static class ArcadeRecordCompatibility
     // 7: Slopball hits always pop over the net, and rally heat mixes zingers, moonballs and curveballs in (2026-10-18).
     // 8: Slopball passes through passive fighter bodies; only attacks redirect it (2026-10-19).
     // 9: Slopball keeps each hit's launch direction and angle without automatic return assistance (2026-10-19).
-    public const uint RulesRevision = 9;
+    // 10: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
+    public const uint RulesRevision = 10;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
     // 3: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
-    public const uint CourseRulesRevision = 3;
+    // 4: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
+    public const uint CourseRulesRevision = 4;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)
@@ -137,7 +139,7 @@ public static class ArcadeRecordCompatibility
                 a.AcquisitionHalfAngleDegrees, a.MaxYawDegrees, a.MaxPitchDegrees,
                 a.YawDegreesPerSecond, a.PitchDegreesPerSecond },
             CookedSpawnHitboxOperation h => h.Hitbox,
-            CookedSpawnProjectileOperation p => p.Projectile,
+            CookedSpawnProjectileOperation p => Projectile(p.Projectile),
             CookedSetAimStateOperation a => new { a.AimState },
             CookedStartCapabilityOperation c => new { c.CapabilityId, c.CapabilityVersion,
                 Parameters = Parameters(c.Parameters) },
@@ -147,13 +149,41 @@ public static class ArcadeRecordCompatibility
         return new { op.Tick, op.Unit, op.Kind, Data = data };
     }
 
+    /// <summary>
+    /// A projectile as compared before returning projectiles existed: the same properties in the same
+    /// order, so content without a return keeps its fingerprint. A return block joins it, minus its
+    /// presentation IDs.
+    /// </summary>
+    private static object Projectile(CookedProjectile x) => x.Return == null
+        ? new
+        {
+            x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
+            x.BaseKnockback, x.KnockbackGrowth, x.StunTicks, x.MaxFlightTicks, x.YawOffsetDegrees,
+        }
+        : new
+        {
+            x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
+            x.BaseKnockback, x.KnockbackGrowth, x.StunTicks, x.MaxFlightTicks, x.YawOffsetDegrees,
+            Return = x.Return with { CatchPresentationId = "", SelfHitPresentationId = "" },
+        };
+
     private static object Parameters(CookedCapabilityParameters p) => p switch
     {
         CookedTargetedLeapCapabilityParameters x => x with { LaunchPresentationId = "", LandingPresentationId = "" },
+        CookedSteeredChargeCapabilityParameters x => x with
+        {
+            GallopPresentationId = "", HitEndingPresentationId = "",
+            MissEndingPresentationId = "", AirEndingPresentationId = "",
+        },
         CookedMankiRoundBombCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiJetpackBoostCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiBazookaCapabilityParameters x => x with { ExplosionPresentationId = "" },
-        CookedChargedProjectileCapabilityParameters or CookedRisingDragonCapabilityParameters
+        CookedChargedProjectileCapabilityParameters x => new
+        {
+            x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.FireTriggerTick, x.Tier2Radius, x.Tier3Radius,
+            Projectile = Projectile(x.Projectile),
+        },
+        CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
             or CookedCycloneKickCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
             or CookedWibouRisingSlashCapabilityParameters or CookedWibouBladeFlurryCapabilityParameters
             or CookedMankiAerosolInfernoCapabilityParameters => p,

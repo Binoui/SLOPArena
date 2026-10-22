@@ -4,6 +4,13 @@
     <genra python> tools/genra/unity_rigpack.py build manki         # USD rig pack + validation
     <genra python> tools/genra/unity_rigpack.py all manki fightguy bonk wibou
     <genra python> tools/genra/unity_rigpack.py all wibou --reference dash=anim.wibou.r   # -> wibou-unity-dash
+    <genra python> tools/genra/unity_rigpack.py all bonk --label sir \
+        --prefab Assets/CharacterPackages/bonk/Presentation/SirBonkRig.prefab \
+        --weapon-config Assets/Art/Characters/bonk/SirBonkWeaponAttachConfig.asset           # -> bonk-unity-sir
+    <genra python> tools/genra/unity_rigpack.py all bonk --label runstyle \
+        --reference fightguyrun=Assets/Art/Characters/fightguy/Animations/fightguy_run.anim \
+        --reference oldrun='Assets/Art/Characters/bonk/Animations/run.FBX|Run_ver_B'         # -> bonk-unity-runstyle
+    <genra python> tools/genra/unity_rigpack.py grip bonk --label sir [--grip-from double:20]  # grip.json only, no Unity
 
 `snapshot` renders unity/snapshot_rigpack.cs.template and runs it with the gateway's
 eval_file: the catalog prefab is instantiated in a preview scene, its skinned meshes,
@@ -13,9 +20,16 @@ through Animancer with root motion off, as PlayerRenderer plays them: plain clip
 root motion when the prefab enables it and can stretch legs toward IK goals.
 `build` writes artifacts/genra-rigpacks/<package>-unity/: rig.usda (skeleton, meshes, UVs,
 materials, first clip), references/<clip>.usda (skeleton + animation), textures/, images/,
-mapping.json, validation.json and manifest.json. `--reference LABEL=SEMANTIC_ID` adds a bound move clip
-(for example the attack a new loop hands off to) so a brief can show it to the model; such a pack is built
-beside the shared one, <package>-unity-LABEL, from its own snapshot. Unity space is left-handed and Y-up;
+mapping.json, validation.json and manifest.json. `--reference LABEL=SOURCE` adds a clip so a brief can show it to
+the model: a bound move (SOURCE is its semantic id, for example the attack a new loop hands off to) or any Humanoid
+clip asset retargeted onto the character (`Assets/...anim`, or `Assets/...fbx|Take` for one clip of a model), such as
+another character's run as a style reference. Such a pack is built beside the shared one, <package>-unity-LABEL, from
+its own snapshot (`--label` names it instead of the reference labels). Clip assets stay out of the grip measurement. `--prefab` snapshots an unbound candidate
+prefab (a new model before it replaces the catalog rig) with the package's bound clips, and `--weapon-config` its own
+weapon placement (a new hand's bone frame needs its own offsets); both need `--label`, which names the pack
+<package>-unity-LABEL. `--prop SLOT` (with `--label`) also attaches that slot's held prop, such as Manki's aerosol
+can for F, the way always-visible weapons are attached, so the model sees it, the clearance checks include it and
+`unity_clip.py render` draws it. Unity space is left-handed and Y-up;
 the pack mirrors x into a right-handed Y-up space. Constraint-driven copy bones (Manki's
 skin fingers) are bound to their source joints; weapons become fixed joints under their bone.
 """
@@ -43,29 +57,38 @@ CHARACTERS = {  # package -> {reference label: catalog semantic id}
     'bonk': {'idle': 'anim.idle', 'run': 'anim.run', 'jump': 'anim.jump', 'fall': 'anim.fall',
              'swing': 'anim.bonk.g2', 'rising': 'anim.bonk.g3', 'double': 'anim.bonk.g4', 'charge': 'anim.bonk.gr'},
     'wibou': {'idle': 'anim.wibou.idle', 'run': 'anim.wibou.run', 'jump': 'anim.wibou.jump', 'fall': 'anim.wibou.fall'},
+    # Her idle and run are her own; jump and fall are raised stand-ins borrowed from Manki (2026-10-22).
+    'bashie': {'idle': 'anim.bashie.idle', 'run': 'anim.bashie.run', 'jump': 'anim.bashie.jump', 'fall': 'anim.bashie.fall'},
 }
+SLOTS = {'E': 4, 'R': 5, 'F': 6, 'A': 11}  # AbilitySlots numbers of the letter keys, as weapon configs store them
 BAKE_FRAMES = [0, 10, -1]  # -1 = last frame
 MIRROR = np.diag([-1.0, 1.0, 1.0])
 
 
 # ----- Unity snapshot --------------------------------------------------------------------
-def variant(package: str, refs: dict | None) -> str:
-    """'wibou', or 'wibou+dash' for a pack with extra references: plain builds never pick up a variant's snapshot."""
-    return '+'.join([package, *[label for label in refs or {} if label not in CHARACTERS[package]]])
+def variant(package: str, refs: dict | None, label: str | None = None) -> str:
+    """'wibou', 'wibou+dash' for a pack with extra references, or 'bonk+sir' for a labelled pack (the label names it,
+    whatever references it carries): plain builds never pick up a variant's snapshot."""
+    if label:
+        return f'{package}+{label}'
+    return '+'.join([package, *[name for name in refs or {} if name not in CHARACTERS[package]]])
 
 
-def pack_dir(package: str, refs: dict | None = None) -> Path:
-    """artifacts/genra-rigpacks/<package>-unity, or <package>-unity-dash for a pack with an extra 'dash' reference."""
-    return REPO / 'artifacts/genra-rigpacks' / '-'.join([f'{package}-unity', *variant(package, refs).split('+')[1:]])
+def pack_dir(package: str, refs: dict | None = None, label: str | None = None) -> Path:
+    """artifacts/genra-rigpacks/<package>-unity, <package>-unity-dash for a pack with an extra 'dash' reference, or
+    <package>-unity-sir for a pack labelled 'sir'."""
+    return REPO / 'artifacts/genra-rigpacks' / '-'.join([f'{package}-unity', *variant(package, refs, label).split('+')[1:]])
 
 
-def snapshot(package: str, out: Path | None = None, refs: dict | None = None) -> Path:
+def snapshot(package: str, out: Path | None = None, refs: dict | None = None, label: str | None = None,
+             prefab: str = '', weapon_config: str = '') -> Path:
     clips = refs or CHARACTERS[package]
-    out = out or SNAPSHOTS / f'{variant(package, refs)}-{time.strftime("%Y%m%d-%H%M%S")}.json'
+    out = out or SNAPSHOTS / f'{variant(package, refs, label)}-{time.strftime("%Y%m%d-%H%M%S")}.json'
     template = (HERE / 'unity/snapshot_rigpack.cs.template').read_text()
     code = (template.replace('{{PACKAGE}}', package).replace('{{OUTPUT}}', str(out))
             .replace('{{CLIPS}}', ', '.join(json.dumps(v) for v in clips.values()))
-            .replace('{{BAKES}}', ', '.join(str(f) for f in BAKE_FRAMES)))
+            .replace('{{BAKES}}', ', '.join(str(f) for f in BAKE_FRAMES))
+            .replace('{{PREFAB}}', prefab).replace('{{WEAPON_CONFIG}}', weapon_config))
     script = Path('/tmp/genra-rigpacks') / f'snapshot-{package}.cs'
     script.parent.mkdir(parents=True, exist_ok=True)
     script.write_text(code)
@@ -80,10 +103,10 @@ def snapshot(package: str, out: Path | None = None, refs: dict | None = None) ->
     return out
 
 
-def latest_snapshot(package: str, refs: dict | None = None) -> Path:
-    found = sorted(SNAPSHOTS.glob(f'{variant(package, refs)}-*.json'))
+def latest_snapshot(package: str, refs: dict | None = None, label: str | None = None) -> Path:
+    found = sorted(SNAPSHOTS.glob(f'{variant(package, refs, label)}-*.json'))
     if not found:
-        raise SystemExit(f'No snapshot for {variant(package, refs)}; run "snapshot {package}" with the same references first')
+        raise SystemExit(f'No snapshot for {variant(package, refs, label)}; run "snapshot {package}" with the same references and label first')
     return found[-1]
 
 
@@ -130,16 +153,41 @@ def mesh_tokens(meshes) -> list[str]:
 
 
 # ----- build --------------------------------------------------------------------------------
-def build(package: str, snap_path: Path | None = None, out_dir: Path | None = None, refs: dict | None = None) -> dict:
+def prop_ends(parts: list[np.ndarray], cap=0.03) -> tuple[np.ndarray, np.ndarray]:
+    """(tip, base) of a held prop from its vertices in the prop's joint frame: the two ends of its longest extent, each at
+    the centre of the vertices within `cap` of the length from that end. The tip is the narrower end, such as a spray
+    can's nozzle; anchors let briefs aim at it (Prop<k>Tip, Prop<k>Base)."""
+    v = np.concatenate(parts)
+    axis = int(np.argmax(np.ptp(v, axis=0)))
+    length = float(np.ptp(v[:, axis]))
+    others = [a for a in range(3) if a != axis]
+    ends = []
+    for value in (v[:, axis].min(), v[:, axis].max()):
+        near = v[np.abs(v[:, axis] - value) <= cap * length]
+        centre = np.empty(3)
+        centre[axis] = value
+        centre[others] = near[:, others].mean(axis=0)
+        ends.append((float(np.ptp(near[:, others], axis=0).max()), centre))
+    (_, tip), (_, base) = sorted(ends, key=lambda e: e[0])
+    return tip, base
+
+
+def split_props(weapons: list[dict], attach=()) -> tuple[list[dict], list[dict]]:
+    """(attached, listed): always-visible attachments (slot 0) and the props of the `attach` slots join the rig; the
+    other slot props are only listed in mapping.json."""
+    joins = [w.get('slot') in (0, None) or w.get('slot') in attach for w in weapons]
+    return [w for w, j in zip(weapons, joins) if j], [w for w, j in zip(weapons, joins) if not j]
+
+
+def build(package: str, snap_path: Path | None = None, out_dir: Path | None = None, refs: dict | None = None,
+          label: str | None = None, props=()) -> dict:
     from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade, UsdSkel, Vt
 
     refs = refs or CHARACTERS[package]
-    snap_path = snap_path or latest_snapshot(package, refs)
+    snap_path = snap_path or latest_snapshot(package, refs, label)
     data = json.loads(snap_path.read_text())
-    # Only always-visible attachments (slot 0) join the rig; slot props are listed in mapping.json.
-    props = [w for w in data['weapons'] if w.get('slot') not in (0, None)]
-    data['weapons'] = [w for w in data['weapons'] if w.get('slot') in (0, None)]
-    out = out_dir or pack_dir(package, refs)
+    data['weapons'], props = split_props(data['weapons'], props)
+    out = out_dir or pack_dir(package, refs, label)
     if out.exists():
         shutil.rmtree(out)
     (out / 'references').mkdir(parents=True)
@@ -196,6 +244,13 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
             local = np.eye(4)
             local[3, :3] = (to_row(anchor['toWeapon']) @ residual)[3, :3]
             extra.append((f'{weapon_joint}/{token(anchor["name"])}', weapon_joint, local))
+        if not w['anchors'] and w.get('slot') not in (0, None):  # a held prop without named ends (Manki's can)
+            ends = prop_ends([(np.c_[points(p['mesh']['vertices']), np.ones(len(p['mesh']['vertices']) // 3)]
+                               @ to_row(p['toWeapon']) @ residual)[:, :3] for p in w['parts']])
+            for name, point in zip((f'Prop{k}Tip', f'Prop{k}Base'), ends):
+                local = np.eye(4)
+                local[3, :3] = point
+                extra.append((f'{weapon_joint}/{name}', weapon_joint, local))
     joints += [e[0] for e in extra]
     jindex = {j: n for n, j in enumerate(joints)}
     parent_of = {}
@@ -385,12 +440,13 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
                'slotProps': [{k: w[k] for k in ('config', 'slot', 'bone', 'prefab', 'positionOffset', 'rotationOffset')}
                              for w in props],
                'references': {label: {k: data['references'][sid][k] for k in ('name', 'path', 'sourceFps', 'fps', 'endFrame',
-                                                                                 'durationSeconds', 'humanMotion')} | {'semanticId': sid}
+                                                                                 'durationSeconds', 'humanMotion')}
+                              | ({'asset': sid} if sid.startswith('Assets/') else {'semanticId': sid})
                               for label, sid in refs.items()}}
     (out / 'mapping.json').write_text(json.dumps(mapping, indent=2))
     (out / 'humanoid.json').write_text(json.dumps(humanoid_muscles(data, joint_of, path_index), indent=2))
     learn_anatomy(out, labels[:4])  # idle, run, jump, fall: attack clips add twist-distribution noise to the axes
-    grip = learn_grip(out, labels)
+    grip = learn_grip(out, [label for label in labels if not refs[label].startswith('Assets/')])  # the character's own clips
     if grip:
         (out / 'grip.json').write_text(json.dumps(grip, indent=2))
     report = validate(refs, data, out, order, joint_of, labels)
@@ -540,38 +596,58 @@ def learn_anatomy(out: Path, labels, min_flexion=10.0) -> dict:
     return result
 
 
-def learn_grip(out: Path, labels, off_axis=0.03) -> dict | None:
+def learn_grip(out: Path, labels, off_axis=0.03, frame: tuple[str, int] | None = None,
+               hand_gap: float | None = None) -> dict | None:
     """How the character's own clips hold the weapon with both hands, as the left hand's exact transform in the
     weapon joint's frame. Taken from the approved frame whose left grip point (between the hand and its middle
     knuckle) sits closest to the handle axis, beyond the hilt: animators rarely keep a second hand rigid, so one
-    clean frame is a better grip than an average of loose ones. Other candidate frames are listed."""
-    from genra.rig import Rig, decompose, unit
+    clean frame is a better grip than an average of loose ones. Other candidate frames are listed.
+    A frame counts when the left grip point is off the axis by at most the weapon hand's own distance plus `off_axis`:
+    the grip point lies between the wrist and the knuckles, not in the palm, so even the weapon hand sits off the axis
+    (Sir Bonk's right hand 3.2 cm on his plank, so a fixed 3 cm found no grip and his runs improvised one, 10-13 cm off
+    the handle). `frame` (clip label, tick) takes that frame instead. `hand_gap` (metres) slides the left hand along
+    the handle until the two grip points are that far apart: a grip learned from another weapon can hold the hands
+    apart (Sir Bonk's, from the old Double Slash, 23 cm), and a wide grip makes the off arm reach across the body."""
+    from genra.rig import Rig, decompose, handle_offsets
     rig = Rig(out / 'rig.usda')
     weapon = next((n for n in rig.names if n.startswith('Weapon')), None)
-    knuckle = next((f'LeftHand{f}1' for f in ('Middle', 'Index') if f'LeftHand{f}1' in rig.names), None)
-    if weapon is None or knuckle is None or not {'bladeHilt', 'bladeEnd'} <= set(rig.names):
+    if (weapon is None or not {'bladeHilt', 'bladeEnd'} <= set(rig.names)
+            or not any(f'LeftHand{f}1' in rig.names for f in ('Middle', 'Index'))):
         return None
-    w, hilt, tip, hand, k = (rig.index(n) for n in (weapon, 'bladeHilt', 'bladeEnd', 'LeftHand', knuckle))
-    candidates = []
-    for label in labels:
+    w, hand = rig.index(weapon), rig.index('LeftHand')
+    candidates, own = [], []
+    for label in ([frame[0]] if frame else labels):
         source = Rig(out / 'references' / f'{label}.usda')
         first, last = source.animated_range()
         world = rig.fk(*source.sample_local(range(first, last + 1)))
-        axis = unit(world[:, hilt, 3, :3] - world[:, tip, 3, :3])  # toward the pommel
-        rel = (world[:, hand, 3, :3] + world[:, k, 3, :3]) / 2 - world[:, hilt, 3, :3]
-        along = np.sum(rel * axis, axis=1)
-        off = np.linalg.norm(rel - axis * along[:, None], axis=1)
-        for tick in np.nonzero((off < off_axis) & (along > 0))[0]:
+        weapon_off, weapon_along = handle_offsets(rig, world, rig.side(weapon))
+        own.append(weapon_off)
+        off, along = handle_offsets(rig, world, 'Left')
+        ticks = [frame[1]] if frame else np.nonzero((off < np.median(own[-1]) + off_axis) & (along > 0))[0]
+        for tick in ticks:
             local = world[tick, hand] @ np.linalg.inv(world[tick, w])  # row convention: hand = local @ weapon
-            candidates.append((float(off[tick]), label, int(tick), float(along[tick]), local))
+            scale = float(np.linalg.norm(world[tick, rig.index('bladeEnd'), 3, :3] - world[tick, rig.index('bladeHilt'), 3, :3]))
+            candidates.append((float(off[tick]), label, int(tick), float(along[tick]), local,
+                               float(along[tick] - weapon_along[tick]), scale))
     if not candidates:
         return None
-    off, label, tick, along, local = min(candidates, key=lambda c: c[0])
+    off, label, tick, along, local, gap, length = min(candidates, key=lambda c: c[0])
+    extra = {}
+    if hand_gap is not None:
+        hilt, tip = rig.index('bladeHilt'), rig.index('bladeEnd')
+        toward_blade = np.asarray(rig.bind_t[tip], float) - np.asarray(rig.bind_t[hilt], float)  # weapon-local units
+        metres_per_unit = length / float(np.linalg.norm(toward_blade))
+        slide = gap - hand_gap  # metres toward the blade (positive brings the hands together)
+        local = local.copy()
+        local[3, :3] += toward_blade / np.linalg.norm(toward_blade) * slide / metres_per_unit
+        along -= slide
+        extra = {'handGapMetres': round(float(hand_gap), 4), 'learnedHandGapMetres': round(float(gap), 4)}
     t, q, _ = decompose(local[None])
     return {'weapon': weapon, 'hand': 'LeftHand', 'source': {'clip': label, 'tick': tick},
             't': t[0].round(7).tolist(), 'q': q[0].round(9).tolist(),
             'offAxisMetres': round(off, 4), 'pastHiltMetres': round(along, 4),
-            'candidates': [{'clip': c[1], 'tick': c[2], 'offAxisMetres': round(c[0], 4)} for c in sorted(candidates)]}
+            'weaponHandOffAxisMetres': round(float(np.median(np.concatenate(own))), 4), **extra,
+            'candidates': [{'clip': c[1], 'tick': c[2], 'offAxisMetres': round(c[0], 4)} for c in sorted(candidates, key=lambda c: c[0])]}
 
 
 def images(out: Path, labels):
@@ -589,42 +665,110 @@ def images(out: Path, labels):
         clip.frame = CharFrame.from_pose(clip.pose(0))
         contact_sheet(clip, [0], ('profile', 'front', 'three-quarter-right'), out / 'images' / f'{label}-entry.png',
                       size=320, skin=skin)
+    grip_image(out, rig, skin)
+
+
+def grip_image(out: Path, rig=None, skin=None) -> Path | None:
+    """images/two-hand-grip.png: the approved two-handed frame grip.json comes from."""
+    from genra.clip import Clip, CharFrame
+    from genra.render import contact_sheet
+    from genra.rig import Rig
     grip = out / 'grip.json'
-    if grip.exists():  # the approved two-handed frame the grip comes from
-        source = json.loads(grip.read_text())['source']
-        ref = Clip.from_reference(Rig(out / 'references' / f"{source['clip']}.usda"))
-        clip = Clip(rig, ref.t, ref.q, ref.s)
-        tick = source['tick']
-        clip.frame = CharFrame.from_pose(clip.pose(tick))
-        world = clip.world()[tick]
-        hands = [world[rig.index(n), 3, :3] for n in ('LeftHand', 'RightHand')]
-        hand = np.linalg.norm(world[rig.index('LeftHandMiddle1'), 3, :3] - hands[0]) if 'LeftHandMiddle1' in rig.names else 0.1
-        contact_sheet(clip, [tick], ('front', 'three-quarter-right', 'profile'), out / 'images' / 'two-hand-grip.png',
-                      size=320, skin=skin, span=6 * hand, center=clip.frame.to_char((hands[0] + hands[1]) / 2))
+    if not grip.exists():
+        return None
+    rig = rig or Rig(out / 'rig.usda')
+    source = json.loads(grip.read_text())['source']
+    ref = Clip.from_reference(Rig(out / 'references' / f"{source['clip']}.usda"))
+    clip = Clip(rig, ref.t, ref.q, ref.s)
+    tick = source['tick']
+    clip.frame = CharFrame.from_pose(clip.pose(tick))
+    if 'handGapMetres' in json.loads(grip.read_text()):  # the left hand slid along the handle: show it there
+        from genra.solve import grip_target, solve
+        held, _ = solve(clip.pose(tick), ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'], [grip_target(rig)], wrists=45)
+        clip.set_pose(tick, held)
+    world = clip.world()[tick]
+    hands = [world[rig.index(n), 3, :3] for n in ('LeftHand', 'RightHand')]
+    hand = np.linalg.norm(world[rig.index('LeftHandMiddle1'), 3, :3] - hands[0]) if 'LeftHandMiddle1' in rig.names else 0.1
+    path = out / 'images' / 'two-hand-grip.png'
+    contact_sheet(clip, [tick], ('front', 'three-quarter-right', 'profile'), path, size=320, skin=skin,
+                  span=6 * hand, center=clip.frame.to_char((hands[0] + hands[1]) / 2))
+    return path
+
+
+def relearn_grip(out: Path, frame: tuple[str, int] | None = None, hand_gap: float | None = None) -> dict | None:
+    """Rewrite an existing pack's grip.json and its image from the pack's own references (no Unity snapshot), and
+    re-hash them in the manifest. Bound clips count, clip assets do not, unless `frame` names one (label, tick)."""
+    mapping = json.loads((out / 'mapping.json').read_text())
+    labels = [label for label, ref in mapping['references'].items() if 'semanticId' in ref]
+    grip = learn_grip(out, labels, frame=frame, hand_gap=hand_gap)
+    if grip is None:
+        return None
+    (out / 'grip.json').write_text(json.dumps(grip, indent=2))
+    grip_image(out)
+    from genra.rigpack import sha256
+    manifest = json.loads((out / 'manifest.json').read_text())
+    for rel in ('grip.json', 'images/two-hand-grip.png'):
+        manifest['files'][rel] = sha256(out / rel)
+    (out / 'manifest.json').write_text(json.dumps(manifest, indent=2))
+    return grip
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('command', choices=['snapshot', 'build', 'all'])
+    parser.add_argument('command', choices=['snapshot', 'build', 'all', 'grip'],
+                        help='grip: rewrite an existing pack\'s grip.json from its references, without Unity')
     parser.add_argument('packages', nargs='+', choices=sorted(CHARACTERS))
-    parser.add_argument('--reference', action='append', default=[], metavar='LABEL=SEMANTIC_ID',
-                        help='also carry this bound clip as references/LABEL.usda, e.g. dash=anim.wibou.r '
-                             '(builds <package>-unity-LABEL and leaves the shared pack alone)')
+    parser.add_argument('--reference', action='append', default=[], metavar='LABEL=SOURCE',
+                        help='also carry this clip as references/LABEL.usda: a bound semantic id (dash=anim.wibou.r) or a '
+                             "clip asset ('oldrun=Assets/Art/Characters/bonk/Animations/run.FBX|Run_ver_B'); builds "
+                             '<package>-unity-LABEL (or the --label pack) and leaves the shared pack alone')
+    parser.add_argument('--prefab', default='', metavar='ASSET',
+                        help='snapshot this unbound candidate prefab instead of the catalog rig (needs --label)')
+    parser.add_argument('--weapon-config', default='', metavar='ASSET',
+                        help="the candidate's weapon config instead of the package's (needs --label)")
+    parser.add_argument('--label', help='name the pack <package>-unity-LABEL (needed with --prefab/--weapon-config/--prop)')
+    parser.add_argument('--prop', action='append', default=[], metavar='SLOT',
+                        help="also attach this slot's held prop (E, R, F, A or an AbilitySlots number), e.g. F for "
+                             "Manki's aerosol can (needs --label)")
+    parser.add_argument('--grip-from', metavar='LABEL:TICK',
+                        help='grip: take the grip from this frame of a pack reference (e.g. an approved two-handed clip)')
+    parser.add_argument('--hand-gap', type=float, metavar='METRES',
+                        help='grip: slide the left hand along the handle so the hands are this far apart (a fist, ~0.12)')
     args = parser.parse_args(argv)
     extra = dict(item.partition('=')[::2] for item in args.reference)
     if not all(extra) or not all(extra.values()):
-        parser.error('--reference takes LABEL=SEMANTIC_ID')
+        parser.error('--reference takes LABEL=SOURCE')
+    if (args.prefab or args.weapon_config) and not args.label:
+        parser.error('--prefab and --weapon-config build a candidate pack: name it with --label')
+    if args.prop and not args.label:
+        parser.error('--prop builds a pack beside the shared one: name it with --label')
+    if not all(p.upper() in SLOTS or p.isdigit() for p in args.prop):
+        parser.error(f'--prop takes {", ".join(SLOTS)} or an AbilitySlots number')
+    props = tuple(SLOTS.get(p.upper()) or int(p) for p in args.prop)
+    if args.label and not re.fullmatch(r'[a-z0-9]+', args.label):
+        parser.error('--label takes lowercase letters and digits')
     sys.path.insert(0, str(HERE.parent))
     for package in args.packages:
         if set(extra) & set(CHARACTERS[package]):
             parser.error(f'{package} already carries {", ".join(CHARACTERS[package])}; name the extra clip differently')
         refs = CHARACTERS[package] | extra
+        if args.command == 'grip':
+            frame = None
+            if args.grip_from:
+                label, _, tick = args.grip_from.partition(':')
+                frame = (label, int(tick))
+            out = pack_dir(package, refs, args.label)
+            grip = relearn_grip(out, frame, args.hand_gap)
+            print(package, '->', out / 'grip.json' if grip else 'no two-handed frame found', json.dumps(
+                {k: grip[k] for k in ('source', 'offAxisMetres', 'pastHiltMetres', 'weaponHandOffAxisMetres', 'handGapMetres',
+                                      'learnedHandGapMetres') if k in grip} if grip else {}))
+            continue
         snap = None
         if args.command in ('snapshot', 'all'):
-            snap = snapshot(package, refs=refs)
+            snap = snapshot(package, refs=refs, label=args.label, prefab=args.prefab, weapon_config=args.weapon_config)
             print(package, 'snapshot ->', snap, flush=True)
         if args.command in ('build', 'all'):
-            report = build(package, snap, refs=refs)
+            report = build(package, snap, refs=refs, label=args.label, props=props)
             print(package, json.dumps({k: report[k] for k in ('joints', 'meshes', 'maxJointErrorMetres', 'maxSkinErrorMetres', 'passed')}),
                   flush=True)
     return 0

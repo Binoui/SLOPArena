@@ -1,0 +1,83 @@
+{
+  "about": "Hand-made attacks retargeted onto Sir Bonk, the bar for the flow checks (checks.flow_checks): how often joints stop, how much of the body stops together and how much of it is frozen, measured with curves.flow at the clips' own speed. Built 2026-10-21 as the 'corpus' pack of bonk (40 clips plus the old Bonk's four attacks the pack carries by default); `flow_corpus.py build` rebuilds it, `flow_corpus.py measure` re-measures it.",
+  "package": "bonk",
+  "label": "corpus",
+  "prefab": "Assets/CharacterPackages/bonk/Presentation/SirBonkRig.prefab",
+  "weaponConfig": "Assets/Art/Characters/bonk/SirBonkWeaponAttachConfig.asset",
+  "references": {
+    "gs3c1": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/0__3Combos/M_Big_Sword@Attack_3Combo_1_Inplace.FBX|Attack_3Combo_1_Inplace",
+    "gs3c2": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/0__3Combos/M_Big_Sword@Attack_3Combo_2_Inplace.FBX|Attack_3Combo_2_Inplace",
+    "gs3c3": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/0__3Combos/M_Big_Sword@Attack_3Combo_3_Inplace.FBX|Attack_3Combo_3_Inplace",
+    "gs4c1a": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/1__4Combos/M_Big_Sword@Attack_4Combo_1A_Inplace.FBX|Attack_4Combo_1A_Inplace",
+    "gs4c1b": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/1__4Combos/M_Big_Sword@Attack_4Combo_1B_Inplace.FBX|Attack_4Combo_1B_Inplace",
+    "gs4c2": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/1__4Combos/M_Big_Sword@Attack_4Combo_2_Inplace.FBX|Attack_4Combo_2_Inplace",
+    "gs4c3": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/1__4Combos/M_Big_Sword@Attack_4Combo_3_Inplace.FBX|Attack_4Combo_3_Inplace",
+    "gs4c4": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/1__4Combos/M_Big_Sword@Attack_4Combo_4_Inplace.FBX|Attack_4Combo_4_Inplace",
+    "gs7c1": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/2__7Combos/M_Big_Sword@Attack_7Combo_1_Inplace.FBX|Attack_7Combo_1_Inplace",
+    "gs7c2": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/2__7Combos/M_Big_Sword@Attack_7Combo_2_Inplace.FBX|Attack_7Combo_2_Inplace",
+    "gs7c3": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/2__7Combos/M_Big_Sword@Attack_7Combo_3_Inplace.FBX|Attack_7Combo_3_Inplace",
+    "gs7c5": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/2__7Combos/M_Big_Sword@Attack_7Combo_5_Inplace.FBX|Attack_7Combo_5_Inplace",
+    "gs7c6": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/2__7Combos/M_Big_Sword@Attack_7Combo_6_Inplace.FBX|Attack_7Combo_6_Inplace",
+    "gs7c7": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/2__7Combos/M_Big_Sword@Attack_7Combo_7_Inplace.FBX|Attack_7Combo_7_Inplace",
+    "gsupper": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/5__Upper_Attack/M_Big_Sword@UpperAttack_ZeroHeight.FBX|UpperAttack_ZeroHeight",
+    "gsjump1": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/2_Attacks/4__Jump_Attack/M_Big_Sword@Jump_Attack_Combo_1_ZeroHeight.FBX|Jump_Attack_Combo_1_ZeroHeight",
+    "gsskilla": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_A.FBX|Skill_A",
+    "gsskillc": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_C.FBX|Skill_C",
+    "gsskilld": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_D.FBX|Skill_D",
+    "gsskillf": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_F.FBX|Skill_F",
+    "gsskilli": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_I.FBX|Skill_I",
+    "gsskillk": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_K.FBX|Skill_K",
+    "gsskilll": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Big_Sword/3_Skills/M_Big_Sword@Skill_L.FBX|Skill_L",
+    "kt3c1": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/0__3Combos/M_katana_Blade@Attack_3Combo_1_Inplace.FBX|Attack_3Combo_1_Inplace",
+    "kt3c2": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/0__3Combos/M_katana_Blade@Attack_3Combo_2_Inplace.FBX|Attack_3Combo_2_Inplace",
+    "kt3c3": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/0__3Combos/M_katana_Blade@Attack_3Combo_3_Inplace.FBX|Attack_3Combo_3_Inplace",
+    "kt4c1": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/1__4Combos/M_katana_Blade@Attack_4Combo_1_Inplace.FBX|Attack_4Combo_1_Inplace",
+    "kt4c2": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/1__4Combos/M_katana_Blade@Attack_4Combo_2_Inplace.FBX|Attack_4Combo_2_Inplace",
+    "kt4c3": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/1__4Combos/M_katana_Blade@Attack_4Combo_3_Inplace.FBX|Attack_4Combo_3_Inplace",
+    "kt4c4": "Assets/~AnimationPacks/Grruzam Powerful Sword Animation(Great Sword, Katana)/Animation/M_Katana_Blade/2_Attacks/1__4Combos/M_katana_Blade@Attack_4Combo_4_Inplace.FBX|Attack_4Combo_4_Inplace",
+    "ki1h01r": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/1H/HumanM@Attack1H01_R.fbx|HumanM@Attack1H01_R",
+    "ki1h02r": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/1H/HumanM@Attack1H02_R.fbx|HumanM@Attack1H02_R",
+    "ki1h03r": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/1H/HumanM@Attack1H03_R.fbx|HumanM@Attack1H03_R",
+    "ki2h01": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/2H/HumanM@Attack2H01.fbx|HumanM@Attack2H01",
+    "ki2h02": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/2H/HumanM@Attack2H02.fbx|HumanM@Attack2H02",
+    "ki2h03": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/2H/HumanM@Attack2H03.fbx|HumanM@Attack2H03",
+    "ki2h04": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/2H/HumanM@Attack2H04.fbx|HumanM@Attack2H04",
+    "kipolearm01": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/Polearm/HumanM@AttackPolearm01.fbx|HumanM@AttackPolearm01",
+    "kipunch01r": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch01_R.fbx|HumanM@AttackPunch01_R",
+    "kikick01r": "Assets/~AnimationPacks/Kevin Iglesias/Human Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_R.fbx|HumanM@AttackKick01_R"
+  },
+  "measured": {
+    "clips": 44,
+    "flow": {
+      "stops per joint per second": {
+        "min": 0.045,
+        "p10": 0.174,
+        "median": 0.321,
+        "p90": 0.623,
+        "max": 1.161
+      },
+      "most of the body stopping together (share)": {
+        "min": 0.05,
+        "p10": 0.05,
+        "median": 0.15,
+        "p90": 0.27,
+        "max": 0.5
+      },
+      "frozen joint-ticks (share)": {
+        "min": 0.026,
+        "p10": 0.034,
+        "median": 0.063,
+        "p90": 0.112,
+        "max": 0.116
+      },
+      "child trails parent (ticks)": {
+        "min": -0.909,
+        "p10": -0.515,
+        "median": 0.045,
+        "p90": 0.672,
+        "max": 1.091
+      }
+    },
+    "date": "2026-10-21"
+  }
+}

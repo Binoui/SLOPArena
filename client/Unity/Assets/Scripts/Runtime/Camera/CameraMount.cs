@@ -107,7 +107,7 @@ namespace SlopArena.Client.Camera
             {
                 if (HumanInputActions.StickLook.ReadValue<Vector2>().sqrMagnitude > 0.01f ||
                     HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f ||
-                    Mathf.Abs(HumanInputActions.Zoom.ReadValue<float>()) > 0.01f)
+                    Mathf.Abs(HumanInputActions.ZoomDelta) > 0.01f)
                 {
                     SetCameraYawDeg(_chatSuppressedYaw);
                     SetCameraPitchDeg(_chatSuppressedPitch);
@@ -141,7 +141,7 @@ namespace SlopArena.Client.Camera
                 _orbital.HorizontalAxis.Value += delta.x * (settings.InvertCameraHorizontal ? -1f : 1f);
                 SetCameraPitchDeg(GetCameraPitchDeg() - delta.y * (settings.InvertCameraVertical ? -1f : 1f));
 
-                float zoom = HumanInputActions.Zoom.ReadValue<float>();
+                float zoom = HumanInputActions.ZoomDelta;
                 if (Mathf.Abs(zoom) > 0.001f)
                     _orbital.RadialAxis.Value -= zoom * 0.05f;
             }

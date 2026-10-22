@@ -521,12 +521,12 @@ namespace SlopArena.Shared
                     s.BufferedSlot = input.ActiveSlot;
             }
 
-            // 7. Fixed aim holds stop horizontal movement, including incoming air momentum.
+            // 7. Fixed aim holds stop grounded movement but let incoming air momentum coast.
             // Mobile-policy holds retain normal movement control at the slot's speed scale.
             // Attacks own their travel.
             bool fixedAim = s.State == ActionState.Aiming && s.AttackSlot > 0
                 && def.GetAimMovementMode(s.AttackSlot, !s.IsGrounded) == AimMovementMode.Fixed;
-            if (fixedAim)
+            if (fixedAim && s.IsGrounded)
                 s.VX = s.VZ = 0f;
             var moveStats = stats;
             if (s.State == ActionState.Aiming && s.AttackSlot > 0 && !fixedAim)
@@ -736,7 +736,7 @@ namespace SlopArena.Shared
                 if (cd > 0) s.SetCooldown(slot, (ushort)(cd - 1));
             }
 
-            // Charge-stock regen (refundable ability pools, e.g. Wibou Rising Slash).
+            // Charge-stock regen (ability charge pools, e.g. Wibou Rising Slash).
             // Only active when a charge is spent; recovers one charge per regen period.
             if (s.ChargeStockSpent > 0)
             {

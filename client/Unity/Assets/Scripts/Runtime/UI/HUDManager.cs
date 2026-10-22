@@ -332,7 +332,7 @@ namespace SlopArena.Client.UI
             _showGamepadPrompts = HumanInputActions.LastUsedGamepad && Gamepad.current != null;
             _seenBindingRevision = HumanInputActions.BindingRevision;
             _moveDeck.EnableInClassList("controller-prompts", _showGamepadPrompts);
-            string group = _showGamepadPrompts ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardGroup;
+            string group = _showGamepadPrompts ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardMouseGroup;
 
             for (int i = 0; i < _abilitySlots.Length; i++)
             {
@@ -699,8 +699,10 @@ namespace SlopArena.Client.UI
                     var slot = _abilitySlots[i];
                     SetSlotPresentation(slot, state.IsGrounded);
                     // The key stays pressed while its move runs, including repeated
-                    // casts; the cooldown only starts when the move ends.
-                    bool inUse = state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1;
+                    // casts, and while its returning projectile is out; the cooldown
+                    // only starts when the move ends.
+                    bool inUse = state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1
+                        || state.ReturningProjectileSlot == AbilitySlotDefs[i].SlotIndex + 1;
                     slot.Root.EnableInClassList("in-use", inUse);
                     if (inUse && slot.PulseTimer > 0f)
                     {

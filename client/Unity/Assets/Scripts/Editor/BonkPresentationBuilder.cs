@@ -17,14 +17,25 @@ namespace SlopArena.EditorTools
     /// bandage cream on bucket red. A thick red smear follows the plank, contacts are blunt
     /// "thunks" with ringing arcs instead of sharp sparks, and dust, cracks and rubble give him
     /// weight. The gags are on him: he snorts like a bull before an armoured charge, his own
-    /// bucket rings after a headbutt, and a hit his armour shrugs off gets a little "?". Workflow
-    /// and readability rules are in skills/sloparena-character-vfx-pass; plumbing is in
+    /// bucket rings after a headbutt, and a hit his armour shrugs off gets a little "?".
+    /// Sir Bonk (2026-10-21) keeps all of that and looks homemade, like the pictures in his book:
+    /// his plank throws wood splinters, Leap of Faith gets a storybook holy light while the plank is
+    /// stuck and a POP! when it comes out, and Blade Storm's smears are windmill sails, with a tiny
+    /// windmill over his bucket afterwards. The Joust (R) does its own sound effects: his hobby horse
+    /// comes and goes in a puff of straw, he neighs, a pennant streams from his lance, coconut hooves go
+    /// clip-clop, his heels gouge the deck in the skid, and off a ledge he looks down and gulps.
+    /// Workflow and readability rules are in skills/sloparena-character-vfx-pass; plumbing is in
     /// <see cref="PresentationBuilderKit"/>.
     /// </summary>
     public static class BonkPresentationBuilder
     {
         private const string LettersMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Bonk.png";
         private const string QuestionMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Question.png";
+        private const string PopMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Pop.png";
+        private const string NeighMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Neigh.png";
+        private const string ClipMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Clip.png";
+        private const string ClopMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Clop.png";
+        private const string GulpMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Gulp.png";
         // The bucket's eye slit in the head cue frame (metres; its axes match the fighter's at
         // rest), measured from the helmet vertices: the face recesses there 0.05–0.08 m up.
         private static readonly Vector3 Slit = new(0f, 0.065f, 0.25f);
@@ -33,8 +44,30 @@ namespace SlopArena.EditorTools
         private const float SmearSeconds = 0.12f;
         // Blade Storm's whirl: orbit radius (about the plank's reach) and spin in radians per second.
         private const float WhirlRadius = 1.7f, WhirlSpin = 15f;
+        // Leap of Faith's landing clip (bonk_sir_e1_land), in attack ticks after touchdown: the
+        // holy light comes once he is up in the handstand, after the impact's BONK!, and is gone
+        // when the haul starts; the plank leaves the floor at the pop. The plank's hole lies about
+        // 1.3 m in front of where he lands.
+        private const int HolyStartTick = 6, HolyTicks = 40, PopTick = 53;
+        private const float PlankHole = 1.3f, BeamHeight = 7f, RaysHeight = 3.4f;
         // How far the BONK! sits in front of its contact, toward the camera (metres).
         private const float LetteringForward = 1f;
+        // The Joust (slop.ability.steered-charge.v1). Both R stages list their clips as [mount, gallop, hit,
+        // look-down, stop], so the gallop loop shows as ComboStage 1; it loops every 24 ticks and a hoof lands
+        // on its ticks 1 and 13 (bonk_sir_r_gallop, measured on the rig: left heel down on 1, right on 13). The
+        // skid lasts 18 ticks with both heels planted, the left one in front; the look-down gulps 6 ticks in.
+        // The horse and pennant cues outlive the longest Joust (about 160 ticks).
+        private const int GallopStage = 1, GallopLoopTicks = 24, LookDownGulpTick = 6;
+        private static readonly int[] HoofTicks = { 1, 13 };
+        private const float SkidSeconds = 0.42f, PennantLength = 0.62f, PennantWidth = 0.27f;
+        // Q, the Pot-Lid Throw: the flying lid is his shoulder lid (the WeaponAttach prop, so it keeps its size), spinning
+        // flat about its face about three turns a second.
+        private const string PotLidPrefabPath = "Assets/Art/Characters/bonk/Prefabs/sir_bonk_pot_lid.prefab";
+        private const float LidSpinDegreesPerSecond = 1080f;
+        // Its hit word (the owner picked the wobbly lettering, with a tink for the sound) and its wake, which trails about a
+        // metre behind it at 15 m/s.
+        private const string DooongMaskPath = "Assets/CharacterPackages/bonk/Presentation/Source/Dooong.png";
+        private const float LidWakeSeconds = 0.075f;
 
         private static readonly Color Rim = new(0.165f, 0.086f, 0.071f);
         private static readonly Color Red = new(0.886f, 0.204f, 0.239f);
@@ -51,6 +84,19 @@ namespace SlopArena.EditorTools
         private static readonly Color SteelLight = new(0.933f, 0.949f, 0.957f);
         private static readonly Color SteamRim = new(0.365f, 0.408f, 0.447f);
         private static readonly Color Steam = new(0.957f, 0.965f, 0.973f);
+        // Sir Bonk: his plank's wood, and his blue paint (bucket blue, crown navy) for lettering.
+        private static readonly Color WoodRim = new(0.227f, 0.141f, 0.075f);
+        private static readonly Color Wood = new(0.788f, 0.553f, 0.329f);
+        private static readonly Color WoodLight = new(0.953f, 0.784f, 0.561f);
+        private static readonly Color PaintRim = new(0.055f, 0.122f, 0.188f);
+        private static readonly Color Paint = new(0.184f, 0.471f, 0.682f);
+        private static readonly Color PaintDark = new(0.122f, 0.271f, 0.4f);
+        // The Joust: a darker wood for lettering extrusions, the horse's straw, the gouge in the deck and a sweat drop.
+        private static readonly Color WoodDark = new(0.471f, 0.29f, 0.149f);
+        private static readonly Color Straw = new(0.91f, 0.765f, 0.416f);
+        private static readonly Color StrawLight = new(1f, 0.925f, 0.639f);
+        private static readonly Color GougeDark = new(0.165f, 0.098f, 0.055f);
+        private static readonly Color Sweat = new(0.62f, 0.82f, 0.96f);
 
         private static PresentationBuilderKit _kit;
         private static Materials _m;
@@ -58,7 +104,10 @@ namespace SlopArena.EditorTools
         private sealed class Materials
         {
             public Material Glow, Thunk, Rings, Letters, Balloon, Question, Dust, Puff, Rock, Chip, Cracks, Eye, Line,
-                Glint, Ribbon, SmearBand;
+                Glint, Ribbon, SmearBand, Splinter, Sail, Gleam, Beam, Rays, Pop, Pinwheel,
+                Neigh, Clip, Clop, Gulp, QuestionPaint, Straw, Disc, Sweat, Pennant, Dooong, SpinRings, Wake;
+            // Width over height of the lettering textures (each is baked around its own ink).
+            public float NeighAspect, ClipAspect, ClopAspect, GulpAspect, DooongAspect;
         }
 
         [CliCommand("sloparena.presentation.bonk.build", "Rebuild Bonk's package presentation prefabs, textures, materials, sword-trail style and bindings in Edit Mode. Saving the catalog triggers the usual package cook.", MainThreadRequired = true, Tags = new[] { "presentation", "character" })]
@@ -88,11 +137,24 @@ namespace SlopArena.EditorTools
                 ("presentation.bonk.storm.wind", Whirl("BonkBladeStormWind")),
                 ("presentation.bonk.storm.air-wind", Whirl("BonkAirStormWind")),
                 ("presentation.bonk.storm.dust", StormDust()),
+                ("presentation.bonk.storm.dizzy", StormDizzy()),
+                ("presentation.bonk.joust.horse", JoustHorse()),
+                ("presentation.bonk.joust.pennant", JoustPennant()),
+                ("presentation.bonk.joust.neigh", JoustNeigh()),
+                ("presentation.bonk.joust.gallop", JoustGallop()),
+                ("presentation.bonk.joust.skid", JoustSkid()),
+                ("presentation.bonk.joust.lookdown", JoustLookDown()),
+                ("presentation.bonk.lid.throw", Swing("BonkLidThrow", "bonk_lid_fwip", 0.6f)),
+                ("presentation.bonk.lid.hit", LidHit()),
+                ("presentation.bonk.lid.catch", LidCatch()),
+                ("presentation.bonk.lid.selfhit", LidSelfHit()),
             };
             var trail = SmearTrail();
+            var lid = PotLidProjectile();
             kit.BindWeaponTrail(trail);
+            kit.BindProjectile(SlopArena.Shared.CharacterClass.Bonk, SlopArena.Shared.AbilitySlots.A, lid);
             SetSmearLifetime();
-            return kit.Finish(built, new { trail = AssetDatabase.GetAssetPath(trail) });
+            return kit.Finish(built, new { trail = AssetDatabase.GetAssetPath(trail), lid = AssetDatabase.GetAssetPath(lid) });
         }
 
         [MenuItem("Tools/SLOPArena/Presentation/Rebuild Bonk Presentation")]
@@ -371,7 +433,7 @@ namespace SlopArena.EditorTools
             main.startColor = new Color(0.85f, 0.88f, 0.92f, 1f);
             SizeOverLife(tink, Curve((0f, 0.3f), (0.3f, 1.1f), (1f, 0f)));
             InFront(tink);
-            var chips = Chips(absorb, 3, ParticleSystemScalingMode.Local);
+            var chips = Chips(absorb, 3, ParticleSystemScalingMode.Local, wood: false);
             chips.transform.localPosition = new Vector3(0f, 0.1f, 0.15f);
             _kit.Sound(absorb, "bonk_tink", 0.6f, 1f);
             absorb.SetActive(false);
@@ -473,6 +535,9 @@ namespace SlopArena.EditorTools
         /// <summary>
         /// Landing, wherever he lands: a ring of dust, rubble that bounces once and floor cracks
         /// that fade over 2.5 s (the landing event's lifetime). A hit adds the BONK! (slam.hit).
+        /// Sir Bonk's leap of faith is answered while the plank is stuck (<see cref="HolyLight"/>),
+        /// and the plank comes out with a POP! (<see cref="PlankPop"/>). Both run on his attack
+        /// clock and clear if he is knocked out of the landing.
         /// </summary>
         private static GameObject SlamLanding()
         {
@@ -498,16 +563,134 @@ namespace SlopArena.EditorTools
             FlatRing(cloud, 0.4f);
             Rocks(floor, 6, 4f, 7f, floor.transform);
             _kit.Sound(root, "bonk_thoom", 0.85f, 1f);
+            HolyLight(root);
+            PlankPop(root);
             return Save(root);
+        }
+
+        /// <summary>
+        /// The sword in the stone: a shaft of light from the sky onto him and the stuck plank, rays
+        /// fanning from its foot and a few gleams, all flat storybook cream (alpha-blended, no glow),
+        /// with a choir "aah". Drawn a metre behind him so he stays in front of the light.
+        /// </summary>
+        private static void HolyLight(GameObject root)
+        {
+            const ParticleSystemScalingMode local = ParticleSystemScalingMode.Local;
+            var holy = Child(root, "Holy");
+            var light = Child(holy, "Light");
+            light.transform.localPosition = new Vector3(0f, 0f, PlankHole * 0.75f);
+            var floor = Floor(light, 2f, -1f);
+
+            var beam = Particles(floor, "Beam", _m.Beam, 0.7f, ParticleSystemSimulationSpace.Local, local);
+            beam.transform.localPosition = new Vector3(0f, BeamHeight * 0.5f, 0f);
+            Burst(beam, 1);
+            var main = beam.main;
+            main.startLifetime = (HolyTicks - HolyStartTick) / 60f;
+            main.startSize3D = true;
+            main.startSizeX = 1.6f;
+            main.startSizeY = BeamHeight;
+            main.startSizeZ = 1f;
+            SizeOverLife(beam, Curve((0f, 0.2f), (0.12f, 1f), (1f, 1f)), Curve((0f, 1f), (1f, 1f)));
+            Fade(beam, 0.5f);
+            Backdrop(beam);
+
+            var rays = Particles(floor, "Rays", _m.Rays, 0.9f, ParticleSystemSimulationSpace.Local, local);
+            rays.transform.localPosition = new Vector3(0f, RaysHeight * 0.5f, 0f);
+            Burst(rays, 1);
+            main = rays.main;
+            main.startLifetime = (HolyTicks - HolyStartTick) / 60f;
+            main.startSize3D = true;
+            main.startSizeX = RaysHeight * 2f;
+            main.startSizeY = RaysHeight;
+            main.startSizeZ = 1f;
+            SizeOverLife(rays, Curve((0f, 0.45f), (0.14f, 1f), (1f, 1.04f)));
+            Fade(rays, 0.66f);
+            Backdrop(rays);
+
+            var gleams = Particles(floor, "Gleams", _m.Gleam, 0.6f, scaling: local);
+            gleams.transform.localPosition = new Vector3(0f, 1.3f, 0f);
+            main = gleams.main;
+            main.duration = 0.5f;
+            main.startLifetime = 0.26f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.3f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);
+            var emission = gleams.emission;
+            emission.rateOverTime = 10f;
+            Sphere(gleams, 0.9f);
+            SizeOverLife(gleams, Curve((0f, 0f), (0.3f, 1.15f), (1f, 0f)));
+            InFront(gleams);
+            _kit.Sound(light, "bonk_choir", 0.5f, 1f);
+
+            var window = holy.AddComponent<AttackTickWindow>();
+            window.StartTick = HolyStartTick;
+            window.CancelableUntilTick = HolyTicks;
+            window.Content = light;
+            light.SetActive(false);
+        }
+
+        /// <summary>The plank comes out of the floor: a cork POP! in his paint, a puff and splinters.</summary>
+        private static void PlankPop(GameObject root)
+        {
+            const ParticleSystemScalingMode local = ParticleSystemScalingMode.Local;
+            var pop = Child(root, "Pop");
+            var hole = Child(pop, "Hole");
+            hole.transform.localPosition = new Vector3(0f, 0f, PlankHole);
+            var floor = Floor(hole, 2f, -1f);
+            var puff = DustPuffs(floor, "Puff", 5, 0.22f, 0.36f, 2.2f, local, life: 0.5f);
+            FlatRing(puff, 0.12f);
+            Chips(floor, 4, local);
+
+            var word = Particles(floor, "POP!", _m.Pop, 0.9f, ParticleSystemSimulationSpace.Local, local);
+            word.transform.localPosition = new Vector3(0f, 1f, 0f);
+            Burst(word, 1);
+            var main = word.main;
+            main.startLifetime = 0.6f;
+            main.startSize3D = true;
+            main.startSizeX = 0.85f;
+            main.startSizeY = 0.85f * PopHeight / PopWidth;
+            main.startSizeZ = 1f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0.12f);
+            var velocity = word.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.y = new ParticleSystem.MinMaxCurve(0.4f, 0.4f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            SizeOverLife(word, Curve((0f, 0.2f), (0.14f, 1.2f), (0.26f, 0.95f), (0.36f, 1f), (1f, 1.02f)));
+            Fade(word, 0.75f);
+            var renderer = word.GetComponent<ParticleSystemRenderer>();
+            renderer.sortingFudge = -18f;
+            renderer.pivot = new Vector3(0f, 0f, LetteringForward);
+            _kit.Sound(hole, "bonk_pop", 0.75f, 1f);
+
+            var window = pop.AddComponent<AttackTickWindow>();
+            window.StartTick = PopTick;
+            window.CancelableUntilTick = PopTick;
+            window.Content = hole;
+            hole.SetActive(false);
+        }
+
+        /// <summary>
+        /// A tall camera-facing backdrop that stays upright and draws a metre behind the fighter, so
+        /// the fighter reads in front of it (a billboard through his centre would cover his far half).
+        /// </summary>
+        private static void Backdrop(ParticleSystem system)
+        {
+            var renderer = system.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.VerticalBillboard;
+            renderer.maxParticleSize = 20f;
+            renderer.pivot = new Vector3(0f, 0f, -1f);
+            renderer.sortingFudge = 30f;
         }
 
         // ── Blade Storm (F) ──────────────────────────────────────────────────────
 
         /// <summary>
-        /// The spin: three red smears whirling around him at the height of his flat blade, in a
-        /// slightly tilted circle. Each is the camera-facing ribbon trail of a particle orbiting
-        /// his body, so it reads from any angle (flat discs collapse into lines at the gameplay
-        /// camera's height).
+        /// The spin, the windmill technique: four windmill sails whirling around him at the height
+        /// of his flat blade, in a slightly tilted circle, with a wooden creak under the whum-whum.
+        /// Each sail is the camera-facing ribbon trail of a particle orbiting his body, painted as
+        /// cream canvas on a wooden lattice, so it reads from any angle (flat discs collapse into
+        /// lines at the gameplay camera's height).
         /// </summary>
         private static GameObject Whirl(string name)
         {
@@ -516,11 +699,11 @@ namespace SlopArena.EditorTools
             // The blade spins about 1 m off the floor, 0.2 m above his hips in the low stance.
             orbit.transform.localPosition = new Vector3(0f, 0.2f, 0f);
             orbit.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
-            var whirl = Particles(orbit, "Smears", _m.Ribbon, 0.8f, ParticleSystemSimulationSpace.Local);
-            Burst(whirl, 3);
+            var whirl = Particles(orbit, "Sails", _m.Sail, 0.8f, ParticleSystemSimulationSpace.Local);
+            Burst(whirl, 4);
             var main = whirl.main;
             main.startLifetime = 0.78f;
-            main.startSize = 0.42f;
+            main.startSize = 0.55f;
             main.startSpeed = 0f;
             var shape = whirl.shape;
             shape.enabled = true;
@@ -543,22 +726,48 @@ namespace SlopArena.EditorTools
             var trails = whirl.trails;
             trails.enabled = true;
             trails.mode = ParticleSystemTrailMode.PerParticle;
-            trails.lifetime = new ParticleSystem.MinMaxCurve(0.16f);
+            // About 2 m of trail per sail at 25 m/s, so the four sails stay apart on the 10.7 m orbit.
+            trails.lifetime = new ParticleSystem.MinMaxCurve(0.085f);
             trails.minVertexDistance = 0.05f;
             trails.worldSpace = false;
             trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
             trails.sizeAffectsWidth = true;
             trails.inheritParticleColor = true;
             trails.dieWithParticles = true;
-            trails.widthOverTrail = new ParticleSystem.MinMaxCurve(1f, Curve((0f, 1f), (1f, 0.15f)));
+            trails.widthOverTrail = new ParticleSystem.MinMaxCurve(1f, Curve((0f, 1f), (1f, 0.7f)));
             var renderer = whirl.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.None;
-            renderer.trailMaterial = _m.Ribbon;
+            renderer.trailMaterial = _m.Sail;
             var color = whirl.colorOverLifetime;
             color.enabled = true;
             color.color = GradientOf(new[] { (0f, Color.white), (1f, Color.white) },
                 new[] { (0f, 0f), (0.06f, 1f), (0.85f, 0.9f), (1f, 0f) });
             _kit.Sound(root, "bonk_storm", 0.7f, 1f);
+            _kit.Sound(orbit, "bonk_creak", 0.45f, 1f);
+            return Save(root);
+        }
+
+        /// <summary>
+        /// After the storm, until he can act: a tiny windmill spinning over his bucket and slowing
+        /// down, his version of dizzy stars, and so the opening to punish.
+        /// </summary>
+        private static GameObject StormDizzy()
+        {
+            var root = _kit.NewRoot("BonkStormDizzy", attackBound: true);
+            var frame = Frame(root, upright: true);
+            var mill = Particles(frame, "Windmill", _m.Pinwheel, 0.75f, ParticleSystemSimulationSpace.Local);
+            mill.transform.localPosition = new Vector3(0f, BucketTop + 0.32f, 0f);
+            Burst(mill, 1);
+            var main = mill.main;
+            main.startLifetime = 0.7f;
+            main.startSize = 0.5f;
+            var spin = mill.rotationOverLifetime;
+            spin.enabled = true;
+            spin.z = new ParticleSystem.MinMaxCurve(Mathf.Deg2Rad * 900f, Curve((0f, 1f), (1f, 0.25f)));
+            SizeOverLife(mill, Curve((0f, 0.3f), (0.12f, 1.1f), (0.22f, 1f), (0.85f, 1f), (1f, 0.4f)));
+            Fade(mill, 0.85f);
+            InFront(mill);
+            _kit.Sound(root, "bonk_creak", 0.3f, 1.35f);
             return Save(root);
         }
 
@@ -594,6 +803,483 @@ namespace SlopArena.EditorTools
             SizeOverLife(dust, Curve((0f, 0.5f), (0.3f, 1f), (1f, 1.15f)));
             Fade(dust, 0.45f);
             dust.GetComponent<ParticleSystemRenderer>().sortingFudge = 12f;
+            return Save(root);
+        }
+
+        // ── The Joust (R) ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// His hobby horse, on his hips from the press: it comes in a puff of straw and leaves in another
+        /// when the move ends, however it ends (<see cref="AttackEndCue"/>), so it never just pops in or
+        /// out. Not attack-bound, so the cue outlives the move for the second puff.
+        /// </summary>
+        private static GameObject JoustHorse()
+        {
+            var root = _kit.NewRoot("BonkJoustHorse", attackBound: false);
+            var frame = Frame(root, upright: true);
+            // The horse's stick runs from the straw tail behind him up to the head in front of his belly
+            // (0.94 m ahead of the hips): the puff sits over the stick and the neck.
+            var horse = new Vector3(0f, 0.18f, 0.45f);
+            StrawPoof(frame, "Poof in", horse, 1f, sound: true);
+            var away = StrawPoof(frame, "Poof out", horse, 1.1f, sound: true);
+            away.SetActive(false);
+            var end = root.AddComponent<AttackEndCue>();
+            end.Content = away;
+            end.ContentSeconds = 1.2f;
+            return Save(root);
+        }
+
+        /// <summary>
+        /// The knight's pennant tied under his lance tip: cream cloth with his blue crown that hangs while
+        /// he rears, streams back as he gallops and swings over when he stops dead
+        /// (<see cref="PennantPresentation"/>). It comes and goes with the horse, in a smaller puff.
+        /// </summary>
+        private static GameObject JoustPennant()
+        {
+            var root = _kit.NewRoot("BonkJoustPennant", attackBound: false);
+            var pennant = Child(root, "Pennant");
+            pennant.AddComponent<MeshFilter>();
+            var renderer = pennant.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = _m.Pennant;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            var cloth = pennant.AddComponent<PennantPresentation>();
+            cloth.Length = PennantLength;
+            cloth.Width = PennantWidth;
+            // Heavy enough to hang soon after a swing, with quadratic drag so it streams at a gallop and swings over
+            // the tip when he stops dead (simulated offline: a 12 m/s gallop, a dead stop, then the lance raised).
+            cloth.Gravity = 18f;
+            cloth.AirDrag = 3.5f;
+            cloth.Damping = 2f;
+            var frame = Frame(root);
+            StrawPoof(frame, "Puff in", Vector3.zero, 0.45f, sound: false);
+            var away = StrawPoof(frame, "Puff out", Vector3.zero, 0.45f, sound: false);
+            away.SetActive(false);
+            var end = root.AddComponent<AttackEndCue>();
+            end.Content = away;
+            end.ContentSeconds = 0.9f;
+            end.HideOnEnd = new[] { pennant };
+            return Save(root);
+        }
+
+        /// <summary>
+        /// The rear, his warning: he does the horse's neigh himself, so NEIGH! pops over his bucket in his
+        /// homemade lettering (cream faces, a wood extrusion: red stays for hits), with sound lines from
+        /// the eye slit.
+        /// </summary>
+        private static GameObject JoustNeigh()
+        {
+            var root = _kit.NewRoot("BonkJoustNeigh", attackBound: true);
+            // Half a metre toward the camera only: the match camera looks down on him, so lettering drawn further
+            // forward rises on screen away from his bucket.
+            var word = Word(Frame(root, upright: true), "NEIGH!", _m.Neigh, 1.15f, _m.NeighAspect, 0.6f, 0.3f, forward: 0.5f);
+            word.transform.localPosition = new Vector3(0f, BucketTop + 0.15f, 0.15f);
+            SoundLines(Frame(root));
+            _kit.Sound(root, "bonk_neigh", 0.75f, 1f);
+            return Save(root);
+        }
+
+        /// <summary>Three short sound lines thrown from the bucket's eye slit, twice, as he neighs.</summary>
+        private static void SoundLines(GameObject frame)
+        {
+            var lines = Particles(frame, "Sound lines", _m.Line, 0.5f, ParticleSystemSimulationSpace.Local);
+            lines.transform.localPosition = Slit + new Vector3(0f, 0.04f, 0.06f);
+            var emission = lines.emission;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 3), new ParticleSystem.Burst(0.16f, 3) });
+            var main = lines.main;
+            main.startLifetime = 0.16f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.07f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2.6f, 3.4f);
+            var shape = lines.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 40f;
+            shape.radius = 0.04f;
+            shape.arcMode = ParticleSystemShapeMultiModeValue.BurstSpread;
+            shape.rotation = new Vector3(-35f, 0f, 0f);
+            Stretch(lines, 0.04f, 2.2f);
+            Fade(lines, 0.5f);
+            InFront(lines);
+        }
+
+        /// <summary>
+        /// The gallop, on the charge's launch cue: a ring of dust where he sets off, then at every hoof a
+        /// small homemade "clip!" or "clop!" beside the landing foot with a coconut knock and, on the
+        /// ground, a kick of dust (<see cref="LoopFootfalls"/>). On thin air the knocks stay, the dust doesn't.
+        /// </summary>
+        private static GameObject JoustGallop()
+        {
+            var root = _kit.NewRoot("BonkJoustGallop", attackBound: false);
+            var floor = Floor(root, 0.6f, -0.05f);
+            var start = DustPuffs(floor, "Set off", 6, 0.3f, 0.45f, 2.6f, ParticleSystemScalingMode.Local, life: 0.5f);
+            FlatRing(start, 0.25f);
+            var clip = Hoof(root, "Clip", "clip!", _m.Clip, _m.ClipAspect, "bonk_clip", 0.55f, 0.12f);
+            var clop = Hoof(root, "Clop", "clop!", _m.Clop, _m.ClopAspect, "bonk_clop", 0.47f, -0.12f);
+            var kick = Child(root, "Kick");
+            var dust = DustPuffs(Floor(kick, 0.6f, -0.05f), "Kicked dust", 3, 0.26f, 0.4f, 2.2f,
+                ParticleSystemScalingMode.Local, life: 0.45f);
+            var shape = dust.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 30f;
+            shape.radius = 0.12f;
+            shape.rotation = new Vector3(-30f, 180f, 0f);
+            kick.SetActive(false);
+            var footfalls = root.AddComponent<LoopFootfalls>();
+            footfalls.ComboStage = GallopStage;
+            footfalls.LoopTicks = GallopLoopTicks;
+            footfalls.FootfallTicks = HoofTicks;
+            footfalls.Steps = new[] { clip, clop };
+            footfalls.Ground = kick;
+            footfalls.SideOffset = 0.2f;
+            return Save(root);
+        }
+
+        /// <summary>One hoof's word and coconut knock: an inactive template the footfalls copy beside the foot.</summary>
+        private static GameObject Hoof(GameObject root, string name, string text, Material material, float aspect,
+            string sound, float volume, float tilt)
+        {
+            var hoof = Child(root, name);
+            var word = Word(hoof, text, material, 0.42f, aspect, 0.45f, 0.5f, forward: 1f, tilt: tilt);
+            word.transform.localPosition = new Vector3(0f, 0.45f, 0f);
+            _kit.Sound(hoof, sound, volume, 1f);
+            hoof.SetActive(false);
+            return hoof;
+        }
+
+        /// <summary>
+        /// A miss or a shield: the dramatic stop. His heels gouge two grooves into the deck as he skids
+        /// (<see cref="FollowOwnerBone"/> drags each gouge along a heel), throwing wood chips and a wave
+        /// of dust ahead, and he squeals his own brakes, "eeeeerk!".
+        /// </summary>
+        private static GameObject JoustSkid()
+        {
+            var root = _kit.NewRoot("BonkJoustSkid", attackBound: false);
+            var floor = Floor(root, 0.6f, -0.05f);
+            Heel(floor, "Left heel", "bone.left-foot", wave: 1f);
+            Heel(floor, "Right heel", "bone.right-foot", wave: 0.4f);
+            var dig = DustPuffs(floor, "Dig in", 4, 0.28f, 0.42f, 2f, ParticleSystemScalingMode.Local, life: 0.5f);
+            FlatRing(dig, 0.2f);
+            _kit.Sound(root, "bonk_squeal", 0.7f, 1f);
+            return Save(root);
+        }
+
+        /// <summary>
+        /// One heel's gouge, laid flat on the floor along the heel's path: dark dots over a wider pale lip
+        /// (so it reads on dark decks too), chips flicked up and dust piling ahead as he slows
+        /// (<paramref name="wave"/> scales the dust: the front heel pushes the most).
+        /// </summary>
+        private static void Heel(GameObject floor, string name, string boneId, float wave)
+        {
+            var heel = Child(floor, name);
+            var follow = heel.AddComponent<FollowOwnerBone>();
+            follow.BoneId = boneId;
+            follow.Seconds = SkidSeconds;
+            GougeDots(heel, "Lip", 0.22f, new Color(WoodLight.r, WoodLight.g, WoodLight.b, 0.8f), 46f);
+            GougeDots(heel, "Gouge", 0.14f, GougeDark, 44f);
+
+            var chips = Particles(heel, "Chips", _m.Splinter, SkidSeconds);
+            var main = chips.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.32f, 0.48f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.09f, 0.15f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.6f, 3f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.gravityModifier = 1.2f;
+            var emission = chips.emission;
+            emission.rateOverDistance = 4f;
+            var shape = chips.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 35f;
+            shape.radius = 0.05f;
+            shape.rotation = new Vector3(-45f, 0f, 0f);
+            Spin(chips, 600f);
+            Fade(chips, 0.6f);
+            chips.GetComponent<ParticleSystemRenderer>().sortingFudge = -6f;
+
+            var dust = Particles(heel, "Dust wave", _m.Dust, SkidSeconds);
+            dust.transform.localPosition = new Vector3(0f, 0.05f, 0.22f);
+            main = dust.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.56f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.24f, 0.4f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 3.6f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.gravityModifier = -0.05f;
+            emission = dust.emission;
+            // Most of the dust comes as he slows, so it piles up ahead of the stopped heel.
+            emission.rateOverTime = new ParticleSystem.MinMaxCurve(22f * wave, Curve((0f, 0.3f), (0.5f, 1f), (1f, 1f)));
+            shape = dust.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 30f;
+            shape.radius = 0.08f;
+            shape.rotation = new Vector3(-25f, 0f, 0f);
+            Drag(dust, 0.25f);
+            RandomFrame(dust, 2, 2);
+            SizeOverLife(dust, Curve((0f, 0.4f), (0.25f, 1f), (1f, 1.15f)));
+            Fade(dust, 0.45f);
+            dust.GetComponent<ParticleSystemRenderer>().sortingFudge = 12f;
+        }
+
+        /// <summary>Flat tinted dots laid by distance: one layer of a gouge (the later the fudge, the lower it draws).</summary>
+        private static void GougeDots(GameObject heel, string name, float size, Color color, float fudge)
+        {
+            var dots = Particles(heel, name, _m.Disc, SkidSeconds);
+            var main = dots.main;
+            main.startLifetime = 1.6f;
+            main.startSize = new ParticleSystem.MinMaxCurve(size * 0.9f, size);
+            main.startColor = color;
+            main.maxParticles = 160;
+            var emission = dots.emission;
+            emission.rateOverDistance = 36f;
+            var renderer = dots.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+            renderer.sortingFudge = fudge;
+            Fade(dots, 0.7f);
+        }
+
+        /// <summary>
+        /// Off a ledge, the look-down: a "?" in his blue paint pops over his bucket, then a sweat drop and
+        /// a small "gulp" with the sound, before he drops and the horse goes in its puff. The "?" stays in
+        /// the air where he was as he falls away from it.
+        /// </summary>
+        private static GameObject JoustLookDown()
+        {
+            var root = _kit.NewRoot("BonkJoustLookDown", attackBound: false);
+            var head = Child(root, "Head");
+            head.AddComponent<SnapToOwnerBone>().BoneId = "bone.head";
+            var question = Particles(head, "Question", _m.QuestionPaint, 1f, ParticleSystemSimulationSpace.Local);
+            question.transform.localPosition = new Vector3(0f, BucketTop + 0.42f, 0f);
+            Burst(question, 1);
+            var main = question.main;
+            main.startLifetime = 0.8f;
+            main.startSize = 0.44f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.12f);
+            SizeOverLife(question, Curve((0f, 0.2f), (0.12f, 1.25f), (0.22f, 0.92f), (0.32f, 1f), (1f, 1f)));
+            Fade(question, 0.75f);
+            question.GetComponent<ParticleSystemRenderer>().sortingFudge = -18f;
+
+            var window = Child(head, "Gulp window");
+            var gulp = Child(window, "Gulp");
+            var word = Word(gulp, "gulp", _m.Gulp, 0.42f, _m.GulpAspect, 0.5f, 0.12f, forward: 0.6f, tilt: -0.08f);
+            word.transform.localPosition = new Vector3(0.36f, 0.12f, 0.05f);
+            var drop = Particles(gulp, "Sweat", _m.Sweat, 0.8f, ParticleSystemSimulationSpace.Local);
+            drop.transform.localPosition = new Vector3(0.2f, BucketTop + 0.05f, 0.1f);
+            Burst(drop, 1);
+            main = drop.main;
+            main.startLifetime = 0.55f;
+            main.startSize = 0.15f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0.25f);
+            var velocity = drop.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.x = new ParticleSystem.MinMaxCurve(0.05f, 0.05f);
+            velocity.y = new ParticleSystem.MinMaxCurve(-0.35f, -0.35f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            SizeOverLife(drop, Curve((0f, 0.3f), (0.15f, 1.1f), (0.3f, 1f), (1f, 0.9f)));
+            Fade(drop, 0.7f);
+            InFront(drop);
+            _kit.Sound(gulp, "bonk_gulp", 0.8f, 1f);
+            var beat = window.AddComponent<AttackTickWindow>();
+            beat.StartTick = LookDownGulpTick;
+            beat.CancelableUntilTick = LookDownGulpTick;
+            beat.Content = gulp;
+            gulp.SetActive(false);
+            return Save(root);
+        }
+
+        /// <summary>A puff of straw dust with stalks flying out: the hobby horse arriving or leaving.</summary>
+        private static GameObject StrawPoof(GameObject parent, string name, Vector3 position, float size, bool sound)
+        {
+            const ParticleSystemScalingMode local = ParticleSystemScalingMode.Local;
+            var poof = Child(parent, name);
+            poof.transform.localPosition = position;
+            // Full size at once, so the horse never shows popping in or out, and drawn about half a metre
+            // toward the camera so the horse's head and his arm don't hide it.
+            var dust = DustPuffs(poof, "Dust", 5, 0.46f * size, 0.62f * size, 1.4f * size, local, life: 0.55f);
+            var puff = Puffs(poof, "Puff", 3, 0.4f * size, 0.54f * size, 1.1f * size, local, life: 0.5f);
+            foreach (var cloud in new[] { dust, puff })
+            {
+                Sphere(cloud, 0.3f * size);
+                SizeOverLife(cloud, Curve((0f, 0.8f), (0.15f, 1.1f), (1f, 1.2f)));
+                cloud.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, 1.1f);
+            }
+            var stalks = Particles(poof, "Straw", _m.Straw, 0.8f, scaling: local);
+            Burst(stalks, 12);
+            var main = stalks.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.46f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.06f * size, 0.08f * size);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(3.5f * size, 5.5f * size);
+            main.gravityModifier = 0.6f;
+            Sphere(stalks, 0.12f * size);
+            Drag(stalks, 0.08f);
+            Stretch(stalks, 0.03f, 3.5f);
+            Fade(stalks, 0.6f);
+            stalks.GetComponent<ParticleSystemRenderer>().sortingFudge = -8f;
+            if (sound) _kit.Sound(poof, "bonk_poof", 0.6f, 1f);
+            return poof;
+        }
+
+        /// <summary>
+        /// A homemade word in his lettering that pops in, rises and fades. It draws
+        /// <paramref name="forward"/> metres toward the camera, in front of the fighters.
+        /// </summary>
+        private static ParticleSystem Word(GameObject parent, string name, Material material, float width, float aspect,
+            float lifetime, float rise, float forward = LetteringForward, float tilt = 0.12f)
+        {
+            var word = Particles(parent, name, material, lifetime + 0.05f);
+            Burst(word, 1);
+            var main = word.main;
+            main.startLifetime = lifetime;
+            main.startSize3D = true;
+            main.startSizeX = width;
+            main.startSizeY = width / aspect;
+            main.startSizeZ = 1f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(tilt);
+            var velocity = word.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.y = new ParticleSystem.MinMaxCurve(rise, rise);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            SizeOverLife(word, Curve((0f, 0.2f), (0.12f, 1.18f), (0.24f, 0.96f), (0.34f, 1f), (1f, 1.03f)));
+            Fade(word, 0.75f);
+            var renderer = word.GetComponent<ParticleSystemRenderer>();
+            renderer.sortingFudge = -18f;
+            renderer.pivot = new Vector3(0f, 0f, forward);
+            return word;
+        }
+
+        // ── Q: the Pot-Lid Throw ─────────────────────────────────────────────────
+
+        /// <summary>
+        /// The flying pot lid, face up and spinning flat as it skims out and back. ProjectileVFXManager places the root on
+        /// the projectile and leaves its rotation alone (it is not point-first), so the lid stays level on both legs.
+        /// </summary>
+        private static GameObject PotLidProjectile()
+        {
+            var root = _kit.NewRoot("BonkPotLidProjectile", attackBound: false);
+            var spin = Child(root, "Spin");
+            spin.AddComponent<PropSpin>().DegreesPerSecond = LidSpinDegreesPerSecond;
+            float across = LidAcross(_kit.NestModel(spin, PotLidPrefabPath, "Lid"));
+
+            // A cream wake as wide as the lid, thinning to nothing behind it, so it reads on dark stages and from behind and
+            // draws the curve home. It outlives a caught lid by a moment.
+            var wake = Child(root, "Wake");
+            wake.AddComponent<LingerAfterProjectile>().Seconds = 0.25f;
+            var trail = wake.AddComponent<TrailRenderer>();
+            trail.time = LidWakeSeconds;
+            trail.minVertexDistance = 0.04f;
+            trail.widthMultiplier = across * 0.9f;
+            trail.widthCurve = Curve((0f, 1f), (1f, 0f));
+            trail.colorGradient = GradientOf(new[] { (0f, Color.white), (1f, Color.white) },
+                new[] { (0f, 1f), (0.6f, 0.85f), (1f, 0f) }).gradient;
+            trail.textureMode = LineTextureMode.Stretch;
+            trail.alignment = LineAlignment.View;
+            trail.numCapVertices = 2;
+            trail.sharedMaterial = _m.Wake;
+            trail.shadowCastingMode = ShadowCastingMode.Off;
+            trail.receiveShadows = false;
+
+            // Flat spin rings round it, turning with it: from the match camera they are thin cream ellipses.
+            var rings = Particles(root, "Spin rings", _m.SpinRings, 99f, ParticleSystemSimulationSpace.Local);
+            Burst(rings, 1);
+            var main = rings.main;
+            main.startLifetime = 99f;
+            main.startSize = across * 1.7f;
+            Spin(rings, -LidSpinDegreesPerSecond);
+            rings.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+
+            _kit.Sound(root, "bonk_lid_whirr", 0.2f, 1f);
+            var whirr = root.GetComponent<AudioSource>();
+            if (whirr != null) whirr.loop = true;
+            return Save(root);
+        }
+
+        /// <summary>The lid's width across its face, from the nested model (0.37 m when the local model is missing).</summary>
+        private static float LidAcross(GameObject lid)
+        {
+            var renderers = lid != null ? lid.GetComponentsInChildren<Renderer>() : System.Array.Empty<Renderer>();
+            if (renderers.Length == 0) return 0.37f;
+            var bounds = renderers[0].bounds;
+            foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+            return Mathf.Max(bounds.size.x, bounds.size.z);
+        }
+
+        /// <summary>
+        /// The lid's hit, out and back (both legs use the slot's hit): a small red thunk, the lid ringing twice, tin chips
+        /// and a wobbly DOOOONG rising away. The sound is a bright tink, which the owner preferred to a DOOONG.
+        /// </summary>
+        private static GameObject LidHit()
+        {
+            var root = _kit.NewRoot("BonkLidHit", attackBound: false);
+            const ParticleSystemScalingMode scaled = ParticleSystemScalingMode.Hierarchy;
+            Halo(root, 0.9f, 0.12f, Red, scaled);
+            Thunk(root, 0.6f, 0.14f, scaled);
+            Rings(root, 1.1f, 0.24f, 0.02f, scaled);
+            Rings(root, 1.35f, 0.26f, 0.16f, scaled, name: "Rings again");
+            Chips(root, 4, scaled, wood: false);
+            var word = Word(root, "Dooong", _m.Dooong, 1.05f, _m.DooongAspect, 0.7f, 0.55f);
+            word.transform.localPosition = new Vector3(0.12f, 0.42f, 0f);
+            var main = word.main;
+            main.scalingMode = scaled;
+            var wobble = word.rotationOverLifetime;
+            wobble.enabled = true;
+            wobble.z = new ParticleSystem.MinMaxCurve(3f, Curve((0f, 1f), (0.2f, -1f), (0.4f, 0.8f), (0.6f, -0.6f), (0.8f, 0.4f), (1f, 0f)));
+            _kit.Sound(root, "bonk_lid_tink", 0.8f, 1f);
+            return Save(root);
+        }
+
+        /// <summary>
+        /// The catch: the lid is back on his left shoulder with a cream gleam and a tin clank. The event fires where the
+        /// lid reached him (his chest), so the gleam moves onto the shoulder.
+        /// </summary>
+        private static GameObject LidCatch()
+        {
+            var root = _kit.NewRoot("BonkLidCatch", attackBound: false);
+            var shoulder = Child(root, "Shoulder");
+            var snap = shoulder.AddComponent<SnapToOwnerBone>();
+            snap.BoneId = "mixamorig:LeftArm";
+            snap.Offset = new Vector3(0f, 0.08f, 0f);
+            var gleam = Particles(shoulder, "Gleam", _m.Gleam, 0.4f, ParticleSystemSimulationSpace.Local);
+            Burst(gleam, 1);
+            var main = gleam.main;
+            main.startLifetime = 0.26f;
+            main.startSize = 0.5f;
+            SizeOverLife(gleam, Curve((0f, 0.2f), (0.25f, 1.15f), (1f, 0f)));
+            Spin(gleam, 220f);
+            InFront(gleam);
+            _kit.Sound(root, "bonk_lid_clank", 0.75f, 1f);
+            return Save(root);
+        }
+
+        /// <summary>
+        /// The lid comes home while he is busy and bonks his own bucket. The slot's hit (the tink and the DOOOONG) plays at
+        /// the contact; this rings his bucket twice and pops his blue-paint "?" over it, then his own puzzled "hm?".
+        /// </summary>
+        private static GameObject LidSelfHit()
+        {
+            var root = _kit.NewRoot("BonkLidSelfHit", attackBound: false);
+            var head = Child(root, "Head");
+            var snap = head.AddComponent<SnapToOwnerBone>();
+            snap.BoneId = "bone.head";
+            snap.Offset = new Vector3(0f, 0.15f, 0f);
+            const ParticleSystemScalingMode local = ParticleSystemScalingMode.Local;
+            Rings(head, 0.95f, 0.26f, 0.04f, local, ParticleSystemSimulationSpace.Local);
+            Rings(head, 1.15f, 0.28f, 0.2f, local, ParticleSystemSimulationSpace.Local, "Rings again");
+            var question = Particles(head, "Question", _m.QuestionPaint, 1f, ParticleSystemSimulationSpace.Local);
+            question.transform.localPosition = new Vector3(0f, BucketTop + 0.27f, 0f);
+            Burst(question, 1);
+            var main = question.main;
+            main.startDelay = 0.08f;
+            main.startLifetime = 0.8f;
+            main.startSize = 0.44f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.12f);
+            SizeOverLife(question, Curve((0f, 0.2f), (0.12f, 1.25f), (0.22f, 0.92f), (0.32f, 1f), (1f, 1f)));
+            Fade(question, 0.75f);
+            question.GetComponent<ParticleSystemRenderer>().sortingFudge = -18f;
+            _kit.Sound(head, "bonk_hm", 0.85f, 1f);
             return Save(root);
         }
 
@@ -690,13 +1376,14 @@ namespace SlopArena.EditorTools
             return rings;
         }
 
-        private static ParticleSystem Chips(GameObject root, int count, ParticleSystemScalingMode scaling)
+        /// <summary>Chips thrown off a contact: wood splinters from his plank, or steel off his armour.</summary>
+        private static ParticleSystem Chips(GameObject root, int count, ParticleSystemScalingMode scaling, bool wood = true)
         {
-            var chips = Particles(root, "Steel chips", _m.Chip, 0.6f, scaling: scaling);
+            var chips = Particles(root, wood ? "Splinters" : "Steel chips", wood ? _m.Splinter : _m.Chip, 0.6f, scaling: scaling);
             Burst(chips, count);
             var main = chips.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.14f);
+            main.startSize = wood ? new ParticleSystem.MinMaxCurve(0.1f, 0.18f) : new ParticleSystem.MinMaxCurve(0.08f, 0.14f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 4f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.gravityModifier = 1.2f;
@@ -861,13 +1548,33 @@ namespace SlopArena.EditorTools
         // ── Assets ───────────────────────────────────────────────────────────────
 
         private const int LettersWidth = 512, LettersHeight = 192;
+        private const int PopWidth = 384, PopHeight = 160;
 
         private static Materials BuildMaterials()
         {
             var letters = new MaskField(LettersMaskPath);
             var question = new MaskField(QuestionMaskPath);
+            var pop = new MaskField(PopMaskPath);
+            var neigh = WordMaterial("BonkNeigh", NeighMaskPath, 512, 4.5f, 2.2f);
+            var clip = WordMaterial("BonkClip", ClipMaskPath, 256, 3.5f, 1.6f);
+            var clop = WordMaterial("BonkClop", ClopMaskPath, 256, 3.5f, 1.6f);
+            var gulp = WordMaterial("BonkGulp", GulpMaskPath, 256, 3.5f, 1.6f);
+            var dooong = WordMaterial("BonkDooong", DooongMaskPath, 512, 4.5f, 2.2f, Rim, Red, RedDark);
             return new Materials
             {
+                Neigh = neigh.material, NeighAspect = neigh.aspect,
+                Clip = clip.material, ClipAspect = clip.aspect,
+                Clop = clop.material, ClopAspect = clop.aspect,
+                Gulp = gulp.material, GulpAspect = gulp.aspect,
+                Dooong = dooong.material, DooongAspect = dooong.aspect,
+                SpinRings = Mat("BonkLidSpinRings", 256, 256, (u, v) => SpinRingsPixel(P(u, v))),
+                Wake = Mat("BonkLidWake", 64, 32, WakePixel),
+                QuestionPaint = Mat("BonkQuestionPaint", 128, 128, (u, v) => ComicGlyph(question, u, v, 128f / question.Width,
+                    new Vector2(0.035f, -0.055f), 3f, 1.6f, PaintRim, Paint, PaintDark)),
+                Straw = Mat("BonkStraw", 64, 16, StrawPixel),
+                Disc = Mat("BonkDisc", 64, 64, (u, v) => DiscPixel(P(u, v))),
+                Sweat = Mat("BonkSweat", 64, 64, (u, v) => SweatPixel(P(u, v))),
+                Pennant = Mat("BonkPennant", 256, 112, PennantPixel),
                 Glow = _kit.ParticleMaterial("BonkGlowAdd", _kit.BakeTexture("BonkGlow", 128, 128,
                     (u, v) => Alpha(Mathf.Pow(Mathf.Clamp01(1f - Radius(u, v)), 2.2f))), new Color(1.3f, 1.3f, 1.3f), additive: true),
                 Thunk = Mat("BonkThunk", 256, 256, (u, v) => ThunkPixel(P(u, v))),
@@ -885,6 +1592,13 @@ namespace SlopArena.EditorTools
                 Glint = Mat("BonkGlint", 128, 128, (u, v) => GlintPixel(P(u, v))),
                 Ribbon = Mat("BonkRibbon", 128, 64, RibbonPixel),
                 SmearBand = Mat("BonkSmearBand", 64, 128, SmearBandPixel),
+                Splinter = Mat("BonkSplinter", 64, 64, (u, v) => SplinterPixel(P(u, v))),
+                Sail = Mat("BonkSail", 128, 64, SailPixel),
+                Gleam = Mat("BonkGleam", 128, 128, (u, v) => GleamPixel(P(u, v))),
+                Beam = Mat("BonkHolyBeam", 64, 256, BeamPixel),
+                Rays = Mat("BonkHolyRays", 512, 256, RaysPixel),
+                Pop = Mat("BonkPop", PopWidth, PopHeight, (u, v) => PopPixel(u, v, pop)),
+                Pinwheel = Mat("BonkPinwheel", 128, 128, (u, v) => PinwheelPixel(P(u, v))),
             };
         }
 
@@ -1038,6 +1752,11 @@ namespace SlopArena.EditorTools
         /// </summary>
         private static Color ComicGlyph(MaskField mask, float mu, float mv, float texelsPerPixel, Vector2 extrude,
             float outline, float faceLine)
+            => ComicGlyph(mask, mu, mv, texelsPerPixel, extrude, outline, faceLine, Rim, Red, RedDark);
+
+        /// <summary>The same lettering with its own rim and extrusion colours (his blue paint for POP!).</summary>
+        private static Color ComicGlyph(MaskField mask, float mu, float mv, float texelsPerPixel, Vector2 extrude,
+            float outline, float faceLine, Color rim, Color extrusionColor, Color extrusionDark)
         {
             const int steps = 12;
             float face = mask.Sample(mu, mv) * texelsPerPixel;
@@ -1049,10 +1768,21 @@ namespace SlopArena.EditorTools
                 if (d < 0f && depth >= 1f) depth = t;
                 extrusion = Mathf.Min(extrusion, d);
             }
-            Color color = Flat(Mathf.Min(face, extrusion) - outline, Rim);
-            color = Over(color, Flat(extrusion, Color.Lerp(Red, RedDark, depth)));
-            color = Over(color, Flat(face - faceLine, Rim));
+            Color color = Flat(Mathf.Min(face, extrusion) - outline, rim);
+            color = Over(color, Flat(extrusion, Color.Lerp(extrusionColor, extrusionDark, depth)));
+            color = Over(color, Flat(face - faceLine, rim));
             return Over(color, Flat(face, Cream));
+        }
+
+        // The POP! mask spans its centre band, like the BONK! one.
+        private const float PopU0 = 0.04f, PopU1 = 0.96f, PopV0 = 0.3f, PopV1 = 0.7f;
+
+        /// <summary>POP! in his paint: cream faces, a blue extrusion and a navy rim.</summary>
+        private static Color PopPixel(float u, float v, MaskField mask)
+        {
+            float texels = PopWidth / ((PopU1 - PopU0) * mask.Width);
+            return ComicGlyph(mask, Mathf.Lerp(PopU0, PopU1, u), Mathf.Lerp(PopV0, PopV1, v), texels,
+                new Vector2(0.0135f, -0.021f), 4f, 2f, PaintRim, Paint, PaintDark);
         }
 
         /// <summary>A puff with a lighter top-left (dust in tan, the snort in steam white).</summary>
@@ -1160,6 +1890,29 @@ namespace SlopArena.EditorTools
             return Over(color, Flat(Circle(p, Vector2.zero, 0.13f) * 64f, Color.white));
         }
 
+        /// <summary>The lid's spin rings, flat round it: two broken cream rings with a dust rim, the outer one thinner.</summary>
+        private static Color SpinRingsPixel(Vector2 p)
+        {
+            float d = float.MaxValue, angle = Mathf.Atan2(p.y, p.x) * Mathf.Rad2Deg;
+            foreach (var (radius, width) in new[] { (0.7f, 0.055f), (0.92f, 0.04f) })
+                foreach (var (a0, a1) in new[] { (200f, 340f), (25f, 150f) })
+                    d = Mathf.Min(d, ArcDistance(p, angle, radius, width, a0, a1));
+            return ToonShapes.Bands(d * 128f, 2.5f, 99f, DustRim, Cream, Cream);
+        }
+
+        /// <summary>Distance to a round-ended arc of a circle, from <paramref name="a0"/> to <paramref name="a1"/> degrees.</summary>
+        private static float ArcDistance(Vector2 p, float angle, float radius, float width, float a0, float a1)
+        {
+            float mid = (a0 + a1) * 0.5f, half = (a1 - a0) * 0.5f, delta = Mathf.DeltaAngle(mid, angle);
+            if (Mathf.Abs(delta) <= half) return Mathf.Abs(p.magnitude - radius) - width;
+            float end = (mid + Mathf.Sign(delta) * half) * Mathf.Deg2Rad;
+            return (p - new Vector2(Mathf.Cos(end), Mathf.Sin(end)) * radius).magnitude - width;
+        }
+
+        /// <summary>The lid's wake across V: a dust rim, cream and a white core; the trail's gradient fades it.</summary>
+        private static Color WakePixel(float u, float v)
+            => ToonShapes.Bands((Mathf.Abs(v - 0.5f) - 0.47f) * 32f, 2f, 5f, DustRim, Cream, Color.white);
+
         /// <summary>
         /// A ribbon band across V for particle trails (FightGuy's ribbon shape): rust rims, bucket
         /// red and a cream core line, fading from the head at U = 0 toward the tail.
@@ -1190,6 +1943,188 @@ namespace SlopArena.EditorTools
             color.a = Mathf.Max(Mathf.Max(Step(0.62f, 0.76f, across) * 0.62f, streak * 0.95f), rim);
             color.a *= Mathf.Min(Mathf.Clamp01(u / 0.05f), Mathf.Clamp01((1f - u) / 0.05f));
             return color;
+        }
+
+        // ── Sir Bonk ─────────────────────────────────────────────────────────────
+
+        /// <summary>A wood splinter off the plank: a long sliver with a lit edge.</summary>
+        private static Color SplinterPixel(Vector2 p)
+        {
+            var outline = new[] { new Vector2(0.95f, 0.02f), new Vector2(-0.2f, 0.17f), new Vector2(-0.9f, -0.02f), new Vector2(-0.15f, -0.13f) };
+            return ToonShapes.Bands(Polygon(p, outline) * 32f, 1.5f, 2.5f, WoodRim, Wood, WoodLight);
+        }
+
+        /// <summary>
+        /// A windmill sail for the storm's trails: cream canvas on a wooden lattice, a spar along the
+        /// outer edge and a wood rim, fading from the head at U = 0 toward the tail like the ribbon.
+        /// </summary>
+        private static Color SailPixel(float u, float v)
+        {
+            float across = Mathf.Abs(v * 2f - 1f);
+            float body = (across - 0.9f) * 32f;
+            Color color = ToonShapes.Bands(body, 2f, 99f, WoodRim, Cream, Cream);
+            float inside = Mathf.Clamp01(0.5f - body - 2f);
+            float cell = Mathf.Repeat(u * 7f, 1f);
+            float bar = Mathf.Min(cell, 1f - cell) * (128f / 7f) - 1.2f;
+            Color lattice = Flat(bar, Wood);
+            lattice.a *= inside;
+            color = Over(color, lattice);
+            Color spar = ToonShapes.Bands((Mathf.Abs(v - 0.84f) - 0.07f) * 64f, 1.2f, 99f, WoodRim, Wood, Wood);
+            spar.a *= inside;
+            color = Over(color, spar);
+            color.a *= Mathf.Min(Mathf.Clamp01(u / 0.04f), Mathf.Clamp01((1f - u) / 0.2f));
+            return color;
+        }
+
+        /// <summary>A knightly gleam: a four-point star in cream with a white core and a dust rim.</summary>
+        private static Color GleamPixel(Vector2 p)
+        {
+            var q = Rotate(p, 45f);
+            float d = Mathf.Min(Mathf.Min(Rhombus(p, new Vector2(0.95f, 0.15f)), Rhombus(p, new Vector2(0.15f, 0.95f))),
+                Mathf.Min(Rhombus(q, new Vector2(0.45f, 0.09f)), Rhombus(q, new Vector2(0.09f, 0.45f))));
+            Color color = ToonShapes.Bands(d * 64f, 2f, 3.5f, DustRim, Cream, Color.white);
+            return Over(color, Flat(Circle(p, Vector2.zero, 0.12f) * 64f, Color.white));
+        }
+
+        /// <summary>
+        /// The shaft of light, U across and V up: flat translucent cream with a paler core, crisp
+        /// sides, fading in above the floor and out toward the sky. No glow: it is painted.
+        /// </summary>
+        private static Color BeamPixel(float u, float v)
+        {
+            float across = Mathf.Abs(u * 2f - 1f);
+            float side = Mathf.Clamp01((0.86f - across) * 32f);
+            float core = Mathf.Clamp01((0.3f - across) * 32f);
+            Color color = Color.Lerp(Cream, Color.white, core);
+            color.a = (0.34f + 0.16f * core) * side * Step(0f, 0.05f, v) * (1f - Step(0.7f, 1f, v));
+            return color;
+        }
+
+        /// <summary>
+        /// Storybook rays fanning up from the bottom centre: flat cream wedges of alternating widths,
+        /// gone near their origin (behind him) and fading toward the edge of the quad.
+        /// </summary>
+        private static Color RaysPixel(float u, float v)
+        {
+            var p = new Vector2((u - 0.5f) * 2f, v);
+            float r = p.magnitude, angle = Mathf.Atan2(p.y, p.x) * Mathf.Rad2Deg;
+            const int count = 15;
+            float best = float.MaxValue;
+            for (int k = 0; k < count; k++)
+            {
+                float centre = Mathf.Lerp(8f, 172f, k / (float)(count - 1));
+                float half = k % 2 == 0 ? 2.6f : 1.5f;
+                best = Mathf.Min(best, (Mathf.Abs(angle - centre) - half) * Mathf.Deg2Rad * r * 256f);
+            }
+            Color color = Cream;
+            color.a = Mathf.Clamp01(0.5f - best) * 0.5f * Step(0.08f, 0.2f, r) * (1f - Step(0.7f, 1f, r));
+            return color;
+        }
+
+        /// <summary>
+        /// A word in his lettering, baked around its own ink: cream faces with a wood extrusion down and to
+        /// the right (in proportion to the letters' height, as BONK!'s) and a dark wood outline. Returns the
+        /// material and the texture's width over height for the particle's size.
+        /// </summary>
+        private static (Material material, float aspect) WordMaterial(string name, string maskPath, int width,
+            float outline, float faceLine) => WordMaterial(name, maskPath, width, outline, faceLine, WoodRim, Wood, WoodDark);
+
+        /// <summary>The same word with its own rim and extrusion colours: the lid's hit word in his hit red.</summary>
+        private static (Material material, float aspect) WordMaterial(string name, string maskPath, int width,
+            float outline, float faceLine, Color rim, Color extrusionColor, Color extrusionDark)
+        {
+            var mask = new MaskField(maskPath);
+            float u0 = 1f, u1 = 0f, v0 = 1f, v1 = 0f;
+            const int grid = 256;
+            for (int y = 0; y < grid; y++)
+                for (int x = 0; x < grid; x++)
+                {
+                    float u = (x + 0.5f) / grid, v = (y + 0.5f) / grid;
+                    if (mask.Sample(u, v) >= 0f) continue;
+                    u0 = Mathf.Min(u0, u);
+                    u1 = Mathf.Max(u1, u);
+                    v0 = Mathf.Min(v0, v);
+                    v1 = Mathf.Max(v1, v);
+                }
+            float ink = v1 - v0;
+            var extrude = new Vector2(0.055f * ink, -0.085f * ink);
+            const float pad = 0.025f;
+            float bandU0 = Mathf.Max(0f, u0 - pad), bandU1 = Mathf.Min(1f, u1 + pad + extrude.x);
+            float bandV0 = Mathf.Max(0f, v0 - pad + extrude.y), bandV1 = Mathf.Min(1f, v1 + pad);
+            int height = Mathf.Max(8, Mathf.RoundToInt(width * (bandV1 - bandV0) / (bandU1 - bandU0)));
+            float texels = width / ((bandU1 - bandU0) * mask.Width);
+            var material = Mat(name, width, height, (u, v) => ComicGlyph(mask, Mathf.Lerp(bandU0, bandU1, u),
+                Mathf.Lerp(bandV0, bandV1, v), texels, extrude, outline, faceLine, rim, extrusionColor, extrusionDark));
+            return (material, width / (float)height);
+        }
+
+        /// <summary>A straw stalk for stretched particles, long along U: straw yellow with a wood rim and a lit core.</summary>
+        private static Color StrawPixel(float u, float v)
+        {
+            var p = new Vector2(u * 2f - 1f, (v * 2f - 1f) * 0.25f);
+            float d = Capsule(p, new Vector2(-0.86f, 0f), new Vector2(0.86f, 0.03f), 0.13f, 0.08f);
+            return ToonShapes.Bands(d * 32f, 1.2f, 1.4f, WoodRim, Straw, StrawLight);
+        }
+
+        /// <summary>A plain disc tinted by particle colour: the dots of a gouge and of its pale lip.</summary>
+        private static Color DiscPixel(Vector2 p) => Alpha(0.5f - (p.magnitude - 0.9f) * 32f);
+
+        /// <summary>A sweat drop, tip up: pale water blue with a navy rim and a white glint.</summary>
+        private static Color SweatPixel(Vector2 p)
+        {
+            float drop = Mathf.Min(Circle(p, new Vector2(0f, -0.25f), 0.5f),
+                Polygon(p, new[] { new Vector2(-0.4f, -0.1f), new Vector2(0.4f, -0.1f), new Vector2(0f, 0.9f) }));
+            Color color = ToonShapes.Bands(drop * 32f, 2.5f, 99f, PaintRim, Sweat, Sweat);
+            return Over(color, Flat(Circle(p, new Vector2(-0.16f, -0.18f), 0.11f) * 32f, Color.white));
+        }
+
+        /// <summary>
+        /// The pennant, U from the hoist to the fly end and V across (V = 1 up): cream cloth tapering to a
+        /// point, a wood rim, a wooden hem where it is tied, and his crown in blue paint near the hoist.
+        /// </summary>
+        private static Color PennantPixel(float u, float v)
+        {
+            const float length = 256f, height = 112f, hem = 8f;
+            var p = new Vector2(u * length, (v - 0.5f) * height);
+            float half = (height * 0.5f - 3f) * Mathf.Pow(Mathf.Clamp01(1f - p.x / (length - 4f)), 0.85f);
+            float cloth = Mathf.Max(Mathf.Abs(p.y) - half, Mathf.Max(2f - p.x, p.x - (length - 4f)));
+            Color color = ToonShapes.Bands(cloth, 2.6f, 99f, WoodRim, Cream, Cream);
+            color = Over(color, ToonShapes.Bands(Mathf.Max(cloth, p.x - hem), 2f, 99f, WoodRim, Wood, Wood));
+            return Over(color, CrownPixel(p - new Vector2(64f, 0f)));
+        }
+
+        /// <summary>His crown in blue paint, in texels about its centre: three points with balls on a band.</summary>
+        private static Color CrownPixel(Vector2 q)
+        {
+            float d = Box(q - new Vector2(0f, -12f), new Vector2(24f, 6f));
+            d = Mathf.Min(d, Polygon(q, new[] { new Vector2(-24f, -8f), new Vector2(-8f, -8f), new Vector2(-21f, 13f) }));
+            d = Mathf.Min(d, Polygon(q, new[] { new Vector2(-9f, -8f), new Vector2(9f, -8f), new Vector2(0f, 17f) }));
+            d = Mathf.Min(d, Polygon(q, new[] { new Vector2(8f, -8f), new Vector2(24f, -8f), new Vector2(21f, 13f) }));
+            d = Mathf.Min(d, Mathf.Min(Circle(q, new Vector2(-21f, 14f), 3.5f),
+                Mathf.Min(Circle(q, new Vector2(0f, 18f), 4f), Circle(q, new Vector2(21f, 14f), 3.5f))));
+            return ToonShapes.Bands(d, 2f, 99f, PaintRim, Paint, Paint);
+        }
+
+        /// <summary>A tiny windmill: four lattice sails in cream canvas on wooden spars around a hub.</summary>
+        private static Color PinwheelPixel(Vector2 p)
+        {
+            float sail = float.MaxValue, spar = float.MaxValue, bars = float.MaxValue;
+            for (int k = 0; k < 4; k++)
+            {
+                float a = (k * 90f + 20f) * Mathf.Deg2Rad;
+                var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                var n = new Vector2(-d.y, d.x);
+                sail = Mathf.Min(sail, Polygon(p, new[] { d * 0.14f, d * 0.94f, d * 0.94f + n * 0.4f, d * 0.14f + n * 0.22f }));
+                spar = Mathf.Min(spar, Capsule(p, Vector2.zero, d * 0.97f, 0.04f, 0.032f));
+                foreach (float t in new[] { 0.42f, 0.68f })
+                    bars = Mathf.Min(bars, Capsule(p, d * t, d * t + n * (0.22f + 0.2f * t), 0.016f, 0.016f));
+            }
+            Color color = ToonShapes.Bands(sail * 64f, 2f, 99f, WoodRim, Cream, Cream);
+            Color lattice = Flat(bars * 64f, Wood);
+            lattice.a *= Mathf.Clamp01(0.5f - sail * 64f - 2f);
+            color = Over(color, lattice);
+            color = Over(color, ToonShapes.Bands(spar * 64f, 1.4f, 99f, WoodRim, Wood, Wood));
+            return Over(color, ToonShapes.Bands(Circle(p, Vector2.zero, 0.12f) * 64f, 1.5f, 3f, WoodRim, Wood, WoodLight));
         }
     }
 }

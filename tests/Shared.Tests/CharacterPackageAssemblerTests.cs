@@ -12,6 +12,26 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    [Fact]
+    public void ChargedStreamRoundTripsTheVerifiedCookedPackage()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+        ChargedStreamTests.UseStream(character);
+        var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var assembly = CharacterPackageAssembler.Assemble(BuildInput(package, Array.Empty<PackageDependencySource>(),
+            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>()));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
+        Assert.Equal(package.Definition.Slots.Single(slot => slot.Id == "ground.A").Timeline.Stages.Single().Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters,
+            loaded.Package!.Definition.Slots.Single(slot => slot.Id == "ground.A").Timeline.Stages.Single().Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+    }
+
     [Theory]
     [InlineData(true, 18)]
     [InlineData(false, 0)]
@@ -158,15 +178,56 @@ public sealed class CharacterPackageAssemblerTests
             {
                 windows++;
                 impactTick = i;
-                Assert.Equal((ushort)56, current.AttackElapsedTicks);
+                Assert.Equal((ushort)0, current.AttackElapsedTicks);  // E1: the landing clip starts at landing
             }
             if (impactTick >= 0 && endTick < 0 && current.State != ActionState.Attacking)
                 endTick = i;
             wasActive = active;
         }
         Assert.Equal(1, windows);
-        Assert.Equal(52, endTick - impactTick);
+        Assert.Equal(68, endTick - impactTick);
     }
+    [Fact]
+    public void SteeredCharge_LoadedCookedPackageGallopsAndEndsWithItsSkid()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var character = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+        SteeredChargeFixture.Apply(character);
+        var compile = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            character.ToJsonString(), CharacterCookProfile.Workshop);
+        Assert.True(compile.CookedPackage != null,
+            string.Join("; ", compile.Diagnostics.Select(x => $"{x.Code}: {x.Message} ({x.Path})")));
+        var package = compile.CookedPackage!;
+        var assembly = CharacterPackageAssembler.Assemble(BuildInput(
+            package, Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements,
+            Array.Empty<CharacterDiagnostic>()));
+        Assert.True(assembly.IsValid, string.Join("; ", assembly.Diagnostics.Select(x => x.Message)));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(x => x.Message)));
+        Assert.IsType<CookedSteeredChargeCapabilityParameters>(loaded.Package!.Definition.Slots
+            .Single(x => x.Id == "ground.R").Timeline.Stages.Single().Operations
+            .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+
+        var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(loaded.Package!);
+        var sim = TestHelpers.MakeSim();
+        var state = TestHelpers.PlayerState(x: 100f, z: 20f);
+        state.PY = TestHelpers.GroundPY(def);
+        sim.RegisterEntity(1, def, state, loaded.BakedAnimation);
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.R } });
+        int gallop = 0;
+        bool skid = false;
+        for (var i = 0; i < 200 && sim.GetActiveAbility(1) != null; i++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+            var current = sim.GetState(1);
+            if (current.VZ > 11.99f) gallop++;
+            skid |= current.ComboStage == 4;
+        }
+        Assert.InRange(gallop, 58, 61);
+        Assert.True(skid);
+        Assert.InRange(sim.GetState(1).PZ, 20f + 12f - .5f, 20f + 12f + 2f);
+    }
+
     [Fact]
     public void CookedLoader_RejectsRetiredTargetedLeapInIsolatedPackage()
     {
@@ -345,6 +406,67 @@ public sealed class CharacterPackageAssemblerTests
     }
 
     [Fact]
+    public void ReturningProjectile_LoadedCookedPackageThrowsTheLidAndRejectsTamperedReturns()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+        ReturningProjectileFixture.Apply(character);
+        var compile = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            character.ToJsonString(), CharacterCookProfile.Workshop);
+        Assert.True(compile.CookedPackage != null,
+            string.Join("; ", compile.Diagnostics.Select(x => $"{x.Code}: {x.Message} ({x.Path})")));
+        var package = compile.CookedPackage!;
+        var input = BuildInput(package, Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements,
+            Array.Empty<CharacterDiagnostic>());
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(input));
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(x => x.Message)));
+        Assert.Equal((ushort)20, loaded.Package!.Definition.Slots.Single(x => x.Id == "ground.1").Timeline.Stages.Single()
+            .Operations.OfType<CookedSpawnProjectileOperation>().Single().Projectile.Return!.OutboundTicks);
+
+        var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(loaded.Package!);
+        var sim = TestHelpers.MakeSim();
+        var state = TestHelpers.PlayerState(x: 100f, z: 20f);
+        state.PY = TestHelpers.GroundPY(def);
+        sim.RegisterEntity(1, def, state, loaded.BakedAnimation);
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
+        bool thrown = false;
+        for (var i = 0; i < 30 && !thrown; i++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+            thrown = sim.Resolver.GetActiveHitboxes().Any(x => x.Return is { OutboundTicks: 20 });
+        }
+        Assert.True(thrown, "the loaded package throws a returning lid");
+
+        CookedCharacterPackageLoadResult Tampered(Action<JsonObject> mutate, string runtimeApi = "1.8.0")
+        {
+            var runtime = JsonNode.Parse(package.CanonicalBytes)!.AsObject();
+            mutate(runtime);
+            runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = runtimeApi;
+            byte[] bytes = Encoding.UTF8.GetBytes(runtime.ToJsonString());
+            var tampered = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = runtimeApi }, package.Definition,
+                package.Budget, package.Diagnostics, bytes);
+            var tamperedInput = BuildInput(tampered, Array.Empty<PackageDependencySource>(),
+                package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
+            return CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(tamperedInput));
+        }
+        static JsonNode Back(JsonObject runtime) => runtime["character"]!["slots"]!.AsArray()
+            .Single(x => (string?)x!["id"] == "ground.1")!["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+            .Single(x => x!.AsObject().ContainsKey("projectile"))!["projectile"]!["return"]!;
+        var untouched = Tampered(_ => { });
+        Assert.True(untouched.IsValid, string.Join("; ", untouched.Diagnostics.Select(x => x.Message)));
+        foreach (var (field, value) in new (string, JsonNode)[]
+                 { ("outboundTicks", 240), ("returnSpeed", 0), ("returnAcceleration", -2), ("selfHitStunTicks", 0) })
+        {
+            var rejected = Tampered(runtime => Back(runtime)[field] = value.DeepClone());
+            Assert.False(rejected.IsValid, field);
+            Assert.Contains(rejected.Diagnostics, x => x.Code == "package.capability.parameters-invalid");
+        }
+        var oldApi = Tampered(_ => { }, "1.7.0");
+        Assert.False(oldApi.IsValid);
+        Assert.Contains(oldApi.Diagnostics, x => x.Code == "package.compatibility.unsupported");
+    }
+
+    [Fact]
     public void HitPresentationRequiresPrefabBindingButNotAnimationOrPose()
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
@@ -513,7 +635,7 @@ public sealed class CharacterPackageAssemblerTests
     [Theory]
     [InlineData("wibou", "1.5.0", "1.4.0")]
     [InlineData("fightguy", "1.6.0", "1.5.0")]
-    [InlineData("bonk", "1.7.0", "1.6.0")]
+    [InlineData("bonk", "1.8.0", "1.7.0")]
     public void CookedLoaderRestoresParametersAndEnforcesApiFloor(string id, string api, string incompatibleApi)
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/" + id);

@@ -28,7 +28,8 @@ public enum CpuBehavior
 /// <c>FaceToCamera</c> (ADR-0017).
 ///
 /// Invariants: <c>MoveX/MoveY</c> magnitude ≤ 1; no action input while
-/// hitstun/hitstop/recovery/landing-lag/anim-lock; no slot press on cooldown.
+/// hitstun/hitstop/recovery/landing-lag/anim-lock; no slot press on cooldown or while its
+/// returning projectile is out.
 /// Same <c>Random</c> stream → same decisions.
 /// </summary>
 public sealed class HeuristicBotPolicy
@@ -772,8 +773,10 @@ public sealed class HeuristicBotPolicy
             && (def.GetCookedSlotAbility(slot, !self.IsGrounded) != null
                 || def.GetSlotAbility(slot - 1, !self.IsGrounded) != null);
 
+    /// <summary>On cooldown, or waiting for its returning projectile to come back.</summary>
     private static bool HasCooldown(in CharacterState self, CharacterDefinition def, byte slot)
         => self.GetCooldown(slot) > 0
+            || slot != 0 && self.ReturningProjectileSlot == slot
             || self.State == ActionState.Attacking && self.AttackSlot == slot
                 && (def.GetCookedSlotAbility(slot, !self.IsGrounded)?.CooldownTicks ?? 0) > 0;
 
@@ -1127,7 +1130,9 @@ public sealed class HeuristicBotPolicy
                             break;
                         case CookedSpawnProjectileOperation projectile:
                             startup = Math.Min(startup, operationTick);
-                            travelTicks = Math.Max(travelTicks, projectile.Projectile.MaxFlightTicks);
+                            // A returning projectile reaches out only for its outbound time.
+                            ushort flight = projectile.Projectile.Return?.OutboundTicks ?? projectile.Projectile.MaxFlightTicks;
+                            travelTicks = Math.Max(travelTicks, flight);
                             travelSpeed = MathF.Max(travelSpeed, projectile.Projectile.Speed);
                             travelOffset = MathF.Max(travelOffset,
                                 MathF.Max(0f, projectile.Projectile.LaunchOffsetZ)
@@ -1135,8 +1140,7 @@ public sealed class HeuristicBotPolicy
                             functional = true;
                             damage += MathF.Max(0f, projectile.Projectile.Damage);
                             hitReach = MathF.Max(hitReach,
-                                travelOffset + projectile.Projectile.Speed
-                                * projectile.Projectile.MaxFlightTicks / 60f);
+                                travelOffset + projectile.Projectile.Speed * flight / 60f);
                             break;
                         case CookedSetVelocityOperation velocity:
                             bool hasVelocity = velocity.X != 0f || velocity.Y != 0f || velocity.Z != 0f;
@@ -1223,10 +1227,12 @@ public sealed class HeuristicBotPolicy
         => parameters is CookedRisingDragonCapabilityParameters
             or CookedCycloneKickCapabilityParameters
             or CookedChargedProjectileCapabilityParameters
+            or CookedChargedStreamCapabilityParameters
             or CookedChargedDirectionalDashCapabilityParameters
             or CookedWibouRisingSlashCapabilityParameters
             or CookedWibouBladeFlurryCapabilityParameters
             or CookedTargetedLeapCapabilityParameters
+            or CookedSteeredChargeCapabilityParameters
             or CookedMankiRoundBombCapabilityParameters
             or CookedMankiJetpackBoostCapabilityParameters
             or CookedMankiBazookaCapabilityParameters;
@@ -1242,6 +1248,12 @@ public sealed class HeuristicBotPolicy
             case CookedRisingDragonCapabilityParameters x:
                 hasMovement = true; break;
             case CookedChargedProjectileCapabilityParameters x:
+                hitReach = MathF.Max(hitReach, MathF.Max(0f, x.Projectile.LaunchOffsetZ)
+                    + x.Projectile.Radius + x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
+                damage += x.Projectile.Damage;
+                hasDamage |= x.Projectile.Damage > 0f;
+                break;
+            case CookedChargedStreamCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, MathF.Max(0f, x.Projectile.LaunchOffsetZ)
                     + x.Projectile.Radius + x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
                 damage += x.Projectile.Damage;
@@ -1273,6 +1285,11 @@ public sealed class HeuristicBotPolicy
             case CookedTargetedLeapCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.MaxRange + MathF.Max(x.Hitbox.OffsetZ, x.Hitbox.EndOffsetZ) + x.Hitbox.Radius);
                 damage += x.Hitbox.Damage; hasDamage |= x.Hitbox.Damage > 0f; hasMovement = true; break;
+            case CookedSteeredChargeCapabilityParameters x:
+                hitReach = MathF.Max(hitReach, x.GallopSpeed * x.MaxGallopTicks / 60f
+                    + MathF.Max(x.LanceHitbox.OffsetZ, x.LanceHitbox.EndOffsetZ) + x.LanceHitbox.Radius);
+                recoveryHorizontal = MathF.Max(recoveryHorizontal, x.GallopSpeed * x.AirStrideTicks / 60f);
+                damage += x.LanceHitbox.Damage; hasDamage |= x.LanceHitbox.Damage > 0f; hasMovement = true; break;
             case CookedMankiRoundBombCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.MaxRange + x.ExplosionRadius);
                 damage += x.Damage + x.ExplosionDamage; hasDamage |= x.Damage > 0f || x.ExplosionDamage > 0f; break;
@@ -1292,6 +1309,7 @@ public sealed class HeuristicBotPolicy
             CookedRisingDragonCapabilityParameters x => x.RiseDelay,
             CookedCycloneKickCapabilityParameters x => x.WindupTicks,
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
+            CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
             CookedChargedDirectionalDashCapabilityParameters _ => 0,
             CookedWibouRisingSlashCapabilityParameters _ => 0,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks,
@@ -1306,6 +1324,12 @@ public sealed class HeuristicBotPolicy
     {
         switch (parameters)
         {
+            case CookedChargedStreamCapabilityParameters x:
+                travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
+                travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);
+                travelOffset = MathF.Max(travelOffset,
+                    MathF.Max(0f, x.Projectile.LaunchOffsetZ) + x.Projectile.Radius);
+                break;
             case CookedChargedProjectileCapabilityParameters x:
                 travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
                 travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);

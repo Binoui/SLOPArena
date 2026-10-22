@@ -101,7 +101,7 @@ public class WibouAbilityTests
     }
 
     [Fact]
-    public void RisingSlashConnectsWithAirborneVictimAndRefundsItsRecoveryCharge()
+    public void RisingSlashConnectsWithAirborneVictimWithoutRefundingItsCharge()
     {
         var sim = SimWithPlayer(out _);
         var victim = TestHelpers.NpcState(0f, 4f);
@@ -120,7 +120,8 @@ public class WibouAbilityTests
             connected |= sim.LastTickHits.Any(hit => hit.TargetEntityId == 100 && !hit.Blocked);
             var state = sim.GetState(100);
             launched |= state.HitstunTicks > 0 && state.KVY > 0f;
-            if (connected) Assert.Equal(0, sim.GetState(1).ChargeStockSpent);
+            // Only regen returns a charge; a connect no longer refunds it.
+            Assert.Equal(1, sim.GetState(1).ChargeStockSpent);
         }
         Assert.True(connected, "The recovery slash should connect with an airborne victim in its path.");
         Assert.True(launched, "The connected recovery slash should retain an upward launch.");

@@ -99,6 +99,7 @@ New packages live under `client/Unity/Assets/CharacterPackages/<package>/`. Cook
 | Bonk | Cooked package; rostered | [Bonk](characters/bonk.md) |
 | Manki | Cooked package; rostered | [Manki](characters/manki.md) |
 | Wibou | Cooked package; rostered | [Wibou](characters/wibou.md) |
+| Bashie | Playable on the roster with her own model, idle and run and Hose Down (A, key-pose animation); Manki's kit stands in for the rest | [Bashie](characters/bashie.md) |
 
 The [Nilus page](characters/nilus.md) is a historical record of a retired character, not
 an implementation or authoring guide.

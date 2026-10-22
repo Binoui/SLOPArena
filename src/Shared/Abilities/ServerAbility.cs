@@ -37,8 +37,11 @@ namespace SlopArena.Shared.Abilities
         /// <summary>Whether body overlap moves only the other fighter during this activation.</summary>
         public virtual bool HoldsFighterPushboxPosition => false;
 
-        /// <summary>True while this activation's authored armor window remains active.</summary>
-        public bool HasArmor => _armorWindowTicks > 0;
+        /// <summary>
+        /// True while this activation's authored armor window remains active. A capability may report
+        /// armour of its own (a charge armoured for as long as it gallops); its timeline forwards it.
+        /// </summary>
+        public virtual bool HasArmor => _armorWindowTicks > 0;
 
         /// <summary>Starts or replaces this activation's armor window.</summary>
         protected void StartArmorWindow(ushort durationTicks)
@@ -92,7 +95,7 @@ namespace SlopArena.Shared.Abilities
 
         /// <summary>
         /// Called when this ability's hitbox connects with a target entity.
-        /// Override for hit-time effects such as charge refunds or rocket-jump self damage.
+        /// Override for hit-time effects such as rocket-jump self damage.
         /// </summary>
         public virtual void OnHitEntity(ref CharacterState attacker, ref CharacterState target,
             CharacterDefinition attackerDef, CharacterDefinition targetDef,
@@ -252,8 +255,8 @@ namespace SlopArena.Shared.Abilities
             s.VZ = vz;
         }
 
-        /// <summary>Spawn an authored projectile using launch-time targeting or the locked aim.</summary>
-        protected void SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget)
+        /// <summary>Spawn an authored projectile using launch-time targeting or the locked aim; returns it as spawned.</summary>
+        protected Hitbox SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget)
         {
             float aimYaw;
             float aimPitch;
@@ -278,7 +281,7 @@ namespace SlopArena.Shared.Abilities
             float offsetZ = -projectile.LaunchOffsetX * sinYaw + projectile.LaunchOffsetZ * cosYaw;
             float damage = projectile.Damage;
             float radius = projectile.Radius;
-            SpawnResolverHitbox(new Hitbox
+            var spawned = new Hitbox
             {
                 X = s.PX + offsetX,
                 Y = s.PY + projectile.LaunchOffsetY,
@@ -298,7 +301,26 @@ namespace SlopArena.Shared.Abilities
                 AttackSlot = (byte)(Slot + 1),
                 VisualOperationIndex = operationIndex,
                 Gravity = projectile.Gravity,
-            });
+            };
+            if (projectile.Return is { } back)
+            {
+                // A boomerang keeps flying through what it hits, once per fighter per leg.
+                spawned.Return = new ProjectileReturn
+                {
+                    OutboundTicks = back.OutboundTicks,
+                    ReturnSpeed = back.ReturnSpeed,
+                    ReturnAcceleration = back.ReturnAcceleration,
+                    SelfHitDamage = back.SelfHitDamage,
+                    SelfHitStunTicks = back.SelfHitStunTicks,
+                    CatchPresentationId = back.CatchPresentationId,
+                    SelfHitPresentationId = back.SelfHitPresentationId,
+                };
+                spawned.HitsMultipleOpponents = true;
+                spawned.HitEntities = new HashSet<ulong>();
+                spawned.Gravity = 0f;
+            }
+            SpawnResolverHitbox(spawned);
+            return spawned;
         }
 
         /// <summary>Spawn a raw hitbox while preserving this activation's provenance.</summary>

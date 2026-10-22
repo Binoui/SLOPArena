@@ -204,6 +204,7 @@ namespace SlopArena.Client.UI
             [CharacterClass.Manki] = (AbilitySlots.Slot2, AbilitySlots.R, false),
             [CharacterClass.Wibou] = (AbilitySlots.Slot3, AbilitySlots.Slot3, false),
             [CharacterClass.Bonk] = (AbilitySlots.Slot3, AbilitySlots.Slot1, true),
+            [CharacterClass.Bashie] = (AbilitySlots.Slot2, AbilitySlots.R, false), // Manki's borrowed kit (2026-10-22)
         };
 
         private string ComboHint(bool gamepad)
@@ -317,7 +318,7 @@ namespace SlopArena.Client.UI
 
         private static string Key(string action, bool gamepad)
         {
-            string group = gamepad ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardGroup;
+            string group = gamepad ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardMouseGroup;
             int index = HumanInputActions.BindingIndex(action, group);
             if (index < 0) return "";
             string label = HumanInputActions.BindingLabel(action, group).ToUpperInvariant();

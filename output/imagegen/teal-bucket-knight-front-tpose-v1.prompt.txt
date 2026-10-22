@@ -1,0 +1,14 @@
+Tool: built-in image_gen.imagegen
+Final edit reference: /home/binoui/.codex/generated_images/01a15a67-652c-7b53-baeb-8a56e77e1718/exec-2896f4bd-1d51-4d01-8fe2-55ffc10d07ff.png
+Original design reference: /home/binoui/.codex/generated_images/01a15a67-652c-7b53-baeb-8a56e77e1718/exec-e3eb485b-2f01-4ba9-9fe7-01654bcc7bf3.png
+Transparent background: false
+
+Final prompt:
+Use case: precise-object-edit. Edit this existing front T-pose knight model sheet. Preserve the character's exact design, hand-painted stylized 3D appearance, body proportions, costume, colours, face slit with two eyes, thick wire bucket chin handle, tabard crown, shoulder-lid crown, bandages, upper-arm handkerchief, mustard sash, knee guards, boots, heel spurs, and cream cape pinned at his right shoulder behind his back. Keep the image EXACTLY 3:4 portrait with the same uniform light-grey background, even light, no floor shadow, no text and no weapon.
+
+Make only these three corrections:
+1. BOTH FEET MUST POINT STRAIGHT FORWARD, exactly parallel, towards the camera. Rotate each entire boot at the ankle so it is seen symmetrically from directly in front: its toe centred directly beneath its shin and knee, boot front and sole seen head-on, no toe turned outward to either side, no visible inner or outer long side profile. Keep the original feet-apart stance, boot size, leather folds, worn texture, cuffs and spurs. The heels remain behind the toes, with the spurs at the rear of the heels.
+2. Make the brush crest ONE SCULPTABLE SOLID FAN SHAPE, with a single coherent outer contour and fine BRISTLE LINES PAINTED ON THE SURFACE. Preserve the tan fan silhouette and bound brown base, but fuse the apparent straw strands into one solid piece. No separate straws, thin separated stalks, flyaways or gaps between bristles. Preserve the same fan size, orientation and colours.
+3. Scale the entire character UNIFORMLY down to 90% of its current size, keeping him centred, to leave clear light-grey margin on both sides beyond the fingertips. Keep the full head-to-toe and fingertip-to-fingertip proportions exactly unchanged. Never shorten the arms or squeeze the torso. Both arms remain straight horizontal in a T-pose, wrists straight, hands open flat with fingers extended together. The whole body, all fingertips, crest, both soles and spurs must be fully in frame.
+
+Keep the strict front orthographic appearance, level view, head clearly above shoulders, knees and torso facing forward. Cape continues straight down behind his torso, away from his legs, ending above knees; no fabric over the arms or legs. Do not reveal its hidden back emblem or add rear views. Change nothing else.

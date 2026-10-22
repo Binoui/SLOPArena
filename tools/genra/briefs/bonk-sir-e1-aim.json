@@ -1,0 +1,157 @@
+{
+  "name": "bonk-sir-e1-aim",
+  "notes": "Sir Bonk E1 (Leap of Faith) aim-hold loop, 2026-10-21; reference video: Seedance 2.5 (owner pick), beats in seedance-beats/.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip)",
+  "description": "Sir Bonk's E aim: the loop he plays while the player holds E and aims his leap, before he jumps. It replaces his old E, the Targeted Jump Slam, with E1, the Leap of Faith: he leaps to the ring, lands plank-first, the plank gets stuck in the floor and he has to yank it out.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He believes he is the hero of the story: proud and determined, chest out, chin up. His idle holds the plank on his right shoulder with the left fist on his hip, and he runs like a proud charge with the plank still on the shoulder.\n\nHow the game plays it. While E is held he stands still and the player moves a ring on the floor with the stick: where he will land. This clip loops (ticks 0-40 are 0.67 s, wrapping from 40 back to 0) for as long as E is held, which can be a moment or a few seconds. The game crossfades into it from his idle or run, and out of it into the leap (a separate clip whose tick 0 is this clip's tick 0, so keep tick 0 a strong, clean pose). The match camera sits behind him and looks where he looks: the ring is ahead of him.\n\nThe pose: coiled for the leap, the moment before the hero jumps. Image 3 is the key-pose sheet from the reference video the owner chose: beat 2 ('crouch') is this pose.\n- A deep, heavy crouch: the hips drop 12-20 cm below his idle's, knees bent 50-70 degrees, feet planted wide (as wide as his idle stance or a bit wider), both soles flat on the floor.\n- The chest leans forward over the knees (15-25 degrees), but the head stays up, chin up, eyes fixed ahead and a little down on the ring: he is sizing up the jump.\n- The plank stays resting on his right shoulder, rising steeply over it as in his idle (the tip high above the hilt and out to his right), and the left hand joins the right on the handle, just below it, ready to swing it overhead.\n\nThe motion: a tensed spring, not a breathing idle.\n- A small, quick bounce in the knees and hips (2-4 cm), as if he can barely hold himself back.\n- The head stays steady on the target while the body bounces under it.\n- The plank settles 2-3 ticks after the body.\n- Use eases and a short hold at the bottom of each bounce; give the parts different timings (see the guide's Life section).\n\nThe floor is at up = -1.025 m in the character frame. With a flat foot, the toe joint (ToeBase) sits about 0.05 m above it (up about -0.975). Never push a foot through the floor.\n\nDo not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank. Keep each hand in line with its forearm (wrists under 45 degrees).",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "oldleap": "references/oldleap.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 40
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png",
+    "../../video-refs/sir-bonk-e1/seedance-beats/key-poses.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude. 3: the key-pose sheet from the reference video the owner chose (Seedance 2.5): 11 beats of the whole E1 move; beat 2 (crouch) is this clip.",
+  "review_ticks": [
+    0,
+    10,
+    20,
+    30,
+    40
+  ],
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "review": {
+    "reference": "idle",
+    "travel": 0.0,
+    "beats": {
+      "file": "artifacts/video-refs/sir-bonk-e1/seedance-beats/beats.json",
+      "ticks": {
+        "crouch": 0
+      },
+      "view": "profile"
+    }
+  },
+  "targets": [
+    {
+      "name": "deep crouch: hips below the idle hips (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.22,
+      "max": -0.11
+    },
+    {
+      "name": "left toe joint on the floor (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.0,
+      "max": -0.95
+    },
+    {
+      "name": "right toe joint on the floor (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.0,
+      "max": -0.95
+    },
+    {
+      "name": "feet planted wide (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.6,
+      "max": 1.0
+    },
+    {
+      "name": "chest leans in: head ahead of the hips (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.15
+    },
+    {
+      "name": "head up above the upper chest (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 0,
+      "min": 0.22
+    },
+    {
+      "name": "both hands on the handle (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 0,
+      "max": 0.3
+    },
+    {
+      "name": "plank tip high above the hilt (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 0,
+      "min": 0.8
+    },
+    {
+      "name": "plank tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 0,
+      "max": -0.3
+    },
+    {
+      "name": "plank tip to the right of the centre line (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.15
+    },
+    {
+      "name": "the coil bounces: hips up and down (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        40
+      ],
+      "min": 0.02,
+      "max": 0.05
+    }
+  ]
+}

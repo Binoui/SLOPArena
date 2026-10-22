@@ -55,4 +55,14 @@ MonoBehaviour:
     Airborne: 1
     Prefab: {fileID: 371480232865508523, guid: 2f0cc5e6fff47a1b29c78abe41889a97, type: 3}
     Scale: 1
+  - Character: 4
+    AttackSlot: 11
+    Airborne: 0
+    Prefab: {fileID: 3560857074569049396, guid: 9423144a9a5a95e2e94589b1dbcf1d51, type: 3}
+    Scale: 1
+  - Character: 4
+    AttackSlot: 11
+    Airborne: 1
+    Prefab: {fileID: 3560857074569049396, guid: 9423144a9a5a95e2e94589b1dbcf1d51, type: 3}
+    Scale: 1
   ExplosionOverrides: []

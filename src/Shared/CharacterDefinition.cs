@@ -13,7 +13,9 @@ namespace SlopArena.Shared
         Manki,
         FightGuy,
         Wibou,
-        Bonk
+        Bonk,
+        // 5 was Nilus, retired: old match requests still carry it, so it must never parse again.
+        Bashie = 6
     }
 
     [Serializable]

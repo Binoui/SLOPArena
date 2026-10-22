@@ -1,0 +1,174 @@
+{
+  "name": "bonk-sir-run-charge",
+  "notes": "Reviewer benchmark copy of briefs/bonk-sir-run-charge.json (the direction both run versions answer): only the floor targets moved to the rebuilt pack, whose idle is now the GenRA hero idle (floor at up -1.025).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 1.84 m plank greatsword fixed to the right hand as joint Weapon0, with bladeHilt and bladeEnd anchors)",
+  "description": "Sir Bonk's run: the clip he plays while moving on the ground. He is the roster's heaviest and slowest runner.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself. His armour is homemade (images 1 and 2): a blue mop bucket worn as a helm with a broom-head crest, a cream tabard with a crown he painted himself, pot-lid pauldrons, tin vambraces, a cream cape, and a plank greatsword painted silver. He is not a joke to himself. He believes he is the hero charging to the rescue, and he runs like it: proud and determined, chest out, chin up.\n\nHow the game plays it. The run loops at full ground speed: ticks 0-44 are 0.73 s and two steps, wrapping from 44 back to 0. The fighter does not move in the clip. The game carries him forward, so the feet cycle under the body as on a treadmill. The game crossfades into the run from his idle and out of it into the idle, jumps and attacks. His new idle holds the plank on the right shoulder and the left fist on the hip. The match camera sits straight behind him, so players see the cape, the crest and the plank over his right shoulder. The entry pose is his OLD idle, a sideways crouch. It only sets the frame, so do not copy it.\n\nThe run: the proud charge. A heavy, determined run, not a sprint.\n- Torso: square to the front, leaning forward 10-20 degrees from the hips. The chest stays proud and the head stays up, looking ahead: chin up, the bucket high above the shoulders.\n- Right arm: keeps the plank resting on the right shoulder as in his idle. The right hand is at chest height in front of the right shoulder. The blade points back and up over the right shoulder, 40-55 degrees above level, with the tip high behind the right shoulder, clear of the head, the crest and the cape. The arm stays steady and only bounces with the body.\n- Left arm: pumps hard with a closed fist (fist()). It swings forward to about chin height and back past the hip, opposite to the left leg: left foot forward, left fist back.\n- Legs: big, heavy stomps.\n  - The left foot strikes the floor at tick 0 and the right at tick 22.\n  - Each foot lands flat-footed ahead of the hips and stays planted on the floor for about 8-10 ticks while it travels back under the body. Then it pushes off, and the knee lifts high in front, proudly, like a parade, as the foot swings forward for the next strike.\n  - There is a short flight between steps.\n  - Each foot travels about 1.1-1.4 m front to back over the cycle.\n- The floor is at up = -1.025 m in the character frame. During contact the toe joint (ToeBase) is about 0.05 m above it (up about -0.975) and the ankle (Foot) about 0.14 m above it. Never push a foot through the floor.\n- Weight: the hips drop 8-14 cm into each landing and rise in the push-off. The chest and head absorb a little of it, so the head stays steadier than the hips.\n- Shoulders: a small counter-rotation. The left shoulder swings with the left fist; the right shoulder stays quiet because it carries the plank.\n\nMake it read as weight and pride. The landings are the strongest beats: that is where his spurs will jingle and the dust will puff.\n\nDo not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank, no spins and no attack. The plank never passes through the head, the crest, the cape or the arms.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 44
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). The cape hangs from the shoulders to the calves and the book is on his right hip. 2: concept art for his attitude: proud, sincere, the plank held like a real knight's sword (the costume in image 1 is the final one).",
+  "review_ticks": [
+    0,
+    6,
+    11,
+    17,
+    22,
+    28,
+    33,
+    39,
+    44
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor just after the left strike, tick 3 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 3,
+      "min": -1.02,
+      "max": -0.93
+    },
+    {
+      "name": "right toe joint on the floor just after the right strike, tick 25 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 25,
+      "min": -1.02,
+      "max": -0.93
+    },
+    {
+      "name": "left foot stride front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.9,
+      "max": 1.6
+    },
+    {
+      "name": "right foot stride front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.9,
+      "max": 1.6
+    },
+    {
+      "name": "hips drop into the landings (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.06,
+      "max": 0.18
+    },
+    {
+      "name": "head ahead of the hips, forward lean at tick 0 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.1
+    },
+    {
+      "name": "head ahead of the hips, forward lean at tick 22 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 22,
+      "min": 0.1
+    },
+    {
+      "name": "head high above the upper chest (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 11,
+      "min": 0.24
+    },
+    {
+      "name": "left fist swings front to back (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.5,
+      "max": 1.0
+    },
+    {
+      "name": "right hand at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 11,
+      "min": 0.3,
+      "max": 0.7
+    },
+    {
+      "name": "plank tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 11,
+      "max": -0.6
+    },
+    {
+      "name": "plank tip high above the hilt (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 11,
+      "min": 0.9
+    },
+    {
+      "name": "plank tip to the right of the centre line (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 11,
+      "min": 0.1
+    }
+  ],
+  "review": {
+    "reference": "oldrun",
+    "travel": 0.1515
+  }
+}

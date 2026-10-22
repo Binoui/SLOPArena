@@ -407,9 +407,13 @@ public sealed class MatchRecorder
             CookedWibouRisingSlashCapabilityParameters x => x.RiseTicks,
             CookedWibouBladeFlurryCapabilityParameters x => x.MoveTicks,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks + x.MaxFlightTicks + x.RecoveryTicks,
+            CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
+                + Math.Max(x.HitEndingTicks, x.MissEndingTicks),
             CookedMankiRoundBombCapabilityParameters x => x.ThrowTriggerTick + x.MaxFlightTicks + x.ExplosionDurationTicks,
             CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks + x.ExplosionDurationTicks,
             CookedMankiBazookaCapabilityParameters x => x.FireTriggerTick + x.MaxFlightTicks + x.RecoveryDuration,
+            CookedChargedStreamCapabilityParameters x => x.MaxChargeTicks + x.FireTriggerTick + x.MaxStreamTicks
+                + Math.Max(x.RecoveryTicks, x.Projectile.MaxFlightTicks),
             _ => 0,
         };
 }

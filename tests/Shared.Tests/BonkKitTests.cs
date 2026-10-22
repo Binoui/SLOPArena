@@ -25,9 +25,9 @@ public sealed class BonkKitTests
         var package = first.CookedPackage;
         Assert.Equal(16, package.Definition.Slots.Count);
         Assert.Equal(16, package.Budget.SlotCount);
-        Assert.Single(package.Definition.CapabilityRequirements);
-        Assert.Equal(CapabilityId, package.Definition.CapabilityRequirements[0].CapabilityId);
-        Assert.Equal("1", package.Definition.CapabilityRequirements[0].CapabilityVersion);
+        Assert.Equal(new[] { CharacterPackageCompiler.SteeredChargeCapabilityId, CapabilityId },
+            package.Definition.CapabilityRequirements.Select(x => x.CapabilityId).OrderBy(x => x, StringComparer.Ordinal));
+        Assert.All(package.Definition.CapabilityRequirements, x => Assert.Equal("1", x.CapabilityVersion));
 
         var expectedIds = new[]
         {
@@ -52,12 +52,11 @@ public sealed class BonkKitTests
             var parameters = Assert.IsType<CookedTargetedLeapCapabilityParameters>(operation.Parameters);
             Assert.Equal((ushort)0, parameters.MaxAimTicks);
             Assert.Equal((ushort)96, parameters.MaxFlightTicks);
-            Assert.Equal((1f, 12f, 16f, (ushort)56, (ushort)52),
+            Assert.Equal((1f, 12f, 16f, (ushort)0, (ushort)68),
                 (parameters.MinRange, parameters.MaxRange, parameters.LaunchVerticalSpeed,
                     parameters.LandingSeekTick, parameters.RecoveryTicks));
-            Assert.Equal(AuthoringHitboxShape.Capsule, parameters.Hitbox.Shape);
-            Assert.Equal(("_weapon_hilt", "_weapon_tip"),
-                (parameters.Hitbox.StartBoneId, parameters.Hitbox.EndBoneId));
+            Assert.Equal(AuthoringHitboxShape.Sphere, parameters.Hitbox.Shape);  // E1: the ring around the landing
+            Assert.Equal(((string?)null, (string?)null), (parameters.Hitbox.StartBoneId, parameters.Hitbox.EndBoneId));
         }
 
     }
@@ -212,7 +211,7 @@ public sealed class BonkKitTests
     }
 
     [Fact]
-    public void BonkE_Ground_SlamSeeksFrame28_AndRunsFullRecovery()
+    public void BonkE_Ground_LandingStartsTheLandClip_AndRunsFullRecovery()
     {
         var def = BonkDefinition();
         var sim = TestHelpers.MakeSim();
@@ -227,6 +226,7 @@ public sealed class BonkKitTests
 
         int impactTick = -1, windowEdges = 0, endTick = -1, landedTick = -1, abilityEndTick = -1;
         ushort impactElapsed = 0;
+        byte impactClip = 0;
         int slamDuration = -1;
         bool wasActive = false;
         for (var i = 0; i < 200; i++)
@@ -243,6 +243,7 @@ public sealed class BonkKitTests
                 {
                     impactTick = i;
                     impactElapsed = st.AttackElapsedTicks;
+                    impactClip = st.ComboStage;
                     slamDuration = sim.Resolver.GetActiveHitboxes()
                         .First(x => x.OwnerId == 1 && x.Damage == 13f).DurationTicks;
                 }
@@ -256,11 +257,12 @@ public sealed class BonkKitTests
             $"landing must spawn the slam window; landedTick={landedTick} abilityEndTick={abilityEndTick} "
             + $"endTick={endTick} state={sim.GetState(1).State} "
             + $"grounded={sim.GetState(1).IsGrounded} active={sim.Resolver.GetActiveHitboxes().Count}");
-        Assert.Equal((ushort)56, impactElapsed); // authoritative pose enters frame 28 at impact
+        Assert.Equal((ushort)0, impactElapsed);  // the landing clip starts at its first frame
+        Assert.Equal((byte)1, impactClip);       // ... and it is the stage's second clip, anim.bonk.ge-land
         Assert.Equal(1, windowEdges);            // exactly one damage window opens
         Assert.Equal(6, slamDuration);           // authored six-tick slam window, independent of recovery
         Assert.True(endTick >= 0, "recovery must complete into locomotion");
-        Assert.Equal(52, endTick - impactTick);  // frame 28 -> frame 54 follow-through
+        Assert.Equal(68, endTick - impactTick);  // the landing clip: slam, handstand, haul, pop
     }
 
     [Fact]
@@ -297,7 +299,7 @@ public sealed class BonkKitTests
             Assert.NotNull(sim.GetActiveAbility(1));
             Assert.Equal(frozenElapsed, sim.GetState(1).AttackElapsedTicks);
         }
-        for (var i = 0; i < 51; i++)
+        for (var i = 0; i < 67; i++)  // the 68-tick landing clip, minus the tick that spawned the slam
             sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
         Assert.NotNull(sim.GetActiveAbility(1));
         sim.Tick(new Dictionary<ulong, InputState> { [1] = default });

@@ -38,6 +38,9 @@ namespace SlopArena.EditorTools
         /// the attacker along the attack, like the gameplay camera.
         /// </summary>
         public float CameraOrbitDegrees;
+        /// <summary>The victim holds its shield the whole duel, so blocked moves show their blocked path (Sir Bonk's
+        /// Joust skids to a stop on a shield).</summary>
+        public bool VictimShield;
         public UnityEngine.Camera CloseCamera = null!, WideCamera = null!;
         public RenderTexture CloseTarget = null!, WideTarget = null!;
         public string OutputDirectory = "";
@@ -219,7 +222,7 @@ namespace SlopArena.EditorTools
                 ActiveSlot = Tick == PressTick ? SlotWire : AbilitySlots.None,
                 IsAiming = HoldTicks > 0 && Tick >= PressTick && Tick < PressTick + HoldTicks
             };
-            _inputs[VictimId] = new InputState { FacingYaw = _victimYaw, AimYaw = _victimYaw };
+            _inputs[VictimId] = new InputState { FacingYaw = _victimYaw, AimYaw = _victimYaw, ShieldHeld = VictimShield };
             _bridge.Tick(_inputs);
             Tick++;
             foreach (var hit in _bridge.LastTickHits)

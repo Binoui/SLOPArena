@@ -33,7 +33,7 @@ namespace SlopArena.Shared.Abilities
             _phase = BazookaPhase.Aiming;
             _projectileSpawned = false;
 
-            // Hold = aim stance (fixed-stance friction in Simulation's movement gate).
+            // Fixed aim stops on the ground and coasts with existing momentum in the air.
             s.State = ActionState.Aiming;
             s.AttackSlot = (byte)(Slot + 1);
             AnimIndex = 0;  // spell_r_loop (aim hold)
@@ -48,9 +48,9 @@ namespace SlopArena.Shared.Abilities
             ClearVelocityOwnership(ref s);
             s.IsFastFalling = false;
             s.IsAiming = false;
-            s.VX = 0f;
             s.VY = 0f;
-            s.VZ = 0f;
+            if (s.IsGrounded)
+                s.VX = s.VZ = 0f;
         }
 
         public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)

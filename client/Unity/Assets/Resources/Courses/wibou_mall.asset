@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27f78137fb7d3fb82be22e548c57ee18, type: 3}
+  m_Name: wibou_mall
+  m_EditorClassIdentifier: 
+  Target: {fileID: 7907376911036476508, guid: 7acd21fde3e972e7da8a3a51886f5afc, type: 3}
+  TargetRadius: 0.55
+  Break: {fileID: 1845919814420013183, guid: 2f6a5f3ea06ec23c693c2af00aa8df86, type: 3}
+  Marker: {fileID: 5865818543217485332, guid: 567fc783f2e9203c9a2eabecbbc0aacf, type: 3}
+  MissedBeacon: {fileID: 5524285847278192443, guid: 3539636e1611d6c26930b0cb1ffa993c, type: 3}
+  FinishBeacon: {fileID: 2991670154051327102, guid: 1fad19412799379f0849daaace611409, type: 3}
+  FinishBurst: {fileID: 201321739062895256, guid: fd512beed8878f2b2920902ed92fc1ed, type: 3}
+  SoundFolder: Audio/SFX/CourseMall
+  NoteSemitones: 000000000300000005000000070000000a0000000c0000000f000000110000001300000016000000
+  TargetLooks:
+  - IdPrefix: escalator
+    Target: {fileID: 3208048238178214158, guid: 8621a8d7421d8be3abbed8144f987436, type: 3}
+    TargetRadius: 0.55
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: peek
+    Target: {fileID: 4595381138348803706, guid: 2cc038b67cbd77282830f562e9603ac7, type: 3}
+    TargetRadius: 0.55
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: lip
+    Target: {fileID: 7857827249586274389, guid: 1207e921fd30da4c2b205eccd5656c53, type: 3}
+    TargetRadius: 0.55
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: tubeman
+    Target: {fileID: 978830831704151112, guid: af0fb0b5a68744072b5fcd6ef3d56f87, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 5393364388152575370, guid: 3ca15e57222e5194788777f06296347e, type: 3}
+    Hit: {fileID: 6452114105692420738, guid: 736f5ff5937cc47e2ae519780b0a7abb, type: 3}
+    HitClip: course_tubeman_hit
+    BreakClip: course_tubeman_break
+  - IdPrefix: agent
+    Target: {fileID: 4538853261226960160, guid: 8c1b7c46ef2ad847cb9bc3d3dba75254, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 4234899362273041313, guid: bfa7e3e0d53a0f634844540b97ecfc45, type: 3}
+    Hit: {fileID: 3791426062157941739, guid: 71004777a4fdd36289be720c5a1cb632, type: 3}
+    HitClip: course_agent_hit
+    BreakClip: course_agent_break
+  - IdPrefix: hotdog
+    Target: {fileID: 5260916441774047552, guid: 39dcbabb1fa527c16a25787c8b3b7bd4, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 6715511678003084631, guid: 6b5914bb9db908b959a0761005858b35, type: 3}
+    Hit: {fileID: 9185400086274384089, guid: 82d1113f09d2efd0a860947208f5d492, type: 3}
+    HitClip: course_hotdog_hit
+    BreakClip: course_hotdog_break
+  - IdPrefix: cop
+    Target: {fileID: 7038670448413879756, guid: bfd93b769bd2f23088cf5340bb95783f, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 4726041143055805965, guid: 21a320eeadc3cf64ba4e0e94152337a7, type: 3}
+    Hit: {fileID: 4587053605899119316, guid: e7c8a3e0a8b5c1666941a7c0cd1ce91c, type: 3}
+    HitClip: course_cop_hit
+    BreakClip: course_cop_break

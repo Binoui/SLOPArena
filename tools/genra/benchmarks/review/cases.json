@@ -1,0 +1,92 @@
+{
+  "notes": "Reviewer benchmark: generated clips with the owner's verdicts. On rejected clips the reviewer must find the owner's issues; on approved clips it must not raise major issues the owner would not, apart from real anatomy breaks the checks fail (folded wrists), which the owner had not been shown. Both run versions are reviewed against the original run direction, so the v2 brief's quotes of the owner do not hand the reviewer the answers. Move briefs written before 2026-10-18 keep \"frame\": \"hips\", as their repo copies do; the copies in their run folders lack it and turn the directions 77-90 degrees.",
+  "cases": [
+    {
+      "name": "sir-run-v1",
+      "brief": "benchmarks/review/bonk-sir-run-charge.json",
+      "result": "artifacts/genra-runs/20261020-225332-bonk-sir-run-charge/scratch/result.json",
+      "asset": "Assets/Art/Experiments/GenRA/bonk/bonk-sir-run-charge.anim",
+      "owner": {
+        "verdict": "revise",
+        "date": "2026-10-20",
+        "notes": [
+          "the walk cycle is a bit weird",
+          "his arms are too close to his body",
+          "the movement is a bit too robotic",
+          "it's lacking subtle movement in the other parts to make it more realistic"
+        ]
+      }
+    },
+    {
+      "name": "sir-run-v2",
+      "brief": "benchmarks/review/bonk-sir-run-charge.json",
+      "result": "artifacts/genra-runs/20261020-233014-bonk-sir-run-charge-v2/scratch/result.json",
+      "asset": "Assets/Art/Experiments/GenRA/bonk/bonk-sir-run-charge-v2.anim",
+      "owner": {
+        "verdict": "revise",
+        "date": "2026-10-20",
+        "notes": [
+          "the right hand is curved the wrong way (common issue i have already seen)",
+          "the right arm holding the sword is still way too close to body",
+          "the legs are still a bit robotic",
+          "the overall animation is better but still a bit stiff: fine on the stiff side for Sir Bonk's demeanor, but it might be a bit too much"
+        ],
+        "measured": "the free (left) fist folds 117 deg off its forearm; the plank arm stays within 2 cm of the torso on 87% of the cycle"
+      }
+    },
+    {
+      "name": "sir-idle",
+      "brief": "benchmarks/review/bonk-sir-idle-hero.json",
+      "result": "artifacts/genra-runs/20261020-225302-bonk-sir-idle-hero/scratch/result.json",
+      "asset": "Assets/Art/Experiments/GenRA/bonk/bonk-sir-idle-hero.anim",
+      "owner": {
+        "verdict": "accept",
+        "date": "2026-10-20",
+        "notes": [
+          "the idle is pretty good"
+        ],
+        "measured": "the plank hand folds 137 deg off its forearm, hidden behind the plank in game"
+      }
+    },
+    {
+      "name": "wibou-r-loop-b",
+      "brief": "benchmarks/review/wibou-r-charge-loop-b.json",
+      "result": "artifacts/genra-runs/20261018-030651-wibou-r-charge-loop-b/scratch/result.json",
+      "asset": "Assets/Art/Experiments/GenRA/wibou/wibou-r-charge-loop-b.anim",
+      "owner": {
+        "verdict": "accept",
+        "date": "2026-10-18",
+        "notes": [
+          "charge loop B picked, bound and shipped"
+        ]
+      }
+    },
+    {
+      "name": "bonk-air3-meteor-cleave-v3",
+      "brief": "briefs/bonk-air3-meteor-cleave-v3.json",
+      "result": "artifacts/genra-runs/20261017-141052-bonk-air3-meteor-cleave-v3/scratch/result.json",
+      "asset": "Assets/Art/Experiments/GenRA/bonk/bonk-air3-meteor-cleave-v3.anim",
+      "owner": {
+        "verdict": "accept",
+        "date": "2026-10-17",
+        "notes": [
+          "merged as Bonk air.3 (#296)"
+        ]
+      }
+    },
+    {
+      "name": "bonk-air1-whirlwind-v2",
+      "brief": "briefs/bonk-air1-whirlwind-v2.json",
+      "result": "artifacts/genra-runs/20261017-141048-bonk-air1-whirlwind-v2/scratch/result.json",
+      "asset": "Assets/Art/Experiments/GenRA/bonk/bonk-air1-whirlwind-v2.anim",
+      "owner": {
+        "verdict": "accept",
+        "date": "2026-10-17",
+        "notes": [
+          "merged as Bonk air.1 (#296)"
+        ],
+        "measured": "the right wrist folds 123 deg off its forearm on ticks 16-45"
+      }
+    }
+  ]
+}

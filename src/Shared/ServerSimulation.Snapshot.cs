@@ -10,7 +10,8 @@ namespace SlopArena.Shared
     {
         /// <summary>World Snapshot encoding version; bump with any layout change.</summary>
         /// <summary>World Snapshot encoding version; 2 adds the Arcade ball and Slopball rules (ADR-0040).</summary>
-        public const uint SnapshotFormatVersion = 2;
+        // 3: hitboxes carry returning projectiles (Sir Bonk's pot lid).
+        public const uint SnapshotFormatVersion = 3;
 
         private readonly List<ulong> _abilityOrder = new();
 

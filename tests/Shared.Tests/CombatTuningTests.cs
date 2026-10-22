@@ -121,6 +121,8 @@ public class CombatTuningTests
             X = target.PX, Y = target.PY, Z = target.PZ,
             Radius = 0.5f, Damage = 4, BaseKnockback = 20,
             StunTicks = 1, DurationTicks = 1, OwnerId = 1,
+            // Hit hooks reach the activation that spawned the contact, as an ability's own hitbox does.
+            ActivationId = sim.GetActiveAbility(1)?.ActivationId ?? 0,
         });
     }
 

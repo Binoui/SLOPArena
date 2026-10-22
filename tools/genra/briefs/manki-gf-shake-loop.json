@@ -1,0 +1,238 @@
+{
+  "name": "manki-gf-shake-loop",
+  "notes": "Manki Aerosol Inferno hold loop (ground.F / air.F, slot aimAnimationId anim.manki.gf-loop), 2026-10-21. The owner wants a cartoony, frenetic shake: the current loop (reference 'oldloop', a retargeted magic 'Load' pose) only sways the can 15-28 cm over 1.7 s. Owner picks: direction A 'piston pump', the same loop for the whole hold (ChargePropFeedback already grows, jitters and heats the can with the charge), key poses from an image-generated pose sheet (Codex gpt-6.1-sol image_gen from the real render: artifacts/manki-f-shake-20261021/pose-sheet.png), and the can stretches along its motion in code. The 30-tick clock below is a proposal awaiting the owner's approval with the sheet. Owner 2026-10-21 on the keys run (artifacts/genra-runs/20261021-225946-manki-gf-shake-loop-keys): 'not bad honestly, maybe needs to be loop and slowed a bit, I wanna see in unity'. Its blocking was written 20% slower (unity_clip.py write --retime 0:0,30:36, a 0.6 s cycle) and promoted over Art/Characters/manki/Animations/manki_f_loop.anim for an in-game look; the old clip is in artifacts/manki-f-shake-20261021/backup/. Use the owner's chosen speed for the full pass. Owner 2026-10-21 after trying the 36-tick blocking in Unity: 'pretty good. i think manki needs to hold the lighter in his left hand during that shake'; the fire part comes next ('holding the aerosol and the lighter a bit in front, thats where the fire comes out; right now his arms are flailing too much'). The lighter is now a held slot prop (MankiPresentationBuilder.HeldLighter); this brief moved to the manki-unity-lighter pack.",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-lighter",
+  "character": "Manki (62 joints: a Humanoid body with Mixamo names, a big head and ears, overalls; a five-joint tail Tail1..5 that a spring drives in the game, so leave it at rest; his cartoon aerosol can fixed to the right hand as joint Weapon0, which sits at the can's centre: 0.65 m long and 0.31 m across, more than half his 1.16 m height; his chunky red lighter fixed to the left hand as joint Weapon1, 0.32 m long, with LighterBase at its bottom and LighterHood at its top, where it lights)",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fire": "references/fire.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 30
+  },
+  "timing": {
+    "fixed": [
+      "the game crossfades into the clip over 0.1 s from idle or run (instantly from a crouch or slide) and loops it from tick 0 for as long as F is held: at least 18 ticks, often a second or more",
+      "the same clip plays in the air for air F, while he falls",
+      "on release the game crossfades over 3 ticks into the fire clip (reference 'fire') at its tick 0, from whatever tick the loop is on",
+      "the owner chose a 0.6 s cycle (36 ticks) after seeing the blocking in the game: the clip is authored on this 30-tick clock and written 1.2x slower (unity_clip.py write --retime 0:0,30:36)"
+    ],
+    "adjustable": [
+      "the cycle length (30 ticks proposed) and the beat ticks (DOWN 0, BIG UP 5, SLAM 9, then UP/DOWN at 13/16, 20/23, 27/30), as the owner approves them with the key poses"
+    ]
+  },
+  "description": "Manki's Aerosol Inferno hold loop. In the game the player holds F to charge his homemade flamethrower: Manki shakes his giant spray can, and on release he flicks a lighter at the nozzle and sprays a flame column forward. Until now the hold played a slow sway, the can held upright out to his right (reference `oldloop`, the clip being replaced: its can centre drifts only 15-28 cm over 1.7 s). The owner wants a cartoony, frenetic shake instead.\n\nHow the game plays it. The game crossfades into this clip over 0.1 s from idle or run and loops it (ticks 0-30, wrapping from 30 back to 0) for as long as F is held: at least 18 ticks, often a second or more. The same clip plays in the air during air F while he falls, so it must also read in mid-air. On release the game crossfades over 3 ticks into the fire clip (reference `fire`) at its tick 0, from whatever tick the loop is on. The fire clip starts with the can low in front of him (its centre about 0.35 m to his right, 0.67 m forward and level with his hips) and lifts it into a forward spray, so any release reads as the can dropping toward the front: render reference:fire ticks 0-12 yourself to see it. While he holds, the game also grows the can up to 35%, jitters it a few degrees, heats it red and pops sparks at each charge tier, and code stretches the can along its fast strokes and squashes it when a stroke stops. So this clip only has to deliver the body's shake, the same every cycle, and the can must stay clear of his body with room to spare.\n\nThe lighter (owner, 2026-10-21: 'manki needs to hold the lighter in his left hand during that shake'). He holds his chunky red lighter in his left fist through the whole shake, unlit: it lights only when he releases. The left hand is a closed fist around it, turned so the hood (LighterHood) points up, out past the index knuckle. Hold it up out to his left at about shoulder height, the forearm roughly upright, clear of his head and visible from the gameplay camera: the can on his right, the lighter on his left, ready to meet. It bobs with the body in counter-rhythm to the can, a few centimetres to about 10 cm, never a wide flail (owner: the arms flail too much). The pose sheet (image 1) still shows an open left hand: follow this paragraph for the left arm.\n\nThe can. It is rigid in his right fist: Weapon0 is its centre, about where the fist grips it, and the fist sets where it points. The nozzle end is up when the fist is upright, as in the current hold.\n\nThe shake: 'piston pump', the owner's pick. Image 1 is the pose sheet the owner approved, drawn from his real render: 1 UP, 2 DOWN, 3 BIG UP, 4 SLAM. The can stays upright, out to his right side and a little in front of his shoulder (about where the current hold keeps it: centre 0.45-0.5 m to his right), and is hammered straight up and down by the elbow, like a piston. Each cycle is one big accent and then three fast strokes:\n- Tick 0, DOWN (pose 2): the bottom of a fast stroke. The can centre at about shoulder height beside his right shoulder, upright, the elbow driven down and back; knees bent, hips dipped, the head bobbing down a tick late; the left arm swung down and out, hand open.\n- Tick 5, BIG UP (pose 3): the accent's wind-up, slower than the fast strokes. His whole body stretches tall: the right arm reaches high so the can is well above his head (centre at least 0.5 m above the hips' rest height), out to his right, never over his head; the chest lifts and leans a little left, the head tilts away from the can, the left arm out to the side. Unlike the sheet, rise onto the balls of the feet if the planted check allows it; otherwise keep the feet flat and stretch the legs straight.\n- Tick 9, SLAM (pose 4): the accent's hit, fast. A deep squash: knees well bent, hips 8-15 cm below their rest height, the torso hunched forward over the can, the can slammed down beside his right hip (centre near hip height), the head forward and down, the left arm out wide for balance.\n- Ticks 13, 20 and 27, UP (pose 1), and ticks 16, 23 and 30, DOWN (pose 2): three fast strokes, about eight a second. UP thrusts the can up beside his head (the bottom of the can at about ear height, the elbow high and out, the right shoulder hunched up toward his ear), the body pulls up a little and the head tilts away; DOWN is pose 2 again. The strokes are fast and snappy: the can covers most of the distance in the middle ticks and the reversals are sharp, so it reads as frantic, not as a smooth sine.\n\nThe whole body pumps with the can. The hips dip 3-5 cm on each fast down-stroke and rise on each up-stroke, and drop much further on the slam; the knees flex over the planted feet; the chest and shoulders hunch toward the can on the up-strokes; the head bobs one or two ticks behind the can and tilts away from it; the left hand holds his lighter (see below), bobbing in counter-rhythm, so the silhouette stays wide from behind. The match camera sits straight behind him, so make the vertical pump read from the gameplay view: the can stays out to his right, not hidden behind his head or body. Vary the three fast strokes slightly (height, head tilt, left arm) so the cycle does not read as a metronome, and keep the loop seamless at tick 30. The feet stay planted, the fighter does not move, and the can never touches his head, body or legs.",
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "fast_windows": [
+    [
+      0,
+      30
+    ]
+  ],
+  "views": [
+    "front-three-quarter-right",
+    "profile",
+    "gameplay",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../manki-f-shake-20261021/pose-sheet.png",
+    "../../manki-f-shake-20261021/manki-hold-front34.png",
+    "images/idle-entry.png"
+  ],
+  "image_notes": "1: the pose sheet the owner approved (image-generated from his real render, front three-quarter view, his right hand on the viewer's left): 1 UP, 2 DOWN, 3 BIG UP, 4 SLAM, mapped to ticks 13/20/27, 0/16/23/30, 5 and 9. It is a drawing: match the poses and the energy, not exact angles; its cans tilt a little and its feet drift between poses, but in the clip the feet stay planted. 2: the current hold on the real character (the clip being replaced), the same camera: where the can sits beside him today. 3: the idle entry pose (profile, front, three-quarter rear), with the can in the fist.",
+  "keys": [
+    0,
+    5,
+    9,
+    13,
+    16,
+    20,
+    23,
+    27,
+    30
+  ],
+  "review_ticks": [
+    0,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    16,
+    20,
+    23,
+    27,
+    30
+  ],
+  "targets": [
+    {
+      "name": "can high at BIG UP, tick 5 (m above the hips' rest)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "up",
+      "tick": 5,
+      "min": 0.5
+    },
+    {
+      "name": "can at the hip at SLAM, tick 9 (m)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "up",
+      "tick": 9,
+      "max": 0.12
+    },
+    {
+      "name": "can up at a fast stroke's top, tick 13 (m)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "up",
+      "tick": 13,
+      "min": 0.35
+    },
+    {
+      "name": "can down at a fast stroke's bottom, tick 16 (m)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "up",
+      "tick": 16,
+      "max": 0.25
+    },
+    {
+      "name": "can out to his right at BIG UP, tick 5 (m)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "right",
+      "tick": 5,
+      "min": 0.3
+    },
+    {
+      "name": "can out to his right at UP, tick 13 (m)",
+      "kind": "char",
+      "a": "Weapon0",
+      "axis": "right",
+      "tick": 13,
+      "min": 0.3
+    },
+    {
+      "name": "can travel over the cycle (m)",
+      "kind": "range",
+      "a": "Weapon0",
+      "axis": "up",
+      "window": [
+        0,
+        30
+      ],
+      "min": 0.45
+    },
+    {
+      "name": "hips squash at SLAM, tick 9 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 9,
+      "max": -0.08
+    },
+    {
+      "name": "hips bob through the fast strokes (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        13,
+        30
+      ],
+      "min": 0.03
+    },
+    {
+      "name": "lighter hood up above the left fist, tick 0 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LighterHood",
+      "tick": 0,
+      "min": 0.05
+    },
+    {
+      "name": "lighter hood up above the left fist, tick 5 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LighterHood",
+      "tick": 5,
+      "min": 0.05
+    },
+    {
+      "name": "lighter hood up above the left fist, tick 9 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LighterHood",
+      "tick": 9,
+      "min": 0.05
+    },
+    {
+      "name": "lighter hood up above the left fist, tick 13 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LighterHood",
+      "tick": 13,
+      "min": 0.05
+    },
+    {
+      "name": "lighter out to his left at tick 0 (m)",
+      "kind": "char",
+      "a": "Weapon1",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.3
+    },
+    {
+      "name": "lighter out to his left at tick 13 (m)",
+      "kind": "char",
+      "a": "Weapon1",
+      "axis": "right",
+      "tick": 13,
+      "max": -0.3
+    },
+    {
+      "name": "lighter up near shoulder height at tick 0 (m)",
+      "kind": "char",
+      "a": "Weapon1",
+      "axis": "up",
+      "tick": 0,
+      "min": 0.15
+    },
+    {
+      "name": "lighter up near shoulder height at tick 13 (m)",
+      "kind": "char",
+      "a": "Weapon1",
+      "axis": "up",
+      "tick": 13,
+      "min": 0.15
+    },
+    {
+      "name": "lighter bobs, not flails, over the cycle (m)",
+      "kind": "range",
+      "a": "Weapon1",
+      "axis": "up",
+      "window": [
+        0,
+        30
+      ],
+      "max": 0.2
+    }
+  ]
+}

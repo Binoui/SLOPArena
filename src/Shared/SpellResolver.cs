@@ -82,6 +82,8 @@ namespace SlopArena.Shared
             public byte AttackSequence;
             /// <summary>True when the originating ability activation began airborne.</summary>
             public bool Airborne;
+            /// <summary>Returning projectile leg: 0 none, 1 flying out, 2 coming back to its owner.</summary>
+            public byte ReturnPhase;
             public float Damage;
             public float DirX;
             /// <summary>Launch angle in degrees (-90 to 90).</summary>
@@ -179,6 +181,162 @@ namespace SlopArena.Shared
             }
         }
 
+
+        private int[] _returnSweepTriangles = Array.Empty<int>();
+
+        /// <summary>
+        /// Steers returning projectiles before the collision pass. On the way out a projectile keeps its
+        /// launch velocity until its outbound time ends or it would meet the stage; then it turns: a fresh
+        /// hit history for the return leg, knockback toward its owner, and the owner becomes hittable (the
+        /// simulation decides catch or self-hit). Coming back it steers at <paramref name="ownerTarget"/>'s
+        /// point, its velocity changing by at most the return acceleration each tick, so it slows, swings
+        /// round and homes in. A projectile whose owner is gone disappears.
+        /// </summary>
+        internal void UpdateReturningProjectiles(
+            Func<ulong, (bool Exists, float X, float Y, float Z)> ownerTarget, in ArenaDefinition arena)
+        {
+            for (int i = _hitboxes.Count - 1; i >= 0; i--)
+            {
+                var hb = _hitboxes[i];
+                if (!hb.Active || !hb.Return.HasValue) continue;
+                var target = ownerTarget(hb.OwnerId);
+                if (!target.Exists)
+                {
+                    hb.Active = false;
+                    OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
+                    _hitboxes.RemoveAt(i);
+                    continue;
+                }
+                var config = hb.Return.Value;
+                if (hb.LegTicks < ushort.MaxValue) hb.LegTicks++;
+                if (!hb.ReturnLeg && MeetsStage(in hb, in arena, out float nx, out float ny, out float nz))
+                {
+                    // It bounces off the stage: reflect off the surface at half speed, then home in.
+                    float along = hb.VX * nx + hb.VY * ny + hb.VZ * nz;
+                    hb.VX = (hb.VX - 2f * along * nx) * BounceRetention;
+                    hb.VY = (hb.VY - 2f * along * ny) * BounceRetention;
+                    hb.VZ = (hb.VZ - 2f * along * nz) * BounceRetention;
+                    Turn(ref hb);
+                }
+                else if (!hb.ReturnLeg && hb.LegTicks >= config.OutboundTicks)
+                    Turn(ref hb);
+                if (hb.ReturnLeg)
+                {
+                    float dx = target.X - hb.X, dy = target.Y - hb.Y, dz = target.Z - hb.Z;
+                    float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                    float scale = distance > 0.0001f ? config.ReturnSpeed / distance : 0f;
+                    float ax = dx * scale - hb.VX, ay = dy * scale - hb.VY, az = dz * scale - hb.VZ;
+                    float change = MathF.Sqrt(ax * ax + ay * ay + az * az);
+                    float limit = config.ReturnAcceleration * Simulation.TickDt;
+                    if (change > limit && change > 0f)
+                    {
+                        ax *= limit / change; ay *= limit / change; az *= limit / change;
+                    }
+                    hb.VX += ax; hb.VY += ay; hb.VZ += az;
+                }
+                _hitboxes[i] = hb;
+            }
+        }
+
+        private static void Turn(ref Hitbox hb)
+        {
+            hb.ReturnLeg = true;
+            hb.LegTicks = 0;
+            hb.HitEntities = new HashSet<ulong>();
+            hb.KnockbackDirection = AuthoringKnockbackDirection.TowardOwner;
+            hb.CanHitOwner = true;
+        }
+
+        // Share of its speed a returning projectile keeps when it bounces off the stage or a shield.
+        private const float BounceRetention = 0.5f;
+
+        /// <summary>Whether this tick's travel would bring a projectile into the stage, and the surface normal.</summary>
+        private bool MeetsStage(in Hitbox hb, in ArenaDefinition arena, out float nx, out float ny, out float nz)
+        {
+            nx = 0f; ny = 1f; nz = 0f;
+            float ex = hb.X + hb.VX * Simulation.TickDt, ey = hb.Y + hb.VY * Simulation.TickDt, ez = hb.Z + hb.VZ * Simulation.TickDt;
+            if (ArenaCollision.HasTriangles(arena))
+            {
+                int triangles = arena.CollisionTriangles!.Length;
+                if (_returnSweepTriangles.Length < triangles) _returnSweepTriangles = new int[triangles];
+                int count = ArenaCollision.GetCandidateTrianglesForSweep(hb.X, hb.Y, hb.Z, ex, ey, ez,
+                    hb.Radius, hb.Radius * 2f, in arena, _returnSweepTriangles);
+                if (!ArenaCollision.SweepCapsule(hb.X, hb.Y, hb.Z, ex, ey, ez, hb.Radius, hb.Radius * 2f,
+                        in arena, _returnSweepTriangles, count, out var contact))
+                    return false;
+                nx = contact.NormalX; ny = contact.NormalY; nz = contact.NormalZ;
+                return true;
+            }
+            if (arena.Heightmap.Data == null || arena.Heightmap.Data.Length == 0) return false;
+            float ground = arena.Heightmap.Sample(ex, ez);
+            return ground != float.MinValue && ey - hb.Radius <= ground;
+        }
+
+        /// <summary>The wire slot of an owner's returning projectile in flight, 0 when none.</summary>
+        internal byte ReturningProjectileSlot(ulong ownerId)
+        {
+            foreach (var hb in _hitboxes)
+                if (hb.Active && hb.Return.HasValue && hb.OwnerId == ownerId)
+                    return hb.AttackSlot;
+            return 0;
+        }
+
+        /// <summary>Whether an owner has a returning projectile from this wire slot in flight.</summary>
+        internal bool HasReturningProjectile(ulong ownerId, byte attackSlot)
+        {
+            foreach (var hb in _hitboxes)
+                if (hb.Active && hb.Return.HasValue && hb.OwnerId == ownerId && hb.AttackSlot == attackSlot)
+                    return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Bounces an owner's outbound returning projectile off a shield: it reverses at half speed and
+        /// turns, and the shield it met counts as already hit on the way back, so it is not blocked twice.
+        /// </summary>
+        internal void TurnReturningProjectile(ulong ownerId, ulong activationId, ulong blockerId)
+        {
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var hb = _hitboxes[i];
+                if (!hb.Active || !hb.Return.HasValue || hb.ReturnLeg || hb.OwnerId != ownerId
+                    || hb.ActivationId != activationId) continue;
+                hb.VX *= -BounceRetention; hb.VY *= -BounceRetention; hb.VZ *= -BounceRetention;
+                Turn(ref hb);
+                hb.HitEntities!.Add(blockerId);
+                _hitboxes[i] = hb;
+            }
+        }
+
+        /// <summary>Removes and returns an owner's returning projectile (caught, or it hit him).</summary>
+        internal bool TryTakeReturningProjectile(ulong ownerId, ulong activationId, out Hitbox taken)
+        {
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var hb = _hitboxes[i];
+                if (!hb.Active || !hb.Return.HasValue || hb.OwnerId != ownerId || hb.ActivationId != activationId) continue;
+                taken = hb;
+                hb.Active = false;
+                OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
+                _hitboxes.RemoveAt(i);
+                return true;
+            }
+            taken = default;
+            return false;
+        }
+
+        /// <summary>Removes every returning projectile an owner has in flight (KO, leaving the match).</summary>
+        internal void RemoveReturningProjectiles(ulong ownerId)
+        {
+            for (int i = _hitboxes.Count - 1; i >= 0; i--)
+            {
+                var hb = _hitboxes[i];
+                if (!hb.Return.HasValue || hb.OwnerId != ownerId) continue;
+                hb.Active = false;
+                OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
+                _hitboxes.RemoveAt(i);
+            }
+        }
 
         /// <summary>
         /// Clear all hitboxes (e.g., on match reset).
@@ -461,6 +619,7 @@ namespace SlopArena.Shared
                             AttackSlot = hb.AttackSlot,
                             ActivationId = hb.ActivationId,
                             Airborne = hb.ActivationAirborne,
+                            ReturnPhase = hb.Return.HasValue ? (hb.ReturnLeg ? (byte)2 : (byte)1) : (byte)0,
                             Damage = hb.Damage,
                             AttackSequence = hb.AttackSequence,
                             DirX = dirXNorm,

@@ -101,6 +101,26 @@ namespace SlopArena.Shared
 
 
     /// <summary>
+    /// A projectile that comes back to its thrower, like a boomerang (Sir Bonk's pot lid). It flies
+    /// out for <see cref="OutboundTicks"/> (or until it meets the stage or a shield), then steers back
+    /// at the owner's chest at up to <see cref="ReturnSpeed"/>, turning at <see cref="ReturnAcceleration"/>.
+    /// It hits each fighter at most once per leg, pulling them toward the owner on the way back. Reaching
+    /// the owner, it is caught when he is free and hits him (a stun, no launch) when he is busy.
+    /// </summary>
+    public struct ProjectileReturn
+    {
+        public ushort OutboundTicks;
+        public float ReturnSpeed;
+        public float ReturnAcceleration;
+        public float SelfHitDamage;
+        public ushort SelfHitStunTicks;
+        /// <summary>Optional semantic presentation emitted when the owner catches it.</summary>
+        public string CatchPresentationId;
+        /// <summary>Optional semantic presentation emitted when it hits its busy owner.</summary>
+        public string SelfHitPresentationId;
+    }
+
+    /// <summary>
     /// Explosion spawned when a projectile hits an entity or the ground.
     /// Larger radius, separate damage/knockback from the direct projectile hit.
     /// </summary>

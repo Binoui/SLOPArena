@@ -11,6 +11,7 @@ public class ArcadeStageAdmissionTests
     [InlineData("slopball")]
     [InlineData("fightguy_sanctuary")]
     [InlineData("fightguy_pier")]
+    [InlineData("wibou_mall")]
     public void ArcadeCourtIsDiscoverableButCannotBeAssignedToPvP(string stage)
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));

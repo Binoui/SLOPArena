@@ -1,5 +1,16 @@
 # SLOPArena Netcode & Simulation Architecture
 
+## Sir Bonk's lid and joust — protocol 12
+
+Protocol 12 carries the engine work for Sir Bonk's pot lid and joust
+([plan](../plans/2026-10-21-sir-bonk-pot-lid-and-joust.md)). World Snapshot format 3 adds
+a hitbox's return settings, the leg it is on and its ticks on that leg, the steered
+charge's state, and `CharacterState.ReturningProjectileSlot` (the slot waiting for its
+lid, read by the CPU and the HUD). Presentation
+events gain `ProjectileCatch` (6) and `ProjectileSelfHit` (7). Release client, GameHost
+and Master together (Master `LobbyModels.Protocol = 12`); protocol 11 peers are rejected.
+No World Frame or input layout changed.
+
 ## Full-world rollback — protocol 11
 
 Online play predicts the whole world from complete GameHost snapshots
@@ -394,7 +405,7 @@ datagram does not drop a press. Steam prefixes the bundle with the `Input` kind 
 | 18     | byte    | TargetEntityId  | Client-selected target (0 = none)  |
 | 19     | byte    | flags2          | bit0: JumpHeld, bit1: FaceToCamera, bit2: ToggleLock, bit3: DownPressed, bit4: ShieldHeld, bit5: ShieldPressed, bit6: GrabPressed, bit7: RetargetPressed |
 | 20     | byte    | LockMode        | `0=Never`, `1=Always`, `2=OnHit` |
-| 21     | byte    | protocolVersion | `SimulationProtocol.Version = 10` |
+| 21     | byte    | protocolVersion | `SimulationProtocol.Version` (12) |
 
 `ShieldHeld` is the per-tick physical hold used for grounded shield. `ShieldPressed` is a
 fresh logical edge and the sole airborne dodge input; the simulation accepts it only while
@@ -411,7 +422,7 @@ backward-compatible partial decoding.
 Header (16 bytes)
 [0..3]    magic "WFRM"
 [4]       frame format (2)
-[5]       SimulationProtocol.Version (11)
+[5]       SimulationProtocol.Version (12)
 [6]       flags — bit 0: body DEFLATE-compressed
 [7]       MatchState
 [8..11]   tick — the World Snapshot's tick

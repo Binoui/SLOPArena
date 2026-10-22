@@ -133,6 +133,13 @@ public class WorldSnapshotContractTests
                     foreach (var operation in stage.Operations)
                         if (operation is CookedStartCapabilityOperation capability)
                             yield return capability;
+        // Public engine capabilities no roster fighter uses yet are covered through their fixtures.
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.SteeredChargeCapabilityId,
+            CharacterPackageCompiler.SteeredChargeCapabilityVersion, SteeredChargeTests.Parameters);
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.ChargedStreamCapabilityId,
+            CharacterPackageCompiler.ChargedStreamCapabilityVersion, ChargedStreamTests.Parameters);
     }
 
     private static ServerAbility Create(CookedStartCapabilityOperation operation)

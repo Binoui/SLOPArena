@@ -220,7 +220,7 @@ roster pins are unchanged.
 ## Design Notes
 - **E**: Jetpack Boost. On activation, Manki compresses for 3 vulnerable ticks while preserving vertical fall velocity and clearing horizontal velocity. On ignition, the authoritative simulation samples the current movement stick, normalizes it when above 0.001 magnitude, and launches at `VY=15` with horizontal speed `3.5` along that direction. A single owner-centered sphere (radius 1.25, damage 4, 75° angle, base 2, growth 8, stun 8, duration 4) resolves the ignition hit. The ascent is unsteerable; gravity is active immediately, and normal air drift/actions return when `VY <= 0`. Cooldown: 210 ticks. The move is a recovery move and aliases `air.E` to `ground.E`.
 - **R**: Bazooka (FPS-style). Short cast (20 ticks), fire a rocket projectile in camera direction (AimYaw/AimPitch). Projectile has gravity (15 m/s²), speed 40 m/s, max flight 45 ticks. Explodes on entity hit or ground contact with 3m AoE. CanHitOwner=true on explosion — aim at feet for rocket jump (4 self-damage, upward knockback). No rise, no hover, no hold-to-aim. 240 tick cooldown (4s).
-- **F**: Aerosol Inferno. Hold enters the loop animation and freezes movement. An 18-tick minimum charge applies even to a tap; early release queues the shot, and a longer hold continues aiming until release. Manki follows camera yaw only; vertical aim is ignored. The firing phase starts the flame hitbox and VFX together at tick 8 and sustains both for 44 attack ticks through the 52-tick commitment. Charge tiers at 18/30/42/54/66 ticks select 10/14/18/22/26 damage and 0.6×/0.8×/1×/1.25×/1.5× flame size. Charge caps at 66 ticks but still waits for release. The facing-aligned capsule and flame grow together from 2.64 m to 6.6 m total length (0.84 m to 2.1 m diameter), anchored at the same near edge; the effect is independent of wrist rotation and ends on interruption. Cooldown: 600 ticks.
+- **F**: Aerosol Inferno. Hold enters the loop animation and freezes movement. An 18-tick minimum charge applies even to a tap; early release queues the shot, and a longer hold continues aiming until release. Manki follows camera yaw only; vertical aim is ignored. The firing phase starts the flame hitbox and VFX together at tick 8 and sustains both for 44 attack ticks; the move then recovers for 10 ticks (62-tick commitment, owner 2026-10-22, so he lowers the can before he can act). Charge tiers at 18/30/42/54/66 ticks select 10/14/18/22/26 damage and 0.6×/0.8×/1×/1.25×/1.5× flame size. Charge caps at 66 ticks but still waits for release. The facing-aligned capsule and flame grow together from 2.64 m to 6.6 m total length (0.84 m to 2.1 m diameter), anchored at the same near edge; the effect is independent of wrist rotation and ends on interruption. Cooldown: 600 ticks.
 
 ## Combat presentation — 2026-10-17
 
@@ -241,8 +241,13 @@ The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pa
 | Round Bomb (A) | The held and thrown bomb (`MankiLitBomb`) fizzes at the fuse, pulses red and leaves a dotted puff trail that fades after the blast. The explosion is a flash star, a toon fireball, a ring of puffs, and junk that bounces once and settles on the floor. A floor ring grows to the real 3 m blast radius and a scorch with glowing cracks fades over 2.5 s. Then his grin rises out of the smoke. Contacts use `blast.hit`. |
 | Jetpack Boost (E) | Ignition at his feet: a squashed flash and fireball, puffs along the ground, a ring at the 1.5 m blast radius, and a spring and a bolt popping loose. While he rises, a flaring exhaust (it ends with the move at the apex) and a sputtering puff column (`jetpack-boost.trail`, not attack-bound, so it fades on its own). Just before the apex the engine coughs a ring of puffs and drops a bolt (`jetpack-boost.cough`, tick 38; Hitstop delays it). Contacts use `blast.hit`. |
 | Bazooka (R) | A glint and a clunk-click as he shoulders it (`bazooka.ready`, tick 0). The shot: a flash star and a short flame at the muzzle, and a comically oversized backblast out of the back end that singes his fur, which smokes for a moment (`bazooka.singe`, on his head). The rocket is a red toon rocket that flies point-first, with a wobbly smoke trail that lingers after impact. The explosion is the Round Bomb's, bigger, with the grin. Contacts use `blast.hit`. |
-| Aerosol Inferno (F) | While he charges, the can itself shows the charge time: it grows up to 35%, shakes harder, heats from yellow to red and throbs once full (`ChargePropFeedback`, added 2026-10-17 at the owner's request). It rattles and leaks mist, and a pilot flame on the nozzle grows at each of the five charge tiers with a spark pop and a rattle (`aerosol-inferno.charge`). When he releases, a chunky red lighter, sized like his cartoon can, appears in his free hand (`aerosol-inferno.lighter`, ticks 1–39) and flicks on with sparks; its flame sits beside the can's cap and flares forward into the spray as the stream lights at tick 8, selling the homemade aerosol-and-lighter flamethrower (added 2026-10-17 at the owner's request). The fire clip keeps that hand under the can, so the lighter leans back toward the cap at an angle measured to clear the can from tick 4 to 37; it hides before the clip swings the can back through the hand. The stream is a toon flame that licks forward, with soot rolling off the top. It scales with the charge like the hitbox, and from tier 4 the nozzle burns white-hot. Hits use `aerosol-inferno.hit`: a soot puff, licks of flame and embers. |
+| Aerosol Inferno (F) | While he charges, the can itself shows the charge time: it grows up to 35%, shakes harder, heats from yellow to red and throbs once full (`ChargePropFeedback`, added 2026-10-17 at the owner's request). It rattles and leaks mist, and a pilot flame on the nozzle grows at each of the five charge tiers with a spark pop and a rattle (`aerosol-inferno.charge`). He holds a chunky red lighter, sized like his cartoon can, in his free hand from the first shake (`MankiLighterHeld`, a slot prop like the can, owner 2026-10-21). When he releases, it flicks on at its hood with sparks and burns until the stream ends (`aerosol-inferno.lighter`, ticks 1–52), and its flame flares forward into the spray as the stream lights at tick 8, selling the homemade aerosol-and-lighter flamethrower (added 2026-10-17 at the owner's request). The stream is a toon flame that licks forward, with soot rolling off the top. It scales with the charge like the hitbox, and from tier 4 the nozzle burns white-hot. Hits use `aerosol-inferno.hit`: a soot puff, licks of flame and embers. |
 
+- **Ground 4 ribbon (2026-10-22):** Head Slam's existing heavy swoosh starts at tick 6,
+  during the downward swing, with a head-local offset of `(0, 0.24, 0)` and a 12-tick
+  lifetime. The old tick-10 cue at `(0, 0, 0.1)` started after most head movement and
+  left its ribbon hidden in the model. The trail now follows the crown through the
+  strike; the heavy contact burst, animation and gameplay data are unchanged.
 - **Floor marks:** the blast rings, scorch and landing junk sit on the stage floor through
   `SnapToFloor`, which samples the heightmap `MatchBase` publishes as `PresentationFloor`.
   A blast with no floor within 3 m (1.4 m for the jetpack) leaves no ring or scorch. Without a
@@ -439,6 +444,30 @@ close hit/shield and distant whiff checks passed, along with seven focused Share
 tests. See the [authoring and verification record](../research/2026-10-16-manki-ground4-head-slam.md)
 for the GenRA conversion path, playback comparison and remaining human feel check.
 
+## Aerosol Inferno redo — 2026-10-22
+
+The owner wanted a cartoony, frenetic shake (the old hold loop only swayed the can) and a fire
+where Manki holds the can and the lighter together in front of him, where the flame comes out,
+without flailing arms. Both clips were authored with the GenRA toolkit from image-generated pose
+sheets and kept as their key-pose blockings (owner: "the vfx and assets really sell the move here,
+the animation can stay basic"):
+
+- **Shake** (`anim.manki.gf-loop`, `Animations/manki_gf_shake_loop.anim`, 36-tick loop): a piston
+  pump of the can on his right, one big pump and slam, then three quick strokes. He holds the red
+  lighter upright in his left fist, out to his left, from the first shake.
+- **Fire** (`anim.manki.gf-atk`, `Animations/manki_gf_fire.anim`, 62 ticks): on release he snaps the
+  can upright in front of his face with the lighter at the nozzle (tick 3), recoils as it ignites
+  (tick 8), braces through the stream with steady hands, and lowers both back to idle. The nozzle
+  sits where the flame and its hitbox start, so the stream comes out of the can.
+- **Timing:** the move went from 52 to 62 ticks, a 10-tick recovery after the flame; the flame and
+  hitbox are unchanged (ticks 8–52). The lighter is a held slot prop (`MankiLighterHeld`), and its
+  release cue burns until the stream ends.
+- **Can smear:** `ChargePropFeedback` stretches the can along fast strokes and squashes it when a
+  stroke stops (Humanoid clips cannot squash bones; the prop can).
+
+Briefs: `tools/genra/briefs/manki-gf-shake-loop.json` and `manki-gf-fire.json`; evidence and the old
+clips' backups in the local `artifacts/manki-f-shake-20261021/`.
+
 ## Animation Inventory
 
 | Key | Animation | Maps to |
@@ -454,8 +483,8 @@ for the GenRA conversion path, playback comparison and remaining human feel chec
 | `anim.manki.ga` | Round bomb | Ground `A` |
 | `anim.manki.ge` | Jetpack Boost | Ground `E` and Air `E` alias |
 | `anim.manki.gr` | Bazooka | Ground `R` |
-| `anim.manki.gf-loop` | Aerosol Inferno hold loop | Ground `F` while held |
-| `anim.manki.gf-atk` | Aerosol Inferno release attack | Ground `F` after release |
+| `anim.manki.gf-loop` | Aerosol Inferno hold loop: the can's piston shake (`manki_gf_shake_loop`) | Ground `F` while held |
+| `anim.manki.gf-atk` | Aerosol Inferno release: can and lighter in front (`manki_gf_fire`) | Ground `F` after release |
 
 ## Files
 - `client/Unity/Assets/CharacterPackages/manki/package.json` — package identity and license

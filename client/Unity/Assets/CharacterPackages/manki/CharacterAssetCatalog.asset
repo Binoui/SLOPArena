@@ -83,11 +83,11 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.manki.gr
   - _semanticId: anim.manki.gf-loop
-    _clip: {fileID: 7400000, guid: e0e17f7253de7a470ac0d4f758c940bd, type: 2}
+    _clip: {fileID: 7400000, guid: 1a2c18c43f23c4bfaa7dee5e71110905, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.gf-loop
   - _semanticId: anim.manki.gf-atk
-    _clip: {fileID: 7400000, guid: 76314942ebd0792a49656221fea32239, type: 2}
+    _clip: {fileID: 7400000, guid: c2f488fd13787b519960d6b5afa1a900, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.gf-atk
   - _semanticId: anim.manki.a1

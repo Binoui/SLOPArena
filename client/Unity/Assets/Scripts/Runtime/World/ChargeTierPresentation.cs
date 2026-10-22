@@ -16,7 +16,7 @@ namespace SlopArena.Client.World
 
     /// <summary>
     /// Charge tiers of a slot's charged capability: a charged projectile or directional dash
-    /// (three tiers) or Manki's Aerosol Inferno (five).
+    /// (three tiers) or Manki's Aerosol Inferno (five). A charged stream has a charge but no tiers.
     /// </summary>
     public static class ChargeTiers
     {
@@ -36,6 +36,7 @@ namespace SlopArena.Client.World
             ushort full = Find(definition, slot) switch
             {
                 CookedChargedProjectileCapabilityParameters projectile => projectile.MaxChargeTicks,
+                CookedChargedStreamCapabilityParameters stream => stream.MaxChargeTicks,
                 CookedChargedDirectionalDashCapabilityParameters dash => dash.MaxChargeTicks,
                 CookedMankiAerosolInfernoCapabilityParameters aerosol => aerosol.MaxChargeTicks,
                 _ => (ushort)0,
@@ -60,7 +61,8 @@ namespace SlopArena.Client.World
                 foreach (var stage in cooked.Timeline.Stages)
                 foreach (var operation in stage.Operations)
                     if (operation is CookedStartCapabilityOperation { Parameters: CookedChargedProjectileCapabilityParameters
-                        or CookedChargedDirectionalDashCapabilityParameters or CookedMankiAerosolInfernoCapabilityParameters } start)
+                        or CookedChargedStreamCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
+                        or CookedMankiAerosolInfernoCapabilityParameters } start)
                         return start.Parameters;
             }
             return null;

@@ -346,16 +346,23 @@ namespace SlopArena.Client.Entities
                 : _owner.CurrentActionState == ActionState.Attacking;
             int elapsedTicks = _previewStateActive
                 ? _previewAttackElapsedTicks : _owner.CurrentAttackElapsedTicks;
+            byte returningSlot = _previewStateActive ? (byte)0 : _owner.CurrentReturningProjectileSlot;
             for (int i = 0; i < _entries.Length; i++)
             {
                 GameObject go = _instances[i];
                 if (go == null)
                     continue;
-                byte entrySlot = _entries[i].AttackSlot;
-                bool withinHold = _previewStateActive || _entries[i].HideAfterTicks <= 0
-                    || !isAttacking || elapsedTicks < _entries[i].HideAfterTicks;
+                WeaponEntry entry = _entries[i];
+                byte entrySlot = entry.AttackSlot;
+                bool withinHold = _previewStateActive || entry.HideAfterTicks <= 0
+                    || !isAttacking || elapsedTicks < entry.HideAfterTicks;
+                // A prop that changes hands (Sir Bonk's pot lid: shoulder, hand, thrown, caught) follows its ticks in
+                // the Ability Lab too, so a scrub shows one lid.
+                bool shownYet = entry.ShowFromTicks <= 0 || !isAttacking || elapsedTicks >= entry.ShowFromTicks;
+                bool takenAway = entry.HiddenBySlot != 0 && (returningSlot == entry.HiddenBySlot
+                    || isAttacking && slot == entry.HiddenBySlot && elapsedTicks >= entry.HiddenBySlotFromTicks);
                 bool visible = (entrySlot == 0 || (isAttacking || isAiming) && slot == entrySlot)
-                    && withinHold;
+                    && withinHold && shownYet && !takenAway;
                 if (go.activeSelf != visible)
                     go.SetActive(visible);
                 if ((visible || _hitboxTrailActive) && _bones[i] != null)

@@ -1,0 +1,34 @@
+{
+ "generator": "tools/blender/wibou_mall/targets.py",
+ "blender": "5.2.2 LTS",
+ "materials": [
+  "NM_Lit",
+  "NM_Ground",
+  "NM_Glass",
+  "NM_Glow",
+  "NM_Sky"
+ ],
+ "atlas": "NeoMallAtlas.png",
+ "atlasCells": "83f678344ea0c9637fadad91eb3bf636c9f3a89e731c3980af5cb0d5c83376e3",
+ "objects": [
+  "Agent",
+  "AgentHang",
+  "Doug 0",
+  "Doug 1",
+  "Doug 2",
+  "Doug 3",
+  "Frank 0",
+  "Frank 1",
+  "Frank 2",
+  "Frank 3",
+  "Giant 0",
+  "Giant 1",
+  "Giant 2",
+  "Giant 3",
+  "Tubeman 0",
+  "Tubeman 1",
+  "Tubeman 2",
+  "Tubeman 3"
+ ],
+ "geometryDigest": "1bc051fb8055d2b671edf6c00d936feb5514864cb910ad3818c84b0fe83186a9"
+}

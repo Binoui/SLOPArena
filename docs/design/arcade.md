@@ -17,7 +17,7 @@ mechanics happens through play. Arcade works without an online match or account.
 | Challenge | Initial roster and content | Result |
 | --- | --- | --- |
 | Slopball | All four fighters; one shared court, a floodlit cage in an after-hours warehouse | Continuous ball play; a small return-combo counter and local best |
-| Character Course | One map per fighter: FightGuy's [Fight Night Pier](stages/fightguy_pier.design.md) (2026-10-18, pending play; the mountain sanctuary is his fallback), Manki's [Kaboom Quarry](stages/manki_quarry.design.md) (2026-10-18, greybox pending play) | Time to break every required target and reach the finish |
+| Character Course | One map per fighter: FightGuy's [Fight Night Pier](stages/fightguy_pier.design.md) (2026-10-18, pending play; the mountain sanctuary is his fallback), Manki's [Kaboom Quarry](stages/manki_quarry.design.md) (2026-10-18, greybox pending play), Wibou's [Neo Mall](stages/wibou_mall.design.md) (2026-10-20, pending play) | Time to break every required target and reach the finish |
 
 The longer-term course goal is one map per character. Arcade's Course card lists every
 fighter with a course in `CharacterCourseMatch.Courses` (stage key, title, finish name,
@@ -49,9 +49,9 @@ Use the normal orbit camera and ability-aim cameras in both challenges. Improve
 court framing and occlusion without changing the camera-relative direction controls.
 Attacks and projectiles use their real hit timing and launch properties.
 
-Wibou Rising Slash's on-hit charge refund is intended for removal as a separate
-PvP change. Arcade follows the actual shared kit; this preparation does not remove
-the refund or introduce an Arcade-only resource rule.
+Wibou's Rising Slash no longer refunds its charge on a hit (owner, 2026-10-20: a
+legacy rule, far too strong). Its two charges return only through regen, in PvP and
+Arcade alike; Arcade has no resource rule of its own.
 
 ## Slopball
 

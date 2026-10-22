@@ -25,7 +25,16 @@ public sealed class CookedTimelineAbility : ServerAbility
     internal bool UsesStartupAimCorrection { get; }
 
     public override float GravityMultiplier
-        => _gravityWindowTicksRemaining > 0 ? _gravityWindowScale : 1f;
+    {
+        get
+        {
+            float multiplier = _gravityWindowTicksRemaining > 0 ? _gravityWindowScale : 1f;
+            // A capability may hold its own height (a charge striding on thin air).
+            for (var i = 0; i < _capabilities.Count; i++)
+                multiplier = MathF.Min(multiplier, _capabilities[i].GravityMultiplier);
+            return multiplier;
+        }
+    }
     public override bool OwnsVerticalMotion
     {
         get
@@ -34,6 +43,18 @@ public sealed class CookedTimelineAbility : ServerAbility
                 return true;
             for (var i = 0; i < _capabilities.Count; i++)
                 if (_capabilities[i].OwnsVerticalMotion)
+                    return true;
+            return false;
+        }
+    }
+    public override bool HasArmor
+    {
+        get
+        {
+            if (base.HasArmor)
+                return true;
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].HasArmor)
                     return true;
             return false;
         }

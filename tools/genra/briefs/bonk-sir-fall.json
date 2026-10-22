@@ -1,0 +1,190 @@
+{
+  "name": "bonk-sir-fall",
+  "notes": "Sir Bonk airborne loop (anim.fall), 2026-10-21. Owner: do the jump before E1, since every aerial starts from it.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip)",
+  "description": "Sir Bonk's fall: the loop he plays in the air on the way down, after a jump, a double jump or an aerial attack, until he lands. Every aerial attack starts from this pose, so it is his airborne home pose.\n\nWho he is. Sir Bonk is a huge, good-hearted, slightly dumb brute who read Don Quixote once and knighted himself (images 1 and 2). He has a blue mop-bucket helm with a broom crest, a cream tabard with his painted crown, pot-lid pauldrons and a cape, and he carries a plank greatsword. He believes he is the hero of the story: proud and determined, chest out, chin up. His idle holds the plank on his right shoulder with the left fist on his hip, and he runs like a proud charge with the plank still on the shoulder.\n\nHow the game plays it. The fall loops: ticks 0-40 are 0.67 s, wrapping from 40 back to 0. The game crossfades into it over 0.15 s at the top of every jump (from his jump clip, which will end on this clip's tick 0) and after aerial attacks, and out of it into the idle or the run on landing and into aerial attacks. The fighter does not move in the clip: the game carries him through the air. Keep the hips 8-18 cm below the idle's (the air references sit 11-20 cm below). The match camera sits behind and above him, so players see the cape, the bucket and crest, and the plank over his right shoulder.\n\nThe pose: the airborne hero. He is in the air on purpose, leaping like a knight in his book, not tumbling. Reference 'oldfall' (his old fall, played on this body) has the silhouette to aim for: one knee driven up, the other leg hanging.\n- Legs: the right knee is up in front: the thigh 55-75 degrees forward of straight down, the knee bent 100-120 degrees, the foot below and a little behind the knee. The left leg hangs below the hips and slightly behind them, nearly straight (knee bent 20-40 degrees), with the toes pointing down. The feet stay apart; the shins never cross.\n- Torso: chest proud and up, a slight forward lean (5-12 degrees), head up, looking ahead and a little down at where he will land. The bucket stays high above the shoulders.\n- Right arm and the plank, as in his idle: the right hand at chest height in front of the right shoulder and clear of the bucket, the plank resting on the shoulder and rising steeply over it, the tip high above the hilt (1.0 m or more), behind it and out to his right. The match camera behind him must see the whole plank rising over his right shoulder, never end-on as a short block beside the crest. Clear of the head, crest and cape.\n- Left arm: out to the side for balance, the elbow bent 60-90 degrees and away from the body, the fist at about shoulder height and outside the body. A big brute's arm never hugs his wide torso.\n\nThe motion: alive but calm, not a flail.\n- The hanging left leg swings slowly forward and back by 10-15 degrees and the raised right knee bobs by 5-10 degrees, as if treading air.\n- The left fist makes a small balancing circle (5-10 cm): the elbow leads and the fist follows 2-3 ticks later.\n- The chest rises and settles 1-2 cm; the head stays steadier than the chest.\n- The plank arm absorbs it: the plank tip rocks a few centimetres and settles 2-4 ticks after the chest.\n- Give these different timings so they do not all peak together. Use eases and short holds, not one plain sine wave per joint, and Clip.overlap() for follow-through (see the guide's Life section).\n\nDo not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No props other than the plank, no spins and no attack. Keep each hand in line with its forearm (wrists under 45 degrees). The plank never passes through the head, the crest, the cape or the arms.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "oldfall": "references/oldfall.usda",
+    "oldjump": "references/oldjump.usda",
+    "fightguyfall": "references/fightguyfall.usda",
+    "wiboufall": "references/wiboufall.usda",
+    "mankifall": "references/mankifall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 40
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). 2: concept art for his attitude.",
+  "review_ticks": [
+    0,
+    10,
+    20,
+    30,
+    40
+  ],
+  "review": {
+    "reference": "oldfall",
+    "travel": 0.09
+  },
+  "targets": [
+    {
+      "name": "hips below the idle hips, as in the air references (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.18,
+      "max": -0.08
+    },
+    {
+      "name": "right knee up in front of the hips (m)",
+      "kind": "ahead",
+      "a": "RightLeg",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.28
+    },
+    {
+      "name": "right knee high: at most 0.3 m below the hips (m)",
+      "kind": "below",
+      "a": "RightLeg",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.0,
+      "max": 0.3
+    },
+    {
+      "name": "left leg hangs: left toe joint well below the hips (m)",
+      "kind": "below",
+      "a": "LeftToeBase",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.7
+    },
+    {
+      "name": "left fist out to the side, outside the body (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.45
+    },
+    {
+      "name": "left fist at about shoulder height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": 0.3,
+      "max": 0.62
+    },
+    {
+      "name": "right hand at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 0,
+      "min": 0.3,
+      "max": 0.7
+    },
+    {
+      "name": "plank tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 0,
+      "max": -0.5
+    },
+    {
+      "name": "plank tip high above the hilt (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 0,
+      "min": 1.0
+    },
+    {
+      "name": "plank tip to the right of the centre line (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.15
+    },
+    {
+      "name": "head high above the upper chest (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 0,
+      "min": 0.24
+    },
+    {
+      "name": "hanging leg treads air: left toe joint front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        40
+      ],
+      "min": 0.08,
+      "max": 0.3
+    },
+    {
+      "name": "left fist balances: up and down (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "up",
+      "window": [
+        0,
+        40
+      ],
+      "min": 0.04,
+      "max": 0.14
+    },
+    {
+      "name": "chest rises and settles (m)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        0,
+        40
+      ],
+      "min": 0.01,
+      "max": 0.04
+    },
+    {
+      "name": "plank tip rocks front to back (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "front",
+      "window": [
+        0,
+        40
+      ],
+      "min": 0.03
+    }
+  ]
+}

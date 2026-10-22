@@ -128,10 +128,10 @@ namespace SlopArena.Shared
         /// </summary>
         public ushort ChargeTicks;
         /// <summary>
-        /// ── Charge-stock pool (refundable ability charges, e.g. Wibou Rising Slash) ──
+        /// ── Charge-stock pool (regenerating ability charges, e.g. Wibou Rising Slash) ──
         /// Number of charges currently spent/unavailable (0 = full pool). The pool max
         /// and regen cadence come from the ability spec's "max_charges"/"charge_regen_ticks"
-        /// params. Refunded on hit by the ability's OnHitEntity. Server-sim only (not on the wire).
+        /// params. Spent charges return only through regen. Server-sim only (not on the wire).
         /// </summary>
         public byte ChargeStockSpent;
         /// <summary>Ticks until the next spent charge regenerates. 0 when nothing is regenerating.</summary>
@@ -261,6 +261,12 @@ namespace SlopArena.Shared
         /// </summary>
         public ushort Cooldown0, Cooldown1, Cooldown2, Cooldown3, Cooldown4, Cooldown5,
             Cooldown6, Cooldown7, Cooldown8, Cooldown9, Cooldown10;
+
+        /// <summary>
+        /// Wire slot whose returning projectile (Sir Bonk's pot lid) is still out, 0 when none. Mirrored
+        /// from the hitboxes at the end of each tick for the CPU and the HUD; the press gate reads the hitboxes.
+        /// </summary>
+        public byte ReturningProjectileSlot;
 
         /// <summary>Cooldown for an ActiveSlot value (1-11), 0 for out-of-range.</summary>
         public ushort GetCooldown(byte activeSlot) => activeSlot switch
