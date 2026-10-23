@@ -49,16 +49,63 @@ public sealed class BonkKitTests
             var operation = Assert.Single(package.Definition.Slots.Single(x => x.Id == slotId)
                 .Timeline.Stages.Single().Operations.OfType<CookedStartCapabilityOperation>());
             Assert.Equal(CapabilityId, operation.CapabilityId);
-            var parameters = Assert.IsType<CookedTargetedLeapCapabilityParameters>(operation.Parameters);
-            Assert.Equal((ushort)0, parameters.MaxAimTicks);
-            Assert.Equal((ushort)96, parameters.MaxFlightTicks);
-            Assert.Equal((1f, 12f, 16f, (ushort)0, (ushort)68),
-                (parameters.MinRange, parameters.MaxRange, parameters.LaunchVerticalSpeed,
-                    parameters.LandingSeekTick, parameters.RecoveryTicks));
-            Assert.Equal(AuthoringHitboxShape.Sphere, parameters.Hitbox.Shape);  // E1: the ring around the landing
-            Assert.Equal(((string?)null, (string?)null), (parameters.Hitbox.StartBoneId, parameters.Hitbox.EndBoneId));
+            Assert.Equal("1", operation.CapabilityVersion);
+            Assert.IsType<CookedTargetedLeapCapabilityParameters>(operation.Parameters);
         }
+    }
 
+    [Fact]
+    public void TargetedLeapCompiler_PreservesDistinctiveFixtureParameters()
+    {
+        var source = CharacterPackageSourceCodec.CreateAuthoringReady(
+            "leap-fixture", "Leap fixture", "Tests", "MIT", "Tests");
+        var hitbox = new HitboxSource(
+            AuthoringHitboxShape.Capsule, 0.65f,
+            1.25f, -0.75f, 2.5f, -1.5f, 0.875f, 3.25f,
+            "bone.right-hand", "bone.left-foot", 7f, 43f, 8.5f, 23.5f,
+            19, 9, false, 3, AuthoringKnockbackDirection.TowardOwner, 21);
+        var parameters = new TargetedLeapCapabilityParameters(
+            17, 113, 2.25f, 17.75f, 19.5f, 11, 37, hitbox,
+            "presentation.fixture.launch", "presentation.fixture.land");
+        source = source with
+        {
+            Character = source.Character with
+            {
+                CapabilityRequirements = new[] { new CapabilityRequirementSource(CapabilityId, "1") },
+                PresentationIds = new[] { "presentation.fixture.launch", "presentation.fixture.land" },
+                Slots = source.Character.Slots.Select(slot => slot.Id is "ground.E" or "air.E"
+                    ? slot with
+                    {
+                        Behavior = AuthoringAbilityBehavior.AimedProjectile,
+                        AimMode = AuthoringAimMode.GroundCursor,
+                        Timeline = new CharacterTimelineSource(new[]
+                        {
+                            new CharacterStageSource(64, 0, 0, 0, 0,
+                                slot.Timeline.Stages.Single().AnimationIds,
+                                new CharacterTimelineOperationSource[]
+                                {
+                                    new StartCapabilityOperationSource(0, AuthoringUnit.Ticks,
+                                        CapabilityId, "1", parameters),
+                                }),
+                        }),
+                    } : slot).ToArray(),
+            },
+        };
+        var result = CharacterPackageCompiler.Compile(source, CharacterCookProfile.Workshop);
+        Assert.True(result.CookedPackage != null, string.Join("; ", result.Diagnostics));
+        var expected = new CookedTargetedLeapCapabilityParameters(
+            17, 113, 2.25f, 17.75f, 19.5f, 11, 37,
+            new CookedHitbox(AuthoringHitboxShape.Capsule, 0.65f,
+                1.25f, -0.75f, 2.5f, -1.5f, 0.875f, 3.25f,
+                "bone.right-hand", "bone.left-foot", 7f, 43f, 8.5f, 23.5f,
+                19, 9, false, 3, AuthoringKnockbackDirection.TowardOwner, 21),
+            "presentation.fixture.launch", "presentation.fixture.land");
+        foreach (string slotId in new[] { "ground.E", "air.E" })
+        {
+            var operation = Assert.Single(result.CookedPackage!.Definition.Slots.Single(x => x.Id == slotId)
+                .Timeline.Stages.Single().Operations.OfType<CookedStartCapabilityOperation>());
+            Assert.Equal(expected, Assert.IsType<CookedTargetedLeapCapabilityParameters>(operation.Parameters));
+        }
     }
     [Fact]
     public void Bonk_AerialAAndRApplyTheirAuthoredGravityWindow()
@@ -518,6 +565,12 @@ public sealed class BonkKitTests
     [InlineData(AbilitySlots.Slot2, 2.2f, false, true)]
     [InlineData(AbilitySlots.Slot2, 2.2f, true, true)]
     [InlineData(AbilitySlots.Slot2, 8f, false, false)]
+    [InlineData(AbilitySlots.Slot3, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Slot3, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Slot3, 8f, false, false)]
+    [InlineData(AbilitySlots.Slot4, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Slot4, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Slot4, 8f, false, false)]
     public void BonkAerialNormals_CookedSwordPathHitsBlocksAndMisses(byte slot, float distance, bool shielding, bool expectContact)
     {
         var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);

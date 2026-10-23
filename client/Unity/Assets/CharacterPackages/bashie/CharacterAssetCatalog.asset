@@ -47,7 +47,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.fall
   - _semanticId: anim.bashie.g1
-    _clip: {fileID: 7400000, guid: 7bd096afe8f027514ad818a9a871c22a, type: 2}
+    _clip: {fileID: 7400000, guid: 3bd2df9e7593e37f8ae357edd83bfb47, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g1
   - _semanticId: anim.bashie.g2

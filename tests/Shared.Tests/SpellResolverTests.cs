@@ -286,9 +286,11 @@ public class SpellResolverTests
         };
         resolver.Spawn(hb);
 
-        resolver.Spawn(hb);
         var arena = TestHelpers.TestArena();
         resolver.CheckGroundCollision(arena);
+
+        Assert.Single(resolver.GetActiveHitboxes());
+        Assert.Empty(resolver.DrainPendingExplosions());
     }
 
     [Fact]

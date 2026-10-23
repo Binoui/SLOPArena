@@ -162,54 +162,26 @@ public class CombatMathTests
 
     // ── ComputeProjectileLaunch ──
 
-    [Fact]
-    public void ComputeProjectileLaunch_LevelGround_ReturnsValidSpeeds()
+    [Theory]
+    [InlineData(10f, 30f, 20f, 0f)]
+    [InlineData(10f, 30f, 20f, 3f)]
+    [InlineData(10f, 30f, 20f, -3f)]
+    [InlineData(15f, 45f, 35f, -5f)]
+    public void ComputeProjectileLaunch_ReachesRequestedTarget(
+        float targetDistance, float launchAngleDegrees, float gravity, float heightOffset)
     {
+        float launchAngleRad = launchAngleDegrees * MathF.PI / 180f;
         CombatMath.ComputeProjectileLaunch(
-            targetDistance: 10,
-            launchAngleRad: MathF.PI / 6,  // 30°
-            gravity: 20,
-            heightOffset: 0,
+            targetDistance, launchAngleRad, gravity, heightOffset,
             out float speed, out float hSpeed, out float vSpeed);
 
         Assert.True(speed > 0);
         Assert.True(hSpeed > 0);
-        // At 30°, vSpeed = speed * 0.5
-        Assert.Equal(speed * MathF.Sin(MathF.PI / 6), vSpeed, 4);
-        Assert.Equal(speed * MathF.Cos(MathF.PI / 6), hSpeed, 4);
-    }
+        Assert.Equal(speed * MathF.Sin(launchAngleRad), vSpeed, 4);
+        Assert.Equal(speed * MathF.Cos(launchAngleRad), hSpeed, 4);
 
-    [Fact]
-    public void ComputeProjectileLaunch_Uphill_SlowerSpeed()
-    {
-        CombatMath.ComputeProjectileLaunch(
-            targetDistance: 10,
-            launchAngleRad: MathF.PI / 6,
-            gravity: 20,
-            heightOffset: 3,  // target is 3m higher
-            out float uphillSpeed, out _, out _);
-
-        CombatMath.ComputeProjectileLaunch(
-            targetDistance: 10,
-            launchAngleRad: MathF.PI / 6,
-            gravity: 20,
-            heightOffset: -3, // target is 3m lower
-            out float downhillSpeed, out _, out _);
-
-        Assert.True(uphillSpeed > downhillSpeed,
-            "Uphill throw should need more speed than downhill throw");
-    }
-
-    [Fact]
-    public void ComputeProjectileLaunch_Downhill_StillValid()
-    {
-        CombatMath.ComputeProjectileLaunch(
-            targetDistance: 15,
-            launchAngleRad: MathF.PI / 4,  // 45°
-            gravity: 35,
-            heightOffset: -5,  // target below
-            out float speed, out _, out _);
-
-        Assert.True(speed > 0);
+        float flightTime = targetDistance / hSpeed;
+        float endpointHeight = vSpeed * flightTime - 0.5f * gravity * flightTime * flightTime;
+        Assert.Equal(heightOffset, endpointHeight, 4);
     }
 }

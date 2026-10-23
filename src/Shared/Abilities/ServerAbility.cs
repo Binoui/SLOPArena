@@ -346,7 +346,6 @@ namespace SlopArena.Shared.Abilities
             s.VY = vertical;
         }
 
-        /// <summary>Ends slide carry whenever an ability takes velocity ownership.</summary>
         protected static void ClearVelocityOwnership(ref CharacterState s)
             => s.SlideAttackCarryActive = false;
 

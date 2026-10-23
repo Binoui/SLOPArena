@@ -117,9 +117,15 @@ RunSpeed versus ordinary RunSpeed; caps never refill velocity or restore wall-bl
 components. Grounded mobility uses normal movement; character-specific mobility stays in kit abilities.
 
 All four roster packages opt their grounded normals 1–4 into `allowSlideCarry`.
-Activation switches immediately to the attack pose, caps existing Slide momentum at
-RunSpeed and decays it by 6× RunSpeed per second. Carry freezes during Hitstop and clears
-on completion, cancellation, hit or motion takeover. Normal attack locks remain intact.
+Activation switches immediately to the attack pose and caps existing Slide momentum at
+RunSpeed. For this brief-carry trial, Run starts cap existing momentum at the speed that
+brakes to zero in `DownActionTuning.RunAttackCarryTicks`, currently 8 ticks.
+Both origins decay by 6× RunSpeed per second without steering, acceleration or refilling
+lower incoming speed. At the caps, Run stops after 8 unfrozen ticks and Slide after 10.
+`PreserveMomentumOnStart` overrides Run braking; opted-in Slide carry retains priority.
+Idle starts and chained normals do not gain carry. Carry freezes during Hitstop and clears
+on completion, cancellation, hit or motion takeover. Aerial momentum and normal attack locks
+remain unchanged. The replicated flag retains its historical `SlideAttackCarryActive` name.
 
 Default max-fall/fast-fall speeds: FightGuy 14/22, Manki 13.5/21, Bonk 15/24, Wibou 14/22.
 The report's historical-fall and 3× slide-friction controls do not change these defaults.

@@ -9,10 +9,11 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public class MovementProbeTests
 {
-    private static readonly CharacterDefinition Def = TestHelpers.EngineDef;
-    private static readonly MovementStats M = Def.Movement;
+    private readonly CharacterDefinition Def = TestHelpers.EngineDef;
+    private MovementStats M => Def.Movement;
+    private const float SpeedCapTolerance = 0.001f;
 
-    private static MovementProbe.CharacterMovement Measured() =>
+    private MovementProbe.CharacterMovement Measured() =>
         MovementProbe.Measure(Def, TestHelpers.TestArena());
 
     [Fact]
@@ -59,8 +60,12 @@ public class MovementProbeTests
         // measurement to the real fall regime, not the short jump tail.
         Assert.True(fall.MaxFallSpeed >= M.MaxFallSpeed * 0.98f,
             $"max fall {fall.MaxFallSpeed:F1} vs {M.MaxFallSpeed}");
+        Assert.True(fall.MaxFallSpeed <= M.MaxFallSpeed + SpeedCapTolerance,
+            $"max fall {fall.MaxFallSpeed:F3} exceeds cap {M.MaxFallSpeed}");
         Assert.True(fall.FastFallSpeed >= M.FastFallSpeed * 0.98f,
             $"fast fall {fall.FastFallSpeed:F1} vs {M.FastFallSpeed}");
+        Assert.True(fall.FastFallSpeed <= M.FastFallSpeed + SpeedCapTolerance,
+            $"fast fall {fall.FastFallSpeed:F3} exceeds cap {M.FastFallSpeed}");
         Assert.True(fall.FastFallReachTicks <= 3, $"took {fall.FastFallReachTicks} ticks to reach FF");
         Assert.True(fall.FastFallDescentTicks < fall.DescentTicks,
             "fast fall should descend faster than natural fall");
@@ -76,6 +81,8 @@ public class MovementProbeTests
         var jump = Measured().Jump;
         Assert.True(jump.DriftSpeedMax >= M.AirSpeedMax * 0.97f,
             $"drift {jump.DriftSpeedMax:F1} vs air cap {M.AirSpeedMax}");
+        Assert.True(jump.DriftSpeedMax <= M.AirSpeedMax + SpeedCapTolerance,
+            $"drift {jump.DriftSpeedMax:F3} exceeds air cap {M.AirSpeedMax}");
     }
 
     [Fact]

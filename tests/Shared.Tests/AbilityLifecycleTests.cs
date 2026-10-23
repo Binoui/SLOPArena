@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace SlopArena.Shared.Tests;
@@ -212,15 +213,34 @@ public class AbilityLifecycleTests
     [Fact]
     public void MankiR_ProjectileUsesAimDirection()
     {
-        var arena = TestHelpers.TestArena();
-        var sim = TestHelpers.MakeSim(arena);
-        var state = TestHelpers.PlayerState();
-        state.AimYaw = 1.0f;
-        state.AimPitch = 0.5f;
-        TestHelpers.RegisterPlayer(sim, Def, state);
+        var sim = TestHelpers.MakeSim();
+        TestHelpers.RegisterPlayer(sim, Def,
+            TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(Def) });
+        var aim = new InputState
+        {
+            ActiveSlot = AbilitySlots.R, IsAiming = true, AimYaw = 6000, AimPitch = 3000,
+        };
+        sim.Tick(new() { [1] = aim });
+        aim.ActiveSlot = 0;
+        for (int tick = 0; tick < 5; tick++)
+            sim.Tick(new() { [1] = aim });
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
 
-        var after = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5, aiming: true), 1);
-        Assert.Equal(ActionState.Aiming, after.State);
+        var rockets = new List<Hitbox>();
+        aim.IsAiming = false;
+        for (int tick = 0; tick < 15; tick++)
+        {
+            sim.Tick(new() { [1] = aim });
+            rockets.AddRange(sim.Resolver.LastTickCheckedHitboxes.Where(h =>
+                h.OwnerId == 1 && h.Explosion.HasValue && h.AgeTicks == 0));
+        }
+
+        var rocket = Assert.Single(rockets);
+        float horizontalSpeed = MathF.Sqrt(rocket.VX * rocket.VX + rocket.VZ * rocket.VZ);
+        Assert.True(horizontalSpeed > 0f);
+        Assert.Equal(MathF.PI / 3f, MathF.Atan2(rocket.VX, rocket.VZ), 3);
+        Assert.Equal(MathF.PI / 6f,
+            MathF.Atan2(rocket.VY + rocket.Gravity * Simulation.TickDt, horizontalSpeed), 3);
     }
 
     // ══════════════════════════════════════════════════════════════════

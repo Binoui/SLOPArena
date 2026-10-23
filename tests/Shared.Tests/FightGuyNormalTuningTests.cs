@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -69,24 +70,64 @@ public class FightGuyNormalTuningTests : KitScenarioTests
         });
     }
 
-    [Fact(Skip = "Phase 7: golden snapshot predates the committed cooked FightGuy pose/runtime identity.")]
-    public void A2_SexKick_SweetspotCannotRehitAsSourspot_IsGolden()
+    [Fact]
+    public void A2_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows()
     {
-        AssertGoldenScenario(new KitScenario
+        var windows = Def.GetCookedSlotAbility(AbilitySlots.Slot2, airborne: true)!.Timeline.Stages
+            .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>()
+            .OrderBy(operation => operation.Tick).ToArray();
+        var sweet = windows.First();
+        var sour = windows.Last();
+        Assert.True(sweet.Tick < sour.Tick && sweet.Hitbox.Damage > sour.Hitbox.Damage);
+
+        var sim = TestHelpers.MakeSim();
+        sim.NoGravityEntityId = 1;
+        sim.RegisterEntity(1, Def, AirbornePlayer() with { PX = 20f, PY = 20f, PZ = 20f },
+            TestHelpers.LoadBakedData(Def));
+        var targetDef = TestHelpers.EngineDef;
+        targetDef.HurtboxCapsules = new[] { new HurtboxCapsule(0, 0, 0, 0, 0, 0, 4f) };
+        var target = TestHelpers.NpcState(20f, 21f) with { PY = 20f, IsGrounded = false };
+        sim.RegisterEntity(100, targetDef, target);
+        bool lateTargetAdded = false;
+        int sweetOverlapTicks = 0, sourOverlapTicks = 0;
+        var contacts = new List<SpellResolver.HitResult>();
+        for (int tick = 0; tick < 120; tick++)
         {
-            Name = "FightGuy A2 Sex Kick Single Hit",
-            Def = Def,
-            Setup = AirbornePlayer,
-            Inputs = new InputSequence().Press(0, 7),
-            Assert = _ => { },
-            NpcSetup = () => AirborneNpc(0.8f),
-            NpcDef = Def,
-            // The sweet hit is 8 damage. A later 5-damage sour hit must share its HitGroup
-            // instead of adding another hit while the target remains inside the capsule.
-            NpcAssert = npc => Assert.Equal((ushort)8, npc.DamagePercent),
-            SnapshotTick = 9, // t7–11 sweetspot active.
-            TotalTicks = 90,
-        });
+            sim.SetState(100, target with { DamagePercent = sim.GetState(100).DamagePercent });
+            if (lateTargetAdded)
+                sim.SetState(101, target with { EntityId = 101, DamagePercent = sim.GetState(101).DamagePercent });
+            sim.Tick(new Dictionary<ulong, InputState>
+            {
+                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot2 } : default,
+            });
+            contacts.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1));
+            foreach (var hitbox in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1))
+            {
+                var receiver = Assert.Single(sim.LastTickAttackEntities.Where(e => e.Id == 100));
+                Assert.True(SpellResolver.SurfaceGap(hitbox, receiver, out _, out _, out _) <= 0f,
+                    "The receiver must stay inside the live baked hitbox throughout both windows.");
+                if (hitbox.Damage == sweet.Hitbox.Damage) sweetOverlapTicks++;
+                if (hitbox.Damage != sour.Hitbox.Damage) continue;
+                sourOverlapTicks++;
+                if (lateTargetAdded) continue;
+                sim.RegisterEntity(101, targetDef, target with { EntityId = 101 });
+                lateTargetAdded = true;
+            }
+            if (sim.GetActiveAbility(1) == null) break;
+        }
+
+        Assert.True(sweetOverlapTicks > 1 && sourOverlapTicks > 1);
+        var firstContact = Assert.Single(contacts.Where(h => h.TargetEntityId == 100));
+        Assert.False(firstContact.Blocked);
+        Assert.Equal(sweet.Hitbox.Damage, firstContact.Damage);
+        Assert.Equal(sweet.Hitbox.Damage, (float)sim.GetState(100).DamagePercent);
+        Assert.True(lateTargetAdded);
+        var lateContact = Assert.Single(contacts.Where(h => h.TargetEntityId == 101));
+        Assert.False(lateContact.Blocked);
+        Assert.Equal(sour.Hitbox.Damage, lateContact.Damage);
+        Assert.Equal(sour.Hitbox.Damage, (float)sim.GetState(101).DamagePercent);
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
     }
 
     [Fact]

@@ -214,8 +214,8 @@
   "slots": [
     {
       "id": "ground.1",
-      "name": "Monkey Punch",
-      "description": "Right punch with a target-locking lunge",
+      "name": "Slap",
+      "description": "One open-palm slap with her right hand",
       "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -227,8 +227,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 35,
-            "iasaTicks": 18,
+            "durationTicks": 30,
+            "iasaTicks": 22,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -261,19 +261,19 @@
                   "shape": "sphere",
                   "radius": 0.5,
                   "offsetX": 0,
-                  "offsetY": 0.3,
-                  "offsetZ": 0.3,
+                  "offsetY": 0,
+                  "offsetZ": 0,
                   "endOffsetX": 0,
                   "endOffsetY": 0,
                   "endOffsetZ": 0,
-                  "startBoneId": "bone.right-foot",
+                  "startBoneId": "bone.right-hand",
                   "endBoneId": null,
                   "damage": 4,
                   "angle": 8,
                   "baseKnockback": 4,
                   "knockbackGrowth": 20,
                   "stunTicks": 14,
-                  "durationTicks": 6,
+                  "durationTicks": 3,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"

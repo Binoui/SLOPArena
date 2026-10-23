@@ -11,22 +11,22 @@ the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
 own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
 shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery, and ground/air 2 have
-her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike; the other normals and F still use stand-ins.
+her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap. Air 1, ground/air 3 and F still use stand-ins.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her movement, other normals and F still come from Manki (the aerosol capability). Her
+- Her movement, air 1, ground/air 3 and F still come from Manki (the aerosol capability). Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
   place of his Round Bomb, Shell Slide in place of his Bazooka, Ring Bounce in place of his Jetpack Boost, and Whirlpool
-  Spin on ground and air 2, plus the diagonal shell strikes on ground and air 4.
-- Every other clip is a copy of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body. Played on her as
-  they are, his clips stand her a third of a metre under the floor.
+  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, and Slap on ground 1.
+- The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
+  Played on her as they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
   their models, explosions or trails.
-- This deliberately breaks the [no-fallback rule](adding-a-new-character.md#2-validate-and-bind-assets) as a labelled
-  stand-in; each borrowed slot goes when her own move replaces it.
+- This deliberately breaks the [no-fallback rule](adding-a-new-character.md#2-validate-and-bind-assets) for the remaining
+  stand-ins. Ground 1's accepted Slap replaces its borrowed move, with its own clip and cooked hand hitbox.
 - Her roster portrait is `Resources/UI/Portraits/Bashie.png`.
 
 The same day the owner generated a first 3D model, rigged it with Mixamo, and generated the water blaster and the
@@ -120,6 +120,27 @@ For the 3D model:
   came from are local, in `tmp/bashie-model/gen-inputs-v4/`.
 
 ## Kit
+
+### Slap (ground 1)
+
+The owner accepted the actual-rig full motion on 2026-10-23 with "good". She delivers one right open-palm slap,
+follows through, and returns to idle without a scold gesture.
+
+- The approved clock is 30 ticks at 60 Hz, with contact at tick 9, active ticks 9 through 11, and IASA at tick 22.
+- A sphere of radius 0.5 m is centered on `bone.right-hand`, with all three local offsets zero. Damage stays at 4%,
+  angle at 8 degrees, base knockback at 4, growth at 20, and stun at 14 ticks.
+  Startup aim and other parameters are unchanged.
+- The accepted full-motion native clip is bound from `Animations/bashie_g1_defined_slap.anim` under `anim.bashie.g1`.
+  Its source is `Assets/Generated/AnimationCandidates/bashie_g1_defined_slap_motion_r1.anim`. The candidate report is
+  `artifacts/bashie-g1-defined-slap-motion-20261023-r1/verification.json`.
+- Verification passed 48 focused normal/reliability checks, native cook/verify and exact roster refresh. The authoritative
+  Lab confirms one 4% hit at tick 9, a shield contact for zero damage, and no contact at 3 m, all returning to idle.
+  An inspected Play Mode capture on Splash Deck shows the slap and recovery with one 4% contact at tick 9 and no errors.
+  Playback is 1x; all three active ticks touch at 1 m, with no missed bone sampling. Forward reach is 1.15 m against
+  FightGuy and 1.05 m against Manki, 0.2 m shorter than the borrowed foot move. Air 1 is unchanged.
+  Normal Training menu entry and grounded 1 activation/recovery also passed with an empty console.
+  Evidence is in `artifacts/bashie-g1-defined-slap-motion-20261023-r1/integration/`. Human controller feel remains on
+  `TESTING-UNITY.md`.
 
 ### Whirlpool Spin (ground and air 2)
 

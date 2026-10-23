@@ -143,20 +143,63 @@ public sealed class BonkSpecialTests
         }
     }
 
-    [Fact]
-    public void BonkQ_ThrowsOneReturningLidAtTheReleaseOnGroundAndAir()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BonkQ_ThrowsOneReturningLidAtTheReleaseOnGroundAndAir(bool airborne)
     {
-        // The Pot-Lid Throw (2026-10-22) replaced the armoured Shoulder Bash: both Q slots throw one lid that comes back.
         var bonk = CompileBonk();
-        foreach (bool airborne in new[] { false, true })
+        var sim = TestHelpers.MakeSim();
+        var player = TestHelpers.PlayerState(100f, 100f) with
         {
-            var throws = bonk.GetCookedSlotAbility(AbilitySlots.A, airborne)!.Timeline.Stages.Single().Operations
-                .OfType<CookedSpawnProjectileOperation>().ToArray();
-            var lid = Assert.Single(throws);
-            Assert.NotNull(lid.Projectile.Return);
-            Assert.Empty(bonk.GetCookedSlotAbility(AbilitySlots.A, airborne)!.Timeline.Stages.Single().Operations
-                .OfType<CookedArmorWindowOperation>());
+            PY = airborne ? 20f : TestHelpers.GroundPY(bonk),
+            IsGrounded = !airborne,
+            AirTimeTicks = airborne ? (ushort)100 : (ushort)0,
+        };
+        sim.RegisterEntity(BonkId, bonk, player, LoadBonkPoses());
+
+        int spawned = 0;
+        float? releaseZ = null;
+        bool outbound = false, returning = false;
+        var catches = new List<TimelinePresentationEvent>();
+        for (int tick = 0; tick < 240; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState>
+            {
+                [BonkId] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.A } : default,
+            });
+            if (tick == 0)
+            {
+                Assert.Equal(AbilitySlots.A, sim.GetState(BonkId).AttackSlot);
+                Assert.Equal(airborne, sim.GetActiveAbility(BonkId)!.AirborneAtStart);
+            }
+            spawned += sim.Resolver.LastTickCheckedHitboxes.Count(h =>
+                h.OwnerId == BonkId && h.Return.HasValue && h.AgeTicks == 0);
+            var lids = sim.Resolver.GetActiveHitboxes()
+                .Where(h => h.OwnerId == BonkId && h.Return.HasValue).ToArray();
+            Assert.InRange(lids.Length, 0, 1);
+            if (lids.Length == 1)
+            {
+                var lid = lids[0];
+                releaseZ ??= lid.Z;
+                outbound |= !lid.ReturnLeg && lid.Z > releaseZ.Value;
+                returning |= lid.ReturnLeg && lid.VZ < 0f;
+                Assert.Equal(AbilitySlots.A, sim.GetState(BonkId).ReturningProjectileSlot);
+            }
+            catches.AddRange(sim.GetPresentationEvents(clear: true)
+                .Where(e => e.Source == PresentationEventSource.ProjectileCatch));
         }
+
+        Assert.Equal(1, spawned);
+        Assert.True(outbound, "The package input must throw the lid away from Bonk.");
+        Assert.True(returning, "The lid must turn and fly back toward Bonk.");
+        Assert.Single(catches);
+        Assert.Empty(sim.Resolver.GetActiveHitboxes().Where(h => h.OwnerId == BonkId && h.Return.HasValue));
+        var recovered = sim.GetState(BonkId);
+        Assert.Equal((byte)0, recovered.ReturningProjectileSlot);
+        Assert.Equal((byte)0, recovered.AttackSlot);
+        Assert.Equal(ActionState.Idle, recovered.State);
+        Assert.Equal((ushort)0, recovered.DamagePercent);
     }
 
     private static (int Damage, float HitDamage, bool AbilityContinues,

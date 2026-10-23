@@ -296,9 +296,6 @@ namespace SlopArena.Shared
                 return;
             }
 
-            // A slide-carry attack keeps its live horizontal vector, but loses a fixed
-            // amount of magnitude before this tick's collision/integration pass. Hitstop
-            // returned above, so frozen attack ticks never consume carry.
             if (s.SlideAttackCarryActive
                 && s.AttackSlot > 0
                 && (s.State == ActionState.Attacking || s.State == ActionState.Aiming))

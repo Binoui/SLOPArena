@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 try:
     import numpy as np
@@ -400,7 +401,7 @@ class GenraTests(unittest.TestCase):
 
     def test_key_poses_and_the_timing_contract_reach_the_prompts(self):
         from genra.review import clock_text
-        from genra.run import APPROVED_KEYS, KEYS_STAGE, build_prompt
+        from genra import run
         raised = self.entry.copy()
         two_bone(raised, 'Right', 'Arm', [0.12, 0.05, 0.75])
         n = self.brief['clock']['duration_ticks']
@@ -414,11 +415,30 @@ class GenraTests(unittest.TestCase):
             path.write_text(json.dumps(data))
             brief = Brief(path)
             self.assertEqual(list(brief.key_beats), [0, 10, n])
-            prompt = build_prompt(brief)
+            prompt = run.build_prompt(brief)
             self.assertIn('Timing contract: Fixed by the game: contact at the clock tick. Adjustable', prompt)
             self.assertIn('Timing contract', clock_text(brief))
-            self.assertIn('key poses only', KEYS_STAGE.format(beats='0 (entry), 10'))
-            self.assertIn('keys/result.json', APPROVED_KEYS.format(ticks='0, 10'))
+            authoring_path = Path(tmp) / 'authoring-brief.json'
+            authoring_path.write_text(json.dumps({k: v for k, v in data.items() if k != 'approved_keys'}))
+            for stage in ('keys', 'full'):
+                with (self.subTest(stage=stage),
+                      mock.patch.object(run.claude_runner, 'run', return_value=(1, None)) as model,
+                      mock.patch.object(run, 'postprocess', return_value={})):
+                    args = [str(authoring_path), '--stage', stage, '--out-root', str(Path(tmp) / 'runs'),
+                            '--name', f'prompt-{Path(tmp).name}-{stage}']
+                    if stage == 'full':
+                        args += ['--keys', str(Path(tmp) / 'keys.json')]
+                    run.main(args)
+                    model.assert_called_once()
+                    outgoing, _, scratch = model.call_args.args[:3]
+                    self.addCleanup(shutil.rmtree, scratch)
+                    self.assertIn('Timing contract: Fixed by the game: contact at the clock tick. Adjustable', outgoing)
+                    if stage == 'keys':
+                        self.assertIn('key poses only', outgoing)
+                        self.assertIn(f'Author only these ticks: 0 (entry), 10, {n} (end).', outgoing)
+                    else:
+                        self.assertIn(f'key poses at ticks 0, 10, {n} in `keys/result.json`', outgoing)
+                        self.assertTrue((scratch / 'keys/result.json').is_file())
             spec = brief.check_spec() | {'clearance': False, 'face': False, 'snap_degrees_per_tick': 90}
             self.assertNotIn('keys', {f['check'] for f in check_clip(approved, spec)['failures']})
             moved = Clip(self.rig, approved.t.copy(), approved.q.copy(), approved.s.copy(), approved.frame)

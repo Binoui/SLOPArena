@@ -1,0 +1,220 @@
+{
+  "name": "bonk-sir-run-refined-v3",
+  "notes": "Owner correction, 2026-10-23. The proud charge idea is retained. Current run feels goofy and robotic, the legs too far apart and free arm exaggerated. Bounded correction of the accepted v2 run, not a new gait. One authoring pass for review. No gameplay or live binding change.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sir",
+  "character": "Sir Bonk (68 joints: a Humanoid body with Mixamo names and full fingers; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 2.26 m wooden plank greatsword fixed to the right hand as joint Weapon0, bladeHilt where its 1.42 m blade leaves the crossguard and bladeEnd at the tip)",
+  "description": "Sir Bonk is a huge, sincere self-appointed knight. Retain his proud heavy charge, forward lean with chest out and head up, the plank resting on his right shoulder, and the existing 44-tick loop and stride rhythm. This is a restrained correction of the previous result supplied under previous/, not a fresh animation.\n\nThe owner finds the current run too goofy and robotic. The legs are too far apart and the free arm is too exaggerated. Do not preserve the previous instruction to parade-march or pump a fist to the chin. That direction is superseded.\n\nLegs. Bring the feet underneath their own hips and reduce the outward knee splay. Aim for about 30 percent narrower lateral stance than the previous take and remove most of the extra sideways arc during the swing. Keep enough space for Bonk's thick thighs, tabard and book. Feet must not cross, clip each other or scuff through the floor. Keep the heavy footfalls and treadmill stride. Soften the high parade lift and allow natural knee fold and toe roll. Do not turn this into a march. Preserve the current contact clock and do not pursue an added flight phase as a separate design goal.\n\nFree left arm. Make a smaller relaxed running pump. Reduce the large vertical reach and front-to-back excursion by about one third. The fist's front extreme should be around lower chest/ribs, comfortably below the chin. Keep the hand outside his broad torso with room for the pot-lid shoulder. The elbow should hang more naturally and keep bending, rather than projecting rigidly sideways. Shoulder leads, forearm and fist follow with small smooth lag. Preserve the fist and a straight, plausible wrist, with only subtle give. No flourish.\n\nRight arm. Keep the plank on the right shoulder and clear of the head and cape. Smooth any existing short elbow/wrist pops into a small response to the landing. Do not add a larger sword wobble. Preserve the useful pelvis/chest counter-rotation, head stabilization and weighted landings. The arms and legs must flow through the loop rather than hit and hold mechanical end poses. Do not add arbitrary sway to clear diagnostic scores.\n\nThe floor is up=-1.025 m in the brief entry frame, flat ToeBase is near -0.975. No root travel. Keep all cape joints at rest because a spring drives them in Unity. Use the actual rig and inspect front and profile renders for stance and arm articulation, then a complete timed preview. Preserve accepted regions, full finger anatomy, clearances and seam. The owner's feedback takes priority over earlier review keep-items or old numeric exaggeration targets.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 44
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png",
+    "../../sir-bonk-idle-run-20261020/sir-bonk-concept.png"
+  ],
+  "image_notes": "Actual Sir Bonk model and approved concept. Existing current run is provided under previous/. Preserve its knight attitude and shoulder carry while correcting stance and free-arm exaggeration.",
+  "review_ticks": [
+    0,
+    6,
+    11,
+    17,
+    22,
+    28,
+    33,
+    39,
+    44
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor just after the left strike, tick 3 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 3,
+      "min": -1.02,
+      "max": -0.93
+    },
+    {
+      "name": "right toe joint on the floor just after the right strike, tick 25 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 25,
+      "min": -1.02,
+      "max": -0.93
+    },
+    {
+      "name": "left foot stride front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.9,
+      "max": 1.6
+    },
+    {
+      "name": "right foot stride front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.9,
+      "max": 1.6
+    },
+    {
+      "name": "hips drop into the landings (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.08,
+      "max": 0.16
+    },
+    {
+      "name": "head bob smaller than the hips' (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        44
+      ],
+      "max": 0.09
+    },
+    {
+      "name": "pelvis shifts over the stance foot (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "right",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.02,
+      "max": 0.08
+    },
+    {
+      "name": "chest counter-rotation moves the left shoulder front to back (m)",
+      "kind": "range",
+      "a": "LeftArm",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.08
+    },
+    {
+      "name": "chest counter-rotation moves the right shoulder front to back (m)",
+      "kind": "range",
+      "a": "RightArm",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.05
+    },
+    {
+      "name": "head ahead of the hips, forward lean at tick 0 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.1
+    },
+    {
+      "name": "head ahead of the hips, forward lean at tick 22 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 22,
+      "min": 0.1
+    },
+    {
+      "name": "head high above the upper chest (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 11,
+      "min": 0.24
+    },
+    {
+      "name": "right hand at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 11,
+      "min": 0.3,
+      "max": 0.7
+    },
+    {
+      "name": "plank tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 11,
+      "max": -0.5
+    },
+    {
+      "name": "plank tip high above the hilt (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 11,
+      "min": 0.6
+    },
+    {
+      "name": "restrained free fist front-to-back excursion (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        44
+      ],
+      "min": 0.28,
+      "max": 0.48
+    }
+  ],
+  "review": {
+    "reference": "oldrun",
+    "travel": 0.1515
+  },
+  "timing": {
+    "fixed": [
+      "Keep the 44-tick two-step loop, left strike at 0 and right strike at 22, and existing gameplay speed.",
+      "Keep stationary actor root and the current shoulder-carried plank."
+    ],
+    "adjustable": [
+      "Narrow lateral foot and knee paths, soften the free-arm arc and its elbow/wrist follow-through, reduce parade knee exaggeration only as needed for a natural heavy run."
+    ]
+  }
+}

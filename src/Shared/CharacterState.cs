@@ -74,7 +74,7 @@ namespace SlopArena.Shared
         public bool IsFastFalling;
         /// <summary>True when the current jump originated from a slide.</summary>
         public bool JumpFromSlide;
-        /// <summary>True while an opted-in sliding attack carries residual momentum.</summary>
+        /// <summary>True while an opted-in grounded attack brakes residual Run or Slide momentum.</summary>
         public bool SlideAttackCarryActive;
         /// <summary>True after a complete stationary crouch tick.</summary>
         public bool CrouchSettled;

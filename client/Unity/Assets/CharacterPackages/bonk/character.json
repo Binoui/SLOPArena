@@ -749,7 +749,7 @@
                   "maxFlightTicks": 240,
                   "yawOffsetDegrees": 0,
                   "return": {
-                    "outboundTicks": 22,
+                    "outboundTicks": 34,
                     "returnSpeed": 16,
                     "returnAcceleration": 80,
                     "selfHitDamage": 0,
@@ -1415,8 +1415,8 @@
     },
     {
       "id": "air.3",
-      "name": "Downward Sweep",
-      "description": "Committed spike",
+      "name": "Sunrise",
+      "description": "Two-handed rising scoop through the front and overhead in the air",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1428,11 +1428,11 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 50,
-            "iasaTicks": 0,
-            "landingLagTicks": 22,
-            "autoCancelBeforeTicks": 20,
-            "autoCancelAfterTicks": 50,
+            "durationTicks": 54,
+            "iasaTicks": 54,
+            "landingLagTicks": 18,
+            "autoCancelBeforeTicks": 3,
+            "autoCancelAfterTicks": 46,
             "attackRange": 0,
             "warpRange": 0,
             "animationIds": [
@@ -1443,7 +1443,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 21,
+                "endTick": 20,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -1453,7 +1453,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 13,
+                "tick": 12,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.glint",
                 "placement": {
@@ -1470,7 +1470,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 21,
+                "tick": 20,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1488,7 +1488,7 @@
                   "baseKnockback": 7,
                   "knockbackGrowth": 30,
                   "stunTicks": 20,
-                  "durationTicks": 16,
+                  "durationTicks": 14,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1496,7 +1496,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 21,
+                "tick": 20,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -1508,7 +1508,7 @@
                   "localScaleX": 0.65,
                   "localScaleY": 0.65,
                   "localScaleZ": 0.65,
-                  "durationTicks": 20
+                  "durationTicks": 14
                 }
               }
             ]
@@ -1519,8 +1519,8 @@
     },
     {
       "id": "air.4",
-      "name": "Acrobatic Double Slice",
-      "description": "Aerial kill read",
+      "name": "The BONK",
+      "description": "Loaded two-handed overhead chop below the boots in the air",
       "iconId": "icon.4",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1532,11 +1532,11 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 73,
-            "iasaTicks": 63,
+            "durationTicks": 66,
+            "iasaTicks": 66,
             "landingLagTicks": 24,
-            "autoCancelBeforeTicks": 20,
-            "autoCancelAfterTicks": 62,
+            "autoCancelBeforeTicks": 3,
+            "autoCancelAfterTicks": 58,
             "attackRange": 0,
             "warpRange": 0,
             "animationIds": [
@@ -1547,7 +1547,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 37,
+                "endTick": 28,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 45,
@@ -1557,7 +1557,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 29,
+                "tick": 20,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.glint",
                 "placement": {
@@ -1574,7 +1574,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 37,
+                "tick": 28,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1592,7 +1592,7 @@
                   "baseKnockback": 9,
                   "knockbackGrowth": 40,
                   "stunTicks": 22,
-                  "durationTicks": 4,
+                  "durationTicks": 10,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1600,7 +1600,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 37,
+                "tick": 28,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.heavy",
                 "placement": {
@@ -1612,7 +1612,7 @@
                   "localScaleX": 0.85,
                   "localScaleY": 0.85,
                   "localScaleZ": 0.85,
-                  "durationTicks": 28
+                  "durationTicks": 10
                 }
               }
             ]
@@ -1688,7 +1688,7 @@
                   "maxFlightTicks": 240,
                   "yawOffsetDegrees": 0,
                   "return": {
-                    "outboundTicks": 22,
+                    "outboundTicks": 34,
                     "returnSpeed": 16,
                     "returnAcceleration": 80,
                     "selfHitDamage": 0,

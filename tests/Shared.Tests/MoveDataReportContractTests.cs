@@ -13,25 +13,64 @@ public sealed class MoveDataReportContractTests
 {
     private static readonly int[] Pcts = { 0, 30, 60, 90, 120 };
 
-    private static (CharacterDefinition Def, List<Program.HitSpec> Hits, Program.ReportData Report) Build()
+    private static CharacterDefinition ReportingDef()
     {
-        var def = TestHelpers.FightGuyDef;
+        var def = TestHelpers.EngineDef;
+        def.DisplayName = "Trajectory fixture";
+        def.Weight = 137f;
+        def.Slot2 = new AbilitySpec
+        {
+            Name = "Fixture launcher",
+            Stages = new[]
+            {
+                new AttackStage
+                {
+                    DurationTicks = 30,
+                    IasaTicks = 20,
+                    HitboxEvents = new[]
+                    {
+                        new HitboxEvent
+                        {
+                            TriggerTick = 4,
+                            DurationTicks = 3,
+                            Shape = HitboxShape.Sphere,
+                            Radius = 0.5f,
+                            OffZ = 1f,
+                            Damage = 7f,
+                            StunTicks = 1,
+                            Knockback = new()
+                            {
+                                Profile = KnockbackProfile.Custom,
+                                Angle = 40,
+                                BaseKnockback = 20f,
+                                KnockbackGrowth = 12f,
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        return def;
+    }
+
+    private static Program.ReportData Build()
+    {
+        var def = ReportingDef();
         var hits = Program.CollectHits(def);
-        var report = Program.BuildReport(def, hits, Pcts, null, false, false);
-        return (def, hits, report);
+        return Program.BuildReport(def, hits, Pcts.ToArray(), null, false, false);
     }
 
     [Fact]
     public void RepresentativeTrajectory_ExposesLaunchExpiryApexLandingAndSamples()
     {
-        var (_, _, report) = Build();
-        var trajectory = report.Moves.Single(m => m.Label == "g2 Straight Punch").Trajectories.Single(t => t.Pct == 0);
+        var report = Build();
+        var trajectory = report.Moves.Single(m => m.Label == "g2 Fixture launcher").Trajectories.Single(t => t.Pct == 0);
 
-        Assert.Equal("FightGuy", report.Metadata.Character);
+        Assert.Equal("Trajectory fixture", report.Metadata.Character);
         Assert.Equal(Pcts, report.Metadata.RequestedPercents);
         Assert.Equal(Pcts, report.Percents);
-        Assert.Equal("FightGuy", report.Metadata.VictimCharacter);
-        Assert.Equal(100f, report.Metadata.VictimWeight);
+        Assert.Equal("Trajectory fixture", report.Metadata.VictimCharacter);
+        Assert.Equal(137f, report.Metadata.VictimWeight);
         Assert.Equal(60, report.Metadata.TickRateHz);
         Assert.Equal("neutral (no DI/SDI)", report.Metadata.DiMode);
         Assert.Equal("landing", trajectory.Termination);
@@ -59,8 +98,8 @@ public sealed class MoveDataReportContractTests
     [Fact]
     public void RepeatedReportGeneration_HasIdenticalSemanticJson()
     {
-        var first = Build().Report;
-        var second = Build().Report;
+        var first = Build();
+        var second = Build();
 
         Assert.Equal(WithoutTimestamp(first), WithoutTimestamp(second));
     }
@@ -70,7 +109,7 @@ public sealed class MoveDataReportContractTests
     {
         static Program.ReportData BuildProfile(string profile)
         {
-            var def = TestHelpers.FightGuyDef;
+            var def = ReportingDef();
             var hit = Program.CollectHits(def).Single(h => !h.Slot.Air && h.Slot.Slot == 2 && h.HitIndex == 0);
             return Program.BuildReport(def, new() { hit }, new[] { 0, 60 }, null, false, true,
                 combatTuning: TuningProfiles.Get(profile));
@@ -100,7 +139,8 @@ public sealed class MoveDataReportContractTests
     [Fact]
     public void FightGuyG2_UsesApplyKnockbackAndPipelineParity()
     {
-        var (def, hits, _) = Build();
+        var def = TestHelpers.FightGuyDef;
+        var hits = Program.CollectHits(def);
         var baked = TestHelpers.LoadBakedData(def);
         var runs = new Dictionary<(Program.SlotRef, int, int), Program.RunResult>();
         foreach (var hit in hits)

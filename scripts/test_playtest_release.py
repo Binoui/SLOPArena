@@ -86,9 +86,17 @@ class DeploymentReceiptTests(unittest.TestCase):
                 release.verify_deployment(candidate, receipt)
 
     def test_picker_roster_comes_from_the_stage_select_roster_file(self):
-        roster = release.picker_roster()
-        self.assertIn("slop_pit", roster)
-        self.assertEqual(len(roster), len(set(roster)))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "client/Unity/Assets/Resources/Stages/roster.json"
+            path.parent.mkdir(parents=True)
+            selected = ["fixture_zinc", "fixture_amber", "fixture_cobalt"]
+            path.write_text(json.dumps({"picker": selected, "arcade": ["unselected_court"]}))
+            self.assertEqual(release.picker_roster(root), selected)
+
+            selected = ["fixture_cobalt", "fixture_new"]
+            path.write_text(json.dumps({"picker": selected, "arcade": ["unselected_court"]}))
+            self.assertEqual(release.picker_roster(root), selected)
 
     def test_rejects_unready_service_stale_registration_or_unknown_schema(self):
         unready = copy.deepcopy(self.result)

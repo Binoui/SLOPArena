@@ -319,21 +319,21 @@ namespace SlopArena.Shared
 			ability.AirborneAtStart = !state.IsGrounded;
             var spec = def.GetSlotAbility(slot, !state.IsGrounded);
             var cookedSlot = def.GetCookedSlotAbility((byte)(slot + 1), !state.IsGrounded);
-            bool slideCarry = state.IsGrounded
-                && state.State == ActionState.Sliding
-                && cookedSlot?.AllowSlideCarry == true;
             bool preserveMomentum = cookedSlot?.PreserveMomentumOnStart ?? spec?.PreserveMomentumOnStart ?? false;
-            // Every new activation owns a fresh carry decision. An opted-in grounded
-            // normal is the only path that may retain incoming slide momentum.
+            bool attackCarry = state.IsGrounded
+                && cookedSlot?.AllowSlideCarry == true
+                && (state.State == ActionState.Sliding
+                    || state.State == ActionState.Run && !preserveMomentum);
             state.SlideAttackCarryActive = false;
-            if (slideCarry)
+            if (attackCarry)
             {
-                Simulation.ClampHorizontalSpeed(ref state, def.Movement.RunSpeed);
+                float capRatio = state.State == ActionState.Sliding
+                    ? DownActionTuning.AttackEntryCapRatio
+                    : DownActionTuning.RunAttackEntryCapRatio;
+                Simulation.ClampHorizontalSpeed(ref state, def.Movement.RunSpeed * capRatio);
                 state.SlideAttackCarryActive = true;
             }
-            // ADR-0015 §2 refinement: grounded activations stop incoming momentum unless
-            // the move explicitly preserves it. The move's own OnStart velocity follows.
-            if (state.IsGrounded && !preserveMomentum && !slideCarry)
+            if (state.IsGrounded && !preserveMomentum && !attackCarry)
             {
                 state.VX = 0f;
                 state.VZ = 0f;

@@ -210,32 +210,38 @@ public class Kit117SlotSemanticsTests
             $"Rising Dragon should connect on a grounded victim at {distance}m, got {npcAfter.DamagePercent}");
     }
 
-    [Theory(Skip = "Phase 7: legacy AttackRange reach assertion is not part of cooked content.")]
-    [InlineData(1.5f)]
-    public void RisingDragon_Ground_WhiffsBeyondReach(float distance)
+    [Fact]
+    public void RisingDragon_Ground_MissesADistantVictim()
     {
-        // The connect envelope: the baked hitboxes reach ~1.4 m — past that the rising punch
-        // whiffs (no warp; AttackRange only drives target-lock rotation). Pins the reach so a
-        // future hitbox/offset change shows up as a failing test instead of a silent feel shift.
         var baked = TestHelpers.LoadBakedData(Def);
         Assert.NotNull(baked);
 
         var sim = TestHelpers.MakeSim();
-        var player = TestHelpers.PlayerState();
+        var player = TestHelpers.PlayerState(20f, 20f);
         player.PY = GroundPy;
         player.FacingYaw = 0f;
         sim.RegisterEntity(1, Def, player, baked);
 
-        var npc = TestHelpers.NpcState(0f, distance);
+        var npc = TestHelpers.NpcState(20f, 32f);
         npc.PY = GroundPy;
         npc.DamagePercent = 0;
         sim.RegisterEntity(100, Def, npc, baked);
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: 4) }, { 100, default } });
-        for (int i = 0; i < 30; i++)
-            sim.Tick(new() { { 1, default }, { 100, default } });
+        for (int tick = 0; tick < 120; tick++)
+        {
+            sim.Tick(new()
+            {
+                [1] = tick == 0 ? TestHelpers.Input(activeSlot: AbilitySlots.E) : default,
+                [100] = default,
+            });
+            if (tick == 0)
+                Assert.Equal(AbilitySlots.E, sim.GetState(1).AttackSlot);
+            Assert.DoesNotContain(sim.LastTickHits, hit => hit.OwnerEntityId == 1 && hit.TargetEntityId == 100);
+            Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+        }
 
-        Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
     }
 
     [Theory]

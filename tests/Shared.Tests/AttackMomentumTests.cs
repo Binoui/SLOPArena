@@ -2,190 +2,392 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using SlopArena.Shared;
+
 namespace SlopArena.Shared.Tests;
 
-/// <summary>
-/// ADR-0015 §2 refinement (2026-08-12): momentum-preserve is an AERIAL property.
-///   - A grounded ability activation zeroes the incoming horizontal velocity (VX/VZ) —
-///     grounded moves stop movement.
-///   - Aerials ride their trajectory untouched (drift carries into the attack).
-///     CookedSlotDefinition.PreserveMomentumOnStart opts a grounded move out of the stop
-/// The stop happens BEFORE OnStart, so a move's own lunge / OnStart velocity still applies.
-/// </summary>
 public class AttackMomentumTests
 {
-    private static readonly CharacterDefinition Def = TestHelpers.EngineDef;
-    private static readonly float GroundPy = Def.CapsuleHeight * 0.5f;
-
-    [Fact]
-    public void GroundedNormal_StopsIncomingMomentum()
+    [Theory]
+    [InlineData(ActionState.Run, .8f, 8)]
+    [InlineData(ActionState.Sliding, 1f, 10)]
+    [InlineData(ActionState.Idle, 0f, 0)]
+    public void EligibleNormal_BrakesBeforeIntegrationWithoutSteeringOrAcceleration(
+        ActionState origin, float entryRatio, int stoppingTick)
     {
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState() with { PY = GroundPy, VX = 10f, VZ = 5f };
-        TestHelpers.RegisterPlayer(sim, Def, state);
+        var def = MakeDefinition();
+        var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
+        float startX = sim.GetState(1).PX;
+        float startZ = sim.GetState(1).PZ;
+        float distance = 0f;
 
-        // Low Kick (key 1): no lunge — activation must kill the run momentum.
-        var t1 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), 2);
-        Assert.Equal(ActionState.Attacking, t1.State);
-        Assert.Equal(0f, t1.VX);
-        Assert.Equal(0f, t1.VZ);
-    }
-
-    [Fact]
-    public void AerialNormal_PreservesMomentum()
-    {
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState()
-            with { PY = 2f, IsGrounded = false, JumpsLeft = 0, VX = 10f, VZ = 5f };
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        // Air key 1 (Double Punch): drift rides into the aerial — no zeroing.
-        var t1 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), 1);
-        Assert.Equal(ActionState.Attacking, t1.State);
-        Assert.InRange(t1.VX, 9.5f, 10.5f);   // air drag only (no ground friction gate)
-        Assert.InRange(t1.VZ, 4.5f, 5.5f);
-    }
-
-    [Fact]
-    public void GroundedNormal_PreserveMomentumOverride_KeepsVelocity()
-    {
-        var sim = TestHelpers.MakeSim();
-        var def = TestHelpers.EngineDef;
-        var slots = def.CookedSlots!.ToArray();
-        var slot = slots[0];
-        slots[0] = new CookedSlotDefinition(
-            slot.Ordinal, slot.Id, slot.IsAir, slot.Name, slot.Description, slot.IconId,
-            slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove,
-            preserveMomentumOnStart: true, slot.Timeline, slot.ChargePool, slot.AimMovement,
-            slot.AimAnimationId, slot.AllowSlideCarry);
-        def.CookedSlots = slots;
-        var groundPy = TestHelpers.GroundPY(def);
-        var state = TestHelpers.PlayerState() with { PY = groundPy, VX = 10f, VZ = 5f };
-        TestHelpers.RegisterPlayer(sim, def, state);
-
-        // Same Low Kick with PreserveMomentumOnStart=true: the run velocity coasts through.
-        var t1 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), 1);
-        Assert.Equal(ActionState.Attacking, t1.State);
-        TestHelpers.AssertNear(10f, t1.VX, 0.01f);
-        TestHelpers.AssertNear(5f, t1.VZ, 0.01f);
-    }
-
-
-    [Fact]
-    public void OptedInSlideNormal_CapsIncomingVectorAndDecaysOnceBeforeIntegration()
-    {
-        var def = WithSlideCarry(TestHelpers.EngineDef);
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState()
-            with
-            {
-                PY = TestHelpers.GroundPY(def),
-                State = ActionState.Sliding,
-                VX = def.Movement.RunSpeed * 1.2f,
-                VZ = def.Movement.RunSpeed * .3f,
-            };
-        sim.RegisterEntity(1, def, state);
-
-        sim.Tick(new Dictionary<ulong, InputState>
+        for (int tick = 1; tick <= 12; tick++)
         {
-            [1] = new InputState { ActiveSlot = AbilitySlots.Slot1, Down = true },
-        });
+            var state = Tick(sim, TestHelpers.Input(
+                activeSlot: tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None,
+                moveX: tick % 2 == 0 ? -1f : 1f, moveY: 1f,
+                down: origin == ActionState.Sliding));
+            float speed = MathF.Max(0f, entryRatio - .1f * tick) * def.Movement.RunSpeed;
+            distance += speed * Simulation.TickDt;
 
-        var after = sim.GetState(1);
-        float capped = MathF.Sqrt(after.VX * after.VX + after.VZ * after.VZ);
+            Assert.Equal(ActionState.Attacking, state.State);
+            Assert.Equal(origin != ActionState.Idle, state.SlideAttackCarryActive);
+            TestHelpers.AssertNear(speed, state.VX, .001f);
+            TestHelpers.AssertNear(0f, state.VZ, .001f);
+            TestHelpers.AssertNear(startX + distance, state.PX, .001f);
+            TestHelpers.AssertNear(startZ, state.PZ, .001f);
+            if (tick >= stoppingTick)
+                Assert.Equal(0f, state.VX);
+        }
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run, 1.2f, .9f, .8f)]
+    [InlineData(ActionState.Run, .24f, .18f, .3f)]
+    [InlineData(ActionState.Run, .03f, .04f, .05f)]
+    [InlineData(ActionState.Sliding, 1.2f, .9f, 1f)]
+    [InlineData(ActionState.Sliding, .24f, .18f, .3f)]
+    public void Carry_CapsVectorMagnitudeWithoutRefillingLowerSpeed(
+        ActionState origin, float xRatio, float zRatio, float entryRatio)
+    {
+        var def = MakeDefinition();
+        float runSpeed = def.Movement.RunSpeed;
+        var sim = NewSimulation(def, origin, xRatio * runSpeed, zRatio * runSpeed);
+        var before = sim.GetState(1);
+        float magnitude = MathF.Sqrt(xRatio * xRatio + zRatio * zRatio);
+        float directionX = xRatio / magnitude;
+        float directionZ = zRatio / magnitude;
+        float distance = 0f;
+
+        for (int tick = 1; tick <= 12; tick++)
+        {
+            var after = Tick(sim, TestHelpers.Input(
+                activeSlot: tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None,
+                moveX: -1f, moveY: -1f, down: origin == ActionState.Sliding));
+            float speed = MathF.Max(0f, entryRatio - .1f * tick) * runSpeed;
+            distance += speed * Simulation.TickDt;
+
+            Assert.Equal(ActionState.Attacking, after.State);
+            Assert.True(after.SlideAttackCarryActive);
+            TestHelpers.AssertNear(directionX * speed, after.VX, .001f);
+            TestHelpers.AssertNear(directionZ * speed, after.VZ, .001f);
+            TestHelpers.AssertNear(before.PX + directionX * distance, after.PX, .001f);
+            TestHelpers.AssertNear(before.PZ + directionZ * distance, after.PZ, .001f);
+        }
+        Assert.Equal(0f, sim.GetState(1).VX);
+        Assert.Equal(0f, sim.GetState(1).VZ);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HeldRunInput_ThenOptionalDown_AdmitsCarryWithoutRequiringDownOnRun(bool slide)
+    {
+        var def = MakeDefinition();
+        var sim = NewSimulation(def, ActionState.Idle, 0f);
+        var running = TestHelpers.TickHold(sim, TestHelpers.Input(moveY: 1f), def.Movement.RushTicks + 2);
+        Assert.Equal(ActionState.Run, running.State);
+        TestHelpers.AssertNear(def.Movement.RunSpeed, running.VZ);
+        if (slide)
+            Assert.Equal(ActionState.Sliding,
+                Tick(sim, new InputState { MoveY = 1f, Down = true, DownPressed = true }).State);
+        var before = sim.GetState(1);
+        float entrySpeed = slide ? before.VZ : .8f * def.Movement.RunSpeed;
+        float expectedSpeed = entrySpeed - .1f * def.Movement.RunSpeed;
+
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1, moveY: 1f, down: slide));
+
         Assert.Equal(ActionState.Attacking, after.State);
         Assert.True(after.SlideAttackCarryActive);
-        TestHelpers.AssertNear(def.Movement.RunSpeed
-            - DownActionTuning.AttackDecelerationRatio * def.Movement.RunSpeed / 60f,
-            capped, .01f);
+        TestHelpers.AssertNear(expectedSpeed, after.VZ, .001f);
+        TestHelpers.AssertNear(before.PZ + expectedSpeed * Simulation.TickDt, after.PZ, .001f);
     }
 
-    [Fact]
-    public void SlideCarry_HitstopFreezesDecay()
+    [Theory]
+    [InlineData(ActionState.Run)]
+    [InlineData(ActionState.Sliding)]
+    [InlineData(ActionState.Idle)]
+    public void NonOptedGroundedNormal_StopsIncomingMomentum(ActionState origin)
+    {
+        var def = MakeDefinition(allowCarry: false);
+        var sim = NewSimulation(def, origin, 10f, 5f);
+        var before = sim.GetState(1);
+
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1,
+            down: origin == ActionState.Sliding));
+
+        Assert.Equal(ActionState.Attacking, after.State);
+        Assert.False(after.SlideAttackCarryActive);
+        Assert.Equal(0f, after.VX);
+        Assert.Equal(0f, after.VZ);
+        Assert.Equal(before.PX, after.PX);
+        Assert.Equal(before.PZ, after.PZ);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AerialNormal_PreservesMomentumWithoutGroundCarry(bool allowCarry)
+    {
+        var def = MakeDefinition(allowCarry: allowCarry);
+        var sim = NewSimulation(def, ActionState.Idle, 10f, 5f, grounded: false);
+        var before = sim.GetState(1);
+
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+
+        Assert.Equal(ActionState.Attacking, after.State);
+        Assert.False(after.SlideAttackCarryActive);
+        TestHelpers.AssertNear(10f, after.VX, .001f);
+        TestHelpers.AssertNear(5f, after.VZ, .001f);
+        TestHelpers.AssertNear(before.PX + after.VX * Simulation.TickDt, after.PX, .001f);
+        TestHelpers.AssertNear(before.PZ + after.VZ * Simulation.TickDt, after.PZ, .001f);
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run, true, false)]
+    [InlineData(ActionState.Run, false, false)]
+    [InlineData(ActionState.Idle, true, false)]
+    [InlineData(ActionState.Sliding, true, true)]
+    [InlineData(ActionState.Sliding, false, false)]
+    public void PreserveOverride_KeepsVelocityExceptForEligibleSlide(
+        ActionState origin, bool allowCarry, bool brakes)
+    {
+        var def = MakeDefinition(allowCarry: allowCarry, preserveMomentum: true);
+        float runSpeed = def.Movement.RunSpeed;
+        var sim = NewSimulation(def, origin, 1.2f * runSpeed, .9f * runSpeed);
+        var before = sim.GetState(1);
+
+        for (int tick = 0; tick < 2; tick++)
+        {
+            var after = Tick(sim, TestHelpers.Input(
+                activeSlot: tick == 0 ? AbilitySlots.Slot1 : AbilitySlots.None,
+                down: origin == ActionState.Sliding));
+            float xRatio = brakes ? .8f * (.9f - .1f * tick) : 1.2f;
+            float zRatio = brakes ? .6f * (.9f - .1f * tick) : .9f;
+            Assert.Equal(ActionState.Attacking, after.State);
+            Assert.Equal(brakes, after.SlideAttackCarryActive);
+            TestHelpers.AssertNear(xRatio * runSpeed, after.VX, .001f);
+            TestHelpers.AssertNear(zRatio * runSpeed, after.VZ, .001f);
+            TestHelpers.AssertNear(before.PX + after.VX * Simulation.TickDt, after.PX, .001f);
+            TestHelpers.AssertNear(before.PZ + after.VZ * Simulation.TickDt, after.PZ, .001f);
+            before = after;
+        }
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run)]
+    [InlineData(ActionState.Sliding)]
+    public void Carry_HitstopFreezesMotionAndResumesTheRemainingBrake(ActionState origin)
+    {
+        var def = MakeDefinition();
+        var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
+        var before = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+        sim.SetState(1, before with { HitstopTicks = 3 });
+
+        for (int frozenTick = 0; frozenTick < 3; frozenTick++)
+        {
+            var frozen = Tick(sim);
+            Assert.Equal(before.PX, frozen.PX);
+            Assert.Equal(before.PZ, frozen.PZ);
+            Assert.Equal(before.VX, frozen.VX);
+            Assert.Equal(before.AttackElapsedTicks, frozen.AttackElapsedTicks);
+            Assert.True(frozen.SlideAttackCarryActive);
+        }
+
+        float distance = 0f;
+        int remainingTicks = origin == ActionState.Run ? 7 : 9;
+        for (int tick = 1; tick <= remainingTicks + 1; tick++)
+        {
+            var after = Tick(sim, TestHelpers.Input(moveY: 1f));
+            float speed = MathF.Max(0f, before.VX - tick * .1f * def.Movement.RunSpeed);
+            distance += speed * Simulation.TickDt;
+            TestHelpers.AssertNear(speed, after.VX, .001f);
+            TestHelpers.AssertNear(before.PX + distance, after.PX, .001f);
+            Assert.Equal(before.PZ, after.PZ);
+            if (tick >= remainingTicks)
+                Assert.Equal(0f, after.VX);
+        }
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    public void Iasa_PreservesAdmissionBoundaryAndDoesNotTreatChainedNormalAsRun(int elapsed, bool accepted)
+    {
+        var def = MakeDefinition(iasaTicks: 2);
+        var sim = NewSimulation(def, ActionState.Run, def.Movement.RunSpeed);
+        TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), elapsed);
+        var before = sim.GetState(1);
+        Assert.Equal(elapsed, before.AttackElapsedTicks);
+        var originalAbility = sim.GetActiveAbility(1);
+
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot2, moveX: 1f));
+
+        Assert.Equal(ActionState.Attacking, after.State);
+        Assert.Equal(accepted ? AbilitySlots.Slot2 : AbilitySlots.Slot1, after.AttackSlot);
+        Assert.Equal(!accepted, after.SlideAttackCarryActive);
+        if (accepted)
+        {
+            Assert.NotSame(originalAbility, sim.GetActiveAbility(1));
+            Assert.Equal(0f, after.VX);
+            Assert.Equal(before.PX, after.PX);
+        }
+        else
+        {
+            Assert.Same(originalAbility, sim.GetActiveAbility(1));
+            TestHelpers.AssertNear(.6f * def.Movement.RunSpeed, after.VX, .001f);
+            TestHelpers.AssertNear(before.PX + after.VX * Simulation.TickDt, after.PX, .001f);
+        }
+        Assert.Equal(0f, after.VZ);
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run, 0, false)]
+    [InlineData(ActionState.Run, 2, false)]
+    [InlineData(ActionState.Run, 2, true)]
+    [InlineData(ActionState.Sliding, 0, false)]
+    [InlineData(ActionState.Sliding, 2, true)]
+    public void AuthoredMotion_TakesOwnershipAtStartOrDuringCarry(
+        ActionState origin, ushort operationTick, bool lunge)
+    {
+        CookedTimelineOperation operation = lunge
+            ? new CookedForwardLungeOperation(operationTick, AuthoringUnit.MetersPerSecond, 3f, 8)
+            : new CookedSetVelocityOperation(operationTick, AuthoringUnit.MetersPerSecond,
+                AuthoringVelocityMode.Absolute, 0f, 0f, 3f);
+        var def = MakeDefinition(operations: new[] { operation });
+        var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
+        var before = sim.GetState(1);
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+        if (operationTick > 0)
+        {
+            Assert.Equal(lunge, after.SlideAttackCarryActive);
+            float entryRatio = origin == ActionState.Run ? .8f : 1f;
+            float speed = (entryRatio - (lunge ? .1f : 0f)) * def.Movement.RunSpeed;
+            TestHelpers.AssertNear(speed, after.VX, .001f);
+            TestHelpers.AssertNear(before.PX + speed * Simulation.TickDt, after.PX, .001f);
+            for (int tick = 1; tick < operationTick; tick++)
+                after = Tick(sim);
+        }
+
+        Assert.False(after.SlideAttackCarryActive);
+        Assert.Equal(0f, after.VX);
+        TestHelpers.AssertNear(3f, after.VZ, .001f);
+        before = after;
+        for (int tick = 0; tick < 3; tick++)
+        {
+            after = Tick(sim, TestHelpers.Input(moveX: -1f));
+            Assert.False(after.SlideAttackCarryActive);
+            Assert.Equal(before.PX, after.PX);
+            TestHelpers.AssertNear(3f, after.VZ, .001f);
+            TestHelpers.AssertNear(before.PZ + 3f * Simulation.TickDt, after.PZ, .001f);
+            before = after;
+        }
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run, 0)]
+    [InlineData(ActionState.Run, 2)]
+    [InlineData(ActionState.Sliding, 0)]
+    [InlineData(ActionState.Sliding, 2)]
+    public void SnapshotRestorationMidCarry_ReproducesMotionThroughStoppingAndCompletion(
+        ActionState origin, ushort hitstop)
+    {
+        var def = MakeDefinition();
+        var continuous = NewSimulation(def, origin, def.Movement.RunSpeed);
+        var before = TestHelpers.TickN(continuous, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), 2);
+        continuous.SetState(1, before with { HitstopTicks = hitstop });
+        var restored = NewSimulation(def, ActionState.Idle, 0f);
+        restored.RestoreSnapshot(new WorldSnapshot(continuous.CaptureSnapshot().Data));
+        Assert.True(restored.GetState(1).SlideAttackCarryActive);
+        Assert.Equal(before.VX, restored.GetState(1).VX);
+        float distance = 0f;
+
+        for (int tick = 1; tick <= 32; tick++)
+        {
+            var expected = Tick(continuous);
+            var actual = Tick(restored);
+            Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()));
+            float speed = MathF.Max(0f, before.VX - Math.Max(0, tick - hitstop) * .1f * def.Movement.RunSpeed);
+            if (tick > hitstop)
+                distance += speed * Simulation.TickDt;
+            TestHelpers.AssertNear(speed, actual.VX, .001f);
+            TestHelpers.AssertNear(before.PX + distance, actual.PX, .001f);
+            Assert.Equal(expected.PZ, actual.PZ);
+        }
+        Assert.Equal(0f, restored.GetState(1).VX);
+        Assert.False(restored.GetState(1).SlideAttackCarryActive);
+        Assert.Null(restored.GetActiveAbility(1));
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run)]
+    [InlineData(ActionState.Sliding)]
+    public void NaturalAbilityCompletion_ClearsCarry(ActionState origin)
+    {
+        var def = MakeDefinition();
+        var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
+        Assert.True(Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1)).SlideAttackCarryActive);
+
+        var after = TestHelpers.TickDefault(sim, 30);
+
+        Assert.False(after.SlideAttackCarryActive);
+        Assert.Equal(ActionState.Idle, after.State);
+        Assert.Null(sim.GetActiveAbility(1));
+    }
+
+    [Theory]
+    [InlineData(ActionState.Run)]
+    [InlineData(ActionState.Sliding)]
+    public void ShieldAdmission_ClearsCarryAndBrakes(ActionState origin)
+    {
+        var def = MakeDefinition(iasaTicks: 1);
+        var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
+        Assert.True(Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1)).SlideAttackCarryActive);
+        var before = sim.GetState(1);
+
+        var after = Tick(sim, new InputState { ShieldHeld = true, ShieldPressed = true });
+
+        Assert.Equal(ActionState.Shielding, after.State);
+        Assert.False(after.SlideAttackCarryActive);
+        Assert.Equal(0f, after.VX);
+        Assert.Equal(0f, after.VZ);
+        Assert.Equal(before.PX, after.PX);
+        Assert.Equal(before.PZ, after.PZ);
+        Assert.Null(sim.GetActiveAbility(1));
+    }
+
+    private static CharacterState Tick(ServerSimulation sim, InputState input = default)
+    {
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
+        return sim.GetState(1);
+    }
+
+    private static ServerSimulation NewSimulation(CharacterDefinition def, ActionState origin,
+        float vx, float vz = 0f, bool grounded = true)
+    {
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState(10f, 10f) with
+        {
+            PY = grounded ? TestHelpers.GroundPY(def) : 2f,
+            IsGrounded = grounded,
+            State = origin,
+            VX = vx,
+            VZ = vz,
+        });
+        return sim;
+    }
+
+    private static CharacterDefinition MakeDefinition(bool allowCarry = true, bool preserveMomentum = false,
+        ushort iasaTicks = 0, CookedTimelineOperation[]? operations = null)
     {
         var def = TestHelpers.EngineDef;
-        var state = TestHelpers.PlayerState()
-            with
-            {
-                PY = TestHelpers.GroundPY(def),
-                State = ActionState.Attacking,
-                AttackSlot = AbilitySlots.Slot1,
-                SlideAttackCarryActive = true,
-                HitstopTicks = 3,
-                VX = def.Movement.RunSpeed,
-            };
-        float before = state.VX;
-
-        Simulation.SimulateTick(ref state, def, default, TestHelpers.TestArena(),
-            out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
-
-        Assert.Equal(before, state.VX);
-        Assert.True(state.SlideAttackCarryActive);
-    }
-
-    [Fact]
-    public void SlideCarry_NaturalAbilityCompletionClearsCarry()
-    {
-        var def = WithSlideCarry(TestHelpers.EngineDef);
-        var sim = TestHelpers.MakeSim();
-        sim.RegisterEntity(1, def, TestHelpers.PlayerState()
-            with
-            {
-                PY = TestHelpers.GroundPY(def),
-                State = ActionState.Sliding,
-                VX = def.Movement.RunSpeed,
-            });
-
-        sim.Tick(new Dictionary<ulong, InputState>
-        {
-            [1] = new InputState { ActiveSlot = AbilitySlots.Slot1, Down = true },
-        });
-        Assert.True(sim.GetState(1).SlideAttackCarryActive);
-
-        for (int i = 0; i < 240 && sim.GetState(1).SlideAttackCarryActive; i++)
-            sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
-
-        Assert.False(sim.GetState(1).SlideAttackCarryActive);
-    }
-
-[Fact]
-public void SlideCarry_ShieldAdmissionClearsCarryAndBrakes()
-{
-    var def = TestHelpers.EngineDef;
-    var sim = TestHelpers.MakeSim();
-    sim.RegisterEntity(1, def, TestHelpers.PlayerState()
-        with
-        {
-            PY = TestHelpers.GroundPY(def),
-            State = ActionState.Sliding,
-            SlideAttackCarryActive = true,
-            VX = def.Movement.RunSpeed,
-        });
-
-    sim.Tick(new Dictionary<ulong, InputState>
-    {
-        [1] = new InputState { ShieldHeld = true, ShieldPressed = true },
-    });
-
-    var state = sim.GetState(1);
-    Assert.Equal(ActionState.Shielding, state.State);
-    Assert.False(state.SlideAttackCarryActive);
-    Assert.Equal(0f, state.VX);
-    Assert.Equal(0f, state.VZ);
-}
-
-    private static CharacterDefinition WithSlideCarry(CharacterDefinition source)
-    {
-        var slots = new List<CookedSlotDefinition>(source.CookedSlots!);
-        var slot = slots[0];
-        slots[0] = new CookedSlotDefinition(
+        def.CookedSlots = def.CookedSlots!.Select(slot => new CookedSlotDefinition(
             slot.Ordinal, slot.Id, slot.IsAir, slot.Name, slot.Description, slot.IconId,
             slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove,
-            slot.PreserveMomentumOnStart, slot.Timeline, slot.ChargePool, slot.AimMovement,
-            slot.AimAnimationId, allowSlideCarry: true);
-        source.CookedSlots = slots;
-        return source;
+            preserveMomentum, new CookedTimeline(new[]
+            {
+                new CookedStage(30, iasaTicks, 0, 0, 0, Array.Empty<string>(),
+                    operations ?? Array.Empty<CookedTimelineOperation>()),
+            }), slot.ChargePool, slot.AimMovement, slot.AimAnimationId, allowCarry)).ToArray();
+        return def;
     }
-
 }

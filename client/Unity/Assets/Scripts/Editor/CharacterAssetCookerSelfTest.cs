@@ -175,8 +175,6 @@ public static class CharacterAssetCookerSelfTest
         AssertEqual(expectedIds, first.Animations.Select(x => x.SemanticId).OrderBy(x => x, StringComparer.Ordinal).ToArray(), "semantic IDs");
         var baked = BakedAnimationData.LoadFromBin(first.PoseBytes);
         AssertEqual(expectedIds.Length, baked.Animations.Length, "pose animation count");
-        foreach (string id in expectedIds)
-            if (!first.Animations.Any(x => x.SemanticId == id)) throw new InvalidOperationException($"Missing generated binding: {id}");
         var committedFiles = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             [CharacterPackageAssembler.ManifestPath] = firstPackage.ManifestBytes,

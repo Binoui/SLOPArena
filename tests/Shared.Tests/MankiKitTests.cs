@@ -71,12 +71,15 @@ public class MankiKitTests
         Assert.NotEmpty(sim.Resolver.GetActiveHitboxes());
     }
 
-    [Fact]
-    public void Bazooka_RocketJump_SelfDamageCapped()
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData((ushort)73)]
+    public void Bazooka_RocketJump_SelfDamageCapped(ushort startingDamage)
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         var state = TestHelpers.PlayerState();
-        state.PY = Gpy;
+        state.PY = TestHelpers.GroundPY(CombatDef);
+        state.DamagePercent = startingDamage;
         TestHelpers.RegisterPlayer(sim, CombatDef, state);
 
         // Activate R with aim held, steep downward pitch
@@ -88,12 +91,23 @@ public class MankiKitTests
         for (int i = 0; i < 5; i++)
             sim.Tick(new() { { 1, holdInput } });
         var releaseInput = new InputState { IsAiming = false, AimPitch = (short)(-8500) };
-        for (int i = 0; i < 30; i++)
+        bool selfContact = false, hitstop = false, launched = false;
+        for (int i = 0; i < 60; i++)
+        {
             sim.Tick(new() { { 1, releaseInput } });
+            foreach (var hit in sim.LastTickHits)
+                selfContact |= hit.OwnerEntityId == 1 && hit.TargetEntityId == 1 && !hit.Blocked;
+            var after = sim.GetState(1);
+            if (!selfContact) continue;
+            Assert.Equal((ushort)(startingDamage + 4), after.DamagePercent);
+            hitstop |= after.HitstopTicks > 0;
+            launched |= hitstop && after.HitstopTicks == 0 && !after.IsGrounded
+                && after.KVY > 0f && after.PY > state.PY;
+        }
 
-        var after = sim.GetState(1);
-        Assert.True(after.DamagePercent > 0,
-            $"Expected self-damage from rocket jump, got {after.DamagePercent}");
+        Assert.True(selfContact, "The released rocket must explode close enough to hit its owner.");
+        Assert.True(hitstop, "The self-hit must enter hitstop before the rocket-jump launch.");
+        Assert.True(launched, "The owner must launch upward after hitstop.");
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -180,17 +194,31 @@ public class MankiKitTests
     public void Jetpack_IgnitionHitboxDamagesAndLaunchesNearbyNpc()
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
-        var player = TestHelpers.PlayerState() with { PY = TestHelpers.CombatGroundPY };
-        var npc = TestHelpers.NpcState(z: 0.75f) with { PY = TestHelpers.CombatGroundPY };
+        var player = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(CombatDef) };
+        var npc = TestHelpers.NpcState(z: 0.75f) with { PY = TestHelpers.GroundPY(CombatDef) };
         sim.RegisterEntity(1, CombatDef, player);
         sim.RegisterEntity(100, CombatDef, npc);
 
-        TickJetpack(sim, 3, moveX: 0f, moveY: 0f);
-        for (int i = 0; i < 8; i++)
-            sim.Tick(new() { { 1, default }, { 100, default } });
+        bool contacted = false, hitstop = false, launched = false;
+        for (int tick = 0; tick < 60; tick++)
+        {
+            sim.Tick(new()
+            {
+                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.E } : default,
+                [100] = default,
+            });
+            foreach (var hit in sim.LastTickHits)
+                contacted |= hit.OwnerEntityId == 1 && hit.TargetEntityId == 100 && !hit.Blocked;
+            var victim = sim.GetState(100);
+            hitstop |= contacted && victim.HitstopTicks > 0;
+            launched |= hitstop && victim.HitstopTicks == 0 && !victim.IsGrounded
+                && victim.KVY > 0f && victim.PY > npc.PY;
+        }
 
-        var npcAfter = sim.GetState(100);
-        Assert.Equal((ushort)10, npcAfter.DamagePercent);
+        Assert.True(contacted);
+        Assert.Equal((ushort)10, sim.GetState(100).DamagePercent);
+        Assert.True(hitstop, "Ignition contact must freeze the victim before launch.");
+        Assert.True(launched, "Ignition must launch the victim upward after hitstop.");
     }
 
     [Fact]

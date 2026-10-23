@@ -9,6 +9,35 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class BashieNormalsTests
 {
+    [Fact]
+    public void GroundOneSlapHitsOnceDuringTheReviewedActiveWindow()
+    {
+        var result = Run(0f, 1f, shield: false, slot: AbilitySlots.Slot1);
+        var hit = Assert.Single(result.Hits);
+        Assert.False(hit.Blocked);
+        Assert.Equal(4f, hit.Damage);
+        Assert.Equal((ushort)4, result.Victim.DamagePercent);
+        Assert.InRange(result.FirstContactTick, 9, 11);
+        Assert.Null(result.Sim.GetActiveAbility(1));
+        Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
+    }
+
+    [Fact]
+    public void GroundOneSlapRespectsShieldAndWhiffRecovery()
+    {
+        var blocked = Run(0f, 1f, shield: true, slot: AbilitySlots.Slot1);
+        Assert.True(Assert.Single(blocked.Hits).Blocked);
+        Assert.Equal((ushort)0, blocked.Victim.DamagePercent);
+        Assert.Null(blocked.Sim.GetActiveAbility(1));
+        Assert.Empty(blocked.Sim.Resolver.GetActiveHitboxes());
+
+        var missed = Run(0f, 3f, shield: false, slot: AbilitySlots.Slot1);
+        Assert.Empty(missed.Hits);
+        Assert.Equal((ushort)0, missed.Victim.DamagePercent);
+        Assert.Null(missed.Sim.GetActiveAbility(1));
+        Assert.Empty(missed.Sim.Resolver.GetActiveHitboxes());
+    }
+
     [Theory]
     [InlineData(0f)]
     [InlineData(45f)]

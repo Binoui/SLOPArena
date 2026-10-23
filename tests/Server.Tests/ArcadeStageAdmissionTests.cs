@@ -46,14 +46,52 @@ public class ArcadeStageAdmissionTests
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data", "arenas"));
+        var arena = ArenaRegistry.Get(stage);
+        Assert.True(arena.HasValue);
+        Assert.Equal(arenaAdmitted, format.Admits(arena.Value));
+    }
+
+    [Theory]
+    [InlineData("slop_pit")]
+    [InlineData("fightguy_pier")]
+    [InlineData("arcade_ball_lab")]
+    public void CoopAssignmentRejectsOtherArenasBeforeContentAdmission(string stage)
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data", "arenas"));
         var orchestrator = new MultiMatchOrchestrator(new ServerConfig());
         try
         {
-            orchestrator.TryAssignMatch("format-admission-check", stage,
+            Assert.False(orchestrator.TryAssignMatch("coop-arena-rejection", stage,
                 new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
-                3, null, null, out _, out _, out _, out string? error, format);
-            // Past the arena check this test host has no cooked roster, so content is what stops it.
-            Assert.Equal(!arenaAdmitted, error?.Contains($"unavailable for {format.ToWire()}") == true);
+                3, null, null, out int port, out var content, out var hash, out string? error,
+                MatchFormat.SlopballCoop));
+            Assert.Equal($"Arena '{stage}' is unavailable for slopball-coop.", error);
+            Assert.Equal(-1, port);
+            Assert.Null(content);
+            Assert.Null(hash);
+            Assert.Equal(0, orchestrator.CurrentMatchCount);
+        }
+        finally { orchestrator.Shutdown(); }
+    }
+
+    [Fact]
+    public void CoopCourtPassesArenaAdmissionWithoutAllocatingAMatch()
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data", "arenas"));
+        var provider = new MatchContentCatalogProvider();
+        bool contentReady = provider.TryBuild(out _, out _, out string? contentError);
+        var orchestrator = new MultiMatchOrchestrator(new ServerConfig { MaxConcurrentMatches = 0 });
+        try
+        {
+            Assert.Equal(contentReady, orchestrator.ContentReady);
+            const string matchId = "coop-content-admission";
+            Assert.False(orchestrator.TryAssignMatch(matchId, "slopball",
+                new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+                3, null, null, out int port, out _, out _, out string? error, MatchFormat.SlopballCoop));
+            Assert.Equal(contentError ?? $"No capacity or duplicate match ID for match {matchId}.", error);
+            Assert.Equal(-1, port);
             Assert.Equal(0, orchestrator.CurrentMatchCount);
         }
         finally { orchestrator.Shutdown(); }

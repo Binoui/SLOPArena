@@ -103,8 +103,8 @@ move data is unchanged; the move was renamed from Heavy Double Slice to The BONK
 
 ### Aerial normals — approved direction and timing, 2026-10-22
 
-The owner approved aerial partners for all four ground normals, with new clocks. `air.1` and
-`air.2` are integrated; `air.3`–`air.4` remain authoring targets. Each uses the airborne fall
+The owner approved aerial partners for all four ground normals, with new clocks. All four aerial normals
+are integrated and owner accepted. Each uses the airborne fall
 pose for entry and recovery, with torso and leg counterbalance instead of planted feet. Ordinary
 gravity stays in effect. The plank's path through the active window determines its coverage.
 
@@ -142,9 +142,37 @@ at the finish. The 58 focused tests and full Shared suite pass (3,339 passed, tw
 including low-aerial hit, shield and miss coverage. Ability Lab confirms the integrated
 clip and recovery; its higher aerial start misses the standing dummy as expected.
 
-`air.3` is next: the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a3-sunrise.json)
-uses the approved 54-tick clock and a rising front-to-overhead rainbow. Key-pose authoring
-and a provisional weapon-arc check are underway; motion follows owner key approval.
+`air.3` uses the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a3-sunrise.json).
+The owner accepted repaired r1 keys and the first motion take ("Pretty good").
+`bonk_sir_a3_sunrise.anim` is bound to `anim.bonk.a3`, cooked at 1× on the 54-tick
+clock above, with the roster pin refreshed. Damage 11, launch −45°, knockback, stun
+and radius are preserved; damage/launch tuning remains outside this animation pass.
+Approved keys are unchanged; the motion pass fixes the overhead left-hand drift.
+The disclosed early contacts, minor Humanoid overrun and advisory flow warnings remain.
+Cooked low-aerial hit, shield and whiff checks pass, as does the full Shared suite
+(3,342 passed, two skipped). Ability Lab confirms the integrated
+clip and recovery, restoring its previous Bashie workspace afterward. The rising arc has
+5/14 active ticks touching the report's target 1 m ahead, versus 16/16 for the old
+Downward Sweep; it reaches higher and only 0.1 m below the feet versus Manki. This is
+the approved change to an upward role; air.4 provides the deep downward chop.
+
+`air.4` uses [The BONK brief](../../tools/genra/briefs/bonk-sir-a4-the-bonk.json).
+The owner accepted revised motion r1 on 2026-10-23 ("very good"). The accepted Humanoid
+clip `bonk_sir_a4_the_bonk.anim` is bound to `anim.bonk.a4`, cooked at 1× on the 66-tick
+clock above, with the roster pin refreshed. Its 14 damage, 25° launch, knockback, stun and
+0.5 m radius are preserved; the heavy slash follows active ticks 28–37.
+
+The revision restores the overhead tip arc and removes the hand flip by changing only
+load/contact arms and weapon poses at 24/28. Other approved keys and the body/leg channels
+at those two ticks are unchanged. The plank cuts below both boots, then heaves back outside
+the right shoulder. The full motion check passes with disclosed helmet/torso proximity,
+wrist, minor Humanoid and flow advisories. Cooked low-aerial hit, shield and whiff checks
+pass. Hit reliability measures 10/10 active ticks at the 1 m probe (previously 3/4), reaches
+2.7 m below the feet against FightGuy and 2.2 m against Manki (previously 1.7/1.3 m), and
+reports no sampled collision loss. Ability Lab confirms a single 14-damage hit and recovery with the integrated clip,
+then restores the prior Bashie workspace. The full Shared suite passes (3,375 passed,
+2 skipped). Training spacing, game feel and landing recovery remain
+human checks in `TESTING-UNITY.md`.
 
 ## The Joust (R) — wired 2026-10-21
 

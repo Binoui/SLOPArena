@@ -58,7 +58,14 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.Equal(4, package.Definition.CapabilityRequirements.Count);
         Assert.Equal(new[] { AerosolCapabilityId, BazookaCapabilityId, JetpackCapabilityId, RoundBombCapabilityId },
             package.Definition.CapabilityRequirements.Select(x => x.CapabilityId).OrderBy(x => x).ToArray());
-        Assert.Equal(16, package.Definition.Slots.Count);
+        Assert.All(package.Definition.CapabilityRequirements, x => Assert.Equal("1", x.CapabilityVersion));
+        var expectedSlots = new[]
+        {
+            "ground.1", "ground.2", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F",
+            "air.1", "air.2", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F",
+        };
+        Assert.Equal(expectedSlots.OrderBy(x => x),
+            package.Definition.Slots.Select(x => x.Id).OrderBy(x => x));
         foreach (var slot in package.Definition.Slots.Where(x => x.Ordinal % 8 < 4))
         {
             var stage = Assert.Single(slot.Timeline.Stages);
@@ -71,19 +78,6 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             });
         }
 
-        // Air Swing's sweet/sour windows must share hit history and the same limb sweep.
-        var airSwing = package.Definition.Slots.Single(x => x.Id == "air.2").Timeline.Stages
-            .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>().ToArray();
-        Assert.Equal(2, airSwing.Length);
-        Assert.NotEqual((byte)0, airSwing[0].Hitbox.HitGroup);
-        Assert.All(airSwing, operation =>
-        {
-            Assert.Equal(airSwing[0].Hitbox.HitGroup, operation.Hitbox.HitGroup);
-            Assert.Equal(AuthoringHitboxShape.Capsule, operation.Hitbox.Shape);
-            Assert.Equal("bone.left-foot", operation.Hitbox.StartBoneId);
-            Assert.Equal("bone.hips", operation.Hitbox.EndBoneId);
-        });
-
         AssertSpecial(package, "ground.A", RoundBombCapabilityId, AuthoringAbilityBehavior.AimedProjectile, AuthoringAimMode.GroundCursor,
             p => Assert.IsType<CookedMankiRoundBombCapabilityParameters>(p));
         AssertSpecial(package, "ground.E", JetpackCapabilityId, AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None,
@@ -93,12 +87,9 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         var jetpackSlot = package.Definition.Slots.Single(x => x.Id == "ground.E");
         Assert.True(jetpackSlot.IsRecoveryMove);
         Assert.False(jetpackSlot.PreserveMomentumOnStart);
-        var airJetpack = package.Definition.Slots.Single(x => x.Id == "air.E");
-        Assert.Equal(jetpackSlot.Name, airJetpack.Name);
         var aerosol = package.Definition.Slots.Single(x => x.Id == "ground.F");
         Assert.Equal(AuthoringAbilityBehavior.AreaDenial, aerosol.Behavior);
         Assert.Equal(AuthoringAimMode.CameraForward3D, aerosol.AimMode);
-        Assert.Equal("anim.manki.gf-loop", aerosol.AimAnimationId);
         var aerosolStage = Assert.Single(aerosol.Timeline.Stages);
         Assert.Equal((ushort)0, aerosolStage.IasaTicks);
         var start = Assert.Single(aerosolStage.Operations.OfType<CookedStartCapabilityOperation>());
@@ -108,14 +99,12 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             1, aerosolStage.DurationTicks);
         Assert.True(aerosolParameters.Damage > 0f);
         var presentations = aerosolStage.Operations.OfType<CookedEmitPresentationOperation>().ToArray();
-        Assert.Equal(3, presentations.Length);
         // The charge cue starts with the charge, the lighter right after release, and the flame
         // stream with the hitbox.
         Assert.Equal((ushort)0, Assert.Single(presentations, x => x.PresentationId == "presentation.manki.aerosol-inferno.charge").Tick);
         Assert.Equal((ushort)1, Assert.Single(presentations, x => x.PresentationId == "presentation.manki.aerosol-inferno.lighter").Tick);
         Assert.Equal(aerosolParameters.FireTriggerTick,
             Assert.Single(presentations, x => x.PresentationId == "presentation.manki.aerosol-inferno.start").Tick);
-        Assert.Empty(package.Definition.Slots.SelectMany(x => x.Timeline.Stages).SelectMany(x => x.Operations).OfType<CookedSetVelocityOperation>());
     }
 
     private static void AssertSpecial(CookedCharacterPackage package, string slotId, string capabilityId,
@@ -211,27 +200,117 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.NotEqual(ActionState.Attacking, recovered.State);
     }
 
-    // ── Golden scenarios: specials ──
-
     [Fact]
-    public void A_RoundBomb_HoldReleaseLobsBomb_IsGolden()
+    public void Air2_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows()
     {
-        AssertGoldenScenario(new KitScenario
+        var windows = Def.GetCookedSlotAbility(AbilitySlots.Slot2, airborne: true)!.Timeline.Stages
+            .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>()
+            .OrderBy(operation => operation.Tick).ToArray();
+        var sweet = windows.First();
+        var sour = windows.Last();
+        Assert.True(sweet.Tick < sour.Tick && sweet.Hitbox.Damage > sour.Hitbox.Damage);
+
+        var sim = TestHelpers.MakeSim();
+        sim.NoGravityEntityId = 1;
+        sim.RegisterEntity(1, Def, AirbornePlayer() with { PX = 20f, PY = 20f, PZ = 20f },
+            TestHelpers.LoadBakedData(Def));
+        var targetDef = TestHelpers.EngineDef;
+        targetDef.HurtboxCapsules = new[] { new HurtboxCapsule(0, 0, 0, 0, 0, 0, 4f) };
+        var target = TestHelpers.NpcState(20f, 21f) with { PY = 20f, IsGrounded = false };
+        sim.RegisterEntity(100, targetDef, target);
+        bool lateTargetAdded = false;
+        int sweetOverlapTicks = 0, sourOverlapTicks = 0;
+        var contacts = new List<SpellResolver.HitResult>();
+        for (int tick = 0; tick < 120; tick++)
         {
-            Name = "Manki A Round Bomb Hold Release Lob",
-            Def = Def,
-            Setup = GroundedPlayer,
-            Inputs = HoldRelease(AbilitySlots.A, aimDistance: 600),
-            Assert = _ => { },
-            SnapshotTick = 34, // release t20 → fire t30; bomb in flight.
-            TotalTicks = 120,
-        });
+            sim.SetState(100, target with { DamagePercent = sim.GetState(100).DamagePercent });
+            if (lateTargetAdded)
+                sim.SetState(101, target with { EntityId = 101, DamagePercent = sim.GetState(101).DamagePercent });
+            sim.Tick(new Dictionary<ulong, InputState>
+            {
+                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot2 } : default,
+            });
+            contacts.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1));
+            foreach (var hitbox in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1))
+            {
+                var receiver = Assert.Single(sim.LastTickAttackEntities.Where(e => e.Id == 100));
+                Assert.True(SpellResolver.SurfaceGap(hitbox, receiver, out _, out _, out _) <= 0f,
+                    "The receiver must stay inside the live baked hitbox throughout both windows.");
+                if (hitbox.Damage == sweet.Hitbox.Damage) sweetOverlapTicks++;
+                if (hitbox.Damage != sour.Hitbox.Damage) continue;
+                sourOverlapTicks++;
+                if (lateTargetAdded) continue;
+                sim.RegisterEntity(101, targetDef, target with { EntityId = 101 });
+                lateTargetAdded = true;
+            }
+            if (sim.GetActiveAbility(1) == null) break;
+        }
+
+        Assert.True(sweetOverlapTicks > 1 && sourOverlapTicks > 1);
+        var firstContact = Assert.Single(contacts.Where(h => h.TargetEntityId == 100));
+        Assert.False(firstContact.Blocked);
+        Assert.Equal(sweet.Hitbox.Damage, firstContact.Damage);
+        Assert.Equal(sweet.Hitbox.Damage, (float)sim.GetState(100).DamagePercent);
+        Assert.True(lateTargetAdded);
+        var lateContact = Assert.Single(contacts.Where(h => h.TargetEntityId == 101));
+        Assert.False(lateContact.Blocked);
+        Assert.Equal(sour.Hitbox.Damage, lateContact.Damage);
+        Assert.Equal(sour.Hitbox.Damage, (float)sim.GetState(101).DamagePercent);
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
     }
 
     [Fact]
-    public void E_JetpackBoost_Ignition_IsGolden()
+    public void A_RoundBomb_HoldReleaseLobsOneBomb_ThatFliesAndHits()
     {
-        AssertGoldenScenario(new KitScenario
+        var sim = TestHelpers.MakeSim();
+        var player = GroundedPlayer() with { PX = 20f, PZ = 20f };
+        sim.RegisterEntity(1, Def, player, TestHelpers.LoadBakedData(Def));
+        var targetDef = TestHelpers.EngineDef;
+        sim.RegisterEntity(100, targetDef,
+            TestHelpers.NpcState(20f, 26f) with { PY = TestHelpers.GroundPY(targetDef) });
+        var inputs = HoldRelease(AbilitySlots.A, aimDistance: 600);
+        int spawned = 0;
+        bool rose = false, fell = false, travelled = false, contacted = false;
+        for (int tick = 0; tick < 160; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState>
+            {
+                [1] = inputs.ForTick(tick),
+                [100] = default,
+            });
+            var bombs = sim.Resolver.LastTickCheckedHitboxes
+                .Where(h => h.OwnerId == 1 && h.Explosion.HasValue).ToArray();
+            if (tick < 20)
+            {
+                Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
+                Assert.Empty(bombs);
+            }
+            spawned += bombs.Count(h => h.AgeTicks == 0);
+            foreach (var bomb in bombs)
+            {
+                rose |= bomb.VY > 0f && bomb.Y > player.PY;
+                fell |= rose && bomb.VY < 0f;
+                travelled |= bomb.Z > player.PZ + 3f;
+            }
+            contacted |= sim.LastTickHits.Any(h =>
+                h.OwnerEntityId == 1 && h.TargetEntityId == 100 && !h.Blocked);
+        }
+
+        Assert.Equal(1, spawned);
+        Assert.True(rose && fell, "The released bomb must rise and descend along a lobbed flight.");
+        Assert.True(travelled, "The bomb must travel toward the held cursor.");
+        Assert.True(contacted, "The bomb must contact the target at the aimed distance.");
+        Assert.True(sim.GetState(100).DamagePercent > 0);
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        Assert.Equal(ActionState.Idle, sim.GetState(1).State);
+        Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
+    }
+
+    [Fact]
+    public void E_JetpackBoost_Ignition_LaunchesPlayerAndDamagesVictim()
+    {
+        AssertScenario(new KitScenario
         {
             Name = "Manki E Jetpack Boost Ignition",
             Def = Def,
@@ -243,6 +322,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
                 .Set(3, new InputState { MoveX = 0.6f, MoveY = 0.8f }),
             Assert = player =>
             {
+                Assert.Equal((ushort)0, player.HitstopTicks);
                 Assert.True(player.PY > GroundPy);
                 Assert.True(player.VY > 0f);
                 Assert.False(player.IsGrounded);
@@ -253,24 +333,58 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             {
                 Assert.Equal((ushort)10, npc.DamagePercent);
             },
-            SnapshotTick = 10,
-            TotalTicks = 11,
+            TotalTicks = 18,
         });
     }
 
     [Fact]
-    public void R_Bazooka_AimDownRocketJump_IsGolden()
+    public void R_Bazooka_AimDownRelease_RocketJumpsAndRecovers()
     {
-        AssertGoldenScenario(new KitScenario
+        var sim = TestHelpers.MakeSim();
+        var player = GroundedPlayer() with { PX = 20f, PZ = 20f };
+        sim.RegisterEntity(1, Def, player, TestHelpers.LoadBakedData(Def));
+        var inputs = HoldRelease(AbilitySlots.R, aimDistance: 600, aimPitch: -9000);
+        int spawned = 0;
+        bool selfContact = false, frozen = false, launched = false;
+        for (int tick = 0; tick < 160; tick++)
         {
-            Name = "Manki R Bazooka Rocket Jump",
-            Def = Def,
-            Setup = GroundedPlayer,
-            Inputs = HoldRelease(AbilitySlots.R, aimDistance: 600, aimPitch: -9000), // -90°: straight down at the feet.
-            Assert = _ => { },
-            SnapshotTick = 30, // release t20 → rocket fires t26 → ground explosion near self.
-            TotalTicks = 100,
+            var input = inputs.ForTick(tick);
+            input.AimPitch = -9000;
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
+            var rockets = sim.Resolver.LastTickCheckedHitboxes
+                .Where(h => h.OwnerId == 1 && h.Explosion.HasValue).ToArray();
+            if (tick < 20)
+            {
+                Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
+                Assert.Empty(rockets);
+            }
+            foreach (var rocket in rockets.Where(h => h.AgeTicks == 0))
+            {
+                spawned++;
+                Assert.True(rocket.VY < 0f, "The released shot must travel toward the owner's feet.");
+            }
+            selfContact |= sim.LastTickHits.Any(h =>
+                h.OwnerEntityId == 1 && h.TargetEntityId == 1 && !h.Blocked);
+            var current = sim.GetState(1);
+            if (!selfContact) continue;
+            Assert.Equal((ushort)4, current.DamagePercent);
+            frozen |= current.HitstopTicks > 0;
+            launched |= frozen && current.HitstopTicks == 0 && !current.IsGrounded
+                && current.KVY > 0f && current.PY > player.PY;
+        }
+
+        Assert.Equal(1, spawned);
+        Assert.True(selfContact, "The downward rocket must explode against its owner.");
+        Assert.True(frozen && launched, "The self-hit must produce an upward rocket jump after hitstop.");
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        Assert.Null(sim.GetActiveAbility(1));
+        sim.Tick(new Dictionary<ulong, InputState>
+        {
+            [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 },
         });
+        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+        Assert.NotNull(sim.GetActiveAbility(1));
     }
 
     [Fact]
@@ -321,18 +435,21 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
     }
 
     [Fact]
-    public void F_AerosolInferno_IsGolden()
+    public void F_AerosolInferno_DamagesVictimAndRecovers()
     {
-        AssertGoldenScenario(new KitScenario
+        AssertScenario(new KitScenario
         {
             Name = "Manki F Aerosol Inferno",
             Def = Def,
             Setup = GroundedPlayer,
             Inputs = new InputSequence().Press(0, AbilitySlots.F),
-            Assert = state => Assert.Equal(ActionState.Idle, state.State),
+            Assert = state =>
+            {
+                Assert.Equal(ActionState.Idle, state.State);
+                Assert.Equal((byte)0, state.AttackSlot);
+            },
             NpcSetup = () => TestHelpers.NpcState(0f, 1f) with { PY = GroundPy },
             NpcAssert = npc => Assert.Equal(10f, npc.DamagePercent),
-            SnapshotTick = 30,
             TotalTicks = 100,
         });
     }

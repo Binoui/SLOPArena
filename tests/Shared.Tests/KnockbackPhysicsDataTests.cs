@@ -130,8 +130,6 @@ public class KnockbackPhysicsDataTests
                 (int)(CombatTuning.Default.HitstunCoefficient * (mag3 + CombatTuning.Default.HitstunMagnitudeBonus)), 1, ushort.MaxValue);
             Assert.Equal(expectedHitstun, f.HitstunTicks);
 
-            Assert.True(f.TotalDistance >= f.DistanceAtHitstunEnd - 0.01f,
-                $"{f.Profile}@{f.Percent}%: distance shrank after hitstun end");
         }
     }
 

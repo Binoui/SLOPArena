@@ -23,6 +23,8 @@ namespace SlopArena.Shared
         public const float JumpCapRatio = 1.15f;
         public const float AttackEntryCapRatio = 1f;
         public const float AttackDecelerationRatio = 6f;
+        public const ushort RunAttackCarryTicks = 8;
+        public const float RunAttackEntryCapRatio = RunAttackCarryTicks * AttackDecelerationRatio * Simulation.TickDt;
 
         public float SlideDecelerationRatio { get; }
         public float CrouchLaunchMultiplier { get; }

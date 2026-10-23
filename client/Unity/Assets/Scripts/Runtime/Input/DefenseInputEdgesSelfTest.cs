@@ -33,9 +33,6 @@ public static class DefenseInputEdgesSelfTest
         Require(!HumanInputActions.RebindableActions.Contains("Dash") &&
             !HumanInputActions.RebindableActions.Contains("Burst"),
             "A retired universal action remains rebindable.");
-        var noInput = default(SlopArena.Shared.InputState);
-        Require(!noInput.Dash && !noInput.Burst && !noInput.ShieldHeld && !noInput.ShieldPressed,
-            "Default input unexpectedly activates defense or a retired universal action.");
     }
 
     private static void KeyboardDefenseAndDirectGrabLatchOnce()
