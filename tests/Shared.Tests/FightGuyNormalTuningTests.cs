@@ -85,7 +85,7 @@ public class FightGuyNormalTuningTests : KitScenarioTests
         sim.RegisterEntity(1, Def, AirbornePlayer() with { PX = 20f, PY = 20f, PZ = 20f },
             TestHelpers.LoadBakedData(Def));
         var targetDef = TestHelpers.EngineDef;
-        targetDef.HurtboxCapsules = new[] { new HurtboxCapsule(0, 0, 0, 0, 0, 0, 4f) };
+        targetDef = targetDef with { HurtboxCapsules = new[] { new HurtboxCapsule(0, 0, 0, 0, 0, 0, 4f) } };
         var target = TestHelpers.NpcState(20f, 21f) with { PY = 20f, IsGrounded = false };
         sim.RegisterEntity(100, targetDef, target);
         bool lateTargetAdded = false;

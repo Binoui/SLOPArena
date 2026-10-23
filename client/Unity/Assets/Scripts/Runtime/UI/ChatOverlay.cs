@@ -311,11 +311,7 @@ namespace SlopArena.Client.UI
         private void Update()
         {
             TryBindSession();
-            // Evaluate the gate every frame so an armed release requirement
-            // clears as soon as every held control is released (issue #215):
-            // nothing evaluates it in menus, and a stale arm would turn the
-            // next fresh back press into a dead one.
-            _ = ChatInputGate.SuppressShortcuts;
+            ChatInputGate.Tick();
             var keyboard = Keyboard.current;
             bool enterHeld = keyboard != null && (keyboard.enterKey.isPressed || keyboard.numpadEnterKey.isPressed);
             if (!enterHeld) _enterConsumed = false;
@@ -327,7 +323,17 @@ namespace SlopArena.Client.UI
             // The shell router owns frontend input; the gameplay HUD uses this bridge.
             if (!FrontendController.IsFrontendActive)
             {
-                GamepadUIBridge.Pump(_root?.panel);
+                // Face buttons belong to the fighter until chat is explicitly opened.
+                if (_expanded)
+                    GamepadUIBridge.Pump(_root?.panel);
+                if (ChatInputGate.IsGameplayScene && ChatInputGate.GamepadChatAvailable &&
+                    Gamepad.current?.selectButton.wasPressedThisFrame == true &&
+                    !UiModalState.Presented && !HumanInputActions.IsCapturing &&
+                    !ChatInputGate.ExternalOverlaySuppressed)
+                {
+                    SetExpanded(!_expanded, !_expanded);
+                    return;
+                }
                 PollQuickLines();
             }
             if (!enterHeld || _enterConsumed)
@@ -1262,7 +1268,8 @@ namespace SlopArena.Client.UI
             bool pad = HumanInputActions.LastUsedGamepad && Gamepad.current != null;
             if (_hintKeys != null)
                 _hintKeys.text = pad
-                    ? QuickLinesAvailable ? "D-PAD  ↑ GG  ← NICE  ↓ ONE MORE?" : "KEYBOARD  ENTER CHAT"
+                    ? QuickLinesAvailable ? "SELECT  CHAT · D-PAD  ↑ GG  ← NICE  ↓ ONE MORE?"
+                        : ChatInputGate.GamepadChatAvailable ? "SELECT  CHAT" : "KEYBOARD  ENTER CHAT"
                     : "ENTER  CHAT";
             if (_hintDm != null)
             {

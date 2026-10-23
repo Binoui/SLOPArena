@@ -54,6 +54,9 @@ namespace SlopArena.Shared
         public ushort FixedHitstunTicks;
         public ulong OwnerId;
 
+        /// <summary>Resolver-assigned identity retained through snapshots and replay.</summary>
+        public ulong EmissionId { get; internal set; }
+
         /// <summary>Unique server-local ability activation that spawned this hitbox.</summary>
         public ulong ActivationId;
         /// <summary>Ground/air identity of the activation, independent of bone pose sampling.</summary>
@@ -121,10 +124,8 @@ namespace SlopArena.Shared
         /// <summary>Owner's CharacterDefinition (HurtboxBoneScale, HipHeight, stage duration). Null unless TracksBone.</summary>
         public CharacterDefinition? Def;
 
-        /// <summary>Ability AnimationNames[] for pose selection. Null unless TracksBone.</summary>
-        public string[]? AnimationNames;
 
-        /// <summary>AnimIndex into AnimationNames at spawn time.</summary>
+        /// <summary>Cooked move clip index at spawn time.</summary>
         public byte AnimIndex;
 
         /// <summary>0-based ability slot (stage-duration lookup in ResolvePositions).</summary>

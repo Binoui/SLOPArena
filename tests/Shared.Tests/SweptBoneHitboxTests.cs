@@ -53,19 +53,19 @@ public class SweptBoneHitboxTests
         {
             new BakedAnimationData.BakedAnim
             {
-                Name = "swing", FrameCount = 20,
+                Name = "swing",
                 Frames = Enumerable.Range(0, 20).Select(f => Pose(SwingAngle(f))).ToArray(),
             },
             // ground.2 "slow": 10 frames stretched over 20 ticks; the head walks 10 cm right per frame.
             new BakedAnimationData.BakedAnim
             {
-                Name = "slow", FrameCount = 10,
+                Name = "slow",
                 Frames = Enumerable.Range(0, 10).Select(f => Pose(0f, headX: 0.1f * f)).ToArray(),
             },
             // ground.3 "flick": 40 frames over 20 ticks (2×); odd frames flick the blade to 40°.
             new BakedAnimationData.BakedAnim
             {
-                Name = "flick", FrameCount = 40,
+                Name = "flick",
                 Frames = Enumerable.Range(0, 40).Select(f => Pose(f % 2 == 1 ? 40f : 0f)).ToArray(),
             },
         },
@@ -81,12 +81,6 @@ public class SweptBoneHitboxTests
             new CookedHitbox(AuthoringHitboxShape.Capsule, BladeRadius, 0f, 0f, 0f, 0f, 0f, 0f,
                 "_weapon_hilt", "_weapon_tip", 10f, 45f, 5f, 2f, 10, duration, true, 0));
 
-    private static AbilitySpec Spec(string animation) => new()
-    {
-        Stages = new[] { new AttackStage { DurationTicks = 20 } },
-        AnimationNames = new[] { animation },
-    };
-
     private static CharacterDefinition Def()
     {
         var def = TestHelpers.EngineDef;
@@ -94,15 +88,12 @@ public class SweptBoneHitboxTests
         slots[0] = Slot(0, "ground.1", "swing", Blade(SwingTrigger, SwingDuration));
         slots[1] = Slot(1, "ground.2", "slow");
         slots[2] = Slot(2, "ground.3", "flick");
-        def.CookedSlots = slots;
-        def.Slot1 = Spec("swing");
-        def.Slot2 = Spec("slow");
-        def.Slot3 = Spec("flick");
-        def.HurtboxBoneDefs = new[]
+        def = def with { CookedSlots = slots };
+        def = def with { HurtboxBoneDefs = new[]
         {
             new HurtboxBoneDef("mixamorig:Hips", 0f, 0f, 0f, 0.26f),
             new HurtboxBoneDef("mixamorig:Head", 0f, 0f, 0f, 0.22f),
-        };
+        } };
         return def;
     }
 
@@ -184,8 +175,7 @@ public class SweptBoneHitboxTests
         var baked = Bake();
         var state = new CharacterState { PY = TestHelpers.GroundPY(def) };
         // Halfway between frame 7 (30°) and frame 8 (−30°).
-        HitboxGeometry.ResolvePositionsAt(state, BladeEvent, baked, def, new[] { "swing" }, 0, 2, false, 7.5f,
-            out float hx, out float hy, out float hz, out float tx, out float ty, out float tz);
+        HitboxGeometry.ResolvePositionsAt(state, BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((2) + 1), false), 0, 7.5f, out float hx, out float hy, out float hz, out float tx, out float ty, out float tz);
 
         TestHelpers.AssertNear(Hilt[0], hx, 0.0001f);
         TestHelpers.AssertNear(state.PY + Hilt[1], hy, 0.0001f);
@@ -203,8 +193,7 @@ public class SweptBoneHitboxTests
         var baked = Bake();
         // ground.3 plays 40 frames over 20 ticks: elapsed 3 is frame 6, a 0° frame.
         var state = new CharacterState { PY = TestHelpers.GroundPY(def), AttackElapsedTicks = 3 };
-        HitboxGeometry.ResolvePositions(state, BladeEvent, baked, def, new[] { "flick" }, 0, 7, false,
-            out _, out _, out _, out float tx, out _, out float tz);
+        HitboxGeometry.ResolvePositions(state, BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((7) + 1), false), 0, out _, out _, out _, out float tx, out _, out float tz);
         TestHelpers.AssertNear(0f, tx, 0.0001f);
         TestHelpers.AssertNear(Hilt[2] + BladeLength, tz, 0.0001f);
 
@@ -220,14 +209,12 @@ public class SweptBoneHitboxTests
         var def = Def();
         var baked = Bake();
         var owner = new CharacterState { PY = TestHelpers.GroundPY(def), AttackElapsedTicks = 4 };
-        HitboxGeometry.ResolvePositions(owner, BladeEvent, baked, def, new[] { "flick" }, 0, 7, false,
-            out float x, out float y, out float z, out float ex, out float ey, out float ez);
+        HitboxGeometry.ResolvePositions(owner, BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((7) + 1), false), 0, out float x, out float y, out float z, out float ex, out float ey, out float ez);
         var current = new HitboxPose { X = x, Y = y, Z = z, EndX = ex, EndY = ey, EndZ = ez };
         // Both tick poses (frames 6 and 8) point straight ahead; frame 7 flicks to 40°.
         var from = new HitboxSweepOrigin { PY = owner.PY, AttackElapsedTicks = 3, Pose = current };
 
-        var poses = HitboxGeometry.SweepPoses(BladeEvent, baked, def, new[] { "flick" }, 0, 7, false,
-            in from, in owner, in current);
+        var poses = HitboxGeometry.SweepPoses(BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((7) + 1), false), 0, in from, in owner, in current);
 
         Assert.NotNull(poses);
         float widest = poses!.Max(p => MathF.Atan2(p.EndX - p.X, p.EndZ - p.Z) * 180f / MathF.PI);
@@ -242,12 +229,12 @@ public class SweptBoneHitboxTests
         var owner = new CharacterState { PY = TestHelpers.GroundPY(def), AttackElapsedTicks = 9 };
         var current = new HitboxPose { Z = 1f, EndZ = 2f };
         var seek = new HitboxSweepOrigin { PY = owner.PY, AttackElapsedTicks = 5, Pose = new HitboxPose { X = 2f, EndX = 3f } };
-        Assert.Null(HitboxGeometry.SweepPoses(BladeEvent, baked, def, new[] { "swing" }, 0, 2, false, in seek, in owner, in current));
+        Assert.Null(HitboxGeometry.SweepPoses(BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((2) + 1), false), 0, in seek, in owner, in current));
 
         var nextStage = seek;
         nextStage.AttackElapsedTicks = 8;
         nextStage.ComboStage = 1;
-        Assert.Null(HitboxGeometry.SweepPoses(BladeEvent, baked, def, new[] { "swing" }, 0, 2, false, in nextStage, in owner, in current));
+        Assert.Null(HitboxGeometry.SweepPoses(BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((2) + 1), false), 0, in nextStage, in owner, in current));
     }
 
     [Fact]

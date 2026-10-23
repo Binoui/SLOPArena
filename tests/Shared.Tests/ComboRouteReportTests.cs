@@ -491,8 +491,8 @@ public sealed class ComboRouteReportTests
         foreach (var (index, timeline) in authored)
             slots[index] = MakeSlot(index, timeline);
         var definition = TestHelpers.EngineDef;
-        definition.Class = source.Definition.Class;
-        definition.CookedSlots = slots;
+        definition = definition with { Class = source.Definition.Class };
+        definition = definition with { CookedSlots = slots };
         return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,
             "route test fixture", definition);
     }
@@ -574,12 +574,11 @@ public sealed class ComboRouteReportTests
         => new()
         {
             Up = true, Down = true, DownPressed = true, Left = true, Right = true,
-            Jump = true, Dash = true, Burst = true, ShieldHeld = true, ShieldPressed = true,
+            Jump = true, ShieldHeld = true, ShieldPressed = true,
             GrabPressed = true, JumpHeld = true, FaceToCamera = true, ToggleLock = true,
             RetargetPressed = true, LockMode = TargetLockMode.OnHit, MoveX = moveX, MoveY = moveY,
             IsAiming = true, FacingYaw = 1234, AimYaw = -4321, AimDistance = 789,
-            AimPitch = 456, TargetEntityId = 17, WarpTargetX = 12.5f, WarpTargetZ = -7.25f,
-            WarpSpeed = 4.5f, WarpAttackRange = 2.25f,
+            AimPitch = 456, TargetEntityId = 17,
         };
 
     private static InputState WithoutMovement(InputState input)

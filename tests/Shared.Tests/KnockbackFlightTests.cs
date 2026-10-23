@@ -216,11 +216,12 @@ public class KnockbackFlightTests
     {
         var authoritative = Launch(30, 20f, 24, altitude: 10f);
         for (int tick = 0; tick < replayFromTick; tick++) Tick(ref authoritative);
-        var replay = authoritative;
-        replay.AirTimeTicks = 0;
-        byte[] buffer = new byte[CharacterStatePacket.Size];
-        CharacterStatePacket.FromState(authoritative, (uint)replayFromTick).Serialize(buffer);
-        CharacterStatePacket.Deserialize(buffer).ApplyTo(ref replay);
+        var writer = new SnapshotWriter();
+        SnapshotCodecs.Write(writer, authoritative);
+        var reader = new SnapshotReader(writer.ToArray());
+        var replay = SnapshotCodecs.ReadCharacterState(reader);
+        Assert.True(reader.AtEnd);
+        Assert.Equal(authoritative, replay);
 
         for (int tick = 0; tick < 30; tick++)
         {

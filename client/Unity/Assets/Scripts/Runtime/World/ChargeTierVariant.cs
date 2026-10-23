@@ -18,7 +18,7 @@ namespace SlopArena.Client.World
         public void BindOwner(PlayerRenderer owner)
         {
             if (Variant == null || owner == null || owner.LastFiredChargeSlot != Slot) return;
-            Variant.SetActive(ChargeTiers.Of(owner.CharacterDef, Slot, owner.LastFiredChargeTicks) >= MinimumTier);
+            Variant.SetActive(ChargeTiers.Of(owner.LastFiredChargeMove, owner.LastFiredChargeTicks) >= MinimumTier);
         }
     }
 }

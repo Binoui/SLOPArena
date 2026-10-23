@@ -145,8 +145,8 @@ internal static class Reliability
         foreach (bool air in new[] { false, true })
         foreach (byte wire in wires ?? NormalWires)
         {
-            var spec = attacker.Definition.GetSlotAbility(wire - 1, air);
-            if (spec == null || spec.Stages.Length == 0) continue;
+            var spec = attacker.Definition.GetCookedSlotAbility(wire, air);
+            if (spec == null || spec.Timeline.Stages.Count == 0) continue;
             var move = Describe(attacker, spec, wire, air);
             var samples = SampleActive(attacker, spec, wire, air);
             var probe = Shift(medium, 0f, 0f, ContactProbeMeters);
@@ -164,7 +164,7 @@ internal static class Reliability
             if (!air)
                 foreach (var (target, targetVolumes) in volumes)
                     move.Arc.Add(ArcAgainst(samples, target.Definition.Class.ToString(), targetVolumes));
-            int firstActive = (spec.Stages[0].HitboxEvents ?? Array.Empty<HitboxEvent>()).Where(x => x.Damage > 0f)
+            int firstActive = (spec.Timeline.Stages[0].ReadHitboxes() ?? Array.Empty<HitboxEvent>()).Where(x => x.Damage > 0f)
                 .Select(x => (int)x.TriggerTick).DefaultIfEmpty(0).Min();
             for (int i = 0; i < samples.Count; i++)
                 foreach (var h in samples[i])
@@ -175,12 +175,12 @@ internal static class Reliability
         return moves;
     }
 
-    private static MoveReliability Describe(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air)
+    private static MoveReliability Describe(MatchContentEntry attacker, CookedSlotDefinition spec, byte wire, bool air)
     {
-        var stage = spec.Stages[0];
-        string animation = spec.AnimationNames is { Length: > 0 } names ? names[0] : "";
+        var stage = spec.Timeline.Stages[0];
+        string animation = spec.ClipCount > 0 ? spec.Clip(0).AnimationId : "";
         int frames = attacker.BakedAnimation?.FrameCountFor(animation) ?? 0;
-        var events = stage.HitboxEvents ?? Array.Empty<HitboxEvent>();
+        var events = stage.ReadHitboxes() ?? Array.Empty<HitboxEvent>();
         var active = new HashSet<int>();
         foreach (var evt in events.Where(x => x.Damage > 0f))
             for (int t = evt.TriggerTick; t < evt.TriggerTick + Math.Max((ushort)1, evt.DurationTicks); t++)
@@ -314,11 +314,11 @@ internal static class Reliability
     /// swing passes through between consecutive active ticks (the clip sampled 16 times per
     /// tick) versus positions the engine tests: each tick's pose plus its swept poses.
     /// </summary>
-    internal static List<SamplingRow> SamplingLoss(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air,
+    internal static List<SamplingRow> SamplingLoss(MatchContentEntry attacker, CookedSlotDefinition spec, byte wire, bool air,
         IReadOnlyList<SpellResolver.EntityData> medium)
     {
         var rows = new List<SamplingRow>();
-        var events = spec.Stages[0].HitboxEvents ?? Array.Empty<HitboxEvent>();
+        var events = spec.Timeline.Stages[0].ReadHitboxes() ?? Array.Empty<HitboxEvent>();
         for (int e = 0; e < events.Length; e++)
         {
             var evt = events[e];
@@ -357,7 +357,7 @@ internal static class Reliability
     /// <see cref="PathSamplesPerTick"/> times per tick as the reference swing path.
     /// </summary>
     private static (List<Hitbox> Ticks, List<Hitbox> Engine, List<Hitbox> Path) SweepEvent(
-        MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air, HitboxEvent evt)
+        MatchContentEntry attacker, CookedSlotDefinition spec, byte wire, bool air, HitboxEvent evt)
     {
         var ticks = new List<Hitbox>();
         var engine = new List<Hitbox>();
@@ -374,8 +374,7 @@ internal static class Reliability
             {
                 for (int k = 1; k < PathSamplesPerTick; k++)
                     path.Add(ResolveAt(attacker, spec, wire, air, evt, owner, t - 1 + k / (float)PathSamplesPerTick));
-                var sweep = HitboxGeometry.SweepPoses(evt, attacker.BakedAnimation, attacker.Definition,
-                    spec.AnimationNames, 0, (byte)(wire - 1), air, in from, in owner, in pose);
+                var sweep = HitboxGeometry.SweepPoses(evt, attacker.BakedAnimation, attacker.Definition, attacker.Definition?.GetCookedSlotAbility(wire, air), 0, in from, in owner, in pose);
                 if (sweep != null)
                     foreach (var swept in sweep)
                     {
@@ -401,11 +400,11 @@ internal static class Reliability
     /// target <see cref="CoverageMeters"/> away, from the poses the engine tests, with the attacker fixed and
     /// the target never knocked away.
     /// </summary>
-    internal static List<HitCoverage> Coverage(MatchContentEntry attacker, AbilitySpec spec, byte wire,
+    internal static List<HitCoverage> Coverage(MatchContentEntry attacker, CookedSlotDefinition spec, byte wire,
         IReadOnlyList<(MatchContentEntry Target, List<SpellResolver.EntityData> Volumes)> targets)
     {
         var rows = new List<HitCoverage>();
-        var events = spec.Stages[0].HitboxEvents ?? Array.Empty<HitboxEvent>();
+        var events = spec.Timeline.Stages[0].ReadHitboxes() ?? Array.Empty<HitboxEvent>();
         if (events.Count(x => x.Damage > 0f) < 2) return rows;
         for (int e = 0; e < events.Length; e++)
         {
@@ -459,9 +458,9 @@ internal static class Reliability
     }
 
     /// <summary>Active ticks' tested hitboxes in the grounded origin frame (attacker at the origin, facing +Z).</summary>
-    private static List<List<Hitbox>> SampleActive(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air)
+    private static List<List<Hitbox>> SampleActive(MatchContentEntry attacker, CookedSlotDefinition spec, byte wire, bool air)
     {
-        var events = (spec.Stages[0].HitboxEvents ?? Array.Empty<HitboxEvent>()).Where(x => x.Damage > 0f).ToArray();
+        var events = (spec.Timeline.Stages[0].ReadHitboxes() ?? Array.Empty<HitboxEvent>()).Where(x => x.Damage > 0f).ToArray();
         if (events.Length == 0) return new List<List<Hitbox>>();
         int first = events.Min(x => x.TriggerTick);
         int last = events.Max(x => x.TriggerTick + Math.Max((ushort)1, x.DurationTicks) - 1);
@@ -480,11 +479,10 @@ internal static class Reliability
     };
 
     /// <summary>The hitbox at a fractional attack time, for the reference swing path.</summary>
-    private static Hitbox ResolveAt(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air, HitboxEvent evt,
+    private static Hitbox ResolveAt(MatchContentEntry attacker, CookedSlotDefinition spec, byte wire, bool air, HitboxEvent evt,
         in CharacterState state, float elapsedTicks)
     {
-        HitboxGeometry.ResolvePositionsAt(state, evt, attacker.BakedAnimation, attacker.Definition, spec.AnimationNames,
-            0, (byte)(wire - 1), air, elapsedTicks, out float x, out float y, out float z, out float ex, out float ey, out float ez);
+        HitboxGeometry.ResolvePositionsAt(state, evt, attacker.BakedAnimation, attacker.Definition, attacker.Definition?.GetCookedSlotAbility(wire, air), 0, elapsedTicks, out float x, out float y, out float z, out float ex, out float ey, out float ez);
         bool capsule = evt.Shape == HitboxShape.Capsule || evt.EndBoneName != null;
         return new Hitbox
         {
@@ -493,11 +491,10 @@ internal static class Reliability
         };
     }
 
-    private static Hitbox Resolve(MatchContentEntry attacker, AbilitySpec spec, byte wire, bool air, HitboxEvent evt, int tick)
+    private static Hitbox Resolve(MatchContentEntry attacker, CookedSlotDefinition spec, byte wire, bool air, HitboxEvent evt, int tick)
     {
         var state = OriginState(attacker, tick);
-        HitboxGeometry.ResolvePositions(state, evt, attacker.BakedAnimation, attacker.Definition, spec.AnimationNames,
-            0, (byte)(wire - 1), air, out float x, out float y, out float z, out float ex, out float ey, out float ez);
+        HitboxGeometry.ResolvePositions(state, evt, attacker.BakedAnimation, attacker.Definition, attacker.Definition?.GetCookedSlotAbility(wire, air), 0, out float x, out float y, out float z, out float ex, out float ey, out float ez);
         bool capsule = evt.Shape == HitboxShape.Capsule || evt.EndBoneName != null;
         return new Hitbox
         {

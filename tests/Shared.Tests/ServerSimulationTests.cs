@@ -430,7 +430,7 @@ public class ServerSimulationTests
                     new CookedStage(20, iasa, 0, 0, 0,
                         Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()),
                 }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 
@@ -614,7 +614,7 @@ public class ServerSimulationTests
         // Control: flag null → fallback write applies the cooldown.
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState());
-        var ability = new SlopArena.Shared.Abilities.CookedTimelineAbility(slot, Array.Empty<string>());
+        var ability = new SlopArena.Shared.Abilities.CookedTimelineAbility(slot);
         ability.Cooldown = slot.CooldownTicks;
         sim.ActivateAbility(1, ability, 2, def);
         Assert.Equal(ActionState.Idle, sim.GetState(1).State); // exercised the fallback path
@@ -624,7 +624,7 @@ public class ServerSimulationTests
         var sim2 = TestHelpers.MakeSim();
         sim2.RegisterEntity(1, def, TestHelpers.PlayerState());
         sim2.NoCooldownsEntityId = 1;
-        var ability2 = new SlopArena.Shared.Abilities.CookedTimelineAbility(slot, Array.Empty<string>());
+        var ability2 = new SlopArena.Shared.Abilities.CookedTimelineAbility(slot);
         ability2.Cooldown = slot.CooldownTicks;
         sim2.ActivateAbility(1, ability2, 2, def);
         Assert.Equal((ushort)0, sim2.GetState(1).GetCooldown(AbilitySlots.Slot1));
@@ -639,6 +639,8 @@ public class ServerSimulationTests
 
     private sealed class CancelMutatingAbility : ServerAbility
     {
+        public bool Cancelled { get; private set; }
+
         public override void OnStart(ref CharacterState state, CharacterDefinition def)
         {
             state.State = ActionState.Attacking;
@@ -649,6 +651,7 @@ public class ServerSimulationTests
 
         public override void OnCancel(ref CharacterState state)
         {
+            Cancelled = true;
             state.State = ActionState.Idle;
             state.AttackSlot = 0;
         }
@@ -877,7 +880,7 @@ public class ServerSimulationTests
         state.IsGrounded = false;
         state.PY += 10f;
         sim.RegisterEntity(1, def, state);
-        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { Dash = true, MoveY = -1f } });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = TestHelpers.ReservedInput(0x20, new() { MoveY = -1f }) });
         var after = sim.GetState(1);
         Assert.Equal(ActionState.Idle, after.State);
         Assert.Equal((byte)1, after.AirDodgesLeft);
@@ -1281,8 +1284,7 @@ public class ServerSimulationTests
     {
         var grabberDef = MakeTestDef();
         var defenderDef = TestHelpers.CloneDef(grabberDef);
-        defenderDef.HurtboxCapsules =
-            new[] { new HurtboxCapsule(0f, -0.45f, 0f, 0f, 0.45f, 0f, 0.1f) };
+        defenderDef = defenderDef with { HurtboxCapsules = new[] { new HurtboxCapsule(0f, -0.45f, 0f, 0f, 0.45f, 0f, 0.1f) } };
         var sim = new ServerSimulation(TestHelpers.TestArena());
         sim.RegisterEntity(1, grabberDef, GroundedState(1, grabberDef));
         sim.RegisterEntity(2, defenderDef, GroundedState(2, defenderDef, z: 1.32f));
@@ -1595,7 +1597,7 @@ public class ServerSimulationTests
     }
 
     [Fact]
-    public void ApplyAuthoritativeState_CancelsOwnedAbilityAndPreservesBlockStunSnapshot()
+    public void RestoreSnapshot_DiscardsOldRuntimeAndPreservesBlockStun()
     {
         var def = MakeTestDef();
         var sim = new ServerSimulation(TestHelpers.TestArena());
@@ -1624,9 +1626,15 @@ public class ServerSimulationTests
         authoritative.AnimLockTicks = 0;
         authoritative.BlockStunTicks = 5;
         authoritative.BlockHitstopKind = (byte)DefenseBlockHitstopKind.ShieldContact;
-        sim.ApplyAuthoritativeState(1, authoritative);
+        var authority = new ServerSimulation(TestHelpers.TestArena());
+        authority.RegisterEntity(1, def, authoritative);
+        authority.RegisterEntity(2, def, sim.GetState(2));
+        var snapshot = authority.CaptureSnapshot();
+        sim.RestoreSnapshot(snapshot);
 
         Assert.Equal(authoritative, sim.GetState(1));
+        Assert.Equal(snapshot.Data, sim.CaptureSnapshot().Data);
+        Assert.False(ability.Cancelled);
         Assert.Null(sim.GetActiveAbility(1));
         sim.Tick(new Dictionary<ulong, InputState>
         {

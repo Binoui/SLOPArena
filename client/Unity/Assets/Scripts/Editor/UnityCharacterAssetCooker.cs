@@ -95,10 +95,10 @@ internal sealed class PackageMetadata
 }
 public static class UnityCharacterAssetCooker
 {
-    public const int BindingSchemaVersion = 1;
+    public const int BindingSchemaVersion = 2;
     public const int PoseVersion = 1;
     public const int SampleRate = 60;
-    public const string CookerVersion = "hips-offset-1";
+    public const string CookerVersion = "package-presentation-2";
 
     public static CharacterAssetCookResult Cook(string packageRoot, CharacterAssetCatalog catalog, CharacterCookOutput output, CharacterCookProfile profile)
     {
@@ -124,7 +124,7 @@ public static class UnityCharacterAssetCooker
             return Failure(diagnostics, compiled.CookedPackage);
         string packageId = ReadPackageId(packageJson);
         PackageMetadata packageMetadata = ReadPackageMetadata(packageJson, characterJson, diagnostics);
-        ValidateCatalog(catalog, packageId, compiled.CookedPackage, diagnostics, out var requiredIds);
+        ValidateCatalog(catalog, packageId, compiled.CookedPackage, diagnostics, out var requiredIds, instantiatePresentation: true);
         ValidateDependencyClassifications(packageRoot, catalog, diagnostics);
         if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
             return Failure(diagnostics, compiled.CookedPackage);
@@ -183,7 +183,7 @@ public static class UnityCharacterAssetCooker
         {
             var baked = BakedAnimationData.LoadFromBin(poseBytes);
             foreach (string attachmentId in compiled.CookedPackage.Definition.AttachmentBoneIds)
-                if (Array.IndexOf(baked.BoneNames, attachmentId) < 0)
+                if (baked.FindBoneIndex(attachmentId) < 0)
                     diagnostics.Add(Error("asset-catalog.attachment.missing", "character.attachmentBoneIds", $"Attachment '{attachmentId}' is missing from the baked pose payload."));
         }
         catch (Exception ex)
@@ -194,6 +194,9 @@ public static class UnityCharacterAssetCooker
             return Failure(diagnostics, compiled.CookedPackage, dependencies, sourceHash);
 
         byte[] bindings = CharacterBindingWriter.Write(catalog, definitions, sourceHash);
+        diagnostics.AddRange(CharacterPackageAssembler.ValidateClientBindings(bindings));
+        if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
+            return Failure(diagnostics, compiled.CookedPackage, dependencies, sourceHash);
         return new CharacterAssetCookResult
         {
             CookedPackage = compiled.CookedPackage,
@@ -264,7 +267,7 @@ public static class UnityCharacterAssetCooker
         {
             var baked = BakedAnimationData.LoadFromBin(committedPoseBytes);
             foreach (string attachmentId in current.AttachmentBoneIds)
-                if (Array.IndexOf(baked.BoneNames, attachmentId) < 0)
+                if (baked.FindBoneIndex(attachmentId) < 0)
                     diagnostics.Add(Error("asset-catalog.attachment.missing", "character.attachmentBoneIds", $"Attachment '{attachmentId}' is missing from the committed pose payload."));
         }
         catch (Exception ex)
@@ -436,7 +439,7 @@ public static class UnityCharacterAssetCooker
         string packageId,
         CookedCharacterPackage package,
         List<CharacterDiagnostic> diagnostics,
-        out List<(string Id, string Path)> requiredIds)
+        out List<(string Id, string Path)> requiredIds, bool instantiatePresentation = false)
     {
         requiredIds = RequiredIds(package);
         if (catalog == null)
@@ -507,6 +510,7 @@ public static class UnityCharacterAssetCooker
             }
         }
         ValidatePresentationBindings(catalog, packageId, package, diagnostics);
+        CharacterPresentationProfileValidation.Validate(catalog, diagnostics, instantiatePresentation);
         var requiredSet = new HashSet<string>(requiredIds.Select(x => x.Id), StringComparer.Ordinal);
 
         foreach (string id in seenIds)
@@ -523,6 +527,8 @@ public static class UnityCharacterAssetCooker
     {
         if (catalog.Presentations == null || catalog.Presentations.Length == 0)
         {
+            foreach (string id in package.Definition.PresentationIds)
+                diagnostics.Add(Error("reference.presentation.unresolved", "character.presentationIds", $"Presentation ID '{id}' is not bound by the catalog."));
             foreach (var slot in package.Definition.Slots)
                 if (!string.IsNullOrEmpty(slot.HitPresentationId))
                     diagnostics.Add(Error("reference.presentation.unresolved",

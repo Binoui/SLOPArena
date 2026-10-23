@@ -248,9 +248,10 @@ roles deliberately do not promise automatic combos.
 
 1. Update the ability specs and role names/descriptions together; migrate factory comments,
    character documentation, and tests so old role names cannot mislead later tuning.
-2. Add focused `KitScenario`/golden coverage at an active contact tick. Pin hit confirmation,
-   damage, single-hit grouping, and a representative launch; use the
-   `sloparena-kit-regression-testing` workflow for scoped golden generation and review.
+2. Add focused `KitScenario` assertions for the approved contact, damage, single-hit
+   grouping, and launch contracts. Follow the
+   [kit regression workflow](../sloparena-kit-regression-testing/SKILL.md); do not
+   generate whole-state goldens or freeze incidental tuning values.
 3. Rebuild Shared, regenerate both report renderings, and run affected regression tests.
 4. Request a Unity recompilation check. For Unity-facing behavior, add a short manual
    Training/Ability-Lab checklist to `TESTING-UNITY.md`: contact alignment, coverage,

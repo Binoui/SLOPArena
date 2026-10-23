@@ -38,19 +38,19 @@ For GitHub issue work, follow [issue tracking](docs/agents/issue-tracker.md) and
 
 ## Conventions that differ from defaults
 
-- Keep gameplay authority in Shared/GameServer: `ServerSimulation` runs on the server and on client local/prediction tracks. Training uses `LocalSimulationBridge`; PvP uses `RollbackSimulationBridge` with `LocalTrack`, `PredictedTrack`, and `RawTrack` as appropriate. Unity `PlayerRenderer` consumes state and semantic events; Unity physics, animation callbacks, VFX, and audio never decide damage, hit results, timing, or admission.
+- Keep gameplay authority in Shared/GameServer: `ServerSimulation` runs on the server and in local/client prediction. Training uses `LocalSimulationBridge`; PvP uses `RollbackSimulationBridge` with `NetplaySession` and `NetplayPredictor` to restore complete World Snapshots and predict every fighter. The former three-track model is retired from online play. Unity `PlayerRenderer` consumes state and semantic events; Unity physics, animation callbacks, VFX, and audio never decide damage, hit results, timing, or admission.
 - Keep `src/Shared/` free of Unity types and engine physics queries. Use deterministic math and existing `SpellResolver`/geometry APIs for collision. Represent gameplay durations in 60 Hz ticks, normally `ushort`; preserve server/client Shared equivalence and immutable match content.
 - New characters use the package-native path. The Shared compiler and Unity cook produce normalized runtime definitions, deterministic poses, generated client bindings, and a manifest; the Match Content Catalog pins package IDs, versions, dependencies, capability versions, and hashes. Raw authoring JSON is cook input, never the runtime contract.
 - Use the canonical 16-entry grid: ground and air variants of `1`, `2`, `3`, `4`, `A`, `E`, `R`, and `F`. Physical controls are adapters, not persisted move identity; use semantic package IDs and canonical slot projection, not a second mapping.
-- Author new abilities as fixed cooked timelines with ordered typed/versioned operations. Engine-owned deterministic primitives own movement, hitboxes, projectiles, damage, Knockback, Hitstun, Hitstop, Clash, Burst, timing locks, and presentation events. `ServerAbility` remains a Shared lifecycle seam for `CookedTimelineAbility` and trusted built-in capabilities—not the universal new-content model. Nilus and legacy character/slot factory dispatch have been removed.
-- Only the trusted built-in cook profile may admit FightGuy's temporary `slop.internal.*` capabilities; Workshop/package content cannot self-grant access. Each exception needs an owner and migration path.
+- Author new abilities as fixed cooked timelines with ordered typed/versioned operations. Engine-owned deterministic primitives own movement, hitboxes, projectiles, damage, Knockback, Hitstun, Hitstop, defense, grabs, timing locks, and presentation events. `ServerAbility` remains a Shared lifecycle seam for `CookedTimelineAbility` and trusted built-in capabilities, not the universal new-content model. Nilus and legacy character/slot factory dispatch have been removed. Burst input is reserved and inert; attack Clash is not implemented, while reciprocal grabs can clash.
+- Only the trusted built-in cook profile may admit the temporary `slop.internal.*` capabilities owned by FightGuy, Wibou and Manki; Bashie's F uses the approved Manki stand-in. Workshop/package content cannot self-grant access. Owners and migration paths are listed in `docs/systems/ability-architecture.md`.
 - Use `MonoBehaviour.Update`/`FixedUpdate` and Unity InputSystem APIs. Animancer plays semantic package bindings directly; do not give AnimatorController gameplay ownership.
 - Reuse existing infrastructure before adding abstractions.
 
 ## Known pitfalls
 
-- FightGuy, Manki, Wibou, and Bonk are package-native roster characters; admission does not prove kit completeness or player acceptance. Nilus, the Compatibility preview tab, and the old LMB combo classes are retired. Do not recreate a legacy character execution path.
-- Warp is not a current gameplay contract. Do not add or document Warp mechanics as new behavior; use current movement, targeting, Dash, and recovery rules in `CONTEXT.md` and `docs/systems/combat-systems.md`.
+- Admitted roster fighters use character packages; admission does not prove kit completeness or player acceptance. Resolve the roster from `content-cooked/roster/manifest.json`. Nilus, the Compatibility preview tab, and the old LMB combo classes are retired. Do not recreate a legacy character execution path.
+- Warp is not a current gameplay contract. Do not add or document Warp mechanics as new behavior; use current movement, targeting, Shield, air-dodge, and recovery rules in `CONTEXT.md` and `docs/systems/combat-systems.md`.
 
 
 ## Current release and operations routing

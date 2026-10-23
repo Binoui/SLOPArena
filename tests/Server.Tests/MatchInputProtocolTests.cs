@@ -35,7 +35,7 @@ public class MatchInputProtocolTests
         using var rejected = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var accepted = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var ended = new ManualResetEventSlim();
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All.First(arena => arena.Purpose == ArenaPurpose.PvP).Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All.First(arena => arena.Purpose == ArenaPurpose.PvP),
             new[] { new MatchPlayer(101, CharacterClass.FightGuy, 1), new MatchPlayer(102, CharacterClass.Manki, 2) },
             catalog.Catalog!, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
@@ -146,7 +146,7 @@ public class MatchInputProtocolTests
         using var opponent = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var ended = new ManualResetEventSlim();
         var arena = ArenaRegistry.All.First(candidate => candidate.Purpose == ArenaPurpose.PvP);
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             new[] { new MatchPlayer(101, CharacterClass.Wibou, 1),
                 new MatchPlayer(102, CharacterClass.FightGuy, 2) },
             catalog.Catalog!, _ => ended.Set());

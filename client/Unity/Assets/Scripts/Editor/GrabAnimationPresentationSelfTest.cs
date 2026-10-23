@@ -1,3 +1,4 @@
+using SlopArena.EditorTools;
 using System;
 using System.IO;
 using System.Linq;
@@ -38,37 +39,32 @@ public static class GrabAnimationPresentationSelfTest
                 Class = CharacterClass.Manki,
                 IdleAnim = "anim.manki.idle",
                 HitSmallAnim = "anim.manki.hit-small",
-                Slot1 = new AbilitySpec
-                {
-                    AnimationNames = new[] { "anim.manki.g1" },
-                    Stages = new[] { new AttackStage { DurationTicks = 30 } },
-                },
+                CookedSlots = new[] { PresentationSelfTestContent.Move(0,
+                    PresentationSelfTestContent.Stage(30, new[] { "anim.manki.g1" })) },
             };
-            renderer.SetAnimationCatalog(catalog);
-            renderer.SetCharacterDefinition(definition);
-            renderer.LoadModel(definition, source.Rig);
+            Require(renderer.Configure(definition, null, catalog, source.Rig, out var error), error);
             var graph = root.GetComponentInChildren<AnimancerComponent>();
             var state = new CharacterState { State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1, IsGrounded = true };
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             int attemptTicks = DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks
                 + DefenseConfig.GrabWhiffRecoveryTicks;
             state.State = ActionState.GrabAttempt;
             state.AttackSlot = 0;
             state.StateTicks = (ushort)attemptTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(renderer.CurrentAttackSlot == 0, "Attack-to-grab retained an attack slot.");
             Require(graph.States.Current.Clip == shared.GetClipByName("grab"), "Grab did not replace the attack clip.");
 
             state.StateTicks = (ushort)(attemptTicks / 2);
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(Math.Abs(graph.States.Current.NormalizedTime - 0.5) < 0.00001, "Late grab snapshot lost its phase progress.");
             state.StateTicks = (ushort)attemptTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.NormalizedTime == 0, "Replayed grab did not rewind a reused clip.");
             state.StateTicks = (ushort)(attemptTicks / 2);
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             state.HitstopTicks = 2;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0.2f);
             Require(Math.Abs(graph.States.Current.NormalizedTime - 0.5) < 0.00001, "Hitstop advanced the grab pose.");
 
@@ -76,65 +72,65 @@ public static class GrabAnimationPresentationSelfTest
             state.State = ActionState.Grabbing;
             state.StateTicks = DefenseConfig.GrabHoldTicks;
             state.InteractionPhase = (byte)DefenseInteractionPhase.Captured;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("grab_idle_a"), "Grabber did not enter its hold loop.");
             state.VZ = 2f;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_F_A"), "Grabber forward walk is missing.");
             state.VZ = -2f;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_B_A"), "Grabber backward walk is missing.");
 
             state.State = ActionState.Grabbed;
             state.VZ = 0f;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("grab_idle_b"), "Victim did not enter its hold loop.");
             state.VZ = 2f;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_F_B"), "Victim forward walk is missing.");
             state.VZ = -2f;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_B_B"), "Victim backward walk is missing.");
 
             state.State = ActionState.Throwing;
             state.VZ = 0f;
             state.InteractionPhase = (byte)DefenseInteractionPhase.Throwing;
             state.StateTicks = DefenseConfig.ThrowAnimationTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("throw")
                 && graph.States.Current.Time == 0, "Throw request did not start the throw clip.");
             state.StateTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(Math.Abs(graph.States.Current.Time - 11.0 / 30.0) < 0.00001, "Release did not sample throw frame 11.");
 
             state.State = ActionState.Grabbed;
             state.StateTicks = DefenseConfig.ThrownAnimationTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Throw_B")
                 && graph.States.Current.Time == 0, "Victim throw clip did not share the grabber's clock.");
             state.State = ActionState.Thrown;
             state.IsGrounded = false;
             state.StateTicks = DefenseConfig.ThrownAnimationTicks - DefenseConfig.ThrowReleaseTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(Math.Abs(graph.States.Current.Time - 11.0 / 30.0) < 0.00001, "Release restarted the victim throw clip.");
             state.IsGrounded = true;
             state.StateTicks = DefenseConfig.ThrownRecoveryTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(Math.Abs(graph.States.Current.Time - 34.0 / 30.0) < 0.00001, "Landing did not sample victim frame 34.");
             Require(renderer.PlayScrubbedState(state, false, 0), "Recorded landing could not resolve its clip.");
             Require(Math.Abs(graph.States.Current.Time - 34.0 / 30.0) < 0.00001, "Recorded landing differs from live playback.");
             state.State = ActionState.Idle;
             state.StateTicks = 0;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == source.Bindings.Single(binding => binding.SemanticId == definition.IdleAnim).Clip,
                 "Release did not return to locomotion.");
 
             state.State = ActionState.GrabAttempt;
             state.StateTicks = (ushort)attemptTicks;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             state.State = ActionState.Hitstun;
             state.HitstunTicks = 10;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == source.Bindings.Single(binding => binding.SemanticId == definition.HitSmallAnim).Clip,
                 "Hitstun did not interrupt grab.");
             Debug.Log("[GrabAnimationPresentationSelfTest] Passed grab/hold, paired idle and walks, throw frame 11, victim landing frame 34, replay/Hitstop, recorded poses, and interruption.");
@@ -180,9 +176,7 @@ public static class GrabAnimationPresentationSelfTest
                 var actorRoot = new GameObject(name);
                 actorRoot.transform.SetParent(root.transform, false);
                 var renderer = actorRoot.AddComponent<PlayerRenderer>();
-                renderer.SetAnimationCatalog(catalog);
-                renderer.SetCharacterDefinition(definition);
-                renderer.LoadModel(definition, source.Rig);
+                Require(renderer.Configure(definition, null, catalog, source.Rig, out var error), error);
                 foreach (var transform in actorRoot.GetComponentsInChildren<Transform>(true)) transform.gameObject.layer = 31;
                 foreach (var mesh in actorRoot.GetComponentsInChildren<SkinnedMeshRenderer>()) mesh.updateWhenOffscreen = true;
                 return renderer;

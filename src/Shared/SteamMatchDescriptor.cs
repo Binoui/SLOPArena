@@ -21,8 +21,17 @@ public sealed record SteamMatchDescriptor(
     /// receipt instead of comparing the absolute deadline with a possibly skewed PC clock.</summary>
     public const int MaximumAdmissionWindowSeconds = 65;
 
-    public static string HashContent(MatchContentHandleMap content) =>
-        MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(content)));
+    /// <summary>Preserves the original schema-1 characters-only catalog hash bytes.</summary>
+    public static string HashCatalog(MatchContentHandleMap content) =>
+        MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(
+            new MatchContentHandleMap(MatchContentHandleMap.CatalogSchemaVersion, content.Entries))));
+
+    public static string HashContent(MatchContentHandleMap content)
+    {
+        if (content.Arena == null || content.SchemaVersion != MatchContentHandleMap.CurrentSchemaVersion)
+            throw new ArgumentException("Match content requires an arena identity.", nameof(content));
+        return MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(content)));
+    }
     public static bool TryParse(JsonElement element, out SteamMatchDescriptor? descriptor)
     {
         descriptor = null;

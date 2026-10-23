@@ -25,13 +25,15 @@ authorize passwordless status/deploy/rollback or arbitrary Docker commands.
 4. Publish compatible GameServer, Master and EF migration images under one release ID through their explicit workflows. Pin image digests and source revisions. An upload alone never deploys the VPS.
 5. Keep database, JWT, registration/control, registry and storage credentials in private operator files outside Git. Use only credentials created for this environment. Store runtime files with restrictive permissions and grant only required read access to containers. Never put keys or runtime configuration in a release record, image, log, or chat.
 
-The owner console stays local and reaches Master through a loopback-bound SSH
-forward to its private container address. Keep `/owner` routes excluded from
+The [hosted owner console](../../docs/systems/owner-console.md) uses the dedicated
+`/console/` route, password login and a backend-held Master key. The local console
+remains available for development and authorized diagnostics through a loopback-bound
+SSH forward to Master's private address. Keep Master's `/owner` routes excluded from
 public Caddy ingress, including case and encoded-path variants; the dedicated
-`Console__Key` is additional authorization, not permission to publish the route.
-Resolve the current private Master address after container replacement instead
-of opening a public Master port. Use a separate VPS-only console key and preserve
-the previous release's environment file for rollback.
+`Console__Key` does not make those API routes public. For a local forward, resolve the
+current private Master address after container replacement instead of opening a
+public Master port. Use a separate VPS-only console key and preserve the previous
+release's environment file for rollback.
 
 ## Bootstrap
 

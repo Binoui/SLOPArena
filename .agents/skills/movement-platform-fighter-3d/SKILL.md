@@ -1,6 +1,6 @@
 ---
 name: movement-platform-fighter-3d
-description: "SLOPArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, Dash, ledges, server authority, and Smash-style percent."
+description: "SLOPArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, grounded Shield, directional air dodge, server authority, and Smash-style percent."
 metadata: {"category": "game-dev", "tags": ["unity", "csharp", "platform-fighter", "movement", "combat"]}
 ---
 

@@ -1,3 +1,4 @@
+using SlopArena.Shared;
 using SlopArena.Client.Tools;
 using UnityEditor;
 using UnityEngine;
@@ -57,6 +58,10 @@ public sealed partial class AbilityLabWindow
                 ? "Preview resumes in Edit Mode."
                 : "Preparing isolated preview…";
         }
+        else if (_workspace.PreviewPrerequisitesStale)
+        {
+            _movesSceneStatus.text = "Preview poses or bindings are stale. Reload or Save + Cook before running scenarios.";
+        }
         else if (_workspace.LiveDraftInvalid)
         {
             _movesSceneStatus.text = "Draft invalid · scene preview unavailable.";
@@ -87,7 +92,7 @@ public sealed partial class AbilityLabWindow
             _movesSceneStatus.text = _lab.PreviewStatus;
         }
 
-        bool canDraw = _workspace.HasPackage && !_workspace.LiveDraftInvalid && _lab?.PreviewCamera != null &&
+        bool canDraw = _workspace.HasPackage && !_workspace.LiveDraftInvalid && !_workspace.PreviewPrerequisitesStale && _lab?.PreviewCamera != null &&
             (_lab.IsPackagePreview || _lab.IsScenarioPreview || _lab.PhasePreviewActive);
         _sceneHitboxes?.SetEnabled(canDraw && !_grabSelected);
         _sceneHurtboxes?.SetEnabled(canDraw);
@@ -218,8 +223,7 @@ public sealed partial class AbilityLabWindow
             int slotIndex = System.Array.IndexOf(AbilityLab.SlotNames, address.InputLabel);
             if (slotIndex >= 0)
             {
-                var cooked = _lab.Def.GetCookedSlotAbility(
-                    (byte)(AbilityLab.SlotIndices[slotIndex] + 1), address.IsAirborne);
+                var cooked = _lab.Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slotIndex]), address.IsAirborne);
                 SlopArena.Shared.CookedChargedDirectionalDashCapabilityParameters? charge = null;
                 if (cooked != null)
                     foreach (var stage in cooked.Timeline.Stages)

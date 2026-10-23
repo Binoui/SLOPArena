@@ -11,16 +11,16 @@ the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
 own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
 shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery, and ground/air 2 have
-her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap. Air 1, ground/air 3 and F still use stand-ins.
+her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap and ground 3 her Shell Flip. Air 1, air 3 and F still use stand-ins.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her movement, air 1, ground/air 3 and F still come from Manki (the aerosol capability). Her
+- Her movement, air 1, air 3 and F still come from Manki (the aerosol capability). Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
   place of his Round Bomb, Shell Slide in place of his Bazooka, Ring Bounce in place of his Jetpack Boost, and Whirlpool
-  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, and Slap on ground 1.
+  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, Slap on ground 1, and Shell Flip on ground 3.
 - The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
   Played on her as they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -160,6 +160,30 @@ The image concept's elaborate seated pose was dropped in favour of the existing 
   shell/water sounds. Cues end with the attack. Shell Slide keeps its existing tuck behaviour.
 - **Verification:** Shared hits once from eight directions; shield and whiff recovery pass. Ability Lab records
   one 7% hit, one blocked contact or a miss at 3 m. Play Mode captures show the turn and return to standing.
+
+### Shell Flip (ground 3)
+
+The owner accepted the existing native poses and backward somersault on 2026-10-23, including a short cosmetic
+forward and upward reach around contact. The head and red hat stay visible while she tucks into her shell.
+
+- The attack lasts 42 ticks at 60 Hz, plays at 1x, hits during ticks 24 through 29, and becomes ready at 42.
+- It deals 7% damage with base knockback 5, growth 26, Hitstun 18 and a 75-degree upward launch. Existing bounded
+  startup aim correction remains. Slide carry is disabled. The simulated actor stays grounded and stationary.
+- One root-relative capsule has radius 0.32 m, start offset `(0, -0.20, 0.65)` and end delta `(0, 0.60, -0.30)`.
+  Its absolute end offset is `(0, 0.40, 0.35)`. It uses hit group 1, is interruptible, and has no bone anchor.
+- `anim.bashie.g3` binds `Animations/bashie_g3_shell_flip.anim`. Air 3 retains Manki's borrowed Double Fist Slam.
+- `presentation.bashie.shell.flip-tuck` starts at tick 4 for 38 ticks. The optional ShellTuck flip profile applies
+  the accepted native hips rotation after the tuck during ticks 10 through 29. Its 43 lift samples carry the measured
+  floor corrections. Runtime code reads no preview artifacts and scans no meshes.
+- The visible reach peaks at 0.30 m forward and 0.25 m up in model space, or 0.33 m and 0.275 m at visual scale 1.1.
+  Recovery retracts it. Shared owns contact, launch and timing.
+
+The cooked-package checks passed all 17 G3 cases and 39 existing Bashie normal cases. Native Lab verifies one hit,
+a blocked contact and a whiff. Play Mode captures use Bashie against Manki at 1 m and verify the hit, Shield, whiff,
+Hitstop and cleanup after injected Hitstun at ticks 18 and 25. G2, G4 and air 3 reliability rows remain unchanged.
+Evidence is in `artifacts/bashie-g3-integration-20261023-r1/implementation/cutover/`. The raw hierarchy probe used an
+incorrect scaled mesh conversion. Its corrected report includes every skin and agrees with weighted bone skinning.
+Sub-tick floor clearance and human controller feel remain unverified.
 
 ### Rising Shell (ground 4)
 

@@ -25,7 +25,7 @@ public class AbilityLifecycleTests
         state.PY = TestHelpers.MankiGroundPY;
         TestHelpers.RegisterPlayer(sim, def, state);
 
-        Assert.Equal(AimMovementMode.Fixed, def.GetAimMovementMode(AbilitySlots.A, airborne: false));
+        Assert.Equal(AuthoringAimMovementMode.Fixed, (def.GetCookedSlotAbility(AbilitySlots.A, airborne: false)?.AimMovement ?? AuthoringAimMovementMode.Fixed));
         var t0 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.A), 1);
         Assert.Equal(ActionState.Aiming, t0.State);
         Assert.Equal((byte)AbilitySlots.A, t0.AttackSlot);

@@ -64,14 +64,13 @@ namespace SlopArena.Shared.Rollback
         private InputState _latest;
         private uint _latestTick;
         private bool _hasLatest;
-        private InputState _pendingEdges;
-        private int _pendingPresses;
-        private uint _lastEdgeTick;
+        private readonly HandledInput[] _receivedOrRescued;
 
         public PeerInputTimeline(uint holdTicks = DefaultHoldTicks, uint rescueTicks = DefaultRescueTicks)
         {
             HoldTicks = holdTicks;
             RescueTicks = rescueTicks;
+            _receivedOrRescued = new HandledInput[checked((int)rescueTicks + 1)];
         }
 
         public uint HoldTicks { get; }
@@ -99,18 +98,18 @@ namespace SlopArena.Shared.Rollback
                 // Newer evidence of what the player holds, even though its tick already ran.
                 if (!_hasLatest || tick > _latestTick)
                     Remember(tick, inputs[i]);
-                if (tick <= _lastEdgeTick)
-                    continue; // consumed on time, or its presses were already handled
-                _lastEdgeTick = tick;
                 if (!inputs[i].HasPressEdges)
                     continue;
-                if (lastSimulatedTick + 1 - tick > RescueTicks)
+                ref var handled = ref _receivedOrRescued[tick % (uint)_receivedOrRescued.Length];
+                if (handled.Tick == tick)
+                    continue;
+                if ((ulong)lastSimulatedTick + 1 - tick > RescueTicks)
                 {
                     dropped++;
                     continue;
                 }
-                _pendingEdges = inputs[i].WithEdgesFrom(_pendingEdges);
-                _pendingPresses++;
+                handled = new HandledInput { Tick = tick };
+                handled.PendingEdges = inputs[i];
                 rescued++;
             }
             return new LateInputReport(rescued, dropped);
@@ -128,8 +127,7 @@ namespace SlopArena.Shared.Rollback
                 input = received;
                 source = ConsumedInputSource.Received;
                 Remember(tick, received);
-                if (tick > _lastEdgeTick)
-                    _lastEdgeTick = tick;
+                _receivedOrRescued[tick % (uint)_receivedOrRescued.Length] = new HandledInput { Tick = tick };
             }
             else if (_hasLatest && tick - _latestTick <= HoldTicks)
             {
@@ -142,14 +140,26 @@ namespace SlopArena.Shared.Rollback
                 source = ConsumedInputSource.Neutral;
             }
 
-            int rescued = _pendingPresses;
-            if (rescued > 0)
+            int rescued = 0;
+            InputState pending = default;
+            uint newestSlotTick = 0;
+            for (int i = 0; i < _receivedOrRescued.Length; i++)
             {
-                input = input.WithEdgesFrom(_pendingEdges);
-                _pendingEdges = default;
-                _pendingPresses = 0;
+                ref var handled = ref _receivedOrRescued[i];
+                if (handled.PendingEdges.HasPressEdges && handled.Tick.HasValue && tick >= handled.Tick.Value
+                    && tick - handled.Tick.Value <= RescueTicks)
+                {
+                    pending = pending.WithEdgesFrom(handled.PendingEdges);
+                    if (handled.PendingEdges.ActiveSlot != 0 && handled.Tick.Value >= newestSlotTick)
+                    {
+                        pending.ActiveSlot = handled.PendingEdges.ActiveSlot;
+                        newestSlotTick = handled.Tick.Value;
+                    }
+                    rescued++;
+                }
+                handled.PendingEdges = default;
             }
-            return new ConsumedInput(input, source, rescued);
+            return new ConsumedInput(input.WithEdgesFrom(pending), source, rescued);
         }
 
         /// <summary>Forget queued and remembered input (connection change, disconnect, elimination).</summary>
@@ -159,9 +169,13 @@ namespace SlopArena.Shared.Rollback
             _latest = default;
             _latestTick = 0;
             _hasLatest = false;
-            _pendingEdges = default;
-            _pendingPresses = 0;
-            _lastEdgeTick = 0;
+            Array.Clear(_receivedOrRescued, 0, _receivedOrRescued.Length);
+        }
+
+        private struct HandledInput
+        {
+            public uint? Tick;
+            public InputState PendingEdges;
         }
 
         private void Remember(uint tick, InputState input)

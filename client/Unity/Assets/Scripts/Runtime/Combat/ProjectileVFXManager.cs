@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using SlopArena.Shared;
+using SlopArena.Client.Animation;
+using SlopArena.Client.Entities;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -31,12 +33,41 @@ namespace SlopArena.Client.Combat
         private SpellResolver _resolver;
         private ProjectileVFXConfig _config;
 
-        // Keyed by activation and visual operation, not position, so a re-simulated projectile
-        // keeps its visual (and trail) through rollback corrections.
-        private readonly Dictionary<(ulong owner, ulong activation, int operation, int ordinal), GameObject> _activeVisuals = new();
-        private readonly HashSet<(ulong owner, ulong activation, int operation, int ordinal)> _matchedLocal = new();
-        private readonly List<(ulong owner, ulong activation, int operation, int ordinal)> _goneLocal = new();
-        private readonly Dictionary<(ulong owner, ulong activation, int operation), int> _ordinals = new();
+        private readonly Dictionary<ulong, (CharacterAnimationCatalog Catalog, PlayerRenderer Renderer)> _owners = new();
+
+        public void RegisterOwner(ulong owner, CharacterAnimationCatalog catalog, PlayerRenderer renderer = null)
+        {
+            ClearOwnerVisuals(owner);
+            _owners[owner] = (catalog, renderer);
+        }
+
+        public void UnregisterOwner(ulong owner, PlayerRenderer expectedRenderer = null)
+        {
+            if (expectedRenderer != null && _owners.TryGetValue(owner, out var current)
+                && !ReferenceEquals(current.Renderer, expectedRenderer)) return;
+            ClearOwnerVisuals(owner);
+            _owners.Remove(owner);
+        }
+
+        private CharacterPresentationProfile ProfileFor(ulong owner)
+            => _owners.TryGetValue(owner, out var entry) && entry.Catalog != null ? entry.Catalog.PresentationProfile : null;
+
+        private void ClearOwnerVisuals(ulong owner)
+        {
+            _goneLocal.Clear();
+            foreach (var pair in _activeVisuals)
+                if (pair.Key.Owner == owner) { DestroyVisual(pair.Value); _goneLocal.Add(pair.Key); }
+            foreach (var key in _goneLocal) _activeVisuals.Remove(key);
+            ClearHeldVisual(owner);
+        }
+
+        // A corrected history can reuse an emission number for a different owner or move.
+        private readonly Dictionary<
+            (ulong Owner, ulong Activation, int Operation, ulong Emission, byte Slot, bool Airborne), GameObject> _activeVisuals = new();
+        private readonly HashSet<
+            (ulong Owner, ulong Activation, int Operation, ulong Emission, byte Slot, bool Airborne)> _matchedLocal = new();
+        private readonly List<
+            (ulong Owner, ulong Activation, int Operation, ulong Emission, byte Slot, bool Airborne)> _goneLocal = new();
 
         private struct HeldProjectile
         {
@@ -44,16 +75,22 @@ namespace SlopArena.Client.Combat
             public Transform Hand;
             public byte AttackSequence;
             public int Deaths;
+            public byte Slot;
+            public bool Airborne;
         }
 
         private readonly Dictionary<ulong, HeldProjectile> _heldVisuals = new();
 
-        public void UpdateHeldVisual(ulong owner, CharacterState state, Transform hand, CharacterDefinition definition)
+        public void UpdateHeldVisual(ulong owner, CharacterState state, Transform hand, CookedSlotDefinition? move)
         {
-            bool aiming = state.State == ActionState.Aiming && state.AttackSlot == AbilitySlots.A;
-            bool firing = state.State == ActionState.Attacking && state.AttackSlot == AbilitySlots.A;
+            bool airborne = move?.IsAir ?? false;
+            var row = ProfileFor(owner)?.FindProjectile(state.AttackSlot, airborne);
+            bool enabled = !string.IsNullOrEmpty(row?.HeldBoneId);
+            bool aiming = enabled && state.State == ActionState.Aiming;
+            bool firing = enabled && state.State == ActionState.Attacking;
             if (_heldVisuals.TryGetValue(owner, out var held)
-                && (held.AttackSequence != state.AttackSequence || held.Deaths != state.Deaths))
+                && (held.AttackSequence != state.AttackSequence || held.Deaths != state.Deaths
+                    || held.Slot != state.AttackSlot || held.Airborne != airborne))
                 ClearHeldVisual(owner);
             if ((!aiming && !firing) || hand == null)
             {
@@ -65,17 +102,18 @@ namespace SlopArena.Client.Combat
                 if (!aiming) return;
                 held = new HeldProjectile
                 {
-                    Visual = CreateProjectileVisual(CharacterClass.FightGuy, AbilitySlots.A, !state.IsGrounded),
+                    Visual = CreateProjectileVisual(owner, state.AttackSlot, airborne),
                     Hand = hand,
                     AttackSequence = state.AttackSequence,
                     Deaths = state.Deaths,
+                    Slot = state.AttackSlot, Airborne = airborne,
                 };
                 held.Visual.transform.position = hand.position;
             }
-            var charge = GetChargedProjectileParameters(definition, state.AttackSlot, !state.IsGrounded);
+            var charge = GetChargedProjectileParameters(move);
             if (held.Visual != null && charge != null)
                 ScaleProjectileVisual(held.Visual, charge.GetRadius(state.ChargeTicks), charge,
-                    CharacterClass.FightGuy, state.AttackSlot, !state.IsGrounded);
+                    owner, state.AttackSlot, airborne);
             _heldVisuals[owner] = held;
         }
 
@@ -86,11 +124,11 @@ namespace SlopArena.Client.Combat
             _heldVisuals.Remove(owner);
         }
 
-        private GameObject TakeHeldVisual(ulong owner, CharacterClass character, byte slot,
+        private GameObject TakeHeldVisual(ulong owner, byte slot, bool airborne,
             byte? attackSequence = null)
         {
-            if (character != CharacterClass.FightGuy || slot != AbilitySlots.A
-                || !_heldVisuals.TryGetValue(owner, out var held)
+            if (!_heldVisuals.TryGetValue(owner, out var held)
+                || held.Slot != slot || held.Airborne != airborne
                 || (attackSequence.HasValue && held.AttackSequence != attackSequence.Value))
                 return null;
             var visual = held.Visual;
@@ -142,33 +180,28 @@ namespace SlopArena.Client.Combat
 
             var hitboxes = _resolver.GetActiveHitboxes();
             _matchedLocal.Clear();
-            _ordinals.Clear();
             for (int i = 0; i < hitboxes.Count; i++)
             {
                 var hb = hitboxes[i];
+                if (!_owners.ContainsKey(hb.OwnerId)) continue;
                 float speedSq = hb.VX * hb.VX + hb.VY * hb.VY + hb.VZ * hb.VZ;
-                CharacterClass character = _sim.GetDefinition(hb.OwnerId)?.Class ?? CharacterClass.None;
                 if (speedSq <= 0.0001f)
                     continue;
 
-                // Resolver order is canonical, so the ordinal separates projectiles that share an
-                // activation and visual operation the same way on every (re-)simulation.
-                var identity = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex);
-                int ordinal = _ordinals.TryGetValue(identity, out int seen) ? seen : 0;
-                _ordinals[identity] = ordinal + 1;
-                var projectileKey = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex, ordinal);
+                var projectileKey = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex,
+                    hb.EmissionId, hb.AttackSlot, hb.ActivationAirborne);
                 _matchedLocal.Add(projectileKey);
                 if (!_activeVisuals.TryGetValue(projectileKey, out var vis))
                 {
-                    vis = TakeHeldVisual(hb.OwnerId, character, hb.AttackSlot, hb.AttackSequence)
-                        ?? CreateProjectileVisual(character, hb.AttackSlot, hb.ActivationAirborne);
+                    vis = TakeHeldVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne, hb.AttackSequence)
+                        ?? CreateProjectileVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
                     _activeVisuals[projectileKey] = vis;
                 }
                 vis.transform.position = new Vector3(hb.X, hb.Y, hb.Z);
                 ScaleProjectileVisual(vis, hb.Radius,
-                    GetChargedProjectileParameters(_sim.GetDefinition(hb.OwnerId), hb.AttackSlot, hb.ActivationAirborne),
-                    character, hb.AttackSlot, hb.ActivationAirborne);
-                OrientProjectile(vis.transform, character, hb.AttackSlot, hb.VX, hb.VY, hb.VZ);
+                    GetChargedProjectileParameters(_sim.GetDefinition(hb.OwnerId)?.GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)),
+                    hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
+                OrientProjectile(vis.transform, ProfileFor(hb.OwnerId)?.FindProjectile(hb.AttackSlot, hb.ActivationAirborne), hb.VX, hb.VY, hb.VZ);
             }
 
             _goneLocal.Clear();
@@ -182,9 +215,8 @@ namespace SlopArena.Client.Combat
         }
 
         private static CookedChargedProjectileCapabilityParameters GetChargedProjectileParameters(
-            CharacterDefinition definition, byte slot, bool airborne)
+            CookedSlotDefinition? cooked)
         {
-            var cooked = definition?.GetCookedSlotAbility(slot, airborne);
             if (cooked == null) return null;
             foreach (var stage in cooked.Timeline.Stages)
             foreach (var operation in stage.Operations)
@@ -195,54 +227,36 @@ namespace SlopArena.Client.Combat
         }
 
         private void ScaleProjectileVisual(GameObject visual, float radius,
-            CookedChargedProjectileCapabilityParameters charge, CharacterClass character, byte slot, bool airborne)
+            CookedChargedProjectileCapabilityParameters charge, ulong owner, byte slot, bool airborne)
         {
             if (charge == null || visual == null) return;
-            float baseScale = FindProjectileEntry(character, slot, airborne)?.Scale ?? _sphereRadius * 2f;
+            var row = ProfileFor(owner)?.FindProjectile(slot, airborne);
+            float baseScale = row?.Prefab != null ? row.Scale : _sphereRadius * 2f;
             visual.transform.localScale = Vector3.one * (baseScale * radius / charge.Projectile.Radius);
         }
 
-        private GameObject CreateProjectileVisual(CharacterClass character, byte attackSlot, bool airborne)
+        private GameObject CreateProjectileVisual(ulong owner, byte attackSlot, bool airborne)
         {
-            if (_config != null)
+            var row = ProfileFor(owner)?.FindProjectile(attackSlot, airborne);
+            if (row?.Prefab != null)
             {
-                var entry = FindProjectileEntry(character, attackSlot, airborne);
-                if (entry != null && entry.Prefab != null)
+                try
                 {
-                    try
-                    {
-                        var go = Instantiate(entry.Prefab);
-                        go.transform.localScale = Vector3.one * entry.Scale;
-                        return go;
-                    }
-                    catch (System.InvalidCastException)
-                    {
-                        Debug.LogError($"[ProjectileVFX] Invalid prefab reference for {entry.Character} slot={entry.AttackSlot} airborne={entry.Airborne}; using fallback visual.");
-                    }
+                    var visual = Instantiate(row.Prefab);
+                    visual.transform.localScale = Vector3.one * row.Scale;
+                    return visual;
+                }
+                catch (System.InvalidCastException)
+                {
+                    Debug.LogError($"[ProjectileVFX] Invalid prefab reference for owner={owner} slot={row.SlotId}; using fallback visual.");
                 }
             }
             return BuildProjectileVisual();
         }
 
-        private ProjectileVisualEntry FindProjectileEntry(CharacterClass character, byte attackSlot, bool airborne)
+        private static void OrientProjectile(Transform visual, ProjectilePresentation row, float vx, float vy, float vz)
         {
-            if (_config?.ProjectileEntries == null) return null;
-            for (int i = 0; i < _config.ProjectileEntries.Length; i++)
-            {
-                var e = _config.ProjectileEntries[i];
-                if (e.Character == character && e.AttackSlot == attackSlot && e.Airborne == airborne)
-                    return e;
-            }
-            return null;
-        }
-        /// <summary>Turns the root's +Y along the flight for visuals built point-first (kunai, rocket).</summary>
-        private static void OrientProjectile(Transform visual, CharacterClass character, byte slot,
-            float vx, float vy, float vz)
-        {
-            bool pointFirst = (character == CharacterClass.Wibou && slot == AbilitySlots.A)
-                || (character == CharacterClass.Manki && slot == AbilitySlots.R)
-                || (character == CharacterClass.Bashie && slot == AbilitySlots.A);
-            if (!pointFirst) return;
+            if (row?.Orientation != ProjectileOrientation.FlightPositiveY) return;
             var velocity = new Vector3(vx, vy, vz);
             if (velocity.sqrMagnitude > 0.0001f)
                 visual.rotation = Quaternion.LookRotation(velocity) * Quaternion.Euler(90f, 0f, 0f);
@@ -288,7 +302,7 @@ namespace SlopArena.Client.Combat
             coreMat.color = Color.white;
             coreMat.SetColor("_EmissionColor", _emissionColor * 2f);
             coreMat.EnableKeyword("_EMISSION");
-            mr.material = coreMat;
+            mr.sharedMaterial = coreMat;
 
             // ── Light ──
             var light = root.AddComponent<Light>();
@@ -314,16 +328,18 @@ namespace SlopArena.Client.Combat
             trailMat.color = _projectileColor;
             trailMat.SetColor("_EmissionColor", _projectileColor * 1.5f);
             trailMat.EnableKeyword("_EMISSION");
-            trail.material = trailMat;
+            trail.sharedMaterial = trailMat;
+            root.AddComponent<ProjectileMaterialOwner>().Materials = new[] { coreMat, trailMat };
 
             return root;
         }
 
         private void OnHitboxRemoved(Hitbox hb, float lastX, float lastY, float lastZ)
         {
+            if (!_owners.ContainsKey(hb.OwnerId)) return;
             if (hb.Explosion.HasValue)
             {
-                if (_sim.GetDefinition(hb.OwnerId)?.Class == CharacterClass.Manki)
+                if (ProfileFor(hb.OwnerId)?.SuppressRemovalExplosion == true)
                     return;
                 SpawnExplosion(hb, new Vector3(lastX, lastY, lastZ));
                 return;
@@ -334,7 +350,7 @@ namespace SlopArena.Client.Combat
             // their own confirmed effect (or shield feedback). Keep expiry bursts.
             if (!hb.Active && hb.AttackSlot > 0
                 && !string.IsNullOrEmpty(_sim.GetDefinition(hb.OwnerId)
-                    ?.GetSlotAbility((byte)(hb.AttackSlot - 1), hb.ActivationAirborne)?.HitPresentationId))
+                    ?.GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)?.HitPresentationId))
                 return;
             SpawnImpact(new Vector3(lastX, lastY, lastZ));
         }
@@ -344,22 +360,6 @@ namespace SlopArena.Client.Combat
             GameObject prefab = _config != null ? _config.ExplosionPrefab : null;
             float scale = _config != null ? _config.ExplosionScale : 1f;
             float visualScale = hb.Explosion.Value.Radius * scale;
-            var cls = _sim.GetDefinition(hb.OwnerId)?.Class ?? CharacterClass.None;
-            byte presentationSlot = hb.AttackSlot != 0 ? hb.AttackSlot : (byte)(hb.Slot + 1);
-            if (_config != null && _config.ExplosionOverrides != null)
-            {
-                for (int i = 0; i < _config.ExplosionOverrides.Length; i++)
-                {
-                    var overrideEntry = _config.ExplosionOverrides[i];
-                    if (overrideEntry.Character == cls
-                        && (overrideEntry.AttackSlot == 0 || overrideEntry.AttackSlot == presentationSlot))
-                    {
-                        prefab = overrideEntry.Prefab;
-                        visualScale = overrideEntry.Scale;
-                        break;
-                    }
-                }
-            }
             if (prefab == null) { SpawnImpact(position); return; }
             try
             {
@@ -370,7 +370,7 @@ namespace SlopArena.Client.Combat
             }
             catch (System.InvalidCastException)
             {
-                Debug.LogError($"[ProjectileVFX] Invalid explosion prefab reference for {cls} slot={presentationSlot}; using fallback impact.");
+                Debug.LogError($"[ProjectileVFX] Invalid explosion prefab reference for owner={hb.OwnerId} slot={hb.AttackSlot}; using fallback impact.");
                 SpawnImpact(position);
             }
 
@@ -420,8 +420,9 @@ namespace SlopArena.Client.Combat
 
             var renderer = ps.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
-            renderer.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            var mat = renderer.material;
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            renderer.sharedMaterial = mat;
+            go.AddComponent<ProjectileMaterialOwner>().Materials = new[] { mat };
             mat.SetFloat("_Surface", 1f);
             mat.SetOverrideTag("RenderType", "Transparent");
             mat.SetInt("_ZWrite", 0);
@@ -443,6 +444,7 @@ namespace SlopArena.Client.Combat
                 _resolver.OnHitboxRemoved -= OnHitboxRemoved;
             foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
             foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
+            _owners.Clear();
         }
     }
 }

@@ -66,8 +66,8 @@ namespace SlopArena.Client.World
             if (!_prop.gameObject.activeInHierarchy) return;
 
             ushort charge = _owner.CurrentChargeTicks;
-            float progress = ChargeTiers.Progress(_owner.CharacterDef, Slot, charge);
-            int tier = ChargeTiers.Of(_owner.CharacterDef, Slot, charge);
+            float progress = ChargeTiers.Progress(_owner.CurrentMove, charge);
+            int tier = ChargeTiers.Of(_owner.CurrentMove, charge);
             if (tier > _tier)
             {
                 if (_tier >= 0) _kick = 1f;

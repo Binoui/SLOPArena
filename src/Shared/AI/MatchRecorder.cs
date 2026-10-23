@@ -389,13 +389,7 @@ public sealed class MatchRecorder
             return Math.Max(total, effectEnd);
         }
 
-        var spec = def.GetSlotAbility(activeSlot - 1, airborne);
-        if (spec == null || spec.Stages == null || spec.Stages.Length == 0) return 0;
-        int max = 0;
-        if (spec.Stages[0].HitboxEvents != null)
-            foreach (var evt in spec.Stages[0].HitboxEvents)
-                max = Math.Max(max, evt.TriggerTick + evt.DurationTicks);
-        return max;
+        return 0;
     }
     private static int CapabilityWindowTicks(CookedCapabilityParameters parameters)
         => parameters switch
@@ -405,7 +399,7 @@ public sealed class MatchRecorder
             CookedChargedDirectionalDashCapabilityParameters x => x.MaxChargeTicks
                 + (int)MathF.Ceiling(x.MaxDistance / (x.DashSpeed * Simulation.TickDt)) + x.RecoveryTicks,
             CookedWibouRisingSlashCapabilityParameters x => x.RiseTicks,
-            CookedWibouBladeFlurryCapabilityParameters x => x.MoveTicks,
+            CookedWibouBladeFlurryCapabilityParameters x => x.DescentStartTick,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks + x.MaxFlightTicks + x.RecoveryTicks,
             CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
                 + Math.Max(x.HitEndingTicks, x.MissEndingTicks),

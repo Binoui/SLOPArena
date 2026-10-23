@@ -29,5 +29,15 @@ foreach (var entry in copy.Animations)
 }
 if (swapped.Count != swaps.Count)
     throw new InvalidOperationException("The catalog lacks " + string.Join(", ", swaps.Keys.Where(k => !swapped.ContainsKey(k))));
-renderer.SetAnimationCatalog(copy);
+var previewDefinition = def with
+{
+    ModelYOffset = renderer.ModelYOffset,
+    VisualScale = (float)rendererType.GetField("_modelVisualScale", flags).GetValue(renderer),
+};
+var model = (GameObject)rendererType.GetField("_modelPrefab", flags).GetValue(renderer);
+if (!renderer.Configure(previewDefinition, renderer.BakedData, copy, model, out var configurationError))
+{
+    UnityEngine.Object.Destroy(copy);
+    throw new InvalidOperationException(configurationError);
+}
 return new Dictionary<string, object> { ["swapped"] = swapped, ["catalog"] = original.name };

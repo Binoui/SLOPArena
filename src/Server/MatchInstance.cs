@@ -23,7 +23,6 @@ namespace SlopArena.Server
 	{
 		private readonly int _port;
 		private readonly string _matchId;
-		private readonly string _arenaName;
 		private readonly MatchContentCatalog _contentCatalog;
 		private readonly List<PlayerSlot> _slots;
 		/// <summary>Recent events and hits; each World Frame carries the last three ticks of them.</summary>
@@ -32,7 +31,7 @@ namespace SlopArena.Server
 		private UdpClient? _udpServer;
 		private volatile bool _running = true;
 
-		private ArenaDefinition _arena;
+		private readonly ArenaDefinition _arena;
 		private ServerSimulation _sim = null!;
 		private uint _serverTick;
 		private uint _startTick;
@@ -91,7 +90,7 @@ namespace SlopArena.Server
 		/// <param name="roster">Ordered players (index 0 = host). Each carries an entity ID (1..N) and a character class.</param>
 		/// <param name="maxStocks">Stocks per player (default 3, issue #37).</param>
 		/// <param name="onMatchResult">Optional callback invoked once when the match ends (match guid, winner steam id).</param>
-		public MatchInstance(int port, string matchId, string arenaName,
+		public MatchInstance(int port, string matchId, ArenaDefinition arena,
 			IReadOnlyList<MatchPlayer> roster, MatchContentCatalog contentCatalog, Action<int> onMatchEnd,
 			byte maxStocks = MatchDefaults.DefaultMaxStocks, Action<Guid, long>? onMatchResult = null,
 			Action<Guid>? onSteamMatchEnd = null, Action<Guid, string>? onMatchCancelled = null,
@@ -104,7 +103,7 @@ namespace SlopArena.Server
 			_format = format;
 			_port = port;
 			_matchId = matchId;
-			_arenaName = arenaName;
+			_arena = arena;
 			_contentCatalog = contentCatalog ?? throw new ArgumentNullException(nameof(contentCatalog));
 			_onMatchEnd = onMatchEnd;
 			_onMatchResult = onMatchResult;
@@ -115,7 +114,7 @@ namespace SlopArena.Server
 			_steamSend = steamSend;
 			_steamMatchGuid = steamSend is null ? Guid.Empty : Guid.Parse(matchId);
 			_clock = clock ?? TimeProvider.System;
-			Diagnostics = new MatchDiagnostics(matchId, arenaName, steamSend is null ? "development-udp" : "steam-p2p", _clock);
+			Diagnostics = new MatchDiagnostics(matchId, arena.Name, steamSend is null ? "development-udp" : "steam-p2p", _clock);
 			_contentHandleMap = contentHandleMap;
 			_rule = format.CreateRule(maxStocks, friendlyFire,
                 roster.ToDictionary(p => (ulong)p.EntityId, p => p.Camp), ballOnly);
@@ -297,20 +296,6 @@ namespace SlopArena.Server
 		private void Run()
 		{
 			Log($"Starting on port {_port} ({_slots.Count} players)");
-
-			var arenaOpt = ArenaRegistry.Get(_arenaName);
-			if (!arenaOpt.HasValue || !_format.Admits(arenaOpt.Value))
-			{
-				Console.WriteLine($"[Match:{_matchId}] Unknown arena '{_arenaName}' — aborting match.");
-				Diagnostics.Log(_serverTick, "Arena unavailable; match aborted.", "error");
-				Diagnostics.Complete();
-				if (_steamSend is not null) Stop("content_unavailable");
-				_onMatchEnd(_port);
-				if (_steamSend is not null && Guid.TryParse(_matchId, out var arenaFailureMatchId))
-					_onSteamMatchEnd?.Invoke(arenaFailureMatchId);
-				return;
-			}
-			_arena = arenaOpt.Value;
 
 			_sim = new ServerSimulation(_arena, _rule);
 			for (int i = 0; i < _slots.Count; i++)

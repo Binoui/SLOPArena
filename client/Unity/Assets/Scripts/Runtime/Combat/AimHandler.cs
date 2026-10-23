@@ -13,7 +13,7 @@ namespace SlopArena.Client.Combat
 {
     /// <summary>
     /// Owns the full aim pipeline for the local player each FixedUpdate tick:
-    ///   1. Resolves which AbilitySpec is currently active (just-pressed or held during attack)
+    ///   1. Resolves which CookedSlotDefinition is currently active (just-pressed or held during attack)
     ///   2. Transitions CameraMount mode (Normal / FreeCursor / Aiming)
     ///   3. Activates/deactivates AimCameraMount for CameraForward3D abilities
     ///   4. Computes GroundCursor/GroundVector aim and drives the presentation views
@@ -153,7 +153,7 @@ namespace SlopArena.Client.Combat
             CharacterState playerState,
             byte pendingSlotPress,
             CharacterDefinition charDef,
-            InputController inputController)
+            InputController inputController, CookedSlotDefinition? activeMove)
         {
             if (ChatInputGate.SuppressGameplay || SettingsOverlay.Active is { IsOpen: true } ||
                 SettingsOverlay.ClosedThisFrame || HumanInputActions.IsCapturing ||
@@ -161,7 +161,7 @@ namespace SlopArena.Client.Combat
                 return AimContext.None;
 
             // ── 1. Resolve active aim spec ──
-            AbilitySpec? spec = null;
+            CookedSlotDefinition? spec = null;
             _aimingSlot = 0;
 
             // A slot was just pressed and its key is still held down
@@ -170,9 +170,9 @@ namespace SlopArena.Client.Combat
                 byte slotIdx = (byte)(pendingSlotPress - 1);
                 if (inputController.IsSlotKeyHeld(slotIdx))
                 {
-                    var candidate = charDef.GetSlotAbility(slotIdx, !playerState.IsGrounded);
-                    if (candidate != null && (candidate.AimMode is AimMode.GroundCursor or AimMode.CameraForward3D or AimMode.GroundVector
-                        || candidate.Behavior == AbilityBehavior.ChargeAttack))
+                    var candidate = charDef.GetCookedSlotAbility((byte)((slotIdx) + 1), !playerState.IsGrounded);
+                    if (candidate != null && ((AimMode)candidate.AimMode is AimMode.GroundCursor or AimMode.CameraForward3D or AimMode.GroundVector
+                        || candidate.Behavior == AuthoringAbilityBehavior.ChargeAttack))
                     {
                         spec = candidate;
                         _aimingSlot = slotIdx;
@@ -185,9 +185,9 @@ namespace SlopArena.Client.Combat
                 byte slotIdx = (byte)(playerState.AttackSlot - 1);
                 if (inputController.IsSlotKeyHeld(slotIdx))
                 {
-                    var candidate = charDef.GetSlotAbility(slotIdx, !playerState.IsGrounded);
-                    if (candidate != null && (candidate.AimMode is AimMode.GroundCursor or AimMode.CameraForward3D or AimMode.GroundVector
-                        || candidate.Behavior == AbilityBehavior.ChargeAttack))
+                    var candidate = activeMove;
+                    if (candidate != null && ((AimMode)candidate.AimMode is AimMode.GroundCursor or AimMode.CameraForward3D or AimMode.GroundVector
+                        || candidate.Behavior == AuthoringAbilityBehavior.ChargeAttack))
                     {
                         spec = candidate;
                         _aimingSlot = slotIdx;
@@ -195,8 +195,8 @@ namespace SlopArena.Client.Combat
                 }
             }
 
-            AimMode aimMode = spec?.AimMode ?? AimMode.None;
-            bool locksMovement = spec?.AimMovement == AimMovementMode.Fixed;
+            AimMode aimMode = (AimMode?)spec?.AimMode ?? AimMode.None;
+            bool locksMovement = spec?.AimMovement == AuthoringAimMovementMode.Fixed;
             Vector2 aimStick = inputController.GetAimStick(locksMovement);
 
             // ── 2. Drive camera mode (transitions only) ──
@@ -219,7 +219,7 @@ namespace SlopArena.Client.Combat
                 {
                     _cameraMount?.FreezeAtCurrentAngles();
                     _lob = null;
-                    var cookedCursorSlot = charDef.GetCookedSlotAbility((byte)(_aimingSlot + 1), !playerState.IsGrounded);
+                    var cookedCursorSlot = spec;
                     if (cookedCursorSlot != null)
                         foreach (var stage in cookedCursorSlot.Timeline.Stages)
                         foreach (var operation in stage.Operations)
@@ -239,25 +239,16 @@ namespace SlopArena.Client.Combat
                     _lastAimPitchRad = 0f;
                     // Hidden cursor starts above the character's screen position → aim = camera forward.
                     _aimScreenOffset = Vector2.up * AimScreenDeadZone;
-                    _groundVectorDistance = spec?.Params != null
-                        && spec.Params.TryGetValue("dash_distance", out float distance) ? distance : 5f;
-                    // Wibou's dash velocity is authored as consecutive timeline windows.
-                    // Derive the endpoint once on aim entry so the marker follows Ability Lab edits.
-                    if (charDef.Class == CharacterClass.Wibou)
-                    {
-                        var slot = charDef.GetCookedSlotAbility((byte)(_aimingSlot + 1), !playerState.IsGrounded);
-                        if (slot?.Timeline.Stages.Count > 0)
-                        {
-                            float authoredDistance = 0f;
-                            foreach (var operation in slot.Timeline.Stages[0].Operations)
-                                if (operation is CookedForwardLungeOperation lunge)
-                                    authoredDistance += lunge.Speed * lunge.DurationTicks * SlopArena.Shared.Simulation.TickDt;
-                            if (authoredDistance > 0f)
-                                _groundVectorDistance = authoredDistance;
-                        }
-                    }
+                    _groundVectorDistance = 5f;
+                    float authoredDistance = 0f;
+                    if (spec != null)
+                        foreach (var stage in spec.Timeline.Stages)
+                        foreach (var operation in stage.Operations)
+                            if (operation is CookedForwardLungeOperation lunge)
+                                authoredDistance += lunge.Speed * lunge.DurationTicks * SlopArena.Shared.Simulation.TickDt;
+                    if (authoredDistance > 0f) _groundVectorDistance = authoredDistance;
                     _hasChargedDashParameters = false;
-                    var cookedAimSlot = charDef.GetCookedSlotAbility((byte)(_aimingSlot + 1), !playerState.IsGrounded);
+                    var cookedAimSlot = spec;
                     if (cookedAimSlot != null)
                         foreach (var stage in cookedAimSlot.Timeline.Stages)
                         foreach (var operation in stage.Operations)
@@ -286,7 +277,7 @@ namespace SlopArena.Client.Combat
 
             // ── 3. Collect aim data ──
             AimContext ctx = AimContext.None;
-            bool isCharging = spec != null && spec.Behavior == AbilityBehavior.ChargeAttack;
+            bool isCharging = spec != null && spec.Behavior == AuthoringAbilityBehavior.ChargeAttack;
             _hasGroundAimTarget = false;
 
             if (aimMode == AimMode.GroundCursor)
@@ -347,8 +338,8 @@ namespace SlopArena.Client.Combat
                 // Use the authored dash travel for the endpoint; width follows the hitbox.
                 float dashDistance = _groundVectorDistance;
                 float dashWidth = 1.1f;
-                if (spec?.Stages is { Length: > 0 } && spec.Stages[0].HitboxEvents is { Length: > 0 })
-                    dashWidth = spec.Stages[0].HitboxEvents[0].Radius * 2f;
+                if (spec?.Timeline.Stages is { Count: > 0 } && spec.Timeline.Stages[0].ReadHitboxes() is { Length: > 0 })
+                    dashWidth = spec.Timeline.Stages[0].ReadHitboxes()[0].Radius * 2f;
                 if (_hasChargedDashParameters)
                     dashWidth = _chargedDashParameters.FinisherHitbox.Radius * 2f;
                 byte? chargeTier = null;

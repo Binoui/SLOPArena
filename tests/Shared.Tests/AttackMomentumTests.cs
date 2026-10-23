@@ -380,14 +380,14 @@ public class AttackMomentumTests
         ushort iasaTicks = 0, CookedTimelineOperation[]? operations = null)
     {
         var def = TestHelpers.EngineDef;
-        def.CookedSlots = def.CookedSlots!.Select(slot => new CookedSlotDefinition(
+        def = def with { CookedSlots = def.CookedSlots!.Select(slot => new CookedSlotDefinition(
             slot.Ordinal, slot.Id, slot.IsAir, slot.Name, slot.Description, slot.IconId,
             slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove,
             preserveMomentum, new CookedTimeline(new[]
             {
                 new CookedStage(30, iasaTicks, 0, 0, 0, Array.Empty<string>(),
                     operations ?? Array.Empty<CookedTimelineOperation>()),
-            }), slot.ChargePool, slot.AimMovement, slot.AimAnimationId, allowCarry)).ToArray();
+            }), slot.ChargePool, slot.AimMovement, slot.AimAnimationId, allowCarry)).ToArray() };
         return def;
     }
 }

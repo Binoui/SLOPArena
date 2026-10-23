@@ -30,7 +30,7 @@ public class KnockbackPhysicsDataTests
     private static CharacterDefinition KnockbackFixture()
     {
         var def = TestHelpers.EngineDef;
-        def.Weight = 100f;
+        def = def with { Weight = 100f };
         return def;
     }
 

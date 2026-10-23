@@ -224,21 +224,9 @@ internal static class Program
     }
 
     internal static string AbilityName(CharacterDefinition def, byte activeSlot, bool air)
-        => def.GetCookedSlotAbility(activeSlot, air)?.Name
-            ?? def.GetSlotAbility(activeSlot - 1, air)?.Name ?? "-";
+        => def.GetCookedSlotAbility(activeSlot, air)?.Name ?? "-";
 
-    internal static string SlotOf(byte activeSlot) => activeSlot switch
-    {
-        AbilitySlots.Slot1 => "1",
-        AbilitySlots.Slot2 => "2",
-        AbilitySlots.Slot3 => "3",
-        AbilitySlots.Slot4 => "4",
-        AbilitySlots.A => "A",
-        AbilitySlots.E => "E",
-        AbilitySlots.R => "R",
-        AbilitySlots.F => "F",
-        _ => "?",
-    };
+    internal static string SlotOf(byte activeSlot) => CanonicalSlotProjection.TryGet(activeSlot, false, out var address) ? address.InputLabel : "?";
 
     // ── Reach envelope (deterministic threat zone, sampled from real hitboxes) ──
 
@@ -255,8 +243,8 @@ internal static class Program
             for (int i = 0; i < SlotBytes.Length; i++)
             {
                 byte slot = SlotBytes[i];
-                var spec = def.GetSlotAbility(slot - 1, air);
-                if (spec == null || spec.Stages == null || spec.Stages.Length == 0) continue;
+                var spec = def.GetCookedSlotAbility(slot, air);
+                if (spec == null || spec.Timeline.Stages == null || spec.Timeline.Stages.Count == 0) continue;
 
                 var sim = new ServerSimulation(BuildKillArena());
                 float gpy = def.CapsuleHeight * 0.5f;

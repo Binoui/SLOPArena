@@ -529,15 +529,8 @@ public sealed class ChargedDirectionalDashTests
                 airborne ? "air.R" : "ground.R", airborne, "Charged dash fixture", "", "",
                 AuthoringAbilityBehavior.DirectionalDash, AuthoringAimMode.GroundVector, 0, false, false,
                 timeline, aimMovement: AuthoringAimMovementMode.Mobile);
-        definition.CookedSlots = slots;
-        definition.R = definition.AirR = new AbilitySpec
-        {
-            Behavior = AbilityBehavior.DirectionalDash,
-            AimMode = AimMode.GroundVector,
-            AimMovement = AimMovementMode.Mobile,
-            Stages = new[] { new AttackStage { DurationTicks = 80 } },
-            AnimationNames = Array.Empty<string>(),
-        };
+        definition = definition with { CookedSlots = slots };
+
         return definition;
     }
 }

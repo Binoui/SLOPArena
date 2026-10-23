@@ -155,6 +155,14 @@ public static class CharacterPackageAssembler
     public const string ManifestPath = "manifest.json";
     private static readonly string[] PayloadPaths = { RuntimePath, PosePath, BindingPath };
 
+    /// <summary>Validates binding metadata without resolving Unity assets or requiring other payloads.</summary>
+    public static IReadOnlyList<CharacterDiagnostic> ValidateClientBindings(byte[] bytes)
+    {
+        var diagnostics = new List<CharacterDiagnostic>();
+        ParseBindings(bytes, diagnostics);
+        return diagnostics;
+    }
+
     public static CharacterPackageAssemblyResult Assemble(CharacterPackageAssemblyInput input)
     {
         var diagnostics = new List<CharacterDiagnostic>();
@@ -445,7 +453,7 @@ public static class CharacterPackageAssembler
         foreach (string id in requiredPresentationSet)
             if (!requiredPresentations.Contains(id, StringComparer.Ordinal))
                 d.Add(Error("package.binding.presentation-undeclared", id, "Hit presentation ID is not declared by the cooked definition."));
-        if (binding.HasPresentations)
+        if (binding.BindingSchemaVersion == 2 || binding.HasPresentations)
             requiredPresentationSet.UnionWith(requiredPresentations);
         foreach (string id in requiredPresentationSet)
             if (!binding.Presentations.Contains(id))
@@ -462,7 +470,25 @@ public static class CharacterPackageAssembler
             using var document = JsonDocument.Parse(bytes);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object) { d.Add(Error("package.binding.schema", BindingPath, "Binding payload must be an object.")); return null; }
-            EnsureFieldsOptional(root, new[] { "packageId", "catalogSchemaVersion", "bindingSchemaVersion", "poseFormat", "poseVersion", "sampleRate", "sourceHash", "rigGlobalObjectId", "weaponConfigGlobalObjectId", "animations", "presentations" }, BindingPath, d);
+            int version = GetInt(root, "bindingSchemaVersion");
+            if (version is not (1 or 2) || GetInt(root, "catalogSchemaVersion") != version)
+                d.Add(Error("package.binding.schema", BindingPath, "Only matching catalog/binding schemas 1 or 2 are supported."));
+            string[] fields = { "packageId", "catalogSchemaVersion", "bindingSchemaVersion", "poseFormat", "poseVersion", "sampleRate", "sourceHash", "rigGlobalObjectId", "weaponConfigGlobalObjectId", "animations", "presentations" };
+            if (version == 2)
+            {
+                EnsureFields(root, fields.Concat(new[] { "presentationProfile" }).ToArray(), BindingPath, d);
+                foreach (string field in fields.Concat(new[] { "presentationProfile" }))
+                    if (!root.TryGetProperty(field, out _))
+                        d.Add(Error("package.field.missing", BindingPath + "." + field, "Required schema 2 field is missing."));
+                if (!MatchContentCatalogBuilder.IsStablePackageId(GetString(root, "packageId"))
+                    || !IsLowerHash(GetString(root, "sourceHash")) || GetString(root, "poseFormat") != "SKEL"
+                    || GetInt(root, "poseVersion") != 1 || GetInt(root, "sampleRate") != 60)
+                    d.Add(Error("package.binding.metadata-invalid", BindingPath, "Schema 2 requires a stable package ID, SHA-256 source hash, SKEL pose version 1 and 60 Hz."));
+                ValidateMediaId(root.GetProperty("rigGlobalObjectId"), false, "rigGlobalObjectId", d);
+                ValidateMediaId(root.GetProperty("weaponConfigGlobalObjectId"), true, "weaponConfigGlobalObjectId", d);
+                ValidatePresentationProfile(root.GetProperty("presentationProfile"), d);
+            }
+            else EnsureFieldsOptional(root, fields, BindingPath, d);
             var result = new BindingData
             {
                 PackageId = GetString(root, "packageId"),
@@ -478,6 +504,16 @@ public static class CharacterPackageAssembler
                 EnsureFields(element, new[] { "semanticId", "poseTrackId", "clipGlobalObjectId", "poseName", "frameCount", "clipLengthBits", "sampleRate", "extrapolation" }, BindingPath + ".animations", d);
                 var item = new BindingItem(GetString(element, "semanticId"), GetString(element, "poseTrackId"), GetInt(element, "frameCount"));
                 if (string.IsNullOrEmpty(item.SemanticId) || string.IsNullOrEmpty(item.PoseTrackId) || item.FrameCount <= 0) d.Add(Error("package.binding.value", BindingPath, "Binding IDs and frame count are invalid."));
+                if (version == 2)
+                {
+                    ValidateMediaId(element.GetProperty("clipGlobalObjectId"), false, "animations.clipGlobalObjectId", d);
+                    float length = BitConverter.Int32BitsToSingle(GetInt(element, "clipLengthBits"));
+                    if (float.IsNaN(length) || float.IsInfinity(length) || length <= 0f
+                        || GetInt(element, "sampleRate") != result.SampleRate
+                        || GetString(element, "poseName") != item.PoseTrackId
+                        || element.GetProperty("extrapolation").GetInt32() is < (int)ExtrapolationMode.None or > (int)ExtrapolationMode.Continuous)
+                        d.Add(Error("package.binding.value", item.SemanticId, "Animation metadata is invalid."));
+                }
                 if (!result.BySemantic.TryAdd(item.SemanticId, item)) d.Add(Error("package.binding.duplicate", item.SemanticId, "Duplicate semantic animation ID."));
                 if (!result.ByPose.TryAdd(item.PoseTrackId, item)) d.Add(Error("package.binding.duplicate", item.PoseTrackId, "Duplicate pose-track ID."));
             }
@@ -489,15 +525,84 @@ public static class CharacterPackageAssembler
                     EnsureFields(element, new[] { "semanticId", "prefabGlobalObjectId" }, BindingPath + ".presentations", d);
                     string id = GetString(element, "semanticId");
                     string prefabId = GetString(element, "prefabGlobalObjectId");
+                    if (version == 2) ValidateMediaId(element.GetProperty("prefabGlobalObjectId"), false, "presentations.prefabGlobalObjectId", d);
                     if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(prefabId))
                         d.Add(Error("package.binding.value", BindingPath + ".presentations", "Presentation IDs and prefab object IDs are required."));
                     else if (!result.Presentations.Add(id))
                         d.Add(Error("package.binding.duplicate", id, "Duplicate semantic presentation ID."));
                 }
             }
+            if (root.TryGetProperty("presentations", out var presentationValue) && presentationValue.ValueKind != JsonValueKind.Array)
+                d.Add(Error("package.binding.schema", "presentations", "Presentations must be an array."));
             return result;
         }
         catch (Exception ex) { d.Add(Error("package.binding.malformed", BindingPath, ex.Message)); return null; }
+    }
+
+    // v1 retains its symbolic-media fixture contract. v2 carries complete Unity media metadata.
+    private static void ValidateMediaId(JsonElement value, bool allowEmpty, string path, List<CharacterDiagnostic> d)
+    {
+        string text = value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+        string[] parts = text.Split('-');
+        bool valid = allowEmpty && value.ValueKind == JsonValueKind.String && text.Length == 0;
+        valid |= parts.Length == 5 && parts[0] == "GlobalObjectId_V1"
+            && parts[1] is "1" or "2" or "3"
+            && parts[2].Length == 32 && parts[2].Any(c => c != '0')
+            && parts[2].All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')
+            && ulong.TryParse(parts[3], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out ulong fileId) && fileId != 0
+            && ulong.TryParse(parts[4], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _);
+        if (!valid) d.Add(Error("package.binding.media-id", path, "A stable Unity object ID is required."));
+    }
+
+    private static void ValidatePresentationProfile(JsonElement profile, List<CharacterDiagnostic> d)
+    {
+        const string path = "presentationProfile";
+        EnsureFields(profile, new[] { "respawnTintBits", "swing", "lightImpact", "mediumImpact", "heavyImpact", "suppressRemovalExplosion", "projectiles" }, path, d);
+        var tint = profile.GetProperty("respawnTintBits");
+        if (tint.ValueKind != JsonValueKind.Array || tint.GetArrayLength() != 4)
+            d.Add(Error("package.binding.profile", path + ".respawnTintBits", "Four finite RGBA float bits are required."));
+        else foreach (var bits in tint.EnumerateArray()) FloatBits(bits, false, path + ".respawnTintBits");
+        foreach (string name in new[] { "swing", "lightImpact", "mediumImpact", "heavyImpact" })
+        {
+            var pool = profile.GetProperty(name);
+            EnsureFields(pool, new[] { "selection", "clipGlobalObjectIds" }, path + "." + name, d);
+            int selection = pool.GetProperty("selection").GetInt32();
+            var clips = pool.GetProperty("clipGlobalObjectIds");
+            if (clips.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Audio pool clips must be an array.");
+            int count = clips.GetArrayLength();
+            if (selection is < 0 or > 1 || (selection == 0 && count != 1 && !(name == "swing" && count == 0))
+                || (selection == 1 && count == 0))
+                d.Add(Error("package.binding.profile", path + "." + name, "Fixed pools have one clip, Cycle pools at least one; empty Fixed Swing means silence."));
+            foreach (var clip in clips.EnumerateArray()) ValidateMediaId(clip, true, path + "." + name, d);
+        }
+        if (profile.GetProperty("suppressRemovalExplosion").ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+            d.Add(Error("package.binding.profile", path, "Removal suppression must be boolean."));
+        var rows = profile.GetProperty("projectiles");
+        if (rows.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Projectile rows must be an array.");
+        if (rows.GetArrayLength() > 16) d.Add(Error("package.binding.profile", path, "At most sixteen canonical projectile rows are supported."));
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows.EnumerateArray())
+        {
+            EnsureFields(row, new[] { "slotId", "prefabGlobalObjectId", "scaleBits", "orientation", "heldBoneId" }, path + ".projectiles", d);
+            string slot = GetString(row, "slotId");
+            if (!CanonicalSlotProjection.TryGet(slot, out _) || !seen.Add(slot))
+                d.Add(Error("package.binding.profile", path + ".projectiles", "Projectile slots must be unique canonical IDs."));
+            ValidateMediaId(row.GetProperty("prefabGlobalObjectId"), false, path + ".projectiles.prefabGlobalObjectId", d);
+            FloatBits(row.GetProperty("scaleBits"), true, path + ".projectiles.scaleBits");
+            if (row.GetProperty("orientation").GetInt32() is < 0 or > 1)
+                d.Add(Error("package.binding.profile", path + ".projectiles.orientation", "Unsupported projectile orientation."));
+            string bone = row.GetProperty("heldBoneId").GetString() ?? throw new InvalidDataException("Held bone ID must be a string.");
+            if (bone.Length != 0 && (!bone.StartsWith("bone.", StringComparison.Ordinal) || bone.Length == 5 || bone.Length > 64
+                || !bone.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '.' or '-')))
+                d.Add(Error("package.binding.profile", path + ".projectiles.heldBoneId", "Held attachment must be a semantic bone ID or empty."));
+        }
+        void FloatBits(JsonElement bits, bool positive, string field)
+        {
+            if (!bits.TryGetInt32(out int integer)) { d.Add(Error("package.binding.profile", field, "Float bits must be int32.")); return; }
+            float value = BitConverter.Int32BitsToSingle(integer);
+            if (float.IsNaN(value) || float.IsInfinity(value) || (positive && value <= 0f))
+                d.Add(Error("package.binding.profile", field, "Float bits must encode a finite value, positive for scale."));
+        }
     }
 
     private static PoseData? ParsePoses(byte[] bytes, List<CharacterDiagnostic> d)

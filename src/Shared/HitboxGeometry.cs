@@ -68,17 +68,15 @@ public static class HitboxGeometry
     /// <param name="evt">The hitbox event to position.</param>
     /// <param name="baked">Baked skeleton data (nullable — bone path requires it).</param>
     /// <param name="def">Character definition (bone set + scale + duration lookup).</param>
-    /// <param name="animationNames">Ability's AnimationNames[] (AnimIndex selects the pose animation).</param>
-    /// <param name="animIndex">Current animation index into animationNames.</param>
-    /// <param name="slot">0-based ability slot (for stage duration lookup).</param>
-    /// <param name="airborne">True when the ability is an air slot — selects the air spec's stage duration.</param>
+    /// <param name="move">Cooked move selected at activation, including its ground/air variant.</param>
+    /// <param name="animIndex">Presentation clip index, independent of the timeline stage.</param>
     public static void ResolvePositions(
         in CharacterState s, in HitboxEvent evt,
         BakedAnimationData? baked, CharacterDefinition? def,
-        string[]? animationNames, byte animIndex, byte slot, bool airborne,
+        CookedSlotDefinition? move, byte animIndex,
         out float wx, out float wy, out float wz,
         out float wex, out float wey, out float wez)
-        => ResolvePositionsAt(in s, in evt, baked, def, animationNames, animIndex, slot, airborne,
+        => ResolvePositionsAt(in s, in evt, baked, def, move, animIndex,
             s.AttackElapsedTicks, out wx, out wy, out wz, out wex, out wey, out wez);
 
     /// <summary>
@@ -89,7 +87,7 @@ public static class HitboxGeometry
     public static void ResolvePositionsAt(
         in CharacterState s, in HitboxEvent evt,
         BakedAnimationData? baked, CharacterDefinition? def,
-        string[]? animationNames, byte animIndex, byte slot, bool airborne, float elapsedTicks,
+        CookedSlotDefinition? move, byte animIndex, float elapsedTicks,
         out float wx, out float wy, out float wz,
         out float wex, out float wey, out float wez)
     {
@@ -112,7 +110,7 @@ public static class HitboxGeometry
         int animIdx = -1, startPoint = -1, endPoint = -1;
         float frame = 0f;
         if (baked != null && def != null && (evt.BoneName != null || evt.EndBoneName != null)
-            && TryResolveFrame(baked, def, animationNames, animIndex, slot, airborne, elapsedTicks, out animIdx, out frame))
+            && TryResolveFrame(baked, def, move, animIndex, elapsedTicks, out animIdx, out frame))
         {
             if (evt.BoneName != null) startPoint = baked.FindBoneIndex(evt.BoneName);
             if (evt.EndBoneName != null) endPoint = baked.FindBoneIndex(evt.EndBoneName);
@@ -148,7 +146,7 @@ public static class HitboxGeometry
     /// </summary>
     public static HitboxPose[]? SweepPoses(
         in HitboxEvent evt, BakedAnimationData? baked, CharacterDefinition? def,
-        string[]? animationNames, byte animIndex, byte slot, bool airborne,
+        CookedSlotDefinition? move, byte animIndex,
         in HitboxSweepOrigin from, in CharacterState owner, in HitboxPose current)
     {
         int clockStep = owner.AttackElapsedTicks - from.AttackElapsedTicks;
@@ -160,8 +158,8 @@ public static class HitboxGeometry
             Distance(from.Pose.EndX, from.Pose.EndY, from.Pose.EndZ, current.EndX, current.EndY, current.EndZ));
         int steps = (int)MathF.Ceiling(travel / MathF.Max(MinSweepSpacing, evt.Radius * 0.5f));
         if (clockStep > 0 && baked != null && def != null
-            && TryResolveFrame(baked, def, animationNames, animIndex, slot, airborne, from.AttackElapsedTicks, out _, out float frame0)
-            && TryResolveFrame(baked, def, animationNames, animIndex, slot, airborne, owner.AttackElapsedTicks, out _, out float frame1))
+            && TryResolveFrame(baked, def, move, animIndex, from.AttackElapsedTicks, out _, out float frame0)
+            && TryResolveFrame(baked, def, move, animIndex, owner.AttackElapsedTicks, out _, out float frame1))
             steps = Math.Max(steps, (int)MathF.Ceiling((frame1 - frame0) * 2f));
         if (steps > MaxSweepSteps) steps = MaxSweepSteps;
         if (steps <= 1) return null;
@@ -179,7 +177,7 @@ public static class HitboxGeometry
             sample.PZ = from.PZ + (owner.PZ - from.PZ) * t;
             sample.FacingYaw = from.FacingYaw + yawStep * t;
             sample.AttackPosePitch = from.AttackPosePitch + (owner.AttackPosePitch - from.AttackPosePitch) * t;
-            ResolvePositionsAt(in sample, in evt, baked, def, animationNames, animIndex, slot, airborne,
+            ResolvePositionsAt(in sample, in evt, baked, def, move, animIndex,
                 from.AttackElapsedTicks + clockStep * t,
                 out float x, out float y, out float z, out float ex, out float ey, out float ez);
             poses[i - 1] = new HitboxPose { X = x, Y = y, Z = z, EndX = ex, EndY = ey, EndZ = ez };
@@ -192,28 +190,21 @@ public static class HitboxGeometry
     /// to idle when the stage animation is missing; false when the bake has neither.
     /// </summary>
     private static bool TryResolveFrame(
-        BakedAnimationData baked, CharacterDefinition def, string[]? animationNames,
-        byte animIndex, byte slot, bool airborne, float elapsedTicks,
+        BakedAnimationData baked, CharacterDefinition def, CookedSlotDefinition? move,
+        byte animIndex, float elapsedTicks,
         out int animIdx, out float frame)
     {
         frame = 0f;
-        string targetAnim = animationNames != null && animationNames.Length > animIndex
-            ? animationNames[animIndex] : "idle";
+        if (move == null) { animIdx = -1; return false; }
+        string targetAnim = move.Clip(animIndex).AnimationId;
         animIdx = baked.FindAnimIndex(targetAnim);
         if (animIdx < 0) animIdx = baked.FindAnimIndex("idle");
         if (animIdx < 0) return false;
 
         int frameCount = baked.Animations[animIdx].FrameCount;
         if (frameCount <= 0) return false;
-        var spec = def.GetSlotAbility(slot, airborne);
-        int durationTicks = (spec != null && animIndex < spec.Stages.Length)
-            ? spec.Stages[animIndex].DurationTicks
-            : 60;
-        // AttackElapsedTicks counts from the activation; each stage's clip starts at its stage.
-        if (spec != null)
-            for (int i = 0; i < animIndex && i < spec.Stages.Length; i++)
-                elapsedTicks -= spec.Stages[i].DurationTicks;
-        frame = AttackFrame(elapsedTicks, frameCount, durationTicks);
+        frame = move.Clip(animIndex).At(elapsedTicks).FrameAt(frameCount);
+
         return true;
     }
 

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CharacterAssetCatalog
   m_EditorClassIdentifier: 
   _packageId: bashie
-  _catalogSchemaVersion: 1
+  _catalogSchemaVersion: 2
   _rig: {fileID: 214534977138470835, guid: 70e9fca74a636335989fca2166d526b7, type: 3}
   _weaponConfig: {fileID: 11400000, guid: dcfa54cbcfd82de45aafe07cfcd4865b, type: 2}
   _sampleRate: 60
@@ -55,7 +55,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.g2
   - _semanticId: anim.bashie.g3
-    _clip: {fileID: 7400000, guid: 2de9bea7f1ad6cf0d8abfa252b362d8a, type: 2}
+    _clip: {fileID: 7400000, guid: af4a38833bdd5902ca11d50359d23cb6, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g3
   - _semanticId: anim.bashie.g4
@@ -171,3 +171,45 @@ MonoBehaviour:
     _prefab: {fileID: 517856996095854005, guid: 9225ed2d42dccad728d84469e1770e71, type: 3}
   - _semanticId: presentation.bashie.ring.rebound
     _prefab: {fileID: 6741874939935604705, guid: a79d6fb931198771d85f65ce202b128a, type: 3}
+  - _semanticId: presentation.bashie.shell.flip-tuck
+    _prefab: {fileID: 1165248993868918788, guid: 89fa43edb19bfe10ebb6c96a8e2bf680, type: 3}
+  _presentationProfile:
+    _respawnTint: {r: 0.98, g: 0.3, b: 0.27, a: 0.95}
+    _swing:
+      _selection: 0
+      _clips: []
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 0029c10ef707c8b1199ecc96c44caa12, type: 3}
+      - {fileID: 8300000, guid: beed22528bd555d52a1bdd351b792242, type: 3}
+      - {fileID: 8300000, guid: 850c4c71587eb80e79e016e55758ece6, type: 3}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 4fe493f595d3130eeb68676b868598ca, type: 3}
+      - {fileID: 8300000, guid: 3ede2593564c0e051b9f3a255d1af04b, type: 3}
+      - {fileID: 8300000, guid: 24f7c9a1893590c49974821006f40e8c, type: 3}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 30a4f31695b8d572e8094b3acd7bcbd8, type: 3}
+      - {fileID: 8300000, guid: a3b984619edd48dd7b015bada2e5fd2b, type: 3}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles:
+    - _slotId: ground.A
+      _prefab: {fileID: 5593879402531800539, guid: 272244521638ca46f9d057031e67e4f5, type: 3}
+      _scale: 1
+      _orientation: 1
+      _heldBoneId: 
+      _prefabObjectId: 
+    - _slotId: air.A
+      _prefab: {fileID: 5593879402531800539, guid: 272244521638ca46f9d057031e67e4f5, type: 3}
+      _scale: 1
+      _orientation: 1
+      _heldBoneId: 
+      _prefabObjectId: 

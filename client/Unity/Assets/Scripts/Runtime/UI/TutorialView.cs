@@ -264,12 +264,12 @@ namespace SlopArena.Client.UI
 
         /// <summary>Some recovery specials aim before they launch; the hint then explains the hold.</summary>
         private bool AimedRecovery
-            => (_def.GetSlotAbility(AbilitySlots.E - 1, airborne: true) ?? _def.GetSlotAbility(AbilitySlots.E - 1))?.AimMode
-                is { } mode && mode != AimMode.None;
+            => (_def.GetCookedSlotAbility(AbilitySlots.E, airborne: true) ?? _def.GetCookedSlotAbility(AbilitySlots.E, false))?.AimMode
+                is { } mode && mode != AuthoringAimMode.None;
 
         private string MoveName(byte wireSlot, bool airborne = false)
         {
-            var spec = _def.GetSlotAbility(wireSlot - 1, airborne) ?? _def.GetSlotAbility(wireSlot - 1, !airborne);
+            var spec = _def.GetCookedSlotAbility(wireSlot, airborne) ?? _def.GetCookedSlotAbility(wireSlot, !airborne);
             return spec != null && !string.IsNullOrWhiteSpace(spec.Name) ? spec.Name : "that move";
         }
 

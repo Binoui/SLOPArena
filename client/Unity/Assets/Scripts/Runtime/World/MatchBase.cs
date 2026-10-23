@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using Unity.Cinemachine;
@@ -15,6 +16,10 @@ namespace SlopArena.Client.World
 {
     public abstract class MatchBase : MonoBehaviour
     {
+        public static MatchBase Active { get; private set; }
+
+        protected virtual void Awake() => Active = this;
+
         // Subclasses provide the bridge (local sim or network)
         protected abstract ISimulationBridge Bridge { get; }
 
@@ -109,6 +114,7 @@ namespace SlopArena.Client.World
         }
         protected virtual void OnDestroy()
         {
+            if (Active == this) Active = null;
             PresentationFloor.Clear();
             _aimHandler?.ResetPresentation();
             _timelinePresentations.Clear();
@@ -162,24 +168,25 @@ namespace SlopArena.Client.World
                 return false;
             }
 
+            var animationOverride = local && entry.CookedCharacterPackage == null ? _playerAnimConfig : null;
+            if (!renderer.Configure(def, entry.BakedAnimation, animationCatalog,
+                    rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride))
+            {
+                Debug.LogError($"[{GetType().Name}] Renderer configuration failed: {configurationError}");
+                return false;
+            }
+
             renderer.EntityId = entityId;
-            renderer.ModelYOffset = def.ModelYOffset;
-            renderer.CapsuleRadius = def.CapsuleRadius;
-            renderer.CapsuleHeight = def.CapsuleHeight;
-            renderer.HurtboxBoneDefs = def.HurtboxBoneDefs;
             renderer.SetBlastLines(arena);
-            renderer.SetBakedData(entry.BakedAnimation);
-            renderer.SetCharacterDefinition(def);
-            renderer.SetAnimationCatalog(animationCatalog);
-            FindFirstObjectByType<CombatFeedback>()?.RegisterRenderer(renderer);
+            var projectiles = FindFirstObjectByType<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
+            projectiles.RegisterOwner(entityId, animationCatalog, renderer);
+            renderer.BindProjectilePresentation(projectiles);
+            var feedback = FindFirstObjectByType<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
+            feedback.RegisterRenderer(renderer);
             _timelinePresentations.Register(entityId, renderer, animationCatalog);
 
-            if (local && _playerAnimConfig != null && entry.CookedCharacterPackage == null)
-                renderer.SetAnimationConfig(_playerAnimConfig);
-            renderer.LoadModel(def, rig ?? (local ? _playerModelPrefab : null));
-
             var weaponConfig = entry.CookedCharacterPackage != null
-                ? (cookedWeaponConfig ?? Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}"))
+                ? cookedWeaponConfig
                 : local && _playerWeaponConfig != null
                     ? _playerWeaponConfig
                     : Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}");

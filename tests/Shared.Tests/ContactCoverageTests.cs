@@ -295,12 +295,12 @@ public sealed class ContactCoverageTests
     {
         var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
         var definition = TestHelpers.EngineDef;
-        definition.Class = source.Definition.Class;
+        definition = definition with { Class = source.Definition.Class };
         var slots = definition.CookedSlots!.ToArray();
         slots[0] = NormalSlot(0, "ground.1", 30);
         slots[1] = NormalSlot(1, "ground.2", 120);
         slots[8] = NormalSlot(8, "air.1", 30);
-        definition.CookedSlots = slots;
+        definition = definition with { CookedSlots = slots };
         return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,
             "engine report fixture", definition, SyntheticBake(), source.CookedCharacterPackage);
     }

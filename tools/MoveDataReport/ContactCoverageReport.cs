@@ -396,19 +396,21 @@ internal static partial class ContactCoverageReport
     {
         if (!float.IsFinite(airScale) || airScale <= 0f || airScale > 1f)
             throw new ArgumentOutOfRangeException(nameof(airScale), "air-scale must be finite, greater than 0, and at most 1");
-        var isolatedAttacker = new MatchContentEntry(attacker.Handle, attacker.LegacySelector, attacker.Identity,
-            attacker.DisplayName, attacker.Definition, attacker.BakedAnimation, attacker.CookedCharacterPackage);
-        var isolatedVictim = new MatchContentEntry(victim.Handle, victim.LegacySelector, victim.Identity,
-            victim.DisplayName, victim.Definition, victim.BakedAnimation, victim.CookedCharacterPackage);
+        var attackerDefinition = attacker.Definition;
+        var victimDefinition = victim.Definition;
         if (airScale != 1f)
         {
-            var movement = isolatedAttacker.Definition.Movement;
+            var movement = attackerDefinition.Movement;
             movement.AirSpeedMax *= airScale;
-            isolatedAttacker.Definition.Movement = movement;
-            movement = isolatedVictim.Definition.Movement;
+            attackerDefinition = attackerDefinition with { Movement = movement };
+            movement = victimDefinition.Movement;
             movement.AirSpeedMax *= airScale;
-            isolatedVictim.Definition.Movement = movement;
+            victimDefinition = victimDefinition with { Movement = movement };
         }
+        var isolatedAttacker = new MatchContentEntry(attacker.Handle, attacker.LegacySelector, attacker.Identity,
+            attacker.DisplayName, attackerDefinition, attacker.BakedAnimation, attacker.CookedCharacterPackage);
+        var isolatedVictim = new MatchContentEntry(victim.Handle, victim.LegacySelector, victim.Identity,
+            victim.DisplayName, victimDefinition, victim.BakedAnimation, victim.CookedCharacterPackage);
         return new CoverageContext(attacker, victim, isolatedAttacker, isolatedVictim, airScale, arena);
     }
 

@@ -35,17 +35,6 @@ public class SelfPlayTests
         CpuDifficulty difficulty = CpuDifficulty.Normal)
         => SelfPlayMatch.Run(Def, KillArena(), seed, TestHelpers.LoadBakedData(Def), maxTicks,
             difficulty: difficulty);
-    private static (
-        bool Up, bool Down, bool Left, bool Right, bool Jump, bool Dash, bool Burst,
-        bool JumpHeld, bool FaceToCamera, bool ToggleLock, float MoveX, float MoveY,
-        byte ActiveSlot, bool IsAiming, short FacingYaw, short AimYaw, ushort AimDistance,
-        short AimPitch, byte TargetEntityId, float WarpTargetX, float WarpTargetZ,
-        float WarpSpeed, float WarpAttackRange) InputKey(InputState x)
-        => (x.Up, x.Down, x.Left, x.Right, x.Jump, x.Dash, x.Burst, x.JumpHeld,
-            x.FaceToCamera, x.ToggleLock, x.MoveX, x.MoveY, x.ActiveSlot, x.IsAiming,
-            x.FacingYaw, x.AimYaw, x.AimDistance, x.AimPitch, x.TargetEntityId,
-            x.WarpTargetX, x.WarpTargetZ, x.WarpSpeed, x.WarpAttackRange);
-
     [Fact]
     public void SameSeed_TerminatesWithIdenticalMatch()
     {
@@ -148,8 +137,8 @@ public class SelfPlayTests
             a.AcceptedActions.Select(x => (x.EntityId, x.Tick, x.ActiveSlot, x.Air)),
             b.AcceptedActions.Select(x => (x.EntityId, x.Tick, x.ActiveSlot, x.Air)));
         Assert.Equal(
-            a.Inputs.Select(x => (x.Tick, x.EntityId, Input: InputKey(x.Input))),
-            b.Inputs.Select(x => (x.Tick, x.EntityId, Input: InputKey(x.Input))));
+            a.Inputs.Select(x => (x.Tick, x.EntityId, Input: x.Input)),
+            b.Inputs.Select(x => (x.Tick, x.EntityId, Input: x.Input)));
         Assert.Equal(
             a.Swings.Select(x => (x.Attacker, x.Target, x.ActiveSlot, x.Air, x.StartTick,
                 x.WindowTicks, x.Accepted, x.Connected, x.ActivationId, x.RelSide, x.RelForward, x.RelHeight)),

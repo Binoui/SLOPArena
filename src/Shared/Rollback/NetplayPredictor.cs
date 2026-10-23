@@ -113,6 +113,8 @@ namespace SlopArena.Shared.Rollback
         /// </summary>
         public bool Advance(InputState selfInput)
         {
+            if (AuthoritativeMatchState == MatchState.Ended)
+                return false;
             if (_hasAnchor && _localTick - _anchorTick >= MaxPredictionTicks)
             {
                 _window.StarvedTicks++;
@@ -136,26 +138,74 @@ namespace SlopArena.Shared.Rollback
             return _inputTicks[slot] == tick && tick != 0;
         }
 
-        public void IngestFrame(WorldFramePacket frame) => IngestFrames(new[] { frame });
+        public FrameIngestResult IngestFrame(WorldFramePacket frame) => IngestFrames(new[] { frame });
 
         /// <summary>
-        /// Take one network drain of frames: every frame's event and hit records go to the
-        /// ledgers, and the newest frame becomes the anchor if it is newer than the current one.
+        /// Validate each frame before accepting its records. The newest valid frame anchors
+        /// prediction; valid older frames can still recover missing authoritative history.
         /// </summary>
-        public void IngestFrames(IReadOnlyList<WorldFramePacket> frames)
+        public FrameIngestResult IngestFrames(IReadOnlyList<WorldFramePacket> frames)
         {
+            var accepted = new List<(WorldFramePacket Frame, ServerSimulation.PreparedSnapshot Snapshot)>();
             WorldFramePacket? newest = null;
+            ServerSimulation.PreparedSnapshot? prepared = null;
+            uint? finish = AuthoritativeMatchState == MatchState.Ended ? _anchorTick : null;
             foreach (var frame in frames)
             {
                 _window.Frames++;
-                RecordAuthoritative(frame);
+                ServerSimulation.PreparedSnapshot snapshot;
+                try
+                {
+                    ValidateRecords(frame);
+                    snapshot = _sim.PrepareSnapshot(frame.Snapshot);
+                }
+                catch (Exception exception) when (exception is InvalidDataException or InvalidOperationException)
+                {
+                    _window.RejectedFrames++;
+                    continue;
+                }
+                accepted.Add((frame, snapshot));
                 if (_hasAnchor && frame.Tick <= _anchorTick)
                     _window.StaleFrames++;
-                else if (newest == null || frame.Tick > newest.Tick)
+                if (AuthoritativeMatchState == MatchState.Ended)
+                    continue;
+                bool advances = !_hasAnchor || frame.Tick > _anchorTick ||
+                    frame.Tick == _anchorTick && frame.MatchState > AuthoritativeMatchState;
+                if (!advances)
+                    continue;
+                if (frame.MatchState == MatchState.Ended && (!finish.HasValue || frame.Tick < finish.Value))
+                    finish = frame.Tick;
+                if (newest == null || frame.Tick > newest.Tick ||
+                    frame.Tick == newest.Tick && frame.MatchState > newest.MatchState)
+                {
                     newest = frame;
+                    prepared = snapshot;
+                }
             }
-            if (newest != null && Anchor(newest))
+
+            bool acceptedAny = false;
+            foreach (var item in accepted)
+            {
+                if (finish.HasValue && item.Frame.Tick > finish.Value)
+                    continue;
+                RecordAuthoritative(item.Frame);
+                acceptedAny = true;
+                if (AuthoritativeMatchState != MatchState.Ended && finish.HasValue &&
+                    item.Frame.Tick == finish.Value && item.Frame.MatchState == MatchState.Ended)
+                {
+                    newest = item.Frame;
+                    prepared = item.Snapshot;
+                }
+            }
+            uint before = _localTick;
+            bool ended = false;
+            if (newest != null)
+            {
+                Anchor(newest, prepared!);
                 AuthoritativeMatchState = newest.MatchState;
+                ended = newest.MatchState == MatchState.Ended;
+            }
+            return new FrameIngestResult(acceptedAny, ended || _localTick != before);
         }
 
         public CharacterState GetState(ulong id) => _sim.GetState(id);
@@ -191,12 +241,33 @@ namespace SlopArena.Shared.Rollback
             return stats;
         }
 
-        /// <summary>Make <paramref name="frame"/> the anchor; false when its snapshot is refused.</summary>
-        private bool Anchor(WorldFramePacket frame)
+        private void Anchor(WorldFramePacket frame, ServerSimulation.PreparedSnapshot prepared)
         {
             uint tick = frame.Tick;
             AssumeFrom(frame, _nextAssumed);
             CheckSelfInput(frame);
+
+            if (frame.MatchState == MatchState.Ended)
+            {
+                bool finalExact = TryGetPrediction(tick, out var final) && final!.Snapshot!.ContentEquals(frame.Snapshot);
+                CapturePresented();
+                _sim.ApplySnapshot(prepared);
+                if (finalExact) _window.ExactAnchors++;
+                else CountCorrection(final);
+                SetAnchor(tick);
+                _localTick = tick;
+                Array.Clear(_inputTicks, 0, _inputTicks.Length);
+                Array.Clear(_inputs, 0, _inputs.Length);
+                foreach (var future in _predictions)
+                    future.Snapshot = null;
+                StorePrediction(tick, frame.Snapshot);
+                _assumed.Clear();
+                _nextAssumed.Clear();
+                BeginResimulation(tick);
+                EndResimulation();
+                MeasureSnap();
+                return;
+            }
 
             if (tick >= _localTick)
             {
@@ -207,8 +278,7 @@ namespace SlopArena.Shared.Rollback
                 else
                 {
                     CapturePresented();
-                    if (!TryRestore(frame))
-                        return false;
+                    _sim.ApplySnapshot(prepared);
                     MeasureSnap();
                     if (tick > _localTick)
                         _window.Jumps++;
@@ -219,7 +289,7 @@ namespace SlopArena.Shared.Rollback
                 SetAnchor(tick);
                 _localTick = tick;
                 SwapAssumed();
-                return true;
+                return;
             }
 
             uint age = _localTick - tick;
@@ -231,13 +301,12 @@ namespace SlopArena.Shared.Rollback
             {
                 _window.ExactAnchors++;
                 SetAnchor(tick);
-                return true;
+                return;
             }
 
             long started = Stopwatch.GetTimestamp();
             CapturePresented();
-            if (!TryRestore(frame))
-                return false;
+            _sim.ApplySnapshot(prepared);
             if (exact)
                 _window.ExactAnchors++;
             else
@@ -245,16 +314,10 @@ namespace SlopArena.Shared.Rollback
             SetAnchor(tick);
             StorePrediction(tick, frame.Snapshot);
             SwapAssumed();
-            _events.BeginResimulation(tick);
-            _hits.BeginResimulation(tick);
-            _slopball.BeginResimulation(tick);
-            _courses.BeginResimulation(tick);
+            BeginResimulation(tick);
             for (uint t = tick + 1; t <= _localTick; t++)
                 SimulateTick(t);
-            _events.EndResimulation();
-            _hits.EndResimulation();
-            _slopball.EndResimulation();
-            _courses.EndResimulation();
+            EndResimulation();
             MeasureSnap();
 
             _window.ResimulatedTicks += (int)age;
@@ -264,22 +327,79 @@ namespace SlopArena.Shared.Rollback
             _window.TotalResimulationMs += milliseconds;
             if (milliseconds > _window.MaxResimulationMs)
                 _window.MaxResimulationMs = milliseconds;
-            return true;
         }
 
-        private bool TryRestore(WorldFramePacket frame)
+        private void BeginResimulation(uint tick)
         {
-            try
+            _events.BeginResimulation(tick);
+            _hits.BeginResimulation(tick);
+            _slopball.BeginResimulation(tick);
+            _courses.BeginResimulation(tick);
+        }
+
+        private void EndResimulation()
+        {
+            _events.EndResimulation();
+            _hits.EndResimulation();
+            _slopball.EndResimulation();
+            _courses.EndResimulation();
+        }
+
+        private void ValidateRecords(WorldFramePacket frame)
+        {
+            if (frame.MatchState > MatchState.Ended)
+                throw SnapshotReader.Malformed("match state");
+            if (frame.Events.Count > WorldFramePacket.MaxPresentationEvents || frame.Hits.Count > WorldFramePacket.MaxHits ||
+                frame.SlopballEvents.Count > WorldFramePacket.MaxSlopballEvents || frame.CourseEvents.Count > WorldFramePacket.MaxCourseEvents)
+                throw SnapshotReader.Malformed("frame record count");
+            ulong previous = 0;
+            bool first = true;
+            foreach (var input in frame.Inputs)
             {
-                _sim.RestoreSnapshot(frame.Snapshot);
-                return true;
+                if (!_fighters.Contains(input.EntityId) || !first && input.EntityId <= previous)
+                    throw SnapshotReader.Malformed("relayed input roster/order");
+                if (input.HasInput && input.Input.LockMode > TargetLockMode.OnHit)
+                    throw SnapshotReader.Malformed("relayed input lock mode");
+                first = false;
+                previous = input.EntityId;
             }
-            catch (Exception exception) when (exception is InvalidDataException or InvalidOperationException)
+            foreach (var evt in frame.Events)
+                if (!InEventRange(evt.MatchTick, frame) || !_fighters.Contains(evt.EntityId) || !WorldFramePacket.CanCarry(evt))
+                    throw SnapshotReader.Malformed("presentation event");
+            foreach (var hit in frame.Hits)
+                if (!InEventRange(hit.MatchTick, frame) || !_fighters.Contains(hit.OwnerEntityId) ||
+                    hit.KnockbackDirection > AuthoringKnockbackDirection.TowardOwner ||
+                    !float.IsFinite(hit.Damage) || !float.IsFinite(hit.DirX) || !float.IsFinite(hit.DirZ) ||
+                    !float.IsFinite(hit.BaseKnockback) || !float.IsFinite(hit.KnockbackGrowth) ||
+                    !float.IsFinite(hit.HitX) || !float.IsFinite(hit.HitY) || !float.IsFinite(hit.HitZ) ||
+                    !float.IsFinite(hit.ImpactForce) || !float.IsFinite(hit.ContactTime) || hit.ContactTime is < 0f or > 1f)
+                    throw SnapshotReader.Malformed("hit record");
+            if (frame.SlopballEvents.Count > 0 && !_sim.Slopball.HasValue && !_sim.SlopballVersus.HasValue)
+                throw SnapshotReader.Malformed("Slopball event mode");
+            foreach (var item in frame.SlopballEvents)
+                if (!InEventRange(item.MatchTick, frame) || item.Event.Kind > SlopballEventKind.PointScored ||
+                    item.Event.Camp > SlopballCamp.Clay || !float.IsFinite(item.Event.ContactTime) ||
+                    item.Event.ContactTime is < 0f or > 1f ||
+                    item.Event.Kind is SlopballEventKind.ServeReady or SlopballEventKind.PointScored && item.Event.Camp == SlopballCamp.None)
+                    throw SnapshotReader.Malformed("Slopball event");
+            if (frame.CourseEvents.Count > 0 && !_sim.OnlineCourse.HasValue)
+                throw SnapshotReader.Malformed("course event mode");
+            foreach (var item in frame.CourseEvents)
             {
-                _window.RejectedFrames++;
-                return false;
+                bool target = item.Event.Kind is CharacterCourseEventKind.TargetHit or CharacterCourseEventKind.TargetBroken;
+                bool validIndex = target ? item.Event.Index is >= 0 and < CharacterCourseDefinition.MaxTargets
+                    : item.Event.Kind is CharacterCourseEventKind.Go or CharacterCourseEventKind.Completed
+                        ? item.Event.Index == -1 : item.Event.Index is >= -1 and < 32;
+                if (!InEventRange(item.MatchTick, frame) || item.Event.Kind > CharacterCourseEventKind.TargetHit ||
+                    item.EntityId >= CharacterCourseSimulation.FirstInputAlias ||
+                    !(item.EntityId == 0 && target || _fighters.Contains(item.EntityId)) ||
+                    item.Sequence >= WorldFramePacket.MaxCourseEvents || !validIndex)
+                    throw SnapshotReader.Malformed("course event");
             }
         }
+
+        private static bool InEventRange(uint tick, WorldFramePacket frame)
+            => tick >= frame.EventsFromTick && tick <= frame.Tick;
 
         private void SetAnchor(uint tick)
         {
@@ -318,7 +438,7 @@ namespace SlopArena.Shared.Rollback
 
         private void RecordAuthoritative(WorldFramePacket frame)
         {
-            for (uint tick = frame.EventsFromTick; tick <= frame.Tick; tick++)
+            for (uint tick = frame.EventsFromTick; ; tick++)
             {
                 _tickEvents.Clear();
                 foreach (var evt in frame.Events)
@@ -345,6 +465,7 @@ namespace SlopArena.Shared.Rollback
                             _tickSlopball.Add(item);
                     _slopball.RecordAuthoritative(tick, _tickSlopball);
                 }
+                if (tick == frame.Tick) break;
             }
         }
 
@@ -490,10 +611,13 @@ namespace SlopArena.Shared.Rollback
         }
     }
 
+    /// <summary>Whether a drain supplied accepted history and reset the local timeline.</summary>
+    public readonly record struct FrameIngestResult(bool AcceptedAny, bool TimelineReset);
+
     /// <summary>One window of <see cref="NetplayPredictor"/> health (for the periodic netplay log).</summary>
     public struct NetplayPredictorStats
     {
-        /// <summary>Frames received, frames no newer than the anchor, and frames whose snapshot was refused.</summary>
+        /// <summary>Frames received, frames no newer than the anchor, and frames whose snapshot or records were rejected.</summary>
         public int Frames, StaleFrames, RejectedFrames;
         /// <summary>Frames that became the anchor; of those, predictions that matched byte for byte.</summary>
         public int Anchors, ExactAnchors;

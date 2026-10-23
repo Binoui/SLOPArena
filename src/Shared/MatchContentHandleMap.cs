@@ -10,19 +10,24 @@ public sealed record MatchContentHandleRecord(ContentHandle Handle, CharacterCla
 
 public sealed class MatchContentHandleMap
 {
-    public const ushort CurrentSchemaVersion = 1;
+    public const ushort CatalogSchemaVersion = 1;
+    public const ushort CurrentSchemaVersion = 2;
     public ushort SchemaVersion { get; }
     public IReadOnlyList<MatchContentHandleRecord> Entries { get; }
-    public MatchContentHandleMap(ushort schemaVersion, IReadOnlyList<MatchContentHandleRecord> entries)
+    public MatchArenaRecord? Arena { get; }
+    public MatchContentHandleMap(ushort schemaVersion, IReadOnlyList<MatchContentHandleRecord> entries, MatchArenaRecord? arena = null)
     {
         if (schemaVersion == 0) throw new ArgumentOutOfRangeException(nameof(schemaVersion));
         if (entries == null) throw new ArgumentNullException(nameof(entries));
+        if (arena != null && schemaVersion != CurrentSchemaVersion) throw new ArgumentException("Arena identity requires match content schema 2.", nameof(schemaVersion));
         var copy = entries.OrderBy(x => x.Handle.Value).ToList();
         if (copy.Any(x => !x.Handle.IsValid) || copy.Select(x => x.Handle.Value).Distinct().Count() != copy.Count)
             throw new ArgumentException("Handle map contains an invalid or duplicate handle.", nameof(entries));
         SchemaVersion = schemaVersion;
         Entries = new ReadOnlyCollection<MatchContentHandleRecord>(copy);
+        Arena = arena;
     }
+    public MatchContentHandleMap WithArena(MatchArenaRecord arena) => new(CurrentSchemaVersion, Entries, arena ?? throw new ArgumentNullException(nameof(arena)));
     public MatchContentHandleRecord? Resolve(ContentHandle handle) => Entries.FirstOrDefault(x => x.Handle == handle);
 }
 
@@ -37,7 +42,13 @@ public static class MatchContentHandleMapCodec
         {
             writer.WriteStartObject(); writer.WriteNumber("handle", x.Handle.Value); writer.WriteString("selector", x.Selector.ToString()); writer.WritePropertyName("identity"); writer.WriteStartObject(); writer.WriteString("packageId", x.Identity.PackageId); writer.WriteString("version", x.Identity.Version); writer.WriteString("sourceHash", x.Identity.SourceHash); writer.WriteString("cookedContentHash", x.Identity.CookedContentHash); writer.WriteString("packageHash", x.Identity.PackageHash); writer.WriteEndObject(); writer.WriteString("displayName", x.DisplayName); writer.WriteEndObject();
         }
-        writer.WriteEndArray(); writer.WriteEndObject(); writer.Flush(); return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        writer.WriteEndArray();
+        if (map.Arena is { } arena)
+        {
+            writer.WritePropertyName("arena"); writer.WriteStartObject();
+            writer.WriteString("name", arena.Name); writer.WriteString("digest", arena.Digest); writer.WriteEndObject();
+        }
+        writer.WriteEndObject(); writer.Flush(); return System.Text.Encoding.UTF8.GetString(stream.ToArray());
     }
 
     public static bool TryParse(string json, out MatchContentHandleMap? map)
@@ -49,8 +60,16 @@ public static class MatchContentHandleMapCodec
         map = null;
         try
         {
-            if (!HasOnly(element, "schemaVersion", "entries")) return false;
-            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty("schemaVersion", out var sv) || !sv.TryGetUInt16(out var schema) || schema != MatchContentHandleMap.CurrentSchemaVersion || !element.TryGetProperty("entries", out var array) || array.ValueKind != JsonValueKind.Array) return false;
+            if (element.ValueKind != JsonValueKind.Object) return false;
+            bool hasArena = element.TryGetProperty("arena", out var arenaElement);
+            if (!HasOnly(element, hasArena ? new[] { "schemaVersion", "entries", "arena" } : new[] { "schemaVersion", "entries" })) return false;
+            if (!element.TryGetProperty("schemaVersion", out var sv) || !sv.TryGetUInt16(out var schema) || (schema != MatchContentHandleMap.CatalogSchemaVersion && schema != MatchContentHandleMap.CurrentSchemaVersion) || !element.TryGetProperty("entries", out var array) || array.ValueKind != JsonValueKind.Array) return false;
+            MatchArenaRecord? arena = null;
+            if (hasArena)
+            {
+                if (schema != MatchContentHandleMap.CurrentSchemaVersion || !HasOnly(arenaElement, "name", "digest")) return false;
+                arena = new MatchArenaRecord(Required(arenaElement, "name"), Required(arenaElement, "digest"));
+            }
             var entries = new List<MatchContentHandleRecord>(); var handles = new HashSet<ushort>(); var identities = new HashSet<string>(StringComparer.Ordinal);
             foreach (var item in array.EnumerateArray())
             {
@@ -62,7 +81,7 @@ public static class MatchContentHandleMapCodec
                 if (!MatchContentCatalogBuilder.IsStablePackageId(package) || string.IsNullOrWhiteSpace(version) || !MatchContentCatalogBuilder.IsSha(source) || !MatchContentCatalogBuilder.IsSha(cooked) || !MatchContentCatalogBuilder.IsSha(packageHash) || !identities.Add(package+"\n"+version+"\n"+source+"\n"+cooked+"\n"+packageHash)) return false;
                 entries.Add(new MatchContentHandleRecord(new ContentHandle(value), cls, new MatchContentIdentity(package,version,source,cooked,packageHash), display.GetString()!));
             }
-            map = new MatchContentHandleMap(schema, entries); return true;
+            map = new MatchContentHandleMap(schema, entries, arena); return true;
         }
         catch { map = null; return false; }
     }

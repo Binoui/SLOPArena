@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 namespace SlopArena.Shared.Abilities
 {
     /// <summary>
@@ -133,7 +134,7 @@ namespace SlopArena.Shared.Abilities
         // ── Animation (set during Tick, synced to client via CharacterState.AnimIndex) ──
 
         /// <summary>
-        /// Current animation index into the spec's AnimationNames[].
+        /// Current presentation clip index into the cooked timeline.
         /// Set this in Tick() to change the client's animation.
         /// </summary>
         public byte AnimIndex { get; protected set; }
@@ -142,8 +143,9 @@ namespace SlopArena.Shared.Abilities
         /// to inspect other entities (for example pull or homing abilities).</summary>
         public Dictionary<ulong, CharacterState>? SimulationStates { get; set; }
 
-        /// <summary>Animation names from the spec. Indexed by AnimIndex.</summary>
-        public string[] AnimationNames { get; set; } = Array.Empty<string>();
+        /// <summary>The immutable cooked content selected for this activation.</summary>
+        public virtual CookedSlotDefinition? Move
+            => CharacterDef?.GetCookedSlotAbility((byte)(Slot + 1), AirborneAtStart);
 
         // ── Context (set by simulation before first Tick) ──
 
@@ -174,10 +176,7 @@ namespace SlopArena.Shared.Abilities
         {
             // Position resolution is shared with the Ability Lab preview + tests
             // (spec #119) — one implementation, previews cannot drift from the server.
-            HitboxGeometry.ResolvePositions(
-                s, evt, BakedData, CharacterDef, AnimationNames, AnimIndex, Slot, !s.IsGrounded,
-                out float wx, out float wy, out float wz,
-                out float wex, out float wey, out float wez);
+            HitboxGeometry.ResolvePositions(s, evt, BakedData, CharacterDef, Move, AnimIndex, out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
 
             float damage = evt.Damage;
             float radius = evt.Radius;
@@ -234,11 +233,10 @@ namespace SlopArena.Shared.Abilities
                 SourceEvent = evt,
                 Baked = BakedData,
                 Def = CharacterDef,
-                AnimationNames = AnimationNames,
                 AnimIndex = AnimIndex,
                 Slot = Slot,
                 AttackSlot = (byte)(Slot + 1),
-                Airborne = !s.IsGrounded,
+                Airborne = AirborneAtStart,
             };
             Resolver.Spawn(hitbox);
             return sharedHitEntities;

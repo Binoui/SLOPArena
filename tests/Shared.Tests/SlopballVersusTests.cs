@@ -141,8 +141,8 @@ public class SlopballVersusTests
     public void PointResetKeepsDifferentSizedFightersGroundedThroughoutTheGap()
     {
         var sim = new ServerSimulation(Court(), new SlopballVersusMatchRule(Camps()));
-        var tall = TestHelpers.EngineDef; tall.CapsuleHeight = 2.4f;
-        var shortFighter = TestHelpers.EngineDef; shortFighter.CapsuleHeight = .8f;
+        var tall = TestHelpers.EngineDef; tall = tall with { CapsuleHeight = 2.4f };
+        var shortFighter = TestHelpers.EngineDef; shortFighter = shortFighter with { CapsuleHeight = .8f };
         sim.RegisterEntity(1, tall, TestHelpers.PlayerState());
         sim.RegisterEntity(2, shortFighter, TestHelpers.PlayerState());
         sim.BeginVersusSlopball(); sim.Tick(new());
@@ -260,6 +260,7 @@ public class SlopballVersusTests
     {
         var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(1), CharacterClass.Manki,
             new MatchContentIdentity("manki", "0.0.0-dev", new string('a', 64), new string('b', 64), new string('c', 64)), "Manki") });
+        map = map.WithArena(new MatchArenaRecord("slopball", new string('d', 64)));
         using var content = JsonDocument.Parse(MatchContentHandleMapCodec.Serialize(map));
         string json = JsonSerializer.Serialize(new
         {

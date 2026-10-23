@@ -133,7 +133,7 @@ public sealed class ChargedProjectileTests
     private static CharacterDefinition Definition(Action<System.Text.Json.Nodes.JsonObject>? edit = null)
     {
         var def = TestHelpers.ResolveSourceDef("fightguy", edit);
-        def.Class = CharacterClass.FightGuy;
+        def = def with { Class = CharacterClass.FightGuy };
         return def;
     }
 }

@@ -104,8 +104,8 @@ public sealed class TargetedLeapPoseTests
     private static (ServerSimulation Sim, CharacterDefinition Def) Create(ArenaDefinition arena, bool landingClip)
     {
         var def = TestHelpers.EngineDef;
-        def.Movement.Gravity = 26f;
-        def.Movement.MaxFallSpeed = 30f;
+        def = def with { Movement = def.Movement with { Gravity = 26f } };
+        def = def with { Movement = def.Movement with { MaxFallSpeed = 30f } };
         string[] clips = landingClip ? new[] { "anim.test.flight", "anim.test.landing" } : new[] { "anim.test.flight" };
         var hitbox = new CookedHitbox(AuthoringHitboxShape.Sphere, 2f, 0f, 0f, 0f, 0f, 0f, 0f,
             null, null, 1f, 45f, 0f, 0f, 3, 3, true, 0);
@@ -122,7 +122,7 @@ public sealed class TargetedLeapPoseTests
             }));
         var slots = def.CookedSlots!.ToArray();
         slots[5] = slot;
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var sim = TestHelpers.MakeSim(arena);
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(20f, 10f) with { PY = TestHelpers.GroundPY(def) });
         return (sim, def);

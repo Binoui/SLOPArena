@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Linq;
+using SlopArena.Client.Animation;
 using SlopArena.Client.Entities;
 using SlopArena.Client.World;
 using SlopArena.Shared;
@@ -68,15 +69,36 @@ namespace SlopArena.EditorTools
                 ("presentation.bashie.shell.spin-water", SpinWater()),
                 ("presentation.bashie.shell.rise-tuck", RiseTuck()),
                 ("presentation.bashie.shell.air-strike-tuck", RiseTuck(airborne: true)),
+                ("presentation.bashie.shell.flip-tuck", FlipTuck()),
             };
             built.AddRange(BashieRingBounceBuilder.BuildPrefabs());
             var drop = StreamDrop();
-            kit.BindProjectile(CharacterClass.Bashie, AbilitySlots.A, drop);
+            kit.BindProjectile("ground.A", drop, ProjectileOrientation.FlightPositiveY, "");
+            kit.BindProjectile("air.A", drop, ProjectileOrientation.FlightPositiveY, "");
             return kit.Finish(built, new { drop = AssetDatabase.GetAssetPath(drop), muzzle = muzzle.ToString("F3") });
         }
 
         [MenuItem("Tools/SLOPArena/Presentation/Rebuild Bashie Presentation")]
         private static void Menu() => Debug.Log("[BashiePresentationBuilder] " + Newtonsoft.Json.JsonConvert.SerializeObject(Build()));
+
+        [CliCommand("sloparena.presentation.bashie.flip.build", "Build only Bashie's approved G3 flip cue and catalog binding in Edit Mode.", MainThreadRequired = true, Tags = new[] { "presentation", "character" })]
+        public static object BuildFlip()
+        {
+            using var kit = new PresentationBuilderKit("bashie", audioFolder: "Bashie");
+            _kit = kit;
+            var prefab = FlipTuck();
+            const string id = "presentation.bashie.shell.flip-tuck";
+            var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(
+                "Assets/CharacterPackages/bashie/CharacterAssetCatalog.asset")
+                ?? throw new System.InvalidOperationException("Bashie's catalog is missing.");
+            var bindings = (catalog.Presentations ?? System.Array.Empty<CharacterAssetCatalog.PresentationBinding>())
+                .Where(binding => binding.SemanticId != id).ToList();
+            bindings.Add(new CharacterAssetCatalog.PresentationBinding { SemanticId = id, Prefab = prefab });
+            catalog.Presentations = bindings.ToArray();
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssetIfDirty(catalog);
+            return new { success = true, id, prefab = AssetDatabase.GetAssetPath(prefab), warnings = kit.Warnings.ToArray() };
+        }
 
         /// <summary>
         /// The blaster's muzzle in the right hand's frame, in metres under a unit-scale frame, and the barrel's
@@ -136,6 +158,75 @@ namespace SlopArena.EditorTools
                 new Keyframe(7f, 0f), new Keyframe(14f, 1f), new Keyframe(24f, 1f), new Keyframe(32f, 0f));
             tuck.ForwardByAttackTick = new AnimationCurve(
                 new Keyframe(10f, 0f), new Keyframe(16f, 0.6f), new Keyframe(22f, 0.4f), new Keyframe(28f, 0f));
+            _kit.Sound(root, "bashie_shell_tuck", 0.3f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject FlipTuck()
+        {
+            const string clipPath = "Assets/CharacterPackages/bashie/Animations/bashie_g3_shell_flip.anim";
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+            if (clip == null || Mathf.Abs(clip.length - 42f / 60f) > 0.00001f || !clip.humanMotion)
+                throw new System.InvalidOperationException("Promote the approved 42-tick native Bashie G3 clip first.");
+            string normalized = new System.Text.RegularExpressions.Regex(@"(?m)^  m_Name:.*$")
+                .Replace(System.IO.File.ReadAllText(clipPath), "  m_Name: <accepted-flip>", 1);
+            // Unity rebuilds this binding cache when CopySerialized promotes the clip.
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized,
+                @"(?ms)(^  m_ClipBindingConstant:\r?\n)    genericBindings:.*?(?=^    pptrCurveMapping:)", "$1");
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                string hash = System.BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(normalized)))
+                    .Replace("-", "").ToLowerInvariant();
+                if (hash != "33392963d47610fe06f8e58c49b7c7926e1c8a0826d4032008687e025a9ace33")
+                    throw new System.InvalidOperationException("Bashie G3 clip changed. Revalidate the approved flip profile before rebuilding.");
+            }
+            var root = _kit.NewRoot("BashieShellFlipTuck", attackBound: true);
+            var tuck = root.AddComponent<ShellTuck>();
+            tuck.Pose = ShellTuckPose.Bashie;
+            tuck.Pose.WobbleDegrees = 0f;
+            tuck.HoldAnimationIds = new[] { "anim.bashie.g3" };
+            tuck.WeightByAttackTick = new AnimationCurve(new Keyframe(4f, 0f), new Keyframe(10f, 1f),
+                new Keyframe(29f, 1f), new Keyframe(36f, 0f));
+            tuck.ForwardByAttackTick = new AnimationCurve(new Keyframe(20f, 0f), new Keyframe(24f, 0.30f),
+                new Keyframe(27f, 0.24f), new Keyframe(32f, 0f));
+            tuck.ReachDirection = new Vector3(0f, 5f / 6f, 1f);
+            float[] nativeLift =
+            {
+                0.0199999958f, 0.0408694f, 0.07717614f, 0.09109075f, 0.08f, 0.0729070455f, 0.07701649f, 0.08894269f,
+                0.104362354f, 0.118754938f, 0.1427088f, 0.184457168f, 0.235350236f, 0.285457671f, 0.3235368f, 0.3228187f,
+                0.2822209f, 0.225524917f, 0.176040843f, 0.160000011f,
+            };
+            float[] clearance =
+            {
+                0f, 0f, 0f, 0f, 0f, 0.0384365432f, 0.07374049f, 0.0314846523f,
+                0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f,
+                0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.0111022042f,
+                0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f,
+                0f, 0f, 0.01160165f, 0.00310114445f, 0f, 0f, 0.002445024f, 0.007501584f,
+                0.01093587f, 0.009644349f, 0f,
+            };
+            var keys = new Keyframe[43];
+            for (int tick = 0; tick < keys.Length; tick++)
+            {
+                float lift = tick >= 10 && tick <= 29 ? nativeLift[tick - 10]
+                    : nativeLift[tick < 10 ? 0 : nativeLift.Length - 1] * tuck.WeightByAttackTick.Evaluate(tick);
+                float value = lift + clearance[tick];
+                if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
+                    throw new System.InvalidOperationException("Invalid Bashie flip lift sample at tick " + tick);
+                keys[tick] = new Keyframe(tick, value);
+            }
+            var vertical = new AnimationCurve(keys);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                AnimationUtility.SetKeyLeftTangentMode(vertical, i, AnimationUtility.TangentMode.Linear);
+                AnimationUtility.SetKeyRightTangentMode(vertical, i, AnimationUtility.TangentMode.Linear);
+            }
+            tuck.Flip = new ShellTuckFlipProfile
+            {
+                OriginalTuckedRotation = new Quaternion(0.706939757f, 0.0153819993f, 0.0154726971f, 0.7069372f),
+                FullTurnTicks = new Vector2Int(10, 29),
+                VerticalByAttackTick = vertical,
+            };
             _kit.Sound(root, "bashie_shell_tuck", 0.3f, 1f);
             return _kit.Save(root);
         }

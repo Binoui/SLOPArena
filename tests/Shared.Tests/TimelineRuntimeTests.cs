@@ -10,6 +10,86 @@ namespace SlopArena.Shared.Tests;
 public sealed class TimelineRuntimeTests
 {
     [Fact]
+    public void ANewCapabilityWithoutAClipSelectionKeepsItsAuthoredLaterStagePose()
+    {
+        var definition = TestHelpers.ResolveSourceDef("manki", source =>
+        {
+            var move = source["slots"]!.AsArray().Single(slot => slot!["id"]!.GetValue<string>() == "ground.E")!;
+            var stages = move["timeline"]!["stages"]!.AsArray();
+            var preparation = stages[0]!.DeepClone().AsObject();
+            preparation["durationTicks"] = 4;
+            preparation["iasaTicks"] = 0;
+            preparation["landingLagTicks"] = 0;
+            preparation["autoCancelBeforeTicks"] = 0;
+            preparation["autoCancelAfterTicks"] = 0;
+            preparation["animationIds"] = new System.Text.Json.Nodes.JsonArray("anim.manki.idle");
+            preparation["operations"] = new System.Text.Json.Nodes.JsonArray();
+            stages.Insert(0, preparation);
+        });
+        var sim = TestHelpers.MakeSim();
+        var initial = TestHelpers.PlayerState(20, 10) with { PY = TestHelpers.GroundPY(definition) };
+        sim.RegisterEntity(1, definition, initial);
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.E } });
+        TestHelpers.TickDefault(sim, 4);
+        var active = Assert.IsType<ActiveMoveView>(sim.GetActiveMove(1));
+        Assert.Equal(1, active.StageIndex);
+        Assert.Equal((byte)1, sim.GetState(1).AnimIndex);
+        Assert.Equal((byte)1, active.ClipIndex);
+        Assert.Equal("anim.manki.ge", active.Pose.AnimationId);
+        var restored = TestHelpers.MakeSim();
+        restored.RegisterEntity(1, definition, initial);
+        restored.RestoreSnapshot(sim.CaptureSnapshot());
+        Assert.Equal(active, restored.GetActiveMove(1));
+        for (int tick = 0; tick < 20; tick++)
+        {
+            TestHelpers.TickDefault(sim, 1);
+            TestHelpers.TickDefault(restored, 1);
+            Assert.True(sim.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()));
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StageAfterPhaseClipsUsesItsOwnClipWithoutChangingIasaClock(bool startsCapability)
+    {
+        CookedTimelineOperation[] operations = startsCapability
+            ? new CookedTimelineOperation[]
+            {
+                new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+                    "slop.internal.fightguy.cyclone-kick.v1", "1",
+                    new CookedCycloneKickCapabilityParameters(0, 1, 3, 3, 1, 1, 1, 7, 15, 8, 5, 6, 1, 1)),
+            }
+            : Array.Empty<CookedTimelineOperation>();
+        var slot = new CookedSlotDefinition(0, "ground.1", false, "Phase stages", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[]
+            {
+                new CookedStage(4, 0, 0, 0, 0, new[] { "first", "first.phase" }, operations),
+                new CookedStage(12, 6, 0, 0, 0, new[] { "second" }, Array.Empty<CookedTimelineOperation>()),
+            }));
+        var definition = TestHelpers.EngineDef with { CookedSlots = new[] { slot } };
+        var sim = new ServerSimulation(TestHelpers.TestArena());
+        var state = TestHelpers.PlayerState(10, 10); state.PY = TestHelpers.GroundPY(definition);
+        sim.RegisterEntity(1, definition, state);
+        for (int tick = 0; tick < 11; tick++)
+        {
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Slot1 : (byte)0 } });
+            var active = sim.GetActiveMove(1)!.Value;
+            if (active.StageIndex != 1) continue;
+            state = sim.GetState(1);
+            Assert.Equal((byte)1, state.ComboStage);
+            Assert.Equal((byte)2, active.ClipIndex);
+            Assert.Equal((byte)2, state.AnimIndex);
+            Assert.Equal("second", active.Pose.AnimationId);
+            Assert.False(active.Pose.IsPhaseClip);
+            Assert.Equal(Math.Max(0, state.AttackElapsedTicks - 4), active.Pose.ElapsedTicks);
+            Assert.Equal(state.AttackElapsedTicks >= 10, Simulation.IsIasaUnlocked(in state, active));
+        }
+        Assert.Equal(1, sim.GetActiveMove(1)!.Value.StageIndex);
+    }
+
+    [Fact]
     public void SameTickOperationsPreserveOrderAndCompleteImmediately()
     {
         var hitbox = Hitbox(2, duration: 3);
@@ -23,7 +103,7 @@ public sealed class TimelineRuntimeTests
             new CookedSetVelocityOperation(0, AuthoringUnit.MetersPerSecond, AuthoringVelocityMode.Absolute, 99f, 99f, 99f));
         var (sim, def) = Create(slot);
 
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var state = sim.GetState(1);
 
         Assert.Equal(ActionState.Idle, state.State);
@@ -51,7 +131,7 @@ public sealed class TimelineRuntimeTests
         var (sim, def) = Create(slot, TestHelpers.PlayerState() with { FacingYaw = MathF.PI / 2f });
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
 
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         sim.TickAbilities(inputs);
         sim.TickAbilities(inputs);
         var state = sim.GetState(1);
@@ -86,7 +166,7 @@ public sealed class TimelineRuntimeTests
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(x, z)
             with { PY = sim.GetState(1).PY + height });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 0, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 0, def);
 
         TestHelpers.AssertNear(brakes ? 0f : 12f, sim.GetState(1).VZ);
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
@@ -102,7 +182,7 @@ public sealed class TimelineRuntimeTests
         var slot = BrakingSlot();
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(0f, 2.5f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 0, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 0, def);
         Assert.True(sim.GetState(1).VZ > 0f);
         sim.SetState(1, sim.GetState(1) with { PZ = 1.2f, VY = 3f });
         sim.TickAbilities(new());
@@ -133,16 +213,13 @@ public sealed class TimelineRuntimeTests
         var slot = BrakingSlot();
         float height = airborne ? 20f : .75f;
         var (sim, def) = Create(slot, TestHelpers.PlayerState() with { PY = height, IsGrounded = !airborne });
-        def.Slot1 = new AbilitySpec
-        {
-            Stages = new[] { new AttackStage { DurationTicks = 20 } },
-        };
-        def.AirSlot1 = def.Slot1;
-        def.Movement.Gravity = 0f;
+
+
+        def = def with { Movement = def.Movement with { Gravity = 0f } };
         sim.NoGravityEntityId = 1;
         sim.RegisterEntity(100, def, TestHelpers.NpcState(0f, distance)
             with { PY = height, IsGrounded = !airborne });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var inputs = new Dictionary<ulong, InputState> { [1] = default, [100] = default };
         bool connected = false;
         for (int tick = 0; tick < 12; tick++)
@@ -176,7 +253,7 @@ public sealed class TimelineRuntimeTests
         var (sim, def) = Create(slot, initial);
         sim.NoGravityEntityId = 1;
         sim.RegisterEntity(2, def, initial with { EntityId = 2, PX = 10f });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var inputs = new Dictionary<ulong, InputState> { [1] = default, [2] = default };
 
         for (int tick = 0; tick < 44; tick++)
@@ -188,7 +265,7 @@ public sealed class TimelineRuntimeTests
 
         var launch = Slot(4,
             new CookedSetVelocityOperation(0, AuthoringUnit.MetersPerSecond, AuthoringVelocityMode.Absolute, 0f, 3f, 0f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(launch, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(launch), 2, def);
         for (int tick = 0; tick < 5; tick++)
             sim.Tick(inputs);
         TestHelpers.AssertNear(3f, sim.GetState(1).VY);
@@ -211,7 +288,7 @@ public sealed class TimelineRuntimeTests
             IsGrounded = false,
         };
         var (sim, def) = Create(slot, initial);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 0, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 0, def);
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
 
         sim.Tick(inputs);
@@ -239,7 +316,7 @@ public sealed class TimelineRuntimeTests
             IsGrounded = false,
         };
         var (sim, def) = Create(slot, initial);
-        var ability = new CookedTimelineAbility(slot, Array.Empty<string>());
+        var ability = new CookedTimelineAbility(slot);
         sim.ActivateAbility(1, ability, 0, def);
 
         sim.Tick(new Dictionary<ulong, InputState>
@@ -264,7 +341,7 @@ public sealed class TimelineRuntimeTests
             IsGrounded = false,
         };
         var (sim, def) = Create(slot, initial);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 0, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 0, def);
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
         sim.Tick(inputs);
         var state = sim.GetState(1);
@@ -295,7 +372,7 @@ public sealed class TimelineRuntimeTests
             IsGrounded = false,
         };
         var (sim, def) = Create(slot, initial);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 0, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 0, def);
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
         float gravityPerTick = def.Movement.Gravity * Simulation.TickDt;
         float elapsedGravity = 0f;
@@ -314,7 +391,7 @@ public sealed class TimelineRuntimeTests
             new CookedSetVelocityOperation(1, AuthoringUnit.MetersPerSecond, AuthoringVelocityMode.Absolute, 2f, 3f, 4f));
         var initial = TestHelpers.PlayerState() with { IsFastFalling = true, SlideAttackCarryActive = true };
         var (sim, def) = Create(verticalSlot, initial);
-        sim.ActivateAbility(1, new CookedTimelineAbility(verticalSlot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(verticalSlot), 2, def);
         sim.TickAbilities(new Dictionary<ulong, InputState> { [1] = default });
         var state = sim.GetState(1);
         Assert.False(state.IsFastFalling);
@@ -324,7 +401,7 @@ public sealed class TimelineRuntimeTests
             new CookedForwardLungeOperation(1, AuthoringUnit.MetersPerSecond, 8f, 2));
         initial = TestHelpers.PlayerState() with { IsFastFalling = true, SlideAttackCarryActive = true };
         (sim, def) = Create(horizontalSlot, initial);
-        var horizontalAbility = new CookedTimelineAbility(horizontalSlot, Array.Empty<string>());
+        var horizontalAbility = new CookedTimelineAbility(horizontalSlot);
         sim.ActivateAbility(1, horizontalAbility, 2, def);
         sim.TickAbilities(new Dictionary<ulong, InputState> { [1] = default });
         state = sim.GetState(1);
@@ -341,7 +418,7 @@ public sealed class TimelineRuntimeTests
             new CookedCycloneKickCapabilityParameters(8.5f, 1, 3, 3, 1, 1, 1, 7, 15, 8, 5, 6, 1, 1)));
         var initial = TestHelpers.PlayerState() with { IsFastFalling = true, SlideAttackCarryActive = true };
         var (sim, def) = Create(slot, initial);
-        var ability = new CookedTimelineAbility(slot, Array.Empty<string>());
+        var ability = new CookedTimelineAbility(slot);
         sim.ActivateAbility(1, ability, 2, def);
         sim.TickAbilities(new Dictionary<ulong, InputState> { [1] = default });
         var state = sim.GetState(1);
@@ -388,7 +465,7 @@ public sealed class TimelineRuntimeTests
         var (sim, def) = Create(cookedSlot, TestHelpers.PlayerState() with { FacingYaw = MathF.PI / 2f });
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
 
-        sim.ActivateAbility(1, new CookedTimelineAbility(cookedSlot, Array.Empty<string>()), 0, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(cookedSlot), 0, def);
         sim.TickAbilities(inputs); // tick 1
         sim.TickAbilities(inputs); // tick 2: lunge begins
         var state = sim.GetState(1);
@@ -408,7 +485,7 @@ public sealed class TimelineRuntimeTests
             new CookedProjectile(0f, 1f, 0f, 12f, 2f, .5f, 4f, 30, 3f, 4f, 6, 7)));
         var (sim, def) = Create(slot, TestHelpers.PlayerState() with { AimYaw = MathF.PI / 2f, AimPitch = 0f });
 
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var projectile = Assert.Single(sim.Resolver.GetActiveHitboxes());
 
         TestHelpers.AssertNear(12f, projectile.VX);
@@ -435,7 +512,7 @@ public sealed class TimelineRuntimeTests
                 }),
             }));
         var (sim, def) = Create(slot);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
         sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
         Assert.Equal((byte)0, sim.GetState(1).ComboStage);
@@ -456,7 +533,7 @@ public sealed class TimelineRuntimeTests
             new CookedCycloneKickCapabilityParameters(8.5f, 1, 3, 3, 1, 1, 1, 7, 15, 8, 5, 6, 1, 1)));
         var (sim, def) = Create(slot);
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         for (var tick = 0; tick < 2; tick++)
             sim.TickAbilities(inputs);
         TestHelpers.AssertNear(8.5f, sim.GetState(1).VZ);
@@ -493,7 +570,7 @@ public sealed class TimelineRuntimeTests
             "slop.internal.fightguy.cyclone-kick.v1", "1",
             new CookedCycloneKickCapabilityParameters(8.5f, 1, 3, 3, 1, 1, 1, 7, 15, 8, 5, 6, 1, 1)));
         var (sim, def) = Create(slot);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var state = sim.GetState(1);
         state.State = ActionState.Hitstun;
         state.VX = -4f;
@@ -537,7 +614,7 @@ public sealed class TimelineRuntimeTests
             new CookedSetAimStateOperation(0, AuthoringUnit.Ticks, AuthoringAimMode.CameraForward3D));
         var initial = TestHelpers.PlayerState() with { PY = 100f, IsGrounded = false, VX = 4f, VZ = 5f };
         var (sim, def) = Create(slot, initial);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var state = sim.GetState(1);
         Assert.Equal(ActionState.Aiming, state.State);
         state.State = ActionState.Hitstun;
@@ -663,8 +740,8 @@ public sealed class TimelineRuntimeTests
             sim.RegisterEntity(100, def, TestHelpers.NpcState(direction.X, direction.Z)
                 with { PY = initial.PY });
             sim.RegisterEntity(101, def, TestHelpers.NpcState(0f, 1f) with { PY = initial.PY });
-            byte wireSlot = (byte)((slot.Ordinal % 8) switch { 0 => 3, 1 => 7, 2 => 8, _ => 9 });
-            sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), wireSlot, def,
+            byte wireSlot = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slot.Ordinal]);
+            sim.ActivateAbility(1, new CookedTimelineAbility(slot), wireSlot, def,
                 activationInput: new InputState { TargetEntityId = locked ? (byte)101 : (byte)100 });
             Assert.Equal(100UL, sim.GetState(1).AttackCorrectionTargetId);
 
@@ -696,7 +773,7 @@ public sealed class TimelineRuntimeTests
         sim.RegisterEntity(100, def, TestHelpers.NpcState(0f, -2f));
         sim.RegisterEntity(101, def, TestHelpers.NpcState(3f, 0f));
         sim.RegisterEntity(102, def, TestHelpers.NpcState(0f, 5f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def,
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def,
             activationInput: new InputState { TargetEntityId = 100 });
         Assert.Equal(0UL, sim.GetState(1).AttackCorrectionTargetId);
         sim.RegisterEntity(103, def, TestHelpers.NpcState(1f, 3f));
@@ -711,7 +788,7 @@ public sealed class TimelineRuntimeTests
         var slot = CorrectionSlot(4);
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(1.5f, 2.5f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         for (int i = 0; i < 3; i++) sim.TickAbilities(new());
         var beforeActive = sim.GetState(1);
         TestHelpers.AssertNear(MathF.PI / 10f, beforeActive.FacingYaw, 1e-5f);
@@ -736,7 +813,7 @@ public sealed class TimelineRuntimeTests
         var slot = CorrectionSlot(10);
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(1f, 3f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         sim.TickAbilities(new());
         float yaw = sim.GetState(1).FacingYaw;
         var target = sim.GetState(100);
@@ -758,10 +835,10 @@ public sealed class TimelineRuntimeTests
         var initial = TestHelpers.PlayerState() with { IsGrounded = false, PY = 3f };
         var (sim, def) = Create(slot, initial);
         var targetDef = TestHelpers.EngineDef;
-        targetDef.CapsuleHeight = targetHeight;
-        targetDef.HipHeight = targetHeight / 2f;
+        targetDef = targetDef with { CapsuleHeight = targetHeight };
+        targetDef = targetDef with { HipHeight = targetHeight / 2f };
         sim.RegisterEntity(100, targetDef, initial with { EntityId = 100, PZ = 2.5f });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         for (int tick = 0; tick < 4; tick++) sim.TickAbilities(new());
 
         TestHelpers.AssertNear(MathF.Atan2(targetHeight * .25f, 2.5f),
@@ -779,7 +856,7 @@ public sealed class TimelineRuntimeTests
         var (sim, def) = Create(slot);
         var target = TestHelpers.NpcState(1f, 2.5f);
         sim.RegisterEntity(100, def, target);
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         Assert.Equal(100UL, sim.GetState(1).AttackCorrectionTargetId);
         Assert.True(sim.GetState(1).AttackCorrectionOwned);
         sim.RegisterEntity(101, def, TestHelpers.NpcState(-1f, 2f));
@@ -805,7 +882,7 @@ public sealed class TimelineRuntimeTests
         var slot = CorrectionSlot(18);
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(1.5f, 2.5f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         sim.SetState(100, sim.GetState(100) with { PX = 3f, PZ = .2f });
         sim.RegisterEntity(101, def, TestHelpers.NpcState(-1f, 2f));
         for (int i = 0; i < 12; i++) sim.TickAbilities(new() { [1] = new InputState { TargetEntityId = 101 } });
@@ -820,7 +897,7 @@ public sealed class TimelineRuntimeTests
         var initial = TestHelpers.PlayerState() with { IsGrounded = false, PY = 3f, VX = 2f, VY = 1f };
         var (sim, def) = Create(slot, initial);
         sim.RegisterEntity(100, def, initial with { EntityId = 100, PX = 1f, PY = 4f, PZ = 2.5f });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         sim.TickAbilities(new());
         var corrected = sim.GetState(1);
         TestHelpers.AssertNear(MathF.PI / 60f, corrected.AttackPosePitch, 1e-5f);
@@ -837,7 +914,7 @@ public sealed class TimelineRuntimeTests
         Assert.Equal(0UL, sim.GetState(1).AttackCorrectionTargetId);
         sim.SetState(1, initial with { FacingYaw = 0f });
         sim.SetState(100, sim.GetState(100) with { PX = -1f });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         sim.TickAbilities(new());
         Assert.True(sim.GetState(1).FacingYaw < 0f);
         Assert.Equal(100UL, sim.GetState(1).AttackCorrectionTargetId);
@@ -855,7 +932,7 @@ public sealed class TimelineRuntimeTests
             AuthoringAbilityBehavior.AimedProjectile, AuthoringAimMode.CameraForward3D, 0, false, false, timeline.Timeline);
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(1.5f, 2.5f));
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), (byte)(AbilitySlots.A - 1), def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), (byte)(AbilitySlots.A - 1), def);
         for (int i = 0; i < 3; i++) sim.TickAbilities(new());
         var launch = sim.GetState(1);
         TestHelpers.AssertNear(MathF.PI / 15f, launch.FacingYaw, 1e-5f);
@@ -892,10 +969,10 @@ public sealed class TimelineRuntimeTests
             sim.NoGravityEntityId = 1;
             sim.RegisterEntity(1, def, initial);
             var targetDef = TestHelpers.EngineDef;
-            targetDef.Movement.Gravity = 0f;
+            targetDef = targetDef with { Movement = targetDef.Movement with { Gravity = 0f } };
             sim.RegisterEntity(100, targetDef, TestHelpers.NpcState(2.5f, 0f)
                 with { PY = initial.PY, IsGrounded = !airborne });
-            byte wireSlot = label switch { "A" => AbilitySlots.A, "R" => AbilitySlots.R, _ => AbilitySlots.F };
+            byte wireSlot = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All.First(address => address.InputLabel == label));
             // Derive the cutoff from actual attack/launch timing, never the correction profile.
             int commitmentTick = slot.Timeline.Stages[0].Operations.Select(operation => operation switch
             {
@@ -975,7 +1052,7 @@ public sealed class TimelineRuntimeTests
         sim.RegisterEntity(100, def, TestHelpers.NpcState(targetScenario == "empty" ? 10f : 2.5f, 0f)
             with { PY = initial.PY });
         byte wireSlot = label == "R" ? AbilitySlots.R : AbilitySlots.F;
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()),
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot),
             (byte)(wireSlot - 1), def, activationInput: new InputState { TargetEntityId = 100 });
         var hold = new Dictionary<ulong, InputState> { [1] = new() { IsAiming = true } };
         const float manualYaw = MathF.PI / 3f;
@@ -1020,7 +1097,7 @@ public sealed class TimelineRuntimeTests
             var (sim, def) = Create(slot, TestHelpers.PlayerState() with { PY = groundY });
             if (withTarget)
                 sim.RegisterEntity(100, def, TestHelpers.NpcState(1f, 0f) with { PY = groundY });
-            sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+            sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
             bool seen = false, froze = false;
             for (int tick = 0; tick < 40; tick++)
             {
@@ -1062,13 +1139,13 @@ public sealed class TimelineRuntimeTests
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
         slots[airborne ? 8 : 0] = slot;
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState() with
         {
             PY = TestHelpers.GroundPY(def) + (airborne ? 50f : 0f), IsGrounded = !airborne,
         });
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot, Array.Empty<string>()), 2, def);
+        sim.ActivateAbility(1, new CookedTimelineAbility(slot), 2, def);
         var stick = new Dictionary<ulong, InputState> { [1] = new InputState { MoveX = 1f } };
         float cap = 0.4f * (airborne ? def.Movement.AirSpeedMax : def.Movement.RunSpeed);
 
@@ -1117,7 +1194,7 @@ public sealed class TimelineRuntimeTests
     private static (ServerSimulation Sim, CharacterDefinition Def) Create(CookedSlotDefinition slot, CharacterState? state = null)
     {
         var def = TestHelpers.EngineDef;
-        def.CookedSlots = new[] { slot };
+        def = def with { CookedSlots = new[] { slot } };
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, state ?? TestHelpers.PlayerState());
         return (sim, def);

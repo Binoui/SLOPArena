@@ -5,13 +5,11 @@
 SLOPArena is a community-driven open-source game. We take security
 concerns seriously.
 
-If you discover a security vulnerability, please **do not open a public
-issue**. Instead, report it privately via one of the following methods:
-
-- **GitHub Issues** — Open a [regular issue](https://github.com/Binoui/SlopArena/issues/new)
-  and mention `[SECURITY]` in the title, with details of the vulnerability.
-  We will mark the issue as confidential if possible.
-- **Email** — Reach out to the maintainers directly via GitHub.
+If you discover a security vulnerability, do not publish its details in a regular
+GitHub issue or public chat. Use the [project contact information](../../README.md#everything-else)
+to contact Binoui privately and request a private reporting channel before sharing
+reproduction details or credentials. This guide does not currently name a dedicated
+security email or verified private vulnerability-reporting endpoint.
 
 We will acknowledge receipt within 48 hours and provide an estimated
 timeline for a fix.
@@ -20,8 +18,8 @@ timeline for a fix.
 
 This policy covers:
 - The game client (Unity 6 C# project)
-- The headless server (`Server/`)
-- The `Shared/` C# library
+- The headless server (`src/Server/`)
+- The Shared C# library (`src/Shared/`)
 - CI/CD workflows and infrastructure
 
 ## Out of Scope

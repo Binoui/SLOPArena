@@ -9,6 +9,7 @@ namespace SlopArena.Client.Simulation
             BakedAnimationData? baked = null);
         void Tick(Dictionary<ulong, InputState> inputs);
         CharacterState GetState(ulong id);
+        ActiveMoveView? GetActiveMove(ulong id);
         Dictionary<ulong, CharacterState> GetAllStates();
         SpellResolver? Resolver { get; }
         IReadOnlyList<SpellResolver.HitResult> LastTickHits { get; }

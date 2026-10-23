@@ -43,7 +43,7 @@ public class CookedAimHoldTests
                                 with { ThrowTriggerTick = triggerTick })
                         : op).ToArray()),
             }), aimMovement: slot.AimMovement);
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var sim = MakeSim(def);
         TestHelpers.TickHold(sim, new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true, AimDistance = 400 }, 10);
         sim.Tick(new() { [1] = default });

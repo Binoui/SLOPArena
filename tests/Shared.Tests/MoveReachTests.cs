@@ -31,7 +31,7 @@ public class MoveReachTests
     public void SampleHit_EntityRelativeSphere_ReachMatchesAuthoredExtent()
     {
         var def = TestHelpers.EngineDef;
-        var samples = MoveReach.SampleHit(def, Sphere(offZ: 0.5f), slot: 2, airborne: false, null, 0, baked: null);
+        var samples = MoveReach.SampleHit(def, Sphere(offZ: 0.5f), slot: 2, airborne: false, 0, baked: null);
 
         Assert.Single(samples);
         float y = def.CapsuleHeight / 2f;
@@ -46,7 +46,7 @@ public class MoveReachTests
     {
         var def = TestHelpers.EngineDef;
         var samples = MoveReach.SampleHit(def, Sphere(offZ: 0.5f, trigger: 2, duration: 8),
-            slot: 2, airborne: false, null, 0, baked: null);
+            slot: 2, airborne: false, 0, baked: null);
 
         Assert.Equal(8, samples.Length);
         for (int i = 0; i < samples.Length; i++)
@@ -71,7 +71,7 @@ public class MoveReachTests
             Damage = 4f, Knockback = new() { Profile = KnockbackProfile.Custom, Angle = 0, BaseKnockback = 1f, KnockbackGrowth = 1f },
             StunTicks = 10, Interruptible = true,
         };
-        var samples = MoveReach.SampleHit(def, evt, slot: 2, airborne: false, null, 0, baked: null);
+        var samples = MoveReach.SampleHit(def, evt, slot: 2, airborne: false, 0, baked: null);
 
         float y = def.CapsuleHeight / 2f;
         var ext = MoveReach.ExtentAt(samples, y);
@@ -86,7 +86,7 @@ public class MoveReachTests
         var def = TestHelpers.EngineDef;
         // Sphere center at world y 1.1 (OffY 0.35 above PY 0.75), radius 0.3 → volume 0.8–1.4.
         var samples = MoveReach.SampleHit(def, Sphere(offZ: 0.5f, offY: 0.35f, radius: 0.3f),
-            slot: 2, airborne: false, null, 0, baked: null);
+            slot: 2, airborne: false, 0, baked: null);
 
         Assert.Null(MoveReach.ExtentAt(samples, 0.7f)); // below the volume
         var ext = MoveReach.ExtentAt(samples, 1.1f);     // center height
@@ -102,7 +102,7 @@ public class MoveReachTests
         float h = def.CapsuleHeight;
         // Sphere center at world y 1.45 (OffY 0.7), radius 0.3 → volume 1.15–1.75 ⊆ high band [1, 2].
         var samples = MoveReach.SampleHit(def, Sphere(offZ: 0.5f, offY: 0.7f, radius: 0.3f),
-            slot: 2, airborne: false, null, 0, baked: null);
+            slot: 2, airborne: false, 0, baked: null);
 
         Assert.Null(MoveReach.BandExtent(samples, 0f, h / 3f));
         Assert.Null(MoveReach.BandExtent(samples, h / 3f, 2f * h / 3f));
@@ -117,8 +117,8 @@ public class MoveReachTests
     {
         var def = TestHelpers.EngineDef;
         float y = def.CapsuleHeight / 2f;
-        var shortSamples = MoveReach.SampleHit(def, Sphere(offZ: 0.6f), slot: 2, airborne: false, null, 0, baked: null);
-        var longSamples = MoveReach.SampleHit(def, Sphere(offZ: 1.2f), slot: 2, airborne: false, null, 0, baked: null);
+        var shortSamples = MoveReach.SampleHit(def, Sphere(offZ: 0.6f), slot: 2, airborne: false, 0, baked: null);
+        var longSamples = MoveReach.SampleHit(def, Sphere(offZ: 1.2f), slot: 2, airborne: false, 0, baked: null);
 
         var shortExt = MoveReach.ExtentAt(shortSamples, y);
         var longExt = MoveReach.ExtentAt(longSamples, y);
@@ -134,6 +134,7 @@ public class MoveReachTests
     public void ReachOrdering_SyntheticBoneCapsule_ExtendsBeyondEntityFallback()
     {
         var def = TestHelpers.EngineDef;
+        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, false, "Reach", 60, animations: new[] { "attack" });
         var baked = BakedAnimationData.LoadFromBin(BuildTestBin(
             new[] { "hand", "tip" },
             new[] { ("attack", 1) },
@@ -151,10 +152,10 @@ public class MoveReachTests
             Interruptible = true,
         };
         float midMin = def.CapsuleHeight / 3f, midMax = 2f * def.CapsuleHeight / 3f;
-        var bakedSamples = MoveReach.SampleHit(def, evt, slot: 2, airborne: false, new[] { "attack" }, 0, baked);
+        var bakedSamples = MoveReach.SampleHit(def, evt, slot: 2, airborne: false, 0, baked);
         var bakedMid = MoveReach.BandExtent(bakedSamples, midMin, midMax);
         Assert.NotNull(bakedMid);
-        var fallbackSamples = MoveReach.SampleHit(def, evt, slot: 2, airborne: false, new[] { "attack" }, 0, baked: null);
+        var fallbackSamples = MoveReach.SampleHit(def, evt, slot: 2, airborne: false, 0, baked: null);
         var fallbackMid = MoveReach.BandExtent(fallbackSamples, midMin, midMax);
         Assert.NotNull(fallbackMid);
         TestHelpers.AssertNear(0.25f, fallbackMid.Value.MaxZ, Tol);
@@ -167,10 +168,10 @@ public class MoveReachTests
         var def = TestHelpers.WibouDef;
         var baked = TestHelpers.LoadBakedData(def);
         Assert.NotNull(baked);
-        var ability = def.Slot1!;
-        foreach (var animation in ability.AnimationNames ?? Array.Empty<string>())
+        var ability = def.GetCookedSlotAbility(3, false)!;
+        foreach (var animation in ability.Timeline.Stages.SelectMany(x => x.AnimationIds))
             Assert.True(baked.FindAnimIndex(animation) >= 0, $"Unresolved Wibou normal pose: {animation}");
-        foreach (var hitbox in ability.Stages!.SelectMany(stage => stage.HitboxEvents ?? Array.Empty<HitboxEvent>()))
+        foreach (var hitbox in ability.Timeline.Stages!.SelectMany(stage => stage.ReadHitboxes()))
         {
             if (hitbox.BoneName != null)
                 Assert.Contains(hitbox.BoneName, baked.BoneNames);

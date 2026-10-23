@@ -59,7 +59,7 @@ public sealed class ArmorAuthoringTests
         Assert.Equal((ushort)24, cookedSlot.Timeline.Stages.Single().Operations
             .OfType<CookedSpawnHitboxOperation>().First().Hitbox.FixedHitstunTicks);
         var runtime = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
-        Assert.Equal((ushort)24, runtime.Slot1!.Stages[0].HitboxEvents!.First().FixedHitstunTicks);
+        Assert.Equal((ushort)24, runtime.GetCookedSlotAbility(AbilitySlots.Slot1, false)!.Timeline.Stages[0].ReadHitboxes().First().FixedHitstunTicks);
         var assembly = CharacterPackageAssembler.Assemble(BuildInput(compiled.CookedPackage!));
         Assert.True(assembly.IsValid, string.Join("; ", assembly.Diagnostics));
         var admitted = CookedCharacterPackageLoader.LoadAssembly(assembly);

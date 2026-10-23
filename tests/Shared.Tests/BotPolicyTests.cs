@@ -147,7 +147,7 @@ public class BotPolicyTests
                                     0, 0, 1, 0, 0, 0, null, null, 6, 30, 4, 20, 12, 2, true, 0)),
                         }),
                 }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 
@@ -173,11 +173,36 @@ public class BotPolicyTests
         {
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
-            var input = policy.Decide(self, target, def, new Random(seed), memory, RecoveryArena());
+            var input = policy.Decide(self, target, def, new Random(seed), memory, RecoveryArena(), activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             Assert.NotEqual(AbilitySlots.Slot1, input.ActiveSlot);
             if (input.ActiveSlot == AbilitySlots.Slot2) alternatives++;
         }
         Assert.True(alternatives > 0, "Another ready move must remain selectable at IASA.");
+    }
+
+    [Fact]
+    public void QueuedPressUsesGroundActivationIasaAfterLeavingGround()
+    {
+        var def = TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Slot1, false, "Ground", 30, 20);
+        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, true, "Air", 30, 2);
+        var self = TestHelpers.PlayerState() with
+        {
+            PY = TestHelpers.GroundPY(def) + 2, IsGrounded = false,
+            State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1,
+            AttackElapsedTicks = 4, AnimLockTicks = 26,
+        };
+        var target = self with { EntityId = 2, PZ = 1, State = ActionState.Idle, AttackSlot = 0 };
+        var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
+        Prime(memory, target);
+        memory.StartPlan(AbilitySlots.Slot2, false, 0, 0, 0, 0, self.Deaths, false, pressIssued: false);
+        var policy = new HeuristicBotPolicy();
+        var activation = def.GetCookedSlotAbility(AbilitySlots.Slot1, false);
+        var blocked = policy.Decide(self, target, def, new Random(0), memory, RecoveryArena(), activeMove: activation);
+        Assert.Equal(AbilitySlots.None, blocked.ActiveSlot);
+        Assert.False(memory.PlanPressIssued);
+        self.AttackElapsedTicks = 20;
+        var accepted = policy.Decide(self, target, def, new Random(0), memory, RecoveryArena(), activeMove: activation);
+        Assert.Equal(AbilitySlots.Slot2, accepted.ActiveSlot);
     }
 
     [Theory]
@@ -201,7 +226,7 @@ public class BotPolicyTests
         memory.StartPlan(slot, false, 0, 0, 0, 0, self.Deaths, self.IsGrounded, pressIssued: false);
 
         var input = new HeuristicBotPolicy().Decide(
-            self, target, def, new Random(42), memory, RecoveryArena());
+            self, target, def, new Random(42), memory, RecoveryArena(), activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.Equal(accepted ? slot : AbilitySlots.None, input.ActiveSlot);
         Assert.Equal(accepted, memory.PlanPressIssued);
@@ -211,7 +236,6 @@ public class BotPolicyTests
     public void FarOpponent_ApproachesWithWorldSpaceMovement_DespiteReservedBurstRecovery()
     {
         var self = Self();
-        self.BurstRecoveryTicks = ushort.MaxValue;
         var target = Opponent(z: 50f); // well beyond every resolved move envelope on +Z
 
         var input = Decide(self, target);
@@ -316,7 +340,6 @@ public class BotPolicyTests
                 Assert.True(input.ShieldHeld);
                 Assert.Equal(0, input.ActiveSlot);
             }
-            Assert.False(input.Burst);
         }
         Assert.True(shielded, "No seeded decision selected shield against a grounded threat.");
     }
@@ -335,7 +358,6 @@ public class BotPolicyTests
 
         Assert.True(input.ShieldHeld);
         Assert.False(input.ShieldPressed);
-        Assert.False(input.Burst);
 
         target.State = ActionState.Idle;
         Prime(memory, target); // decision uses the delayed observation, not the live target
@@ -553,7 +575,7 @@ public class BotPolicyTests
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         Prime(memory, target);
 
-        var input = Policy.Decide(self, target, def, new Random(1), memory);
+        var input = Policy.Decide(self, target, def, new Random(1), memory, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.Equal(0, input.ActiveSlot);
     }
@@ -575,14 +597,14 @@ public class BotPolicyTests
         target.EntityId = 100;
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         Prime(memory, target);
-        var initial = Policy.Decide(self, target, def, new Random(0), memory);
+        var initial = Policy.Decide(self, target, def, new Random(0), memory, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.Equal(AbilitySlots.A, initial.ActiveSlot);
         Assert.True(initial.IsAiming);
 
         self.State = ActionState.Aiming;
         self.AttackSlot = AbilitySlots.A;
-        var held = Policy.Decide(self, def, new Random(0), memory);
+        var held = Policy.Decide(self, def, new Random(0), memory, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.True(held.IsAiming);
         Assert.Equal(initial.AimYaw, held.AimYaw);
         Assert.Equal(initial.AimPitch, held.AimPitch);
@@ -590,7 +612,7 @@ public class BotPolicyTests
 
         InputState released = default;
         for (int i = 0; i < 12; i++)
-            released = Policy.Decide(self, def, new Random(0), memory);
+            released = Policy.Decide(self, def, new Random(0), memory, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.False(released.IsAiming);
         Assert.Equal(0, released.ActiveSlot);
     }
@@ -619,13 +641,13 @@ public class BotPolicyTests
         var landingSelf = Self();
         LockNonAimSlots(ref landingSelf);
         Prime(landingMemory, target);
-        Assert.True(Policy.Decide(landingSelf, target, def, new Random(0), landingMemory).IsAiming);
+        Assert.True(Policy.Decide(landingSelf, target, def, new Random(0), landingMemory, activeMove: def.GetCookedSlotAbility(landingSelf.AttackSlot, !landingSelf.IsGrounded)).IsAiming);
         landingSelf.State = ActionState.Aiming;
         landingSelf.AttackSlot = AbilitySlots.A;
         landingSelf.IsGrounded = false;
-        Assert.True(Policy.Decide(landingSelf, def, new Random(0), landingMemory).IsAiming);
+        Assert.True(Policy.Decide(landingSelf, def, new Random(0), landingMemory, activeMove: def.GetCookedSlotAbility(landingSelf.AttackSlot, !landingSelf.IsGrounded)).IsAiming);
         landingSelf.IsGrounded = true;
-        var afterLanding = Policy.Decide(landingSelf, def, new Random(0), landingMemory);
+        var afterLanding = Policy.Decide(landingSelf, def, new Random(0), landingMemory, activeMove: def.GetCookedSlotAbility(landingSelf.AttackSlot, !landingSelf.IsGrounded));
         Assert.Equal(0, afterLanding.ActiveSlot);
         Assert.False(afterLanding.IsAiming);
 
@@ -633,9 +655,9 @@ public class BotPolicyTests
         var deadSelf = Self();
         LockNonAimSlots(ref deadSelf);
         Prime(deadMemory, target);
-        Assert.True(Policy.Decide(deadSelf, target, def, new Random(0), deadMemory).IsAiming);
+        Assert.True(Policy.Decide(deadSelf, target, def, new Random(0), deadMemory, activeMove: def.GetCookedSlotAbility(deadSelf.AttackSlot, !deadSelf.IsGrounded)).IsAiming);
         deadSelf.Deaths = 1;
-        var afterDeath = Policy.Decide(deadSelf, def, new Random(0), deadMemory);
+        var afterDeath = Policy.Decide(deadSelf, def, new Random(0), deadMemory, activeMove: def.GetCookedSlotAbility(deadSelf.AttackSlot, !deadSelf.IsGrounded));
         Assert.Equal(0, afterDeath.ActiveSlot);
         Assert.False(afterDeath.IsAiming);
 
@@ -643,11 +665,11 @@ public class BotPolicyTests
         var resetSelf = Self();
         LockNonAimSlots(ref resetSelf);
         Prime(resetMemory, target);
-        Assert.True(Policy.Decide(resetSelf, target, def, new Random(0), resetMemory).IsAiming);
+        Assert.True(Policy.Decide(resetSelf, target, def, new Random(0), resetMemory, activeMove: def.GetCookedSlotAbility(resetSelf.AttackSlot, !resetSelf.IsGrounded)).IsAiming);
         resetMemory.Reset();
         resetSelf.State = ActionState.Aiming;
         resetSelf.AttackSlot = AbilitySlots.A;
-        var afterReset = Policy.Decide(resetSelf, def, new Random(0), resetMemory);
+        var afterReset = Policy.Decide(resetSelf, def, new Random(0), resetMemory, activeMove: def.GetCookedSlotAbility(resetSelf.AttackSlot, !resetSelf.IsGrounded));
         Assert.Equal(0, afterReset.ActiveSlot);
         Assert.False(afterReset.IsAiming);
     }
@@ -682,7 +704,7 @@ public class BotPolicyTests
             {
                 var currentSelf = sim.GetState(1);
                 var currentTarget = sim.GetState(100);
-                var input = Policy.Decide(currentSelf, currentTarget, def, rng, memory);
+                var input = Policy.Decide(currentSelf, currentTarget, def, rng, memory, activeMove: def.GetCookedSlotAbility(currentSelf.AttackSlot, !currentSelf.IsGrounded));
                 aimed |= input.IsAiming;
                 sim.Tick(new Dictionary<ulong, InputState>
                 {
@@ -726,7 +748,7 @@ public class BotPolicyTests
             bool moved = false;
             for (int tick = 0; tick < 180 && !moved; tick++)
             {
-                var input = Policy.Decide(sim.GetState(1), sim.GetState(100), def, rng, memory);
+                var input = Policy.Decide(sim.GetState(1), sim.GetState(100), def, rng, memory, activeMove: sim.GetActiveMove(1)?.Slot);
                 aimed |= input.IsAiming;
                 sim.Tick(new Dictionary<ulong, InputState>
                 {
@@ -770,7 +792,7 @@ public class BotPolicyTests
             for (int tick = 0; tick < 180; tick++)
             {
                 var input = Policy.Decide(sim.GetState(1), sim.GetState(100), def,
-                    rng, memory, arena);
+                    rng, memory, arena, activeMove: sim.GetActiveMove(1)?.Slot);
                 sim.Tick(new Dictionary<ulong, InputState>
                 {
                     [1] = input,
@@ -806,7 +828,6 @@ public class BotPolicyTests
         self.VY = -5f;
         self.IsGrounded = false;
         self.JumpsLeft = 0;
-        self.DashCooldownTicks = 999;
         // Keep the opponent toward the stage: homing recovery must not chase outward.
         var target = TestHelpers.NpcState(x: 4f);
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
@@ -814,7 +835,7 @@ public class BotPolicyTests
         for (int i = 0; i <= delay; i++)
             memory.ObserveOpponent(target);
 
-        var input = Policy.Decide(self, target, def, new Random(0), memory, arena);
+        var input = Policy.Decide(self, target, def, new Random(0), memory, arena, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.Equal(AbilitySlots.E, input.ActiveSlot);
     }
@@ -827,13 +848,12 @@ public class BotPolicyTests
         self.VY = -5f;
         self.IsGrounded = false;
         self.JumpsLeft = 0;
-        self.DashCooldownTicks = 999;
         var target = TestHelpers.NpcState(x: 14f); // Outward opponent must not redirect recovery.
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         Prime(memory, target);
 
         var input = Policy.Decide(self, target, TestHelpers.WibouDef,
-            new Random(0), memory, RecoveryArena());
+            new Random(0), memory, RecoveryArena(), activeMove: TestHelpers.WibouDef.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.Equal(AbilitySlots.E, input.ActiveSlot);
         Assert.True(input.MoveX < 0f, "Recovery must drift toward the stage, not the opponent.");
@@ -851,11 +871,10 @@ public class BotPolicyTests
         self.VY = -5f;
         self.IsGrounded = false;
         self.JumpsLeft = 0;
-        self.DashCooldownTicks = 999;
         var target = TestHelpers.NpcState(x: 20f);
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
 
-        var input = Policy.Decide(self, target, def, new Random(0), memory, arena);
+        var input = Policy.Decide(self, target, def, new Random(0), memory, arena, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.Equal(0, input.ActiveSlot);
         Assert.True(input.MoveX < -0.5f, "blocked recovery target did not fall back toward stage");
@@ -875,7 +894,7 @@ public class BotPolicyTests
         var target = TestHelpers.NpcState(x: 20f);
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
 
-        var input = Policy.Decide(self, target, def, new Random(0), memory, arena);
+        var input = Policy.Decide(self, target, def, new Random(0), memory, arena, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
 
         Assert.True(input.MoveX < -0.5f, "bot must steer back onto the stage");
         Assert.Equal(AbilitySlots.E, input.ActiveSlot);
@@ -898,7 +917,7 @@ public class BotPolicyTests
 
         for (int seed = 0; seed < 8; seed++)
         {
-            var input = Policy.Decide(self, target, def, new Random(seed), memory, arena);
+            var input = Policy.Decide(self, target, def, new Random(seed), memory, arena, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             Assert.False(input.Jump);
             Assert.True(input.MoveX <= 0f,
                 $"seed {seed} pursued offstage target with MoveX={input.MoveX}");
@@ -975,7 +994,7 @@ public class BotPolicyTests
                             new CookedCycloneKickCapabilityParameters(17, 6, 34, 40, .8f, .4f, .8f, 7, 15, 8, 5, 6, .8f, .3f)),
                     }),
                 }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         int attacks = 0;
         for (int seed = 0; seed < 32; seed++)
         {
@@ -1044,7 +1063,7 @@ public class BotPolicyTests
                             new CookedProjectile(0, 0, 0, 20, 0, .5f, 6, 30, 3, 5, 12, 60)),
                     }),
             }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var self = TestHelpers.PlayerState(z: 25f) with { IsGrounded = false, PY = 3f };
         var target = Opponent(z: 28f);
         var policy = new HeuristicBotPolicy();
@@ -1054,13 +1073,13 @@ public class BotPolicyTests
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             self.VZ = 17f;
-            var outward = policy.Decide(self, target, def, new Random(seed), memory, arena);
+            var outward = policy.Decide(self, target, def, new Random(seed), memory, arena, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             Assert.NotEqual(AbilitySlots.A, outward.ActiveSlot);
 
             memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             self.VZ = -17f;
-            var inward = policy.Decide(self, target, def, new Random(seed), memory, arena);
+            var inward = policy.Decide(self, target, def, new Random(seed), memory, arena, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             if (inward.ActiveSlot == AbilitySlots.A) safeShots++;
         }
         Assert.True(safeShots > 0, "Safe inherited momentum must not disable aerial attacks.");
@@ -1084,7 +1103,7 @@ public class BotPolicyTests
         {
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
-            initial = policy.Decide(self, target, def, new Random(seed), memory);
+            initial = policy.Decide(self, target, def, new Random(seed), memory, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             if (initial.ActiveSlot != AbilitySlots.A) continue;
             selectedMemory = memory;
             break;
@@ -1098,7 +1117,7 @@ public class BotPolicyTests
         bool released = false;
         for (int tick = 0; tick < 90 && sim.Resolver.GetActiveHitboxes().Count == 0; tick++)
         {
-            var input = policy.Decide(sim.GetState(1), target, def, new Random(0), selectedMemory!);
+            var input = policy.Decide(sim.GetState(1), target, def, new Random(0), selectedMemory!, activeMove: sim.GetActiveMove(1)?.Slot);
             var state = TestHelpers.TickN(sim, input, 1);
             released |= state.State == ActionState.Attacking && !state.IsAiming;
         }

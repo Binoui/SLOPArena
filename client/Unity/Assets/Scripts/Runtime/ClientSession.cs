@@ -239,9 +239,9 @@ namespace SlopArena.Client
             }
 
             var content = config.Content;
-            if (content == null)
+            if (content?.Arena == null || !string.Equals(content.Arena.Name, config.ArenaName, StringComparison.Ordinal))
             {
-                RejectMatchStart("Match content admission failed: authoritative content map is missing.");
+                RejectMatchStart("Match content admission failed: arena identity is missing or names a different arena.");
                 return;
             }
             if (!TryBuildAndValidateMatchCatalog(content, out var catalog, out var contentFailure) ||

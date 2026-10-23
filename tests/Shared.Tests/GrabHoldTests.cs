@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using SlopArena.Shared.Rollback;
 using Xunit;
 
 namespace SlopArena.Shared.Tests;
@@ -10,8 +9,8 @@ public sealed class GrabHoldTests
     private static (ServerSimulation Sim, CharacterDefinition Def) Capture(float yaw = 0f, ArenaDefinition? arena = null)
     {
         var def = TestHelpers.EngineDef;
-        def.CaptureGeometry = new CookedCaptureGeometry(1.5f, 0.8f, 1.2f, 0.6f,
-            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f));
+        def = def with { CaptureGeometry = new CookedCaptureGeometry(1.5f, 0.8f, 1.2f, 0.6f,
+            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f)) };
         var sim = new ServerSimulation(arena ?? TestHelpers.TestArena());
         var grabber = TestHelpers.PlayerState(x: 20f, z: 20f) with
         {
@@ -40,8 +39,8 @@ public sealed class GrabHoldTests
     public void RunningGrabCapsCarryAndCapturesAfterNormalStartup(float speedMultiplier)
     {
         var def = TestHelpers.EngineDef;
-        def.CaptureGeometry = new CookedCaptureGeometry(1.5f, 0.8f, 1.2f, 0.6f,
-            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f));
+        def = def with { CaptureGeometry = new CookedCaptureGeometry(1.5f, 0.8f, 1.2f, 0.6f,
+            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f)) };
         var sim = new ServerSimulation(TriangleArena());
         var initial = TestHelpers.PlayerState(x: 20f, z: 20f) with
         {
@@ -316,22 +315,23 @@ public sealed class GrabHoldTests
     [Theory]
     [InlineData(ActionState.Grabbing)]
     [InlineData(ActionState.Thrown)]
-    public void HoldAndThrownStatesSurvivePacketRoundTrip(ActionState action)
+    public void HoldAndThrownStatesSurviveSnapshotRoundTrip(ActionState action)
     {
         var (sim, _) = Capture();
         Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
         for (int tick = 0; tick < DefenseConfig.ThrowReleaseTicks; tick++) Tick(sim);
         var state = action == ActionState.Grabbing ? Capture().Sim.GetState(1) : sim.GetState(2);
-        var packet = CharacterStatePacket.FromState(state);
-        var bytes = new byte[CharacterStatePacket.Size];
-        packet.Serialize(bytes);
-        var restored = CharacterStatePacket.Deserialize(bytes).ToState();
+        var writer = new SnapshotWriter();
+        SnapshotCodecs.Write(writer, state);
+        var reader = new SnapshotReader(writer.ToArray());
+        var restored = SnapshotCodecs.ReadCharacterState(reader);
+        Assert.True(reader.AtEnd);
+        Assert.Equal(state, restored);
         Assert.Equal(action, restored.State);
         Assert.Equal(state.StateTicks, restored.StateTicks);
         Assert.Equal(state.InteractionId, restored.InteractionId);
         Assert.Equal(state.InteractionTick, restored.InteractionTick);
         Assert.Equal(state.CapturedYaw, restored.CapturedYaw);
-        Assert.Equal(action == ActionState.Thrown, ActionStateClassifier.IsPredictable(restored));
     }
 
     [Fact]

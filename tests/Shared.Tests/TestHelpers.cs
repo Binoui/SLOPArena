@@ -7,6 +7,36 @@ namespace SlopArena.Shared.Tests;
 
 public static class TestHelpers
 {
+    public static InputState ReservedInput(byte bits, InputState input = default)
+    {
+        Span<byte> bytes = stackalloc byte[InputState.Size];
+        input.Write(bytes);
+        bytes[8] |= bits;
+        return InputState.Deserialize(bytes);
+    }
+
+    public static CharacterDefinition WithMove(CharacterDefinition definition, byte wireSlot, bool airborne,
+        string name, ushort duration, ushort iasa = 0, HitboxEvent[]? hits = null,
+        string[]? animations = null, string? hitPresentationId = null)
+    {
+        CanonicalSlotProjection.TryGet(wireSlot, airborne, out var address);
+        var slots = definition.CookedSlots!.ToArray();
+        var operations = (hits ?? Array.Empty<HitboxEvent>()).Select(hit =>
+        {
+            var kb = hit.Knockback.Resolve();
+            return (CookedTimelineOperation)new CookedSpawnHitboxOperation(hit.TriggerTick, AuthoringUnit.Meters,
+                new CookedHitbox((AuthoringHitboxShape)hit.Shape, hit.Radius, hit.OffX, hit.OffY, hit.OffZ,
+                    hit.EndOffX, hit.EndOffY, hit.EndOffZ, hit.BoneName, hit.EndBoneName, hit.Damage,
+                    kb.angle, kb.baseKB, kb.growthKB, hit.StunTicks, hit.DurationTicks, hit.Interruptible,
+                    hit.HitGroup, hit.KnockbackDirection, hit.FixedHitstunTicks));
+        }).ToArray();
+        slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, airborne, name, "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[] { new CookedStage(duration, iasa, 0, 0, 0,
+                animations ?? Array.Empty<string>(), operations) }), hitPresentationId: hitPresentationId);
+        return definition with { CookedSlots = slots };
+    }
+
     /// <summary>Compile saved authoring for lifecycle checks before asset cooking, optionally edited first.</summary>
     public static CharacterDefinition ResolveSourceDef(string packageId,
         Action<System.Text.Json.Nodes.JsonObject>? edit = null)
@@ -280,24 +310,24 @@ public static class TestHelpers
                 ShieldRadius = src.ShieldRadius,
                 HurtboxRadius = src.HurtboxRadius,
                 Movement = src.Movement,
-                Slot1 = src.Slot1,
-                E = src.E,
-                R = src.R,
-                F = src.F,
-                Slot2 = src.Slot2,
-                Slot3 = src.Slot3,
-                Slot4 = src.Slot4,
-                Slot5 = src.Slot5,
-                A = src.A,
-                AirSlot1 = src.AirSlot1,
-                AirE = src.AirE,
-                AirR = src.AirR,
-                AirF = src.AirF,
-                AirSlot2 = src.AirSlot2,
-                AirSlot3 = src.AirSlot3,
-                AirSlot4 = src.AirSlot4,
-                AirSlot5 = src.AirSlot5,
-                AirA = src.AirA,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 CookedSlots = src.CookedSlots,
                 ClipOverrides = src.ClipOverrides,
                 // Use a simple full-body capsule instead of bone-attached hurtboxes
@@ -346,24 +376,24 @@ public static class TestHelpers
                 CapsuleHeight = src.CapsuleHeight,
                 HurtboxRadius = src.HurtboxRadius,
                 Movement = src.Movement,
-                Slot1 = src.Slot1,
-                E = src.E,
-                R = src.R,
-                F = src.F,
-                Slot2 = src.Slot2,
-                Slot3 = src.Slot3,
-                Slot4 = src.Slot4,
-                Slot5 = src.Slot5,
-                A = src.A,
-                AirSlot1 = src.AirSlot1,
-                AirE = src.AirE,
-                AirR = src.AirR,
-                AirF = src.AirF,
-                AirSlot2 = src.AirSlot2,
-                AirSlot3 = src.AirSlot3,
-                AirSlot4 = src.AirSlot4,
-                AirSlot5 = src.AirSlot5,
-                AirA = src.AirA,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 CookedSlots = src.CookedSlots,
                 ClipOverrides = src.ClipOverrides,
                 // HurtboxBoneDefs for BoneName lookup
@@ -411,24 +441,24 @@ public static class TestHelpers
             ShieldRadius = src.ShieldRadius,
             HurtboxRadius = src.HurtboxRadius,
             HipHeight = src.HipHeight,
-            Slot1 = src.Slot1,
-            E = src.E,
-            R = src.R,
-            F = src.F,
-            Slot2 = src.Slot2,
-            Slot3 = src.Slot3,
-            Slot4 = src.Slot4,
-            Slot5 = src.Slot5,
-            A = src.A,
-            AirSlot1 = src.AirSlot1,
-            AirE = src.AirE,
-            AirR = src.AirR,
-            AirF = src.AirF,
-            AirSlot2 = src.AirSlot2,
-            AirSlot3 = src.AirSlot3,
-            AirSlot4 = src.AirSlot4,
-            AirSlot5 = src.AirSlot5,
-            AirA = src.AirA,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             CookedSlots = src.CookedSlots,
             ClipOverrides = src.ClipOverrides,
             HurtboxCapsules = src.HurtboxCapsules,
@@ -465,7 +495,7 @@ public static class TestHelpers
                 new CookedStage(30, 0, 0, 0, 0,
                     Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()),
             }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 

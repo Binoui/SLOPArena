@@ -5,7 +5,7 @@ namespace SlopArena.Shared.Tests;
 
 public class BurstTests
 {
-    private static InputState BurstInput() => new() { Burst = true };
+    private static InputState BurstInput(InputState input = default) => TestHelpers.ReservedInput(0x40, input);
 
     [Fact]
     public void SyntheticBurst_DoesNotClearHitstunOrKnockback()
@@ -57,18 +57,16 @@ public class BurstTests
     }
 
     [Fact]
-    public void ReservedBurstFields_DoNotLockJumpAdmission()
+    public void ReservedBurstBitDoesNotLockJumpAdmission()
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.GroundPY(TestHelpers.EngineDef);
-        state.BurstCooldownTicks = 100;
-        state.BurstRecoveryTicks = 100;
         TestHelpers.RegisterPlayer(sim, TestHelpers.EngineDef, state);
 
         sim.Tick(new Dictionary<ulong, InputState>
         {
-            { 1, new InputState { Burst = true, Jump = true, JumpHeld = true } },
+            { 1, BurstInput(new InputState { Jump = true, JumpHeld = true }) },
         });
 
         Assert.Equal(ActionState.JumpSquat, sim.GetState(1).State);

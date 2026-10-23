@@ -175,8 +175,7 @@ public sealed partial class AbilityLabWindow
 
     private void RefreshAttachmentStatus()
     {
-        hasUnsavedChanges = _workspace.AttachmentDraftDirty;
-        saveChangesMessage = "Save attachment placement before closing Ability Lab? Package gameplay edits use the separate Save + Cook command.";
+        RefreshUnsavedChanges();
         if (_attachmentStatus != null)
             _attachmentStatus.text = !string.IsNullOrEmpty(_workspace.AttachmentDraftError) ? _workspace.AttachmentDraftError
                 : _workspace.AttachmentDraftDirty ? "Unsaved attachment placement"
@@ -205,27 +204,4 @@ public sealed partial class AbilityLabWindow
         _attachmentPreviewConfig = null;
     }
 
-    private bool CanLeaveAttachmentDraft()
-    {
-        if (!_workspace.AttachmentDraftDirty) return true;
-        int choice = EditorUtility.DisplayDialogComplex("Unsaved attachment placement",
-            "Save or revert attachment edits before switching packages.", "Save attachment", "Cancel", "Revert");
-        if (choice == 1) return false;
-        bool accepted = choice == 0 ? _workspace.SaveAttachmentDraft() : _workspace.RevertAttachmentDraft();
-        RefreshAttachmentStatus();
-        return accepted;
-    }
-
-    public override void SaveChanges()
-    {
-        if (_workspace.AttachmentDraftDirty && !_workspace.SaveAttachmentDraft())
-            throw new InvalidOperationException(_workspace.AttachmentDraftError);
-        base.SaveChanges();
-    }
-
-    public override void DiscardChanges()
-    {
-        _workspace.RevertAttachmentDraft();
-        base.DiscardChanges();
-    }
 }

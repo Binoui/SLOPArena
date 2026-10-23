@@ -151,7 +151,7 @@ namespace SlopArena.EditorTools
             };
             _bridge.RegisterEntity(id, entry.Definition, state, entry.BakedAnimation);
             _bridge.SetRespawnPosition(id, position.x, position.y, position.z, yaw);
-            renderer.ApplyServerState(_bridge.GetState(id));
+            renderer.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot);
             return renderer;
         }
 
@@ -242,8 +242,8 @@ namespace SlopArena.EditorTools
                 });
             var attackerState = _bridge.GetState(AttackerId);
             var victimState = _bridge.GetState(VictimId);
-            _attacker.ApplyServerState(attackerState);
-            _victim.ApplyServerState(victimState);
+            _attacker.ApplyServerState(attackerState, _bridge.GetActiveMove(AttackerId)?.Slot);
+            _victim.ApplyServerState(victimState, _bridge.GetActiveMove(VictimId)?.Slot);
             // Frame the landed fighters once, just before the first captured tick.
             if (Tick == PressTick)
                 FrameFighters(attackerState, victimState);

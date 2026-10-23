@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CharacterAssetCatalog
   m_EditorClassIdentifier: 
   _packageId: wibou
-  _catalogSchemaVersion: 1
+  _catalogSchemaVersion: 2
   _rig: {fileID: 6878323076211461345, guid: 22ec19e8e18d8d821a51fb314824606b, type: 3}
   _weaponConfig: {fileID: 11400000, guid: 4e8a42d1f2c34b8aa3d1f9d4be57c610, type: 2}
   _sampleRate: 60
@@ -139,3 +139,45 @@ MonoBehaviour:
     _prefab: {fileID: 8470178808113140597, guid: 5f7fa5706c9647af5bdd5eb8da96edcf, type: 3}
   - _semanticId: presentation.wibou.dash.cut
     _prefab: {fileID: 3790780032384582987, guid: 7c667a41ff7c3e4818015dcc12d12dfe, type: 3}
+  _presentationProfile:
+    _respawnTint: {r: 0.76, g: 0.9, b: 1, a: 0.95}
+    _swing:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: e675324b07240becc9e14b84fbb087fc, type: 3}
+      - {fileID: 8300000, guid: 91dae416280c1ad24997b05c9f7b12ac, type: 3}
+      - {fileID: 8300000, guid: 1cde31ed153859dfea688c361db6194a, type: 3}
+      - {fileID: 8300000, guid: 767eda5e88f7374be966da399985d4cb, type: 3}
+      - {fileID: 8300000, guid: 8a6015635d0b1f913aeb291e89bbdc73, type: 3}
+      - {fileID: 8300000, guid: f8f97198061e4fd1b9327e964044ca33, type: 3}
+      - {fileID: 8300000, guid: 91e42760650573cb0b54e9ce300b34db, type: 3}
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 8300000, guid: c0b2d4e9a98077759b0ffee3723765dc, type: 3}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 8300000, guid: ac434ba3ed8d865d2b09344961602fae, type: 3}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 8300000, guid: 866689b5c932fe0be837f621d86ae760, type: 3}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles:
+    - _slotId: ground.A
+      _prefab: {fileID: 7986128699745315854, guid: 47aeee7d752a28150b5d1863380f0672, type: 3}
+      _scale: 1
+      _orientation: 1
+      _heldBoneId: 
+      _prefabObjectId: 
+    - _slotId: air.A
+      _prefab: {fileID: 7986128699745315854, guid: 47aeee7d752a28150b5d1863380f0672, type: 3}
+      _scale: 1
+      _orientation: 1
+      _heldBoneId: 
+      _prefabObjectId: 

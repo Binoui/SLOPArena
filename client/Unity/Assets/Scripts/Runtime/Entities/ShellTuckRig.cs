@@ -3,6 +3,18 @@ using UnityEngine;
 
 namespace SlopArena.Client.Entities
 {
+    internal readonly struct ShellTuckMotion
+    {
+        internal readonly Quaternion? OriginalTuckedRotation;
+        internal readonly float ModelLift;
+
+        internal ShellTuckMotion(Quaternion? originalTuckedRotation, float modelLift)
+        {
+            OriginalTuckedRotation = originalTuckedRotation;
+            ModelLift = modelLift;
+        }
+    }
+
     /// <summary>
     /// How a fighter folds into its shell (<see cref="ShellTuckRig"/>). Lengths are in the model's own units (metres
     /// at visual scale 1), along its root: +Z forward, +Y up, the floor at 0.
@@ -73,6 +85,11 @@ namespace SlopArena.Client.Entities
         private bool _requested, _applied;
         private ShellTuckPose _pose;
         private float _weight, _clock;
+        private ShellTuckMotion? _motion;
+        private Transform[] _animatedBones = System.Array.Empty<Transform>();
+        private Vector3[] _animatedPositions = System.Array.Empty<Vector3>();
+        private Quaternion[] _animatedRotations = System.Array.Empty<Quaternion>();
+        private bool _restoreAnimationPose;
 
         /// <summary>The rig on the owner's model, added on first use; null when the model has no Humanoid shell rig.</summary>
         public static ShellTuckRig? For(PlayerRenderer owner, in ShellTuckPose pose)
@@ -92,7 +109,14 @@ namespace SlopArena.Client.Entities
         {
             _pose = pose;
             _weight = weight;
+            _motion = null;
             _requested = true;
+        }
+
+        internal void Request(in ShellTuckPose pose, float weight, in ShellTuckMotion motion)
+        {
+            Request(pose, weight);
+            _motion = motion;
         }
 
         private bool Bind(Animator animator, in ShellTuckPose pose)
@@ -108,6 +132,12 @@ namespace SlopArena.Client.Entities
             foreach (var bone in new[] { HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.UpperChest, HumanBodyBones.Neck })
                 if (animator.GetBoneTransform(bone) is { } t) spine.Add(t);
             _spine = spine.ToArray();
+            _animatedBones = new Transform[_spine.Length + 2];
+            _animatedBones[0] = _hips;
+            _animatedBones[1] = _head;
+            _spine.CopyTo(_animatedBones, 2);
+            _animatedPositions = new Vector3[_animatedBones.Length];
+            _animatedRotations = new Quaternion[_animatedBones.Length];
             _spineRest = new Quaternion[_spine.Length];
             for (int i = 0; i < _spine.Length; i++)
                 _spineRest[i] = RestLocal(rest, _spine[i]).rotation;
@@ -124,10 +154,17 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
+        private void Update()
+        {
+            // Remove the previous flip before animation evaluates, including frozen and culled frames.
+            RestoreAnimationPose();
+        }
+
         private void LateUpdate()
         {
             if (_requested)
             {
+                if (_motion.HasValue) CaptureAnimationPose();
                 Apply(_pose, _weight);
                 _applied = true;
             }
@@ -137,16 +174,21 @@ namespace SlopArena.Client.Entities
                 _applied = false;
             }
             _requested = false;
+            _motion = null;
         }
 
         private void OnDisable()
         {
+            RestoreAnimationPose();
             if (_applied) Restore();
             _applied = _requested = false;
+            _motion = null;
         }
 
         private void Apply(in ShellTuckPose pose, float w)
         {
+            Quaternion nativeLocalRotation = _hips.localRotation;
+            Quaternion nativeModelRotation = Quaternion.Inverse(_root.rotation) * _hips.parent.rotation * nativeLocalRotation;
             float held = Mathf.Clamp01(w);
             Vector3 animatedForward = Vector3.ProjectOnPlane(_head.position - _hips.position, _root.up);
             _clock += Time.deltaTime;
@@ -175,6 +217,38 @@ namespace SlopArena.Client.Entities
             if (pose.FollowAnimatedHeading && held >= 0.999f && animatedForward.sqrMagnitude > 0.000001f)
                 _hips.RotateAround(_shell.position, _root.up,
                     Vector3.SignedAngle(_root.forward, animatedForward, _root.up));
+            if (_motion is { } motion)
+            {
+                if (motion.OriginalTuckedRotation is { } original)
+                {
+                    Quaternion delta = facing * (nativeModelRotation * Quaternion.Inverse(original)) * Quaternion.Inverse(facing);
+                    Vector3 pivot = _shell.position;
+                    _hips.SetPositionAndRotation(pivot + delta * (_hips.position - pivot), delta * _hips.rotation);
+                }
+                _hips.position += _root.TransformVector(Vector3.up * motion.ModelLift);
+            }
+        }
+
+        private void CaptureAnimationPose()
+        {
+            for (int i = 0; i < _animatedBones.Length; i++)
+            {
+                _animatedPositions[i] = _animatedBones[i].localPosition;
+                _animatedRotations[i] = _animatedBones[i].localRotation;
+            }
+            _restoreAnimationPose = true;
+        }
+
+        private void RestoreAnimationPose()
+        {
+            if (!_restoreAnimationPose) return;
+            for (int i = 0; i < _animatedBones.Length; i++)
+            {
+                var bone = _animatedBones[i];
+                if (bone == null) continue;
+                bone.SetLocalPositionAndRotation(_animatedPositions[i], _animatedRotations[i]);
+            }
+            _restoreAnimationPose = false;
         }
 
         private void Restore()

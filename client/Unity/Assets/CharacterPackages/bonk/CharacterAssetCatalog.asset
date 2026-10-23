@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CharacterAssetCatalog
   m_EditorClassIdentifier: 
   _packageId: bonk
-  _catalogSchemaVersion: 1
+  _catalogSchemaVersion: 2
   _rig: {fileID: 996956790671633796, guid: c9b31b06ccef030b7910054845350b4c, type: 3}
   _weaponConfig: {fileID: 11400000, guid: e39ce81cb942475ddadbde1245b85bd5, type: 2}
   _sampleRate: 60
@@ -203,3 +203,45 @@ MonoBehaviour:
     _prefab: {fileID: 2411651201643451955, guid: 4314d5ca9c94fac739bfabe514f82b9a, type: 3}
   - _semanticId: presentation.bonk.lid.selfhit
     _prefab: {fileID: 2187791123144010484, guid: e24ecdabfffd7770e9ee284de08e5afb, type: 3}
+  _presentationProfile:
+    _respawnTint: {r: 0.96, g: 0.58, b: 0.18, a: 0.95}
+    _swing:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 690f6ca82ae389a1fbe22ebd1fbfc4b0, type: 3}
+      - {fileID: 8300000, guid: e48f3b6b41da50d6d97ee57a47311abc, type: 3}
+      - {fileID: 8300000, guid: 6c3f9f2e08f84d2a882f2e2f3556b113, type: 3}
+      - {fileID: 8300000, guid: 577c15c10f3effa15962e6ff695f5b51, type: 3}
+      - {fileID: 8300000, guid: a32fd4780416842629bbe9ce21afd365, type: 3}
+      - {fileID: 8300000, guid: dce090ebd2a3a6f99b647368701d36f3, type: 3}
+      - {fileID: 8300000, guid: 04fcae9c20f3f970683b1ab3c56bb6a1, type: 3}
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 8300000, guid: 85ca8f8a21e930e3e9d4313d22e0b1d8, type: 3}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 8300000, guid: 5b9ece0e4b80d32c090d90b8dc5b63ed, type: 3}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 8300000, guid: e9ae4658f12bdfb75a104fd41978a6a0, type: 3}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles:
+    - _slotId: ground.A
+      _prefab: {fileID: 3560857074569049396, guid: 9423144a9a5a95e2e94589b1dbcf1d51, type: 3}
+      _scale: 1
+      _orientation: 0
+      _heldBoneId: 
+      _prefabObjectId: 
+    - _slotId: air.A
+      _prefab: {fileID: 3560857074569049396, guid: 9423144a9a5a95e2e94589b1dbcf1d51, type: 3}
+      _scale: 1
+      _orientation: 0
+      _heldBoneId: 
+      _prefabObjectId: 

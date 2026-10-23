@@ -23,14 +23,13 @@ namespace SlopArena.EditorTools
     /// (skills/sloparena-character-vfx-pass). It writes textures, materials, meshes and prefabs
     /// under <c>CharacterPackages/&lt;package&gt;/Presentation</c>, keeping their GUIDs and,
     /// for unchanged inputs, their bytes. It then binds them to the package catalog, the
-    /// catalog's weapon-trail style and the projectile visual config. Effects are built in a
+    /// catalog's weapon-trail style and projectile profile. Effects are built in a
     /// preview scene that closes on <see cref="Finish"/> or disposal. <see cref="ForFolder"/>
     /// builds presentation no package owns, such as a Character Course's look.
     /// Pair with <see cref="PresentationFx"/> and <see cref="ToonShapes"/>.
     /// </summary>
     public sealed class PresentationBuilderKit : IDisposable
     {
-        public const string ProjectileConfigPath = "Assets/Resources/VFXConfigs/ProjectileVisuals.asset";
         private const string MixerPath = "Assets/Resources/Settings/SlopArena.mixer";
 
         public string PackageId { get; }
@@ -299,32 +298,19 @@ namespace SlopArena.EditorTools
             EditorUtility.SetDirty(weapon);
         }
 
-        /// <summary>
-        /// Points the ground and air projectile visuals of one slot at <paramref name="prefab"/>.
-        /// ProjectileVFXManager places the root on the Shared projectile; orientation and scale
-        /// rules are in its OrientProjectile and ScaleProjectileVisual.
-        /// </summary>
-        public void BindProjectile(CharacterClass character, byte slot, GameObject prefab, float scale = 1f)
+        public void BindProjectile(string canonicalSlotId, GameObject prefab,
+            ProjectileOrientation orientation = ProjectileOrientation.PreservePrefab, string heldBoneId = "", float scale = 1f)
         {
-            var config = AssetDatabase.LoadAssetAtPath<ProjectileVFXConfig>(ProjectileConfigPath)
-                ?? throw new InvalidOperationException("The projectile visual config is missing.");
-            int bound = 0;
-            foreach (var entry in config.ProjectileEntries ?? Array.Empty<ProjectileVisualEntry>())
-            {
-                if (entry == null || entry.Character != character || entry.AttackSlot != slot) continue;
-                entry.Prefab = prefab;
-                entry.Scale = scale;
-                bound++;
-            }
-            if (bound == 0)
-            {
-                // A slot's first projectile (Sir Bonk's pot lid, 2026-10-22) adds its ground and air entries.
-                var entries = new List<ProjectileVisualEntry>(config.ProjectileEntries ?? Array.Empty<ProjectileVisualEntry>());
-                foreach (bool airborne in new[] { false, true })
-                    entries.Add(new ProjectileVisualEntry { Character = character, AttackSlot = slot, Airborne = airborne, Prefab = prefab, Scale = scale });
-                config.ProjectileEntries = entries.ToArray();
-            }
-            EditorUtility.SetDirty(config);
+            if (!CanonicalSlotProjection.TryGet(canonicalSlotId, out _))
+                throw new ArgumentException("A canonical projectile slot is required.", nameof(canonicalSlotId));
+            var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(PackageRoot + "/CharacterAssetCatalog.asset")
+                ?? throw new InvalidOperationException("The package asset catalog is missing.");
+            var profile = catalog.PresentationProfile
+                ?? throw new InvalidOperationException("Migrate the package presentation profile before rebuilding visuals.");
+            var rows = profile.Projectiles.ToArray().Where(row => row.SlotId != canonicalSlotId).ToList();
+            rows.Add(new ProjectilePresentation(canonicalSlotId, prefab, scale, orientation, heldBoneId));
+            catalog.SetPresentationProfile(profile.WithProjectiles(rows.ToArray()));
+            EditorUtility.SetDirty(catalog);
         }
 
         /// <summary>

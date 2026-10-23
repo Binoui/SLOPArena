@@ -93,9 +93,10 @@ bun scripts/unity-editor-gateway.ts \
 
 The workspace prepares current source in memory using existing compiler,
 verified poses, catalog and rig; it does not save/cook, alter Undo history,
-or write source/cooked data. Persisted authoritative preview still requires
-valid cooked runtime/pose/catalog/rig; missing/invalid pose or rig blocks
-scenarios. `dirty` reports workspace edits and may be false while
+or write source/cooked data. The persisted loader supplies verified runtime,
+pose, catalog and rig prerequisites; missing/invalid pose or rig blocks scenarios.
+Ordinary window refresh applies the live gameplay draft even when disk hashes
+match. `dirty` reports workspace edits and may be false while
 `authoritativePreview` is false. Never imply isolated scenarios prove online
 play or game feel. For persistence and accepted content, use
 [Character Workflow](../sloparena-character-workflow/SKILL.md). Full contracts

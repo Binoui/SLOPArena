@@ -21,7 +21,7 @@ namespace SlopArena.Client.World
     public static class ChargeTiers
     {
         /// <summary>0 for tier 1, 1 for tier 2 and so on; -1 when the slot has no charged capability.</summary>
-        public static int Of(CharacterDefinition definition, byte slot, ushort chargeTicks) => Find(definition, slot) switch
+        public static int Of(CookedSlotDefinition? move, ushort chargeTicks) => Find(move) switch
         {
             CookedChargedProjectileCapabilityParameters projectile => projectile.GetChargeTier(chargeTicks),
             CookedChargedDirectionalDashCapabilityParameters dash => dash.GetChargeTier(chargeTicks),
@@ -31,9 +31,9 @@ namespace SlopArena.Client.World
         };
 
         /// <summary>The charge from 0 to 1 at the capability's full charge; 0 when the slot has none.</summary>
-        public static float Progress(CharacterDefinition definition, byte slot, ushort chargeTicks)
+        public static float Progress(CookedSlotDefinition? move, ushort chargeTicks)
         {
-            ushort full = Find(definition, slot) switch
+            ushort full = Find(move) switch
             {
                 CookedChargedProjectileCapabilityParameters projectile => projectile.MaxChargeTicks,
                 CookedChargedStreamCapabilityParameters stream => stream.MaxChargeTicks,
@@ -52,19 +52,15 @@ namespace SlopArena.Client.World
             return reached;
         }
 
-        private static CookedCapabilityParameters Find(CharacterDefinition definition, byte slot)
+        private static CookedCapabilityParameters Find(CookedSlotDefinition? move)
         {
-            foreach (bool airborne in new[] { false, true })
-            {
-                var cooked = definition?.GetCookedSlotAbility(slot, airborne);
-                if (cooked == null) continue;
-                foreach (var stage in cooked.Timeline.Stages)
-                foreach (var operation in stage.Operations)
-                    if (operation is CookedStartCapabilityOperation { Parameters: CookedChargedProjectileCapabilityParameters
-                        or CookedChargedStreamCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
-                        or CookedMankiAerosolInfernoCapabilityParameters } start)
-                        return start.Parameters;
-            }
+            if (move == null) return null;
+            foreach (var stage in move.Timeline.Stages)
+            foreach (var operation in stage.Operations)
+                if (operation is CookedStartCapabilityOperation { Parameters: CookedChargedProjectileCapabilityParameters
+                    or CookedChargedStreamCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
+                    or CookedMankiAerosolInfernoCapabilityParameters } start)
+                    return start.Parameters;
             return null;
         }
     }

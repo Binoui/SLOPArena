@@ -395,7 +395,11 @@ public sealed record WibouRisingSlashCapabilityParameters(
 
 public sealed record WibouBladeFlurryCapabilityParameters(
     float ForwardSpeed,
-    ushort MoveTicks) : TypedCapabilityParameters;
+    ushort AscentStartTick,
+    ushort AscentEndTick,
+    ushort DescentStartTick,
+    float RiseSpeed,
+    float DescentSpeed) : TypedCapabilityParameters;
 /// <summary>
 /// A steerable charge (slop.ability.steered-charge.v1): a gallop at a fixed speed whose heading the
 /// stick turns within a capped rate, with a lance hitbox and optional armour for as long as it lasts.

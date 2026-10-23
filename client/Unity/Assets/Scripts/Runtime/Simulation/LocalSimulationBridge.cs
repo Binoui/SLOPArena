@@ -36,6 +36,7 @@ namespace SlopArena.Client.Simulation
             _lastTickPresentationEvents.AddRange(_server.GetPresentationEvents(clear: true));
         }
 
+        public ActiveMoveView? GetActiveMove(ulong id) => _server.GetActiveMove(id);
         public CharacterState GetState(ulong id) => _server.GetState(id);
         public Dictionary<ulong, CharacterState> GetAllStates() => _server.GetAllStates();
         public SpellResolver? Resolver => _server.Resolver;

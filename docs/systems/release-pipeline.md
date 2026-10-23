@@ -78,6 +78,16 @@ This uses installed SteamCMD with anonymous login and requires both default's
 BuildID and depot manifest to match. It appends a separate observation, preserving
 CI receipts. Credentials and confirmations stay in Steamworks/Steam.
 
+Protocol 16 requires coordinated client, GameServer and Master versions. The
+registration `catalogHash` still hashes only the schema-1 character catalog.
+Each actual Match uses schema-2 content with an `arena` name and lowercase SHA-256
+digest of the exact baked `.arena` bytes. Its `contentHash` binds that record and
+the characters. GameServer returns `actualCatalogHash` separately; Master validates
+both hashes and the requested arena before forwarding the content unchanged.
+Clients verify their local arena bytes before prediction or Ready on Steam and
+development UDP. Include a mismatched arena rejection in the protocol acceptance
+pass; offline tests do not establish two-account Steam acceptance.
+
 For startup, protocol or netcode changes, use two updated Steam accounts to
 exercise countdown, match and rematch. Capture MasterConsole diagnostics. Record
 the exercised result against the exact uploaded BuildID:

@@ -37,7 +37,7 @@ public sealed class SwingContactGeometryTests
             slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove,
             slot.PreserveMomentumOnStart, timeline, slot.ChargePool, slot.AimMovement,
             slot.AimAnimationId, slot.AllowSlideCarry);
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 

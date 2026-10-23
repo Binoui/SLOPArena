@@ -38,7 +38,8 @@ preview is not persisted package verification.
 ## Integrated change
 
 Shared edits require focused behavioral coverage while iterating, then `dotnet build
-src/Shared/ --nologo` and `dotnet test tests/Shared.Tests/ --nologo` at delivery.
+src/Shared/ --nologo -p:SkipUnityPluginCopy=true` and
+`dotnet test tests/Shared.Tests/ --nologo -p:SkipUnityPluginCopy=true` at delivery.
 When verification does not need the canonical Unity plugin copy, use
 `-p:SkipUnityPluginCopy=true`; this requires no Editor lease. Before a
 build that copies the Unity plugin, acquire your own bounded gateway hold; run the
@@ -46,8 +47,9 @@ build from a separate shell while held, wait for import and compile settlement, 
 end the hold. Honor explicit source freezes; coordinate only concrete overlapping
 writes or explicitly required stable-source verification under the shared protocol.
 No routine Editor-owner messages or blanket acknowledgments. Never copy without
-your own lease or nested-claim while holding. Server edits require `dotnet build src/Server/ --nologo` and
-`dotnet test tests/Server.Tests/ --nologo`. Unity-facing behavior needs the affected
+your own lease or nested-claim while holding. Server edits require
+`dotnet build src/Server/ --nologo -p:SkipUnityPluginCopy=true` and
+`dotnet test tests/Server.Tests/ --nologo -p:SkipUnityPluginCopy=true`. Unity-facing behavior needs the affected
 runtime check and current compile/console evidence, not all unrelated scenes. Accepted
 character source/asset changes intended to ship cross the explicit cook/inspect/roster-
 refresh boundary before delivery. Documentation/tooling-only edits use the Python checks
@@ -129,8 +131,8 @@ Play Mode was not retried; controller/visual acceptance remains unverified.
 `src/Shared/` is pure C# `netstandard2.1`. Run after Shared changes:
 
 ```bash
-dotnet build src/Shared/ --nologo
-dotnet test tests/Shared.Tests/ --nologo
+dotnet build src/Shared/ --nologo -p:SkipUnityPluginCopy=true
+dotnet test tests/Shared.Tests/ --nologo -p:SkipUnityPluginCopy=true
 ```
 
 Use a focused test filter while iterating, then run the full Shared suite before delivery. Tests should assert observable simulation behavior: state transitions, timing boundaries, collision, damage/Knockback, interruption, deterministic serialization, and catalog identity. Avoid assertions tied only to implementation details or volatile test totals.
@@ -152,7 +154,7 @@ Assert the mechanic being protected: authored-duration lock/unlock, accepted con
 facing/target identity, jump transitions, and deterministic replay. Do not freeze a
 character's current damage, startup, body offset, weapon pose, or complete state snapshot
 when the test only needs an engine rule. Keep deliberately kit-specific behavior separate;
-ordinary numerical tuning does not require golden regeneration.
+ordinary numerical tuning does not require broad snapshot updates.
 
 Exact damage assertions belong in synthetic engine fixtures when damage application,
 scaling, or duplicate-hit prevention is the contract. Roster contact/recovery checks
@@ -207,9 +209,10 @@ timeout takeover or final live-runtime verification is claimed.
 
 Choose tests that cover the changed boundary:
 
-- movement, jump, air dodge, ledge, and air-use behavior;
+- movement, jump, air dodge, air-use behavior, and disabled universal Dash/ledge inputs;
 - hitbox/projectile geometry and collision;
-- Hitstun, Hitstop, Knockback, Combo Influence, Clash, and Burst;
+- Hitstun, Hitstop, Knockback, rotational DI, SDI/ASDI, Shield, grabs/throws,
+  reciprocal grab clash, attack trades, and inert Burst input;
 - cooked timeline execution, typed operations, capability admission, interruption, and presentation events;
 - package compiler diagnostics, deterministic bytes, manifest/hash validation, and Match Content Catalog admission;
 - codecs and server/client content requirements.
@@ -229,25 +232,30 @@ bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.cha
 For a rostered package, require a successful semantic result, valid inspect status,
 `dirtyOrStale: false`, and matching source/cooked/package hashes. For a source-only probe,
 require successful package resolution plus structured diagnostics and semantic cook failure
-only when the probe intentionally has unresolved bindings. A failed cook must preserve the
-last valid artifact; with no prior artifact, verify the cooked directory remains absent.
-Check `content-cooked/<package>/` and the exact roster requirement only when the package is
-built-in.
+only when the probe intentionally has unresolved bindings. Preparation failures leave
+the prior cook intact; publication failures attempt rollback. Roster refresh follows
+publication, so a later failure may leave new artifacts and cook status. Inspect the
+artifacts and pins using the [cook failure scope](characters/adding-a-new-character.md#5-cook-and-verify-four-payloads).
+Check saved payloads for every cooked package and the exact roster requirement when
+the package is built-in. Cooking an existing roster entry refreshes its pin automatically;
+new admission remains a separate acceptance step.
 
-### Bonk pipeline probe evidence
+### Unrostered pipeline probe evidence
 
-The Bonk probe is not gameplay coverage. Record:
+Bonk is rostered and has gameplay coverage. Use a disposable unrostered fixture
+to check discovery and cooking independently of gameplay. Record:
 
-- inspect `success: true`, `packageId: bonk`, and sixteen canonical slots;
-- cook semantic `success: true` with the shared dash/hit bindings;
-- cooked payload hashes and preservation of `content-cooked/bonk/` after any later failure;
-- package-specific stale tracking after Bonk source/catalog/dependency notifications;
+- inspect `success: true`, the fixture's package ID, and sixteen canonical slots;
+- cook semantic `success: true` with its required semantic bindings;
+- cooked payload hashes and preservation after a preparation-failing recook;
+- no roster requirement or Character Select entry for the fixture;
+- package-specific stale tracking after its source/catalog/dependency notifications;
 - one queue request for repeated notifications, with unrelated package statuses unchanged;
 - Unity recompile status and current console errors.
 
-`KitScenario` golden tests begin only after an approved Bonk kit and successful cooked
-package exist. The probe deliberately has no damage, timing, recovery, or capability
-contract to golden-test.
+Add focused `KitScenario` assertions only for specified gameplay contracts after a
+successful cook. The fixture probe has no damage, timing, recovery, or capability
+contract to invent.
 
 For a live FightGuy package inspection, use your own T3 gateway identity and
 check the native inspect result, ignoring the trailing ownership-status object:
@@ -290,11 +298,13 @@ For integrated Unity-facing changes and accepted package verification:
    block the local catalog, and never use the old persisted package.
 3. Confirm `TryBuildPersistedLocalMatchCatalog` still loads the exact persisted roster
    requirement and hashes. Keep the existing `content-cooked` package/release verification.
-4. Open the affected package in Ability Lab, preview a valid persisted cooked draft,
+4. Open the affected package in Ability Lab and preview the current source draft,
    then open Training and exercise movement, the changed move, collision, interruption,
    and landing behavior. Landing presentation crossfades the current aerial pose into
    idle over the replicated `LandingLagTicks / 60` seconds; ordinary zero-lag landings
-   transition directly to locomotion, and hitstun interrupts the blend.
+   transition directly to locomotion, and hitstun interrupts the blend. For accepted
+   content, also execute the saved package through the
+   [persisted gameplay checks](characters/adding-a-new-character.md#verify-persisted-gameplay).
 
 
 #### Native Ability Lab scenario verification
@@ -303,13 +313,32 @@ Use the real two-fighter UI or native commands before considering eval. The
 command runner uses Shared simulation; never infer hit success from command
 success. A focused native pass can exercise these outcomes:
 
-```bash
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.open --target fightguy
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent idle
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 1.2 --opponent shield
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action ground.1 --ticks 60 --distance 12 --opponent idle
-bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.lab.run --action grab --ticks 60 --distance 0.7 --opponent idle
+Keep package open, run and inspect operations in one gateway lease. Save the following
+as `/tmp/ability-lab-verification.json`:
+
+```json
+{
+  "commands": [
+    ["sloparena.lab.open", "--target", "fightguy"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "1.2", "--opponent", "idle"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "1.2", "--opponent", "shield"],
+    ["sloparena.lab.run", "--action", "ground.1", "--ticks", "60", "--distance", "12", "--opponent", "idle"],
+    ["sloparena.lab.run", "--action", "grab", "--ticks", "60", "--distance", "0.7", "--opponent", "idle"],
+    ["sloparena.lab.inspect"]
+  ],
+  "restore": []
+}
 ```
+
+```bash
+bun scripts/unity-editor-gateway.ts --project-path client/Unity --batch /tmp/ability-lab-verification.json
+```
+
+This example intentionally leaves the Lab open on FightGuy. Add required restoration
+to `restore` before running the batch if the task must restore an earlier workspace.
+These Editor scenarios exercise the current source draft; they do not prove playback
+of the persisted cooked package. Use the saved-content acceptance checks in the
+[character workflow](../skills/sloparena-character-workflow/SKILL.md) for that claim.
 
 Inspect semantic `data.result.success` and diagnostics, plus actual
 `scenario.frames[]`, accepted `contacts[]`, grab `interactions[]`,
@@ -324,8 +353,9 @@ endpoint remains `durationTicks - 1`, not scenario frame numbering.
 
 Scenarios prepare current source in memory through existing compiler, verified
 poses/catalog/rig without save, cook, Undo change or source/cooked writes.
-Persisted authoritative preview still depends on valid baked runtime/pose/
-catalog/rig data; missing/invalid pose/rig blocks execution. Interpret `dirty`
+The persisted loader supplies baked runtime/pose/catalog/rig prerequisites;
+missing/invalid pose/rig blocks execution. Ordinary window refresh replaces the
+gameplay definition with the source draft. Interpret `dirty`
 as workspace edit state and `authoritativePreview` independently. These
 isolated scenarios do not prove online behavior or game feel. Use the
 [Unity CLI reference](contributing/unity-cli.md) and
@@ -372,17 +402,18 @@ or cook for these scenarios.
 Local iteration uses the transient development catalog and affected runtime path; it
 does not require this persisted-catalog self-test for every numerical tuning edit.
 
-The authoritative preview is the cooked Shared path for accepted content. Ability Lab
-may show a clearly non-authoritative editing pose for invalid drafts, but Training and
-matches must never silently use invalid or stale content.
+Accepted content must also execute from verified saved files through pinned-catalog
+Shared gameplay tests or a player check. Ordinary Lab and Editor Training previews
+compile current source. Invalid drafts must show diagnostics and never silently use
+stale match content.
 
 ### Local GameServer/PvP
 
 When the change crosses networking or match composition:
 
 ```bash
-dotnet build src/Server/ --nologo
-dotnet test tests/Server.Tests/ --nologo
+dotnet build src/Server/ --nologo -p:SkipUnityPluginCopy=true
+dotnet test tests/Server.Tests/ --nologo -p:SkipUnityPluginCopy=true
 ```
 
 Exercise a local two-client match where practical. Verify that the GameServer admits the

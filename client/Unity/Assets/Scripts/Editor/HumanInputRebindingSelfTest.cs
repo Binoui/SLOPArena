@@ -153,15 +153,15 @@ namespace SlopArena.EditorTools
             SendMouse(mouse, default);
             SendMouse(mouse, new MouseState().WithButton(MouseButton.Right));
             input.Poll();
-            var state = input.BuildInputState(null, 0f, false, 0, default, null).input;
+            var state = input.BuildInputState(null, 0f, 0, default, null).input;
             Require(state.ShieldPressed && state.ShieldHeld, "Mouse shield did not reach the simulation input.");
             SendMouse(mouse, new MouseState().WithButton(MouseButton.Right));
             input.Poll();
-            state = input.BuildInputState(null, 0f, false, 0, default, null).input;
+            state = input.BuildInputState(null, 0f, 0, default, null).input;
             Require(!state.ShieldPressed && state.ShieldHeld, "Held mouse shield repeated its edge or lost its hold.");
             SendMouse(mouse, default);
             input.Poll();
-            Require(!input.BuildInputState(null, 0f, false, 0, default, null).input.ShieldHeld,
+            Require(!input.BuildInputState(null, 0f, 0, default, null).input.ShieldHeld,
                 "Mouse shield stayed held after release.");
         }
 

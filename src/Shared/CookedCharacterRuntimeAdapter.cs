@@ -31,48 +31,15 @@ public static class CookedCharacterRuntimeAdapter
             HitSmallAnim=c.Presentation.HitSmall, HitMediumAnim=c.Presentation.HitMedium, HitHardAnim=c.Presentation.HitHard, TumbleAnim=c.Presentation.Tumble, LandStartOffset=c.Presentation.LandStartOffsetSeconds,
             CookedSlots = c.Slots,
         };
-        AddLegacyAbilityViews(result, c.Slots);
         return result;
     }
 
-    private static void AddLegacyAbilityViews(CharacterDefinition def, IReadOnlyList<CookedSlotDefinition> slots)
-    {
-        foreach (var slot in slots)
-        {
-            var ability = new AbilitySpec { Name = slot.Name, Description = slot.Description, IconName = slot.IconId, CooldownTicks = slot.CooldownTicks, IsRecoveryMove = slot.IsRecoveryMove, PreserveMomentumOnStart = slot.PreserveMomentumOnStart, Behavior = (AbilityBehavior)slot.Behavior, AimMode = (AimMode)slot.AimMode, AimMovement = slot.AimMovement == AuthoringAimMovementMode.Mobile ? AimMovementMode.Mobile : AimMovementMode.Fixed, AimAnimationId = slot.AimAnimationId, HitPresentationId = slot.HitPresentationId, AnimationNames = slot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray(), Stages = slot.Timeline.Stages.Select(ToAttackStage).ToArray() };
-            if (!slot.IsAir) SetGroundAbility(def, slot.Ordinal, ability); else SetAirAbility(def, slot.Ordinal - 8, ability);
-        }
-    }
+    /// <summary>Read authored melee operations as independent geometry values for previews and reports.</summary>
+    public static HitboxEvent[] ReadHitboxes(this CookedStage stage)
+        => stage.Operations.OfType<CookedSpawnHitboxOperation>()
+            .Select(hit => ToHitboxEvent(hit.Hitbox, hit.Tick)).ToArray();
 
-    private static void SetGroundAbility(CharacterDefinition d, int ordinal, AbilitySpec a) { switch (ordinal) { case 0: d.Slot1=a; break; case 1: d.Slot2=a; break; case 2: d.Slot3=a; break; case 3: d.Slot4=a; break; case 4: d.A=a; break; case 5: d.E=a; break; case 6: d.R=a; break; case 7: d.F=a; break; } }
-    private static void SetAirAbility(CharacterDefinition d, int ordinal, AbilitySpec a) { switch (ordinal) { case 0: d.AirSlot1=a; break; case 1: d.AirSlot2=a; break; case 2: d.AirSlot3=a; break; case 3: d.AirSlot4=a; break; case 4: d.AirA=a; break; case 5: d.AirE=a; break; case 6: d.AirR=a; break; case 7: d.AirF=a; break; } }
-    private static AttackStage ToAttackStage(CookedStage stage)
-    {
-        var result = new AttackStage
-        {
-            DurationTicks = stage.DurationTicks,
-            IasaTicks = stage.IasaTicks,
-            LandingLagTicks = stage.LandingLagTicks,
-            AutoCancelBeforeTicks = stage.AutoCancelBeforeTicks,
-            AutoCancelAfterTicks = stage.AutoCancelAfterTicks,
-        };
-        var events = new List<HitboxEvent>();
-        foreach (var operation in stage.Operations)
-        {
-            if (operation is CookedSpawnHitboxOperation hit)
-                events.Add(ToHitboxEvent(hit.Hitbox, hit.Tick));
-            else if (operation is CookedSetVelocityOperation velocity)
-            {
-                result.MoveX = velocity.X;
-                result.MoveY = velocity.Y;
-                result.MoveZ = velocity.Z;
-            }
-        }
-        result.HitboxEvents = events.ToArray();
-        return result;
-    }
-
-    internal static HitboxEvent ToHitboxEvent(CookedHitbox hitbox, int triggerTick = 0)
+    public static HitboxEvent ToHitboxEvent(CookedHitbox hitbox, int triggerTick = 0)
         => new()
         {
             TriggerTick = (ushort)Math.Clamp(triggerTick, 0, ushort.MaxValue),

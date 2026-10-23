@@ -1,6 +1,41 @@
 # SLOPArena Netcode & Simulation Architecture
 
-## Online Character Courses — protocol 15
+The GameServer owns match time and results. Online clients use
+`RollbackSimulationBridge` and a full-world `NetplaySession`; Training uses
+`LocalSimulationBridge`. Both run the same admitted Shared content.
+
+Current wire versions live in [`SimulationProtocol.Version`](../../src/Shared/SimulationProtocol.cs),
+[`WorldFramePacket.FormatVersion`](../../src/Shared/WorldFramePacket.cs), and
+[`ServerSimulation.SnapshotFormatVersion`](../../src/Shared/ServerSimulation.Snapshot.cs).
+Client, GameServer, and Master admission must agree on the protocol. The operating
+contract starts at [Philosophy](#1-philosophy); the records below preserve protocol cutovers.
+
+Match admission pins both the character packages and the exact baked arena bytes.
+The character-only catalog hash remains compatible with schema 1; the schema-2
+match hash also covers the arena name and digest. Clients verify their local arena
+before connecting, predicting or sending Ready on Steam and development UDP.
+
+The predictor validates a complete frame before publishing metadata or ledger
+records. An accepted Ended frame restores the exact final snapshot, retracts future
+speculation and stops prediction. Late-input rescue tracks handled source ticks
+individually, so a newer neutral bundle cannot suppress an unseen older press
+within the rescue window.
+
+World Snapshot format 6 preserves the resolver's emission counter and each hitbox's
+`EmissionId`. Unity projectile visuals combine it with owner and move identity, so removing an earlier
+projectile does not reassign surviving visuals or trails. Restoring the counter
+reproduces future emission identities during resimulation. Snapshot decoding rejects
+zero, duplicate, or out-of-range live emission IDs before applying the world.
+
+## Historical protocol records
+
+These records preserve the behavior and verification reported at each cutover,
+newest first. The newest record may describe the current protocol; compare its
+versions with the source constants above. Read older packet layouts, release
+instructions, and three-track behavior in their cutover context rather than as
+current operating guidance.
+
+### Online Character Courses — protocol 15
 
 Race and Co-op reuse the same full-world prediction as Slopball (ADR-0040).
 World Snapshot 5 captures every course's phase, elapsed ticks, target hit counts,
@@ -12,7 +47,7 @@ break restores the target. Match Results carry finish times and DNF progress;
 colours travel with the immutable roster. Master, GameHost and clients ship
 protocol 15 together; older peers are rejected.
 
-## Sir Bonk's lid and joust — protocol 12
+### Sir Bonk's lid and joust — protocol 12
 
 Protocol 12 carries the engine work for Sir Bonk's pot lid and joust
 ([plan](../plans/2026-10-21-sir-bonk-pot-lid-and-joust.md)). World Snapshot format 3 adds
@@ -23,7 +58,7 @@ events gain `ProjectileCatch` (6) and `ProjectileSelfHit` (7). Release client, G
 and Master together (Master `LobbyModels.Protocol = 12`); protocol 11 peers are rejected.
 No World Frame or input layout changed.
 
-## Full-world rollback — protocol 11
+### Full-world rollback — protocol 11
 
 Online play predicts the whole world from complete GameHost snapshots
 ([ADR-0039](../adr/0039-full-world-rollback.md), [plan](../plans/2026-10-18-full-world-rollback.md)
@@ -65,11 +100,12 @@ predicts and presents like a stock fight. Character Courses join this path in pr
   `selfInputMismatch` (anchors where the GameHost consumed a different input than
   yours), then `serverLate`, `minSlack`, `ping` and frame times. `[Netplay] serverLate`
   and the GameHost's input lines are unchanged.
-- **Superseded.** LocalTrack, PredictedTrack, raw playout and the self hit-reaction hold
-  below no longer run online; they and the per-entity packet types remain until plan
-  phase 7 removes them.
+- **Superseded.** This cutover retired LocalTrack, PredictedTrack, raw playout and
+  the self hit-reaction hold from online use. Their classes and per-entity packet
+  types were retained at the cutover, then removed with migrated full-world coverage
+  under the owner's 2026-10-23 [retirement approval](../plans/2026-10-23-simulation-review-fixes.md).
 
-## Self hit reactions and netplay diagnostics — 2026-10-18
+### Self hit reactions and netplay diagnostics — 2026-10-18
 
 > Superseded online by protocol 10 above; kept as the record of the protocol 9 fix.
 
@@ -118,7 +154,7 @@ No wire field changed in this protocol 9 fix. The GameHost input policy carries 
 protocol 10; the self-track hold and the switch between predicted and raw time frames
 were replaced by full-world rollback (section above).
 
-## Smooth online play — protocol 9
+### Smooth online play — protocol 9
 
 The 2026-10-16 Steam playtest had a clean network (about 10 ms RTT, no loss, healthy
 GameHost ticks) yet felt laggy and showed opponent animations missing. The causes were
@@ -176,7 +212,7 @@ snapshots carry. Release client, GameHost and Master together; protocol 8 peers 
   skipped/extra-step updates, lead, ticks ahead, corrections, raw playout delay and
   starvation, ping and frame time (extended on 2026-10-18; see above).
 
-## Hit reaction snapshots — protocol 7
+### Hit reaction snapshots — protocol 7
 
 The Steam PvP playtest exposed repeated opponent hit-reaction restarts: raw network
 states omitted HitstunTicks, so presentation received zero and treated unchanged
@@ -188,7 +224,7 @@ entry or a changed reaction identity, including shorter re-hits. Repeated/skippe
 snapshots keep the same animation and the replicated timer enables position smoothing.
 Release client, GameHost and Master together; protocol 6 peers are rejected.
 
-## Startup-correction protocol cutover verification — 2026-10-04
+### Startup-correction protocol cutover verification — 2026-10-04
 
 - Shared authoritative snapshots now carry the captured correction target, initial yaw, committed pose pitch, active/owned flags and captured target deaths; protocol 6 retains this state layout and packet sizing.
 - This verification recorded the protocol 5 Master cutover. It was superseded by the coordinated protocol 6 clock cutover described below; neither cutover supports mixed-version clients.
@@ -203,7 +239,7 @@ Release client, GameHost and Master together; protocol 6 peers are rejected.
   or Unity presentation.
 
 
-## Authoritative PvP clock — protocol 6
+### Authoritative PvP clock — protocol 6
 
 Protocol 6 coordinates the client, GameServer, and MasterServer; protocol 5 clients are
 incompatible. Both Steam and development UDP use the same Bootstrap/Ready/Clock control
@@ -243,9 +279,9 @@ connection must receive the full roster baseline and Ready again.
 ## 1. Philosophy
 
 **Server-authoritative Shared simulation with client prediction and reconciliation.**
-The GameServer is authoritative. `ServerSimulation` also runs on client tracks so the
-client can predict and reconcile without owning gameplay results. Unity presents the
-track-selected simulation state and semantic events.
+The GameServer is authoritative. Online, `NetplaySession` runs one `ServerSimulation`
+with every fighter so the client can predict and reconcile without owning gameplay
+results. Unity presents the predicted world and semantic events.
 
 ---
 
@@ -352,36 +388,33 @@ cooked/admitted content boundary. It builds local input, advances the local simu
 and exposes state and presentation events to the renderers without a network transport.
 Training does not use `NetworkSimulationBridge`.
 
-### 3c. MatchInstance Tick Loop (60Hz, per match, own thread)
+### 3c. MatchInstance tick loop
 
-```
-Tick():
+[`MatchInstance`](../../src/Server/MatchInstance.cs) paces each match at 60 Hz on its
+own thread. Client tick numbers select queued input; they never advance the server clock.
 
-  1. ReceiveInputs() — drain UDP socket, match by entityId
-     → Queue inputs per PlayerSlot
+1. Receive and validate inputs and controls. Each player's `PeerInputTimeline` queues
+   future inputs by tick. Steam reception uses the same timeline as development UDP.
+2. Apply connection and admission rules. UDP silence beyond `TimeoutSeconds` marks
+   only that peer disconnected, clears its input timeline, and leaves the match running.
+   Steam connection changes and the separate absent-opponent grace period have their own handling.
+3. While Waiting, send the baseline without simulating. Countdown advances the server
+   tick without gameplay. Its final frame is Playing at `StartTick - 1`.
+4. During Playing, consume each active connected fighter's input at exactly
+   `_serverTick + 1`. Omit input for inactive or disconnected fighters. A disconnected
+   course player is withdrawn from the course.
+5. Copy the consumed inputs for InputRelay, advance one tick, and call
+   `ServerSimulation.Tick`. Shared owns cooked timelines, collision, hit responses,
+   blast deaths, and respawn.
+6. Record the tick's presentation events, hits, Slopball events, and course events.
+   Evaluate the configured match rule, then send the same World Frame to every connected
+   peer, plus controls and results as applicable.
 
-  2. Check timeout (5s silence → match stops)
-
-  3. Flush input queues (take last valid packet per slot)
-     → _serverTick = max(_serverTick, latestClientTick)
-
-  4. ServerSimulation.Tick(inputs)
-     → SimulateTick: movement, gravity, ground, combat — everything
-     → Spawn hitboxes from attack events (HitboxEvent.TriggerTick)
-     → SpellResolver.Tick: hitbox vs hurtbox collision, damage, knockback, hitstun
-
-  5. Check deaths (first to maxStocks=3 deaths loses → MatchState.Ended)
-     → ServerSimulation.CheckVoidDeaths: KO costs a stock, respawn with brief
-       invincibility; 0 stocks → eliminated (frozen spectator, untargetable)
-     → StockMatchRule.Evaluate: last player standing wins; simultaneous
-       last-stock trade → most stocks wins, equal deaths → shared victory (issue #37)
-
-  6. SendState() — one World Frame per tick, the same bytes for every connected client
-     → World Snapshot after the tick, each fighter's consumed input (InputRelay; no
-       input for eliminated or disconnected fighters), events and hits of the last
-       three ticks; DEFLATE when smaller
-     → Bootstrap/Clock controls and the match result as before
-```
+[`PeerInputTimeline`](../../src/Shared/Rollback/PeerInputTimeline.cs) repeats missing
+input through `InputState.WithoutEdges` within its hold window, then supplies neutral
+input. Late inputs refresh held controls and can rescue press edges once per source
+tick within the rescue window. Use its `DefaultHoldTicks` and `DefaultRescueTicks`
+constants, and the horizon passed by `MatchInstance`, when inspecting timing policy.
 
 ---
 
@@ -389,27 +422,23 @@ Tick():
 
 ### 4a. Client → Server
 
-```
-Send datagram (InputBundle): entityId(8) + newestTick(4) + count(1) + count × InputState(22)
-                             = 35..145 bytes (count 1..6)
-
-[0..7]    entityId        (ulong)
-[8..11]   newestTick      (uint)       ← tick of the last input
-[12]      count           (byte)       ← 1..InputBundle.MaxInputs (6)
-[13..]    InputState × count, oldest first, consecutive ticks ending at newestTick
-```
+[`InputBundle`](../../src/Shared/InputBundle.cs) carries an entity ID, the newest tick,
+and consecutive inputs ordered oldest first. `HeaderSize`, `MaxInputs`, `SizeFor`,
+and `InputState.Size` define the envelope. Steam prefixes it with the `Input` kind byte.
 
 Every simulated tick's input is sent, including catch-up ticks, and repeated in the next
-datagrams, so the GameServer consumes exactly what the client predicted and a lost
-datagram does not drop a press. Steam prefixes the bundle with the `Input` kind byte.
+datagrams. This redundancy protects presses against isolated packet loss. The
+InputRelay reports what the GameServer actually consumed, including held or rescued input.
 
-**InputState layout (22 bytes):**
+**InputState fields:** Offsets and encodings are owned by
+[`InputState.Write` and `InputState.Read`](../../src/Shared/InputState.cs).
+
 | Offset | Type    | Field           | Notes                              |
 |--------|---------|-----------------|------------------------------------|
 | 0-3    | float   | MoveX           | Horizontal analog input            |
 | 4-7    | float   | MoveY           | Vertical analog input              |
 | 8      | byte    | flags           | bit0:Up, 1:Down, 2:Left, 3:Right, 4:Jump, 5:legacy Dash (reserved/inert; not an air-dodge edge), 6:retired Burst, 7:IsAiming |
-| 9      | byte    | ActiveSlot      | 0=none, 1=LMB, 2=RMB, 3=key"1", 4=E, 5=R, 6=F, 7-10=keys"2"-"5", 11=A (ADR-0016) |
+| 9      | byte    | ActiveSlot      | `0=none`; Shared `AbilitySlots` selects the canonical ground or air move. Physical bindings belong to the input adapter. |
 | 10-11  | short   | FacingYaw       | Degrees × 100 (movement-facing)    |
 | 12-13  | short   | AimYaw          | Degrees × 100 (combat-facing, reserved) |
 | 14-15  | short   | AimPitch        | Degrees × 100 (camera vertical aim) |
@@ -417,7 +446,7 @@ datagram does not drop a press. Steam prefixes the bundle with the `Input` kind 
 | 18     | byte    | TargetEntityId  | Client-selected target (0 = none)  |
 | 19     | byte    | flags2          | bit0: JumpHeld, bit1: FaceToCamera, bit2: ToggleLock, bit3: DownPressed, bit4: ShieldHeld, bit5: ShieldPressed, bit6: GrabPressed, bit7: RetargetPressed |
 | 20     | byte    | LockMode        | `0=Never`, `1=Always`, `2=OnHit` |
-| 21     | byte    | protocolVersion | `SimulationProtocol.Version` (12) |
+| 21     | byte    | protocolVersion | `SimulationProtocol.Version` |
 
 `ShieldHeld` is the per-tick physical hold used for grounded shield. `ShieldPressed` is a
 fresh logical edge and the sole airborne dodge input; the simulation accepts it only while
@@ -428,36 +457,39 @@ Validate the exact envelope, input count and supported version before endpoint
 registration or reconnect/countdown side effects. This is a coordinated cutover, not
 backward-compatible partial decoding.
 
-### 4b. Server → Client: World Frame (protocol 11)
+### 4b. Server → Client: World Frame
 
 ```
-Header (16 bytes)
+Header (WorldFramePacket.HeaderSize)
 [0..3]    magic "WFRM"
-[4]       frame format (2)
-[5]       SimulationProtocol.Version (12)
+[4]       WorldFramePacket.FormatVersion
+[5]       SimulationProtocol.Version
 [6]       flags — bit 0: body DEFLATE-compressed
 [7]       MatchState
 [8..11]   tick — the World Snapshot's tick
-[12..15]  uncompressed body length (≤ 64 KB; inflation never exceeds it)
+[12..15]  uncompressed body length (bounded by WorldFramePacket.MaxBodyBytes)
 Body
   World Snapshot          length + ServerSimulation.CaptureSnapshot bytes
   relayed inputs          count; per fighter in ascending entity order:
-                          entityId(8) + hasInput(1) [+ InputState(22)]
-  presentation events     ticks tick−2..tick, the complete record of each
-  hits                    ticks tick−2..tick, the complete record of each
-  Slopball events         ticks tick−2..tick: tick(4) + kind(1) + ballId(8) +
-                          returns(8) + contactTime(4); empty for a stock fight
+                          entityId + hasInput [+ InputState when hasInput]
+  presentation events     complete records from EventsFromTick through Tick
+  hits                    complete records from EventsFromTick through Tick
+  Slopball events         match tick, kind, ball ID, returns, contact time, camp
+  course events           match tick, entity ID, kind, target/checkpoint index,
+                          elapsed course ticks, per-tick sequence
 ```
 
-[`WorldFramePacket`](../../src/Shared/WorldFramePacket.cs) is the contract; malformed
-frames are rejected with `InvalidDataException`. The GameHost keeps the event and hit
-history in [`WorldFrameHistory`](../../src/Shared/WorldFrameHistory.cs).
+[`WorldFramePacket`](../../src/Shared/WorldFramePacket.cs) owns the exact encoding,
+format and protocol checks, event limits, and bounded DEFLATE decoding. Its
+`EventHistoryTicks` defines the repeated history window. Mode event lists are empty
+when inapplicable. Malformed frames are rejected with `InvalidDataException`.
+The GameHost keeps this history in [`WorldFrameHistory`](../../src/Shared/WorldFrameHistory.cs).
 
 ### 4c. Retired: per-entity state packet (protocol 9)
 
-Protocol 9 sent one of these per fighter per tick; protocol 10 carries complete state in
-the World Snapshot instead. The layout below remains for reference until plan phase 7
-removes the type.
+Protocol 9 sent one of these per fighter per tick. Full-world rollback replaced it
+with World Snapshots. The layout and acceptance rules below are historical records,
+not the current online codec contract. The type names below identify that earlier implementation.
 
 ```
 Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(202) + hasInput(1) + InputState(22) = up to 237 bytes
@@ -467,13 +499,14 @@ Receive packet per entity: entityId(8) + tick(4) + CharacterStatePacket(202) + h
 [12..213]   CharacterStatePacket (202 bytes) — fixed state payload; see §4b table below
 [214]       hasInput          (byte)       ← exactly 0 or 1
 [215..236]  InputState       (22 bytes)   ← present iff hasInput == 1
+```
 
 **The relay section** carries the exact input consumed for that entity/tick. A missing
 exact server input may extend prior held input but clears one-shot `DownPressed`,
 `ShieldPressed`, and `GrabPressed`; `ShieldHeld` remains latched. `hasInput = 0` denotes
 no consumed input and is not a truncated relay. The envelope must be exactly 215 bytes
 for marker 0 or 237 bytes for marker 1; mismatches are rejected. The client discards
-malformed/incompatible state datagrams without ending its receive loop. Codec owner:
+malformed/incompatible state datagrams without ending its receive loop. Historical codec source:
 `src/Shared/ServerEntityPacket.cs`.
 
 InputState is 22 bytes. `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
@@ -550,10 +583,10 @@ versus airborne dodge from authoritative state; client-side chord binding emits
 | 188-189| ushort  | ChargeTicks | Held charge for remote charge visuals; 0 outside Attacking/Aiming |
 | 190-201| float×3 | KnockbackVelocityX/Y/Z | Knockback velocity; launch presentation and predicted flight |
 
-**Packet sizes (retired):** `CharacterStatePacket` was 202 bytes and `ServerEntityPacket`
-237 bytes with input. Input is 22 bytes. Non-v10 frames, inputs and controls are rejected;
-Steam admission also uses protocol version 10, so coordinate Master `protocolVersion`
-with GameServer and clients. The 20-byte control frame appends the Clock input report:
+**Historical packet sizes and cutover:** `CharacterStatePacket` was 202 bytes and
+`ServerEntityPacket` 237 bytes with input. Input was 22 bytes. The subsequent protocol
+10 cutover required matching inputs, controls, and Steam admission across Master,
+GameServer, and clients. Its 20-byte control frame appended the Clock input report:
 `InputSlack` (sbyte, 127 = no input since the previous Clock) and `LateInputs` (byte,
 saturating).
 
@@ -561,27 +594,24 @@ saturating).
 
 ## 5. CharacterState and packet roles (Shared)
 
-`CharacterState` is the mutable per-entity Shared simulation state. It is used directly
-by `ServerSimulation` and the rollback tracks; it is not a hand-maintained wire-size
-contract.
+[`CharacterState`](../../src/Shared/CharacterState.cs) is mutable per-fighter Shared
+state. It is not the complete rollback snapshot or a fixed wire-size contract.
 
-`CharacterStatePacket` is the explicit serialized state snapshot used for reconciliation
-and opponent ingestion. `ServerEntityPacket` wraps an entity identity, tick, state packet,
-and optional relayed input. Their layouts and codecs are owned by the source files:
+[`ServerSimulation.CaptureSnapshot` and `RestoreSnapshot`](../../src/Shared/ServerSimulation.Snapshot.cs)
+capture and restore the full world. This includes fighter state and timers, identity
+counters, hit credit, respawn overrides, active cooked timelines and capability state,
+resolver hitboxes and projectiles, the Arcade ball and rules, and course progress.
+Restore requires the same arena, rule, registered fighters, and admitted content.
+Per-tick scratch collections and presentation outputs are not persistent snapshot state.
 
-- [`CharacterState.cs`](../../src/Shared/CharacterState.cs)
-- [`CharacterStatePacket.cs`](../../src/Shared/CharacterStatePacket.cs)
-- [`ServerEntityPacket.cs`](../../src/Shared/ServerEntityPacket.cs)
+Active abilities must support the cooked snapshot contract. Capture rejects unsupported
+ability runtimes instead of substituting raw presentation for re-simulation. Grabs,
+throws, blocks, and hit reactions run in the predicted world and can be corrected by
+the next authoritative frame.
 
-Snapshots serialize the fields needed to rebuild predictable movement state. Ability
-instance fields such as active hitbox/projectile lists and private lifecycle state are
-not fully reconstructible; complex action states therefore use received state rather than
-client re-simulation.
-
-`ShieldDropTicks` is serialized with the other defense timers. `ApplyTo` overwrites
-carried state including `AirTimeTicks`; it preserves local-only fields such as attack
-elapsed ticks and queued knockback. Both full decode and reconciliation must retain
-these authoritative timers rather than clearing them or retaining stale local values.
+`CharacterStatePacket`, `ServerEntityPacket`, and their partial `ApplyTo` semantics
+were part of the retired per-entity path. They do not define current online
+reconciliation. See the historical layout in section 4c.
 
 ---
 
@@ -594,7 +624,8 @@ The client predicts every fighter in one Shared simulation (ADR-0039):
   player's recorded inputs (as the GameHost decodes them) and, for each opponent, the input
   relayed at the anchor tick without presses. Eliminated and disconnected fighters consume
   no input, as on the GameHost. Coupled interactions (grabs, throws, blocks) are predicted
-  like everything else; the anchor corrects them.
+  like everything else; the anchor corrects them. An exact anchor snapshot with unchanged
+  assumed inputs can skip restoration and re-simulation.
 - [`RollbackLedger`](../../src/Shared/Rollback/RollbackLedger.cs) hands out presentation
   events and hits once per key across re-simulation, retracts predicted ones that a
   re-simulation drops or the GameHost's record of their tick lacks, and starts GameHost
@@ -609,8 +640,8 @@ every frame re-anchors on GameHost state. Every ability must implement the snaps
 contract ([ability architecture](ability-architecture.md), step 6).
 
 The protocol 9 three-track model (LocalTrack, PredictedTrack and RawTrack in
-`RollbackSimulator`, with raw playout and a defense-interaction barrier) is retired online
-and will be deleted in plan phase 7.
+`RollbackSimulator`, with raw playout and a defense-interaction barrier) was superseded
+by full-world rollback. It is not a current runtime or roster authoring contract.
 
 ---
 
@@ -689,7 +720,7 @@ debug wire protocol is defined by this document.
 The implemented boundaries are:
 
 - Shared deterministic simulation: [`src/Shared/ServerSimulation.cs`](../../src/Shared/ServerSimulation.cs);
-- three-track client rollback: [`src/Shared/Rollback/`](../../src/Shared/Rollback/) and
+- full-world client rollback through `NetplaySession`: [`src/Shared/Rollback/`](../../src/Shared/Rollback/) and
   [`RollbackSimulationBridge.cs`](../../client/Unity/Assets/Scripts/Runtime/Simulation/RollbackSimulationBridge.cs);
 - content admission: [`MatchContentCatalog.cs`](../../src/Shared/MatchContentCatalog.cs) and
   the GameServer match-control/catalog providers under `src/Server/`;

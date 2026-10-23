@@ -1,181 +1,89 @@
-# Blast Zones - Arena Balance
+# Blast zones
 
-Blast zones are defined **per-map** in `Shared/ArenaDefinition.cs` via the `KillHeight` field. This is a critical balance lever that affects match pacing, comeback potential, and competitive viability.
+A blast zone is a stage boundary that causes a Shared simulation death. The current
+arena contract has six axis-aligned planes, not only a bottom kill height.
 
-## Concept
+## Runtime ownership
 
-In Smash Bros-style games, the **blast zone** is the Y coordinate below which a character is eliminated. Unlike traditional fighters where you lose stocks by depleting HP, knockback-based fighters eliminate players by launching them off-stage.
+[`ArenaDefinition`](../../src/Shared/ArenaDefinition.cs) contains `KillHeight`,
+`KillTop`, `KillMinX`, `KillMaxX`, `KillMinZ`, and `KillMaxZ`.
+`ArenaCollision.ResolveBlastLines` produces the effective boundaries:
 
-```
-┌────────────────────────────────┐
-│         Arena Floor (Y=0)       │  ← Players fight here
-│                                 │
-│                                 │
-├─────────────────────────────────┤
-│         Void Space              │  ← Players fall through
-│                                 │
-│                                 │
-├═════════════════════════════════┤
-│      BLAST ZONE (KillHeight)    │  ← Elimination line
-└─────────────────────────────────┘
-```
+- `KillHeight` is the bottom plane.
+- Nonzero authored top and side values take precedence.
+- Unset top and side values derive from arena bounds and heightmap surfaces using
+  `ArenaCollision.SideBlastMargin` and `TopBlastMargin`.
+- Fixtures without meaningful bounds retain infinite side planes. Without the
+  required heightmap, an unset top plane is infinite.
 
-## Balance Implications
+`ServerSimulation.IsOutsideBlastZone` compares the fighter's Shared position against
+all six resolved planes. `CheckBlastDeaths` commits the death during the tick.
+Unity colliders, trigger callbacks, and the cosmetic stage prefab do not decide it.
+Online `NetplaySession` predicts the same Shared check and corrects from World Frames.
 
-### Shallow Blast Zones (closer to Y=0)
-**Example:** "The Split" at Y=-7
+`ArenaRegistry.LoadFromDirectory` loads parseable `.arena` files. It has no hardcoded
+arena fallback. A new stage is not a C# registry entry or a scene path in
+`ArenaDefinition`.
 
-**Effects:**
-- ✅ Faster matches (quicker eliminations)
-- ✅ Higher skill ceiling (precise spacing required)
-- ✅ Aggressive play rewarded
-- ❌ Less comeback potential (one mistake = death)
-- ❌ High damage% matters less
+## Change a stage's boundaries
 
-**Best for:**
-- Competitive 1v1
-- Small stages
-- Fast-paced tournaments
-- Skilled players
+Use the [stage authoring workflow](../../skills/sloparena-stage-authoring/SKILL.md)
+for stage source changes, bake, inspection, and human acceptance.
 
-### Deep Blast Zones (farther below Y=0)
-**Example:** "The Pit" at Y=-15
+1. Record the intended recovery space and boundary behavior in the approved stage brief.
+2. Update the stage's authoritative collision source and spawn markers through that
+   workflow. Keep cosmetic dressing out of the collision source.
+3. Bake with `sloparena.stage.bake` through the coordinated Editor gateway.
+4. Inspect with `sloparena.stage.inspect`. Check the generated `killPlanes`, collision
+   bounds, heightmap, and grounded spawns against the intended layout.
+5. Play the stage and record human acceptance of recovery, launch distance, and pacing.
 
-**Effects:**
-- ✅ Longer matches (more survivability)
-- ✅ Higher comeback potential (damage% matters more)
-- ✅ Forgiving for new players
-- ❌ Can feel slow or campy
-- ❌ Lower skill expression
+The baker derives side planes from geometry bounds plus `SideBlastMargin` and the
+top plane from the highest rasterized surface plus `TopBlastMargin`. Without a
+kill-plane marker, it derives the bottom from the lowest geometry vertex with the
+offset defined in `SlopArenaStageAuthoringService.BuildFromScene`.
 
-**Best for:**
-- Casual/party play
-- Large stages
-- Free-for-all (4+ players)
-- Training mode
+When the source has `AuthoringAids/KillPlane`, the baker requires its Y coordinate
+to match the lowest gameplay geometry vertex. It uses that marker for `KillHeight`.
+The marker is not a free override that can be moved independently of geometry.
+The Shared arena fields support explicit values, but the current stage workflow
+does not expose general blast-plane override controls.
 
-### Balanced Blast Zones
-**Example:** "Crossroads" at Y=-10
+The baked `data/arenas/<key>.arena` is the runtime collision artifact. Check the
+derived planes after rebaking rather than editing generated values or changing
+Shared defaults for one stage.
 
-**Effects:**
-- Moderate match length
-- Balanced risk/reward
-- Works for both casual and competitive
-- Good default for testing
+## Death and respawn
 
-## Current Maps
+For stock fights and Training, Shared records the boundary and death context, interrupts
+paired interactions, cancels the attack runtime, and increments the fighter's death
+count. Respawn happens in the same tick at a per-entity override or an indexed stage
+spawn. It resets damage, movement, and combat state.
 
-| Map | Size | KillHeight | Blast Depth | Intended Playstyle |
-|-----|------|------------|-------------|-------------------|
-| **The Pit** | 80x80 | -15f | Deep | Casual, long matches |
-| **Crossroads** | 60x60 | -10f | Medium | All-around balanced |
-| **The Split** | 60x60 | -7f | Shallow | Competitive, fast KOs |
+An active fighter receives `ServerSimulation.RespawnInvincibilityTicks`.
+A fighter eliminated by the match rule stays inactive at spawn and is excluded from
+input, movement, and hurtboxes. Training's `NoWinMatchRule` keeps fighters active;
+Solo and online stock fights use their configured stock rule. Course and Slopball
+rules have their own progress and reset behavior.
 
-## Design Guidelines
+There is no 20-second respawn or mandatory arena-center spawn above the stage.
 
-### Stage Size vs Blast Zone Correlation
-Generally, larger stages should have deeper blast zones:
+## Check boundary changes
 
-```
-Stage Width (X/Z)  →  Recommended KillHeight Range
-─────────────────────────────────────────────────
-  40-50 (small)    →  -5 to -8   (shallow, fast)
-  60-70 (medium)   →  -8 to -12  (balanced)
-  80-100 (large)   →  -12 to -18 (deep, long)
-```
+Keep these checks in the stage's human acceptance:
 
-**Why?** Large stages give more horizontal escape routes and recovery opportunities, so a shallow blast zone would feel unfair. Small stages already limit movement, so a deep blast zone would make matches drag.
+- Exercise bottom, top, and side exits. Confirm that visible recovery space agrees
+  with the baked planes.
+- Compare launches at low, medium, and high damage with the same move and position.
+- Test edge recovery and directional influence, then compare the same launch from
+  center stage.
+- Confirm that surviving fighters return to their assigned grounded spawns with
+  damage reset, and eliminated fighters remain inactive.
 
-### Competitive vs Casual Balance
+These checks judge the stage's balance. No fixed damage percentage guarantees a KO.
 
-**Competitive Stages:**
-- Tighter blast zones (-5 to -9)
-- Rewards precision and spacing
-- Punishes mistakes heavily
-- Example: Final Destination in Smash
+## Source references
 
-**Casual Stages:**
-- Deeper blast zones (-12 to -18)
-- More forgiving
-- Longer action sequences
-- Example: Temple in Smash
-
-### Testing Your Changes
-
-When adjusting KillHeight, test these scenarios:
-
-1. **Low % Launch** (0-50%): Character should survive
-2. **Medium % Launch** (100-150%): Character might die depending on angle
-3. **High % Launch** (200%+): Character should die reliably
-4. **Edge Recovery** (150%): Character at stage edge can survive with good DI
-5. **Center Stage** (150%): Character in center survives longer than edge
-
-## Implementation
-
-### Changing Blast Zones
-
-Edit `Shared/ArenaDefinition.cs`:
-
-```csharp
-new ArenaDefinition
-{
-    Name = "my_arena",
-    DisplayName = "My Arena",
-    ScenePath = "res://assets/arenas/my_arena.tscn",
-    KillHeight = -12f,   // ← BLAST ZONE (adjust this!)
-    MinX = 0f, MaxX = 60f,
-    MinZ = 0f, MaxZ = 60f,
-    SpawnPoints = new[] { /* ... */ }
-}
-```
-
-### How It Works
-
-The elimination check runs in `Simulation.SimulateTick()`:
-
-```csharp
-// 7. Void death check
-if (s.PY < arena.KillHeight)
-{
-    RespawnCharacter(ref s, arena);
-}
-```
-
-- Server checks this every tick (60Hz)
-- Client mirrors the check for prediction
-- When triggered: 20-second respawn at arena center + 20Y, damage% reset to 0
-
-## Future Enhancements
-
-### Horizontal Blast Zones
-Currently only vertical (bottom) blast zone is implemented. Consider adding:
-- Left/Right blast zones (X < MinX or X > MaxX)
-- Top blast zone (Y > MaxY for upward launches)
-
-Would require adding to ArenaDefinition:
-```csharp
-public float BlastZoneLeft;   // X < this = death
-public float BlastZoneRight;  // X > this = death  
-public float BlastZoneTop;    // Y > this = death
-public float BlastZoneBottom; // Y < this = death (current KillHeight)
-```
-
-### Dynamic Blast Zones
-Game modes could modify blast zones:
-- **Sudden Death**: Shrinking blast zones over time
-- **Stamina Mode**: Fixed blast zone but HP system enabled
-- **Giant Mode**: Expanded blast zones for giant characters
-
-### Visual Indicators
-Add danger zone visual effects:
-- Red tint when falling below stage (Y < 0)
-- Screen shake when approaching blast zone
-- Warning arrow pointing up when falling
-
-## References
-
-- **Smash Bros Blast Zones**: https://www.ssbwiki.com/Blast_line
-- **Stage Balance Analysis**: https://smashboards.com/threads/stage-blast-zone-data.491352/
-- **ArenaDefinition.cs**: Shared/ArenaDefinition.cs
-- **Simulation.cs**: Shared/Simulation.cs:95 (void death check)
-- **Main.cs**: Scripts/World/Main.cs:478-491 (out-of-bounds detection)
+- [`ArenaCollision.ResolveBlastLines`](../../src/Shared/ArenaDefinition.cs) resolves automatic planes.
+- [`SlopArenaStageAuthoringService.BuildFromScene`](../../client/Unity/Assets/Scripts/Editor/SlopArenaStageAuthoringService.cs) bakes collision, planes, and spawns.
+- [`ServerSimulation.CheckBlastDeaths`](../../src/Shared/ServerSimulation.cs) commits deaths and respawns.

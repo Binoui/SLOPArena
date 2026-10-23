@@ -89,10 +89,11 @@ public sealed class CookedTimelineAbility : ServerAbility
     }
 
 
-    public CookedTimelineAbility(CookedSlotDefinition slot, string[] animationNames)
+    public override CookedSlotDefinition Move => _slot;
+
+    public CookedTimelineAbility(CookedSlotDefinition slot)
     {
         _slot = slot ?? throw new ArgumentNullException(nameof(slot));
-        AnimationNames = animationNames ?? Array.Empty<string>();
         bool ownsVerticalMotion = false;
         for (var i = 0; i < _slot.Timeline.Stages.Count; i++)
         {
@@ -115,6 +116,10 @@ public sealed class CookedTimelineAbility : ServerAbility
         }
         _timelineOwnsVerticalMotion = ownsVerticalMotion;
     }
+    internal ActiveMoveView GetMoveView(in CharacterState owner)
+        => new(_slot, _stageIndex, _stageTick, AirborneAtStart, AnimIndex,
+            ActiveMoveView.ResolvePose(_slot, AnimIndex, owner.AttackElapsedTicks));
+
     internal bool IsHoldingAim => _unlimitedAimHold;
     internal bool ContinuesThroughLanding
     {
@@ -185,7 +190,13 @@ public sealed class CookedTimelineAbility : ServerAbility
             return;
 
         for (var i = 0; i < _capabilities.Count; i++)
-            _capabilities[i].Tick(ref s, ref input, def);
+        {
+            var capability = _capabilities[i];
+            byte previousClip = capability.AnimIndex;
+            capability.Tick(ref s, ref input, def);
+            if (capability.AnimIndex != previousClip)
+                AnimIndex = capability.AnimIndex;
+        }
 
         // Aim-hold capabilities freeze stage time during aiming; reset the clock on release.
         if (wasAiming && s.State != ActionState.Aiming)
@@ -216,7 +227,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             _stageTick = 0;
             _operationCursor = 0;
             s.ComboStage = (byte)_stageIndex;
-            AnimIndex = (byte)Math.Min(_stageIndex, Math.Max(0, AnimationNames.Length - 1));
+            AnimIndex = _slot.FirstClipIndex(_stageIndex);
             s.AnimLockTicks = CurrentStage.DurationTicks;
             ExecuteOperations(ref s, def);
         }
@@ -387,9 +398,7 @@ public sealed class CookedTimelineAbility : ServerAbility
                 for (int tick = 0; tick < _lungeReach.Length; tick++)
                 {
                     pose.AttackElapsedTicks = (ushort)(stageStart + hit.Tick + tick);
-                    HitboxGeometry.ResolvePositions(pose, evt, BakedData, CharacterDef,
-                        AnimationNames, AnimIndex, Slot, !s.IsGrounded,
-                        out float x, out float y, out float z, out float ex, out float ey, out float ez);
+                    HitboxGeometry.ResolvePositions(pose, evt, BakedData, CharacterDef, _slot, AnimIndex, out float x, out float y, out float z, out float ex, out float ey, out float ez);
                     _lungeReach[tick] = new Hitbox
                     {
                         Shape = evt.Shape, Radius = evt.Radius,
@@ -454,7 +463,6 @@ public sealed class CookedTimelineAbility : ServerAbility
         capability.PresentationAttackSequence = PresentationAttackSequence;
         capability.PresentationOperationIndex = flattenedOperationIndex;
         capability.AirborneAtStart = AirborneAtStart;
-        capability.AnimationNames = AnimationNames;
         capability.PresentationSink = PresentationSink;
         // Aim-hold capabilities own their hold/release lifecycle: freeze the stage
         // clock while they hold ActionState.Aiming so an authored stage timeout can
@@ -467,7 +475,10 @@ public sealed class CookedTimelineAbility : ServerAbility
             ClearVelocityOwnership(ref s);
         }
         _capabilities.Add(capability);
+        byte previousClip = capability.AnimIndex;
         capability.OnStart(ref s, def);
+        if (capability.AnimIndex != previousClip)
+            AnimIndex = capability.AnimIndex;
         if (capability.OwnsVerticalMotion)
         {
             s.IsFastFalling = false;
@@ -562,8 +573,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             capability.BakedData = BakedData;
             capability.CharacterDef = CharacterDef;
             capability.Arena = Arena;
-            capability.AnimationNames = AnimationNames;
-            capability.PresentationSink = PresentationSink;
+                capability.PresentationSink = PresentationSink;
             capability.ReadSnapshot(r);
             _capabilities.Add(capability);
         }

@@ -57,7 +57,7 @@ public class Kit117SlotSemanticsTests
     [Fact]
     public void EmptySlot5_Noop_NoCrash()
     {
-        // Key "5" has no data — the old code NRE'd on spec.Stages; must be a silent no-op.
+        // Key "5" has no data — the old code NRE'd on spec.Timeline.Stages; must be a silent no-op.
         var sim = TestHelpers.MakeSim();
         TestHelpers.RegisterPlayer(sim, Def, TestHelpers.PlayerState());
 

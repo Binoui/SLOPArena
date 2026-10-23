@@ -45,6 +45,13 @@ internal static class CharacterAnimationCatalogGenerator
         if (bindingBytes == null || bindingBytes.Length == 0) throw new InvalidOperationException("Binding payload is empty.");
         using JsonDocument document = JsonDocument.Parse(bindingBytes);
         JsonElement root = document.RootElement;
+        if (root.GetProperty("catalogSchemaVersion").GetInt32() != 2 || root.GetProperty("bindingSchemaVersion").GetInt32() != 2)
+            throw new InvalidOperationException("Current client admission requires schema 2 bindings.");
+        var diagnostics = SlopArena.Shared.CharacterPackageAssembler.ValidateClientBindings(bindingBytes);
+        if (System.Linq.Enumerable.Any(diagnostics, d => d.Severity == SlopArena.Shared.CharacterDiagnosticSeverity.Error))
+            throw new InvalidOperationException(string.Join("; ", System.Linq.Enumerable.Select(diagnostics, d => d.Code + ": " + d.Message)));
+        var missingMedia = new List<string>();
+        var profile = CharacterBindingWriter.ReadProfile(root.GetProperty("presentationProfile"), allowMissingPresentation, missingMedia);
         string rigObjectIdText = root.GetProperty("rigGlobalObjectId").GetString() ?? "";
         if (!GlobalObjectId.TryParse(rigObjectIdText, out GlobalObjectId rigObjectId))
             throw new InvalidOperationException($"Invalid rig global object ID: {rigObjectIdText}");
@@ -99,6 +106,8 @@ internal static class CharacterAnimationCatalogGenerator
         catalog.WeaponConfig = weaponConfig;
         catalog.Animations = entries.ToArray();
         catalog.Presentations = presentationEntries.ToArray();
+        catalog.SetPresentationProfile(profile);
+        catalog.SetMissingPresentationMedia(missingMedia.ToArray());
         return catalog;
     }
     private static SlopArena.Client.Entities.WeaponAttachConfig ResolveWeaponConfig(JsonElement root)

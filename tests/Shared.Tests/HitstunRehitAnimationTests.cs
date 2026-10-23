@@ -77,9 +77,12 @@ public class HitstunRehitAnimationTests
         {
             var state = new CharacterState { State = ActionState.Hitstun,
                 HitstunTicks = timer, HitReactionSequence = sequence, HitstopTicks = freeze };
-            var bytes = new byte[CharacterStatePacket.Size];
-            CharacterStatePacket.FromState(state).Serialize(bytes);
-            return CharacterStatePacket.Deserialize(bytes).ToState();
+            var writer = new SnapshotWriter();
+            SnapshotCodecs.Write(writer, state);
+            var reader = new SnapshotReader(writer.ToArray());
+            var restored = SnapshotCodecs.ReadCharacterState(reader);
+            Assert.True(reader.AtEnd);
+            return restored;
         }
 
         tracker.Apply(Decode(30, 1));

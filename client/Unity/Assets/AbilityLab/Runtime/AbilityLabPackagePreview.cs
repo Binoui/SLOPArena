@@ -119,11 +119,17 @@ public static class AbilityLabPackagePreviewLoader
 #endif
         }
 
+        if (animationCatalog.MissingPresentationMedia.Length > 0)
+            previewDiagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning,
+                "preview.media.not-installed", packageId,
+                $"{animationCatalog.MissingPresentationMedia.Length} presentation media reference(s) are not installed. Ordered missing positions are retained."));
+
 #if UNITY_EDITOR
         // Keep an owned snapshot so asset refresh cannot invalidate the
         // animation catalog used by an active authoring preview.
         animationCatalog = UnityEngine.Object.Instantiate(animationCatalog);
         animationCatalog.hideFlags = HideFlags.DontSave;
+        animationCatalog.SetPresentationProfile(animationCatalog.PresentationProfile);
 #endif
 
         return new AbilityLabPackagePreviewResult(

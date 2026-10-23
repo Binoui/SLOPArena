@@ -68,7 +68,7 @@ namespace SlopArena.Shared
 
         /// <summary>Airborne from a launch, post-hitstun — launch gravity and horizontal
         /// friction until landing or any action (jump/ability). Replicated
-        /// in CharacterStatePacket so reconstruction preserves the flight law.</summary>
+        /// in World Snapshots so reconstruction preserves the flight law.</summary>
         public bool InPostHitstunFlight;
         /// <summary>Latched deliberate fast-fall action, replicated for reconstruction.</summary>
         public bool IsFastFalling;
@@ -83,10 +83,6 @@ namespace SlopArena.Shared
 
         public byte Deaths;              // match death counter, server authority
 
-        /// <summary>Legacy universal Dash timers retained in the versioned state packet;
-        /// no input path consumes them after the air-dodge cutover.</summary>
-        public ushort DashCooldownTicks;
-        public ushort DashDurationTicks;
         /// <summary>Air-dodge direction captured from the stick, or facing when neutral.</summary>
         public float DashDirX, DashDirZ;
 
@@ -178,12 +174,6 @@ namespace SlopArena.Shared
         /// <summary>Server/local-only marker for the one-shot hitstop SDI.</summary>
         public bool SdiApplied;
 
-        /// <summary>Retired Burst fields reserved in protocol v2. Neither value
-        /// gates actions, ticks down, nor grants gameplay effects.</summary>
-        public ushort BurstCooldownTicks;
-        public ushort BurstRecoveryTicks;
-
-
         /// <summary>
         /// ── Facing ──
         /// </summary>
@@ -203,6 +193,21 @@ namespace SlopArena.Shared
         public bool AttackCorrectionActive;
         /// <summary>This activation owns facing even after its correction window closes.</summary>
         public bool AttackCorrectionOwned;
+
+        /// <summary>Clears attack-owned fields without changing the successor action, reactions or velocities.</summary>
+        public void ClearAttackFields()
+        {
+            AttackSlot = 0;
+            ComboStage = 0;
+            AttackElapsedTicks = 0;
+            AnimLockTicks = 0;
+            BufferedSlot = 0;
+            ChargeTicks = 0;
+            IsAiming = false;
+            AnimIndex = 0;
+            SlideAttackCarryActive = false;
+            ClearStartupAimCorrection();
+        }
 
         internal void ClearStartupAimCorrection()
         {

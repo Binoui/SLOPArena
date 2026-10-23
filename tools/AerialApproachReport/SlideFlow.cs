@@ -342,18 +342,9 @@ internal static partial class Program
     }
 
     private static byte AirWireSlot(string label)
-        => label switch
-        {
-            "1" => AbilitySlots.Slot1,
-            "2" => AbilitySlots.Slot2,
-            "3" => AbilitySlots.Slot3,
-            "4" => AbilitySlots.Slot4,
-            "A" => AbilitySlots.A,
-            "E" => AbilitySlots.E,
-            "R" => AbilitySlots.R,
-            "F" => AbilitySlots.F,
-            _ => throw new ArgumentException($"unknown air slot label '{label}'"),
-        };
+        => CanonicalSlotProjection.TryGet(true, label, out var address)
+            ? CanonicalSlotProjection.ToWire(address)
+            : throw new ArgumentException($"unknown air slot label '{label}'");
 
     private static bool RunRecoveryNegativeControl(StreamWriter traces, MatchContentEntry entry,
         CharacterDefinition effective, ArenaDefinition arena, DownActionTuning tuning, SlotAddress slot, byte wire,
@@ -440,8 +431,7 @@ internal static partial class Program
             "wibou" => (48f, 58f),
             _ => throw new InvalidDataException($"{entry.Identity.PackageId}: no verified previous fall profile")
         };
-        result.Movement = movement;
-        return result;
+        return result with { Movement = movement };
     }
 
     private static ArenaDefinition SlideArena(float supportHeight, bool edge = false)
@@ -487,7 +477,7 @@ internal static partial class Program
             state.IsFastFalling, state.JumpFromSlide, state.SlideAttackCarryActive, state.CrouchSettled, state.QueuedCrouchBrace,
             state.JumpsLeft, state.AirDodgesLeft, state.AttackSlot, state.AttackElapsedTicks, state.AnimLockTicks, state.LandingLagTicks,
             state.HitstopTicks, state.HitstunTicks, actionRequest, accepted, touchdown, reason,
-            state.RushTicks, state.DashCooldownTicks, state.BurstCooldownTicks, state.ChargeStockSpent,
+            state.RushTicks, state.ChargeStockSpent,
             state.ChargeStockRegenTicks, state.AirTimeTicks, state.Cooldown0)));
     }
 

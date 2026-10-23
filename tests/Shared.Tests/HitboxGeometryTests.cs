@@ -45,22 +45,14 @@ public class HitboxGeometryTests
     private static CharacterDefinition BoneDef(ushort groundDuration = 60, ushort airDuration = 60)
     {
         var def = TestHelpers.EngineDef;
-        def.HipHeight = 0.5f;
+        def = def with { HipHeight = 0.5f };
         var slots = def.CookedSlots!.ToArray();
         slots[0] = NormalSlot(0, "ground.1", false, groundDuration);
         slots[8] = NormalSlot(8, "air.1", true, airDuration);
-        def.CookedSlots = slots;
-        def.Slot1 = new AbilitySpec
-        {
-            Stages = new[] { new AttackStage { DurationTicks = groundDuration } },
-            AnimationNames = new[] { "attack" },
-        };
-        def.AirSlot1 = new AbilitySpec
-        {
-            Stages = new[] { new AttackStage { DurationTicks = airDuration } },
-            AnimationNames = new[] { "attack" },
-        };
-        def.HurtboxBoneScale = 1f;
+        def = def with { CookedSlots = slots };
+
+
+        def = def with { HurtboxBoneScale = 1f };
         return def;
     }
 
@@ -79,8 +71,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 1f, PY = 2f, PZ = 3f, FacingYaw = 0f };
         var evt = new HitboxEvent { OffX = 0f, OffY = 0.5f, OffZ = 1.5f };
 
-        HitboxGeometry.ResolvePositions(s, evt, null, null, null, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, null, null, null, 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         // Facing +Z (yaw 0): OffZ=front → wz, OffY=up → wy, OffX=0.
         Assert.Equal(1f, wx, 5);
@@ -94,8 +85,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 1f, PY = 2f, PZ = 3f, FacingYaw = MathF.PI / 2f };
         var evt = new HitboxEvent { OffZ = 1.5f };
 
-        HitboxGeometry.ResolvePositions(s, evt, null, null, null, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, null, null, null, 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         // Facing +X: local +Z (front) maps to world +X.
         Assert.Equal(2.5f, wx, 5);
@@ -109,9 +99,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 1f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { OffZ = 0.5f, EndOffZ = 1.2f, EndOffY = 0.1f };
 
-        HitboxGeometry.ResolvePositions(s, evt, null, null, null, 0, 0, false,
-            out float wx, out float wy, out float wz,
-            out float wex, out float wey, out float wez);
+        HitboxGeometry.ResolvePositions(s, evt, null, null, null, 0, out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
 
         // Start at (0, 1, 0.5); EndOffZ extends along facing (+Z).
         Assert.Equal(0f, wx, 5);
@@ -134,8 +122,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 1f, PY = 0.75f, PZ = 2f, FacingYaw = 0f, AttackElapsedTicks = 30 };
         var evt = new HitboxEvent { BoneName = "mixamorig:Head" };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         // bakedFrame = min(30 * 60 / 60, 59) = 30 → Head Y = 0.9 + 0.3 = 1.2
         // world Y = py - h/2 + HipHeight + by = 0.75 - 0.75 + 0.5 + 1.2 = 1.7
@@ -155,8 +142,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f, FacingYaw = MathF.PI / 2f };
         var evt = new HitboxEvent { BoneName = "mixamorig:Hips", OffZ = 0.2f, OffY = 0.1f };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         // Hips at (0,0,0) baked → world (0, 0.5, 0); BoneOffZ=0.2 at yaw PI/2 → +X.
         Assert.Equal(0.2f, wx, 5);
@@ -178,8 +164,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:LeftToes" };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         // LeftToes at (0,0,0) baked → world (0, py - h/2 + HipHeight + 0, 0) = (0, 0.5, 0).
         Assert.Equal(0f, wx, 5);
@@ -194,8 +179,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 1f, PY = 2f, PZ = 3f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:Head", OffZ = 1.5f };
 
-        HitboxGeometry.ResolvePositions(s, evt, null, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, null, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         Assert.Equal(1f, wx, 5); // entity-relative: OffZ lands on wz at yaw 0
         Assert.Equal(2f, wy, 5);
@@ -213,8 +197,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 2f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:LeftFoot", OffZ = 0.5f };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         Assert.Equal(0f, wx, 5);
         Assert.Equal(2f, wy, 5);
@@ -231,12 +214,11 @@ public class HitboxGeometryTests
             new[] { ("attack", 1) },
             (f, bone, axis) => axis == 1 ? 0.4f : 0f));
         var def = BoneDef();
-        def.HurtboxBoneDefs = new[] { new HurtboxBoneDef("mixamorig:Head", 0, 0, 0, 0.22f) };
+        def = def with { HurtboxBoneDefs = new[] { new HurtboxBoneDef("mixamorig:Head", 0, 0, 0, 0.22f) } };
         var s = new CharacterState { PX = 0f, PY = 2f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:Head", OffZ = 0.5f };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         Assert.Equal(0f, wx, 5);
         Assert.Equal(2f, wy, 5); // the Hips bone would give 2 - 0.75 + 0.5 + 0.4 = 2.15
@@ -261,9 +243,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:RightHand", EndBoneName = "_weapon_tip" };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz,
-            out float wex, out float wey, out float wez);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
 
         // Start anchors at RightHand, end anchors at the baked tip (NOT the EndOff
         // delta — EndOff* defaults to 0 here).
@@ -293,13 +273,11 @@ public class HitboxGeometryTests
                 _ => 0f,
             }));
         var def = BoneDef();
-        def.HurtboxBoneScale = 0.5f; // would shrink a real bone; weapon points must not
+        def = def with { HurtboxBoneScale = 0.5f }; // would shrink a real bone; weapon points must not
         var s = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:RightHand", EndBoneName = "_weapon_tip" };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz,
-            out float wex, out float wey, out float wez);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
 
         // Full-scale: world Y = py - h/2 + HipHeight + by = 0.75 - 0.75 + 0.5 + 0.9 = 1.4.
         // If HurtboxBoneScale (0.5) applied, the end would collapse to Z 0.8 / Y 0.95.
@@ -324,9 +302,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f, FacingYaw = 0f };
         var evt = new HitboxEvent { BoneName = "mixamorig:Hips", EndBoneName = "_weapon_tip", EndOffZ = 1.2f };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 0, false,
-            out float wx, out float wy, out float wz,
-            out float wex, out float wey, out float wez);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def.GetCookedSlotAbility(AbilitySlots.Slot1, false), 0, out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
 
         // Hips at (0,0,0) → start world (0, 0.5, 0); end = start + EndOffZ(1.2) facing.
         Assert.Equal(0f, wx, 5);
@@ -351,8 +327,7 @@ public class HitboxGeometryTests
         var s = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f, FacingYaw = 0f, AttackElapsedTicks = 15 };
         var evt = new HitboxEvent { BoneName = "mixamorig:Head" };
 
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 2, airborne: true,
-            out float wx, out float wy, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def?.GetCookedSlotAbility((byte)((2) + 1), true), 0, out float wx, out float wy, out float wz, out _, out _, out _);
 
         // bakedFrame = min(15 * 60 / 30, 59) = 30 → Head Y = 0.9 + 0.3 = 1.2
         // world Y = py - h/2 + HipHeight + by = 0.75 - 0.75 + 0.5 + 1.2 = 1.7
@@ -360,6 +335,63 @@ public class HitboxGeometryTests
         Assert.Equal(1.7f, wy, 5); // would be 1.55 if the ground duration were used
         Assert.Equal(0f, wz, 5);
     }
+    [Fact]
+    public void RunningGroundMoveUsesItsActivationVariantForHurtboxesAndSpawnGeometry()
+    {
+        var baked = BakedAnimationData.LoadFromBin(BuildTestBin(new[] { "point" },
+            new[] { ("attack", 60), ("airattack", 60) },
+            (frame, _, axis) => axis == 0 ? frame : 0));
+        var def = BoneDef(groundDuration: 60, airDuration: 30);
+        def = def with { HurtboxBoneDefs = new[] { new HurtboxBoneDef("point", 0, 0, 0, .1f) } };
+        var slots = def.CookedSlots!.ToArray();
+        slots[0] = new CookedSlotDefinition(0, "ground.1", false, "test", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[]
+            {
+                new CookedStage(60, 0, 0, 0, 0, new[] { "attack" }, new CookedTimelineOperation[]
+                {
+                    new CookedSpawnHitboxOperation(5, AuthoringUnit.Meters,
+                        new CookedHitbox(AuthoringHitboxShape.Sphere, .1f, 0, 0, 0, 0, 0, 0,
+                            "point", null, 0, 0, 0, 0, 0, 20, true, 0)),
+                }),
+            }));
+        slots[8] = new CookedSlotDefinition(8, "air.1", true, "test", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[] { new CookedStage(30, 0, 0, 0, 0, new[] { "airattack" }, Array.Empty<CookedTimelineOperation>()) }));
+        def = def with { CookedSlots = slots };
+        var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PX = 50, PZ = 50, PY = 10, IsGrounded = true }, baked);
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
+        for (int tick = 1; tick < 5; tick++) sim.Tick(new());
+        var owner = sim.GetState(1);
+        Assert.False(owner.IsGrounded);
+        Assert.Equal("attack", sim.GetActiveMove(1)!.Value.Pose.AnimationId);
+        var hitbox = Assert.Single(sim.Resolver.GetActiveHitboxes());
+        Assert.False(hitbox.Airborne);
+        Assert.Equal(owner.PX + 5f, hitbox.X, 5);
+        Assert.Equal(owner.PX + 5f, Assert.Single(sim.GetLastEntityData()).PosX, 5);
+    }
+
+    [Fact]
+    public void PhaseClipUsesItsReseekedClockAtRealTime()
+    {
+        var def = BoneDef();
+        var slots = def.CookedSlots!.ToArray();
+        slots[0] = new CookedSlotDefinition(0, "ground.1", false, "test", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[] { new CookedStage(20, 0, 0, 0, 0,
+                new[] { "attack", "landing" }, Array.Empty<CookedTimelineOperation>()) }));
+        def = def with { CookedSlots = slots };
+        var baked = BakedAnimationData.LoadFromBin(BuildTestBin(new[] { "point" },
+            new[] { ("landing", 60) }, (frame, _, axis) => axis == 0 ? frame : 0));
+        var state = new CharacterState { AttackElapsedTicks = 7, ComboStage = 1 };
+        var pose = ActiveMoveView.ResolvePose(slots[0], 1, state.AttackElapsedTicks);
+        Assert.True(pose.IsPhaseClip);
+        Assert.Equal(7f, pose.FrameAt(60));
+        HitboxGeometry.ResolvePositions(state, new HitboxEvent { BoneName = "point" }, baked, def, def?.GetCookedSlotAbility(AbilitySlots.Slot1, false), 1, out float x, out _, out _, out _, out _, out _);
+        Assert.Equal(7f, x, 5);
+    }
+
     [Fact]
     public void AttackPosePitch_RotatesEndpointAroundHipPivot()
     {
@@ -369,8 +401,8 @@ public class HitboxGeometryTests
             FacingYaw = 0f, AttackPosePitch = MathF.PI / 2f,
         };
         var def = TestHelpers.EngineDef;
-        def.CapsuleHeight = 2f;
-        def.HipHeight = 1f;
+        def = def with { CapsuleHeight = 2f };
+        def = def with { HipHeight = 1f };
         float x = 2f, y = 4f, z = 1f;
 
         HitboxGeometry.ApplyAttackPosePitch(in state, def, ref x, ref y, ref z);
@@ -389,12 +421,10 @@ public class HitboxGeometryTests
             FacingYaw = MathF.PI / 2f, AttackPosePitch = MathF.PI / 2f,
         };
         var def = TestHelpers.EngineDef;
-        def.CapsuleHeight = 2f;
-        def.HipHeight = 1f;
+        def = def with { CapsuleHeight = 2f };
+        def = def with { HipHeight = 1f };
         var evt = new HitboxEvent { Shape = HitboxShape.Capsule, OffZ = 1f, EndOffZ = 1f };
-        HitboxGeometry.ResolvePositions(in state, in evt, null, def, null, 0, 2, false,
-            out float startX, out float startY, out float startZ,
-            out float endX, out float endY, out float endZ);
+        HitboxGeometry.ResolvePositions(in state, in evt, null, def, def?.GetCookedSlotAbility((byte)((2) + 1), false), 0, out float startX, out float startY, out float startZ, out float endX, out float endY, out float endZ);
 
         Assert.Equal(0f, startX, 5);
         Assert.Equal(3f, startY, 5);

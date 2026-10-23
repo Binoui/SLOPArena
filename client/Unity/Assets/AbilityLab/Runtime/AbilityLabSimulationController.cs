@@ -22,6 +22,7 @@ public sealed class AbilityLabSimulationController
     /// <summary>The actor's hurtboxes Shared tested on the last simulated tick.</summary>
     public IReadOnlyList<SpellResolver.EntityData> Hurtboxes => _hurtboxes;
     public bool IsReady => _simulation != null;
+    public ActiveMoveView? ActiveMove => _simulation?.GetActiveMove(PreviewEntityId);
     public float ActiveSwordHitboxSeconds
     {
         get
@@ -109,9 +110,9 @@ public sealed class AbilityLabSimulationController
         {
             CanonicalSlotProjection.TryGet(options.Action, out address);
             int index = Array.IndexOf(AbilityLab.SlotNames, address.InputLabel);
-            wireSlot = (byte)(AbilityLab.SlotIndices[index] + 1);
-            var spec = definition.GetSlotAbility((byte)(wireSlot - 1), address.IsAirborne);
-            if (spec?.Stages is not { Length: > 0 })
+            wireSlot = (byte)((CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[index]) - 1) + 1);
+            var spec = definition.GetCookedSlotAbility(wireSlot, address.IsAirborne);
+            if (spec?.Timeline.Stages is not { Count: > 0 })
                 throw new ArgumentException($"Action '{options.Action}' is unavailable in this package.");
         }
 

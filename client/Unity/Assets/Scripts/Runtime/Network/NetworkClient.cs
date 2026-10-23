@@ -226,6 +226,17 @@ namespace SlopArena.Client.Network
                 Debug.LogError("[NetworkClient] Raw UDP is restricted to explicit Editor development matches.");
                 return;
             }
+            IPEndPoint endpoint;
+            try
+            {
+                endpoint = ResolveDevelopmentEndpoint(ip, port);
+            }
+            catch (Exception ex) when (ex is SocketException or ArgumentException)
+            {
+                _connectionFailure = $"Could not resolve development server '{ip}': {ex.Message}";
+                Debug.LogError($"[NetworkClient] {_connectionFailure}");
+                return;
+            }
             StopSteamTransport();
             StopUdpTransport();
             ClearReceiveQueues();
@@ -239,7 +250,8 @@ namespace SlopArena.Client.Network
             Interlocked.Exchange(ref _lastPingSentAt, 0);
             _serverIp = ip;
             _serverPort = port;
-            _serverEp = new IPEndPoint(IPAddress.Parse(ip), port);
+            _serverEp = endpoint;
+            _connectionFailure = string.Empty;
             CreateSocket();
             StartReceiveThread();
             _activeMatch = this;
@@ -247,6 +259,21 @@ namespace SlopArena.Client.Network
             _nextBootstrapAt = 0;
             SendControl(new NetplayControlPacket(NetplayControlKind.Bootstrap, _entityId, 0, 0));
 
+        }
+
+        internal static IPEndPoint ResolveDevelopmentEndpoint(string host, int port)
+        {
+            if (string.IsNullOrWhiteSpace(host))
+                throw new ArgumentException("A server address is required.", nameof(host));
+            if (port is < 1 or > 65535)
+                throw new ArgumentOutOfRangeException(nameof(port));
+            var addresses = IPAddress.TryParse(host, out var literal)
+                ? new[] { literal }
+                : Dns.GetHostAddresses(host);
+            foreach (var address in addresses)
+                if (address.AddressFamily == AddressFamily.InterNetwork)
+                    return new IPEndPoint(address, port);
+            throw new ArgumentException("The development server needs an IPv4 address.", nameof(host));
         }
 
         public void ConnectSteam(SteamMatchDescriptor descriptor)

@@ -111,7 +111,7 @@ kit: bombs and rockets from the route, the Jump → E Blast Face and the conveyo
 with nine gameplay-camera captures. Its inputs come from the Shared route test
 (`MankiQuarryRouteTests.JumpThenJetpackSkipsTheBenches`); after a deliberate layout or
 kit change, rewrite them with `SLOPARENA_EXPORT_COURSE_INPUTS=$PWD/scenarios/arcade dotnet
-test tests/Shared.Tests --filter JumpThenJetpackSkipsTheBenches` and adjust capture ticks.
+test tests/Shared.Tests -p:SkipUnityPluginCopy=true --filter JumpThenJetpackSkipsTheBenches` and adjust capture ticks.
 
 `scenarios/arcade/wibou-mall-specials.json` replays Neo Mall with the cooked Wibou kit: rows cut
 by Dash Slash, fans by Shuriken Toss, E over the skybridge and Jump, jump, E up the elevator tower,

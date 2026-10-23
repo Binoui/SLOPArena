@@ -191,7 +191,8 @@
     "presentation.bashie.ring.bounce",
     "presentation.bashie.ring.rebound",
     "presentation.bashie.shell.rise-tuck",
-    "presentation.bashie.shell.air-strike-tuck"
+    "presentation.bashie.shell.air-strike-tuck",
+    "presentation.bashie.shell.flip-tuck"
   ],
   "capabilityRequirements": [
     {
@@ -596,8 +597,8 @@
     },
     {
       "id": "ground.3",
-      "name": "Sweeping Kick",
-      "description": "Sweeping Kick",
+      "name": "Shell Flip",
+      "description": "Tuck into your shell and somersault backward to launch an opponent upward, then settle on the same spot.",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -605,12 +606,12 @@
       "cooldownTicks": 0,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
-      "allowSlideCarry": true,
+      "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 44,
-            "iasaTicks": 29,
+            "durationTicks": 42,
+            "iasaTicks": 42,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -636,28 +637,45 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 4,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.flip-tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 38
+                }
+              },
+              {
                 "kind": "spawnHitbox",
-                "tick": 9,
+                "tick": 24,
                 "unit": "meters",
                 "hitbox": {
-                  "shape": "sphere",
-                  "radius": 0.5,
+                  "shape": "capsule",
+                  "radius": 0.32,
                   "offsetX": 0,
-                  "offsetY": 0.2,
-                  "offsetZ": 0.21,
+                  "offsetY": -0.2,
+                  "offsetZ": 0.65,
                   "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.right-foot",
+                  "endOffsetY": 0.6,
+                  "endOffsetZ": -0.3,
+                  "startBoneId": null,
                   "endBoneId": null,
                   "damage": 7,
-                  "angle": 25,
+                  "angle": 75,
                   "baseKnockback": 5,
                   "knockbackGrowth": 26,
                   "stunTicks": 18,
-                  "durationTicks": 12,
+                  "durationTicks": 6,
                   "interruptible": true,
-                  "hitGroup": 0,
+                  "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
               }

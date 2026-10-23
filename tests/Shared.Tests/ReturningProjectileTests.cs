@@ -376,7 +376,7 @@ public sealed class ReturningProjectileTests
                     new CookedArmorWindowOperation(0, AuthoringUnit.Ticks, 120),
                 }),
             }));
-        definition.CookedSlots = slots;
+        definition = definition with { CookedSlots = slots };
         return definition;
     }
 

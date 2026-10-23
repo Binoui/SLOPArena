@@ -11,7 +11,7 @@ public static class InternalCapabilityRegistry
         out ServerAbility capability)
     {
         capability = null!;
-        if (capabilityVersion != "1" || parameters == null)
+        if (!CharacterPackageCompiler.IsRuntimeCapability(capabilityId, capabilityVersion) || parameters == null)
             return false;
 
         switch (capabilityId)
@@ -38,7 +38,7 @@ public static class InternalCapabilityRegistry
             case "slop.internal.wibou.rising-slash.v1" when parameters is CookedWibouRisingSlashCapabilityParameters rising:
                 capability = new WibouRisingSlash(rising);
                 return true;
-            case "slop.internal.wibou.blade-flurry.v1" when parameters is CookedWibouBladeFlurryCapabilityParameters flurry:
+            case CharacterPackageCompiler.BladeFlurryCapabilityId when parameters is CookedWibouBladeFlurryCapabilityParameters flurry:
                 capability = new WibouUltFlurry(flurry);
                 return true;
             case CharacterPackageCompiler.ChargedDirectionalDashCapabilityId

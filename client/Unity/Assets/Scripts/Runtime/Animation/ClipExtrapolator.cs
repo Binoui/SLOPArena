@@ -34,13 +34,13 @@ namespace SlopArena.Client.Animation
 
             int last = anim.FrameCount - 1;
             int prev = anim.FrameCount - 2;
-            int boneCount = data.BoneNames.Length;
+            int boneCount = data.BoneNames.Count;
             var result = new ClipExtrapolator();
             // The bake can carry synthetic points (e.g. _weapon_tip) that are not real
             // renderer bones — skip them; Apply resolves by name anyway.
             var bones = new List<BoneExtrapData>(boneCount);
-            float[] lastFrame = anim.Frames[last];
-            float[] prevFrame = anim.Frames[prev];
+            var lastFrame = anim.Frame(last);
+            var prevFrame = anim.Frame(prev);
 
             for (int b = 0; b < boneCount; b++)
             {

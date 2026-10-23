@@ -52,6 +52,7 @@ namespace SlopArena.Client.World
         private LobbyClient? _roomLobby;
         private RoomSnapshot? _roomSnapshot;
         private bool _returnToLobbyPending;
+        private bool _leaveRoomPending;
         protected override ISimulationBridge Bridge => _bridge;
 
         private void OnRoomUpdated(RoomSnapshot room)
@@ -129,22 +130,42 @@ namespace SlopArena.Client.World
 
         private async System.Threading.Tasks.Task LeaveRoomAndReturnAsync()
         {
+            if (_leaveRoomPending) return;
+            var chat = ChatSession.Instance;
+            if (chat == null) return;
+            int accountGeneration = chat.AccountGeneration;
+            var matchId = MatchConfig.MatchId;
+            Guid roomId = ClientSession.SelectedRoomId;
+            var scene = gameObject.scene;
+            bool OwnsExit() => this != null && gameObject.scene == scene &&
+                ChatSession.Instance == chat && chat.AccountGeneration == accountGeneration &&
+                MatchConfig.MatchId == matchId && ClientSession.SelectedRoomId == roomId &&
+                ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room;
+            if (roomId == Guid.Empty || !OwnsExit()) return;
+            _leaveRoomPending = true;
             bool leftRoom = false;
             try
             {
-                var chat = ChatSession.Instance;
-                if (chat != null && await chat.EnsureConnectedAsync() &&
-                    chat.ActiveLobby is { } lobby)
+                bool connected = await chat.EnsureConnectedAsync();
+                if (!OwnsExit()) return;
+                if (connected && chat.ActiveLobby is { } lobby)
                 {
-                    await lobby.LeaveRoomAsync();
+                    if (!await lobby.LeaveRoomIfCurrentAsync(roomId) || !OwnsExit() ||
+                        !ReferenceEquals(chat.ActiveLobby, lobby)) return;
                     leftRoom = true;
                 }
             }
             catch (Exception ex)
             {
+                if (!OwnsExit()) return;
                 Debug.LogWarning($"[PvPMatch] Could not leave Room after exiting match: {ex.Message}");
             }
+            finally
+            {
+                if (this != null) _leaveRoomPending = false;
+            }
 
+            if (!OwnsExit()) return;
             ClientSession.ClearMatchForExit();
             if (leftRoom)
             {
@@ -164,19 +185,21 @@ namespace SlopArena.Client.World
         protected override void OnMatchStart()
         {
             Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} char={MatchConfig.PlayerClass} arena={MatchConfig.ArenaName}");
-            // Baked arena is required (issue #77): hardcoded ArenaRegistry arenas carry
-            // no collision data, so a missing .arena file used to make players fall
-            // through the floor. The client only renders; the server is authoritative.
-            string? arenaPath = BakedContentPaths.ResolveArena(MatchConfig.ArenaName);
-            if (arenaPath == null)
+            var arenaIdentity = ClientSession.MatchContentHandleMap?.Arena;
+            if (arenaIdentity == null || !string.Equals(arenaIdentity.Name, MatchConfig.ArenaName, StringComparison.Ordinal))
             {
-                ClientSession.RejectMatchStart($"Baked arena '{MatchConfig.ArenaName}' is missing.");
+                ClientSession.RejectMatchStart("The admitted match arena identity is missing or names a different arena.");
                 return;
             }
-            var arenaOpt = ArenaBinaryFormat.LoadFromFile(arenaPath);
-            if (arenaOpt is not ArenaDefinition arena)
+            string? arenaPath = BakedContentPaths.ResolveArena(arenaIdentity.Name);
+            if (arenaPath == null)
             {
-                ClientSession.RejectMatchStart($"Baked arena could not be loaded: {arenaPath}");
+                ClientSession.RejectMatchStart($"Baked arena '{arenaIdentity.Name}' is missing.");
+                return;
+            }
+            if (!arenaIdentity.TryLoadVerified(arenaPath, out var arena, out var arenaFailure))
+            {
+                ClientSession.RejectMatchStart(arenaFailure ?? "Baked arena identity verification failed.");
                 return;
             }
             // The Match format (ADR-0040) decides the arena: stock fights take PvP stages, co-op
@@ -202,9 +225,9 @@ namespace SlopArena.Client.World
             if (_combatFeedback == null)
                 _combatFeedback = FindFirstObjectByType<CombatFeedback>();
             if (_combatFeedback == null)
-                _combatFeedback = gameObject.AddComponent<CombatFeedback>();
+                _combatFeedback = GetComponent<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
             _combatFeedback.SetSimulation(_bridge);
-            _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
+            _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
             _projectileVFX.SetPredictedSimulation(_bridge.Simulation);
 
             // Character definitions come only from the admitted match catalog.
@@ -304,7 +327,7 @@ namespace SlopArena.Client.World
                 renderer.transform.position = SpawnPosition(arena, opp.EntityId);
                 _opponentRenderers[opp.EntityId] = renderer;
                 renderer.RenderInterpolation = true;
-                renderer.ApplyServerState(initialState);
+                renderer.ApplyServerState(initialState, null);
             }
             _opponentArray = new List<PlayerRenderer>(_opponentRenderers.Values).ToArray();
 
@@ -330,7 +353,7 @@ namespace SlopArena.Client.World
             };
             _bridge.RegisterEntity(PlayerEntityId, playerDef, initialPlayerState, playerEntry.BakedAnimation);
             _playerRenderer.RenderInterpolation = true;
-            _playerRenderer.ApplyServerState(initialPlayerState);
+            _playerRenderer.ApplyServerState(initialPlayerState, null);
             _lastPresentedDeaths.Clear();
             _lastPresentedDeaths[PlayerEntityId] = 0;
             foreach (var id in _opponentRenderers.Keys)
@@ -427,7 +450,7 @@ namespace SlopArena.Client.World
 
             var playerState = _bridge.GetState(PlayerEntityId);
             var aimCtx = _aimHandler != null
-                ? _aimHandler.Evaluate(playerState, slot, _playerDef, _inputController)
+                ? _aimHandler.Evaluate(playerState, slot, _playerDef, _inputController, _bridge.GetActiveMove(PlayerEntityId)?.Slot)
                 : AimContext.None;
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
 
@@ -441,7 +464,6 @@ namespace SlopArena.Client.World
             var (input, _, _) = _inputController.BuildInputState(
                 _cameraMount,
                 _playerRenderer.transform.eulerAngles.y,
-                isNPC: false,
                 pendingSlotPress: slot,
                 aimCtx: aimCtx,
                 canMove: null,
@@ -464,9 +486,9 @@ namespace SlopArena.Client.World
             _hudManager?.Refresh();
 
             // Apply server states to renderers
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId));
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
             foreach (var kv in _opponentRenderers)
-                kv.Value.ApplyServerState(_bridge.GetState(kv.Key));
+                kv.Value.ApplyServerState(_bridge.GetState(kv.Key), _bridge.GetActiveMove(kv.Key)?.Slot);
             UpdateSwordTrailsFromResolver(_bridge.Resolver);
             RetractTimelineEvents(_bridge.RetractedPresentationEvents);
             PresentTimelineEvents();

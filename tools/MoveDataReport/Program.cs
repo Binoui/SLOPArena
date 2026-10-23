@@ -34,7 +34,7 @@ internal static class Program
 
     internal readonly record struct SlotRef(bool Air, int Slot);
     internal sealed record Route(string Label, SlotRef From, int FromHit, SlotRef To, int ToHit);
-    internal sealed record HitSpec(SlotRef Slot, AbilitySpec Ability, AttackStage Stage, HitboxEvent Hit, int HitIndex,
+    internal sealed record HitSpec(SlotRef Slot, CookedSlotDefinition Ability, CookedStage Stage, HitboxEvent Hit, int HitIndex,
         sbyte LaunchAngle, float BaseKb, float GrowthKb, bool Adaptive);
     internal sealed record RunResult(float Kv, ushort Hitstop, ushort Stun, float Rise, float Drift,
         float Apex, int ActionableTick, int? LandedTick);
@@ -348,25 +348,17 @@ internal static class Program
         foreach (var (slot, air) in new[] { (G1, false), (G2, false), (G3, false), (G4, false),
                                             (A1, true), (A2, true), (A3, true), (A4, true) })
         {
-            AbilitySpec ability = air
-                ? slot.Slot switch
-                {
-                    1 => def.AirSlot1, 2 => def.AirSlot2, 3 => def.AirSlot3, _ => def.AirSlot4,
-                }
-                : slot.Slot switch
-                {
-                    1 => def.Slot1, 2 => def.Slot2, 3 => def.Slot3, _ => def.Slot4,
-                };
-            if (ability == null || ability.Stages.Length == 0) continue;
-            var stage = ability.Stages[0];
-            if (stage.HitboxEvents == null || stage.HitboxEvents.Length == 0)
+            var ability = def.GetCookedSlotAbility(SlotByte(slot.Slot), air);
+            if (ability == null || ability.Timeline.Stages.Count == 0) continue;
+            var stage = ability.Timeline.Stages[0];
+            if (stage.ReadHitboxes() == null || stage.ReadHitboxes().Length == 0)
             {
                 Console.Error.WriteLine($"warn: {ability.Name} has no hitbox events — skipped");
                 continue;
             }
-            for (int i = 0; i < stage.HitboxEvents.Length; i++)
+            for (int i = 0; i < stage.ReadHitboxes().Length; i++)
             {
-                var hit = stage.HitboxEvents[i];
+                var hit = stage.ReadHitboxes()[i];
                 // Every move is included regardless of knockback profile. Resolve the launch triple:
                 // Custom/Adaptive carry their own base/growth (and Adaptive's authored angle is used as
                 // a documented representative — see the report caveat); named profiles resolve from the
@@ -404,7 +396,7 @@ internal static class Program
     /// </summary>
     internal static RecoveryData? RunRecoveryTrace(CharacterDefinition def, CombatTuning? combatTuning = null)
     {
-        var spec = def.E;
+        var spec = def.GetCookedSlotAbility(4, false);
         if (spec == null || !spec.IsRecoveryMove) return null;
 
         // E = ActiveSlot byte 4 (grounded and air share the cooked slot).
@@ -419,9 +411,12 @@ internal static class Program
         };
         sim.RegisterEntity(1, def, state);
 
-        float riseSpeed = spec.Params != null && spec.Params.TryGetValue("rise_speed", out var rs) ? rs : 11f;
-        ushort riseTicks = spec.Params != null && spec.Params.TryGetValue("rise_ticks", out var rt) ? (ushort)rt : (ushort)12;
-        ushort riseDelay = spec.Params != null && spec.Params.TryGetValue("rise_delay", out var rd) ? (ushort)rd : (ushort)8;
+        var rise = spec.Timeline.Stages.SelectMany(x => x.Operations)
+            .OfType<CookedStartCapabilityOperation>().Select(x => x.Parameters)
+            .OfType<CookedRisingDragonCapabilityParameters>().FirstOrDefault();
+        float riseSpeed = rise?.RiseSpeed ?? 0f;
+        ushort riseTicks = rise?.RiseTicks ?? 0;
+        ushort riseDelay = rise?.RiseDelay ?? 0;
 
         float startPy = groundY, maxPy = groundY, peakVY = 0f;
         int riseWindow = 0, actionableTick = -1, durationObserved = 0;
@@ -447,11 +442,11 @@ internal static class Program
             }
         }
 
-        ushort trigger = spec.Stages is { Length: > 0 } && spec.Stages[0].HitboxEvents is { Length: > 0 }
-            ? spec.Stages[0].HitboxEvents[0].TriggerTick : (ushort)0;
-        var hit = spec.Stages is { Length: > 0 } && spec.Stages[0].HitboxEvents is { Length: > 0 }
-            ? spec.Stages[0].HitboxEvents[0] : default;
-        ushort duration = spec.Stages is { Length: > 0 } ? spec.Stages[0].DurationTicks : (ushort)0;
+        ushort trigger = spec.Timeline.Stages is { Count: > 0 } && spec.Timeline.Stages[0].ReadHitboxes() is { Length: > 0 }
+            ? spec.Timeline.Stages[0].ReadHitboxes()[0].TriggerTick : (ushort)0;
+        var hit = spec.Timeline.Stages is { Count: > 0 } && spec.Timeline.Stages[0].ReadHitboxes() is { Length: > 0 }
+            ? spec.Timeline.Stages[0].ReadHitboxes()[0] : default;
+        ushort duration = spec.Timeline.Stages is { Count: > 0 } ? spec.Timeline.Stages[0].DurationTicks : (ushort)0;
 
         return new RecoveryData(
             spec.Name, duration, trigger, (ushort)(trigger + hit.DurationTicks),
@@ -469,9 +464,9 @@ internal static class Program
     /// </summary>
     internal static HitSpec RecoveryHitSpec(CharacterDefinition def)
     {
-        var spec = def.E!;
-        var stage = spec.Stages![0];
-        var evt = stage.HitboxEvents![0];
+        var spec = def.GetCookedSlotAbility(4, false)!;
+        var stage = spec.Timeline.Stages![0];
+        var evt = stage.ReadHitboxes()![0];
         return new HitSpec(new SlotRef(false, 100), spec, stage, evt, 0,
             evt.Knockback.Angle, evt.Knockback.BaseKnockback, evt.Knockback.KnockbackGrowth, false);
     }
@@ -514,9 +509,9 @@ internal static class Program
     /// <summary>Gaps narrower than this are below-cell noise and dropped, metres.</summary>
     internal const float ReachMinGapWidth = 0.05f;
 
-    /// <summary>Tool SlotRef (g1–g4 / a1–a4) → GetSlotAbility slot index (Slot1=2, Slot2=6,
+    /// <summary>Tool SlotRef (g1–g4 / a1–a4) → wire slot index (Slot1=2, Slot2=6,
     /// Slot3=7, Slot4=8; same indices airborne → AirSlotN), matching CollectHits.</summary>
-    internal static byte SlotIndex(SlotRef s) => (byte)(s.Slot switch { 1 => 2, 2 => 6, 3 => 7, _ => 8 });
+    internal static byte SlotIndex(SlotRef s) => (byte)(SlotByte(s.Slot) - 1);
 
     /// <summary>Reach height bands: thirds of CapsuleHeight from the feet — low [0, H/3),
     /// mid [H/3, 2H/3), high [2H/3, H + 0.5] (0.5 m headroom so above-head coverage counts as high).</summary>
@@ -538,7 +533,7 @@ internal static class Program
         var sampleCache = new Dictionary<(SlotRef, int), MoveReach.CapsuleSample[]>();
         foreach (var h in hits)
             sampleCache[(h.Slot, h.HitIndex)] = MoveReach.SampleHit(def, h.Hit, SlotIndex(h.Slot), h.Slot.Air,
-                h.Ability.AnimationNames, 0, baked);
+                0, baked);
 
         // Common overlay range: min/max endpoint Z over all samples, widened to at least [-1, 3].
         float zMin = float.PositiveInfinity, zMax = float.NegativeInfinity;
@@ -665,7 +660,7 @@ internal static class Program
             h.Hit.Damage, h.Hit.StunTicks, def.Weight, combatTuning: combatTuning);
         float kv = MathF.Sqrt(state.KVX * state.KVX + state.KVY * state.KVY + state.KVZ * state.KVZ);
         ushort stun = state.HitstunTicks;
-        ushort hitstop = ServerSimulation.ComputeHitstopTicks(h.Hit.Damage, null);
+        ushort hitstop = ServerSimulation.ComputeHitstopTicks(h.Hit.Damage);
         sim.RegisterEntity(1, def, state);
 
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
@@ -771,7 +766,7 @@ internal static class Program
             var inputs = new Dictionary<ulong, InputState> { [1] = default };
 
             Console.WriteLine($"\n=== {Label(h)} hit {h.HitIndex + 1} at {pct}% ===");
-            Console.WriteLine($"launch {kv:F2} m/s  stun {stun} ticks ({stun / 60f:F2}s)  hitstop {ServerSimulation.ComputeHitstopTicks(h.Hit.Damage, null)}");
+            Console.WriteLine($"launch {kv:F2} m/s  stun {stun} ticks ({stun / 60f:F2}s)  hitstop {ServerSimulation.ComputeHitstopTicks(h.Hit.Damage)}");
             Console.WriteLine("tick,height(m),travel(m),vY,vX,phase");
             float maxPy = state.PY;
             bool apexMarked = false;
@@ -961,7 +956,7 @@ internal static class Program
     }
 
     /// <summary>Kit slot 1-4 → ActiveSlot byte (factory indices: key1=3, key2=7, key3=8, key4=9).</summary>
-    internal static byte SlotByte(int slot) => (byte)(slot switch { 1 => 3, 2 => 7, 3 => 8, _ => 9 });
+    internal static byte SlotByte(int slot) => CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slot - 1]);
 
     /// <summary>
     /// Full-pipeline launch: the g2 starter connects through the REAL hitbox path
@@ -1182,7 +1177,7 @@ internal static class Program
                 bool iasa = a.State == ActionState.Attacking && starterIasaTicks > 0
                     && a.AttackElapsedTicks >= starterIasaTicks;
                 bool canAct = a.HitstunTicks == 0 && a.HitstopTicks == 0
-                    && a.LandingLagTicks == 0 && a.BurstRecoveryTicks == 0
+                    && a.LandingLagTicks == 0
                     && (a.AnimLockTicks == 0 || iasa)
                     && (a.State == ActionState.Idle || a.State == ActionState.Run || iasa);
                 if (squatting)
@@ -1258,10 +1253,10 @@ internal static class Program
     internal static (ProbeVerdict Verdict, int ConnectTick) RunProbe(CharacterDefinition def, Route r, int pct, BakedAnimationData? baked,
         (float AtkY, float NpcY, float NpcZ) spawn, CombatTuning? combatTuning = null)
     {
-        int toTriggerTicks = def.GetSlotAbility(SlotByte(r.To.Slot) - 1, r.To.Air)?.Stages[0]
-            .HitboxEvents?[0].TriggerTick ?? 0;
-        int starterIasa = def.GetSlotAbility(SlotByte(r.From.Slot) - 1, r.From.Air)?.Stages[0].IasaTicks ?? 0;
-        float followUpLunge = def.GetSlotAbility(SlotByte(r.To.Slot) - 1, r.To.Air)?.Stages[0].LungeForce ?? 0f;
+        int toTriggerTicks = def.GetCookedSlotAbility(SlotByte(r.To.Slot), r.To.Air)?.Timeline.Stages[0]
+            .ReadHitboxes()?[0].TriggerTick ?? 0;
+        int starterIasa = def.GetCookedSlotAbility(SlotByte(r.From.Slot), r.From.Air)?.Timeline.Stages[0].IasaTicks ?? 0;
+        float followUpLunge = 0f;
         var outcome = RunFollowUpSim(def, r.From, r.To, toTriggerTicks, starterIasa, followUpLunge, pct, baked,
             new ProbeSetup(spawn.AtkY, spawn.NpcY, spawn.NpcZ, r.From.Air, r.From.Air), combatTuning);
         return outcome.Connected
@@ -1590,7 +1585,7 @@ internal static class Program
     internal static int TightnessOf(CharacterDefinition def, HitSpec starter, HitSpec followUp, int pct,
         CombatTuning? combatTuning = null)
     {
-        var send = starter.Stage.HitboxEvents[^1];
+        var send = starter.Stage.ReadHitboxes()[^1];
         int unlock = starter.Stage.IasaTicks > 0 ? starter.Stage.IasaTicks : starter.Stage.DurationTicks;
         int recovery = Math.Max(0, unlock - send.TriggerTick);
         if (starter.Slot.Air && !followUp.Slot.Air) recovery += starter.Stage.LandingLagTicks;
@@ -1628,7 +1623,7 @@ internal static class Program
             for (int pi = 0; pi < pcts.Length; pi++)
             {
                 var outcome = RunFollowUpSim(def, starter.Slot, followUp.Slot, followUp.Hit.TriggerTick,
-                    starterIasa, followUp.Stage.LungeForce, pcts[pi], baked, setup.Value, combatTuning);
+                    starterIasa, 0f, pcts[pi], baked, setup.Value, combatTuning);
                 string verdict = !outcome.Connected ? "never"
                     : outcome.VictimStunAtConnect > 0 ? "true" : "false";
                 edges.Add(new ComboEdgeData(Label(followUp), TightnessOf(def, starter, followUp, pcts[pi], combatTuning),
@@ -1723,7 +1718,7 @@ internal static class Program
         float launchX = state.KVX, launchY = state.KVY, launchZ = state.KVZ;
         float kv = MathF.Sqrt(launchX * launchX + launchY * launchY + launchZ * launchZ);
         ushort stun = state.HitstunTicks;
-        ushort hitstop = ServerSimulation.ComputeHitstopTicks(h.Hit.Damage, null);
+        ushort hitstop = ServerSimulation.ComputeHitstopTicks(h.Hit.Damage);
         sim.RegisterEntity(1, def, state);
         var inputs = new Dictionary<ulong, InputState> { [1] = default };
 

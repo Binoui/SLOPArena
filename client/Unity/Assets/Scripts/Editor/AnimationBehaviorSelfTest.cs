@@ -34,7 +34,7 @@ public static class AnimationBehaviorSelfTest
                     new BakedAnimationData.BakedAnim
                     {
                         Name = "fixture.motion",
-                        FrameCount = 2,
+
                         Frames = new[]
                         {
                             new[] { 3f, 4f, 5f, 10f, 20f, 30f },
@@ -76,59 +76,57 @@ public static class AnimationBehaviorSelfTest
         try
         {
             var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package);
-            definition.Class = CharacterClass.Bonk;
+            definition = definition with { Class = CharacterClass.Bonk };
             var renderer = root.AddComponent<PlayerRenderer>();
-            renderer.SetCharacterDefinition(definition);
-            renderer.SetBakedData(preview.BakedPoses);
-            renderer.SetAnimationCatalog(preview.AnimationCatalog);
-            renderer.LoadModel(definition, preview.Rig);
+            Require(renderer.Configure(definition, preview.BakedPoses, preview.AnimationCatalog,
+                preview.Rig, out var error), error);
             var graph = root.GetComponentInChildren<AnimancerComponent>();
             Require(graph != null, "The package preview did not create an Animancer graph.");
             graph.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            var spec = definition.GetSlotAbility(AbilitySlots.Slot1 - 1, false);
+            var spec = definition.GetCookedSlotAbility(AbilitySlots.Slot1, false);
             var expectedClip = Array.Find(preview.AnimationCatalog.Animations,
-                entry => entry.SemanticId == spec.AnimationNames[0]).Clip;
+                entry => entry.SemanticId == spec.Clip(0).AnimationId).Clip;
             Require(expectedClip != null, "The package's ground.1 animation clip is unavailable.");
             var state = new CharacterState
             {
                 State = ActionState.Attacking,
                 AttackSlot = AbilitySlots.Slot1,
                 AttackSequence = 7,
-                StateTicks = spec.Stages[0].DurationTicks,
+                StateTicks = spec.Timeline.Stages[0].DurationTicks,
                 IsGrounded = true,
                 PY = definition.CapsuleHeight * 0.5f,
             };
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0f);
             Require(graph.States.Current.Clip == expectedClip, "The attack did not play its package-bound clip.");
             graph.Evaluate(0.15f);
             double advancedTime = graph.States.Current.Time;
             Require(advancedTime > 0.01d, "The attack clip did not advance before testing restart.");
 
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0f);
             RequireTime(graph, advancedTime, "An identical snapshot restarted the attack clip.");
             state.StateTicks--;
             state.AttackElapsedTicks++;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0f);
             RequireTime(graph, advancedTime, "An attack countdown restarted the clip.");
 
             state.AttackElapsedTicks = 0;
-            state.StateTicks = spec.Stages[0].DurationTicks;
-            renderer.ApplyServerState(state);
+            state.StateTicks = spec.Timeline.Stages[0].DurationTicks;
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0f);
             RequireTime(graph, advancedTime, "A clock correction within the same sequence restarted the clip.");
 
             state.AttackSequence++;
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0f);
             Require(graph.States.Current.Clip == expectedClip, "A same-slot restart lost the attack clip.");
             RequireTime(graph, 0d, "A new same-slot attack sequence did not rewind the clip.");
             graph.Evaluate(0.1f);
             double restartedTime = graph.States.Current.Time;
             Require(restartedTime > 0.01d, "The restarted clip did not resume playback.");
-            renderer.ApplyServerState(state);
+            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             graph.Evaluate(0f);
             RequireTime(graph, restartedTime, "Repeating the new sequence restarted the clip again.");
             Debug.Log("[AnimationBehaviorSelfTest] Passed same-slot sequence rewind and repeated/countdown snapshot continuity.");

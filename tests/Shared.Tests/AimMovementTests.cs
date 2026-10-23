@@ -10,8 +10,13 @@ public sealed class AimMovementTests
     public void MobileHold_StillAllowsSteering(bool airborne)
     {
         var def = TestHelpers.EngineDef;
-        def.CookedSlots = null;
-        def.Slot1 = def.AirSlot1 = new AbilitySpec { AimMovement = AimMovementMode.Mobile };
+        var slots = def.CookedSlots!.ToArray();
+        var address = CanonicalSlotProjection.All[airborne ? 8 : 0];
+        slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, airborne, "Mobile hold", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.GroundVector, 0, false, false,
+            new CookedTimeline(new[] { new CookedStage(60, 0, 0, 0, 0, Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()) }),
+            aimMovement: AuthoringAimMovementMode.Mobile);
+        def = def with { CookedSlots = slots };
         var s = TestHelpers.PlayerState(20f, 20f);
         s.PY = TestHelpers.GroundPY(def) + (airborne ? 5f : 0f);
         s.IsGrounded = !airborne;
@@ -19,7 +24,7 @@ public sealed class AimMovementTests
         s.AttackSlot = AbilitySlots.Slot1;
 
         Simulation.SimulateTick(ref s, def, new InputState { IsAiming = true, MoveX = 1f },
-            TestHelpers.TestArena(), out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
+            TestHelpers.TestArena(), out _, out _, DownActionTuning.Default, verticalMotionOwned: false, move: def.GetCookedSlotAbility(s.AttackSlot, !s.IsGrounded));
 
         Assert.True(s.PX > 20f);
         Assert.True(s.VX > 0f);
@@ -39,7 +44,7 @@ public sealed class AimMovementTests
         var input = new InputState { IsAiming = true, MoveX = 1f, MoveY = 1f, Jump = true };
 
         Simulation.SimulateTick(ref s, def, input, TestHelpers.TestArena(),
-            out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
+            out _, out _, DownActionTuning.Default, verticalMotionOwned: false, move: def.GetCookedSlotAbility(s.AttackSlot, !s.IsGrounded));
 
         Assert.Equal(20f, s.PX);
         Assert.Equal(20f, s.PZ);
@@ -71,10 +76,10 @@ public sealed class AimMovementTests
         var arena = TestHelpers.TestArena();
 
         Simulation.SimulateTick(ref coasting, def, default, arena,
-            out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
+            out _, out _, DownActionTuning.Default, verticalMotionOwned: false, move: def.GetCookedSlotAbility(s.AttackSlot, !s.IsGrounded));
         Simulation.SimulateTick(ref s, def,
             new InputState { IsAiming = true, MoveX = 1f, MoveY = 1f, Jump = true }, arena,
-            out _, out _, DownActionTuning.Default, verticalMotionOwned: false);
+            out _, out _, DownActionTuning.Default, verticalMotionOwned: false, move: def.GetCookedSlotAbility(s.AttackSlot, !s.IsGrounded));
 
         Assert.Equal(coasting.VX, s.VX);
         Assert.Equal(coasting.VZ, s.VZ);
@@ -172,8 +177,8 @@ public sealed class AimMovementTests
     public void AuthoredAimedHolds_UseFixedMovementOnGroundAndInAir(CharacterClass character, byte slot)
     {
         var def = TestHelpers.ResolveSourceDef(character.ToString().ToLowerInvariant());
-        Assert.Equal(AimMovementMode.Fixed, def.GetAimMovementMode(slot, airborne: false));
-        Assert.Equal(AimMovementMode.Fixed, def.GetAimMovementMode(slot, airborne: true));
+        Assert.Equal(AuthoringAimMovementMode.Fixed, (def.GetCookedSlotAbility(slot, airborne: false)?.AimMovement ?? AuthoringAimMovementMode.Fixed));
+        Assert.Equal(AuthoringAimMovementMode.Fixed, (def.GetCookedSlotAbility(slot, airborne: true)?.AimMovement ?? AuthoringAimMovementMode.Fixed));
     }
 
     [Fact]

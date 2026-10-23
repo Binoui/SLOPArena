@@ -38,12 +38,11 @@ public static class CharacterPackageCompiler
     public const string ChargedStreamCapabilityVersion = "1";
     public const string ChargedDirectionalDashCapabilityId = "slop.ability.charged-directional-dash.v1";
     public const string ChargedDirectionalDashCapabilityVersion = "1";
-    internal const string RetiredWibouDashSlashCapabilityId = "slop.internal.wibou.dash-slash.v1";
     public const string TargetedLeapCapabilityId = "slop.ability.targeted-leap.v1";
     public const string TargetedLeapCapabilityVersion = "1";
-    internal const string RetiredTargetedLeapCapabilityId = "slop.internal.bonk.targeted-jump-slam.v1";
     public const string SteeredChargeCapabilityId = "slop.ability.steered-charge.v1";
     public const string SteeredChargeCapabilityVersion = "1";
+    internal const string BladeFlurryCapabilityId = "slop.internal.wibou.blade-flurry.v2";
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
     private const ushort ManifestSchemaVersion = 1;
     private const ushort AuthoringSchemaVersion = 3;
@@ -60,19 +59,19 @@ public static class CharacterPackageCompiler
         .ToArray();
     private static readonly IReadOnlyList<string> CanonicalSlotIdsReadOnly = Array.AsReadOnly(CanonicalSlots);
     public static IReadOnlyList<string> CanonicalSlotIds => CanonicalSlotIdsReadOnly;
-    private static readonly string[] TrustedCapabilities =
+    private static readonly IReadOnlyDictionary<string, string> TrustedCapabilities = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        "slop.internal.fightguy.rising-dragon.v1",
-        "slop.internal.fightguy.cyclone-kick.v1",
-        "slop.internal.wibou.rising-slash.v1",
-        "slop.internal.wibou.blade-flurry.v1",
-        "slop.internal.manki.round-bomb.v1",
-        "slop.internal.manki.jetpack-boost.v1",
-        "slop.internal.manki.bazooka.v1",
-        "slop.internal.manki.aerosol-inferno.v1",
-
+        ["slop.internal.fightguy.rising-dragon.v1"] = "1",
+        ["slop.internal.fightguy.cyclone-kick.v1"] = "1",
+        ["slop.internal.wibou.rising-slash.v1"] = "1",
+        [BladeFlurryCapabilityId] = "2",
+        ["slop.internal.manki.round-bomb.v1"] = "1",
+        ["slop.internal.manki.jetpack-boost.v1"] = "1",
+        ["slop.internal.manki.bazooka.v1"] = "1",
+        ["slop.internal.manki.aerosol-inferno.v1"] = "1",
     };
-    internal static bool IsTrustedCapability(string id) => TrustedCapabilities.Contains(id);
+    internal static bool IsTrustedCapability(string id, string version)
+        => TrustedCapabilities.TryGetValue(id, out var supported) && supported == version;
     public static bool IsPublicCapability(string id, string version)
         => id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
             || id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
@@ -82,7 +81,7 @@ public static class CharacterPackageCompiler
             || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion;
 
     internal static bool IsRuntimeCapability(string id, string version)
-        => IsPublicCapability(id, version) || version == "1" && IsTrustedCapability(id);
+        => IsPublicCapability(id, version) || IsTrustedCapability(id, version);
     private static bool RequiresRuntimeApi13(CharacterAuthoringDocument character)
         => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
             operation is ArmorWindowOperationSource
@@ -156,14 +155,13 @@ public static class CharacterPackageCompiler
             ValidateId(requirement.CapabilityId, "character.capabilityRequirements[" + (capabilityCount - 1) + "].capabilityId", d);
             if (!capabilityMap.TryAdd(requirement.CapabilityId, requirement.CapabilityVersion)) d.Error("id.duplicate", "character.capabilityRequirements[" + (capabilityCount - 1) + "].capabilityId", "Duplicate capability requirement.");
             string requirementPath = "character.capabilityRequirements[" + (capabilityCount - 1) + "].capabilityId";
-            if (requirement.CapabilityId == RetiredTargetedLeapCapabilityId ||
-                requirement.CapabilityId == RetiredWibouDashSlashCapabilityId)
-                d.Error("capability.retired", requirementPath, "This capability has been retired.");
+            if (RetiredCapabilities.TryGetReason(requirement.CapabilityId, out var retiredReason))
+                d.Error("capability.retired", requirementPath, retiredReason);
             else if (requirement.CapabilityId.StartsWith("slop.internal.", StringComparison.Ordinal))
             {
                 if (profile == CharacterCookProfile.Workshop)
                     d.Error("capability.untrusted", requirementPath, "Trusted built-in capabilities are not allowed in Workshop profile.");
-                else if (!IsTrustedCapability(requirement.CapabilityId) || requirement.CapabilityVersion != "1")
+                else if (!IsTrustedCapability(requirement.CapabilityId, requirement.CapabilityVersion))
                     d.Error("capability.unknown", requirementPath, "Capability is not admitted by the trusted profile.");
             }
             else if (requirement.CapabilityId == AimedRecoveryCapabilityId ||
@@ -435,6 +433,10 @@ public static class CharacterPackageCompiler
                     (int)leap.LandingSeekTick + leap.RecoveryTicks > stage.DurationTicks)
                     d.Error("value.out-of-range", "character.operation.parameters.recoveryTicks",
                         "Landing seek and recovery must fit within the authored timeline duration.");
+                if (operation is StartCapabilityOperationSource { Parameters: WibouBladeFlurryCapabilityParameters flurry } &&
+                    flurry.DescentStartTick >= stage.DurationTicks)
+                    d.Error("value.out-of-range", "character.operation.parameters.descentStartTick",
+                        "Blade Flurry descent must start inside its authored stage.");
                 ValidateOperation(operation, c, d);
             }
         }
@@ -635,6 +637,11 @@ public static class CharacterPackageCompiler
                 && hop.ForwardDistance is > 0f and <= 3f
                 && hop.ArcHeight is > 0f and <= 3f && hop.LandingHeight is >= 0f and <= 1f);
 
+    internal static bool ValidBladeFlurry(float forward, ushort ascentStart, ushort ascentEnd,
+        ushort descentStart, float rise, float descent)
+        => forward is >= 0f and <= 60f && rise is > 0f and <= 60f && descent is > 0f and <= 60f
+            && ascentStart > 0 && ascentEnd >= ascentStart && descentStart > ascentEnd;
+
     private static bool IsKnownAnimation(string id, CharacterAuthoringDocument c)
         => id.StartsWith("anim.", StringComparison.Ordinal);
 
@@ -644,6 +651,12 @@ public static class CharacterPackageCompiler
         if (operation.Unit != expected) d.Error("unit.unknown", "character.operation.unit", "Unit does not match operation contract.");
         switch (operation)
         {
+            case StartCapabilityOperationSource { Parameters: WibouBladeFlurryCapabilityParameters flurry }:
+                if (!ValidBladeFlurry(flurry.ForwardSpeed, flurry.AscentStartTick, flurry.AscentEndTick,
+                    flurry.DescentStartTick, flurry.RiseSpeed, flurry.DescentSpeed))
+                    d.Error("value.out-of-range", "character.operation.parameters",
+                        "Blade Flurry requires ordered ascent/descent ticks and finite speeds between zero and 60 metres per second.");
+                break;
             case StartCapabilityOperationSource capability when capability.Parameters is AimedRecoveryCapabilityParameters recovery:
                 ValidateFiniteValues(new[] { recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,
                     recovery.HorizontalSpeed, recovery.PreparationRiseSpeed }, "character.operation.parameters", d);
@@ -1233,7 +1246,7 @@ public static class CharacterPackageCompiler
             x.FinisherLeadTicks, x.FinisherSeekTick, x.RecoveryTicks, x.Tier2Damage, x.Tier3Damage,
             CookHitbox(x.TraversalHitbox), CookHitbox(x.FinisherHitbox)),
         WibouRisingSlashCapabilityParameters x => new CookedWibouRisingSlashCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.HomingRange, x.HomingSpeed),
-        WibouBladeFlurryCapabilityParameters x => new CookedWibouBladeFlurryCapabilityParameters(x.ForwardSpeed, x.MoveTicks),
+        WibouBladeFlurryCapabilityParameters x => new CookedWibouBladeFlurryCapabilityParameters(x.ForwardSpeed, x.AscentStartTick, x.AscentEndTick, x.DescentStartTick, x.RiseSpeed, x.DescentSpeed),
         TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox), x.LaunchPresentationId, x.LandingPresentationId),
         SteeredChargeCapabilityParameters x => new CookedSteeredChargeCapabilityParameters(x.GallopSpeed, x.TurnDegreesPerSecond, x.MaxGallopTicks, x.Armored, CookHitbox(x.LanceHitbox), x.HitEndingTicks, x.MissEndingTicks, x.SkidTicks, x.TurnAroundOnMiss, x.AirStrideTicks, x.LookDownTicks, x.GallopAnimationId, x.GallopLoopTicks, x.HitEndingAnimationId, x.MissEndingAnimationId, x.AirEndingAnimationId, x.GallopPresentationId, x.HitEndingPresentationId, x.MissEndingPresentationId, x.AirEndingPresentationId),
         MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.ThrowTriggerTick, x.MaxRange, x.LaunchAngle, x.Gravity, x.HitboxRadius, x.Damage, x.StunTicks, x.MaxFlightTicks, x.KbAngle, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.ExplosionPresentationId),
@@ -1500,7 +1513,7 @@ public static class CharacterPackageCompiler
                 WriteHitboxObject(w, x.FinisherHitbox, "finisherHitbox");
                 break;
             case CookedWibouRisingSlashCapabilityParameters x: Number(w, "riseSpeed", x.RiseSpeed); w.WriteNumber("riseTicks", x.RiseTicks); Number(w, "homingRange", x.HomingRange); Number(w, "homingSpeed", x.HomingSpeed); break;
-            case CookedWibouBladeFlurryCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("moveTicks", x.MoveTicks); break;
+            case CookedWibouBladeFlurryCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("ascentStartTick", x.AscentStartTick); w.WriteNumber("ascentEndTick", x.AscentEndTick); w.WriteNumber("descentStartTick", x.DescentStartTick); Number(w, "riseSpeed", x.RiseSpeed); Number(w, "descentSpeed", x.DescentSpeed); break;
             case CookedTargetedLeapCapabilityParameters x:
                 w.WriteNumber("maxAimTicks", x.MaxAimTicks);
                 w.WriteNumber("maxFlightTicks", x.MaxFlightTicks);

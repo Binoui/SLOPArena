@@ -341,7 +341,7 @@ public sealed class CharacterPackageCompilerTests
         });
         Assert.NotNull(absent.CookedPackage);
         Assert.All(absent.CookedPackage!.Definition.Slots, slot => Assert.Null(slot.HitPresentationId));
-        Assert.Null(CookedCharacterRuntimeAdapter.ToCharacterDefinition(absent.CookedPackage).A!.HitPresentationId);
+        Assert.Null(CookedCharacterRuntimeAdapter.ToCharacterDefinition(absent.CookedPackage).GetCookedSlotAbility(AbilitySlots.A, false)!.HitPresentationId);
 
         AssertError(CompileCharacter(x => x["slots"]![0]!["hitPresentationId"] = "presentation.unknown.hit"), "reference.unresolved");
         AssertError(CompileCharacter(x => x["slots"]![0]!["hitPresentationId"] = "Bad ID"), "id.invalid");
@@ -459,7 +459,7 @@ public sealed class CharacterPackageCompilerTests
         var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
         var slot = def.GetCookedSlotAbility(AbilitySlots.Slot1, false)!;
         var authored = slot.Timeline.Stages[0].Operations.OfType<CookedSpawnHitboxOperation>().Single();
-        var projected = Assert.Single(def.Slot1!.Stages[0].HitboxEvents);
+        var projected = Assert.Single(def.GetCookedSlotAbility(3, false)!.Timeline.Stages[0].ReadHitboxes());
         Assert.Equal("mixamorig:Spine2", projected.BoneName);
         Assert.Equal("mixamorig:LeftHand", projected.EndBoneName);
         var baked = new BakedAnimationData
@@ -469,14 +469,14 @@ public sealed class CharacterPackageCompilerTests
             {
                 new BakedAnimationData.BakedAnim
                 {
-                    Name = slot.Timeline.Stages[0].AnimationIds.Single(), FrameCount = 1,
+                    Name = slot.Timeline.Stages[0].AnimationIds.Single(),
                     Frames = new[] { new[] { 0f, 0f, 4f, 0f, 0f, 6f } },
                 },
             },
         };
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) }, baked);
-        sim.ActivateAbility(1, new SlopArena.Shared.Abilities.CookedTimelineAbility(slot, def.Slot1.AnimationNames!), 2, def);
+        sim.ActivateAbility(1, new SlopArena.Shared.Abilities.CookedTimelineAbility(slot), 2, def);
         for (int tick = 0; tick < authored.Tick; tick++)
             sim.TickAbilities(new());
 

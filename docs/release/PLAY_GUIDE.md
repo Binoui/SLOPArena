@@ -9,7 +9,7 @@
    - **Tutorial** — new here? Learn the controls step by step (about 10 minutes).
    - **Training** — practise freely against a CPU dummy, any fighter.
    - **Solo** — a stock match against a CPU.
-   - **Arcade** — solo challenges: Slopball and the Sanctuary course.
+   - **Arcade** — solo challenges: Slopball and Character Courses.
    - **Online** — join a Room with friends.
 5. Controls (all rebindable in Settings):
    - Mouse — camera; you always move relative to it
@@ -18,14 +18,16 @@
    - X — down: crouch, slide while running, fast fall while falling
    - 1 / 2 / 3 / 4 — attacks (different moves in the air)
    - Q / E / R / F (A / E / R / F on AZERTY) — specials; E also gets you back to the stage
-   - Left Shift — shield (hold); in the air, a forward dodge
+   - Left Shift — shield (hold); in the air, dodge in your movement direction
+     (forward when movement is neutral)
    - C — grab, then any attack to throw
    - Right click — target lock on/off · Tab — next target · Left click — face the camera
    - Esc — pause / back
    - Controller: left stick move, right stick camera, RB jump, LT down, A/X/Y/B attacks,
-     LB + A/X/Y/B specials, RT shield, LB + RT grab, Start pause
+     LB + A/Y/X/B for Q/E/R/F specials, RT shield, LB + RT grab, Start pause
 6. Problems?
    - Game won't start → your PC must be 64-bit Windows 10/11.
    - Firewall prompt → allow SLOPArena on private networks.
-   - Can't see any servers → the online part is a friends demo; ask the host
-     if the servers are up.
+   - Can't see or join a Room → check Steam is running with Playtest access,
+     confirm friends have compatible builds, and check with the organiser that
+     the online services are available. See `HOSTING.txt` for the Room flow.

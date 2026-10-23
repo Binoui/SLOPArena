@@ -13,10 +13,20 @@ empty binding rows.
 
 Keep the three authoring modules separate:
 
-- `package.json` owns identity, version, creator, license, attribution, and dependencies.
-- `character.json` owns gameplay source, presentation IDs, and the canonical sixteen-slot
+- `package.json` uses `manifestSchemaVersion: 1` and owns `packageId`, version,
+  creator, license, attribution, and dependencies.
+- `character.json` uses `authoringSchemaVersion: 3` and owns gameplay source,
+  presentation IDs, and the canonical sixteen-slot
   grid, capture geometry/anchors, and standardized defense animation roles.
-- `CharacterAssetCatalog.asset` owns Unity rig and clip bindings.
+- `CharacterAssetCatalog.asset` uses catalog schema 2 and owns Unity rig, clip and
+  effect bindings, plus the character's sound pools, respawn tint and projectile
+  styles. Its package ID must match `package.json`.
+
+Do not repeat identity in `character.json`. The source codec rejects legacy `id`,
+`class`, and `schemaVersion` fields. See
+[`CharacterPackageSourceCodec`](../../src/Shared/CharacterPackageSourceCodec.cs) and
+[`CharacterAssetCatalog`](../../client/Unity/Assets/Scripts/Runtime/Animation/CharacterAssetCatalog.cs)
+for the module contracts.
 
 The starter values are editable defaults, not approved gameplay balance. Replace them with
 the character's approved kit data before roster admission. Import package-local source assets
@@ -95,8 +105,9 @@ Changes participate in workspace undo and live draft validation; **Save** crosse
 the normal package cook boundary. The active in-match grab Gizmo reads the
 cooked value, never a separate Inspector copy.
 
-For PvP, verify the cooked result and refresh the admitted roster pin after
-saving; the transient Ability Lab preview does not change a pinned match.
+For PvP, verify the cooked result and the roster pin. Cooking an already-rostered
+package refreshes its pin automatically; the transient Ability Lab preview does
+not change a pinned match.
 
 The defense presentation roles are `presentation.shield`, `grab`, `grabbed`,
 `throwForward`, and `airDodge`. They may be empty until real clips are authored. Once a
@@ -126,6 +137,18 @@ the walking stops, so it never carries through the rest of the move.
 
 ### Optional attack hit VFX
 
+Set the catalog's `PresentationProfile` for fighter-wide media. Sound pools use
+Fixed or Cycle selection; Launch uses the Heavy impact pool. An empty Fixed Swing
+pool means silence. Keep ordered silent positions when a pool intentionally skips
+a cue. Use package-owned or explicitly approved shared audio assets.
+
+Projectile rows use canonical slot IDs such as `ground.A` and `air.A`, with a
+prefab, scale, flight orientation and optional semantic held-bone ID. Declare
+ground and air rows separately. The profile also owns removal-explosion suppression;
+the global projectile config retains generic explosion defaults. Adding a fighter
+does not require sound, tint or projectile branches in the runtime. Cooking carries
+these settings through binding schema 2 into the admitted generated catalog.
+
 Add an optional slot field such as:
 
 ```json
@@ -148,8 +171,9 @@ emission finite.
 
 ### Startup aim correction
 
-`startupAimCorrection` is an optional cooked timeline operation, reusable by any slot;
-only the current 32 normals opt in, and existing specials are unchanged. Capture occurs
+`startupAimCorrection` is an optional cooked timeline operation, reusable by any slot.
+Only slots that author the operation opt in, including normals and selected specials
+such as FightGuy's `ground.R` and `ground.F`. Capture occurs
 at ability activation (not first correction tick), using a valid selected/locked opponent
 inside the acquisition range/cone or the nearest eligible opponent there; distance ties
 break by entity ID. One target is retained for the activation and never switched. No target
@@ -165,9 +189,11 @@ never active/recovery, no late acquisition or target switching, no physics pulli
 trajectory changes. Hitstop freezes correction with the attack clock; invalidation closes
 the window. Completion, interruption and landing cancellation clear its pose/state.
 
-Current normals use 4 m range, 60° forward half-cone, at most 45° yaw at 360°/s.
-Pitch is at most 15° at 180°/s only for air.1/air.2 except Bonk air.2; other slots have
-zero pitch. The pivot is the simulation hip-height world point (`BoneYToWorldY(PY, 0)`),
+Read acquisition range, cone, yaw, and pitch tuning from each slot in its package's
+`character.json`. For example,
+[`fightguy/character.json`](../../client/Unity/Assets/CharacterPackages/fightguy/character.json)
+authors a 180° acquisition half-angle for its opted-in slots, not a shared forward cone.
+The pivot is the simulation hip-height world point (`BoneYToWorldY(PY, 0)`),
 shared by model/collision/trails; opponent torso reference is `PY + 0.25 × targetCapsuleHeight`.
 Pose pitch does not change the physics capsule. These are authored tuning values, not
 balance claims.
@@ -202,7 +228,7 @@ against the prepared source. It verifies committed cooks before player compilati
 and retains the native report and input fingerprint. If it differs, review the
 cold cook correction rather than committing another warm Editor fingerprint.
 
-A successful cook atomically produces exactly these payloads under
+A successful cook publishes these payloads under
 `content-cooked/<package>/`:
 
 - `manifest.json` — identity, versions, dependencies, capabilities, and hashes;
@@ -210,44 +236,90 @@ A successful cook atomically produces exactly these payloads under
 - `poses.bin` — deterministic pose payload;
 - `client.bindings` — generated semantic client bindings.
 
-The generated catalog is a regenerable cache, not a source of gameplay truth. Require
-matching source, cooked-content, package, payload, and dependency hashes. A failed cook
-returns semantic `success: false` and preserves the last valid artifact, generated cache,
-and cook status. It must not promote invalid drafts.
+The cook also writes intermediate pose/binding files, the generated client catalog,
+and cook status. For an already-rostered package, publication includes that package's
+version and hash requirement in `content-cooked/roster/manifest.json`, preserving
+its selector and other entries. It does not admit a new package. See
+[`CharacterPackageAuthoringService.Cook`](../../client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringService.cs).
 
-Cooked schema version remains 3 and runtime API maximum is `1.x`. The loader accepts
-known minima `1.0.0` through `1.7.0`; select the lowest feature floor the authored content
-requires. `1.0.0` is the baseline, timed gravity-window operations require `1.2.0`, armor
-windows and nonzero `fixedHitstunTicks` require `1.3.0`, `startupAimCorrection` requires
-`1.4.0`, public charged directional dash requires `1.5.0`, public charged projectile
-requires `1.6.0`, and an `aimMovementSpeedScale` below 1 requires `1.7.0`. A package combining
-features uses the highest required minimum; older runtimes must reject features above
-their API level. New additive source fields do not themselves change the cooked schema.
+The generated catalog is a regenerable cache, not a source of gameplay truth. Require
+matching source, cooked-content, package, payload, and dependency hashes. Preparation
+failures leave the prior cook intact. Publication retains backups through package,
+generated-catalog, status and roster verification. A caught failure restores only
+unchanged transaction-owned bytes; conflicting writes retain recovery evidence and
+block a blind retry. This is not a crash-atomic multi-file transaction. Lab saves
+source before invoking the cook.
+
+Cooked schema version is 3 and runtime API maximum is `1.x`.
+[`CharacterPackageCompiler`](../../src/Shared/CharacterPackageCompiler.cs) selects
+the highest API floor required by the authored features, starting at `1.2.0`.
+Read its feature checks for the full mapping. Steered charge, charged stream, and
+returning projectiles require `1.8.0`; aimed recovery requires `1.9.0`, and its hop
+requires `1.10.0`. Do not hand-select a floor in generated output. The
+[`loader`](../../src/Shared/CookedCharacterPackageLoader.cs) accepts known minima
+through `1.10.0`, including older `1.0.0` and `1.1.0` declarations. Those accepted
+declarations are compatibility support, not the current compiler baseline.
 
 Semantic animation IDs and pose-track IDs are distinct namespaces: validated client
 bindings map loaded pose tracks to runtime semantic lookup IDs.
 
 ## 6. Admit exact content
 
-Only after a successful cook, complete presentation assets, and kit regression proof, add
-the exact package requirement to `content-cooked/roster/manifest.json` and the corresponding
-selector/admission path. Verify manifest identity, version, cooked hash, package hash,
-capability versions, and client/server compatibility. A source-only package may be
-discoverable in Ability Lab while remaining unrostered.
+For new admission, require a successful cook, complete presentation assets, and kit
+regression proof before adding the exact package requirement to
+`content-cooked/roster/manifest.json` and the corresponding selector/admission path.
+Recooking an existing entry already refreshes its pin before acceptance checks;
+that automatic mutation is not acceptance. Verify manifest identity, version, cooked
+hash, package hash, capability versions, and client/server compatibility. A source-only
+package may be discoverable in Ability Lab while remaining unrostered.
 
 ## 7. Exercise runtime surfaces
 
 Open the package in Ability Lab and verify semantic bindings, canonical slot projection,
-preview identity, and diagnostics. Then exercise Training and a local match with the same
-cooked package. Server simulation remains authoritative; Unity presentation resolves the
-cooked semantic IDs and never decides hit results, damage, timing, or admission.
+preview identity, and diagnostics. Exercise affected behavior in Editor Training.
+Ordinary Lab refresh compiles the current workspace into a live draft; Editor Training
+and Solo Play compile source into a transient development catalog. Even a clean
+**Cooked** status and matching disk hashes do not prove that saved gameplay ran.
+
+### Verify persisted gameplay
+
+Keep a separate acceptance check that executes the saved package. Choose applicable
+Shared gameplay tests that load the pinned catalog, or exercise the agreed kit in a
+player using the verified package staged under StreamingAssets.
+
+One existing saved-content gameplay check is
+[`BonkKitTests.BonkAerialNormals_CookedSwordPathHitsBlocksAndMisses`](../../tests/Shared.Tests/BonkKitTests.cs):
+
+```bash
+dotnet test tests/Shared.Tests/Shared.Tests.csproj -p:SkipUnityPluginCopy=true \
+  --filter FullyQualifiedName~BonkKitTests.BonkAerialNormals_CookedSwordPathHitsBlocksAndMisses
+```
+
+That test loads the pinned Bonk package through
+[`BuiltInContentResolver.Resolve`](../../src/Shared/BuiltInContentResolver.cs),
+registers its `Definition` and `BakedAnimation` with `ServerSimulation`, and observes
+contacts, blocks, and misses. It covers Bonk's aerial normals, not another package
+or the whole kit. For another admitted package, use the same API with its selector
+and an explicit cooked root, then execute and assert the affected gameplay. Merely
+loading the catalog or verifying disk hashes does not satisfy this check. Use
+[`KitScenario` and `ScenarioRunner`](../../tests/Shared.Tests/KitScenario.cs) where
+appropriate, with definitions and poses resolved from saved content rather than
+source compilation. Require persisted coverage of the complete agreed kit for
+character acceptance, and record remaining gaps.
+
+Record package identity, version, hashes, content root, checked moves, and outcomes.
+Keep human presentation/gamefeel acceptance separate from Shared results. Server
+simulation remains authoritative; Unity presentation resolves semantic IDs and never
+decides hit results, damage, timing, or admission.
 
 ## 8. Add regression coverage
 
 Once gameplay is specified and the package cooks successfully, add focused compiler,
-catalog, and package tests. Add `KitScenario` golden snapshots for authored damage,
-knockback, timing, recovery, and capability behavior. Do not add gameplay goldens for a
-source-only probe with invented values.
+catalog, and package tests. Use `KitScenario` assertions for specified timing, contact,
+recovery, and capability behavior. Follow the
+[kit regression workflow](../../skills/sloparena-kit-regression-testing/SKILL.md);
+whole-state golden comparison has been retired. Do not invent gameplay contracts for
+a source-only probe or freeze incidental tuning values in engine tests.
 
 ## Prohibitions
 

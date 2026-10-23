@@ -13,7 +13,7 @@ using SlopArena.Client.Entities;
 
 namespace SlopArena.EditorTools;
 
-public sealed class AbilityLabPackageWorkspace
+public sealed partial class AbilityLabPackageWorkspace
 {
     internal AbilityLab? PreviewLab { get; private set; }
 
@@ -22,8 +22,8 @@ public sealed class AbilityLabPackageWorkspace
         PreviewLab = lab;
         // A disposed rig releases its catalog snapshot. Recreate only presentation
         // prerequisites when returning from Play Mode, retaining the draft and Undo.
-        if (lab != null && HasPackage && Preview?.IsAvailable == true && Preview.AnimationCatalog == null)
-            Preview = AbilityLabPackagePreviewLoader.Load(PackageId);
+        if (lab != null && HasPackage)
+            RefreshPersistedStatus(true);
         if (lab != null && HasPackage)
         {
             lab.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
@@ -37,6 +37,11 @@ public sealed class AbilityLabPackageWorkspace
     public string LoadedDiskHash { get; private set; } = "";
     private string LoadedCatalogFingerprint { get; set; } = "";
     public bool IsDirty { get; private set; }
+    public bool HasUnsavedChanges => IsDirty || AttachmentDraftDirty;
+    public bool PreviewPrerequisitesStale { get; private set; }
+    private string _savedManifestJson = "";
+    private string _savedCharacterJson = "";
+    private string _previewDependencyHash = "";
     public IReadOnlyList<CharacterDiagnostic> Diagnostics => _diagnostics;
     public string CookedSourceHash { get; private set; } = "";
     public string CookedContentHash { get; private set; } = "";
@@ -76,8 +81,8 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool NewPackage(string packageId, string displayName, string creator = "Binoui", string license = "MIT", string attribution = "SlopArena")
     {
-        if (AttachmentDraftDirty)
-            return SetAttachmentDraftError("Save or revert the attachment draft before creating another package.");
+        if (HasUnsavedChanges)
+            return Fail("workspace.dirty", PackageRoot, "Keep a local recovery or discard unsaved changes before creating another package.");
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
         CharacterPackageCreateResult result = service.NewPackage(packageId, displayName, creator, license, attribution);
         if (!result.Success)
@@ -93,6 +98,7 @@ public sealed class AbilityLabPackageWorkspace
     }
     public bool OpenPackage(string packageRoot)
     {
+        if (HasPackage && (packageRoot == PackageId || SamePackage(PackageRoot, packageRoot))) return true;
         if (AttachmentDraftDirty)
             return SamePackage(PackageRoot, packageRoot)
                 ? true
@@ -108,6 +114,12 @@ public sealed class AbilityLabPackageWorkspace
 
     internal bool OpenPackage(CharacterPackageInspectionResult inspection)
     {
+        if (inspection != null && HasPackage && SamePackage(PackageRoot, inspection.SourcePath)) return true;
+        return LoadPackage(inspection);
+    }
+
+    private bool LoadPackage(CharacterPackageInspectionResult inspection)
+    {
         if (inspection == null || !inspection.Success || inspection.Source == null || inspection.Catalog == null)
             return false;
         if (AttachmentDraftDirty)
@@ -116,6 +128,9 @@ public sealed class AbilityLabPackageWorkspace
                 : SetAttachmentDraftError("Save or revert the attachment draft before opening another package.");
 
         _attachmentDraft = null;
+        _semanticRenames.Clear();
+        _semanticRenameBaseline = "";
+        _recoveredPresentationProfileJson = "";
         _attachmentUndo.Clear();
         _attachmentRedo.Clear();
         AttachmentDraftError = "";
@@ -131,7 +146,7 @@ public sealed class AbilityLabPackageWorkspace
         PreviewLab?.SetPresentationBindings(Catalog.Presentations);
         LoadedDiskHash = ComputeDiskHash();
         LoadedCatalogFingerprint = ComputeCatalogFingerprint();
-        IsDirty = false;
+        RememberSavedSource();
         CookedSourceHash = inspection.CookedSourceHash ?? "";
         CookedContentHash = inspection.CookedContentHash ?? "";
         PackageHash = inspection.PackageHash ?? "";
@@ -142,23 +157,18 @@ public sealed class AbilityLabPackageWorkspace
             inspectionDiagnostics.AddRange((inspection.StaleReasons ?? Array.Empty<CharacterPackageStaleReason>())
                 .Select(reason => new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, reason.Code, reason.Path, reason.Message)));
         SetDiagnostics(inspectionDiagnostics, inspection.Status == "valid" ? "Valid" : inspection.Status == "stale" ? "Stale" : "Failed");
-        Preview = AbilityLabPackagePreviewLoader.Load(Manifest.PackageId);
-        if (Preview.IsAvailable)
-            PreviewLab?.ApplyPackagePreview(Preview);
-        else
-            PreviewLab?.ApplyPreviewUnavailable(Preview.Diagnostics);
-
-        if (!Preview.IsAvailable)
-        {
-            var previewDiagnostics = _diagnostics.Concat(Preview.Diagnostics).ToArray();
-            SetDiagnostics(previewDiagnostics, Status);
-        }
+        PreviewPrerequisitesStale = false;
+        var candidate = AbilityLabPackagePreviewLoader.Load(PackageId);
+        ReplacePreview(candidate);
+        if (!candidate.IsAvailable)
+            SetDiagnostics(_diagnostics.Concat(candidate.Diagnostics).ToArray(), Status);
         return true;
     }
 
-    public bool ReloadPackage() => HasPackage && OpenPackage(PackageRoot);
+    public bool ReloadPackage() => HasPackage && LoadPackage(
+        new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Inspect(PackageRoot));
 
-    /// <summary>Observe external source/cook changes without replacing the draft, Undo history or Lab cursor.</summary>
+    /// <summary>Refresh prerequisites without replacing the source draft or its Undo history.</summary>
     public bool RefreshPersistedStatus(bool force = false)
     {
         if (!HasPackage || Status == "Cooking") return false;
@@ -166,21 +176,108 @@ public sealed class AbilityLabPackageWorkspace
         if (!force && stamp == _persistedStatusStamp) return false;
         _persistedStatusStamp = stamp;
         var inspection = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Inspect(PackageRoot);
-        bool sourceMatches = ComputeDiskHash() == LoadedDiskHash && ComputeCatalogFingerprint() == LoadedCatalogFingerprint;
+        bool sourceMatches = SourcesMatchBaseline();
         _persistedSourceCurrent = sourceMatches && inspection.Status == "valid";
         var diagnostics = LiveDraftInvalid ? _diagnostics.ToList() : new List<CharacterDiagnostic>(inspection.RawDiagnostics);
         if (inspection.Status == "stale")
             diagnostics.AddRange((inspection.StaleReasons ?? Array.Empty<CharacterPackageStaleReason>())
                 .Select(reason => new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, reason.Code, reason.Path, reason.Message)));
+        if (_attachmentDraft != null && !AttachmentTargetMatches(_attachmentDraft))
+            AttachmentDraftError = "Attachment source changed externally. Draft placement is retained; saving is blocked.";
         if (!sourceMatches)
             diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, "workspace.external.changed", PackageRoot,
-                "Package source or asset bindings changed outside this workspace. Your current draft is retained; reopen the package to load those changes."));
+                "Source or bindings changed outside this workspace. The draft is retained. Keep a local recovery before reloading."));
+
         CookedSourceHash = inspection.CookedSourceHash ?? "";
         CookedContentHash = inspection.CookedContentHash ?? "";
         PackageHash = inspection.PackageHash ?? "";
-        string status = LiveDraftInvalid ? "Failed" : _persistedSourceCurrent && !IsDirty ? "Valid" : "Stale";
+        bool prerequisitesChanged = !PreviewMatches(Preview, inspection) || _previewDependencyHash != PreviewDependencyHash();
+        bool needsRefresh = prerequisitesChanged || Preview?.AnimationCatalog == null;
+        if (!sourceMatches || (_attachmentDraft != null && !AttachmentTargetMatches(_attachmentDraft)) ||
+            (prerequisitesChanged && (HasUnsavedChanges || !_persistedSourceCurrent)))
+        {
+            PreviewPrerequisitesStale = true;
+        }
+        else if (needsRefresh || PreviewPrerequisitesStale)
+        {
+            var candidate = AbilityLabPackagePreviewLoader.Load(PackageId);
+            if (PreviewMatches(candidate, inspection) && candidate.BakedPoses != null &&
+                candidate.AnimationCatalog != null && candidate.Rig != null)
+            {
+                ReplacePreview(candidate);
+                LiveDraftPackage = null;
+            }
+            else
+            {
+                ReleasePreview(candidate);
+                PreviewPrerequisitesStale = true;
+                diagnostics.AddRange(candidate.Diagnostics);
+            }
+        }
+        if (PreviewPrerequisitesStale)
+        {
+            diagnostics.Add(StalePreviewDiagnostic());
+            PreviewLab?.MarkPackageDraftInvalid();
+        }
+        string status = LiveDraftInvalid ? "Failed" : _persistedSourceCurrent && !IsDirty && !PreviewPrerequisitesStale ? "Valid" : "Stale";
         SetDiagnosticsWithoutNotify(diagnostics, status);
         return true;
+    }
+
+    private CharacterDiagnostic StalePreviewDiagnostic() => new(CharacterDiagnosticSeverity.Warning,
+        "preview.prerequisites.stale", PackageRoot,
+        "Preview poses or bindings are stale. Keep a local recovery or discard the draft, then reload or Save + Cook before running scenarios.");
+
+    private bool SourcesMatchBaseline()
+    {
+        try { return Catalog != null && ComputeDiskHash() == LoadedDiskHash && ComputeCatalogFingerprint() == LoadedCatalogFingerprint; }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
+
+    private static bool PreviewMatches(AbilityLabPackagePreviewResult preview, CharacterPackageInspectionResult inspection)
+        => preview?.IsAvailable == true && preview.Identity != null &&
+           preview.Identity.PackageId == inspection.PackageId && preview.Identity.PackageHash == inspection.PackageHash &&
+           preview.Identity.SourceHash == inspection.CookedSourceHash && preview.Identity.CookedContentHash == inspection.CookedContentHash;
+
+    private string PreviewDependencyHash() => AssetDatabase.GetAssetDependencyHash(PackageRoot + "/CharacterAssetCatalog.asset").ToString();
+
+    private void ReplacePreview(AbilityLabPackagePreviewResult candidate)
+    {
+        var previous = Preview;
+        Preview = candidate;
+        _previewDependencyHash = PreviewDependencyHash();
+        PreviewPrerequisitesStale = !candidate.IsAvailable;
+        if (PreviewLab != null)
+        {
+            var cursor = PreviewLab.CaptureTimelineCursor();
+            bool hadScenario = PreviewLab.IsScenarioPreview;
+            string slotId = PreviewLab.SelectedSlotId;
+            int stage = PreviewLab.StageIndex;
+            ushort tick = PreviewLab.Tick;
+            if (candidate.IsAvailable) PreviewLab.ApplyPackagePreview(candidate);
+            else PreviewLab.ApplyPreviewUnavailable(candidate.Diagnostics);
+            if (!hadScenario) PreviewLab.RestoreTimelineCursor(cursor);
+            else if (CanonicalSlotProjection.TryGet(slotId, out var address))
+            {
+                PreviewLab.SetSlot(address);
+                PreviewLab.SetStage(stage);
+                PreviewLab.SetTick(tick);
+                PreviewLab.Playing = false;
+            }
+        }
+        if (!ReferenceEquals(previous?.AnimationCatalog, candidate.AnimationCatalog)) ReleasePreview(previous);
+    }
+
+    internal void ReleasePreview()
+    {
+        if (PreviewLab == null) ReleasePreview(Preview);
+    }
+
+    private static void ReleasePreview(AbilityLabPackagePreviewResult preview)
+    {
+        if (preview?.AnimationCatalog != null && !EditorUtility.IsPersistent(preview.AnimationCatalog))
+            UnityEngine.Object.DestroyImmediate(preview.AnimationCatalog);
     }
 
     private string PersistedStatusStamp()
@@ -191,17 +288,23 @@ public sealed class AbilityLabPackageWorkspace
             ToFull(PackageRoot + "/package.json"), ToFull(PackageRoot + "/character.json"),
             ToFull(PackageRoot + "/CharacterAssetCatalog.asset"),
             Path.Combine(project, CharacterCookOutput.For(PackageId).IntermediateDirectory, "cook-status.json"),
+            Path.GetFullPath(Path.Combine(project, "../../content-cooked", PackageId, CharacterPackageAssembler.ManifestPath)),
         };
         return string.Join("|", paths.Select(path => File.Exists(path)
             ? $"{new FileInfo(path).LastWriteTimeUtc.Ticks}:{new FileInfo(path).Length}" : "missing"))
-            + "|" + AssetDatabase.GetAssetDependencyHash(PackageRoot + "/CharacterAssetCatalog.asset");
+            + "|" + AssetDatabase.GetAssetDependencyHash(PackageRoot + "/CharacterAssetCatalog.asset")
+            + "|" + HasUnsavedChanges + "|" + (_attachmentDraft == null || AttachmentTargetMatches(_attachmentDraft));
     }
     public bool SavePackage()
     {
-        if (ComputeDiskHash() != LoadedDiskHash)
+        if (!HasPackage || !File.Exists(ToFull(PackageRoot + "/package.json")) ||
+            !File.Exists(ToFull(PackageRoot + "/character.json")) || ComputeDiskHash() != LoadedDiskHash)
             return Fail("workspace.conflict", PackageRoot, "Package source changed externally; reload before saving.");
-        if (ComputeCatalogFingerprint() != LoadedCatalogFingerprint)
+        if (Catalog == null || ComputeCatalogFingerprint() != LoadedCatalogFingerprint)
             return Fail("workspace.conflict", PackageRoot + "/CharacterAssetCatalog.asset", "Character asset catalog changed externally; reload before saving.");
+        if (_attachmentDraft != null && !AttachmentTargetMatches(_attachmentDraft))
+            return SetAttachmentDraftError("Attachment source changed externally; recovered placement is retained and saving is blocked.");
+        if (AttachmentDraftDirty && !SaveAttachmentDraft()) return false;
         string packagePath = ToFull(PackageRoot + "/package.json"); string characterPath = ToFull(PackageRoot + "/character.json");
         try
         {
@@ -209,7 +312,11 @@ public sealed class AbilityLabPackageWorkspace
             string characterJson = CharacterPackageSourceCodec.SerializeCharacter(Draft);
             ReplaceSources(packagePath, characterPath, Encoding.UTF8.GetBytes(packageJson), Encoding.UTF8.GetBytes(characterJson));
             LoadedDiskHash = ComputeDiskHash();
-            IsDirty = false;
+            RememberSavedSource();
+            RebaseSavedSemanticHistory(_undo);
+            RebaseSavedSemanticHistory(_redo);
+            _semanticRenames.Clear();
+            _semanticRenameBaseline = "";
             SetDiagnostics(Array.Empty<CharacterDiagnostic>(), "Cooking");
             var cook = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Cook(PackageRoot);
             if (!cook.Success || cook.Assembly == null)
@@ -238,11 +345,12 @@ public sealed class AbilityLabPackageWorkspace
             PackageHash = cook.PackageHash;
             _persistedSourceCurrent = true;
             _persistedStatusStamp = PersistedStatusStamp();
-            Preview = candidatePreview;
+            ReplacePreview(candidatePreview);
             LiveDraftPackage = null;
             LiveDraftInvalid = false;
             SetDiagnostics(loadedAssembly.Diagnostics.Concat(candidatePreview.Diagnostics), "Valid");
-            PreviewLab?.ApplyPackagePreview(candidatePreview);
+            PreviewLab?.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
+            PreviewLab?.SetPresentationBindings(Catalog.Presentations);
             return true;
         }
         catch (Exception ex)
@@ -254,6 +362,7 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool RenameSemanticId(string oldId, string newId)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         var snapshots = (Catalog.Bindings ?? Array.Empty<CharacterAssetCatalog.AnimationBinding>())
             .Where(x => x != null)
@@ -268,6 +377,7 @@ public sealed class AbilityLabPackageWorkspace
         try
         {
             UnityEditor.Undo.RecordObject(Catalog, "Rename semantic ID");
+            if (_semanticRenames.Count == 0) _semanticRenameBaseline = EditorJsonUtility.ToJson(Catalog);
             Manifest = result.Source.Manifest;
             Draft = result.Source.Character;
             Catalog.Bindings = CloneBindings(Catalog.Bindings)
@@ -286,10 +396,11 @@ public sealed class AbilityLabPackageWorkspace
                 }).ToArray();
             EditorUtility.SetDirty(Catalog);
             AssetDatabase.SaveAssetIfDirty(Catalog);
+            _semanticRenames.Add(new SemanticRename { Before = oldId, After = newId });
             PushUndo(prior);
             PreviewLab?.SetSourceDocument(result.Source);
             PreviewLab?.SetPresentationBindings(Catalog.Presentations);
-            IsDirty = true;
+            UpdateSourceDirty();
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
             SetDiagnosticsWithoutNotify(result.Diagnostics, "Stale");
             SceneView.RepaintAll();
@@ -305,7 +416,7 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool BeginAttachmentDraft(int entryIndex)
     {
-        if (AttachmentDraftDirty && AttachmentDraftEntryIndex != entryIndex)
+        if (AttachmentDraftDirty && (AttachmentDraftEntryIndex != entryIndex || _attachmentDraft.Config != Catalog?.WeaponConfig))
             return SetAttachmentDraftError("Save or revert the current attachment draft before selecting another entry.");
         var config = Catalog?.WeaponConfig;
         if (config?.Entries == null || entryIndex < 0 || entryIndex >= config.Entries.Length || config.Entries[entryIndex] == null)
@@ -371,13 +482,14 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool SaveAttachmentDraft()
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         if (_attachmentDraft == null) return SetAttachmentDraftError("No attachment draft is selected.");
         var draft = _attachmentDraft;
         if (draft.Config == null || draft.Config.Entries == null || draft.EntryIndex < 0
             || draft.EntryIndex >= draft.Config.Entries.Length || draft.Config.Entries[draft.EntryIndex] == null)
             return SetAttachmentDraftError("The attachment source entry no longer exists.");
         var entry = draft.Config.Entries[draft.EntryIndex];
-        if (CaptureAttachmentValues(entry) != draft.Saved)
+        if (!AttachmentTargetMatches(draft) || CaptureAttachmentValues(entry) != draft.Saved)
             return SetAttachmentDraftError("Attachment source changed externally; revert and reload before saving.");
         if (!AttachmentDraftDirty)
         {
@@ -397,8 +509,9 @@ public sealed class AbilityLabPackageWorkspace
             EditorUtility.SetDirty(draft.Config);
             return SetAttachmentDraftError("Could not save attachment source: " + ex.Message);
         }
+        RefreshOwnedAttachmentFingerprint(draft.ConfigFingerprint);
         draft.Saved = draft.Value;
-        IsDirty = true;
+        UpdateSourceDirty();
         Status = "Stale";
         AttachmentDraftError = "";
         StatusChanged?.Invoke();
@@ -408,13 +521,18 @@ public sealed class AbilityLabPackageWorkspace
 
     public WeaponAttachConfig CreateAttachmentPreviewConfig()
     {
+        if (_attachmentDraft != null && !AttachmentTargetMatches(_attachmentDraft))
+        {
+            SetAttachmentDraftError("Attachment source changed externally. Draft placement is retained; preview and saving are blocked.");
+            return null;
+        }
         var source = _attachmentDraft?.Config ?? Catalog?.WeaponConfig;
         if (source == null) return null;
         var preview = ScriptableObject.CreateInstance<WeaponAttachConfig>();
         preview.hideFlags = HideFlags.HideAndDontSave;
         preview.Entries = (source.Entries ?? Array.Empty<WeaponEntry>())
             .Select(CloneWeaponEntry).ToArray();
-        if (_attachmentDraft != null && _attachmentDraft.EntryIndex >= 0
+        if (_attachmentDraft != null && AttachmentTargetMatches(_attachmentDraft) && _attachmentDraft.EntryIndex >= 0
             && _attachmentDraft.EntryIndex < preview.Entries.Length && preview.Entries[_attachmentDraft.EntryIndex] != null)
             ApplyAttachmentValues(preview.Entries[_attachmentDraft.EntryIndex], _attachmentDraft.Value);
         return preview;
@@ -430,6 +548,9 @@ public sealed class AbilityLabPackageWorkspace
         FirePositionOffset = entry.FirePositionOffset,
         FireRotationOffset = entry.FireRotationOffset,
         HideAfterTicks = entry.HideAfterTicks,
+        ShowFromTicks = entry.ShowFromTicks,
+        HiddenBySlot = entry.HiddenBySlot,
+        HiddenBySlotFromTicks = entry.HiddenBySlotFromTicks,
         TrailStylePrefab = entry.TrailStylePrefab,
         HitboxMotionTime = entry.HitboxMotionTime,
         TrailBladeWidth = entry.TrailBladeWidth,
@@ -485,6 +606,7 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool ReplaceTrailBladeWidth(int entryIndex, float width)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         var config = Catalog?.WeaponConfig;
         if (!HasPackage || config?.Entries == null || entryIndex < 0
             || entryIndex >= config.Entries.Length || config.Entries[entryIndex]?.TrailStylePrefab == null)
@@ -493,18 +615,22 @@ public sealed class AbilityLabPackageWorkspace
         var entry = config.Entries[entryIndex];
         if (entry.TrailBladeWidth == width) return false;
         var prior = CaptureSnapshot(entryIndex);
+        string attachmentBefore = AttachmentFingerprint(config);
         UnityEditor.Undo.RecordObject(config, "Change blade trail width");
         entry.TrailBladeWidth = width;
         EditorUtility.SetDirty(config);
         AssetDatabase.SaveAssetIfDirty(config);
         PushUndo(prior);
-        IsDirty = true;
+        RefreshOwnedAttachmentFingerprint(attachmentBefore);
+        _persistedSourceCurrent = false;
+        UpdateSourceDirty();
         Status = "Stale";
         return true;
     }
 
     public bool ReplaceTrailStyle(int entryIndex, GameObject style)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         var config = Catalog?.WeaponConfig;
         if (!HasPackage || config?.Entries == null || entryIndex < 0
             || entryIndex >= config.Entries.Length || config.Entries[entryIndex] == null)
@@ -518,18 +644,22 @@ public sealed class AbilityLabPackageWorkspace
         var entry = config.Entries[entryIndex];
         if (entry.TrailStylePrefab == style) return false;
         var prior = CaptureSnapshot(entryIndex);
+        string attachmentBefore = AttachmentFingerprint(config);
         UnityEditor.Undo.RecordObject(config, "Change blade trail style");
         entry.TrailStylePrefab = style;
         EditorUtility.SetDirty(config);
         AssetDatabase.SaveAssetIfDirty(config);
         PushUndo(prior);
-        IsDirty = true;
+        RefreshOwnedAttachmentFingerprint(attachmentBefore);
+        _persistedSourceCurrent = false;
+        UpdateSourceDirty();
         Status = "Stale";
         return true;
     }
 
     public bool ReplaceCatalogRig(GameObject rig)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         WorkspaceSnapshot prior = CaptureSnapshot();
         try
@@ -552,12 +682,13 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool ReplaceCatalogBinding(string semanticId, AnimationClip clip, ExtrapolationMode extrapolation)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         WorkspaceSnapshot prior = CaptureSnapshot();
         CharacterPackageAuthoringService service = new(UnityCharacterAssetCooker.ProjectRoot());
         CharacterPackageBindingResult result = clip == null
             ? service.Unbind(PackageRoot, semanticId)
-            : service.Bind(PackageRoot, semanticId, AssetDatabase.GetAssetPath(clip), extrapolation);
+            : service.Bind(PackageRoot, semanticId, clip, extrapolation);
         if (!result.Success)
         {
             SetDiagnostics((result.Diagnostics ?? Array.Empty<CharacterPackageDiagnosticResult>())
@@ -575,6 +706,7 @@ public sealed class AbilityLabPackageWorkspace
     }
     public bool AddPresentationAsset(string semanticId, GameObject prefab)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         semanticId = semanticId?.Trim() ?? "";
         if (string.IsNullOrEmpty(semanticId))
@@ -603,7 +735,7 @@ public sealed class AbilityLabPackageWorkspace
             AssetDatabase.SaveAssetIfDirty(Catalog);
             PushUndo(prior);
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
-            IsDirty = true;
+            UpdateSourceDirty();
             PreviewLab?.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
             PreviewLab?.SetPresentationBindings(Catalog.Presentations);
             RefreshLiveDraft(new CharacterPackageSource(Manifest, Draft), Array.Empty<CharacterDiagnostic>());
@@ -619,6 +751,7 @@ public sealed class AbilityLabPackageWorkspace
 
     public bool ReplaceCatalogPresentation(string semanticId, GameObject prefab)
     {
+        if (HasPackage && !CanWritePersistedAssets()) return false;
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         var existing = (Catalog.Presentations ?? Array.Empty<CharacterAssetCatalog.PresentationBinding>())
             .FirstOrDefault(binding => binding != null && binding.SemanticId == semanticId);
@@ -652,7 +785,8 @@ public sealed class AbilityLabPackageWorkspace
     private void MarkCatalogEdited()
     {
         LoadedCatalogFingerprint = CharacterPackageAuthoringService.ComputeCatalogFingerprint(Catalog);
-        IsDirty = true;
+        UpdateSourceDirty();
+        _persistedSourceCurrent = false;
         SetDiagnosticsWithoutNotify(_diagnostics, "Stale");
         PreviewLab?.SetPresentationBindings(Catalog?.Presentations);
     }
@@ -902,7 +1036,7 @@ public sealed class AbilityLabPackageWorkspace
         PushUndo();
         Manifest = result.Source.Manifest;
         Draft = result.Source.Character;
-        IsDirty = true;
+        UpdateSourceDirty();
         RefreshLiveDraft(result.Source, result.Diagnostics);
         return true;
     }
@@ -914,7 +1048,7 @@ public sealed class AbilityLabPackageWorkspace
         PushUndo();
         Manifest = result.Source.Manifest;
         Draft = result.Source.Character;
-        IsDirty = true;
+        UpdateSourceDirty();
         RefreshLiveDraft(result.Source, result.Diagnostics);
         return true;
     }
@@ -936,7 +1070,7 @@ public sealed class AbilityLabPackageWorkspace
         PushUndo();
         Manifest = result.Source.Manifest;
         Draft = result.Source.Character;
-        IsDirty = true;
+        UpdateSourceDirty();
         RefreshLiveDraft(result.Source, result.Diagnostics);
         return true;
     }
@@ -944,7 +1078,8 @@ public sealed class AbilityLabPackageWorkspace
     /// <summary>Prepare the current workspace for testing without saving, cooking, or adding Undo entries.</summary>
     public bool PrepareScenarioPreview()
     {
-        if (!HasPackage || Preview?.IsAvailable != true) return false;
+        RefreshPersistedStatus();
+        if (!HasPackage || Preview?.IsAvailable != true || PreviewPrerequisitesStale) return false;
         if (LiveDraftPackage == null && !LiveDraftInvalid)
             RefreshLiveDraft(new CharacterPackageSource(Manifest, Draft), Array.Empty<CharacterDiagnostic>());
         return !LiveDraftInvalid && LiveDraftPackage != null;
@@ -956,11 +1091,13 @@ public sealed class AbilityLabPackageWorkspace
         var compiled = CharacterPackageCompiler.Compile(source, CharacterPackageAuthoringService.ProfileFor(PackageId));
         var diagnostics = new List<CharacterDiagnostic>(sourceDiagnostics ?? Array.Empty<CharacterDiagnostic>());
         diagnostics.AddRange(compiled.Diagnostics);
+        diagnostics.AddRange(_diagnostics.Where(diagnostic => diagnostic.Code == "workspace.external.changed"));
+        if (PreviewPrerequisitesStale) diagnostics.Add(StalePreviewDiagnostic());
         if (!compiled.HasErrors && compiled.CookedPackage != null)
         {
             LiveDraftPackage = compiled.CookedPackage;
             LiveDraftInvalid = false;
-            SetDiagnostics(diagnostics, !IsDirty && _persistedSourceCurrent ? "Valid" : "Stale");
+            SetDiagnostics(diagnostics, !IsDirty && _persistedSourceCurrent && !PreviewPrerequisitesStale ? "Valid" : "Stale");
             return;
         }
 
@@ -976,14 +1113,14 @@ public sealed class AbilityLabPackageWorkspace
     public bool CanRedo => _redo.Count > 0;
     public void Undo()
     {
-        if (_undo.Count == 0) return;
+        if (_undo.Count == 0 || !CanRestoreSnapshot(_undo.Peek())) return;
         var snapshot = _undo.Pop();
         _redo.Push(CaptureSnapshot(snapshot.TrailEntryIndex));
         RestoreSnapshot(snapshot, true);
     }
     public void Redo()
     {
-        if (_redo.Count == 0) return;
+        if (_redo.Count == 0 || !CanRestoreSnapshot(_redo.Peek())) return;
         var snapshot = _redo.Pop();
         _undo.Push(CaptureSnapshot(snapshot.TrailEntryIndex));
         RestoreSnapshot(snapshot, true);
@@ -993,7 +1130,7 @@ public sealed class AbilityLabPackageWorkspace
     {
         PushUndo();
         Draft = draft ?? throw new ArgumentNullException(nameof(draft));
-        IsDirty = true;
+        UpdateSourceDirty();
         RefreshLiveDraft(new CharacterPackageSource(Manifest, Draft), Array.Empty<CharacterDiagnostic>());
     }
 
@@ -1001,10 +1138,10 @@ public sealed class AbilityLabPackageWorkspace
     {
         PushUndo();
         Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
-        IsDirty = true;
+        UpdateSourceDirty();
         RefreshLiveDraft(new CharacterPackageSource(Manifest, Draft), Array.Empty<CharacterDiagnostic>());
     }
-    public void RevertDraft() => ReloadPackage();
+    public void RevertDraft() => DiscardUnsavedChanges();
 
     private void RestoreSnapshot(WorkspaceSnapshot snapshot, bool recordUnityUndo)
     {
@@ -1012,30 +1149,37 @@ public sealed class AbilityLabPackageWorkspace
             && snapshot.TrailEntryIndex < snapshot.WeaponConfig.Entries.Length)
         {
             var config = snapshot.WeaponConfig;
+            string attachmentBefore = AttachmentFingerprint(config);
             if (recordUnityUndo) UnityEditor.Undo.RecordObject(config, "Ability Lab weapon trail undo");
             config.Entries[snapshot.TrailEntryIndex].TrailBladeWidth = snapshot.TrailWidth;
             config.Entries[snapshot.TrailEntryIndex].TrailStylePrefab = snapshot.TrailStyle;
             EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssetIfDirty(config);
-            IsDirty = true;
+            RefreshOwnedAttachmentFingerprint(attachmentBefore);
+            _persistedSourceCurrent = false;
+            UpdateSourceDirty();
             Status = "Stale";
             SceneView.RepaintAll();
             return;
         }
         Manifest = snapshot.Source.Manifest;
         Draft = snapshot.Source.Character;
+        _semanticRenameBaseline = snapshot.SemanticRenameBaseline;
+        _semanticRenames.Clear();
+        _semanticRenames.AddRange(snapshot.SemanticRenames);
         if (Catalog != null && snapshot.Catalog != null && !snapshot.Catalog.Matches(Catalog))
         {
             if (recordUnityUndo) UnityEditor.Undo.RecordObject(Catalog, "Ability Lab workspace undo");
             Catalog.Rig = snapshot.Catalog.Rig;
             Catalog.Bindings = CloneBindings(snapshot.Catalog.Bindings);
             Catalog.Presentations = ClonePresentations(snapshot.Catalog.Presentations);
+            Catalog.SetPresentationProfile(snapshot.Catalog.Profile);
             EditorUtility.SetDirty(Catalog);
             AssetDatabase.SaveAssetIfDirty(Catalog);
             LoadedCatalogFingerprint = ComputeCatalogFingerprint();
             PreviewLab?.SetPresentationBindings(Catalog.Presentations);
         }
-        IsDirty = true;
+        UpdateSourceDirty();
         RefreshLiveDraft(snapshot.Source, Array.Empty<CharacterDiagnostic>());
         SceneView.RepaintAll();
     }
@@ -1045,17 +1189,31 @@ public sealed class AbilityLabPackageWorkspace
         var config = trailEntryIndex >= 0 ? Catalog?.WeaponConfig : null;
         return new WorkspaceSnapshot(new CharacterPackageSource(Manifest, Draft), Catalog == null
             ? null
-            : new CatalogSnapshot(Catalog.Rig, CloneBindings(Catalog.Bindings), ClonePresentations(Catalog.Presentations)),
+            : new CatalogSnapshot(Catalog.Rig, CloneBindings(Catalog.Bindings), ClonePresentations(Catalog.Presentations), Catalog.PresentationProfile?.DeepClone()),
             config, trailEntryIndex, config != null ? config.Entries[trailEntryIndex].TrailBladeWidth : 0f,
-            config != null ? config.Entries[trailEntryIndex].TrailStylePrefab : null);
+            config != null ? config.Entries[trailEntryIndex].TrailStylePrefab : null,
+            _semanticRenameBaseline, _semanticRenames.ToArray());
     }
 
     private void PushUndo() => PushUndo(CaptureSnapshot());
 
+    private void RebaseSavedSemanticHistory(Stack<WorkspaceSnapshot> history)
+    {
+        var retained = history.TakeWhile(snapshot => snapshot.SemanticRenames
+            .Select(rename => (rename.Before, rename.After))
+            .SequenceEqual(_semanticRenames.Select(rename => (rename.Before, rename.After)))).ToArray();
+        history.Clear();
+        foreach (var snapshot in retained.Reverse())
+            history.Push(new WorkspaceSnapshot(snapshot.Source, snapshot.Catalog,
+                snapshot.WeaponConfig, snapshot.TrailEntryIndex, snapshot.TrailWidth, snapshot.TrailStyle,
+                "", Array.Empty<SemanticRename>(), snapshot.TrailConfigIdentity,
+                snapshot.TrailEntryIdentity, snapshot.TrailConfigFingerprint));
+    }
+
     private void PushUndo(WorkspaceSnapshot snapshot)
     {
         _undo.Push(snapshot);
-        if (_undo.Count > MaxUndoDepth) _undo.Pop();
+        if (_undo.Count > MaxUndoDepth) TrimOldest(_undo);
         _redo.Clear();
     }
 
@@ -1092,20 +1250,28 @@ public sealed class AbilityLabPackageWorkspace
 
     private sealed class AttachmentDraftState
     {
-        public AttachmentDraftState(WeaponAttachConfig config, int entryIndex, AttachmentValues values)
+        public AttachmentDraftState(WeaponAttachConfig config, int entryIndex, AttachmentValues values,
+            string identity = null, string fingerprint = null, string entryIdentity = null)
         {
             Config = config;
             EntryIndex = entryIndex;
             Value = values;
             Saved = values;
+            ConfigIdentity = identity ?? ObjectIdentity(config);
+            ConfigFingerprint = fingerprint ?? AttachmentFingerprint(config);
+            EntryIdentity = entryIdentity ?? AttachmentEntryIdentity(config.Entries[entryIndex]);
         }
 
+        public string ConfigIdentity { get; set; }
+        public string ConfigFingerprint { get; set; }
+        public string EntryIdentity { get; set; }
         public WeaponAttachConfig Config { get; }
         public int EntryIndex { get; }
         public AttachmentValues Value { get; set; }
         public AttachmentValues Saved { get; set; }
     }
 
+    [Serializable]
     private struct AttachmentValues : IEquatable<AttachmentValues>
     {
         public Vector3 PositionOffset;
@@ -1132,7 +1298,9 @@ public sealed class AbilityLabPackageWorkspace
     private sealed class WorkspaceSnapshot
     {
         public WorkspaceSnapshot(CharacterPackageSource source, CatalogSnapshot catalog,
-            WeaponAttachConfig weaponConfig, int trailEntryIndex, float trailWidth, GameObject trailStyle)
+            WeaponAttachConfig weaponConfig, int trailEntryIndex, float trailWidth, GameObject trailStyle,
+            string semanticRenameBaseline, SemanticRename[] semanticRenames,
+            string trailConfigIdentity = null, string trailEntryIdentity = null, string trailConfigFingerprint = null)
         {
             Source = source;
             Catalog = catalog;
@@ -1140,6 +1308,11 @@ public sealed class AbilityLabPackageWorkspace
             TrailEntryIndex = trailEntryIndex;
             TrailWidth = trailWidth;
             TrailStyle = trailStyle;
+            TrailConfigIdentity = trailConfigIdentity ?? ObjectIdentity(weaponConfig);
+            TrailEntryIdentity = trailEntryIdentity ?? (weaponConfig == null ? "" : AttachmentEntryIdentity(weaponConfig.Entries[trailEntryIndex]));
+            TrailConfigFingerprint = trailConfigFingerprint ?? AttachmentFingerprint(weaponConfig);
+            SemanticRenameBaseline = semanticRenameBaseline;
+            SemanticRenames = semanticRenames;
         }
 
         public CharacterPackageSource Source { get; }
@@ -1148,6 +1321,11 @@ public sealed class AbilityLabPackageWorkspace
         public int TrailEntryIndex { get; }
         public float TrailWidth { get; }
         public GameObject TrailStyle { get; }
+        public string TrailConfigIdentity { get; }
+        public string TrailEntryIdentity { get; }
+        public string TrailConfigFingerprint { get; set; }
+        public string SemanticRenameBaseline { get; }
+        public SemanticRename[] SemanticRenames { get; }
     }
 
     private sealed class CatalogSnapshot
@@ -1155,19 +1333,22 @@ public sealed class AbilityLabPackageWorkspace
         public CatalogSnapshot(
             GameObject rig,
             CharacterAssetCatalog.AnimationBinding[] bindings,
-            CharacterAssetCatalog.PresentationBinding[] presentations)
+            CharacterAssetCatalog.PresentationBinding[] presentations, CharacterPresentationProfile profile)
         {
             Rig = rig;
             Bindings = bindings;
             Presentations = presentations;
+            Profile = profile;
         }
 
         public GameObject Rig { get; }
         public CharacterAssetCatalog.AnimationBinding[] Bindings { get; }
         public CharacterAssetCatalog.PresentationBinding[] Presentations { get; }
+        public CharacterPresentationProfile Profile { get; }
 
         public bool Matches(CharacterAssetCatalog catalog)
             => Rig == catalog.Rig &&
+               CharacterBindingWriter.ProfileJson(Profile) == CharacterBindingWriter.ProfileJson(catalog.PresentationProfile) &&
                Bindings.Select(binding => (binding?.SemanticId, binding?.PoseTrackId, binding?.Clip, binding?.Extrapolation))
                    .SequenceEqual((catalog.Bindings ?? Array.Empty<CharacterAssetCatalog.AnimationBinding>())
                        .Select(binding => (binding?.SemanticId, binding?.PoseTrackId, binding?.Clip, binding?.Extrapolation))) &&

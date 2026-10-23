@@ -236,7 +236,7 @@ public sealed class AimedRecoveryTests
     private static CharacterDefinition Definition(bool hop = false)
     {
         var definition = TestHelpers.EngineDef;
-        definition.Movement.Gravity = 24f;
+        definition = definition with { Movement = definition.Movement with { Gravity = 24f } };
         var slots = definition.CookedSlots!.ToArray();
         foreach (int ordinal in new[] { 5, 13 })
             slots[ordinal] = new CookedSlotDefinition(ordinal, ordinal == 5 ? "ground.E" : "air.E", ordinal >= 8,
@@ -244,7 +244,7 @@ public sealed class AimedRecoveryTests
                 new CookedTimeline(new[] { new CookedStage(hop ? (ushort)54 : EndTick, 0, 0, 0, 0, Array.Empty<string>(),
                     new CookedTimelineOperation[] { new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
                         CharacterPackageCompiler.AimedRecoveryCapabilityId, "1", hop ? HopParameters : Parameters) }) }));
-        definition.CookedSlots = slots;
+        definition = definition with { CookedSlots = slots };
         return definition;
     }
 

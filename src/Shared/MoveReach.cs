@@ -32,20 +32,20 @@ public static class MoveReach
     /// the grounded origin frame via <see cref="HitboxGeometry.ResolvePositions"/>.
     /// <paramref name="index"/> is the tick offset; <c>sample.Tick</c> = TriggerTick + offset.
     /// </summary>
-    /// <param name="slot">Ability slot index (0-based, <see cref="CharacterDefinition.GetSlotAbility"/>).</param>
+    /// <param name="slot">Ability slot index (0-based, <see cref="CharacterDefinition.GetCookedSlotAbility"/>).</param>
     /// <param name="airborne">True when the ability is an air slot — selects the air spec's stage duration.</param>
     public static CapsuleSample[] SampleHit(CharacterDefinition def, in HitboxEvent evt,
-        byte slot, bool airborne, string[]? animationNames, byte animIndex, BakedAnimationData? baked)
+        byte slot, bool airborne, byte animIndex, BakedAnimationData? baked)
     {
         int ticks = Math.Max(1, (int)evt.DurationTicks);
         var samples = new CapsuleSample[ticks];
         float py = def.CapsuleHeight * 0.5f;
         // AttackElapsedTicks counts from the activation; TriggerTick counts from its stage.
         int stageStart = 0;
-        var spec = def.GetSlotAbility(slot, airborne);
+        var spec = def.GetCookedSlotAbility((byte)((slot) + 1), airborne);
         if (spec != null)
-            for (int i = 0; i < animIndex && i < spec.Stages.Length; i++)
-                stageStart += spec.Stages[i].DurationTicks;
+            for (int i = 0; i < animIndex && i < spec.Timeline.Stages.Count; i++)
+                stageStart += spec.Timeline.Stages[i].DurationTicks;
         for (int t = 0; t < ticks; t++)
         {
             var s = new CharacterState
@@ -53,9 +53,7 @@ public static class MoveReach
                 PX = 0f, PY = py, PZ = 0f, FacingYaw = 0f,
                 AttackElapsedTicks = (ushort)(stageStart + evt.TriggerTick + t),
             };
-            HitboxGeometry.ResolvePositions(s, evt, baked, def, animationNames, animIndex, slot, airborne,
-                out float wx, out float wy, out float wz,
-                out float wex, out float wey, out float wez);
+            HitboxGeometry.ResolvePositions(s, evt, baked, def, def?.GetCookedSlotAbility((byte)((slot) + 1), airborne), animIndex, out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
             samples[t] = new CapsuleSample(evt.TriggerTick + t,
                 wx, wy, wz, wex, wey, wez, evt.Radius);
         }

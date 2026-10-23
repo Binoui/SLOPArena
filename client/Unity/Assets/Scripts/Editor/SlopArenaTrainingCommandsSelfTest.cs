@@ -120,7 +120,7 @@ namespace SlopArena.EditorTools
                         AimYawRad = item.aim.HasValue ? item.aim.Value * Mathf.Deg2Rad : (float?)null,
                         AimPitchRad = Mathf.PI / 6f,
                     };
-                    var input = controller.BuildInputState(null, item.body, false, 0, context, null).input;
+                    var input = controller.BuildInputState(null, item.body, 0, context, null).input;
                     var bytes = new byte[InputState.Size];
                     input.Write(bytes);
                     var received = InputState.Deserialize(bytes);

@@ -1,3 +1,4 @@
+using SlopArena.EditorTools;
 using System;
 using System.Linq;
 using SlopArena.Client.Entities;
@@ -51,34 +52,19 @@ public static class SwordTrailPresentationSelfTest
                 },
             };
             var renderer = root.AddComponent<PlayerRenderer>();
-            renderer.SetCharacterDefinition(new CharacterDefinition
+            var definition = new CharacterDefinition
             {
-                Slot1 = new AbilitySpec
-                {
-                    Stages = new[]
-                    {
-                        new AttackStage
-                        {
-                            DurationTicks = 12,
-                            HitboxEvents = new[]
-                            {
-                                new HitboxEvent
-                                {
-                                    TriggerTick = 2,
-                                    DurationTicks = 2,
-                                    BoneName = "_weapon_hilt",
-                                    EndBoneName = "_weapon_tip",
-                                },
-                            },
-                        },
-                    },
-                },
-            });
-            renderer.SetBakedData(new BakedAnimationData
+                CookedSlots = new[] { PresentationSelfTestContent.Move(0,
+                    PresentationSelfTestContent.Stage(12, Array.Empty<string>(),
+                        new HitboxEvent { TriggerTick = 2, DurationTicks = 2,
+                            BoneName = "_weapon_hilt", EndBoneName = "_weapon_tip" })) },
+            };
+            var baked = new BakedAnimationData
             {
                 BoneNames = Array.Empty<string>(),
                 Animations = Array.Empty<BakedAnimationData.BakedAnim>(),
-            });
+            };
+            Require(renderer.Configure(definition, baked, null, null, out var error), error);
             var weapon = root.AddComponent<WeaponAttach>();
             weapon.Init(renderer, config);
             var meshFilter = root.GetComponentsInChildren<MeshFilter>(true)

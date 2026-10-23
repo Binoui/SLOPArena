@@ -90,7 +90,6 @@ namespace SlopArena.Client.Input
     /// <summary>
     /// Centralized human input adapter. Polls the shared Input System action map once
     /// per frame, buffers discrete edges, and builds the existing InputState contract.
-    /// AI input remains injected separately through InjectAI().
     /// </summary>
     public class InputController : MonoBehaviour
     {
@@ -104,7 +103,7 @@ namespace SlopArena.Client.Input
         /// <summary>Pending jump: set by Poll, consumed by BuildInputState.</summary>
         private bool _pendingJump;
         private DefenseInputEdges _defenseInputEdges = new DefenseInputEdges(true);
-        /// <summary>Pending dedicated Down press edge: set by Poll/InjectAI and consumed once by BuildInputState.</summary>
+        /// <summary>Pending dedicated Down press edge, consumed once by BuildInputState.</summary>
         private bool _pendingDownPressed;
         /// <summary>
         /// Prevent a key held through chat/pause/focus suppression from creating a new Down edge
@@ -121,8 +120,6 @@ namespace SlopArena.Client.Input
         /// <summary>True if the action assigned to the canonical slot index is held.</summary>
         public bool IsSlotKeyHeld(byte slotIdx)
         {
-            if (_aiControlled)
-                return _aiInput.ActiveSlot == slotIdx + 1;
             if (HumanInputBlocked) return false;
             string action = SlotAction(slotIdx);
             if (action != null)
@@ -168,9 +165,6 @@ namespace SlopArena.Client.Input
                 || Mathf.Abs(HumanInputActions.ZoomDelta) > 0.01f;
         }
 
-        // ── AI injection ──
-        private bool _aiControlled;
-        private InputState _aiInput;
         /// <summary>
         /// True while the bound fast-fall key is held. Kept separate from InputState.Down so
         /// release suppression can be enforced across pause/focus transitions.
@@ -198,37 +192,8 @@ namespace SlopArena.Client.Input
             _downReleaseRequired = true;
         }
 
-        // ════════════════════════════════════════════════════════════════
-        //  AI injection
-        // ════════════════════════════════════════════════════════════════
-
         // ── Slot press (set by Poll, consumed via ConsumePendingSlotPress) ──
         private byte _pendingSlotPress;
-
-        // ════════════════════════════════════════════════════════════════
-        /// <summary>
-        /// Inject synthetic input from AI (for NPCs).
-        /// Must be called every frame before Poll() if AI-controlled.
-        /// </summary>
-        public void InjectAI(InputState input)
-        {
-            _aiControlled = true;
-            _aiInput = input;
-            // Injection supplies a new edge; BuildInputState consumes it once. Do not
-            // derive Down from MoveY, since backward-moving NPCs must not fast-fall.
-            _pendingDownPressed = input.DownPressed;
-        }
-
-        /// <summary>
-        /// Clear AI control (switch back to human input).
-        /// </summary>
-        public void ClearAI()
-        {
-            _aiControlled = false;
-            _pendingDownPressed = false;
-        }
-
-        public bool IsAIControlled() => _aiControlled;
 
         // ════════════════════════════════════════════════════════════════
         //  Polling
@@ -237,7 +202,6 @@ namespace SlopArena.Client.Input
         /// <summary>
         /// Read current input and store into frame state.
         /// Call once per frame before BuildInputState() or any property access.
-        /// Uses AI input if InjectAI() was called, otherwise reads from InputSystem.
         ///
         /// ActiveSlot retains existing wire values: 1→3, E→4, R→5, F→6, 2→7,
         /// 3→8, 4→9, A→11. Physical controls follow the player's bindings.
@@ -245,14 +209,6 @@ namespace SlopArena.Client.Input
         /// </summary>
         public void Poll()
         {
-            if (_aiControlled)
-            {
-                // AI-driven: use injected input. DownPressed was latched by InjectAI and is
-                // consumed by BuildInputState exactly once for this supplied input.
-                _pendingJump = _aiInput.Jump;
-                return;
-            }
-
             if (HumanInputSuppressed)
             {
                 ClearPendingFrameState();
@@ -381,7 +337,7 @@ namespace SlopArena.Client.Input
 
         public byte ConsumePendingSlotPress()
         {
-            if (!_aiControlled && HumanInputBlocked)
+            if (HumanInputBlocked)
             {
                 _pendingSlotPress = 0;
                 return 0;
@@ -401,13 +357,9 @@ namespace SlopArena.Client.Input
 
         /// <summary>
         /// Get raw movement input for current frame.
-        /// Returns AI input if AI-controlled, otherwise reads the bound movement keys.
         /// </summary>
         public Vector2 GetMovement()
         {
-            if (_aiControlled)
-                return new Vector2(_aiInput.MoveX, _aiInput.MoveY);
-
             if (HumanInputBlocked) return Vector2.zero;
             float x = (HumanInputActions.Get("MoveRight").IsPressed() ? 1f : 0f)
                     - (HumanInputActions.Get("MoveLeft").IsPressed() ? 1f : 0f);
@@ -420,7 +372,7 @@ namespace SlopArena.Client.Input
         /// <summary>Stationary aim uses the left stick; the right stick remains a fallback.</summary>
         public Vector2 GetAimStick(bool locksMovement)
         {
-            if (_aiControlled || HumanInputBlocked) return Vector2.zero;
+            if (HumanInputBlocked) return Vector2.zero;
             Vector2 left = HumanInputActions.Get("MoveStick").ReadValue<Vector2>();
             return locksMovement && left.sqrMagnitude > 0.01f
                 ? left : HumanInputActions.StickLook.ReadValue<Vector2>();
@@ -433,58 +385,17 @@ namespace SlopArena.Client.Input
         /// <summary>
         /// Build a full InputState for one frame, including camera-relative direction math,
         /// 8-direction snap, and FSM movement gate.
-        ///
-        /// Parameters owned by the caller (PlayerController):
-        ///   bodyYaw = transform.eulerAngles.y (in degrees)
-        ///   pendingSlotPress = from ConsumePendingSlotPress()
-        ///   abilityAimYaw / abilityAimDistance = set by active ability Tick
-        ///
         /// Returns (InputState, world-space moveDirection, camera-relative snappedInputDirection).
         /// </summary>
         public (InputState input, Vector3 moveDirection, Vector2 snappedInputDirection) BuildInputState(
             Camera.CameraMount? camera,
             float bodyYawDeg,
-            bool isNPC,
             byte pendingSlotPress,
             Camera.AimContext aimCtx,
             Func<bool>? canMove,
             byte targetEntityId = 0)
         {
             var input = new InputState();
-
-            if (isNPC && _aiControlled)
-            {
-                var move = GetMovement();
-                input.MoveX = move.x;
-                input.MoveY = move.y;
-                input.Up = move.y > 0.3f;
-                // Down is an explicit injected hold, not an interpretation of backward
-                // movement. The edge is consumed independently of movement gating.
-                input.Down = _aiInput.Down;
-                input.DownPressed = _pendingDownPressed;
-                _pendingDownPressed = false;
-                input.Left = move.x < -0.3f;
-                input.Right = move.x > 0.3f;
-                input.JumpHeld = _aiInput.JumpHeld;
-                input.ShieldHeld = _aiInput.ShieldHeld;
-                input.ShieldPressed = _aiInput.ShieldPressed;
-                input.GrabPressed = _aiInput.GrabPressed;
-                input.FaceToCamera = _aiInput.FaceToCamera;
-                input.ToggleLock = _aiInput.ToggleLock;
-                input.ActiveSlot = pendingSlotPress;
-                if (_pendingJump)
-                {
-                    input.Jump = true;
-                    _pendingJump = false;
-                }
-
-                Vector3 moveDir = new Vector3(move.x, 0f, move.y).normalized;
-                Vector2 snappedDir = new Vector2(move.x, move.y);
-                input.TargetEntityId = targetEntityId;
-                input.AimPitch = 0;  // NPCs aim horizontally
-
-                return (input, moveDir, snappedDir);
-            }
 
             input.LockMode = ClientSettingsService.Instance.AutoLockMode;
             if (HumanInputBlocked)

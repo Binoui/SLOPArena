@@ -128,7 +128,7 @@ namespace SlopArena.Client.UI
         private readonly struct AbilitySlotDef
         {
             public readonly string Name;
-            public readonly int SlotIndex; // GetSlotAbility index == cooldown index (0-10)
+            public readonly int SlotIndex; // zero-based wire index == cooldown index (0-10)
             public readonly string Action;
 
             public AbilitySlotDef(string name, int slotIndex, string action)
@@ -528,8 +528,8 @@ namespace SlopArena.Client.UI
             {
                 var slot = _abilitySlots[i];
                 var d = AbilitySlotDefs[i];
-                var grounded = def.GetSlotAbility(d.SlotIndex, airborne: false);
-                var airborne = def.GetSlotAbility(d.SlotIndex, airborne: true);
+                var grounded = def.GetCookedSlotAbility((byte)((d.SlotIndex) + 1), airborne: false);
+                var airborne = def.GetCookedSlotAbility((byte)((d.SlotIndex) + 1), airborne: true);
 
                 ushort max = 0;
                 if (grounded != null) max = grounded.CooldownTicks;
@@ -550,19 +550,19 @@ namespace SlopArena.Client.UI
 
         }
 
-        private static string MoveLabel(AbilitySpec spec)
+        private static string MoveLabel(CookedSlotDefinition spec)
             => spec != null && !string.IsNullOrWhiteSpace(spec.Name)
                 ? spec.Name.ToUpperInvariant() : "UNAVAILABLE";
 
-        private SlotArtwork LoadSlotIcon(AbilitySpec spec, bool normal)
+        private SlotArtwork LoadSlotIcon(CookedSlotDefinition spec, bool normal)
         {
-            if (spec == null || string.IsNullOrEmpty(spec.IconName)) return default;
+            if (spec == null || string.IsNullOrEmpty(spec.IconId)) return default;
             string path = $"Icons/{_charDef.Class}/";
             string cardPath = $"UI/AbilityCards/{_charDef.Class}/";
             var tint = normal ? MoveInk : Color.white;
-            var cardIcons = Resources.LoadAll<Sprite>(cardPath + spec.IconName);
+            var cardIcons = Resources.LoadAll<Sprite>(cardPath + spec.IconId);
             if (cardIcons.Length > 0) return new SlotArtwork(null, cardIcons[0], Color.white);
-            return new SlotArtwork(Resources.Load<Texture2D>(path + spec.IconName), null, tint);
+            return new SlotArtwork(Resources.Load<Texture2D>(path + spec.IconId), null, tint);
         }
 
         private static void SetSlotPresentation(ActionSlot slot, bool grounded)

@@ -198,7 +198,7 @@ public class LobbyPayloadCodecTests
     public void TryParseMatchStarted_DevelopmentRoomRequiresMatchId()
     {
         var json = """
-        {"serverId":"22222222-2222-2222-2222-222222222222","roomId":"33333333-3333-3333-3333-333333333333","serverAddress":"203.0.113.60","matchId":"44444444-4444-4444-4444-444444444444","matchPort":9877,"arenaName":"split","content":{"schemaVersion":1,"entries":[{"handle":1,"selector":"fightguy","identity":{"packageId":"fightguy","version":"0.0.0-dev","sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","cookedContentHash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","packageHash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},"displayName":"FightGuy"}]},"players":[
+        {"serverId":"22222222-2222-2222-2222-222222222222","roomId":"33333333-3333-3333-3333-333333333333","serverAddress":"203.0.113.60","matchId":"44444444-4444-4444-4444-444444444444","matchPort":9877,"arenaName":"split","content":{"schemaVersion":2,"arena":{"name":"split","digest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"entries":[{"handle":1,"selector":"fightguy","identity":{"packageId":"fightguy","version":"0.0.0-dev","sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","cookedContentHash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","packageHash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},"displayName":"FightGuy"}]},"players":[
             {"steamId":1,"name":"A","characterSelection":"Manki","lockedIn":true,"isHost":true,"entityId":1},
             {"steamId":2,"name":"B","characterSelection":"FightGuy","lockedIn":true,"isHost":false,"entityId":2}
         ]}

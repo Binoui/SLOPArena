@@ -142,7 +142,7 @@ namespace SlopArena.EditorTools
                 };
                 _bridge.RegisterEntity(fighter.Id, entry.Definition, state, entry.BakedAnimation);
                 _bridge.SetRespawnPosition(fighter.Id, spawnX, spawn.Y, spawnZ, spawn.Yaw);
-                fighter.Renderer.ApplyServerState(_bridge.GetState(fighter.Id));
+                fighter.Renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot);
                 _fighters.Add(fighter);
             }
             FilmCamera.fieldOfView = 42f;
@@ -169,7 +169,8 @@ namespace SlopArena.EditorTools
                 SelectTarget(fighter, self);
                 var target = _bridge.GetState(fighter.Target);
                 var input = fighter.Policy.Decide(self, target, fighter.Entry.Definition,
-                    fighter.Random, fighter.Memory, _arena, fighter.Entry.BakedAnimation);
+                    fighter.Random, fighter.Memory, _arena, fighter.Entry.BakedAnimation,
+                    activeMove: _bridge.GetActiveMove(fighter.Id)?.Slot);
                 input.TargetEntityId = (byte)fighter.Target;
                 _inputs[fighter.Id] = input;
                 if (input.ActiveSlot > 0 && input.ActiveSlot <= fighter.Presses.Length)
@@ -197,7 +198,7 @@ namespace SlopArena.EditorTools
                     fighter.Memory.RecordOpponentHit(hit.AttackSlot, !opponent.IsGrounded,
                         opponent, opponent.HitstunTicks, hit.HitstopTicks);
                 }
-                fighter.Renderer.ApplyServerState(state);
+                fighter.Renderer.ApplyServerState(state, _bridge.GetActiveMove(fighter.Id)?.Slot);
             }
             _projectiles.OnTick();
             _feedback.OnTick();

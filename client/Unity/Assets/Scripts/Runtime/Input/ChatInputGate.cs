@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-using UnityEngine.SceneManagement;
 using SlopArena.Client.UI;
 
 namespace SlopArena.Client.Input
@@ -31,19 +30,17 @@ namespace SlopArena.Client.Input
 
         /// <summary>True while menu/pause and other background shortcuts must be ignored.</summary>
         public static bool SuppressShortcuts => IsInputSuppressed;
-        public static bool ExternalOverlaySuppressed
+        public static bool ExternalOverlaySuppressed => _externalOverlayActive ||
+            Time.frameCount <= _externalSuppressThroughFrame || _externalReleaseRequired;
+
+        public static void Tick()
         {
-            get
-            {
-                if (_externalOverlayActive || Time.frameCount <= _externalSuppressThroughFrame)
-                    return true;
-                if (!_externalReleaseRequired)
-                    return false;
-                if (AnyHumanInputHeld())
-                    return true;
-                _externalReleaseRequired = false;
-                return false;
-            }
+            bool releaseChat = _releaseRequired && !_isComposing && Time.frameCount > _suppressThroughFrame;
+            bool releaseOverlay = _externalReleaseRequired && !_externalOverlayActive &&
+                Time.frameCount > _externalSuppressThroughFrame;
+            if ((!releaseChat && !releaseOverlay) || AnyHumanInputHeld()) return;
+            if (releaseChat) _releaseRequired = false;
+            if (releaseOverlay) _externalReleaseRequired = false;
         }
 
         public static void BeginExternalOverlay()
@@ -61,21 +58,12 @@ namespace SlopArena.Client.Input
         }
 
         /// <summary>
-        /// True for the actual match scenes. Arena_Offline hosts both Training and Solo;
-        /// Arena_PvP hosts online fights. The component fallback keeps direct/test-loaded
-        /// gameplay scenes working without treating menu scenes as gameplay.
+        /// True while a match owns the scene, including Tutorial and Arcade.
         /// </summary>
-        public static bool IsGameplayScene
-        {
-            get
-            {
-                string sceneName = SceneManager.GetActiveScene().name;
-                if (sceneName == "Arena_Offline" || sceneName == "Arena_PvP")
-                    return true;
+        public static bool IsGameplayScene => SlopArena.Client.World.MatchBase.Active != null;
 
-                return Object.FindFirstObjectByType<SlopArena.Client.World.MatchBase>() != null;
-            }
-        }
+        // Arcade reserves Select for its hold-to-retry shortcut.
+        internal static bool GamepadChatAvailable => MatchConfig.Mode != GameMode.Arcade;
 
         private static bool IsInputSuppressed
         {
@@ -84,20 +72,13 @@ namespace SlopArena.Client.Input
                 if (ExternalOverlaySuppressed || _isComposing || Time.frameCount <= _suppressThroughFrame)
                     return true;
 
-                // ChatOverlay opens on Enter during gameplay and focuses the field through
+                // ChatOverlay opens on Enter or Select during gameplay and focuses the field through
                 // UI Toolkit scheduling. Consume that opening frame even before FocusIn
-                // calls Begin(), so Enter cannot also reach gameplay.
+                // calls Begin(), so the opening press cannot also reach gameplay.
                 if (IsChatOpenPressedThisFrame())
                     return true;
 
-                if (_releaseRequired)
-                {
-                    if (AnyHumanInputHeld())
-                        return true;
-                    _releaseRequired = false;
-                }
-
-                return false;
+                return _releaseRequired;
             }
         }
         private static bool IsChatOpenPressedThisFrame()
@@ -107,8 +88,9 @@ namespace SlopArena.Client.Input
                 return false;
 
             var keyboard = Keyboard.current;
-            return keyboard != null &&
-                   (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame);
+            return (keyboard != null &&
+                    (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)) ||
+                   (GamepadChatAvailable && Gamepad.current?.selectButton.wasPressedThisFrame == true);
         }
 
         /// <summary>Begin composing. Idempotent so focus callbacks can safely repeat it.</summary>

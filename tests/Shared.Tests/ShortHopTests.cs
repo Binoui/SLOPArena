@@ -23,7 +23,7 @@ public class ShortHopTests
     private static CharacterDefinition CreateClassicDef()
     {
         var def = TestHelpers.EngineDef;
-        def.Movement = def.Movement with { FloatWindowTicks = 0 };
+        def = def with { Movement = def.Movement with { FloatWindowTicks = 0 } };
         return def;
     }
 

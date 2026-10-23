@@ -69,6 +69,7 @@ namespace SlopArena.Client.Network
         private float _inviteRequestedAt;
         private float _nextInviteAt;
         private int _accountGeneration;
+        internal int AccountGeneration => _accountGeneration;
         private string _masterServerUrl = ClientSession.DefaultMasterServerUrl;
         private string _savedDisplayName = string.Empty;
         private string _status = "Offline";
@@ -424,9 +425,13 @@ namespace SlopArena.Client.Network
 
         public async Task RefreshDirectoryAsync()
         {
-            if (!await EnsureConnectedAsync())
+            int accountGeneration = _accountGeneration;
+            if (!await EnsureConnectedAsync() || _destroyed || accountGeneration != _accountGeneration)
                 return;
-            var online = await _lobby!.GetOnlinePlayersAsync();
+            var lobby = _lobby;
+            if (lobby == null) return;
+            var online = await lobby.GetOnlinePlayersAsync();
+            if (!OwnsConnection(accountGeneration, lobby)) return;
             if (online == null)
             {
                 _directoryAvailable = false;
@@ -648,7 +653,7 @@ namespace SlopArena.Client.Network
         {
             int accountGeneration = _accountGeneration;
             EnsureMasterClient();
-            if (!await EnsureAuthenticatedAsync() || accountGeneration != _accountGeneration)
+            if (!await EnsureAuthenticatedAsync() || _destroyed || accountGeneration != _accountGeneration)
                 return false;
             if (!_nameApplied)
             {
@@ -658,7 +663,7 @@ namespace SlopArena.Client.Network
                 {
                     int generation = _nameGeneration;
                     var profile = await _masterClient!.SetDisplayNameAsync(_savedDisplayName);
-                    if (accountGeneration != _accountGeneration)
+                    if (_destroyed || accountGeneration != _accountGeneration)
                         return false;
                     if (profile == null)
                     {
@@ -700,16 +705,16 @@ namespace SlopArena.Client.Network
             var lobby = _lobby;
             if (!lobby.IsConnected && !await lobby.ConnectAsync())
             {
-                if (accountGeneration != _accountGeneration)
+                if (!OwnsConnection(accountGeneration, lobby))
                     return false;
                 _chatStateReady = false;
                 SetStatus("Master connection unavailable. Local play remains available.");
                 return false;
             }
-            if (accountGeneration != _accountGeneration)
+            if (!OwnsConnection(accountGeneration, lobby))
                 return false;
             var snapshot = await lobby.GetChatStateAsync();
-            if (accountGeneration != _accountGeneration)
+            if (!OwnsConnection(accountGeneration, lobby))
                 return false;
             if (snapshot == null)
             {
@@ -723,7 +728,7 @@ namespace SlopArena.Client.Network
             _nextRetryAt = Time.unscaledTime + InitialRetrySeconds;
             SetStatus("Connected");
             await RefreshDirectoryCoreAsync();
-            return true;
+            return OwnsConnection(accountGeneration, lobby);
         }
 
         private async Task<bool> EnsureAuthenticatedAsync()
@@ -1087,7 +1092,11 @@ namespace SlopArena.Client.Network
 
         private async Task RefreshDirectoryCoreAsync()
         {
-            var online = await _lobby!.GetOnlinePlayersAsync();
+            int accountGeneration = _accountGeneration;
+            var lobby = _lobby;
+            if (lobby == null || _destroyed) return;
+            var online = await lobby.GetOnlinePlayersAsync();
+            if (!OwnsConnection(accountGeneration, lobby)) return;
             if (online == null)
             {
                 _directoryAvailable = false;
@@ -1097,6 +1106,9 @@ namespace SlopArena.Client.Network
             _directoryAvailable = true;
             RefreshConversationStates();
         }
+
+        private bool OwnsConnection(int accountGeneration, LobbyClient lobby)
+            => !_destroyed && accountGeneration == _accountGeneration && ReferenceEquals(_lobby, lobby);
 
         private void SubscribeLobby(LobbyClient lobby)
         {
@@ -1146,9 +1158,12 @@ namespace SlopArena.Client.Network
 
         private async Task RefreshAfterReconnectAsync()
         {
-            if (_lobby == null || !_lobby.IsConnected)
+            int accountGeneration = _accountGeneration;
+            var lobby = _lobby;
+            if (_destroyed || lobby == null || !lobby.IsConnected)
                 return;
-            var snapshot = await _lobby.GetChatStateAsync();
+            var snapshot = await lobby.GetChatStateAsync();
+            if (!OwnsConnection(accountGeneration, lobby)) return;
             if (snapshot != null)
             {
                 ApplySnapshot(snapshot);
@@ -1156,6 +1171,7 @@ namespace SlopArena.Client.Network
                 SetStatus("Connected");
             }
             await RefreshDirectoryCoreAsync();
+            if (!OwnsConnection(accountGeneration, lobby)) return;
             NotifyChanged();
         }
 

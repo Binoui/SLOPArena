@@ -21,17 +21,43 @@ The project has distinct owners: `package.json` for identity/version/creator/lic
 
 Bind real clips to exact semantic IDs on the actual imported Humanoid rig; preserve unique deterministic pose-track IDs and resolve Avatar/binding diagnostics instead of borrowing another fighter's fallback. If model cleanup or rig repair is needed, name that external/separate scope and route to game-root `docs/characters/character-model-polish.md`. Optional splash art/VFX are supplied/sourced only: verify ownership and the actual consuming surface/binding, and leave them out if not selected. Once selected as required presentation, their integration must be verified rather than silently omitted.
 
-Resolve all sixteen canonical grounded/air slots deliberately from the agreed kit. Approved aliases and move/clip reuse count; a smaller number of independent source entries is not itself an incomplete kit. Use the compiler/inspect resolved projection and approved semantics, not counts or labels alone, to judge coverage. Starter template values are not approved moves. Keep controls/labels distinct from persisted slot identities. Use the existing Slop Editor/Ability Lab Moves workspace for live drafts, timeline, source-stage fields, SceneView overlays, supported operation inspectors, and Undo; do not guess controls or create a second mapping. Through supported Shared/Training paths, observe timing, contact/miss, hitboxes, damage, recovery, movement and selected mechanics; change the relevant draft input and retest. Shared/server owns outcomes; if a mechanic cannot be authored through existing primitives, pause at the engine-task boundary.
+Resolve all sixteen canonical grounded/air slots deliberately from the agreed kit. Approved aliases and move/clip reuse count; a smaller number of independent source entries is not itself an incomplete kit. Use the compiler/inspect resolved projection and approved semantics, not counts or labels alone, to judge coverage. Starter template values are not approved moves. Keep controls/labels distinct from persisted slot identities. Use the existing Slop Editor/Ability Lab Moves workspace for live drafts, timeline, source-stage fields, embedded preview overlays, supported operation inspectors, and Undo; do not guess controls or create a second mapping. Through supported Shared/Training paths, observe timing, contact/miss, hitboxes, damage, recovery, movement and selected mechanics; change the relevant draft input and retest. Shared/server owns outcomes; if a mechanic cannot be authored through existing primitives, pause at the engine-task boundary.
 
 ## Inspect, cook, admit, and play
 
 Before cooking, resolve supported operations and Editor ownership from game-root `docs/contributing/unity-cli.md`; command examples are not permission to bypass ownership or require an author's private workspace. Discover available supported commands and use `sloparena.character.inspect` read-only on the actual package when authorized. Resolve identity, canonical-slot, source/catalog, rig, dependency, stale-input, and structured diagnostics. If the required tool/owned route is unavailable, hand off the exact package and expected inspect evidence; do not report verification.
 
-Persistence is through the documented Ability Lab **SAVE + COOK** path (or its supported native command flow), not raw edits to generated output. A successful cook must identify the exact current package and its four fresh payloads/hashes; a failed cook is a failure even if it preserves an older valid artifact. Re-inspect after changes and ensure evidence refers to current source, rig, catalog, and dependencies. Do not edit cooked payloads or generated catalog cache as source.
+Persistence is through the documented Ability Lab **SAVE + COOK** path or its
+supported native command flow. Lab saves source before cooking. Cook publishes
+the four package payloads, intermediate pose/binding files, generated catalog,
+and cook status. It then automatically refreshes the version and hashes of an
+existing roster entry, preserving its selector and other entries. It does not
+admit a new package or establish acceptance. Preparation failures leave the old
+cook intact; publication failures attempt rollback. A later roster error can
+return failure after publication succeeded. Inspect artifacts and pins before
+retrying. Use the mutation and failure scope in game-root
+`docs/characters/adding-a-new-character.md`. Re-inspect after changes and ensure
+evidence refers to current source, rig, catalog, and dependencies. Do not edit
+cooked payloads or generated catalog cache as source.
 
-After a successful current cook, complete the applicable focused compiler/catalog/package checks and kit regression evidence specified by game-root `docs/characters/adding-a-new-character.md` and `docs/testing.md`. Test, change, and retest behavior that failed or needed tuning; report actual observations and limitations. Add or refresh exact roster admission only through the documented workflow and after required checks/presentation are valid. Verify package identity/version/hashes/dependencies and the exact local roster requirement against fresh content; source-only discovery or a transient draft does not count.
+After a successful current cook, complete the applicable focused compiler/catalog/package checks and kit regression evidence specified by game-root `docs/characters/adding-a-new-character.md` and `docs/testing.md`. Test, change, and retest behavior that failed or needed tuning; report actual observations and limitations. New admission requires those checks and complete presentation assets. For an existing entry, verify the cook's automatic pin refresh against fresh content; automatic refresh does not establish acceptance. Verify package identity/version/hashes/dependencies and the exact local roster requirement; source-only discovery or a transient draft does not count.
 
-Open the accepted cooked package in Ability Lab to check identity, slot projection, semantic bindings, preview, and diagnostics; exercise Training and applicable local gameplay with that same persisted package. Confirm the roster selects it and the complete agreed kit is actually exercised using admitted content, not an in-memory draft, stale cook, or prior fighter. Record observed checks, input identities/hashes, outcome, and blockers. No online play, publication, or broader release claim follows from local acceptance.
+Use Ability Lab to check identity, slot projection, semantic bindings, preview, and
+diagnostics. Exercise affected Editor Training behavior. Ordinary Lab refresh
+compiles the current workspace draft; Editor Training and Solo Play compile source
+through a transient development catalog. A clean **Cooked** status and matching disk
+hashes do not prove that the saved gameplay definition ran.
+
+Keep the persisted-package acceptance gate. Follow **Verify persisted gameplay**
+in game-root `docs/characters/adding-a-new-character.md`. It names
+`BuiltInContentResolver.Resolve` and an existing Bonk hit/block/miss test. Use
+applicable pinned-catalog Shared gameplay tests or a player using verified staged
+content to exercise the complete agreed kit from saved files. The Bonk example
+alone does not cover another package or the whole kit. Disk verification and
+catalog loading alone do not prove persisted gameplay. Confirm roster selection
+and record content root, package identity, hashes, checked moves, outcomes, and
+blockers. Complete required human presentation/gamefeel acceptance separately.
+No online play, publication, or broader release claim follows from local acceptance.
 
 ## Resume and handoff
 

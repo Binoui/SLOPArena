@@ -170,7 +170,7 @@ namespace SlopArena.Client.Entities
         public void EndGlow(Object key) => _glows.RemoveAll(glow => glow.key == key);
 
         /// <summary>Call once per applied simulation tick, after the renderer has applied the state.</summary>
-        public void OnState(in CharacterState state, CharacterDefinition? definition, bool attackAirborne)
+        public void OnState(in CharacterState state, CharacterDefinition? definition, CookedSlotDefinition? activeMove)
         {
             var position = new Vector3(state.PX, state.PY, state.PZ);
             if (state.Deaths != _deaths)
@@ -212,7 +212,7 @@ namespace SlopArena.Client.Entities
                 _dodgeTicks = DefenseConfig.AirDodgeMovementTicks - state.StateTicks;
                 _dodgeTickTime = Time.time;
             }
-            UpdateAttack(in state, definition, attackAirborne);
+            UpdateAttack(in state, definition, activeMove);
         }
 
         /// <summary>Remove the deformation while an authoritative pose is sampled.</summary>
@@ -241,15 +241,15 @@ namespace SlopArena.Client.Entities
             return root.TransformPoint(deform.MultiplyPoint3x4(root.InverseTransformPoint(world)));
         }
 
-        private void UpdateAttack(in CharacterState state, CharacterDefinition? definition, bool airborne)
+        private void UpdateAttack(in CharacterState state, CharacterDefinition? definition, CookedSlotDefinition? activeMove)
         {
             _attacking = false;
             if (definition == null || state.State != ActionState.Attacking || state.AttackSlot == 0
                 || state.HitstunTicks > 0)
                 return;
-            var ability = definition.GetSlotAbility((byte)(state.AttackSlot - 1), airborne);
-            if (ability?.Stages is not { Length: > 0 } stages) return;
-            var hitboxes = stages[Mathf.Min(state.ComboStage, stages.Length - 1)].HitboxEvents;
+            var ability = activeMove;
+            if (ability?.Timeline.Stages is not { Count: > 0 } stages) return;
+            var hitboxes = stages[ability.Clip(state.AnimIndex).StageIndex].ReadHitboxes();
             if (hitboxes is not { Length: > 0 }) return;
 
             int elapsed = state.AttackElapsedTicks;

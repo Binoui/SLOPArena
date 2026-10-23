@@ -151,18 +151,7 @@ namespace SlopArena.EditorTools
                 || ground.Ordinal >= 8 || air.Ordinal != ground.Ordinal + 8)
                 throw new ArgumentException($"Unknown canonical slot label '{slot}'. Use 1, 2, 3, 4, A, E, R, or F.");
 
-            return slot switch
-            {
-                "1" => AbilitySlots.Slot1,
-                "2" => AbilitySlots.Slot2,
-                "3" => AbilitySlots.Slot3,
-                "4" => AbilitySlots.Slot4,
-                "A" => AbilitySlots.A,
-                "E" => AbilitySlots.E,
-                "R" => AbilitySlots.R,
-                "F" => AbilitySlots.F,
-                _ => throw new ArgumentException($"Unknown canonical slot label '{slot}'.")
-            };
+            return CanonicalSlotProjection.ToWire(ground);
         }
 
         internal static bool HasConsumedStepTicks(int requestedTicks, int observedTicks)

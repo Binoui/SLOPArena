@@ -127,6 +127,13 @@ public static class MatchStartRequestCodec
         int virtualPort = SteamMatchDescriptor.GameplayVirtualPort;
         DateTimeOffset? admissionExpiresAtUtc = null;
         string? catalogHash = null;
+        if (element.TryGetProperty("catalogHash", out var expected))
+        {
+            if (expected.ValueKind != JsonValueKind.String || expected.GetString() is not { Length: 64 } expectedHash ||
+                expectedHash.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')))
+                return null;
+            catalogHash = expectedHash;
+        }
         if (element.TryGetProperty("protocolVersion", out var protocol))
         {
             if (protocol.ValueKind != JsonValueKind.Number ||
@@ -137,10 +144,7 @@ public static class MatchStartRequestCodec
                 vp.ValueKind != JsonValueKind.Number ||
                 !vp.TryGetInt32(out virtualPort) ||
                 virtualPort != SteamMatchDescriptor.GameplayVirtualPort ||
-                !element.TryGetProperty("catalogHash", out var expected) ||
-                expected.ValueKind != JsonValueKind.String ||
-                expected.GetString() is not { Length: 64 } expectedHash ||
-                expectedHash.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')) ||
+                catalogHash == null ||
                 !element.TryGetProperty("admissionExpiresAtUtc", out var deadline) ||
                 deadline.ValueKind != JsonValueKind.String ||
                 !DateTimeOffset.TryParse(deadline.GetString(), CultureInfo.InvariantCulture,
@@ -150,7 +154,6 @@ public static class MatchStartRequestCodec
                 list.Select(p => p.EntityId).Distinct().Count() != list.Count)
                 return null;
             admissionExpiresAtUtc = expires;
-            catalogHash = expectedHash;
         }
         else if (element.TryGetProperty("admissionExpiresAtUtc", out var developmentDeadline))
         {

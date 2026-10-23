@@ -105,6 +105,12 @@ public static class SlopArenaAbilityLabCommands
             return Failure("scenario.options.invalid", ex.Message, window);
         }
 
+        if (!window.CommandWorkspace.PrepareScenarioPreview())
+        {
+            window.CommandLab?.MarkPackageDraftInvalid();
+            window.RefreshScenarioControls();
+            return Failure("preview.unavailable", "The current source draft has no available Ability Lab preview.", window);
+        }
         AbilityLab? lab = window.CommandLab;
         if (lab == null || !lab.IsPackagePreview || lab.SelectedPackageId != window.CommandWorkspace.PackageId)
             return Failure("lab.rig.missing", "Open the package in Ability Lab before running a scenario.", window);
@@ -810,8 +816,8 @@ public static class SlopArenaAbilityLabCommands
             return false;
         int labelIndex = Array.IndexOf(AbilityLab.SlotNames, address.InputLabel);
         if (labelIndex < 0) return false;
-        var spec = lab.Def.GetSlotAbility(AbilityLab.SlotIndices[labelIndex], address.IsAirborne);
-        return spec?.Stages is { Length: > 0 };
+        var spec = lab.Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[labelIndex]), address.IsAirborne);
+        return spec?.Timeline.Stages is { Count: > 0 };
     }
     private static bool IsPackageSlotAvailable(AbilityLabPackageWorkspace workspace, SlotAddress address)
     {

@@ -27,21 +27,18 @@ namespace SlopArena.Client.Combat
                 return true;
 
             bool valid = true;
-            for (int i = 0; i < config.ProjectileEntries.Length; i++)
-            {
-                var entry = config.ProjectileEntries[i];
-                valid &= ValidatePrefab(
-                    entry.Prefab,
-                    $"ProjectileEntries[{i}] ({entry.Character}, slot {entry.AttackSlot}, airborne={entry.Airborne})");
-            }
-
             valid &= ValidatePrefab(config.ExplosionPrefab, "ExplosionPrefab");
-            for (int i = 0; i < config.ExplosionOverrides.Length; i++)
+            foreach (string guid in AssetDatabase.FindAssets("t:CharacterAssetCatalog", new[] { "Assets/CharacterPackages" }))
             {
-                var entry = config.ExplosionOverrides[i];
-                valid &= ValidatePrefab(
-                    entry.Prefab,
-                    $"ExplosionOverrides[{i}] ({entry.Character}, slot {entry.AttackSlot})");
+                var catalog = AssetDatabase.LoadAssetAtPath<SlopArena.Client.Animation.CharacterAssetCatalog>(AssetDatabase.GUIDToAssetPath(guid));
+                var diagnostics = new System.Collections.Generic.List<SlopArena.Shared.CharacterDiagnostic>();
+                CharacterPresentationProfileValidation.Validate(catalog, diagnostics);
+                foreach (var diagnostic in diagnostics)
+                    if (diagnostic.Severity == SlopArena.Shared.CharacterDiagnosticSeverity.Error)
+                    {
+                        valid = false;
+                        Debug.LogError($"[ProjectileVFX] {catalog.PackageId}: {diagnostic.Path}: {diagnostic.Message}");
+                    }
             }
 
             if (!valid && blockPlayMode)

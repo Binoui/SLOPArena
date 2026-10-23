@@ -70,9 +70,9 @@ namespace SlopArena.Client.World
             MatchConfig.PlayerPackageId = entry.Identity.PackageId;
             _arena = arena; _playerEntry = entry; _playerDef = entry.Definition;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
-            if (_combatFeedback == null) _combatFeedback = gameObject.AddComponent<CombatFeedback>();
+            if (_combatFeedback == null) _combatFeedback = GetComponent<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
             _combatFeedback.SetSimulation(_bridge);
-            if (_projectileVFX == null) _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
+            if (_projectileVFX == null) _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
             _projectileVFX.SetSimulation(Simulation);
             _dummyRenderer = new GameObject("Tutorial Dummy").AddComponent<PlayerRenderer>();
             if (!SetupPlayerRenderer(entry, arena) || !SetupRenderer(_dummyRenderer, _dummyEntry, arena, DummyEntityId, false))
@@ -105,12 +105,12 @@ namespace SlopArena.Client.World
             byte slot = _inputController.ConsumePendingSlotPress();
             var playerBefore = _bridge.GetState(PlayerEntityId);
             var dummyBefore = _bridge.GetState(DummyEntityId);
-            var aim = _aimHandler != null ? _aimHandler.Evaluate(playerBefore, slot, _playerDef, _inputController) : AimContext.None;
+            var aim = _aimHandler != null ? _aimHandler.Evaluate(playerBefore, slot, _playerDef, _inputController, _bridge.GetActiveMove(PlayerEntityId)?.Slot) : AimContext.None;
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
             var camera = _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main;
             byte target = PickScreenTarget(new[] { _dummyRenderer }, camera);
             var (input, _, _) = _inputController.BuildInputState(_cameraMount, _playerRenderer.transform.eulerAngles.y,
-                isNPC: false, pendingSlotPress: slot, aimCtx: aim, canMove: null, targetEntityId: target);
+                pendingSlotPress: slot, aimCtx: aim, canMove: null, targetEntityId: target);
             if (_finished) input = default;
             var dummyInput = TutorialDummy.Build(Progress.DummyBehavior, dummyBefore, playerBefore, _tick);
             _bridge.Tick(new Dictionary<ulong, InputState> { [PlayerEntityId] = _probeInput ?? input, [DummyEntityId] = dummyInput });
@@ -140,8 +140,8 @@ namespace SlopArena.Client.World
         {
             var player = _bridge.GetState(PlayerEntityId);
             var dummy = _bridge.GetState(DummyEntityId);
-            _playerRenderer.ApplyServerState(player);
-            _dummyRenderer.ApplyServerState(dummy);
+            _playerRenderer.ApplyServerState(player, _bridge.GetActiveMove(PlayerEntityId)?.Slot);
+            _dummyRenderer.ApplyServerState(dummy, _bridge.GetActiveMove(DummyEntityId)?.Slot);
             _projectileVFX?.OnTick(); _combatFeedback?.OnTick(); _hudManager?.Refresh();
             UpdateSwordTrailsFromResolver(Simulation.Resolver); PresentTimelineEvents();
             bool targeted = player.TargetEntityId == DummyEntityId;
@@ -188,7 +188,7 @@ namespace SlopArena.Client.World
             else _bridge.SetRespawnPosition(id, spot.X, y, spot.Z, spot.Yaw);
             renderer.ResetAnimationState();
             renderer.transform.SetPositionAndRotation(new(spot.X, y, spot.Z), Quaternion.Euler(0, spot.Yaw * Mathf.Rad2Deg, 0));
-            renderer.ApplyServerState(_bridge.GetState(id));
+            renderer.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot);
             _projectileVFX?.ClearHeldVisual(id);
         }
 

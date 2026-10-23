@@ -1,7 +1,7 @@
 # VFX — Combat Presentation
 
 > Client-side presentation driven by accepted server-simulation events. Shared impact
-> meshes communicate gameplay strength; particle trails and future character effects add flavor.
+> meshes communicate gameplay strength; package-owned trails and character effects add flavor.
 
 ---
 
@@ -33,30 +33,12 @@ Training and PvP call the same `CombatFeedback` path after advancing their simul
 The rollback bridge snapshots current-tick hits before reconciliation can replay local history.
 Ignored invincibility contacts and countered contacts are not emitted as accepted hit events.
 
-### Bone Trail VFX
+### Package trail bindings
 
-```
-AbilitySpec.BoneTrails[]    ← per-ability data (BoneTrailDef struct)
-         │
-         ▼
-  PlayerRenderer.UpdateAnimationState()
-         │
-         ├─ detects attack start → reads BoneTrails from current ability spec
-         ├─ GetOrCreateBoneTrail(boneName) → instantiates/caches trail as child of bone transform
-         ├─ sets startColor + startSize from BoneTrailDef
-         ├─ enables emission (ParticleSystem.emission.enabled = true)
-         │
-         ├─ on attack end → DisableAllTrails()
-         └─ on respawn → destroys all trail GameObjects
-```
-
-**Key file:** `client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs`
-
-- One reusable `BoneTrail.prefab` instanced per bone per character
-- Cached in `Dictionary<string, ParticleSystem>` — zero per-frame allocation
-- World simulation space: particles freeze in place, tracing the bone's motion arc
-- Additive blending, short lifetime (0.1-0.3s), emission disabled by default
-- Trails are toggled on/off via emission module, not created/destroyed per swing
+Cooked package timelines emit semantic presentation events. The client catalog
+binds those IDs to effects, while `WeaponAttachConfig` selects a weapon's blade
+trail style. Neither path supplies gameplay collision or timing. See
+[Adding Character-Specific VFX](#adding-character-specific-vfx).
 
 ### Wibou blade sweep
 
@@ -147,16 +129,16 @@ use separate bindings so the air version emits wind without foot dust.
 ---
 ## Match Text VFX
 
-Match-start broadcasts use Cartoon FX particle text. The particle effect is the only
-visible countdown layer; do not pair it with a second UI Toolkit text label.
+PvP match-start broadcasts use Cartoon FX particle text. Solo uses the UI Toolkit
+`SoloCountdownView`. Each mode owns one visible countdown layer.
 
 ### Match-start contract
 
-| Mode | Sequence | Authority |
-|------|----------|-----------|
-| Solo | `READY` (2s) → `1` → `2` → `3` (1s each) → `SLOP IT OUT` | Local match gate |
-| PvP | `READY` (2s) → `1` → `2` → `3` (1s each) → `SLOP IT OUT` | GameServer `Countdown` → `Playing` |
-| Training | No countdown | Immediate control |
+| Mode | Sequence | Presentation | Authority |
+|------|----------|--------------|-----------|
+| Solo | `READY` (2s) → `3` → `2` → `1` (1s each) → `SLOP IT OUT` | `SoloCountdownView` | Local match gate |
+| PvP | `READY` (2s) → `3` → `2` → `1` (1s each) → `SLOP IT OUT` | `MatchTextVFX` | GameServer `Countdown` → `Playing` |
+| Training | No countdown | None | Immediate control |
 
 PvP uses `MatchInstance.CountdownDuration = 300` ticks. Solo uses the same
 300-tick gate in `TrainingMatch`. `SLOP IT OUT` is shown when the match becomes
@@ -165,6 +147,7 @@ playable; the presentation does not grant gameplay control.
 **Key files:**
 
 - `client/Unity/Assets/Scripts/Runtime/UI/MatchTextVFX.cs`
+- `client/Unity/Assets/Scripts/Runtime/UI/SoloCountdownView.cs`
 - `client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs`
 - `client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs`
 - `client/Unity/Assets/Scripts/Runtime/World/PvPMatch.cs`
@@ -179,7 +162,7 @@ playable; the presentation does not grant gameplay control.
 - **Dynamic (`isDynamic: 1`)** — runtime `UpdateText()` regenerates letter
   children from a template particle system.
 
-Match-start text uses static, authored variants because the MatchTextSmash
+PvP match-start text uses static, authored variants because the MatchTextSmash
 style is more controlled and reliable in-game. The variants are generated in
 the Unity Editor from `MatchTextSmash.prefab`, not mutated during gameplay:
 
@@ -252,7 +235,7 @@ contract are also replaced.
 | Missing outline/gradient | Font texture channel packing and `MatchTextFontSlopArena.mat` |
 | Text appears behind the arena | Transparent queue, camera depth, and particle sorting |
 | Text works in editor but not runtime | Static prefab was regenerated in the editor; runtime is not calling `UpdateText()` on `isDynamic: 0` |
-| Duplicate countdown text | `HUDManager` must call `MatchTextVFX` without displaying a UI Toolkit label |
+| Duplicate countdown text | PvP uses `MatchTextVFX`; Solo uses `SoloCountdownView`. Do not show both for one countdown. |
 
 The Cartoon FX source package remains a local dependency. Keep source-package
 provenance and shader/material changes aligned with
@@ -373,62 +356,12 @@ crescents turn about the dodge to face whichever camera draws them. The landing 
 every touchdown spawns also covers a dodge into the ground. `tools/sfx/air_dodge_clips.py`
 regenerates the sound from seeded noise; `--out` writes the three candidates for review.
 
-## BoneTrail Prefab
+## Authoring trails
 
-**Path:** `Assets/Resources/Prefabs/VFX/BoneTrail.prefab`
-**Material:** Reuses `Assets/Art/Materials/HitSpark.mat` (URP Particles/Unlit, Additive blending)
-
-### Particle Module Configuration
-
-| Module | Property | Value |
-|--------|----------|-------|
-| **Main** | Duration | 1s (continuous) |
-| | Looping | true |
-| | Start Lifetime | Random 0.1-0.3s |
-| | Start Speed | 0 |
-| | Start Size | 0.15 (overridden by BoneTrailDef.Width at runtime) |
-| | Max Particles | 200 |
-| | Simulation Space | World |
-| | Play On Awake | false |
-| **Emission** | Rate over Time | 120 |
-| **Size over Lifetime** | Enabled | true |
-| | Curve | 1.0 @ birth → 0.0 @ death |
-| **Color over Lifetime** | Enabled | true |
-| | Gradient | White (full alpha) → White (transparent), color from BoneTrailDef at runtime |
-| **Renderer** | Render Mode | Billboard |
-| | Material | HitSpark (URP Particles/Unlit, Additive) |
-| **Shape** | Enabled | false (point emission from bone) |
-
-### Behavior
-
-- Prefab is instantiated at runtime as a child of the weapon bone (e.g. `mixamorig:RightHand`)
-- Particles emit from the bone position and freeze in world space — the moving bone leaves a stationary trail behind it
-- Short lifetime (0.1-0.3s) creates a tight arc, not a long smear
-- Rate 120/sec = 2 particles per frame at 60fps
-- Color and size set dynamically per ability from `BoneTrailDef`
-- Same Additive blending + soft circle texture as HitSpark
-
-### Data Declaration
-
-`BoneTrailDef` struct in `src/Shared/AbilitySpec.cs`:
-| Field | Type | Description |
-|-------|------|-------------|
-| `BoneName` | string | Skeleton bone name (e.g. `mixamorig:RightHand`) |
-| `Width` | float | Particle size in meters |
-| `R, G, B, A` | float | Trail color (RGBA) |
-
-Per-ability data on `AbilitySpec`:
-```csharp
-public BoneTrailDef[]? BoneTrails;
-```
-
-### Adding a Trail to an Ability
-
-In the character's data file (e.g. `FightGuyData.cs`), add to any ability spec:
-```csharp
-BoneTrails = new[] { new BoneTrailDef { BoneName = "mixamorig:RightHand", Width = 0.12f, R = 0.3f, G = 0.6f, B = 1f, A = 1f } },
-```
-No code changes needed — PlayerRenderer picks it up automatically.
+Character trails belong in the package's presentation assets and catalog: use a
+bone-attached `emitPresentation` cue for an authored effect, or the weapon-trail
+configuration for a blade sweep. Follow the workflow below for binding and
+verification. Retired `*Data.cs` character files are not authoring inputs.
 
 ---
 
@@ -524,10 +457,13 @@ The general rules still apply:
 | VFX | Status | File |
 |-----|--------|------|
 | Shared impact tiers | Implemented | `GraphicHitEffect.cs` + `CombatFeedback.cs` |
-| Bone trails | Implemented | `BoneTrail.prefab` + `PlayerRenderer.cs` |
+| Legacy bone trail compatibility | Renderer support retained; cooked packages use presentation bindings | `BoneTrail.prefab` + `PlayerRenderer.cs` |
 | Wibou baked blade sweep | Implemented | `SwordSweepTrail.cs` + `WeaponAttach.cs` |
-| Match-start text broadcasts | Implemented | `MatchTextVFX.cs` + `MatchTextVFX/MatchText*.prefab` |
+| PvP match-start text broadcasts | Implemented | `MatchTextVFX.cs` + `MatchTextVFX/MatchText*.prefab` |
+| Solo countdown | Implemented | `SoloCountdownView.cs` |
 | Fighter hit feel (shake, flash, squash/lean, launch smoke) | Implemented; strengths under review | `FighterHitFeel.cs` + `GraphicCharacter.shader` |
+| Jump, double-jump and landing effects | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
+| KO, respawn and respawn invincibility | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
 | Air dodge print slip: paper swooshes, misprint while invulnerable, printed bars, fwip | Implemented 2026-10-18; concept approved, in-game check pending | `AirDodgePresentation.cs` + `Resources/Shaders/AirDodgePrint*.shader`; see [Air dodge print slip](#air-dodge-print-slip) |
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
@@ -536,23 +472,17 @@ The general rules still apply:
 | Sir Bonk: wood splinters, Leap of Faith's holy light and POP!, Blade Storm's wind stripes and dust ring (sails until 2026-10-22) and tiny windmill | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#sir-bonk-effects--2026-10-21) |
 | Sir Bonk's Joust: straw poofs for the hobby horse, NEIGH!, a pennant on the lance, clip-clop hooves, heel gouges in the skid, the look-down gag | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-jousts-effects) |
 | Sir Bonk's Pot-Lid Throw: a cream wake and flat spin rings on the flying lid, a whirr, a tink and a wobbly DOOOONG on each hit, a gleam and clank on the catch, a ringing bucket, "?" and "hm?" on a self-hit | Implemented 2026-10-22; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-pot-lid-throws-effects) |
-| Character-specific hit layers | All four fighters | Per-slot `hitPresentationId` |
+| Character-specific hit layers | Authored per package and slot | Per-slot `hitPresentationId` |
 | Character Course feel (Sanctuary): paper-lantern targets, breaks, checkpoint frames, missed-target pillars, ALL CLEAR! and the finish | Implemented 2026-10-18; concepts approved, in-game check pending | `SanctuaryCoursePresentationBuilder.cs` + `CharacterCoursePresentation.cs`; see [Phase 4](../design/arcade-phase-4.md#feel-pass--2026-10-18) |
-
-### Authored bone trails
-
-| Character | Ability | Bone | Color | Status |
-|-----------|---------|------|-------|--------|
-| FightGuy | Authored attack stages | Stage-defined | Blue | Implemented |
-| Manki | Authored attack stages | Stage-defined | Orange | Implemented |
 
 ### Future
 
 | VFX | Status |
 |-----|--------|
-| Dash start and trail | Not implemented |
-| Jump and landing dust | Not implemented |
-| KO and respawn presentation | Not implemented |
+| Universal ground Dash start and trail | No current gameplay contract; requires an approved mechanic before presentation work |
+
+`FighterHitFeel` uses `BeginDashTrail` for launch streaks. That helper name does
+not indicate an implemented player Dash.
 
 ---
 
@@ -561,9 +491,9 @@ The general rules still apply:
 - `CombatFeedback.cs` — `client/Unity/Assets/Scripts/Runtime/Combat/CombatFeedback.cs`
 - `GraphicHitEffect.cs` — `client/Unity/Assets/Scripts/Runtime/Combat/GraphicHitEffect.cs`
 - `PlayerRenderer.cs` — `client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs`
-- BoneTrail prefab — `Assets/Resources/VFX/BoneTrail.prefab`
-- `BoneTrailDef` struct — `src/Shared/AttackData.cs`
+- Weapon-trail configuration — `client/Unity/Assets/Scripts/Runtime/Entities/WeaponAttachConfig.cs`
 - Match text controller — `client/Unity/Assets/Scripts/Runtime/UI/MatchTextVFX.cs`
+- Solo countdown — `client/Unity/Assets/Scripts/Runtime/UI/SoloCountdownView.cs`
 - Match text prefabs — `client/Unity/Assets/Resources/MatchTextVFX/`
 - Font shader — `client/Unity/Assets/Shaders/SlopArenaParticleFont.shader`
 - Historical prototype spec — `docs/superpowers/specs/2026-07-19-hit-spark-vfx-design.md`

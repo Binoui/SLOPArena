@@ -32,7 +32,7 @@ public sealed class ShieldBlockTests
         return sim;
     }
 
-    private static ServerSimulation ManualBubbleSimulation(out CharacterDefinition def)
+    private static ServerSimulation ManualBubbleSimulation(out CharacterDefinition def, bool bodyPose = true)
     {
         def = new CharacterDefinition
         {
@@ -45,6 +45,7 @@ public sealed class ShieldBlockTests
             },
             Movement = new MovementStats { Gravity = 20f, GroundFriction = 8f, MaxFallSpeed = 20f },
         };
+        if (!bodyPose) def = def with { HurtboxCapsules = Array.Empty<HurtboxCapsule>() };
         var sim = new ServerSimulation(TestHelpers.TestArena());
         var attacker = TestHelpers.PlayerState(-2f);
         attacker.PY = 0.75f;
@@ -129,7 +130,7 @@ public sealed class ShieldBlockTests
         Assert.Equal((byte)1, ownerState.ChargeStockSpent);
         Assert.Equal(ActionState.Shielding, defender.State);
         Assert.Equal((byte)DefenseBlockHitstopKind.ShieldContact, defender.BlockHitstopKind);
-        Assert.Equal(ServerSimulation.ComputeHitstopTicks(5f, def.GetSlotAbility(2, false)), blocked.HitstopTicks);
+        Assert.Equal(ServerSimulation.ComputeHitstopTicks(5f), blocked.HitstopTicks);
         Assert.Equal(blocked.HitstopTicks, defender.HitstopTicks);
         Assert.Equal(blocked.HitstopTicks, ownerState.HitstopTicks);
         Assert.Equal((ushort)0, defender.QueuedKBStun);
@@ -238,8 +239,7 @@ public sealed class ShieldBlockTests
     [Fact]
     public void MissingBodyPoseCannotDisableActiveShieldSurface()
     {
-        var sim = ManualBubbleSimulation(out var def);
-        def.HurtboxCapsules = Array.Empty<HurtboxCapsule>();
+        var sim = ManualBubbleSimulation(out var def, bodyPose: false);
         var defender = sim.GetState(DefenderId);
         var hitbox = Contact(in defender, xOffset: 0.9f);
         hitbox.Radius = 0.02f;
@@ -425,7 +425,7 @@ public sealed class ShieldBlockTests
     {
         var targetDef = TestHelpers.EngineDef;
         var capsule = new HurtboxCapsule(0, -0.65f, 0, 0, 0.65f, 0, 0.3f);
-        targetDef.HurtboxCapsules = new[] { capsule, capsule, capsule };
+        targetDef = targetDef with { HurtboxCapsules = new[] { capsule, capsule, capsule } };
         var sim = CreateSimulation(out _, targetDef);
         var defender = sim.GetState(DefenderId);
         sim.Resolver.Spawn(Contact(
@@ -613,7 +613,7 @@ public sealed class ShieldBlockTests
             {
                 new CookedStage(20, 4, 0, 0, 0, Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()),
             }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var sim = new ServerSimulation(TestHelpers.TestArena());
         var attacker = TestHelpers.PlayerState(2f);
         attacker.PY = def.CapsuleHeight * 0.5f;

@@ -204,8 +204,8 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.internal.wibou.blade-flurry.v1",
-      "capabilityVersion": "1"
+      "capabilityId": "slop.internal.wibou.blade-flurry.v2",
+      "capabilityVersion": "2"
     }
   ],
   "slots": [
@@ -1345,11 +1345,15 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.wibou.blade-flurry.v1",
-                "capabilityVersion": "1",
+                "capabilityId": "slop.internal.wibou.blade-flurry.v2",
+                "capabilityVersion": "2",
                 "parameters": {
                   "forwardSpeed": 0,
-                  "moveTicks": 24
+                  "ascentStartTick": 14,
+                  "ascentEndTick": 28,
+                  "descentStartTick": 60,
+                  "riseSpeed": 8.571428571428571,
+                  "descentSpeed": 12
                 }
               },
               {

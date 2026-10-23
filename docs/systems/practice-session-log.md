@@ -65,7 +65,7 @@ frame (forward, side, up) and in world space. Self-play bots get the same fields
 ## Report
 
 ```bash
-dotnet run --project tools/SessionLogReport -- [files-or-folders] [--last N] \
+dotnet run --project tools/SessionLogReport -p:SkipUnityPluginCopy=true -- [files-or-folders] [--last N] \
   [--out artifacts/session-report/index.html] [--json summary.json]
 ```
 

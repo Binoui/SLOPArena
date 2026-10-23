@@ -36,7 +36,7 @@ It's a platform fighter in the Smash family, in full 3D. Every hit adds damage, 
   <img src="client/Unity/Assets/Resources/UI/Stages/log_off.png" alt="Log Off stage: a tree stump at a campsite with a sign reading 'No Wi-Fi, just logs'" width="32%">
 </p>
 
-- **Four fighters:** FightGuy, Manki, Wibou, and Bonk.
+- **Five rostered fighters:** FightGuy, Manki, Wibou, Bonk, and Bashie. Bashie's kit still has some stand-in moves.
 - **Six stages** to pick from, including the three above.
 - **Training** against a CPU you can tune, and offline **Arcade** challenges.
 - **Online matches** on a dedicated server, with rollback netcode.
@@ -51,8 +51,9 @@ It's a platform fighter in the Smash family, in full 3D. Every hit adds damage, 
 | --- | --- |
 | [**FightGuy**](docs/characters/fightguy.md) | Close-range martial artist: Ki Shot, Rising Dragon, Cyclone Kick, and Fist of Fury |
 | [**Manki**](docs/characters/manki.md) | Pyromaniac inventor monkey with a jetpack, a bazooka, bombs, and aerosol traps |
-| [**Wibou**](docs/characters/wibou.md) | Kitsune swordswoman who controls space with her blade, then juggles you in the air |
+| [**Wibou**](docs/characters/wibou.md) | Matrix-inspired mall ninja who controls space with his katana, then juggles you in the air |
 | [**Bonk**](docs/characters/bonk.md) | Greatsword bruiser with long reach, a jump-slam recovery, and Blade Storm |
+| [**Bashie**](docs/characters/bashie.md) | Lifeguard turtle with a water blaster and shell moves; part of her kit still uses stand-ins |
 
 ## Things you can do here
 
@@ -98,7 +99,7 @@ These need the full Unity project, which isn't self-serve yet (see [Getting set 
 
 ### Everything else
 
-Ideas, fighter designs on paper, art, VFX, sound, UI, docs, and "this felt bad when I played it" are all welcome. Open an issue ([bug report](https://github.com/Binoui/SLOPArena/issues/new?template=bug_report.yml) or [idea](https://github.com/Binoui/SLOPArena/issues/new?template=feature_request.yml)) or come say hi on [Discord](https://discord.gg/VvfaxDCF6Z). New multiplayer modes such as capture zones, volleyball, and crown are [still just ideas](docs/design/game-modes.md), so come argue about them.
+Ideas, fighter designs on paper, art, VFX, sound, UI, docs, and "this felt bad when I played it" are all welcome. Open an issue ([bug report](https://github.com/Binoui/SLOPArena/issues/new?template=bug_report.yml) or [idea](https://github.com/Binoui/SLOPArena/issues/new?template=feature_request.yml)) or come say hi on [Discord](https://discord.gg/VvfaxDCF6Z). Capture zones, crown and upgrade rounds are [exploratory designs](docs/design/game-modes.md). [Online Slopball and Character Courses](docs/design/online-arcade.md) are implemented and need multiplayer playtest feedback.
 
 ## Getting set up
 
@@ -119,7 +120,7 @@ The repository is set up for coding assistants like Claude Code and Codex. They 
 - **Make a fighter:** "Read skills/slopbot/SKILL.md and follow it in guided mode. I want to make a fighter: …"
 - **Design a stage:** "Read skills/sloparena-stage-design/SKILL.md and follow it. I want to design a stage: …"
 
-The project rules tell assistants to explain their plan and get your OK before changing files, and never to commit or push unless you ask. See [agent setup](docs/contributing/agents.md) for details on each assistant.
+The project rules tell assistants to explain the intended change, then complete the authorized scope without asking again at each step. Architecture changes need approval first; commits and pushes need your explicit request. See [agent setup](docs/contributing/agents.md) for details on each assistant.
 
 ## Controls
 

@@ -79,12 +79,12 @@ public class BakedAnimationDataTests
         var baked = BakedAnimationData.LoadFromBin(data);
 
         Assert.NotNull(baked);
-        Assert.Equal(3, baked.BoneNames.Length);
+        Assert.Equal(3, baked.BoneNames.Count);
         Assert.Equal("mixamorig_Head", baked.BoneNames[0]);
         Assert.Equal("mixamorig_Hips", baked.BoneNames[1]);
         Assert.Equal("mixamorig_LeftFoot", baked.BoneNames[2]);
 
-        Assert.Equal(2, baked.Animations.Length);
+        Assert.Equal(2, baked.Animations.Count);
         Assert.Equal("idle", baked.Animations[0].Name);
         Assert.Equal(3, baked.Animations[0].FrameCount);
         Assert.Equal("run", baked.Animations[1].Name);

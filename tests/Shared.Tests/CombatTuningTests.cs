@@ -101,8 +101,8 @@ public class CombatTuningTests
     private static ServerSimulation ContactSimulation(CombatTuning tuning, float targetZ = 3f)
     {
         var def = TestHelpers.EngineDef;
-        def.CaptureGeometry = new CookedCaptureGeometry(1.1f, 0.8f, 1.2f, 0.6f,
-            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f));
+        def = def with { CaptureGeometry = new CookedCaptureGeometry(1.1f, 0.8f, 1.2f, 0.6f,
+            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f)) };
         var sim = new ServerSimulation(TestHelpers.TestArena(), combatTuning: tuning);
         var attacker = TestHelpers.PlayerState();
         attacker.PY = TestHelpers.GroundPY(def);

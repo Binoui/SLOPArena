@@ -571,6 +571,10 @@ namespace SlopArena.Client.Network
             }
         }
 
+        internal Task<bool> LeaveRoomIfCurrentAsync(Guid roomId)
+            => LeaveRoomIfCurrentAsync(roomId, Volatile.Read(ref _roomOperationGeneration),
+                Volatile.Read(ref _roomMembershipGeneration));
+
         public async Task<bool> LeaveRoomIfCurrentAsync(
             Guid roomId, long operationGeneration, int membershipGeneration)
         {
@@ -582,8 +586,7 @@ namespace SlopArena.Client.Network
                     Volatile.Read(ref _roomMembershipGeneration) != membershipGeneration ||
                     GetJoinedRoomId() != roomId)
                     return false;
-                await LeaveRoomCoreAsync(membershipGeneration);
-                return true;
+                return await LeaveRoomCoreAsync(membershipGeneration);
             }
             finally
             {
@@ -591,7 +594,7 @@ namespace SlopArena.Client.Network
             }
         }
 
-        private async Task LeaveRoomCoreAsync(int membershipGeneration)
+        private async Task<bool> LeaveRoomCoreAsync(int membershipGeneration)
         {
             if (_conn is null || !IsConnected)
                 throw new InvalidOperationException("Not connected to the room directory. Retry when online.");
@@ -599,7 +602,8 @@ namespace SlopArena.Client.Network
             try
             {
                 await _conn.InvokeCoreAsync("LeaveRoom", Array.Empty<object?>());
-                if (TrySetJoinedRoomId(Guid.Empty, membershipGeneration))
+                bool cleared = TrySetJoinedRoomId(Guid.Empty, membershipGeneration);
+                if (cleared)
                 {
                     Interlocked.Increment(ref _roomOperationGeneration);
                     int clearedGeneration = Volatile.Read(ref _roomMembershipGeneration);
@@ -613,6 +617,7 @@ namespace SlopArena.Client.Network
                         _roomChatResyncInFlight = false;
                     });
                 }
+                return cleared;
             }
             finally
             {
@@ -923,7 +928,7 @@ namespace SlopArena.Client.Network
 
             string? value = reason.GetString();
             return value is "unfilled" or "absent" or "host_restart" or "host_shutdown" or "content_unavailable" or "host_unavailable"
-                    or "match_failed"
+                    or "match_failed" or "leader_returned_to_lobby"
                 ? new MatchAbortedNotification(matchId, value)
                 : null;
         }

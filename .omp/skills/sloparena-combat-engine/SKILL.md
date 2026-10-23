@@ -1,6 +1,6 @@
 ---
 name: sloparena-combat-engine
-description: "SLOPArena server-authoritative combat: deterministic cooked timelines, typed operations, approved capabilities, hitbox/projectile resolution, interruption ownership, and legacy ServerAbility compatibility."
+description: "SLOPArena server-authoritative combat: deterministic cooked timelines, typed operations, admitted engine capabilities, hitbox/projectile resolution, and Shared lifecycle and interruption ownership."
 license: "MIT"
 metadata: {"omp": {"tags": ["sloparena", "combat", "hitbox", "netcode", "simulation", "projectiles", "explosions", "abilities"], "related_skills": ["sloparena-netcode", "sloparena-character-workflow"]}, "version": "4.0.0", "author": "OMP Agent"}
 ---

@@ -81,6 +81,10 @@ namespace SlopArena.Client.World
             MatchConfig.PlayerPackageId = entry.Identity.PackageId;
             _playerDef = entry.Definition;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
+            if (_combatFeedback == null) _combatFeedback = GetComponent<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
+            _combatFeedback.SetSimulation(_bridge);
+            if (_projectileVFX == null) _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
+            _projectileVFX.SetSimulation(_bridge.InternalSim);
             if (!SetupPlayerRenderer(entry, arena)) { enabled = false; return; }
             // Enclosed courts also need the baked stage's camera-only obstruction.
             SpawnStageVisual(arena);
@@ -93,10 +97,6 @@ namespace SlopArena.Client.World
             _bridge.SetRespawnPosition(PlayerEntityId, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
             _playerRenderer.transform.SetPositionAndRotation(new(spawn.X, spawn.Y, spawn.Z),
                 Quaternion.Euler(0f, spawn.Yaw * Mathf.Rad2Deg, 0f));
-            if (_combatFeedback == null) _combatFeedback = gameObject.AddComponent<CombatFeedback>();
-            _combatFeedback.SetSimulation(_bridge);
-            if (_projectileVFX == null) _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
-            _projectileVFX.SetSimulation(_bridge.InternalSim);
             SetupHUD(_playerDef);
             SetupCamera(); SetupAimHandler(_playerDef);
             if (arena.Arcade.Slopball != null)
@@ -188,7 +188,7 @@ namespace SlopArena.Client.World
             { SimulationAdvanced = false; OnChallengeTick(); ProbeTickCompleted?.Invoke(_tick); return; }
             byte slot = _inputController.ConsumePendingSlotPress();
             var owner = _bridge.GetState(PlayerEntityId);
-            var aim = _aimHandler != null ? _aimHandler.Evaluate(owner, slot, _playerDef, _inputController) : AimContext.None;
+            var aim = _aimHandler != null ? _aimHandler.Evaluate(owner, slot, _playerDef, _inputController, _bridge.GetActiveMove(PlayerEntityId)?.Slot) : AimContext.None;
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
             var camera = _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main;
             byte target = 0;
@@ -201,11 +201,11 @@ namespace SlopArena.Client.World
                     target = ServerSimulation.ArcadeBallTargetInputId;
             }
             var (input, _, _) = _inputController.BuildInputState(_cameraMount,
-                _playerRenderer.transform.eulerAngles.y, isNPC: false, pendingSlotPress: slot,
+                _playerRenderer.transform.eulerAngles.y, pendingSlotPress: slot,
                 aimCtx: aim, canMove: null, targetEntityId: target);
             _bridge.Tick(new Dictionary<ulong, InputState> { [PlayerEntityId] = _probeInput ?? input });
             _tick = _bridge.InternalSim.SimulationTick;
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId));
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
             PresentBall();
             foreach (var hit in _bridge.LastTickHits)
                 if (hit.TargetEntityId == _bridge.InternalSim.ArcadeBall!.Value.EntityId) _attackContacts++;

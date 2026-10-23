@@ -83,17 +83,21 @@ public static class AbilityLabScenarioCommandSelfTest
             lab.RestoreTimelineCursor(beforeInvalid);
             SlopArena.Shared.CanonicalSlotProjection.TryGet(action, out var address);
             int index = Array.IndexOf(AbilityLab.SlotNames, address.InputLabel);
-            var spec = lab.Def.GetSlotAbility(AbilityLab.SlotIndices[index], address.IsAirborne);
-            var originalNames = spec.AnimationNames;
+            var spec = lab.Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[index]), address.IsAirborne);
+            var originalDefinition = lab.Def;
+            var missingStage = new CookedStage(spec.Timeline.Stages[0].DurationTicks, 0, 0, 0, 0,
+                new[] { "selftest.missing.animation" }, spec.Timeline.Stages[0].Operations);
+            var missingMove = PresentationSelfTestContent.Replace(spec, new CookedTimeline(new[] { missingStage }), spec.AimAnimationId);
+            var missingSlots = originalDefinition.CookedSlots.ToArray();
+            missingSlots[spec.Ordinal] = missingMove;
             try
             {
-                spec.AnimationNames = new[] { "selftest.missing.animation" };
+                SetDefinition(lab, originalDefinition with { CookedSlots = missingSlots });
                 var missingBinding = SlopArenaAbilityLabCommands.Run(action, ticks: 12);
-                if (missingBinding.Success || !ReferenceEquals(beforeInvalidScenario, lab.Scenario)
-                    || lab.ScenarioFrame != 24)
+                if (missingBinding.Success || !ReferenceEquals(beforeInvalidScenario, lab.Scenario) || lab.ScenarioFrame != 24)
                     throw new InvalidOperationException("A missing animation binding replaced the active run before failing.");
             }
-            finally { spec.AnimationNames = originalNames; }
+            finally { SetDefinition(lab, originalDefinition); }
 
             var preview = SlopArenaAbilityLabCommands.Preview(action, 4);
             if (!preview.Success || lab.ScenarioFrame != 4 || preview.ScenarioFrame != 4)
@@ -150,6 +154,37 @@ public static class AbilityLabScenarioCommandSelfTest
         }
     }
 
+    internal static void AssertRunRevalidatesPreview(AbilityLabWindow window, Action recook)
+    {
+        window.Show();
+        window.Focus();
+        if (!ReferenceEquals(AbilityLabWindow.FindExistingForCommand(), window))
+            throw new InvalidOperationException("The isolated refresh fixture must be the command-selected Ability Lab window.");
+        var workspace = window.CommandWorkspace;
+        var lab = window.CommandLab ?? throw new InvalidOperationException("CLI freshness fixture has no Lab.");
+        var retained = workspace.Preview;
+        recook();
+        typeof(AbilityLabWindow).GetField("_uiReady", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, false);
+        try { workspace.SetDraft(workspace.Draft with { DisplayName = "CLI admission before polling" }); }
+        finally { typeof(AbilityLabWindow).GetField("_uiReady", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, true); }
+        if (workspace.PreviewPrerequisitesStale || !lab.CanRunScenario || lab.Scenario != null)
+            throw new InvalidOperationException("CLI freshness fixture observed persisted status before the command.");
+        lab.Playing = true;
+        var result = SlopArenaAbilityLabCommands.Run("ground.1", ticks: 4);
+        if (result.Success || !result.Diagnostics.Any(diagnostic => diagnostic.Code == "preview.unavailable") ||
+            !workspace.PreviewPrerequisitesStale || !ReferenceEquals(retained, workspace.Preview) ||
+            lab.CanRunScenario || lab.Playing || lab.Scenario != null || !workspace.IsDirty)
+            throw new InvalidOperationException("CLI Run admitted stale prerequisites or lost the retained dirty draft.");
+        if (!workspace.DiscardUnsavedChanges())
+            throw new InvalidOperationException("Could not discard the isolated CLI admission edit.");
+        var recovered = SlopArenaAbilityLabCommands.Run("ground.1", ticks: 4);
+        if (!recovered.Success || lab.Scenario == null || lab.Scenario.Frames.Count != 5 ||
+            workspace.PreviewPrerequisitesStale || workspace.Preview.Identity.PackageHash != workspace.PackageHash ||
+            ReferenceEquals(retained, workspace.Preview))
+            throw new InvalidOperationException("CLI Run did not recover current prerequisites after Discard.");
+        lab.ExitScenario();
+    }
+
     private static void AssertOffscreenSkeletonMoves(AbilityLab lab, AbilityLabScenarioResult recorded)
     {
         var source = lab.GetComponentsInChildren<PlayerRenderer>().First(renderer => renderer.gameObject.activeInHierarchy);
@@ -162,10 +197,8 @@ public static class AbilityLabScenarioCommandSelfTest
         try
         {
             var renderer = fixture.AddComponent<PlayerRenderer>();
-            renderer.SetAnimationCatalog(catalog);
-            renderer.SetCharacterDefinition(source.CharacterDef);
-            renderer.SetBakedData(source.BakedData);
-            renderer.LoadModel(source.CharacterDef, sourceModel);
+            if (!renderer.Configure(source.CharacterDef, source.BakedData, catalog, sourceModel, out var error))
+                throw new InvalidOperationException(error);
             foreach (var mesh in fixture.GetComponentsInChildren<Renderer>()) mesh.forceRenderingOff = true;
             var animator = fixture.GetComponentInChildren<Animator>();
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
@@ -244,13 +277,11 @@ public static class AbilityLabScenarioCommandSelfTest
             var prefab = (GameObject)typeof(PlayerRenderer)
                 .GetField("_modelPrefab", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(source)!;
             var playback = fixture.AddComponent<PlayerRenderer>();
-            playback.SetAnimationCatalog(catalog);
-            playback.SetCharacterDefinition(source.CharacterDef);
-            playback.SetBakedData(source.BakedData);
-            playback.LoadModel(source.CharacterDef, prefab);
+            if (!playback.Configure(source.CharacterDef, source.BakedData, catalog, prefab, out var error))
+                throw new InvalidOperationException(error);
             var normal = fixture.GetComponentInChildren<Animancer.AnimancerComponent>();
             normal.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            var spec = source.CharacterDef.GetSlotAbility(frame.Actor.AttackSlot - 1, false);
+            var spec = source.CharacterDef.GetCookedSlotAbility(frame.Actor.AttackSlot, false);
             typeof(PlayerRenderer).GetMethod("PlayAbilityAnim", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .Invoke(playback, new object[] { frame.Actor, spec, (int)frame.Actor.ComboStage });
             normal.Evaluate(0f);
@@ -303,8 +334,8 @@ public static class AbilityLabScenarioCommandSelfTest
             if (!SlopArena.Shared.CanonicalSlotProjection.TryGet("ground.F", out var address))
                 throw new InvalidOperationException("Manki F slot mapping is unavailable.");
             lab.SetSlot(address);
-            var spec = lab.Def.GetSlotAbility(AbilityLab.SlotIndices[7], false);
-            if (spec?.AnimationNames is not { Length: > 0 } || string.IsNullOrEmpty(spec.AimAnimationId))
+            var spec = lab.Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[7]), false);
+            if (spec == null || spec.ClipCount == 0 || string.IsNullOrEmpty(spec.AimAnimationId))
                 throw new InvalidOperationException("Manki F does not expose both authored aim and release clips.");
             var source = lab.Renderer;
             var catalog = (CharacterAnimationCatalog)typeof(PlayerRenderer)
@@ -348,11 +379,11 @@ public static class AbilityLabScenarioCommandSelfTest
                 throw new InvalidOperationException("Charge phase playback did not advance its independent local tick.");
 
             lab.SetAuthoringPhase(AbilityLab.AuthoringPhase.Fire);
-            if (!lab.SetPhasePreview(true) || lab.PhaseClipName != ActualClipName(spec.AnimationNames[0]))
+            if (!lab.SetPhasePreview(true) || lab.PhaseClipName != ActualClipName(spec.Clip(0).AnimationId))
                 throw new InvalidOperationException("Fire preview did not resolve the selected release clip.");
             lab.SetPhaseTick(18);
             if (!source.TryGetAbilityPhaseAnimation(
-                (byte)(AbilityLab.SlotIndices[7] + 1), false, 0, false,
+                (byte)((CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[7]) - 1) + 1), false, 0, false,
                 out _, out _, out _, out float fireSpeed))
                 throw new InvalidOperationException("Fire preview runtime speed mapping is unavailable.");
             float expectedFireTime = 18f / AbilityLab.TickRate * fireSpeed;
@@ -367,34 +398,34 @@ public static class AbilityLabScenarioCommandSelfTest
                     (position - firePose[index]).sqrMagnitude > 0.000001f).Any())
                 throw new InvalidOperationException("Charge and fire clips did not produce distinct actual bone poses.");
 
-            string aimAnimation = spec.AimAnimationId;
+            var originalDefinition = lab.Def;
+            var missingAimSlots = originalDefinition.CookedSlots.ToArray();
+            missingAimSlots[spec.Ordinal] = PresentationSelfTestContent.Replace(spec, spec.Timeline, null);
             try
             {
-                spec.AimAnimationId = null;
+                SetDefinition(lab, originalDefinition with { CookedSlots = missingAimSlots });
                 lab.SetAuthoringPhase(AbilityLab.AuthoringPhase.Charge);
                 if (lab.CanPreviewCharge || lab.SetPhasePreview(true) || lab.PhaseClipName.Length != 0
                     || !lab.PhasePreviewStatus.Contains("no resolved aim clip"))
                     throw new InvalidOperationException("Missing charge clip silently fell back to the fire pose.");
                 lab.SetAuthoringPhase(AbilityLab.AuthoringPhase.Fire);
-                if (lab.PhaseClipName != ActualClipName(spec.AnimationNames[0]))
+                if (lab.PhaseClipName != ActualClipName(spec.Clip(0).AnimationId))
                     throw new InvalidOperationException("Missing charge clip made the valid fire preview unavailable.");
             }
-            finally { spec.AimAnimationId = aimAnimation; }
+            finally { SetDefinition(lab, originalDefinition); }
 
             var prefab = (GameObject)typeof(PlayerRenderer)
                 .GetField("_modelPrefab", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(source)!;
             var runtimeRenderer = phaseTestModel.AddComponent<PlayerRenderer>();
-            runtimeRenderer.SetAnimationCatalog(catalog);
-            runtimeRenderer.SetCharacterDefinition(source.CharacterDef);
-            runtimeRenderer.SetBakedData(source.BakedData);
-            runtimeRenderer.LoadModel(source.CharacterDef, prefab);
+            if (!runtimeRenderer.Configure(source.CharacterDef, source.BakedData, catalog, prefab, out var error))
+                throw new InvalidOperationException(error);
             var rightHand = runtimeRenderer.GetComponentInChildren<Animator>()
                 .GetBoneTransform(HumanBodyBones.RightHand);
             config.Entries = new[]
             {
                 new WeaponEntry
                 {
-                    AttackSlot = (byte)(AbilityLab.SlotIndices[7] + 1),
+                    AttackSlot = (byte)((CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[7]) - 1) + 1),
                     BoneName = rightHand.name,
                     Prefab = weaponPrefab,
                     PositionOffset = Vector3.zero,
@@ -406,7 +437,7 @@ public static class AbilityLabScenarioCommandSelfTest
             var weaponAttach = phaseTestModel.AddComponent<WeaponAttach>();
             weaponAttach.Init(runtimeRenderer, config);
             typeof(PlayerRenderer).GetField("_lastAttackSlot", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .SetValue(runtimeRenderer, (byte)(AbilityLab.SlotIndices[7] + 1));
+                .SetValue(runtimeRenderer, (byte)((CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[7]) - 1) + 1));
             var actionState = typeof(PlayerRenderer).GetField("_lastAnimState", BindingFlags.Instance | BindingFlags.NonPublic)!;
             actionState.SetValue(runtimeRenderer, SlopArena.Shared.ActionState.Aiming);
             weaponAttach.RefreshPresentation();
@@ -504,4 +535,10 @@ public static class AbilityLabScenarioCommandSelfTest
             UnityEngine.Object.DestroyImmediate(second);
         }
     }
+    private static void SetDefinition(AbilityLab lab, CharacterDefinition definition)
+    {
+        typeof(AbilityLab).GetProperty(nameof(AbilityLab.Def)).SetValue(lab, definition);
+        typeof(AbilityLab).GetProperty(nameof(AbilityLab.DisplayDef)).SetValue(lab, definition);
+    }
+
 }

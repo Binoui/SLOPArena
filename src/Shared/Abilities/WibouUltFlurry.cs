@@ -3,7 +3,7 @@ using System;
 namespace SlopArena.Shared.Abilities;
 
 /// <summary>
-/// Wibou's F — Blade Flurry (ult). A committed forward-moving multi-slash that ends in a
+/// Wibou's F — Blade Flurry (ult). A committed multi-slash that ends in a
 /// hard launch. This capability owns movement; the cooked timeline owns hitboxes and completion.
 /// </summary>
 public sealed class WibouUltFlurry : ServerAbility
@@ -35,15 +35,12 @@ public sealed class WibouUltFlurry : ServerAbility
         s.IsFastFalling = false;
         _ticks++;
 
-        // F timing is authored at 30 FPS: ascend on frames 7-14 (ticks 14-28),
-        // float at roughly two metres above launch height until frame 30 (tick 60),
-        // then descend through the spike.
-        if (_ticks >= 14 && _ticks <= 28)
+        if (_ticks >= _parameters.AscentStartTick && _ticks <= _parameters.AscentEndTick)
         {
             SetVelocityInFacing(ref s, _parameters.ForwardSpeed);
-            s.VY = 60f * 2f / (28f - 14f);
+            s.VY = _parameters.RiseSpeed;
         }
-        else if (_ticks < 60)
+        else if (_ticks < _parameters.DescentStartTick)
         {
             s.VX = 0f;
             s.VZ = 0f;
@@ -53,7 +50,7 @@ public sealed class WibouUltFlurry : ServerAbility
         {
             s.VX = 0f;
             s.VZ = 0f;
-            s.VY = -12f;
+            s.VY = -_parameters.DescentSpeed;
         }
     }
     public override void OnCancel(ref CharacterState s)

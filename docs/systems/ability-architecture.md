@@ -1,6 +1,6 @@
 # Ability Architecture
 
-SLOPArena abilities are authored as deterministic content and executed by the Shared simulation. The current architecture separates engine-owned mechanics, package-authored timelines, trusted built-in capabilities, and legacy compatibility code.
+SLOPArena abilities are authored as deterministic content and executed by the Shared simulation. Package-authored timelines compose public engine capabilities and explicitly admitted temporary built-in capabilities through one Shared lifecycle.
 
 ## Authority
 
@@ -185,8 +185,9 @@ its owner's chest at `returnSpeed`, its velocity changing by at most `returnAcce
 m/s². Each leg
 hits each fighter once; the return leg's knockback pulls toward the owner. The owner
 catches it when free (idle, running, crouching, sliding or in jump squat, with no
-hitstop, blockstun or landing lag), shielding, hanging on a ledge (a self-hit there would
-knock him off the stage), held or already being hit. Otherwise it hits him for
+hitstop, blockstun or landing lag), shielding, held or already being hit. The reserved
+`LedgeHang` state also takes the catch branch; automatic ledge grabs remain disabled.
+Otherwise it hits him for
 `selfHitDamage` with `selfHitStunTicks` of fixed hitstun (1–240) and no launch; armour
 takes the stun. The two outcomes emit `ProjectileCatch` and `ProjectileSelfHit`
 presentation events. A slot throws at most one returning projectile, and refuses its
@@ -198,12 +199,17 @@ the block yet.
 
 ## Engine-owned mechanics
 
-The engine owns deterministic implementation of movement, target/aim state, hitbox geometry, baked-bone resolution, projectiles, explosions, damage, Knockback, Hitstun, Hitstop, Clash, Burst, cooldowns, IASA, landing lag, and air-use limits. Package data composes these capabilities; it does not execute code on the authoritative server.
+The engine owns deterministic implementation of movement, target/aim state, hitbox geometry, baked-bone resolution, projectiles, explosions, damage, Knockback, Hitstun, Hitstop, rotational DI, SDI, ASDI, Shield, air dodge, grabs, throws, cooldowns, IASA, landing lag, and air-use limits. Package data composes these capabilities; it does not execute code on the authoritative server.
+
+Reciprocal active grabs clash; simultaneous attacks trade. Attack Clash remains planned, not implemented, under [ADR-0015](../adr/0015-timing-model-combat-pivot.md). Universal Dash is retired and automatic ledge grabs are disabled for the demo. The former Dash and Burst input bits stay reserved and inert; their unused timers and Warp input metadata are absent from snapshot format 6.
 
 `CookedTimelineAbility` is the current Shared interpreter. It advances stages,
 executes operations, starts admitted public or trusted built-in capability
-instances, and emits presentation events. `InternalCapabilityRegistry` resolves
-the exact admitted ID/version; unknown and retired capability IDs fail closed.
+instances, and emits presentation events. [`InternalCapabilityRegistry`](../../src/Shared/Abilities/InternalCapabilityRegistry.cs)
+constructs public engine capabilities as well as trusted `slop.internal.*` adapters.
+[`CharacterPackageCompiler`](../../src/Shared/CharacterPackageCompiler.cs) owns admission by
+ID, version, parameters, and cook profile; registry construction is not admission.
+Unknown and retired capability IDs fail closed.
 
 Slot cooldowns are authored in 60-Hz ticks and begin when the ability completes
 or is cancelled, not when it starts. Ground and air variants share the input-slot
@@ -217,7 +223,7 @@ while its authored cooldown is pending.
 
 ## Interruption and lifecycle ownership
 
-The generic runtime owns interruption. Hitstun, death, Burst, a new ability, and simulation-owned overrides cancel active timelines/capabilities through the cancellation path. Natural completion uses the completion path. Both paths must deterministically clear or preserve the state they own; authored timelines must not rely on a cleanup branch that may never execute.
+The generic runtime owns interruption. Hitstun, death, an accepted new ability, and simulation-owned overrides cancel active timelines/capabilities through the cancellation path. Natural completion uses the completion path. Both paths must deterministically clear or preserve the state they own; authored timelines must not rely on a cleanup branch that may never execute.
 
 Hit, block and stage-contact hooks (`OnHitEntity`, `OnShieldBlock`, `OnHitObject`) run
 only on the activation whose hitbox made the contact, matched by activation ID. A
@@ -228,20 +234,45 @@ capability that holds its height must switch gravity off, not only zero its spee
 
 `ServerSimulation` owns shared exit cleanup and cooldown application. Gameplay
 interruption removes activation-owned melee windows, clears armor, startup aim
-correction, and slide carry, and lets launched projectiles continue. Authoritative state replacement
-also removes the active activation's projectiles and discards cancellation callbacks'
-state writes so the incoming snapshot remains exact.
+correction, and slide carry, and lets launched projectiles continue. A reaction or
+defense that has already taken ownership discards the old cancellation callback's
+state writes. Permanent entity removal clears every owned activation's effects and
+hit credits. World Snapshot restoration prepares the complete replacement before
+applying it and runs no cancellation or completion callbacks.
 
 Cooked hitboxes and semantic bone IDs pass through one runtime conversion shared
-by timeline execution, capability hitboxes, compatibility projection, and CPU reach.
-The projected `AbilitySpec` remains needed for input, presentation, and pose geometry.
-Capabilities such as Wibou E/F must not execute the projected hitbox events again.
+by timeline execution, capability hitboxes, and CPU reach. `CookedSlotDefinition`
+is the sole move catalog. The running ability supplies its activation variant;
+bridges pass that move to presentation and geometry. Clip indices and their pose
+clock stay distinct from timeline stages and cancellation clocks. `AbilitySpec`
+and its named-slot projection have been removed.
 
 A presentation event contains stable match-tick/entity/operation identity. Clients resolve its semantic asset ID and deduplicate it across prediction and rollback. Presentation never feeds back into simulation.
 
 ## Trusted temporary capabilities
 
-FightGuy currently uses explicitly admitted `slop.internal.fightguy.*` capability IDs for native behavior that has not yet been decomposed into public creator primitives. These IDs are available only to the trusted built-in cook profile. A package cannot grant itself access, and Workshop content cannot reference them. Each exception needs an owner, reason, scope, and migration path under [ADR-0022](../adr/0022-workshop-first-content-architecture.md).
+The compiler's trusted capability list identifies temporary `slop.internal.*` exceptions, including FightGuy's native behavior. These IDs are available only to the trusted built-in cook profile. A package cannot grant itself access, and Workshop content cannot reference them. Each exception needs an owner, reason, scope, and migration path under [ADR-0022](../adr/0022-workshop-first-content-architecture.md).
+
+The kit named below owns its authored behavior; Shared combat owns the native
+implementation. Removal requires a replacement that preserves the kit's motion,
+contacts and input timing.
+
+| Capability | Kit owner and scope | Migration path |
+|---|---|---|
+| `slop.internal.fightguy.rising-dragon.v1` | FightGuy E, rising recovery | Public recovery primitive after trajectory and contact parity |
+| `slop.internal.fightguy.cyclone-kick.v1` | FightGuy R, rotating movement and hits | Cooked movement and hit windows after parity |
+| `slop.internal.wibou.rising-slash.v1` | Wibou E, aimed rising slash | Public recovery primitive after trajectory and contact parity |
+| `slop.internal.wibou.blade-flurry.v2` | Wibou F, per-tick flight control | Keep the versioned contract until cooked operations reproduce held-input motion |
+| `slop.internal.manki.round-bomb.v1` | Manki A, charged bomb | Public charged-projectile behavior after charge and explosion parity |
+| `slop.internal.manki.jetpack-boost.v1` | Manki E, jetpack recovery | Public recovery primitive after trajectory and landing parity |
+| `slop.internal.manki.bazooka.v1` | Manki R, held launch and recoil | Public charged-projectile behavior after hold, recoil and cancellation parity |
+| `slop.internal.manki.aerosol-inferno.v1` | Manki F; approved Bashie F stand-in | Public charged-stream behavior after charge and contact parity; replace Bashie's stand-in with her authored kit |
+
+Blade Flurry v2 authors ascent start/end, descent start, rise/descent speed and
+forward speed. The unused v1 `moveTicks` contract is rejected. Wibou's package
+version and hashes changed, so older local Arcade records remain stored but do
+not compare against this content. Generic movement operations were rejected for
+this migration because they changed flight under held input.
 
 ## Shared ability lifecycle
 
@@ -276,6 +307,11 @@ A fresh accepted press supersedes an older buffer. Landing-lag and defense-commi
 presses are discarded, including on their expiry tick; they do not queue an attack.
 
 The Match Content Catalog is immutable for the match. A later cook applies only to a later match. Missing, invalid, stale, incompatible, or hash-mismatched content fails closed; it does not fall back to raw source, C# definitions, or a similar capability.
+
+Admitted `CharacterDefinition` values have init-only properties, defensively copied
+collections and reference identity. Baked pose buffers and capability tiers are also
+copied on construction and exposed read-only. Server and predictor can safely share
+the admitted values; authoring and tests construct replacements when they change data.
 
 ## Modifying abilities
 

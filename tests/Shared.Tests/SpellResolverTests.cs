@@ -148,6 +148,137 @@ public class SpellResolverTests
         Assert.Equal(101UL, hit.TargetEntityId);
     }
 
+    [Theory]
+    [InlineData(HitboxShape.Sphere, false, false)]
+    [InlineData(HitboxShape.Sphere, true, false)]
+    [InlineData(HitboxShape.Capsule, false, false)]
+    [InlineData(HitboxShape.Capsule, true, false)]
+    [InlineData(HitboxShape.Sphere, false, true)]
+    [InlineData(HitboxShape.Sphere, true, true)]
+    [InlineData(HitboxShape.Capsule, false, true)]
+    [InlineData(HitboxShape.Capsule, true, true)]
+    public void ProjectileContactsNearBeforeFarRegardlessOfEntityOrder(HitboxShape shape, bool reverse, bool multiple)
+    {
+        var resolver = new SpellResolver();
+        var projectile = MakeHitbox(-2f, .5f, 0f, .1f);
+        projectile.VX = 480f;
+        projectile.HitsMultipleOpponents = multiple;
+        resolver.Spawn(projectile);
+        var near = MakeEntity(2, 0, .5f, 0);
+        var far = MakeEntity(3, 3, .5f, 0);
+        near.Shape = far.Shape = shape;
+        if (shape == HitboxShape.Capsule)
+        {
+            near.PosY = far.PosY = 0;
+            near.EndY = far.EndY = 1;
+        }
+        var entities = reverse
+            ? new List<SpellResolver.EntityData> { far, near }
+            : new List<SpellResolver.EntityData> { near, far };
+        var hits = resolver.Tick(entities);
+        Assert.Equal(multiple ? 2 : 1, hits.Count);
+        Assert.Equal(2UL, hits[0].TargetEntityId);
+        Assert.Equal(.175f, hits[0].ContactTime, 5);
+        Assert.Equal(-.5f, hits[0].HitX, 5);
+        Assert.Equal(1f, hits[0].DirX, 5);
+        if (multiple)
+        {
+            Assert.Equal(3UL, hits[1].TargetEntityId);
+            Assert.True(hits[0].ContactTime < hits[1].ContactTime);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProjectileCrossingShieldAndBodyChoosesTheShieldFirst(bool reverse)
+    {
+        var resolver = new SpellResolver();
+        var projectile = MakeHitbox(-2, 0, 0, .1f);
+        projectile.VX = 240;
+        resolver.Spawn(projectile);
+        var shield = MakeEntity(2, 0, 0, 0, 1);
+        shield.ShieldSurface = true;
+        var body = MakeEntity(2, 0, 0, 0, .5f);
+        var hit = Assert.Single(resolver.Tick(reverse ? new() { body, shield } : new() { shield, body }));
+        Assert.Equal(.225f, hit.ContactTime, 5);
+        Assert.Equal(-1f, hit.HitX, 5);
+    }
+
+    [Theory]
+    [InlineData(HitboxShape.Sphere)]
+    [InlineData(HitboxShape.Capsule)]
+    public void SweptImpactSuppliesExplosionAndRemovalOrigin(HitboxShape shape)
+    {
+        var resolver = new SpellResolver();
+        var projectile = MakeHitbox(-2, .5f, 0, .1f);
+        projectile.VX = 240;
+        projectile.Explosion = new ProjectileExplosion { Radius = 2, Damage = 3 };
+        float removedX = float.NaN;
+        resolver.OnHitboxRemoved = (_, x, _, _) => removedX = x;
+        resolver.Spawn(projectile);
+        var target = MakeEntity(2, 0, .5f, 0);
+        target.Shape = shape;
+        if (shape == HitboxShape.Capsule) { target.PosY = 0; target.EndY = 1; }
+        Assert.Single(resolver.Tick(new() { target }));
+        var explosion = Assert.Single(resolver.DrainPendingExplosions());
+        Assert.Equal(-.6f, explosion.x, 5);
+        Assert.Equal(.5f, explosion.y, 5);
+        Assert.Equal(-.6f, removedX, 5);
+    }
+
+    [Theory]
+    [InlineData(0f, 0f)]
+    [InlineData(1f, .5f)]
+    [InlineData(1f, 1.5f)]
+    public void ProjectileSweepsCapsuleCylinderCapsAndDegenerateSegment(float length, float height)
+    {
+        var resolver = new SpellResolver();
+        var projectile = MakeHitbox(-2, height, 0, .1f);
+        projectile.VX = 240;
+        resolver.Spawn(projectile);
+        var capsule = MakeEntity(2, 0, 0, 0);
+        capsule.Shape = HitboxShape.Capsule;
+        capsule.EndY = length;
+        var hit = Assert.Single(resolver.Tick(new() { capsule }));
+        Assert.InRange(hit.ContactTime, 0f, 1f);
+        Assert.True(hit.HitX < 0);
+    }
+
+    [Fact]
+    public void SweptProjectileInitialOverlapPrecedesLaterContact()
+    {
+        var resolver = new SpellResolver();
+        var projectile = MakeHitbox(0, 0, 0, .1f);
+        projectile.VX = 240;
+        resolver.Spawn(projectile);
+        var hit = Assert.Single(resolver.Tick(new() { MakeEntity(3, 2, 0, 0), MakeEntity(2, 0, 0, 0) }));
+        Assert.Equal(2UL, hit.TargetEntityId);
+        Assert.Equal(0, hit.ContactTime);
+    }
+
+    [Fact]
+    public void EqualTimeProjectileContactsRetainCandidatePriority()
+    {
+        var resolver = new SpellResolver();
+        var projectile = MakeHitbox(-2, 0, 0, .1f);
+        projectile.VX = 240;
+        resolver.Spawn(projectile);
+        var hit = Assert.Single(resolver.Tick(new() { MakeEntity(3, 0, 0, 0), MakeEntity(2, 0, 0, 0) }));
+        Assert.Equal(3UL, hit.TargetEntityId);
+    }
+
+    [Fact]
+    public void MovingMeleeStillUsesItsCurrentOverlap()
+    {
+        var resolver = new SpellResolver();
+        var melee = MakeHitbox(-2, 0, 0, .1f);
+        melee.VX = 240;
+        melee.CancelWithAbility = true;
+        resolver.Spawn(melee);
+        Assert.Empty(resolver.Tick(new() { MakeEntity(2, 0, 0, 0) }));
+    }
+
     // ── CanHitOwner ──
 
     [Fact]

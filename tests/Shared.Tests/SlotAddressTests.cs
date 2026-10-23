@@ -9,6 +9,24 @@ namespace SlopArena.Shared.Tests;
 public sealed class SlotAddressTests
 {
     [Fact]
+    public void CanonicalMovesKeepHistoricalWireValuesAndReservedSlotsStayEmpty()
+    {
+        byte[] historical = { 3, 7, 8, 9, 11, 4, 5, 6 };
+        foreach (var address in CanonicalSlotProjection.All)
+        {
+            byte wire = historical[address.Ordinal % 8];
+            Assert.Equal(wire, CanonicalSlotProjection.ToWire(address));
+            Assert.True(CanonicalSlotProjection.TryGet(wire, address.IsAirborne, out var decoded));
+            Assert.Equal(address, decoded);
+        }
+        foreach (byte reserved in new byte[] { 0, 1, 2, 10, 12, 255 })
+        {
+            Assert.False(CanonicalSlotProjection.TryGet(reserved, false, out _));
+            Assert.False(CanonicalSlotProjection.TryGet(reserved, true, out _));
+        }
+    }
+
+    [Fact]
     public void AllHasExactCanonicalOrderAndMetadata()
     {
         var expectedLabels = new[] { "1", "2", "3", "4", "A", "E", "R", "F" };

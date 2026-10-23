@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CharacterAssetCatalog
   m_EditorClassIdentifier: 
   _packageId: fightguy
-  _catalogSchemaVersion: 1
+  _catalogSchemaVersion: 2
   _rig: {fileID: 1802147238805907036, guid: eb6307c86ccb789bd94bc718e2060bcd, type: 3}
   _weaponConfig: {fileID: 0}
   _sampleRate: 60
@@ -155,3 +155,56 @@ MonoBehaviour:
     _prefab: {fileID: 4886918678374361243, guid: 9ef3177a175af7c0a85d0e446e4165d2, type: 3}
   - _semanticId: presentation.fightguy.fist-of-fury.hit
     _prefab: {fileID: 1687520320000732585, guid: 2f45febf1f8d0ab1ca48dc771b1897bb, type: 3}
+  _presentationProfile:
+    _respawnTint: {r: 0.28, g: 0.72, b: 1, a: 0.95}
+    _swing:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 707ca65f200bf40bcab4ef812c3d427d, type: 3}
+      - {fileID: 8300000, guid: ed465d476e507d9bb9e9a9359ade1d2a, type: 3}
+      - {fileID: 8300000, guid: 9be9dfd75dc540c78897febf9bf7e76d, type: 3}
+      - {fileID: 8300000, guid: 99b37e744452b591e9e3af99fa91c5cb, type: 3}
+      - {fileID: 8300000, guid: e46c912cc4aa8a2098a6eea4ad393261, type: 3}
+      - {fileID: 8300000, guid: 6ec040a102f39bd5cbaac3462e85b8e6, type: 3}
+      - {fileID: 8300000, guid: 9ea02d45c6f7600ca964ce14d4a44957, type: 3}
+      - {fileID: 8300000, guid: 45385d1bd177bd24a833221614bd336b, type: 3}
+      - {fileID: 8300000, guid: 0f121ebae08cb1234a711d24ce5201a6, type: 3}
+      - {fileID: 8300000, guid: ff76c58c24d9be42c86c94eeca1ad950, type: 3}
+      - {fileID: 8300000, guid: f7d55de2a64dca655970376f6784b0e1, type: 3}
+      - {fileID: 8300000, guid: d60d1ba95d84e8aaebfbda4c5e711a08, type: 3}
+      - {fileID: 8300000, guid: 42d87849187b79c42a3ac65e5de9afd6, type: 3}
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 0029c10ef707c8b1199ecc96c44caa12, type: 3}
+      - {fileID: 8300000, guid: beed22528bd555d52a1bdd351b792242, type: 3}
+      - {fileID: 8300000, guid: 850c4c71587eb80e79e016e55758ece6, type: 3}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 4fe493f595d3130eeb68676b868598ca, type: 3}
+      - {fileID: 8300000, guid: 3ede2593564c0e051b9f3a255d1af04b, type: 3}
+      - {fileID: 8300000, guid: 24f7c9a1893590c49974821006f40e8c, type: 3}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 1
+      _clips:
+      - {fileID: 8300000, guid: 30a4f31695b8d572e8094b3acd7bcbd8, type: 3}
+      - {fileID: 8300000, guid: a3b984619edd48dd7b015bada2e5fd2b, type: 3}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles:
+    - _slotId: ground.A
+      _prefab: {fileID: 371480232865508523, guid: 2f0cc5e6fff47a1b29c78abe41889a97, type: 3}
+      _scale: 1
+      _orientation: 0
+      _heldBoneId: bone.right-hand
+      _prefabObjectId: 
+    - _slotId: air.A
+      _prefab: {fileID: 371480232865508523, guid: 2f0cc5e6fff47a1b29c78abe41889a97, type: 3}
+      _scale: 1
+      _orientation: 0
+      _heldBoneId: bone.right-hand
+      _prefabObjectId: 

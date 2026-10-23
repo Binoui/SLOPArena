@@ -239,7 +239,7 @@ public sealed class ChargedDirectionalDashAbility : ServerAbility, IAimHoldCapab
         _phase = Phase.Ended;
         s.IsAiming = false;
         s.ChargeTicks = 0;
-        if (ownsDashVelocity && s.State != ActionState.Hitstun && s.HitstunTicks == 0 && !Simulation.HasKnockback(s))
+        if (ownsDashVelocity)
             s.VX = s.VZ = 0f;
     }
 

@@ -14,6 +14,7 @@ namespace SlopArena.Client.Animation
         {
             if (identity == null) throw new ArgumentNullException(nameof(identity));
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            if (!MatchesAdmission(catalog, identity, out var error)) throw new ArgumentException(error, nameof(catalog));
             catalog.hideFlags |= HideFlags.DontSave;
             string key = EditorCatalogKey(identity.PackageId, identity.SourceHash);
             if (editorDevelopmentCatalogs.TryGetValue(key, out var previous) && previous != null)
@@ -64,7 +65,7 @@ namespace SlopArena.Client.Animation
             }
             if (!editorBindingCatalogFactory(bindingBytes, out catalog, out error))
                 return false;
-            if (catalog.PackageId != identity.PackageId || catalog.SourceHash != identity.SourceHash)
+            if (!MatchesAdmission(catalog, identity, out error))
             {
                 UnityEngine.Object.DestroyImmediate(catalog);
                 catalog = null;
@@ -161,6 +162,7 @@ namespace SlopArena.Client.Animation
             if (editorDevelopmentCatalogs.TryGetValue(EditorCatalogKey(identity.PackageId, identity.SourceHash), out var editorCatalog) &&
                 editorCatalog != null)
             {
+                if (!MatchesAdmission(editorCatalog, identity, out error)) return false;
                 if (editorCatalog.Rig == null)
                 {
                     error = $"Editor animation catalog rig is missing for '{identity.PackageId}'.";
@@ -194,6 +196,7 @@ namespace SlopArena.Client.Animation
                 error = $"Generated animation catalog is missing for '{identity.PackageId}'.";
                 return false;
             }
+            if (!MatchesAdmission(match, identity, out error)) return false;
             if (match.SourceHash != identity.SourceHash)
             {
                 error = $"Generated animation catalog source hash mismatch for '{identity.PackageId}'.";
@@ -209,6 +212,13 @@ namespace SlopArena.Client.Animation
             rig = match.Rig;
             weaponConfig = match.WeaponConfig;
             return true;
+        }
+        private static bool MatchesAdmission(CharacterAnimationCatalog catalog, MatchContentIdentity identity, out string error)
+        {
+            bool valid = catalog != null && catalog.CatalogSchemaVersion == 2 && catalog.BindingSchemaVersion == 2
+                && catalog.PresentationProfile != null && catalog.PackageId == identity.PackageId && catalog.SourceHash == identity.SourceHash;
+            error = valid ? "" : $"Schema 2 client catalog/profile and matching admitted package/source identity are required for '{identity.PackageId}'.";
+            return valid;
         }
         private static bool IsSha256(string value)
         {

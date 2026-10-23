@@ -489,10 +489,10 @@ public sealed class BonkKitTests
         sim.RegisterEntity(1, def, state);
         var targetDef = TestHelpers.CombatDef;
         // Oversized hurtbox isolates per-hit identity from blade reach and body separation.
-        targetDef.HurtboxCapsules = new[]
+        targetDef = targetDef with { HurtboxCapsules = new[]
         {
             new HurtboxCapsule(0f, -0.65f, 0f, 0f, 0.65f, 0f, 1f),
-        };
+        } };
         var target = TestHelpers.NpcState(x: 100f, z: 100.1f);
         target.PY = TestHelpers.GroundPY(targetDef);
         sim.RegisterEntity(100, targetDef, target);
@@ -528,7 +528,7 @@ public sealed class BonkKitTests
             state.PY = TestHelpers.GroundPY(def) + (airborne ? 3f : 0f);
             state.IsGrounded = !airborne;
             sim.RegisterEntity(1, def, state);
-            float scale = def.GetAimMovementSpeedScale(AbilitySlots.F, airborne);
+            float scale = (def.GetCookedSlotAbility(AbilitySlots.F, airborne)?.AimMovementSpeedScale ?? 1f);
             Assert.InRange(scale, 0.1f, 0.9f);
 
             var heavySeen = false;

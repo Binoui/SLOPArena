@@ -293,9 +293,11 @@ public sealed class BonkSpecialTests
         var names = bindings.RootElement.GetProperty("animations").EnumerateArray()
             .ToDictionary(x => x.GetProperty("poseTrackId").GetString()!,
                 x => x.GetProperty("semanticId").GetString()!, StringComparer.Ordinal);
-        foreach (var animation in baked.Animations)
-            animation.Name = names[animation.Name];
-        return baked;
+        return new BakedAnimationData
+        {
+            BoneNames = baked.BoneNames,
+            Animations = baked.Animations.Select(animation => animation.WithName(names[animation.Name])).ToArray(),
+        };
     }
 
     private static string RepoFile(string relative)

@@ -244,10 +244,10 @@ public class ShieldStateTests
         {
             PY = TestHelpers.GroundPY(def), KVX = 3f, LandingLagTicks = 4,
         };
-        var state = Tick(Make(initial), new InputState { ShieldHeld = true, ShieldPressed = true, Burst = true });
+        var state = Tick(Make(initial), TestHelpers.ReservedInput(0x40,
+            new InputState { ShieldHeld = true, ShieldPressed = true }));
         Assert.NotEqual(ActionState.Shielding, state.State);
         Assert.Equal((ushort)0, state.InvincibilityTicks);
-        Assert.Equal((ushort)0, state.BurstCooldownTicks);
         Assert.Equal((ushort)0, state.DamagePercent);
     }
 

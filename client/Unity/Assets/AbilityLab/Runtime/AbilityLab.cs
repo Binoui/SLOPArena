@@ -28,8 +28,8 @@ namespace SlopArena.Client.Tools
         public enum AuthoringPhase { Charge, Fire }
 
         /// <summary>Fixed Ability Lab slot order: 1, 2, 3, 4, A, E, R, F.</summary>
-        public static readonly int[] SlotIndices = { 2, 6, 7, 8, 10, 3, 4, 5 };
-        public static readonly string[] SlotNames = { "1", "2", "3", "4", "A", "E", "R", "F" };
+
+        public static readonly string[] SlotNames = CanonicalSlotProjection.All.Take(8).Select(slot => slot.InputLabel).ToArray();
 
         public static AbilityLab Instance { get; private set; }
         public readonly struct TimelineCursor
@@ -121,7 +121,7 @@ namespace SlopArena.Client.Tools
                 int index = Array.IndexOf(SlotNames, address.InputLabel);
                 SelectedSlotId = address.Id;
                 Airborne = address.IsAirborne;
-                SlotIndex = SlotIndices[index];
+                SlotIndex = (CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[index]) - 1);
             }
             StageIndex = cursor.Stage;
             Tick = cursor.Tick;
@@ -316,7 +316,7 @@ namespace SlopArena.Client.Tools
         public CharacterDefinition Def { get; private set; } = null!;
         public CharacterDefinition DisplayDef { get; private set; } = null!; // Def + hurtbox override
         public BakedAnimationData? Baked { get; private set; }
-        public string[] BakedBoneNames => Baked?.BoneNames ?? Array.Empty<string>();
+        public string[] BakedBoneNames => Baked?.BoneNames.ToArray() ?? Array.Empty<string>();
         public bool AuthoritativePreview { get; private set; }
         public string PreviewStatus { get; private set; } = "Preview unavailable";
         private CharacterAnimationCatalog _previewAnimationCatalog;
@@ -395,7 +395,7 @@ namespace SlopArena.Client.Tools
                 if (CanonicalSlotProjection.TryGet(options.Action, out var address))
                 {
                     Airborne = address.IsAirborne;
-                    SlotIndex = SlotIndices[Array.IndexOf(SlotNames, address.InputLabel)];
+                    SlotIndex = (CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[Array.IndexOf(SlotNames, address.InputLabel)]) - 1);
                     SelectedSlotId = address.Id;
                     StageIndex = 0;
                     Tick = 0;
@@ -509,7 +509,7 @@ namespace SlopArena.Client.Tools
                 _scenarioChargeIndicator?.Clear();
                 return;
             }
-            var cookedSlot = Def.GetCookedSlotAbility((byte)(SlotIndices[index] + 1), airborne);
+            var cookedSlot = Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[index]), airborne);
             CookedChargedDirectionalDashCapabilityParameters? parameters = null;
             if (cookedSlot != null)
                 foreach (var stage in cookedSlot.Timeline.Stages)
@@ -837,12 +837,12 @@ namespace SlopArena.Client.Tools
             ushort priorTick = Tick;
             int priorHitbox = SelectedHitboxEventIndex;
             if (!CanonicalSlotProjection.TryGet(priorSlotId, out var priorAddress) ||
-                definition.GetSlotAbility(SlotIndices[Array.IndexOf(SlotNames, priorAddress.InputLabel)], priorAddress.IsAirborne) == null)
+                definition.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[Array.IndexOf(SlotNames, priorAddress.InputLabel)]), priorAddress.IsAirborne) == null)
                 priorAddress = CanonicalSlotProjection.All[0];
 
             int labelIndex = Array.IndexOf(SlotNames, priorAddress.InputLabel);
-            var spec = definition.GetSlotAbility(SlotIndices[labelIndex], priorAddress.IsAirborne);
-            if (spec?.Stages == null || spec.Stages.Length == 0)
+            var spec = definition.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[labelIndex]), priorAddress.IsAirborne);
+            if (spec?.Timeline.Stages == null || spec.Timeline.Stages.Count == 0)
             {
                 MarkPackageDraftInvalid();
                 return;
@@ -858,21 +858,21 @@ namespace SlopArena.Client.Tools
             SelectedPackageId = package.Metadata.PackageId;
             SelectedSlotId = priorAddress.Id;
             Airborne = priorAddress.IsAirborne;
-            SlotIndex = SlotIndices[labelIndex];
+            SlotIndex = (CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[labelIndex]) - 1);
             Def = definition;
             Baked = persistedPreview.BakedPoses;
             WorkingDefs = definition.HurtboxBoneDefs != null
-                ? (HurtboxBoneDef[])definition.HurtboxBoneDefs.Clone()
+                ? definition.HurtboxBoneDefs.ToArray()
                 : Array.Empty<HurtboxBoneDef>();
             DisplayDef = definition;
             AuthoritativePreview = false;
             _packagePreviewAvailable = true;
             _liveDraftPackage = package;
             PreviewStatus = "Live draft";
-            StageIndex = Mathf.Clamp(priorStage, 0, spec.Stages.Length - 1);
-            var stage = spec.Stages[StageIndex];
+            StageIndex = Mathf.Clamp(priorStage, 0, spec.Timeline.Stages.Count - 1);
+            var stage = spec.Timeline.Stages[StageIndex];
             Tick = (ushort)Mathf.Clamp(priorTick, 0, Mathf.Max(0, stage.DurationTicks - 1));
-            int hitboxCount = stage.HitboxEvents?.Length ?? 0;
+            int hitboxCount = stage.ReadHitboxes()?.Length ?? 0;
             SelectedHitboxEventIndex = priorHitbox >= 0 && priorHitbox < hitboxCount ? priorHitbox : -1;
             SpawnRenderer();
             RefreshPose();
@@ -914,7 +914,7 @@ namespace SlopArena.Client.Tools
             SelectedPackageId = packageId;
             Def = definition;
             Baked = baked;
-            WorkingDefs = definition.HurtboxBoneDefs != null ? (HurtboxBoneDef[])definition.HurtboxBoneDefs.Clone() : Array.Empty<HurtboxBoneDef>();
+            WorkingDefs = definition.HurtboxBoneDefs != null ? definition.HurtboxBoneDefs.ToArray() : Array.Empty<HurtboxBoneDef>();
             DisplayDef = definition;
             AuthoritativePreview = true;
             _packagePreviewAvailable = true;
@@ -955,6 +955,8 @@ namespace SlopArena.Client.Tools
 
         private void DestroyPreviewCatalog()
         {
+            _projectilePresentation?.UnregisterOwner(1);
+            _projectilePresentation?.UnregisterOwner(2);
             if (_previewAnimationCatalog == null) return;
 #if UNITY_EDITOR
             if (!EditorUtility.IsPersistent(_previewAnimationCatalog))
@@ -1011,7 +1013,7 @@ namespace SlopArena.Client.Tools
                     }
                 }
             }
-            return def.HurtboxBoneDefs != null ? (HurtboxBoneDef[])def.HurtboxBoneDefs.Clone() : Array.Empty<HurtboxBoneDef>();
+            return def.HurtboxBoneDefs != null ? def.HurtboxBoneDefs.ToArray() : Array.Empty<HurtboxBoneDef>();
         }
 
 
@@ -1030,11 +1032,11 @@ namespace SlopArena.Client.Tools
             EnsurePreviewRenderers();
             if (DisplayDef == null) return;
 
-            ConfigureRenderer(_previewRenderer, DisplayDef, "LabCharacter");
+            if (!ConfigureRenderer(_previewRenderer, DisplayDef, "LabCharacter")) return;
             _previewRenderer.transform.position = BasePosition();
             _weaponAttach = AttachWeapon(_previewRenderer, DisplayDef);
 
-            ConfigureRenderer(_dummyRenderer, DisplayDef, "LabDummy");
+            if (!ConfigureRenderer(_dummyRenderer, DisplayDef, "LabDummy")) return;
             PositionDummy();
             _dummyRenderer.gameObject.SetActive(ShowDummy);
             _dummyWeaponAttach = AttachWeapon(_dummyRenderer, DisplayDef);
@@ -1060,19 +1062,25 @@ namespace SlopArena.Client.Tools
             return attach;
         }
 
-        private void ConfigureRenderer(PlayerRenderer renderer, CharacterDefinition def, string name)
+        private SlopArena.Client.Combat.ProjectileVFXManager _projectilePresentation;
+
+        private bool ConfigureRenderer(PlayerRenderer renderer, CharacterDefinition def, string name)
         {
+            if (!renderer.Configure(def, Baked, _previewAnimationCatalog, _previewRig, out var error))
+            {
+                Debug.LogError($"[AbilityLab] Renderer configuration failed: {error}");
+                return false;
+            }
             renderer.name = name;
-            renderer.ModelYOffset = def.ModelYOffset;
-            renderer.CapsuleRadius = def.CapsuleRadius;
-            renderer.CapsuleHeight = def.CapsuleHeight;
-            renderer.HurtboxBoneDefs = def.HurtboxBoneDefs;
-            renderer.SetBakedData(Baked);
-            renderer.SetAnimationCatalog(_previewAnimationCatalog);
-            renderer.SetCharacterDefinition(def);
-            renderer.LoadModel(def, _previewRig);
+            if (_projectilePresentation == null)
+                _projectilePresentation = GetComponent<SlopArena.Client.Combat.ProjectileVFXManager>()
+                    ?? gameObject.AddComponent<SlopArena.Client.Combat.ProjectileVFXManager>();
+            renderer.EntityId = renderer == _previewRenderer ? 1UL : 2UL;
+            _projectilePresentation.RegisterOwner(renderer.EntityId, _previewAnimationCatalog, renderer);
+            renderer.BindProjectilePresentation(_projectilePresentation);
             foreach (var skin in renderer.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 skin.forceMatrixRecalculationPerRender = true;
+            return true;
         }
 
 
@@ -1092,26 +1100,25 @@ namespace SlopArena.Client.Tools
 
         // ── Ability accessors ──
 
-        public AbilitySpec? CurrentSpec() => Def?.GetSlotAbility(SlotIndex, Airborne);
+        public CookedSlotDefinition? CurrentMove() => Def?.GetCookedSlotAbility((byte)((SlotIndex) + 1), Airborne);
 
 
         /// <summary>
-        /// Stage lookup without nullable-struct pitfalls (AttackStage? member access
+        /// Stage lookup without nullable-struct pitfalls (CookedStage? member access
         /// does not narrow after == null in Roslyn). Returns false when there is no
         /// selectable stage.
         /// </summary>
-        public bool TryGetStage(out AttackStage stage)
+        public bool TryGetStage(out CookedStage stage)
         {
             stage = default;
-            var spec = CurrentSpec();
-            if (spec?.Stages == null || StageIndex < 0 || StageIndex >= spec.Stages.Length) return false;
-            stage = spec.Stages[StageIndex];
+            var spec = CurrentMove();
+            if (spec?.Timeline.Stages == null || StageIndex < 0 || StageIndex >= spec.Timeline.Stages.Count) return false;
+            stage = spec.Timeline.Stages[StageIndex];
             return true;
         }
 
-        private static string AnimNameFor(AbilitySpec spec, int stageIndex)
-            => spec.AnimationNames != null && stageIndex >= 0 && stageIndex < spec.AnimationNames.Length
-                ? spec.AnimationNames[stageIndex] : "idle";
+        private static string AnimNameFor(CookedSlotDefinition spec, int stageIndex)
+            => spec.Clip(spec.FirstClipIndex(stageIndex)).AnimationId;
 
         // ── State setters (window/UI entry points — keep pose + selection coherent) ──
 
@@ -1138,7 +1145,7 @@ namespace SlopArena.Client.Tools
             int labelIndex = Array.IndexOf(SlotNames, canonical.InputLabel);
             if (labelIndex < 0) return;
             Airborne = canonical.IsAirborne;
-            SlotIndex = SlotIndices[labelIndex];
+            SlotIndex = (CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[labelIndex]) - 1);
             SelectedSlotId = canonical.Id;
             StageIndex = 0;
             Tick = 0;
@@ -1165,7 +1172,7 @@ namespace SlopArena.Client.Tools
         private void UpdateSelectedSlotId()
         {
             if (!IsPackagePreview) return;
-            int labelIndex = Array.IndexOf(SlotIndices, SlotIndex);
+            int labelIndex = (CanonicalSlotProjection.TryGet((byte)(SlotIndex + 1), false, out var currentAddress) ? currentAddress.Ordinal : -1);
             if (labelIndex >= 0 && CanonicalSlotProjection.TryGet(Airborne, SlotNames[labelIndex], out var address))
                 SelectedSlotId = address.Id;
         }
@@ -1210,8 +1217,8 @@ namespace SlopArena.Client.Tools
         /// <summary>The currently authored hitbox events for the selected stage.</summary>
         public HitboxEvent[] CurrentWorkingEvents()
         {
-            return TryGetStage(out var stage) && stage.HitboxEvents != null
-                ? stage.HitboxEvents
+            return TryGetStage(out var stage) && stage.ReadHitboxes() != null
+                ? stage.ReadHitboxes()
                 : Array.Empty<HitboxEvent>();
         }
 
@@ -1253,7 +1260,7 @@ namespace SlopArena.Client.Tools
             }
             if (Baked == null) return _hurtboxes; // no pose data at all
 
-            var spec = CurrentSpec();
+            var spec = CurrentMove();
             if (spec == null || !TryGetStage(out var stage)) return _hurtboxes;
 
             string animName = AnimNameFor(spec, StageIndex);
@@ -1314,7 +1321,7 @@ namespace SlopArena.Client.Tools
                 }
                 return _hitboxes;
             }
-            var spec = CurrentSpec();
+            var spec = CurrentMove();
             if (spec == null || !TryGetStage(out var stage)) return _hitboxes;
 
             Vector3 lungeDisplacement = CalculateLungeDisplacement();
@@ -1324,17 +1331,14 @@ namespace SlopArena.Client.Tools
                 PY = BasePosition().y,
                 PZ = transform.position.z + lungeDisplacement.z,
                 FacingYaw = FacingYaw,
-                AttackElapsedTicks = Tick,
+                AttackElapsedTicks = (ushort)(Tick + spec.Clip(spec.FirstClipIndex(StageIndex)).StartTick),
             };
             var events = CurrentWorkingEvents();
             for (int i = 0; i < events.Length; i++)
             {
                 var evt = events[i];
                 if (Tick < evt.TriggerTick || Tick >= evt.TriggerTick + evt.DurationTicks) continue;
-                HitboxGeometry.ResolvePositions(state, evt, Baked, DisplayDef,
-                    spec.AnimationNames, (byte)StageIndex, (byte)SlotIndex, Airborne,
-                    out float wx, out float wy, out float wz,
-                    out float wex, out float wey, out float wez);
+                HitboxGeometry.ResolvePositions(state, evt, Baked, DisplayDef, DisplayDef?.GetCookedSlotAbility((byte)(((byte)SlotIndex) + 1), Airborne), spec.FirstClipIndex(StageIndex), out float wx, out float wy, out float wz, out float wex, out float wey, out float wez);
                 _hitboxes.Add((i, evt, new Vector3(wx, wy, wz), new Vector3(wex, wey, wez)));
                 _hitboxSweeps.Add(null);
             }
@@ -1574,7 +1578,7 @@ namespace SlopArena.Client.Tools
                 RefreshPhasePose();
                 return;
             }
-            var spec = CurrentSpec();
+            var spec = CurrentMove();
             if (spec == null || !TryGetStage(out var stage))
             {
                 _presentationPreviewer.Clear();
@@ -1584,8 +1588,8 @@ namespace SlopArena.Client.Tools
                 return;
             }
             _previewRenderer.EnsureModel();
-            if (_previewRenderer.transform.childCount == 0)
-                ConfigureRenderer(_previewRenderer, DisplayDef, "LabCharacter");
+            if (_previewRenderer.transform.childCount == 0
+                && !ConfigureRenderer(_previewRenderer, DisplayDef, "LabCharacter")) return;
             Vector3 lungeDisplacement = CalculateLungeDisplacement();
             _previewRenderer.transform.position = BasePosition() + lungeDisplacement;
             float normalized = stage.DurationTicks > 0 ? (float)Tick / stage.DurationTicks : 0f;
@@ -1605,8 +1609,8 @@ namespace SlopArena.Client.Tools
             if (IsPackagePreview && Def.GetCookedSlotAbility((byte)(SlotIndex + 1), Airborne) != null)
             {
                 int simulationTick = Tick;
-                for (int index = 0; index < StageIndex && index < spec.Stages.Length; index++)
-                    simulationTick += spec.Stages[index].DurationTicks;
+                for (int index = 0; index < StageIndex && index < spec.Timeline.Stages.Count; index++)
+                    simulationTick += spec.Timeline.Stages[index].DurationTicks;
                 _simulationPreviewer.Simulate(
                     Def,
                     Baked,
@@ -1685,8 +1689,8 @@ namespace SlopArena.Client.Tools
                 return;
             }
             _previewRenderer.EnsureModel();
-            if (_previewRenderer.transform.childCount == 0)
-                ConfigureRenderer(_previewRenderer, DisplayDef, "LabCharacter");
+            if (_previewRenderer.transform.childCount == 0
+                && !ConfigureRenderer(_previewRenderer, DisplayDef, "LabCharacter")) return;
             _phaseTick = Mathf.Clamp(_phaseTick, 0, duration - 1);
             _previewRenderer.transform.SetPositionAndRotation(
                 BasePosition(), Quaternion.Euler(0f, FacingYaw * Mathf.Rad2Deg, 0f));
@@ -1868,7 +1872,7 @@ namespace SlopArena.Client.Tools
         {
             if (Baked == null || DisplayDef == null) return;
 
-            var spec = CurrentSpec();
+            var spec = CurrentMove();
             if (spec == null || !TryGetStage(out var stage)) return;
 
             string animName = AnimNameFor(spec, StageIndex);
@@ -1883,16 +1887,16 @@ namespace SlopArena.Client.Tools
             if (_simulationPreviewer.IsReady && _simulationPreviewer.StateHistory.Count > 0)
             {
                 state = _simulationPreviewer.StateHistory[_simulationPreviewer.StateHistory.Count - 1];
-                int stageElapsed = state.AttackElapsedTicks;
-                for (int i = 0; i < StageIndex && i < spec.Stages.Length; i++)
-                    stageElapsed -= spec.Stages[i].DurationTicks;
-                bakedFrame = HitboxGeometry.AttackFrame(Mathf.Max(0, stageElapsed),
-                    Baked.FrameCountFor(resolvedAnim), stage.DurationTicks);
+                if (_simulationPreviewer.ActiveMove is { } active)
+                {
+                    resolvedAnim = active.Pose.AnimationId;
+                    bakedFrame = active.Pose.FrameAt(Baked.FrameCountFor(resolvedAnim));
+                }
             }
             int animIndex = Baked.FindAnimIndex(resolvedAnim);
             float scale = DisplayDef.HurtboxBoneScale;
 
-            for (int i = 0; i < Baked.BoneNames.Length; i++)
+            for (int i = 0; i < Baked.BoneNames.Count; i++)
             {
                 string bone = Baked.BoneNames[i];
                 // The hips offset resolves onto the Hips bone; drawing it twice adds nothing.

@@ -7,6 +7,7 @@ namespace SlopArena.Shared
         // 13: leader-selected co-op friendly fire is frozen in Match setup.
         // 14: Versus Slopball camps, point state, events and results.
         // 15: online Character Courses, course progress/events/results and player colours.
-        public const byte Version = 15;
+        // 16: match content pins the exact baked arena digest as well as the character catalog.
+        public const byte Version = 16;
     }
 }

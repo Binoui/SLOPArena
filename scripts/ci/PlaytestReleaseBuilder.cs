@@ -416,7 +416,7 @@ public static class PlaytestReleaseBuilder
         var mapRows = built.Catalog.Entries.Select(entry => new MatchContentHandleRecord(
             entry.Handle, entry.LegacySelector ?? CharacterClass.None, entry.Identity, entry.DisplayName)).ToArray();
         var handleMap = new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, mapRows);
-        return new PackageVerification(identities, SteamMatchDescriptor.HashContent(handleMap));
+        return new PackageVerification(identities, SteamMatchDescriptor.HashCatalog(handleMap));
     }
 
     internal static void GenerateClientCatalogs(string contentRoot, PackageVerification verified)

@@ -46,8 +46,6 @@ namespace SlopArena.Shared
             w.WriteBool(s.CrouchSettled);
             w.WriteBool(s.QueuedCrouchBrace);
             w.WriteByte(s.Deaths);
-            w.WriteUShort(s.DashCooldownTicks);
-            w.WriteUShort(s.DashDurationTicks);
             w.WriteFloat(s.DashDirX);
             w.WriteFloat(s.DashDirZ);
             w.WriteUShort(s.InvincibilityTicks);
@@ -86,8 +84,6 @@ namespace SlopArena.Shared
             w.WriteFloat(s.DIX);
             w.WriteFloat(s.DIY);
             w.WriteBool(s.SdiApplied);
-            w.WriteUShort(s.BurstCooldownTicks);
-            w.WriteUShort(s.BurstRecoveryTicks);
             w.WriteFloat(s.FacingYaw);
             w.WriteFloat(s.AimYaw);
             w.WriteFloat(s.AimTargetDistance);
@@ -158,8 +154,6 @@ namespace SlopArena.Shared
             s.CrouchSettled = r.ReadBool();
             s.QueuedCrouchBrace = r.ReadBool();
             s.Deaths = r.ReadByte();
-            s.DashCooldownTicks = r.ReadUShort();
-            s.DashDurationTicks = r.ReadUShort();
             s.DashDirX = r.ReadFloat();
             s.DashDirZ = r.ReadFloat();
             s.InvincibilityTicks = r.ReadUShort();
@@ -198,8 +192,6 @@ namespace SlopArena.Shared
             s.DIX = r.ReadFloat();
             s.DIY = r.ReadFloat();
             s.SdiApplied = r.ReadBool();
-            s.BurstCooldownTicks = r.ReadUShort();
-            s.BurstRecoveryTicks = r.ReadUShort();
             s.FacingYaw = r.ReadFloat();
             s.AimYaw = r.ReadFloat();
             s.AimTargetDistance = r.ReadFloat();
@@ -242,8 +234,6 @@ namespace SlopArena.Shared
             w.WriteBool(input.Left);
             w.WriteBool(input.Right);
             w.WriteBool(input.Jump);
-            w.WriteBool(input.Dash);
-            w.WriteBool(input.Burst);
             w.WriteBool(input.ShieldHeld);
             w.WriteBool(input.ShieldPressed);
             w.WriteBool(input.GrabPressed);
@@ -261,10 +251,6 @@ namespace SlopArena.Shared
             w.WriteUShort(input.AimDistance);
             w.WriteShort(input.AimPitch);
             w.WriteByte(input.TargetEntityId);
-            w.WriteFloat(input.WarpTargetX);
-            w.WriteFloat(input.WarpTargetZ);
-            w.WriteFloat(input.WarpSpeed);
-            w.WriteFloat(input.WarpAttackRange);
         }
 
         public static InputState ReadInputState(SnapshotReader r)
@@ -276,8 +262,6 @@ namespace SlopArena.Shared
             input.Left = r.ReadBool();
             input.Right = r.ReadBool();
             input.Jump = r.ReadBool();
-            input.Dash = r.ReadBool();
-            input.Burst = r.ReadBool();
             input.ShieldHeld = r.ReadBool();
             input.ShieldPressed = r.ReadBool();
             input.GrabPressed = r.ReadBool();
@@ -295,10 +279,6 @@ namespace SlopArena.Shared
             input.AimDistance = r.ReadUShort();
             input.AimPitch = r.ReadShort();
             input.TargetEntityId = r.ReadByte();
-            input.WarpTargetX = r.ReadFloat();
-            input.WarpTargetZ = r.ReadFloat();
-            input.WarpSpeed = r.ReadFloat();
-            input.WarpAttackRange = r.ReadFloat();
             return input;
         }
 
@@ -478,6 +458,7 @@ namespace SlopArena.Shared
         public static void Write(SnapshotWriter w, in Hitbox hb,
             Func<ulong, (CharacterDefinition? Def, BakedAnimationData? Baked)> ownerContent)
         {
+            w.WriteULong(hb.EmissionId);
             w.WriteFloat(hb.X);
             w.WriteFloat(hb.Y);
             w.WriteFloat(hb.Z);
@@ -528,10 +509,6 @@ namespace SlopArena.Shared
                 throw new InvalidOperationException($"Hitbox of entity {hb.OwnerId} references another fighter's baked animation.");
             w.WriteBool(hb.Baked != null);
             w.WriteBool(hb.Def != null);
-            w.WriteInt(hb.AnimationNames?.Length ?? -1);
-            if (hb.AnimationNames != null)
-                foreach (var name in hb.AnimationNames)
-                    w.WriteString(name);
             w.WriteByte(hb.AnimIndex);
             w.WriteByte(hb.Slot);
             w.WriteBool(hb.Airborne);
@@ -547,6 +524,7 @@ namespace SlopArena.Shared
             Func<ulong, (CharacterDefinition? Def, BakedAnimationData? Baked)> ownerContent)
         {
             var hb = new Hitbox();
+            hb.EmissionId = r.ReadULong();
             hb.X = r.ReadFloat();
             hb.Y = r.ReadFloat();
             hb.Z = r.ReadFloat();
@@ -597,13 +575,6 @@ namespace SlopArena.Shared
                     throw SnapshotReader.Malformed($"hitbox owner {hb.OwnerId} content");
                 hb.Def = hasDef ? owner.Def : null;
                 hb.Baked = hasBaked ? owner.Baked : null;
-            }
-            int names = r.ReadOptionalCount(4);
-            if (names >= 0)
-            {
-                hb.AnimationNames = new string[names];
-                for (int i = 0; i < names; i++)
-                    hb.AnimationNames[i] = r.ReadString() ?? throw SnapshotReader.Malformed("animation name");
             }
             hb.AnimIndex = r.ReadByte();
             hb.Slot = r.ReadByte();

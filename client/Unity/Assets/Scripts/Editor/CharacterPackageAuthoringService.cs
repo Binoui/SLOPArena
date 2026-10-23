@@ -15,6 +15,8 @@ public sealed class CharacterPackageAuthoringService
 {
     private const string CharacterPackagesRoot = "Assets/CharacterPackages";
     private readonly string _projectRoot;
+    private Func<byte[], string, string> _generateCatalog = CharacterAnimationCatalogGenerator.Generate;
+    private Action<string> _publicationCheckpoint;
 
     public CharacterPackageAuthoringService(string projectRoot)
     {
@@ -67,6 +69,7 @@ public sealed class CharacterPackageAuthoringService
             WriteDurably(Path.Combine(fullRoot, "package.json"), Encoding.UTF8.GetBytes(CharacterPackageSourceCodec.SerializeManifest(source.Manifest)));
             WriteDurably(Path.Combine(fullRoot, "character.json"), Encoding.UTF8.GetBytes(CharacterPackageSourceCodec.SerializeCharacter(source.Character)));
             var catalog = ScriptableObject.CreateInstance<CharacterAssetCatalog>();
+            catalog.SetPresentationProfile(new CharacterPresentationProfile());
             catalog.PackageId = packageId;
             catalog.CatalogSchemaVersion = CharacterAssetCatalog.SchemaVersion;
             catalog.SampleRate = UnityCharacterAssetCooker.SampleRate;
@@ -101,6 +104,22 @@ public sealed class CharacterPackageAuthoringService
 
     public CharacterPackageBindingResult Bind(string target, string semanticId, string assetPath, ExtrapolationMode? extrapolation = null)
     {
+        string normalizedPath = NormalizeProjectAssetPath(assetPath);
+        var clips = string.IsNullOrEmpty(normalizedPath) ? Array.Empty<AnimationClip>() :
+            AssetDatabase.LoadAllAssetsAtPath(normalizedPath).OfType<AnimationClip>().ToArray();
+        if (clips.Length > 1)
+            return CharacterPackageBindingResult.Failure(null, target, semanticId, normalizedPath,
+                new[] { Error("binding.asset.ambiguous", normalizedPath, "Asset contains multiple AnimationClips. Select the clip object explicitly.") });
+        return BindClip(target, semanticId, clips.SingleOrDefault(), normalizedPath, extrapolation);
+    }
+
+    public CharacterPackageBindingResult Bind(string target, string semanticId, AnimationClip clip, ExtrapolationMode? extrapolation = null)
+    {
+        return BindClip(target, semanticId, clip, clip == null ? "" : AssetDatabase.GetAssetPath(clip), extrapolation);
+    }
+
+    private CharacterPackageBindingResult BindClip(string target, string semanticId, AnimationClip clip, string assetPath, ExtrapolationMode? extrapolation)
+    {
         var diagnostics = new List<CharacterDiagnostic>();
         if (!TryResolve(target, diagnostics, out var package))
             return CharacterPackageBindingResult.Failure(package?.PackageId, package?.ProjectRelativeRoot, semanticId, assetPath, diagnostics);
@@ -117,12 +136,10 @@ public sealed class CharacterPackageAuthoringService
                 diagnostics.Concat(new[] { Error("binding.semantic-id.missing", semanticId, "Catalog binding does not exist; automatic binding creation is not supported.") }));
 
         string normalizedPath = NormalizeProjectAssetPath(assetPath);
-        AnimationClip clip = string.IsNullOrEmpty(normalizedPath) ? null : AssetDatabase.LoadAssetAtPath<AnimationClip>(normalizedPath);
-        if (clip == null && !string.IsNullOrEmpty(normalizedPath))
-            clip = AssetDatabase.LoadAllAssetsAtPath(normalizedPath).OfType<AnimationClip>().FirstOrDefault();
-        if (clip == null)
+        if (clip == null || string.IsNullOrEmpty(normalizedPath) || !AssetDatabase.Contains(clip))
             return CharacterPackageBindingResult.Failure(package.PackageId, package.ProjectRelativeRoot, semanticId, normalizedPath,
-                diagnostics.Concat(new[] { Error("binding.asset.invalid", normalizedPath, "Asset path does not resolve to an AnimationClip or animation subasset.") }));
+                diagnostics.Concat(new[] { Error("binding.asset.invalid", normalizedPath, "Select a persisted AnimationClip or animation subasset.") }));
+        string selectedObjectId = GlobalObjectId.GetGlobalObjectIdSlow(clip).ToString();
 
         CharacterPackageDependencyInfo classification = ClassifyDependency(package.ProjectRelativeRoot, normalizedPath);
         if (classification.Classification == "foreign")
@@ -137,7 +154,8 @@ public sealed class CharacterPackageAuthoringService
                 diagnostics.Concat(persistDiagnostics), classification);
         var persistedBinding = (persistedCatalog.Bindings ?? Array.Empty<CharacterAssetCatalog.AnimationBinding>())
             .FirstOrDefault(x => x != null && StringEquals(x.SemanticId, semanticId));
-        if (persistedBinding == null || persistedBinding.Clip == null)
+        if (persistedBinding == null || persistedBinding.Clip == null ||
+            GlobalObjectId.GetGlobalObjectIdSlow(persistedBinding.Clip).ToString() != selectedObjectId)
             return CharacterPackageBindingResult.Failure(package.PackageId, package.ProjectRelativeRoot, semanticId, normalizedPath,
                 diagnostics.Concat(new[] { Error("binding.persist.failed", normalizedPath, "Catalog binding did not round-trip after persistence.") }), classification);
         return CharacterPackageBindingResult.Successful(package.PackageId, package.ProjectRelativeRoot, semanticId, normalizedPath, classification, persistedBinding);
@@ -432,26 +450,7 @@ public sealed class CharacterPackageAuthoringService
                 cooked.SourceHash, assembly.PackageHash, diagnostics, assembly, false, expectedOutputs);
         }
 
-        if (!TryReadRosterEntry(package.PackageId, out var rosterEntry, out var rosterDiagnostics))
-        {
-            AddUnique(diagnostics, rosterDiagnostics);
-            return CharacterPackageCookResult.CreateFailure(package.PackageId, package.ProjectRelativeRoot, cookedPath,
-                cooked.SourceHash, assembly.PackageHash, diagnostics, assembly, false, expectedOutputs);
-        }
-        if (rosterEntry != null)
-        {
-            var requirement = new MatchContentPackageRequirement(
-                package.PackageId,
-                package.Source.Manifest.Version,
-                assembly.CookedContentHash,
-                assembly.PackageHash);
-            if (!WriteRosterRequirement(package.PackageId, requirement, out _, out rosterDiagnostics))
-            {
-                AddUnique(diagnostics, rosterDiagnostics);
-                return CharacterPackageCookResult.CreateFailure(package.PackageId, package.ProjectRelativeRoot, cookedPath,
-                    cooked.SourceHash, assembly.PackageHash, diagnostics, assembly, false, expectedOutputs);
-            }
-        }
+        AddUnique(diagnostics, publishDiagnostics);
 
         return CharacterPackageCookResult.CreateSuccess(
             package.PackageId,
@@ -649,6 +648,8 @@ public sealed class CharacterPackageAuthoringService
         {
             packageBytesBefore = File.ReadAllBytes(Path.Combine(package.FullRoot, "package.json"));
             characterBytesBefore = File.ReadAllBytes(Path.Combine(package.FullRoot, "character.json"));
+            package.PackageBytes = packageBytesBefore;
+            package.CharacterBytes = characterBytesBefore;
         }
         catch (Exception ex)
         {
@@ -770,29 +771,6 @@ public sealed class CharacterPackageAuthoringService
             return (false, "");
         }
     }
-    private bool TryReadRosterEntry(string packageId, out BuiltInRosterEntry? entry, out IReadOnlyList<CharacterDiagnostic> diagnostics)
-    {
-        entry = null;
-        string path = Path.Combine(RepositoryRoot(), "content-cooked", "roster", CharacterPackageAssembler.ManifestPath);
-        try
-        {
-            if (!File.Exists(path))
-            {
-                diagnostics = new[] { Error("roster.read.failed", path, "Roster manifest is missing.") };
-                return false;
-            }
-            BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(File.ReadAllText(path));
-            manifest.TryGetByPackageId(packageId, out entry);
-            diagnostics = Array.Empty<CharacterDiagnostic>();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            diagnostics = new[] { Error("roster.read.failed", path, ex.Message) };
-            return false;
-        }
-    }
-
     private bool WriteRosterRequirement(
         string packageId,
         MatchContentPackageRequirement requirement,
@@ -800,31 +778,74 @@ public sealed class CharacterPackageAuthoringService
         out IReadOnlyList<CharacterDiagnostic> diagnostics)
     {
         selector = "";
-        string path = Path.Combine(RepositoryRoot(), "content-cooked", "roster", CharacterPackageAssembler.ManifestPath);
+        PublicationFile roster = null;
         try
         {
-            BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(File.ReadAllText(path));
-            if (!manifest.TryGetByPackageId(packageId, out var existing))
-            {
-                diagnostics = new[] { Error("roster.package.missing", packageId, "Package is not admitted to the roster.") };
-                return false;
-            }
-            var entries = manifest.Entries
-                .Select(x => x.PackageId == packageId
-                    ? new BuiltInRosterEntry(existing.Selector, existing.PackageId, requirement)
-                    : x)
-                .ToArray();
-            WriteDurably(path, Encoding.UTF8.GetBytes(BuiltInRosterManifestCodec.Serialize(
-                new BuiltInRosterManifest(manifest.SchemaVersion, entries))));
-            selector = existing.Selector.ToString();
+            roster = PrepareRosterWrite(packageId, requirement, out selector);
+            if (string.IsNullOrEmpty(selector)) throw new InvalidDataException("Package is not admitted to the roster.");
+            roster.Stage(null);
+            roster.Install();
             diagnostics = Array.Empty<CharacterDiagnostic>();
             return true;
         }
         catch (Exception ex)
         {
-            diagnostics = new[] { Error("roster.refresh.failed", path, ex.Message) };
+            diagnostics = new[] { Error("roster.refresh.failed", packageId, ex.Message) };
             return false;
         }
+        finally
+        {
+            if (roster != null && File.Exists(roster.TemporaryPath))
+            {
+                try { File.Delete(roster.TemporaryPath); }
+                catch (Exception ex) { Debug.LogWarning("[SLOPArena] Roster temporary cleanup failed: " + ex.Message); }
+            }
+        }
+    }
+
+    private PublicationFile PrepareRosterWrite(string packageId, MatchContentPackageRequirement requirement, out string selector)
+    {
+        string path = Path.Combine(RepositoryRoot(), "content-cooked", "roster", CharacterPackageAssembler.ManifestPath);
+        byte[] before = File.ReadAllBytes(path);
+        int prefix = before.Length >= 3 && before[0] == 0xef && before[1] == 0xbb && before[2] == 0xbf ? 3 : 0;
+        string json = Encoding.UTF8.GetString(before, prefix, before.Length - prefix);
+        BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(json);
+        var matches = manifest.Entries.Where(entry => entry.PackageId == packageId).ToArray();
+        if (matches.Length > 1) throw new InvalidDataException("Roster contains duplicate entries for " + packageId + ".");
+        selector = matches.Length == 0 ? "" : matches[0].Selector.ToString();
+        if (matches.Length == 0) return new PublicationFile(path, before, before);
+
+        int targetIndex = manifest.Entries.ToList().FindIndex(entry => entry.PackageId == packageId);
+        var reader = new Utf8JsonReader(new ReadOnlySpan<byte>(before, prefix, before.Length - prefix));
+        int entryIndex = -1;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.StartObject && reader.CurrentDepth == 2) entryIndex++;
+            if (entryIndex != targetIndex || reader.TokenType != JsonTokenType.PropertyName ||
+                reader.CurrentDepth != 3 || !reader.ValueTextEquals("requirement")) continue;
+            reader.Read();
+            int start = prefix + checked((int)reader.TokenStartIndex);
+            using (JsonDocument.ParseValue(ref reader)) { }
+            int end = prefix + checked((int)reader.BytesConsumed);
+            using var replacement = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(replacement))
+            {
+                writer.WriteStartObject();
+                writer.WriteString("packageId", requirement.PackageId);
+                writer.WriteString("version", requirement.Version);
+                writer.WriteString("cookedContentHash", requirement.CookedContentHash);
+                writer.WriteString("packageHash", requirement.PackageHash);
+                writer.WriteEndObject();
+            }
+            byte[] value = replacement.ToArray();
+            byte[] after = new byte[before.Length - (end - start) + value.Length];
+            Buffer.BlockCopy(before, 0, after, 0, start);
+            Buffer.BlockCopy(value, 0, after, start, value.Length);
+            Buffer.BlockCopy(before, end, after, start + value.Length, before.Length - end);
+            BuiltInRosterManifestCodec.ParseCooked(Encoding.UTF8.GetString(after, prefix, after.Length - prefix));
+            return new PublicationFile(path, before, after);
+        }
+        throw new InvalidDataException("Roster target requirement was not found.");
     }
 
 
@@ -975,6 +996,8 @@ public sealed class CharacterPackageAuthoringService
             builder.Append(presentation?.SemanticId ?? "").Append('|')
                 .Append(presentation == null || presentation.Prefab == null ? "" : GlobalObjectId.GetGlobalObjectIdSlow(presentation.Prefab).ToString()).Append('\n');
         }
+        builder.Append("weapon=").Append(CharacterBindingWriter.ObjectId(catalog.WeaponConfig)).Append('\n');
+        builder.Append("profile=").Append(CharacterBindingWriter.ProfileJson(catalog.PresentationProfile)).Append('\n');
         using var hash = SHA256.Create();
         return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(builder.ToString()))).Replace("-", "").ToLowerInvariant();
     }
@@ -1076,79 +1099,257 @@ public sealed class CharacterPackageAuthoringService
         CharacterPackageAssemblyResult assembled,
         out IReadOnlyList<CharacterDiagnostic> diagnostics)
     {
-        var errors = new List<CharacterDiagnostic>();
-        string projectRoot = _projectRoot;
-        string repositoryRoot = RepositoryRoot();
-        string canonicalDirectory = Path.Combine(repositoryRoot, "content-cooked", package.PackageId);
-        string packageParent = Path.GetDirectoryName(canonicalDirectory)!;
-        string temporaryDirectory = Path.Combine(packageParent, "." + package.PackageId + ".tmp-" + Guid.NewGuid().ToString("N"));
-        string backupDirectory = Path.Combine(packageParent, "." + package.PackageId + ".backup-" + Guid.NewGuid().ToString("N"));
-        string finalPose = Path.Combine(projectRoot, CharacterCookOutput.For(package.PackageId).IntermediateDirectory, CharacterCookOutput.For(package.PackageId).PoseFileName);
-        string finalBinding = Path.Combine(projectRoot, CharacterCookOutput.For(package.PackageId).IntermediateDirectory, CharacterCookOutput.For(package.PackageId).BindingFileName);
-        string generatedAssetPath = CharacterCookOutput.For(package.PackageId).GeneratedAssetPath;
-        string temporaryAssetPath = CharacterAnimationCatalogGenerator.TemporaryPath(generatedAssetPath);
-        string statusPath = Path.Combine(projectRoot, CharacterCookOutput.For(package.PackageId).IntermediateDirectory, CharacterCookOutput.For(package.PackageId).StatusFileName);
-        byte[] previousPose = Snapshot(finalPose);
-        byte[] previousBinding = Snapshot(finalBinding);
-        byte[] previousStatus = Snapshot(statusPath);
-        FileSnapshot previousGenerated = SnapshotFile(generatedAssetPath, projectRoot);
-        bool hadCanonical = Directory.Exists(canonicalDirectory);
+        var messages = new List<CharacterDiagnostic>();
+        var files = new List<PublicationFile>();
+        CharacterCookOutput output = CharacterCookOutput.For(package.PackageId);
+        string parent = Path.Combine(RepositoryRoot(), "content-cooked");
+        string canonical = Path.Combine(parent, package.PackageId);
+        string temporary = Path.Combine(parent, "." + package.PackageId + ".tmp-" + Guid.NewGuid().ToString("N"));
+        string recovery = Path.Combine(parent, "." + package.PackageId + ".publish-backup");
+        string canonicalBackup = Path.Combine(recovery, "canonical");
+        string generated = Path.Combine(_projectRoot, output.GeneratedAssetPath);
+        string generatedTemp = CharacterAnimationCatalogGenerator.TemporaryPath(output.GeneratedAssetPath);
+        bool ownsRecovery = false;
+        bool ownsGeneratedTemp = false;
+        bool canonicalMoved = false;
         bool canonicalInstalled = false;
-
+        Dictionary<string, byte[]> previousCanonical = null;
+        Dictionary<string, byte[]> installedCanonical = null;
         try
         {
-            Directory.CreateDirectory(packageParent);
-            if (Directory.Exists(temporaryDirectory)) Directory.Delete(temporaryDirectory, true);
-            Directory.CreateDirectory(temporaryDirectory);
-            WriteDurably(Path.Combine(temporaryDirectory, CharacterPackageAssembler.ManifestPath), assembled.ManifestBytes);
-            WriteDurably(Path.Combine(temporaryDirectory, CharacterPackageAssembler.RuntimePath), assembled.RuntimeBytes);
-            WriteDurably(Path.Combine(temporaryDirectory, CharacterPackageAssembler.PosePath), assembled.PoseBytes);
-            WriteDurably(Path.Combine(temporaryDirectory, CharacterPackageAssembler.BindingPath), assembled.BindingBytes);
-            var written = ReadPackageFiles(temporaryDirectory);
-            var verification = CharacterPackageAssembler.Verify(written);
-            if (!verification.IsValid)
-                throw new InvalidDataException(string.Join("\n", verification.Diagnostics.Select(x => $"{x.Code} {x.Path}: {x.Message}")));
-            if (hadCanonical) Directory.Move(canonicalDirectory, backupDirectory);
-            Directory.Move(temporaryDirectory, canonicalDirectory);
+            if (Directory.Exists(recovery) || File.Exists(recovery) ||
+                Directory.Exists(parent) && Directory.EnumerateDirectories(parent, "." + package.PackageId + ".backup-*").Any())
+                throw new IOException("Unresolved publication evidence blocks retry. Inspect " + recovery + " and prior package backups.");
+            if (new[] { generatedTemp, generatedTemp + ".meta", output.GeneratedAssetPath + ".previous", output.GeneratedAssetPath + ".previous.meta" }
+                .Any(path => File.Exists(Path.Combine(_projectRoot, path)) || Directory.Exists(Path.Combine(_projectRoot, path))))
+                throw new IOException("Unresolved generated catalog evidence blocks retry: " + generatedTemp);
+
+            PublicationFile roster = PrepareRosterWrite(package.PackageId,
+                new MatchContentPackageRequirement(package.PackageId, package.Source.Manifest.Version, assembled.CookedContentHash, assembled.PackageHash), out _);
+            previousCanonical = SnapshotDirectory(canonical);
+            Directory.CreateDirectory(recovery);
+            ownsRecovery = true;
+            Directory.CreateDirectory(temporary);
+            WriteDurably(Path.Combine(temporary, CharacterPackageAssembler.ManifestPath), assembled.ManifestBytes);
+            WriteDurably(Path.Combine(temporary, CharacterPackageAssembler.RuntimePath), assembled.RuntimeBytes);
+            WriteDurably(Path.Combine(temporary, CharacterPackageAssembler.PosePath), assembled.PoseBytes);
+            WriteDurably(Path.Combine(temporary, CharacterPackageAssembler.BindingPath), assembled.BindingBytes);
+            VerifyInstalledPackage(temporary, assembled);
+            installedCanonical = SnapshotDirectory(temporary);
+
+            files.Add(new PublicationFile(Path.Combine(_projectRoot, output.IntermediateDirectory, output.PoseFileName), assembled.PoseBytes));
+            files.Add(new PublicationFile(Path.Combine(_projectRoot, output.IntermediateDirectory, output.BindingFileName), assembled.BindingBytes));
+            var generatedFile = new PublicationFile(generated, Snapshot(generated), null);
+            var generatedMeta = new PublicationFile(generated + ".meta", Snapshot(generated + ".meta"), null);
+            ownsGeneratedTemp = true;
+            string generatedPath = _generateCatalog(assembled.BindingBytes, output.GeneratedAssetPath);
+            generatedFile.After = File.ReadAllBytes(Path.Combine(_projectRoot, generatedPath));
+            generatedMeta.After = generatedMeta.Before ?? File.ReadAllBytes(Path.Combine(_projectRoot, generatedPath) + ".meta");
+            files.Add(generatedFile);
+            files.Add(generatedMeta);
+            files.Add(new PublicationFile(Path.Combine(_projectRoot, output.IntermediateDirectory, output.StatusFileName), CreateSuccessStatus(result, assembled)));
+            files.Add(roster);
+            for (int i = 0; i < files.Count; i++) files[i].Stage(Path.Combine(recovery, i + "-" + Path.GetFileName(files[i].Path)));
+
+            // Unity must release the staged GUID before the final path can be imported.
+            DeleteGeneratedTemporaryCatalog(generatedTemp);
+            _publicationCheckpoint?.Invoke("before-install");
+            if (!InputsUnchanged(package, package.PackageBytes, package.CharacterBytes, result.SourceHash, out var conflicts))
+                throw new IOException(string.Join("\n", conflicts.Select(diagnostic => diagnostic.Message)));
+            foreach (var file in files) file.RequirePreimage();
+            if (!DirectoryMatches(canonical, previousCanonical)) throw new IOException("Cooked package changed before publication: " + canonical);
+            if (previousCanonical != null)
+            {
+                Directory.Move(canonical, canonicalBackup);
+                canonicalMoved = true;
+            }
+            Directory.Move(temporary, canonical);
             canonicalInstalled = true;
-            Directory.CreateDirectory(Path.GetDirectoryName(finalPose)!);
-            WriteDurably(finalPose, assembled.PoseBytes);
-            WriteDurably(finalBinding, assembled.BindingBytes);
-            string generatedTemp = CharacterAnimationCatalogGenerator.Generate(assembled.BindingBytes, generatedAssetPath);
-            CharacterAnimationCatalogGenerator.ReplaceTemporary(generatedTemp, generatedAssetPath);
-            WriteSuccessStatus(result, assembled, package.PackageId);
-            if (Directory.Exists(backupDirectory)) Directory.Delete(backupDirectory, true);
-            diagnostics = errors;
-            return true;
+            foreach (var file in files.Where(file => file != roster)) file.Install();
+            generatedFile.MutationAttempted = true;
+            generatedMeta.MutationAttempted = true;
+            ImportGeneratedCatalog(output.GeneratedAssetPath);
+            _publicationCheckpoint?.Invoke("before-roster-install");
+            roster.Install();
+            _publicationCheckpoint?.Invoke("after-roster-install");
+            VerifyInstalledPackage(canonical, assembled);
+            if (!DirectoryMatches(canonical, installedCanonical)) throw new IOException("Installed package file set changed: " + canonical);
+            foreach (var file in files) file.RequireInstalled();
         }
         catch (Exception ex)
         {
-            errors.Add(Error("cook.failed", package.ProjectRelativeRoot, ex.Message));
+            messages.Add(Error("cook.failed", package.ProjectRelativeRoot, ex.Message));
+            bool restored = true;
+            foreach (var file in files.AsEnumerable().Reverse())
+            {
+                try { file.Restore(); }
+                catch (Exception rollback)
+                {
+                    restored = false;
+                    messages.Add(Error("cook.rollback.failed", file.Path, rollback.Message + " Recovery evidence: " + recovery));
+                }
+            }
             try
             {
-                if (Directory.Exists(temporaryDirectory)) Directory.Delete(temporaryDirectory, true);
-                string generatedTemporaryFullPath = Path.Combine(projectRoot, temporaryAssetPath);
-                if (File.Exists(generatedTemporaryFullPath)) AssetDatabase.DeleteAsset(temporaryAssetPath);
-                RestoreFile(finalPose, previousPose);
-                RestoreFile(finalBinding, previousBinding);
-                RestoreGeneratedAsset(generatedAssetPath, previousGenerated, projectRoot);
-                RestoreFile(statusPath, previousStatus);
-                if (canonicalInstalled && Directory.Exists(canonicalDirectory)) Directory.Delete(canonicalDirectory, true);
-                if (hadCanonical && Directory.Exists(backupDirectory)) Directory.Move(backupDirectory, canonicalDirectory);
-                else if (Directory.Exists(backupDirectory)) Directory.Delete(backupDirectory, true);
+                if (canonicalMoved && !DirectoryMatches(canonicalBackup, previousCanonical))
+                    throw new IOException("Package backup changed; retaining recovery evidence.");
+                if (canonicalInstalled)
+                {
+                    if (!DirectoryMatches(canonical, installedCanonical)) throw new IOException("Installed package changed; refusing to overwrite it.");
+                    Directory.Delete(canonical, true);
+                }
+                if (canonicalMoved)
+                {
+                    if (Directory.Exists(canonical)) throw new IOException("Package path was claimed by another writer.");
+                    Directory.Move(canonicalBackup, canonical);
+                }
+                if ((canonicalInstalled || canonicalMoved) && !DirectoryMatches(canonical, previousCanonical))
+                    throw new IOException("Package restoration did not match its preimage.");
             }
-            catch (Exception rollbackException)
+            catch (Exception rollback)
             {
-                errors.Add(Error("cook.rollback.failed", package.ProjectRelativeRoot, rollbackException.Message));
+                restored = false;
+                messages.Add(Error("cook.rollback.failed", canonical, rollback.Message + " Recovery evidence: " + recovery));
             }
-            diagnostics = errors;
+            try { if (files.Any(file => file.MutationAttempted)) ImportGeneratedCatalog(output.GeneratedAssetPath); }
+            catch (Exception rollback)
+            {
+                restored = false;
+                messages.Add(Error("cook.rollback.failed", output.GeneratedAssetPath, rollback.Message + " Recovery evidence: " + recovery));
+            }
+            if (restored) CleanupPublication(temporary, ownsRecovery ? recovery : null, ownsGeneratedTemp ? generatedTemp : null, files, messages);
+            diagnostics = messages;
             return false;
         }
-        finally
+        CleanupPublication(temporary, recovery, generatedTemp, files, messages);
+        diagnostics = messages;
+        return true;
+    }
+
+    private static void VerifyInstalledPackage(string directory, CharacterPackageAssemblyResult assembled)
+    {
+        var files = ReadPackageFiles(directory);
+        var verification = CharacterPackageAssembler.Verify(files);
+        if (!verification.IsValid || !files[CharacterPackageAssembler.ManifestPath].SequenceEqual(assembled.ManifestBytes) ||
+            !files[CharacterPackageAssembler.RuntimePath].SequenceEqual(assembled.RuntimeBytes) ||
+            !files[CharacterPackageAssembler.PosePath].SequenceEqual(assembled.PoseBytes) ||
+            !files[CharacterPackageAssembler.BindingPath].SequenceEqual(assembled.BindingBytes))
+            throw new InvalidDataException("Installed package verification failed: " + directory);
+    }
+
+    private void ImportGeneratedCatalog(string path)
+    {
+        if (!StringEquals(_projectRoot, UnityCharacterAssetCooker.ProjectRoot())) return;
+        if (!File.Exists(Path.Combine(_projectRoot, path)))
         {
-            if (Directory.Exists(temporaryDirectory)) Directory.Delete(temporaryDirectory, true);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            return;
+        }
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+        if (AssetDatabase.LoadAssetAtPath<CharacterAnimationCatalog>(path) == null)
+            throw new IOException("Generated catalog did not import: " + path);
+    }
+
+    private void DeleteGeneratedTemporaryCatalog(string path)
+    {
+        string full = Path.Combine(_projectRoot, path);
+        if (StringEquals(_projectRoot, UnityCharacterAssetCooker.ProjectRoot()))
+        {
+            if (File.Exists(full) && !AssetDatabase.DeleteAsset(path))
+                throw new IOException("Could not delete temporary catalog " + path);
+            if (!File.Exists(full)) File.Delete(full + ".meta");
+        }
+        else
+        {
+            File.Delete(full);
+            File.Delete(full + ".meta");
         }
     }
+
+    private void CleanupPublication(string temporary, string recovery, string generatedTemp, IEnumerable<PublicationFile> files, List<CharacterDiagnostic> diagnostics)
+    {
+        var cleanup = files.Select<PublicationFile, Action>(file => () => { if (File.Exists(file.TemporaryPath)) File.Delete(file.TemporaryPath); }).ToList();
+        if (generatedTemp != null) cleanup.Add(() => DeleteGeneratedTemporaryCatalog(generatedTemp));
+        cleanup.Add(() => { if (Directory.Exists(temporary)) Directory.Delete(temporary, true); });
+        if (recovery != null) cleanup.Add(() => { if (Directory.Exists(recovery)) Directory.Delete(recovery, true); });
+        foreach (var action in cleanup)
+        {
+            try { action(); }
+            catch (Exception ex) { diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, "cook.cleanup.failed", recovery ?? temporary, ex.Message)); }
+        }
+    }
+
+    private static Dictionary<string, byte[]> SnapshotDirectory(string path)
+        => !Directory.Exists(path) ? null : Directory.GetFiles(path, "*", SearchOption.AllDirectories)
+            .ToDictionary(file => file.Substring(path.Length + 1), File.ReadAllBytes, StringComparer.Ordinal);
+
+    private static bool DirectoryMatches(string path, Dictionary<string, byte[]> expected)
+    {
+        var actual = SnapshotDirectory(path);
+        return expected == null ? actual == null : actual != null && expected.Count == actual.Count &&
+            expected.All(file => actual.TryGetValue(file.Key, out var bytes) && file.Value.SequenceEqual(bytes));
+    }
+
+    private sealed class PublicationFile
+    {
+        internal readonly string Path;
+        internal readonly byte[] Before;
+        internal byte[] After;
+        internal readonly string TemporaryPath;
+        internal bool MutationAttempted;
+
+        internal PublicationFile(string path, byte[] after) : this(path, Snapshot(path), after) { }
+        internal PublicationFile(string path, byte[] before, byte[] after)
+        {
+            Path = path;
+            Before = before;
+            After = after;
+            TemporaryPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!,
+                "." + System.IO.Path.GetFileName(path) + ".publish-" + Guid.NewGuid().ToString("N") + ".tmp");
+        }
+
+        internal void Stage(string backupPath)
+        {
+            if (backupPath != null && Before != null) WriteDurably(backupPath, Before);
+            WriteDurably(TemporaryPath, After);
+        }
+
+        internal void RequirePreimage()
+        {
+            if (!BytesMatch(Path, Before)) throw new IOException("Output changed before replacement: " + Path);
+        }
+
+        internal void Install()
+        {
+            RequirePreimage();
+            if (Before != null && Before.SequenceEqual(After)) return;
+            MutationAttempted = true;
+            if (Before == null) File.Move(TemporaryPath, Path);
+            else File.Replace(TemporaryPath, Path, null);
+        }
+
+        internal void RequireInstalled()
+        {
+            if (!BytesMatch(Path, After)) throw new IOException("Output changed after replacement: " + Path);
+        }
+
+        internal void Restore()
+        {
+            if (!MutationAttempted || BytesMatch(Path, Before)) return;
+            RequireInstalled();
+            if (Before == null) File.Delete(Path);
+            else
+            {
+                WriteDurably(TemporaryPath, Before);
+                RequireInstalled();
+                File.Replace(TemporaryPath, Path, null);
+            }
+            if (!BytesMatch(Path, Before)) throw new IOException("Output restoration failed: " + Path);
+        }
+    }
+
+    private static bool BytesMatch(string path, byte[] bytes)
+        => bytes == null ? !File.Exists(path) : File.Exists(path) && File.ReadAllBytes(path).SequenceEqual(bytes);
 
     private static CharacterPackageSlotSummary[] BuildSlotSummaries(
         CharacterPackageSource source,
@@ -1306,7 +1507,7 @@ public sealed class CharacterPackageAuthoringService
             : normalized;
     }
 
-    private void WriteSuccessStatus(CharacterAssetCookResult result, CharacterPackageAssemblyResult assembled, string packageId)
+    private byte[] CreateSuccessStatus(CharacterAssetCookResult result, CharacterPackageAssemblyResult assembled)
     {
         var status = new CharacterCookStatus
         {
@@ -1327,7 +1528,7 @@ public sealed class CharacterPackageAuthoringService
             Payloads = assembled.Payloads.Select(ToStatusPayload).ToList(),
             Diagnostics = assembled.Diagnostics.Select(ToStatusDiagnostic).ToList(),
         };
-        WriteStatus(status, packageId);
+        return Encoding.UTF8.GetBytes(JsonUtility.ToJson(status, true));
     }
 
     private void WriteStatus(CharacterCookStatus status, string packageId)
@@ -1362,36 +1563,7 @@ public sealed class CharacterPackageAuthoringService
         stream.Flush(true);
     }
 
-    private static void RestoreFile(string path, byte[] bytes)
-    {
-        if (bytes == null)
-        {
-            if (File.Exists(path)) File.Delete(path);
-            return;
-        }
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllBytes(path, bytes);
-    }
-
     private static byte[] Snapshot(string path) => File.Exists(path) ? File.ReadAllBytes(path) : null;
-
-    private static FileSnapshot SnapshotFile(string projectRelativePath, string projectRoot)
-    {
-        string fullPath = Path.Combine(projectRoot, projectRelativePath);
-        return new FileSnapshot(Snapshot(fullPath), Snapshot(fullPath + ".meta"));
-    }
-
-    private static void RestoreGeneratedAsset(string projectRelativePath, FileSnapshot snapshot, string projectRoot)
-    {
-        string fullPath = Path.Combine(projectRoot, projectRelativePath);
-        if (File.Exists(fullPath) || AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(projectRelativePath) != null)
-            AssetDatabase.DeleteAsset(projectRelativePath);
-        if (snapshot.Bytes == null) return;
-        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-        File.WriteAllBytes(fullPath, snapshot.Bytes);
-        if (snapshot.MetaBytes != null) File.WriteAllBytes(fullPath + ".meta", snapshot.MetaBytes);
-        AssetDatabase.ImportAsset(projectRelativePath, ImportAssetOptions.ForceSynchronousImport);
-    }
 
     private static CharacterCookStatusDependency ToStatusDependency(CharacterCookDependencyRecord record)
         => new CharacterCookStatusDependency
@@ -1441,6 +1613,8 @@ public sealed class CharacterPackageAuthoringService
         public string ProjectRelativeRoot = "";
         public string PackageId = "";
         public string DisplayName = "";
+        public byte[] PackageBytes;
+        public byte[] CharacterBytes;
         public string PackageJson = "";
         public string CharacterJson = "";
         public CharacterPackageSource Source;
@@ -1462,13 +1636,6 @@ public sealed class CharacterPackageAuthoringService
         public static ArtifactSnapshot Invalid(IReadOnlyList<CharacterDiagnostic> diagnostics) => new ArtifactSnapshot { IsInvalid = true, Diagnostics = diagnostics };
         public static ArtifactSnapshot Valid(string sourceHash, string cookedContentHash, string packageHash, IReadOnlyList<CharacterDiagnostic> diagnostics, CharacterPackageManifestProjection manifest)
             => new ArtifactSnapshot { SourceHash = sourceHash, CookedContentHash = cookedContentHash, PackageHash = packageHash, Diagnostics = diagnostics, Manifest = manifest };
-    }
-
-    private sealed class FileSnapshot
-    {
-        public byte[] Bytes { get; }
-        public byte[] MetaBytes { get; }
-        public FileSnapshot(byte[] bytes, byte[] metaBytes) { Bytes = bytes; MetaBytes = metaBytes; }
     }
 }
 
@@ -1513,7 +1680,7 @@ public sealed class CharacterPackageDependencyInfo
     }
 
     internal static CharacterPackageDependencyInfo Package(string path, string packageId)
-        => new("package", packageId, path, "", "");
+        => new("package", packageId, path, "package-owned content including registered external media roots", CharacterPackageAssetOwnershipRegistry.RegistryVersion);
     internal static CharacterPackageDependencyInfo Shared(string path, string reason, string version)
         => new("shared-approved", "", path, reason, version);
     internal static CharacterPackageDependencyInfo Foreign(string path, string packageId)
@@ -1524,8 +1691,33 @@ public sealed class CharacterPackageDependencyInfo
 
 public static class CharacterSharedAssetRegistry
 {
+    private static readonly HashSet<string> SharedCombatAudio = new(StringComparer.Ordinal)
+    {
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_01.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_02.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_03.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_04.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_05.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_06.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_07.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_08.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_09.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_10.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_11.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_12.wav",
+        "Assets/Resources/Audio/SFX/Whoosh/whoosh_13.wav",
+        "Assets/Resources/Audio/SFX/punch_light_01.mp3",
+        "Assets/Resources/Audio/SFX/punch_light_02.mp3",
+        "Assets/Resources/Audio/SFX/punch_light_03.mp3",
+        "Assets/Resources/Audio/SFX/punch_medium_01.mp3",
+        "Assets/Resources/Audio/SFX/punch_medium_02.mp3",
+        "Assets/Resources/Audio/SFX/punch_medium_03.mp3",
+        "Assets/Resources/Audio/SFX/punch_heavy_01.mp3",
+        "Assets/Resources/Audio/SFX/punch_heavy_02.mp3",
+    };
+
     public const string ApprovedRoot = "Assets/Art/Characters/shared/";
-    public const string RegistryVersion = "1";
+    public const string RegistryVersion = "2";
 
     public static bool IsApproved(string projectRelativePath, out string reason, out string version)
     {
@@ -1533,21 +1725,24 @@ public static class CharacterSharedAssetRegistry
         bool approved = normalized.StartsWith(ApprovedRoot, StringComparison.Ordinal)
             && (normalized.EndsWith(".anim", StringComparison.OrdinalIgnoreCase)
                 || normalized.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase));
-        reason = approved ? "project-owned shared presentation asset registry" : "";
+        bool sharedAudio = SharedCombatAudio.Contains(normalized);
+        approved |= sharedAudio;
+        reason = sharedAudio ? "existing shared combat punch/Whoosh media; preserve GUIDs and importer settings" : approved ? "project-owned shared presentation asset registry" : "";
         version = approved ? RegistryVersion : "";
         return approved;
     }
 }
 public static class CharacterPackageAssetOwnershipRegistry
 {
+    public const string RegistryVersion = "2-package-presentation-audio";
     private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> PackageOwnedRoots =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
         {
             ["fightguy"] = new[] { "Assets/Art/Characters/fightguy/", "Assets/CharacterPackages/fightguy/", "Assets/Resources/Characters/FightGuy.prefab" },
-            ["wibou"] = new[] { "Assets/Art/Characters/wibou/", "Assets/CharacterPackages/wibou/", "Assets/Resources/Characters/Wibou.prefab" },
-            ["bonk"] = new[] { "Assets/Art/Characters/bonk/", "Assets/CharacterPackages/bonk/", "Assets/Resources/Characters/bonk.prefab" },
-            ["manki"] = new[] { "Assets/Art/Characters/manki/", "Assets/CharacterPackages/manki/", "Assets/Resources/Characters/Manki.prefab", "Assets/Resources/WeaponConfigs/Manki.asset" },
-            ["bashie"] = new[] { "Assets/Art/Characters/bashie/", "Assets/CharacterPackages/bashie/" },
+            ["wibou"] = new[] { "Assets/Resources/Audio/SFX/Wibou/", "Assets/Art/Characters/wibou/", "Assets/CharacterPackages/wibou/", "Assets/Resources/Characters/Wibou.prefab" },
+            ["bonk"] = new[] { "Assets/Resources/Audio/SFX/Bonk/", "Assets/Art/Characters/bonk/", "Assets/CharacterPackages/bonk/", "Assets/Resources/Characters/bonk.prefab" },
+            ["manki"] = new[] { "Assets/Resources/Audio/SFX/Manki/", "Assets/Art/Characters/manki/", "Assets/CharacterPackages/manki/", "Assets/Resources/Characters/Manki.prefab", "Assets/Resources/WeaponConfigs/Manki.asset" },
+            ["bashie"] = new[] { "Assets/Resources/Audio/SFX/Bashie/", "Assets/Art/Characters/bashie/", "Assets/CharacterPackages/bashie/" },
         };
 
     public static bool IsOwnedBy(string packageId, string projectRelativePath)

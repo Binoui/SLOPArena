@@ -69,13 +69,26 @@ internal static class CharacterCookDependencyTracker
                 Classification = presentation?.Prefab == null ? "missing" : CharacterPackageAuthoringService.ClassifyDependency(packageRoot, path).Classification,
             });
         }
+        foreach (var media in CharacterBindingWriter.ProfileMedia(catalog.PresentationProfile))
+        {
+            string path = media.Asset == null ? "" : UnityCharacterAssetCooker.NormalizeProjectPath(AssetDatabase.GetAssetPath(media.Asset));
+            if (!string.IsNullOrEmpty(path))
+                foreach (string dependency in AssetDatabase.GetDependencies(path, true)) paths.Add(UnityCharacterAssetCooker.NormalizeProjectPath(dependency));
+            var classification = CharacterPackageAuthoringService.ClassifyDependency(packageRoot, path);
+            records.Add(new CharacterCookDependencyRecord
+            {
+                Kind = "profile-media", Identity = media.Identity, Guid = media.ObjectId, MetaHash = path,
+                Classification = classification.Classification, SourcePackageId = classification.SourcePackageId,
+                SourcePath = classification.SourcePath, ApprovalReason = classification.ApprovalReason, ApprovalVersion = classification.ApprovalVersion,
+            });
+        }
         foreach (string path in paths.OrderBy(x => x, StringComparer.Ordinal))
         {
             if (path == catalogPath) continue;
             AddAsset(records, "asset", path, packageRoot);
-            if (Path.GetExtension(path).Equals(".fbx", StringComparison.OrdinalIgnoreCase))
+            if (Path.GetExtension(path).Equals(".fbx", StringComparison.OrdinalIgnoreCase) || AssetImporter.GetAtPath(path) is AudioImporter)
             {
-                var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+                var importer = AssetImporter.GetAtPath(path);
                 if (importer != null)
                     records.Add(new CharacterCookDependencyRecord
                     {
@@ -130,11 +143,16 @@ internal static class CharacterCookDependencyTracker
         foreach (var presentation in catalog?.Presentations ?? Array.Empty<CharacterAssetCatalog.PresentationBinding>())
             canonical.Append("catalog-presentation=").Append(presentation?.SemanticId ?? "").Append('|')
                 .Append(presentation?.Prefab == null ? "" : GlobalObjectId.GetGlobalObjectIdSlow(presentation.Prefab).ToString()).Append('\n');
+        canonical.Append("catalog-profile=").Append(CharacterBindingWriter.ProfileJson(catalog.PresentationProfile)).Append('\n');
+        canonical.Append("ownership-registry=").Append(CharacterPackageAssetOwnershipRegistry.RegistryVersion).Append('\n');
         foreach (var dependency in dependencies)
         {
             canonical.Append("dependency=").Append(dependency.Kind).Append('|').Append(dependency.Identity).Append('|')
                 .Append(dependency.Guid).Append('|').Append(dependency.DependencyHash).Append('|')
-                .Append(dependency.MetaHash).Append('|').Append(dependency.ImporterSettings).Append('\n');
+                .Append(dependency.MetaHash).Append('|').Append(dependency.ImporterSettings).Append('|')
+                .Append(dependency.Classification).Append('|').Append(dependency.SourcePackageId).Append('|')
+                .Append(dependency.SourcePath).Append('|').Append(dependency.ApprovalReason).Append('|')
+                .Append(dependency.ApprovalVersion).Append('\n');
         }
         using var sha = SHA256.Create();
         return Hex(sha.ComputeHash(Encoding.UTF8.GetBytes(canonical.ToString())));

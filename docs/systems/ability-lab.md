@@ -201,11 +201,13 @@ same snapshot must preserve it; only replacing it with a different snapshot or
 closing the preview may destroy it. Save status notifications can synchronously
 refresh the UI before the save path reapplies the preview.
 
-The workspace prepares current source in memory through existing compiler,
+The workspace prepares current source in memory through the existing compiler,
 verified poses, catalog, and rig; it does not save, cook, change Undo history,
-or write source/cooked files. Persisted authoritative preview still requires
-valid cooked runtime/pose/catalog/rig content. Missing/invalid persisted
-pose/rig prerequisites block scenarios. A clean in-memory prepared source can
+or write source/cooked files. Ordinary window refresh applies this live draft
+even when saved content is available. The persisted loader supplies verified
+runtime/pose/catalog/rig prerequisites, not proof that the scenario executed
+the saved definition. Missing/invalid persisted pose/rig prerequisites block
+scenarios. A clean in-memory prepared source can
 report `dirty: false` while `authoritativePreview: false`; dirty describes
 workspace edits, not whether a scenario hit. Never claim online play or game
 feel from these isolated scenarios.
@@ -225,36 +227,53 @@ discovery and native-command-first routing.
 
 ## Package discovery and workflow
 
-1. Open `Tools → SLOPArena → Ability Lab` with the Ability Lab scene component.
+1. Open `Tools → SLOPArena → Ability Lab` from any scene. The window creates its
+   own isolated preview scene; no component in the open scene is required.
 2. Select a source package from `Assets/CharacterPackages`. Discovery may show a source-only
    package by display name and stable package ID even when it has no cooked output or roster
    admission.
 3. Open the package in package mode. Ability Lab inspects source and catalog state; opening
    or editing does not cook, write generated bindings, update cook status, or change roster
    rows.
-4. The rooted resolver checks staged `Application.streamingAssetsPath/content-cooked` first,
-   then the repository `content-cooked` directory. It never depends on the process working
-   directory.
-5. Authoritative persisted preview requires a verified cooked manifest, runtime definition, pose
+4. In the Editor, the rooted resolver checks repository `content-cooked` first,
+   then `Application.streamingAssetsPath/content-cooked`. Players use StreamingAssets
+   only. The resolver never depends on the process working directory. See
+   [`LocalContentResolver.CreateDefault`](../../client/Unity/Assets/Scripts/Runtime/Content/LocalContentResolver.cs).
+5. The persisted preview loader requires a verified cooked manifest, runtime definition, pose
    payload, animation catalog, and rig. In the Editor, a missing generated catalog (fresh
    clones never have one) is rebuilt from the package's committed `client.bindings`. Bound
    animation clips that are not installed stay empty: those moves keep their hitboxes and
    hurtboxes from the cooked poses but don't animate, and the console warns once per move
    ([ADR-0038](../adr/0038-editor-play-without-installed-clips.md)). Missing or invalid
    content shows `Preview unavailable` with structured code, path, and message diagnostics.
-   It never falls back to FightGuy or legacy content. A source-only package such as Bonk is
-   therefore discoverable but has no authoritative preview.
+   It never falls back to FightGuy or legacy content. A throwaway source-only fixture is
+   therefore discoverable but cannot preview without those prerequisites. Bonk is
+   already rostered; it is not an unrostered pipeline probe.
 6. With a valid package preview, scrub the stopped timeline at tick `0` or later. Edit Mode
-   refreshes the existing renderer, baked bones, hurtboxes, and hitboxes in SceneView.
-7. `SAVE + COOK` remains the only persistence path and the only way to produce authoritative
-   persisted preview/package output. A failed cook returns semantic failure and preserves the
-   last valid artifact, generated cache, and status.
+   refreshes the renderer, baked bones, hurtboxes, and hitboxes in the embedded viewport.
+   [`AbilityLabWindow.RefreshPreview`](../../client/Unity/Assets/AbilityLab/Editor/AbilityLabWindow.cs)
+   prepares and applies the current workspace draft. This sets `authoritativePreview: false`
+   even when the toolbar reports **Cooked**.
+7. `SAVE + COOK` saves package source and invokes the validated cook. The cook publishes
+   payloads, intermediate files, generated catalog, and cook status, then refreshes an
+   existing roster pin. It does not admit a new package. Preparation failures preserve
+   the prior cook; publication failures attempt rollback. A later roster error can return
+   failure after publication succeeded. Inspect artifacts and pins before retrying. See
+   [cook mutation and failure scope](../characters/adding-a-new-character.md#5-cook-and-verify-four-payloads).
 8. Editor Training and Solo Play have a separate `edit → Play` path. They compile the current
    source and semantic assets in memory into the existing cooked runtime/catalog types. Invalid
    source blocks match start; it never falls back to a persisted cooked package. When the only
    problems are bound clips, presentation prefabs or weapon prefabs that are not installed,
    the current source plays with the committed pose data instead, unless the edit changes
    how poses are baked ([ADR-0038](../adr/0038-editor-play-without-installed-clips.md)).
+
+Ordinary Lab and Editor Training are source-iteration paths. Matching disk hashes
+and a **Cooked** status establish source/cook agreement, not saved gameplay playback.
+For accepted content, execute affected gameplay through the persisted Shared catalog
+or a player using staged saved content. The
+[persisted gameplay verification recipe](../characters/adding-a-new-character.md#verify-persisted-gameplay)
+names the existing resolver API and a Bonk hit/block/miss test. No saved-content
+selection mode is exposed by the ordinary Lab window.
 
 The compact toolbar status has this precedence: `No package → Unsaved → Cooking… → Cook
 failed → Stale → Cooked`. Clicking status opens the structured diagnostics panel. Hashes and
@@ -273,10 +292,11 @@ exposes the sixteen read-only `SlotAddress` values in ground-then-air order, wit
 labels `1`, `2`, `3`, `4`, `A`, `E`, `R`, `F`. Human labels and `CharacterClass`
 roster selectors are adapters only; see ADR-0030.
 
-A stale source keeps the last verified cooked preview visible and shows stale diagnostics.
-Missing or invalid cooked content produces `Preview unavailable`. Missing generated
-catalog/rig bindings are reported at the preview seam, and the rig setup state distinguishes
-no scene rig, valid rig, and unavailable package preview.
+Valid stale source previews as a live draft using the verified pose/catalog/rig
+prerequisites. Invalid drafts stop simulation and show diagnostics rather than
+silently playing the old definition. Missing or invalid cooked prerequisites produce
+`Preview unavailable`. Missing catalog/rig bindings are reported at the preview seam.
+The window owns the temporary rig in its preview scene.
 
 ## Moves interaction
 
@@ -286,13 +306,13 @@ one reusable render target isolates camera clearing from native Editor controls.
 released on UI rebuild/owner disable and does not create another actor or simulation.
 Hitboxes, Hurtboxes and Motion control the existing Lab overlay flags. Missing package,
 rig/camera and invalid-draft states are explicit rather than showing a stale current preview.
-On the timeline, the hitbox and hurtbox overlays show what the authoritative preview
+On the timeline, the hitbox and hurtbox overlays show what the Shared preview
 simulation tested on the tick the model shows (`SpellResolver.LastTickCheckedHitboxes` and
 `LastTickAttackEntities`), so they follow the move's real movement, including rises and
 dives. A bone hitbox also draws, in darker orange, the band Shared swept through since the
 previous tick (`Hitbox.Sweep`): each swept pose's axis joined by its start and end paths.
 Recorded scenarios keep every tested hitbox per frame, including one on its last
-active tick. Without an authoritative run, overlays fall back to the authored approximation
+active tick. Without a Shared run, overlays fall back to the authored approximation
 (grounded, forward lunges only, one tick behind the model).
 
 `Move overview` exposes authored timing/animation; selecting an inventory effect switches to
@@ -335,8 +355,8 @@ and the nested landing hitbox; changes compile into the live draft without savin
 The seek plus recovery must fit the authored stage, and the hitbox duration must
 fit recovery. Ordinary timeline scrubbing cannot predict the landing frame of a
 variable-length flight: use a recorded Shared scenario to inspect the actual
-landing and impact. `SAVE + COOK` persists the source/cooked package; admitted
-matches also require a roster refresh.
+landing and impact. `SAVE + COOK` persists the source/cooked package and automatically
+refreshes an existing roster pin. New admission remains a separate accepted-content step.
 
 `Add charged directional dash` creates public
 `slop.ability.charged-directional-dash.v1`, raises the runtime API minimum to
@@ -344,7 +364,7 @@ matches also require a roster refresh.
 to fit travel/seek/recovery in the same Undo step. Its Moves inspector edits
 charge cap and tier thresholds, range/speed, finisher lead/animation seek,
 recovery, tier damage, and both nested traversal/finisher hitboxes. Live-draft
-edits affect authoritative scenarios before saving. The Scenario **Charge ticks**
+edits affect Shared scenarios before saving. The Scenario **Charge ticks**
 control holds aim for that many simulation ticks, then releases; a capped charge
 stays held until release. Recorded charge previews show tier-coloured endpoint
 rings. Native `capture` without `--charge-ticks` retains a matching recorded
@@ -356,9 +376,9 @@ control invalidates the previous run; the next receipt reports the recorded
 distance, opponent behavior and starting damage.
 
 
-In package Edit Mode, active resolved hitboxes expose SceneView selection buttons and a radius
-handle. Radius changes commit through the same source workspace authority. Compatibility,
-unavailable previews, playback, and non-Moves pages expose no package handles or mutation
+In package Edit Mode, active resolved hitboxes expose selection buttons and a radius
+handle in the embedded viewport. Radius changes commit through the same source workspace authority.
+Unavailable previews, playback, and non-Moves pages expose no package handles or mutation
 path. Existing `AbilityLab.OnRenderObject` remains the only visible geometry path, including
 optional baked bones.
 
@@ -381,7 +401,8 @@ bun scripts/unity-editor-gateway.ts \
   -- sloparena.character.cook --target fightguy
 ```
 
-Failed cooks do not replace last-valid artifacts or persisted cook status. Compatibility is
-legacy-only. Do not delete or rename source packages or cooked artifacts while running the
+Inspect both artifacts and roster pins after a cook failure, using the failure scope
+above. The Compatibility preview tab and legacy execution path are retired.
+Do not delete or rename source packages or cooked artifacts while running the
 package/frontend self-tests. Package creation currently has no Ability Lab UI control; use
 the existing `AbilityLabPackageWorkspace.NewPackage` editor seam until onboarding is scoped.

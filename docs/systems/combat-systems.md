@@ -4,12 +4,12 @@ This document describes mechanics shared by every SLOPArena fighter. Character-s
 
 ## Move model
 
-Each fighter has twelve move concepts, each with grounded and aerial entries:
+Each fighter has eight button concepts, each with grounded and aerial entries:
 
 - normals `1`, `2`, `3`, and `4`;
 - specials `A`, `E`, `R`, and `F`.
 
-That produces the canonical 16-entry grid. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special. A package may alias entries in authoring, but cooking expands them into explicit runtime slots. Physical labels such as `LMB` and `RMB` are input mappings, not move identity.
+That produces the canonical 16-entry grid, including eight normal moves, four ground and four air, and eight special moves. [`CanonicalSlotProjection`](../../src/Shared/SlotAddress.cs) defines the entries. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special. A package may alias entries in authoring, but cooking expands them into explicit runtime slots. Physical labels such as `LMB` and `RMB` are input mappings, not move identity.
 
 Every move is a fixed-timeline entry with authored stage timing, animation IDs, and typed deterministic operations. The Shared simulation controls activation, duration, collision, interruption, and completion.
 
@@ -96,8 +96,10 @@ The previous facing-locked tuning (11 m/s for 10 ticks, then 20 ticks frozen in
 place) covered 1.83 m, less than holding the stick for the same 30 ticks, and a
 dodge just before touchdown left 29 ticks of grounded recovery.
 
-Universal airborne Dash input no longer moves the fighter. Kit-owned
-dash/lunge/recovery abilities retain their own timing and mobility.
+Universal Dash is retired; its legacy input bit no longer moves the fighter.
+Kit-owned dash/lunge/recovery abilities retain their own timing and mobility.
+The former Burst input bit is reserved and inert; Burst cannot escape
+Hitstop or Hitstun, interrupt a move, or grant invulnerability.
 
 ### Contextual Down
 
@@ -144,7 +146,7 @@ smaller stage capsules. Missing legacy low poses remain upright and cannot earn 
 
 ### Measured flow report
 
-`dotnet run --project tools/AerialApproachReport -- --slide-flow --slide-deceleration 2
+`dotnet run --project tools/AerialApproachReport -p:SkipUnityPluginCopy=true -- --slide-flow --slide-deceleration 2
 --fall-profile current --brace-multiplier 0.9 --assert --out artifacts/slide-flow/combat`
 writes per-tick traces, aerial approaches, follow-ups and resolver target outcomes.
 Use `3` for the friction control, `previous` for historical fall speeds and `1` to disable
@@ -199,10 +201,12 @@ Stage collision remains authoritative: a higher or lower landing surface starts
 the frame-34 landing segment at actual ground contact. A missing or invalid
 partner, damage, or death ends the interaction without an extra throw.
 
-Training and the GameServer share these rules. Online local prediction waits for
-authoritative capture and release; detached throw recovery and thrown flight can
-be reconstructed from replicated fields. Protocol version 8 preserves all older
-state wire values and adds `Grabbing` (20) and `Thrown` (21).
+Training and the GameServer share these rules. Online `RollbackSimulationBridge`
+uses `NetplaySession` to predict the full world, including both sides of grab
+capture, hold, throw, and release. Authoritative World Frames restore and replay
+the interaction when prediction differs. The earlier capture/release barrier
+belongs to the retired three-track model; see [ADR-0039](../adr/0039-full-world-rollback.md)
+and [`NetplayPredictorTests.GrabAndThrowArePredictedForTheGrabber`](../../tests/Shared.Tests/NetplayPredictorTests.cs).
 
 Scene/Game **Gizmos** show the cooked forward box during `GrabAttempt`: yellow
 startup, orange active contact, gray whiff recovery. The Edit Mode menu
@@ -212,13 +216,13 @@ poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
 
 ## Damage and hit response
 
-SLOPArena uses damage percent rather than a conventional health pool. A hit applies damage, then Knockback using the hit's profile and the victim's current percent. Profiles cover Light, Medium, Launcher, Kill, Spike, and explicit Custom values.
+SLOPArena uses damage percent rather than a conventional health pool. A hit applies damage, then Knockback using the hit's parameters and the victim's current percent. Shared retains Light, Medium, Launcher, Kill, Spike, Custom, and Adaptive profiles in [`KnockbackProfile`](../../src/Shared/KnockbackProfile.cs). Cooked package hitboxes project their explicit angle/base/growth values through Custom; Adaptive resolves its angle at contact.
 
 - **Hitstun** is the victim's no-action duration after a damaging hit. Inputs buffer according to the simulation rules; residual launch continues after Hitstun ends.
 - **Hitstop** freezes the attacker/victim pair briefly on contact while the match clock continues. The attacker's move pauses, and so do its live melee hitboxes: they keep their remaining active ticks for after the freeze. Projectiles keep flying. Block hitstop does not enter damaging-hit launch/DI logic.
 - **Block stun** locks a defender after a blocked contact for `clamp(ceil(0.6 × incoming damage) + 2, 4, 15)` ticks; overlaps retain the larger remaining duration.
 - **Shield drop** lasts 7 vulnerable ticks after release; release during block stun starts the full drop only when the stun expires.
-- **Clash** resolves simultaneous Interruptible hitboxes as mutual pushback and short stun instead of an arbitrary trade.
+- Reciprocal active grabs resolve as a **grab clash**. Simultaneous attacks trade; the attack-Clash design in [ADR-0015](../adr/0015-timing-model-combat-pivot.md) remains planned, not implemented.
 - **Armor** is an authored activation window, not invulnerability: incoming
 damage/contact feedback and Hitstop remain, but ordinary launch, Hitstun and
 SDI do not apply. The contact snapshots protection before Hitstop; no deferred
@@ -284,9 +288,9 @@ stopped at its first contact.
 A returning projectile (Sir Bonk's pot lid, a `return` block on `spawnProjectile`) does
 not stop at fighters: each leg hits each fighter once, and the way back pulls them toward
 its owner. It turns at the end of its outbound time, at the stage (bouncing back at half
-speed) or at a shield. Its owner catches it when free, shielding, hanging on a ledge, held
-or being hit; an
-owner who is busy (in a move, hitstop, blockstun or landing lag) takes its self-hit
+speed) or at a shield. Its owner catches it when free, shielding, held or being hit.
+The reserved `LedgeHang` state also takes the catch branch, but automatic ledge grabs
+remain disabled. An owner who is busy (in a move, hitstop, blockstun or landing lag) takes its self-hit
 instead: fixed hitstun and no launch. Thrown point-blank into a shield, it is home inside
 the throw itself, so it bonks him. Rules and limits:
 [ability architecture](ability-architecture.md).
@@ -295,7 +299,7 @@ No Unity physics query or client-only trajectory determines gameplay.
 
 ## Targeting and aiming
 
-The client may provide camera-derived aim and target intent. The Shared simulation validates targetability and range and owns the selected target. Target lock is passive while moving: it does not steer facing outside attacks. Ordinary stages do not continuously track targets. `startupAimCorrection` is an explicit cooked timeline operation available to any slot. Source authoring enables it on all 32 normals and on Manki F, FightGuy R/F, Wibou F, and Bonk A/R, including their air variants. When opted in, the simulation captures one eligible target at activation, even if the operation's correction tick is later. It prefers the currently selected/locked target when valid in the acquisition envelope; otherwise it picks the nearest eligible enemy, breaking distance ties by entity ID. RetargetPressed keeps its existing nearest-valid-enemy semantics; correction never switches target after capture.
+The client may provide camera-derived aim and target intent. The Shared simulation validates targetability and range and owns the selected target. Target lock is passive while moving: it does not steer facing outside attacks. Ordinary stages do not continuously track targets. `startupAimCorrection` is an explicit cooked timeline operation available to any slot. Normals and selected specials opt in through their package's `character.json`; read that source for current coverage and tuning. When opted in, the simulation captures one eligible target at activation, even if the operation's correction tick is later. It prefers the currently selected/locked target when valid in the acquisition envelope; otherwise it picks the nearest eligible enemy, breaking distance ties by entity ID. RetargetPressed keeps its existing nearest-valid-enemy semantics; correction never switches target after capture.
 
 Current normal tuning uses 4 m acquisition range and full-circle acquisition (`acquisitionHalfAngleDegrees: 180`, no forward-cone restriction), at most 45° yaw at 360°/s, and pitch up to 15° at 180°/s only for air.1/air.2 except Bonk air.2; grounded normals and other aerial normals have zero pitch. Selected/locked opponents beside or behind the fighter can be acquired, but the attack still turns only within its existing startup time and 45° cap. The hip world pivot is the simulation hip-height pivot (`BoneYToWorldY(PY, 0)`), shared by model, collision and trails. Target reference is the opponent torso at `PY + 0.25 × targetCapsuleHeight`. Pitch changes rendered pose geometry, not physics capsule or trajectories.
 

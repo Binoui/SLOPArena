@@ -697,7 +697,7 @@ public static class CharacterPackageSourceCodec
                 Number(w, "tier3Damage", p.Tier3Damage); WriteHitboxNamed(w, p.TraversalHitbox, "traversalHitbox");
                 WriteHitboxNamed(w, p.FinisherHitbox, "finisherHitbox"); break;
             case WibouRisingSlashCapabilityParameters p: Number(w, "riseSpeed", p.RiseSpeed); w.WriteNumber("riseTicks", p.RiseTicks); Number(w, "homingRange", p.HomingRange); Number(w, "homingSpeed", p.HomingSpeed); break;
-            case WibouBladeFlurryCapabilityParameters p: Number(w, "forwardSpeed", p.ForwardSpeed); w.WriteNumber("moveTicks", p.MoveTicks); break;
+            case WibouBladeFlurryCapabilityParameters p: Number(w, "forwardSpeed", p.ForwardSpeed); w.WriteNumber("ascentStartTick", p.AscentStartTick); w.WriteNumber("ascentEndTick", p.AscentEndTick); w.WriteNumber("descentStartTick", p.DescentStartTick); Number(w, "riseSpeed", p.RiseSpeed); Number(w, "descentSpeed", p.DescentSpeed); break;
             case TargetedLeapCapabilityParameters p:
                 w.WriteNumber("maxAimTicks", p.MaxAimTicks);
                 w.WriteNumber("maxFlightTicks", p.MaxFlightTicks);
@@ -1153,14 +1153,9 @@ public static class CharacterPackageSourceCodec
     private static TypedCapabilityParameters ParseCapabilityParameters(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
     {
         var id = String(parent, "capabilityId", path + ".capabilityId", d);
-        if (id == CharacterPackageCompiler.RetiredTargetedLeapCapabilityId)
+        if (RetiredCapabilities.TryGetReason(id, out var retiredReason))
         {
-            d.Error("capability.retired", path + ".capabilityId", "The Bonk-only targeted jump slam capability has been retired.");
-            return new RisingDragonCapabilityParameters(0, 0, 0);
-        }
-        if (id == CharacterPackageCompiler.RetiredWibouDashSlashCapabilityId)
-        {
-            d.Error("capability.retired", path + ".capabilityId", "The Wibou dash-slash capability has been retired.");
+            d.Error("capability.retired", path + ".capabilityId", retiredReason);
             return new RisingDragonCapabilityParameters(0, 0, 0);
         }
         if (!parent.TryGetValue("parameters", out var element)) { d.Error("operation.parameter-missing", path + ".parameters", "Capability parameters are required."); return new RisingDragonCapabilityParameters(0, 0, 0); }
@@ -1173,7 +1168,7 @@ public static class CharacterPackageSourceCodec
             "slop.internal.fightguy.cyclone-kick.v1" => new[] { "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY" },
             "slop.ability.charged-directional-dash.v1" => new[] { "maxChargeTicks", "tier2Ticks", "tier3Ticks", "minDistance", "maxDistance", "dashSpeed", "finisherLeadTicks", "finisherSeekTick", "recoveryTicks", "tier2Damage", "tier3Damage", "traversalHitbox", "finisherHitbox" },
             "slop.internal.wibou.rising-slash.v1" => new[] { "riseSpeed", "riseTicks", "homingRange", "homingSpeed" },
-            "slop.internal.wibou.blade-flurry.v1" => new[] { "forwardSpeed", "moveTicks" },
+            CharacterPackageCompiler.BladeFlurryCapabilityId => new[] { "forwardSpeed", "ascentStartTick", "ascentEndTick", "descentStartTick", "riseSpeed", "descentSpeed" },
             "slop.ability.targeted-leap.v1" => new[] { "maxAimTicks", "maxFlightTicks", "minRange", "maxRange", "launchVerticalSpeed", "landingSeekTick", "recoveryTicks", "hitbox", "launchPresentationId", "landingPresentationId" },
             "slop.ability.steered-charge.v1" => SteeredChargeFields,
             "slop.internal.manki.round-bomb.v1" => new[] { "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "explosionPresentationId" },
@@ -1252,7 +1247,7 @@ public static class CharacterPackageSourceCodec
                 ParseHitboxNamed(p, "traversalHitbox", path + ".parameters.traversalHitbox", d),
                 ParseHitboxNamed(p, "finisherHitbox", path + ".parameters.finisherHitbox", d));
         if (id.EndsWith("wibou.rising-slash.v1", StringComparison.Ordinal)) return new WibouRisingSlashCapabilityParameters(Float(p, "riseSpeed", path + ".parameters.riseSpeed", d), UShort(p, "riseTicks", path + ".parameters.riseTicks", d), Float(p, "homingRange", path + ".parameters.homingRange", d), Float(p, "homingSpeed", path + ".parameters.homingSpeed", d));
-        if (id.EndsWith("wibou.blade-flurry.v1", StringComparison.Ordinal)) return new WibouBladeFlurryCapabilityParameters(Float(p, "forwardSpeed", path + ".parameters.forwardSpeed", d), UShort(p, "moveTicks", path + ".parameters.moveTicks", d));
+        if (id == CharacterPackageCompiler.BladeFlurryCapabilityId) return new WibouBladeFlurryCapabilityParameters(Float(p, "forwardSpeed", path + ".parameters.forwardSpeed", d), UShort(p, "ascentStartTick", path + ".parameters.ascentStartTick", d), UShort(p, "ascentEndTick", path + ".parameters.ascentEndTick", d), UShort(p, "descentStartTick", path + ".parameters.descentStartTick", d), Float(p, "riseSpeed", path + ".parameters.riseSpeed", d), Float(p, "descentSpeed", path + ".parameters.descentSpeed", d));
         if (id == CharacterPackageCompiler.TargetedLeapCapabilityId)
             return new TargetedLeapCapabilityParameters(
                 UShort(p, "maxAimTicks", path + ".parameters.maxAimTicks", d),

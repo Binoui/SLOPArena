@@ -258,6 +258,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
     private void OnEnable()
     {
         _suppressInitialPackage = _openingForCommand;
+        InitializeRecoveryIdentity();
         _refreshAfterCompilation = true;
         _waitingForAssemblyReload = false;
         AssemblyReloadEvents.beforeAssemblyReload += ReleaseLabBeforeReload;
@@ -273,10 +274,11 @@ public sealed partial class AbilityLabWindow : EditorWindow
         EditorApplication.quitting -= DestroyOwnedLab;
         try
         {
+            if (!_discardForClose && !_savedForClose) CheckpointWorkspace();
             ReleaseMovesViewport();
             DisposeAttachmentPreview();
             if (_grabSelected && _lab != null) _lab.ShowHitboxes = _grabPriorShowHitboxes;
-            _workspace.StatusChanged -= RefreshAll;
+            _workspace.StatusChanged -= OnWorkspaceStatusChanged;
             _fieldsWindow?.OwnerUnavailable(this);
         }
         finally { DestroyOwnedLab(); }
@@ -310,14 +312,15 @@ public sealed partial class AbilityLabWindow : EditorWindow
         BindAssetsPage();
         BindPhaseAuthoring();
         BindAdvancedPage();
+        RestoreWindowRecovery();
         EnsureOwnedLab();
         string initialPackage = _packages.Any(option => option.PackageId == _reloadPackageId) ? _reloadPackageId : "fightguy";
         if (!_workspace.HasPackage && !_suppressInitialPackage && _packages.Any(option => option.PackageId == initialPackage))
             OpenPackage(initialPackage);
         else
             RefreshAll();
-        _workspace.StatusChanged -= RefreshAll;
-        _workspace.StatusChanged += RefreshAll;
+        _workspace.StatusChanged -= OnWorkspaceStatusChanged;
+        _workspace.StatusChanged += OnWorkspaceStatusChanged;
         _fieldsWindow?.CreateGUI();
         _uiReady = true;
         RestoreFocus(focusedName);
@@ -342,6 +345,13 @@ public sealed partial class AbilityLabWindow : EditorWindow
                 }
                 _lab.SetStage(stage);
                 _lab.SetTick((ushort)tick);
+                if (_recoveredPhaseActive)
+                {
+                    _lab.SetAuthoringPhase((AbilityLab.AuthoringPhase)_recoveredPhase);
+                    _lab.SetPhasePreview(true);
+                    _lab.SetPhaseTick(_recoveredPhaseTick);
+                    _recoveredPhaseActive = false;
+                }
                 _lab.Playing = _reloadPlaying;
             }
             _lab?.RefreshPose();
@@ -352,10 +362,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
             _nextPersistedStatusCheck = EditorApplication.timeSinceStartup + 1d;
             if (_workspace.RefreshPersistedStatus())
             {
-                _inspection = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Inspect(_workspace.PackageRoot);
-                RefreshWorkspaceControls();
-                RefreshAdvanced();
-                RefreshDiagnostics();
+                RefreshAll();
             }
         }
         if (_lab != null && _lab.Playing)
@@ -538,7 +545,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         Required<Button>("diagnostics-toggle").clicked += ToggleDiagnostics;
         Required<Button>("toolbar-undo").clicked += () => { _workspace.Undo(); RefreshAll(); };
         Required<Button>("toolbar-redo").clicked += () => { _workspace.Redo(); RefreshAll(); };
-        Required<Button>("toolbar-save").clicked += () => { _workspace.SavePackage(); RefreshAll(); };
+        Required<Button>("toolbar-save").clicked += SaveAndCook;
     }
 
     private void ToggleDiagnostics()
@@ -629,8 +636,11 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private void RunScenarioFromControls()
     {
-        if (_lab == null || !_lab.CanRunScenario || string.IsNullOrEmpty(CurrentSharedAction()))
+        bool prepared = _lab != null && _workspace.PrepareScenarioPreview();
+        if (!prepared) _lab?.MarkPackageDraftInvalid();
+        if (_lab == null || !prepared || !_lab.CanRunScenario || string.IsNullOrEmpty(CurrentSharedAction()))
         {
+            RefreshScenarioControls();
             _scenarioOutcomes.text = "Open a valid package preview before running a scenario.";
             return;
         }
@@ -1239,15 +1249,10 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private void OpenPackage(string packageId)
     {
-        if (string.IsNullOrEmpty(packageId)) return;
-        if (!CanLeaveAttachmentDraft()) { BindPackageSelection(); return; }
-        if (!_workspace.OpenPackage($"Assets/CharacterPackages/{packageId}"))
-        {
-            RefreshAll();
-            return;
-        }
-        RefreshAll();
+        TryOpenPackage(packageId);
+        if (_root != null && _packageSelector != null) RefreshAll();
     }
+
     internal bool OpenPackageForCommand(
         CharacterPackageInspectionResult inspection,
         out string errorCode,
@@ -1255,21 +1260,21 @@ public sealed partial class AbilityLabWindow : EditorWindow
     {
         errorCode = "";
         errorMessage = "";
-        if (!CanCommandOpenPackage(_workspace.HasPackage, _workspace.PackageId, _workspace.IsDirty, inspection.PackageId))
+        if (!CanCommandOpenPackage(_workspace.HasPackage, _workspace.PackageId, _workspace.HasUnsavedChanges, inspection.PackageId))
         {
             errorCode = "workspace.dirty";
             errorMessage = $"Cannot switch from dirty package '{_workspace.PackageId}' to '{inspection.PackageId}'.";
             return false;
         }
-        if (_workspace.HasPackage && _workspace.PackageId == inspection.PackageId && _workspace.IsDirty)
+        if (_workspace.HasPackage && _workspace.PackageId == inspection.PackageId)
             return true;
-        if (!_workspace.OpenPackage(inspection))
+        if (!TryOpenPackage(inspection.PackageId))
         {
             errorCode = "package.open.failed";
-            errorMessage = string.Join("; ", _workspace.Diagnostics.Select(diagnostic => diagnostic.Message));
+            errorMessage = !string.IsNullOrEmpty(RecoveryError) ? RecoveryError
+                : string.Join("; ", _workspace.Diagnostics.Select(diagnostic => diagnostic.Message));
             return false;
         }
-        if (_uiReady) RefreshAll();
         return true;
     }
 
@@ -1345,6 +1350,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
     }
     private void RefreshWorkspaceControls()
     {
+        RefreshUnsavedChanges();
         _packageStatusToggle.text = PackageStatus();
         Required<Button>("toolbar-undo").SetEnabled(_workspace.CanUndo);
         Required<Button>("toolbar-redo").SetEnabled(_workspace.CanRedo);
@@ -1354,7 +1360,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
     private string PackageStatus()
     {
         if (!_workspace.HasPackage) return "No package";
-        if (_workspace.IsDirty) return "Unsaved";
+        if (_workspace.HasUnsavedChanges) return "Unsaved";
         if (_workspace.Status == "Cooking") return "Cooking…";
         if (_workspace.Status == "Failed" || _workspace.Preview == null || !_workspace.Preview.IsAvailable) return "Cook failed";
         if (_workspace.Status == "Stale") return "Stale";
@@ -1363,10 +1369,15 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private void RefreshPreview()
     {
+        bool prepared = _workspace.HasPackage && _workspace.PrepareScenarioPreview();
         _preview = _workspace.Preview;
-        
-        if (_workspace.HasPackage && _workspace.Preview?.IsAvailable == true)
-            _workspace.PrepareScenarioPreview();
+
+        if (_workspace.HasPackage && !prepared)
+        {
+            _lab?.MarkPackageDraftInvalid();
+            _moveList.Clear();
+            return;
+        }
         if (_workspace.LiveDraftPackage != null && _preview?.IsAvailable == true)
         {
             _lab?.ApplyPackageDraftPreview(_workspace.LiveDraftPackage, _preview);
@@ -1782,6 +1793,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         var diagnostics = new List<CharacterDiagnostic>(_workspace.Diagnostics);
         if (_inspection != null) diagnostics.AddRange(_inspection.RawDiagnostics);
         if (_preview != null) diagnostics.AddRange(_preview.Diagnostics);
+        if (!string.IsNullOrEmpty(RecoveryError)) diagnostics.Add(Diagnostic("workspace.recovery.failed", _workspace.PackageRoot, RecoveryError));
         foreach (var option in _packages.Where(option => option.Diagnostics.Count > 0)) diagnostics.AddRange(option.Diagnostics);
         var unique = diagnostics
             .GroupBy(x => $"{x.Severity}|{x.Code}|{x.Path}|{x.Message}", StringComparer.Ordinal)
@@ -2064,8 +2076,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         }
         if (evt.ctrlKey && evt.keyCode == KeyCode.S && packageMode)
         {
-            _workspace.SavePackage();
-            RefreshAll();
+            SaveAndCook();
             evt.StopPropagation();
             return;
         }
@@ -3378,16 +3389,9 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private void ReleaseLabBeforeReload()
     {
+        CheckpointWorkspace();
         _waitingForAssemblyReload = true;
-        if (_lab?.IsPackagePreview == true && !_lab.IsScenarioPreview && !_lab.PhasePreviewActive)
-        {
-            _reloadSlot = _lab.SelectedSlotId;
-            _reloadPackageId = _workspace.PackageId;
-            _reloadStage = _lab.StageIndex;
-            _reloadTick = _lab.Tick;
-            _reloadPlaying = _lab.Playing;
-            _restoreReloadCursor = true;
-        }
+        _reloadPackageId = _workspace.PackageId;
         _refreshAfterCompilation = true;
         DestroyOwnedLab();
     }

@@ -12,6 +12,300 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    private const string ProfileMediaId = "GlobalObjectId_V1-1-0123456789abcdef0123456789abcdef-100100000-0";
+
+    [Fact]
+    public void PresentationV2AssemblesAndVerifiesWithoutChangingV1Fixtures()
+    {
+        Assert.True(AssembleFixture().IsValid);
+        var assembly = CharacterPackageAssembler.Assemble(PresentationInput());
+        Assert.True(assembly.IsValid, string.Join("; ", assembly.Diagnostics));
+        Assert.True(CharacterPackageAssembler.Verify(Files(assembly)).IsValid);
+    }
+
+    [Theory]
+    [InlineData("bad-package-id")]
+    [InlineData("bad-source-hash")]
+    [InlineData("bad-pose-format")]
+    [InlineData("bad-pose-version")]
+    [InlineData("bad-sample-rate")]
+    [InlineData("missing-profile")]
+    [InlineData("mixed-schema")]
+    [InlineData("future-schema")]
+    [InlineData("unknown-root")]
+    [InlineData("unknown-profile")]
+    [InlineData("unknown-pool")]
+    [InlineData("duplicate-slot")]
+    [InlineData("foreign-slot")]
+    [InlineData("too-many-slots")]
+    [InlineData("bad-orientation")]
+    [InlineData("bad-selection")]
+    [InlineData("fixed-cardinality")]
+    [InlineData("cycle-empty")]
+    [InlineData("tint-nan")]
+    [InlineData("scale-zero")]
+    [InlineData("scale-infinity")]
+    [InlineData("float-string")]
+    [InlineData("symbolic-media")]
+    [InlineData("bad-clip-media")]
+    [InlineData("bad-bone")]
+    [InlineData("bad-suppression")]
+    [InlineData("missing-pool")]
+    public void PresentationV2RejectsMalformedMetadataDuringAssemblyAndVerification(string mutation)
+    {
+        void Mutate(JsonObject root)
+        {
+            var profile = root["presentationProfile"]!.AsObject();
+            var rows = profile["projectiles"]!.AsArray();
+            switch (mutation)
+            {
+                case "bad-package-id": root["packageId"] = "Invalid Package"; break;
+                case "bad-source-hash": root["sourceHash"] = "symbolic"; break;
+                case "bad-pose-format": root["poseFormat"] = "OTHER"; break;
+                case "bad-pose-version": root["poseVersion"] = 2; break;
+                case "bad-sample-rate": root["sampleRate"] = 30; break;
+                case "missing-profile": root.Remove("presentationProfile"); break;
+                case "mixed-schema": root["catalogSchemaVersion"] = 1; break;
+                case "future-schema": root["catalogSchemaVersion"] = 3; root["bindingSchemaVersion"] = 3; break;
+                case "unknown-root": root["future"] = 1; break;
+                case "unknown-profile": profile["future"] = 1; break;
+                case "unknown-pool": profile["swing"]!["future"] = 1; break;
+                case "duplicate-slot": rows.Add(rows[0]!.DeepClone()); break;
+                case "foreign-slot": rows[0]!["slotId"] = "ground.LMB"; break;
+                case "too-many-slots": for (int i = 0; i < 16; i++) rows.Add(rows[0]!.DeepClone()); break;
+                case "bad-orientation": rows[0]!["orientation"] = 2; break;
+                case "bad-selection": profile["swing"]!["selection"] = 2; break;
+                case "fixed-cardinality": profile["lightImpact"]!["clipGlobalObjectIds"] = new JsonArray(); break;
+                case "cycle-empty": profile["swing"]!["selection"] = 1; break;
+                case "tint-nan": profile["respawnTintBits"]![0] = BitConverter.SingleToInt32Bits(float.NaN); break;
+                case "scale-zero": rows[0]!["scaleBits"] = 0; break;
+                case "scale-infinity": rows[0]!["scaleBits"] = BitConverter.SingleToInt32Bits(float.PositiveInfinity); break;
+                case "float-string": rows[0]!["scaleBits"] = "1065353216"; break;
+                case "symbolic-media": rows[0]!["prefabGlobalObjectId"] = "prefab"; break;
+                case "bad-clip-media": profile["lightImpact"]!["clipGlobalObjectIds"]![0] = "clip"; break;
+                case "bad-bone": rows[0]!["heldBoneId"] = "right-hand"; break;
+                case "bad-suppression": profile["suppressRemovalExplosion"] = 1; break;
+                case "missing-pool": profile.Remove("heavyImpact"); break;
+            }
+        }
+        var rejected = CharacterPackageAssembler.Assemble(PresentationInput(Mutate));
+        Assert.False(rejected.IsValid);
+        Assert.Contains(rejected.Diagnostics, d => d.Code.StartsWith("package.binding.") || d.Code.StartsWith("package.field."));
+        var baseline = CharacterPackageAssembler.Assemble(PresentationInput());
+        Assert.True(baseline.IsValid, string.Join("; ", baseline.Diagnostics));
+        var files = Files(baseline);
+        var payload = JsonNode.Parse(files[CharacterPackageAssembler.BindingPath])!.AsObject();
+        Mutate(payload);
+        files[CharacterPackageAssembler.BindingPath] = Encoding.UTF8.GetBytes(payload.ToJsonString());
+        var verification = CharacterPackageAssembler.Verify(files);
+        Assert.False(verification.IsValid);
+        Assert.Contains(verification.Diagnostics, d => d.Code.StartsWith("package.binding.") || d.Code.StartsWith("package.field."));
+    }
+
+    [Fact]
+    public void PresentationV2PreservesOrderedSilentPoolPositionsAndHashesEveryScalarAndMediaIdentity()
+    {
+        var baseline = CharacterPackageAssembler.Assemble(PresentationInput(root =>
+        {
+            root["presentationProfile"]!["swing"]!["selection"] = 1;
+            root["presentationProfile"]!["swing"]!["clipGlobalObjectIds"] = new JsonArray(ProfileMediaId, "", ProfileMediaId);
+        }));
+        Assert.True(baseline.IsValid, string.Join("; ", baseline.Diagnostics));
+        using var parsed = JsonDocument.Parse(baseline.BindingBytes);
+        Assert.Equal("", parsed.RootElement.GetProperty("presentationProfile").GetProperty("swing").GetProperty("clipGlobalObjectIds")[1].GetString());
+        foreach (Action<JsonObject> edit in new Action<JsonObject>[]
+        {
+            r => r["presentationProfile"]!["respawnTintBits"]![0] = BitConverter.SingleToInt32Bits(.25f),
+            r => r["presentationProfile"]!["suppressRemovalExplosion"] = true,
+            r => r["presentationProfile"]!["projectiles"]![0]!["scaleBits"] = BitConverter.SingleToInt32Bits(2f),
+            r => r["presentationProfile"]!["projectiles"]![0]!["orientation"] = 1,
+            r => r["presentationProfile"]!["projectiles"]![0]!["heldBoneId"] = "bone.right-hand",
+            r => r["presentationProfile"]!["lightImpact"]!["clipGlobalObjectIds"]![0] = ProfileMediaId.Replace("100100000", "100100001"),
+        })
+        {
+            var changed = CharacterPackageAssembler.Assemble(PresentationInput(edit));
+            Assert.True(changed.IsValid, string.Join("; ", changed.Diagnostics));
+            Assert.NotEqual(CharacterPackageAssembler.Assemble(PresentationInput()).CookedContentHash, changed.CookedContentHash);
+        }
+    }
+
+    [Fact]
+    public void PresentationV1RejectsV2ProfileAndUnknownFields()
+    {
+        var v2 = PresentationInput();
+        var root = JsonNode.Parse(v2.BindingBytes)!.AsObject();
+        root["bindingSchemaVersion"] = 1;
+        root["catalogSchemaVersion"] = 1;
+        var input = CopyBindings(v2, root, 1);
+        var rejected = CharacterPackageAssembler.Assemble(input);
+        Assert.False(rejected.IsValid);
+        Assert.Contains(rejected.Diagnostics, d => d.Code == "package.field.unknown");
+    }
+
+    [Fact]
+    public void ValidateClientBindingsDirectlyAcceptsCompleteV2Metadata()
+        => Assert.Empty(CharacterPackageAssembler.ValidateClientBindings(PresentationInput().BindingBytes));
+
+    [Theory]
+    [InlineData(-1, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    public void PresentationV2AcceptsAllDeclaredAnimationExtrapolationModes(int mode, bool valid)
+    {
+        var input = PresentationInput(root =>
+        {
+            foreach (var row in root["animations"]!.AsArray()) row!["extrapolation"] = mode;
+        });
+        var diagnostics = CharacterPackageAssembler.ValidateClientBindings(input.BindingBytes);
+        Assert.Equal(valid, diagnostics.Count == 0);
+        var result = CharacterPackageAssembler.Assemble(input);
+        Assert.Equal(valid, result.IsValid);
+        if (valid) Assert.True(CharacterPackageAssembler.Verify(Files(result)).IsValid);
+        else Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "package.binding.value");
+    }
+
+    [Theory]
+    [InlineData("packageId")]
+    [InlineData("sourceHash")]
+    [InlineData("poseFormat")]
+    [InlineData("poseVersion")]
+    [InlineData("sampleRate")]
+    public void ValidateClientBindingsRejectsIntrinsicMetadataWithoutCrossPayloadChecks(string field)
+    {
+        var input = PresentationInput(root =>
+        {
+            switch (field)
+            {
+                case "packageId": root[field] = "Invalid Package"; break;
+                case "sourceHash": root[field] = "symbolic"; break;
+                case "poseFormat": root[field] = "OTHER"; break;
+                case "poseVersion": root[field] = 2; break;
+                case "sampleRate":
+                    root[field] = 30;
+                    foreach (var row in root["animations"]!.AsArray()) row!["sampleRate"] = 30;
+                    break;
+            }
+        });
+        Assert.Contains(CharacterPackageAssembler.ValidateClientBindings(input.BindingBytes), d => d.Code == "package.binding.metadata-invalid");
+        var root = JsonNode.Parse(input.BindingBytes)!.AsObject();
+        var aligned = new CharacterPackageAssemblyInput(input.PackageId, input.Version, input.Creator, input.License,
+            input.Attribution, input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin,
+            input.RuntimeApiMax, input.SourceHash, input.Dependencies, input.CapabilityRequirements, input.CookerVersion,
+            input.UnityVersion, 2, root["poseFormat"]!.GetValue<string>(), root["poseVersion"]!.GetValue<int>(),
+            root["sampleRate"]!.GetValue<int>(), input.Warnings, input.RuntimeBytes, input.PoseBytes, input.BindingBytes, input.CookedPackage);
+        Assert.False(CharacterPackageAssembler.Assemble(aligned).IsValid);
+    }
+
+    [Theory]
+    [InlineData("packageId")]
+    [InlineData("catalogSchemaVersion")]
+    [InlineData("bindingSchemaVersion")]
+    [InlineData("poseFormat")]
+    [InlineData("poseVersion")]
+    [InlineData("sampleRate")]
+    [InlineData("sourceHash")]
+    [InlineData("rigGlobalObjectId")]
+    [InlineData("weaponConfigGlobalObjectId")]
+    [InlineData("animations")]
+    [InlineData("presentations")]
+    [InlineData("presentationProfile")]
+    public void ValidateClientBindingsDirectlyRejectsMissingV2Fields(string field)
+    {
+        var input = PresentationInput(root => root.Remove(field));
+        Assert.NotEmpty(CharacterPackageAssembler.ValidateClientBindings(input.BindingBytes));
+    }
+
+    [Theory]
+    [InlineData("bone.RightHand")]
+    [InlineData("bone.right/hand")]
+    [InlineData("bone.right\0hand")]
+    [InlineData("bone.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk")]
+    public void PresentationV2HeldBonesUseBoundedLowercaseSemanticIds(string bone)
+    {
+        var input = PresentationInput(root => root["presentationProfile"]!["projectiles"]![0]!["heldBoneId"] = bone);
+        Assert.Contains(CharacterPackageAssembler.ValidateClientBindings(input.BindingBytes), d => d.Code == "package.binding.profile");
+        Assert.False(CharacterPackageAssembler.Assemble(input).IsValid);
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("empty")]
+    [InlineData("complete")]
+    [InlineData("orphan")]
+    public void PresentationV2RequiresAllDeclaredTimelineEffectsEvenWithoutHitIds(string mode)
+    {
+        string path = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var source = JsonNode.Parse(File.ReadAllText(Path.Combine(path, "character.json")))!.AsObject();
+        foreach (var slot in source["slots"]!.AsArray()) slot!.AsObject().Remove("hitPresentationId");
+        var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(path, "package.json")), source.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        Assert.NotEmpty(package.Definition.PresentationIds);
+        Assert.All(package.Definition.Slots, slot => Assert.True(string.IsNullOrEmpty(slot.HitPresentationId)));
+        void Mutate(JsonObject root)
+        {
+            if (mode == "missing") root.Remove("presentations");
+            if (mode == "empty") root["presentations"] = new JsonArray();
+            if (mode == "orphan") root["presentations"]!.AsArray().Add(new JsonObject { ["semanticId"] = "presentation.orphan", ["prefabGlobalObjectId"] = ProfileMediaId });
+        }
+        var complete = CharacterPackageAssembler.Assemble(PresentationInput(packageOverride: package));
+        Assert.True(complete.IsValid, string.Join("; ", complete.Diagnostics));
+        var result = CharacterPackageAssembler.Assemble(PresentationInput(Mutate, package));
+        Assert.Equal(mode == "complete", result.IsValid);
+        var files = Files(complete);
+        var payload = JsonNode.Parse(complete.BindingBytes)!.AsObject();
+        Mutate(payload);
+        files[CharacterPackageAssembler.BindingPath] = Encoding.UTF8.GetBytes(payload.ToJsonString());
+        var verification = CharacterPackageAssembler.Verify(files);
+        Assert.Equal(mode == "complete", verification.IsValid);
+        if (mode != "complete") Assert.Contains(verification.Diagnostics, d => d.Code is "package.binding.presentation-missing" or "package.binding.presentation-orphan" or "package.field.missing");
+        if (mode is "missing" or "empty")
+        {
+            payload["catalogSchemaVersion"] = 1; payload["bindingSchemaVersion"] = 1; payload.Remove("presentationProfile");
+            Assert.True(CharacterPackageAssembler.Assemble(CopyBindings(PresentationInput(packageOverride: package), payload, 1)).IsValid);
+        }
+    }
+
+    private static CharacterPackageAssemblyInput PresentationInput(Action<JsonObject>? edit = null, CookedCharacterPackage? packageOverride = null)
+    {
+        var package = packageOverride ?? Compile();
+        var input = BuildInput(package, Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
+        var root = JsonNode.Parse(input.BindingBytes)!.AsObject();
+        root["bindingSchemaVersion"] = 2;
+        root["catalogSchemaVersion"] = 2;
+        root["rigGlobalObjectId"] = ProfileMediaId;
+        root["weaponConfigGlobalObjectId"] = "";
+        foreach (var row in root["animations"]!.AsArray())
+        {
+            row!["clipGlobalObjectId"] = ProfileMediaId;
+            row["clipLengthBits"] = BitConverter.SingleToInt32Bits(1f / 60f);
+        }
+        foreach (var row in root["presentations"]!.AsArray()) row!["prefabGlobalObjectId"] = ProfileMediaId;
+        JsonObject Pool(params string[] clips) => new() { ["selection"] = 0, ["clipGlobalObjectIds"] = new JsonArray(clips.Select(c => (JsonNode?)JsonValue.Create(c)).ToArray()) };
+        root["presentationProfile"] = new JsonObject
+        {
+            ["respawnTintBits"] = new JsonArray(0, 0, 0, BitConverter.SingleToInt32Bits(1f)),
+            ["swing"] = Pool(), ["lightImpact"] = Pool(ProfileMediaId), ["mediumImpact"] = Pool(""), ["heavyImpact"] = Pool(ProfileMediaId),
+            ["suppressRemovalExplosion"] = false,
+            ["projectiles"] = new JsonArray(new JsonObject
+            {
+                ["slotId"] = "ground.A", ["prefabGlobalObjectId"] = ProfileMediaId,
+                ["scaleBits"] = BitConverter.SingleToInt32Bits(1f), ["orientation"] = 0, ["heldBoneId"] = "",
+            }),
+        };
+        edit?.Invoke(root);
+        return CopyBindings(input, root, 2);
+    }
+
+    private static CharacterPackageAssemblyInput CopyBindings(CharacterPackageAssemblyInput input, JsonObject bindings, int version)
+        => new(input.PackageId, input.Version, input.Creator, input.License, input.Attribution,
+            input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax,
+            input.SourceHash, input.Dependencies, input.CapabilityRequirements, input.CookerVersion, input.UnityVersion,
+            version, input.PoseFormat, input.PoseVersion, input.SampleRate, input.Warnings,
+            input.RuntimeBytes, input.PoseBytes, Encoding.UTF8.GetBytes(bindings.ToJsonString()), input.CookedPackage);
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -542,7 +836,7 @@ public sealed class CharacterPackageAssemblerTests
         Assert.True(assembled.IsValid, string.Join("; ", assembled.Diagnostics.Select(x => x.Message)));
         var loaded = CookedCharacterPackageLoader.LoadAssembly(assembled);
         Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(x => x.Message)));
-        Assert.Equal(hitId, loaded.ToCharacterDefinition().Slot1!.HitPresentationId);
+        Assert.Equal(hitId, loaded.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Slot1, false)!.HitPresentationId);
 
         var bindings = JsonNode.Parse(input.BindingBytes)!.AsObject();
         bindings["presentations"] = new JsonArray();

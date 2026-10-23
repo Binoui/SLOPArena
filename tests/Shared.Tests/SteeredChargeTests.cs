@@ -34,6 +34,7 @@ public sealed class SteeredChargeTests
         StartGallop(sim);
         float startZ = sim.GetState(1).PZ;
         Assert.Equal(GallopClip, sim.GetState(1).ComboStage);
+        AssertPhase(sim, GallopClip);
 
         for (int i = 0; i < 30; i++)
             Tick(sim, default);
@@ -49,6 +50,7 @@ public sealed class SteeredChargeTests
             var state = sim.GetState(1);
             if (state.ComboStage != MissClip) continue;
             skidded = true;
+            AssertPhase(sim, MissClip);
             Assert.True(state.VZ <= lastSpeed + .001f, "the skid only slows down");
             lastSpeed = state.VZ;
         }
@@ -97,6 +99,7 @@ public sealed class SteeredChargeTests
             if (state.ComboStage == HitClip)
             {
                 hitEnding = true;
+                AssertPhase(sim, HitClip);
                 Assert.Equal(0f, state.VX);
                 Assert.Equal(0f, state.VZ);
             }
@@ -190,6 +193,7 @@ public sealed class SteeredChargeTests
             Assert.InRange(state.PY, strideY - .001f, strideY + .001f);
             if (state.ComboStage == AirClip)
             {
+                AssertPhase(sim, AirClip);
                 lookDown++;
                 Assert.Equal(0f, state.VZ);
             }
@@ -259,6 +263,14 @@ public sealed class SteeredChargeTests
         return sim;
     }
 
+    private static void AssertPhase(ServerSimulation simulation, byte clip)
+    {
+        Assert.Equal(clip, simulation.GetState(1).AnimIndex);
+        var move = Assert.IsType<ActiveMoveView>(simulation.GetActiveMove(1));
+        Assert.Equal(clip, move.ClipIndex);
+        Assert.Equal(Clips[clip], move.Pose.AnimationId);
+    }
+
     private static void RegisterTarget(ServerSimulation sim, float x, float z, bool shield = false)
         => sim.RegisterEntity(2, TargetDef, TestHelpers.PlayerState(x, z) with
         {
@@ -303,7 +315,7 @@ public sealed class SteeredChargeTests
         var slots = definition.CookedSlots!.ToArray();
         slots[6] = Slot(6, "ground.R", false);
         slots[14] = Slot(14, "air.R", true);
-        definition.CookedSlots = slots;
+        definition = definition with { CookedSlots = slots };
         return definition;
     }
 

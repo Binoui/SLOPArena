@@ -47,22 +47,19 @@ public class HitstunAnimationTierTests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public void HitstunLevel_SurvivesStateConversionAndPacketSerialization(byte level)
+    public void HitstunLevel_SurvivesSnapshotSerialization(byte level)
     {
         var state = TestHelpers.PlayerState();
         state.State = ActionState.Hitstun;
         state.HitstunTicks = 15;
         state.HitstunLevel = level;
 
-        var packet = CharacterStatePacket.FromState(state);
-        Assert.Equal(level, packet.HitstunLevel);
-
-        Span<byte> buf = stackalloc byte[CharacterStatePacket.Size];
-        packet.Serialize(buf);
-        var deserialized = CharacterStatePacket.Deserialize(buf);
-        Assert.Equal(level, deserialized.HitstunLevel);
-
-        var restored = deserialized.ToState();
+        var writer = new SnapshotWriter();
+        SnapshotCodecs.Write(writer, state);
+        var reader = new SnapshotReader(writer.ToArray());
+        var restored = SnapshotCodecs.ReadCharacterState(reader);
+        Assert.True(reader.AtEnd);
+        Assert.Equal(state, restored);
         Assert.Equal(level, restored.HitstunLevel);
     }
 }

@@ -20,7 +20,7 @@ public class PhysicsTests
     private static CharacterDefinition CreateClassicDef()
     {
         var def = TestHelpers.EngineDef;
-        def.Movement = def.Movement with { FloatWindowTicks = 0 };
+        def = def with { Movement = def.Movement with { FloatWindowTicks = 0 } };
         return def;
     }
     // ── Jump ──
@@ -394,7 +394,7 @@ public class PhysicsTests
     private static CharacterDefinition CreateFallRampDef()
     {
         var def = TestHelpers.EngineDef;
-        def.Movement = def.Movement with { AirFloatGravity = 6f, FloatWindowTicks = 10 };
+        def = def with { Movement = def.Movement with { AirFloatGravity = 6f, FloatWindowTicks = 10 } };
         return def;
     }
 

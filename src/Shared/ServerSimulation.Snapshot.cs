@@ -9,11 +9,10 @@ namespace SlopArena.Shared
     public partial class ServerSimulation
     {
         /// <summary>World Snapshot encoding version; bump with any layout change.</summary>
-        /// <summary>World Snapshot encoding version; 2 adds the Arcade ball and Slopball rules (ADR-0040).</summary>
         // 3: hitboxes carry returning projectiles (Sir Bonk's pot lid).
         // 4: Versus Slopball rally, score and serve rotation.
         // 5: solo and multiplayer Character Course progress, clocks, finish order and withdrawals.
-        public const uint SnapshotFormatVersion = 5;
+        public const uint SnapshotFormatVersion = 6;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -93,11 +92,17 @@ namespace SlopArena.Shared
         /// anything changes, so a malformed snapshot leaves the simulation untouched.
         /// </summary>
         public void RestoreSnapshot(WorldSnapshot snapshot)
+            => ApplySnapshot(PrepareSnapshot(snapshot));
+
+        internal PreparedSnapshot PrepareSnapshot(WorldSnapshot snapshot)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             var r = new SnapshotReader(snapshot.Data);
-            r.ReadUInt(); // format version, checked by WorldSnapshot
+            if (r.ReadUInt() != SnapshotFormatVersion)
+                throw SnapshotReader.Malformed("format version");
             uint tick = r.ReadUInt();
+            if (tick != snapshot.Tick)
+                throw SnapshotReader.Malformed("snapshot tick");
             ulong nextActivationId = r.ReadULong();
             ulong nextInteractionId = r.ReadULong();
             var ids = SortedEntityIds();
@@ -130,8 +135,7 @@ namespace SlopArena.Shared
                         ? def.CookedSlots[ordinal] : null;
                     if (slot == null || slot.Ordinal != ordinal)
                         throw SnapshotReader.Malformed($"cooked slot {ordinal} of fighter {id}");
-                    var ability = new CookedTimelineAbility(slot,
-                        slot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray());
+                    var ability = new CookedTimelineAbility(slot);
                     WireAbility(id, ability, def);
                     ability.ReadSnapshot(r);
                     fighter.Ability = ability;
@@ -172,11 +176,17 @@ namespace SlopArena.Shared
             if (!r.AtEnd)
                 throw SnapshotReader.Malformed("trailing data");
 
-            _tick = tick;
-            _nextActivationId = nextActivationId;
-            _nextInteractionId = nextInteractionId;
+            return new PreparedSnapshot(tick, nextActivationId, nextInteractionId, fighters,
+                resolver, ball, rules, volley, inputRelease, course, onlineCourse);
+        }
+
+        internal void ApplySnapshot(PreparedSnapshot prepared)
+        {
+            _tick = prepared.Tick;
+            _nextActivationId = prepared.NextActivationId;
+            _nextInteractionId = prepared.NextInteractionId;
             _activeAbilities.Clear();
-            foreach (var fighter in fighters)
+            foreach (var fighter in prepared.Fighters)
             {
                 ulong id = fighter.Id;
                 _states[id] = fighter.State;
@@ -190,16 +200,16 @@ namespace SlopArena.Shared
                 if (fighter.Ability != null)
                     _activeAbilities[id] = fighter.Ability;
             }
-            _spellResolver.ApplySnapshot(resolver);
-            if (course.HasValue) _course!.Apply(course.Value);
-            if (onlineCourse != null) _onlineCourse!.Apply(onlineCourse);
-            if (_course != null) _arcadeInputReleaseRequired = inputRelease;
+            _spellResolver.ApplySnapshot(prepared.Resolver);
+            if (prepared.Course.HasValue) _course!.Apply(prepared.Course.Value);
+            if (prepared.OnlineCourse != null) _onlineCourse!.Apply(prepared.OnlineCourse);
+            if (_course != null) _arcadeInputReleaseRequired = prepared.InputRelease;
             if (_arcadeBall != null)
             {
-                _arcadeBall.Apply(ball);
-                _slopball?.Apply(rules);
-                _volley?.Apply(volley);
-                _arcadeInputReleaseRequired = inputRelease;
+                _arcadeBall.Apply(prepared.Ball);
+                _slopball?.Apply(prepared.Rules);
+                _volley?.Apply(prepared.Volley);
+                _arcadeInputReleaseRequired = prepared.InputRelease;
             }
 
             // Outputs of the tick that produced the replaced state.
@@ -294,7 +304,13 @@ namespace SlopArena.Shared
             else map.Remove(id);
         }
 
-        private sealed class FighterSnapshot
+        internal sealed record PreparedSnapshot(uint Tick, ulong NextActivationId, ulong NextInteractionId,
+            FighterSnapshot[] Fighters, SpellResolver.SnapshotData Resolver,
+            ArcadeBallSimulation.Snapshot Ball, SlopballSimulation.Snapshot Rules,
+            SlopballVersusSimulation.Snapshot Volley, bool InputRelease,
+            CharacterCourseSimulation.Snapshot? Course, OnlineCourseSimulation.Snapshot? OnlineCourse);
+
+        internal sealed class FighterSnapshot
         {
             public ulong Id;
             public CharacterState State;

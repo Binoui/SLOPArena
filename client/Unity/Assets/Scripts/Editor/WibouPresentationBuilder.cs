@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using SlopArena.Client.Animation;
 using System.Collections.Generic;
 using SlopArena.Shared;
 using Unity.Pipeline.Commands;
@@ -70,7 +71,8 @@ namespace SlopArena.EditorTools
             var trail = PixelTrail();
             var kunai = KunaiProjectile();
             kit.BindWeaponTrail(trail);
-            kit.BindProjectile(CharacterClass.Wibou, AbilitySlots.A, kunai);
+            kit.BindProjectile("ground.A", kunai, ProjectileOrientation.FlightPositiveY, "");
+            kit.BindProjectile("air.A", kunai, ProjectileOrientation.FlightPositiveY, "");
             return kit.Finish(built, new
             {
                 trail = AssetDatabase.GetAssetPath(trail),

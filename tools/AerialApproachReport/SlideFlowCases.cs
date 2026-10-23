@@ -426,8 +426,6 @@ internal static partial class Program
         var sim = new ServerSimulation(SlideArena(support), downActionTuning: tuning);
         var initial = InitialState(def, 0f, 0f, true, 0f);
         initial.PY += support;
-        initial.DashCooldownTicks = 120;
-        initial.BurstCooldownTicks = 180;
         initial.SetCooldown(AbilitySlots.Slot1, 90);
         sim.RegisterEntity(id, def, initial, entry.BakedAnimation);
         int cycle = 0, phase = 0, phaseTicks = 0;
@@ -466,8 +464,6 @@ internal static partial class Program
                 input.Jump ? "cycle-jump" : input.DownPressed ? "down-edge" : "");
             if (after.JumpsLeft > def.Movement.MaxJumps || after.AirDodgesLeft > 1
                 || (!before.IsGrounded && !sim.LastTickTouchdowns.Contains(id) && after.JumpsLeft > before.JumpsLeft)
-                || after.DashCooldownTicks > before.DashCooldownTicks
-                || after.BurstCooldownTicks > before.BurstCooldownTicks
                 || after.GetCooldown(AbilitySlots.Slot1) > before.GetCooldown(AbilitySlots.Slot1))
                 throw new InvalidDataException($"Repeated movement revived a resource: {entry.Identity.PackageId}/{cycle}/{tick}");
             if (phase == 0)

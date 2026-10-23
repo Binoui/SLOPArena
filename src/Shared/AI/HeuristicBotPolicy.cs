@@ -38,11 +38,8 @@ public sealed class HeuristicBotPolicy
     /// Canonical functional combat slots: grounded/aerial 1, 2, 3, 4, A, E, R, F.
     /// LMB/RMB are physical controls with no canonical package slot identity.
     /// </summary>
-    private static readonly byte[] Slots =
-    {
-        AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
-        AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
-    };
+    private static readonly byte[] Slots = CanonicalSlotProjection.All.Take(8)
+        .Select(CanonicalSlotProjection.ToWire).ToArray();
 
     private const float JumpGap = 0.6f;
     private const float VictimRadiusMargin = 0.2f;
@@ -268,7 +265,7 @@ public sealed class HeuristicBotPolicy
     }
 
     private bool TryGetRecoveryTarget(in CharacterState self, in CharacterDefinition def,
-        in ArenaDefinition arena, BotMemory memory, out RecoveryTarget target, out float distance)
+        in ArenaDefinition arena, BotMemory memory, out RecoveryTarget target, out float distance, CookedSlotDefinition? activeMove)
     {
         EnsureRecoveryTargets(in arena, in def);
         target = default;
@@ -287,7 +284,7 @@ public sealed class HeuristicBotPolicy
             float dz = candidate.Z - self.PZ;
             float d = MathF.Sqrt(dx * dx + dz * dz);
             float dy = candidate.Y - self.PY;
-            var recovery = ChooseRecoveryMove(self, d);
+            var recovery = ChooseRecoveryMove(self, d, activeMove);
             float specialReach = recovery.HasValue
                 ? RecoveryHorizontalReach(recovery.GetValueOrDefault(), self, candidate, memory)
                 : 0f;
@@ -312,7 +309,7 @@ public sealed class HeuristicBotPolicy
         return distance < float.PositiveInfinity;
     }
 
-    private MoveCandidate? ChooseRecoveryMove(in CharacterState self, float distance)
+    private MoveCandidate? ChooseRecoveryMove(in CharacterState self, float distance, CookedSlotDefinition? activeMove)
     {
         bool air = !self.IsGrounded;
         MoveCandidate? selected = null;
@@ -321,7 +318,7 @@ public sealed class HeuristicBotPolicy
         {
             var candidate = air ? _airProfile[i] : _profile[i];
             if (!candidate.Functional || !candidate.IsRecovery
-                || HasCooldown(self, _profileDefinition!, candidate.Slot)
+                || HasCooldown(self, _profileDefinition!, candidate.Slot, activeMove)
                 || IsChargePoolExhausted(self, candidate.Slot, air))
                 continue;
             float score = candidate.Reach - MathF.Abs(candidate.Reach - distance) * 0.25f
@@ -335,7 +332,7 @@ public sealed class HeuristicBotPolicy
         return selected;
     }
     private bool TryBuildRecoveryInput(in CharacterState self, CharacterDefinition def,
-        in ArenaDefinition arena, BotMemory memory, out InputState input)
+        in ArenaDefinition arena, BotMemory memory, out InputState input, CookedSlotDefinition? activeMove)
     {
         input = default;
         if (self.State == ActionState.LedgeHang)
@@ -352,7 +349,7 @@ public sealed class HeuristicBotPolicy
         if (!IsOffstage(self, arena, _recoveryMinSurface))
             return false;
         if (!TryGetRecoveryTarget(self, in def, in arena, memory,
-                out var target, out float distance))
+                out var target, out float distance, activeMove))
         {
             float centerX = (arena.MinX + arena.MaxX) * 0.5f;
             float centerZ = (arena.MinZ + arena.MaxZ) * 0.5f;
@@ -372,7 +369,7 @@ public sealed class HeuristicBotPolicy
         input.AimYaw = AimYaw(dx, dz);
         input.AimPitch = AimPitch(target.Y - self.PY, distance);
         input.AimDistance = AimDistance(distance);
-        var recovery = ChooseRecoveryMove(self, distance);
+        var recovery = ChooseRecoveryMove(self, distance, activeMove);
         bool urgent = self.VY <= 0f && (self.JumpsLeft == 0
             || distance > 2f);
         if (recovery.HasValue && urgent)
@@ -401,20 +398,20 @@ public sealed class HeuristicBotPolicy
     private MoveCandidate[] _airProfile = Array.Empty<MoveCandidate>();
 
     public InputState Decide(in CharacterState self, in CharacterState target,
-        CharacterDefinition def, Random rng, BotMemory memory)
-        => Decide(self, target, def, rng, memory, default, baked: null);
+        CharacterDefinition def, Random rng, BotMemory memory, CookedSlotDefinition? activeMove = null)
+        => Decide(self, target, def, rng, memory, default, baked: null, activeMove: activeMove);
 
     public InputState Decide(in CharacterState self, in CharacterState target,
         CharacterDefinition def, Random rng, BotMemory memory, in ArenaDefinition arena,
-        BakedAnimationData? baked = null, CpuBehavior behavior = CpuBehavior.Attack)
-        => DecideObserved(self, target, def, rng, memory, in arena, baked, behavior);
+        BakedAnimationData? baked = null, CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null)
+        => DecideObserved(self, target, def, rng, memory, in arena, baked, behavior, activeMove);
 
     private InputState DecideObserved(in CharacterState self, in CharacterState target,
         CharacterDefinition def, Random rng, BotMemory memory, in ArenaDefinition arena,
-        BakedAnimationData? baked, CpuBehavior behavior = CpuBehavior.Attack)
+        BakedAnimationData? baked, CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null)
     {
         memory.ObserveOpponent(target);
-        return Decide(self, def, rng, memory, in arena, baked, behavior);
+        return Decide(self, def, rng, memory, in arena, baked, behavior, activeMove);
     }
 
     /// <summary>
@@ -422,18 +419,18 @@ public sealed class HeuristicBotPolicy
     /// and only the delayed observation is read by the policy.
     /// </summary>
     public InputState Decide(in CharacterState self, in CharacterState target,
-        CharacterDefinition def, Random rng, BotMemory memory, BakedAnimationData? baked)
-        => DecideObserved(self, target, def, rng, memory, default, baked);
+        CharacterDefinition def, Random rng, BotMemory memory, BakedAnimationData? baked, CookedSlotDefinition? activeMove = null)
+        => DecideObserved(self, target, def, rng, memory, default, baked, activeMove: activeMove);
 
     public InputState Decide(in CharacterState self, CharacterDefinition def,
-        Random rng, BotMemory memory, BakedAnimationData? baked = null)
-        => Decide(self, def, rng, memory, default, baked);
+        Random rng, BotMemory memory, BakedAnimationData? baked = null, CookedSlotDefinition? activeMove = null)
+        => Decide(self, def, rng, memory, default, baked, activeMove: activeMove);
 
     public InputState Decide(in CharacterState self, CharacterDefinition def,
         Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked = null,
-        CpuBehavior behavior = CpuBehavior.Attack)
+        CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null)
     {
-        var input = DecideAction(self, def, rng, memory, in arena, baked, behavior);
+        var input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove);
         // Recovery is allowed to cross an edge. Ordinary grounded approach, retreat,
         // and circling must stay on supported ground, including around stage holes.
         if (self.IsGrounded && self.State != ActionState.LedgeHang
@@ -445,7 +442,7 @@ public sealed class HeuristicBotPolicy
 
     private InputState DecideAction(in CharacterState self, CharacterDefinition def,
         Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked,
-        CpuBehavior behavior)
+        CpuBehavior behavior, CookedSlotDefinition? activeMove)
     {
         if (memory.Behavior != behavior)
         {
@@ -457,31 +454,31 @@ public sealed class HeuristicBotPolicy
         EnsureRecoveryTargets(in arena, in def);
 
         if (self.State == ActionState.LedgeHang)
-            return TryBuildRecoveryInput(self, def, in arena, memory, out var ledgeInput)
+            return TryBuildRecoveryInput(self, def, in arena, memory, out var ledgeInput, activeMove)
                 ? ledgeInput : default;
         bool movementAllowed = self.HitstunTicks == 0
             && self.HitstopTicks == 0
             && self.LandingLagTicks == 0;
         bool actionable = movementAllowed
-            && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(self, def))
+            && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
             && (self.State == ActionState.Idle
                 || self.State == ActionState.Run
-                || Simulation.IsIasaUnlocked(self, def));
+                || Simulation.IsIasaUnlocked(in self, activeMove));
         if (memory.PlanPhase != BotPlanPhase.None
             && memory.PlanKind != BotPlanKind.Recovery)
         {
             if (actionable
-                && TryBuildRecoveryInput(self, def, in arena, memory, out var recoveryInput))
+                && TryBuildRecoveryInput(self, def, in arena, memory, out var recoveryInput, activeMove))
                 return recoveryInput;
             if (!self.IsGrounded)
                 memory.PlanWasAirborne = true;
-            return ContinuePlan(self, def, memory, in arena);
+            return ContinuePlan(self, def, memory, in arena, activeMove);
         }
         if (memory.PlanPhase != BotPlanPhase.None)
         {
             if (!self.IsGrounded)
                 memory.PlanWasAirborne = true;
-            return ContinuePlan(self, def, memory, in arena);
+            return ContinuePlan(self, def, memory, in arena, activeMove);
         }
 
         var profile = BotDifficultyProfile.ForDifficulty(memory.Difficulty);
@@ -497,7 +494,7 @@ public sealed class HeuristicBotPolicy
                 : default;
         if (!actionable)
             return input;
-        if (TryBuildRecoveryInput(self, def, in arena, memory, out input))
+        if (TryBuildRecoveryInput(self, def, in arena, memory, out input, activeMove))
             return input;
         if (behavior == CpuBehavior.Shield)
             return self.IsGrounded ? new InputState { ShieldHeld = true } : default;
@@ -509,10 +506,10 @@ public sealed class HeuristicBotPolicy
 
         if (memory.TryGetNewHit(out var hit))
         {
-            QueueFollowUp(self, target, hit, def, profile, rng, memory, in arena);
+            QueueFollowUp(self, target, hit, def, profile, rng, memory, in arena, activeMove);
             memory.MarkHitEvaluated(hit);
             if (memory.PlanPhase != BotPlanPhase.None)
-                return ContinuePlan(self, def, memory, in arena);
+                return ContinuePlan(self, def, memory, in arena, activeMove);
         }
 
         float dx = target.PX - self.PX;
@@ -532,7 +529,7 @@ public sealed class HeuristicBotPolicy
         // hitbox/movement envelope.
         float rangeScale = 1f + (((float)rng.NextDouble() * 2f) - 1f) * profile.RangeError;
         bool allowRecoveryMove = !IsNearEdge(self, in arena);
-        float maxReach = MaxConnectReach(self, rangeScale, allowRecoveryMove, in arena);
+        float maxReach = MaxConnectReach(self, rangeScale, allowRecoveryMove, in arena, activeMove);
         bool inRange = dist <= maxReach;
         if (!inRange && !targetOffstage)
         {
@@ -571,7 +568,7 @@ public sealed class HeuristicBotPolicy
 
         bool targetThreatening = target.IsThreatening;
         var candidate = ChooseSlot(self, target, dist, rangeScale, rng,
-            profile.SpecialChance, allowRecoveryMove: !IsNearEdge(self, in arena), in arena);
+            profile.SpecialChance, allowRecoveryMove: !IsNearEdge(self, in arena), in arena, activeMove);
 
         bool punish = candidate.HasValue
             && targetThreatening
@@ -708,7 +705,7 @@ public sealed class HeuristicBotPolicy
 
 
     private InputState ContinuePlan(in CharacterState self, CharacterDefinition def,
-        BotMemory memory, in ArenaDefinition arena)
+        BotMemory memory, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         if (PlanInvalidated(self, memory))
         {
@@ -718,7 +715,7 @@ public sealed class HeuristicBotPolicy
 
         if (!memory.PlanPressIssued)
         {
-            if (!CanPress(self, def, memory.PlanSlot))
+            if (!CanPress(self, def, memory.PlanSlot, activeMove))
                 return default;
 
             var candidates = self.IsGrounded ? _profile : _airProfile;
@@ -761,24 +758,23 @@ public sealed class HeuristicBotPolicy
         return default;
     }
 
-    private static bool CanPress(in CharacterState self, CharacterDefinition def, byte slot)
+    private static bool CanPress(in CharacterState self, CharacterDefinition def, byte slot, CookedSlotDefinition? activeMove)
         => self.HitstunTicks == 0
             && self.HitstopTicks == 0
             && self.LandingLagTicks == 0
-            && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(self, def))
+            && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
             && (self.State == ActionState.Idle
                 || self.State == ActionState.Run
-                || Simulation.IsIasaUnlocked(self, def))
-            && !HasCooldown(self, def, slot)
-            && (def.GetCookedSlotAbility(slot, !self.IsGrounded) != null
-                || def.GetSlotAbility(slot - 1, !self.IsGrounded) != null);
+                || Simulation.IsIasaUnlocked(in self, activeMove))
+            && !HasCooldown(self, def, slot, activeMove)
+            && (def.GetCookedSlotAbility(slot, !self.IsGrounded) != null);
 
     /// <summary>On cooldown, or waiting for its returning projectile to come back.</summary>
-    private static bool HasCooldown(in CharacterState self, CharacterDefinition def, byte slot)
+    private static bool HasCooldown(in CharacterState self, CharacterDefinition def, byte slot, CookedSlotDefinition? activeMove = null)
         => self.GetCooldown(slot) > 0
             || slot != 0 && self.ReturningProjectileSlot == slot
             || self.State == ActionState.Attacking && self.AttackSlot == slot
-                && (def.GetCookedSlotAbility(slot, !self.IsGrounded)?.CooldownTicks ?? 0) > 0;
+                && (activeMove?.CooldownTicks ?? 0) > 0;
 
     private static InputState PlanPressInput(BotMemory memory)
         => new()
@@ -792,12 +788,12 @@ public sealed class HeuristicBotPolicy
 
     private void QueueFollowUp(in CharacterState self, in CpuObservation target,
         in CpuHitObservation hit, CharacterDefinition def, BotDifficultyProfile profile,
-        Random rng, BotMemory memory, in ArenaDefinition arena)
+        Random rng, BotMemory memory, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         float rangeScale = 1f + (((float)rng.NextDouble() * 2f) - 1f) * profile.RangeError;
         bool allowRecoveryMove = !IsNearEdge(self, in arena);
         var trueCombo = ChooseTrueCombo(self, hit, memory.RemainingHitstun(hit),
-            rangeScale, profile.SpecialChance, rng, allowRecoveryMove, in arena);
+            rangeScale, profile.SpecialChance, rng, allowRecoveryMove, in arena, activeMove);
         if (trueCombo.HasValue && rng.NextDouble() < profile.ComboChance)
         {
             var selected = trueCombo.GetValueOrDefault();
@@ -813,7 +809,7 @@ public sealed class HeuristicBotPolicy
         float dz = target.PZ - self.PZ;
         float dist = Distance(dx, dz);
         var pressure = ChooseSlot(self, target, dist, rangeScale, rng,
-            profile.SpecialChance, allowRecoveryMove, in arena);
+            profile.SpecialChance, allowRecoveryMove, in arena, activeMove);
         if (!pressure.HasValue || (!target.IsThreatening && memory.RemainingHitstun(hit) == 0))
             return;
         if (!target.IsThreatening && rng.NextDouble() >= profile.AttackChance)
@@ -827,7 +823,7 @@ public sealed class HeuristicBotPolicy
 
     private MoveCandidate? ChooseTrueCombo(in CharacterState self, in CpuHitObservation hit,
         int remainingHitstun, float rangeScale, float specialChance, Random rng,
-        bool allowRecoveryMove, in ArenaDefinition arena)
+        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         if (remainingHitstun <= 0)
             return null;
@@ -838,7 +834,7 @@ public sealed class HeuristicBotPolicy
         for (int i = 0; i < Slots.Length; i++)
         {
             var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena)
+            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove)
                 || !candidate.HasDamage)
                 continue;
 
@@ -978,14 +974,14 @@ public sealed class HeuristicBotPolicy
 
 
     private bool IsCandidateAvailable(in CharacterState self, in MoveCandidate candidate,
-        bool air, bool allowRecoveryMove, in ArenaDefinition arena)
+        bool air, bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
         => candidate.Functional
             && (allowRecoveryMove || !candidate.IsRecovery)
-            && !HasCooldown(self, _profileDefinition!, candidate.Slot)
+            && !HasCooldown(self, _profileDefinition!, candidate.Slot, activeMove)
             && !IsChargePoolExhausted(self, candidate.Slot, air)
             && HasSafeAttackTravel(self, candidate, in arena);
     private float MaxConnectReach(in CharacterState self, float rangeScale,
-        bool allowRecoveryMove, in ArenaDefinition arena)
+        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         bool air = !self.IsGrounded;
         float normalMax = 0f;
@@ -993,7 +989,7 @@ public sealed class HeuristicBotPolicy
         for (int i = 0; i < Slots.Length; i++)
         {
             var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena))
+            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove))
                 continue;
             float reach = (candidate.Reach + VictimRadiusMargin) * rangeScale;
             if (IsNormalSlot(candidate.Slot))
@@ -1005,7 +1001,7 @@ public sealed class HeuristicBotPolicy
     }
     private MoveCandidate? ChooseSlot(in CharacterState self, in CpuObservation target,
         float dist, float rangeScale, Random rng, float specialChance,
-        bool allowRecoveryMove, in ArenaDefinition arena)
+        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         bool air = !self.IsGrounded;
         Span<MoveCandidate> viable = stackalloc MoveCandidate[Slots.Length];
@@ -1015,7 +1011,7 @@ public sealed class HeuristicBotPolicy
         for (int i = 0; i < Slots.Length; i++)
         {
             var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena))
+            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove))
                 continue;
 
             bool inReach = candidate.Reach > 0f
@@ -1030,7 +1026,7 @@ public sealed class HeuristicBotPolicy
         for (int i = 0; i < Slots.Length; i++)
         {
             var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena))
+            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove))
                 continue;
 
             bool inReach = candidate.Reach > 0f
@@ -1214,7 +1210,7 @@ public sealed class HeuristicBotPolicy
         BakedAnimationData? baked)
     {
         var samples = MoveReach.SampleHit(def, evt, (byte)(activeSlot - 1), airborne,
-            animationNames, animIndex, baked);
+            animIndex, baked);
         float reach = 0f;
         foreach (var sample in samples)
             reach = MathF.Max(reach, MathF.Max(sample.Z0, sample.Z1) + sample.Radius);
@@ -1280,7 +1276,7 @@ public sealed class HeuristicBotPolicy
                 recoveryRequiresDelayedOpponent = true;
                 hasMovement = true; hasDamage = true; break;
             case CookedWibouBladeFlurryCapabilityParameters x:
-                hitReach = MathF.Max(hitReach, x.ForwardSpeed * x.MoveTicks / 60f);
+                hitReach = MathF.Max(hitReach, x.ForwardSpeed * (x.AscentEndTick - x.AscentStartTick + 1) / 60f);
                 hasMovement = true; hasDamage = true; break;
             case CookedTargetedLeapCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.MaxRange + MathF.Max(x.Hitbox.OffsetZ, x.Hitbox.EndOffsetZ) + x.Hitbox.Radius);
@@ -1359,7 +1355,7 @@ public sealed class HeuristicBotPolicy
 
     /// <summary>
     /// Resolved horizontal envelope for a slot. Cooked timeline hitboxes and typed capabilities
-    /// are preferred; legacy specs are only a compatibility fallback.
+    /// define the admitted move metadata.
     /// </summary>
     public static float ForwardReach(CharacterDefinition def, byte activeSlot, bool airborne,
         BakedAnimationData? baked)

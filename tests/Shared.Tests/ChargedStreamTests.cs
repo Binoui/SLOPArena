@@ -48,13 +48,44 @@ public sealed class ChargedStreamTests
         Assert.Equal(ActionState.Attacking, released.State);
         // Ticks after the release tick: the stream ends at FireTick + MinStream, the move after its recovery.
         Assert.Equal(SprayClip, released.ComboStage);
+        AssertPhase(sim, SprayClip, "anim.ki-shot-loop");
         var spraying = TestHelpers.TickDefault(sim, FireTick + MinStream - 1);
         Assert.Equal(ActionState.Attacking, spraying.State);
         Assert.Equal(SprayClip, spraying.ComboStage);
         var ending = TestHelpers.TickDefault(sim, 1);
         Assert.Equal(EndClip, ending.ComboStage);
+        AssertPhase(sim, EndClip, "anim.low-kick");
         Assert.Equal(ActionState.Attacking, TestHelpers.TickDefault(sim, Recovery - 1).State);
         Assert.NotEqual(ActionState.Attacking, TestHelpers.TickDefault(sim, 1).State);
+    }
+
+    [Theory]
+    [InlineData(1, SprayClip, "anim.ki-shot-loop")]
+    [InlineData(1 + FireTick + MinStream, EndClip, "anim.low-kick")]
+    public void PhaseSelectionAndContinuationSurviveAWorldSnapshot(int ticks, byte clip, string animationId)
+    {
+        var definition = Definition();
+        var continuous = Sim(definition, grounded: true);
+        TestHelpers.TickN(continuous, new InputState { ActiveSlot = AbilitySlots.A }, 1);
+        TestHelpers.TickDefault(continuous, ticks - 1);
+        var restored = Sim(definition, grounded: true);
+        restored.RestoreSnapshot(continuous.CaptureSnapshot());
+        AssertPhase(continuous, clip, animationId);
+        AssertPhase(restored, clip, animationId);
+        for (int tick = 0; tick < FireTick + MinStream + Recovery; tick++)
+        {
+            TestHelpers.TickDefault(continuous, 1);
+            TestHelpers.TickDefault(restored, 1);
+            Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()));
+        }
+    }
+
+    private static void AssertPhase(ServerSimulation simulation, byte clip, string animationId)
+    {
+        Assert.Equal(clip, simulation.GetState(1).AnimIndex);
+        var move = Assert.IsType<ActiveMoveView>(simulation.GetActiveMove(1));
+        Assert.Equal(clip, move.ClipIndex);
+        Assert.Equal(animationId, move.Pose.AnimationId);
     }
 
     [Fact]
@@ -204,7 +235,7 @@ public sealed class ChargedStreamTests
     private static CharacterDefinition Definition(Action<JsonObject>? slot = null)
     {
         var def = TestHelpers.ResolveSourceDef("fightguy", character => UseStream(character, slot));
-        def.Class = CharacterClass.FightGuy;
+        def = def with { Class = CharacterClass.FightGuy };
         return def;
     }
 

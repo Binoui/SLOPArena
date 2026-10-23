@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using SlopArena.Client.Animation;
 using System.Collections.Generic;
 using System.Linq;
 using SlopArena.Client.Entities;
@@ -98,8 +99,10 @@ namespace SlopArena.EditorTools
             var rocket = Rocket();
             var lighter = HeldLighter();
             // The bomb root is unscaled now (the model carries its import scale), so bind at 1x.
-            kit.BindProjectile(CharacterClass.Manki, AbilitySlots.A, bomb);
-            kit.BindProjectile(CharacterClass.Manki, AbilitySlots.R, rocket);
+            kit.BindProjectile("ground.A", bomb, ProjectileOrientation.PreservePrefab, "");
+            kit.BindProjectile("air.A", bomb, ProjectileOrientation.PreservePrefab, "");
+            kit.BindProjectile("ground.R", rocket, ProjectileOrientation.FlightPositiveY, "");
+            kit.BindProjectile("air.R", rocket, ProjectileOrientation.FlightPositiveY, "");
             BindHeldLighter(lighter);
             return kit.Finish(built, new
             {

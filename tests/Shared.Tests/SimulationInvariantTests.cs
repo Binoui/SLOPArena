@@ -118,8 +118,6 @@ public class SimulationInvariantTests
             Left = rng.Next(4) == 0,
             Right = rng.Next(4) == 0,
             Jump = rng.Next(8) == 0,
-            Dash = rng.Next(8) == 0,
-            Burst = rng.Next(10) == 0,
 
             // Abilities: ~15% chance to press a slot (uniform 1-6)
             ActiveSlot = rng.Next(7) == 0

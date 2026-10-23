@@ -462,9 +462,8 @@ internal static partial class ComboRouteReport
     private static void ValidateInput(in InputState input)
     {
         if (!float.IsFinite(input.MoveX) || !float.IsFinite(input.MoveY) || MathF.Abs(input.MoveX) > 1f
-            || MathF.Abs(input.MoveY) > 1f || input.LockMode > TargetLockMode.OnHit || input.ActiveSlot > AbilitySlots.Count
-            || !float.IsFinite(input.WarpTargetX) || !float.IsFinite(input.WarpTargetZ) || !float.IsFinite(input.WarpSpeed)
-            || !float.IsFinite(input.WarpAttackRange)) throw new InvalidDataException("Invalid replay input.");
+            || MathF.Abs(input.MoveY) > 1f || input.LockMode > TargetLockMode.OnHit || input.ActiveSlot > AbilitySlots.Count)
+            throw new InvalidDataException("Invalid replay input.");
     }
     private static SimulationIdentity CurrentSimulationIdentity(CombatTuning tuning) => new(SharedHash, ToolHash,
         tuning.KnockbackScale, tuning.HitstunCoefficient, tuning.HitstunMagnitudeBonus);

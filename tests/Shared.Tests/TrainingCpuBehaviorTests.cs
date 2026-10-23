@@ -49,7 +49,7 @@ public sealed class TrainingCpuBehaviorTests
         for (int tick = 0; tick < 180; tick++)
         {
             var input = policy.Decide(sim.GetState(1), target, def, rng, memory, arena,
-                behavior: CpuBehavior.Shield);
+                behavior: CpuBehavior.Shield, activeMove: sim.GetActiveMove(1)?.Slot);
             Assert.True(input.ShieldHeld);
             Assert.False(input.ShieldPressed);
             Assert.Equal(0, input.ActiveSlot);
@@ -68,12 +68,12 @@ public sealed class TrainingCpuBehaviorTests
         var policy = new HeuristicBotPolicy();
         var memory = Observed(target);
         var rng = new Random(5);
-        var input = policy.Decide(self, target, def, rng, memory, Stage(), behavior: CpuBehavior.Avoid);
+        var input = policy.Decide(self, target, def, rng, memory, Stage(), behavior: CpuBehavior.Avoid, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.True(input.MoveY < 0f);
         Assert.Equal(0, input.ActiveSlot);
         Assert.False(input.ShieldHeld);
         self.PZ = -7f;
-        input = policy.Decide(self, target, def, rng, memory, Stage(), behavior: CpuBehavior.Avoid);
+        input = policy.Decide(self, target, def, rng, memory, Stage(), behavior: CpuBehavior.Avoid, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.Equal(0f, input.MoveX);
         Assert.Equal(0f, input.MoveY);
         Assert.Equal(0, input.ActiveSlot);
@@ -91,12 +91,12 @@ public sealed class TrainingCpuBehaviorTests
         int delay = BotDifficultyProfile.ForDifficulty(memory.Difficulty).ReactionDelayTicks;
         for (int tick = 0; tick < delay; tick++)
         {
-            var input = policy.Decide(self, target, def, rng, memory, Stage(), behavior: CpuBehavior.Avoid);
+            var input = policy.Decide(self, target, def, rng, memory, Stage(), behavior: CpuBehavior.Avoid, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             Assert.Equal(0f, input.MoveX);
             Assert.Equal(0f, input.MoveY);
         }
         Assert.True(policy.Decide(self, target, def, rng, memory, Stage(),
-            behavior: CpuBehavior.Avoid).MoveY < 0f);
+            behavior: CpuBehavior.Avoid, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded)).MoveY < 0f);
     }
 
     [Theory]
@@ -112,7 +112,7 @@ public sealed class TrainingCpuBehaviorTests
         for (int seed = 0; seed < 64; seed++)
         {
             var input = new HeuristicBotPolicy().Decide(self, target, def, new Random(seed),
-                Observed(target, CpuDifficulty.Easy), Stage(), behavior: behavior);
+                Observed(target, CpuDifficulty.Easy), Stage(), behavior: behavior, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             if (input.Jump || input.ActiveSlot != 0) continue;
             Assert.True(input.MoveX <= 0f);
             moved |= input.MoveX != 0f || input.MoveY != 0f;
@@ -129,7 +129,7 @@ public sealed class TrainingCpuBehaviorTests
         var self = Fighter(def, x: 10f) with { IsGrounded = false, VY = -2f };
         var target = Fighter(def, 2);
         var input = new HeuristicBotPolicy().Decide(self, target, def, new Random(1),
-            Observed(target), Stage(), behavior: behavior);
+            Observed(target), Stage(), behavior: behavior, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.True(input.MoveX < 0f);
         Assert.False(input.ShieldHeld);
     }
@@ -147,7 +147,7 @@ public sealed class TrainingCpuBehaviorTests
         var self = Fighter(def);
         var target = Fighter(def, 2, x: -1f);
         var input = new HeuristicBotPolicy().Decide(self, target, def, new Random(1),
-            Observed(target), arena, behavior: CpuBehavior.Avoid);
+            Observed(target), arena, behavior: CpuBehavior.Avoid, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.Equal(0f, input.MoveX);
         Assert.NotEqual(0f, input.MoveY);
         Assert.Equal(0, input.ActiveSlot);
@@ -164,7 +164,7 @@ public sealed class TrainingCpuBehaviorTests
         var memory = Observed(target, CpuDifficulty.Hard);
         memory.StartPlan(AbilitySlots.A, true, 0, 0, 100, 12, 0, true);
         var input = new HeuristicBotPolicy().Decide(self, target, def, new Random(2), memory,
-            Stage(), behavior: behavior);
+            Stage(), behavior: behavior, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.Equal(0, input.ActiveSlot);
         Assert.False(input.IsAiming);
         Assert.Equal(BotPlanPhase.None, memory.PlanPhase);
@@ -177,7 +177,7 @@ public sealed class TrainingCpuBehaviorTests
         var self = Fighter(def) with { State = ActionState.Hitstun, HitstunTicks = 20 };
         var target = Fighter(def, 2, z: 1f);
         var input = new HeuristicBotPolicy().Decide(self, target, def, new Random(4),
-            Observed(target), Stage(), behavior: CpuBehavior.Avoid);
+            Observed(target), Stage(), behavior: CpuBehavior.Avoid, activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
         Assert.Equal(0f, input.MoveX);
         Assert.Equal(0f, input.MoveY);
         Assert.False(input.ShieldPressed);

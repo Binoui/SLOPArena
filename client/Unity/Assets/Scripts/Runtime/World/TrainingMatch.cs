@@ -102,7 +102,7 @@ namespace SlopArena.Client.World
         {
             get
             {
-                if (_bridge == null || _playerRenderer == null || _playerDef == null
+                if (!enabled || _bridge == null || _playerRenderer == null || _playerDef == null
                     || MatchConfig.Mode != GameMode.Training || IsPaused || Time.timeScale <= 0f
                     || _npcs.Count == 0 || _bridge.InternalSim.GetDefinition(PlayerEntityId) == null
                     || _bridge.GetState(PlayerEntityId).EntityId != PlayerEntityId)
@@ -271,7 +271,7 @@ namespace SlopArena.Client.World
             _bridge.RegisterEntity(id, entry.Definition, state, entry.BakedAnimation);
             _bridge.SetRespawnPosition(id, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
             renderer?.ResetAnimationState();
-            renderer?.ApplyServerState(_bridge.GetState(id));
+            renderer?.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot);
             _projectileVFX?.ClearHeldVisual(id);
         }
 
@@ -319,6 +319,8 @@ namespace SlopArena.Client.World
         }
         protected override void OnMatchStart()
         {
+            // Only a fully initialized match may poll input or advance the simulation.
+            enabled = false;
             string arenaName = string.IsNullOrEmpty(_arenaNameOverride) ? MatchConfig.ArenaName : _arenaNameOverride;
             Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} char={MatchConfig.PlayerClass} arena={arenaName}");
             // Baked arena is required (issue #77): hardcoded ArenaRegistry arenas carry
@@ -358,7 +360,7 @@ namespace SlopArena.Client.World
                 solo ? new StockMatchRule((byte)MatchConfig.MaxStocks) : NoWinMatchRule.Instance);
             _combatFeedback.SetSimulation(_bridge);
             if (_projectileVFX == null)
-                _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
+                _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
             _projectileVFX.SetSimulation(_bridge.InternalSim);
             if (!SlopArena.Client.ClientSession.TryBuildLocalMatchCatalog(out var contentCatalog, out var contentFailure) || contentCatalog == null)
             {
@@ -430,6 +432,7 @@ namespace SlopArena.Client.World
                 panel.Init(this, _hudManager.Document, _cameraMount);
             }
             StartSessionLog(arenaName);
+            enabled = true;
         }
 
         private void StartSessionLog(string arenaName)
@@ -512,7 +515,7 @@ namespace SlopArena.Client.World
         {
             // While paused the MatchPauseMenu owns Esc and input polling is skipped so
             // no buffered presses leak into the first frame after resume (issue #77).
-            if (IsPaused) return;
+            if (!enabled || IsPaused) return;
 
             _inputController.Poll();
 
@@ -525,16 +528,11 @@ namespace SlopArena.Client.World
 
         protected override void OnMatchFixedUpdate()
         {
-            if (_bridge == null || _playerRenderer == null) return;
+            if (!enabled || _bridge == null || _playerRenderer == null) return;
 
-            // Poll done in Update() — keep FixedUpdate clean
-            byte slot = _inputController.ConsumePendingSlotPress();
-
-            var aimCtx = _aimHandler != null
-                ? _aimHandler.Evaluate(_bridge.GetState(PlayerEntityId), slot, _playerDef, _inputController)
-                : AimContext.None;
             if (MatchConfig.Mode == GameMode.Solo && _soloCountdownTicks > 0)
             {
+                _inputController.ClearPendingFrameState();
                 _soloCountdownTicks--;
                 if (_soloCountdownTicks == 180) _hudManager?.ShowSoloCountdown("3", 1f);
                 else if (_soloCountdownTicks == 120) _hudManager?.ShowSoloCountdown("2", 1f);
@@ -542,6 +540,13 @@ namespace SlopArena.Client.World
                 else if (_soloCountdownTicks == 0) _hudManager?.ShowSoloCountdown("SLOP IT OUT", 0.72f);
                 return;
             }
+
+            // Poll done in Update() — keep FixedUpdate clean
+            byte slot = _inputController.ConsumePendingSlotPress();
+
+            var aimCtx = _aimHandler != null
+                ? _aimHandler.Evaluate(_bridge.GetState(PlayerEntityId), slot, _playerDef, _inputController, _bridge.GetActiveMove(PlayerEntityId)?.Slot)
+                : AimContext.None;
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
 
             // ── Build input ──
@@ -552,7 +557,6 @@ namespace SlopArena.Client.World
             var (input, _, _) = _inputController.BuildInputState(
                 _cameraMount,
                 _playerRenderer.transform.eulerAngles.y,
-                isNPC: false,
                 pendingSlotPress: slot,
                 aimCtx: aimCtx,
                 canMove: null,
@@ -628,11 +632,11 @@ namespace SlopArena.Client.World
 #endif
 
             // Apply states
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId));
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
             foreach (var npc in _npcs)
             {
                 if (npc.Renderer != null)
-                    npc.Renderer.ApplyServerState(_bridge.GetState(npc.Id));
+                    npc.Renderer.ApplyServerState(_bridge.GetState(npc.Id), _bridge.GetActiveMove(npc.Id)?.Slot);
             }
             UpdateSwordTrailsFromResolver(_bridge.InternalSim.Resolver);
             PresentTimelineEvents();
@@ -785,7 +789,7 @@ namespace SlopArena.Client.World
             if (slot.Def == null) return BuildIdleInput();
             slot.Rng ??= new System.Random();
             return _npcPolicy.Decide(npcState, playerState, slot.Def, slot.Rng, slot.Memory,
-                _arenaDef, _npcEntry.BakedAnimation, behavior);
+                _arenaDef, _npcEntry.BakedAnimation, behavior, _bridge.GetActiveMove(slot.Id)?.Slot);
         }
 
         private static InputState BuildIdleInput()

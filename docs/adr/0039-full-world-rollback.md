@@ -1,6 +1,6 @@
 # ADR-0039: Full-world rollback anchored on complete server snapshots
 
-**Status:** Accepted — 2026-10-18 (protocol 10 implemented through plan phase 4; Steam playtest, parity measurement and removal pending; see the [plan](../plans/2026-10-18-full-world-rollback.md))
+**Status:** Accepted — 2026-10-18 (protocol 10 implemented through plan phase 4; legacy removal completed with owner approval on 2026-10-23; Steam playtest and parity measurement remain pending; see the [plan](../plans/2026-10-18-full-world-rollback.md))
 **Supersedes:** [ADR-0011](0011-rollback-scope-track-model.md) (LocalTrack / PredictedTrack / RawTrack)
 **Completes:** [ADR-0010](0010-all-entity-prediction-input-relay.md) (all-entity prediction via InputRelay)
 
@@ -77,6 +77,12 @@ This is a coordinated protocol cutover (client, GameHost and Master move to prot
 10 together). LocalTrack, PredictedTrack, RawTrack, the Predictable/Complex
 partition and the per-entity state, projectile-visual and sword-trail packets are
 removed once the new path is accepted.
+
+On 2026-10-23 the owner approved retirement separately from the pending playtest
+and parity measurement in the [simulation review fixes](../plans/2026-10-23-simulation-review-fixes.md).
+Useful assertions were migrated to the full-world APIs before deleting the unused
+three-track runtime and obsolete packet codecs. `TickPacer` and live presentation
+helpers remain. This closes the deletion gate without claiming either acceptance run.
 
 ## Consequences
 

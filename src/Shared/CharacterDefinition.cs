@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -47,16 +46,16 @@ namespace SlopArena.Shared
         public ushort RushTicks;           // Rush window (ground dash-dance), ticks
     }
 
-    public class CharacterDefinition
+    public sealed record CharacterDefinition
     {
-        public CharacterClass Class;
-        public string DisplayName = "";
-        public MovementStats Movement;
+        public CharacterClass Class { get; init; }
+        public string DisplayName { get; init; } = "";
+        public MovementStats Movement { get; init; }
         /// <summary>Static mass used by the ADR-0019 knockback formula.</summary>
-        public float Weight = 100f;
+        public float Weight { get; init; } = 100f;
 
-        public float CapsuleRadius;
-        public float CapsuleHeight;
+        public float CapsuleRadius { get; init; }
+        public float CapsuleHeight { get; init; }
 
 
         /// <summary>
@@ -67,7 +66,7 @@ namespace SlopArena.Shared
         /// place the hips where the animation draws them.
         /// Manki: 0.50f, FightGuy: 0.82f.
         /// </summary>
-        public float HipHeight;
+        public float HipHeight { get; init; }
 
         /// <summary>
         /// World-space Y of a point <paramref name="boneLocalY"/> above the fixed hip pivot.
@@ -77,73 +76,42 @@ namespace SlopArena.Shared
         /// </summary>
         public float BoneYToWorldY(float capsuleCenterY, float boneLocalY)
             => capsuleCenterY - CapsuleHeight * 0.5f + HipHeight + boneLocalY;
-        public float HurtboxRadius;
+        public float HurtboxRadius { get; init; }
         /// <summary>World-space shield sphere radius in meters.</summary>
-        public float ShieldRadius;
+        public float ShieldRadius { get; init; }
         /// <summary>Cooked character-specific forward capture volume and paired placement anchors.</summary>
-        public CookedCaptureGeometry? CaptureGeometry;
+        public CookedCaptureGeometry? CaptureGeometry { get; init; }
 
         /// <summary>
         /// World-space offset from character position (legacy, used when no skeleton)
         /// </summary>
-        public HurtboxCapsule[]? HurtboxCapsules;
+        private IReadOnlyList<HurtboxCapsule>? _hurtboxCapsules;
+        public IReadOnlyList<HurtboxCapsule>? HurtboxCapsules
+        {
+            get => _hurtboxCapsules;
+            init => _hurtboxCapsules = Copy(value);
+        }
 
         /// <summary>
         /// Bone-attached hurtboxes (ServerSkeleton-based). Replaces HurtboxCapsules when loaded.
         /// Each entry defines a sphere at a bone position with an offset.
         /// </summary>
-        public HurtboxBoneDef[]? HurtboxBoneDefs;
+        private IReadOnlyList<HurtboxBoneDef>? _hurtboxBoneDefs;
+        public IReadOnlyList<HurtboxBoneDef>? HurtboxBoneDefs
+        {
+            get => _hurtboxBoneDefs;
+            init => _hurtboxBoneDefs = Copy(value);
+        }
         /// <summary>Path to the baked skeleton .bin file (pre-computed bone positions per frame).</summary>
-        public string BakedDataPath = "";
-
-        /// <summary>
-        /// Shallow copy with HurtboxBoneDefs replaced (Ability Lab override, spec #119).
-        /// The original definition is left untouched — registry defs may be shared.
-        /// </summary>
-        public CharacterDefinition WithHurtboxBoneDefs(HurtboxBoneDef[] defs)
-        {
-            var clone = (CharacterDefinition)MemberwiseClone();
-            clone.HurtboxBoneDefs = defs;
-            return clone;
-        }
-
-        /// <summary>Copy mutable match data while sharing immutable cooked values.</summary>
-        internal CharacterDefinition DeepClone()
-        {
-            var clone = (CharacterDefinition)MemberwiseClone();
-            clone.HurtboxCapsules = (HurtboxCapsule[]?)HurtboxCapsules?.Clone();
-            clone.HurtboxBoneDefs = (HurtboxBoneDef[]?)HurtboxBoneDefs?.Clone();
-            clone.ClipOverrides = (AnimationClipConfig[]?)ClipOverrides?.Clone();
-            clone.CookedSlots = CookedSlots == null ? null
-                : new ReadOnlyCollection<CookedSlotDefinition>(new List<CookedSlotDefinition>(CookedSlots));
-            clone.Slot1 = Slot1?.DeepClone();
-            clone.Slot2 = Slot2?.DeepClone();
-            clone.Slot3 = Slot3?.DeepClone();
-            clone.Slot4 = Slot4?.DeepClone();
-            clone.Slot5 = Slot5?.DeepClone();
-            clone.A = A?.DeepClone();
-            clone.E = E?.DeepClone();
-            clone.R = R?.DeepClone();
-            clone.F = F?.DeepClone();
-            clone.AirSlot1 = AirSlot1?.DeepClone();
-            clone.AirSlot2 = AirSlot2?.DeepClone();
-            clone.AirSlot3 = AirSlot3?.DeepClone();
-            clone.AirSlot4 = AirSlot4?.DeepClone();
-            clone.AirSlot5 = AirSlot5?.DeepClone();
-            clone.AirA = AirA?.DeepClone();
-            clone.AirE = AirE?.DeepClone();
-            clone.AirR = AirR?.DeepClone();
-            clone.AirF = AirF?.DeepClone();
-            return clone;
-        }
+        public string BakedDataPath { get; init; } = "";
 
         /// <summary>Unity Resources path for the model prefab. E.g. "Characters/Manki"</summary>
-        public string ModelResourcePath = "";
+        public string ModelResourcePath { get; init; } = "";
         /// <summary>
         /// Scale factor for baked bone positions. Mixamo GLBs are in cm (0.01),
         /// Blender/Maya exports with meters are 1.0. Default: 1.0
         /// </summary>
-        public float HurtboxBoneScale = 1.0f;
+        public float HurtboxBoneScale { get; init; } = 1.0f;
         /// <summary>
         /// Y offset for the visual model relative to capsule center.
         /// Aligns the model's feet with the capsule bottom.
@@ -151,18 +119,18 @@ namespace SlopArena.Shared
         /// For Mixamo: ≈ -0.52 (Manki), adjust per character.
         /// 0 = model origin at capsule center (if model is already centered).
         /// </summary>
-        public float ModelYOffset;
+        public float ModelYOffset { get; init; }
         /// <summary>
         /// Additional downward offset for the sole of the foot (below the lowest bone).
         /// Bones are inside the mesh; this accounts for sole thickness.
         /// Typical: 0.04-0.06m for humanoids, 0 for robots/mechs.
         /// </summary>
-        public float ModelSoleOffset;
+        public float ModelSoleOffset { get; init; }
         /// <summary>
         /// If true, ModelYOffset is computed from the baked skeleton data
         /// (lowest bone position at idle frame 0) instead of using the manual value.
         /// </summary>
-        public bool AutoModelYOffset;
+        public bool AutoModelYOffset { get; init; }
         /// <summary>
         /// Scale factor from GLB skeleton units to world meters.
         /// Applied to both the visual model node and the baked bone positions
@@ -170,130 +138,66 @@ namespace SlopArena.Shared
         /// Manki: 1.0 (Mixamo cm→m handled by GLB import).
         /// FightGuy: 2.0 (custom export scale).
         /// </summary>
-        public float VisualScale = 1.0f;
+        public float VisualScale { get; init; } = 1.0f;
 
         // ── Animation catalog (defaults match Mixamo naming) ──
 
         /// <summary>Idle animation clip name. Default: "idle"</summary>
-        public string IdleAnim = "idle";
+        public string IdleAnim { get; init; } = "idle";
         /// <summary>Run animation clip name. Default: "run"</summary>
-        public string RunAnim = "run";
+        public string RunAnim { get; init; } = "run";
         /// <summary>Dash animation clip name. Default: "dash"</summary>
-        public string DashAnim = "dash";
+        public string DashAnim { get; init; } = "dash";
         /// <summary>Jump animation clip (BlendSpace1D position -1). Default: "jump"</summary>
-        public string JumpAnim = "jump";
+        public string JumpAnim { get; init; } = "jump";
         /// <summary>Fall animation clip (BlendSpace1D position +1). Default: "fall"</summary>
-        public string FallAnim = "fall";
+        public string FallAnim { get; init; } = "fall";
         /// <summary>Small hit reaction clip. Default: "small_hit"</summary>
-        public string HitSmallAnim = "hit_light";
+        public string HitSmallAnim { get; init; } = "hit_light";
         /// <summary>Medium hit reaction clip. Default: "medium_hit"</summary>
-        public string HitMediumAnim = "hit_medium";
+        public string HitMediumAnim { get; init; } = "hit_medium";
         /// <summary>Hard hit reaction clip. Default: "hard_hit"</summary>
-        public string HitHardAnim = "hit_hard";
+        public string HitHardAnim { get; init; } = "hit_hard";
         /// <summary>Tumble animation clip. Legacy definitions default to "tumble".</summary>
-        public string TumbleAnim = "tumble";
+        public string TumbleAnim { get; init; } = "tumble";
         /// <summary>Optional static low-posture semantic bindings; absent content remains upright.</summary>
-        public string CrouchAnim = "";
-        public string SlideAnim = "";
+        public string CrouchAnim { get; init; } = "";
+        public string SlideAnim { get; init; } = "";
         /// <summary>Optional package-owned semantic defense animation bindings.</summary>
-        public string ShieldAnim = "";
-        public string GrabAnim = "";
-        public string GrabbedAnim = "";
-        public string ThrowForwardAnim = "";
-        public string AirDodgeAnim = "";
+        public string ShieldAnim { get; init; } = "";
+        public string GrabAnim { get; init; } = "";
+        public string GrabbedAnim { get; init; } = "";
+        public string ThrowForwardAnim { get; init; } = "";
+        public string AirDodgeAnim { get; init; } = "";
         /// <summary>Landing uses JumpAnim clip with this start offset (seconds). Default: 0.49f</summary>
-        public float LandStartOffset = 0.49f;
+        public float LandStartOffset { get; init; } = 0.49f;
         /// <summary>Per-clip overrides for non-default timeline/loop settings.</summary>
-        public AnimationClipConfig[]? ClipOverrides;
+        private IReadOnlyList<AnimationClipConfig>? _clipOverrides;
+        public IReadOnlyList<AnimationClipConfig>? ClipOverrides
+        {
+            get => _clipOverrides;
+            init => _clipOverrides = Copy(value);
+        }
 
-        /// <summary>Slot 2 (key "1" — the FG-normal tier, issue #117).</summary>
-        public AbilitySpec? Slot1;
-        public AbilitySpec? E;
-        public AbilitySpec? R;
-        public AbilitySpec? F;
-        /// <summary>Slots 6-10 (keys "2"-"5" + "A"/Q) — issue #117 fills these.</summary>
-        public AbilitySpec? Slot2;
-        public AbilitySpec? Slot3;
-        public AbilitySpec? Slot4;
-        public AbilitySpec? Slot5;
-        public AbilitySpec? A;
-        // null = grounded-only; shared = works identically in the air; separate spec = distinct air move.
-        public AbilitySpec? AirSlot1;
-        public AbilitySpec? AirE;
-        public AbilitySpec? AirR;
-        public AbilitySpec? AirF;
-        public AbilitySpec? AirSlot2;
-        public AbilitySpec? AirSlot3;
-        public AbilitySpec? AirSlot4;
-        public AbilitySpec? AirSlot5;
-        public AbilitySpec? AirA;
-        // No constructor needed — class fields auto-default
-        /// <summary>Immutable cooked timeline catalog used by migrated characters.</summary>
-        public IReadOnlyList<CookedSlotDefinition>? CookedSlots;
+        private IReadOnlyList<CookedSlotDefinition>? _cookedSlots;
+        public IReadOnlyList<CookedSlotDefinition>? CookedSlots
+        {
+            get => _cookedSlots;
+            init => _cookedSlots = Copy(value);
+        }
 
-        /// <summary>Resolve a cooked slot from the wire slot and airborne state.</summary>
         public CookedSlotDefinition? GetCookedSlotAbility(byte wireSlot, bool airborne)
         {
-            if (CookedSlots == null) return null;
-            int index = wireSlot switch
-            {
-                AbilitySlots.Slot1 => airborne ? 8 : 0,
-                AbilitySlots.E => airborne ? 13 : 5,
-                AbilitySlots.R => airborne ? 14 : 6,
-                AbilitySlots.F => airborne ? 15 : 7,
-                AbilitySlots.Slot2 => airborne ? 9 : 1,
-                AbilitySlots.Slot3 => airborne ? 10 : 2,
-                AbilitySlots.Slot4 => airborne ? 11 : 3,
-                AbilitySlots.A => airborne ? 12 : 4,
-                _ => -1,
-            };
-            return index >= 0 && index < CookedSlots.Count ? CookedSlots[index] : null;
+            if (CookedSlots == null || !CanonicalSlotProjection.TryGet(wireSlot, airborne, out var address))
+                return null;
+            return address.Ordinal < CookedSlots.Count ? CookedSlots[address.Ordinal] : null;
         }
-        /// <summary>Resolve the explicit aim movement policy for a wire slot.</summary>
-        public AimMovementMode GetAimMovementMode(byte wireSlot, bool airborne)
-        {
-            if (wireSlot == AbilitySlots.None)
-                return AimMovementMode.Fixed;
-            var cooked = GetCookedSlotAbility(wireSlot, airborne);
-            if (cooked != null)
-                return cooked.AimMovement == AuthoringAimMovementMode.Mobile ? AimMovementMode.Mobile : AimMovementMode.Fixed;
-            return GetSlotAbility(wireSlot - 1, airborne)?.AimMovement ?? AimMovementMode.Fixed;
-        }
-        /// <summary>Fraction of run and air speed a mobile aim state moves at (1 = full speed).</summary>
-        public float GetAimMovementSpeedScale(byte wireSlot, bool airborne)
-            => wireSlot == AbilitySlots.None ? 1f
-                : GetCookedSlotAbility(wireSlot, airborne)?.AimMovementSpeedScale ?? 1f;
 
+        private static IReadOnlyList<T>? Copy<T>(IReadOnlyList<T>? values)
+            => values == null ? null : new ReadOnlyCollection<T>(new List<T>(values));
 
-
-        /// <summary>
-        /// Resolve the ability spec for a slot index (0-10) and airborne state (issue #117).
-        /// Air semantics: an air spec is REQUIRED to fire a move in the air — null Air =
-        /// grounded-only; shared = Air references the ground spec; distinct = separate spec.
-        /// Returns null for data-less slots.
-        /// </summary>
-        public AbilitySpec? GetSlotAbility(int slotIndex, bool airborne = false) => (slotIndex, airborne) switch
-        {
-            (2, true) => AirSlot1,
-            (3, true) => AirE,
-            (4, true) => AirR,
-            (5, true) => AirF,
-            (6, true) => AirSlot2,
-            (7, true) => AirSlot3,
-            (8, true) => AirSlot4,
-            (9, true) => AirSlot5,
-            (10, true) => AirA,
-            (2, _) => Slot1,
-            (3, _) => E,
-            (4, _) => R,
-            (5, _) => F,
-            (6, _) => Slot2,
-            (7, _) => Slot3,
-            (8, _) => Slot4,
-            (9, _) => Slot5,
-            (10, _) => A,
-            _ => null
-        };
+        // Definitions are admitted identities, including when their values happen to match.
+        public bool Equals(CharacterDefinition? other) => ReferenceEquals(this, other);
+        public override int GetHashCode() => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
     }
-
 }

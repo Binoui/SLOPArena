@@ -86,8 +86,8 @@ public static class CharacterAssetCookerSelfTest
                 hilt = markers.SingleOrDefault(x => x.name == "bladeHilt");
                 tip = markers.SingleOrDefault(x => x.name == "bladeEnd");
             }
-            int hiltIndex = Array.IndexOf(baked.BoneNames, "_weapon_hilt");
-            int tipIndex = Array.IndexOf(baked.BoneNames, "_weapon_tip");
+            int hiltIndex = baked.FindBoneIndex("_weapon_hilt");
+            int tipIndex = baked.FindBoneIndex("_weapon_tip");
 
             foreach (var animation in animations)
             {
@@ -174,7 +174,7 @@ public static class CharacterAssetCookerSelfTest
         AssertEqual(firstPackage.PackageHash, secondPackage.PackageHash, "unchanged package hash");
         AssertEqual(expectedIds, first.Animations.Select(x => x.SemanticId).OrderBy(x => x, StringComparer.Ordinal).ToArray(), "semantic IDs");
         var baked = BakedAnimationData.LoadFromBin(first.PoseBytes);
-        AssertEqual(expectedIds.Length, baked.Animations.Length, "pose animation count");
+        AssertEqual(expectedIds.Length, baked.Animations.Count, "pose animation count");
         var committedFiles = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             [CharacterPackageAssembler.ManifestPath] = firstPackage.ManifestBytes,
@@ -328,7 +328,9 @@ public static class CharacterAssetCookerSelfTest
 
     private static CharacterAssetCatalog Clone(CharacterAssetCatalog source)
     {
-        return UnityEngine.Object.Instantiate(source);
+        var clone = UnityEngine.Object.Instantiate(source);
+        clone.SetPresentationProfile(source.PresentationProfile);
+        return clone;
     }
 
     private static void AssertBytes(byte[] left, byte[] right, string label)

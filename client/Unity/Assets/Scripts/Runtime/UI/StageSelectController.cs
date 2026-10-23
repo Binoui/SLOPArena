@@ -510,13 +510,16 @@ namespace SlopArena.Client.UI
 
         private async System.Threading.Tasks.Task RefreshRoom()
         {
+            var context = _context;
+            Guid roomId = ClientSession.SelectedRoomId;
             var lobby = _lobby;
-            if (lobby == null) return;
+            if (lobby == null || !OwnsRoomOperation(context, lobby, roomId)) return;
             try
             {
                 if (!lobby.IsConnected && !await lobby.ConnectAsync()) return;
+                if (!OwnsRoomOperation(context, lobby, roomId)) return;
                 var room = await lobby.GetMyRoomAsync();
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby)) return;
+                if (!OwnsRoomOperation(context, lobby, roomId)) return;
                 if (room == null || room.Id != ClientSession.SelectedRoomId)
                     ReturnToRoomBrowser("You are no longer a member of this Room. Return to the browser and join another room.");
                 else
@@ -524,10 +527,15 @@ namespace SlopArena.Client.UI
             }
             catch (Exception ex)
             {
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                if (OwnsRoomOperation(context, lobby, roomId))
                     ShowRoomStatus($"Couldn’t restore Room state: {ex.Message}", true);
             }
         }
+
+        private bool OwnsRoomOperation(FrontendPageContext context, LobbyClient lobby, Guid roomId)
+            => this != null && isActiveAndEnabled && context != null && context.Valid &&
+               ReferenceEquals(_context, context) && ReferenceEquals(_lobby, lobby) &&
+               ClientSession.SelectedRoomId == roomId;
 
         private void OnRoomConnected() => _ = RefreshRoom();
 
@@ -694,6 +702,7 @@ namespace SlopArena.Client.UI
         /// <summary>Confirms the leader's arena with Master, then opens Character Select.</summary>
         private async void ConfirmRoomPick()
         {
+            var context = _context;
             var lobby = _lobby;
             bool arcade = _arcadeTab;
             string format = arcade ? _arcadeFormat : MatchFormats.StockWire;
@@ -701,7 +710,8 @@ namespace SlopArena.Client.UI
             Guid roomId = ClientSession.SelectedRoomId;
             if (_roomActionPending || lobby == null || _roomSnapshot?.Id != roomId ||
                 !ClientSession.IsLobbyHost || !lobby.IsConnected || string.IsNullOrEmpty(arena) ||
-                arcade && (!_arcadePick || !ArcadeAdmitted(_arcadeFormat)))
+                arcade && (!_arcadePick || !ArcadeAdmitted(_arcadeFormat)) ||
+                !OwnsRoomOperation(context, lobby, roomId))
                 return;
             _confirmInFlight = true;
             _roomActionPending = true;
@@ -713,19 +723,19 @@ namespace SlopArena.Client.UI
                 if (!string.Equals(_roomSnapshot.ArenaName, arena, StringComparison.OrdinalIgnoreCase) ||
                     !string.Equals(_roomSnapshot.Format, format, StringComparison.Ordinal))
                     await lobby.RoomChoosePickAsync(format, arena);
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) || ClientSession.SelectedRoomId != roomId)
+                if (!OwnsRoomOperation(context, lobby, roomId))
                     return;
                 ShowRoomStatus("Opening Character Select…", false);
                 var room = await lobby.RoomStartCharacterSelectAsync();
+                if (!OwnsRoomOperation(context, lobby, roomId)) return;
                 _confirmInFlight = false;
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
-                    OnRoomUpdated(room);
+                OnRoomUpdated(room);
             }
             catch (Exception ex)
             {
-                _confirmInFlight = false;
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) || ClientSession.SelectedRoomId != roomId)
+                if (!OwnsRoomOperation(context, lobby, roomId))
                     return;
+                _confirmInFlight = false;
                 _roomActionPending = false;
                 ApplyRoomArenaAllowlist();
                 _btnConfirm?.SetEnabled(ClientSession.IsLobbyHost && !string.IsNullOrEmpty(_selectedArena) &&

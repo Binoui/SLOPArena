@@ -963,9 +963,10 @@ namespace SlopArena.Shared
 
     public static class ArenaRegistry
     {
-        private static ArenaDefinition[] _loaded = System.Array.Empty<ArenaDefinition>();
+        private sealed record LoadedArena(ArenaDefinition Definition, MatchArenaRecord Identity);
+        private static LoadedArena[] _loaded = System.Array.Empty<LoadedArena>();
 
-        public static ArenaDefinition[] All => _loaded;
+        public static ArenaDefinition[] All => _loaded.Select(x => x.Definition).ToArray();
 
         /// <summary>
         /// Load arena definitions from .arena files in a directory, replacing the
@@ -980,7 +981,7 @@ namespace SlopArena.Shared
                 if (!System.IO.Directory.Exists(directoryPath))
                 {
                     Console.WriteLine($"[ArenaRegistry] Directory not found: {directoryPath} — no arenas loaded");
-                    _loaded = System.Array.Empty<ArenaDefinition>();
+                    _loaded = System.Array.Empty<LoadedArena>();
                     return;
                 }
 
@@ -988,31 +989,32 @@ namespace SlopArena.Shared
                 if (files.Length == 0)
                 {
                     Console.WriteLine($"[ArenaRegistry] No .arena files in {directoryPath} — no arenas loaded");
-                    _loaded = System.Array.Empty<ArenaDefinition>();
+                    _loaded = System.Array.Empty<LoadedArena>();
                     return;
                 }
 
-                var loaded = new System.Collections.Generic.List<ArenaDefinition>();
+                var loaded = new System.Collections.Generic.List<LoadedArena>();
                 foreach (var file in files)
                 {
-                    var arena = ArenaBinaryFormat.LoadFromFile(file);
-                    if (arena.HasValue)
+                    if (MatchArenaRecord.TryLoad(file, System.IO.Path.GetFileNameWithoutExtension(file), out var identity, out var a, out var error))
                     {
-                        var a = arena.Value;
-                        loaded.Add(a);
+                        loaded.Add(new LoadedArena(a, identity!));
                         Console.WriteLine($"[ArenaRegistry] Loaded: {a.Name} ({file})");
                     }
                     else
                     {
-                        Console.WriteLine($"[ArenaRegistry] Failed to load: {file}");
+                        Console.WriteLine($"[ArenaRegistry] Failed to load: {file}: {error}");
                     }
                 }
 
+                if (loaded.Select(x => x.Identity.Name).Distinct(StringComparer.Ordinal).Count() != loaded.Count)
+                    throw new System.IO.InvalidDataException("Duplicate arena names.");
                 _loaded = loaded.ToArray();
                 Console.WriteLine($"[ArenaRegistry] Loaded {loaded.Count} arenas from {directoryPath}");
             }
             catch (Exception ex)
             {
+                _loaded = System.Array.Empty<LoadedArena>();
                 Console.WriteLine($"[ArenaRegistry] Error loading from {directoryPath}: {ex.Message}");
             }
         }
@@ -1023,9 +1025,21 @@ namespace SlopArena.Shared
         /// </summary>
         public static ArenaDefinition? Get(string name)
         {
-            foreach (var a in _loaded)
-                if (a.Name == name) return a;
-            return null;
+            return TryGetMatchArena(name, out var arena, out _) ? arena : null;
+        }
+
+        public static bool TryGetMatchArena(string name, out ArenaDefinition arena, out MatchArenaRecord? identity)
+        {
+            foreach (var loaded in _loaded)
+                if (string.Equals(loaded.Identity.Name, name, StringComparison.Ordinal))
+                {
+                    arena = loaded.Definition;
+                    identity = loaded.Identity;
+                    return true;
+                }
+            arena = default;
+            identity = null;
+            return false;
         }
 
         /// <summary>Normal match admission must reject solo-only stage artifacts.</summary>

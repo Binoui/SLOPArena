@@ -118,30 +118,19 @@ namespace SlopArena.Shared
         private const ushort LedgeRegrabLockDurationTicks = 30;
         private const float LedgeDropSpeed = 3f;
 
-        /// Resolve the effective AttackStage from an AbilitySpec, clamping ComboStage.
-        public static AttackStage ResolveStage(AbilitySpec spec, in CharacterState state)
-        {
-            int stageIdx = Math.Min(state.ComboStage, spec.Stages.Length - 1);
-            return spec.Stages[stageIdx];
-        }
+        internal static bool IsIasaUnlocked(in CharacterState state, ActiveMoveView? move)
+            => IsIasaUnlocked(in state, move?.Slot);
 
-        /// <summary>
-        /// IASA early-out (issue #124 / ADR-0021 §1): true when the current attack's stage
-        /// has passed its <c>IasaTicks</c>. From that tick on, ability inputs AND the dash
-        /// interrupt the recovery (the jab → IASA → dash → dash-attack string). 0 = none
-        /// (full ADR-0014 lock — the pre-IASA behavior). Never true outside Attacking.
-        /// </summary>
-        internal static bool IsIasaUnlocked(CharacterState state, CharacterDefinition def)
+        internal static bool IsIasaUnlocked(in CharacterState state, CookedSlotDefinition? move)
         {
-            if (state.State != ActionState.Attacking || state.AttackSlot == AbilitySlots.None)
+            if (state.State != ActionState.Attacking || state.AttackSlot == AbilitySlots.None || move == null)
                 return false;
-            var cooked = def.GetCookedSlotAbility(state.AttackSlot, !state.IsGrounded);
-            if (cooked == null) return false;
-            var stageIndex = Math.Min(state.ComboStage, (byte)(cooked.Timeline.Stages.Count - 1));
-            var stage = cooked.Timeline.Stages[stageIndex];
+            var stages = move.Timeline.Stages;
+            int stageIndex = Math.Min(state.ComboStage, stages.Count - 1);
+            var stage = stages[stageIndex];
             if (stage.IasaTicks == 0) return false;
             var elapsed = state.AttackElapsedTicks;
-            for (var i = 0; i < stageIndex; i++) elapsed -= cooked.Timeline.Stages[i].DurationTicks;
+            for (int i = 0; i < stageIndex; i++) elapsed -= stages[i].DurationTicks;
             return elapsed >= stage.IasaTicks;
         }
 
@@ -162,7 +151,15 @@ namespace SlopArena.Shared
             DownActionTuning tuning,
             bool verticalMotionOwned,
             float gravityMultiplier = 1f,
-            CombatTuning? combatTuning = null)
+            CombatTuning? combatTuning = null, CookedSlotDefinition? move = null)
+            => SimulateTick(ref s, def, input, arena, out ordinaryActionOpportunity,
+                out movementActionAccepted, tuning, verticalMotionOwned, move == null ? null : new ActiveMoveView(move, 0, 0, move.IsAir, s.ComboStage, default), gravityMultiplier, combatTuning);
+
+        public static void SimulateTick(
+            ref CharacterState s, CharacterDefinition def, InputState input, ArenaDefinition arena,
+            out bool ordinaryActionOpportunity, out bool movementActionAccepted,
+            DownActionTuning tuning, bool verticalMotionOwned, ActiveMoveView? activeMove,
+            float gravityMultiplier = 1f, CombatTuning? combatTuning = null)
         {
             _lastDownAdmissionReason = null;
             ordinaryActionOpportunity = false;
@@ -343,7 +340,7 @@ namespace SlopArena.Shared
                 // During squat: preserve horizontal momentum, no acceleration
             }
             }
-            var activeCookedSlot = def.GetCookedSlotAbility(s.AttackSlot, !s.IsGrounded);
+            var activeCookedSlot = activeMove?.Slot;
             s.IsAiming = input.IsAiming && !(activeCookedSlot?.Behavior == AuthoringAbilityBehavior.AimedProjectile
                 && activeCookedSlot.AimMode == AuthoringAimMode.None);
 
@@ -363,7 +360,7 @@ namespace SlopArena.Shared
                     && s.LandingLagTicks == 0;
                 bool mobileAim = s.State == ActionState.Aiming
                     && s.AttackSlot > 0
-                    && def.GetAimMovementMode(s.AttackSlot, !s.IsGrounded) == AimMovementMode.Mobile;
+                    && activeCookedSlot?.AimMovement == AuthoringAimMovementMode.Mobile;
                 bool ordinaryMovement = movementAllowed
                     && (s.State == ActionState.Idle || s.State == ActionState.Run
                         || s.State == ActionState.Crouching || s.State == ActionState.Sliding
@@ -417,7 +414,7 @@ namespace SlopArena.Shared
 
             // Grab takes priority over grounded movement and briefly carries existing momentum.
             if (input.GrabPressed && s.IsGrounded
-                && CanAcceptDefenseAction(in s, def, blockStunLocked, verticalMotionOwned))
+                && CanAcceptDefenseAction(in s, activeMove, blockStunLocked, verticalMotionOwned))
             {
                 StartGrabAttempt(ref s, stats);
                 movementActionAccepted = true;
@@ -482,7 +479,7 @@ namespace SlopArena.Shared
             else if (!input.GrabPressed && !input.Jump)
             {
                 if (s.IsGrounded && input.ShieldHeld
-                    && CanAcceptDefenseAction(in s, def, blockStunLocked, verticalMotionOwned))
+                    && CanAcceptDefenseAction(in s, activeMove, blockStunLocked, verticalMotionOwned))
                 {
                     if (s.State != ActionState.Shielding)
                     {
@@ -490,7 +487,7 @@ namespace SlopArena.Shared
                         s.ShieldDropTicks = 0;
                         s.StateTicks = 0;
                         ClearMovementInterruptionFlags(ref s);
-                        ClearDefenseAttackState(ref s);
+                        s.ClearAttackFields();
                         movementActionAccepted = true;
                     }
                     s.VX = s.VZ = 0f;
@@ -522,13 +519,13 @@ namespace SlopArena.Shared
             // Mobile-policy holds retain normal movement control at the slot's speed scale.
             // Attacks own their travel.
             bool fixedAim = s.State == ActionState.Aiming && s.AttackSlot > 0
-                && def.GetAimMovementMode(s.AttackSlot, !s.IsGrounded) == AimMovementMode.Fixed;
+                && activeCookedSlot?.AimMovement == AuthoringAimMovementMode.Fixed;
             if (fixedAim && s.IsGrounded)
                 s.VX = s.VZ = 0f;
             var moveStats = stats;
             if (s.State == ActionState.Aiming && s.AttackSlot > 0 && !fixedAim)
             {
-                float aimSpeedScale = def.GetAimMovementSpeedScale(s.AttackSlot, !s.IsGrounded);
+                float aimSpeedScale = activeCookedSlot?.AimMovementSpeedScale ?? 1f;
                 moveStats.RunSpeed *= aimSpeedScale;
                 moveStats.AirSpeedMax *= aimSpeedScale;
             }
@@ -693,8 +690,6 @@ namespace SlopArena.Shared
 
         private static void TickTimers(ref CharacterState s)
         {
-            if (s.DashCooldownTicks > 0) s.DashCooldownTicks--;
-            if (s.DashDurationTicks > 0) s.DashDurationTicks--;
             if (s.InvincibilityTicks > 0) s.InvincibilityTicks--;
             if (s.AnimLockTicks > 0) s.AnimLockTicks--;
             if (s.LandingLagTicks > 0) s.LandingLagTicks--;
@@ -753,12 +748,12 @@ namespace SlopArena.Shared
                 or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
                 or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery;
 
-        private static bool CanAcceptDefenseAction(in CharacterState state, CharacterDefinition def,
+        private static bool CanAcceptDefenseAction(in CharacterState state, ActiveMoveView? activeMove,
             bool blockStunLocked, bool verticalMotionOwned)
         {
             if (verticalMotionOwned || blockStunLocked || state.HitstunTicks > 0 || state.HitstopTicks > 0
                 || HasKnockback(state) || HasQueuedLaunch(state)
-                || state.AnimLockTicks > 0 && !IsIasaUnlocked(state, def)
+                || state.AnimLockTicks > 0 && !IsIasaUnlocked(in state, activeMove)
                 || state.LandingLagTicks > 0)
                 return false;
 
@@ -775,20 +770,6 @@ namespace SlopArena.Shared
                 && state.HitstopTicks == 0
                 && !HasKnockback(state) && !HasQueuedLaunch(state);
 
-        private static void ClearDefenseAttackState(ref CharacterState state)
-        {
-            state.ClearStartupAimCorrection();
-            state.AttackSlot = 0;
-            state.ComboStage = 0;
-            state.AttackElapsedTicks = 0;
-            state.AnimLockTicks = 0;
-            state.BufferedSlot = 0;
-            state.ChargeTicks = 0;
-            state.IsAiming = false;
-            state.AnimIndex = 0;
-            state.SlideAttackCarryActive = false;
-        }
-
         private static void StartGrabAttempt(ref CharacterState state, MovementStats stats)
         {
             ClearMovementInterruptionFlags(ref state);
@@ -802,14 +783,14 @@ namespace SlopArena.Shared
             state.CapturedYaw = (short)Math.Clamp(
                 (int)MathF.Round(state.FacingYaw * (18000f / MathF.PI)), short.MinValue, short.MaxValue);
             state.ShieldDropTicks = 0;
-            ClearDefenseAttackState(ref state);
+            state.ClearAttackFields();
             ClampHorizontalSpeed(ref state, stats.RunSpeed);
         }
 
         private static void StartAirDodge(ref CharacterState state, MovementStats stats, InputState input)
         {
             ClearMovementInterruptionFlags(ref state);
-            ClearDefenseAttackState(ref state);
+            state.ClearAttackFields();
             // The stick aims the dodge and a neutral stick dodges forward; facing stays put.
             (float dirX, float dirZ) = GetInputDirection(input);
             if ((dirX * dirX) + (dirZ * dirZ) <= 1e-4f)
@@ -1940,7 +1921,6 @@ namespace SlopArena.Shared
             }
 
             s.AirTimeTicks = 0;
-            s.DashDurationTicks = 0;
             s.AirDodgeRecoveryTicks = 0;
             s.StateTicks = 0;
             s.WasAirborneDuringKnockback = !s.IsGrounded;
@@ -1981,7 +1961,6 @@ namespace SlopArena.Shared
                 s.State = ActionState.Idle;
             }
             s.AirTimeTicks = 0;
-            s.DashDurationTicks = 0;
             s.AirDodgeRecoveryTicks = 0;
             s.StateTicks = 0;
             s.WasAirborneDuringKnockback = !s.IsGrounded;

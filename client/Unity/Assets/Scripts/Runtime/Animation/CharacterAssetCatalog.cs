@@ -7,7 +7,7 @@ namespace SlopArena.Client.Animation
     [CreateAssetMenu(fileName = "CharacterAssetCatalog", menuName = "SLOPArena/Character Asset Catalog")]
     public sealed class CharacterAssetCatalog : ScriptableObject
     {
-        public const ushort SchemaVersion = 1;
+        public const ushort SchemaVersion = 2;
 
         [SerializeField] private string _packageId = "";
         [SerializeField] private ushort _catalogSchemaVersion = SchemaVersion;
@@ -16,6 +16,10 @@ namespace SlopArena.Client.Animation
         [SerializeField] private int _sampleRate = 60;
         [SerializeField] private AnimationBinding[] _bindings = Array.Empty<AnimationBinding>();
         [SerializeField] private PresentationBinding[] _presentations;
+
+        [SerializeField] private CharacterPresentationProfile _presentationProfile;
+        public CharacterPresentationProfile PresentationProfile => _presentationProfile;
+        public void SetPresentationProfile(CharacterPresentationProfile profile) => _presentationProfile = profile?.DeepClone();
 
         public string PackageId { get => _packageId; set => _packageId = value; }
         public ushort CatalogSchemaVersion { get => _catalogSchemaVersion; set => _catalogSchemaVersion = value; }

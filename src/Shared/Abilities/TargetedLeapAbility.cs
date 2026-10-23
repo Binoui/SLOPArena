@@ -130,8 +130,8 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
 
     private void UpdateFlightPose(ref CharacterState s, CharacterDefinition def)
     {
-        var slot = def.GetCookedSlotAbility((byte)(Slot + 1), AirborneAtStart);
-        if (AnimationNames.Length != 2 || slot?.Timeline.Stages.Count != 1 || Arena == null)
+        var slot = Move;
+        if (slot?.ClipCount != 2 || slot?.Timeline.Stages.Count != 1 || Arena == null)
             return;
 
         int lastTick = slot.Timeline.Stages[0].DurationTicks - 1;
@@ -204,7 +204,7 @@ public sealed class TargetedLeapAbility : ServerAbility, IAimHoldCapability, ILa
         // A stage that lists a second clip plays it from the landing: the flight and the landing are separate
         // clips, so the landing (impact and recovery) keeps its own timing however long the flight was. Cooked
         // stages sort their clip IDs, so the landing clip is named after the flight's (anim.bonk.ge-land).
-        if (AnimationNames.Length > 1)
+        if (Move?.ClipCount > 1)
         {
             s.ComboStage = 1;
             AnimIndex = 1;

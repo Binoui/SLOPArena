@@ -56,7 +56,7 @@ public static class ArcadeRecordCompatibility
             var animation = baked.Animations[index];
             var frames = animation.Frames.Select(frame => bones.SelectMany(bone =>
             {
-                int boneIndex = Array.IndexOf(baked.BoneNames, bone);
+                int boneIndex = baked.FindBoneIndex(bone);
                 return new[] { frame[boneIndex * 3], frame[boneIndex * 3 + 1], frame[boneIndex * 3 + 2] };
             }).ToArray()).ToArray();
             return new { animation.FrameCount, Frames = frames };

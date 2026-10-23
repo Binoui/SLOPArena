@@ -66,7 +66,6 @@ namespace SlopArena.Client.UI
         private Focusable _focusBeforeModal;
         private Button _modalClose;
         private Button _modalJoin;
-        private bool _modalPresented;
 
         private CancellationTokenSource _lifecycleCts;
         private CancellationTokenSource _refreshCts;
@@ -564,7 +563,6 @@ namespace SlopArena.Client.UI
             _focusBeforeModal = _directConnectModal.panel?.focusController?.focusedElement;
             SetPageSectionsEnabled(false);
             _directConnectModal.style.display = DisplayStyle.Flex;
-            _modalPresented = true;
             // The modal owns Start; Escape resolves to the page-owned close action.
             _context.SetModalAction(CloseDirectConnect);
             _context.ModalForwardButton = _modalJoin;
@@ -609,11 +607,6 @@ namespace SlopArena.Client.UI
             _directConnectModal.style.display = DisplayStyle.None;
             _context.SetModalAction(null);
             _context.ModalForwardButton = null;
-            if (_modalPresented)
-            {
-                _modalPresented = false;
-                UiModalState.Pop();
-            }
             SetPageSectionsEnabled(true);
             FrontendFocusRouter.Instance?.NotifyModalClosed();
             if (_focusBeforeModal is VisualElement previous && previous.panel != null)
@@ -966,11 +959,6 @@ namespace SlopArena.Client.UI
             }
             SetRoomDirectoryLobby(null);
             _chatSession = null;
-            if (_modalPresented)
-            {
-                _modalPresented = false;
-                UiModalState.Pop();
-            }
             _addressCts?.Cancel();
             _addressCts?.Dispose();
             _roomActionCts?.Cancel();

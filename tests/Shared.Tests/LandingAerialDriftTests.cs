@@ -70,7 +70,7 @@ public class LandingAerialDriftTests
     public void JumpStartupAttack_StartsTimeline_AndLandingStopsDrift(int attackTick, bool fastFall)
     {
         var def = TestHelpers.EngineDef;
-        def.Movement = def.Movement with { JumpSquatTicks = 2, FloatWindowTicks = 0 };
+        def = def with { Movement = def.Movement with { JumpSquatTicks = 2, FloatWindowTicks = 0 } };
         var slots = def.CookedSlots!.ToArray();
         slots[8] = new CookedSlotDefinition(8, "air.1", true, "Jump startup landing fixture", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
@@ -79,7 +79,7 @@ public class LandingAerialDriftTests
                 new CookedStage(60, 0, 4, 0, 0, Array.Empty<string>(),
                     Array.Empty<CookedTimelineOperation>()),
             }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var arena = TestHelpers.TestArena();
         arena.CollisionTriangles = new[]
         {
@@ -159,7 +159,7 @@ public class LandingAerialDriftTests
                         new CookedSpawnHitboxOperation(0, AuthoringUnit.Meters, hitbox),
                     }),
             }));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var (_, vz, states, grounded) = LandMidAerial(def, AbilitySlots.Slot1, aerialStartTick: 40, releaseTick: 60, totalTicks: 100);
 
         int takeoff = FirstTakeoff(grounded);

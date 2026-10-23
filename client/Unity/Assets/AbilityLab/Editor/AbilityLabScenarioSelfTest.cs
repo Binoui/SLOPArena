@@ -137,12 +137,7 @@ public static class AbilityLabScenarioSelfTest
             CaptureGeometry = new CookedCaptureGeometry(1.5f, 1f, 1.5f, 0f,
                 new CaptureAnchor(0f, 0f, 0.2f), new CaptureAnchor(0f, 0f, 0.65f)),
             CookedSlots = new[] { slot },
-            // Cooked execution and public metadata are both present in runtime definitions.
-            Slot1 = new AbilitySpec
-            {
-                AnimationNames = Array.Empty<string>(),
-                Stages = new[] { new AttackStage { DurationTicks = 12 } },
-            },
+
         };
     }
 

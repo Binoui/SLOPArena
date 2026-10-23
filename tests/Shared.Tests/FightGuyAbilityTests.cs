@@ -69,7 +69,7 @@ public class FightGuyAbilityTests
     private static CharacterDefinition ChargedQDefinition()
     {
         var def = TestHelpers.ResolveSourceDef("fightguy");
-        def.Class = CharacterClass.FightGuy;
+        def = def with { Class = CharacterClass.FightGuy };
         return def;
     }
 
@@ -393,7 +393,7 @@ public class FightGuyAbilityTests
         slots[0] = new CookedSlotDefinition(
             0, "ground.1", false, "Test hitbox", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false, timeline);
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 }

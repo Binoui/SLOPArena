@@ -81,10 +81,10 @@ public class LandingLagTests
     {
         var def = TestHelpers.EngineDef;
         if (airFloatGravity != 0f)
-            def.Movement = def.Movement with { AirFloatGravity = airFloatGravity };
+            def = def with { Movement = def.Movement with { AirFloatGravity = airFloatGravity } };
         var slots = def.CookedSlots!.ToArray();
         slots[8] = AirSlot1(lag, before, after, lunge);
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 

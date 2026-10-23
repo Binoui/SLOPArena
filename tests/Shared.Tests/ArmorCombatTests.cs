@@ -96,7 +96,7 @@ public sealed class ArmorCombatTests
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(DefenderId, def, state);
-        var ability = new CookedTimelineAbility(slot, System.Array.Empty<string>());
+        var ability = new CookedTimelineAbility(slot);
         sim.ActivateAbility(DefenderId, ability, (byte)(AbilitySlots.Slot1 - 1), def);
         Assert.False(ability.HasArmor);
 
@@ -216,8 +216,8 @@ public sealed class ArmorCombatTests
     public void GrabCapturesAnArmoredOpponentAndCancelsItsProtection()
     {
         var def = TestHelpers.EngineDef;
-        def.CaptureGeometry = new CookedCaptureGeometry(1.1f, 0.8f, 1.2f, 0.6f,
-            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f));
+        def = def with { CaptureGeometry = new CookedCaptureGeometry(1.1f, 0.8f, 1.2f, 0.6f,
+            new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f)) };
         var sim = new ServerSimulation(TestHelpers.TestArena());
         var grabber = TestHelpers.PlayerState(100f, 100f);
         grabber.PY = TestHelpers.GroundPY(def);
@@ -279,7 +279,7 @@ public sealed class ArmorCombatTests
                         new CookedArmorWindowOperation(0, AuthoringUnit.Ticks, duration),
                     }),
             }));
-        sim.ActivateAbility(DefenderId, new CookedTimelineAbility(slot, System.Array.Empty<string>()),
+        sim.ActivateAbility(DefenderId, new CookedTimelineAbility(slot),
             (byte)(AbilitySlots.Slot1 - 1), def);
         for (int step = 1; step < contactStep; step++)
             sim.Tick(new Dictionary<ulong, InputState>());
@@ -335,7 +335,7 @@ public sealed class ArmorCombatTests
             if (activated) return;
             activated = true;
             sim.ActivateAbility(DefenderId,
-                new CookedTimelineAbility(slot, System.Array.Empty<string>()),
+                new CookedTimelineAbility(slot),
                 (byte)(AbilitySlots.Slot1 - 1), def);
         };
         SpawnHit(sim, defender);

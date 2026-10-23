@@ -143,7 +143,7 @@ namespace SlopArena.Server
                     return new StartOutcome(0, null, "Master-pinned catalog or GameHost registration is stale.");
                 if (!_orchestrator.TryAssignMatch(request.MatchId, arena, request.Players, (byte)request.MaxStocks,
                     request.AdmissionExpiresAtUtc,
-                    steam ? request.CatalogHash : null,
+                    request.CatalogHash,
                     out int port, out var content, out var contentHash, out var error, request.Format, request.FriendlyFire, request.BallOnly))
                     return new StartOutcome(0, null, error ?? "Failed to build match content.");
                 if (steam && _steamHost!.CurrentSteamId != serverSteamId)
@@ -293,13 +293,13 @@ namespace SlopArena.Server
             if (result.ServerSteamId is not null)
             {
                 var steamResponse = Encoding.UTF8.GetBytes(
-                    $"{{\"matchId\":\"{result.MatchId}\",\"serverSteamId\":\"{result.ServerSteamId}\",\"virtualPort\":0,\"protocolVersion\":{SteamMatchDescriptor.CurrentProtocolVersion},\"content\":{MatchContentHandleMapCodec.Serialize(result.Content!)},\"contentHash\":\"{result.ContentHash}\"}}");
+                    $"{{\"matchId\":\"{result.MatchId}\",\"serverSteamId\":\"{result.ServerSteamId}\",\"virtualPort\":0,\"protocolVersion\":{SteamMatchDescriptor.CurrentProtocolVersion},\"content\":{MatchContentHandleMapCodec.Serialize(result.Content!)},\"contentHash\":\"{result.ContentHash}\",\"actualCatalogHash\":\"{SteamMatchDescriptor.HashCatalog(result.Content!)}\"}}");
                 await ctx.Response.OutputStream.WriteAsync(steamResponse);
             }
             else
             {
                 var udpResponse = Encoding.UTF8.GetBytes(
-                    $"{{\"port\":{result.Port},\"content\":{MatchContentHandleMapCodec.Serialize(result.Content!)},\"contentHash\":\"{result.ContentHash}\"}}");
+                    $"{{\"port\":{result.Port},\"content\":{MatchContentHandleMapCodec.Serialize(result.Content!)},\"contentHash\":\"{result.ContentHash}\",\"actualCatalogHash\":\"{SteamMatchDescriptor.HashCatalog(result.Content!)}\"}}");
                 await ctx.Response.OutputStream.WriteAsync(udpResponse);
             }
         }

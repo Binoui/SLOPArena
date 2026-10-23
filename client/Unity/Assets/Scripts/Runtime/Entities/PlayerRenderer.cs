@@ -3,6 +3,7 @@ using System;
 using UnityEditor;
 #endif
 using System.Collections.Generic;
+using System.Linq;
 using Animancer;
 using UnityEngine;
 using SlopArena.Shared;
@@ -27,6 +28,7 @@ namespace SlopArena.Client.Entities
         [SerializeField] private AnimancerComponent _animancer;
 
         [SerializeField] private CharacterAnimationConfig _charConfig;
+        private CharacterAnimationConfig _resolvedAnimConfig;
         private CharacterAnimationCatalog _animationCatalog;
         private AnimationClip _grabClip;
         private AnimationClip _throwClip;
@@ -35,7 +37,6 @@ namespace SlopArena.Client.Entities
         private AnimationClip _grabbedWalkForwardClip, _grabbedWalkBackwardClip;
         private AnimationClip _thrownClip;
         private ProjectileVFXManager _projectileVFX;
-        private Transform _kiShotHand;
 
         [Header("Thresholds")]
         [SerializeField] private float _runSpeedThreshold = 0.1f;
@@ -71,35 +72,16 @@ namespace SlopArena.Client.Entities
             { ActionState.Run,        new Color(0f, 1f, 1f, 0.8f) },       // cyan
             { ActionState.LedgeHang,  new Color(1f, 0.8f, 0f, 0.8f) },     // yellow
         };
-        private static readonly AnimationCurve AttackAccentWidth = new(
-            new Keyframe(0f, 0f),
-            new Keyframe(0.28f, 1f),
-            new Keyframe(0.72f, 0.72f),
-            new Keyframe(1f, 0f));
-
-        private sealed class AttackAccentTrail
-        {
-            public GameObject Root;
-            public TrailRenderer Primary;
-            public TrailRenderer Secondary;
-        }
-
-
         [Header("Visual Offset")]
         [SerializeField] private float _modelYOffset;
 
-        [Header("Bone Trail VFX")]
-        [SerializeField] private GameObject _boneTrailPrefab;
-        private Dictionary<string, ParticleSystem> _activeTrails = new();
-        private Dictionary<string, AttackAccentTrail> _attackAccentTrails = new();
-
         /// <summary>Character definition (capsule geometry, weight, baked bones) — set at spawn.</summary>
         public CharacterDefinition? CharacterDef => _charDef;
+        public CharacterAnimationCatalog PresentationCatalog => _animationCatalog;
 
-        /// <summary>Set the temporary/generated semantic animation catalog for package previews.</summary>
-        public void SetAnimationCatalog(CharacterAnimationCatalog catalog) => _animationCatalog = catalog;
-        /// <summary>Set animation config from MatchBase (drag-drop), skipping Resources.Load fallback.</summary>
-        public void SetAnimationConfig(CharacterAnimationConfig config) => _charConfig = config;
+        public void BindProjectilePresentation(ProjectileVFXManager manager) => _projectileVFX = manager;
+
+        private void OnDestroy() => _projectileVFX?.UnregisterOwner(_entityId, this);
 
         /// <summary>
         /// Y offset to align the visual model's feet with the collision capsule bottom.
@@ -159,8 +141,6 @@ namespace SlopArena.Client.Entities
         // but must never move that root or accumulate presentation drift.
         private const float ModelRootDriftWarningDistance = 0.001f;
 
-        public void SetCharacterDefinition(CharacterDefinition? def) => _charDef = def;
-
         private ArenaCollision.BlastLines _blastLines;
         private bool _hasBlastLines;
 
@@ -192,58 +172,124 @@ namespace SlopArena.Client.Entities
         }
 
         /// <summary>
-        /// Load the 3D model for this character from Resources.
-        /// Reuses the current model when its source is unchanged and replaces only
-        /// after the requested prefab has been resolved successfully.
-        /// Must be called before ApplyServerState.
+        /// Install the definition, geometry, baked poses and animation source together.
+        /// An empty model path with no rig configures definition-only presentation.
+        /// Rejected inputs preserve the current configuration and model.
         /// </summary>
-        /// <param name="def">Character definition with ModelResourcePath as fallback.</param>
-        /// <param name="prefabOverride">If non-null, use this prefab instead of Resources.Load.</param>
-        public void LoadModel(CharacterDefinition def, GameObject prefabOverride = null)
+        public bool Configure(
+            CharacterDefinition definition, BakedAnimationData? baked,
+            CharacterAnimationCatalog animationCatalog, GameObject prefabOverride,
+            out string error, CharacterAnimationConfig animationConfigOverride = null)
         {
-            if (def == null) return;
-            LoadSharedAnimations();
-            string resourcePath = def.ModelResourcePath ?? "";
-            if (prefabOverride == null && string.IsNullOrEmpty(resourcePath)) return;
+            error = "";
+            if (definition == null)
+            {
+                error = "A character definition is required.";
+                return false;
+            }
+            if (!(definition.VisualScale > 0f) || float.IsInfinity(definition.VisualScale)
+                || float.IsNaN(definition.ModelYOffset) || float.IsInfinity(definition.ModelYOffset))
+            {
+                error = "The model scale must be positive and finite, and its offset must be finite.";
+                return false;
+            }
+            if (!(definition.CapsuleRadius >= 0f) || float.IsInfinity(definition.CapsuleRadius)
+                || !(definition.CapsuleHeight >= 0f) || float.IsInfinity(definition.CapsuleHeight))
+            {
+                error = "Capsule dimensions must be nonnegative and finite.";
+                return false;
+            }
 
+            string resourcePath = definition.ModelResourcePath ?? "";
             GameObject prefab = prefabOverride != null
                 ? prefabOverride
-                : Resources.Load<GameObject>(resourcePath);
-            if (prefab == null)
+                : animationCatalog != null && animationCatalog.Rig != null
+                    ? animationCatalog.Rig
+                    : string.IsNullOrEmpty(resourcePath) ? null : Resources.Load<GameObject>(resourcePath);
+            if (prefab == null && !string.IsNullOrEmpty(resourcePath))
             {
-                Debug.LogError($"[PlayerRenderer] Model not found — override null and Resources/{resourcePath} missing");
-                return;
+                error = $"Model not found at Resources/{resourcePath}.";
+                return false;
             }
+
+            var animConfig = animationConfigOverride != null ? animationConfigOverride : _charConfig;
+            if (prefab != null)
+            {
+                if (prefab.GetComponentInChildren<Animator>(true) == null)
+                {
+                    error = $"Model {prefab.name} has no Animator.";
+                    return false;
+                }
+                if (animationCatalog == null)
+                {
+                    if (definition.Class == CharacterClass.FightGuy)
+                    {
+                        error = "FightGuy requires generated cooked animation assets.";
+                        return false;
+                    }
+                    if (animConfig == null)
+                        animConfig = LoadFallbackAnimationConfig(definition);
+                    if (animConfig == null)
+                    {
+                        error = $"No animation catalog or AnimConfig is available for {definition.Class}.";
+                        return false;
+                    }
+                }
+            }
+
+            bool sourceUnchanged = _modelInstance != null
+                && _modelInstance.transform.IsChildOf(transform)
+                && _animancer != null && _animancer.Animator != null
+                && _modelPrefab == prefab
+                && _modelResourcePath == resourcePath;
+            GameObject instance = null;
+            AnimancerComponent animancer = null;
+            if (prefab != null && !sourceUnchanged
+                && !TryCreateModel(prefab, out instance, out animancer, out error))
+                return false;
 
 #if UNITY_EDITOR
             if (Selection.activeTransform != null && Selection.activeTransform.IsChildOf(transform))
                 Selection.activeObject = gameObject;
 #endif
 
-            bool sourceUnchanged = _modelInstance != null
-                && _modelPrefab == prefab
-                && _modelResourcePath == resourcePath;
+            if (_animancer != null)
+                ResetAnimationState();
+            bool hadModel = _modelPrefab != null;
+            _charDef = definition;
+            _bakedData = baked;
+            _weaponHiltBoneIndex = baked?.FindBoneIndex("_weapon_hilt") ?? -1;
+            _weaponTipBoneIndex = baked?.FindBoneIndex("_weapon_tip") ?? -1;
+            _animationCatalog = animationCatalog;
+            _resolvedAnimConfig = animConfig;
+            LastAnimationClipNotInstalled = false;
+            _modelYOffset = definition.ModelYOffset;
+            _capsuleRadius = definition.CapsuleRadius;
+            _capsuleHeight = definition.CapsuleHeight;
+            _hurtboxBoneDefs = definition.HurtboxBoneDefs?.ToArray() ?? Array.Empty<HurtboxBoneDef>();
             _modelPrefab = prefab;
             _modelResourcePath = resourcePath;
-            _modelName = def.Class.ToString();
-            _modelVisualScale = def.VisualScale;
+            _modelName = definition.Class.ToString();
+            _modelVisualScale = definition.VisualScale;
 
-            if (sourceUnchanged)
+            if (prefab == null)
             {
-                _modelInstance.name = _modelName;
-                _modelInstance.transform.localScale = Vector3.one * _modelVisualScale;
-                _hitFeel?.AttachModel(_modelInstance.transform);
-                _airDodge?.AttachModel(_modelInstance.transform);
-                return;
+                if (hadModel)
+                    ReplaceModel(null, null);
+                return true;
             }
 
-            ReplaceModel(prefab, _modelName, _modelVisualScale);
-            ConfigureModelAnimation(def);
-            if (TryGetAnimation(def.IdleAnim, out var idleClip, out _))
+            if (!sourceUnchanged)
+                ReplaceModel(instance, animancer);
+            else
+                ApplyModelSettings();
+            LoadSharedAnimations();
+            if (TryGetAnimation(definition.IdleAnim, out var idleClip, out _))
             {
                 _currentAnimState = _animancer.Play(idleClip, 0f);
                 _animancer.Evaluate(0f);
             }
+            return true;
         }
 
         /// <summary>
@@ -262,8 +308,13 @@ namespace SlopArena.Client.Entities
                 prefab = Resources.Load<GameObject>(_modelResourcePath);
             if (prefab == null) return;
 
-            _modelPrefab = prefab;
-            ReplaceModel(prefab, _modelName, _modelVisualScale);
+            if (TryCreateModel(prefab, out var instance, out var animancer, out var error))
+            {
+                _modelPrefab = prefab;
+                ReplaceModel(instance, animancer);
+            }
+            else
+                Debug.LogError($"[PlayerRenderer] {error}");
         }
 
 
@@ -311,65 +362,83 @@ namespace SlopArena.Client.Entities
             shield.localRotation = Quaternion.identity;
             shield.localScale = Vector3.one * (2f * _charDef.ShieldRadius);
         }
-        private void ReplaceModel(GameObject prefab, string modelName, float visualScale)
+        private bool TryCreateModel(
+            GameObject prefab, out GameObject instance, out AnimancerComponent animancer, out string error)
+        {
+            instance = null;
+            animancer = null;
+            error = "";
+            try
+            {
+                instance = Instantiate(prefab, transform);
+                var animator = instance.GetComponentInChildren<Animator>(true);
+                if (animator == null)
+                    throw new InvalidOperationException($"Model {prefab.name} has no Animator.");
+                animator.applyRootMotion = false;
+                animancer = instance.GetComponent<AnimancerComponent>()
+                    ?? instance.AddComponent<AnimancerComponent>();
+                animancer.Animator = animator;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                if (instance != null)
+                {
+                    if (Application.isPlaying) Destroy(instance);
+                    else DestroyImmediate(instance);
+                }
+                instance = null;
+                animancer = null;
+                error = $"Could not create model {prefab.name}: {exception.Message}";
+                return false;
+            }
+        }
+
+        private void ReplaceModel(GameObject instance, AnimancerComponent animancer)
         {
             HideShield();
             _projectileVFX?.ClearHeldVisual(_entityId);
-            _kiShotHand = null;
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 var child = transform.GetChild(i).gameObject;
+                if (child == instance) continue;
+                child.SetActive(false);
                 if (Application.isPlaying)
                     Destroy(child);
                 else
                     DestroyImmediate(child);
             }
 
-            var instance = Instantiate(prefab, transform);
-            instance.name = modelName;
             _modelInstance = instance;
-            instance.transform.localPosition = Vector3.zero;
-            instance.transform.localRotation = Quaternion.identity;
-            instance.transform.localScale = Vector3.one * visualScale;
-            _hitFeel?.AttachModel(instance.transform);
-            _airDodge?.AttachModel(instance.transform);
-
-            _animancer = instance.GetComponent<AnimancerComponent>();
-            if (_animancer == null)
-                _animancer = instance.AddComponent<AnimancerComponent>();
-
-            var animator = instance.GetComponentInChildren<Animator>();
-            if (animator != null)
-                animator.applyRootMotion = false;
-            _weaponHips = animator != null && animator.isHuman
+            _animancer = animancer;
+            _weaponHips = null;
+            if (instance == null) return;
+            ApplyModelSettings();
+            var animator = _animancer.Animator;
+            _weaponHips = animator.isHuman
                 ? animator.GetBoneTransform(HumanBodyBones.Hips)
                 : FindBone("mixamorig:Hips");
         }
 
-        private void ConfigureModelAnimation(CharacterDefinition def)
+        private void ApplyModelSettings()
         {
-            if (def.Class == CharacterClass.FightGuy && _animationCatalog == null)
-            {
-                Debug.LogError("[PlayerRenderer] FightGuy requires generated cooked animation assets.");
-                return;
-            }
-            if (_animationCatalog == null && _charConfig == null)
-            {
-                string path = $"AnimationConfigs/{def.Class}_AnimConfig";
-                _charConfig = Resources.Load<CharacterAnimationConfig>(path);
-                if (_charConfig == null && !string.IsNullOrEmpty(def.ModelResourcePath))
-                {
-                    string modelClass = def.ModelResourcePath.Substring(
-                        def.ModelResourcePath.LastIndexOf('/') + 1);
-                    string fallbackPath = $"AnimationConfigs/{modelClass}_AnimConfig";
-                    if (modelClass.Length > 0 && fallbackPath != path)
-                        _charConfig = Resources.Load<CharacterAnimationConfig>(fallbackPath);
-                    if (_charConfig != null)
-                        Debug.Log($"[PlayerRenderer] {def.Class} has no AnimConfig — borrowing {modelClass} clips from Resources/{fallbackPath} (placeholder art)");
-                    else
-                        Debug.LogError($"[PlayerRenderer] AnimConfig not found at Resources/{path} (model fallback Resources/{fallbackPath} missing too)");
-                }
-            }
+            var instance = _modelInstance;
+            instance.name = _modelName;
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localScale = Vector3.one * _modelVisualScale;
+            _hitFeel?.AttachModel(instance.transform);
+            _airDodge?.AttachModel(instance.transform);
+        }
+
+        private static CharacterAnimationConfig LoadFallbackAnimationConfig(CharacterDefinition def)
+        {
+            var config = Resources.Load<CharacterAnimationConfig>($"AnimationConfigs/{def.Class}_AnimConfig");
+            if (config != null || string.IsNullOrEmpty(def.ModelResourcePath))
+                return config;
+            string modelClass = def.ModelResourcePath.Substring(def.ModelResourcePath.LastIndexOf('/') + 1);
+            return modelClass.Length > 0
+                ? Resources.Load<CharacterAnimationConfig>($"AnimationConfigs/{modelClass}_AnimConfig") : null;
         }
 
         /// <summary>Hurtbox bone definitions for debug visualization.</summary>
@@ -408,6 +477,7 @@ namespace SlopArena.Client.Entities
         public byte CurrentAttackSequence => _lastState.AttackSequence;
         /// <summary>Stage or phase clip the current attack shows (a steered charge's gallop, say). Read by presentation cues.</summary>
         public byte CurrentComboStage => _lastState.ComboStage;
+        public byte CurrentClipIndex => _lastState.AnimIndex;
         /// <summary>Whether the last applied state stood on the ground. Read by presentation cues (no dust on thin air).</summary>
         public bool CurrentIsGrounded => _lastState.IsGrounded;
         /// <summary>Wire slot whose returning projectile is still out (Sir Bonk's pot lid), 0 when none. Read by weapon
@@ -420,7 +490,9 @@ namespace SlopArena.Client.Entities
         /// cosmetic hit effect can tell how charged its projectile was.
         /// </summary>
         public ushort LastFiredChargeTicks { get; private set; }
-        public byte LastFiredChargeSlot { get; private set; }
+        public CookedSlotDefinition? LastFiredChargeMove { get; private set; }
+        public byte LastFiredChargeSlot => LastFiredChargeMove == null ? AbilitySlots.None
+            : CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[LastFiredChargeMove.Ordinal]);
         /// <summary>Resolve the actual charge or release clip and its preview envelope.</summary>
         public bool TryGetAbilityPhaseAnimation(
             byte attackSlot,
@@ -438,10 +510,10 @@ namespace SlopArena.Client.Entities
             playbackSpeed = 1f;
             if (_charDef == null || attackSlot == 0)
                 return false;
-            var spec = _charDef.GetSlotAbility(attackSlot - 1, airborne);
-            if (spec?.AnimationNames is not { Length: > 0 } || spec.Stages is not { Length: > 0 })
+            var spec = _charDef.GetCookedSlotAbility(attackSlot, airborne);
+            if (spec == null || spec.ClipCount == 0 || spec.Timeline.Stages is not { Count: > 0 })
                 return false;
-            int animationIndex = comboStage % spec.AnimationNames.Length;
+            int animationIndex = comboStage % spec.ClipCount;
             if (charge)
             {
                 clipName = spec.AimAnimationId;
@@ -452,27 +524,22 @@ namespace SlopArena.Client.Entities
                 return true;
             }
 
-            clipName = spec.AnimationNames[animationIndex];
+            clipName = spec.Clip(animationIndex).AnimationId;
             if (!TryGetAnimation(clipName, out clip, out _))
                 return false;
             playbackSpeed = GetAbilityAnimationSpeed(spec, comboStage, clipName);
-            if (spec.AnimSpeed > 0f)
-                durationTicks = Mathf.Max(1, Mathf.CeilToInt(clip.length / spec.AnimSpeed * 60f - 0.0001f));
-            else
-            {
-                int bakedIndex = _bakedData != null ? _bakedData.FindAnimIndex(clipName) : -1;
-                durationTicks = bakedIndex >= 0 && animationIndex < spec.Stages.Length
-                    ? spec.Stages[animationIndex].DurationTicks
-                    : Mathf.CeilToInt(clip.length * 60f - 0.0001f);
-                if (comboStage > 0 && bakedIndex >= 0 && animationIndex < spec.Stages.Length)
-                    durationTicks = Mathf.Min(durationTicks, _bakedData.Animations[bakedIndex].FrameCount);
-            }
+            int bakedIndex = _bakedData != null ? _bakedData.FindAnimIndex(clipName) : -1;
+            var moveClip = spec.Clip(comboStage);
+            durationTicks = bakedIndex >= 0 && !moveClip.IsPhaseClip
+                ? moveClip.DurationTicks : Mathf.CeilToInt(clip.length * 60f - 0.0001f);
+            if (comboStage > 0 && bakedIndex >= 0 && !moveClip.IsPhaseClip)
+                durationTicks = Mathf.Min(durationTicks, _bakedData.Animations[bakedIndex].FrameCount);
             durationTicks = Mathf.Max(1, durationTicks);
             return true;
         }
 
 
-        private bool _currentAttackAirborne;
+        private bool _currentAttackAirborne => _activeMove?.IsAir ?? false;
 
         /// <summary>
         /// Sample the authored blade pose on the Shared tick clock. The bake is
@@ -558,28 +625,22 @@ namespace SlopArena.Client.Entities
             if (_bakedData == null || _charDef == null || state.AttackSlot == 0
                 || _weaponHiltBoneIndex < 0 || _weaponTipBoneIndex < 0)
                 return false;
-            var spec = _charDef.GetSlotAbility((byte)(state.AttackSlot - 1), airborne);
-            if (spec?.Stages is not { Length: > 0 } || spec.AnimationNames is not { Length: > 0 })
+            var spec = _charDef.GetCookedSlotAbility(state.AttackSlot, airborne);
+            if (spec?.Timeline.Stages is not { Count: > 0 } || spec.ClipCount == 0)
                 return false;
-            int stageIndex = Math.Min(state.ComboStage, spec.Stages.Length - 1);
-            // A phase clip, listed after the stages' own clips (Bonk E's landing), plays in real time, as the
-            // server samples it.
-            bool phaseClip = IsPhaseClip(spec, state.ComboStage);
-            animationName = spec.AnimationNames[(phaseClip ? state.ComboStage : stageIndex) % spec.AnimationNames.Length];
+            var movePose = spec.Clip(state.AnimIndex).At(state.AttackElapsedTicks);
+            animationName = movePose.AnimationId;
             int bakedIndex = _bakedData.FindAnimIndex(animationName);
             if (bakedIndex < 0)
                 return false;
             var animation = _bakedData.Animations[bakedIndex];
             if (animation.FrameCount <= 0)
                 return false;
-            frame = phaseClip
-                ? Math.Clamp(state.AttackElapsedTicks, 0, animation.FrameCount - 1)
-                : HitboxGeometry.AttackFrame(StageElapsedTicks(state, spec, stageIndex),
-                    animation.FrameCount, spec.Stages[stageIndex].DurationTicks);
+            frame = movePose.FrameAt(animation.FrameCount);
             int frame0 = (int)frame;
             int hiltOffset = _weaponHiltBoneIndex * 3;
             int tipOffset = _weaponTipBoneIndex * 3;
-            var pose = animation.Frames[frame0];
+            var pose = animation.Frame(frame0);
             if (hiltOffset + 2 >= pose.Length || tipOffset + 2 >= pose.Length)
                 return false;
             float hx = pose[hiltOffset], hy = pose[hiltOffset + 1], hz = pose[hiltOffset + 2];
@@ -587,7 +648,7 @@ namespace SlopArena.Client.Entities
             float blend = frame - frame0;
             if (blend > 0f)
             {
-                var next = animation.Frames[frame0 + 1];
+                var next = animation.Frame(frame0 + 1);
                 HitboxGeometry.BlendSegment(true, blend, ref hx, ref hy, ref hz, ref tx, ref ty, ref tz,
                     next[hiltOffset], next[hiltOffset + 1], next[hiltOffset + 2],
                     next[tipOffset], next[tipOffset + 1], next[tipOffset + 2]);
@@ -601,16 +662,16 @@ namespace SlopArena.Client.Entities
         {
             if (state.State != ActionState.Attacking || state.AttackSlot == 0 || _charDef == null)
                 return false;
-            var spec = _charDef.GetSlotAbility((byte)(state.AttackSlot - 1), airborne);
-            if (spec?.Stages is not { Length: > 0 })
+            var spec = _charDef.GetCookedSlotAbility(state.AttackSlot, airborne);
+            if (spec?.Timeline.Stages is not { Count: > 0 })
                 return false;
-            var stage = spec.Stages[Math.Min(state.ComboStage, spec.Stages.Length - 1)];
+            var stage = spec.Timeline.Stages[spec.Clip(state.AnimIndex).StageIndex];
             if (state.AttackElapsedTicks >= stage.DurationTicks)
                 return false;
             if (TryGetChargedSwordTrigger(state, airborne, out ushort finisherTick)
                 && state.AttackElapsedTicks >= finisherTick)
                 return true;
-            var events = stage.HitboxEvents;
+            var events = stage.ReadHitboxes();
             if (events == null)
                 return false;
             foreach (var hitbox in events)
@@ -627,7 +688,7 @@ namespace SlopArena.Client.Entities
             var slot = _charDef?.GetCookedSlotAbility(state.AttackSlot, airborne);
             if (slot == null || slot.Timeline.Stages.Count == 0)
                 return false;
-            var operations = slot.Timeline.Stages[Math.Min(state.ComboStage, slot.Timeline.Stages.Count - 1)].Operations;
+            var operations = slot.Timeline.Stages[slot.Clip(state.AnimIndex).StageIndex].Operations;
             for (int i = 0; i < operations.Count; i++)
                 if (operations[i] is CookedStartCapabilityOperation
                     { Parameters: CookedChargedDirectionalDashCapabilityParameters dash }
@@ -652,18 +713,6 @@ namespace SlopArena.Client.Entities
             _weaponAttach.CaptureState(state, _currentAttackAirborne, hasPose, hilt, tip);
         }
 
-        private void CaptureAttackAirborneIdentity(CharacterState state)
-        {
-            // AttackSequence is the restart edge; an elapsed seek (Bonk E landing sync)
-            // keeps the airborne identity captured at activation.
-            if (state.State == ActionState.Attacking
-                && (_lastState.State != ActionState.Attacking
-                    || state.AttackSequence != _lastState.AttackSequence
-                    || state.AttackSlot != _lastState.AttackSlot
-                    || state.ComboStage != _lastState.ComboStage))
-                _currentAttackAirborne = !state.IsGrounded;
-        }
-
 
 
 
@@ -679,19 +728,15 @@ namespace SlopArena.Client.Entities
         private ActionState _lastAnimState;
         private ushort _presentedHitReactionSequence;
         private byte _lastAttackSlot;
-        private byte _lastComboStage;
+        private byte _lastClipIndex;
         private int _deathFlashTicks;
         private const int DeathFlashDuration = 6;
         private bool _wasGrounded = true;
-        private bool _wasAttacking;
-        private bool _attackAccentsEnabled;
-        private bool _attackStartedGrounded;
         private bool _hasAppliedState;
         private byte _lastPresentedDeaths;
         private bool _hasPresentedDeaths;
         private MovementFeedbackEffect _respawnInvincibilityEffect;
         private bool _respawnInvincibilityActive;
-        private ulong _activeAccentWindowSignature;
         private ClipExtrapolator? _activeExtrapolator;
         private ExtrapolationMode _currentExtrapolationMode;
         private AnimancerState? _currentAnimState;
@@ -722,10 +767,9 @@ namespace SlopArena.Client.Entities
         private float _hitstopPausedSpeed = 1f;
         private AudioSource _sfxSource;
         private AudioClip _jumpSfx;
-        private readonly AudioClip[] _wibouSwordHitboxSfx = new AudioClip[7];
-        private int _wibouSwordSfxSequence;
-        private readonly AudioClip[] _bonkSwooshSfx = new AudioClip[7];
-        private readonly AudioClip[] _commonSwooshSfx = new AudioClip[13];
+        private int _swingSequence;
+        private (byte Sequence, byte Slot) _swordSfxAttack;
+        private readonly HashSet<(byte Stage, ushort Tick)> _playedSwordSfxTriggers = new();
 
 
         private void Awake()
@@ -738,15 +782,6 @@ namespace SlopArena.Client.Entities
             _sfxSource = gameObject.AddComponent<AudioSource>();
             _sfxSource.outputAudioMixerGroup = ClientSettingsService.Instance.FindBus("SFX");
             _sfxSource.playOnAwake = false;
-            for (int i = 0; i < _wibouSwordHitboxSfx.Length; i++)
-                _wibouSwordHitboxSfx[i] = Resources.Load<AudioClip>(
-                    $"Audio/SFX/Wibou/hit_{i + 1:00}");
-            for (int i = 0; i < _bonkSwooshSfx.Length; i++)
-                _bonkSwooshSfx[i] = Resources.Load<AudioClip>(
-                    $"Audio/SFX/Bonk/bonk_swoosh_{i + 1:00}");
-            for (int i = 0; i < _commonSwooshSfx.Length; i++)
-                _commonSwooshSfx[i] = Resources.Load<AudioClip>(
-                    $"Audio/SFX/Whoosh/whoosh_{i + 1:00}");
             _sfxSource.spatialBlend = 0f;
             _sfxSource.volume = 0.7f;
             _jumpSfx = Resources.Load<AudioClip>("Audio/SFX/jump");
@@ -776,19 +811,6 @@ namespace SlopArena.Client.Entities
         private int _weaponTipBoneIndex = -1;
         private WeaponAttach _weaponAttach;
         private Transform _weaponHips;
-
-        /// <summary>
-        /// Set baked skeleton data for frame-accurate animation.
-        /// Must be called before first ApplyServerState.
-        /// </summary>
-        public void SetBakedData(BakedAnimationData? data)
-        {
-            _bakedData = data;
-            _weaponHiltBoneIndex = data?.BoneNames != null
-                ? Array.IndexOf(data.BoneNames, "_weapon_hilt") : -1;
-            _weaponTipBoneIndex = data?.BoneNames != null
-                ? Array.IndexOf(data.BoneNames, "_weapon_tip") : -1;
-        }
 
         /// <summary>
         /// Sample an explicitly selected clip at normalized time with zero speed.
@@ -909,15 +931,15 @@ namespace SlopArena.Client.Entities
                 int elapsed = poseTicks;
                 if (snapshot.State is ActionState.Attacking or ActionState.Aiming && snapshot.AttackSlot > 0)
                 {
-                    var spec = _charDef.GetSlotAbility(snapshot.AttackSlot - 1, airborne);
-                    if (spec?.AnimationNames is not { Length: > 0 } || spec.Stages is not { Length: > 0 })
+                    var spec = _charDef.GetCookedSlotAbility(snapshot.AttackSlot, airborne);
+                    if (spec == null || spec.ClipCount == 0 || spec.Timeline.Stages is not { Count: > 0 })
                         return false;
-                    int animationIndex = snapshot.ComboStage % spec.AnimationNames.Length;
+                    int animationIndex = snapshot.AnimIndex % spec.ClipCount;
                     id = snapshot.State == ActionState.Aiming && !string.IsNullOrEmpty(spec.AimAnimationId)
-                        ? spec.AimAnimationId : spec.AnimationNames[animationIndex];
+                        ? spec.AimAnimationId : spec.Clip(animationIndex).AnimationId;
                     if (snapshot.State == ActionState.Attacking)
                     {
-                        speed = GetAbilityAnimationSpeed(spec, snapshot.ComboStage, id);
+                        speed = GetAbilityAnimationSpeed(spec, snapshot.AnimIndex, id);
                         elapsed = snapshot.AttackElapsedTicks;
                     }
                 }
@@ -977,9 +999,8 @@ namespace SlopArena.Client.Entities
             _lastState = snapshot;
             _lastAnimState = snapshot.State;
             _lastAttackSlot = snapshot.AttackSlot;
-            _lastComboStage = snapshot.ComboStage;
-            _currentAttackAirborne = airborne;
-            _wasAttacking = snapshot.State == ActionState.Attacking;
+            _lastClipIndex = snapshot.AnimIndex;
+            _activeMove = _charDef?.GetCookedSlotAbility(snapshot.AttackSlot, airborne);
             _wasGrounded = snapshot.IsGrounded;
             UpdateShield(snapshot);
             EvaluateScrubbedPose();
@@ -1013,7 +1034,7 @@ namespace SlopArena.Client.Entities
                 }
                 return false;
             }
-            clip = _charConfig?.GetClipByName(semanticId);
+            clip = _resolvedAnimConfig?.GetClipByName(semanticId);
             return clip != null;
         }
 
@@ -1054,17 +1075,6 @@ namespace SlopArena.Client.Entities
             _hasInterpolationTarget = false;
             _visualCorrection = Vector3.zero;
         }
-        private void Start()
-        {
-            if (_boneTrailPrefab == null)
-            {
-                _boneTrailPrefab = Resources.Load<GameObject>("VFX/BoneTrail");
-                if (_boneTrailPrefab == null)
-                    Debug.LogWarning("[PlayerRenderer] BoneTrail prefab not found at Resources/VFX/BoneTrail");
-            }
-        }
-
-
         // ── Public API ──
 
         /// <summary>
@@ -1074,54 +1084,46 @@ namespace SlopArena.Client.Entities
         /// </summary>
         private void EmitSwordHitboxSfx(CharacterState state)
         {
-            bool wibou = _charDef?.Class == CharacterClass.Wibou;
-            bool bonk = _charDef?.Class == CharacterClass.Bonk;
-            bool common = _charDef?.Class is CharacterClass.Manki or CharacterClass.FightGuy;
-            if (!_hasAppliedState
-                || (!wibou && !bonk && !common)
+            if (_animationCatalog?.PresentationProfile == null
                 || state.AttackSlot == 0
                 || (state.State != ActionState.Attacking && state.State != ActionState.Aiming))
                 return;
 
-            if (state.AttackElapsedTicks == _lastState.AttackElapsedTicks
-                && state.AttackSequence == _lastState.AttackSequence)
-                return;
+            if (!_hasAppliedState
+                || _swordSfxAttack != (state.AttackSequence, state.AttackSlot))
+            {
+                _swordSfxAttack = (state.AttackSequence, state.AttackSlot);
+                _playedSwordSfxTriggers.Clear();
+            }
 
-            var ability = _charDef.GetSlotAbility(
-                (byte)(state.AttackSlot - 1), airborne: !state.IsGrounded);
-            if (ability?.Stages is not { Length: > 0 })
+            var ability = _activeMove;
+            if (ability?.Timeline.Stages is not { Count: > 0 })
                 return;
 
             if (state.State == ActionState.Attacking
                 && TryGetChargedSwordTrigger(state, _currentAttackAirborne, out ushort finisherTick)
-                && _lastState.AttackElapsedTicks < finisherTick
-                && state.AttackElapsedTicks >= finisherTick)
-            {
-                PlaySwordHitboxSfx(wibou, bonk);
-                return;
-            }
-            int stageIndex = Math.Min(state.ComboStage, ability.Stages.Length - 1);
-            var hitboxes = ability.Stages[stageIndex].HitboxEvents;
+                && state.AttackElapsedTicks >= finisherTick
+                && _playedSwordSfxTriggers.Add((state.AnimIndex, finisherTick)))
+                PlaySwordHitboxSfx();
+            int stageIndex = ability.Clip(state.AnimIndex).StageIndex;
+            var hitboxes = ability.Timeline.Stages[stageIndex].ReadHitboxes();
             if (hitboxes == null)
                 return;
 
             foreach (var hitbox in hitboxes)
             {
-                if (_lastState.AttackElapsedTicks > hitbox.TriggerTick
-                    || state.AttackElapsedTicks < hitbox.TriggerTick)
+                if (state.AttackElapsedTicks < hitbox.TriggerTick
+                    || !_playedSwordSfxTriggers.Add((state.AnimIndex, hitbox.TriggerTick)))
                     continue;
 
-                PlaySwordHitboxSfx(wibou, bonk);
-                return;
+                PlaySwordHitboxSfx();
             }
         }
 
-        private void PlaySwordHitboxSfx(bool wibou, bool bonk)
+        private void PlaySwordHitboxSfx()
         {
-            AudioClip[] pool = wibou ? _wibouSwordHitboxSfx : bonk ? _bonkSwooshSfx : _commonSwooshSfx;
-            AudioClip clip = pool[_wibouSwordSfxSequence++ % pool.Length];
-            if (clip != null)
-                _sfxSource.PlayOneShot(clip);
+            AudioClip clip = _animationCatalog.PresentationProfile.SelectSwing(ref _swingSequence);
+            if (clip != null) PlayOneShot(clip, 1f);
         }
 
         /// <summary>
@@ -1159,8 +1161,12 @@ namespace SlopArena.Client.Entities
                 Quaternion.Slerp(_interpolateFromRotation, _interpolateToRotation, alpha));
         }
 
-        public void ApplyServerState(CharacterState state)
+        private CookedSlotDefinition? _activeMove;
+        public CookedSlotDefinition? CurrentMove => _activeMove;
+
+        public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove)
         {
+            _activeMove = activeMove;
             Vector3 targetPos = new Vector3(state.PX, state.PY + _modelYOffset, state.PZ);
 
             bool stockTransition = _hasAppliedState
@@ -1234,7 +1240,6 @@ namespace SlopArena.Client.Entities
             }
 
 
-            CaptureAttackAirborneIdentity(state);
             UpdateAnimationState(state);
             MaintainTumbleLoop();
             ApplyAttackPoseModel(state);
@@ -1242,12 +1247,12 @@ namespace SlopArena.Client.Entities
             UpdateShield(state);
             CaptureWeaponTrailState(state);
             UpdateKiShotVisual(state);
-            _hitFeel?.OnState(in state, _charDef, _currentAttackAirborne);
+            _hitFeel?.OnState(in state, _charDef, _activeMove);
             _airDodge?.OnState(in state);
             if (state.State == ActionState.Attacking && state.ChargeTicks > 0)
             {
                 LastFiredChargeTicks = state.ChargeTicks;
-                LastFiredChargeSlot = state.AttackSlot;
+                LastFiredChargeMove = _activeMove;
             }
             _lastState = state;
             _hasAppliedState = true;
@@ -1260,17 +1265,15 @@ namespace SlopArena.Client.Entities
 
         private void UpdateKiShotVisual(CharacterState state)
         {
-            if (_charDef?.Class != CharacterClass.FightGuy)
+            var row = _animationCatalog?.PresentationProfile?.FindProjectile(state.AttackSlot, _activeMove?.IsAir ?? _currentAttackAirborne);
+            if (string.IsNullOrEmpty(row?.HeldBoneId))
             {
                 _projectileVFX?.ClearHeldVisual(_entityId);
                 return;
             }
-            if (_projectileVFX == null && state.State == ActionState.Aiming)
-                _projectileVFX = FindFirstObjectByType<ProjectileVFXManager>();
             if (_projectileVFX == null) return;
-            if (_kiShotHand == null && state.State == ActionState.Aiming)
-                _kiShotHand = ResolvePresentationBone("bone.right-hand");
-            _projectileVFX.UpdateHeldVisual(_entityId, state, _kiShotHand, _charDef);
+            var hand = ResolvePresentationBone(row.HeldBoneId);
+            _projectileVFX.UpdateHeldVisual(_entityId, state, hand, _activeMove);
         }
 
         private void PresentStockTransition(
@@ -1311,15 +1314,8 @@ namespace SlopArena.Client.Entities
             _respawnInvincibilityEffect?.FollowInvincibility(position);
         }
 
-        private Color RespawnColor() => _charDef?.Class switch
-        {
-            CharacterClass.Manki => new Color(1f, 0.36f, 0.08f, 0.95f),
-            CharacterClass.FightGuy => new Color(0.28f, 0.72f, 1f, 0.95f),
-            CharacterClass.Wibou => new Color(0.76f, 0.9f, 1f, 0.95f),
-            CharacterClass.Bonk => new Color(0.96f, 0.58f, 0.18f, 0.95f),
-            CharacterClass.Bashie => new Color(0.98f, 0.3f, 0.27f, 0.95f),
-            _ => new Color(1f, 1f, 1f, 0.95f),
-        };
+        private Color RespawnColor()
+            => _animationCatalog?.PresentationProfile?.RespawnTint ?? new Color(1f, 1f, 1f, .95f);
 
         private void EmitMovementFeedback(CharacterState state, Vector3 position)
         {
@@ -1417,55 +1413,42 @@ namespace SlopArena.Client.Entities
         private const int MaxClipStartSeekTicks = 8;
 
         /// <summary>Ticks into the current stage; AttackElapsedTicks counts from the activation.</summary>
-        private static int StageElapsedTicks(in CharacterState state, AbilitySpec spec, int stageIndex)
-        {
-            int elapsed = state.AttackElapsedTicks;
-            for (int i = 0; i < stageIndex && i < spec.Stages.Length; i++)
-                elapsed -= spec.Stages[i].DurationTicks;
-            return Math.Max(0, elapsed);
-        }
+        private static int StageElapsedTicks(in CharacterState state, CookedSlotDefinition spec, int clipIndex)
+            => (int)spec.Clip(clipIndex).At(state.AttackElapsedTicks).ElapsedTicks;
 
-        /// <summary>Whether ComboStage shows a phase clip, listed after the stages' own clips (a leap's landing).
-        /// Abilities that only raise ComboStage (Manki's releases) keep their stage clip.</summary>
-        private static bool IsPhaseClip(AbilitySpec spec, int comboStage)
-            => spec.AnimationNames is { Length: > 0 } && spec.Stages is { Length: > 0 }
-                && spec.AnimationNames.Length > spec.Stages.Length
-                && comboStage % spec.AnimationNames.Length >= spec.Stages.Length;
+        private static bool IsPhaseClip(CookedSlotDefinition spec, int clipIndex)
+            => spec.Clip(clipIndex).IsPhaseClip;
 
-        private float GetAbilityAnimationSpeed(AbilitySpec spec, int comboStage, string animationName)
+        private float GetAbilityAnimationSpeed(CookedSlotDefinition spec, int clipIndex, string animationName)
         {
-            if (spec.AnimSpeed > 0f) return spec.AnimSpeed;
-            int animationIndex = comboStage % spec.AnimationNames.Length;
-            if (_bakedData == null || spec.Stages == null || animationIndex >= spec.Stages.Length)
-                return 1f;
+            var moveClip = spec.Clip(clipIndex);
+            if (_bakedData == null || moveClip.IsPhaseClip) return 1f;
             int bakedIndex = _bakedData.FindAnimIndex(animationName);
             if (bakedIndex < 0) return 1f;
             int frameCount = _bakedData.Animations[bakedIndex].FrameCount;
-            int durationTicks = spec.Stages[animationIndex].DurationTicks;
-            if (comboStage > 0 && durationTicks > frameCount)
-                durationTicks = frameCount;
-            return durationTicks > 0 ? (float)frameCount / durationTicks : 1f;
+            int duration = moveClip.DurationTicks;
+            if (clipIndex > 0 && duration > frameCount) duration = frameCount;
+            return duration > 0 ? (float)frameCount / duration : 1f;
         }
-
 
         /// <summary>
         /// Play the ability clip for a combo stage with baked-frame speed and
         /// extrapolation overrides. Returns true when a clip played.
         /// </summary>
-        private bool PlayAbilityAnim(CharacterState state, AbilitySpec spec, int comboStage)
+        private bool PlayAbilityAnim(CharacterState state, CookedSlotDefinition spec, int comboStage)
         {
             if (spec == null)
                 return false;
 
             string animName = "spell_lmb_1";
             float animSpeed = 1f;
-            if (spec.AnimationNames != null && spec.AnimationNames.Length > 0)
+            if (spec.ClipCount > 0)
             {
                 // Stage index may exceed the authored clip list (single-anim slots wrap —
                 // e.g. Manki A release ComboStage 1, only anim.manki.ga). GetAnimationName
                 // wraps; using the wrapped index keeps the baked-duration lookup consistent.
-                int stageIdx = comboStage % spec.AnimationNames.Length;
-                animName = spec.AnimationNames[stageIdx];
+                int stageIdx = comboStage % spec.ClipCount;
+                animName = spec.Clip(stageIdx).AnimationId;
                 animSpeed = GetAbilityAnimationSpeed(spec, comboStage, animName);
             }
 
@@ -1485,9 +1468,9 @@ namespace SlopArena.Client.Entities
             // The first attack state a client applies is already a tick or more into the
             // attack; start the clip where the simulation is, so drawn limbs match the
             // tested ones. A larger gap (an aim hold's running clock) keeps the restart.
-            if (state.State == ActionState.Attacking && spec.Stages is { Length: > 0 })
+            if (state.State == ActionState.Attacking && spec.Timeline.Stages is { Count: > 0 })
             {
-                int elapsed = StageElapsedTicks(state, spec, Math.Min(comboStage, spec.Stages.Length - 1));
+                int elapsed = StageElapsedTicks(state, spec, comboStage);
                 if (elapsed <= MaxClipStartSeekTicks)
                     animState.Time = elapsed / 60f * animSpeed;
             }
@@ -1607,8 +1590,6 @@ namespace SlopArena.Client.Entities
         {
             if (_animancer == null || _charDef == null)
                 return;
-            if (state.State != ActionState.Attacking && _attackAccentsEnabled)
-                DisableAttackAccents();
             // Clear extrapolation on any state change — new clip starts
             _activeExtrapolator = null;
             _currentExtrapolationMode = ExtrapolationMode.None;
@@ -1815,10 +1796,8 @@ namespace SlopArena.Client.Entities
                     _currentExtrapolationMode = ExtrapolationMode.None;
                     _animancer.Evaluate(0f);
                 }
-                UpdateAttackAccents(state, _lastComboStage);
-                _lastComboStage = state.ComboStage;
+                _lastClipIndex = state.AnimIndex;
                 _lastAttackSlot = state.AttackSlot;
-                _wasAttacking = false;
                 _lastAnimState = state.State;
                 _wasGrounded = state.IsGrounded;
                 return;
@@ -1832,12 +1811,12 @@ namespace SlopArena.Client.Entities
                 // one, fixed-policy holds play the slot's first animation and mobile
                 // policy aimers fall through to locomotion below.
                 bool aiming = state.State == ActionState.Aiming && state.AttackSlot > 0 && _charDef != null;
-                var aimSpec = aiming ? _charDef.GetSlotAbility(state.AttackSlot - 1, !state.IsGrounded) : null;
+                var aimSpec = aiming ? _activeMove : null;
                 AnimationClip? loopClip = null;
                 bool aimLoop = aiming && aimSpec?.AimAnimationId != null
                     && TryGetAnimation(aimSpec.AimAnimationId, out loopClip, out _);
                 bool fixedAimHold = aiming && !aimLoop
-                    && _charDef.GetAimMovementMode(state.AttackSlot, !state.IsGrounded) == AimMovementMode.Fixed;
+                    && (_activeMove?.AimMovement ?? AuthoringAimMovementMode.Fixed) == AuthoringAimMovementMode.Fixed;
                 if (aimLoop)
                 {
                     if (state.State != _lastAnimState)
@@ -1944,7 +1923,7 @@ namespace SlopArena.Client.Entities
             bool stateChanged = state.State != _lastAnimState
                 || (state.State == ActionState.Attacking && (
                     state.AttackSlot != _lastAttackSlot
-                    || state.ComboStage != _lastComboStage
+                    || state.AnimIndex != _lastClipIndex
                     // AttackSequence is the restart edge, including same-slot IASA
                     // restarts. Elapsed seeks (Bonk E landing sync) must not replay.
                     || state.AttackSequence != _lastState.AttackSequence));
@@ -1957,8 +1936,8 @@ namespace SlopArena.Client.Entities
                     if (_charDef != null)
                     {
                         byte slot = (byte)(state.AttackSlot - 1);
-                        var spec = _charDef.GetSlotAbility(slot, !state.IsGrounded);
-                        PlayAbilityAnim(state, spec, state.ComboStage);
+                        var spec = _activeMove;
+                        PlayAbilityAnim(state, spec, state.AnimIndex);
                     }
                 }
                 else if (state.State == ActionState.AirDodgeMovement)
@@ -1976,14 +1955,11 @@ namespace SlopArena.Client.Entities
                 }
             }
 
-            byte prevComboStage = _lastComboStage;
-            _lastComboStage = state.ComboStage;
+            _lastClipIndex = state.AnimIndex;
             _wasGrounded = state.IsGrounded;
 
             // ── Attack accent lifecycle ──
-            UpdateAttackAccents(state, prevComboStage);
             _lastAttackSlot = state.AttackSlot;
-            _wasAttacking = state.State == ActionState.Attacking;
             _lastAnimState = state.State;
         }
 
@@ -2040,295 +2016,6 @@ namespace SlopArena.Client.Entities
         #endif
         }
 
-        private void UpdateAttackAccents(CharacterState state, byte prevComboStage)
-        {
-            bool isAttacking = state.State == ActionState.Attacking;
-            bool slotChanged = isAttacking && _lastAttackSlot != state.AttackSlot;
-            bool stageChanged = isAttacking && prevComboStage != state.ComboStage;
-            bool attackStarted = isAttacking
-                && (_lastState.State != ActionState.Attacking
-                    || slotChanged
-                    || state.AttackSequence != _lastState.AttackSequence);
-            if (attackStarted)
-                _attackStartedGrounded = state.IsGrounded;
-
-            bool isFightGuyNormal = isAttacking
-                && _charDef?.Class == CharacterClass.FightGuy
-                && IsNormalAttackSlot(state.AttackSlot);
-            if (!isFightGuyNormal)
-            {
-                if (_attackAccentsEnabled)
-                    DisableAttackAccents();
-                UpdateLegacyBoneTrails(state, slotChanged, stageChanged);
-                return;
-            }
-
-            byte slot = (byte)(state.AttackSlot - 1);
-            var spec = _charDef.GetSlotAbility(slot, airborne: !_attackStartedGrounded);
-            if (spec?.Stages == null || spec.Stages.Length == 0)
-            {
-                DisableAttackAccents();
-                return;
-            }
-
-            int stageIdx = Math.Min(state.ComboStage, spec.Stages.Length - 1);
-            var stage = spec.Stages[stageIdx];
-            var trails = stage.BoneTrails ?? spec.BoneTrails;
-            ulong activeWindowSignature = GetActiveWindowSignature(
-                state.AttackElapsedTicks, stage.HitboxEvents);
-            if (activeWindowSignature == 0 || trails == null || trails.Length == 0)
-            {
-                if (_attackAccentsEnabled)
-                    DisableAttackAccents();
-                if (slotChanged || stageChanged)
-                    DisableAllTrails();
-                return;
-            }
-
-            if (_attackAccentsEnabled
-                && _activeAccentWindowSignature == activeWindowSignature
-                && !slotChanged
-                && !stageChanged
-                && !attackStarted)
-                return;
-            if (_attackAccentsEnabled)
-                DisableAttackAccents();
-            DisableAllTrails();
-
-            float activeDamage = GetMaxActiveDamage(
-                state.AttackElapsedTicks, stage.HitboxEvents);
-            bool heavy = activeDamage >= 12f;
-            bool secondaryAssigned = false;
-            foreach (var trailDef in trails)
-            {
-                if (!IsTrailActive(
-                    trailDef.BoneName, state.AttackElapsedTicks, stage.HitboxEvents))
-                    continue;
-
-                var accent = GetOrCreateAttackAccent(trailDef.BoneName);
-                if (accent == null) continue;
-
-                bool emitSecondary = heavy && !secondaryAssigned;
-                ConfigureAttackAccent(accent, trailDef, activeDamage, emitSecondary);
-                secondaryAssigned |= emitSecondary;
-                _attackAccentsEnabled = true;
-            }
-            _activeAccentWindowSignature = activeWindowSignature;
-        }
-
-        private void UpdateLegacyBoneTrails(CharacterState state, bool slotChanged, bool stageChanged)
-        {
-            bool isAttacking = state.State == ActionState.Attacking;
-            if ((isAttacking && !_wasAttacking || slotChanged || stageChanged) && _charDef != null)
-            {
-                if (slotChanged || stageChanged)
-                    DisableAllTrails();
-
-                byte slot = (byte)(state.AttackSlot - 1);
-                var spec = _charDef.GetSlotAbility(slot, !state.IsGrounded);
-                if (spec?.Stages == null || spec.Stages.Length == 0) return;
-
-                int stageIdx = Math.Min(state.ComboStage, spec.Stages.Length - 1);
-                var stage = spec.Stages[stageIdx];
-                var trails = stage.BoneTrails ?? spec.BoneTrails;
-                if (trails == null) return;
-
-                foreach (var trailDef in trails)
-                {
-                    var ps = GetOrCreateBoneTrail(trailDef.BoneName);
-                    if (ps == null) continue;
-
-                    var main = ps.main;
-                    main.startColor = new Color(trailDef.R, trailDef.G, trailDef.B, trailDef.A);
-                    main.startSize = trailDef.Width;
-                    var emission = ps.emission;
-                    emission.enabled = true;
-                }
-            }
-            else if (!isAttacking && _wasAttacking)
-            {
-                DisableAllTrails();
-            }
-        }
-        private static bool IsNormalAttackSlot(byte attackSlot)
-            => attackSlot == AbilitySlots.Slot1
-                || attackSlot == AbilitySlots.Slot2
-                || attackSlot == AbilitySlots.Slot3
-                || attackSlot == AbilitySlots.Slot4;
-
-
-        private static ulong GetActiveWindowSignature(
-            ushort elapsedTicks, HitboxEvent[] events)
-        {
-            if (events == null) return 0;
-            ulong signature = 0;
-            for (int i = 0; i < events.Length; i++)
-            {
-                if (!IsHitboxActive(elapsedTicks, events[i])) continue;
-                signature |= 1UL << (i & 63);
-            }
-            return signature;
-        }
-
-        private static float GetMaxActiveDamage(
-            ushort elapsedTicks, HitboxEvent[] events)
-        {
-            float maxDamage = 0f;
-            if (events == null) return maxDamage;
-            foreach (var hitbox in events)
-            {
-                if (IsHitboxActive(elapsedTicks, hitbox))
-                    maxDamage = Math.Max(maxDamage, hitbox.Damage);
-            }
-            return maxDamage;
-        }
-
-        private static bool IsTrailActive(
-            string boneName, ushort elapsedTicks, HitboxEvent[] events)
-        {
-            if (events == null) return false;
-            foreach (var hitbox in events)
-            {
-                if (!IsHitboxActive(elapsedTicks, hitbox)) continue;
-                if (string.IsNullOrEmpty(hitbox.BoneName)
-                    || hitbox.BoneName == boneName
-                    || hitbox.EndBoneName == boneName)
-                    return true;
-            }
-            return false;
-        }
-
-        private static bool IsHitboxActive(ushort elapsedTicks, HitboxEvent hitbox)
-        {
-            int endExclusive = hitbox.TriggerTick + hitbox.DurationTicks;
-            return elapsedTicks >= hitbox.TriggerTick && elapsedTicks < endExclusive;
-        }
-
-
-        private static void ConfigureAttackAccent(
-            AttackAccentTrail accent,
-            BoneTrailDef def,
-            float damage,
-            bool emitSecondary)
-        {
-            bool heavy = damage >= 12f;
-            bool medium = !heavy && damage >= 7f;
-            float widthScale = heavy ? 1.8f : medium ? 1.25f : 0.75f;
-            float lifetime = heavy ? 0.16f : medium ? 0.12f : 0.08f;
-            var color = new Color(def.R, def.G, def.B, def.A);
-
-            accent.Primary.widthMultiplier = def.Width * widthScale;
-            accent.Primary.time = lifetime;
-            accent.Primary.startColor = new Color(color.r, color.g, color.b, color.a * 0.08f);
-            accent.Primary.endColor = new Color(color.r, color.g, color.b, color.a * 0.9f);
-            accent.Primary.Clear();
-            accent.Primary.emitting = true;
-
-            accent.Secondary.emitting = false;
-            accent.Secondary.Clear();
-            if (!emitSecondary) return;
-
-            accent.Secondary.transform.localPosition =
-                new Vector3(def.Width * 0.45f, 0f, 0f);
-            accent.Secondary.widthMultiplier = def.Width * widthScale * 0.38f;
-            accent.Secondary.time = lifetime * 0.7f;
-            accent.Secondary.startColor =
-                new Color(color.r, color.g, color.b, color.a * 0.03f);
-            accent.Secondary.endColor =
-                new Color(color.r, color.g, color.b, color.a * 0.45f);
-            accent.Secondary.emitting = true;
-        }
-
-        private AttackAccentTrail GetOrCreateAttackAccent(string boneName)
-        {
-            if (_attackAccentTrails.TryGetValue(boneName, out var existing))
-                return existing;
-            var bone = FindBone(boneName);
-            if (_boneTrailPrefab == null || bone == null) return null;
-            var sourceRenderer = _boneTrailPrefab.GetComponent<ParticleSystemRenderer>();
-            if (sourceRenderer == null || sourceRenderer.sharedMaterial == null) return null;
-
-            var root = new GameObject($"AttackAccent_{boneName}");
-            root.transform.SetParent(bone, false);
-            var primary = CreateAttackAccentTrail(
-                root, sourceRenderer.sharedMaterial);
-
-            var secondaryObject = new GameObject("HeavyFragment");
-            secondaryObject.transform.SetParent(root.transform, false);
-            var secondary = CreateAttackAccentTrail(
-                secondaryObject, sourceRenderer.sharedMaterial);
-
-            var accent = new AttackAccentTrail
-            {
-                Root = root,
-                Primary = primary,
-                Secondary = secondary,
-            };
-            _attackAccentTrails[boneName] = accent;
-            return accent;
-        }
-
-        private static TrailRenderer CreateAttackAccentTrail(
-            GameObject owner, Material material)
-        {
-            var trail = owner.AddComponent<TrailRenderer>();
-            trail.sharedMaterial = material;
-            trail.alignment = LineAlignment.View;
-            trail.textureMode = LineTextureMode.Stretch;
-            trail.widthCurve = AttackAccentWidth;
-            trail.minVertexDistance = 0.025f;
-            trail.numCornerVertices = 3;
-            trail.numCapVertices = 2;
-            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            trail.receiveShadows = false;
-            trail.generateLightingData = false;
-            trail.autodestruct = false;
-            trail.emitting = false;
-            return trail;
-        }
-
-        private ParticleSystem GetOrCreateBoneTrail(string boneName)
-        {
-            if (_activeTrails.TryGetValue(boneName, out var existing))
-                return existing;
-            var bone = FindBone(boneName);
-            if (_boneTrailPrefab == null) return null;
-            if (bone == null) return null;
-            var trail = UnityEngine.Object.Instantiate(_boneTrailPrefab, bone).GetComponent<ParticleSystem>();
-            trail.transform.localPosition = Vector3.zero;
-            trail.transform.localRotation = Quaternion.identity;
-
-            trail.Play();
-            var emission = trail.emission;
-            emission.enabled = false;
-
-            _activeTrails[boneName] = trail;
-            return trail;
-        }
-
-        private void DisableAllTrails()
-        {
-            foreach (var kvp in _activeTrails)
-            {
-                var emission = kvp.Value.emission;
-                emission.enabled = false;
-            }
-        }
-
-        private void DisableAttackAccents()
-        {
-            foreach (var kvp in _attackAccentTrails)
-            {
-                kvp.Value.Primary.emitting = false;
-                kvp.Value.Primary.Clear();
-                kvp.Value.Secondary.emitting = false;
-                kvp.Value.Secondary.Clear();
-            }
-            _attackAccentsEnabled = false;
-            _activeAccentWindowSignature = 0;
-        }
-
-
         /// <summary>
         /// Reset animation state to defaults. Useful on respawn.
         /// </summary>
@@ -2339,7 +2026,7 @@ namespace SlopArena.Client.Entities
             _wasGrounded = true;
             _lastAnimState = default;
             _lastAttackSlot = 0;
-            _lastComboStage = 0;
+            _lastClipIndex = 0;
             _jumpArcActive = false;
 
             _activeExtrapolator = null;
@@ -2348,27 +2035,7 @@ namespace SlopArena.Client.Entities
             _hitstopPaused = false;
             ClearTumble();
             ClearLandingLagPresentation();
-            _wasAttacking = false;
-            _attackStartedGrounded = false;
-            DisableAttackAccents();
-            DisableAllTrails();
-            foreach (var kvp in _activeTrails)
-            {
-                var go = kvp.Value.gameObject;
-                if (Application.isPlaying)
-                    UnityEngine.Object.Destroy(go);
-                else
-                    UnityEngine.Object.DestroyImmediate(go);
-            }
-            foreach (var kvp in _attackAccentTrails)
-            {
-                if (Application.isPlaying)
-                    UnityEngine.Object.Destroy(kvp.Value.Root);
-                else
-                    UnityEngine.Object.DestroyImmediate(kvp.Value.Root);
-            }
-            _attackAccentTrails.Clear();
-            _activeTrails.Clear();
+
         }
 
         /// <summary>
@@ -2446,7 +2113,11 @@ namespace SlopArena.Client.Entities
                 if (_weaponAttach == null) _weaponAttach = GetComponent<WeaponAttach>();
                 return _weaponAttach?.ResolveTrailAnchor(name);
             }
-            string rigName = name switch
+            return FindBone(PresentationBoneName(name));
+        }
+
+        public static string PresentationBoneName(string name)
+            => name switch
             {
                 "bone.head" => "mixamorig:Head",
                 "bone.hips" => "mixamorig:Hips",
@@ -2456,8 +2127,6 @@ namespace SlopArena.Client.Entities
                 "bone.left-foot" => "mixamorig:LeftFoot",
                 _ => name,
             };
-            return FindBone(rigName);
-        }
 
         private Transform FindBone(string name)
         {

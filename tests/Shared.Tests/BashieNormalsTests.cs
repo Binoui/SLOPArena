@@ -305,7 +305,11 @@ public sealed class BashieNormalsTests
         using var bindings = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(cooked, "client.bindings")));
         var names = bindings.RootElement.GetProperty("animations").EnumerateArray().ToDictionary(
             a => a.GetProperty("poseTrackId").GetString()!, a => a.GetProperty("semanticId").GetString()!);
-        foreach (var animation in poses.Animations) animation.Name = names[animation.Name];
+        poses = new BakedAnimationData
+        {
+            BoneNames = poses.BoneNames,
+            Animations = poses.Animations.Select(animation => animation.WithName(names[animation.Name])).ToArray(),
+        };
         var sim = TestHelpers.MakeSim();
         var attacker = TestHelpers.PlayerState(100f, 100f);
         attacker.PY = TestHelpers.GroundPY(definition);

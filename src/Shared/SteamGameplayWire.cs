@@ -11,11 +11,11 @@ public static class SteamGameplayWire
     public const byte Ack = 2;
     public const byte Deny = 3;
     public const byte Input = 0x10;
-    public const byte State = 0x11;
-    public const byte Event = 0x12;
+    public const byte State = 0x11; // Retired per-entity packet kind; reserved.
+    public const byte Event = 0x12; // Retired standalone event kind; reserved.
     public const byte Result = 0x13;
-    public const byte Projectile = 0x14;
-    public const byte SwordTrail = 0x15;
+    public const byte Projectile = 0x14; // Retired visual packet kind; reserved.
+    public const byte SwordTrail = 0x15; // Retired trail packet kind; reserved.
     public const byte Control = 0x16;
     /// <summary>One <see cref="WorldFramePacket"/> per GameHost tick (protocol 10, ADR-0039).</summary>
     public const byte Frame = 0x17;

@@ -11,7 +11,7 @@ namespace SlopArena.Shared.Tests;
 ///
 /// Verifies the per-pair freeze:
 ///   - On a melee hit BOTH attacker and victim freeze for F ticks
-///     (F = min(12, damage/3 + 6), ADR-0019; per-ability hitstop_multiplier override).
+///     (F = min(12, damage/3 + 6), ADR-0019).
 ///   - The victim is fully stationary during the freeze; the launch (KV +
 ///     hitstun) is deferred to freeze expiry.
 ///   - The attacker's ability ticks and AnimLockTicks/AttackElapsedTicks
@@ -37,8 +37,8 @@ public class HitstopTests
     {
         // Deterministic formula: ADR-0019 dropped the beyond-first ×0.5 discount —
         // every connecting hit freezes at the full rate.
-        Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4, null));
-        Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4, null));
+        Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4));
+        Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4));
 
         // Separate hit windows can hit a still-frozen victim and refresh the full freeze.
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
@@ -109,13 +109,10 @@ public class HitstopTests
     public void Formula_Contract()
     {
         // (damage, spec) → freeze ticks. ADR-0019: min(12, (int)(damage/3 + 6)), floor 1.
-        Assert.Equal(6, ServerSimulation.ComputeHitstopTicks(1, null));   // 6.33 → 6
-        Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4, null));   // 7.33 → 7
-        Assert.Equal(10, ServerSimulation.ComputeHitstopTicks(14, null)); // 10.67 → 10
-        Assert.Equal(11, ServerSimulation.ComputeHitstopTicks(16, null)); // 11.33 → 11 (kit max)
-        Assert.Equal(12, ServerSimulation.ComputeHitstopTicks(18, null)); // 12.00 → capped 12 (safety)
-        // Per-ability override via spec.Params.
-        var halved = new AbilitySpec { Params = new() { ["hitstop_multiplier"] = 0.5f } };
-        Assert.Equal(3, ServerSimulation.ComputeHitstopTicks(4, halved)); // 3.67 → 3
+        Assert.Equal(6, ServerSimulation.ComputeHitstopTicks(1));   // 6.33 → 6
+        Assert.Equal(7, ServerSimulation.ComputeHitstopTicks(4));   // 7.33 → 7
+        Assert.Equal(10, ServerSimulation.ComputeHitstopTicks(14)); // 10.67 → 10
+        Assert.Equal(11, ServerSimulation.ComputeHitstopTicks(16)); // 11.33 → 11 (kit max)
+        Assert.Equal(12, ServerSimulation.ComputeHitstopTicks(18)); // 12.00 → capped 12 (safety)
     }
 }

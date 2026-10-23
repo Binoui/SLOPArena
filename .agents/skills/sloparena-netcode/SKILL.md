@@ -1,6 +1,6 @@
 ---
 name: sloparena-netcode
-description: "SLOPArena server-authoritative UDP netcode with Shared simulation, client prediction, rollback reconciliation, match content admission, and Unity bridges."
+description: "SLOPArena Steam and development UDP netcode with Shared full-world rollback, match content admission, authoritative pacing, and Unity bridges."
 metadata: {"triggers": ["sloparena netcode", "server-authoritative", "rollback", "udp client server", "client-side prediction", "match manager", "apply server state"]}
 ---
 

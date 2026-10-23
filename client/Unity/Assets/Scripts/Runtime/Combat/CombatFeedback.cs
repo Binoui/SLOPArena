@@ -55,7 +55,7 @@ namespace SlopArena.Client.Combat
                 ImpactTier tier = Classify(in hit);
                 _definitions.TryGetValue(hit.OwnerEntityId, out var definition);
                 var slot = hit.AttackSlot > 0
-                    ? definition?.GetSlotAbility((byte)(hit.AttackSlot - 1), hit.Airborne)
+                    ? definition?.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)
                     : null;
                 // Overrides arrive through the authoritative semantic event dispatcher.
                 if (string.IsNullOrEmpty(slot?.HitPresentationId))
@@ -65,7 +65,8 @@ namespace SlopArena.Client.Combat
                 if (hit.Damage <= 0f && hit.StunTicks == 0) continue;
                 if (_renderers.TryGetValue(hit.TargetEntityId, out var victim) && victim != null)
                     victim.HitFeel?.ReceiveHit(in hit, tier, MatchVisualStyle.RimColorFor(hit.OwnerEntityId));
-                _sfx.Play(tier, definition?.Class ?? CharacterClass.FightGuy);
+                if (_renderers.TryGetValue(hit.OwnerEntityId, out var attacker) && attacker != null)
+                    _sfx.Play(tier, attacker.PresentationCatalog);
                 ClientSettingsService.Instance.PlayConfirmedImpact();
             }
         }

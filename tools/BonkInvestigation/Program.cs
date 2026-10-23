@@ -43,20 +43,20 @@ var bonk = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
 foreach (bool air in new[] { false, true })
     foreach (int n in new[] { 1, 2, 3, 4 })
     {
-        byte inputSlot = (byte)(n switch { 1 => 3, 2 => 7, 3 => 8, _ => 9 });
-        var spec = bonk.Definition.GetSlotAbility(inputSlot - 1, air)!;
-        var stage = spec.Stages[0];
+        byte inputSlot = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[n - 1]);
+        var spec = bonk.Definition.GetCookedSlotAbility(inputSlot, air)!;
+        var stage = spec.Timeline.Stages[0];
         var frames = new List<object>();
-        if (stage.HitboxEvents != null) foreach (var evt in stage.HitboxEvents)
+        if (stage.ReadHitboxes() != null) foreach (var evt in stage.ReadHitboxes())
             {
                 for (ushort t = 0; t < stage.DurationTicks; t++)
                 {
                     var state = new CharacterState { PY = bonk.Definition.CapsuleHeight / 2, AttackElapsedTicks = t };
-                    HitboxGeometry.ResolvePositions(state, evt, bonk.BakedAnimation, bonk.Definition, spec.AnimationNames, 0, (byte)(inputSlot - 1), air, out float x, out float y, out float z, out float ex, out float ey, out float ez);
+                    HitboxGeometry.ResolvePositions(state, evt, bonk.BakedAnimation, bonk.Definition, bonk.Definition?.GetCookedSlotAbility(inputSlot, air), 0, out float x, out float y, out float z, out float ex, out float ey, out float ez);
                     frames.Add(new { t, start = new[] { x, y, z }, end = new[] { ex, ey, ez }, radius = evt.Radius });
                 }
             }
-        trajectories.Add(new { air, n, duration = stage.DurationTicks, iasa = stage.IasaTicks, animation = spec.AnimationNames, frames });
+        trajectories.Add(new { air, n, duration = stage.DurationTicks, iasa = stage.IasaTicks, animation = spec.Timeline.Stages.SelectMany(x => x.AnimationIds), frames });
     }
 File.WriteAllText(Path.Combine(outputDirectory, "trajectories.json"), JsonSerializer.Serialize(trajectories));
 // Jump-relative input ticks; -1 is the no-attack control. No victim in these runs.
@@ -84,17 +84,24 @@ foreach (int n in new[] { 1, 2, 3, 4 })
     foreach (int phase in new[] { 0, 8, 16 })
     {
         var entry = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
-        byte inputSlot = (byte)(n switch { 1 => 3, 2 => 7, 3 => 8, _ => 9 });
-        var spec = entry.Definition.GetSlotAbility(inputSlot - 1, false)
+        byte inputSlot = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[n - 1]);
+        var spec = entry.Definition.GetCookedSlotAbility(inputSlot, false)
             ?? throw new InvalidDataException($"Bonk ground.{n} is missing.");
-        if (spec.AnimationNames is not { Length: > 0 })
+        if (spec.ClipCount == 0)
             throw new InvalidDataException($"Bonk ground.{n} has no animation binding.");
         var baked = entry.BakedAnimation ?? throw new InvalidDataException("Bonk has no cooked poses.");
-        int animationIndex = baked.FindAnimIndex(spec.AnimationNames[0]);
-        if (animationIndex < 0) throw new InvalidDataException($"Missing pose '{spec.AnimationNames[0]}'.");
+        int animationIndex = baked.FindAnimIndex(spec.Clip(0).AnimationId);
+        if (animationIndex < 0) throw new InvalidDataException($"Missing pose '{spec.Clip(0).AnimationId}'.");
         var anim = baked.Animations[animationIndex];
         var original = anim.Frames;
-        anim.Frames = Enumerable.Range(0, original.Length).Select(i => original[Math.Min(i + phase, original.Length - 1)]).ToArray();
+        baked = new BakedAnimationData
+        {
+            BoneNames = baked.BoneNames,
+            Animations = baked.Animations.Select((animation, index) => index == animationIndex
+                ? new BakedAnimationData.BakedAnim { Name = animation.Name, Frames = Enumerable.Range(0, original.Count)
+                    .Select(i => original[Math.Min(i + phase, original.Count - 1)]).ToArray() }
+                : animation).ToArray(),
+        };
         int hits = 0; var positions = new List<string>();
         foreach (float x in new[] { -1f, -.5f, 0f, .5f, 1f })
             foreach (float z in new[] { .5f, 1f, 1.5f, 2f, 2.5f, 3f })
@@ -117,7 +124,7 @@ foreach (int n in new[] { 1, 2, 3, 4 })
 foreach (int n in new[] { 1, 2, 3, 4 })
     foreach (string action in new[] { "move", "jump" })
     {
-        var def = bonk.Definition; byte slot = (byte)(n switch { 1 => 3, 2 => 7, 3 => 8, _ => 9 });
+        var def = bonk.Definition; byte slot = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[n - 1]);
         var sim = new ServerSimulation(arena);
         sim.RegisterEntity(1, def, new CharacterState { PX = 100, PZ = 100, PY = def.CapsuleHeight / 2, IsGrounded = true, State = ActionState.Idle, JumpsLeft = 2, AirDodgesLeft = 1 }, bonk.BakedAnimation);
         var input = new Dictionary<ulong, InputState>(); int unlocked = -1;

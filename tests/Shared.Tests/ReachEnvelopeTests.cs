@@ -45,19 +45,6 @@ public class ReachEnvelopeTests
     }
 
     [Fact]
-    public void ForwardReach_UnadmittedLegacyMove_ReturnsZero()
-    {
-        var def = new CharacterDefinition
-        {
-            Slot1 = new AbilitySpec
-            {
-                Stages = new[] { new AttackStage { HitboxEvents = new[] { new HitboxEvent { OffZ = 10, Radius = 1 } } } },
-            },
-        };
-        Assert.Equal(0f, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, airborne: false));
-    }
-
-    [Fact]
     public void FacingFrame_ForwardDeltaIsPureForward()
     {
         var (side, fwd) = FacingMath.ToFacingFrame(0f, 3f, facingYaw: 0f);
@@ -87,8 +74,7 @@ public class ReachEnvelopeTests
     {
         var state = new CharacterState { PX = 4f, PY = 1f, PZ = -2f, FacingYaw = yaw };
         var evt = new HitboxEvent { OffX = offX, OffZ = offZ, Radius = 0.5f };
-        HitboxGeometry.ResolvePositions(state, evt, null, null, null, 0, 0, false,
-            out float wx, out _, out float wz, out _, out _, out _);
+        HitboxGeometry.ResolvePositions(state, evt, null, null, null, 0, out float wx, out _, out float wz, out _, out _, out _);
 
         var (side, fwd) = FacingMath.ToFacingFrame(wx - state.PX, wz - state.PZ, yaw);
 

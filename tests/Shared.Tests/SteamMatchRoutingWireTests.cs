@@ -78,6 +78,7 @@ public sealed class SteamMatchRoutingWireTests
                 new MatchContentIdentity("fightguy", "0.0.0-dev",
                     new string('a', 64), new string('b', 64), new string('c', 64)), "FightGuy")
         });
+        original = original.WithArena(new MatchArenaRecord("slop_pit", new string('d', 64)));
         var contentHash = SteamMatchDescriptor.HashContent(original);
         using var contentDocument = JsonDocument.Parse(MatchContentHandleMapCodec.Serialize(original));
         var payload = new

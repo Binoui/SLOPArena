@@ -6,7 +6,7 @@ namespace SlopArena.Client.Animation
 {
     public sealed class CharacterAnimationCatalog : ScriptableObject
     {
-        public const ushort SchemaVersion = 1;
+        public const ushort SchemaVersion = 2;
 
         [SerializeField] private string _packageId = "";
         [SerializeField] private ushort _catalogSchemaVersion = SchemaVersion;
@@ -17,6 +17,14 @@ namespace SlopArena.Client.Animation
         [SerializeField] private SlopArena.Client.Entities.WeaponAttachConfig _weaponConfig;
         [SerializeField] private AnimationEntry[] _animations = Array.Empty<AnimationEntry>();
         [SerializeField] private PresentationEntry[] _presentations = Array.Empty<PresentationEntry>();
+
+        [SerializeField] private CharacterPresentationProfile _presentationProfile;
+        public CharacterPresentationProfile PresentationProfile => _presentationProfile;
+        public void SetPresentationProfile(CharacterPresentationProfile profile) => _presentationProfile = profile?.DeepClone();
+
+        [SerializeField] private string[] _missingPresentationMedia = Array.Empty<string>();
+        public ReadOnlySpan<string> MissingPresentationMedia => _missingPresentationMedia;
+        public void SetMissingPresentationMedia(string[] ids) => _missingPresentationMedia = (string[])ids.Clone();
 
         public string PackageId { get => _packageId; set => _packageId = value; }
         public ushort CatalogSchemaVersion { get => _catalogSchemaVersion; set => _catalogSchemaVersion = value; }

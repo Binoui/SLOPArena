@@ -276,6 +276,11 @@ periodic full snapshots.
 
 ### Phase 7 — Removal and documentation
 
+Completed on 2026-10-23 under the separate [simulation review approval](2026-10-23-simulation-review-fixes.md).
+Useful regression assertions were migrated to full-world APIs before deleting the
+unused runtime and codecs. This approval replaced the removal gate without claiming
+completion of the pending Steam playtest or cross-runtime parity measurement.
+
 Delete LocalTrack, PredictedTrack, RawTrack, `RollbackSimulator`, the
 Predictable/Complex partition, per-entity state packets, projectile-visual and
 sword-trail packets and the 2026-10-18 self hit-reaction hold. Mark ADR-0010 and

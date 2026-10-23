@@ -92,10 +92,10 @@ internal static class Program
         {
             inputs[SelfPlayMatch.EntityA] = policy.Decide(
                 sim.GetState(SelfPlayMatch.EntityA), sim.GetState(SelfPlayMatch.EntityB),
-                def, rng, memA, arena, baked);
+                def, rng, memA, arena, baked, activeMove: sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
             inputs[SelfPlayMatch.EntityB] = policy.Decide(
                 sim.GetState(SelfPlayMatch.EntityB), sim.GetState(SelfPlayMatch.EntityA),
-                def, rng, memB, arena, baked);
+                def, rng, memB, arena, baked, activeMove: sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
             recorder.RecordInputs(tick, inputs);
 
             recorder.RecordPresses(sim, tick, inputs, def); // swings from pre-tick presses
@@ -274,21 +274,9 @@ internal static class Program
     /// <summary>"g1 Fist Jab" — g/a + canonical slot label + resolved ability name.</summary>
     private static string MoveLabel(CharacterDefinition def, byte slot, bool air)
         => $"{(air ? "a" : "g")}{SlotLabel(slot)} "
-            + (def.GetCookedSlotAbility(slot, air)?.Name
-                ?? def.GetSlotAbility(slot - 1, air)?.Name ?? "-");
+            + (def.GetCookedSlotAbility(slot, air)?.Name ?? "-");
 
-    private static string SlotLabel(byte activeSlot) => activeSlot switch
-    {
-        AbilitySlots.Slot1 => "1",
-        AbilitySlots.Slot2 => "2",
-        AbilitySlots.Slot3 => "3",
-        AbilitySlots.Slot4 => "4",
-        AbilitySlots.A => "A",
-        AbilitySlots.E => "E",
-        AbilitySlots.R => "R",
-        AbilitySlots.F => "F",
-        _ => "?",
-    };
+    private static string SlotLabel(byte activeSlot) => CanonicalSlotProjection.TryGet(activeSlot, false, out var address) ? address.InputLabel : "?";
 
     /// <summary>Top-4 moves by usage for one entity, e.g. "g1 Fist Jab ×8  a2 Uppercut ×3".</summary>
     private static string MoveList(List<SwingRecord> swings, ulong id, CharacterDefinition def)
@@ -392,8 +380,7 @@ internal static class Program
                 i = moves.Count;
                 moveIdx[(sw.ActiveSlot, sw.Air)] = i;
                 moves.Add(new MoveDef(sw.ActiveSlot, sw.Air,
-                    def.GetCookedSlotAbility(sw.ActiveSlot, sw.Air)?.Name
-                        ?? def.GetSlotAbility(sw.ActiveSlot - 1, sw.Air)?.Name ?? "-",
+                    def.GetCookedSlotAbility(sw.ActiveSlot, sw.Air)?.Name ?? "-",
                     MoveLabel(def, sw.ActiveSlot, sw.Air)));
             }
             swingsOut.Add(new SwingOut(sw.StartTick, sw.Attacker == SelfPlayMatch.EntityA ? 0 : 1,

@@ -139,7 +139,7 @@ namespace SlopArena.Shared
             {
                 var input = pair.Value;
                 if (input.MoveX != 0f || input.MoveY != 0f || input.Up || input.Down || input.Left || input.Right
-                    || input.DownPressed || input.Jump || input.JumpHeld || input.Dash || input.Burst
+                    || input.DownPressed || input.Jump || input.JumpHeld
                     || input.ShieldHeld || input.ShieldPressed || input.GrabPressed || input.ActiveSlot != 0
                     || input.IsAiming || input.FaceToCamera || input.ToggleLock || input.RetargetPressed)
                 {
@@ -238,10 +238,10 @@ namespace SlopArena.Shared
             float forceDefault = hit.BaseKnockback + hit.KnockbackGrowth * (afterPercent * .01f);
             float force = forceDefault;
             bool ownerExists = _states.TryGetValue(hit.OwnerEntityId, out var owner);
-            AbilitySpec? spec = null;
+            CookedSlotDefinition? spec = null;
             if (ownerExists && _defs.TryGetValue(hit.OwnerEntityId, out var def))
             {
-                if (hit.AttackSlot > 0) spec = def.GetSlotAbility(hit.AttackSlot - 1, hit.Airborne);
+                if (hit.AttackSlot > 0) spec = def.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne);
                 if (ContactAbility(hit) is { } ability)
                     ability.OnHitObject(ref owner, def, ref damage, ref force);
             }
@@ -262,7 +262,7 @@ namespace SlopArena.Shared
             }
             if (hit.KnockbackDirection == AuthoringKnockbackDirection.TowardOwner)
             { dirX = -dirX; dirZ = -dirZ; }
-            ushort freeze = ComputeHitstopTicks(damage, spec);
+            ushort freeze = ComputeHitstopTicks(damage);
             float launch = ball.Hit(hit, damage, force, dirX, dirZ, freeze);
             if (ownerExists)
             {
@@ -319,8 +319,8 @@ namespace SlopArena.Shared
                 ability.OnHitObject(ref owner, definition, ref damage, ref force);
             if (damage <= 0f) { _states[hit.OwnerEntityId] = owner; return; }
             if (!(_onlineCourse != null ? _onlineCourse.Hit(hit.OwnerEntityId, index) : course.Hit(index))) return;
-            var spec = hit.AttackSlot > 0 ? definition.GetSlotAbility(hit.AttackSlot - 1, hit.Airborne) : null;
-            ushort freeze = ComputeHitstopTicks(damage, spec);
+            var spec = hit.AttackSlot > 0 ? definition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne) : null;
+            ushort freeze = ComputeHitstopTicks(damage);
             if (hit.FreezesOwner) owner.HitstopTicks = freeze;
             // A bonus target that still needs hits keeps the lock; a broken one releases it.
             if (course.IsBroken(index) && owner.TargetEntityId == hit.TargetEntityId) { owner.TargetEntityId = 0; owner.LockOn = false; }

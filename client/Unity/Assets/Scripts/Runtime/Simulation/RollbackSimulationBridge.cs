@@ -109,6 +109,7 @@ namespace SlopArena.Client.Simulation
             _session.Predictor.DrainCourseEvents(_courseEvents, _retractedCourseEvents);
         }
 
+        public ActiveMoveView? GetActiveMove(ulong id) => Simulation.GetActiveMove(id);
         public CharacterState GetState(ulong id) => _session.Predictor.GetState(id);
         public Dictionary<ulong, CharacterState> GetAllStates() => Simulation.GetAllStates();
         public IReadOnlyList<TimelinePresentationEvent> LastTickPresentationEvents => _events;

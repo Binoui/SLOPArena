@@ -135,22 +135,9 @@ namespace SlopArena.Shared
                 throw new ArgumentException("Versus Slopball needs a Slopball court.", nameof(rule));
 		}
 
-		// ── Hitstop tuning (ADR-0012). Game-wide defaults; per-ability overrides via
-		/// <summary>Freeze ticks for a connecting hit (ADR-0019, issue #143):
-		/// min(12, (int)((damage/3 + 6) · multiplier)) — jabs ~7, mediums ~8, kills ~10.
-		/// Cap 12 is a never-biting safety (kit max 16 dmg → 11). The ADR-0012 extras
-		/// (low-damage ×2, beyond-first ×0.5) and the six hitstop_* param keys are dropped;
-		/// a single per-ability override remains: `hitstop_multiplier` (default 1.0).
-		/// Pass the ATTACKER's ability spec (the ability that lands the hit); null = defaults.</summary>
-		public static ushort ComputeHitstopTicks(float damage, AbilitySpec? spec)
-		{
-			float mul = HitstopParam(spec, "hitstop_multiplier", 1f);
-			float raw = (int)((damage / 3f + 6f) * mul);
-			return (ushort)Math.Max(1f, Math.Min(12f, raw));
-		}
-
-		private static float HitstopParam(AbilitySpec? spec, string key, float fallback)
-			=> (spec?.Params != null && spec.Params.TryGetValue(key, out float v)) ? v : fallback;
+        /// <summary>Game-wide connecting-hit freeze, preserving shipped default timing.</summary>
+        public static ushort ComputeHitstopTicks(float damage)
+            => (ushort)Math.Max(1, Math.Min(12, (int)(damage / 3f + 6f)));
 
 		public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)
 		{
@@ -186,8 +173,7 @@ namespace SlopArena.Shared
 			if (PredictCoupledInteractions && _states.TryGetValue(id, out var state))
 				InterruptInteraction(ref state);
 			state = _states.TryGetValue(id, out var current) ? current : default;
-			CancelAttackRuntime(id, ref state, removeProjectiles: true);
-			_spellResolver.RemoveReturningProjectiles(id);
+			RetireAbility(id, ref state, AbilityExit.Removed);
 			_states.Remove(id);
 			_defs.Remove(id);
 			_bakedData.Remove(id);
@@ -198,82 +184,60 @@ namespace SlopArena.Shared
 			_lastActivationIds.Remove(id);
 			_lastHitCredits.Remove(id);
 			_lastHitContexts.Remove(id);
+            foreach (var victim in _lastHitCredits.Where(pair => pair.Value.attackerId == id).Select(pair => pair.Key).ToArray())
+                _lastHitCredits.Remove(victim);
+            foreach (var victim in _lastHitContexts.Where(pair => pair.Value.attackerId == id).Select(pair => pair.Key).ToArray())
+                _lastHitContexts.Remove(victim);
 		}
 
 
 		public CharacterState GetState(ulong id) => _states.TryGetValue(id, out var s) ? s : default;
 		public CharacterDefinition GetDefinition(ulong id) => _defs.TryGetValue(id, out var d) ? d : null;
 		public void SetState(ulong id, CharacterState state) => _states[id] = state;
-		/// <summary>
-		/// Replace a local state with an authoritative barrier without allowing the old ability's
-		/// cancellation callback to rewrite the incoming snapshot.
-		/// </summary>
-		public void ApplyAuthoritativeState(ulong id, CharacterState state)
-		{
-			var cleanupState = _states.TryGetValue(id, out var current) ? current : state;
-			CancelAttackRuntime(id, ref cleanupState, removeProjectiles: true);
-			_states[id] = state;
-		}
+        private enum AbilityExit : byte { Completed, Cancelled, Superseded, Removed, Reset }
 
-		private void CancelAttackRuntime(ulong id, ref CharacterState state, bool removeProjectiles = false)
-		{
-			if (_activeAbilities.TryGetValue(id, out var ability))
-			{
-				CancelAbilityEffects(id, ability, ref state, removeProjectiles);
-				FinishAbilityRuntime(id, ability, ref state);
-			}
-		}
+        private void CancelAttackRuntime(ulong id, ref CharacterState state, bool removeProjectiles = false)
+            => RetireAbility(id, ref state, removeProjectiles ? AbilityExit.Reset
+                : state.State is (ActionState.Attacking or ActionState.Aiming) ? AbilityExit.Cancelled : AbilityExit.Superseded);
 
-		private void CancelAbilityEffects(ulong id, ServerAbility ability, ref CharacterState state,
-			bool removeProjectiles = false)
-		{
-			ability.OnCancel(ref state);
-			state.ClearStartupAimCorrection();
-			state.SlideAttackCarryActive = false;
-			ability.ClearArmorWindow();
-			_spellResolver.RemoveOwnedHitboxes(id, ability.ActivationId, preserveProjectiles: !removeProjectiles);
-		}
+        private void RetireAbility(ulong id, ref CharacterState state, AbilityExit exit)
+        {
+            if (_activeAbilities.TryGetValue(id, out var ability))
+            {
+                if (exit != AbilityExit.Completed)
+                {
+                    if (exit == AbilityExit.Cancelled)
+                        ability.OnCancel(ref state);
+                    else
+                    {
+                        var discardedCancellationState = state;
+                        ability.OnCancel(ref discardedCancellationState);
+                    }
+                    _spellResolver.RemoveOwnedHitboxes(id, ability.ActivationId,
+                        preserveProjectiles: exit != AbilityExit.Removed && exit != AbilityExit.Reset);
+                }
+                ability.ClearArmorWindow();
+                if (exit != AbilityExit.Removed && exit != AbilityExit.Reset)
+                    ApplyAbilityCooldown(id, ability, ref state);
+                if (exit == AbilityExit.Completed && !ability.AirborneAtStart && state.IsGrounded
+                    && state.State == ActionState.Idle && _defs.TryGetValue(id, out var def))
+                    state.RushTicks = def.Movement.RushTicks;
+                _activeAbilities.Remove(id);
+            }
+            if (exit == AbilityExit.Removed)
+                _spellResolver.RemoveOwnerEffects(id);
+            ushort completionRecoveryLockTicks = exit == AbilityExit.Completed ? state.AnimLockTicks : (ushort)0;
+            state.ClearAttackFields();
+            state.AnimLockTicks = completionRecoveryLockTicks;
+            if (exit == AbilityExit.Cancelled && state.State is (ActionState.Attacking or ActionState.Aiming))
+                state.State = ActionState.Idle;
+        }
 
-		private void FinishAbilityRuntime(ulong id, ServerAbility ability, ref CharacterState state)
-		{
-			ability.ClearArmorWindow();
-			state.SlideAttackCarryActive = false;
-			if (!ability.AirborneAtStart && state.IsGrounded
-				&& state.State == ActionState.Idle && state.AttackSlot == 0)
-				state.RushTicks = _defs[id].Movement.RushTicks;
-			ApplyAbilityCooldown(id, ability, ref state);
-			state.BufferedSlot = 0;
-			_activeAbilities.Remove(id);
-		}
-
-		private void ApplyAbilityCooldown(ulong id, ServerAbility ability, ref CharacterState state)
-		{
-			if (ability.Slot < AbilitySlots.Count && NoCooldownsEntityId != id)
-				state.SetCooldown((byte)(ability.Slot + 1), ability.Cooldown);
-		}
-
-		private static void ResetAttackState(ref CharacterState state)
-		{
-			state.State = ActionState.Idle;
-			state.AttackSlot = 0;
-			state.ComboStage = 0;
-			state.AttackElapsedTicks = 0;
-			state.AnimLockTicks = 0;
-			state.BufferedSlot = 0;
-		}
-
-		private void CancelDefenseAttackRuntime(ulong id, ref CharacterState state)
-		{
-			// The accepted defense action owns state; cancellation only retires the old runtime.
-			_activeAbilities.TryGetValue(id, out var ability);
-			var cleanupState = state;
-			CancelAttackRuntime(id, ref cleanupState);
-			if (ability != null)
-				ApplyAbilityCooldown(id, ability, ref state);
-			state.SlideAttackCarryActive = false;
-			state.BufferedSlot = 0;
-			state.ClearStartupAimCorrection();
-		}
+        private void ApplyAbilityCooldown(ulong id, ServerAbility ability, ref CharacterState state)
+        {
+            if (ability.Slot < AbilitySlots.Count && NoCooldownsEntityId != id)
+                state.SetCooldown((byte)(ability.Slot + 1), ability.Cooldown);
+        }
 
 
 		public Dictionary<ulong, CharacterState> GetAllStates() => _states;
@@ -317,9 +281,8 @@ namespace SlopArena.Shared
 			ability.PresentationSink = e => _presentationEvents.Add(e with { MatchTick = _tick });
 			ability.Slot = slot;
 			ability.AirborneAtStart = !state.IsGrounded;
-            var spec = def.GetSlotAbility(slot, !state.IsGrounded);
             var cookedSlot = def.GetCookedSlotAbility((byte)(slot + 1), !state.IsGrounded);
-            bool preserveMomentum = cookedSlot?.PreserveMomentumOnStart ?? spec?.PreserveMomentumOnStart ?? false;
+            bool preserveMomentum = cookedSlot?.PreserveMomentumOnStart ?? false;
             bool attackCarry = state.IsGrounded
                 && cookedSlot?.AllowSlideCarry == true
                 && (state.State == ActionState.Sliding
@@ -351,9 +314,7 @@ namespace SlopArena.Shared
 			ability.ClearArmorWindow();
 			state.ClearStartupAimCorrection();
 			state.BufferedSlot = 0;
-            bool aimingAbility = cookedSlot != null
-                ? cookedSlot.AimMode != AuthoringAimMode.None
-                : spec != null && spec.AimMode != AimMode.None;
+            bool aimingAbility = cookedSlot?.AimMode is { } aimMode && aimMode != AuthoringAimMode.None;
             if (aimingAbility && ability is CookedTimelineAbility { UsesStartupAimCorrection: true })
                 state.FacingYaw = state.AimYaw;
 			ability.OnStart(ref state, def);
@@ -376,7 +337,7 @@ namespace SlopArena.Shared
             state.CrouchSettled = false;
             state.QueuedCrouchBrace = false;
             // ADR-0015 / issue #115: recovery-designated moves reset the float window.
-            if (cookedSlot?.IsRecoveryMove == true || (cookedSlot == null && spec?.IsRecoveryMove == true))
+            if (cookedSlot?.IsRecoveryMove == true)
                 state.AirTimeTicks = 0;
 			_states[entityId] = state;
 			_activeAbilities[entityId] = ability;
@@ -391,6 +352,23 @@ namespace SlopArena.Shared
 		{
 			return _activeAbilities.TryGetValue(entityId, out var a) ? a : null;
 		}
+
+        public ActiveMoveView? GetActiveMove(ulong entityId)
+        {
+            if (!_activeAbilities.TryGetValue(entityId, out var ability)
+                || !_states.TryGetValue(entityId, out var state))
+                return null;
+            if (ability is CookedTimelineAbility timeline)
+                return timeline.GetMoveView(in state);
+            var slot = ability.Move;
+            if (slot == null) return null;
+            var pose = ActiveMoveView.ResolvePose(slot, ability.AnimIndex, state.AttackElapsedTicks);
+            int stage = Math.Min(state.ComboStage, slot.Timeline.Stages.Count - 1);
+            int elapsed = state.AttackElapsedTicks;
+            for (int i = 0; i < stage; i++) elapsed -= slot.Timeline.Stages[i].DurationTicks;
+            return new ActiveMoveView(slot, stage, (ushort)Math.Max(0, elapsed), ability.AirborneAtStart,
+                ability.AnimIndex, pose);
+        }
 
 		/// <summary>
 		/// Tick all active abilities. Called after simulation each frame.
@@ -413,9 +391,8 @@ namespace SlopArena.Shared
 
 				if (state.State != ActionState.Attacking && state.State != ActionState.Aiming)
 				{
-					CancelAbilityEffects(id, ability, ref state);
+					RetireAbility(id, ref state, AbilityExit.Superseded);
 					_states[id] = state;
-					ended.Add(id);
 					if (Simulation.OnDebugLog != null)
 						Simulation.OnDebugLog.Invoke(
 							$"[AbilityInterrupt] entity={id} slot={ability.Slot} state={state.State} — deactivated");
@@ -461,8 +438,7 @@ namespace SlopArena.Shared
 				if (_activeAbilities.TryGetValue(id, out var ability)
 				    && _states.TryGetValue(id, out var state))
 				{
-					// EndAbility or the interruption path already called the appropriate callback.
-					FinishAbilityRuntime(id, ability, ref state);
+					RetireAbility(id, ref state, AbilityExit.Completed);
 					_states[id] = state; // Persist cooldown + buffered slot clear
 				}
 				else
@@ -492,7 +468,7 @@ namespace SlopArena.Shared
 			BakedAnimationData baked, string targetAnim, float animFrame, ulong entityId,
 			List<SpellResolver.EntityData> list)
 		{
-			if (baked != null && def.HurtboxBoneDefs != null && def.HurtboxBoneDefs.Length > 0)
+			if (baked != null && def.HurtboxBoneDefs != null && def.HurtboxBoneDefs.Count > 0)
 			{
 				int animIdx = baked.FindAnimIndex(targetAnim);
 				if (animIdx < 0) { targetAnim = "idle"; animIdx = baked.FindAnimIndex(targetAnim); }
@@ -504,7 +480,7 @@ namespace SlopArena.Shared
 					float yaw = state.FacingYaw;
 					float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
 					float scale = def.HurtboxBoneScale;
-					for (int i = 0; i < def.HurtboxBoneDefs.Length; i++)
+					for (int i = 0; i < def.HurtboxBoneDefs.Count; i++)
 					{
 						var hbd = def.HurtboxBoneDefs[i];
 						// Pair by name: cooked defs are sorted by bone ID while the bake
@@ -572,7 +548,7 @@ namespace SlopArena.Shared
             targetAnim = null!;
             bakedFrame = 0f;
 
-            if (!_bakedData.TryGetValue(id, out baked!) || def.HurtboxBoneDefs == null || def.HurtboxBoneDefs.Length == 0)
+            if (!_bakedData.TryGetValue(id, out baked!) || def.HurtboxBoneDefs == null || def.HurtboxBoneDefs.Count == 0)
                 return false;
             // Low posture tracks are static frame-zero poses. They are selected only
             // when the state is grounded and the baked payload contains the exact
@@ -595,10 +571,8 @@ namespace SlopArena.Shared
                 targetAnim = string.IsNullOrEmpty(def.AirDodgeAnim) ? def.DashAnim : def.AirDodgeAnim;
             else if ((state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0)
             {
-                bool airborne = !state.IsGrounded;
-                var cooked = def.GetCookedSlotAbility(state.AttackSlot, airborne);
-                if (cooked != null)
-                    targetAnim = AttackAnimation(cooked, state.ComboStage) ?? "idle";
+                if (GetActiveMove(id) is { } move)
+                    targetAnim = move.Pose.AnimationId;
             }
             else if (state.State == ActionState.Hitstun) targetAnim = state.HitstunLevel switch
             {
@@ -625,55 +599,11 @@ namespace SlopArena.Shared
             }
 
             bakedFrame = frame;
-            if ((state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0)
-            {
-                bool airborne = !state.IsGrounded;
-                var cooked = def.GetCookedSlotAbility(state.AttackSlot, airborne);
-                if (cooked != null)
-                {
-                    int stageIdx = Math.Min(state.ComboStage, (byte)(cooked.Timeline.Stages.Count - 1));
-                    int stageElapsed = state.AttackElapsedTicks;
-                    for (int i = 0; i < stageIdx; i++)
-                        stageElapsed -= cooked.Timeline.Stages[i].DurationTicks;
-                    // A phase clip (a leap's landing) plays in real time, as rendered.
-                    bakedFrame = IsPhaseClip(cooked, state.ComboStage)
-                        ? Math.Clamp(stageElapsed, 0, fc - 1)
-                        : HitboxGeometry.AttackFrame(Math.Max(0, stageElapsed), fc,
-                            cooked.Timeline.Stages[stageIdx].DurationTicks);
-                }
-            }
+            if ((state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0
+                && GetActiveMove(id) is { } active)
+                bakedFrame = active.Pose.FrameAt(fc);
 
             return true;
-        }
-
-        /// <summary>The clip an attack shows: its slot's clip IDs in order (one per stage, then phase clips such as
-        /// a leap's landing), indexed by ComboStage as the renderer does.</summary>
-        private static string? AttackAnimation(CookedSlotDefinition cooked, int comboStage)
-        {
-            int total = 0;
-            foreach (var stage in cooked.Timeline.Stages)
-                total += stage.AnimationIds.Count;
-            if (total == 0)
-                return null;
-            int index = comboStage % total;
-            foreach (var stage in cooked.Timeline.Stages)
-            {
-                if (index < stage.AnimationIds.Count)
-                    return stage.AnimationIds[index];
-                index -= stage.AnimationIds.Count;
-            }
-            return null;
-        }
-
-        /// <summary>Whether ComboStage shows a phase clip, listed after the stages' own clips: the renderer's clip
-        /// index (ComboStage modulo the clip count) at or past the stage count. Abilities that only raise ComboStage
-        /// (Manki's releases) keep their stage clip and its timing.</summary>
-        private static bool IsPhaseClip(CookedSlotDefinition cooked, int comboStage)
-        {
-            int total = 0;
-            foreach (var stage in cooked.Timeline.Stages)
-                total += stage.AnimationIds.Count;
-            return total > cooked.Timeline.Stages.Count && comboStage % total >= cooked.Timeline.Stages.Count;
         }
 
         internal bool LungeReachesOpponent(in CharacterState attacker, ReadOnlySpan<Hitbox> reach, float sin, float cos)
@@ -728,7 +658,7 @@ namespace SlopArena.Shared
 		/// frame; dash and abilities stay blocked by their own gates, so there is no free
 		/// cancel. Every later locked tick is fully gated.
 		/// </summary>
-		private static void ApplyLandingLag(ref CharacterState state, CharacterDefinition def, bool wasGrounded, ServerAbility? activeAbility)
+		private void ApplyLandingLag(ref CharacterState state, CharacterDefinition def, bool wasGrounded, ServerAbility? activeAbility)
 		{
 			if (wasGrounded || !state.IsGrounded) return; // no landing this tick
 			if (state.VY > 0f) return;                    // upward transition, not a landing
@@ -748,31 +678,27 @@ namespace SlopArena.Shared
 			    (activeAbility is IAimHoldCapability ||
 			     activeAbility is CookedTimelineAbility timelineAbility && timelineAbility.IsHoldingAim)) return;
 
-			var cooked = def.GetCookedSlotAbility(state.AttackSlot, airborne: true);
+			var move = GetActiveMove(state.EntityId);
+            var cooked = move?.Slot;
 			ushort landingLagTicks;
 			ushort autoCancelBeforeTicks;
 			ushort autoCancelAfterTicks;
 			int elapsed;
 			if (cooked == null) return;
-			var stage = cooked.Timeline.Stages[Math.Min(state.ComboStage, (byte)(cooked.Timeline.Stages.Count - 1))];
+            int stageIndex = Math.Min(state.ComboStage, cooked.Timeline.Stages.Count - 1);
+            var stage = cooked.Timeline.Stages[stageIndex];
 			landingLagTicks = stage.LandingLagTicks;
 			autoCancelBeforeTicks = stage.AutoCancelBeforeTicks;
 			autoCancelAfterTicks = stage.AutoCancelAfterTicks;
-			elapsed = state.AttackElapsedTicks;
-			for (var i = 0; i < state.ComboStage && i < cooked.Timeline.Stages.Count; i++)
-				elapsed -= cooked.Timeline.Stages[i].DurationTicks;
+            elapsed = state.AttackElapsedTicks;
+            for (int i = 0; i < stageIndex; i++) elapsed -= cooked.Timeline.Stages[i].DurationTicks;
 			bool autoCancel = (autoCancelBeforeTicks > 0 && elapsed <= autoCancelBeforeTicks)
 				|| (autoCancelAfterTicks > 0 && elapsed >= autoCancelAfterTicks);
 
 			// The aerial always ENDS on landing. Auto-cancel: end with no lock at all (Melee's
 			// AC: no landing commitment). Otherwise the landing lag (possibly 0) is the ONLY
 			// cost — no riding out the stage's remaining recovery + IASA.
-			state.State = ActionState.Idle;
-			state.AttackSlot = 0;
-			state.ComboStage = 0;
-			state.AttackElapsedTicks = 0;
-			state.AnimLockTicks = 0;
-			state.BufferedSlot = 0;
+            RetireAbility(state.EntityId, ref state, AbilityExit.Cancelled);
 			if (autoCancel)
 				return;
 			state.LandingLagTicks = landingLagTicks;
@@ -784,7 +710,7 @@ namespace SlopArena.Shared
 			if (state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
 				|| state.LandingLagTicks > 0)
 				return false;
-			bool iasaUnlocked = Simulation.IsIasaUnlocked(state, def);
+			bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId));
 			if (state.State != ActionState.Idle && state.State != ActionState.Run
 				&& state.State != ActionState.Crouching && state.State != ActionState.Sliding
 				&& !iasaUnlocked)
@@ -832,11 +758,10 @@ namespace SlopArena.Shared
 
             if (state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
                 || state.LandingLagTicks > 0
-                || !Simulation.IsIasaUnlocked(state, def)
+                || !Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId))
                 || !_activeAbilities.ContainsKey(id))
                 return false;
-            CancelAttackRuntime(id, ref state);
-            ResetAttackState(ref state);
+            RetireAbility(id, ref state, AbilityExit.Cancelled);
             return true;
         }
 
@@ -847,14 +772,14 @@ namespace SlopArena.Shared
 				|| state.QueuedKBStun > 0
 				|| state.QueuedKBDirX != 0f || state.QueuedKBDirZ != 0f
 				|| state.QueuedKBAngle != 0 || state.QueuedCrouchBrace;
-		private static bool CanAcceptGroundShield(
-			in CharacterState state, CharacterDefinition def, in InputState input)
+		private bool CanAcceptGroundShield(
+            in CharacterState state, CharacterDefinition def, in InputState input)
 		{
 			if (!input.ShieldHeld || input.GrabPressed || input.Jump || !state.IsGrounded
 				|| state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
 				|| state.LandingLagTicks > 0 || state.InteractionId != 0
 				|| Simulation.HasKnockback(state) || HasQueuedShieldLaunch(in state)
-				|| state.AnimLockTicks > 0 && !Simulation.IsIasaUnlocked(state, def))
+                || state.AnimLockTicks > 0 && !Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId)))
 				return false;
 
 			return state.State is ActionState.Idle or ActionState.Run
@@ -862,14 +787,14 @@ namespace SlopArena.Shared
 				or ActionState.Attacking or ActionState.Shielding;
 		}
 
-		private static bool CanAcceptGroundShieldAfterTimers(
+		private bool CanAcceptGroundShieldAfterTimers(
 			in CharacterState state, CharacterDefinition def, in InputState input)
 		{
 			if (CanAcceptGroundShield(in state, def, in input)) return true;
 			var nextState = state;
 			if (nextState.AnimLockTicks > 0) nextState.AnimLockTicks--;
 			if (nextState.AttackElapsedTicks < ushort.MaxValue) nextState.AttackElapsedTicks++;
-			return CanAcceptGroundShield(in nextState, def, in input);
+            return CanAcceptGroundShield(in nextState, def, in input);
 		}
 
 		private bool HandleShieldPreTickAdmission(
@@ -890,7 +815,7 @@ namespace SlopArena.Shared
 				return false;
 
 			if (_activeAbilities.ContainsKey(id))
-				CancelDefenseAttackRuntime(id, ref state);
+				RetireAbility(id, ref state, AbilityExit.Superseded);
 
 			if (input.ActiveSlot != 0)
 			{
@@ -935,7 +860,7 @@ namespace SlopArena.Shared
 				// hitstop (FreezesOwner) keeps State == Attacking, so relaxing those too
 				// would let a press cancel the attack mid-freeze (ADR-0012), and landing lag
 				// is a hard no-input lock that IASA must not bypass.
-				bool iasaUnlocked = Simulation.IsIasaUnlocked(state, def);
+				bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId));
 				if (state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
 					|| state.LandingLagTicks > 0
 					|| (state.AnimLockTicks > 0 && !iasaUnlocked)) continue; // ADR-0014
@@ -984,7 +909,7 @@ namespace SlopArena.Shared
 					inputs[id] = blockedInput;
 					continue;
 				}
-                var ability = new CookedTimelineAbility(cookedSlot, cookedSlot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray());
+                var ability = new CookedTimelineAbility(cookedSlot);
 
 				// ── IASA interrupt ──
 				// An active ability whose stage has passed its IasaTicks is dropped without
@@ -998,13 +923,12 @@ namespace SlopArena.Shared
 				if (currentAbility != null)
 				{
 					if (!iasaUnlocked) continue;
-					CancelAttackRuntime(id, ref state);
-					ResetAttackState(ref state);
+					RetireAbility(id, ref state, AbilityExit.Cancelled);
 					_states[id] = state;
 				}
 
 				ability.Cooldown = cookedSlot.CooldownTicks;
-                ability.AnimationNames = cookedSlot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray();
+
 				ActivateAbility(id, ability, (byte)(input.ActiveSlot - 1), def, input.AimYaw, input);
 
                 // Spend charges from the cooked pool; they return only through regen.
@@ -1276,10 +1200,10 @@ namespace SlopArena.Shared
 			}
 
 			ulong interactionId = _nextInteractionId;
-			CancelDefenseAttackRuntime(grabberId, ref grabber);
-			CancelDefenseAttackRuntime(targetId, ref target);
-			ClearAttackState(ref grabber);
-			ClearAttackState(ref target);
+			RetireAbility(grabberId, ref grabber, AbilityExit.Superseded);
+			RetireAbility(targetId, ref target, AbilityExit.Superseded);
+			grabber.ClearAttackFields();
+			target.ClearAttackFields();
 			grabber.State = ActionState.Grabbing;
 			grabber.StateTicks = DefenseConfig.GrabHoldTicks;
 			grabber.InteractionId = interactionId;
@@ -1300,20 +1224,6 @@ namespace SlopArena.Shared
 			target.VX = target.VY = target.VZ = 0f;
 			_states[grabberId] = grabber;
 			_states[targetId] = target;
-		}
-
-		private static void ClearAttackState(ref CharacterState state)
-		{
-			state.ClearStartupAimCorrection();
-			state.AttackSlot = 0;
-			state.ComboStage = 0;
-			state.AttackElapsedTicks = 0;
-			state.AnimLockTicks = 0;
-			state.BufferedSlot = 0;
-			state.ChargeTicks = 0;
-			state.IsAiming = false;
-			state.AnimIndex = 0;
-			state.SlideAttackCarryActive = false;
 		}
 
 		private void UpdateCoupledInteractions(bool releaseDue, Dictionary<ulong, InputState> inputs)
@@ -1393,11 +1303,11 @@ namespace SlopArena.Shared
 					&& elapsed >= DefenseConfig.ThrowReleaseTicks && releaseDue)
 				{
 					float yaw = owner.CapturedYaw * (MathF.PI / 18000f);
-					ClearAttackState(ref owner);
+					owner.ClearAttackFields();
 					owner.State = ActionState.Throwing;
 					owner.StateTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
 					owner.AnimLockTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
-					ClearAttackState(ref partner);
+					partner.ClearAttackFields();
 					partner.DamagePercent = (ushort)Math.Min(999, partner.DamagePercent + (ushort)ThrowDamage);
 					partner.CrouchSettled = false;
 					partner.QueuedCrouchBrace = false;
@@ -1446,7 +1356,7 @@ namespace SlopArena.Shared
 			{
 				if (partner.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing)
 				{
-					ClearAttackState(ref partner);
+					partner.ClearAttackFields();
 					partner.State = partner.HitstunTicks > 0
 						? ActionState.Hitstun : ActionState.Idle;
 					partner.StateTicks = 0;
@@ -1457,7 +1367,7 @@ namespace SlopArena.Shared
 			if ((affected.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing)
 				&& affected.HitstunTicks == 0)
 			{
-				ClearAttackState(ref affected);
+				affected.ClearAttackFields();
 				affected.State = ActionState.Idle;
 				affected.StateTicks = 0;
 			}
@@ -1504,7 +1414,7 @@ namespace SlopArena.Shared
 				bool verticalMotionOwned = activeAbility?.OwnsVerticalMotion == true;
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
-					_downActionTuning, verticalMotionOwned,
+					_downActionTuning, verticalMotionOwned, GetActiveMove(id),
 					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
 				if (state.State == ActionState.Grabbing && state.InteractionId != 0
 					&& _states.TryGetValue(state.InteractionPartnerId, out var heldPartner)
@@ -1519,7 +1429,7 @@ namespace SlopArena.Shared
 					state.VX = state.VY = state.VZ = 0f;
 				}
 				if (state.State is ActionState.Shielding or ActionState.GrabAttempt or ActionState.AirDodgeMovement)
-					CancelDefenseAttackRuntime(id, ref state);
+					RetireAbility(id, ref state, AbilityExit.Superseded);
 
 				if (ordinaryActionOpportunity)
 					_lastTickOrdinaryActionOpportunities.Add(id);
@@ -2069,19 +1979,13 @@ namespace SlopArena.Shared
                 || !Simulation.IsGroundLowEligible(in state)
                 || _activeAbilities.ContainsKey(id)
                 || string.IsNullOrEmpty(def.CrouchAnim)
-                || def.HurtboxBoneDefs == null || def.HurtboxBoneDefs.Length == 0
+                || def.HurtboxBoneDefs == null || def.HurtboxBoneDefs.Count == 0
                 || !_bakedData.TryGetValue(id, out var baked))
                 return false;
 
             return baked.FrameCountFor(def.CrouchAnim) > 0;
         }
 
-		private AbilitySpec? GetHitstopSpec(ulong ownerId, in CharacterState ownerState)
-		{
-			if (ownerState.AttackSlot > 0 && _defs.TryGetValue(ownerId, out var def))
-				return def.GetSlotAbility(ownerState.AttackSlot - 1, !ownerState.IsGrounded);
-			return null;
-		}
 
 		private static (float x, float z) GetBlockPushbackDirection(
 			in SpellResolver.HitResult hit, in CharacterState targetState,
@@ -2130,8 +2034,7 @@ namespace SlopArena.Shared
 			in SpellResolver.HitResult hit, ref CharacterState targetState,
 			ref CharacterState attackerState, bool attackerExists)
 		{
-			ushort freeze = ComputeHitstopTicks(
-				hit.Damage, attackerExists ? GetHitstopSpec(hit.OwnerEntityId, in attackerState) : null);
+			ushort freeze = ComputeHitstopTicks(hit.Damage);
 			int incomingStun = Math.Clamp(
 				(int)MathF.Ceiling(MathF.Max(0f, hit.Damage) * 0.6f) + 2, 4, 15);
 			targetState.BlockStunTicks = (ushort)Math.Max(targetState.BlockStunTicks, incomingStun);
@@ -2379,10 +2282,6 @@ namespace SlopArena.Shared
 
 
 				// ── Hitstop (ADR-0019): freeze both (melee) or receiver only, defer the launch.
-				AbilitySpec? hitstopSpec = null;
-				if (attackerExists && attackerState.AttackSlot > 0
-				    && _defs.TryGetValue(hit.OwnerEntityId, out var hitOwnerDef))
-					hitstopSpec = hitOwnerDef.GetSlotAbility(attackerState.AttackSlot - 1, !attackerState.IsGrounded);
                 ushort freeze = 0;
                 // Capture the default once: the hook check must compare kbForce to this exact
             // stored value — re-computing the expression at the check is NOT bit-identical
@@ -2412,7 +2311,6 @@ namespace SlopArena.Shared
                         targetState.State = armoredReaction.State;
                         targetState.IsGrounded = armoredReaction.IsGrounded;
                         targetState.AirTimeTicks = armoredReaction.AirTimeTicks;
-                        targetState.DashDurationTicks = armoredReaction.DashDurationTicks;
                         targetState.AirDodgeRecoveryTicks = armoredReaction.AirDodgeRecoveryTicks;
                         targetState.StateTicks = armoredReaction.StateTicks;
                         targetState.WasAirborneDuringKnockback = armoredReaction.WasAirborneDuringKnockback;
@@ -2429,7 +2327,7 @@ namespace SlopArena.Shared
                 float launchGrowth = hookSuppliedForce ? 0f : hit.KnockbackGrowth;
                 // A pure push (no damage, no stun: a shove such as one drop of Bashie's Hose Down stream) does not
                 // freeze its target, so a stream of them keeps pushing instead of stuttering it in place.
-                freeze = finalDamage <= 0f && hit.StunTicks == 0 ? (ushort)0 : ComputeHitstopTicks(finalDamage, hitstopSpec);
+                freeze = finalDamage <= 0f && hit.StunTicks == 0 ? (ushort)0 : ComputeHitstopTicks(finalDamage);
 				if (freeze > 0)
 				{
 					targetState.HitstopTicks = freeze;
@@ -2536,8 +2434,7 @@ namespace SlopArena.Shared
 				if (_defs.TryGetValue(hit.OwnerEntityId, out var hitOwnerDefinition)
 				    && hit.AttackSlot > 0)
 				{
-					var attackSpec = hitOwnerDefinition.GetSlotAbility(
-						hit.AttackSlot - 1, hit.Airborne);
+					var attackSpec = hitOwnerDefinition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne);
 					if (!string.IsNullOrEmpty(attackSpec?.HitPresentationId))
 					{
 						// Confirmed contact carries cosmetic weight, including through replay.
@@ -2663,7 +2560,7 @@ namespace SlopArena.Shared
 				if (PredictCoupledInteractions && oldState.InteractionId != 0)
 					InterruptInteraction(ref oldState);
 
-				CancelAttackRuntime(id, ref oldState);
+				RetireAbility(id, ref oldState, AbilityExit.Superseded);
 				// A returning projectile in flight is back on his shoulder when he respawns.
 				_spellResolver.RemoveReturningProjectiles(id);
 				if (killerEntityId != 0 && _kos[killerEntityId] < byte.MaxValue)

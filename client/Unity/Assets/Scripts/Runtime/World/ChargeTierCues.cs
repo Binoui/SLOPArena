@@ -36,7 +36,7 @@ namespace SlopArena.Client.World
                 if (Charging != null && Charging.isPlaying) Charging.Stop(true, ParticleSystemStopBehavior.StopEmitting);
                 return;
             }
-            int tier = ChargeTiers.Of(_owner.CharacterDef, Slot, _owner.CurrentChargeTicks);
+            int tier = ChargeTiers.Of(_owner.CurrentMove, _owner.CurrentChargeTicks);
             for (int reached = _shownTier + 1; reached <= tier; reached++)
                 Play(reached switch { 1 => Tier2, 2 => Tier3, 3 => Tier4, 4 => Tier5, _ => null });
             _shownTier = Mathf.Max(_shownTier, tier);

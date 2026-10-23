@@ -5,7 +5,12 @@
 - [ ] `package.json` owns package identity, version, creator, license, attribution, and dependencies.
 - [ ] `character.json` owns gameplay source, presentation IDs, and the canonical sixteen-slot grid.
 - [ ] `CharacterAssetCatalog.asset` owns the Unity rig, semantic clip bindings, and pose-track IDs.
-- [ ] All three modules use schema version 1 and the same stable package ID.
+- [ ] `package.json` uses `manifestSchemaVersion: 1` and owns the stable `packageId`.
+- [ ] `character.json` uses `authoringSchemaVersion: 3` without duplicated identity or
+      legacy `id`, `class`, or `schemaVersion` fields. Check the
+      [source codec](../../src/Shared/CharacterPackageSourceCodec.cs).
+- [ ] The [asset catalog](../../client/Unity/Assets/Scripts/Runtime/Animation/CharacterAssetCatalog.cs)
+      uses catalog schema 1 and the same package ID as `package.json`.
 - [ ] Package-local source assets retain their Unity `.meta` files and have confirmed licensing.
 
 ## Rig and semantic bindings
@@ -47,28 +52,44 @@
 ## Failed cook and admission
 
 - [ ] A semantic cook failure returns `success: false` with structured diagnostics.
-- [ ] Verify a failed cook preserves the prior four payloads, generated cache, and cook status;
-      for a new package with no prior artifact, verify the cooked directory remains absent.
+- [ ] Verify preparation failures leave the prior cook intact and publication failures
+      restore it without rollback errors. With no prior artifact, the cooked directory
+      remains absent. See the [cook mutation and failure scope](adding-a-new-character.md#5-cook-and-verify-four-payloads).
+- [ ] After a roster refresh error, inspect payloads, generated cache, cook status, and
+      roster pins. Publication precedes refresh and may already have succeeded.
+- [ ] For an already-rostered package, confirm successful cook refreshed its exact pin
+      while preserving its selector and other entries. Automatic refresh is not acceptance.
 - [ ] Admit a package only after successful cook, complete presentation assets, and kit tests.
-- [ ] Add the exact version/content/package hash requirement to the Built-In Roster Manifest.
+- [ ] For new admission, add the exact version/content/package hash requirement to the Built-In Roster Manifest.
 - [ ] Verify a fresh `MatchContentCatalog` resolves the package by identity and hash.
 - [ ] Confirm missing, tampered, mismatched, or unrostered content fails closed.
 
-## Bonk pipeline probe
+## Unrostered pipeline probe
 
-- [ ] Confirm all eight standard semantic bindings resolve, including shared dash and hit-reaction clips.
-- [ ] Run inspect and cook; record `packageId: bonk`, sixteen slots, successful cook, and hashes.
-- [ ] Confirm cooked Bonk payloads exist but no roster requirement or Character Select entry exists.
-- [ ] Confirm package-local dependency changes queue Bonk without stale-marking unrelated packages.
-- [ ] Confirm failed recook preserves the valid Bonk payloads and generated catalog.
+Bonk is rostered in the [roster manifest](../../content-cooked/roster/manifest.json).
+Use a throwaway unrostered fixture for these checks, not Bonk.
+
+- [ ] Confirm the fixture's required semantic bindings resolve to intended assets.
+- [ ] Run inspect and cook; record the fixture's stable package ID, sixteen slots,
+      successful cook, and hashes.
+- [ ] Confirm cooked fixture payloads exist but no roster requirement or Character Select entry exists.
+- [ ] Confirm package-local dependency changes queue the fixture without stale-marking unrelated packages.
+- [ ] Confirm a preparation-failing recook preserves its valid payloads and generated catalog.
 
 ## Verification
 
 - [ ] Run the equivalent package verifier (and `scripts/verify-fightguy-package.sh` for FightGuy).
-- [ ] Build Shared and Server and run the Shared test suite.
+- [ ] Build Shared and Server and run applicable Shared tests with `-p:SkipUnityPluginCopy=true`.
 - [ ] Recompile Unity and read current console errors.
-- [ ] Exercise Ability Lab, Training, and a local match only after the package is roster-admitted.
-- [ ] Add `KitScenario` golden coverage only when gameplay behavior is actually specified.
+- [ ] Exercise Ability Lab for source-preview checks. After admission, exercise affected
+      Editor Training behavior. These paths compile live source, even when status is **Cooked**.
+- [ ] Execute the saved package through pinned-catalog Shared gameplay tests or a player
+      check, following [persisted gameplay verification](adding-a-new-character.md#verify-persisted-gameplay).
+      Cover the complete agreed kit for acceptance and record identity, hashes, and outcomes.
+      Disk verification alone does not prove persisted gameplay.
+- [ ] Complete applicable local gameplay and human presentation/gamefeel acceptance.
+- [ ] Add focused `KitScenario` assertions only when gameplay behavior is specified;
+      follow the [kit regression workflow](../../skills/sloparena-kit-regression-testing/SKILL.md).
 
 Do not add legacy factories, raw runtime source loaders, manual animation configs, standalone
 skeleton ownership, or a second persisted slot mapping.

@@ -257,8 +257,8 @@ public class SlopballCoopTests
     {
         var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: friendlyFire));
         var def = TestHelpers.EngineDef;
-        def.CaptureGeometry = new CookedCaptureGeometry(1.5f, .8f, 1.2f, .6f,
-            new CaptureAnchor(0, .6f, .2f), new CaptureAnchor(0, .6f, .65f));
+        def = def with { CaptureGeometry = new CookedCaptureGeometry(1.5f, .8f, 1.2f, .6f,
+            new CaptureAnchor(0, .6f, .2f), new CaptureAnchor(0, .6f, .65f)) };
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(0, -3) with { PY = TestHelpers.GroundPY(def) });
         sim.RegisterEntity(2, def, TestHelpers.PlayerState(0, -2.2f) with { PY = TestHelpers.GroundPY(def) });
         sim.Tick(new() { [1] = new InputState { GrabPressed = true } });

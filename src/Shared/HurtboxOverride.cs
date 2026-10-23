@@ -112,7 +112,7 @@ public static class HurtboxOverride
     /// </summary>
     public static bool ValidateOrder(HurtboxBoneDef[] defs, BakedAnimationData baked)
     {
-        if (baked.BoneNames == null || defs.Length > baked.BoneNames.Length) return false;
+        if (baked.BoneNames == null || defs.Length > baked.BoneNames.Count) return false;
         for (int i = 0; i < defs.Length; i++)
         {
             if (!string.Equals(defs[i].BoneName, baked.BoneNames[i], StringComparison.Ordinal))
@@ -126,5 +126,5 @@ public static class HurtboxOverride
     /// The original is left untouched — defs may be shared across entities.
     /// </summary>
     public static CharacterDefinition Apply(CharacterDefinition def, HurtboxBoneDef[] defs)
-        => def.WithHurtboxBoneDefs(defs);
+        => def with { HurtboxBoneDefs = defs };
 }

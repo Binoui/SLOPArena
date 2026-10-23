@@ -69,6 +69,7 @@ public sealed partial class AbilityLabWindow
         }
         finally
         {
+            _workspace.ReleasePreview();
             if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
         }
     }

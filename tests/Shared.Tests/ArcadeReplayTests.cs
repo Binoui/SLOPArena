@@ -147,9 +147,19 @@ public sealed class ArcadeReplayTests
         Assert.NotEqual(original, ArcadeRecordCompatibility.Slopball(arena, moved));
         // Modify an actual collision bone in a pose used by idle locomotion.
         int pose = cosmetic.BakedAnimation!.FindAnimIndex(cosmetic.Definition.IdleAnim);
-        int bone = Array.IndexOf(cosmetic.BakedAnimation.BoneNames,
-            CookedCharacterRuntimeAdapter.RuntimeBoneId(c.HurtboxBoneDefs[0].BoneId));
-        cosmetic.BakedAnimation.Animations[pose].Frames[0][bone * 3] += .5f;
+        int bone = cosmetic.BakedAnimation.FindBoneIndex(CookedCharacterRuntimeAdapter.RuntimeBoneId(c.HurtboxBoneDefs[0].BoneId));
+        var changedPoses = new BakedAnimationData
+        {
+            BoneNames = cosmetic.BakedAnimation.BoneNames,
+            Animations = cosmetic.BakedAnimation.Animations.Select((animation, index) => new BakedAnimationData.BakedAnim
+            {
+                Name = animation.Name,
+                Frames = animation.Frames.Select((frame, tick) => frame.Select((value, component) =>
+                    index == pose && tick == 0 && component == bone * 3 ? value + .5f : value).ToArray()).ToArray(),
+            }).ToArray(),
+        };
+        cosmetic = new MatchContentEntry(cosmetic.Handle, cosmetic.LegacySelector, cosmetic.Identity,
+            cosmetic.DisplayName, cosmetic.Definition, changedPoses, cosmetic.CookedCharacterPackage);
         Assert.NotEqual(original, ArcadeRecordCompatibility.Slopball(arena, cosmetic));
         arena.CollisionTriangles[0].AX += .1f;
         Assert.NotEqual(original, ArcadeRecordCompatibility.Slopball(arena, entry));

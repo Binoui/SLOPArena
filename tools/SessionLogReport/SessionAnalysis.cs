@@ -262,12 +262,8 @@ internal static class SessionAnalysis
 
     internal static string MoveLabel(byte activeSlot, bool air)
     {
-        string label = activeSlot switch
-        {
-            AbilitySlots.Slot1 => "1", AbilitySlots.Slot2 => "2", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
-            AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F",
-            _ => "slot " + activeSlot,
-        };
+        string label = CanonicalSlotProjection.TryGet(activeSlot, air, out var address)
+            ? address.InputLabel : "slot " + activeSlot;
         return (air ? "air." : "ground.") + label;
     }
 

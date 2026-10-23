@@ -66,9 +66,10 @@ verification and does not require a publishing cook for every numerical edit.
 
 ### Accepted package
 
-Content intended to ship crosses the explicit `inspect` → `cook` → `verify` →
-`roster.refresh` boundary. Require fresh cooked artifacts, matching hashes, and
-exact admitted roster pins before treating it as an accepted package.
+Content intended to ship requires inspect, cook, disk verification, persisted
+gameplay checks, and exact admitted roster pins. Cook automatically refreshes an
+existing roster entry before acceptance checks. New admission remains a separate
+step after the required kit and presentation checks.
 
 ## Workflow
 
@@ -112,26 +113,50 @@ bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.cha
 ```
 
 `inspect` reports the canonical 16-slot projection, source/cooked hashes, status,
-stale reasons, and diagnostics. Accepted `cook` validates the Shared source, resolves
+stale reasons, and diagnostics. `cook` validates the Shared source, resolves
 Unity bindings, bakes poses, writes generated bindings, assembles the immutable
-package, and reports source, cooked-content, and package hashes.
+package, and reports source, cooked-content, and package hashes. It publishes four
+package payloads, intermediate pose/binding files, the generated client catalog,
+and cook status. For an already-rostered package, it then rewrites that entry's
+version and hashes in `content-cooked/roster/manifest.json`, preserving its selector
+and other entries. It does not add a new entry. See
+[`CharacterPackageAuthoringService.Cook`](../../client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringService.cs).
 
-An accepted semantic failure has a structured result with `success: false`; a failed
-cook preserves the last valid cooked artifact and status. Repair diagnostics and retry.
-Do not edit generated runtime output to hide a source or catalog error.
+A semantic failure has a structured result with `success: false`. Preparation failure
+leaves the prior cook intact; publication failure attempts rollback and reports any
+rollback error. Roster refresh occurs after publication, so its failure can leave
+new payloads, cache, and status on disk. Inspect artifacts and pins before retrying.
+Lab saves source before invoking cook. Do not edit generated runtime output to hide
+a source or catalog error.
 
 ### 5. Admit and verify
 
 The package assembler writes an immutable manifest under `content-cooked/<package>/`. The manifest pins package ID, version, cooked-content hash, package hash, schema/API compatibility, dependencies, and capability requirements. Built-in roster admission pins the exact package requirement in `content-cooked/roster/manifest.json`.
 
+Require successful cook, complete presentation assets, and kit regression proof
+before new admission. Automatic repinning of an existing package does not establish
+acceptance. Re-inspect the exact requirement after verification; use the supported
+`sloparena.character.roster.refresh` command only when a separate refresh is needed.
+
 Validation must fail closed for missing or mismatched source, catalog, pose payload, capability, dependency, schema, or hash. A Match Content Catalog pins the verified package set per match; a later recook cannot change a running match.
 
 ## 6. Preview through the real path
 
-Local iteration previews valid drafts through the transient development catalog and
-the same interpreter used by Training. Accepted packages preview the persisted cooked
-definition after inspect/cook/verify and roster refresh. Invalid drafts may show a
-clearly non-authoritative editing pose only; they must never silently become match content.
+Ordinary Ability Lab refresh compiles the current workspace into a live draft.
+Editor Training and Solo Play compile source through the transient development
+catalog. These paths still use Shared simulation, but neither proves saved gameplay
+playback, even with a clean **Cooked** status and matching disk hashes. Invalid drafts
+must not silently become match content or fall back to an old definition.
+
+For accepted content, execute the persisted package through pinned-catalog Shared
+gameplay tests or a player using verified staged content. Follow the
+[persisted gameplay recipe](../../docs/characters/adding-a-new-character.md#verify-persisted-gameplay),
+which names `BuiltInContentResolver.Resolve` and an existing Bonk hit/block/miss test.
+Use checks for the affected package and complete agreed kit; that example covers
+only Bonk's aerial normals. Record identity, version, hashes, content root, checked
+moves, and outcomes. Loading saved files or checking hashes alone is insufficient.
+Keep the Lab/Training presentation checks and human gamefeel acceptance as separate
+evidence. No saved-content selection mode is exposed by the ordinary Lab window.
 
 For online content, verify server admission and exact client/server hash agreement.
 Presentation resolves semantic IDs to generated package bindings and plays through
@@ -171,6 +196,8 @@ For an accepted package:
 - catalog bindings match required semantic IDs and exact imported assets;
 - inspect, cook, and verify succeed; the cook replaces the prior artifact atomically;
 - manifest, runtime definition, pose payload, generated bindings, and hashes agree;
-- roster pins refresh only after accepted verification;
-- the affected Ability Lab or Training surface consumes the persisted cooked definition; exercise both only when each has distinct changed behavior;
+- existing roster pins match the cook's automatic refresh; new admission follows required verification;
+- the complete agreed kit executes from saved content through pinned-catalog Shared gameplay tests or a player check, with identities and outcomes recorded;
+- the affected Ability Lab or Editor Training path verifies source presentation; exercise both only when each has distinct changed behavior;
+- required human presentation/gamefeel acceptance is recorded separately;
 - Shared/server authority remains unchanged and presentation is client-only.

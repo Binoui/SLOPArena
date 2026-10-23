@@ -37,7 +37,7 @@ public class BakedHipsOffsetTests
             {
                 new BakedAnimationData.BakedAnim
                 {
-                    Name = "attack", FrameCount = 2,
+                    Name = "attack",
                     Frames = new[] { Frame(1.2f), Frame(1.6f) },
                 },
             },
@@ -47,8 +47,8 @@ public class BakedHipsOffsetTests
     private static CharacterDefinition Def()
     {
         var def = TestHelpers.EngineDef;
-        def.HipHeight = 0.5f;
-        def.HurtboxBoneScale = 0.85f;
+        def = def with { HipHeight = 0.5f };
+        def = def with { HurtboxBoneScale = 0.85f };
         var slots = def.CookedSlots!.ToArray();
         slots[0] = new CookedSlotDefinition(0, "ground.1", false, "Hips offset test", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
@@ -56,17 +56,13 @@ public class BakedHipsOffsetTests
             {
                 new CookedStage(2, 0, 0, 0, 0, new[] { "attack" }, Array.Empty<CookedTimelineOperation>()),
             }));
-        def.CookedSlots = slots;
-        def.Slot1 = new AbilitySpec
-        {
-            Stages = new[] { new AttackStage { DurationTicks = 2 } },
-            AnimationNames = new[] { "attack" },
-        };
-        def.HurtboxBoneDefs = new[]
+        def = def with { CookedSlots = slots };
+
+        def = def with { HurtboxBoneDefs = new[]
         {
             new HurtboxBoneDef("mixamorig:Hips", 0f, 0f, 0f, 0.26f),
             new HurtboxBoneDef("mixamorig:Head", 0f, 0f, 0f, 0.22f),
-        };
+        } };
         return def;
     }
 
@@ -94,7 +90,7 @@ public class BakedHipsOffsetTests
     {
         var baked = Bake(withHipsOffset: true);
         Assert.Equal(4, baked.HipsOffsetIndex);
-        baked.BoneNames = new[] { "mixamorig:Hips" };
+        baked = new BakedAnimationData { BoneNames = new[] { "mixamorig:Hips" } };
         Assert.Equal(-1, baked.HipsOffsetIndex);
     }
 
@@ -152,8 +148,7 @@ public class BakedHipsOffsetTests
         // Slot1 (wire slot 2): elapsed 1 of its 2-tick stage over 2 frames selects
         // frame 1, where the tip is 1.6 m forward.
         var s = State(elapsed: 1);
-        HitboxGeometry.ResolvePositions(s, evt, baked, def, new[] { "attack" }, 0, 2, false,
-            out float hx, out float hy, out float hz, out float tx, out float ty, out float tz);
+        HitboxGeometry.ResolvePositions(s, evt, baked, def, def?.GetCookedSlotAbility((byte)((2) + 1), false), 0, out float hx, out float hy, out float hz, out float tx, out float ty, out float tz);
 
         AssertPoint(World(s, HipsOffset[0], HipsOffset[1] + 0.6f, HipsOffset[2] + 0.3f), hx, hy, hz);
         AssertPoint(World(s, HipsOffset[0], HipsOffset[1] + 0.5f, HipsOffset[2] + 1.6f), tx, ty, tz);

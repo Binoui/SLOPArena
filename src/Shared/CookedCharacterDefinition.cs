@@ -208,6 +208,42 @@ public sealed class CookedSlotDefinition
     public string? AimAnimationId { get; }
     public CookedTimeline Timeline { get; }
 
+    public int ClipCount { get; }
+
+    /// <summary>Reads a flattened presentation clip without confusing it with a timeline stage.</summary>
+    public MoveClip Clip(int clipIndex)
+    {
+        int index = ClipCount > 0 ? clipIndex % ClipCount : 0;
+        int startTick = 0;
+        for (int stageIndex = 0; stageIndex < Timeline.Stages.Count; stageIndex++)
+        {
+            var stage = Timeline.Stages[stageIndex];
+            if (index < stage.AnimationIds.Count)
+            {
+                bool phase = index > 0;
+                return new MoveClip(stage.AnimationIds[index], stageIndex,
+                    (ushort)(phase ? 0 : startTick), stage.DurationTicks, phase);
+            }
+            index -= stage.AnimationIds.Count;
+            startTick += stage.DurationTicks;
+        }
+        return new MoveClip("idle", 0, 0, Timeline.Stages[0].DurationTicks, false);
+    }
+
+    public byte FirstClipIndex(int stageIndex)
+    {
+        int clip = 0;
+        for (int i = 0; i < stageIndex; i++) clip += Timeline.Stages[i].AnimationIds.Count;
+        return (byte)clip;
+    }
+
+    public int FindClip(string animationId)
+    {
+        for (int i = 0; i < ClipCount; i++)
+            if (Clip(i).AnimationId == animationId) return i;
+        return -1;
+    }
+
     public CookedSlotDefinition(
         int ordinal,
         string id,
@@ -241,6 +277,7 @@ public sealed class CookedSlotDefinition
         PreserveMomentumOnStart = preserveMomentumOnStart;
         AllowSlideCarry = allowSlideCarry;
         Timeline = timeline;
+        foreach (var stage in timeline.Stages) ClipCount += stage.AnimationIds.Count;
         ChargePool = chargePool;
         AimMovement = aimMovement;
         AimMovementSpeedScale = aimMovementSpeedScale;
@@ -624,7 +661,11 @@ public sealed record CookedWibouRisingSlashCapabilityParameters(
 
 public sealed record CookedWibouBladeFlurryCapabilityParameters(
     float ForwardSpeed,
-    ushort MoveTicks) : CookedCapabilityParameters;
+    ushort AscentStartTick,
+    ushort AscentEndTick,
+    ushort DescentStartTick,
+    float RiseSpeed,
+    float DescentSpeed) : CookedCapabilityParameters;
 public sealed record CookedSteeredChargeCapabilityParameters(
     float GallopSpeed,
     float TurnDegreesPerSecond,
@@ -723,6 +764,16 @@ public sealed record CookedMankiAerosolInfernoCapabilityParameters(
     ushort MinimumChargeTicks = 0,
     IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers = null) : CookedCapabilityParameters
 {
+    private IReadOnlyList<MankiAerosolChargeTier>? _chargeTiers = CopyTiers(ChargeTiers);
+    public IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers
+    {
+        get => _chargeTiers;
+        init => _chargeTiers = CopyTiers(value);
+    }
+
+    private static IReadOnlyList<MankiAerosolChargeTier>? CopyTiers(IReadOnlyList<MankiAerosolChargeTier>? tiers)
+        => tiers == null ? null : new ReadOnlyCollection<MankiAerosolChargeTier>(new List<MankiAerosolChargeTier>(tiers));
+
     public ushort MaxChargeTicks => ChargeTiers != null && ChargeTiers.Count > 0
         ? ChargeTiers[ChargeTiers.Count - 1].ChargeTicks : MinimumChargeTicks;
 

@@ -82,16 +82,19 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
 
     internal static void QueueRecook(IEnumerable<string> packageIds)
     {
-        if (_processing) return;
+        var requested = new HashSet<string>(StringComparer.Ordinal);
         foreach (var packageId in packageIds ?? Array.Empty<string>())
             if (MatchContentCatalogBuilder.IsStablePackageId(packageId))
+            {
                 _pendingPackages.Add(packageId);
+                requested.Add(packageId);
+            }
         if (_pendingPackages.Count == 0) return;
         if (!_pending) _queueRequestCount++;
         _pending = true;
         _dueTime = UnityEditor.EditorApplication.timeSinceStartup + 0.25;
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
-        foreach (var packageId in _pendingPackages.ToArray())
+        foreach (var packageId in requested)
             service.MarkStale(packageId);
         EditorApplication.update -= ProcessQueue;
         if (_selfTestDepth == 0) EditorApplication.update += ProcessQueue;
@@ -101,8 +104,10 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
     {
         var changed = new HashSet<string>(
             (paths ?? Array.Empty<string>())
-                .Select(UnityCharacterAssetCooker.NormalizeProjectPath),
+                .Select(UnityCharacterAssetCooker.NormalizeProjectPath)
+                .Where(path => !IsGeneratedCookOutput(path)),
             StringComparer.Ordinal);
+        if (changed.Count == 0) return Array.Empty<string>();
         var affected = new List<string>();
         foreach (string guid in AssetDatabase.FindAssets("t:CharacterAssetCatalog", new[] { "Assets/CharacterPackages" }))
         {
@@ -136,21 +141,57 @@ public sealed class CharacterCookAssetPostprocessor : AssetPostprocessor
     private static void ProcessQueue()
     {
         if (_selfTestDepth > 0 || !_pending || _processing || EditorApplication.timeSinceStartup < _dueTime) return;
+        var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
+        DrainQueue(packageId => service.Cook("Assets/CharacterPackages/" + packageId));
+    }
+
+    private static bool IsGeneratedCookOutput(string path)
+    {
+        const string root = "Assets/Resources/Generated/CharacterPackages/";
+        if (!path.StartsWith(root, StringComparison.Ordinal)) return false;
+        int slash = path.IndexOf('/', root.Length);
+        if (slash < 0) return false;
+        string packageId = path.Substring(root.Length, slash - root.Length);
+        if (!MatchContentCatalogBuilder.IsStablePackageId(packageId)) return false;
+        string output = CharacterCookOutput.For(packageId).GeneratedAssetPath;
+        string asset = path.EndsWith(".meta", StringComparison.Ordinal) ? path.Substring(0, path.Length - 5) : path;
+        return asset == output || asset == CharacterAnimationCatalogGenerator.TemporaryPath(output) || asset == output + ".previous";
+    }
+
+    private static void DrainQueue(Func<string, CharacterPackageCookResult> cook)
+    {
+        if (_processing) throw new InvalidOperationException("A package cook is already processing.");
+        string[] requested = _pendingPackages.OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        _pendingPackages.ExceptWith(requested);
+        _pending = false;
+        EditorApplication.update -= ProcessQueue;
         _processing = true;
         try
         {
-            foreach (string packageId in DiscoverPackageIds())
+            foreach (string packageId in requested)
             {
-                string packageRoot = "Assets/CharacterPackages/" + packageId;
-                new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot()).Cook(packageRoot);
+                try
+                {
+                    CharacterPackageCookResult result = cook(packageId);
+                    string message = $"[SLOPArena] Automatic cook {packageId}: {(result.Success ? "succeeded" : "failed")}.";
+                    foreach (var diagnostic in result.Diagnostics)
+                        message += $"\n{diagnostic.Severity} {diagnostic.Code} {diagnostic.Path}: {diagnostic.Message}";
+                    if (!result.Success) UnityEngine.Debug.LogError(message);
+                    else if (result.Diagnostics.Any(diagnostic => diagnostic.Severity == "warning")) UnityEngine.Debug.LogWarning(message);
+                    else UnityEngine.Debug.Log(message);
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError($"[SLOPArena] Automatic cook {packageId} failed: {ex}");
+                }
             }
         }
         finally
         {
-            _pendingPackages.Clear();
-            _pending = false;
             _processing = false;
+            _pending = _pendingPackages.Count > 0;
             EditorApplication.update -= ProcessQueue;
+            if (_selfTestDepth == 0 && _pending) EditorApplication.update += ProcessQueue;
         }
     }
 }

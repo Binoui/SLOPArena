@@ -71,7 +71,7 @@ public class IasaTests
         var slots = def.CookedSlots!.ToArray();
         slots[0] = TestSlot(0, "ground.1", Slot1Duration, iasa ? Slot1Iasa : (ushort)0, VelocityOperations(Slot1Lunge));
         slots[1] = TestSlot(1, "ground.2", Slot2Duration, 0, VelocityOperations(Slot2Lunge));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 
@@ -80,7 +80,7 @@ public class IasaTests
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
         slots[0] = TestSlot(0, "ground.1", Slot1Duration, 0);
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 
@@ -115,7 +115,7 @@ public class IasaTests
                     30,
                     true,
                     0)));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         return def;
     }
 
@@ -172,15 +172,17 @@ public class IasaTests
             AttackElapsedTicks = Slot1Iasa,
             IsGrounded = true,
         };
-        Assert.True(Simulation.IsIasaUnlocked(state, Def));
+        var slot = Def.GetCookedSlotAbility(AbilitySlots.Slot1, false)!;
+        var move = new ActiveMoveView(slot, 0, Slot1Iasa, false, 0, default);
+        Assert.True(Simulation.IsIasaUnlocked(in state, move));
 
         state.State = ActionState.Hitstun;
         state.AnimLockTicks = Slot1Duration;
-        Assert.False(Simulation.IsIasaUnlocked(state, Def));
+        Assert.False(Simulation.IsIasaUnlocked(in state, move));
 
         state.State = ActionState.Attacking;
         state.AttackSlot = AbilitySlots.None;
-        Assert.False(Simulation.IsIasaUnlocked(state, Def));
+        Assert.False(Simulation.IsIasaUnlocked(in state, move));
     }
 
 
@@ -309,7 +311,7 @@ public class IasaTests
                     true,
                     0)));
         slots[1] = TestSlot(1, "ground.2", Slot2Duration, 0, VelocityOperations(Slot2Lunge));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
 
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) });
@@ -564,7 +566,7 @@ public class IasaTests
             slots[0].Timeline.Stages[0].Operations.Single(),
             new CookedSpawnProjectileOperation(0, AuthoringUnit.MetersPerSecond,
                 new CookedProjectile(0, 4, 0, 10, 0, .2f, 5, 30, 2, 3, 10, 60)));
-        def.CookedSlots = slots;
+        def = def with { CookedSlots = slots };
         var arena = TestHelpers.TestArena();
         arena.KillTop = 20;
         var sim = TestHelpers.MakeSim(arena);
@@ -597,7 +599,9 @@ public class IasaTests
                 break;
             case "snapshot":
                 var snapshot = TestHelpers.PlayerState() with { PY = 5, State = ActionState.Hitstun, HitstunTicks = 20 };
-                sim.ApplyAuthoritativeState(1, snapshot);
+                var authoritative = TestHelpers.MakeSim(arena);
+                authoritative.RegisterEntity(1, def, snapshot);
+                sim.RestoreSnapshot(authoritative.CaptureSnapshot());
                 Assert.Equal(snapshot, sim.GetState(1));
                 break;
         }

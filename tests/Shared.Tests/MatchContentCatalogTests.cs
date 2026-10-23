@@ -65,78 +65,21 @@ public sealed class MatchContentCatalogTests
     }
 
     [Fact]
-    public void EntryCopiesMutableContentAndPreservesDefensePresentation()
+    public void EntrySharesImmutableContentAndPreservesDefensePresentation()
     {
-        var source = TestHelpers.EngineDef;
-        source.ShieldAnim = "shield.test";
-        source.GrabAnim = "grab.test";
-        source.GrabbedAnim = "grabbed.test";
-        source.ThrowForwardAnim = "throw.test";
-        source.AirDodgeAnim = "dodge.test";
-        source.HurtboxBoneDefs = new[] { new HurtboxBoneDef("bone", 0, 0, 0, .4f) };
-        source.ClipOverrides = new[] { new AnimationClipConfig { Name = "clip", FrameRateOverride = 30 } };
-        source.Slot1 = new AbilitySpec
+        var definition = TestHelpers.EngineDef with
         {
-            AimAnimationId = "aim.test",
-            HitPresentationId = "hit.test",
-            AnimationNames = new[] { "swing" },
-            Params = new() { ["hitstop_multiplier"] = .5f },
-            BoneTrails = new[] { new BoneTrailDef { Width = .1f } },
-            Stages = new[]
-            {
-                new AttackStage
-                {
-                    DurationTicks = 20,
-                    HitboxEvents = new[] { new HitboxEvent { Damage = 7 } },
-                    BoneTrails = new[] { new BoneTrailDef { Width = .2f } },
-                },
-            },
-        };
-        source.AirSlot1 = source.Slot1;
-        var slots = source.CookedSlots!.ToArray();
-        source.CookedSlots = slots;
-        var baked = new BakedAnimationData
-        {
-            BoneNames = new[] { "bone" },
-            Animations = new[] { new BakedAnimationData.BakedAnim { Name = "swing", FrameCount = 1, Frames = new[] { new[] { 1f, 2f, 3f } } } },
+            ShieldAnim = "shield.test", GrabAnim = "grab.test", GrabbedAnim = "grabbed.test",
+            ThrowForwardAnim = "throw.test", AirDodgeAnim = "dodge.test",
         };
         var identity = new MatchContentIdentity("test", "1", "", "", "");
-        var entry = new MatchContentEntry(new ContentHandle(1), CharacterClass.Manki, identity, "test", source, baked);
-
-        source.Movement.Gravity = 99;
-        source.HurtboxCapsules![0].Radius = 9;
-        source.HurtboxBoneDefs[0].Radius = 9;
-        source.ClipOverrides[0].FrameRateOverride = 99;
-        source.Slot1.Params["hitstop_multiplier"] = 9;
-        source.Slot1.AnimationNames[0] = "changed";
-        source.Slot1.BoneTrails[0].Width = 9;
-        source.Slot1.Stages[0].HitboxEvents[0].Damage = 99;
-        source.Slot1.Stages[0].BoneTrails![0].Width = 9;
-        slots[0] = slots[1];
-        baked.BoneNames[0] = "changed";
-        baked.Animations[0].Frames[0][0] = 99;
-
-        var copy = entry.Definition;
-        Assert.Equal("shield.test", copy.ShieldAnim);
-        Assert.Equal("grab.test", copy.GrabAnim);
-        Assert.Equal("grabbed.test", copy.GrabbedAnim);
-        Assert.Equal("throw.test", copy.ThrowForwardAnim);
-        Assert.Equal("dodge.test", copy.AirDodgeAnim);
-        Assert.Equal(36f, copy.Movement.Gravity);
-        Assert.Equal(.3f, copy.HurtboxCapsules![0].Radius);
-        Assert.Equal(.4f, copy.HurtboxBoneDefs![0].Radius);
-        Assert.Equal(30f, copy.ClipOverrides![0].FrameRateOverride);
-        Assert.Equal("aim.test", copy.Slot1!.AimAnimationId);
-        Assert.Equal("hit.test", copy.Slot1.HitPresentationId);
-        Assert.Equal(.5f, copy.Slot1.Params["hitstop_multiplier"]);
-        Assert.Equal("swing", copy.Slot1.AnimationNames![0]);
-        Assert.Equal(.1f, copy.Slot1.BoneTrails![0].Width);
-        Assert.Equal(7f, copy.Slot1.Stages[0].HitboxEvents[0].Damage);
-        Assert.Equal(7f, copy.AirSlot1!.Stages[0].HitboxEvents[0].Damage);
-        Assert.Equal(.2f, copy.Slot1.Stages[0].BoneTrails![0].Width);
-        Assert.Equal("ground.1", copy.CookedSlots![0].Id);
-        Assert.Equal("bone", entry.BakedAnimation!.BoneNames[0]);
-        Assert.Equal(1f, entry.BakedAnimation.Animations[0].Frames[0][0]);
+        var entry = new MatchContentEntry(new ContentHandle(1), CharacterClass.Manki, identity, "test", definition);
+        Assert.Same(definition, entry.Definition);
+        Assert.Equal("shield.test", entry.Definition.ShieldAnim);
+        Assert.Equal("grab.test", entry.Definition.GrabAnim);
+        Assert.Equal("grabbed.test", entry.Definition.GrabbedAnim);
+        Assert.Equal("throw.test", entry.Definition.ThrowForwardAnim);
+        Assert.Equal("dodge.test", entry.Definition.AirDodgeAnim);
     }
 
     [Fact]

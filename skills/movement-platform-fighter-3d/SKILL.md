@@ -1,6 +1,6 @@
 ---
 name: movement-platform-fighter-3d
-description: "SLOPArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, Dash, ledges, server authority, and Smash-style percent."
+description: "SLOPArena Unity 6 C# movement and combat fundamentals: camera-relative 8-way movement, JumpArc, ShortHop, FastFall, grounded Shield, directional air dodge, server authority, and Smash-style percent."
 metadata: {"category": "game-dev", "tags": ["unity", "csharp", "platform-fighter", "movement", "combat"]}
 ---
 
@@ -16,15 +16,16 @@ Use this skill for movement, input, and universal combat changes. The authoritat
 - JumpArc is the complete jump animation. Fall starts when the JumpArc finishes while the entity remains airborne, not at the physics apex.
 - FastFall requires a fresh Down press while already descending and latches through release. Ascent/apex presses are discarded; locks and authored vertical motion cannot be overridden. Ordinary aerial attacks may coexist.
 - Grounded Down selects Crouch or momentum-spending Slide; actionable held-Down landings may slide. SlideJump retains ordinary squat and jump resources. See the canonical combat guide for thresholds, interruption/reset rules, normal carry and settled CrouchBrace rather than duplicating tuning here.
-- Dash is the Shift-triggered evasion/approach burst. Its opening ticks grant DashInvincibility. Ground Dash hard-stops at expiry; aerial Dash preserves momentum.
-- LedgeHang is occupied and single-occupancy. Drop, ledge jump, and stand are explicit actions.
+- Defense (Left Shift / RT) holds Shield while grounded. A fresh airborne press starts a directional air dodge, aimed by the stick or forward when neutral. Shared owns its invulnerability, recovery, and one-use-per-flight resource.
+- Universal Dash is retired. Kit-owned dash, lunge, and recovery abilities retain their authored behavior.
+- Automatic ledge grabs and LedgeHang are disabled for the demo. Their old state and packet fields remain reserved; recover onto a stage surface with movement, jumps, and kit abilities.
 - FloatWindow is restored by landing, taking damage, or RecoveryMove. Normal air attacks do not reset it.
 
 All durations are 60 Hz simulation ticks. Do not implement movement from render-frame delta time.
 
 ## Input boundary
 
-`InputController.Poll()` and `BuildInputState()` produce `SlopArena.Shared.InputState`. Down hold and the one-shot DownPressed edge are independent of movement axes. The state also carries movement, jump, Dash, Burst, canonical active slot, camera aim, target intent, JumpHeld, facing-camera edge, and target-lock toggle fields. The client supplies intent; Shared simulation validates and applies gameplay.
+`InputController.Poll()` and `BuildInputState()` produce `SlopArena.Shared.InputState`. Down hold and the one-shot DownPressed edge are independent of movement axes. `ShieldHeld` and `ShieldPressed` supply defense intent; `GrabPressed` supplies grab intent. The state also carries movement, jump, canonical active slot, camera aim, target intent, JumpHeld, facing-camera edge, and target-lock toggle fields. Legacy Dash and Burst bits remain reserved and inert. The client supplies intent; Shared simulation validates and applies gameplay.
 
 The canonical move grid is grounded and aerial variants of `1`, `2`, `3`, `4`, `A`, `E`, `R`, and `F`. Physical controls are remappable adapters. They are not package identity.
 
@@ -32,21 +33,13 @@ NPCs use generated/training inputs rather than keyboard state. Keep AI input on 
 
 ## Simulation order
 
-When changing movement, trace the actual order in `ServerSimulation`:
-
-1. timers and per-entity locks;
-2. hitstop, Hitstun, Knockback, and death/respawn handling;
-3. active timeline/capability execution;
-4. Dash, Burst, jump, and slot activation gates;
-5. normal ground/air movement and gravity;
-6. terrain, ledge, landing-lag, and auto-cancel resolution;
-7. hitbox/projectile resolution and authoritative state/event output.
+When changing movement, follow [`ServerSimulation.Tick`](../../src/Shared/ServerSimulation.cs) and the helpers it calls. `PreTickAbilities`, `SimulateMovement`, and `Simulation.SimulateTick` own different admission and movement phases. Use their current call order rather than a copied tick sequence.
 
 Preserve server authority. Client prediction and rollback replay the Shared rules; they must not add client-only corrections for gameplay mechanics.
 
 ## Combat invariants
 
-Damage uses percent, not an HP depletion rule. Knockback is resolved from the hit profile and current percent. Hitstun, Hitstop, Combo Influence, Clash, Burst, IASA, landing lag, air-use counters, and DashInvincibility are simulation-owned. See [`docs/systems/combat-systems.md`](../../docs/systems/combat-systems.md).
+Damage uses percent, not an HP depletion rule. Knockback is resolved from the hit profile and current percent. Shared owns Hitstun, Hitstop, rotational DI, SDI, ASDI, Shield, air dodge, grabs, throws, IASA, landing lag, and air-use counters. Simultaneous attacks trade; reciprocal active grabs clash. Attack Clash remains planned, not implemented, under ADR-0015. Burst is reserved and inert. See [`docs/systems/combat-systems.md`](../../docs/systems/combat-systems.md).
 
 Use pure Shared math for collision and displacement. Unity physics, animations, VFX, and camera effects are presentation or input aids only.
 

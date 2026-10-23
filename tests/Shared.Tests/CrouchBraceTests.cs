@@ -181,14 +181,14 @@ public sealed class CrouchBraceTests
         var targetDef = TestHelpers.EngineDef;
         if (withPose)
         {
-            targetDef.CrouchAnim = "crouch";
-            targetDef.HurtboxBoneDefs = new[]
+            targetDef = targetDef with { CrouchAnim = "crouch" };
+            targetDef = targetDef with { HurtboxBoneDefs = new[]
             {
                 new HurtboxBoneDef("mixamorig:Hips", 0f, 0f, 0f, .3f),
-            };
+            } };
         }
         if (!withBoneDefs)
-            targetDef.HurtboxBoneDefs = null;
+            targetDef = targetDef with { HurtboxBoneDefs = null };
 
         var attacker = TestHelpers.PlayerState(-2f, 0f) with
         {
@@ -307,7 +307,7 @@ public sealed class CrouchBraceTests
                 new BakedAnimationData.BakedAnim
                 {
                     Name = "crouch",
-                    FrameCount = 1,
+
                     Frames = new[] { new[] { 0f, 0f, 0f } },
                 },
             },

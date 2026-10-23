@@ -30,6 +30,9 @@ public sealed class CookedCharacterPackageLoadResult
 }
 public static class CookedCharacterPackageLoader
 {
+    private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
+        Enumerable.Range(0, 11).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+
     public static CookedCharacterPackageLoadResult LoadAssembly(CharacterPackageAssemblyResult assembly)
     {
         if (assembly == null)
@@ -83,13 +86,12 @@ public static class CookedCharacterPackageLoader
         {
             var m=ParseManifest(copied[CharacterPackageAssembler.ManifestPath]);
             if(m.PackageId!=requirement!.PackageId||m.Version!=requirement.Version||m.CookedContentHash!=requirement.CookedContentHash||m.PackageHash!=requirement.PackageHash) d.Add(Error("package.identity.mismatch","manifest","Package identity does not match the requested requirement."));
-            if(m.CookedSchemaVersion!=3||(m.RuntimeApiMin!="1.0.0"&&m.RuntimeApiMin!="1.1.0"&&m.RuntimeApiMin!="1.2.0"&&m.RuntimeApiMin!="1.3.0"&&m.RuntimeApiMin!="1.4.0"&&m.RuntimeApiMin!="1.5.0"&&m.RuntimeApiMin!="1.6.0"&&m.RuntimeApiMin!="1.7.0"&&m.RuntimeApiMin!="1.8.0"&&m.RuntimeApiMin!="1.9.0"&&m.RuntimeApiMin!="1.10.0")||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
+            if(m.CookedSchemaVersion!=3||!SupportedRuntimeApiMinimums.Contains(m.RuntimeApiMin)||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
             if(m.Dependencies.Count!=0) d.Add(Error("package.dependencies.unsupported","manifest.dependencies","Unresolved package dependencies are not supported."));
             foreach (var c in m.Capabilities)
             {
-                if (c.CapabilityId == CharacterPackageCompiler.RetiredTargetedLeapCapabilityId ||
-                    c.CapabilityId == CharacterPackageCompiler.RetiredWibouDashSlashCapabilityId)
-                    d.Add(Error("package.capability.retired", c.CapabilityId, "Capability has been retired."));
+                if (RetiredCapabilities.TryGetReason(c.CapabilityId, out var retiredReason))
+                    d.Add(Error("package.capability.retired", c.CapabilityId, retiredReason));
                 else if (!CharacterPackageCompiler.IsRuntimeCapability(c.CapabilityId, c.CapabilityVersion))
                     d.Add(Error("package.capability.unsupported", c.CapabilityId, "Cooked capability is not supported by this runtime."));
             }
@@ -116,14 +118,17 @@ public static class CookedCharacterPackageLoader
                 .ToDictionary(x => x.GetProperty("poseTrackId").GetString()!,
                     x => x.GetProperty("semanticId").GetString()!, StringComparer.Ordinal);
             // The verified bindings are one-to-one; runtime lookup uses semantic IDs.
-            foreach (var animation in baked.Animations)
-                animation.Name = semanticByPose[animation.Name];
+            baked = new BakedAnimationData
+            {
+                BoneNames = baked.BoneNames,
+                Animations = baked.Animations.Select(animation => animation.WithName(semanticByPose[animation.Name])).ToArray(),
+            };
             if(d.Any(x=>x.Severity==CharacterDiagnosticSeverity.Error)) return Failure(d);
             return new CookedCharacterPackageLoadResult(package,baked,new MatchContentIdentity(m.PackageId,m.Version,m.SourceHash,m.CookedContentHash,m.PackageHash),d);
         }
-        catch (InvalidDataException ex) when (ex.Message.StartsWith("Retired capability", StringComparison.Ordinal))
+        catch (RetiredCapabilityException ex)
         {
-            d.Add(Error("package.capability.retired", "package", ex.Message));
+            d.Add(Error("package.capability.retired", ex.CapabilityId, ex.Message));
             return Failure(d);
         }
         catch (Exception ex) { d.Add(Error("package.runtime.malformed", "package", ex.Message)); return Failure(d); }
@@ -138,9 +143,8 @@ public static class CookedCharacterPackageLoader
         var declared = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var requirement in definition.CapabilityRequirements)
         {
-            if (requirement.CapabilityId == CharacterPackageCompiler.RetiredTargetedLeapCapabilityId ||
-                requirement.CapabilityId == CharacterPackageCompiler.RetiredWibouDashSlashCapabilityId)
-                diagnostics.Add(Error("package.capability.retired", requirement.CapabilityId, "Capability has been retired."));
+            if (RetiredCapabilities.TryGetReason(requirement.CapabilityId, out var retiredReason))
+                diagnostics.Add(Error("package.capability.retired", requirement.CapabilityId, retiredReason));
             else if (!CharacterPackageCompiler.IsRuntimeCapability(requirement.CapabilityId, requirement.CapabilityVersion))
                 diagnostics.Add(Error("package.capability.unsupported", requirement.CapabilityId, "Runtime capability requirement is not supported by this runtime."));
             if (!declared.TryAdd(requirement.CapabilityId, requirement.CapabilityVersion))
@@ -153,9 +157,13 @@ public static class CookedCharacterPackageLoader
         {
             if (operation is not CookedStartCapabilityOperation capability)
                 continue;
-            if (capability.CapabilityId == CharacterPackageCompiler.RetiredTargetedLeapCapabilityId ||
-                capability.CapabilityId == CharacterPackageCompiler.RetiredWibouDashSlashCapabilityId)
-                diagnostics.Add(Error("package.capability.retired", capability.CapabilityId, "Capability has been retired."));
+            if (capability.Parameters is CookedWibouBladeFlurryCapabilityParameters flurry &&
+                (!CharacterPackageCompiler.ValidBladeFlurry(flurry.ForwardSpeed, flurry.AscentStartTick,
+                    flurry.AscentEndTick, flurry.DescentStartTick, flurry.RiseSpeed, flurry.DescentSpeed)
+                    || flurry.DescentStartTick >= stage.DurationTicks))
+                diagnostics.Add(Error("package.capability.invalid", slot.Id, "Blade Flurry motion must use valid speeds and ordered ticks inside its stage."));
+            if (RetiredCapabilities.TryGetReason(capability.CapabilityId, out var retiredReason))
+                diagnostics.Add(Error("package.capability.retired", capability.CapabilityId, retiredReason));
             else if (!CharacterPackageCompiler.IsRuntimeCapability(capability.CapabilityId, capability.CapabilityVersion))
                 diagnostics.Add(Error("package.capability.unsupported", capability.CapabilityId, "Cooked capability version is not supported by this runtime."));
             else if (!declared.TryGetValue(capability.CapabilityId, out var version))
@@ -828,10 +836,8 @@ public static class CookedCharacterPackageLoader
                 q.ContainsKey("sprayLoopTicks") ? U(q, "sprayLoopTicks") : (ushort)0, SO(q, "endAnimationId", ""));
         private static CookedCapabilityParameters ParseParameters(string id, JsonElement e)
         {
-            if (id == CharacterPackageCompiler.RetiredTargetedLeapCapabilityId)
-                throw new InvalidDataException("Retired capability: the Bonk-only targeted jump slam capability is not supported.");
-            if (id == CharacterPackageCompiler.RetiredWibouDashSlashCapabilityId)
-                throw new InvalidDataException("Retired capability: the Wibou dash-slash capability is not supported.");
+            if (RetiredCapabilities.TryGetReason(id, out var retiredReason))
+                throw new RetiredCapabilityException(id, retiredReason);
             return id switch
             {
                 "slop.ability.aimed-recovery.v1" => AimedRecovery(OOptional(e, new[] { "hop" }, "startupTicks", "verticalSpeed", "directionalVerticalSpeed", "horizontalSpeed", "preparationRiseSpeed")),
@@ -841,7 +847,7 @@ public static class CookedCharacterPackageLoader
                 "slop.internal.fightguy.cyclone-kick.v1" => CycloneKick(O(e, "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY")),
                 "slop.ability.charged-directional-dash.v1" => ChargedDirectionalDash(O(e, "maxChargeTicks", "tier2Ticks", "tier3Ticks", "minDistance", "maxDistance", "dashSpeed", "finisherLeadTicks", "finisherSeekTick", "recoveryTicks", "tier2Damage", "tier3Damage", "traversalHitbox", "finisherHitbox")),
                 "slop.internal.wibou.rising-slash.v1" => WibouRisingSlash(O(e, "riseSpeed", "riseTicks", "homingRange", "homingSpeed")),
-                "slop.internal.wibou.blade-flurry.v1" => WibouBladeFlurry(O(e, "forwardSpeed", "moveTicks")),
+                CharacterPackageCompiler.BladeFlurryCapabilityId => WibouBladeFlurry(O(e, "forwardSpeed", "ascentStartTick", "ascentEndTick", "descentStartTick", "riseSpeed", "descentSpeed")),
                 "slop.ability.steered-charge.v1" => SteeredCharge(OOptional(e, SteeredChargeOptional, SteeredChargeFields)),
                 "slop.ability.targeted-leap.v1" => TargetedLeap(OOptional(e, new[] { "launchPresentationId", "landingPresentationId" }, "maxAimTicks", "maxFlightTicks", "minRange", "maxRange", "launchVerticalSpeed", "landingSeekTick", "recoveryTicks", "hitbox")),
                 "slop.internal.manki.round-bomb.v1" => MankiRoundBomb(OOptional(e, new[] { "explosionPresentationId" }, "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle")),
@@ -868,7 +874,7 @@ public static class CookedCharacterPackageLoader
                 F(q, "tier2Damage"), F(q, "tier3Damage"),
                 ParseHitbox(q["traversalHitbox"]), ParseHitbox(q["finisherHitbox"]));
         private static CookedCapabilityParameters WibouRisingSlash(Dictionary<string, JsonElement> q) => new CookedWibouRisingSlashCapabilityParameters(F(q, "riseSpeed"), U(q, "riseTicks"), F(q, "homingRange"), F(q, "homingSpeed"));
-        private static CookedCapabilityParameters WibouBladeFlurry(Dictionary<string, JsonElement> q) => new CookedWibouBladeFlurryCapabilityParameters(F(q, "forwardSpeed"), U(q, "moveTicks"));
+        private static CookedCapabilityParameters WibouBladeFlurry(Dictionary<string, JsonElement> q) => new CookedWibouBladeFlurryCapabilityParameters(F(q, "forwardSpeed"), U(q, "ascentStartTick"), U(q, "ascentEndTick"), U(q, "descentStartTick"), F(q, "riseSpeed"), F(q, "descentSpeed"));
         private static CookedCapabilityParameters TargetedLeap(Dictionary<string, JsonElement> q)
             => new CookedTargetedLeapCapabilityParameters(
                 U(q, "maxAimTicks"), U(q, "maxFlightTicks"), F(q, "minRange"), F(q, "maxRange"),

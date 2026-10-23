@@ -1,11 +1,7 @@
 namespace SlopArena.Client.UI
 {
     /// <summary>
-    /// Tracks whether any modal surface is presented over the shared UI
-    /// (issue #214). A conversation behind a modal is obscured, so chat must
-    /// not treat it as read. Modal owners push/pop around their presentation;
-    /// the counter is idempotent-safe via clamping so a missed pop cannot
-    /// permanently wedge the read rule.
+    /// Modal owners must pair Push and Pop so obscured conversations remain unread.
     /// </summary>
     public static class UiModalState
     {

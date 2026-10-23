@@ -67,8 +67,8 @@ public sealed class MatchContentEntry
         LegacySelector = legacySelector;
         Identity = identity ?? throw new ArgumentNullException(nameof(identity));
         DisplayName = displayName ?? throw new ArgumentNullException(nameof(displayName));
-        Definition = (definition ?? throw new ArgumentNullException(nameof(definition))).DeepClone();
-        BakedAnimation = MatchContentInternals.CloneBaked(bakedAnimation);
+        Definition = definition ?? throw new ArgumentNullException(nameof(definition));
+        BakedAnimation = bakedAnimation;
         CookedCharacterPackage = cookedCharacterPackage;
     }
 }
@@ -240,9 +240,4 @@ public static class BuiltInRosterManifestCodec
 internal static class MatchContentInternals
 {
     public static string Sha256(byte[] bytes) { using var sha = SHA256.Create(); return string.Concat(sha.ComputeHash(bytes).Select(x => x.ToString("x2"))); }
-    public static BakedAnimationData? CloneBaked(BakedAnimationData? source)
-    {
-        if (source == null) return null;
-        return new BakedAnimationData { BoneNames = (string[])source.BoneNames.Clone(), Animations = source.Animations.Select(a => new BakedAnimationData.BakedAnim { Name = a.Name, FrameCount = a.FrameCount, Frames = a.Frames.Select(f => (float[])f.Clone()).ToArray() }).ToArray() };
-    }
 }

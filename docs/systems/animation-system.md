@@ -1,20 +1,26 @@
 # Unity Animation System
 
-Animancer plays clips selected from authoritative server state. The runtime path is:
+Animancer plays clips selected from Shared simulation state. Online, that state comes
+from the predicted world corrected by authoritative frames. The runtime path is:
 
 ```text
 MatchContentCatalog
-  -> cooked FightGuy package + generated client catalog/rig
+  -> admitted cooked character package + generated client catalog/rig
   -> PlayerRenderer
   -> Animancer
 ```
 
 ## Runtime ownership
 
-FightGuy has one runtime owner: its verified cooked package under
-`content-cooked/fightguy/`. The package contains the runtime definition, pose tracks,
-client bindings, and manifest hashes. `MatchContentCatalog` admits the package and
-keeps its immutable definition and baked pose projection together.
+MatchBase and Ability Lab call `PlayerRenderer.Configure` with the definition,
+baked poses, animation catalog and rig. It validates the sources before replacing
+the working model and refreshes animation bindings when the rig is reused.
+Entity registration and weapon setup remain with their existing owners.
+
+Every roster fighter uses an admitted cooked package under `content-cooked/<package>/`.
+The package contains the runtime definition, pose tracks, client bindings, and manifest
+hashes. `MatchContentCatalog` requires valid cooked packages and keeps each immutable
+definition with its baked pose projection.
 
 The generated Unity `CharacterAnimationCatalog` is a regenerable client binding. It
 contains the package ID, source hash, rig reference, semantic animation IDs, frame
@@ -22,22 +28,25 @@ counts, and extrapolation metadata. Client setup rejects missing, duplicate, or
 mismatched package bindings. Generated assets live under
 `Resources/Generated/CharacterPackages/<package>/`.
 
-Non-FightGuy characters remain on the temporary legacy policy: their catalog entries
-may use `BakedDataPath` and `CharacterAnimationConfig`. That policy does not apply to
-FightGuy. FightGuy never loads `Resources/AnimationConfigs/FightGuy`.
+`MatchBase.SetupRenderer` resolves each package's generated client assets before model
+setup and rejects unresolved bindings. `PlayerRenderer` retains legacy
+`CharacterAnimationConfig` compatibility helpers and Resources fallbacks for callers without a generated
+catalog. Those helpers are compatibility code, not current roster authoring paths.
+Edit the package and its `CharacterAssetCatalog.asset`, then cook and validate it through
+the [character workflow](../characters/adding-a-new-character.md).
 
 ## Playback
 
 `PlayerRenderer.ApplyServerState()` drives `UpdateAnimationState()`:
 
 - idle/run use cooked presentation semantic IDs;
-- jump, fall, dash, and hitstun use cooked presentation IDs;
+- jump, fall, air dodge, and hitstun use cooked presentation IDs;
 - attacks use `(AttackSlot, ComboStage)` and cooked `AnimationNames`;
-- the clip speed is `frameCount / DurationTicks`;
+- attack clip speed maps baked frames to the authored stage duration;
 - generated extrapolation metadata controls behavior past clip length.
 
-There is no AnimatorController, trigger table, or blend tree. Animancer clips are
-played directly.
+Animancer plays clips directly. AnimatorController transitions and animation callbacks
+do not own gameplay timing or hit results.
 
 ## Cooked poses
 
@@ -47,6 +56,14 @@ poses, bone-attached collision, and server timing on the same package hash.
 
 ## Weapon attachment
 
-Weapon props use destination humanoid bones and the shared bind-space conversion
-implemented by `WeaponAttachConfig` and `SlopArenaBaker`. Wibou remains the reference
-for retargeted hand orientation.
+Package client bindings can supply a `WeaponAttachConfig`. `WeaponAttach` places the
+prop on its configured bone with the authored position and rotation offsets.
+`DeterministicPoseTrackBaker` uses that configuration to bake weapon points such as
+`_weapon_hilt` and `_weapon_tip` alongside the character poses. The package cook owns
+those tracks; the legacy skeleton-bake menu is not the roster authoring path.
+
+## Source references
+
+- [`MatchContentCatalog`](../../src/Shared/MatchContentCatalog.cs) admits cooked roster content.
+- [`MatchBase.SetupRenderer`](../../client/Unity/Assets/Scripts/Runtime/World/MatchBase.cs) resolves package bindings.
+- [`PlayerRenderer`](../../client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs) selects and plays clips from Shared state.

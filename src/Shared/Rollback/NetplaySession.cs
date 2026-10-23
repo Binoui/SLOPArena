@@ -36,12 +36,12 @@ namespace SlopArena.Shared.Rollback
         public ulong SelfEntityId => _predictor.SelfEntityId;
         /// <summary>Last predicted tick; the newest input in <see cref="RecentInputs"/> belongs to it.</summary>
         public uint LocalTick => _predictor.LocalTick;
-        /// <summary>Newest match state any frame carried: Waiting, Countdown, Playing, Ended.</summary>
-        public MatchState MatchState { get; private set; } = MatchState.Waiting;
+        /// <summary>Match state of the newest accepted anchor.</summary>
+        public MatchState MatchState => _predictor.AuthoritativeMatchState;
         /// <summary>A frame arrived since the connection (re)started, so every fighter's state is known.</summary>
         public bool HasFrame { get; private set; }
-        /// <summary>Newest frame tick received (for Ready controls).</summary>
-        public uint NewestFrameTick { get; private set; }
+        /// <summary>Newest accepted anchor tick (for Ready controls).</summary>
+        public uint NewestFrameTick => _predictor.AnchorTick;
         /// <summary>The inputs to send, oldest first, for consecutive ticks ending at <see cref="LocalTick"/>.</summary>
         public ReadOnlySpan<InputState> RecentInputs => _recent.AsSpan(0, _recentCount);
 
@@ -68,21 +68,14 @@ namespace SlopArena.Shared.Rollback
         {
             if (frames.Count == 0)
                 return;
-            foreach (var frame in frames)
+            var result = _predictor.IngestFrames(frames);
+            HasFrame |= result.AcceptedAny;
+            if (result.TimelineReset)
             {
-                HasFrame = true;
-                if (frame.Tick > NewestFrameTick)
-                    NewestFrameTick = frame.Tick;
-                if (frame.MatchState > MatchState)
-                    MatchState = frame.MatchState;
-            }
-            uint before = _predictor.LocalTick;
-            _predictor.IngestFrames(frames);
-            if (_predictor.LocalTick != before)
-            {
-                // The timeline jumped to the GameHost: older inputs no longer precede the local
-                // tick, and pacing restarts from the new frontier.
                 _recentCount = 0;
+                _buffered = default;
+                _hasBuffered = false;
+                _lastApplied = default;
                 _clock.ResetPacing();
             }
         }

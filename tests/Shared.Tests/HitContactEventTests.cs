@@ -18,9 +18,9 @@ public sealed class HitContactEventTests
         var slots = def.CookedSlots!.ToArray();
         slots[0] = WithPresentation(slots[0], GroundPresentationId);
         slots[8] = WithPresentation(slots[8], AirPresentationId);
-        def.CookedSlots = slots;
-        def.Slot1 = new AbilitySpec { HitPresentationId = GroundPresentationId, Stages = Array.Empty<AttackStage>() };
-        def.AirSlot1 = new AbilitySpec { HitPresentationId = AirPresentationId, Stages = Array.Empty<AttackStage>() };
+        def = def with { CookedSlots = slots };
+        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, false, "Ground contact", 20, hitPresentationId: GroundPresentationId);
+        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, true, "Air contact", 20, hitPresentationId: AirPresentationId);
         return def;
     }
 
@@ -164,28 +164,33 @@ public sealed class HitContactEventTests
     }
 
     [Fact]
-    public void PredictedLocalHitContactWaitsForAuthoritativeIngestion()
+    public void PredictedLocalHitContactIsPresentedOnceAcrossAuthoritativeConfirmation()
     {
         var def = ConfiguredDefinition();
-        var sim = new RollbackSimulator(TestHelpers.TestArena(), AttackerId);
-        var attacker = TestHelpers.PlayerState(-2f) with { EntityId = AttackerId, PY = TestHelpers.GroundPY(def) };
-        var victim = TestHelpers.PlayerState() with { EntityId = VictimId, PY = TestHelpers.GroundPY(def) };
-        sim.RegisterEntity(AttackerId, def, attacker);
-        sim.RegisterEntity(VictimId, def, victim);
-        sim.Resolver!.Spawn(Contact(in victim));
+        var server = CreateSimulation(def, (AttackerId, -2f), (VictimId, 0f));
+        var predictor = new NetplayPredictor(TestHelpers.TestArena(), AttackerId);
+        foreach (var (id, state) in server.GetAllStates())
+            predictor.RegisterEntity(id, def, state);
+        var victim = server.GetState(VictimId);
+        server.Resolver.Spawn(Contact(in victim));
+        predictor.Resolver.Spawn(Contact(in victim));
 
-        sim.Tick(new Dictionary<ulong, InputState>());
+        server.Tick(new Dictionary<ulong, InputState>());
+        Assert.True(predictor.Advance(default));
+        var started = new List<TimelinePresentationEvent>();
+        var retracted = new List<TimelinePresentationEvent>();
+        predictor.DrainPresentation(started, retracted);
+        var authoritative = Assert.Single(server.GetPresentationEvents());
+        Assert.Equal(authoritative, Assert.Single(started));
+        Assert.Empty(retracted);
 
-        var hit = Assert.Single(sim.LastTickHits);
-        Assert.Empty(sim.DrainPresentationEvents());
-        var authoritative = new TimelinePresentationEvent(hit.MatchTick, AttackerId, 0, GroundPresentationId,
-            hit.AttackSequence, PresentationEventSource.HitContact, hit.HitX, hit.HitY, hit.HitZ, 0f)
-        {
-            Placement = new PresentationPlacement(DurationTicks: 150),
-        };
-        sim.IngestPresentationEvent(authoritative);
-        sim.IngestPresentationEvent(authoritative);
-        Assert.Equal(authoritative, Assert.Single(sim.DrainPresentationEvents()));
+        var frame = WorldFramePacket.Deserialize(new WorldFramePacket(MatchState.Playing,
+            server.CaptureSnapshot(), Array.Empty<RelayedInput>(), new[] { authoritative }, server.LastTickHits).Serialize());
+        predictor.IngestFrames(new[] { frame, frame });
+        started.Clear();
+        predictor.DrainPresentation(started, retracted);
+        Assert.Empty(started);
+        Assert.Empty(retracted);
+        Assert.True(server.CaptureSnapshot().ContentEquals(predictor.Simulation.CaptureSnapshot()));
     }
-
 }

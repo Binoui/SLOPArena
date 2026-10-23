@@ -34,10 +34,11 @@ public sealed class CharacterAssetCatalogEditor : EditorWindow
             EditorGUILayout.PropertyField(serialized.FindProperty("_weaponConfig"));
             EditorGUILayout.PropertyField(serialized.FindProperty("_bindings"), true);
             EditorGUILayout.PropertyField(serialized.FindProperty("_presentations"), true);
+            EditorGUILayout.PropertyField(serialized.FindProperty("_presentationProfile"), true);
             if (serialized.ApplyModifiedProperties())
             {
                 EditorUtility.SetDirty(_catalog);
-                AssetDatabase.SaveAssets();
+                AssetDatabase.SaveAssetIfDirty(_catalog);
             }
         }
 
@@ -108,7 +109,7 @@ public sealed class CharacterAssetCatalogEditor : EditorWindow
         Undo.RecordObject(_catalog, "Synchronize character catalog IDs");
         _catalog.Bindings = bindings.ToArray();
         EditorUtility.SetDirty(_catalog);
-        AssetDatabase.SaveAssets();
+        AssetDatabase.SaveAssetIfDirty(_catalog);
     }
 
     private void Validate()

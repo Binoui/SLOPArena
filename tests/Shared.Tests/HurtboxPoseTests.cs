@@ -65,7 +65,7 @@ public class HurtboxPoseTests
         // Real Manki def from the registry — the shared 7-bone set, scale 0.85.
         var def = TestHelpers.MankiDef;
         Assert.NotNull(def.HurtboxBoneDefs);
-        Assert.Equal(BoneNames.Length, def.HurtboxBoneDefs!.Length);
+        Assert.Equal(BoneNames.Length, def.HurtboxBoneDefs!.Count);
         var baked = BakedAnimationData.LoadFromBin(MakeBin(BoneNames, (f, bone, axis) => BonePos(bone, axis)));
 
         var state = new CharacterState
@@ -77,10 +77,10 @@ public class HurtboxPoseTests
 
         var resolved = ServerSimulation.BuildEntitiesFromState(state, def, baked, "idle", 0, entityId);
 
-        Assert.Equal(def.HurtboxBoneDefs.Length, resolved.Count);
+        Assert.Equal(def.HurtboxBoneDefs.Count, resolved.Count);
         float cos = MathF.Cos(state.FacingYaw), sin = MathF.Sin(state.FacingYaw);
         float scale = def.HurtboxBoneScale;
-        for (int i = 0; i < def.HurtboxBoneDefs.Length; i++)
+        for (int i = 0; i < def.HurtboxBoneDefs.Count; i++)
         {
             var hbd = def.HurtboxBoneDefs[i];
             // Cooked defs are sorted by bone ID while the fixture keeps bake order:
@@ -145,7 +145,7 @@ public class HurtboxPoseTests
         foreach (var bone in authored)
         {
             Assert.True(RigBones.TryGetValue(bone.BoneId, out var rigBone), $"{bone.BoneId} has no expected rig bone.");
-            int index = Array.IndexOf(baked.BoneNames, rigBone);
+            int index = baked.FindBoneIndex(rigBone);
             Assert.True(index >= 0, $"{fighter} bake lacks {rigBone}.");
             // The named bone where it is drawn (cooked hips offset), then the authored offset.
             Assert.True(HitboxGeometry.BakedPointToWorld(state, def, baked, idle, 0, index, scale,
@@ -215,13 +215,13 @@ public class HurtboxPoseTests
                 new BakedAnimationData.BakedAnim
                 {
                     Name = "anim.idle",
-                    FrameCount = 1,
+
                     Frames = new[] { new[] { 0f, 0f, 0f } },
                 },
                 new BakedAnimationData.BakedAnim
                 {
                     Name = "anim.run",
-                    FrameCount = 1,
+
                     Frames = new[] { new[] { 0.4f, 0f, 0f } },
                 },
             },
@@ -270,13 +270,13 @@ public class HurtboxPoseTests
                 new BakedAnimationData.BakedAnim
                 {
                     Name = "anim.idle",
-                    FrameCount = 1,
+
                     Frames = new[] { new[] { 0f, 0f, 0f } },
                 },
                 new BakedAnimationData.BakedAnim
                 {
                     Name = "anim.crouch",
-                    FrameCount = 2,
+
                     Frames = new[]
                     {
                         new[] { 0f, -0.2f, 0f },

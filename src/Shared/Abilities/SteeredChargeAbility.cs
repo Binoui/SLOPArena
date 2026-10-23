@@ -287,7 +287,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     private void ShowClip(ref CharacterState s, string animationId)
     {
         if (string.IsNullOrEmpty(animationId)) return;
-        int index = Array.IndexOf(AnimationNames, animationId);
+        int index = Move?.FindClip(animationId) ?? -1;
         if (index <= 0 || index > byte.MaxValue) return;
         s.ComboStage = (byte)index;
         AnimIndex = (byte)index;
@@ -343,7 +343,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     {
         bool ownsVelocity = _phase is Phase.Gallop or Phase.AirStrides or Phase.MissEnding;
         _phase = Phase.Ended;
-        if (ownsVelocity && s.State != ActionState.Hitstun && s.HitstunTicks == 0 && !Simulation.HasKnockback(s))
+        if (ownsVelocity)
             s.VX = s.VZ = 0f;
     }
 

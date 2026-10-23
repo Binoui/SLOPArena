@@ -107,11 +107,11 @@ The per-character dedicated upward/diagonal burst used to return to the stage af
 _Avoid_: up-B, getup move, escape move
 
 **Clash**:
-The symmetric commit resolution (phase 2, ADR-0015): two simultaneous Interruptible hitboxes connecting within a few ticks resolve as a mutual bounce — no damage, short mutual stun + pushback, reset to neutral — instead of a random trade. The timing-model substitute for whiff-punish in free-camera 3D.
+Reciprocal active grabs resolve as a grab clash with shared recovery. Simultaneous attacks currently trade. [ADR-0015](docs/adr/0015-timing-model-combat-pivot.md) records a planned attack-Clash design for Interruptible hitboxes with mutual bounce, no damage, short stun, and pushback. That attack behavior is not implemented.
 _Avoid_: parry (Wibou-specific), counter, trade
 
 **Slot**:
-One canonical move entry in the 16-entry grid: ground/air × `1`-`4`, `A`, `E`, `R`, `F`. The kit has twelve button concepts—eight normals and four specials—each with grounded and aerial entries. `LMB` and `RMB` are camera controls, not attack slots. Normals are single moves; there are no automatic LMB chains or charged RMB attacks. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special.
+One canonical move entry in the 16-entry grid, ground/air × `1`-`4`, `A`, `E`, `R`, `F`. There are eight button concepts, four normals and four specials, each with grounded and aerial entries. The grid therefore contains eight normal moves, four ground and four air, plus eight special moves. [`CanonicalSlotProjection`](src/Shared/SlotAddress.cs) defines the entries. `LMB` and `RMB` are camera controls, not attack slots. Normals are single moves; there are no automatic LMB chains or charged RMB attacks. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special.
 _Avoid_: button, ability slot, move slot
 
 **Move (UI label)**:
@@ -119,13 +119,7 @@ The human-facing name for a **Slot** in Ability Lab. It never creates a second p
 _Avoid_: move ID, move slot
 
 **Knockback**:
-The launch velocity applied when hitting a target. Combination of base push and damage-scaling growth (higher % = further launch). Uses frontloaded exponential decay (λ = 1.8/s): the launch is fastest right after the hit and smoothly slows — most travel happens early, the victim drifts in the tail. Decaying all axes also flattens launch arcs. Profile table maps archetypes to angle/base/growth:
-- **Light**: 15°, base=2, growth=1.5 — combo glue, slight pop
-- **Medium**: 15°, base=8, growth=5 — knockdown, reset
-- **Launcher**: 25°, base=8, growth=4 — pop-up, stays on screen
-- **Kill**: 20°, base=18, growth=10 — blast zone send
-- **Spike**: -45°, base=12, growth=4 — downward, grounded bounce
-Any attack can also use a per-hit **Custom** profile with its own angle/base/growth overrides.
+The launch velocity applied when hitting a target, derived from base push, damage-scaling growth, hit damage, victim percent, and weight. Hitstun preserves the horizontal impulse except at stage contact. Vertical launch follows the pop/gravity law; after Hitstun, neutral horizontal braking is linear. See [Hitstun and DI](docs/systems/hitstun-di.md) and [`Simulation`](src/Shared/Simulation.cs). [`KnockbackProfile`](src/Shared/KnockbackProfile.cs) retains Light, Medium, Launcher, Kill, Spike, Custom, and Adaptive profiles. Cooked package hitboxes project explicit angle/base/growth values through Custom; Adaptive resolves its angle at contact.
 _Avoid_: push force, hit reaction, knockback velocity
 
 **Hitstun**:
@@ -139,9 +133,13 @@ _Avoid_: hitlag (Melee connotation), freeze, hit pause
 A fixed-tick state during which a character cannot act. Two kinds: the attacker's attack commitment (`AnimLockTicks`, from startup through recovery) and the victim's Hitstun or block stun.
 _Avoid_: endlag, animation lock, commitment lock
 
+**Directional Influence (DI)**:
+The defender's rotational adjustment to launch velocity. Shared captures nonzero movement input during Hitstop and rotates the launch at freeze expiry, preserving magnitude. With no Hitstop, it uses input from the hit tick. Horizontal launches rotate in azimuth; effectively vertical launches tilt toward the held direction. SDI and ASDI shift position separately. See [Hitstun and DI](docs/systems/hitstun-di.md).
+_Avoid_: additive drift, Combo Influence
+
 **Combo Influence**:
-The defender's launch-drift input — additive velocity applied to remaining horizontal knockback in the held direction, scaled to the launch magnitude. Captured during Hitstop + Hitstun, applied when the lock expires. Additive (Smash-4 vectoring model), not rotational (Smash DI) — 3D-native: push where you want to drift.
-_Avoid_: DI (Smash rotation connotation), vectoring (Smash 4), smash DI
+Retired additive launch-drift design from ADR-0013, superseded by rotational DI in ADR-0019. It is not current gameplay.
+_Avoid_: using this term for current DI
 
 **BlockStun**:
 The defender-side action lock after a blocked contact. Its duration is `clamp(ceil(0.6 × incoming damage) + 2, 4, 15)` ticks; overlapping contacts retain the greater remaining duration rather than stacking.
@@ -184,7 +182,7 @@ One of three named CPU skill tiers: Easy, Normal, and Hard. All tiers retain the
 _Avoid_: CPU level, 1–9 scale
 
 **Character Kit**:
-A character's grounded and aerial normals and specials, identified by the canonical Slot grid. Universal mechanics such as Shield, Grab, air dodge, and Combo Influence are not part of the Character Kit.
+A character's grounded and aerial normals and specials, identified by the canonical Slot grid. Universal mechanics such as Shield, Grab, air dodge, and rotational DI are not part of the Character Kit.
 _Avoid_: control scheme
 
 ## Arcade
@@ -525,7 +523,7 @@ The Ability Lab presentation loaded from the last successfully cooked Character 
 _Avoid_: draft preview, editor preview
 
 **Compatibility Preview**:
-A read-only Ability Lab presentation loaded through the legacy character adapter for characters not yet represented by a Character Package.
+Retired Ability Lab presentation that used the legacy character adapter. Current character preview uses the package path; there is no Compatibility tab or legacy roster admission path.
 _Avoid_: legacy authoring, fallback package
 
 **ContentRequirement**:

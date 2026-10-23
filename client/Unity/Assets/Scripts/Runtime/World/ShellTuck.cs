@@ -3,6 +3,18 @@ using UnityEngine;
 
 namespace SlopArena.Client.World
 {
+    [System.Serializable]
+    public sealed class ShellTuckFlipProfile
+    {
+        public Quaternion OriginalTuckedRotation;
+        public Vector2Int FullTurnTicks;
+        public AnimationCurve VerticalByAttackTick = new();
+
+        internal ShellTuckMotion Sample(float attackTick) => new(
+            attackTick >= FullTurnTicks.x && attackTick <= FullTurnTicks.y ? OriginalTuckedRotation : null,
+            VerticalByAttackTick.Evaluate(attackTick));
+    }
+
     /// <summary>
     /// Tucks its owner into her shell while the attack shows one of <see cref="HoldAnimationIds"/>, through the
     /// model's <see cref="ShellTuckRig"/>: Bashie's Shell Slide folds in as she dives and stays in while she slides,
@@ -30,6 +42,9 @@ namespace SlopArena.Client.World
 
         [Tooltip("Direction of the shell reach in model space: +Z forward, +Y up. Does not move the gameplay root.")]
         public Vector3 ReachDirection = Vector3.forward;
+
+        [SerializeReference, Tooltip("Optional native whole-body flip and measured lift, on the attack clock.")]
+        public ShellTuckFlipProfile? Flip;
 
         private PlayerRenderer? _owner;
         private ShellTuckRig? _rig;
@@ -65,7 +80,9 @@ namespace SlopArena.Client.World
                 float tick = _owner.CurrentAttackElapsedTicks;
                 var pose = Pose;
                 pose.Hips += ReachDirection * ForwardByAttackTick.Evaluate(tick);
-                _rig.Request(pose, WeightByAttackTick.Evaluate(tick));
+                float weight = WeightByAttackTick.Evaluate(tick);
+                if (Flip == null) _rig.Request(pose, weight);
+                else _rig.Request(pose, weight, Flip.Sample(tick));
                 return;
             }
             if (!_leaving && Holding())
@@ -93,21 +110,16 @@ namespace SlopArena.Client.World
         /// <summary>
         /// Whether <paramref name="owner"/>'s attack <paramref name="sequence"/> is still current and shows one of
         /// <paramref name="animationIds"/>: its stage or phase clip, read from the slot's clip names at
-        /// <see cref="PlayerRenderer.CurrentComboStage"/>, as the renderer picks it.
+        /// <see cref="PlayerRenderer.CurrentClipIndex"/>, as the renderer picks it.
         /// </summary>
         public static bool ShowsClip(PlayerRenderer owner, byte sequence, string[] animationIds)
         {
             if (!PresentationLifetime.IsCurrentAttack(owner.CurrentActionState, owner.CurrentAttackSequence, sequence)
                 || owner.CharacterDef == null || owner.CurrentAttackSlot == 0)
                 return false;
-            int stage = owner.CurrentComboStage;
-            foreach (bool airborne in Variants)
-            {
-                var names = owner.CharacterDef.GetSlotAbility(owner.CurrentAttackSlot - 1, airborne)?.AnimationNames;
-                if (names != null && stage < names.Length && System.Array.IndexOf(animationIds, names[stage]) >= 0)
-                    return true;
-            }
-            return false;
+            var move = owner.CurrentMove;
+            return move != null && System.Array.IndexOf(animationIds,
+                move.Clip(owner.CurrentClipIndex).AnimationId) >= 0;
         }
 
         /// <summary>Ease-out-back: 0 to 1, passing 1 by about a tenth on the way.</summary>

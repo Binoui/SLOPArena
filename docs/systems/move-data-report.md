@@ -21,7 +21,7 @@ and real baked poses. `--route-replay` executes a retained witness without a cha
 policy. Neither command modifies gameplay, authoring, cooked packages or roster pins.
 
 ```bash
-dotnet run --project tools/MoveDataReport -- --route-search \
+dotnet run --project tools/MoveDataReport -p:SkipUnityPluginCopy=true -- --route-search \
   --budget 3000 --measure-budget 1000 --horizon 240 \
   --out artifacts/combo-routes/fightguy-search.json
 
@@ -103,7 +103,7 @@ idle, standing FightGuy (medium) and Manki (small) targets, from the cooked rost
 special:
 
 ```bash
-dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk] \
+dotnet run --project tools/HitReliabilityReport -p:SkipUnityPluginCopy=true -- [--char all|fightguy|manki|wibou|bonk] \
   [--slots 1,2,3,4] [--out artifacts/hit-reliability]
 ```
 
@@ -153,8 +153,8 @@ Two opt-in headless tools measure the existing cooked gameplay without changing 
 bot behavior, momentum, hitboxes, or package data:
 
 ```bash
-dotnet run --project tools/AerialApproachReport -- --out artifacts/aerial-approach --assert
-dotnet run --project tools/AerialProfileReport -- --out artifacts/aerial-profiles --selfcheck
+dotnet run --project tools/AerialApproachReport -p:SkipUnityPluginCopy=true -- --out artifacts/aerial-approach --assert
+dotnet run --project tools/AerialProfileReport -p:SkipUnityPluginCopy=true -- --out artifacts/aerial-profiles --selfcheck
 ```
 
 `AerialApproachReport` sweeps real jump attack timings for all four admitted characters'
@@ -456,9 +456,9 @@ tests were green.
 
 ## Flow
 
-1. Rebuild Shared after a change: `dotnet build src/Shared/ --nologo` (DLL auto-copies to Unity Plugins).
-2. `dotnet build tools/MoveDataReport/ --nologo`.
-3. Run, read the markdown, sanity-check against `docs/characters/<char>.md` / the ability spec.
+1. Build the report with `dotnet build tools/MoveDataReport/ --nologo -p:SkipUnityPluginCopy=true`, or run `scripts/move-data.sh` directly. The project reference builds Shared without copying its plugin into Unity.
+2. Run the report with the required options. The wrapper already supplies the offline flag; direct `dotnet run` commands need it unless they use `--no-build`.
+3. Read the markdown and compare it with the character's authoring package and admitted cooked content. See `docs/characters/<char>.md` for design context.
 4. Commit regenerated `docs/generated/*.md` alongside a behavior change when it should be a changelog
    artifact. `--parity` divergence with in-game feel → check the launch-contract sentinel using
    the Unity CLI/Pipeline workflow in `docs/contributing/unity-cli.md`.
@@ -469,8 +469,9 @@ tests were green.
 |---|---|
 | `tools/MoveDataReport/Program.cs` | the tool (CLI, hit collection, sim runs, markdown) |
 | `tools/MoveDataReport/MoveDataReport.csproj` | console project, `net8.0`, refs `SlopArena.Shared` |
-| `scripts/move-data.sh` | wrapper (`dotnet run --project tools/MoveDataReport -- "$@"`) |
+| `scripts/move-data.sh` | wrapper that builds/runs MoveDataReport with `SkipUnityPluginCopy=true` |
 | `src/Shared/Simulation.cs` | `ApplyKnockback` (launch) |
 | `src/Shared/ServerSimulation.cs` | the tick loop + `ComputeHitstopTicks` |
-| `src/Shared/Characters/*Data.cs` | the authored ability specs the report reads |
+| `client/Unity/Assets/CharacterPackages/<package>/character.json` | editable gameplay source; cook changes before measuring admitted content |
+| `content-cooked/roster/manifest.json` and `src/Shared/BuiltInContentResolver.cs` | pinned cooked package revisions loaded by the report |
 | `docs/generated/*-move-data.md` | committed report artifacts |

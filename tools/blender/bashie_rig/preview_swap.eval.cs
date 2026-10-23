@@ -37,7 +37,10 @@ float[] Extent(GameObject go)
 
 var before = Extent(renderer.gameObject);
 float mankiHeight = before[1] - before[0];
-renderer.LoadModel(def, prefab);
+var animationCatalog = (SlopArena.Client.Animation.CharacterAnimationCatalog)typeof(SlopArena.Client.Entities.PlayerRenderer)
+    .GetField("_animationCatalog", flags).GetValue(renderer);
+if (!renderer.Configure(def, renderer.BakedData, animationCatalog, prefab, out var configurationError))
+    throw new InvalidOperationException(configurationError);
 // Play Mode destroys Manki's old model at the end of the frame, so measure Bashie's own instance only.
 var animator = renderer.GetComponentsInChildren<Animator>().FirstOrDefault(a => a.gameObject.name != "Manki" && a.avatar != null && a.avatar.name.StartsWith("bashie"))
     ?? renderer.GetComponentsInChildren<Animator>().Last();

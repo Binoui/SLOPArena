@@ -16,20 +16,10 @@ public sealed class MoveDataReportContractTests
     private static CharacterDefinition ReportingDef()
     {
         var def = TestHelpers.EngineDef;
-        def.DisplayName = "Trajectory fixture";
-        def.Weight = 137f;
-        def.Slot2 = new AbilitySpec
-        {
-            Name = "Fixture launcher",
-            Stages = new[]
-            {
-                new AttackStage
-                {
-                    DurationTicks = 30,
-                    IasaTicks = 20,
-                    HitboxEvents = new[]
-                    {
-                        new HitboxEvent
+        def = def with { DisplayName = "Trajectory fixture" };
+        def = def with { Weight = 137f };
+        def = TestHelpers.WithMove(def, AbilitySlots.Slot2, false, "Fixture launcher", 30, 20,
+            new[] { new HitboxEvent
                         {
                             TriggerTick = 4,
                             DurationTicks = 3,
@@ -45,11 +35,7 @@ public sealed class MoveDataReportContractTests
                                 BaseKnockback = 20f,
                                 KnockbackGrowth = 12f,
                             },
-                        },
-                    },
-                },
-            },
-        };
+                        } });
         return def;
     }
 

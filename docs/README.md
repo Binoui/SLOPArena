@@ -52,8 +52,8 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Solo Arcade interview log](design/arcade-interview.md) | Seven resolved question rounds and inspected runtime/kit constraints |
 | [Tutorial](design/tutorial.md) | Fighter's License lessons, objective rules, combo/recovery findings, native commands and verification |
 | [Hitbox System](systems/hitbox-system.md) | Hitbox, hurtbox, and collision geometry |
-| [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, and Combo Influence design |
-| [Ability Lab](systems/ability-lab.md) | Package editing, authoritative preview, and agent-facing workspace commands |
+| [Hitstun DI](systems/hitstun-di.md) | Hitstun, Hitstop, directional influence, and launch behavior |
+| [Ability Lab](systems/ability-lab.md) | Package editing, Shared source previews, saved-content verification, and workspace commands |
 | [Knockback visual comparison](../tools/KnockbackVisuals/README.md) | Saved before/after flight playback, time scrubbing, and offline trajectory comparisons |
 | [NPC System](systems/npc-system.md) | Training entities and AI |
 | [Blast Zones](systems/blast-zones.md) | Void death and arena boundaries |
@@ -99,7 +99,7 @@ New packages live under `client/Unity/Assets/CharacterPackages/<package>/`. Cook
 | Bonk | Cooked package; rostered | [Bonk](characters/bonk.md) |
 | Manki | Cooked package; rostered | [Manki](characters/manki.md) |
 | Wibou | Cooked package; rostered | [Wibou](characters/wibou.md) |
-| Bashie | Playable on the roster with her own model, idle and run and Hose Down (A, key-pose animation); Manki's kit stands in for the rest | [Bashie](characters/bashie.md) |
+| Bashie | Cooked package; rostered with her own model and a partially authored kit; see her page for remaining stand-ins | [Bashie](characters/bashie.md) |
 
 The [Nilus page](characters/nilus.md) is a historical record of a retired character, not
 an implementation or authoring guide.

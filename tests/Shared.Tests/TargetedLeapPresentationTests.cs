@@ -87,6 +87,10 @@ public sealed class TargetedLeapPresentationTests
                 {
                     landed = true;
                     Assert.Equal(landingClip ? (byte)1 : (byte)0, sim.GetState(1).ComboStage);
+                    Assert.Equal(landingClip ? (byte)1 : (byte)0, sim.GetState(1).AnimIndex);
+                    var move = Assert.IsType<ActiveMoveView>(sim.GetActiveMove(1));
+                    Assert.Equal(sim.GetState(1).AnimIndex, move.ClipIndex);
+                    Assert.Equal(landingClip ? "anim.bonk.ge-land" : "anim.bonk.ge", move.Pose.AnimationId);
                 }
         }
         Assert.True(landed);
@@ -96,6 +100,7 @@ public sealed class TargetedLeapPresentationTests
             sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
             Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
             Assert.Equal(landingClip ? (byte)1 : (byte)0, sim.GetState(1).ComboStage);
+            Assert.Equal(landingClip ? (byte)1 : (byte)0, sim.GetState(1).AnimIndex);
         }
     }
 

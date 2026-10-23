@@ -473,7 +473,8 @@ internal static partial class Program
     }
 
     private static byte WireSlot(string label)
-        => label switch { "1" => AbilitySlots.Slot1, "2" => AbilitySlots.Slot2, "3" => AbilitySlots.Slot3, "4" => AbilitySlots.Slot4, _ => throw new ArgumentException($"normal label '{label}' is not canonical") };
+        => CanonicalSlotProjection.TryGet(false, label, out var address) && address.Ordinal < 4
+            ? CanonicalSlotProjection.ToWire(address) : throw new ArgumentException($"normal label '{label}' is not canonical");
 
     private static Provenance ProvenanceOf(MatchContentEntry entry)
         => new()

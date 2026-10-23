@@ -6,15 +6,15 @@
 
 ## Online
 
-- Official servers: SLOPArena EU #1 (operated; always available for Join)
+Online play uses Steam Rooms and a compatible hosted GameServer.
 
 ## How to play
 
-See `README.txt` in the zip.
+Open **Tutorial** in the client to learn the controls, or **Online** to create or
+join a Room. Alternate ZIP builds include `README.txt` and `HOSTING.txt` in the
+extracted folder.
 
 ## Known issues
 
 - Game is not code-signed — Windows SmartScreen shows a warning; click
   "More info" → "Run anyway".
-- Client prediction/rollback is not yet implemented; remote matches may feel
-  less smooth on high latency.

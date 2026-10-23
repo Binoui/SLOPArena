@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using SlopArena.Client.Animation;
 using System.Collections.Generic;
 using System.Linq;
 using SlopArena.Client.World;
@@ -80,7 +81,8 @@ namespace SlopArena.EditorTools
                 ("presentation.fightguy.fist-of-fury.hit", FuryHit()),
             };
             var ball = KiBall();
-            kit.BindProjectile(CharacterClass.FightGuy, AbilitySlots.A, ball);
+            kit.BindProjectile("ground.A", ball, ProjectileOrientation.PreservePrefab, "bone.right-hand");
+            kit.BindProjectile("air.A", ball, ProjectileOrientation.PreservePrefab, "bone.right-hand");
             return kit.Finish(built, new { projectile = AssetDatabase.GetAssetPath(ball) });
         }
 

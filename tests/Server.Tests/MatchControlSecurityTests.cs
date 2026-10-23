@@ -99,8 +99,12 @@ public class MatchControlSecurityTests
             Assert.True(content.GetProperty("schemaVersion").GetInt32() > 0);
             Assert.True(content.GetProperty("entries").GetArrayLength() > 0);
             Assert.True(MatchContentHandleMapCodec.TryParse(content, out var contentMap));
-            Assert.Equal(SteamMatchDescriptor.HashContent(contentMap!),
+            Assert.NotNull(contentMap!.Arena);
+            Assert.Equal("slop_pit", contentMap.Arena.Name);
+            Assert.Equal(SteamMatchDescriptor.HashContent(contentMap),
                 document.RootElement.GetProperty("contentHash").GetString());
+            Assert.Equal(orchestrator.CatalogHash, document.RootElement.GetProperty("actualCatalogHash").GetString());
+            Assert.NotEqual(orchestrator.CatalogHash, document.RootElement.GetProperty("contentHash").GetString());
             return document.RootElement.GetProperty("port").GetInt32();
         }
 

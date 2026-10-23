@@ -155,7 +155,8 @@ namespace SlopArena.EditorTools
             var trail = SmearTrail();
             var lid = PotLidProjectile();
             kit.BindWeaponTrail(trail);
-            kit.BindProjectile(SlopArena.Shared.CharacterClass.Bonk, SlopArena.Shared.AbilitySlots.A, lid);
+            kit.BindProjectile("ground.A", lid, ProjectileOrientation.PreservePrefab, "");
+            kit.BindProjectile("air.A", lid, ProjectileOrientation.PreservePrefab, "");
             SetSmearLifetime();
             return kit.Finish(built, new { trail = AssetDatabase.GetAssetPath(trail), lid = AssetDatabase.GetAssetPath(lid) });
         }

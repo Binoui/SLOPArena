@@ -89,15 +89,8 @@ public sealed class ContactHookOwnershipTests
                         CharacterPackageCompiler.ChargedDirectionalDashCapabilityId, "1", dash),
                 }),
             }), aimMovement: AuthoringAimMovementMode.Mobile);
-        definition.CookedSlots = slots;
-        definition.R = new AbilitySpec
-        {
-            Behavior = AbilityBehavior.DirectionalDash,
-            AimMode = AimMode.GroundVector,
-            AimMovement = AimMovementMode.Mobile,
-            Stages = new[] { new AttackStage { DurationTicks = 80 } },
-            AnimationNames = Array.Empty<string>(),
-        };
+        definition = definition with { CookedSlots = slots };
+
         return definition;
     }
 }

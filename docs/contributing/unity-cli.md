@@ -229,11 +229,15 @@ editor sloparena.lab.capture --action ground.F --ticks 18 --view front \
 
 The workspace prepares current source in memory using existing compilation,
 verified poses, catalog and rig without saving, cooking, changing Undo history,
-or writing source/cooked files. Persisted authoritative preview still requires
-valid cooked runtime/pose/catalog/rig prerequisites; missing/invalid pose or rig
-blocks scenarios. A clean prepared source may report `dirty: false` and
+or writing source/cooked files. The persisted loader supplies verified runtime,
+pose, catalog and rig prerequisites; missing/invalid pose or rig blocks scenarios.
+Ordinary window refresh applies the live gameplay draft even when disk hashes
+match. A clean prepared source may report `dirty: false` and
 `authoritativePreview: false`. Dirty status is workspace-edit state, not a hit
-verdict. Isolated scenarios do not establish online behavior or game feel.
+verdict. Isolated scenarios do not establish saved-package playback, online
+behavior or game feel. Use the
+[persisted gameplay checks](../characters/adding-a-new-character.md#verify-persisted-gameplay)
+for accepted saved content.
 
 For ordinary authoring preview, `open --target` accepts a package ID or
 project-relative root below `Assets/CharacterPackages`; preview/capture actions
@@ -291,7 +295,8 @@ no retained Editor owner's permission or response is required.
 
 `sloparena.settings.inspect` reads the existing settings owner without creating it.
 `sloparena.settings.apply --patch '<JSON object>'` defaults to dry-run; it reports
-requested, proposed, before and observed after values. Supported keys are `uiScale`
+requested, proposed, before and observed after values. Supported keys are `cameraStyle`
+(`Manual`, `AutoCombat`, `Arena`, `AirDuel`, `SideDuel`, or `Shoulder`), `uiScale`
 (80/90/100/110/120/130/140 percent), `targetOpacity` (20–100 percent),
 `screenShake` (0–100 percent), `showOverheadDamage`, `reducedFlashing` and
 `recordSessionLog` (booleans; the last starts a [practice session log](../systems/practice-session-log.md)

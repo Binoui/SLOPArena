@@ -120,7 +120,7 @@ public sealed class ChargedStreamAbility : ServerAbility, IAimHoldCapability, IL
     private void ShowClip(ref CharacterState s, string animationId)
     {
         if (string.IsNullOrEmpty(animationId)) return;
-        int index = Array.IndexOf(AnimationNames, animationId);
+        int index = Move?.FindClip(animationId) ?? -1;
         if (index <= 0 || index > byte.MaxValue) return;
         s.ComboStage = (byte)index;
         AnimIndex = (byte)index;

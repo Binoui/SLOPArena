@@ -79,7 +79,7 @@ public static class AbilityLabScenarioUISelfTest
         if (!CanonicalSlotProjection.TryGet("ground.R", out var address))
             throw new InvalidOperationException("Ground R is not a canonical slot.");
         int slotIndex = Array.IndexOf(AbilityLab.SlotNames, address.InputLabel);
-        var cooked = lab.Def.GetCookedSlotAbility((byte)(AbilityLab.SlotIndices[slotIndex] + 1), address.IsAirborne);
+        var cooked = lab.Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slotIndex]), address.IsAirborne);
         var parameters = cooked?.Timeline.Stages.SelectMany(stage => stage.Operations)
             .OfType<CookedStartCapabilityOperation>()
             .Select(operation => operation.Parameters)

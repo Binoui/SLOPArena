@@ -227,7 +227,7 @@ internal static class Program
         public string AttributionRule = "For each successful voluntary grounded approach jump, inspect [takeoff, takeoff+90] clipped to the match; this is temporal association only, not causation.";
         public string TemporalAggregationRule = "Aggregate temporal damage/hits/deaths by unioning overlapping jump-in windows per entity before policy assignment.";
         public string ApproachRule = "Jump-in means a grounded voluntary jump whose final/base policy planar input is toward the delayed target (dot >= 0.5); non-approach voluntary jumps remain recorded but do not open a jump-in window.";
-        public string AerialClassificationRule = "Recovery when the admitted cooked/legacy slot is marked IsRecoveryMove; offensive when it is not recovery and authored hitbox/projectile/capability damage is positive; ambiguous otherwise, retained rather than discarded.";
+        public string AerialClassificationRule = "Recovery when the admitted cooked slot is marked IsRecoveryMove; offensive when it is not recovery and authored hitbox/projectile/capability damage is positive; ambiguous otherwise, retained rather than discarded.";
         public string AirRelationRule = "For an accepted aerial activation hit, air-to-air means the target was airborne in the pre-tick authoritative state at hit resolution; air-to-ground means grounded; all relations remain in raw telemetry.";
         public string SpeedBuckets = "0-1,1-3,3-6,6+ m/s";
         public string JumpPhaseBuckets = "grounded,jump-squat,rise,apex-or-float,fall";
@@ -510,11 +510,11 @@ internal static class Program
 
         public InputState Decide(in CharacterState self, in CharacterState target,
             CharacterDefinition def, Random rng, BotMemory memory, in ArenaDefinition arena,
-            BakedAnimationData? baked)
+            BakedAnimationData? baked, CookedSlotDefinition? activeMove)
         {
             _delayedTarget.Observe(target);
             LastDelayedObservationAvailable = _delayedTarget.TryGet(out var delayedTarget);
-            var baseInput = _basePolicy.Decide(self, target, def, rng, memory, arena, baked);
+            var baseInput = _basePolicy.Decide(self, target, def, rng, memory, arena, baked, activeMove: activeMove);
             LastApproach = LastDelayedObservationAvailable && IsApproach(self, delayedTarget, baseInput);
             LastJumpOverride = false;
             LastJumpSuppressed = false;
@@ -524,7 +524,7 @@ internal static class Program
 
             if (_kind == PolicyKind.JumpIn && self.IsGrounded
                 && !PolicyHelpers.IsEmergencyRecovery(self, def, in arena)
-                && baseInput.ActiveSlot == 0 && !baseInput.Jump && !baseInput.Dash
+                && baseInput.ActiveSlot == 0 && !baseInput.Jump
                 && !baseInput.IsAiming && LastApproach)
             {
                 // Preserve the base approach vector and all normal facing/aim fields. The only
@@ -690,8 +690,8 @@ internal static class Program
         {
             var preA = sim.GetState(SelfPlayMatch.EntityA);
             var preB = sim.GetState(SelfPlayMatch.EntityB);
-            var inputA = controllerA.Decide(preA, preB, def, rng, memA, arena, baked);
-            var inputB = controllerB.Decide(preB, preA, def, rng, memB, arena, baked);
+            var inputA = controllerA.Decide(preA, preB, def, rng, memA, arena, baked, sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
+            var inputB = controllerB.Decide(preB, preA, def, rng, memB, arena, baked, sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
             inputs[SelfPlayMatch.EntityA] = inputA;
             inputs[SelfPlayMatch.EntityB] = inputB;
             RecordInputTrace(trace, tick, SelfPlayMatch.EntityA, PolicyName(sideSwapped ? scenario.B : scenario.A), preA, inputA, controllerA, def, arena);
@@ -1125,17 +1125,8 @@ internal static class Program
     private static string ClassifyAerial(CharacterDefinition def, byte slot, out bool recovery, out bool damage)
     {
         var cooked = def.GetCookedSlotAbility(slot, airborne: true);
-        if (cooked != null)
-        {
-            recovery = cooked.IsRecoveryMove;
-            damage = cooked.Timeline.Stages.SelectMany(x => x.Operations).Any(HasDamage);
-        }
-        else
-        {
-            var legacy = def.GetSlotAbility(slot - 1, airborne: true);
-            recovery = legacy?.IsRecoveryMove == true;
-            damage = legacy?.Stages?.SelectMany(x => x.HitboxEvents ?? Array.Empty<HitboxEvent>()).Any(x => x.Damage > 0f) == true;
-        }
+        recovery = cooked?.IsRecoveryMove == true;
+        damage = cooked?.Timeline.Stages.SelectMany(x => x.Operations).Any(HasDamage) == true;
         if (recovery) return "recovery";
         if (damage) return "offensive";
         return "ambiguous";
@@ -1164,8 +1155,7 @@ internal static class Program
     {
         var cooked = def.GetCookedSlotAbility(slot, air);
         if (cooked != null) return (cooked.Id, cooked.Name);
-        var legacy = def.GetSlotAbility(slot - 1, air);
-        return ($"legacy-{(air ? "a" : "g")}{slot}", legacy?.Name ?? "unknown");
+        return ("unknown", "unknown");
     }
 
     private static StateTrace Snapshot(in CharacterState s) => new()
@@ -1270,8 +1260,8 @@ internal static class Program
             PackageHash = entry.Identity.PackageHash,
             CookedPackageLoaded = true,
             BakedAnimationLoaded = true,
-            BakedBoneCount = entry.BakedAnimation.BoneNames?.Length ?? 0,
-            BakedAnimationCount = entry.BakedAnimation.Animations?.Length ?? 0,
+            BakedBoneCount = entry.BakedAnimation.BoneNames?.Count ?? 0,
+            BakedAnimationCount = entry.BakedAnimation.Animations?.Count ?? 0,
         };
     }
 

@@ -488,13 +488,16 @@ namespace SlopArena.Client.UI
 
         private async System.Threading.Tasks.Task RefreshRoom()
         {
+            var context = _context;
+            Guid roomId = ClientSession.SelectedRoomId;
             var lobby = _lobby;
-            if (lobby == null) return;
+            if (lobby == null || !OwnsRoomOperation(context, lobby, roomId)) return;
             try
             {
                 if (!lobby.IsConnected && !await lobby.ConnectAsync()) return;
+                if (!OwnsRoomOperation(context, lobby, roomId)) return;
                 var room = await lobby.GetMyRoomAsync();
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby)) return;
+                if (!OwnsRoomOperation(context, lobby, roomId)) return;
                 if (room == null || room.Id != ClientSession.SelectedRoomId)
                     ReturnToRoomBrowser("You are no longer a member of this Room. Return to the browser and join another room.");
                 else
@@ -502,10 +505,15 @@ namespace SlopArena.Client.UI
             }
             catch (Exception ex)
             {
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                if (OwnsRoomOperation(context, lobby, roomId))
                     SetRoomStatus($"Couldn’t restore Room state: {ex.Message}", true);
             }
         }
+
+        private bool OwnsRoomOperation(FrontendPageContext context, LobbyClient lobby, Guid roomId)
+            => this != null && isActiveAndEnabled && context != null && context.Valid &&
+               ReferenceEquals(_context, context) && ReferenceEquals(_lobby, lobby) &&
+               ClientSession.SelectedRoomId == roomId;
 
         private void OnRoomConnected() => _ = RefreshRoom();
 
@@ -705,19 +713,22 @@ namespace SlopArena.Client.UI
         private void SelectColour3() => SelectColour(3);
         private async void SelectColour(byte colour)
         {
+            var context = _context;
+            Guid roomId = ClientSession.SelectedRoomId;
             var lobby = _lobby;
-            if (!CourseRoom || _roomActionPending || lobby?.IsConnected != true) return;
+            if (!CourseRoom || _roomActionPending || lobby?.IsConnected != true ||
+                !OwnsRoomOperation(context, lobby, roomId)) return;
             _roomActionPending = true; UpdateRoomControls();
             string failure = null;
             try
             {
                 var room = await lobby.RoomSelectColourAsync(colour);
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby)) OnRoomUpdated(room);
+                if (OwnsRoomOperation(context, lobby, roomId)) OnRoomUpdated(room);
             }
             catch (Exception ex) { failure = "Could not change colour: " + ex.Message; }
             finally
             {
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                if (OwnsRoomOperation(context, lobby, roomId))
                 { _roomActionPending = false; UpdateRoomControls(); if (failure != null) SetRoomStatus(failure, true); }
             }
         }
@@ -726,21 +737,24 @@ namespace SlopArena.Client.UI
         private void SelectClayCamp() => SelectCamp("clay");
         private async void SelectCamp(string camp)
         {
+            var context = _context;
+            Guid roomId = ClientSession.SelectedRoomId;
             var lobby = _lobby;
-            if (_roomActionPending || lobby?.IsConnected != true || _roomSnapshot?.Format != MatchFormats.SlopballVersusWire) return;
+            if (_roomActionPending || lobby?.IsConnected != true || _roomSnapshot?.Format != MatchFormats.SlopballVersusWire ||
+                !OwnsRoomOperation(context, lobby, roomId)) return;
             _roomActionPending = true;
             UpdateRoomControls();
             string failure = null;
             try
             {
                 var room = await lobby.RoomSelectCampAsync(camp);
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby)) OnRoomUpdated(room);
+                if (OwnsRoomOperation(context, lobby, roomId)) OnRoomUpdated(room);
             }
             catch (Exception ex)
             { failure = "Could not change camp: " + ex.Message; }
             finally
             {
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                if (OwnsRoomOperation(context, lobby, roomId))
                 {
                     _roomActionPending = false; UpdateRoomControls();
                     if (failure != null) SetRoomStatus(failure, true);
@@ -768,8 +782,11 @@ namespace SlopArena.Client.UI
 
         private async void OnRoomLockInClicked()
         {
+            var context = _context;
+            Guid roomId = ClientSession.SelectedRoomId;
             var lobby = _lobby;
-            if (_roomActionPending || _lockedIn || lobby == null || _selected == CharacterClass.None)
+            if (_roomActionPending || _lockedIn || lobby == null || _selected == CharacterClass.None ||
+                !OwnsRoomOperation(context, lobby, roomId))
                 return;
             string character = _selected.ToString();
             _roomActionPending = true;
@@ -777,12 +794,12 @@ namespace SlopArena.Client.UI
             try
             {
                 var room = await lobby.RoomSelectCharacterAsync(character);
-                if (isActiveAndEnabled && ReferenceEquals(_lobby, lobby))
+                if (OwnsRoomOperation(context, lobby, roomId))
                     OnRoomUpdated(room);
             }
             catch (Exception ex)
             {
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby)) return;
+                if (!OwnsRoomOperation(context, lobby, roomId)) return;
                 _roomActionPending = false;
                 UpdateRoomControls();
                 SetRoomStatus($"Character selection rejected: {ex.Message}", true);
@@ -791,10 +808,12 @@ namespace SlopArena.Client.UI
 
         private async void OnRoomStartMatchClicked()
         {
+            var context = _context;
             var lobby = _lobby;
             var snapshot = _roomSnapshot;
             Guid roomId = ClientSession.SelectedRoomId;
-            if (_roomActionPending || lobby == null || snapshot == null || !lobby.IsConnected)
+            if (_roomActionPending || lobby == null || snapshot == null || !lobby.IsConnected ||
+                !OwnsRoomOperation(context, lobby, roomId))
                 return;
             var members = snapshot.Members ?? Array.Empty<RoomMemberInfo>();
             bool isLeader = false;
@@ -814,8 +833,7 @@ namespace SlopArena.Client.UI
             }
             catch (Exception ex)
             {
-                if (!isActiveAndEnabled || !ReferenceEquals(_lobby, lobby) ||
-                    ClientSession.SelectedRoomId != roomId)
+                if (!OwnsRoomOperation(context, lobby, roomId))
                     return;
                 if (_roomSnapshot?.Phase is "Match Starting" or "In Match")
                     return;

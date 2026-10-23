@@ -35,7 +35,7 @@ public class FullWorldNetplayTests
         reservation.Close();
         using var ended = new ManualResetEventSlim();
         var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Manki) };
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
 
@@ -119,7 +119,7 @@ public class FullWorldNetplayTests
         reservation.Close();
         using var ended = new ManualResetEventSlim();
         var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Bonk) };
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog, _ => ended.Set(),
             format: MatchFormat.SlopballCoop, friendlyFire: friendlyFire);
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
@@ -193,7 +193,7 @@ public class FullWorldNetplayTests
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
         reservation.Close();
         using var ended = new ManualResetEventSlim();
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select(p => new MatchPlayer(100 + (long)p.Id, p.Character, (int)p.Id, camps[p.Id])).ToArray(),
             catalog, _ => ended.Set(), format: MatchFormat.SlopballVersus, ballOnly: ballOnly);
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
@@ -260,7 +260,7 @@ public class FullWorldNetplayTests
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port; reservation.Close();
         using var ended = new ManualResetEventSlim();
         var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.FightGuy) };
-        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena.Name,
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1, Colour: (byte)i)).ToArray(),
             catalog, _ => ended.Set(), format: format);
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);

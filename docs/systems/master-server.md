@@ -47,7 +47,7 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run --no-build --urls http://localhost
 | `appsettings.Development.json` | `ConnectionStrings:DefaultConnection` | `Host=localhost;Port=5432;Database=sloparena;Username=postgres;Password=password` |
 | `.env` (gitignored, overrides appsettings when sourced) | `ConnectionStrings__DefaultConnection`, `Jwt__Secret` | dev values; see `.env.example` |
 | **this repo** `src/Server/server.json` | `masterServerUrl` | `http://localhost:5000` |
-| **this repo** `src/Server/MultiMatchOrchestrator.cs` → `ServerConfig.MasterServerUrl` | default | `http://localhost:5000` |
+| **this repo** `src/Server/MultiMatchOrchestrator.cs` → `ServerConfig.MasterServerUrl` | property default | Empty string; a valid URL must be configured |
 
 The game server (`src/Server`) points at the master server via `ServerConfig.MasterServerUrl`, loaded from `server.json`. Change `masterServerUrl` there to redirect registration/heartbeats (e.g. staging).
 

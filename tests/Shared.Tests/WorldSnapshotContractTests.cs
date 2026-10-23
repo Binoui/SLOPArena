@@ -22,7 +22,7 @@ public class WorldSnapshotContractTests
     private static readonly HashSet<string> Wiring = new()
     {
         "OwnerSimulation", "PresentationSink", "SimulationStates", "Resolver", "BakedData",
-        "CharacterDef", "Arena", "AnimationNames",
+        "CharacterDef", "Arena",
     };
 
     [Fact]
@@ -99,12 +99,12 @@ public class WorldSnapshotContractTests
             foreach (var slot in def.CookedSlots!)
             {
                 var names = slot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray();
-                var original = new CookedTimelineAbility(slot, names);
+                var original = new CookedTimelineAbility(slot);
                 FillAbility(original, rng, skip: "_capabilities");
                 int stage = rng.Next(slot.Timeline.Stages.Count);
                 SetField(original, "_stageIndex", stage);
                 SetField(original, "_operationCursor", rng.Next(slot.Timeline.Stages[stage].Operations.Count + 1));
-                var copy = new CookedTimelineAbility(slot, names);
+                var copy = new CookedTimelineAbility(slot);
                 RoundTrip(original, copy);
                 AssertAbilityEqual(original, copy);
                 checkedSlots++;
