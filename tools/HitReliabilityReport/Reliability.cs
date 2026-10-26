@@ -105,11 +105,11 @@ internal static class Reliability
     /// <summary>Evenly spaced bearings (15° apart) at which <see cref="Coverage"/> places a standing target.</summary>
     internal const int CoverageBearings = 24;
     internal static readonly float[] CoverageMeters = { 1f, 1.5f };
-    internal static readonly byte[] NormalWires = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+    internal static readonly byte[] NormalWires = { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 };
     /// <summary>Canonical slot keys and their input wire values, in report order.</summary>
     private static readonly (string Key, byte Wire)[] SlotKeys =
     {
-        ("1", AbilitySlots.Slot1), ("2", AbilitySlots.Slot2), ("3", AbilitySlots.Slot3), ("4", AbilitySlots.Slot4),
+        ("1", AbilitySlots.Slot1), ("3", AbilitySlots.Slot3), ("4", AbilitySlots.Slot4),
         ("A", AbilitySlots.A), ("E", AbilitySlots.E), ("R", AbilitySlots.R), ("F", AbilitySlots.F),
     };
 

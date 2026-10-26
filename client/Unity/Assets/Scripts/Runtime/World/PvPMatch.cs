@@ -48,6 +48,7 @@ namespace SlopArena.Client.World
         private bool _resultsScheduled;
         private Coroutine? _countdownPresentation;
         private OnlineSlopball? _slopball;
+        private float? _courtNetZ;
         private OnlineCharacterCourse? _course;
         private LobbyClient? _roomLobby;
         private RoomSnapshot? _roomSnapshot;
@@ -259,6 +260,7 @@ namespace SlopArena.Client.World
             if (MatchConfig.Format.IsCourse() && _hudManager != null)
                 _course = new OnlineCharacterCourse(transform, arena, _hudManager,
                     () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
+            _courtNetZ = MatchConfig.Format.IsSlopball() ? arena.Arcade?.Slopball?.NetZ : null;
             if (MatchConfig.Format.IsSlopball() && _hudManager != null)
                 _slopball = new OnlineSlopball(transform, StageVisual, arena, _hudManager,
                     () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
@@ -500,6 +502,8 @@ namespace SlopArena.Client.World
                 _slopball.AfterUpdate(_bridge.Simulation, _bridge.LastTickHits, _bridge.SlopballEvents);
                 var ball = _bridge.Simulation.ArcadeBall!.Value;
                 bool selected = ball.Active && presentationState.TargetEntityId == ball.EntityId;
+                _cameraMount?.SetCourt(_courtNetZ,
+                    ball.Active ? _slopball.BallAnchor.position : null);
                 _aimHandler?.UpdateObjectTargetPresentation(presentationState, selected ? _slopball.BallAnchor : null,
                     ball.Radius, (ushort)ball.DamagePercent);
                 if (presentationState.LockOn && selected)
@@ -539,11 +543,10 @@ namespace SlopArena.Client.World
                 }
                 else if (matchState == MatchState.Playing)
                 {
-                    _hudManager?.ShowMatchCallout("SLOP IT OUT", 1f);
+                    _hudManager?.ShowSoloCountdown("SLOP IT OUT", 1f);
                 }
                 else if (matchState == MatchState.Ended)
                 {
-                    _hudManager?.ShowMatchCallout(_slopball != null ? "RUN OVER" : "MATCH COMPLETE", 1.4f);
                     _aimHandler?.ResetPresentation();
                 }
             }
@@ -692,13 +695,13 @@ namespace SlopArena.Client.World
 
         private System.Collections.IEnumerator ShowCountdownPresentation()
         {
-            _hudManager?.ShowMatchCallout("READY", 2f);
+            _hudManager?.ShowSoloCountdown("READY", 2f);
             yield return new WaitForSecondsRealtime(2f);
-            _hudManager?.ShowMatchCallout("3", 1f);
+            _hudManager?.ShowSoloCountdown("3", 1f);
             yield return new WaitForSecondsRealtime(1f);
-            _hudManager?.ShowMatchCallout("2", 1f);
+            _hudManager?.ShowSoloCountdown("2", 1f);
             yield return new WaitForSecondsRealtime(1f);
-            _hudManager?.ShowMatchCallout("1", 1f);
+            _hudManager?.ShowSoloCountdown("1", 1f);
         }
 
         private void TryScheduleResults()
@@ -707,6 +710,7 @@ namespace SlopArena.Client.World
                 return;
 
             _resultsScheduled = true;
+            _hudManager?.ShowOnlineEnding(ClientSession.CurrentMatchResults);
             StartCoroutine(ReturnToResultsAfterDelay());
         }
 

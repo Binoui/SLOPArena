@@ -171,11 +171,11 @@ namespace SlopArena.Client.UI
             {
                 foreach (var action in new[]
                          {
-                             "MoveStick", "Slot1", "Slot2", "Slot3", "Slot4", "SpecialModifier",
-                             "Jump", "Down", "Shield", "FaceToCamera", "ToggleLock", "Retarget", "Pause", "Retry"
+                             "MoveStick", "Slot1", "Slot3", "Slot4", "SpecialModifier",
+                             "Jump", "Dash", "Down", "Shield", "FaceToCamera", "ToggleLock", "Retarget", "Pause", "Retry"
                          })
                     AddBindingRow(root, action, ActionLabel(action, controller: true));
-                var help = new Label("Specials: hold Special Modifier + Normal button. Grab: hold Special Modifier + RT.");
+                var help = new Label("Specials: hold Special Modifier + Jump or a Normal button. Grab: hold Special Modifier + RT.");
                 help.AddToClassList("sa-settings-note");
                 root.Add(help);
             }
@@ -266,12 +266,14 @@ namespace SlopArena.Client.UI
             "MoveUp" => "Move Forward", "MoveDown" => "Move Back", "MoveLeft" => "Move Left", "MoveRight" => "Move Right",
             "MoveStick" => "Analog Move Stick",
             "Down" => "Down (Crouch / Slide / Fast Fall)", "FaceToCamera" => "Face to Camera",
-            "ToggleLock" => "Target Lock", "Retarget" => "Retarget Target", "Pause" => "Pause",
+            "ToggleLock" => controller ? "Target Lock (tap)" : "Target Lock",
+            "CameraToggle" => controller ? "Camera Toggle (hold)" : "Camera Toggle", "Retarget" => "Retarget Target", "Pause" => "Pause",
             "Retry" => controller ? "Arcade Retry (hold)" : "Arcade Retry",
+            // Three normals (ADR-0042) keep the slot ids 1, 3 and 4 behind the player-facing 1-3.
             "Slot1" => controller ? "Normal 1" : "Action 1",
-            "Slot2" => controller ? "Normal 2" : "Action 2",
-            "Slot3" => controller ? "Normal 3" : "Action 3",
-            "Slot4" => controller ? "Normal 4" : "Action 4",
+            "Slot3" => controller ? "Normal 2" : "Action 2",
+            "Slot4" => controller ? "Normal 3" : "Action 3",
+            "Dash" => "Homing Dash",
             "SpecialModifier" => "Special Modifier",
             "Shield" => "Shield", "Grab" => "Grab", "Jump" => "Jump",
             "SlotA" => "Action A", "SlotE" => "Action E", "SlotR" => "Action R", "SlotF" => "Action F",
@@ -281,32 +283,49 @@ namespace SlopArena.Client.UI
         private static void BuildGameplay(VisualElement root)
         {
             var settings = ClientSettingsService.Instance;
-            var cameraChoices = new List<string> { "Manual", "Auto Combat", "Arena", "Air Duel", "Side Duel", "Shoulder" };
-            var cameraStyles = new[] { CameraStyle.Manual, CameraStyle.AutoCombat, CameraStyle.Arena,
-                CameraStyle.AirDuel, CameraStyle.SideDuel, CameraStyle.Shoulder };
-            var cameraStyle = new DropdownField("CAMERA STYLE", cameraChoices,
-                Array.IndexOf(cameraStyles, settings.CameraStyle)) { name = "camera-style" };
-            var cameraNote = new Label { name = "camera-style-description" };
-            cameraNote.AddToClassList("sa-settings-note");
-            void DescribeCamera() => cameraNote.text = settings.CameraStyle switch
+            var cameraChoices = new List<string> { "Steady", "Arena", "Manual" };
+            var cameraStyles = new[] { CameraStyle.Steady, CameraStyle.Arena, CameraStyle.Manual };
+            void AddCameraRow(string label, string name, bool controller)
             {
-                CameraStyle.AutoCombat => "Follows you and turns toward your target, even without target lock. Automatically frames both fighters. Right stick or mouse overrides the turn briefly.",
-                CameraStyle.Arena => "A wider, elevated view that follows and zooms to frame the fighters. The viewing direction stays steady; right stick or mouse adjusts the angle.",
-                CameraStyle.AirDuel => "Follows both fighters and smoothly looks up or down as your opponent changes height. Leaves room for landings. Right stick or mouse overrides the turn and tilt briefly.",
-                CameraStyle.SideDuel => "Views your duel from the side to make jumps and height differences easier to judge. Slowly turns with the fight and frames both fighters. Right stick or mouse overrides briefly.",
-                CameraStyle.Shoulder => "A closer view over your fighter's right shoulder. Turns and tilts toward the opponent, then pulls back when needed to keep both fighters visible. Right stick or mouse overrides briefly.",
-                _ => "The original player-following camera. Turn with the right stick or mouse.",
-            };
-            cameraStyle.RegisterValueChangedCallback(evt =>
-            {
-                int index = cameraChoices.IndexOf(evt.newValue);
-                if (index < 0) return;
-                settings.SetCameraStyle(cameraStyles[index]);
+                var cameraStyle = new DropdownField(label, cameraChoices,
+                    Array.IndexOf(cameraStyles, settings.ResolveCameraStyle(controller))) { name = name };
+                var cameraNote = new Label { name = name + "-description" };
+                cameraNote.AddToClassList("sa-settings-note");
+                void DescribeCamera() => cameraNote.text = settings.ResolveCameraStyle(controller) switch
+                {
+                    CameraStyle.Steady => "A high view centred on you. It turns slowly, only when your target leaves a wide cone, and holds still when anyone jumps. Bubbles at the screen edge show fighters it cannot hold. Right stick or mouse overrides briefly.",
+                    CameraStyle.Arena => "A wider, elevated view that follows and zooms to frame the fighters. The viewing direction stays steady; right stick or mouse adjusts the angle.",
+                    _ => "The original player-following camera. Turn with the right stick or mouse.",
+                };
+                cameraStyle.RegisterValueChangedCallback(evt =>
+                {
+                    int index = cameraChoices.IndexOf(evt.newValue);
+                    if (index < 0) return;
+                    settings.SetCameraStyle(cameraStyles[index], controller);
+                    DescribeCamera();
+                });
                 DescribeCamera();
+                root.Add(cameraStyle);
+                root.Add(cameraNote);
+            }
+            AddCameraRow("CONTROLLER CAMERA", "controller-camera-style", true);
+            AddCameraRow("MOUSE CAMERA", "camera-style", false);
+            var turnChoices = new List<string> { "Calm", "Medium", "Quick" };
+            var turnSpeeds = new[] { 20f, 30f, 45f };
+            int turnIndex = Array.FindIndex(turnSpeeds, speed => Mathf.Approximately(speed, settings.CameraTurnSpeed));
+            var turnSpeed = new DropdownField("STEADY TURN SPEED", turnChoices, Mathf.Max(0, turnIndex)) { name = "camera-turn-speed" };
+            turnSpeed.RegisterValueChangedCallback(evt =>
+            {
+                int index = turnChoices.IndexOf(evt.newValue);
+                if (index >= 0) settings.SetCameraTurnSpeed(turnSpeeds[index]);
             });
-            DescribeCamera();
-            root.Add(cameraStyle);
-            root.Add(cameraNote);
+            root.Add(turnSpeed);
+            var holdRun = new Toggle("STEADY: HOLD RUN DIRECTION") { value = settings.HoldRunDirection, name = "camera-hold-run" };
+            holdRun.RegisterValueChangedCallback(evt => settings.SetHoldRunDirection(evt.newValue));
+            root.Add(holdRun);
+            var holdRunNote = new Label("While the stick stays held, your run keeps its direction even as the Steady camera turns.");
+            holdRunNote.AddToClassList("sa-settings-note");
+            root.Add(holdRunNote);
             AddSlider(root, "Mouse Sensitivity", settings.CameraSensitivity * 100f, 10f, 200f, settings.SetCameraSensitivity);
             AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
             var horizontal = new Toggle("INVERT HORIZONTAL CAMERA") { value = settings.InvertCameraHorizontal };

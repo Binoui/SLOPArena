@@ -100,6 +100,9 @@ namespace SlopArena.Client.UI
                 return;
             }
 
+            documentRoot.RegisterCallback<NavigationSubmitEvent>(SlopArena.Client.Input.CouchPads.BlockForeignPress, TrickleDown.TrickleDown);
+            documentRoot.RegisterCallback<NavigationCancelEvent>(SlopArena.Client.Input.CouchPads.BlockForeignPress, TrickleDown.TrickleDown);
+            documentRoot.RegisterCallback<NavigationMoveEvent>(SlopArena.Client.Input.CouchPads.BlockForeignPress, TrickleDown.TrickleDown);
             _root = documentRoot.Q<VisualElement>("frontend-shell");
             _topBar = documentRoot.Q<VisualElement>("shell-top-bar");
             _pageContextLabel = documentRoot.Q<VisualElement>("shell-page-context");

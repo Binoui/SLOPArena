@@ -15,7 +15,7 @@ namespace SlopArena.Shared
     /// the same inputs yield identical samples. Mirrors SelfPlayMatch's "scenario in
     /// Shared, tool renders, tests assert" split.
     /// </summary>
-    public static class MovementProbe
+    public static partial class MovementProbe
     {
         // ── Model ──────────────────────────────────────────────────────────────
 

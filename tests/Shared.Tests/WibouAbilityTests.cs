@@ -28,8 +28,7 @@ public class WibouAbilityTests
     // ── Activation of every slot ──
 
     [Theory]
-    [InlineData((byte)3)] // key "1" — Quick Slash (normal)
-    [InlineData((byte)7)] // key "2" — Double Slash (normal)
+    [InlineData((byte)3)] // key "1" — Double Slash (normal)
     [InlineData((byte)8)] // key "3" — Up Slash (normal)
     [InlineData((byte)9)] // key "4" — Heavy Down Slash (normal)
 [InlineData((byte)4)] // E — Rising Slash
@@ -46,8 +45,7 @@ public class WibouAbilityTests
     }
 
     [Theory]
-    [InlineData((byte)3)] // key "1" air — Air Slash
-    [InlineData((byte)7)] // key "2" air — Reverse Slash
+    [InlineData((byte)3)] // key "1" air — Reverse Slash
     [InlineData((byte)8)] // key "3" air — Air Up Slash
     [InlineData((byte)9)] // key "4" air — Air Heavy Down Slash
     public void AirSlot_Activates(byte slot)
@@ -66,7 +64,6 @@ public class WibouAbilityTests
 
     [Theory]
     [InlineData((byte)3)] // key "1"
-    [InlineData((byte)7)] // key "2"
     [InlineData((byte)8)] // key "3"
     [InlineData((byte)9)] // key "4"
     public void GroundNormal_DamagesNearbyEnemy(byte slot)

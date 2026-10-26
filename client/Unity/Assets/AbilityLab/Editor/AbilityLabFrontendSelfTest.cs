@@ -1009,7 +1009,7 @@ public static class AbilityLabFrontendSelfTest
                 throw new InvalidOperationException("Ctrl+Z did not route to workspace Undo.");
 
             var preview = AbilityLabPackagePreviewLoader.Load("fightguy");
-            if (!preview.IsAvailable || preview.Identity == null || preview.Identity.PackageId != "fightguy" || preview.Slots.Count != 16)
+            if (!preview.IsAvailable || preview.Identity == null || preview.Identity.PackageId != "fightguy" || preview.Slots.Count != CanonicalSlotProjection.All.Count)
                 throw new InvalidOperationException("FightGuy read-only preview seam is unavailable.");
             var unavailable = AbilityLabPackagePreviewLoader.Load("unavailable-package");
             if (unavailable.IsAvailable || unavailable.Diagnostics.Count == 0 || unavailable.Identity != null)

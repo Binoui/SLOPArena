@@ -19,7 +19,7 @@ public sealed class MatchContentCatalogTests
         Assert.True(result.IsValid, string.Join("; ", result.Diagnostics));
         Assert.Equal("fightguy", result.Identity.PackageId);
         Assert.Equal(roster.Requirement.CookedContentHash, result.Identity.CookedContentHash);
-        Assert.Equal(16, result.Package!.Definition.Slots.Count);
+        Assert.Equal(14, result.Package!.Definition.Slots.Count);
         Assert.NotNull(result.BakedAnimation);
     }
 

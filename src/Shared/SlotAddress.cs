@@ -9,18 +9,24 @@ public readonly record struct SlotAddress(string Id, bool IsAirborne, string Inp
 
 public static class CanonicalSlotProjection
 {
+    // Three normals (ADR-0042): jab/all-rounder, up and big keep the ids 1, 3 and 4.
     private static readonly byte[] WireSlots =
     {
-        AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
+        AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
         AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
     };
 
+    private static readonly string[] InputLabels = { "1", "3", "4", "A", "E", "R", "F" };
+
+    /// <summary>Slots per variant; air ordinals follow the ground ones.</summary>
+    public const int VariantSlotCount = 7;
+
     private static readonly IReadOnlyList<SlotAddress> AllSlots = new ReadOnlyCollection<SlotAddress>(
-        Enumerable.Range(0, 16)
+        Enumerable.Range(0, VariantSlotCount * 2)
             .Select(ordinal =>
             {
-                var isAirborne = ordinal >= 8;
-                var inputLabel = new[] { "1", "2", "3", "4", "A", "E", "R", "F" }[ordinal % 8];
+                var isAirborne = ordinal >= VariantSlotCount;
+                var inputLabel = InputLabels[ordinal % VariantSlotCount];
                 return new SlotAddress($"{(isAirborne ? "air" : "ground")}.{inputLabel}", isAirborne, inputLabel, (byte)ordinal);
             })
             .ToArray());
@@ -36,13 +42,13 @@ public static class CanonicalSlotProjection
     public static bool TryGet(byte wireSlot, bool airborne, out SlotAddress address)
     {
         int index = Array.IndexOf(WireSlots, wireSlot);
-        address = index >= 0 ? AllSlots[index + (airborne ? 8 : 0)] : default;
+        address = index >= 0 ? AllSlots[index + (airborne ? VariantSlotCount : 0)] : default;
         return index >= 0;
     }
 
     public static byte ToWire(SlotAddress address)
         => TryGet(address.Id, out var canonical) && canonical == address
-            ? WireSlots[canonical.Ordinal % 8]
+            ? WireSlots[canonical.Ordinal % VariantSlotCount]
             : throw new ArgumentException("A canonical slot address is required.", nameof(address));
 
     public static bool TryGet(string canonicalId, out SlotAddress address)

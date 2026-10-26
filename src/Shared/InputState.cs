@@ -25,6 +25,8 @@ namespace SlopArena.Shared
         public bool ShieldPressed;
         /// <summary>Fresh logical grab edge; client modifier/chord handling is already resolved.</summary>
         public bool GrabPressed;
+        /// <summary>Fresh homing dash edge (ADR-0042); simulation owns admission and the cooldown.</summary>
+        public bool DashPressed;
         /// <summary>
         /// True while the jump key is physically held (issue #116 / #106). The sim counts
         /// consecutive held ticks (<c>CharacterState.JumpHeldTicks</c>) and releases within
@@ -64,7 +66,7 @@ namespace SlopArena.Shared
         /// <summary>22 bytes: 21-byte input payload plus the protocol version.</summary>
         /// <remarks>
         /// Flags byte (byte 8): 1=Up, 2=Down, 4=Left, 8=Right, 0x10=Jump,
-        /// 0x20 and 0x40 reserved and ignored, 0x80=IsAiming.
+        /// 0x20=DashPressed, 0x40 reserved and ignored, 0x80=IsAiming.
         /// Flags2 byte (byte 19): 1=JumpHeld, 2=FaceToCamera, 4=ToggleLock,
         /// 8=DownPressed, 0x10=ShieldHeld, 0x20=ShieldPressed, 0x40=GrabPressed,
         /// 0x80=RetargetPressed. Byte 20 is TargetLockMode; byte 21 is the exact
@@ -84,6 +86,7 @@ namespace SlopArena.Shared
             held.DownPressed = false;
             held.ShieldPressed = false;
             held.GrabPressed = false;
+            held.DashPressed = false;
             held.FaceToCamera = false;
             held.ToggleLock = false;
             held.RetargetPressed = false;
@@ -92,7 +95,7 @@ namespace SlopArena.Shared
         }
 
         /// <summary>True when this input carries any one-tick press edge.</summary>
-        public bool HasPressEdges => Jump || DownPressed || ShieldPressed || GrabPressed ||
+        public bool HasPressEdges => Jump || DownPressed || ShieldPressed || GrabPressed || DashPressed ||
             FaceToCamera || ToggleLock || RetargetPressed || ActiveSlot != 0;
 
         /// <summary>
@@ -108,6 +111,7 @@ namespace SlopArena.Shared
             merged.DownPressed |= earlier.DownPressed;
             merged.ShieldPressed |= earlier.ShieldPressed;
             merged.GrabPressed |= earlier.GrabPressed;
+            merged.DashPressed |= earlier.DashPressed;
             merged.FaceToCamera |= earlier.FaceToCamera;
             merged.ToggleLock |= earlier.ToggleLock;
             merged.RetargetPressed |= earlier.RetargetPressed;
@@ -128,6 +132,7 @@ namespace SlopArena.Shared
             if (Left) flags |= 4;
             if (Right) flags |= 8;
             if (Jump) flags |= 0x10;
+            if (DashPressed) flags |= 0x20;
             if (IsAiming) flags |= 0x80;
             buf[8] = flags;
             buf[9] = ActiveSlot;
@@ -171,6 +176,7 @@ namespace SlopArena.Shared
             input.Left = (flags & 4) != 0;
             input.Right = (flags & 8) != 0;
             input.Jump = (flags & 0x10) != 0;
+            input.DashPressed = (flags & 0x20) != 0;
             input.IsAiming = (flags & 0x80) != 0;
             input.ActiveSlot = buf[9];
             input.FacingYaw = BinaryPrimitives.ReadInt16LittleEndian(buf.Slice(10));

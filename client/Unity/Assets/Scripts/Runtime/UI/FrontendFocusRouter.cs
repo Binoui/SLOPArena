@@ -111,7 +111,7 @@ namespace SlopArena.Client.UI
             if (!UiModalState.Presented && !GamepadUIBridge.IsAvailable(focused))
                 FocusRegionDefault(_region);
             GamepadUIBridge.Pump(shell.Root.panel, cancel: false);
-            if (Gamepad.current?.buttonEast.wasPressedThisFrame == true)
+            if (SlopArena.Client.Input.CouchPads.MenuPad?.buttonEast.wasPressedThisFrame == true)
                 HandlePageCancel();
             PollForward();
             PollPause();
@@ -131,7 +131,7 @@ namespace SlopArena.Client.UI
 
         private void PollForward()
         {
-            var pad = Gamepad.current;
+            var pad = SlopArena.Client.Input.CouchPads.MenuPad;
             if (pad?.startButton.wasPressedThisFrame != true
                 || pad.buttonSouth.wasPressedThisFrame || pad.buttonEast.wasPressedThisFrame)
                 return;
@@ -190,7 +190,7 @@ namespace SlopArena.Client.UI
         /// </summary>
         private void PollRegionSwitch()
         {
-            bool pad = Gamepad.current?.buttonNorth.wasPressedThisFrame == true;
+            bool pad = SlopArena.Client.Input.CouchPads.MenuPad?.buttonNorth.wasPressedThisFrame == true;
             bool qKey = Keyboard.current?.qKey.wasPressedThisFrame == true;
             if (!pad && !qKey)
                 return;
@@ -209,7 +209,7 @@ namespace SlopArena.Client.UI
         private void PollTopBarRoute()
         {
             bool key = Keyboard.current?.eKey.wasPressedThisFrame == true;
-            bool pad = Gamepad.current?.buttonWest.wasPressedThisFrame == true;
+            bool pad = SlopArena.Client.Input.CouchPads.MenuPad?.buttonWest.wasPressedThisFrame == true;
             if (!key && !pad)
                 return;
             if (_region == UiRegion.TopBar)

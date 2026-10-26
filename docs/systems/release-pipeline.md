@@ -78,7 +78,7 @@ This uses installed SteamCMD with anonymous login and requires both default's
 BuildID and depot manifest to match. It appends a separate observation, preserving
 CI receipts. Credentials and confirmations stay in Steamworks/Steam.
 
-Protocol 16 requires coordinated client, GameServer and Master versions. The
+Protocol 17 (three normals and the homing dash, ADR-0042) requires coordinated client, GameServer and Master versions. The
 registration `catalogHash` still hashes only the schema-1 character catalog.
 Each actual Match uses schema-2 content with an `arena` name and lowercase SHA-256
 digest of the exact baked `.arena` bytes. Its `contentHash` binds that record and

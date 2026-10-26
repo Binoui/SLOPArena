@@ -56,7 +56,7 @@ public class SweptBoneHitboxTests
                 Name = "swing",
                 Frames = Enumerable.Range(0, 20).Select(f => Pose(SwingAngle(f))).ToArray(),
             },
-            // ground.2 "slow": 10 frames stretched over 20 ticks; the head walks 10 cm right per frame.
+            // ground.4 "slow": 10 frames stretched over 20 ticks; the head walks 10 cm right per frame.
             new BakedAnimationData.BakedAnim
             {
                 Name = "slow",
@@ -86,8 +86,8 @@ public class SweptBoneHitboxTests
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
         slots[0] = Slot(0, "ground.1", "swing", Blade(SwingTrigger, SwingDuration));
-        slots[1] = Slot(1, "ground.2", "slow");
-        slots[2] = Slot(2, "ground.3", "flick");
+        slots[1] = Slot(1, "ground.3", "flick");
+        slots[2] = Slot(2, "ground.4", "slow");
         def = def with { CookedSlots = slots };
         def = def with { HurtboxBoneDefs = new[]
         {
@@ -197,7 +197,7 @@ public class SweptBoneHitboxTests
         TestHelpers.AssertNear(0f, tx, 0.0001f);
         TestHelpers.AssertNear(Hilt[2] + BladeLength, tz, 0.0001f);
 
-        // ground.2 plays 10 frames over 20 ticks: elapsed 3 is frame 1.5, between two baked frames.
+        // ground.4 plays 10 frames over 20 ticks: elapsed 3 is frame 1.5, between two baked frames.
         Assert.Equal(1.5f, HitboxGeometry.AttackFrame(3, 10, 20));
         Assert.True(HitboxGeometry.BakedPointToWorld(state, def, baked, 1, 1.5f, 1, 1f, out float headX, out _, out _));
         TestHelpers.AssertNear(0.15f, headX, 0.0001f);
@@ -240,7 +240,7 @@ public class SweptBoneHitboxTests
     [Fact]
     public void AttackHurtboxes_FollowTheClipClockOnSlowClips()
     {
-        // ground.2 stretches 10 frames over 20 ticks. Past elapsed 10 a per-entity frame
+        // ground.4 stretches 10 frames over 20 ticks. Past elapsed 10 a per-entity frame
         // counter would wrap to the opening pose; the body must keep following the clip.
         var def = Def();
         var sim = TestHelpers.MakeSim();
@@ -248,7 +248,7 @@ public class SweptBoneHitboxTests
         attacker.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(1, def, attacker, Bake());
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot2) } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot4) } });
         for (int tick = 1; tick < 18; tick++)
         {
             var state = sim.GetState(1);

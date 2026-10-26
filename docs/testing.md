@@ -144,7 +144,7 @@ setups must hold through both JumpSquat and the short-hop decision window. Multi
 should count accepted contacts, not gaps between hitboxes whose active windows may overlap.
 
 Use `TestHelpers.EngineDef` for generic Shared mechanics and reporting tests. It returns
-a fresh definition with explicit movement/body values and sixteen empty canonical cooked
+a fresh definition with explicit movement/body values and fourteen empty canonical cooked
 slots; install only the timelines or synthetic poses needed by the scenario. Do not load
 roster baked data for this fixture. `MankiDef`, `FightGuyDef`, `WibouDef`, and `ResolveDef`
 are for intentional roster/package integration. `CombatDef` remains a roster-backed kit
@@ -245,7 +245,7 @@ new admission remains a separate acceptance step.
 Bonk is rostered and has gameplay coverage. Use a disposable unrostered fixture
 to check discovery and cooking independently of gameplay. Record:
 
-- inspect `success: true`, the fixture's package ID, and sixteen canonical slots;
+- inspect `success: true`, the fixture's package ID, and fourteen canonical slots;
 - cook semantic `success: true` with its required semantic bindings;
 - cooked payload hashes and preservation after a preparation-failing recook;
 - no roster requirement or Character Select entry for the fixture;

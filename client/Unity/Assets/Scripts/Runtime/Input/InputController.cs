@@ -99,9 +99,18 @@ namespace SlopArena.Client.Input
             HumanInputActions.Initialize(settings.BindingOverrides);
         }
 
+        // Couch play: a second Local Player reads its own device-restricted copy of the map.
+        // NonSerialized: a Play Mode script reload would otherwise turn null into an empty map.
+        [NonSerialized] private InputActionMap? _playerMap;
+        public void UsePlayerMap(InputActionMap map) => _playerMap = map;
+        private InputAction Act(string name) =>
+            _playerMap != null ? _playerMap.FindAction(name, true) : HumanInputActions.Get(name);
+
         // ── Frame state (set by Poll) ──
         /// <summary>Pending jump: set by Poll, consumed by BuildInputState.</summary>
         private bool _pendingJump;
+        /// <summary>Pending homing dash press (ADR-0042), consumed once by BuildInputState.</summary>
+        private bool _pendingDash;
         private DefenseInputEdges _defenseInputEdges = new DefenseInputEdges(true);
         /// <summary>Pending dedicated Down press edge, consumed once by BuildInputState.</summary>
         private bool _pendingDownPressed;
@@ -123,7 +132,7 @@ namespace SlopArena.Client.Input
             if (HumanInputBlocked) return false;
             string action = SlotAction(slotIdx);
             if (action != null)
-                foreach (var control in HumanInputActions.Get(action).controls)
+                foreach (var control in Act(action).controls)
                     if (control.device is Keyboard or Mouse && control.IsPressed())
                         return true;
             foreach (byte heldSlot in _controllerSlots)
@@ -134,7 +143,7 @@ namespace SlopArena.Client.Input
         private static string SlotAction(byte slotIdx) => slotIdx switch
         {
             2 => "Slot1", 3 => "SlotE", 4 => "SlotR", 5 => "SlotF",
-            6 => "Slot2", 7 => "Slot3", 8 => "Slot4", 10 => "SlotA",
+            7 => "Slot3", 8 => "Slot4", 10 => "SlotA",
             _ => null,
         };
 
@@ -158,10 +167,10 @@ namespace SlopArena.Client.Input
         private bool AnyHumanControlHeld()
         {
             foreach (var name in HumanInputActions.RebindableActions)
-                if (HumanInputActions.Get(name).IsPressed()) return true;
-            return HumanInputActions.Get("MoveStick").ReadValue<Vector2>().sqrMagnitude > 0.01f
-                || HumanInputActions.StickLook.ReadValue<Vector2>().sqrMagnitude > 0.01f
-                || HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f
+                if (Act(name).IsPressed()) return true;
+            return Act("MoveStick").ReadValue<Vector2>().sqrMagnitude > 0.01f
+                || Act("StickLook").ReadValue<Vector2>().sqrMagnitude > 0.01f
+                || Act("MouseLook").ReadValue<Vector2>().sqrMagnitude > 0.01f
                 || Mathf.Abs(HumanInputActions.ZoomDelta) > 0.01f;
         }
 
@@ -169,7 +178,7 @@ namespace SlopArena.Client.Input
         /// True while the bound fast-fall key is held. Kept separate from InputState.Down so
         /// release suppression can be enforced across pause/focus transitions.
         /// </summary>
-        private bool IsDownHeld() => HumanInputActions.Get("Down").IsPressed();
+        private bool IsDownHeld() => Act("Down").IsPressed();
 
 
         private void OnApplicationFocus(bool hasFocus)
@@ -220,35 +229,39 @@ namespace SlopArena.Client.Input
                 _humanReleaseRequired = false;
             }
 
-            var jump = HumanInputActions.Get("Jump");
+            var jump = Act("Jump");
             PollDefense();
-            var down = HumanInputActions.Get("Down");
-            if (jump.WasPressedThisFrame()) _pendingJump = true;
+            var down = Act("Down");
             if (_downReleaseRequired)
             {
                 if (!down.IsPressed()) _downReleaseRequired = false;
             }
             else if (down.WasPressedThisFrame()) _pendingDownPressed = true;
 
-            if (HumanInputActions.Get("FaceToCamera").WasPressedThisFrame())
+            if (Act("FaceToCamera").WasPressedThisFrame())
                 _pendingFaceToCamera = true;
-            if (HumanInputActions.Get("ToggleLock").WasPressedThisFrame())
+            if (Act("ToggleLock").WasPerformedThisFrame())
                 _pendingToggleLock = true;
-            if (HumanInputActions.Get("Retarget").WasPressedThisFrame())
+            if (Act("Retarget").WasPressedThisFrame())
                 _pendingRetarget = true;
-            PollSlots();
+            if (Act("Dash").WasPressedThisFrame())
+                _pendingDash = true;
+            bool jumpBecameSpecial = PollSlots();
+            if (jump.WasPressedThisFrame() && !jumpBecameSpecial) _pendingJump = true;
         }
 
         private static readonly (string action, byte slot)[] SlotActions =
         {
             ("Slot1", AbilitySlots.Slot1), ("SlotE", AbilitySlots.E), ("SlotR", AbilitySlots.R),
-            ("SlotF", AbilitySlots.F), ("Slot2", AbilitySlots.Slot2), ("Slot3", AbilitySlots.Slot3),
+            ("SlotF", AbilitySlots.F), ("Slot3", AbilitySlots.Slot3),
             ("Slot4", AbilitySlots.Slot4), ("SlotA", AbilitySlots.A),
         };
 
-        private void PollSlots()
+        /// <summary>Returns true when the controller jump button was pressed as LB + A this frame.</summary>
+        private bool PollSlots()
         {
-            bool modifier = HumanInputActions.Get("SpecialModifier").IsPressed();
+            bool jumpBecameSpecial = false;
+            bool modifier = Act("SpecialModifier").IsPressed();
             for (int face = 0; face < 4; face++)
             {
                 var held = _controllerButtons[face];
@@ -257,18 +270,21 @@ namespace SlopArena.Client.Input
                     _controllerButtons[face] = null;
                     _controllerSlots[face] = 0;
                 }
-                var action = HumanInputActions.Get(FaceActions[face]);
+                var action = Act(FaceActions[face]);
                 foreach (var control in action.controls)
                 {
                     if (control.device is Gamepad && control is ButtonControl button &&
                         button.wasPressedThisFrame && _controllerButtons[face] == null)
                     {
+                        // A alone jumps; only LB + A turns the jump button into special A.
+                        if (NormalSlots[face] == AbilitySlots.None && !modifier) continue;
+                        jumpBecameSpecial |= NormalSlots[face] == AbilitySlots.None;
                         _controllerButtons[face] = button;
                         _controllerSlots[face] = DefenseInputEdges.ResolveFaceSlot(
                             true, modifier, NormalSlots[face], SpecialSlots[face]);
                         if (_pendingSlotPress == 0) _pendingSlotPress = _controllerSlots[face];
                     }
-                    else if (control.device is Keyboard or Mouse &&
+                    else if (control.device is Keyboard or Mouse && NormalSlots[face] != AbilitySlots.None &&
                         WasControlPressedThisFrame(control, action) && _pendingSlotPress == 0)
                         _pendingSlotPress = DefenseInputEdges.ResolveFaceSlot(
                             false, false, NormalSlots[face], SpecialSlots[face]);
@@ -276,16 +292,16 @@ namespace SlopArena.Client.Input
             }
             foreach (var (actionName, slot) in SlotActions)
             {
-                if (actionName == "Slot1" || actionName == "Slot2" ||
-                    actionName == "Slot3" || actionName == "Slot4") continue;
-                if (HumanInputActions.Get(actionName).WasPressedThisFrame() && _pendingSlotPress == 0)
+                if (actionName == "Slot1" || actionName == "Slot3" || actionName == "Slot4") continue;
+                if (Act(actionName).WasPressedThisFrame() && _pendingSlotPress == 0)
                     _pendingSlotPress = slot;
             }
+            return jumpBecameSpecial;
         }
         private void PollDefense()
         {
-            var shield = HumanInputActions.Get("Shield");
-            var modifier = HumanInputActions.Get("SpecialModifier");
+            var shield = Act("Shield");
+            var modifier = Act("SpecialModifier");
             bool rtHeld = false;
             bool rtPressed = false;
             bool desktopShieldPressed = false;
@@ -302,7 +318,7 @@ namespace SlopArena.Client.Input
             _defenseInputEdges.Update(
                 shield.IsPressed(), rtHeld, rtPressed, modifier.IsPressed(),
                 modifier.WasPressedThisFrame(), desktopShieldPressed,
-                HumanInputActions.Get("Grab").WasPressedThisFrame());
+                Act("Grab").WasPressedThisFrame());
         }
 
         private static bool WasControlPressedThisFrame(InputControl control, InputAction action) =>
@@ -311,8 +327,9 @@ namespace SlopArena.Client.Input
 
 
 
-        private static readonly string[] FaceActions = { "Slot1", "Slot2", "Slot3", "Slot4" };
-        private static readonly byte[] NormalSlots = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+        // Face buttons A, X, Y, B by default. A is the jump button, so it has no normal.
+        private static readonly string[] FaceActions = { "Jump", "Slot1", "Slot3", "Slot4" };
+        private static readonly byte[] NormalSlots = { AbilitySlots.None, AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 };
         private static readonly byte[] SpecialSlots = { AbilitySlots.A, AbilitySlots.R, AbilitySlots.E, AbilitySlots.F };
 
         /// <summary>
@@ -323,11 +340,12 @@ namespace SlopArena.Client.Input
         public void ClearPendingFrameState()
         {
             _pendingJump = false;
+            _pendingDash = false;
             _pendingDownPressed = false;
             _pendingFaceToCamera = false;
             _pendingToggleLock = false;
             _pendingRetarget = false;
-            _defenseInputEdges.ClearPending(HumanInputActions.Get("Shield").IsPressed());
+            _defenseInputEdges.ClearPending(Act("Shield").IsPressed());
             _pendingSlotPress = 0;
             Array.Clear(_controllerSlots, 0, _controllerSlots.Length);
             Array.Clear(_controllerButtons, 0, _controllerButtons.Length);
@@ -358,24 +376,26 @@ namespace SlopArena.Client.Input
         /// <summary>
         /// Get raw movement input for current frame.
         /// </summary>
-        public Vector2 GetMovement()
+        public Vector2 GetMovement(bool digitalKeyboard = false)
         {
             if (HumanInputBlocked) return Vector2.zero;
-            float x = (HumanInputActions.Get("MoveRight").IsPressed() ? 1f : 0f)
-                    - (HumanInputActions.Get("MoveLeft").IsPressed() ? 1f : 0f);
-            float y = (HumanInputActions.Get("MoveUp").IsPressed() ? 1f : 0f)
-                    - (HumanInputActions.Get("MoveDown").IsPressed() ? 1f : 0f);
-            Vector2 stick = HumanInputActions.Get("MoveStick").ReadValue<Vector2>();
-            return Vector2.ClampMagnitude(new Vector2(x, y) + stick, 1f);
+            float x = (Act("MoveRight").IsPressed() ? 1f : 0f)
+                    - (Act("MoveLeft").IsPressed() ? 1f : 0f);
+            float y = (Act("MoveUp").IsPressed() ? 1f : 0f)
+                    - (Act("MoveDown").IsPressed() ? 1f : 0f);
+            Vector2 stick = Act("MoveStick").ReadValue<Vector2>();
+            Vector2 keyboard = new Vector2(x, y);
+            if (digitalKeyboard && keyboard.sqrMagnitude > 0f) return keyboard.normalized;
+            return Vector2.ClampMagnitude(keyboard + stick, 1f);
         }
 
         /// <summary>Stationary aim uses the left stick; the right stick remains a fallback.</summary>
         public Vector2 GetAimStick(bool locksMovement)
         {
             if (HumanInputBlocked) return Vector2.zero;
-            Vector2 left = HumanInputActions.Get("MoveStick").ReadValue<Vector2>();
+            Vector2 left = Act("MoveStick").ReadValue<Vector2>();
             return locksMovement && left.sqrMagnitude > 0.01f
-                ? left : HumanInputActions.StickLook.ReadValue<Vector2>();
+                ? left : Act("StickLook").ReadValue<Vector2>();
         }
 
         // ════════════════════════════════════════════════════════════════
@@ -387,13 +407,19 @@ namespace SlopArena.Client.Input
         /// 8-direction snap, and FSM movement gate.
         /// Returns (InputState, world-space moveDirection, camera-relative snappedInputDirection).
         /// </summary>
+        private Quaternion? _heldMoveBasis;
+        private float _heldStickAngle;
+
         public (InputState input, Vector3 moveDirection, Vector2 snappedInputDirection) BuildInputState(
             Camera.CameraMount? camera,
             float bodyYawDeg,
             byte pendingSlotPress,
             Camera.AimContext aimCtx,
             Func<bool>? canMove,
-            byte targetEntityId = 0)
+            byte targetEntityId = 0,
+            GroundSpeedModel groundSpeedModel = GroundSpeedModel.Current,
+            bool stickSnap = true,
+            bool aimFromFacing = false)
         {
             var input = new InputState();
 
@@ -415,7 +441,29 @@ namespace SlopArena.Client.Input
             }
 
             // Build raw camera-relative direction from unified digital and stick input.
-            Vector2 moveInput = GetMovement();
+            bool prototypeSpeed = groundSpeedModel != GroundSpeedModel.Current;
+            Vector2 moveInput = GetMovement(digitalKeyboard: prototypeSpeed || !stickSnap);
+            // Steady camera (ADR-0043): keep the basis a held direction started with, so a camera
+            // turn does not bend a run already underway. A new direction re-reads the camera.
+            if (camera != null && camera.HoldsMoveDirection && moveInput.sqrMagnitude >= 0.04f)
+            {
+                float stickAngle = Mathf.Atan2(moveInput.x, moveInput.y) * Mathf.Rad2Deg;
+                if (!_heldMoveBasis.HasValue || Mathf.Abs(Mathf.DeltaAngle(stickAngle, _heldStickAngle)) > 40f)
+                {
+                    _heldMoveBasis = Quaternion.LookRotation(camForward, Vector3.up);
+                    _heldStickAngle = stickAngle;
+                }
+                camForward = _heldMoveBasis.Value * Vector3.forward;
+                camRight = _heldMoveBasis.Value * Vector3.right;
+            }
+            else
+                _heldMoveBasis = null;
+            // Steady does not face the target, so camera-aimed moves use facing, as in couch play.
+            aimFromFacing |= camera != null && camera.Style == Camera.CameraStyle.Steady;
+            bool keyboardMovement = Act("MoveRight").IsPressed()
+                || Act("MoveLeft").IsPressed()
+                || Act("MoveUp").IsPressed()
+                || Act("MoveDown").IsPressed();
             Vector3 rawDir = camForward * moveInput.y + camRight * moveInput.x;
 
             Vector3 moveDirection = Vector3.zero;
@@ -430,7 +478,8 @@ namespace SlopArena.Client.Input
                 // Snap to 8 directions (45-degree increments)
                 float angle = MathF.Atan2(rawRight, rawForward);
                 const float snapStep = MathF.PI / 4f;
-                float snappedAngle = MathF.Round(angle / snapStep) * snapStep;
+                float snappedAngle = stickSnap || keyboardMovement
+                    ? MathF.Round(angle / snapStep) * snapStep : angle;
 
                 float fwd = MathF.Cos(snappedAngle);
                 float rgt = MathF.Sin(snappedAngle);
@@ -440,17 +489,19 @@ namespace SlopArena.Client.Input
                 moveDirection = moveDirection.normalized;
             }
 
-            input.MoveX = moveDirection.x;
-            input.MoveY = moveDirection.z;
+            float movementMagnitude = prototypeSpeed ? Mathf.Clamp01(moveInput.magnitude) : 1f;
+            input.MoveX = moveDirection.x * movementMagnitude;
+            input.MoveY = moveDirection.z * movementMagnitude;
             input.Up = moveDirection.z > 0.3f;
             // Dedicated Down remains independent from backward movement.
-            input.Down = !_downReleaseRequired && HumanInputActions.Get("Down").IsPressed();
+            input.Down = !_downReleaseRequired && Act("Down").IsPressed();
             input.DownPressed = _pendingDownPressed;
             _pendingDownPressed = false;
             input.Left = moveDirection.x < -0.3f;
             input.Right = moveDirection.x > 0.3f;
-            input.JumpHeld = HumanInputActions.Get("Jump").IsPressed();
-            var shieldAction = HumanInputActions.Get("Shield");
+            // LB + A holds special A, not a jump.
+            input.JumpHeld = Act("Jump").IsPressed() && _controllerSlots[0] == AbilitySlots.None;
+            var shieldAction = Act("Shield");
             input.ShieldHeld = _defenseInputEdges.ShieldHeld(shieldAction.IsPressed());
             input.ShieldPressed = _defenseInputEdges.TakeShieldPressed();
             input.GrabPressed = _defenseInputEdges.TakeGrabPressed();
@@ -464,6 +515,9 @@ namespace SlopArena.Client.Input
             _pendingToggleLock = false;
             input.RetargetPressed = _pendingRetarget;
             _pendingRetarget = false;
+            // The simulation owns dash admission, including attack IASA windows.
+            input.DashPressed = _pendingDash;
+            _pendingDash = false;
 
             // Yaw wraps before centidegree encoding; camera turns must not saturate the wire angle.
             float deg = Mathf.DeltaAngle(0f, bodyYawDeg);
@@ -472,11 +526,11 @@ namespace SlopArena.Client.Input
             // Aim yaw: camera default, overridden by active ability
             float aimDeg = aimCtx.AimYawRad.HasValue
                 ? aimCtx.AimYawRad.Value * Mathf.Rad2Deg
-                : camera != null ? camera.GetCameraYawDeg() : deg;
+                : camera != null && !aimFromFacing ? camera.GetCameraYawDeg() : deg;
             input.AimYaw = (short)(Mathf.DeltaAngle(0f, aimDeg) * 100f);
 
             // Aim pitch: camera default, overridden by active ability
-            float aimPitchDeg = camera != null ? camera.GetCameraPitchDeg() : 0f;
+            float aimPitchDeg = camera != null && !aimFromFacing ? camera.GetCameraPitchDeg() : 0f;
             input.AimPitch = (short)Math.Clamp(aimPitchDeg * 100f, -9000f, 9000f);
             if (aimCtx.AimPitchRad.HasValue)
                 input.AimPitch = (short)Math.Clamp(aimCtx.AimPitchRad.Value * Mathf.Rad2Deg * 100f, -9000f, 9000f);

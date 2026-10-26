@@ -20,6 +20,7 @@ namespace SlopArena.Client.Entities
     /// </summary>
     public class PlayerRenderer : MonoBehaviour
     {
+        public bool GroundSpeedPrototypeActive { get; set; }
         [Header("Entity")]
         [SerializeField] private string _entityName = "Entity";
         [SerializeField] private ulong _entityId;
@@ -793,11 +794,15 @@ namespace SlopArena.Client.Entities
                 _airDodge = TryGetComponent(out AirDodgePresentation airDodge)
                     ? airDodge : gameObject.AddComponent<AirDodgePresentation>();
                 _airDodge.Init(this);
+                _homingDash = TryGetComponent(out HomingDashPresentation homingDash)
+                    ? homingDash : gameObject.AddComponent<HomingDashPresentation>();
+                _homingDash.Init();
             }
         }
 
         private FighterHitFeel? _hitFeel;
         private AirDodgePresentation? _airDodge;
+        private HomingDashPresentation? _homingDash;
 
         /// <summary>Plays a one-shot on this fighter's SFX source (2D, SFX mixer bus).</summary>
         internal void PlayOneShot(AudioClip clip, float volume) => _sfxSource?.PlayOneShot(clip, volume);
@@ -1048,6 +1053,7 @@ namespace SlopArena.Client.Entities
             HideShield();
             _projectileVFX?.ClearHeldVisual(_entityId);
             _airDodge?.Clear();
+            _homingDash?.Clear();
             if (_respawnInvincibilityEffect != null)
             {
                 _respawnInvincibilityEffect.EndInvincibility();
@@ -1249,6 +1255,7 @@ namespace SlopArena.Client.Entities
             UpdateKiShotVisual(state);
             _hitFeel?.OnState(in state, _charDef, _activeMove);
             _airDodge?.OnState(in state);
+            _homingDash?.OnState(in state);
             if (state.State == ActionState.Attacking && state.ChargeTicks > 0)
             {
                 LastFiredChargeTicks = state.ChargeTicks;
@@ -1640,6 +1647,7 @@ namespace SlopArena.Client.Entities
             // ── Action animation state (Attacking / AirDodgeMovement / Hitstun) ──
             bool isCombat = state.State == ActionState.Attacking
                 || state.State == ActionState.AirDodgeMovement
+                || state.State is ActionState.HomingDashFloat or ActionState.HomingDash
                 || state.State == ActionState.Hitstun;
 
             // ── Hitstun animation (always, even during extrapolation guard) ──
@@ -1913,7 +1921,11 @@ namespace SlopArena.Client.Entities
                         {
                             float fadeDuration = _lastAnimState is ActionState.Crouching or ActionState.Sliding
                                 ? 0f : 0.1f;
-                            _animancer.Play(clip, fadeDuration);
+                            var locomotion = _animancer.Play(clip, fadeDuration);
+                            if (state.State == ActionState.Run && GroundSpeedPrototypeActive)
+                                locomotion.Speed = Mathf.Max(0.35f, hSpeed / _charDef.Movement.RunSpeed);
+                            else if (state.State == ActionState.Run)
+                                locomotion.Speed = 1f;
                         }
                     }
                 }
@@ -1953,6 +1965,21 @@ namespace SlopArena.Client.Entities
                         dodgeState.Speed = dodgeAnimSpeed;
                     }
                 }
+                else if (state.State == ActionState.HomingDashFloat)
+                {
+                    // Placeholder: the dodge clip winds up to its midpoint over the float,
+                    // then holds that lean through the dash.
+                    string dashAnim = string.IsNullOrEmpty(_charDef.AirDodgeAnim)
+                        ? _charDef.DashAnim : _charDef.AirDodgeAnim;
+                    if (TryGetAnimation(dashAnim, out var clip, out _))
+                    {
+                        var floatState = _animancer.Play(clip, 0.05f);
+                        floatState.Time = 0f;
+                        floatState.Speed = clip.length * 0.5f / (HomingDashConfig.FloatTicks / 60f);
+                    }
+                }
+                else if (state.State == ActionState.HomingDash && _animancer.States.Current is { } dashPose)
+                    dashPose.Speed = 0f;
             }
 
             _lastClipIndex = state.AnimIndex;

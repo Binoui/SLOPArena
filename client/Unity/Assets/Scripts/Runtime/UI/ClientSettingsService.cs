@@ -42,7 +42,14 @@ namespace SlopArena.Client.UI
             public bool vibration = true;
             public float cameraSensitivity = 100f;
             public float stickLookSpeed = 100f;
-            public int cameraStyle = (int)CameraStyle.Manual;
+            public int cameraStyle = (int)CameraStyle.Steady;
+            public int controllerCameraStyle = -1;
+            public int mouseAutoCameraStyle = (int)CameraStyle.Steady;
+            public int controllerAutoCameraStyle = (int)CameraStyle.Steady;
+            // 0: saved before ADR-0043; such saves move once to Steady on both devices.
+            public int cameraRevision;
+            public float cameraTurnSpeed = 20f;
+            public bool holdRunDirection = true;
             public bool invertCameraHorizontal;
             public bool invertCameraVertical;
             public int displayMode = (int)FullScreenMode.Windowed;
@@ -87,6 +94,12 @@ namespace SlopArena.Client.UI
         /// <summary>Stick-driven aim camera and cursor gain, on the same half scale as <see cref="CameraInputGain"/>.</summary>
         public float StickInputGain => StickLookSpeed * 0.5f;
         public CameraStyle CameraStyle => (CameraStyle)_settings.cameraStyle;
+        public CameraStyle ControllerCameraStyle => (CameraStyle)_settings.controllerCameraStyle;
+        public CameraStyle ResolveCameraStyle(bool controller) => controller ? ControllerCameraStyle : CameraStyle;
+        /// <summary>Steady camera's top turn speed, degrees/second.</summary>
+        public float CameraTurnSpeed => _settings.cameraTurnSpeed;
+        /// <summary>Steady camera: a held run keeps the direction it started with while the camera turns.</summary>
+        public bool HoldRunDirection => _settings.holdRunDirection;
         public bool InvertCameraHorizontal => _settings.invertCameraHorizontal;
         public bool InvertCameraVertical => _settings.invertCameraVertical;
         public event Action? Changed;
@@ -222,13 +235,32 @@ namespace SlopArena.Client.UI
         }
         public void SetCameraSensitivity(float percent) { _settings.cameraSensitivity = Mathf.Clamp(Mathf.Round(percent), 10f, 200f); ChangedAndApply(); }
         public void SetStickLookSpeed(float percent) { _settings.stickLookSpeed = Mathf.Clamp(Mathf.Round(percent), 10f, 200f); ChangedAndApply(); }
-        public void SetCameraStyle(CameraStyle value)
+        public void SetCameraStyle(CameraStyle value, bool controller = false)
         {
-            _settings.cameraStyle = value is CameraStyle.Manual or CameraStyle.AutoCombat or CameraStyle.Arena
-                or CameraStyle.AirDuel or CameraStyle.SideDuel or CameraStyle.Shoulder
-                ? (int)value : (int)CameraStyle.Manual;
+            value = CameraStyleNames.IsValid((int)value) ? value : CameraStyle.Steady;
+            if (controller)
+            {
+                _settings.controllerCameraStyle = (int)value;
+                if (value != CameraStyle.Manual) _settings.controllerAutoCameraStyle = (int)value;
+            }
+            else
+            {
+                _settings.cameraStyle = (int)value;
+                if (value != CameraStyle.Manual) _settings.mouseAutoCameraStyle = (int)value;
+            }
             ChangedAndApply();
         }
+        public CameraStyle ToggleCameraStyle(bool controller)
+        {
+            var style = ResolveCameraStyle(controller) == CameraStyle.Manual
+                ? (CameraStyle)(controller ? _settings.controllerAutoCameraStyle : _settings.mouseAutoCameraStyle)
+                : CameraStyle.Manual;
+            SetCameraStyle(style, controller);
+            Save();
+            return style;
+        }
+        public void SetCameraTurnSpeed(float degrees) { _settings.cameraTurnSpeed = Mathf.Clamp(Mathf.Round(degrees), 10f, 60f); ChangedAndApply(); }
+        public void SetHoldRunDirection(bool value) { _settings.holdRunDirection = value; ChangedAndApply(); }
         public void SetInvertCameraHorizontal(bool value) { _settings.invertCameraHorizontal = value; ChangedAndApply(); }
         public void SetInvertCameraVertical(bool value) { _settings.invertCameraVertical = value; ChangedAndApply(); }
         public void SetNetworkStats(int value) { _settings.networkStats = Mathf.Clamp(value, 0, 2); ChangedAndApply(); }
@@ -258,6 +290,7 @@ namespace SlopArena.Client.UI
         {
             HumanInputActions.ResetOverrides();
             _settings = SettingsPayload.Defaults;
+            NormalizeCameraStyles();
             _settings.stickDeadzone = HumanInputActions.DefaultDeadzone * 100f;
             _settings.displayMode = (int)Screen.fullScreenMode;
             _settings.resolutionWidth = Screen.width;
@@ -309,13 +342,11 @@ namespace SlopArena.Client.UI
                 {
                     _settings = SettingsPayload.Defaults;
                     _settings.stickDeadzone = HumanInputActions.DefaultDeadzone * 100f;
-                    return;
                 }
                 _settings.stickDeadzone = ValidRange(_settings.stickDeadzone, HumanInputActions.DefaultDeadzone * 100f, 5f, 50f);
                 _settings.cameraSensitivity = ValidRange(_settings.cameraSensitivity, 100f, 10f, 200f);
                 _settings.stickLookSpeed = ValidRange(_settings.stickLookSpeed, 100f, 10f, 200f);
-                if (_settings.cameraStyle is < (int)CameraStyle.Manual or > (int)CameraStyle.Shoulder)
-                    _settings.cameraStyle = (int)CameraStyle.Manual;
+                _settings.cameraTurnSpeed = ValidRange(_settings.cameraTurnSpeed, 20f, 10f, 60f);
                 _settings.quality = _settings.quality is >= 0 and <= 2 ? _settings.quality : 2;
                 _settings.targetFps = _settings.targetFps is 60 or 120 or 144 or 240 or -1 ? _settings.targetFps : 120;
                 _settings.uiScale = _settings.uiScale is 80 or 90 or 100 or 110 or 120 or 130 or 140 ? _settings.uiScale : 100;
@@ -335,6 +366,35 @@ namespace SlopArena.Client.UI
                 _settings.stickDeadzone = HumanInputActions.DefaultDeadzone * 100f;
                 Debug.LogWarning($"[Settings] Ignoring unreadable preferences: {exception.Message}");
             }
+            NormalizeCameraStyles();
+        }
+
+        private void NormalizeCameraStyles()
+        {
+            const int steady = (int)CameraStyle.Steady;
+            if (_settings.cameraRevision < 1)
+            {
+                // ADR-0043: Steady replaced Auto Combat, Air Duel, Side Duel and Shoulder, and is
+                // the default on both devices; earlier saves held the old defaults, not choices.
+                _settings.cameraStyle = _settings.controllerCameraStyle = steady;
+                _settings.mouseAutoCameraStyle = _settings.controllerAutoCameraStyle = steady;
+                _settings.cameraRevision = 1;
+                _dirty = true;
+            }
+            if (!CameraStyleNames.IsValid(_settings.cameraStyle))
+                _settings.cameraStyle = steady;
+            if (_settings.controllerCameraStyle == -1)
+                _settings.controllerCameraStyle = _settings.cameraStyle;
+            if (!CameraStyleNames.IsValid(_settings.controllerCameraStyle))
+                _settings.controllerCameraStyle = steady;
+            if (!CameraStyleNames.IsValid(_settings.mouseAutoCameraStyle) || _settings.mouseAutoCameraStyle == (int)CameraStyle.Manual)
+                _settings.mouseAutoCameraStyle = steady;
+            if (!CameraStyleNames.IsValid(_settings.controllerAutoCameraStyle) || _settings.controllerAutoCameraStyle == (int)CameraStyle.Manual)
+                _settings.controllerAutoCameraStyle = steady;
+            if (_settings.cameraStyle != (int)CameraStyle.Manual)
+                _settings.mouseAutoCameraStyle = _settings.cameraStyle;
+            if (_settings.controllerCameraStyle != (int)CameraStyle.Manual)
+                _settings.controllerAutoCameraStyle = _settings.controllerCameraStyle;
         }
 
 

@@ -28,9 +28,9 @@ public class CookedAimHoldTests
     {
         var def = TestHelpers.MankiDef;
         var slots = def.CookedSlots!.ToArray();
-        var slot = slots[4]; // ground.A
+        var slot = slots[3]; // ground.A
         var stage = slot.Timeline.Stages[0];
-        slots[4] = new CookedSlotDefinition(slot.Ordinal, slot.Id, slot.IsAir, slot.Name,
+        slots[3] = new CookedSlotDefinition(slot.Ordinal, slot.Id, slot.IsAir, slot.Name,
             slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks,
             slot.IsRecoveryMove, slot.PreserveMomentumOnStart, new CookedTimeline(new[]
             {

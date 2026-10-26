@@ -4,8 +4,10 @@
 
 SLOPArena characters use two complementary layers of attacks:
 
-* **8 normals** on `1 / 2 / 3 / 4`, with grounded and aerial variants.
+* **6 normals** on three buttons, with grounded and aerial variants.
 * **4 specials** on `A / E / R / F`.
+
+Every fighter also has the universal homing dash and grab; they are engine moves, not kit slots.
 
 Normals provide the character's fundamental fighting-game moveset.
 
@@ -15,14 +17,24 @@ A character should be able to participate meaningfully in combat using normals a
 
 ---
 
-## Normals — `1 / 2 / 3 / 4`
+## Normals — three buttons
+
+The three normals have fixed roles ([ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):
+
+| Button | Canonical slot | Role |
+|---|---|---|
+| 1 (controller X) | `1` | jab / all-rounder |
+| 2 (controller Y) | `3` | upward |
+| 3 (controller B) | `4` | the big one |
+
+The slot ids `3` and `4` predate the merge of the old normals 1 and 2; slot `2` no longer exists.
 
 Each input has:
 
 * one grounded attack;
 * one aerial attack.
 
-This gives every character eight baseline attacks.
+This gives every character six baseline attacks.
 
 Normals should generally be:
 
@@ -215,7 +227,7 @@ These should be solved per character rather than by introducing a universal reco
 A new character can be designed in the following order:
 
 1. **Normals — How does this character fight?**
-   Establish the eight basic attacks and make sure the character functions without relying constantly on abilities.
+   Establish the six basic attacks and make sure the character functions without relying constantly on abilities.
 
 2. **A — What makes this character unusual?**
    Introduce the central gimmick or signature interaction.

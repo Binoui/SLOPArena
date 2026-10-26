@@ -17,9 +17,9 @@ public class IasaTests
     private const ushort Slot1Duration = 21;
     private const ushort Slot1Iasa = 16;
     private const float Slot1Lunge = 3f;
-    // Slot2: longer move with a stronger lunge — the interrupt target.
-    private const ushort Slot2Duration = 30;
-    private const float Slot2Lunge = 5f;
+    // Slot3: longer move with a stronger lunge — the interrupt target.
+    private const ushort Slot3Duration = 30;
+    private const float Slot3Lunge = 5f;
 
     private static readonly CharacterDefinition Def = MakeIasaDef(iasa: true);
 
@@ -70,7 +70,7 @@ public class IasaTests
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
         slots[0] = TestSlot(0, "ground.1", Slot1Duration, iasa ? Slot1Iasa : (ushort)0, VelocityOperations(Slot1Lunge));
-        slots[1] = TestSlot(1, "ground.2", Slot2Duration, 0, VelocityOperations(Slot2Lunge));
+        slots[1] = TestSlot(1, "ground.3", Slot3Duration, 0, VelocityOperations(Slot3Lunge));
         def = def with { CookedSlots = slots };
         return def;
     }
@@ -189,22 +189,22 @@ public class IasaTests
     private static float Gpy => TestHelpers.GroundPY(Def);
 
     /// <summary>
-    /// Press Slot2 exactly at the IASA tick: Slot1's recovery is interrupted and the
-    /// Slot2 move starts immediately (its lunge velocity + AttackSlot are captured mid-move).
+    /// Press Slot3 exactly at the IASA tick: Slot1's recovery is interrupted and the
+    /// Slot3 move starts immediately (its lunge velocity + AttackSlot are captured mid-move).
     /// </summary>
     [Fact]
-    public void Iasa_ActAtUnlock_InterruptsIntoSlot2()
+    public void Iasa_ActAtUnlock_InterruptsIntoSlot3()
     {
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, Def, TestHelpers.PlayerState() with { PY = Gpy });
         TestHelpers.TickN(sim, TestHelpers.Input(AbilitySlots.Slot1), 1);
         TestHelpers.TickDefault(sim, Slot1Iasa - 1);
-        var interrupted = TestHelpers.TickN(sim, TestHelpers.Input(AbilitySlots.Slot2), 1);
+        var interrupted = TestHelpers.TickN(sim, TestHelpers.Input(AbilitySlots.Slot3), 1);
         Assert.Equal(ActionState.Attacking, interrupted.State);
-        Assert.Equal(AbilitySlots.Slot2, interrupted.AttackSlot);
+        Assert.Equal(AbilitySlots.Slot3, interrupted.AttackSlot);
         Assert.Equal((byte)2, interrupted.AttackSequence);
-        TestHelpers.AssertNear(Slot2Lunge, interrupted.VZ, 0.001f);
-        TestHelpers.TickDefault(sim, Slot2Duration);
+        TestHelpers.AssertNear(Slot3Lunge, interrupted.VZ, 0.001f);
+        TestHelpers.TickDefault(sim, Slot3Duration);
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
     }
 
@@ -233,7 +233,7 @@ public class IasaTests
     }
 
     /// <summary>
-    /// Press Slot2 two ticks BEFORE the IASA tick: the old lock applies, Slot1 keeps
+    /// Press Slot3 two ticks BEFORE the IASA tick: the old lock applies, Slot1 keeps
     /// running (press is outside the 6-tick buffer window, so it is dropped entirely)
     /// and no second attack follows.
     /// </summary>
@@ -246,7 +246,7 @@ public class IasaTests
             sim.Tick(new Dictionary<ulong, InputState>
             {
                 [1] = tick == 0 ? TestHelpers.Input(AbilitySlots.Slot1)
-                    : tick == Slot1Iasa - 2 ? TestHelpers.Input(AbilitySlots.Slot2)
+                    : tick == Slot1Iasa - 2 ? TestHelpers.Input(AbilitySlots.Slot3)
                     : default,
             });
         Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
@@ -275,7 +275,7 @@ public class IasaTests
     /// <summary>
     /// Slot1 connects a hit at t10 (damage 2 → 8-tick attacker freeze per ADR-0012),
     /// with a very early IASA unlock (t4) so the unlock is live during the freeze.
-    /// The hitstop hard-block: a Slot2 press at t14 (IASA-unlocked, attacker mid-freeze)
+    /// The hitstop hard-block: a Slot3 press at t14 (IASA-unlocked, attacker mid-freeze)
     /// must NOT interrupt. After the freeze expires (t18), the same press does interrupt.
     /// </summary>
     [Fact]
@@ -310,7 +310,7 @@ public class IasaTests
                     4,
                     true,
                     0)));
-        slots[1] = TestSlot(1, "ground.2", Slot2Duration, 0, VelocityOperations(Slot2Lunge));
+        slots[1] = TestSlot(1, "ground.3", Slot3Duration, 0, VelocityOperations(Slot3Lunge));
         def = def with { CookedSlots = slots };
 
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
@@ -319,13 +319,13 @@ public class IasaTests
         sim.RegisterEntity(100, target,
             TestHelpers.NpcState() with { PX = 0, PZ = 1.2f, PY = TestHelpers.GroundPY(target) });
 
-        // Slot1 at t0; Slot2 press at t14: past the IASA unlock (elapsed 10 >= 4) but
+        // Slot1 at t0; Slot3 press at t14: past the IASA unlock (elapsed 10 >= 4) but
         // the attacker is still frozen by its own connecting hit (freeze t10..t17).
         var inputs = new Dictionary<ulong, InputState>();
         for (int t = 0; t <= 14; t++)
         {
             inputs[1] = t == 0 ? TestHelpers.Input(AbilitySlots.Slot1)
-                : t == 14 ? TestHelpers.Input(AbilitySlots.Slot2)
+                : t == 14 ? TestHelpers.Input(AbilitySlots.Slot3)
                 : default;
             inputs[100] = default;
             sim.Tick(inputs);
@@ -335,24 +335,24 @@ public class IasaTests
         Assert.True(frozen.HitstopTicks > 0, "test window: attacker must still be mid-freeze");
         Assert.Equal(AbilitySlots.Slot1, frozen.AttackSlot);   // hitstop hard-blocks the press
 
-        // Continue; fresh Slot2 press at t19 (freeze expired at t17) — the unlock is still
+        // Continue; fresh Slot3 press at t19 (freeze expired at t17) — the unlock is still
         // live (the freeze paused the elapsed clock, it did not cancel the attack).
         for (int t = 15; t <= 19; t++)
         {
-            inputs[1] = t == 19 ? TestHelpers.Input(AbilitySlots.Slot2) : default;
+            inputs[1] = t == 19 ? TestHelpers.Input(AbilitySlots.Slot3) : default;
             inputs[100] = default;
             sim.Tick(inputs);
         }
 
         var after = sim.GetState(1);
         Assert.Equal((byte)0, after.HitstopTicks);
-        Assert.Equal(AbilitySlots.Slot2, after.AttackSlot);  // interrupt fires once unfrozen
+        Assert.Equal(AbilitySlots.Slot3, after.AttackSlot);  // interrupt fires once unfrozen
     }
 
     /// <summary>
     /// Engine-capability control: with IasaTicks = 0 the press at the would-be unlock
     /// tick does NOT interrupt — Slot1 keeps running on its original clock and the
-    /// Slot2 press goes to the standard input buffer (fires at lock expiry).
+    /// Slot3 press goes to the standard input buffer (fires at lock expiry).
     /// </summary>
     [Fact]
     public void IasaTicksZero_KeepsFullLock_PressAtUnlockTickIsNotAnInterrupt()
@@ -365,7 +365,7 @@ public class IasaTests
         for (int t = 0; t <= 16; t++)
         {
             inputs[1] = t == 0 ? TestHelpers.Input(AbilitySlots.Slot1)
-                : t == 16 ? TestHelpers.Input(AbilitySlots.Slot2)
+                : t == 16 ? TestHelpers.Input(AbilitySlots.Slot3)
                 : default;
             sim.Tick(inputs);
         }
@@ -375,12 +375,12 @@ public class IasaTests
         Assert.Equal(AbilitySlots.Slot1, after.AttackSlot);
         Assert.Equal((ushort)17, after.AttackElapsedTicks); // an interrupt would reset to 1
         // ...and the press was buffered for the normal lock expiry, not consumed early.
-        Assert.Equal(AbilitySlots.Slot2, after.BufferedSlot);
+        Assert.Equal(AbilitySlots.Slot3, after.BufferedSlot);
     }
 
     /// <summary>
-    /// Counterpart of IasaTicksZero: with IasaTicks = 16 the same Slot2 press at tick 16
-    /// is consumed by the interrupt and the Slot2 move starts immediately.
+    /// Counterpart of IasaTicksZero: with IasaTicks = 16 the same Slot3 press at tick 16
+    /// is consumed by the interrupt and the Slot3 move starts immediately.
     /// </summary>
     [Fact]
     public void IasaTicksSet_PressAtUnlockTick_ConsumedByInterrupt()
@@ -393,13 +393,13 @@ public class IasaTests
         for (int t = 0; t <= 16; t++)
         {
             inputs[1] = t == 0 ? TestHelpers.Input(AbilitySlots.Slot1)
-                : t == 16 ? TestHelpers.Input(AbilitySlots.Slot2)
+                : t == 16 ? TestHelpers.Input(AbilitySlots.Slot3)
                 : default;
             sim.Tick(inputs);
         }
 
         var after = sim.GetState(1);
-        Assert.Equal(AbilitySlots.Slot2, after.AttackSlot);   // new move took over
+        Assert.Equal(AbilitySlots.Slot3, after.AttackSlot);   // new move took over
         Assert.Equal((ushort)1, after.AttackElapsedTicks);    // new attack, tick 1
         Assert.Equal((byte)0, after.BufferedSlot);            // press consumed, nothing buffered
     }
@@ -471,7 +471,7 @@ public class IasaTests
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         var state = TestHelpers.PlayerState() with { PY = Gpy };
-        state.SetCooldown(AbilitySlots.Slot2, 100);
+        state.SetCooldown(AbilitySlots.Slot3, 100);
         sim.RegisterEntity(1, Def, state);
 
         for (int tick = 0; tick <= Slot1Iasa; tick++)
@@ -480,7 +480,7 @@ public class IasaTests
                 [1] = tick == 0
                     ? TestHelpers.Input(AbilitySlots.Slot1)
                     : tick == Slot1Iasa
-                        ? TestHelpers.Input(AbilitySlots.Slot2, moveY: 1f)
+                        ? TestHelpers.Input(AbilitySlots.Slot3, moveY: 1f)
                         : default,
             });
 
@@ -488,7 +488,7 @@ public class IasaTests
         Assert.Equal(ActionState.Attacking, after.State);
         Assert.Equal(AbilitySlots.Slot1, after.AttackSlot);
         Assert.NotNull(sim.GetActiveAbility(1));
-        Assert.Equal(AbilitySlots.Slot2, after.BufferedSlot);
+        Assert.Equal(AbilitySlots.Slot3, after.BufferedSlot);
     }
 
     [Fact]
@@ -581,7 +581,7 @@ public class IasaTests
                 sim.Tick(new() { [1] = TestHelpers.Input(moveY: 1) });
                 break;
             case "ability":
-                sim.Tick(new() { [1] = TestHelpers.Input(AbilitySlots.Slot2) });
+                sim.Tick(new() { [1] = TestHelpers.Input(AbilitySlots.Slot3) });
                 Assert.NotEqual(activationId, sim.GetLastActivationId(1));
                 break;
             case "shield":

@@ -48,11 +48,11 @@ Raw JSON is cook input. Runtime consumers load the immutable cooked package thro
 
 ## Canonical move grid
 
-Every package resolves the sixteen canonical slots in this order:
+Every package resolves the fourteen canonical slots in this order (three normals since ADR-0042; `2` is retired):
 
 ```text
-ground.1  ground.2  ground.3  ground.4  ground.A  ground.E  ground.R  ground.F
-air.1     air.2     air.3     air.4     air.A     air.E     air.R     air.F
+ground.1  ground.3  ground.4  ground.A  ground.E  ground.R  ground.F
+air.1     air.3     air.4     air.A     air.E     air.R     air.F
 ```
 
 Use package slot IDs as persisted identity. Ability Lab labels are projections of that identity. `LMB`, `RMB`, `Q`, and other physical controls are input adapters, not alternate package slots. Ground/air aliases may appear once in authoring and are expanded by the compiler; runtime data is explicit.
@@ -192,7 +192,7 @@ For local iteration:
 For an accepted package:
 
 - source package has one owner for every authored fact;
-- compiler resolves all sixteen slots and rejects invalid IDs, units, references, and budgets;
+- compiler resolves all fourteen slots and rejects invalid IDs, units, references, and budgets;
 - catalog bindings match required semantic IDs and exact imported assets;
 - inspect, cook, and verify succeed; the cook replaces the prior artifact atomically;
 - manifest, runtime definition, pose payload, generated bindings, and hashes agree;

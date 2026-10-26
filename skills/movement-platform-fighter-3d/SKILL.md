@@ -17,7 +17,7 @@ Use this skill for movement, input, and universal combat changes. The authoritat
 - FastFall requires a fresh Down press while already descending and latches through release. Ascent/apex presses are discarded; locks and authored vertical motion cannot be overridden. Ordinary aerial attacks may coexist.
 - Grounded Down selects Crouch or momentum-spending Slide; actionable held-Down landings may slide. SlideJump retains ordinary squat and jump resources. See the canonical combat guide for thresholds, interruption/reset rules, normal carry and settled CrouchBrace rather than duplicating tuning here.
 - Defense (Left Shift / RT) holds Shield while grounded. A fresh airborne press starts a directional air dodge, aimed by the stick or forward when neutral. Shared owns its invulnerability, recovery, and one-use-per-flight resource.
-- Universal Dash is retired. Kit-owned dash, lunge, and recovery abilities retain their authored behavior.
+- The old Universal Dash is retired. The universal homing dash (ADR-0042) replaces it: float, then a dash that turns toward the target, ending in a cancel window on arrival or a punishable miss. Kit-owned dash, lunge, and recovery abilities retain their authored behavior.
 - Automatic ledge grabs and LedgeHang are disabled for the demo. Their old state and packet fields remain reserved; recover onto a stage surface with movement, jumps, and kit abilities.
 - FloatWindow is restored by landing, taking damage, or RecoveryMove. Normal air attacks do not reset it.
 
@@ -25,9 +25,9 @@ All durations are 60 Hz simulation ticks. Do not implement movement from render-
 
 ## Input boundary
 
-`InputController.Poll()` and `BuildInputState()` produce `SlopArena.Shared.InputState`. Down hold and the one-shot DownPressed edge are independent of movement axes. `ShieldHeld` and `ShieldPressed` supply defense intent; `GrabPressed` supplies grab intent. The state also carries movement, jump, canonical active slot, camera aim, target intent, JumpHeld, facing-camera edge, and target-lock toggle fields. Legacy Dash and Burst bits remain reserved and inert. The client supplies intent; Shared simulation validates and applies gameplay.
+`InputController.Poll()` and `BuildInputState()` produce `SlopArena.Shared.InputState`. Down hold and the one-shot DownPressed edge are independent of movement axes. `ShieldHeld` and `ShieldPressed` supply defense intent; `GrabPressed` supplies grab intent. The state also carries movement, jump, canonical active slot, camera aim, target intent, JumpHeld, facing-camera edge, and target-lock toggle fields. `DashPressed` supplies homing dash intent; the legacy Burst bit remains reserved and inert. The client supplies intent; Shared simulation validates and applies gameplay.
 
-The canonical move grid is grounded and aerial variants of `1`, `2`, `3`, `4`, `A`, `E`, `R`, and `F`. Physical controls are remappable adapters. They are not package identity.
+The canonical move grid is grounded and aerial variants of `1`, `3`, `4`, `A`, `E`, `R`, and `F` (three normals, ADR-0042). Physical controls are remappable adapters. They are not package identity.
 
 NPCs use generated/training inputs rather than keyboard state. Keep AI input on the same Shared simulation path as player input.
 

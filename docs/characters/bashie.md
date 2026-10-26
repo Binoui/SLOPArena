@@ -1,5 +1,7 @@
 # Bashie
 
+> **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Whirlpool Spin and Air Whirlpool Spin, formerly normal 2, are now normal 1; Slap and Air Kick are retired. Normal-2 rows below are history.
+
 > **Identity (owner, 2026-10-21):** a pool lifeguard turtle who can "look cute and be fun". She wants
 > everyone to follow the pool rules, blows her whistle at all of them, and breaks every rule herself.
 > She is the fifth fighter and the roster's first woman.
@@ -11,16 +13,16 @@ the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
 own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
 shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery, and ground/air 2 have
-her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap and ground 3 her Shell Flip. Air 1, air 3 and F still use stand-ins.
+her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap and ground 3 her Shell Flip. NO RUNNING! now supplies her F. Air 1 and air 3 still use stand-ins.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her movement, air 1, air 3 and F still come from Manki (the aerosol capability). Her
+- Her movement, air 1 and air 3 still come from Manki. Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
   place of his Round Bomb, Shell Slide in place of his Bazooka, Ring Bounce in place of his Jetpack Boost, and Whirlpool
-  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, Slap on ground 1, and Shell Flip on ground 3.
+  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, Slap on ground 1, Shell Flip on ground 3, and NO RUNNING! on F.
 - The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
   Played on her as they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -235,7 +237,7 @@ the one rule she enforces, on everyone else.
 | A | Hose Down | She pulls a toy water blaster out of her shell. Hold to pump it, release to fire a gush that shoves rather than hurts; more pumping makes a bigger gush. In the air the recoil pushes her back. Sign: NO SPLASHING! | Pumping keeps her in place, and the recoil can push her away from the stage. |
 | E | Ring Bounce | Her necessary vertical recovery: she automatically throws the life ring and hops onto it, squashes it and bounces off (BOING). Movement input aims the jump. An optional fresh second press at the top starts a cannonball drop with a splash. Sign: NO BOMBS! | The cannonball commits her downward, even off the stage. |
 | R | Shell Slide | She tucks into her shell and slides off fast on a little wave; the stick steers, and the shell shrugs off hits. The first fighter she meets is bowled over, and she pops out with a pose. In the air she slides on thin air, looks down and drops. No sign (owner, 2026-10-22). | A miss (a shield, a wall, or the slide running out) leaves her flipped on her back, paddling, until she rocks herself over. |
-| F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! Everyone around her can't run or dash and walks slowly for a while, under a NO RUNNING! sign. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
+| F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! The blow stuns fighters within 5 m for 2 s with no damage or horizontal push. Shields block it. The owner changed the original slow to a stun on 2026-10-26. Sign: NO RUNNING!. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
 
 ### Hose Down (A)
 
@@ -389,8 +391,47 @@ rendered on her rig, they picked A, her hat and face peeking out of the front: "
 
 ![NO RUNNING!](../design/references/bashie/bashie-f-no-running.jpg)
 
-- It sets up the rest of her kit: slowed fighters can't escape the slide or get out of the gush.
-- The image shows a blast. The move is a slow: the opponents should look stuck in slow motion.
+**Built 2026-10-26, awaiting the owner's in-game verdict.** The owner replaced the original slow with an area stun
+and chose Shield blocking. Ground F and its air alias use one package-authored timeline, with no Shared engine,
+CharacterState, snapshot or protocol change. The [approved specification](../plans/2026-10-26-bashie-no-running.md)
+records the decisions and mechanism probe.
+
+- Inhale for 48 ticks, blow at tick 48, then recover for 24 ticks. The stage lasts 72 ticks with no IASA.
+- The root-relative sphere is 5 m around her chest, active for 3 ticks. It hits each opponent once for zero damage.
+  Ordinary Shield, invincibility, friendly-fire and interruption rules apply. She never hits herself.
+- After 6 ticks of hitstop, the target stays in Hitstun for exactly 120 ticks. Base knockback 1 points straight down
+  at -90 degrees with zero growth, so neutral targets have no horizontal slide or upward launch. Airborne targets fall
+  and land during the stun. A later hit replaces the stun with its own reaction.
+- Cooldown is 720 ticks, starting at completion or cancellation. An inhale interrupted by a hit never blows.
+- The airborne inhale scales gravity to 0.15 for 48 ticks. It does not refill air resources.
+- The owner picked swell C, "full balloon", on 2026-10-26. `WhistlePuff` follows authoritative attack ticks through
+  Idle, Inhaling, Blown, Deflating and Done phases. Her yellow belly and cheeks swell through the baked `Puff` blend
+  shape in `Presentation/BashieBodyPuff.asset`. The Shell bone grows to 1.2 times its rest scale at full puff.
+  She eases up to full size at tick 40 with a small wobble, then snaps back at the tick-48 blow. Blend weights stay
+  nonnegative. An interrupted inhale deflates over 0.3 s with a soft balloon squeal.
+- `WhistlePuffRig` anchors the whistle's measured mouthpiece to the Head bone's rest-frame beak point. It follows
+  her head through the real clip, held from about tick 8 to 56. The final whistle transform also accounts for the
+  hit accent's nonuniform scale. Release, disable and knockout restore the blend
+  weight, shell scale and whistle. A stale body mesh without `Puff` logs one warning and skips the swell.
+- `BashiePresentationBuilder` bakes the accepted C shape from the source FBX mesh and source albedo, then binds it
+  to `BashieRig.prefab`. `PuffProfile` owns the mesh parameters. Rerun `sloparena.presentation.bashie.puff.build`
+  after a rig re-import or albedo change. The full presentation builder also includes that step.
+- Three floor rings expand to 5 m in about 0.25 s. A NO RUNNING! sign reuses the pool-sign builder with an Archivo Black
+  glyph mask. The inhale, warm low pea-whistle trill and deflation sounds come from `tools/sfx/bashie_clips.py`.
+  Stunned fighters retain their normal hard-hit reaction. No stun marker exists yet.
+- `anim.bashie.whistle` has its own asset, `Animations/bashie_whistle.anim`, initially copied from her idle.
+  Her real GenRA clip can replace its contents without changing the binding. The puff cue positions the whistle itself.
+
+Cooked-catalog regression coverage lives in `tests/Shared.Tests/BashieWhistleTests.cs`. It checks exact stun and
+no-slide timing on ground and in air, range, Shield, invincibility, self exclusion, real-hit interruption, air F,
+zero damage and cooldown. Runtime captures are `tmp/bashie-f/near-3m.mp4`, `tmp/bashie-f/far-6m.mp4` and
+`tmp/bashie-f/whistle-close.mp4`, with PNG key frames in `tmp/bashie-f/keyframes/`. The native capture writes
+video frames only; these review clips mix the bound cue sounds at their attack ticks. The raw frames and command
+receipts remain beside them.
+The accepted C swell captures are in `tmp/bashie-f/swell-c/`, with front, side, blow and interrupted-inhale PNGs
+in `keyframes/`. The MP4s use the native capture's video frames. Audio playback is checked in the runtime trace.
+The real effects pass follows concept approval. Slopball interaction and human controller feel remain open.
+
 
 ## Engine pieces
 
@@ -399,7 +440,7 @@ rendered on her rig, they picked A, her hat and face peeking out of the front: "
 | R | `slop.ability.steered-charge.v1` (Sir Bonk's Joust) already steers, gives armour, ends on a hit or a miss and handles thin air ([ability architecture](../systems/ability-architecture.md)). | Done 2026-10-22: the data, and the tuck in presentation (`ShellTuck`, client only). Her own clips are next. |
 | A | Ki Shot's hold-and-release, and `stunTicks` 0 already shoves without hitstun. | Done 2026-10-22: `slop.ability.charged-stream.v1` (FLUDD: pump, stream, air push back) and no hitstop for pure pushes. |
 | E | Close to Manki's Jetpack Boost and existing landing hits. | Automatic ring throw/hop and an aimed upward bounce first; the optional cannonball follows once recovery works. |
-| F | Nothing: nothing in Shared slows another fighter yet. | A timed state in the simulation (no run, no dash, slower walk), plus a sign in presentation. |
+| F | An ordinary hitbox with `fixedHitstunTicks: 120`, `stunTicks: 1` and base knockback 1 pointed straight down at -90 degrees prevents horizontal slide. | Built 2026-10-26 with package data and client presentation only. No Shared engine change. |
 
 ## Concept images
 

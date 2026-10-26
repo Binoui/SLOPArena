@@ -13,11 +13,18 @@ namespace SlopArena.EditorTools
             RequireValid("{\"uiScale\":140,\"targetOpacity\":100,\"screenShake\":100}");
             RequireValid("{\"recordSessionLog\":true}");
             RequireValid("{\"cameraStyle\":\"Manual\"}");
-            RequireValid("{\"cameraStyle\":\"AutoCombat\"}");
             RequireValid("{\"cameraStyle\":\"Arena\"}");
-            RequireValid("{\"cameraStyle\":\"AirDuel\"}");
-            RequireValid("{\"cameraStyle\":\"SideDuel\"}");
-            RequireValid("{\"cameraStyle\":\"Shoulder\"}");
+            RequireValid("{\"cameraStyle\":\"Steady\"}");
+            foreach (string style in Enum.GetNames(typeof(SlopArena.Client.Camera.CameraStyle)))
+                RequireValid("{\"controllerCameraStyle\":\"" + style + "\"}");
+            RequireValid("{\"cameraStyle\":\"Manual\",\"controllerCameraStyle\":\"Steady\"}");
+            RequireInvalid("{\"controllerCameraStyle\":\"AutoCombat\"}");
+            RequireInvalid("{\"cameraStyle\":\"Shoulder\"}");
+            RequireInvalid("{\"controllerCameraStyle\":1}");
+            RequireInvalid("{\"controllerCameraStyle\":\"1\"}");
+            RequireInvalid("{\"controllerCameraStyle\":\"steady\"}");
+            RequireInvalid("{\"controllerCameraStyle\":\"Missing\"}");
+            RequireInvalid("{\"controllerCameraStyle\":\"Arena\",\"controllerCameraStyle\":\"Manual\"}");
             RequireInvalid(null);
             RequireInvalid("{}");
             RequireInvalid("[]");
@@ -33,7 +40,7 @@ namespace SlopArena.EditorTools
             RequireInvalid("{\"recordSessionLog\":1}");
             RequireInvalid("{\"cameraStyle\":1}");
             RequireInvalid("{\"cameraStyle\":\"1\"}");
-            RequireInvalid("{\"cameraStyle\":\"autoCombat\"}");
+            RequireInvalid("{\"cameraStyle\":\"steady\"}");
             RequireInvalid("{\"cameraStyle\":\"Missing\"}");
             RequireInvalid("{\"uiScale\":100,\"unknown\":true}");
             RequireInvalid("{\"uiScale\":100,\"uiScale\":110}");

@@ -116,13 +116,13 @@ public sealed class CharacterPackageCompilerTests
     }
 
     [Fact]
-    public void FightGuy_TrustedProfile_CooksSixteenExplicitSlots()
+    public void FightGuy_TrustedProfile_CooksFourteenExplicitSlots()
     {
         var result = CharacterPackageCompiler.Compile(Fixture("package.json"), Fixture("character.json"), CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(result.CookedPackage);
         Assert.DoesNotContain(result.Diagnostics, x => x.Severity == CharacterDiagnosticSeverity.Error);
-        Assert.Equal(16, result.CookedPackage!.Definition.Slots.Count);
-        Assert.Equal(16, result.CookedPackage.Budget.SlotCount);
+        Assert.Equal(14, result.CookedPackage!.Definition.Slots.Count);
+        Assert.Equal(14, result.CookedPackage.Budget.SlotCount);
         var second = CharacterPackageCompiler.Compile(Fixture("package.json"), Fixture("character.json"), CharacterCookProfile.TrustedBuiltIn);
         Assert.Equal(result.CookedPackage.CanonicalBytes, second.CookedPackage!.CanonicalBytes);
     }
@@ -261,7 +261,7 @@ public sealed class CharacterPackageCompilerTests
         var result = CompileCharacter();
         Assert.NotNull(result.CookedPackage);
         Assert.DoesNotContain(result.Diagnostics, x => x.Severity == CharacterDiagnosticSeverity.Error);
-        foreach (var id in new[] { "ground.1", "ground.2", "ground.3", "ground.4" })
+        foreach (var id in new[] { "ground.1", "ground.3", "ground.4" })
             Assert.True(result.CookedPackage!.Definition.Slots.Single(x => x.Id == id).AllowSlideCarry);
         Assert.False(result.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.A").AllowSlideCarry);
         Assert.False(result.CookedPackage.Definition.Slots.Single(x => x.Id == "air.1").AllowSlideCarry);
@@ -273,11 +273,11 @@ public sealed class CharacterPackageCompilerTests
         var aliased = CompileCharacter(character =>
         {
             var slots = (JsonArray)character["slots"]!;
-            slots.Remove(slots.Single(slot => slot!["id"]!.GetValue<string>() == "ground.2"));
-            ((JsonArray)character["aliases"]!).Add(new JsonObject { ["from"] = "ground.2", ["to"] = "ground.1" });
+            slots.Remove(slots.Single(slot => slot!["id"]!.GetValue<string>() == "ground.3"));
+            ((JsonArray)character["aliases"]!).Add(new JsonObject { ["from"] = "ground.3", ["to"] = "ground.1" });
         });
         Assert.NotNull(aliased.CookedPackage);
-        Assert.True(aliased.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.2").AllowSlideCarry);
+        Assert.True(aliased.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.3").AllowSlideCarry);
 
         var conflict = CompileCharacter(character =>
         {
@@ -302,20 +302,20 @@ public sealed class CharacterPackageCompilerTests
         var json = JsonNode.Parse(Fixture("character.json"))!.AsObject();
         json["presentationIds"]!.AsArray().Add("presentation.test.hit");
         var ground = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "ground.1")!.AsObject();
-        var target = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "ground.2")!;
+        var target = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "ground.3")!;
         target["hitPresentationId"] = "presentation.test.hit";
         var air = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "air.1")!;
         air["hitPresentationId"] = "presentation.test.hit";
         var slotIndex = json["slots"]!.AsArray().IndexOf(ground);
         ((JsonArray)json["slots"]!).RemoveAt(slotIndex);
-        ((JsonArray)json["aliases"]!).Add(new JsonObject { ["from"] = "ground.1", ["to"] = "ground.2" });
+        ((JsonArray)json["aliases"]!).Add(new JsonObject { ["from"] = "ground.1", ["to"] = "ground.3" });
 
         var loaded = CharacterPackageSourceCodec.Load(Fixture("package.json"), json.ToJsonString());
         Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics));
         var rewritten = CharacterPackageSourceCodec.SerializeCharacter(loaded.Source!.Character);
         var reloaded = CharacterPackageSourceCodec.Load(Fixture("package.json"), rewritten);
         Assert.True(reloaded.IsValid, string.Join("\n", reloaded.Diagnostics));
-        Assert.Equal("presentation.test.hit", reloaded.Source!.Character.Slots.Single(x => x.Id == "ground.2").HitPresentationId);
+        Assert.Equal("presentation.test.hit", reloaded.Source!.Character.Slots.Single(x => x.Id == "ground.3").HitPresentationId);
 
         var compiled = CharacterPackageCompiler.Compile(loaded.Source, CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(compiled.CookedPackage);
@@ -326,7 +326,7 @@ public sealed class CharacterPackageCompilerTests
         var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage);
         Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot1, false)!.HitPresentationId);
         Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot1, true)!.HitPresentationId);
-        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot2, false)!.HitPresentationId);
+        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot3, false)!.HitPresentationId);
         Assert.Equal(compiled.CookedPackage.CanonicalBytes, CharacterPackageCompiler.Compile(
             reloaded.Source!, CharacterCookProfile.TrustedBuiltIn).CookedPackage!.CanonicalBytes);
     }
@@ -494,7 +494,7 @@ public sealed class CharacterPackageCompilerTests
             CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(result.CookedPackage);
         var package = result.CookedPackage!;
-        Assert.Equal(16, package.Definition.Slots.Count);
+        Assert.Equal(14, package.Definition.Slots.Count);
         Assert.Equal(new[] { "_weapon_hilt", "_weapon_tip" }, package.Definition.AttachmentBoneIds.OrderBy(x => x).ToArray());
         var shuriken = package.Definition.Slots.Single(x => x.Id == "ground.A").Timeline.Stages.Single().Operations.OfType<CookedSpawnProjectileOperation>().ToArray();
         Assert.Equal(new[] { -15f, 0f, 15f }, shuriken.Select(x => x.Projectile.YawOffsetDegrees).OrderBy(x => x).ToArray());
@@ -931,7 +931,7 @@ public sealed class CharacterPackageCompilerTests
 
         var swapped = CompileCharacter(x =>
         {
-            var operations = (JsonArray)x["slots"]![9]!["timeline"]!["stages"]![0]!["operations"]!;
+            var operations = (JsonArray)x["slots"]!.AsArray().Single(slot => slot!["id"]!.GetValue<string>() == "ground.E")!["timeline"]!["stages"]![0]!["operations"]!;
             operations[1]!["tick"] = operations[0]!["tick"]!.GetValue<int>();
         });
         Assert.NotEqual(Convert.ToHexString(baseline.CookedPackage.CanonicalBytes), Convert.ToHexString(swapped.CookedPackage!.CanonicalBytes));

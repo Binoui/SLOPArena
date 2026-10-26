@@ -296,7 +296,7 @@ no retained Editor owner's permission or response is required.
 `sloparena.settings.inspect` reads the existing settings owner without creating it.
 `sloparena.settings.apply --patch '<JSON object>'` defaults to dry-run; it reports
 requested, proposed, before and observed after values. Supported keys are `cameraStyle`
-(`Manual`, `AutoCombat`, `Arena`, `AirDuel`, `SideDuel`, or `Shoulder`), `uiScale`
+(`Manual`, `Arena`, or `Steady`; also `controllerCameraStyle`), `uiScale`
 (80/90/100/110/120/130/140 percent), `targetOpacity` (20–100 percent),
 `screenShake` (0–100 percent), `showOverheadDamage`, `reducedFlashing` and
 `recordSessionLog` (booleans; the last starts a [practice session log](../systems/practice-session-log.md)

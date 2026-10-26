@@ -3,7 +3,7 @@
 ## Authoritative authoring modules
 
 - [ ] `package.json` owns package identity, version, creator, license, attribution, and dependencies.
-- [ ] `character.json` owns gameplay source, presentation IDs, and the canonical sixteen-slot grid.
+- [ ] `character.json` owns gameplay source, presentation IDs, and the canonical fourteen-slot grid.
 - [ ] `CharacterAssetCatalog.asset` owns the Unity rig, semantic clip bindings, and pose-track IDs.
 - [ ] `package.json` uses `manifestSchemaVersion: 1` and owns the stable `packageId`.
 - [ ] `character.json` uses `authoringSchemaVersion: 3` without duplicated identity or
@@ -34,7 +34,7 @@
 
 ## Source and inspect
 
-- [ ] Define `ground.1` through `ground.F` and `air.1` through `air.F` as the canonical sixteen slots.
+- [ ] Define `ground.1` through `ground.F` and `air.1` through `air.F` as the canonical fourteen slots (no normal `2`).
 - [ ] Author fixed timelines in 60 Hz ticks from an approved kit specification.
 - [ ] Run `sloparena.character.inspect` before cooking and record identity, slot projection,
       status, hashes, stale reasons, and structured diagnostics.
@@ -70,7 +70,7 @@ Bonk is rostered in the [roster manifest](../../content-cooked/roster/manifest.j
 Use a throwaway unrostered fixture for these checks, not Bonk.
 
 - [ ] Confirm the fixture's required semantic bindings resolve to intended assets.
-- [ ] Run inspect and cook; record the fixture's stable package ID, sixteen slots,
+- [ ] Run inspect and cook; record the fixture's stable package ID, fourteen slots,
       successful cook, and hashes.
 - [ ] Confirm cooked fixture payloads exist but no roster requirement or Character Select entry exists.
 - [ ] Confirm package-local dependency changes queue the fixture without stale-marking unrelated packages.

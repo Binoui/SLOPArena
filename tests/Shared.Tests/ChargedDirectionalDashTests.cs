@@ -525,10 +525,13 @@ public sealed class ChargedDirectionalDashTests
         });
         var slots = definition.CookedSlots!.ToArray();
         foreach (bool airborne in new[] { false, true })
-            slots[airborne ? 14 : 6] = new CookedSlotDefinition(airborne ? 14 : 6,
-                airborne ? "air.R" : "ground.R", airborne, "Charged dash fixture", "", "",
+        {
+            CanonicalSlotProjection.TryGet(airborne, "R", out var address);
+            slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal,
+                address.Id, airborne, "Charged dash fixture", "", "",
                 AuthoringAbilityBehavior.DirectionalDash, AuthoringAimMode.GroundVector, 0, false, false,
                 timeline, aimMovement: AuthoringAimMovementMode.Mobile);
+        }
         definition = definition with { CookedSlots = slots };
 
         return definition;

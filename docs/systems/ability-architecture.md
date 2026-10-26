@@ -25,7 +25,7 @@ The GameServer and client prediction consume the same cooked representation. Uni
 
 ## Package-authored ability model
 
-A package has sixteen canonical entries: grounded and aerial variants for `1`, `2`, `3`, `4`, `A`, `E`, `R`, and `F`. Physical controls are input adapters; package identity is the canonical slot ID.
+A package has fourteen canonical entries: grounded and aerial variants for `1`, `3`, `4`, `A`, `E`, `R`, and `F` (ADR-0042 retired normal `2`). Physical controls are input adapters; package identity is the canonical slot ID.
 
 Each slot contains a fixed, ordered timeline of stages. A stage owns duration, IASA, landing-lag/auto-cancel timing, animation IDs, and typed operations. Operations have explicit versioned contracts, units, bounds, defaults, and budget cost. Same-tick operations execute in authored order.
 
@@ -201,7 +201,7 @@ the block yet.
 
 The engine owns deterministic implementation of movement, target/aim state, hitbox geometry, baked-bone resolution, projectiles, explosions, damage, Knockback, Hitstun, Hitstop, rotational DI, SDI, ASDI, Shield, air dodge, grabs, throws, cooldowns, IASA, landing lag, and air-use limits. Package data composes these capabilities; it does not execute code on the authoritative server.
 
-Reciprocal active grabs clash; simultaneous attacks trade. Attack Clash remains planned, not implemented, under [ADR-0015](../adr/0015-timing-model-combat-pivot.md). Universal Dash is retired and automatic ledge grabs are disabled for the demo. The former Dash and Burst input bits stay reserved and inert; their unused timers and Warp input metadata are absent from snapshot format 6.
+Reciprocal active grabs clash; simultaneous attacks trade. Attack Clash remains planned, not implemented, under [ADR-0015](../adr/0015-timing-model-combat-pivot.md). The old Universal Dash is retired and automatic ledge grabs are disabled for the demo. Its input bit now carries the universal homing dash ([ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)), an engine-owned movement state with its own cooldown rather than a package slot. The Burst input bit stays reserved and inert.
 
 `CookedTimelineAbility` is the current Shared interpreter. It advances stages,
 executes operations, starts admitted public or trusted built-in capability
@@ -266,7 +266,7 @@ contacts and input timing.
 | `slop.internal.manki.round-bomb.v1` | Manki A, charged bomb | Public charged-projectile behavior after charge and explosion parity |
 | `slop.internal.manki.jetpack-boost.v1` | Manki E, jetpack recovery | Public recovery primitive after trajectory and landing parity |
 | `slop.internal.manki.bazooka.v1` | Manki R, held launch and recoil | Public charged-projectile behavior after hold, recoil and cancellation parity |
-| `slop.internal.manki.aerosol-inferno.v1` | Manki F; approved Bashie F stand-in | Public charged-stream behavior after charge and contact parity; replace Bashie's stand-in with her authored kit |
+| `slop.internal.manki.aerosol-inferno.v1` | Manki F | Public charged-stream behavior after charge and contact parity. Bashie's F uses her own cooked whistle timeline. |
 
 Blade Flurry v2 authors ascent start/end, descent start, rise/descent speed and
 forward speed. The unused v1 `moveTicks` contract is rejected. Wibou's package

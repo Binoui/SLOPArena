@@ -46,7 +46,7 @@ public static class CharacterPackageCompiler
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
     private const ushort ManifestSchemaVersion = 1;
     private const ushort AuthoringSchemaVersion = 3;
-    private const ushort CookedSchemaVersion = 3;
+    private const ushort CookedSchemaVersion = 4;
     private const string RuntimeApiMin = "1.2.0";
     private const string RuntimeApiMax = "1.x";
     private const ushort MaxFixedHitstunTicks = 240;
@@ -213,7 +213,7 @@ public static class CharacterPackageCompiler
             ValidateSlideCarry(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
             ValidateAimMovementSpeed(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
             var timeline = CookTimeline(slot.Timeline, d, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
-            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= 8, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale));
+            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= CanonicalSlotProjection.VariantSlotCount, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale));
         }
         if (resolved.Count != CanonicalSlots.Length) d.Error("reference.unresolved", "character.slots", "Not all canonical slots resolve.");
         if (d.HasErrors) return;
@@ -602,9 +602,8 @@ public static class CharacterPackageCompiler
             ? $"character.slots[{sourceIndex}].allowSlideCarry"
             : $"character.slots.{canonicalId}.allowSlideCarry";
         const string code = "slot.slide-carry.motion-conflict";
-        if (canonicalId != "ground.1" && canonicalId != "ground.2"
-            && canonicalId != "ground.3" && canonicalId != "ground.4")
-            d.Error(code, path, "Slide carry is only valid on grounded canonical normals 1-4.");
+        if (canonicalId != "ground.1" && canonicalId != "ground.3" && canonicalId != "ground.4")
+            d.Error(code, path, "Slide carry is only valid on grounded canonical normals.");
         if (slot.AimMode != AuthoringAimMode.None)
             d.Error(code, path, "Slide carry cannot be enabled on an aimed slot.");
         if (slot.IsRecoveryMove)

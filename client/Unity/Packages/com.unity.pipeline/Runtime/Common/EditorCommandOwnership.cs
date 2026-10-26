@@ -9,6 +9,9 @@ namespace Unity.Pipeline
     /// <summary>Thread-safe, Unity-independent lease policy for one Editor session.</summary>
     internal sealed class EditorCommandOwnership
     {
+        /// <summary>Owner handle of the person at the Editor. Agents never present it.</summary>
+        internal const string HumanHandle = "human:owner";
+
         private readonly object m_Gate = new object();
         private readonly Dictionary<string, Operation> m_Operations = new Dictionary<string, Operation>();
         private readonly Dictionary<string, HostActivity> m_HostActivities = new Dictionary<string, HostActivity>();
@@ -19,6 +22,8 @@ namespace Unity.Pipeline
         private string m_Reason;
         private long m_Revision;
         private int m_HostBusy;
+        private string m_HumanWaiting;
+        private string m_HumanGrant;
 
         internal EditorCommandOwnership(string editorSessionId)
         {
@@ -44,6 +49,8 @@ namespace Unity.Pipeline
             PersistenceState changed;
             lock (m_Gate)
             {
+                if (m_State == "free" && m_HumanWaiting != null)
+                    HandToHumanLocked();
                 if (m_State != "free")
                 {
                     token = null;
@@ -62,6 +69,115 @@ namespace Unity.Pipeline
             }
             Publish(changed);
             return true;
+        }
+
+        /// <summary>The human lease kind (for example "playtest") while the person holds the Editor.</summary>
+        internal string HumanLease
+        {
+            get { lock (m_Gate) return HumanOwnsLocked() ? m_BatchId : null; }
+        }
+
+        /// <summary>The human lease kind queued behind the current agent batch, if any.</summary>
+        internal string HumanWaiting
+        {
+            get { lock (m_Gate) return m_HumanWaiting; }
+        }
+
+        internal string OwnerHandle
+        {
+            get { lock (m_Gate) return m_Owner?.TerminalHandle; }
+        }
+
+        /// <summary>
+        /// In-process claim for the person at the Editor; there is no HTTP route. Free: held at once.
+        /// Already human: switches kind. Held by an agent: queued ahead of every agent and handed
+        /// over atomically when that batch settles (see <see cref="TakeHumanGrant"/>). Blocked: refused.
+        /// </summary>
+        internal bool TryClaimForHuman(string kind, out Status status)
+        {
+            if (string.IsNullOrWhiteSpace(kind))
+                throw new ArgumentException("A human lease kind is required", nameof(kind));
+            PersistenceState changed = null;
+            bool claimed;
+            lock (m_Gate)
+            {
+                if (m_State == "blocked")
+                    claimed = false;
+                else if (m_State == "free" || HumanOwnsLocked())
+                {
+                    GrantHumanLocked(kind);
+                    m_HumanWaiting = null;
+                    changed = ChangedLocked();
+                    claimed = true;
+                }
+                else
+                {
+                    if (m_HumanWaiting != kind)
+                    {
+                        m_HumanWaiting = kind;
+                        changed = ChangedLocked();
+                    }
+                    claimed = false;
+                }
+                status = GetStatusLocked();
+            }
+            Publish(changed);
+            return claimed;
+        }
+
+        internal void CancelHumanWait()
+        {
+            PersistenceState changed = null;
+            lock (m_Gate)
+            {
+                if (m_HumanWaiting != null)
+                {
+                    m_HumanWaiting = null;
+                    changed = ChangedLocked();
+                }
+            }
+            Publish(changed);
+        }
+
+        /// <summary>Ends the human lease; agents' claims are admitted again.</summary>
+        internal bool ReleaseHuman()
+        {
+            PersistenceState changed;
+            lock (m_Gate)
+            {
+                if (!HumanOwnsLocked() || m_Operations.Count != 0 || m_HostActivities.Count != 0)
+                    return false;
+                m_State = "releasing";
+                m_HumanGrant = null;
+                FinishReleaseLocked();
+                changed = ChangedLocked();
+            }
+            Publish(changed);
+            return true;
+        }
+
+        /// <summary>The kind handed over from a queued human claim, once; null otherwise.</summary>
+        internal string TakeHumanGrant()
+        {
+            PersistenceState changed = null;
+            string grant;
+            lock (m_Gate)
+            {
+                grant = m_HumanGrant;
+                if (grant != null)
+                {
+                    m_HumanGrant = null;
+                    changed = ChangedLocked();
+                }
+            }
+            Publish(changed);
+            return grant;
+        }
+
+        internal bool HasHostActivity(string kind)
+        {
+            lock (m_Gate)
+                return m_HostActivities.Values.Any(activity => activity.Kind == kind);
         }
 
         internal bool TryBeginOperation(string token, string id, string command,
@@ -258,6 +374,8 @@ namespace Unity.Pipeline
             {
                 m_State = "blocked";
                 m_Reason = string.IsNullOrWhiteSpace(reason) ? "Work completion is unknown; Editor restart is required." : reason;
+                m_HumanWaiting = null;
+                m_HumanGrant = null;
                 changed = ChangedLocked();
             }
             Publish(changed);
@@ -309,6 +427,8 @@ namespace Unity.Pipeline
                 m_Token = state.Token;
                 m_Reason = state.Reason;
                 m_Revision = state.Revision;
+                m_HumanWaiting = state.HumanWaiting;
+                m_HumanGrant = state.HumanGrant;
                 m_Operations.Clear();
                 foreach (var operation in state.Operations ?? new List<Operation>())
                     if (!string.IsNullOrEmpty(operation.Id))
@@ -327,6 +447,8 @@ namespace Unity.Pipeline
                     && (m_Owner != null || !string.IsNullOrEmpty(m_Token)
                         || m_Operations.Count != 0 || m_HostActivities.Count != 0))
                     BlockLocked("Persisted free state contains unsettled ownership data; Editor restart is required.");
+                else if (m_State == "free" && m_HumanWaiting != null)
+                    HandToHumanLocked();
             }
         }
 
@@ -345,12 +467,37 @@ namespace Unity.Pipeline
             m_BatchId = null;
             m_Token = null;
             m_Reason = null;
+            if (m_HumanWaiting != null)
+                HandToHumanLocked();
+        }
+
+        private bool HumanOwnsLocked() =>
+            (m_State == "held" || m_State == "releasing") && m_Owner?.TerminalHandle == HumanHandle;
+
+        private void HandToHumanLocked()
+        {
+            GrantHumanLocked(m_HumanWaiting);
+            m_HumanGrant = m_HumanWaiting;
+            m_HumanWaiting = null;
+        }
+
+        private void GrantHumanLocked(string kind)
+        {
+            m_State = "held";
+            m_Owner = new Owner { TerminalHandle = HumanHandle, IncarnationId = EditorSessionId };
+            m_BatchId = kind;
+            m_Token ??= Guid.NewGuid().ToString("N");
+            m_Reason = kind == "playtest"
+                ? "The owner is playtesting in the Editor; agent batches wait until they press Stop."
+                : $"The owner holds the Editor ({kind}); agent batches wait until they release it.";
         }
 
         private void BlockLocked(string reason)
         {
             m_State = "blocked";
             m_Reason = reason;
+            m_HumanWaiting = null;
+            m_HumanGrant = null;
         }
 
         private Status GetStatusLocked()
@@ -397,6 +544,8 @@ namespace Unity.Pipeline
                 Token = m_Token,
                 Reason = m_Reason,
                 Revision = m_Revision,
+                HumanWaiting = m_HumanWaiting,
+                HumanGrant = m_HumanGrant,
                 Operations = m_Operations.Values.Select(o => new Operation { Id = o.Id, Command = o.Command }).ToList(),
                 HostActivities = m_HostActivities.Values.Select(a =>
                     new HostActivity { Id = a.Id, Kind = a.Kind, Command = a.Command }).ToList()
@@ -466,6 +615,8 @@ namespace Unity.Pipeline
             public string Token;
             public string Reason;
             public long Revision;
+            public string HumanWaiting;
+            public string HumanGrant;
             public List<Operation> Operations;
             public List<HostActivity> HostActivities;
         }

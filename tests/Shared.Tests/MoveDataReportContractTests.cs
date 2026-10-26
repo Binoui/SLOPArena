@@ -18,7 +18,7 @@ public sealed class MoveDataReportContractTests
         var def = TestHelpers.EngineDef;
         def = def with { DisplayName = "Trajectory fixture" };
         def = def with { Weight = 137f };
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot2, false, "Fixture launcher", 30, 20,
+        def = TestHelpers.WithMove(def, AbilitySlots.Slot3, false, "Fixture launcher", 30, 20,
             new[] { new HitboxEvent
                         {
                             TriggerTick = 4,
@@ -50,7 +50,7 @@ public sealed class MoveDataReportContractTests
     public void RepresentativeTrajectory_ExposesLaunchExpiryApexLandingAndSamples()
     {
         var report = Build();
-        var trajectory = report.Moves.Single(m => m.Label == "g2 Fixture launcher").Trajectories.Single(t => t.Pct == 0);
+        var trajectory = report.Moves.Single(m => m.Label == "g3 Fixture launcher").Trajectories.Single(t => t.Pct == 0);
 
         Assert.Equal("Trajectory fixture", report.Metadata.Character);
         Assert.Equal(Pcts, report.Metadata.RequestedPercents);
@@ -96,7 +96,7 @@ public sealed class MoveDataReportContractTests
         static Program.ReportData BuildProfile(string profile)
         {
             var def = ReportingDef();
-            var hit = Program.CollectHits(def).Single(h => !h.Slot.Air && h.Slot.Slot == 2 && h.HitIndex == 0);
+            var hit = Program.CollectHits(def).Single(h => !h.Slot.Air && h.Slot.Slot == 3 && h.HitIndex == 0);
             return Program.BuildReport(def, new() { hit }, new[] { 0, 60 }, null, false, true,
                 combatTuning: TuningProfiles.Get(profile));
         }
@@ -123,7 +123,7 @@ public sealed class MoveDataReportContractTests
     }
 
     [Fact]
-    public void FightGuyG2_UsesApplyKnockbackAndPipelineParity()
+    public void FightGuyG1_UsesApplyKnockbackAndPipelineParity()
     {
         var def = TestHelpers.FightGuyDef;
         var hits = Program.CollectHits(def);
@@ -133,17 +133,17 @@ public sealed class MoveDataReportContractTests
         foreach (var pct in new[] { 0, 120 })
             runs[(hit.Slot, hit.HitIndex, pct)] = Program.RunTrajectory(def, hit, pct);
 
-        var g2 = hits.Single(h => !h.Slot.Air && h.Slot.Slot == 2 && h.HitIndex == 0);
+        var g1 = hits.Single(h => !h.Slot.Air && h.Slot.Slot == 1 && h.HitIndex == 0);
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.GroundPY(def);
-        state.DamagePercent = (ushort)g2.Hit.Damage;
-        Simulation.ApplyKnockback(ref state, 0f, 1f, g2.LaunchAngle, g2.BaseKb, g2.GrowthKb,
-            g2.Hit.Damage, g2.Hit.StunTicks, def.Weight);
-        Assert.Equal(runs[(g2.Slot, 0, 0)].Kv,
+        state.DamagePercent = (ushort)g1.Hit.Damage;
+        Simulation.ApplyKnockback(ref state, 0f, 1f, g1.LaunchAngle, g1.BaseKb, g1.GrowthKb,
+            g1.Hit.Damage, g1.Hit.StunTicks, def.Weight);
+        Assert.Equal(runs[(g1.Slot, 0, 0)].Kv,
             MathF.Sqrt(state.KVX * state.KVX + state.KVY * state.KVY + state.KVZ * state.KVZ), 5);
 
         var parity = Program.ComputeParity(def, hits, runs, new[] { 0, 120 }, baked);
-        var row = parity.Single(p => p.Label == "g2 Straight Punch" && p.Pct == 0);
-        Assert.True(row.Ok, $"g2 parity diverged: direct {row.DirectKv:F3}, pipeline {row.PipeKv:F3}");
+        var row = parity.Single(p => p.Label == "g1 Straight Punch" && p.Pct == 0);
+        Assert.True(row.Ok, $"g1 parity diverged: direct {row.DirectKv:F3}, pipeline {row.PipeKv:F3}");
     }
 }

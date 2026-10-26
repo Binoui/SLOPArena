@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
 
 namespace SlopArena.Client.Input
 {
@@ -57,8 +58,8 @@ namespace SlopArena.Client.Input
         public static IReadOnlyList<string> RebindableActions { get; } = new[]
         {
             "MoveUp", "MoveDown", "MoveLeft", "MoveRight", "MoveStick", "Jump", "Down",
-            "Shield", "Grab", "Slot1", "Slot2", "Slot3", "Slot4", "SlotA", "SlotE", "SlotR", "SlotF",
-            "SpecialModifier", "FaceToCamera", "ToggleLock", "Retarget", "Pause", "Retry"
+            "Shield", "Grab", "Dash", "Slot1", "Slot3", "Slot4", "SlotA", "SlotE", "SlotR", "SlotF",
+            "SpecialModifier", "FaceToCamera", "ToggleLock", "CameraToggle", "Retarget", "Pause", "Retry"
         };
 
         public static void Initialize(string overridesJson)
@@ -70,6 +71,23 @@ namespace SlopArena.Client.Input
         }
 
         public static InputAction Get(string name) { EnsureCreated(); return Actions[name]; }
+
+        /// <summary>Couch play: the shared map reads only P1's devices; null restores every device.</summary>
+        public static void RestrictToDevices(InputDevice[]? devices)
+        {
+            EnsureCreated();
+            _map!.devices = devices == null ? null : new ReadOnlyArray<InputDevice>(devices);
+        }
+
+        /// <summary>An enabled copy of the gameplay map that reads only the given devices.</summary>
+        public static InputActionMap CreatePlayerMap(params InputDevice[] devices)
+        {
+            EnsureCreated();
+            var map = _map!.Clone();
+            map.devices = new ReadOnlyArray<InputDevice>(devices);
+            map.Enable();
+            return map;
+        }
         public static string SaveOverrides()
         {
             EnsureCreated();
@@ -233,6 +251,9 @@ namespace SlopArena.Client.Input
             foreach (var pair in Actions)
             {
                 if (pair.Key == actionName) continue;
+                if (group == GamepadGroup &&
+                    (actionName == "ToggleLock" && pair.Key == "CameraToggle" ||
+                     actionName == "CameraToggle" && pair.Key == "ToggleLock")) continue;
                 foreach (var binding in pair.Value.bindings)
                     if (binding.groups?.Contains(group, StringComparison.OrdinalIgnoreCase) == true &&
                         string.Equals(binding.effectivePath, path, StringComparison.OrdinalIgnoreCase))
@@ -273,14 +294,16 @@ namespace SlopArena.Client.Input
             AddButton("MoveDown", "<Keyboard>/s");
             AddButton("MoveLeft", "<Keyboard>/a");
             AddButton("MoveRight", "<Keyboard>/d");
-            AddButton("Jump", "<Keyboard>/space", "<Gamepad>/rightShoulder");
+            // Controller layout v2 (ADR-0042): A jumps, X/Y/B are the three normals, RB dashes.
+            // LB + a face button is a special, A included; InputController owns that chord.
+            AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
             AddButton("Shield", "<Keyboard>/leftShift", "<Gamepad>/rightTrigger");
             AddButton("Grab", "<Keyboard>/c");
+            AddButton("Dash", "<Keyboard>/4", "<Gamepad>/rightShoulder");
             AddButton("Down", "<Keyboard>/x", "<Gamepad>/leftTrigger");
-            AddButton("Slot1", "<Keyboard>/1", "<Gamepad>/buttonSouth");
-            AddButton("Slot2", "<Keyboard>/2", "<Gamepad>/buttonWest");
-            AddButton("Slot3", "<Keyboard>/3", "<Gamepad>/buttonNorth");
-            AddButton("Slot4", "<Keyboard>/4", "<Gamepad>/buttonEast");
+            AddButton("Slot1", "<Keyboard>/1", "<Gamepad>/buttonWest");
+            AddButton("Slot3", "<Keyboard>/2", "<Gamepad>/buttonNorth");
+            AddButton("Slot4", "<Keyboard>/3", "<Gamepad>/buttonEast");
             // Keyboard paths are key positions: the key right of Tab reads A on AZERTY and Q on
             // QWERTY. Binding the key that types "A" put special A on move-left for QWERTY players.
             AddButton("SlotA", "<Keyboard>/q");
@@ -292,6 +315,9 @@ namespace SlopArena.Client.Input
             Actions.Add("SpecialModifier", modifier);
             AddButton("FaceToCamera", "<Mouse>/leftButton", "<Gamepad>/leftStickPress");
             AddButton("ToggleLock", "<Mouse>/rightButton", "<Gamepad>/rightStickPress");
+            Get("ToggleLock").ChangeBinding(BindingIndex("ToggleLock", GamepadGroup)).WithInteraction("tap(duration=0.45)");
+            AddButton("CameraToggle", "<Keyboard>/y", "<Gamepad>/rightStickPress");
+            Get("CameraToggle").ChangeBinding(BindingIndex("CameraToggle", GamepadGroup)).WithInteraction("hold(duration=0.45)");
             AddButton("Retarget", "<Keyboard>/tab", "<Gamepad>/dpad/right");
             AddButton("Pause", "<Keyboard>/escape", "<Gamepad>/start");
             // Arcade only: a full fresh attempt. ArcadeRetryInput requires a short gamepad hold.

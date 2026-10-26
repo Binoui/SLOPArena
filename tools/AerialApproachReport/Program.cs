@@ -71,7 +71,7 @@ internal static partial class Program
     {
         public string Tool { get; init; } = "AerialApproachReport";
         public string[] Characters { get; init; } = Array.Empty<string>();
-        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.2", "air.3", "air.4" };
+        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.3", "air.4" };
         public string[] TargetModes { get; init; } = new[] { "stationary", "fixed-path" };
         public string[] Approaches { get; init; } = new[] { "straight", "oblique" };
         public string[] HorizontalSpeeds { get; init; } = new[] { "low", "running" };

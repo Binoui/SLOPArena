@@ -772,8 +772,8 @@ namespace SlopArena.Client.UI
                 _playerCards.Add(BuildPlayerCard(
                     "P1", "YOU", MatchConfig.PlayerClass, "READY", true, true));
                 _playerCards.Add(BuildPlayerCard(
-                    "P2", "CPU", MatchConfig.SoloBotClass,
-                    $"CPU {BotDifficultyProfile.DisplayName(MatchConfig.SoloCpuDifficulty)}",
+                    "P2", MatchConfig.SoloP2Human ? "PLAYER 2" : "CPU", MatchConfig.SoloBotClass,
+                    MatchConfig.SoloP2Human ? "READY" : $"CPU {BotDifficultyProfile.DisplayName(MatchConfig.SoloCpuDifficulty)}",
                     false, false));
                 return;
             }
@@ -816,7 +816,7 @@ namespace SlopArena.Client.UI
                 ? (host ? "LEADER" : "MEMBER")
                 : MatchConfig.Mode == GameMode.PvP
                     ? (host ? "HOST" : "PLAYER")
-                    : (local ? "PLAYER" : "CPU"));
+                    : (local || MatchConfig.SoloP2Human ? "PLAYER" : "CPU"));
             role.AddToClassList("player-card__host");
             identity.Add(role);
             card.Add(identity);

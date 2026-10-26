@@ -23,17 +23,17 @@ public sealed class BonkKitTests
         Assert.Equal(first.CookedPackage!.CanonicalBytes, second.CookedPackage!.CanonicalBytes);
 
         var package = first.CookedPackage;
-        Assert.Equal(16, package.Definition.Slots.Count);
-        Assert.Equal(16, package.Budget.SlotCount);
+        Assert.Equal(14, package.Definition.Slots.Count);
+        Assert.Equal(14, package.Budget.SlotCount);
         Assert.Equal(new[] { CharacterPackageCompiler.SteeredChargeCapabilityId, CapabilityId },
             package.Definition.CapabilityRequirements.Select(x => x.CapabilityId).OrderBy(x => x, StringComparer.Ordinal));
         Assert.All(package.Definition.CapabilityRequirements, x => Assert.Equal("1", x.CapabilityVersion));
 
         var expectedIds = new[]
         {
-            "ground.1", "ground.2", "ground.3", "ground.4",
+            "ground.1", "ground.3", "ground.4",
             "ground.A", "ground.E", "ground.R", "ground.F",
-            "air.1", "air.2", "air.3", "air.4",
+            "air.1", "air.3", "air.4",
             "air.A", "air.E", "air.R", "air.F"
         };
         Assert.Equal(expectedIds.OrderBy(x => x), package.Definition.Slots.Select(x => x.Id).OrderBy(x => x));
@@ -143,7 +143,7 @@ public sealed class BonkKitTests
     public void BonkCapabilityParametersRejectUnknownAndMissingFields()
     {
         var unknown = JsonNode.Parse(File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/character.json")))!.AsObject();
-        var unknownParameters = (JsonObject)unknown["slots"]![5]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!;
+        var unknownParameters = (JsonObject)unknown["slots"]![4]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!;
         unknownParameters["extra"] = 1;
         var unknownResult = CharacterPackageCompiler.Compile(
             File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/package.json")),
@@ -153,7 +153,7 @@ public sealed class BonkKitTests
         Assert.Null(unknownResult.CookedPackage);
 
         var missing = JsonNode.Parse(File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/character.json")))!.AsObject();
-        var missingParameters = (JsonObject)missing["slots"]![5]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!;
+        var missingParameters = (JsonObject)missing["slots"]![4]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!;
         missingParameters.Remove("hitbox");
         var missingResult = CharacterPackageCompiler.Compile(
             File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/package.json")),
@@ -173,7 +173,7 @@ public sealed class BonkKitTests
 
         var versionMismatch = JsonNode.Parse(characterJson)!.AsObject();
         versionMismatch["capabilityRequirements"]![0]!["capabilityVersion"] = "2";
-        foreach (int slotIndex in new[] { 5, 13 })
+        foreach (int slotIndex in new[] { 4, 11 })
             versionMismatch["slots"]![slotIndex]!["timeline"]!["stages"]![0]!["operations"]![0]!["capabilityVersion"] = "2";
         var rejected = CharacterPackageCompiler.Compile(
             packageJson, versionMismatch.ToJsonString(), CharacterCookProfile.Workshop);
@@ -188,13 +188,13 @@ public sealed class BonkKitTests
         foreach (var profile in new[] { CharacterCookProfile.Workshop, CharacterCookProfile.TrustedBuiltIn })
         {
             var badRange = JsonNode.Parse(characterJson)!.AsObject();
-            badRange["slots"]![5]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["maxRange"] = 0;
+            badRange["slots"]![4]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["maxRange"] = 0;
             var rangeResult = CharacterPackageCompiler.Compile(packageJson, badRange.ToJsonString(), profile);
             Assert.Null(rangeResult.CookedPackage);
             Assert.Contains(rangeResult.Diagnostics, x => x.Code == "value.out-of-range");
 
             var badBone = JsonNode.Parse(characterJson)!.AsObject();
-            badBone["slots"]![5]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["hitbox"]!["startBoneId"] = "_not_declared";
+            badBone["slots"]![4]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["hitbox"]!["startBoneId"] = "_not_declared";
             var boneResult = CharacterPackageCompiler.Compile(packageJson, badBone.ToJsonString(), profile);
             Assert.Null(boneResult.CookedPackage);
             Assert.Contains(boneResult.Diagnostics, x => x.Code == "reference.unresolved");
@@ -205,7 +205,7 @@ public sealed class BonkKitTests
     {
         string packageJson = File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/package.json"));
         var character = JsonNode.Parse(File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/character.json")))!.AsObject();
-        var operations = (JsonArray)character["slots"]![5]!["timeline"]!["stages"]![0]!["operations"]!;
+        var operations = (JsonArray)character["slots"]![4]!["timeline"]!["stages"]![0]!["operations"]!;
         operations.Add(operations[0]!.DeepClone());
         var result = CharacterPackageCompiler.Compile(
             packageJson, character.ToJsonString(), CharacterCookProfile.Workshop);
@@ -222,7 +222,7 @@ public sealed class BonkKitTests
         string packageJson = File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/package.json"));
         var character = JsonNode.Parse(File.ReadAllText(RepoFile("client/Unity/Assets/CharacterPackages/bonk/character.json")))!.AsObject();
         character["capabilityRequirements"]![0]!["capabilityId"] = retiredId;
-        foreach (int slotIndex in new[] { 5, 13 })
+        foreach (int slotIndex in new[] { 4, 11 })
             character["slots"]![slotIndex]!["timeline"]!["stages"]![0]!["operations"]![0]!["capabilityId"] = retiredId;
         var result = CharacterPackageCompiler.Compile(
             packageJson, character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
@@ -562,9 +562,6 @@ public sealed class BonkKitTests
     [InlineData(AbilitySlots.Slot1, 2.2f, false, true)]
     [InlineData(AbilitySlots.Slot1, 2.2f, true, true)]
     [InlineData(AbilitySlots.Slot1, 8f, false, false)]
-    [InlineData(AbilitySlots.Slot2, 2.2f, false, true)]
-    [InlineData(AbilitySlots.Slot2, 2.2f, true, true)]
-    [InlineData(AbilitySlots.Slot2, 8f, false, false)]
     [InlineData(AbilitySlots.Slot3, 2.2f, false, true)]
     [InlineData(AbilitySlots.Slot3, 2.2f, true, true)]
     [InlineData(AbilitySlots.Slot3, 8f, false, false)]

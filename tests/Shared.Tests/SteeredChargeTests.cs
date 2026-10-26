@@ -313,8 +313,8 @@ public sealed class SteeredChargeTests
     {
         var definition = TestHelpers.EngineDef;
         var slots = definition.CookedSlots!.ToArray();
-        slots[6] = Slot(6, "ground.R", false);
-        slots[14] = Slot(14, "air.R", true);
+        slots[5] = Slot(5, "ground.R", false);
+        slots[12] = Slot(12, "air.R", true);
         definition = definition with { CookedSlots = slots };
         return definition;
     }

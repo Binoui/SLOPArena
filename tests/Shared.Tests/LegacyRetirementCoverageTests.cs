@@ -368,7 +368,7 @@ public class LegacyRetirementCoverageTests
     {
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
-        slots[6] = new CookedSlotDefinition(6, "ground.R", false, "Presentation fixture", "", "",
+        slots[5] = new CookedSlotDefinition(5, "ground.R", false, "Presentation fixture", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {

@@ -12,7 +12,8 @@ namespace SlopArena.Shared
         // 3: hitboxes carry returning projectiles (Sir Bonk's pot lid).
         // 4: Versus Slopball rally, score and serve rotation.
         // 5: solo and multiplayer Character Course progress, clocks, finish order and withdrawals.
-        public const uint SnapshotFormatVersion = 6;
+        // 7: homing dash direction, target, cooldown and air use in CharacterState (ADR-0042).
+        public const uint SnapshotFormatVersion = 7;
 
         private readonly List<ulong> _abilityOrder = new();
 

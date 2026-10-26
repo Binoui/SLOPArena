@@ -85,6 +85,14 @@ namespace SlopArena.Client.World
             public SpawnPoint Spawn;
             public byte LastDeaths;
         }
+        // Couch play (ADR-0041): Solo's P2 is a second Local Player reading its own pad.
+        private InputController _p2Input;
+        [NonSerialized] private InputActionMap _p2Map;
+        private bool Couch => _p2Input != null;
+        // Matches P2's orange-red HUD badge.
+        private static readonly Color P2Accent = new(234f / 255f, 88f / 255f, 12f / 255f);
+        protected override Func<ulong, Color?> LocalAccentOf =>
+            Couch ? id => id == NpcEntityId ? P2Accent : null : null;
         private ushort _soloCountdownTicks;
         private ushort _lastSoloPlayerDeaths;
         private ushort _lastSoloNpcDeaths;
@@ -163,6 +171,78 @@ namespace SlopArena.Client.World
             _captureInputSequenceOwner = null;
         }
         // ── Training controls ──
+
+        public const string MovementPreferencesKey = "SlopArena.Training.MovementPrototype.v1";
+        [Serializable]
+        private sealed class MovementPreferences
+        {
+            public GroundSpeedModel Model = GroundSpeedModel.Current;
+            public bool Snap = true;
+            public int RampTicks = 20;
+            public GroundSpeedCurve Curve = GroundSpeedCurve.Linear;
+            public float TurnaroundKeep = 1f;
+            public int StopTicks = 20;
+            public float StartRatio = 0.4f;
+        }
+
+        private GroundSpeedTuning _progressiveTuning = GroundSpeedTuning.Progressive();
+        public GroundSpeedTuning ProgressiveTuning => _progressiveTuning;
+        public GroundSpeedTuning MovementTuning => MovementModel == GroundSpeedModel.Progressive
+            ? _progressiveTuning : GroundSpeedTuning.For(MovementModel);
+        private GroundSpeedModel _groundSpeedModel = GroundSpeedModel.Current;
+        private bool _stickSnap = true;
+        public GroundSpeedModel MovementModel => MatchConfig.Mode == GameMode.Training
+            ? _groundSpeedModel : GroundSpeedModel.Current;
+        public bool MovementStickSnap => MatchConfig.Mode != GameMode.Training || _stickSnap;
+        public string MovementPrototypeLabel => MovementModel == GroundSpeedModel.Progressive
+            ? $"MOVEMENT · PROGRESSIVE\nSTART {_progressiveTuning.StartRatio * 100f:F0}% · {_progressiveTuning.RampTicks}T {(_progressiveTuning.Curve == GroundSpeedCurve.SlowStart ? "SLOW START" : "LINEAR")}\nKEEP {_progressiveTuning.TurnaroundKeep * 100f:F0}% · STOP {_progressiveTuning.StopTicks}T · SNAP {(MovementStickSnap ? "ON" : "OFF")}"
+            : $"MOVEMENT · {MovementModel.ToString().ToUpperInvariant()} · SNAP {(MovementStickSnap ? "ON" : "OFF")}";
+
+        public void SetMovementPrototype(GroundSpeedModel model, bool stickSnap, GroundSpeedTuning progressive = null)
+        {
+            if (MatchConfig.Mode != GameMode.Training || _bridge == null)
+                throw new InvalidOperationException("Movement prototypes require an initialized Training match.");
+            if (_captureInputSequenceOwner != null)
+                throw new InvalidOperationException("Cannot switch movement during a captured Training sequence.");
+            var profile = GroundSpeedTuning.For(model);
+            if (progressive != null && progressive.Model != GroundSpeedModel.Progressive)
+                throw new ArgumentException("Custom tuning must be Progressive.", nameof(progressive));
+            var selectedProgressive = progressive ?? _progressiveTuning;
+            _bridge.InternalSim.SetGroundSpeedTuning(model == GroundSpeedModel.Progressive ? selectedProgressive : profile);
+            _progressiveTuning = selectedProgressive;
+            _groundSpeedModel = model;
+            _stickSnap = stickSnap;
+            bool active = model != GroundSpeedModel.Current;
+            _playerRenderer.GroundSpeedPrototypeActive = active;
+            foreach (var npc in _npcs) npc.Renderer.GroundSpeedPrototypeActive = active;
+            PlayerPrefs.SetString(MovementPreferencesKey, JsonUtility.ToJson(new MovementPreferences
+            {
+                Model = model, Snap = stickSnap, RampTicks = _progressiveTuning.RampTicks,
+                Curve = _progressiveTuning.Curve, TurnaroundKeep = _progressiveTuning.TurnaroundKeep,
+                StopTicks = _progressiveTuning.StopTicks, StartRatio = _progressiveTuning.StartRatio,
+            }));
+            PlayerPrefs.Save();
+            _settingsPanel?.RefreshMovement();
+            Debug.Log($"[MovementPrototype] {MovementPrototypeLabel}");
+        }
+
+        private void LoadMovementPrototype()
+        {
+            if (MatchConfig.Mode != GameMode.Training) return;
+            var saved = new MovementPreferences();
+            try
+            {
+                if (PlayerPrefs.HasKey(MovementPreferencesKey))
+                    JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(MovementPreferencesKey), saved);
+                GroundSpeedTuning.For(saved.Model);
+                var tuning = GroundSpeedTuning.Progressive(saved.RampTicks, saved.Curve, saved.TurnaroundKeep, saved.StopTicks, saved.StartRatio);
+                SetMovementPrototype(saved.Model, saved.Snap, tuning);
+            }
+            catch (ArgumentException)
+            {
+                SetMovementPrototype(GroundSpeedModel.Current, true, GroundSpeedTuning.Progressive());
+            }
+        }
 
         public int NpcCount => _npcs.Count;
         public int SelectedNpcIndex => _selectedNpcIndex;
@@ -357,7 +437,8 @@ namespace SlopArena.Client.World
             _soloCountdownTicks = solo ? (ushort)300 : (ushort)0;
             _bridge = new LocalSimulationBridge(
                 arena,
-                solo ? new StockMatchRule((byte)MatchConfig.MaxStocks) : NoWinMatchRule.Instance);
+                solo ? new StockMatchRule((byte)MatchConfig.MaxStocks) : NoWinMatchRule.Instance,
+                GroundSpeedTuning.Default);
             _combatFeedback.SetSimulation(_bridge);
             if (_projectileVFX == null)
                 _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
@@ -415,6 +496,8 @@ namespace SlopArena.Client.World
                 return;
             _npcs.Add(first);
 
+            if (solo && MatchConfig.SoloP2Human)
+                StartCouch();
             SetupHUD(playerDef, HudExtraPlayers());
 
             // Shared camera + aim setup
@@ -427,6 +510,7 @@ namespace SlopArena.Client.World
             // Training controls remain visible on the HUD throughout practice.
             if (MatchConfig.Mode == GameMode.Training)
             {
+                LoadMovementPrototype();
                 var panel = gameObject.AddComponent<TrainingSettingsPanel>();
                 _settingsPanel = panel;
                 panel.Init(this, _hudManager.Document, _cameraMount);
@@ -464,7 +548,46 @@ namespace SlopArena.Client.World
         protected override void OnDestroy()
         {
             FinishSessionLog("left");
+            if (_p2Map != null)
+            {
+                HumanInputActions.RestrictToDevices(null);
+                // Disable only: P2's InputController may still clear its state on teardown.
+                _p2Map.Disable();
+            }
             base.OnDestroy();
+        }
+
+        /// <summary>
+        /// P2 plays on the pad that joined on Fighter Select; P1 keeps the keyboard, mouse and every other pad.
+        /// </summary>
+        private void StartCouch()
+        {
+            var p2Pad = CouchPads.P2;
+            if (p2Pad == null)
+            {
+                Debug.LogWarning("[Couch] P2's pad is not connected; the CPU plays P2.");
+                return;
+            }
+            var p1Devices = new List<InputDevice>();
+            if (Keyboard.current != null) p1Devices.Add(Keyboard.current);
+            if (Mouse.current != null) p1Devices.Add(Mouse.current);
+            foreach (var pad in Gamepad.all)
+                if (pad != p2Pad) p1Devices.Add(pad);
+            HumanInputActions.RestrictToDevices(p1Devices.ToArray());
+            _p2Map = HumanInputActions.CreatePlayerMap(p2Pad);
+            _p2Input = gameObject.AddComponent<InputController>();
+            _p2Input.UsePlayerMap(_p2Map);
+            if (_cameraMount != null)
+                _cameraMount.Couch = CouchCamera.SideOnHigh;
+            Debug.Log($"[Couch] P1 = {string.Join(", ", p1Devices.Select(d => d.displayName))}; P2 = {p2Pad.displayName}");
+        }
+
+        private InputState BuildP2Input(NpcSlot p2)
+        {
+            byte slot = _p2Input.ConsumePendingSlotPress();
+            return _p2Input.BuildInputState(_cameraMount, p2.Renderer.transform.eulerAngles.y, slot,
+                AimContext.None, canMove: null, targetEntityId: (byte)PlayerEntityId,
+                groundSpeedModel: MovementModel, stickSnap: MovementStickSnap, aimFromFacing: true).input;
         }
 
         /// <summary>Rebuild the HUD and lock indicator after the NPC roster changes.</summary>
@@ -484,7 +607,7 @@ namespace SlopArena.Client.World
             // CPU cards name the CPU, not its internal entity id (which starts at 100).
             var list = new List<HUDManager.HudPlayer>(_npcs.Count);
             for (int i = 0; i < _npcs.Count; i++)
-                list.Add(new HUDManager.HudPlayer(_npcs[i].Id, i == 0 ? "CPU" : $"CPU {i + 1}",
+                list.Add(new HUDManager.HudPlayer(_npcs[i].Id, i == 0 ? Couch ? "P2" : "CPU" : $"CPU {i + 1}",
                     _npcs[i].Def.Class, isLocal: false));
             return list;
         }
@@ -499,6 +622,7 @@ namespace SlopArena.Client.World
             if (!SetupRenderer(slot.Renderer, _npcEntry, _arenaDef, slot.Id, false))
                 return false;
             slot.Renderer.RenderInterpolation = _renderInterpolation;
+            slot.Renderer.GroundSpeedPrototypeActive = MovementModel != GroundSpeedModel.Current;
             var spawn = slot.Spawn;
             slot.Renderer.transform.position = new Vector3(spawn.X, spawn.Y, spawn.Z);
             _bridge.RegisterEntity(slot.Id, slot.Def, new CharacterState
@@ -513,11 +637,15 @@ namespace SlopArena.Client.World
 
         private void Update()
         {
+            // P1's pause key is on the shared map; P2's Start opens and closes the same menu.
+            if (enabled && _p2Map != null && _pauseMenu != null && _p2Map.FindAction("Pause").WasPressedThisFrame())
+                _pauseMenu.SetPaused(!IsPaused);
             // While paused the MatchPauseMenu owns Esc and input polling is skipped so
             // no buffered presses leak into the first frame after resume (issue #77).
             if (!enabled || IsPaused) return;
 
             _inputController.Poll();
+            _p2Input?.Poll();
 
             if (_showHitboxes && _bridge != null)
             {
@@ -533,6 +661,7 @@ namespace SlopArena.Client.World
             if (MatchConfig.Mode == GameMode.Solo && _soloCountdownTicks > 0)
             {
                 _inputController.ClearPendingFrameState();
+                _p2Input?.ClearPendingFrameState();
                 _soloCountdownTicks--;
                 if (_soloCountdownTicks == 180) _hudManager?.ShowSoloCountdown("3", 1f);
                 else if (_soloCountdownTicks == 120) _hudManager?.ShowSoloCountdown("2", 1f);
@@ -544,7 +673,7 @@ namespace SlopArena.Client.World
             // Poll done in Update() — keep FixedUpdate clean
             byte slot = _inputController.ConsumePendingSlotPress();
 
-            var aimCtx = _aimHandler != null
+            var aimCtx = _aimHandler != null && !Couch
                 ? _aimHandler.Evaluate(_bridge.GetState(PlayerEntityId), slot, _playerDef, _inputController, _bridge.GetActiveMove(PlayerEntityId)?.Slot)
                 : AimContext.None;
             _showCrosshair = _aimHandler?.ShowCrosshair ?? false;
@@ -560,7 +689,10 @@ namespace SlopArena.Client.World
                 pendingSlotPress: slot,
                 aimCtx: aimCtx,
                 canMove: null,
-                targetEntityId: targetEntityId);
+                targetEntityId: targetEntityId,
+                groundSpeedModel: MovementModel,
+                stickSnap: MovementStickSnap,
+                aimFromFacing: Couch);
             if (_captureInputOverride.HasValue)
                 input = _captureInputOverride.Value;
 
@@ -572,8 +704,9 @@ namespace SlopArena.Client.World
             };
             foreach (var npc in _npcs)
             {
-                tickInputs[npc.Id] = BuildNpcInput(
-                    _bridge.GetState(npc.Id), playerState, npc);
+                tickInputs[npc.Id] = Couch && npc.Id == NpcEntityId
+                    ? BuildP2Input(npc)
+                    : BuildNpcInput(_bridge.GetState(npc.Id), playerState, npc);
             }
 
             // Tick
@@ -660,12 +793,12 @@ namespace SlopArena.Client.World
                 if (soloPlayer.Deaths > _lastSoloPlayerDeaths)
                 {
                     _lastSoloPlayerDeaths = soloPlayer.Deaths;
-                    _hudManager?.ShowStockToast(PlayerEntityId, "YOU · −1 LIFE");
+                    _hudManager?.ShowStockToast(PlayerEntityId, Couch ? "P1 · −1 LIFE" : "YOU · −1 LIFE");
                 }
                 if (soloNpc.Deaths > _lastSoloNpcDeaths)
                 {
                     _lastSoloNpcDeaths = soloNpc.Deaths;
-                    _hudManager?.ShowStockToast(NpcEntityId, "CPU · −1 LIFE");
+                    _hudManager?.ShowStockToast(NpcEntityId, Couch ? "P2 · −1 LIFE" : "CPU · −1 LIFE");
                 }
             }
 
@@ -697,7 +830,7 @@ namespace SlopArena.Client.World
                     playerFirst || outcome.IsSharedVictory ? 1 : 2,
                     kos: 0,
                     falls: player.Deaths,
-                    name: "YOU",
+                    name: Couch ? "P1" : "YOU",
                     className: MatchConfig.PlayerClass.ToString(),
                     stocksRemaining: MatchConfig.MaxStocks - player.Deaths,
                     damagePercent: player.DamagePercent),
@@ -706,7 +839,7 @@ namespace SlopArena.Client.World
                     !playerFirst && !outcome.IsSharedVictory ? 1 : 2,
                     kos: 0,
                     falls: npc.Deaths,
-                    name: "CPU",
+                    name: Couch ? "P2" : "CPU",
                     className: MatchConfig.SoloBotClass.ToString(),
                     stocksRemaining: MatchConfig.MaxStocks - npc.Deaths,
                     damagePercent: npc.DamagePercent),
@@ -719,7 +852,7 @@ namespace SlopArena.Client.World
                 0,
                 entries);
             ClientSession.SetLocalMatchResults(results);
-            _hudManager?.ShowSoloEnding(playerFirst, results.SharedVictory, MatchConfig.PlayerClass, MatchConfig.SoloBotClass);
+            _hudManager?.ShowSoloEnding(playerFirst, results.SharedVictory, MatchConfig.PlayerClass, MatchConfig.SoloBotClass, Couch);
             StartCoroutine(LoadSoloResults());
         }
 

@@ -27,23 +27,33 @@ public class InputStateWireTests
         Assert.Equal(AbilitySlots.A, restored.ActiveSlot);
     }
 
-    [Theory]
-    [InlineData(0x20)]
-    [InlineData(0x40)]
-    [InlineData(0x60)]
-    public void ReservedInputBitsAreIgnoredAndNeverReemitted(byte bits)
+    [Fact]
+    public void ReservedInputBitIsIgnoredAndNeverReemitted()
     {
         Span<byte> buffer = stackalloc byte[InputState.Size];
-        var reserved = TestHelpers.ReservedInput(bits);
+        var reserved = TestHelpers.ReservedInput(0x40);
         Assert.Equal(default(InputState), reserved);
         Assert.False(reserved.HasPressEdges);
         reserved.Write(buffer);
-        Assert.Equal(0, buffer[8] & 0x60);
+        Assert.Equal(0, buffer[8] & 0x40);
 
         new InputState { ShieldPressed = true }.Write(buffer);
         var restoredShieldPress = InputState.Deserialize(buffer);
-        Assert.Equal(0, buffer[8] & 0x60);
+        Assert.Equal(0, buffer[8] & 0x40);
         Assert.True(restoredShieldPress.ShieldPressed);
+    }
+
+    [Fact]
+    public void DashPressRoundTripsAsAPressEdge()
+    {
+        Span<byte> buffer = stackalloc byte[InputState.Size];
+        var dash = new InputState { DashPressed = true };
+        Assert.True(dash.HasPressEdges);
+        Assert.False(dash.WithoutEdges().DashPressed);
+        Assert.True(default(InputState).WithEdgesFrom(dash).DashPressed);
+        dash.Write(buffer);
+        Assert.Equal(0x20, buffer[8] & 0x60);
+        Assert.True(InputState.Deserialize(buffer).DashPressed);
     }
 
 

@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Cinemachine;
 using SlopArena.Client.Input;
 using SlopArena.Client.UI;
+using UnityEngine.UIElements;
+using Cursor = UnityEngine.Cursor;
 namespace SlopArena.Client.Camera
 {
     public enum CameraMode
@@ -11,6 +14,18 @@ namespace SlopArena.Client.Camera
         FreeCursor,   // Cursor unlocked, camera yaw/pitch held constant
         Aiming,       // Cursor locked, orbital camera frozen, AimCameraMount drives aim camera
     }
+
+    /// <summary>A rendered opponent offered to automatic framing. Launched = airborne in hitstun or post-hitstun flight.</summary>
+    public readonly struct FramingSubject
+    {
+        public readonly ulong Id;
+        public readonly Vector3 Position;
+        public readonly bool Launched;
+        public FramingSubject(ulong id, Vector3 position, bool launched) { Id = id; Position = position; Launched = launched; }
+    }
+
+    /// <summary>Couch play (ADR-0041): one shared camera for every Local Player. Off keeps the player's style.</summary>
+    public enum CouchCamera { Off, SideOn, SideOnHigh, Fixed }
 
     [RequireComponent(typeof(CinemachineCamera))]
     [RequireComponent(typeof(CinemachineOrbitalFollow))]
@@ -22,22 +37,22 @@ namespace SlopArena.Client.Camera
 
         private Transform _player;
         private Transform _framingAnchor;
-        private Transform _lookAnchor;
         private Vector3 _framingOffset;
-        private Vector3 _lookOffset;
         private Vector3? _combatTargetPosition;
         private Bounds _fighterBounds;
         private bool _hasFramingSubjects;
         private float _manualRadius;
         private CameraStyle _style;
         private bool _settleArenaPitch;
-        private bool _trackingHeight;
-        private float _opponentHeight;
-        private float _duelSide = 1f;
         private const float AutoManualGraceSeconds = 1.5f;
         private const float FramingResponse = 4f;
         private const float MaxAutomaticDistance = 60f;
-        private bool TracksOpponentHeight => _style is CameraStyle.AirDuel or CameraStyle.SideDuel or CameraStyle.Shoulder;
+        // Steady (ADR-0043), from the owner's 2026-10-26 prototype pick.
+        private const float SteadyPitch = 35f;
+        private const float SteadyTurnCone = 60f;
+        private const float SteadyHeightBand = 3f;
+        private const float SteadyHeightFollow = 1f;
+        private const float SteadyLaunchSeconds = 6f;
 
         [Header("Lock Camera Assistance")]
         [SerializeField] private bool _assistLockedTarget = true;
@@ -72,6 +87,25 @@ namespace SlopArena.Client.Camera
         private float _lastStablePitch;
         private float _lastStableRadial;
         private bool _hasStableAngles;
+        private bool _cameraToggleReleaseRequired;
+        private Label _cameraNote;
+        public CouchCamera Couch { get; set; }
+        private bool _couchYawSet;
+
+        // Steady camera state.
+        private readonly List<FramingSubject> _subjects = new();
+        private readonly Dictionary<ulong, float> _launchStarted = new();
+        private bool _playerGrounded = true;
+        private float? _courtNetZ;
+        private Vector3? _courtBall;
+        private float _groundY;
+        private bool _hasGroundY;
+        private float _steadyRaise;
+        private float _yawVelocity;
+        private bool _steadyTurning;
+        private OffscreenBubbles? _bubbles;
+        public bool HoldsMoveDirection => _mode == CameraMode.Normal && Couch == CouchCamera.Off
+            && _style == CameraStyle.Steady && ClientSettingsService.Instance.HoldRunDirection;
 
         private void Awake()
         {
@@ -94,10 +128,10 @@ namespace SlopArena.Client.Camera
 
         private void OnDestroy()
         {
+            _cameraNote?.RemoveFromHierarchy();
+            _bubbles?.Dispose();
             if (_framingAnchor != null)
                 Destroy(_framingAnchor.gameObject);
-            if (_lookAnchor != null)
-                Destroy(_lookAnchor.gameObject);
         }
         
         /// <summary>
@@ -118,6 +152,7 @@ namespace SlopArena.Client.Camera
                 HumanInputActions.IsCapturing || MatchPauseMenu.Active is { IsPaused: true };
             if (suppressCameraInput)
             {
+                _cameraToggleReleaseRequired |= HumanInputActions.Get("CameraToggle").IsPressed();
                 if (!_chatInputSuppressed)
                 {
                     _chatSuppressedYaw = _hasStableAngles ? _lastStableYaw : GetCameraYawDeg();
@@ -146,9 +181,36 @@ namespace SlopArena.Client.Camera
             }
 
             // Mouse input is a per-frame delta; stick input is a rate.
-            if (_mode == CameraMode.Normal)
+            if (_mode == CameraMode.Normal && Couch != CouchCamera.Off)
             {
-                ApplyStyle(ClientSettingsService.Instance.CameraStyle);
+                var couchToggle = HumanInputActions.Get("CameraToggle");
+                if (_cameraToggleReleaseRequired)
+                {
+                    if (!couchToggle.IsPressed()) _cameraToggleReleaseRequired = false;
+                }
+                else if (couchToggle.WasPerformedThisFrame())
+                {
+                    Couch = Couch == CouchCamera.Fixed ? CouchCamera.SideOn : Couch + 1;
+                    _couchYawSet = false;
+                    ShowCameraNote($"Couch camera: {CouchName(Couch)}");
+                }
+                ApplyStyle(CameraStyle.Arena);
+                _manualOrbitGraceRemaining = 0f;
+            }
+            else if (_mode == CameraMode.Normal)
+            {
+                var preferences = ClientSettingsService.Instance;
+                var toggle = HumanInputActions.Get("CameraToggle");
+                if (_cameraToggleReleaseRequired)
+                {
+                    if (!toggle.IsPressed()) _cameraToggleReleaseRequired = false;
+                }
+                else if (toggle.WasPerformedThisFrame())
+                {
+                    var style = preferences.ToggleCameraStyle(HumanInputActions.LastUsedGamepad);
+                    ShowCameraNote($"Camera: {style.DisplayName()}");
+                }
+                ApplyStyle(preferences.ResolveCameraStyle(HumanInputActions.LastUsedGamepad));
                 Vector2 mouseLook = HumanInputActions.MouseLook.ReadValue<Vector2>();
                 Vector2 stickLook = HumanInputActions.StickLook.ReadValue<Vector2>();
                 // Controllers get a shorter manual grace and stronger lock assistance.
@@ -193,6 +255,37 @@ namespace SlopArena.Client.Camera
 
         }
 
+        public static string CouchName(CouchCamera couch) => couch switch
+        {
+            CouchCamera.SideOn => "Side-on",
+            CouchCamera.SideOnHigh => "Side-on high",
+            CouchCamera.Fixed => "Fixed",
+            _ => "Off",
+        };
+
+        private void ShowCameraNote(string text)
+        {
+            _cameraNote?.RemoveFromHierarchy();
+            var root = FindFirstObjectByType<HUDManager>()?.Document?.rootVisualElement;
+            if (root == null) return;
+            var note = new Label(text)
+            {
+                name = "camera-status",
+                pickingMode = PickingMode.Ignore,
+                style =
+                {
+                    position = Position.Absolute, left = new Length(50f, LengthUnit.Percent),
+                    top = new Length(14f, LengthUnit.Percent), marginLeft = -180f, width = 360f, height = 36f,
+                    unityTextAlign = TextAnchor.MiddleCenter, fontSize = 20f, unityFontStyleAndWeight = FontStyle.Bold,
+                    color = Color.white, backgroundColor = new Color(0.08f, 0.075f, 0.065f, 0.92f),
+                    borderBottomColor = new Color(1f, 0.8f, 34f / 255f), borderBottomWidth = 2f,
+                }
+            };
+            root.Add(note);
+            _cameraNote = note;
+            note.schedule.Execute(note.RemoveFromHierarchy).StartingIn(1200);
+        }
+
         private void LateUpdate()
         {
             if (_orbital == null) return;
@@ -205,8 +298,6 @@ namespace SlopArena.Client.Camera
             // Frozen/aim/menu modes retain their offsets while following the player.
             if (_framingAnchor != null && _player != null)
                 _framingAnchor.position = _player.position + _framingOffset;
-            if (_lookAnchor != null && _player != null)
-                _lookAnchor.position = _player.position + _lookOffset;
 
             if (_chatInputSuppressed)
             {
@@ -218,6 +309,7 @@ namespace SlopArena.Client.Camera
                 return;
             }
 
+            UpdateBubbles();
             _lastStableYaw = GetCameraYawDeg();
             _lastStablePitch = GetCameraPitchDeg();
             _lastStableRadial = _orbital.RadialAxis.Value;
@@ -285,52 +377,44 @@ namespace SlopArena.Client.Camera
             if (_cmCam == null || _player == null) return;
             Transform target = _style == CameraStyle.Manual ? _player : _framingAnchor;
             if (target == null) return;
-            _cmCam.Target = new CameraTarget
-            {
-                TrackingTarget = target,
-                LookAtTarget = TracksOpponentHeight ? _lookAnchor : target,
-                CustomLookAtTarget = TracksOpponentHeight
-            };
+            _cmCam.Target = new CameraTarget { TrackingTarget = target, LookAtTarget = target };
         }
 
         /// <summary>Presentation-only subjects from the current Shared match state.</summary>
-        public void SetFramingSubjects(Vector3 playerPosition, Vector3? targetPosition, Bounds fighterBounds)
+        public void SetFramingSubjects(Vector3 playerPosition, Vector3? targetPosition, Bounds fighterBounds,
+            bool playerGrounded = true, IReadOnlyList<FramingSubject>? opponents = null)
         {
             _combatTargetPosition = targetPosition;
+            _playerGrounded = playerGrounded;
+            _subjects.Clear();
+            if (opponents != null) _subjects.AddRange(opponents);
             // The rig follows the rendered player, including interpolation/correction.
             _fighterBounds = fighterBounds;
             _fighterBounds.center -= playerPosition;
             _hasFramingSubjects = true;
         }
 
+        /// <summary>Slopball courts: the net plane (z) and the ball, framed by the Steady camera.</summary>
+        public void SetCourt(float? netZ, Vector3? ball)
+        {
+            _courtNetZ = netZ;
+            _courtBall = ball;
+        }
+
         private void ApplyStyle(CameraStyle style)
         {
             if (_style == style) return;
             _style = style;
+            _hasGroundY = false;
+            _yawVelocity = 0f;
+            _steadyTurning = false;
+            _steadyRaise = 0f;
             _manualOrbitGraceRemaining = 0f;
             _settleArenaPitch = style == CameraStyle.Arena;
-            _trackingHeight = false;
-            _opponentHeight = 0f;
             if (style != CameraStyle.Manual && _framingAnchor == null)
             {
                 _framingAnchor = new GameObject("Camera Framing") { hideFlags = HideFlags.DontSave }.transform;
                 _framingAnchor.position = _player != null ? _player.position : Vector3.zero;
-            }
-            if (TracksOpponentHeight && _lookAnchor == null)
-                _lookAnchor = new GameObject("Camera Look Focus") { hideFlags = HideFlags.DontSave }.transform;
-            _lookOffset = _framingOffset;
-            if (_lookAnchor != null && _player != null)
-                _lookAnchor.position = _player.position + _lookOffset;
-            if (style == CameraStyle.SideDuel)
-            {
-                Vector3? opponent = _lockPlayer != null ? _lockTargetPosition : _combatTargetPosition;
-                if (_player != null && opponent.HasValue)
-                {
-                    Vector3 offset = opponent.Value - _player.position;
-                    float targetYaw = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
-                    _duelSide = Mathf.Abs(Mathf.DeltaAngle(GetCameraYawDeg(), targetYaw + 75f))
-                        <= Mathf.Abs(Mathf.DeltaAngle(GetCameraYawDeg(), targetYaw - 75f)) ? 1f : -1f;
-                }
             }
             if (style == CameraStyle.Manual)
             {
@@ -343,83 +427,186 @@ namespace SlopArena.Client.Camera
         private void UpdateAutomaticFraming(float deltaTime, bool allowRecenter)
         {
             if (_style == CameraStyle.Manual || _player == null) return;
+            if (Couch != CouchCamera.Off)
+            {
+                UpdateCouchFraming(deltaTime);
+                return;
+            }
+            if (_style == CameraStyle.Steady)
+            {
+                UpdateSteadyFraming(deltaTime, allowRecenter);
+                return;
+            }
+            // Arena: frame every fighter from a settled, elevated pitch; the direction stays the player's.
             Vector3 player = _player.position;
-            // Locked objectives (Slopball/course targets) use the same camera path.
-            Vector3? opponent = _lockPlayer != null ? _lockTargetPosition : _combatTargetPosition;
-            var bounds = new Bounds(player, Vector3.zero);
-            if (_style == CameraStyle.Arena && _hasFramingSubjects)
-                bounds = new Bounds(player + _fighterBounds.center, _fighterBounds.size);
-            else if (opponent.HasValue)
-                bounds.Encapsulate(opponent.Value);
-            if (_style == CameraStyle.Arena && _lockPlayer != null)
+            var bounds = _hasFramingSubjects
+                ? new Bounds(player + _fighterBounds.center, _fighterBounds.size) : new Bounds(player, Vector3.zero);
+            if (!_hasFramingSubjects && _combatTargetPosition.HasValue)
+                bounds.Encapsulate(_combatTargetPosition.Value);
+            if (_lockPlayer != null)
                 bounds.Encapsulate(_lockTargetPosition);
-
             // Leave room for bodies, weapons, jumps and the target indicator.
             bounds.Expand(new Vector3(3f, 4f, 3f));
-            Vector3 center = bounds.center;
-            if (_style == CameraStyle.AutoCombat)
-            {
-                center = opponent.HasValue ? Vector3.Lerp(player, opponent.Value, 0.35f) : player;
-                if (allowRecenter)
-                {
-                    if (opponent.HasValue)
-                        SetCameraYawDeg(GetAssistedYaw(GetCameraYawDeg(), opponent.Value - player,
-                            8f, 3f, 120f, deltaTime));
-                    SetCameraPitchDeg(Mathf.LerpAngle(GetCameraPitchDeg(), 20f,
-                        1f - Mathf.Exp(-FramingResponse * deltaTime)));
-                }
-            }
-            else if (_settleArenaPitch && allowRecenter)
+            if (_settleArenaPitch && allowRecenter)
             {
                 SetCameraPitchDeg(Mathf.MoveTowards(GetCameraPitchDeg(), 35f, 60f * deltaTime));
                 if (Mathf.Abs(GetCameraPitchDeg() - 35f) < 0.01f) _settleArenaPitch = false;
             }
-            if (TracksOpponentHeight)
-            {
-                bool shoulder = _style == CameraStyle.Shoulder;
-                if (allowRecenter)
-                {
-                    float height = opponent.HasValue ? opponent.Value.y - player.y : 0f;
-                    float threshold = shoulder ? 0.75f : 2.5f;
-                    _trackingHeight = Mathf.Abs(height) > (_trackingHeight ? threshold * 0.5f : threshold);
-                    _opponentHeight = Mathf.Lerp(_opponentHeight, _trackingHeight ? height : 0f,
-                        1f - Mathf.Exp(-3f * deltaTime));
-                    if (opponent.HasValue)
-                    {
-                        Vector3 offset = opponent.Value - player;
-                        if (_style == CameraStyle.SideDuel)
-                            offset = Quaternion.Euler(0f, _duelSide * 75f, 0f) * offset;
-                        SetCameraYawDeg(GetAssistedYaw(GetCameraYawDeg(), offset,
-                            shoulder ? 3f : 8f, 3f, _style == CameraStyle.SideDuel ? 90f : 120f, deltaTime));
-                    }
-                    float pitch = shoulder ? 5f : Mathf.Lerp(20f, 8f, Mathf.Clamp01(_opponentHeight / 6f));
-                    SetCameraPitchDeg(Mathf.LerpAngle(GetCameraPitchDeg(), pitch,
-                        1f - Mathf.Exp(-FramingResponse * deltaTime)));
-                }
-                center = shoulder ? player : opponent.HasValue ? Vector3.Lerp(player, opponent.Value, 0.5f) : player;
-                // Follow near the player's height; only the look target rises with the
-                // opponent. Looking up must never place the camera under the floor.
-                center.y = player.y + (shoulder ? 1.5f : 0.75f);
-                if (shoulder)
-                    center += Quaternion.Euler(0f, GetCameraYawDeg(), 0f) * Vector3.right * 1.1f;
-            }
-
             float blend = 1f - Mathf.Exp(-FramingResponse * deltaTime);
-            _framingOffset = Vector3.Lerp(_framingOffset, center - player, blend);
-            _lookOffset = _framingOffset + Vector3.up * (_opponentHeight * (_style == CameraStyle.Shoulder ? 0.65f : 0.5f));
+            _framingOffset = Vector3.Lerp(_framingOffset, bounds.center - player, blend);
             Vector3 anchor = player + _framingOffset;
             var orientation = Quaternion.Euler(GetCameraPitchDeg(), GetCameraYawDeg(), 0f);
             var renderCamera = RenderCamera;
             float aspect = renderCamera != null ? renderCamera.aspect : Screen.width / (float)Mathf.Max(1, Screen.height);
             float radial = Mathf.Max(0.1f, _orbital.RadialAxis.Value);
-            float minimumRadius = _manualRadius * (_style == CameraStyle.Shoulder ? 0.45f
-                : TracksOpponentHeight ? 0.85f : 1f);
-            float distance = TracksOpponentHeight
-                ? DistanceToFrameWithLookAt(bounds, anchor, player + _lookOffset, orientation,
-                    _cmCam.Lens.FieldOfView, aspect, minimumRadius * radial, MaxAutomaticDistance)
-                : DistanceToFrame(bounds, anchor, orientation, _cmCam.Lens.FieldOfView, aspect);
-            float radius = Mathf.Clamp(distance / radial, minimumRadius, MaxAutomaticDistance / radial);
+            float distance = DistanceToFrame(bounds, anchor, orientation, _cmCam.Lens.FieldOfView, aspect);
+            float radius = Mathf.Clamp(distance / radial, _manualRadius, MaxAutomaticDistance / radial);
             // Zoom out promptly for launches; ease back in after fighters close the gap.
+            _orbital.Radius = Mathf.Lerp(_orbital.Radius, radius,
+                1f - Mathf.Exp(-(radius > _orbital.Radius ? 10f : 2f) * deltaTime));
+        }
+
+        /// <summary>
+        /// Steady (ADR-0043): high and centred on the player at a fixed distance. Turns only when
+        /// the target leaves a wide cone, with eased speed; on a Slopball court it looks down the
+        /// court instead. Height follows landings, not ordinary jumps; a launched fighter or a high
+        /// ball lifts the focus, and off-screen bubbles cover what the view still cannot hold.
+        /// </summary>
+        private void UpdateSteadyFraming(float deltaTime, bool allowRecenter)
+        {
+            Vector3 player = _player.position;
+            if (!_hasGroundY) { _groundY = player.y; _hasGroundY = true; }
+            float above = player.y - _groundY;
+            float groundGoal = _playerGrounded ? player.y
+                : above > SteadyHeightBand ? player.y - SteadyHeightBand
+                : above < -.5f ? player.y + .5f : _groundY;
+            _groundY = Mathf.Lerp(_groundY, groundGoal, 1f - Mathf.Exp(-SteadyHeightFollow * deltaTime));
+
+            bool court = _courtNetZ.HasValue;
+            Vector3? focus = court ? _courtBall : _lockPlayer != null ? _lockTargetPosition : _combatTargetPosition;
+            // Your own jumps stay inside the height band; only other subjects lift the view.
+            float highest = _groundY + 2f;
+            if (focus.HasValue) highest = Mathf.Max(highest, focus.Value.y + 1.5f);
+            float now = Time.time;
+            foreach (var subject in _subjects)
+            {
+                if (!subject.Launched)
+                {
+                    _launchStarted.Remove(subject.Id);
+                    continue;
+                }
+                if (!_launchStarted.TryGetValue(subject.Id, out float started))
+                    _launchStarted[subject.Id] = started = now;
+                Vector3 offset = subject.Position - player;
+                if (now - started <= SteadyLaunchSeconds && offset.x * offset.x + offset.z * offset.z < 400f)
+                    highest = Mathf.Max(highest, subject.Position.y + 1.5f);
+            }
+            float height = Mathf.Max(0f, highest - (_groundY + 2f));
+
+            float yaw = GetCameraYawDeg();
+            float? desiredYaw = null;
+            if (court && allowRecenter)
+                desiredYaw = player.z < _courtNetZ!.Value ? 0f : 180f;
+            else if (focus.HasValue && allowRecenter)
+            {
+                Vector3 offset = focus.Value - player;
+                // Within 3 m (scrambles, cross-ups) no new turn starts.
+                if (offset.x * offset.x + offset.z * offset.z > 9f)
+                {
+                    float targetYaw = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
+                    float error = Mathf.DeltaAngle(yaw, targetYaw);
+                    float settle = SteadyTurnCone * .4f;
+                    if (Mathf.Abs(error) > SteadyTurnCone) _steadyTurning = true;
+                    else if (Mathf.Abs(error) <= settle) _steadyTurning = false;
+                    if (_steadyTurning) desiredYaw = targetYaw - Mathf.Sign(error) * settle;
+                }
+            }
+            if (!allowRecenter) _steadyTurning = false;
+            float turnSpeed = ClientSettingsService.Instance.CameraTurnSpeed;
+            float rate = court ? Mathf.Max(turnSpeed, 90f) : turnSpeed;
+            float wanted = desiredYaw.HasValue
+                ? Mathf.Clamp(Mathf.DeltaAngle(yaw, desiredYaw.Value) * 1.5f, -rate, rate) : 0f;
+            // Ease in and out: the turn speed itself is smoothed.
+            _yawVelocity = Mathf.Lerp(_yawVelocity, wanted, 1f - Mathf.Exp(-3f * deltaTime));
+            if (!allowRecenter) _yawVelocity = 0f;
+            SetCameraYawDeg(yaw + _yawVelocity * deltaTime);
+            if (allowRecenter)
+                SetCameraPitchDeg(Mathf.LerpAngle(GetCameraPitchDeg(), SteadyPitch, 1f - Mathf.Exp(-3f * deltaTime)));
+
+            _steadyRaise = Mathf.Lerp(_steadyRaise, Mathf.Min(height * .4f, 6f),
+                1f - Mathf.Exp(-(height * .4f > _steadyRaise ? 6f : 2f) * deltaTime));
+            // Vertical position is absolute (ground reference), so a jump does not bob the view;
+            // the fighter's root sits near its chest, so this centres the body on screen.
+            _framingOffset = new Vector3(0f, _groundY + .2f + _steadyRaise - player.y, 0f);
+            _orbital.Radius = Mathf.Lerp(_orbital.Radius, _manualRadius, 1f - Mathf.Exp(-1.5f * deltaTime));
+        }
+
+        private void UpdateBubbles()
+        {
+            bool show = _mode == CameraMode.Normal && _style == CameraStyle.Steady && Couch == CouchCamera.Off
+                && _player != null;
+            if (!show)
+            {
+                _bubbles?.Hide();
+                return;
+            }
+            _bubbles ??= new OffscreenBubbles();
+            var camera = RenderCamera;
+            var root = FindFirstObjectByType<HUDManager>()?.Document?.rootVisualElement;
+            if (camera == null || root == null) return;
+            _bubbles.Begin(root);
+            foreach (var subject in _subjects)
+                _bubbles.Show(camera, subject.Position + Vector3.up, subject.Position.y - _groundY,
+                    _player!.position, OffscreenBubbles.FighterColor);
+            _bubbles.End();
+        }
+
+        private void UpdateCouchFraming(float deltaTime)
+        {
+            Vector3 player = _player.position;
+            Vector3 line = Vector3.zero;
+            if (_combatTargetPosition.HasValue)
+            {
+                line = _combatTargetPosition.Value - player;
+                line.y = 0f;
+            }
+            float yaw = GetCameraYawDeg();
+            float sideYaw = yaw;
+            if (line.sqrMagnitude > 0.25f)
+            {
+                // Look across the fighters' line from the side nearer the current view, so a cross-up never flips it.
+                float lineYaw = Mathf.Atan2(line.x, line.z) * Mathf.Rad2Deg;
+                sideYaw = Mathf.Abs(Mathf.DeltaAngle(yaw, lineYaw + 90f)) <= Mathf.Abs(Mathf.DeltaAngle(yaw, lineYaw - 90f))
+                    ? lineYaw + 90f : lineYaw - 90f;
+            }
+            if (Couch == CouchCamera.Fixed)
+            {
+                if (!_couchYawSet && line.sqrMagnitude > 0.25f)
+                {
+                    SetCameraYawDeg(sideYaw);
+                    _couchYawSet = true;
+                }
+            }
+            else
+                SetCameraYawDeg(GetAssistedYaw(yaw, Quaternion.Euler(0f, sideYaw, 0f) * Vector3.forward,
+                    8f, 3f, 90f, deltaTime));
+            float pitch = Couch switch { CouchCamera.SideOnHigh => 40f, CouchCamera.Fixed => 30f, _ => 20f };
+            float blend = 1f - Mathf.Exp(-FramingResponse * deltaTime);
+            SetCameraPitchDeg(Mathf.LerpAngle(GetCameraPitchDeg(), pitch, blend));
+
+            // Fit a box aligned with the view; a world box around a diagonal pair is far too wide.
+            var view = Quaternion.Euler(0f, GetCameraYawDeg(), 0f);
+            var bounds = new Bounds(Vector3.zero, Vector3.zero);
+            if (_combatTargetPosition.HasValue)
+                bounds.Encapsulate(Quaternion.Inverse(view) * (_combatTargetPosition.Value - player));
+            bounds.Expand(new Vector3(3f, 4f, 3f));
+            _framingOffset = Vector3.Lerp(_framingOffset, view * bounds.center, blend);
+            var renderCamera = RenderCamera;
+            float aspect = renderCamera != null ? renderCamera.aspect : Screen.width / (float)Mathf.Max(1, Screen.height);
+            float radial = Mathf.Max(0.1f, _orbital.RadialAxis.Value);
+            float distance = DistanceToFrame(bounds, Quaternion.Inverse(view) * _framingOffset,
+                Quaternion.Euler(GetCameraPitchDeg(), 0f, 0f), _cmCam.Lens.FieldOfView, aspect);
+            float radius = Mathf.Clamp(distance / radial, _manualRadius, MaxAutomaticDistance / radial);
             _orbital.Radius = Mathf.Lerp(_orbital.Radius, radius,
                 1f - Mathf.Exp(-(radius > _orbital.Radius ? 10f : 2f) * deltaTime));
         }
@@ -441,31 +628,6 @@ namespace SlopArena.Client.Camera
                     Mathf.Abs(local.y) / vertical - local.z));
             }
             return distance;
-        }
-
-        internal static float DistanceToFrameWithLookAt(Bounds bounds, Vector3 anchor, Vector3 lookAt,
-            Quaternion orbit, float verticalFov, float aspect, float minimum, float maximum)
-        {
-            // A separate look target changes the actual view angle as the boom moves.
-            // Find the nearest distance that contains the padded fighters in that view.
-            bool Fits(float distance)
-            {
-                Vector3 eye = anchor - orbit * Vector3.forward * distance;
-                Vector3 direction = lookAt - eye;
-                Quaternion rotation = direction.sqrMagnitude > 0.0001f
-                    ? Quaternion.LookRotation(direction, Vector3.up) : orbit;
-                return DistanceToFrame(bounds, eye, rotation, verticalFov, aspect) <= 0.0001f;
-            }
-            minimum = Mathf.Clamp(minimum, 0.1f, maximum);
-            if (Fits(minimum)) return minimum;
-            float low = minimum, high = maximum;
-            for (int step = 0; step < 12; step++)
-            {
-                float middle = (low + high) * 0.5f;
-                if (Fits(middle)) high = middle;
-                else low = middle;
-            }
-            return high;
         }
 
         /// <summary>
@@ -504,11 +666,11 @@ namespace SlopArena.Client.Camera
             _hasFramingSubjects = false;
             _manualOrbitGraceRemaining = 0f;
             _settleArenaPitch = _style == CameraStyle.Arena;
-            _trackingHeight = false;
-            _opponentHeight = 0f;
-            _lookOffset = Vector3.zero;
+            _hasGroundY = false;
+            _yawVelocity = 0f;
+            _steadyTurning = false;
+            _launchStarted.Clear();
             if (_framingAnchor != null) _framingAnchor.position = target.position;
-            if (_lookAnchor != null) _lookAnchor.position = target.position;
             _orbital.Radius = _manualRadius;
         }
 

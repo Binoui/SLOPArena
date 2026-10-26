@@ -140,7 +140,7 @@ namespace SlopArena.Shared
                 var input = pair.Value;
                 if (input.MoveX != 0f || input.MoveY != 0f || input.Up || input.Down || input.Left || input.Right
                     || input.DownPressed || input.Jump || input.JumpHeld
-                    || input.ShieldHeld || input.ShieldPressed || input.GrabPressed || input.ActiveSlot != 0
+                    || input.ShieldHeld || input.ShieldPressed || input.GrabPressed || input.DashPressed || input.ActiveSlot != 0
                     || input.IsAiming || input.FaceToCamera || input.ToggleLock || input.RetargetPressed)
                 {
                     var neutral = new Dictionary<ulong, InputState>();

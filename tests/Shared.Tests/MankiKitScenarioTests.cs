@@ -61,12 +61,12 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.All(package.Definition.CapabilityRequirements, x => Assert.Equal("1", x.CapabilityVersion));
         var expectedSlots = new[]
         {
-            "ground.1", "ground.2", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F",
-            "air.1", "air.2", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F",
+            "ground.1", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F",
+            "air.1", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F",
         };
         Assert.Equal(expectedSlots.OrderBy(x => x),
             package.Definition.Slots.Select(x => x.Id).OrderBy(x => x));
-        foreach (var slot in package.Definition.Slots.Where(x => x.Ordinal % 8 < 4))
+        foreach (var slot in package.Definition.Slots.Where(x => x.Ordinal % CanonicalSlotProjection.VariantSlotCount < 3))
         {
             var stage = Assert.Single(slot.Timeline.Stages);
             var hitboxes = stage.Operations.OfType<CookedSpawnHitboxOperation>().ToArray();
@@ -147,7 +147,6 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
     }
     [Theory]
     [InlineData(AbilitySlots.Slot1, false, 1f, 80)]
-    [InlineData(AbilitySlots.Slot2, false, 1f, 80)]
     [InlineData(AbilitySlots.Slot4, false, 0.8f, 100)]
     [InlineData(AbilitySlots.Slot1, true, 0f, 90)]
     [InlineData(AbilitySlots.Slot4, true, 0f, 120)]
@@ -198,66 +197,6 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.Equal((byte)0, recovered.AttackSlot);
         Assert.Equal((ushort)0, recovered.AnimLockTicks);
         Assert.NotEqual(ActionState.Attacking, recovered.State);
-    }
-
-    [Fact]
-    public void Air2_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows()
-    {
-        var windows = Def.GetCookedSlotAbility(AbilitySlots.Slot2, airborne: true)!.Timeline.Stages
-            .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>()
-            .OrderBy(operation => operation.Tick).ToArray();
-        var sweet = windows.First();
-        var sour = windows.Last();
-        Assert.True(sweet.Tick < sour.Tick && sweet.Hitbox.Damage > sour.Hitbox.Damage);
-
-        var sim = TestHelpers.MakeSim();
-        sim.NoGravityEntityId = 1;
-        sim.RegisterEntity(1, Def, AirbornePlayer() with { PX = 20f, PY = 20f, PZ = 20f },
-            TestHelpers.LoadBakedData(Def));
-        var targetDef = TestHelpers.EngineDef;
-        targetDef = targetDef with { HurtboxCapsules = new[] { new HurtboxCapsule(0, 0, 0, 0, 0, 0, 4f) } };
-        var target = TestHelpers.NpcState(20f, 21f) with { PY = 20f, IsGrounded = false };
-        sim.RegisterEntity(100, targetDef, target);
-        bool lateTargetAdded = false;
-        int sweetOverlapTicks = 0, sourOverlapTicks = 0;
-        var contacts = new List<SpellResolver.HitResult>();
-        for (int tick = 0; tick < 120; tick++)
-        {
-            sim.SetState(100, target with { DamagePercent = sim.GetState(100).DamagePercent });
-            if (lateTargetAdded)
-                sim.SetState(101, target with { EntityId = 101, DamagePercent = sim.GetState(101).DamagePercent });
-            sim.Tick(new Dictionary<ulong, InputState>
-            {
-                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot2 } : default,
-            });
-            contacts.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1));
-            foreach (var hitbox in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1))
-            {
-                var receiver = Assert.Single(sim.LastTickAttackEntities.Where(e => e.Id == 100));
-                Assert.True(SpellResolver.SurfaceGap(hitbox, receiver, out _, out _, out _) <= 0f,
-                    "The receiver must stay inside the live baked hitbox throughout both windows.");
-                if (hitbox.Damage == sweet.Hitbox.Damage) sweetOverlapTicks++;
-                if (hitbox.Damage != sour.Hitbox.Damage) continue;
-                sourOverlapTicks++;
-                if (lateTargetAdded) continue;
-                sim.RegisterEntity(101, targetDef, target with { EntityId = 101 });
-                lateTargetAdded = true;
-            }
-            if (sim.GetActiveAbility(1) == null) break;
-        }
-
-        Assert.True(sweetOverlapTicks > 1 && sourOverlapTicks > 1);
-        var firstContact = Assert.Single(contacts.Where(h => h.TargetEntityId == 100));
-        Assert.False(firstContact.Blocked);
-        Assert.Equal(sweet.Hitbox.Damage, firstContact.Damage);
-        Assert.Equal(sweet.Hitbox.Damage, (float)sim.GetState(100).DamagePercent);
-        Assert.True(lateTargetAdded);
-        var lateContact = Assert.Single(contacts.Where(h => h.TargetEntityId == 101));
-        Assert.False(lateContact.Blocked);
-        Assert.Equal(sour.Hitbox.Damage, lateContact.Damage);
-        Assert.Equal(sour.Hitbox.Damage, (float)sim.GetState(101).DamagePercent);
-        Assert.Null(sim.GetActiveAbility(1));
-        Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
     }
 
     [Fact]

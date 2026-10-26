@@ -11,8 +11,8 @@ namespace SlopArena.Client.Combat
     /// arena heightmap so position stays readable while airborne; hidden without floor.
     /// Airborne fighters also get a dotted orange drop line from their feet down to the ring,
     /// with dots at a fixed world spacing so a higher jump shows more of them.
-    /// The local fighter has a yellow notch. Selection and
-    /// lock feedback moved to TargetLockIndicator (targeting pass 1). The launch
+    /// The local fighter has a yellow facing crescent; other fighters show a faint facing tip.
+    /// Selection and lock feedback moved to TargetLockIndicator (targeting pass 1). The launch
     /// trajectory remains editor gizmos only, never gameplay.
     /// </summary>
     public class TargetIndicator : MonoBehaviour
@@ -26,9 +26,10 @@ namespace SlopArena.Client.Combat
             public readonly LineRenderer DropLine;
             public readonly Color Accent;
             public readonly Color CampColor;
+            public readonly bool IsLocal;
 
             public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh,
-                LineRenderer dropLine, Color accent, Color campColor)
+                LineRenderer dropLine, Color accent, Color campColor, bool isLocal)
             {
                 Renderer = renderer;
                 EntityId = renderer != null ? renderer.EntityId : 0;
@@ -37,15 +38,19 @@ namespace SlopArena.Client.Combat
                 DropLine = dropLine;
                 Accent = accent;
                 CampColor = campColor;
+                IsLocal = isLocal;
             }
         }
-        private const float RingHeightAboveFloor = 0.025f;
+        // Stage art floors can sit above the simulation floor (Training's tiles top out at 5.3 cm);
+        // a lower ring is hidden by the depth test.
+        private const float RingHeightAboveFloor = 0.06f;
         private static readonly Color Paper = new Color(240f / 255f, 238f / 255f, 232f / 255f);
         private static readonly Color LocalAccent = new Color(1f, 204f / 255f, 34f / 255f);
         private static readonly Color DropLineOrange = new Color(1f, 176f / 255f, 59f / 255f);
         private static readonly int AirborneProperty = Shader.PropertyToID("_Airborne");
         private static readonly int AccentProperty = Shader.PropertyToID("_Accent");
         private static readonly int CampColorProperty = Shader.PropertyToID("_CampColor");
+        private static readonly int IsLocalProperty = Shader.PropertyToID("_IsLocal");
         private static readonly int LengthInWidthsProperty = Shader.PropertyToID("_LengthInWidths");
         private static readonly int SpacingProperty = Shader.PropertyToID("_Spacing");
         private static readonly int CoreProperty = Shader.PropertyToID("_Core");
@@ -82,7 +87,8 @@ namespace SlopArena.Client.Combat
 
         public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers,
             ArenaDefinition arena, ulong localEntityId = 0, UnityEngine.Camera renderCamera = null,
-            Func<ulong, SlopballCamp> campOf = null, Func<ulong, Color?> colourOf = null)
+            Func<ulong, SlopballCamp> campOf = null, Func<ulong, Color?> colourOf = null,
+            Func<ulong, Color?> localAccentOf = null)
         {
             _getState = getState;
             _heightmap = arena.Heightmap;
@@ -112,14 +118,17 @@ namespace SlopArena.Client.Combat
                 mr.sharedMaterial = _markerMaterial;
                 mr.receiveShadows = false;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                Color accent = renderer != null && renderer.EntityId == localEntityId ? LocalAccent : Paper;
+                // Couch play: every Local Player gets the self crescent, each in their own accent.
+                Color? ownAccent = renderer != null ? localAccentOf?.Invoke(renderer.EntityId) : null;
+                bool isLocal = renderer != null && (renderer.EntityId == localEntityId || ownAccent.HasValue);
+                Color accent = isLocal ? ownAccent ?? LocalAccent : Paper;
                 var camp = renderer != null ? campOf?.Invoke(renderer.EntityId) ?? SlopballCamp.None : SlopballCamp.None;
                 Color campColor = camp == SlopballCamp.None ? Color.clear : camp == SlopballCamp.Teal
                     ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
                 var courseColour = renderer != null ? colourOf?.Invoke(renderer.EntityId) : null;
                 if (courseColour.HasValue) campColor = courseColour.Value;
-                if ((camp != SlopballCamp.None || courseColour.HasValue) && renderer.EntityId != localEntityId) accent = campColor;
-                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor);
+                if ((camp != SlopballCamp.None || courseColour.HasValue) && !isLocal) accent = campColor;
+                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor, isLocal);
                 ringGO.SetActive(false);
             }
         }
@@ -177,11 +186,14 @@ namespace SlopArena.Client.Combat
                 ring.Transform.gameObject.SetActive(true);
                 ring.Transform.position = new Vector3(pos.x, floorY + RingHeightAboveFloor, pos.z);
                 var state = _getState(ring.EntityId);
+                ring.Transform.rotation = Quaternion.Euler(0f, state.FacingYaw * Mathf.Rad2Deg, 0f)
+                    * Quaternion.Euler(90f, 0f, 0f);
                 float airborne = state.IsGrounded ? 0f
                     : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.05f, 0.75f, heightAboveFloor));
                 _markerProperties.SetFloat(AirborneProperty, airborne);
                 _markerProperties.SetColor(AccentProperty, ring.Accent);
                 _markerProperties.SetColor(CampColorProperty, ring.CampColor);
+                _markerProperties.SetFloat(IsLocalProperty, ring.IsLocal ? 1f : 0f);
                 ring.Mesh.SetPropertyBlock(_markerProperties);
                 UpdateDropLine(ring, ring.Transform.position, floorY + heightAboveFloor, airborne);
                 UpdateLaunchArc(i, ring, state);

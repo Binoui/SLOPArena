@@ -4,8 +4,19 @@
         <ui:VisualElement name="solo-countdown" class="solo-countdown" picking-mode="Ignore">
             <ui:VisualElement name="solo-countdown-anchor" class="solo-countdown-anchor" picking-mode="Ignore">
                 <ui:VisualElement name="solo-countdown-stamp" class="solo-countdown-stamp" picking-mode="Ignore">
-                    <ui:Label name="solo-countdown-print" class="solo-countdown-print" picking-mode="Ignore" />
-                    <ui:Label name="solo-countdown-title" class="solo-countdown-title" picking-mode="Ignore" />
+                    <ui:VisualElement class="solo-countdown-shadow" picking-mode="Ignore" />
+                    <ui:VisualElement class="solo-countdown-card" picking-mode="Ignore" />
+                    <ui:VisualElement class="solo-countdown-tape solo-countdown-tape--top" picking-mode="Ignore" />
+                    <ui:VisualElement class="solo-countdown-tape solo-countdown-tape--bottom" picking-mode="Ignore" />
+                    <ui:VisualElement class="solo-countdown-words" picking-mode="Ignore">
+                        <ui:Label name="solo-countdown-print" class="solo-countdown-print" picking-mode="Ignore" />
+                        <ui:Label name="solo-countdown-title" class="solo-countdown-title" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="solo-countdown-mark" class="solo-countdown-mark" picking-mode="Ignore">
+                        <ui:Label text="SL" class="solo-countdown-mark-text" picking-mode="Ignore" />
+                        <ui:VisualElement class="solo-countdown-bomb" picking-mode="Ignore" />
+                        <ui:Label text="P IT OUT" class="solo-countdown-mark-text" picking-mode="Ignore" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
@@ -13,6 +24,9 @@
             <ui:VisualElement name="solo-end-anchor" class="solo-end-anchor" picking-mode="Ignore">
                 <ui:VisualElement name="solo-end-poster" class="solo-end-poster" picking-mode="Ignore">
                     <ui:VisualElement class="solo-end-portrait-slip" picking-mode="Ignore">
+                        <ui:VisualElement class="solo-end-shadow" picking-mode="Ignore" />
+                        <ui:VisualElement class="solo-end-card solo-end-card--slip" picking-mode="Ignore" />
+                        <ui:VisualElement class="solo-end-tape solo-end-tape--slip" picking-mode="Ignore" />
                         <ui:VisualElement class="solo-end-portraits" picking-mode="Ignore">
                             <ui:Image name="solo-end-portrait" class="solo-end-portrait" picking-mode="Ignore" />
                             <ui:Image name="solo-end-other-portrait" class="solo-end-other-portrait" picking-mode="Ignore" />
@@ -20,6 +34,10 @@
                         <ui:Label name="solo-end-name" class="solo-end-name" picking-mode="Ignore" />
                     </ui:VisualElement>
                     <ui:VisualElement class="solo-end-declaration" picking-mode="Ignore">
+                        <ui:VisualElement class="solo-end-shadow" picking-mode="Ignore" />
+                        <ui:VisualElement class="solo-end-card solo-end-card--declaration" picking-mode="Ignore" />
+                        <ui:VisualElement class="solo-end-tape solo-end-tape--top" picking-mode="Ignore" />
+                        <ui:VisualElement class="solo-end-tape solo-end-tape--bottom" picking-mode="Ignore" />
                         <ui:VisualElement class="solo-end-headline" picking-mode="Ignore">
                             <ui:Label name="solo-end-print" class="solo-end-print" picking-mode="Ignore" />
                             <ui:Label name="solo-end-title" class="solo-end-title" picking-mode="Ignore" />
@@ -45,18 +63,18 @@
         <ui:VisualElement name="kit-diamonds" class="move-deck">
             <ui:VisualElement name="move-pairs" class="move-pairs">
                 <ui:VisualElement name="move-pair-1" class="move-pair">
-                    <ui:VisualElement name="ab-1" class="slot normal-slot">
+                    <ui:VisualElement name="ab-dash" class="slot normal-slot">
                         <ui:VisualElement class="slot-plate" />
                         <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-1-name" class="slot-name" />
+                            <ui:Label name="ab-dash-name" class="slot-name" />
                             <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-1-icon" class="slot-icon-inner" />
+                                <ui:Image name="ab-dash-icon" class="slot-icon-inner" />
                             </ui:VisualElement>
-                            <ui:VisualElement name="ab-1-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-1-timer" class="slot-timer" />
+                            <ui:VisualElement name="ab-dash-cooldown" class="slot-cooldown" />
+                            <ui:Label name="ab-dash-timer" class="slot-timer" />
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-1-button" class="slot-prompt-image" />
-                                <ui:Label name="ab-1-key" class="slot-key-label" />
+                                <ui:Image name="ab-dash-button" class="slot-prompt-image" />
+                                <ui:Label name="ab-dash-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
                     </ui:VisualElement>
@@ -77,18 +95,18 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="move-pair-2" class="move-pair">
-                    <ui:VisualElement name="ab-2" class="slot normal-slot">
+                    <ui:VisualElement name="ab-1" class="slot normal-slot">
                         <ui:VisualElement class="slot-plate" />
                         <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-2-name" class="slot-name" />
+                            <ui:Label name="ab-1-name" class="slot-name" />
                             <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-2-icon" class="slot-icon-inner" />
+                                <ui:Image name="ab-1-icon" class="slot-icon-inner" />
                             </ui:VisualElement>
-                            <ui:VisualElement name="ab-2-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-2-timer" class="slot-timer" />
+                            <ui:VisualElement name="ab-1-cooldown" class="slot-cooldown" />
+                            <ui:Label name="ab-1-timer" class="slot-timer" />
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-2-button" class="slot-prompt-image" />
-                                <ui:Label name="ab-2-key" class="slot-key-label" />
+                                <ui:Image name="ab-1-button" class="slot-prompt-image" />
+                                <ui:Label name="ab-1-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
                     </ui:VisualElement>

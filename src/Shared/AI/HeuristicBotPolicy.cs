@@ -897,8 +897,7 @@ public sealed class HeuristicBotPolicy
         => MathF.Sqrt(x * x + z * z);
 
     private static bool IsNormalSlot(byte slot)
-        => slot is AbilitySlots.Slot1 or AbilitySlots.Slot2
-            or AbilitySlots.Slot3 or AbilitySlots.Slot4;
+        => slot is AbilitySlots.Slot1 or AbilitySlots.Slot3 or AbilitySlots.Slot4;
     private static bool PlanInvalidated(in CharacterState self, BotMemory memory)
         => self.Deaths != memory.PlanDeaths
             || self.HitstunTicks > 0

@@ -125,9 +125,20 @@ the affected writer or task owner; an Editor lease holder is not a coordinator.
   process, nothing new in `Editor.log`), tell the user: a dialog or an unfocused Editor may be
   waiting. On 2026-10-22 a gateway auto-recompile hung that way for about 35 minutes inside another
   thread's capture batch, then cleared.
+- Owner `human:owner` is the person at the Editor: batch `playtest` means they pressed Play,
+  `hold` means `Window/Pipeline/Hold Editor for Me`. Wait in the gateway as for any lease; it
+  ends when they press Stop or release the hold. Never ask them to stop. If your own tool timeout
+  ends the wait, nothing was claimed: say the owner is playtesting and retry later. Their Play
+  pressed during your batch is queued ahead of every agent and starts when your batch releases.
+  Enter Play Mode with `editor_play`, not `EditorApplication.isPlaying` in `eval`: an
+  unannounced Play during your lease counts as the owner's and is cancelled and queued.
 - `blocked`, unknown/inconsistent status, missing discovery, ambiguous claim,
   process/session mismatch or unproven completion means stop, preserve evidence,
   and reconcile. Never replay a command or infer takeover from silence/timeouts.
+- Native commands time out after 30 s in the CLI. Run test suites with
+  `["run_tests", ..., "--async_tests", "true"]`; the gateway polls `test_status` for you. On
+  2026-10-26 a synchronous Pipeline EditMode run (17 tests, ~6 min) timed out, blocked the lease
+  and needed an Editor restart.
 - Ctrl-C/SIGTERM before acquisition cancels that wait without executing or releasing
   another batch. After acquisition, settle actual work and declared restoration
   before release; caller timeout or cancellation alone is not completion.

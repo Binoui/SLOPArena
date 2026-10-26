@@ -163,7 +163,7 @@ namespace SlopArena.Client.UI
             var results = ClientSession.CurrentMatchResults;
             if (results == null || results.Entries.Count == 0)
             {
-                _headline.text = "FIGHT OVER";
+                _headline.text = "BEST SLOPPER";
                 _stage.text = "MATCH COMPLETE // UNKNOWN STAGE";
                 _metadata.text = "RESULT SNAPSHOT UNAVAILABLE";
                 return;
@@ -178,7 +178,8 @@ namespace SlopArena.Client.UI
                 : results.StageName;
             _stage.text = $"MATCH COMPLETE // {stage.ToUpperInvariant()}";
             _metadata.text = $"{FormatDuration(results.DurationTicks)} // {results.PlayerCount} PLAYERS";
-            _headline.text = results.SharedVictory ? "SHARED VICTORY" : "FIGHT OVER";
+            // Headlines repeat the in-match finish poster (HUDManager.ShowOnlineEnding).
+            _headline.text = results.SharedVictory ? "DOUBLE K.O.!" : "BEST SLOPPER";
             if (results.Run is { } run)
             {
                 // A co-op Slopball run ends together: its team result is the headline (ADR-0040).
@@ -191,13 +192,13 @@ namespace SlopArena.Client.UI
             if (results.Versus is { } score)
             {
                 _stage.text = "MATCH COMPLETE // SLOPBALL VERSUS";
-                _headline.text = score.Winner.ToString().ToUpperInvariant() + " WINS";
+                _headline.text = score.Winner.ToString().ToUpperInvariant() + " WINS!";
                 _metadata.text = $"TEAL {score.TealScore} — {score.ClayScore} CLAY // FIRST TO 21 // {FormatDuration(results.DurationTicks)}";
             }
             if (results.Course is { } course)
             {
                 _stage.text = (course.Cooperative ? "COURSE CO-OP // " : "COURSE RACE // ") + stage.Replace('_', ' ').ToUpperInvariant();
-                _headline.text = !course.Completed ? "RUN ENDED" : course.Cooperative ? "TEAM COMPLETE" : results.SharedVictory ? "TIED FINISH" : "RACE COMPLETE";
+                _headline.text = !course.Completed ? "RUN OVER." : results.SharedVictory && !course.Cooperative ? "TIED FINISH!" : "COURSE CLEARED.";
                 _metadata.text = $"{CharacterCourseView.FormatTime(course.ElapsedTicks)} // {results.PlayerCount} PLAYERS";
             }
             ordered.Sort((a, b) =>

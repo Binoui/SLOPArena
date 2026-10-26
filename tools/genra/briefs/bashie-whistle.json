@@ -1,0 +1,187 @@
+{
+  "name": "bashie-whistle",
+  "notes": "Bashie's NO RUNNING! (F): anim.bashie.whistle, the one 72-tick clip of the move, 2026-10-26. The owner picked direction A ('beach ball') poses 1-3, ending on direction B's stop palm (artifacts/bashie-f-20261026/f-picked-a123-b4.png). Measured on the idle entry pose, in the character frame: snout tip at front 0.19, up 0.40; cheeks up to 0.24 to each side between up 0.38 and 0.48; right shoulder joint at right 0.096, up 0.288; arm reach to the wrist 0.222. Round 1 (owner, 2026-10-26): 't40 front is just very weird looking. arms are fucked and we have no belly/cheeks transformation so it doesnt work'. The puff became a belly and cheek blend shape; the full puff's arms angle down as if pushed out by it; the blow lifts her chin. Owner picked swell C ('full balloon', 2026-10-26): belly 0.11 m, cheeks 0.05 m, sides 0.05 m, shell x1.2 (tmp/bashie-f/puff/spec-v2.json).",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie (49 joints: a Humanoid body with Mixamo names and four-fingered cartoon hands (thumb, index, middle and ring), plus rigid props on joints of their own: her turtle shell on joint Shell under Spine1, pivoting on her mid-back; her whistle on joint Whistle under Spine2, pivoting on its ring at the top of her chest (a red cord runs from the ring round her neck). The shell is a domed bowl on her back: it reaches from her hips to her neck and its outer dome is about 0.22 m behind her spine. She is small and round: 1.0 m to the top of her hat in the rig, a big head under a wide bucket hat, short legs (hip joints 0.305 m above the floor, thigh 0.10 m, shin 0.07 m, ankle to toe joint 0.17 m) and short arms (upper arm 0.115 m, forearm 0.107 m, shoulders 0.22 m apart). Her head is wider than her shoulders: her cheeks reach about 0.24 m to each side of her midline.",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "views": [
+    "profile",
+    "front-three-quarter-right",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../bashie-f-20261026/inputs/model.png",
+    "../../bashie-f-20261026/f-picked-a123-b4.png"
+  ],
+  "image_notes": "1: the Bashie model in its rest T-pose (front, three-quarter, side, back, three-quarter back): the bucket hat, the whistle on its red cord and the shell. 2: the pose sheet the owner picked (image-generated from her model; she faces the left of the image). It is a drawing: match the poses and the energy, not exact angles. Its four poses read left to right: 1 GULP, 2 FULL PUFF, 3 THE BLOW, 4 STOP. Two things in the drawing come from the game, not from the clip: the round swollen body of pose 2 (the game swells her torso, neck and head) and the whistle in her beak (the game puts it there). In the drawing pose 3 bends her back; in the game her back is stiff under the shell, so she leans from the hips and the neck. Pose 4 comes from another sheet: in the game her right hand holds up the stop palm and her left fist is on her hip.",
+  "description": "Who she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, red pool slides and a domed olive shell on her back. She is bossy about the pool rules, comic and energetic.\n\nThe move: NO RUNNING!, her F special. She takes a huge breath and puffs up like a balloon, then blows her whistle as hard as she can: TWEEEET! Everyone around her is stunned for two seconds, and she gets a free follow-up. The breath is the warning the other players watch for, so it has to read from far away and from behind. If she is hit while she breathes in, the move stops.\n\nWhat the game adds on top of this clip (no clip can do it). From the start of the breath the game inflates her belly and her cheeks (a blend shape on her mesh): at the full puff her belly is a big round ball about 11 cm further forward and 5 cm further out to each side, her cheeks puff out about 5 cm, and her shell grows by a fifth. It snaps back at the blow on tick 48. While she breathes in and blows, the game holds the whistle in her beak; it drops back onto her chest after the blow. Do not animate the Whistle joint. Because her body swells, keep her arms clear of her torso while she is puffed up (ticks 20 to 46): her elbows and hands well away from her sides.\n\nThe camera. The match camera sits behind her and a little above; poses must read from behind as well as from the side. From behind, the puff reads through her arms sticking out, and the blow through her lunge forward.\n\nHer body. Her back is stiff under the shell: she bends at the hips and the neck, never through the shell. Her arms are short and her head is wide, so a hand at her mouth sits just beside and below her snout, at the corner of her beak, with the elbow lifted out to the side; never push a hand or forearm into her cheek or snout.\n\nThe floor is at up = -0.305 m in this character frame (origin: her hips in her idle). Both feet stay planted flat on the floor for the whole clip; she bends her knees and leans from the hips instead of stepping.\n\nThis clip, 72 ticks, in place. The game plays it from her idle or her run on the ground, and the same clip while she hangs in the air; tick 72 hands off to her idle.\n- Tick 0: starting from her idle, she begins to breathe in.\n- Tick 12, GULP (pose 1): her right hand comes up to the corner of her beak as if holding the whistle there, fingers curled round it; her left hand rests flat on her upper belly; shoulders lifting, chest rising, chin a little up, knees soft.\n- Tick 40, FULL PUFF (pose 2): standing tall with straighter knees, chest out, leaning back a little from the hips, chin up. Her arms look pushed out by her round, inflated body, like the arms of an inflatable pool toy: upper arms raised about 55-65 degrees from her sides (so the arms angle about 25-35 degrees below level, not level like a T-pose), a little forward, elbows softly bent, forearms continuing the line outward and down; wrists straight, in line with the forearms, palms facing down, fingers spread wide and straight. Shoulders down, not hunched. Hold it as a moving hold with a small wobble, as if she might float off, to tick 46.\n- Tick 48, THE BLOW (pose 3): she snaps forward from the hips, the neck and head thrust forward, chin lifted so her beak points straight ahead at the people in front of her and her face shows under the hat brim from the front (never bowed at the floor), eyes squeezed shut; her right hand back at the corner of her beak holding the whistle; her left arm flung back and down behind her hip, out to the side clear of her shell; knees bent, braced. It is the accent of the move: get there fast from the full puff.\n- Ticks 48 to 54: she keeps blowing, trembling with effort (a small shaking moving hold).\n- Tick 62, STOP (pose 4): upright again, chin up, a stern bossy look; her right arm held out straight ahead at about shoulder height with a flat palm facing forward, fingers up, like a crossing guard; her left fist on her hip. Hold it as a moving hold (a little bounce of authority) to tick 68.\n- Tick 72: her idle's first pose.",
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "exit": {
+    "from_tick": 72,
+    "reference": "idle",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 72
+  },
+  "timing": {
+    "fixed": [
+      "72 ticks at 60 Hz, in place, feet planted",
+      "the blow is tick 48: the stun fires and the game snaps her puffed body back then",
+      "tick 72 is her idle's first pose"
+    ],
+    "adjustable": [
+      "the gulp's tick (8-16)",
+      "the full puff's tick (36-44)",
+      "the stop palm's tick (58-64)"
+    ]
+  },
+  "keys": [
+    0,
+    12,
+    40,
+    48,
+    54,
+    62,
+    72
+  ],
+  "review_ticks": [
+    0,
+    6,
+    12,
+    20,
+    30,
+    40,
+    44,
+    46,
+    48,
+    50,
+    54,
+    58,
+    62,
+    66,
+    72
+  ],
+  "fast_windows": [
+    [
+      46,
+      50
+    ]
+  ],
+  "targets": [
+    {
+      "name": "gulp: right hand in front of her face at tick 12 (m ahead of the head joint)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 12,
+      "min": 0.12
+    },
+    {
+      "name": "gulp: right hand up at her beak at tick 12 (up, m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 12,
+      "min": 0.26,
+      "max": 0.44
+    },
+    {
+      "name": "puff: arms stuck out wide at tick 40 (m between the hands)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 40,
+      "min": 0.5
+    },
+    {
+      "name": "puff: right hand angled down, below level, at tick 40 (up, m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 40,
+      "min": 0.0,
+      "max": 0.2
+    },
+    {
+      "name": "puff: left hand angled down, below level, at tick 40 (up, m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "up",
+      "tick": 40,
+      "min": 0.0,
+      "max": 0.2
+    },
+    {
+      "name": "blow: head thrust forward at tick 48 (m the head is ahead of the hips)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 48,
+      "min": 0.1
+    },
+    {
+      "name": "blow: right hand at her beak at tick 48 (m ahead of the head joint)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 48,
+      "min": 0.12
+    },
+    {
+      "name": "blow: left arm flung back behind her hip at tick 48 (m ahead of the hips)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 48,
+      "max": -0.02
+    },
+    {
+      "name": "blow: left hand out to her side, clear of the shell at tick 48 (right, m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 48,
+      "max": -0.2
+    },
+    {
+      "name": "stop: right palm held out ahead at tick 62 (m ahead of the chest)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 62,
+      "min": 0.18
+    },
+    {
+      "name": "stop: right palm at about shoulder height at tick 62 (up, m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 62,
+      "min": 0.18,
+      "max": 0.42
+    },
+    {
+      "name": "stop: left fist on her hip at tick 62 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 62,
+      "max": 0.16
+    }
+  ]
+}

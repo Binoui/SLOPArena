@@ -26,7 +26,7 @@ namespace SlopArena.Client.UI
         /// navigation events for the panel's focused element.</summary>
         public static void Pump(IPanel? panel, bool cancel = true)
         {
-            var pad = Gamepad.current;
+            var pad = SlopArena.Client.Input.CouchPads.MenuPad;
             if (pad == null || panel?.focusController == null)
                 return;
             float now = Time.unscaledTime;

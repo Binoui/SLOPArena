@@ -11,7 +11,7 @@ public sealed class AimMovementTests
     {
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
-        var address = CanonicalSlotProjection.All[airborne ? 8 : 0];
+        var address = CanonicalSlotProjection.All[airborne ? CanonicalSlotProjection.VariantSlotCount : 0];
         slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, airborne, "Mobile hold", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.GroundVector, 0, false, false,
             new CookedTimeline(new[] { new CookedStage(60, 0, 0, 0, 0, Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()) }),

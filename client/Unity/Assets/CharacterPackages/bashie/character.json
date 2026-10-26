@@ -192,13 +192,12 @@
     "presentation.bashie.ring.rebound",
     "presentation.bashie.shell.rise-tuck",
     "presentation.bashie.shell.air-strike-tuck",
-    "presentation.bashie.shell.flip-tuck"
+    "presentation.bashie.shell.flip-tuck",
+    "presentation.bashie.whistle.puff",
+    "presentation.bashie.whistle.blow",
+    "presentation.bashie.whistle.sign"
   ],
   "capabilityRequirements": [
-    {
-      "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
-      "capabilityVersion": "1"
-    },
     {
       "capabilityId": "slop.ability.charged-stream.v1",
       "capabilityVersion": "1"
@@ -215,176 +214,6 @@
   "slots": [
     {
       "id": "ground.1",
-      "name": "Slap",
-      "description": "One open-palm slap with her right hand",
-      "iconId": "icon.1",
-      "behavior": "meleeCombo",
-      "aimMode": "none",
-      "aimMovement": "fixed",
-      "cooldownTicks": 0,
-      "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
-      "allowSlideCarry": true,
-      "timeline": {
-        "stages": [
-          {
-            "durationTicks": 30,
-            "iasaTicks": 22,
-            "landingLagTicks": 0,
-            "autoCancelBeforeTicks": 0,
-            "autoCancelAfterTicks": 0,
-            "attackRange": 2,
-            "warpRange": 0,
-            "useTargetLock": false,
-            "rotateTowardTarget": false,
-            "trackingStrength": 0,
-            "animationIds": [
-              "anim.bashie.g1"
-            ],
-            "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 9,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
-                "pitchDegreesPerSecond": 0
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 9,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "sphere",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.right-hand",
-                  "endBoneId": null,
-                  "damage": 4,
-                  "angle": 8,
-                  "baseKnockback": 4,
-                  "knockbackGrowth": 20,
-                  "stunTicks": 14,
-                  "durationTicks": 3,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "air.1",
-      "name": "Air Kick",
-      "description": "Quick aerial kick that lunges toward the target",
-      "iconId": "icon.1",
-      "behavior": "meleeCombo",
-      "aimMode": "none",
-      "aimMovement": "fixed",
-      "cooldownTicks": 0,
-      "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
-      "allowSlideCarry": false,
-      "timeline": {
-        "stages": [
-          {
-            "durationTicks": 38,
-            "iasaTicks": 33,
-            "landingLagTicks": 9,
-            "autoCancelBeforeTicks": 6,
-            "autoCancelAfterTicks": 26,
-            "attackRange": 1.75,
-            "warpRange": 0,
-            "useTargetLock": false,
-            "rotateTowardTarget": false,
-            "trackingStrength": 0,
-            "animationIds": [
-              "anim.bashie.a1"
-            ],
-            "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 7,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
-                "maxPitchDegrees": 15,
-                "yawDegreesPerSecond": 360,
-                "pitchDegreesPerSecond": 180
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 7,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "sphere",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.right-hand",
-                  "endBoneId": null,
-                  "damage": 3,
-                  "angle": 55,
-                  "baseKnockback": 5,
-                  "knockbackGrowth": 24,
-                  "stunTicks": 12,
-                  "durationTicks": 6,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 18,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "sphere",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.left-hand",
-                  "endBoneId": null,
-                  "damage": 5,
-                  "angle": 45,
-                  "baseKnockback": 7,
-                  "knockbackGrowth": 30,
-                  "stunTicks": 16,
-                  "durationTicks": 6,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "ground.2",
       "name": "Whirlpool Spin",
       "description": "Tuck into your shell and spin once, splashing fighters around you before popping back out.",
       "iconId": "icon.2",
@@ -490,7 +319,7 @@
       }
     },
     {
-      "id": "air.2",
+      "id": "air.1",
       "name": "Air Whirlpool Spin",
       "description": "Spin in your shell while carrying your airborne momentum, then pop out and fall.",
       "iconId": "icon.2",
@@ -1992,21 +1821,20 @@
     },
     {
       "id": "ground.F",
-      "name": "Aerosol Inferno",
-      "description": "Shake and point an aerosol can, then project a forward fire column",
+      "name": "NO RUNNING!",
+      "description": "Puff up, then blow a whistle to stun nearby fighters. Shields block it.",
       "iconId": "icon.f",
       "behavior": "areaDenial",
-      "aimMode": "cameraForward3D",
+      "aimMode": "none",
       "aimMovement": "fixed",
-      "aimAnimationId": "anim.bashie.gf-loop",
-      "cooldownTicks": 600,
+      "cooldownTicks": 720,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 62,
+            "durationTicks": 72,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -2017,69 +1845,72 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.gf-atk"
+              "anim.bashie.whistle"
             ],
             "operations": [
               {
-                "kind": "startupAimCorrection",
+                "kind": "emitPresentation",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 8,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
-                "pitchDegreesPerSecond": 0
+                "presentationId": "presentation.bashie.whistle.puff",
+                "placement": {
+                  "attachmentMode": "world",
+                  "durationTicks": 120
+                }
               },
               {
-                "kind": "startCapability",
+                "kind": "gravityWindow",
                 "tick": 0,
-                "unit": "ticks",
-                "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
-                "capabilityVersion": "1",
-                "parameters": {
-                  "minimumChargeTicks": 18,
-                  "chargeTiers": [
-                    {
-                      "chargeTicks": 18,
-                      "damage": 10,
-                      "reachScale": 0.6
-                    },
-                    {
-                      "chargeTicks": 30,
-                      "damage": 14,
-                      "reachScale": 0.8
-                    },
-                    {
-                      "chargeTicks": 42,
-                      "damage": 18,
-                      "reachScale": 1
-                    },
-                    {
-                      "chargeTicks": 54,
-                      "damage": 22,
-                      "reachScale": 1.25
-                    },
-                    {
-                      "chargeTicks": 66,
-                      "damage": 26,
-                      "reachScale": 1.5
-                    }
-                  ],
-                  "fireTriggerTick": 8,
-                  "fireDurationTicks": 62,
-                  "hitboxDurationTicks": 44,
-                  "hitboxRadius": 0.7,
+                "unit": "normalized",
+                "gravityScale": 0.15,
+                "durationTicks": 48
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 48,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 5.0,
+                  "offsetX": 0,
                   "offsetY": 0.25,
-                  "offsetZ": 1.25,
-                  "endOffsetZ": 3,
-                  "damage": 15,
-                  "knockbackAngle": 30,
-                  "knockbackBase": 12,
-                  "knockbackGrowth": 20,
-                  "stunTicks": 30,
-                  "hitGroup": 1
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 0,
+                  "angle": -90,
+                  "baseKnockback": 1,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 1,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner",
+                  "fixedHitstunTicks": 120
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 48,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.whistle.blow",
+                "placement": {
+                  "attachmentMode": "world",
+                  "durationTicks": 36
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 48,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.whistle.sign",
+                "placement": {
+                  "attachmentMode": "world",
+                  "durationTicks": 78,
+                  "localPositionY": 1.0
                 }
               }
             ]

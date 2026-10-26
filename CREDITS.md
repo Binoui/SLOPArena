@@ -13,7 +13,7 @@ Thank you to the creators whose work helps make SLOPArena possible.
 
 ## Fonts
 
-- **[Omnibus-Type](https://github.com/Omnibus-Type/ArchivoBlack)** — Archivo Black, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/ArchivoBlack-OFL.txt); also the lettering of Bashie's NO SPLASHING! sign.
+- **[Omnibus-Type](https://github.com/Omnibus-Type/ArchivoBlack)** — Archivo Black, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/ArchivoBlack-OFL.txt); also the lettering of Bashie's NO SPLASHING! and NO RUNNING! signs.
 - **[Colophon Foundry](https://github.com/google/fonts/tree/main/ofl/spacemono)** — Space Mono, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/SpaceMono-OFL.txt).
 - **[The Baloo 2 Project Authors / Ek Type](https://github.com/EkType/Baloo2)** — Baloo 2, licensed under [SIL OFL 1.1](client/Unity/Assets/Fonts/OFL.txt); also the lettering of Bonk's BONK!, "?", POP!, NEIGH!, clip!, clop! and gulp.
 

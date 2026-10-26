@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthesize Bashie's Hose Down and Shell Slide sounds (no third-party source).
+"""Synthesize Bashie's Hose Down, Shell Slide and NO RUNNING! sounds (no third-party source).
 
 Shell Slide (R) plays bashie_shell_tuck (the dive into her shell), bashie_shell_slide (a loop of water rushing
 under the shell while she slides) and bashie_shell_hit (the shell bowling someone over).
@@ -164,8 +164,41 @@ def shell_hit():
     return soft(x, 2000)
 
 
+def whistle_inhale():
+    """A long, soft breath into a balloon belly, with a low rubber creak."""
+    time = t(0.8)
+    rng = np.random.default_rng(51)
+    breath = spectral(rng.standard_normal(len(time)), lambda f: band(f, 650, 420))
+    creak = np.sin(2 * np.pi * np.cumsum(110 + 65 * time / 0.8) / SR) * 0.07
+    return soft((breath + creak) * envelope(len(time), 0.22, 0.08), 1800)
+
+
+def whistle_tweet():
+    """A warm low pea-whistle trill, with no piercing high partials."""
+    time = t(0.42)
+    rng = np.random.default_rng(53)
+    pitch = 720 + 28 * np.sin(2 * np.pi * 24 * time) + 45 * np.exp(-time / 0.04)
+    phase = 2 * np.pi * np.cumsum(pitch) / SR
+    trill = (np.sin(phase) + 0.16 * np.sin(2 * phase)) * (0.82 + 0.18 * np.sin(2 * np.pi * 24 * time))
+    breath = spectral(rng.standard_normal(len(time)), lambda f: band(f, 900, 450)) * 0.08
+    return soft((trill + breath) * envelope(len(time), 0.025, 0.16), 1900)
+
+
+def whistle_deflate():
+    """A short descending balloon squeal, rounded and below 2 kHz."""
+    time = t(0.3)
+    rng = np.random.default_rng(59)
+    pitch = (470 - 280 * time / 0.3) * (1 + 0.09 * np.sin(2 * np.pi * 32 * time))
+    phase = 2 * np.pi * np.cumsum(pitch) / SR
+    rubber = np.sin(phase) + 0.18 * np.sin(2 * phase) + 0.06 * np.sin(3 * phase)
+    air = spectral(rng.standard_normal(len(time)), lambda f: band(f, 600, 350)) * 0.22
+    return soft((rubber + air) * envelope(len(time), 0.012, 0.12), 1600)
+
+
 CLIPS = {'bashie_pump': pump, 'bashie_spray': spray, 'bashie_splash': splash, 'bashie_sign': sign,
-         'bashie_shell_tuck': shell_tuck, 'bashie_shell_slide': shell_slide, 'bashie_shell_hit': shell_hit}
+         'bashie_shell_tuck': shell_tuck, 'bashie_shell_slide': shell_slide, 'bashie_shell_hit': shell_hit,
+         'bashie_whistle_inhale': whistle_inhale, 'bashie_whistle_tweet': whistle_tweet,
+         'bashie_whistle_deflate': whistle_deflate}
 
 
 def write(out, name, x, tmp):

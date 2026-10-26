@@ -75,13 +75,12 @@ public static class TestHelpers
     {
         get
         {
-            var suffixes = new[] { "1", "2", "3", "4", "A", "E", "R", "F" };
-            var slots = new CookedSlotDefinition[16];
-            for (var ordinal = 0; ordinal < slots.Length; ordinal++)
+            var slots = new CookedSlotDefinition[CanonicalSlotProjection.All.Count];
+            foreach (var address in CanonicalSlotProjection.All)
             {
-                var air = ordinal >= 8;
+                int ordinal = address.Ordinal;
                 slots[ordinal] = new CookedSlotDefinition(
-                    ordinal, (air ? "air." : "ground.") + suffixes[ordinal % 8], air,
+                    ordinal, address.Id, address.IsAirborne,
                     "Engine fixture", "", "", AuthoringAbilityBehavior.MeleeCombo,
                     AuthoringAimMode.None, 0, false, false,
                     new CookedTimeline(new[]
@@ -482,12 +481,13 @@ public static class TestHelpers
         };
     }
 
-    public static CharacterDefinition WithEmptyAirSlot2(CharacterDefinition source)
+    public static CharacterDefinition WithEmptyAirSlot3(CharacterDefinition source)
     {
         var def = CloneDef(source);
         var slots = source.CookedSlots!.ToArray();
-        slots[9] = new CookedSlotDefinition(
-            9, "air.2", true, "Empty aerial", "", "",
+        CanonicalSlotProjection.TryGet("air.3", out var address);
+        slots[address.Ordinal] = new CookedSlotDefinition(
+            address.Ordinal, address.Id, true, "Empty aerial", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None,
             0, false, false,
             new CookedTimeline(new[]

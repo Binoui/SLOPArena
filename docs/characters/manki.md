@@ -48,12 +48,14 @@ kit:
 
 # Manki — Mad Bomber Monkey
 
+> **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Monkey Punch and Air Kick stay on normal 1; Straight Punch and Air Swing (normal 2) are retired. Normal-2 rows below are history.
+
 > **Identity (owner, 2026-10-17):** a chaotic character who fights with gadgets and
 > explosions. He is also everyone's favourite: everybody the owner knows loves him,
 > because his is the most unique design in the roster. His effects should show off the
 > chaos without hiding the design people love.
 
-> Status: Package-native authoring source cooked and rostered. The canonical kit contract is the package-native 16-entry grid: grounded and aerial variants of `1 / 2 / 3 / 4 / A / E / R / F`. `LMB` and `RMB` are camera controls, not persisted move identities.
+> Status: Package-native authoring source cooked and rostered. The canonical kit contract is the package-native 14-entry grid: grounded and aerial variants of `1 / 3 / 4 / A / E / R / F`. `LMB` and `RMB` are camera controls, not persisted move identities.
 > Package source: `client/Unity/Assets/CharacterPackages/manki/`; cooked runtime: `content-cooked/manki/`.
 > Inspired by: Ziggs (LoL) × rushdown brawler — pyromaniac mad inventor monkey
 

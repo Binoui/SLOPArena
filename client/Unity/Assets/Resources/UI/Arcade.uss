@@ -306,11 +306,13 @@
 .course-pip--broken { background-color: rgb(255, 204, 34); border-color: rgb(255, 204, 34); }
 .course-pip--missed { background-color: rgba(255, 112, 103, 0.3); border-color: rgb(255, 112, 103); }
 .course-checkpoint--warning { color: rgb(255, 122, 92); }
-.course-toast { display: none; position: absolute; right: 100%; top: 150px; width: 250px; margin-right: 12px; padding: 9px 12px; background-color: rgba(22, 21, 19, 0.92); border-left-width: 4px; border-left-color: rgb(47, 193, 170); }
-.course-toast-title { font-size: 15px; -unity-font-style: bold; color: rgb(120, 236, 214); white-space: nowrap; }
-.course-toast-line { font-size: 12px; color: rgb(240, 238, 232); white-space: normal; margin-top: 2px; }
-.course-toast--warning { border-left-color: rgb(210, 58, 44); }
-.course-toast--warning .course-toast-title { color: rgb(255, 122, 92); }
+/* Toasts are small flyer cards taped beside the panel (the stock slip's look): Paper, Ink frame, a hard
+   Ink shadow from the thick right/bottom edges and a jade (clear) or orange (warning) misprint title. */
+.course-toast { display: none; position: absolute; right: 100%; top: 150px; width: 300px; margin-right: 18px; padding: 10px 14px 12px 14px; background-color: rgb(240, 238, 232); border-width: 3px; border-right-width: 8px; border-bottom-width: 8px; border-color: rgb(27, 26, 24); rotate: -3deg; }
+.course-toast-tape { position: absolute; left: -16px; top: -8px; width: 52px; height: 16px; background-color: rgba(255, 204, 34, 0.92); border-width: 1px; border-color: rgba(27, 26, 24, 0.35); rotate: -28deg; }
+.course-toast-title { font-size: 21px; color: rgb(27, 26, 24); -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); text-shadow: 2px 2px 0px rgb(47, 193, 170); white-space: nowrap; }
+.course-toast-line { font-size: 13px; color: rgb(27, 26, 24); -unity-font-style: bold; white-space: normal; margin-top: 3px; }
+.course-toast--warning .course-toast-title { color: rgb(27, 26, 24); text-shadow: 2px 2px 0px rgb(224, 92, 42); }
 .course-count-pop { position: absolute; translate: -50% -50%; font-size: 34px; color: rgb(255, 246, 222); -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(43, 18, 12); text-shadow: 3px 3px 0px rgb(200, 129, 26); white-space: nowrap; }
 .course-count-pop--hit { font-size: 24px; color: rgb(255, 204, 34); text-shadow: 2px 2px 0px rgb(214, 59, 47); }
 .course-edge-marker { position: absolute; width: 18px; height: 18px; translate: -50% -50%; rotate: 45deg; background-color: rgb(210, 58, 44); border-width: 2px; border-color: rgb(255, 246, 222); }

@@ -102,7 +102,7 @@ namespace SlopArena.Shared
 		/// <param name="downActionTuning">Immutable down-action tuning. Defaults to the shared production values.</param>
 		/// <param name="combatTuning">Immutable combat tuning. Defaults to the shipped profile.</param>
 		public ServerSimulation(ArenaDefinition arena, IMatchRule? rule = null, DownActionTuning? downActionTuning = null,
-			CombatTuning? combatTuning = null)
+			CombatTuning? combatTuning = null, GroundSpeedTuning? groundSpeedTuning = null)
 		{
 			_arena = arena;
 			_blastLines = ArenaCollision.ResolveBlastLines(in arena);
@@ -110,6 +110,7 @@ namespace SlopArena.Shared
 			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule or CourseMatchRule ? CanAttackTarget : null;
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
+            GroundSpeedTuning = groundSpeedTuning ?? SlopArena.Shared.GroundSpeedTuning.Default;
 			if (arena.Arcade?.Ball is ArcadeBallDefinition ball)
             {
                 _arcadeBall = new ArcadeBallSimulation(ball, in arena);
@@ -134,6 +135,22 @@ namespace SlopArena.Shared
             if (_rule is SlopballVersusMatchRule && _volley == null)
                 throw new ArgumentException("Versus Slopball needs a Slopball court.", nameof(rule));
 		}
+
+        public GroundSpeedTuning GroundSpeedTuning { get; private set; }
+
+        /// <summary>Training switches immutable profiles between ticks. Other callers keep Default.</summary>
+        public void SetGroundSpeedTuning(GroundSpeedTuning tuning)
+        {
+            if (ReferenceEquals(GroundSpeedTuning, tuning)) return;
+            GroundSpeedTuning = tuning ?? throw new ArgumentNullException(nameof(tuning));
+            foreach (ulong id in new List<ulong>(_states.Keys))
+            {
+                var state = _states[id];
+                state.RushTicks = 0;
+                state.LastDirX = state.LastDirZ = 0f;
+                _states[id] = state;
+            }
+        }
 
         /// <summary>Game-wide connecting-hit freeze, preserving shipped default timing.</summary>
         public static ushort ComputeHitstopTicks(float damage)
@@ -567,7 +584,8 @@ namespace SlopArena.Shared
             }
 
 
-            if (state.State is ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery)
+            if (state.State is ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery
+                or ActionState.HomingDashFloat or ActionState.HomingDash)
                 targetAnim = string.IsNullOrEmpty(def.AirDodgeAnim) ? def.DashAnim : def.AirDodgeAnim;
             else if ((state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0)
             {
@@ -713,7 +731,7 @@ namespace SlopArena.Shared
 			bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId));
 			if (state.State != ActionState.Idle && state.State != ActionState.Run
 				&& state.State != ActionState.Crouching && state.State != ActionState.Sliding
-				&& !iasaUnlocked)
+				&& state.State != ActionState.HomingDashArrive && !iasaUnlocked)
 				return false;
 			if (state.AnimLockTicks > 0 && !iasaUnlocked)
 				return false;
@@ -738,7 +756,6 @@ namespace SlopArena.Shared
 
         private static bool IsGroundedNormal(byte slot)
             => slot == AbilitySlots.Slot1
-                || slot == AbilitySlots.Slot2
                 || slot == AbilitySlots.Slot3
                 || slot == AbilitySlots.Slot4;
 
@@ -765,6 +782,61 @@ namespace SlopArena.Shared
             return true;
         }
 
+		/// <summary>
+		/// Homing dash admission (ADR-0042): every state except being hit and attacks, out of
+		/// shield included. An attack's IASA window counts as free, exactly as for other actions.
+		/// </summary>
+		private bool TryStartHomingDash(ulong id, ref CharacterState state)
+		{
+			if (state.HomingDashCooldownTicks > 0 && id != NoCooldownsEntityId
+				|| !state.IsGrounded && state.HomingDashAirUsed
+				|| state.InteractionId != 0
+				|| state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
+				|| state.LandingLagTicks > 0
+				|| Simulation.HasKnockback(state) || HasQueuedShieldLaunch(in state))
+				return false;
+			bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(id));
+			if ((state.AnimLockTicks > 0 || _activeAbilities.ContainsKey(id)) && !iasaUnlocked)
+				return false;
+			if (state.State is ActionState.Hitstun or ActionState.Aiming or ActionState.GrabAttempt
+				or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
+				or ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashMiss)
+				return false;
+
+			if (_activeAbilities.ContainsKey(id))
+				RetireAbility(id, ref state, AbilityExit.Cancelled);
+			ulong targetId = state.TargetEntityId;
+			float dx = 0f, dy = 0f, dz = 0f;
+			if (targetId != 0
+				&& IsEligibleEnemy(id, targetId, state.PX, state.PZ, LockRangeMeters, out _)
+				&& TryGetCombatTargetPosition(targetId, out var target))
+			{
+				dx = target.X - state.PX; dy = target.Y - state.PY; dz = target.Z - state.PZ;
+			}
+			else
+				targetId = 0;
+			Simulation.StartHomingDash(ref state, targetId, dx, dy, dz);
+			return true;
+		}
+
+		/// <summary>Steer the homing dash toward its target before this tick's movement.</summary>
+		private void StepHomingDash(ref CharacterState state, CharacterDefinition def)
+		{
+			ulong targetId = state.HomingDashTargetId;
+			if (targetId == 0
+				|| !IsEligibleEnemy(state.EntityId, targetId, state.PX, state.PZ, float.MaxValue, out _)
+				|| !TryGetCombatTargetPosition(targetId, out var target))
+			{
+				state.HomingDashTargetId = 0;
+				Simulation.StepHomingDash(ref state, false, 0f, 0f, 0f, 0f);
+				return;
+			}
+			float targetRadius = _defs.TryGetValue(targetId, out var targetDef) ? targetDef.CapsuleRadius : 0f;
+			Simulation.StepHomingDash(ref state, true,
+				target.X - state.PX, target.Y - state.PY, target.Z - state.PZ,
+				def.CapsuleRadius + targetRadius + HomingDashConfig.ArrivalGap);
+		}
+
 		private static bool HasQueuedShieldLaunch(in CharacterState state)
 			=> state.QueuedKBResolvedForce || state.QueuedKBZero
 				|| state.QueuedKBBase != 0f || state.QueuedKBGrowth != 0f
@@ -784,7 +856,8 @@ namespace SlopArena.Shared
 
 			return state.State is ActionState.Idle or ActionState.Run
 				or ActionState.Crouching or ActionState.Sliding
-				or ActionState.Attacking or ActionState.Shielding;
+				or ActionState.Attacking or ActionState.Shielding
+				or ActionState.HomingDashArrive;
 		}
 
 		private bool CanAcceptGroundShieldAfterTimers(
@@ -837,12 +910,24 @@ namespace SlopArena.Shared
 				if (!_states.TryGetValue(id, out var state)) continue;
 				var input = inputs.TryGetValue(id, out var i) ? i : default;
 				var def = _defs[id];
+				if (input.DashPressed && TryStartHomingDash(id, ref state))
+				{
+					input.ActiveSlot = 0;
+					input.Jump = false;
+					input.ShieldPressed = false;
+					input.GrabPressed = false;
+					inputs[id] = input;
+					_states[id] = state;
+					_lastTickAcceptedActions.Add(id);
+					continue;
+				}
 				if (HandleShieldPreTickAdmission(id, ref state, ref input, inputs, def))
 					continue;
 				if (CanTakeOrdinaryAbilityAction(state, def))
 					_lastTickOrdinaryActionOpportunities.Add(id);
 				bool bufferedPress = input.ActiveSlot == 0 && state.BufferedSlot > 0
-					&& state.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding)
+					&& state.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
+						or ActionState.HomingDashArrive)
 					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed;
 				if (bufferedPress)
 					input.ActiveSlot = state.BufferedSlot;
@@ -866,7 +951,7 @@ namespace SlopArena.Shared
 					|| (state.AnimLockTicks > 0 && !iasaUnlocked)) continue; // ADR-0014
 				if (state.State != ActionState.Idle && state.State != ActionState.Attacking
 					&& state.State != ActionState.Run && state.State != ActionState.Crouching
-					&& state.State != ActionState.Sliding) continue;
+					&& state.State != ActionState.Sliding && state.State != ActionState.HomingDashArrive) continue;
 				if (bufferedPress)
 				{
 					state.BufferedSlot = 0;
@@ -1412,10 +1497,12 @@ namespace SlopArena.Shared
 				if (activeAbility != null)
 					activeAbility.FrozenForSimulationTick = frozen;
 				bool verticalMotionOwned = activeAbility?.OwnsVerticalMotion == true;
+				if (!frozen && state.State is ActionState.HomingDashFloat or ActionState.HomingDash)
+					StepHomingDash(ref state, def);
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned, GetActiveMove(id),
-					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
+					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning, GroundSpeedTuning);
 				if (state.State == ActionState.Grabbing && state.InteractionId != 0
 					&& _states.TryGetValue(state.InteractionPartnerId, out var heldPartner)
 					&& !CanPlaceVictim(in state, in heldPartner, def, _defs[state.InteractionPartnerId],

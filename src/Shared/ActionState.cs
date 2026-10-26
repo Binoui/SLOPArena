@@ -27,6 +27,14 @@ namespace SlopArena.Shared
         /// <summary>Grounded capture hold; the grabber can walk until requesting a throw.</summary>
         Grabbing = 20,
         /// <summary>Released victim's throw flight and landing recovery.</summary>
-        Thrown = 21
+        Thrown = 21,
+        /// <summary>Homing dash startup: the fighter hangs in place facing the target.</summary>
+        HomingDashFloat = 22,
+        /// <summary>Homing dash travel, turning toward the target at a limited rate.</summary>
+        HomingDash = 23,
+        /// <summary>Arrived next to the target; any action cancels this window.</summary>
+        HomingDashArrive = 24,
+        /// <summary>The dash ran out without arriving; a locked, punishable end.</summary>
+        HomingDashMiss = 25
     }
 }

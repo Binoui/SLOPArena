@@ -8,6 +8,7 @@ namespace SlopArena.Shared
         // 14: Versus Slopball camps, point state, events and results.
         // 15: online Character Courses, course progress/events/results and player colours.
         // 16: match content pins the exact baked arena digest as well as the character catalog.
-        public const byte Version = 16;
+        // 17: three normals, homing dash input bit, state and World Snapshot v7 (ADR-0042).
+        public const byte Version = 17;
     }
 }

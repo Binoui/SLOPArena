@@ -47,7 +47,7 @@ Intentional falls are legal. No extra time penalty is added.
 
 **Backspace**, a half-second **Select** hold on a controller, or **Retry** in the
 pause menu starts a complete fresh attempt; the control is rebindable as
-**Arcade Retry**. A retry restarts in place with a one-second READY…GO (see the
+**Arcade Retry**. A retry restarts in place with a one-second READY…SLOP IT OUT (see the
 [retry pass](#retry-pass--2026-10-17)). **Escape/Start** opens normal local
 pause, freezing gameplay and timing without invalidating records. Completion
 freezes the result and offers **RETRY** or **ARCADE**. Leaving or retrying an
@@ -122,7 +122,7 @@ effects, targets, checkpoint and clock start over, while the stage, fighter
 model, HUD, music and records stay loaded. The fighter renderer, hit feel,
 projectile visuals, timeline presentations, sword trails and aim presentation
 drop everything from the old attempt, and the camera cuts back to the start.
-Retries use a 60-tick READY…GO; entering from the menu keeps 3-2-1. The
+Retries use a 60-tick READY…SLOP IT OUT; entering from the menu keeps 3-2-1. The
 countdown never advances the simulation, so this does not affect times or the
 record fingerprint.
 

@@ -203,7 +203,7 @@ public sealed class ReturningProjectileTests
         Throw(sim);
         while (sim.GetActiveAbility(1) != null)
             Tick(sim, default);
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot2 });   // a long armoured normal
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot3 });   // a long armoured normal
         Assert.NotNull(sim.GetActiveAbility(1));
 
         bool selfHit = false, armoured = false;
@@ -357,8 +357,8 @@ public sealed class ReturningProjectileTests
     {
         var definition = TestHelpers.EngineDef;
         var slots = definition.CookedSlots!.ToArray();
-        slots[4] = ThrowSlot(4, "ground.A", false);
-        slots[12] = ThrowSlot(12, "air.A", true);
+        slots[3] = ThrowSlot(3, "ground.A", false);
+        slots[10] = ThrowSlot(10, "air.A", true);
         // ground.1: a long normal, so the owner is busy when the lid comes back.
         slots[0] = new CookedSlotDefinition(0, "ground.1", false, "Long normal", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
@@ -366,8 +366,8 @@ public sealed class ReturningProjectileTests
             {
                 new CookedStage(120, 0, 0, 0, 0, Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()),
             }));
-        // ground.2: the same, armoured.
-        slots[1] = new CookedSlotDefinition(1, "ground.2", false, "Long armoured normal", "", "",
+        // ground.3: the same, armoured.
+        slots[1] = new CookedSlotDefinition(1, "ground.3", false, "Long armoured normal", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {

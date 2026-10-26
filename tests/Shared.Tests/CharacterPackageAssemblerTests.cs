@@ -626,10 +626,10 @@ public sealed class CharacterPackageAssemblerTests
     public void CookedLoader_RejectsPreviousSchemaVersion()
     {
         var current = Compile();
-        var oldMetadata = current.Metadata with { CookedSchemaVersion = 2 };
+        var oldMetadata = current.Metadata with { CookedSchemaVersion = 3 };
         byte[] oldRuntime = Encoding.UTF8.GetBytes(
             Encoding.UTF8.GetString(current.CanonicalBytes)
-                .Replace("\"cookedSchemaVersion\":3", "\"cookedSchemaVersion\":2", StringComparison.Ordinal));
+                .Replace("\"cookedSchemaVersion\":4", "\"cookedSchemaVersion\":3", StringComparison.Ordinal));
         var oldPackage = new CookedCharacterPackage(
             oldMetadata, current.Definition, current.Budget, current.Diagnostics, oldRuntime);
         var assembled = CharacterPackageAssembler.Assemble(BuildInput(

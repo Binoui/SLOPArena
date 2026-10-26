@@ -120,7 +120,7 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void Flag_ReportsPointBlankWhiffOnlyAtTheDirectBearing()
     {
-        var move = new MoveReliability { Slot = "ground.2", ActiveTicks = 10, ContactTicksAtProbe = 3 };
+        var move = new MoveReliability { Slot = "ground.3", ActiveTicks = 10, ContactTicksAtProbe = 3 };
         move.Reach.Add(new ReachBand { Target = "Manki", BearingDegrees = 0f, Intervals = { (0.75f, 2.15f) } });
         move.Reach.Add(new ReachBand { Target = "Manki", BearingDegrees = 30f, Intervals = { (0.80f, 2.0f) } });
 

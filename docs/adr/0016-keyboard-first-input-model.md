@@ -1,6 +1,6 @@
 # ADR-0016: Keyboard-First Input — 10 Hotkey Slots, Short Hop, Fast Fall
 
-**Status:** Accepted — 2026-08-10 (implemented as issue #116)
+**Status:** Accepted — 2026-08-10 (implemented as issue #116); the four-normal layout is superseded by [ADR-0042](0042-controller-layout-three-normals-homing-dash.md)
 **Deciders:** @Binoui
 
 ## Context

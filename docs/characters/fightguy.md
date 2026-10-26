@@ -1,5 +1,7 @@
 # FightGuy
 
+> **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Straight Punch (ground) and Floating Kick (air), formerly normal 2, are now normal 1; Low Kick and Double Punch are retired. Normal-2 rows below are history.
+
 > **Identity (owner, 2026-10-17):** a classic shoto and a genuinely talented martial
 > artist: the underground champion, and proud of it. He is also a bit dumb, egocentric
 > and not very bright, but never mean-spirited. His specials should show that

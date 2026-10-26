@@ -224,6 +224,19 @@ namespace SlopArena.Client.UI
                     UpdateDifficultyButtons(context);
                 };
             }
+            if (training)
+            {
+                MatchConfig.SoloP2Human = false;
+                MatchConfig.SoloP2DeviceId = 0;
+            }
+            else
+            {
+                // Couch play: the controller that drove the menu here is P1; any other pad's A takes over P2.
+                var menuPad = SlopArena.Client.Input.HumanInputActions.LastUsedGamepad
+                    ? UnityEngine.InputSystem.Gamepad.current : null;
+                if (menuPad == null || menuPad != SlopArena.Client.Input.CouchPads.P2)
+                    SlopArena.Client.Input.CouchPads.P1MenuPad = menuPad;
+            }
             UpdateDifficultyButtons(context);
 
             if (selectButton != null)
@@ -311,10 +324,12 @@ namespace SlopArena.Client.UI
             _selectingCpu = selectingCpu;
             _selected = selectingCpu ? MatchConfig.SoloBotClass : MatchConfig.PlayerClass;
             if (_selectionTarget != null)
-                _selectionTarget.text = selectingCpu ? "EDITING P2 // CPU" : "EDITING P1 // PLAYER";
+                _selectionTarget.text = selectingCpu
+                    ? MatchConfig.SoloP2Human ? "EDITING P2 // PLAYER" : "EDITING P2 // CPU"
+                    : "EDITING P1 // PLAYER";
             _btnEditPlayer?.EnableInClassList("active", !selectingCpu);
             _btnEditCpu?.EnableInClassList("active", selectingCpu);
-            context.Q<VisualElement>("solo-difficulty-buttons")?.style.SetDisplay(selectingCpu);
+            context.Q<VisualElement>("solo-difficulty-buttons")?.style.SetDisplay(selectingCpu && !MatchConfig.SoloP2Human);
             UpdateSelectionVisuals(_selected, context);
             RenderSoloRoster();
             if (focusSlot)
@@ -368,8 +383,10 @@ namespace SlopArena.Client.UI
             _rosterPanel.Add(player);
 
             var cpu = (Button)BuildPlayerCard(
-                "P2", "CPU", MatchConfig.SoloBotClass,
-                _selectingCpu ? "EDITING FIGHTER" : "", local: false, host: false);
+                "P2", MatchConfig.SoloP2Human ? "PLAYER 2" : "CPU", MatchConfig.SoloBotClass,
+                MatchConfig.SoloP2Human ? "LB/RB · B LEAVES"
+                    : _selectingCpu ? "EDITING FIGHTER"
+                    : MatchConfig.Mode == GameMode.Solo ? "PRESS A TO JOIN" : "", local: false, host: false);
             cpu.name = "solo-slot-p2";
             cpu.clicked += () => SetSelectionTarget(_context, selectingCpu: true, focusSlot: true);
             _rosterPanel.Add(cpu);
@@ -1087,7 +1104,7 @@ namespace SlopArena.Client.UI
                 ? (host ? "LEADER" : "MEMBER")
                 : MatchConfig.Mode == GameMode.PvP
                     ? (host ? "HOST" : "PLAYER")
-                    : (local ? "PLAYER" : "CPU"));
+                    : (local || MatchConfig.SoloP2Human ? "PLAYER" : "CPU"));
             role.AddToClassList("player-card__host");
             identity.Add(role);
             card.Add(identity);
@@ -1210,8 +1227,63 @@ namespace SlopArena.Client.UI
         }
 
 
+        /// <summary>
+        /// Couch play: in Solo, any pad but P1's takes over P2 from the CPU with A, picks P2's fighter
+        /// with LB/RB and hands P2 back to the CPU with B.
+        /// </summary>
+        private void Update()
+        {
+            var p2 = SlopArena.Client.Input.CouchPads.P2;
+            PlayerCursors.P2Target = p2 == null ? null
+                : _gridButtons.FirstOrDefault(button => button.name == $"char-{MatchConfig.SoloBotClass}");
+            bool active = MatchConfig.Mode == GameMode.Solo && _rosterPanel != null;
+            SlopArena.Client.Input.CouchPads.Listening = active && p2 == null;
+            if (!active)
+                return;
+            if (p2 == null)
+            {
+                bool unplugged = MatchConfig.SoloP2Human;
+                MatchConfig.SoloP2Human = false;
+                MatchConfig.SoloP2DeviceId = 0;
+                foreach (var pad in UnityEngine.InputSystem.Gamepad.all)
+                    if (pad != SlopArena.Client.Input.CouchPads.P1MenuPad && pad.buttonSouth.wasPressedThisFrame)
+                    {
+                        MatchConfig.SoloP2Human = true;
+                        MatchConfig.SoloP2DeviceId = pad.deviceId;
+                        Debug.Log($"[Couch] P2 joined with {pad.displayName}.");
+                        break;
+                    }
+                if (unplugged || MatchConfig.SoloP2Human)
+                    SetSelectionTarget(_context, _selectingCpu);
+                return;
+            }
+            if (p2.buttonEast.wasPressedThisFrame)
+            {
+                // Keep the guard up this frame so the same B is not also P1's Back.
+                SlopArena.Client.Input.CouchPads.Listening = true;
+                MatchConfig.SoloP2Human = false;
+                MatchConfig.SoloP2DeviceId = 0;
+                SetSelectionTarget(_context, _selectingCpu);
+                return;
+            }
+            int step = p2.rightShoulder.wasPressedThisFrame ? 1 : p2.leftShoulder.wasPressedThisFrame ? -1 : 0;
+            var classes = MenuRoster.Classes;
+            if (step == 0 || classes.Length == 0)
+                return;
+            int index = Array.IndexOf(classes, MatchConfig.SoloBotClass);
+            MatchConfig.SoloBotClass = classes[((index < 0 ? 0 : index) + step + classes.Length) % classes.Length];
+            if (_selectingCpu)
+            {
+                _selected = MatchConfig.SoloBotClass;
+                UpdateSelectionVisuals(_selected, _context);
+            }
+            RenderSoloRoster();
+        }
+
         private void OnDisable()
         {
+            SlopArena.Client.Input.CouchPads.Listening = false;
+            PlayerCursors.P2Target = null;
             if (_roomMode && _chatSession != null)
                 _chatSession.ActiveLobbyChanged -= OnActiveLobbyChanged;
             _chatSession = null;

@@ -43,7 +43,7 @@ public static class AbilityLabRecoverySelfTest
             var pool = new AudioPool(AudioPoolSelection.Fixed, new[] { clip });
             catalog.SetPresentationProfile(new CharacterPresentationProfile(Color.cyan,
                 new AudioPool(AudioPoolSelection.Fixed, Array.Empty<AudioClip>()), pool, pool, pool, false,
-                new[] { new ProjectilePresentation("ground.2", fixture.Prop, 1f, ProjectileOrientation.PreservePrefab) }));
+                new[] { new ProjectilePresentation("ground.3", fixture.Prop, 1f, ProjectileOrientation.PreservePrefab) }));
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssetIfDirty(catalog);
             Require(workspace.OpenPackage(fixture.Root(fixture.First)), "Profile recovery fixture did not open.");
@@ -689,7 +689,7 @@ public static class AbilityLabRecoverySelfTest
         var workspace = window.CommandWorkspace;
         workspace.SetDraft(workspace.Draft with { DisplayName = "Repeated reload phase draft" });
         var lab = window.CommandLab ?? throw new InvalidOperationException("Reload fixture Lab is unavailable.");
-        lab.SetSlot(CanonicalSlotProjection.All.First(slot => slot.Id == "ground.2"));
+        lab.SetSlot(CanonicalSlotProjection.All.First(slot => slot.Id == "ground.3"));
         lab.SetStage(0);
         lab.SetTick(2);
         lab.SetAuthoringPhase(AbilityLab.AuthoringPhase.Fire);
@@ -712,7 +712,7 @@ public static class AbilityLabRecoverySelfTest
         Invoke(restored, "Update");
         lab = restored.CommandLab ?? throw new InvalidOperationException("Recovered phase Lab is unavailable.");
         Require(restored.CommandWorkspace.Draft.DisplayName == "Repeated reload phase draft" &&
-            lab.SelectedSlotId == "ground.2" && lab.StageIndex == 0 && lab.Tick == 2 &&
+            lab.SelectedSlotId == "ground.3" && lab.StageIndex == 0 && lab.Tick == 2 &&
             lab.PhasePreviewActive && lab.Phase == AbilityLab.AuthoringPhase.Fire && lab.PhaseTick == 4 && lab.Playing,
             "Compilation, before-reload and disable lost recovered slot, tick, phase or playback.");
         return restored;

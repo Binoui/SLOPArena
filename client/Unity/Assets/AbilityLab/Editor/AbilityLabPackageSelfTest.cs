@@ -23,7 +23,7 @@ public static class AbilityLabPackageSelfTest
         try
         {
             if (!workspace.NewPackage(packageId, "Self Test")) throw new InvalidOperationException(string.Join("\n", workspace.Diagnostics));
-            if (workspace.Draft.Slots.Count != 16 || workspace.Draft.CapabilityRequirements.Count != 0) throw new InvalidOperationException("Minimal package contract failed.");
+            if (workspace.Draft.Slots.Count != CanonicalSlotProjection.All.Count || workspace.Draft.CapabilityRequirements.Count != 0) throw new InvalidOperationException("Minimal package contract failed.");
             if (!workspace.AddForwardLunge("ground.A", 0) ||
                 workspace.Draft.Slots.Single(slot => slot.Id == "ground.A").Timeline.Stages[0].Operations
                     .SingleOrDefault(operation => operation is ForwardLungeOperationSource)
@@ -153,7 +153,7 @@ public static class AbilityLabPackageSelfTest
                 throw new InvalidOperationException("FightGuy package preview did not reload.");
             var preview = workspace.Preview;
             if (preview.Package == null || preview.BakedPoses == null || preview.AnimationCatalog == null || preview.Rig == null ||
-                preview.Identity == null || preview.Slots.Count != 16 ||
+                preview.Identity == null || preview.Slots.Count != CanonicalSlotProjection.All.Count ||
                 new[] { preview.Identity.PackageId, preview.Identity.Version, preview.Identity.SourceHash, preview.Identity.CookedContentHash, preview.Identity.PackageHash }.Any(string.IsNullOrEmpty))
                 throw new InvalidOperationException("FightGuy preview is missing a verified field.");
             if (!preview.Slots.SequenceEqual(CanonicalSlotProjection.All))

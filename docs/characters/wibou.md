@@ -48,11 +48,13 @@ kit:
 
 # Wibou — The Kitsune Blade
 
+> **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Double Slash (ground) and Reverse Slash (air), formerly normal 2, are now normal 1; Quick Slash and Air Slash are retired. Normal-2 rows below are history.
+
 > **Identity (owner, 2026-10-17):** Wibou is an ironic mall-ninja weeaboo: a cringe Neo
 > from *The Matrix* with a katana, kunai and green "hacker" pixels. The kitsune, fox tails
 > and foxfire in the frontmatter and the historical concept below are retired; do not use
 > them for presentation. See [Combat presentation](#combat-presentation--2026-10-16).
-> **Package-native character.** The canonical kit contract is the package-native 16-entry grid: grounded and aerial variants of `1 / 2 / 3 / 4 / A / E / R / F`. `LMB` and `RMB` are camera controls, not persisted move identities. Authoring source lives under `client/Unity/Assets/CharacterPackages/wibou/`; cooked runtime content is admitted through the Match Content Catalog.
+> **Package-native character.** The canonical kit contract is the package-native 14-entry grid: grounded and aerial variants of `1 / 3 / 4 / A / E / R / F`. `LMB` and `RMB` are camera controls, not persisted move identities. Authoring source lives under `client/Unity/Assets/CharacterPackages/wibou/`; cooked runtime content is admitted through the Match Content Catalog.
 > Status: Included in the cooked roster. Legacy Shared registry definitions are retired; new changes must use the package compiler, asset catalog, cooked package, and Match Content Catalog path.
 > Current Q/A is Shuriken Toss, not the Counter in the historical concept below. Ground and air fire three projectiles after 8 startup ticks, with no manual aim, crosshair, hold, or release phase. Shared aims at the current server-selected target's torso at launch, retaining the ±15° spread; it uses the nearest eligible opponent within the existing 20 m horizontal targeting range if the selection is invalid, or fires level along combat facing if none exists. Projectiles do not home. The imported `kunai.fbx` model remains cosmetic; Shared retains all flight and hit authority.
 > Current R/Dash Slash uses the public `slop.ability.charged-directional-dash.v1` primitive for ground and air. Hold manual directional aim; release locks direction with no target assistance or later steering. Tier 2 starts at 20 ticks, tier 3 at 45, and charge caps at 60 without auto-release. Distance scales continuously from 1.2 to 6.4 m at 10.5 m/s. A weak hips/torso traversal hit deals 1 damage once per opponent; the independent sword hit deals 6/9/12 damage during the last four travel ticks and seeks animation tick 31. Dash phases through fighter pushboxes only: shields and terrain stop it, attacks can interrupt it, and it grants no invulnerability. Terrain stops it only when a tick keeps less than 60% of its forward travel (walls hit at about 40° or more; shallower grazes slide along), so ground seams, gentle ramps and landing mid-dash no longer end it short of the marker. During recovery, body overlap moves the other fighter, so Wibou ends on the marker even inside the fighter he just cut. Release ends in 24 ticks of committed recovery, including on whiff; charge and dash remain interruptible. While R is held, Wibou plays his own charge loop (`anim.wibou.r-charge`, `wibou_r_charge_loop.anim`, 0.5 s, GenRA option B approved 2026-10-18): a low, wide stance with the blade trailing behind and the left hand beckoning. Before, the hold played the dash clip itself. The loop is presentation only: charge hurtboxes still sample the dash clip's first frame. The beckon points about 77° off the dash direction because it was authored in the toolkit's former hip frame.
@@ -318,7 +320,7 @@ Kit is fully specified. Remaining items are tuning/art, not design:
 
 ## Package files
 - `client/Unity/Assets/CharacterPackages/wibou/package.json` — package identity and attribution.
-- `client/Unity/Assets/CharacterPackages/wibou/character.json` — gameplay semantics and canonical 16-entry grid.
+- `client/Unity/Assets/CharacterPackages/wibou/character.json` — gameplay semantics and canonical 14-entry grid.
 - `client/Unity/Assets/CharacterPackages/wibou/CharacterAssetCatalog.asset` — package-local Unity bindings.
 - `content-cooked/wibou/` — immutable cooked runtime package admitted by the roster manifest.
 

@@ -119,7 +119,7 @@ public class BotPolicyTests
     {
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
             AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             state.SetCooldown(slot, 999);
@@ -131,8 +131,8 @@ public class BotPolicyTests
         var slots = System.Linq.Enumerable.ToArray(def.CookedSlots!);
         foreach (var (ordinal, id, air, ticks) in new[]
         {
-            (0, "ground.1", false, cooldown), (1, "ground.2", false, (ushort)0),
-            (8, "air.1", true, cooldown), (9, "air.2", true, (ushort)0),
+            (0, "ground.1", false, cooldown), (1, "ground.3", false, (ushort)0),
+            (7, "air.1", true, cooldown), (8, "air.3", true, (ushort)0),
         })
             slots[ordinal] = new CookedSlotDefinition(
                 ordinal, id, air, "IASA fixture", "", "",
@@ -175,7 +175,7 @@ public class BotPolicyTests
             Prime(memory, target);
             var input = policy.Decide(self, target, def, new Random(seed), memory, RecoveryArena(), activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
             Assert.NotEqual(AbilitySlots.Slot1, input.ActiveSlot);
-            if (input.ActiveSlot == AbilitySlots.Slot2) alternatives++;
+            if (input.ActiveSlot == AbilitySlots.Slot3) alternatives++;
         }
         Assert.True(alternatives > 0, "Another ready move must remain selectable at IASA.");
     }
@@ -194,7 +194,7 @@ public class BotPolicyTests
         var target = self with { EntityId = 2, PZ = 1, State = ActionState.Idle, AttackSlot = 0 };
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         Prime(memory, target);
-        memory.StartPlan(AbilitySlots.Slot2, false, 0, 0, 0, 0, self.Deaths, false, pressIssued: false);
+        memory.StartPlan(AbilitySlots.Slot3, false, 0, 0, 0, 0, self.Deaths, false, pressIssued: false);
         var policy = new HeuristicBotPolicy();
         var activation = def.GetCookedSlotAbility(AbilitySlots.Slot1, false);
         var blocked = policy.Decide(self, target, def, new Random(0), memory, RecoveryArena(), activeMove: activation);
@@ -202,14 +202,14 @@ public class BotPolicyTests
         Assert.False(memory.PlanPressIssued);
         self.AttackElapsedTicks = 20;
         var accepted = policy.Decide(self, target, def, new Random(0), memory, RecoveryArena(), activeMove: activation);
-        Assert.Equal(AbilitySlots.Slot2, accepted.ActiveSlot);
+        Assert.Equal(AbilitySlots.Slot3, accepted.ActiveSlot);
     }
 
     [Theory]
     [InlineData(false, 120, AbilitySlots.Slot1, false)]
     [InlineData(true, 120, AbilitySlots.Slot1, false)]
     [InlineData(false, 0, AbilitySlots.Slot1, true)]
-    [InlineData(false, 120, AbilitySlots.Slot2, true)]
+    [InlineData(false, 120, AbilitySlots.Slot3, true)]
     public void Iasa_QueuedPress_RespectsPendingCooldown(
         bool airborne, ushort cooldown, byte slot, bool accepted)
     {
@@ -538,7 +538,7 @@ public class BotPolicyTests
         var self = Self();
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Slot1, AbilitySlots.Slot4,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -550,22 +550,22 @@ public class BotPolicyTests
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             selected = Policy.Decide(self, target, Def, new Random(seed), memory).ActiveSlot
-                == AbilitySlots.Slot2;
+                == AbilitySlots.Slot3;
         }
 
-        Assert.True(selected, "canonical grounded slot 2 was never considered");
+        Assert.True(selected, "canonical grounded slot 3 was never considered");
     }
 
     [Fact]
     public void EmptyAerialSlot_IsUnavailable()
     {
-        var def = TestHelpers.WithEmptyAirSlot2(Def);
+        var def = TestHelpers.WithEmptyAirSlot3(Def);
         var self = TestHelpers.PlayerState();
         self.PY = TestHelpers.GroundPY(def);
         self.IsGrounded = false;
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Slot1, AbilitySlots.Slot4,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -588,7 +588,7 @@ public class BotPolicyTests
         self.PY = TestHelpers.GroundPY(def);
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
             AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -686,7 +686,7 @@ public class BotPolicyTests
             self.PY = TestHelpers.GroundPY(def);
             foreach (var slot in new[]
             {
-                AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
+                AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
                 AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
             })
                 self.SetCooldown(slot, 999);
@@ -942,7 +942,7 @@ public class BotPolicyTests
         self.FacingYaw = yaw;
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -983,7 +983,7 @@ public class BotPolicyTests
         // Explicit fixture: 11.33 units of propulsion fits; 19.83 units would cross the edge.
         var def = TestHelpers.FightGuyDef;
         var slots = System.Linq.Enumerable.ToArray(def.CookedSlots!);
-        slots[6] = new CookedSlotDefinition(6, "ground.R", false, "Cyclone", "Cyclone", "icon.r",
+        slots[5] = new CookedSlotDefinition(5, "ground.R", false, "Cyclone", "Cyclone", "icon.r",
                 AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
                 new CookedTimeline(new[]
                 {
@@ -1052,7 +1052,7 @@ public class BotPolicyTests
         var arena = LungeArena();
         var def = TestHelpers.EngineDef;
         var slots = System.Linq.Enumerable.ToArray(def.CookedSlots!);
-        slots[12] = new CookedSlotDefinition(12, "air.A", true, "Momentum projectile", "", "",
+        slots[10] = new CookedSlotDefinition(10, "air.A", true, "Momentum projectile", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, true,
             new CookedTimeline(new[]
             {

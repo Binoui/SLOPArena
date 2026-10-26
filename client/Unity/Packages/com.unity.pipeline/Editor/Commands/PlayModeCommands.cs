@@ -25,6 +25,7 @@ namespace Unity.Pipeline.Editor.Commands
             }
 
             bool skipped = !reload && PlayModeReloadPolicy.SkipReloadForNextPlay();
+            HumanEditorLease.AgentPlayRequested = true;
             EditorApplication.isPlaying = true;
             return skipped ? "Entered play mode (domain reload skipped)" : "Entered play mode";
         }

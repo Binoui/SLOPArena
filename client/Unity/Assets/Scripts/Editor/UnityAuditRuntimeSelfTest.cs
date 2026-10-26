@@ -80,8 +80,8 @@ namespace SlopArena.EditorTools
                 var stage = PresentationSelfTestContent.Stage(20, Array.Empty<string>(),
                     new HitboxEvent { TriggerTick = 0 }, new HitboxEvent { TriggerTick = 5 },
                     new HitboxEvent { TriggerTick = 5 }, new HitboxEvent { TriggerTick = 9 });
-                var slots = new CookedSlotDefinition[16];
-                int offset = airborne ? 8 : 0;
+                var slots = new CookedSlotDefinition[CanonicalSlotProjection.All.Count];
+                int offset = airborne ? CanonicalSlotProjection.VariantSlotCount : 0;
                 slots[offset] = PresentationSelfTestContent.Move(offset, stage, stage);
                 slots[offset + 1] = PresentationSelfTestContent.Move(offset + 1, stage, stage);
                 var catalog = SoundCatalog();
@@ -118,7 +118,7 @@ namespace SlopArena.EditorTools
                 Present(12, 8, "Rewinding to a previous combo stage replayed its triggers.");
                 state.ComboStage = 1;
                 Present(6, 8, "Re-entering a previously presented stage replayed its triggers.");
-                state.AttackSlot = AbilitySlots.Slot2;
+                state.AttackSlot = AbilitySlots.Slot3;
                 state.ComboStage = 0;
                 Present(0, 9, "Changing slots retained the previous attack's sounds.");
                 state.State = ActionState.Idle;
@@ -365,7 +365,7 @@ namespace SlopArena.EditorTools
                     new CookedSpawnHitboxOperation(14, AuthoringUnit.Meters, blade),
                 }),
             });
-            var slots = new CookedSlotDefinition[16];
+            var slots = new CookedSlotDefinition[CanonicalSlotProjection.All.Count];
             slots[0] = new CookedSlotDefinition(0, "ground.1", false, "Charge", "", "",
                 AuthoringAbilityBehavior.DirectionalDash, AuthoringAimMode.None, 0, false, false, timeline);
             var catalog = SoundCatalog();

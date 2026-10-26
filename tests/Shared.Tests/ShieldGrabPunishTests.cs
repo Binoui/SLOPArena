@@ -12,9 +12,9 @@ public sealed class ShieldGrabPunishTests
     {
         foreach (var defender in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
         {
-            yield return new object[] { defender, CharacterClass.FightGuy, AbilitySlots.Slot2 };
+            yield return new object[] { defender, CharacterClass.FightGuy, AbilitySlots.Slot1 };
             yield return new object[] { defender, CharacterClass.Manki, AbilitySlots.Slot3 };
-            yield return new object[] { defender, CharacterClass.Wibou, AbilitySlots.Slot2 };
+            yield return new object[] { defender, CharacterClass.Wibou, AbilitySlots.Slot1 };
             yield return new object[] { defender, CharacterClass.Bonk, AbilitySlots.Slot1 };
         }
     }
@@ -52,7 +52,7 @@ public sealed class ShieldGrabPunishTests
     [InlineData(CharacterClass.Bonk)]
     public void TimingSafeNormalCanRetreatBeforeShieldGrabBecomesActive(CharacterClass defender)
     {
-        var result = RunPunish(defender, CharacterClass.FightGuy, AbilitySlots.Slot1, 1.2f);
+        var result = RunPunish(defender, CharacterClass.Manki, AbilitySlots.Slot1, 1.2f);
 
         Assert.True(result.Blocked);
         Assert.True(result.GrabStarted);

@@ -91,7 +91,7 @@ namespace SlopArena.EditorTools
             catalog.SetPresentationProfile(new CharacterPresentationProfile().WithProjectiles(new[]
             {
                 new ProjectilePresentation("ground.1", firstPrefab, 1f, ProjectileOrientation.PreservePrefab),
-                new ProjectilePresentation("ground.2", correctedPrefab, 1f, ProjectileOrientation.PreservePrefab),
+                new ProjectilePresentation("ground.3", correctedPrefab, 1f, ProjectileOrientation.PreservePrefab),
                 new ProjectilePresentation("air.1", correctedPrefab, 1f, ProjectileOrientation.PreservePrefab),
             }));
             try
@@ -122,7 +122,7 @@ namespace SlopArena.EditorTools
                         case 0: corrected.OwnerId++; break;
                         case 1: corrected.ActivationId++; break;
                         case 2: corrected.VisualOperationIndex++; break;
-                        case 3: corrected.AttackSlot = AbilitySlots.Slot2; break;
+                        case 3: corrected.AttackSlot = AbilitySlots.Slot3; break;
                         case 4: corrected.ActivationAirborne = true; break;
                     }
                     simulation.RestoreSnapshot(anchor);

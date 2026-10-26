@@ -20,7 +20,7 @@ namespace SlopArena.EditorTools
             CheckHumanYawEncoding();
             var slotMappings = new[]
             {
-                ("1", AbilitySlots.Slot1), ("2", AbilitySlots.Slot2),
+                ("1", AbilitySlots.Slot1),
                 ("3", AbilitySlots.Slot3), ("4", AbilitySlots.Slot4),
                 ("A", AbilitySlots.A), ("E", AbilitySlots.E),
                 ("R", AbilitySlots.R), ("F", AbilitySlots.F)

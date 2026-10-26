@@ -171,7 +171,7 @@ public sealed class TargetedLeapPresentationTests
     public void UnresolvedPhaseEffectIsRejected(string field)
     {
         var source = Source();
-        source["slots"]![5]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]![field] = "presentation.missing";
+        source["slots"]![4]!["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]![field] = "presentation.missing";
         var result = Compile(source);
         Assert.Null(result.CookedPackage);
         Assert.Contains(result.Diagnostics, item => item.Code == "reference.unresolved" && item.Path.EndsWith(field));

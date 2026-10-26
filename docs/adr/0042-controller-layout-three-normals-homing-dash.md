@@ -1,0 +1,127 @@
+# ADR-0042: Controller layout v2 — A jumps, three normals, homing dash
+
+**Status:** Accepted — 2026-10-26 (implemented; supersedes ADR-0016's four-normal slot layout)
+
+## Context
+
+Players on controller say jump belongs on A. Today the face buttons are normals 1–4, LB plus
+a face button is a special, and jump sits on RB (`HumanInputActions.cs`). Moving jump to A
+takes a face button from the normals, so one normal would have to live on a shoulder.
+
+The four normal roles are jab, all-rounder, upward and big. In most kits the jab and the
+all-rounder overlap, so merging them costs little and frees RB.
+
+Closing distance in 3D is the recurring problem in hit-ability reviews. Grabs already have
+a universal input (keyboard C, controller LB+RT), so the freed button goes to a universal
+approach: a homing dash toward the lock-on target, after the Dragon Ball FighterZ Super Dash.
+Universal Dash was retired earlier; its input bit is still reserved and inert.
+
+## Decision
+
+1. **Layout.**
+
+   | Input | Controller | Keyboard |
+   |---|---|---|
+   | Jump | A | Space |
+   | Normals: jab/all-rounder, up, big | X / Y / B | 1 / 2 / 3 |
+   | Specials Q / E / R / F | LB + A / X / Y / B | Q / E / R / F |
+   | Homing dash | RB | 4 |
+   | Shield / grab / fast fall | RT / LB+RT / LT | unchanged |
+
+   Keyboard and controller keep the same move set (ADR-0016 parity).
+2. **Three normals.** Each kit merges its jab and all-rounder into one normal. The grounded
+   move that stays:
+
+   | Fighter | Keeps | Retires |
+   |---|---|---|
+   | Bashie | Whirlpool Spin (g2) | Slap (g1) |
+   | Manki | Monkey Punch (g1) | Straight Punch (g2) |
+   | FightGuy | Straight Punch (g2) | Low Kick (g1) |
+   | Wibou | Double Slash (g2) | Quick Slash (g1) |
+   | Sir Bonk | Squire's Cut (g1) | Barn Door (g2) |
+
+   The aerial merges are still open; air.2 is sometimes a distinct tool (Wibou's Reverse
+   Slash).
+3. **Homing dash.** One press dashes toward the lock-on target, or straight ahead with no
+   lock. It stops at melee range and has no hit of its own: it ends in a short window that
+   a normal, special, jump or shield can cancel, so the hit still comes from the kit.
+   Shield, hitboxes and projectiles beat it. In the air it is limited to once per airtime.
+4. **Homes by itself, with limited turning.** The player does not steer. The dash turns
+   toward the target at a limited rate instead of snapping onto it, height included, so it
+   catches a jump but a late enough change of direction can make it miss.
+5. **A miss is punishable.** If the dash arrives without the target in reach, there is no
+   cancel window, only a punishable end. The cancel window is the reward for landing it.
+6. **Off stage is allowed.** Dashing toward a fighter on stage works as a recovery at no
+   extra cost; it is a poor option there (predictable, shieldable, punishable on a miss).
+7. **Universal cooldown with a HUD read.** Every fighter shares the same dash cooldown.
+8. **Overlap with approach specials is accepted.** Wibou's Dash Slash, Bonk's Joust,
+   Bashie's Shell Slide and Manki's lunge mostly approach along the ground; the dash
+   brings an air approach. The two kinds coexist.
+
+9. **Starts from almost anything.** Every state except hitstun and attacks, out of shield
+   included. An attack's IASA window counts as free: wherever IASA lets other actions in,
+   the dash comes in too, with no dash-specific exception.
+10. **Big range, long range is a risk.** The range is large, but a long dash gives the
+    defender time to see it and answer, so using it from far away is very punishable.
+11. **Two phases.** A startup float (the fighter hangs in place), then the dash itself.
+    Dash speed is the main tuning value.
+12. **Instantly recognizable.** Clear VFX on the float and the dash so a defender reads it
+    at any distance; concepts first per the VFX workflow.
+
+Dash numbers (float length, speed, turn rate, range, cooldown) come from Training.
+
+## Consequences
+
+- ADR-0016's slot model changes: three normal slots instead of four. One slot's data
+  retires in every kit, cooks rebuild, roster pins update.
+- Retired moves leave the tutorial (Fighter's License), AI normal picks, HUD icons, Ability
+  Lab scenarios and the kit-principles doc (`docs/characters/character-kit-design-principles.md`).
+- The dash reuses the reserved Dash input bit, so the wire size does not grow; its state
+  (cooldown, travel, cancel window) joins the rollback snapshot.
+- Players relearn one button. Keyboard players lose key 4 as a normal and gain the dash
+  there.
+
+## Considered alternatives
+
+- **Swap A and RB only, keep four normals.** One normal lands on RB. Rejected: no button for
+  the dash, and the normal on RB is awkward.
+- **Give the freed button to grab.** Rejected: grab already has LB+RT, the same chord
+  pattern Smash uses.
+- **Dash passes through projectiles (FighterZ).** Rejected: projectiles here are
+  cooldown specials with character identity.
+
+## Delivery
+
+1. Dash prototype in Training on RB and key 4, before any layout change.
+2. Normal merges per kit, including the open aerial picks.
+3. Binding switch and tutorial update.
+
+## Implementation notes (2026-10-26)
+
+- **Slot ids.** Normals keep the canonical ids `1`, `3` and `4`; `2` left the grid, so
+  `CanonicalSlotProjection` has 14 entries (air ordinals start at 7) and the compiler rejects
+  `ground.2`/`air.2`. Wire value `AbilitySlots.Slot2` is reserved. Players see the normals as
+  1/2/3 through the bindings. Cooked schema 4; every package was recooked and repinned.
+- **Merges.** Where slot 2 survived (Bashie, FightGuy, Wibou), its move moved into slot `1`.
+  The aerial follows the grounded pick: the kept slot keeps both variants. The retired clips'
+  catalog bindings were removed. Tutorial combo openers for Manki and Bashie now start from
+  normal 1 and need a re-probe; FightGuy no longer has a normal that is safe on block (Low Kick
+  was), which the shield-grab regression now measures with Manki.
+- **Dash wiring.** `InputState.DashPressed` uses the old dash bit (0x20). States
+  `HomingDashFloat`, `HomingDash`, `HomingDashArrive`, `HomingDashMiss`; `CharacterState`
+  gains `DashDirY`, `HomingDashTargetId`, `HomingDashCooldownTicks`, `HomingDashAirUsed`.
+  Protocol 17, World Snapshot v7. `ServerSimulation` admits the press before shield admission
+  and steers the dash before each tick's movement; `Simulation` moves the body without gravity
+  or stick control. The target is the current soft/lock target when eligible, otherwise the
+  dash flies along facing and ends as a miss. Starting out of an air dodge drops its remaining
+  dodge invulnerability.
+- **First-pass numbers** (`HomingDashConfig`): float 12 ticks, 24 m/s for up to 40 ticks
+  (16 m), 4° turn per tick, arrival at the two capsule radii plus 0.5 m, arrival window 14
+  ticks, miss lock 30 ticks, cooldown 180 ticks.
+- **Controls.** A = jump, X/Y/B = normals 1/3/4, LB + A/X/Y/B = specials A/R/E/F, RB = dash;
+  keyboard 1/2/3 = normals, 4 = dash. `InputController` turns LB + A into special A without a
+  jump. The HUD pairs dash/A, 1/R, 3/E, 4/F and shows the dash cooldown.
+- **Presentation is a placeholder:** the air-dodge clip winds up during the float and holds
+  through the dash, with a yellow chest trail (`HomingDashPresentation`). The real look and a
+  sound go through the VFX concept workflow.
+

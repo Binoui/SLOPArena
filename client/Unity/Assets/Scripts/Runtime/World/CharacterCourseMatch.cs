@@ -70,7 +70,7 @@ namespace SlopArena.Client.World
         public static CharacterCourseInfo Course(string key)
             => Array.Find(Courses, c => c.Key == key) ?? new CharacterCourseInfo(key, "CHARACTER COURSE", "the finish", Array.Empty<string>());
         /// <summary>
-        /// A retry starts with a short READY…GO instead of 3-2-1. The countdown never advances the
+        /// A retry starts with a short READY…SLOP IT OUT instead of 3-2-1. The countdown never advances the
         /// simulation (the clock starts at Go), so it cannot change times or record compatibility.
         /// </summary>
         public const ushort RetryCountdownTicks = 60;
@@ -243,7 +243,7 @@ namespace SlopArena.Client.World
             else if (!_wentLive && challenge.Phase == CharacterCoursePhase.Running)
             {
                 _wentLive = true; _inputController.RequireReleaseBeforeHumanInput(); _aimHandler?.ResetPresentation();
-                _hudManager.ShowSoloCountdown("GO", .8f);
+                _hudManager.ShowSoloCountdown("SLOP IT OUT", .8f);
             }
             var owner = Simulation.GetState(PlayerEntityId); Transform selected = null; float radius = 0f;
             var targets = _presentation.Targets;
@@ -270,7 +270,7 @@ namespace SlopArena.Client.World
 
         /// <summary>
         /// A full fresh attempt without reloading the scene: a clean simulation (fighter, projectiles,
-        /// queued effects, targets, checkpoint and clock), cleared presentation and a short READY…GO.
+        /// queued effects, targets, checkpoint and clock), cleared presentation and a short READY…SLOP IT OUT.
         /// The stage, fighter model, music and records stay loaded.
         /// </summary>
         public void RestartAttempt()

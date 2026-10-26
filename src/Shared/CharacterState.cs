@@ -83,8 +83,17 @@ namespace SlopArena.Shared
 
         public byte Deaths;              // match death counter, server authority
 
-        /// <summary>Air-dodge direction captured from the stick, or facing when neutral.</summary>
+        /// <summary>Air-dodge direction captured from the stick, or facing when neutral.
+        /// The homing dash reuses it with <see cref="DashDirY"/> as its unit travel direction.</summary>
         public float DashDirX, DashDirZ;
+        /// <summary>Vertical component of the homing dash direction; zero for air dodges.</summary>
+        public float DashDirY;
+        /// <summary>Entity the current homing dash flies toward; zero flies straight.</summary>
+        public ulong HomingDashTargetId;
+        /// <summary>Universal homing dash cooldown, independent of the move slots.</summary>
+        public ushort HomingDashCooldownTicks;
+        /// <summary>The airborne homing dash is spent until the fighter lands.</summary>
+        public bool HomingDashAirUsed;
 
         /// <summary>Remaining respawn, ledge, or air-dodge invulnerability ticks.</summary>
         public ushort InvincibilityTicks;

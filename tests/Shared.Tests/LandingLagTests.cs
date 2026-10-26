@@ -36,7 +36,7 @@ public class LandingLagTests
         ushort autoCancelAfterTicks,
         float lunge)
         => new(
-            8,
+            7,
             "air.1",
             true,
             "Test Aerial",
@@ -83,7 +83,7 @@ public class LandingLagTests
         if (airFloatGravity != 0f)
             def = def with { Movement = def.Movement with { AirFloatGravity = airFloatGravity } };
         var slots = def.CookedSlots!.ToArray();
-        slots[8] = AirSlot1(lag, before, after, lunge);
+        slots[7] = AirSlot1(lag, before, after, lunge);
         def = def with { CookedSlots = slots };
         return def;
     }
@@ -294,7 +294,7 @@ public class LandingLagTests
 
     /// <summary>
     /// Ability inputs are hard-blocked inside the lock and never buffered through it: a
-    /// Slot2 press at t41 (lag live, anim lock gone) is dropped — no second attack follows,
+    /// Slot3 press at t41 (lag live, anim lock gone) is dropped — no second attack follows,
     /// and no buffered re-trigger fires when the lag expires.
     /// </summary>
     [Fact]
@@ -303,7 +303,7 @@ public class LandingLagTests
         var states = Run(LagDef, 4.7f, tick => tick switch
         {
             0 => new InputState { ActiveSlot = AbilitySlots.Slot1 },
-            41 => new InputState { ActiveSlot = AbilitySlots.Slot2 },
+            41 => new InputState { ActiveSlot = AbilitySlots.Slot3 },
             _ => default,
         });
 

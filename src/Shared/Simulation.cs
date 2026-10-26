@@ -151,15 +151,17 @@ namespace SlopArena.Shared
             DownActionTuning tuning,
             bool verticalMotionOwned,
             float gravityMultiplier = 1f,
-            CombatTuning? combatTuning = null, CookedSlotDefinition? move = null)
+            CombatTuning? combatTuning = null, CookedSlotDefinition? move = null,
+            GroundSpeedTuning? groundSpeedTuning = null)
             => SimulateTick(ref s, def, input, arena, out ordinaryActionOpportunity,
-                out movementActionAccepted, tuning, verticalMotionOwned, move == null ? null : new ActiveMoveView(move, 0, 0, move.IsAir, s.ComboStage, default), gravityMultiplier, combatTuning);
+                out movementActionAccepted, tuning, verticalMotionOwned, move == null ? null : new ActiveMoveView(move, 0, 0, move.IsAir, s.ComboStage, default), gravityMultiplier, combatTuning, groundSpeedTuning);
 
         public static void SimulateTick(
             ref CharacterState s, CharacterDefinition def, InputState input, ArenaDefinition arena,
             out bool ordinaryActionOpportunity, out bool movementActionAccepted,
             DownActionTuning tuning, bool verticalMotionOwned, ActiveMoveView? activeMove,
-            float gravityMultiplier = 1f, CombatTuning? combatTuning = null)
+            float gravityMultiplier = 1f, CombatTuning? combatTuning = null,
+            GroundSpeedTuning? groundSpeedTuning = null)
         {
             _lastDownAdmissionReason = null;
             ordinaryActionOpportunity = false;
@@ -290,6 +292,15 @@ namespace SlopArena.Shared
                     s.QueuedKBBase = 0f; s.QueuedKBGrowth = 0f; s.QueuedKBDamage = 0f; s.QueuedKBForce = 0f; s.QueuedKBResolvedForce = false; s.QueuedKBStun = 0;
                     s.BlockHitstopKind = (byte)DefenseBlockHitstopKind.None;
                 }
+                return;
+            }
+
+            // The homing dash owns its motion: ServerSimulation steers it before this tick,
+            // and the body moves without gravity, friction or stick control.
+            if (s.State is ActionState.HomingDashFloat or ActionState.HomingDash)
+            {
+                TickTimers(ref s);
+                MoveDefenseBody(ref s, def, arena);
                 return;
             }
 
@@ -507,7 +518,8 @@ namespace SlopArena.Shared
                 && input.ActiveSlot > 0 && s.LandingLagTicks == 0 && s.BufferedSlot == 0)
             {
                 bool readyAfterTimers = s.AnimLockTicks == 0 && s.HitstunTicks == 0
-                    && s.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding)
+                    && s.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
+                        or ActionState.HomingDashArrive)
                     && s.GetCooldown(input.ActiveSlot) == 0;
                 if (readyAfterTimers || s.State == ActionState.JumpSquat
                     || (s.AnimLockTicks > 0 && s.AnimLockTicks <= InputBufferWindow)
@@ -535,7 +547,8 @@ namespace SlopArena.Shared
                 && (s.State == ActionState.Idle || s.State == ActionState.Aiming
                     || s.State == ActionState.Run || s.State == ActionState.Crouching
                     || s.State == ActionState.Sliding))
-                ProcessNormalMovement(ref s, moveStats, input, tuning, movementActionAccepted, processInput: !fixedAim);
+                ProcessNormalMovement(ref s, moveStats, input, tuning, movementActionAccepted,
+                    groundSpeedTuning ?? GroundSpeedTuning.Default, processInput: !fixedAim);
             if (verticalMotionOwned && s.IsGrounded
                 && (input.Down || input.DownPressed)
                 && !movementActionAccepted)
@@ -715,9 +728,10 @@ namespace SlopArena.Shared
                     s.State is not (ActionState.Shielding or ActionState.ShieldDrop or
                         ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed or
                         ActionState.Throwing or ActionState.Thrown or ActionState.AirDodgeMovement or
-                        ActionState.AirDodgeRecovery))
+                        ActionState.AirDodgeRecovery or ActionState.HomingDashFloat or ActionState.HomingDash))
                     s.State = ActionState.Idle;
             }
+            if (s.HomingDashCooldownTicks > 0) s.HomingDashCooldownTicks--;
 
 
             // Cooldowns (all 11 slots — issue #117; slots 6-10 got fields in #116 but the
@@ -758,13 +772,14 @@ namespace SlopArena.Shared
                 return false;
 
             return state.State is ActionState.Idle or ActionState.Run or ActionState.Crouching
-                or ActionState.Sliding or ActionState.Attacking or ActionState.Shielding;
+                or ActionState.Sliding or ActionState.Attacking or ActionState.Shielding
+                or ActionState.HomingDashArrive;
         }
 
         private static bool CanAcceptAirDodge(in CharacterState state,
             bool blockStunLocked, bool verticalMotionOwned)
             => !verticalMotionOwned && !blockStunLocked
-                && state.State is (ActionState.Idle or ActionState.Run)
+                && state.State is (ActionState.Idle or ActionState.Run or ActionState.HomingDashArrive)
                 && state.AttackSlot == 0 && state.AnimLockTicks == 0
                 && state.LandingLagTicks == 0 && state.HitstunTicks == 0
                 && state.HitstopTicks == 0
@@ -799,6 +814,7 @@ namespace SlopArena.Shared
                 dirZ = MathF.Cos(state.FacingYaw);
             }
             state.DashDirX = dirX;
+            state.DashDirY = 0f;
             state.DashDirZ = dirZ;
             state.State = ActionState.AirDodgeMovement;
             state.StateTicks = DefenseConfig.AirDodgeMovementTicks;
@@ -809,6 +825,118 @@ namespace SlopArena.Shared
             float speed = AirDodgeBurstSpeed(stats, state.StateTicks);
             state.VX = state.DashDirX * speed;
             state.VZ = state.DashDirZ * speed;
+        }
+
+        /// <summary>
+        /// Start the homing dash float toward <paramref name="dx"/>, <paramref name="dy"/>,
+        /// <paramref name="dz"/> (the offset to the target), or along facing without a target.
+        /// The caller owns admission and retires any interrupted ability first.
+        /// </summary>
+        internal static void StartHomingDash(ref CharacterState state, ulong targetId,
+            float dx, float dy, float dz)
+        {
+            if (state.State == ActionState.AirDodgeMovement
+                && state.InvincibilityTicks <= DefenseConfig.AirDodgeInvulnerabilityTicks)
+                state.InvincibilityTicks = 0;
+            ClearMovementInterruptionFlags(ref state);
+            state.ClearAttackFields();
+            state.ShieldDropTicks = 0;
+            state.AirDodgeRecoveryTicks = 0;
+            state.State = ActionState.HomingDashFloat;
+            state.StateTicks = HomingDashConfig.FloatTicks;
+            state.VX = state.VY = state.VZ = 0f;
+            state.HomingDashTargetId = targetId;
+            state.HomingDashCooldownTicks = HomingDashConfig.CooldownTicks;
+            if (!state.IsGrounded) state.HomingDashAirUsed = true;
+            state.DashDirX = MathF.Sin(state.FacingYaw);
+            state.DashDirY = 0f;
+            state.DashDirZ = MathF.Cos(state.FacingYaw);
+            if (targetId != 0) AimHomingDash(ref state, dx, dy, dz, snap: true);
+        }
+
+        /// <summary>
+        /// Advance the homing dash one tick before movement. <paramref name="hasTarget"/> with
+        /// the offset to the target and the arrival distance between capsule centres; without
+        /// a target the dash keeps its direction and ends as a miss.
+        /// </summary>
+        internal static void StepHomingDash(ref CharacterState state, bool hasTarget,
+            float dx, float dy, float dz, float arrivalDistance)
+        {
+            if (state.State == ActionState.HomingDashFloat)
+            {
+                state.VX = state.VY = state.VZ = 0f;
+                if (hasTarget) AimHomingDash(ref state, dx, dy, dz, snap: true);
+                if (state.StateTicks > 0) return;
+                state.State = ActionState.HomingDash;
+                state.StateTicks = HomingDashConfig.MaxTravelTicks;
+            }
+            else if (state.State != ActionState.HomingDash)
+                return;
+            else if (hasTarget)
+            {
+                float reach = arrivalDistance + HomingDashConfig.Speed * TickDt * 0.5f;
+                if (dx * dx + dy * dy + dz * dz <= reach * reach)
+                {
+                    EndHomingDash(ref state, ActionState.HomingDashArrive, HomingDashConfig.ArriveWindowTicks);
+                    return;
+                }
+                AimHomingDash(ref state, dx, dy, dz, snap: false);
+            }
+            if (state.StateTicks == 0)
+            {
+                EndHomingDash(ref state, ActionState.HomingDashMiss, HomingDashConfig.MissRecoveryTicks);
+                state.AnimLockTicks = HomingDashConfig.MissRecoveryTicks;
+                return;
+            }
+            state.VX = state.DashDirX * HomingDashConfig.Speed;
+            state.VY = state.DashDirY * HomingDashConfig.Speed;
+            state.VZ = state.DashDirZ * HomingDashConfig.Speed;
+        }
+
+        private static void EndHomingDash(ref CharacterState state, ActionState end, ushort ticks)
+        {
+            state.State = end;
+            state.StateTicks = ticks;
+            state.VX = state.VY = state.VZ = 0f;
+            state.HomingDashTargetId = 0;
+        }
+
+        /// <summary>Turn the dash direction toward the target offset, snapping during the float.</summary>
+        private static void AimHomingDash(ref CharacterState state, float dx, float dy, float dz, bool snap)
+        {
+            // Grounded travel slides along the floor instead of pushing into it.
+            if (state.IsGrounded && dy < 0f) dy = 0f;
+            float length = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+            if (length < 1e-4f) return;
+            dx /= length; dy /= length; dz /= length;
+            float x = state.DashDirX, y = state.DashDirY, z = state.DashDirZ;
+            float dot = x * dx + y * dy + z * dz;
+            if (snap || dot >= HomingDashConfig.TurnCos)
+            {
+                x = dx; y = dy; z = dz;
+            }
+            else
+            {
+                // Rotate by the turn limit inside the plane of the two directions.
+                float px = dx - dot * x, py = dy - dot * y, pz = dz - dot * z;
+                float perp = MathF.Sqrt(px * px + py * py + pz * pz);
+                if (perp < 1e-4f)
+                {
+                    // Directly behind: turn around the vertical axis.
+                    px = z; py = 0f; pz = -x;
+                    perp = MathF.Sqrt(px * px + pz * pz);
+                    if (perp < 1e-4f) return;
+                }
+                px /= perp; py /= perp; pz /= perp;
+                x = x * HomingDashConfig.TurnCos + px * HomingDashConfig.TurnSin;
+                y = y * HomingDashConfig.TurnCos + py * HomingDashConfig.TurnSin;
+                z = z * HomingDashConfig.TurnCos + pz * HomingDashConfig.TurnSin;
+                float norm = MathF.Sqrt(x * x + y * y + z * z);
+                x /= norm; y /= norm; z /= norm;
+            }
+            state.DashDirX = x; state.DashDirY = y; state.DashDirZ = z;
+            if (x * x + z * z > 1e-6f)
+                state.FacingYaw = state.AimYaw = MathF.Atan2(x, z);
         }
 
         /// <summary>Front-loaded burst speed, derived from the remaining movement ticks.</summary>
@@ -1383,6 +1511,7 @@ namespace SlopArena.Shared
                 // Natural landing clears knockback
                 ClearKnockback(ref s);
                 s.AirDodgesLeft = MaxAirDodges;
+                s.HomingDashAirUsed = false;
             }
         }
 
@@ -1580,12 +1709,14 @@ namespace SlopArena.Shared
         internal static void RefreshGroundResources(ref CharacterState s, MovementStats stats)
         {
             s.AirDodgesLeft = MaxAirDodges;
+            s.HomingDashAirUsed = false;
             s.JumpsLeft = stats.MaxJumps;
         }
 
         private static void ProcessNormalMovement(
             ref CharacterState s, MovementStats stats, InputState input,
-            DownActionTuning tuning, bool movementActionAccepted, bool processInput = true)
+            DownActionTuning tuning, bool movementActionAccepted, GroundSpeedTuning groundSpeedTuning,
+            bool processInput = true)
         {
             if (!processInput)
             {
@@ -1613,7 +1744,10 @@ namespace SlopArena.Shared
 
             if (s.IsGrounded)
             {
-                ProcessGroundMovement(ref s, stats, input, dirX, dirZ, tuning, movementActionAccepted);
+                float tilt = MathF.Min(1f, MathF.Sqrt(input.MoveX * input.MoveX + input.MoveY * input.MoveY));
+                ProcessGroundMovement(ref s, stats, input, dirX, dirZ, tuning, movementActionAccepted,
+                    tilt, groundSpeedTuning);
+                if (groundSpeedTuning.Model != GroundSpeedModel.Current) return;
             }
             else
             {
@@ -1632,7 +1766,7 @@ namespace SlopArena.Shared
         private static void ProcessGroundMovement(
             ref CharacterState s, MovementStats stats,
             InputState input, float dirX, float dirZ,
-            DownActionTuning tuning, bool movementActionAccepted)
+            DownActionTuning tuning, bool movementActionAccepted, float tilt, GroundSpeedTuning groundSpeedTuning)
         {
             // Ground resources are refreshed for all ordinary low states, but never while
             // JumpSquat is active (the caller does not route squat through this method).
@@ -1666,6 +1800,11 @@ namespace SlopArena.Shared
             bool isLocomotion = s.State == ActionState.Idle || s.State == ActionState.Run;
 
             bool hasInput = ((dirX * dirX) + (dirZ * dirZ)) > 1e-4f;
+
+            if (groundSpeedTuning.Model != GroundSpeedModel.Current
+                && TryProcessPrototypeGroundSpeed(ref s, stats, dirX, dirZ, tilt,
+                    groundSpeedTuning, isLocomotion, hasInput))
+                return;
 
             if (!hasInput)
             {
@@ -1778,6 +1917,154 @@ namespace SlopArena.Shared
             s.FacingYaw = MathF.Atan2(dirX, dirZ);
         }
 
+
+        private static bool TryProcessPrototypeGroundSpeed(ref CharacterState s, MovementStats stats,
+            float dirX, float dirZ, float tilt, GroundSpeedTuning tuning, bool isLocomotion, bool hasInput)
+        {
+            if (tuning.Model == GroundSpeedModel.Progressive)
+                return ProcessProgressiveGroundSpeed(ref s, stats, dirX, dirZ, tuning, isLocomotion, hasInput);
+            float speed = MathF.Sqrt(s.VX * s.VX + s.VZ * s.VZ);
+            float walkSpeed = stats.RunSpeed * tuning.WalkRatio;
+            bool progressive = tuning.Model == GroundSpeedModel.Progressive;
+            bool walk = !progressive && tilt <= tuning.TiltThreshold;
+
+            if (!hasInput)
+            {
+                float lastMagnitudeSq = s.LastDirX * s.LastDirX + s.LastDirZ * s.LastDirZ;
+                bool wasWalking = lastMagnitudeSq > 0f && lastMagnitudeSq < 0.75f * 0.75f;
+                if (progressive || wasWalking)
+                {
+                    float brake = progressive ? GroundStopFriction * TickDt : walkSpeed / tuning.WalkStopTicks;
+                    DecayHorizontalSpeed(ref s, brake);
+                    s.RushTicks = 0;
+                    if (isLocomotion) s.State = ActionState.Idle;
+                    if (progressive || (s.VX == 0f && s.VZ == 0f)) s.LastDirX = s.LastDirZ = 0f;
+                    return true;
+                }
+                return false;
+            }
+
+            // Tiers deliberately delegates its entire run path to the shipped code below.
+            if (tuning.Model == GroundSpeedModel.Tiers && !walk)
+            {
+                float previousMagnitudeSq = s.LastDirX * s.LastDirX + s.LastDirZ * s.LastDirZ;
+                if (previousMagnitudeSq > 0f && previousMagnitudeSq < 0.75f * 0.75f)
+                    s.LastDirX = s.LastDirZ = 0f;
+                return false;
+            }
+
+            float lastLength = MathF.Sqrt(s.LastDirX * s.LastDirX + s.LastDirZ * s.LastDirZ);
+            float lastX = lastLength > 0f ? s.LastDirX / lastLength : 0f;
+            float lastZ = lastLength > 0f ? s.LastDirZ / lastLength : 0f;
+            float dot = lastX * dirX + lastZ * dirZ;
+            bool stopped = s.LastDirX == 0f && s.LastDirZ == 0f;
+            bool reverse = !stopped && dot < -0.5f;
+            bool rushReversal = !progressive && !walk && reverse && s.RushTicks > 0;
+            if (progressive || walk) s.RushTicks = 0;
+            else if (stopped || lastLength < 0.75f || MathF.Abs(dot) < 0.5f || rushReversal) s.RushTicks = stats.RushTicks;
+
+            float target = walk ? walkSpeed : stats.RunSpeed;
+            int ramp = walk ? tuning.WalkRampTicks : tuning.RunRampTicks;
+            float previous = progressive && reverse ? 0f : speed;
+            float next = rushReversal || tuning.Model == GroundSpeedModel.Tiers
+                ? target : MoveToward(previous, target, target / ramp);
+            bool sameInput = MathF.Abs(lastX - dirX) <= 0.001f && MathF.Abs(lastZ - dirZ) <= 0.001f;
+            float perp = s.VX * dirZ - s.VZ * dirX;
+            bool tangentSlide = sameInput && MathF.Abs(perp) > VelocityDeadZone
+                && ((MathF.Abs(s.VX) <= VelocityDeadZone && MathF.Abs(s.VZ) > VelocityDeadZone)
+                    || (MathF.Abs(s.VZ) <= VelocityDeadZone && MathF.Abs(s.VX) > VelocityDeadZone));
+            if (tangentSlide)
+            {
+                float accel = target / ramp;
+                s.VX = MoveToward(s.VX, dirX * target, accel);
+                s.VZ = MoveToward(s.VZ, dirZ * target, accel);
+            }
+            else
+            {
+                s.VX = dirX * next;
+                s.VZ = dirZ * next;
+            }
+            if (isLocomotion) s.State = ActionState.Run;
+            ApplyVelocityDeadZone(ref s);
+            // Prototype-only tier memory survives release and snapshot restore without a codec change.
+            // Every consumer outside locomotion normalizes this direction before using it.
+            s.LastDirX = dirX * (walk ? 0.5f : 1f);
+            s.LastDirZ = dirZ * (walk ? 0.5f : 1f);
+            s.FacingYaw = MathF.Atan2(dirX, dirZ);
+            return true;
+        }
+
+        private static bool ProcessProgressiveGroundSpeed(ref CharacterState s, MovementStats stats,
+            float dirX, float dirZ, GroundSpeedTuning tuning, bool isLocomotion, bool hasInput)
+        {
+            float speed = MathF.Sqrt(s.VX * s.VX + s.VZ * s.VZ);
+            s.RushTicks = 0;
+            if (!hasInput)
+            {
+                if (speed > stats.RunSpeed)
+                {
+                    float brake = GroundStopFriction * TickDt;
+                    s.VX = MoveToward(s.VX, 0f, brake);
+                    s.VZ = MoveToward(s.VZ, 0f, brake);
+                }
+                else DecayHorizontalSpeed(ref s, stats.RunSpeed / tuning.StopTicks);
+                ApplyVelocityDeadZone(ref s);
+                s.LastDirX = s.LastDirZ = 0f;
+                if (isLocomotion) s.State = ActionState.Idle;
+                return true;
+            }
+
+            bool reverse = s.VX * dirX + s.VZ * dirZ < 0f;
+            if (speed > stats.RunSpeed)
+            {
+                // Preserve the shipped dash-to-run coast and overspeed pivot.
+                if (reverse)
+                {
+                    s.VX = dirX * stats.RunSpeed;
+                    s.VZ = dirZ * stats.RunSpeed;
+                }
+                else
+                {
+                    float friction = stats.GroundFriction * TickDt;
+                    s.VX = MoveToward(s.VX, dirX * stats.RunSpeed, friction);
+                    s.VZ = MoveToward(s.VZ, dirZ * stats.RunSpeed, friction);
+                }
+            }
+            else
+            {
+                float previous = reverse ? speed * tuning.TurnaroundKeep : speed;
+                float start = stats.RunSpeed * tuning.StartRatio;
+                float span = stats.RunSpeed - start;
+                float accel = span / tuning.RampTicks;
+                if (tuning.Curve == GroundSpeedCurve.SlowStart)
+                    accel *= 1.6094379f * (0.25f + MathF.Max(0f, previous - start) / span);
+                bool belowStart = previous < start;
+                float next = belowStart ? start : MathF.Min(stats.RunSpeed, previous + accel);
+                if (next >= stats.RunSpeed * 0.999999f) next = stats.RunSpeed;
+                float perp = s.VX * dirZ - s.VZ * dirX;
+                bool sameInput = MathF.Abs(s.LastDirX - dirX) <= 0.001f
+                    && MathF.Abs(s.LastDirZ - dirZ) <= 0.001f;
+                bool tangentSlide = sameInput && MathF.Abs(perp) > VelocityDeadZone
+                    && ((MathF.Abs(s.VX) <= VelocityDeadZone && MathF.Abs(s.VZ) > VelocityDeadZone)
+                        || (MathF.Abs(s.VZ) <= VelocityDeadZone && MathF.Abs(s.VX) > VelocityDeadZone));
+                if (tangentSlide && !belowStart)
+                {
+                    s.VX = MoveToward(s.VX, dirX * stats.RunSpeed, accel);
+                    s.VZ = MoveToward(s.VZ, dirZ * stats.RunSpeed, accel);
+                }
+                else
+                {
+                    s.VX = dirX * next;
+                    s.VZ = dirZ * next;
+                }
+            }
+            ApplyVelocityDeadZone(ref s);
+            s.LastDirX = dirX;
+            s.LastDirZ = dirZ;
+            s.FacingYaw = MathF.Atan2(dirX, dirZ);
+            if (isLocomotion) s.State = ActionState.Run;
+            return true;
+        }
 
         private static void ProcessAirMovement(
             ref CharacterState s, MovementStats stats,

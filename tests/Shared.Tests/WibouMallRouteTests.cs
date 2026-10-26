@@ -289,7 +289,7 @@ public sealed class WibouMallRouteTests
         {
             static string Slot(byte slot) => slot switch
             {
-                AbilitySlots.Slot1 => "1", AbilitySlots.Slot2 => "2", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
+                AbilitySlots.Slot1 => "1", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
                 AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F",
                 _ => throw new InvalidOperationException("Unexpected slot " + slot),
             };

@@ -105,6 +105,25 @@ the report, with her hips moved back so the shell is over her position.
 - **Gotcha:** prone, her shell bowl opens only underneath, so the head must sit in front of the shell's front edge to
   show.
 
+## NO RUNNING! (F)
+
+`bind_catalog.eval.cs` preserves accepted Bashie clip bindings and binds `anim.bashie.whistle` to
+`Animations/bashie_whistle.anim`. On first bind it creates that separate asset from her idle. Later binds keep its
+contents, so `tools/genra/unity_clip.py promote` can replace the stand-in without changing the semantic ID.
+`WhistlePuff` drives the accepted C "full balloon" swell. `WhistlePuffRig` applies the body's baked `Puff` blend
+shape, grows the Shell bone by 20 percent at full puff, and holds the whistle in the Head bone's rest frame.
+
+After every rig re-import or source albedo change, rerun `sloparena.presentation.bashie.puff.build` through the
+gateway. The full `sloparena.presentation.bashie.build` includes this step. `BashiePresentationBuilder.PuffProfile`
+owns the C mesh parameters. The builder reads `Bashie_Body` from the source FBX, samples yellow regions from the
+material's source image, welds seams on a 0.5 mm grid, and blurs belly, side and cheek weights over triangle
+adjacency for six passes. It saves `Presentation/BashieBodyPuff.asset` and points `BashieRig.prefab` at it.
+Reruns overwrite the same mesh asset from the FBX, so they never inflate an already inflated mesh.
+
+Regenerate her three whistle sounds with `python3 tools/sfx/bashie_clips.py`, rebuild with
+`sloparena.presentation.bashie.build`, bind through the eval script, then cook and verify `bashie` through the gateway.
+The [F specification](../../../docs/plans/2026-10-26-bashie-no-running.md) records the timeline and stun values.
+
 ## Unity candidate and in-game previews
 
 Before her package existed, these scripts previewed her on Manki's fighter:

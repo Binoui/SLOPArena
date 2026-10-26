@@ -116,15 +116,16 @@ binding and deterministic pose track; do not map a role to a generic fallback cl
 
 ## 3. Author the canonical grid
 
-Persist these sixteen slot IDs, in ground-then-air order:
+Persist these fourteen slot IDs, in ground-then-air order:
 
-`ground.1`, `ground.2`, `ground.3`, `ground.4`, `ground.A`, `ground.E`, `ground.R`,
-`ground.F`, then the same eight IDs under `air.`. Physical controls are input adapters,
+`ground.1`, `ground.3`, `ground.4`, `ground.A`, `ground.E`, `ground.R`, `ground.F`,
+then the same seven IDs under `air.`. Normal `2` was retired by ADR-0042; the compiler
+rejects it. Physical controls are input adapters,
 not alternate move identity. Author fixed timelines in 60 Hz ticks with engine-owned
 operations. Define damage, hitboxes, recovery, movement, and capability values only from the
 approved kit specification.
 
-`allowSlideCarry` defaults false. Only grounded normals 1–4 may opt in, without aiming,
+`allowSlideCarry` defaults false. Only grounded normals may opt in, without aiming,
 recovery designation, SetVelocity, ForwardLunge, SetAimState or
 StartCapability operations. Conflicts fail compilation with
 `slot.slide-carry.motion-conflict`; aliases inherit the resolved target value.

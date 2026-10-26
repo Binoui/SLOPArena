@@ -419,8 +419,8 @@ public class ServerSimulationTests
         var slots = def.CookedSlots!.ToArray();
         foreach (var (ordinal, id, air, ticks) in new[]
         {
-            (0, "ground.1", false, cooldown), (1, "ground.2", false, (ushort)0),
-            (8, "air.1", true, cooldown), (9, "air.2", true, (ushort)0),
+            (0, "ground.1", false, cooldown), (1, "ground.3", false, (ushort)0),
+            (7, "air.1", true, cooldown), (8, "air.3", true, (ushort)0),
         })
             slots[ordinal] = new CookedSlotDefinition(
                 ordinal, id, air, "Cooldown fixture", "", "",
@@ -480,10 +480,10 @@ public class ServerSimulationTests
         var sim = IasaCooldownSim(airborne);
         var activation = sim.GetLastActivationId(1);
 
-        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot2) });
+        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot3) });
 
         Assert.NotEqual(activation, sim.GetLastActivationId(1));
-        Assert.Equal(AbilitySlots.Slot2, sim.GetState(1).AttackSlot);
+        Assert.Equal(AbilitySlots.Slot3, sim.GetState(1).AttackSlot);
         Assert.Equal((ushort)119, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
     }
 
@@ -872,7 +872,7 @@ public class ServerSimulationTests
     }
 
     [Fact]
-    public void LegacyDashInputCannotStartAirDodgeOrOldBurst()
+    public void AirborneDashStartsTheHomingDashWithoutSpendingAnAirDodge()
     {
         var def = MakeTestDef();
         var sim = new ServerSimulation(TestHelpers.TestArena());
@@ -880,9 +880,9 @@ public class ServerSimulationTests
         state.IsGrounded = false;
         state.PY += 10f;
         sim.RegisterEntity(1, def, state);
-        sim.Tick(new Dictionary<ulong, InputState> { [1] = TestHelpers.ReservedInput(0x20, new() { MoveY = -1f }) });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { DashPressed = true, MoveY = -1f } });
         var after = sim.GetState(1);
-        Assert.Equal(ActionState.Idle, after.State);
+        Assert.Equal(ActionState.HomingDashFloat, after.State);
         Assert.Equal((byte)1, after.AirDodgesLeft);
         Assert.True(MathF.Sqrt(after.VX * after.VX + after.VZ * after.VZ)
             < def.Movement.DashSpeed);

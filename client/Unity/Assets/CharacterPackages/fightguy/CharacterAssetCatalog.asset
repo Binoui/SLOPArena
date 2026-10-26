@@ -50,14 +50,6 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 3f3fbde2c4e4181669da0484ea7f2a8f, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.hit-hard
-  - _semanticId: anim.low-kick
-    _clip: {fileID: 7400000, guid: eb14612d3e2086d5dbbc4f6176ca362d, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.low-kick
-  - _semanticId: anim.double-punch
-    _clip: {fileID: 7400000, guid: ef68c8deeec6feeb7be8cdd4f6263483, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.double-punch
   - _semanticId: anim.straight-punch
     _clip: {fileID: 7400000, guid: 2abcbbc86b240cfa4a3850e8922b0298, type: 2}
     _extrapolation: 0

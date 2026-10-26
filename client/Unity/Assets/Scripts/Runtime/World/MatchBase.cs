@@ -75,6 +75,8 @@ namespace SlopArena.Client.World
             UpdateCameraFraming();
         }
 
+        private readonly List<FramingSubject> _framingSubjects = new();
+
         private void UpdateCameraFraming()
         {
             if (_cameraMount == null || _playerRenderer == null || Bridge == null) return;
@@ -84,6 +86,7 @@ namespace SlopArena.Client.World
             var playerPosition = new Vector3(player.PX, player.PY, player.PZ);
             var bounds = new Bounds(playerPosition, Vector3.zero);
             Vector3? target = null;
+            _framingSubjects.Clear();
             float nearestDistance = float.PositiveInfinity;
             ulong nearestId = ulong.MaxValue;
             bool stockMatch = MatchConfig.Mode == GameMode.Solo
@@ -95,6 +98,8 @@ namespace SlopArena.Client.World
                 var state = pair.Value;
                 var position = new Vector3(state.PX, state.PY, state.PZ);
                 bounds.Encapsulate(position);
+                _framingSubjects.Add(new FramingSubject(pair.Key, position,
+                    !state.IsGrounded && (state.HitstunTicks > 0 || state.InPostHitstunFlight)));
                 // Prefer Shared's selected target. The nearest fallback is camera-only:
                 // it never changes target selection, facing, or attack admission.
                 float distance = (position - playerPosition).sqrMagnitude;
@@ -110,7 +115,7 @@ namespace SlopArena.Client.World
                     nearestId = pair.Key;
                 }
             }
-            _cameraMount.SetFramingSubjects(playerPosition, target, bounds);
+            _cameraMount.SetFramingSubjects(playerPosition, target, bounds, player.IsGrounded, _framingSubjects);
         }
         protected virtual void OnDestroy()
         {
@@ -374,8 +379,11 @@ namespace SlopArena.Client.World
             var indicator = go.AddComponent<TargetIndicator>();
             indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
-                    ? camp : SlopballCamp.None, CourseColours.ForEntity);
+                    ? camp : SlopballCamp.None, CourseColours.ForEntity, LocalAccentOf);
         }
+
+        /// <summary>Couch play: extra Local Players and their facing-ring accent; null for everyone else.</summary>
+        protected virtual Func<ulong, Color?> LocalAccentOf => null;
 
 
         /// <summary>

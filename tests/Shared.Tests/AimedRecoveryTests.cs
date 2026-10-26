@@ -238,12 +238,15 @@ public sealed class AimedRecoveryTests
         var definition = TestHelpers.EngineDef;
         definition = definition with { Movement = definition.Movement with { Gravity = 24f } };
         var slots = definition.CookedSlots!.ToArray();
-        foreach (int ordinal in new[] { 5, 13 })
-            slots[ordinal] = new CookedSlotDefinition(ordinal, ordinal == 5 ? "ground.E" : "air.E", ordinal >= 8,
+        foreach (bool airborne in new[] { false, true })
+        {
+            CanonicalSlotProjection.TryGet(airborne, "E", out var address);
+            slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, airborne,
                 "Aimed recovery fixture", "", "", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 210, true, false,
                 new CookedTimeline(new[] { new CookedStage(hop ? (ushort)54 : EndTick, 0, 0, 0, 0, Array.Empty<string>(),
                     new CookedTimelineOperation[] { new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
                         CharacterPackageCompiler.AimedRecoveryCapabilityId, "1", hop ? HopParameters : Parameters) }) }));
+        }
         definition = definition with { CookedSlots = slots };
         return definition;
     }

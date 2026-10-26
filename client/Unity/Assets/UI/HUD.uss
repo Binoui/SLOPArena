@@ -21,65 +21,144 @@
     left: 50%;
     top: 32%;
     translate: -50% -50%;
-    width: 480px;
-    height: 190px;
+    width: 2000px;
+    height: 800px;
     align-items: center;
     justify-content: center;
 }
 
+/* Fight flyer: a paper card in an ink frame with a hard ink shadow, taped up, printed
+   slightly off-register in Orange. SLOP IT OUT is the yellow poster with the bomb as its O. */
 .solo-countdown-stamp {
-    width: 268px;
-    height: 84px;
-    background-color: #F0EEE8;
-    border-width: 2px;
-    border-color: #1B1A18;
+    flex-shrink: 0;
     transform-origin: center;
 }
 
-.solo-countdown-title,
-.solo-countdown-print {
+.solo-countdown-shadow,
+.solo-countdown-card {
     position: absolute;
     left: 0;
     right: 0;
     top: 0;
     bottom: 0;
+}
+
+.solo-countdown-shadow {
+    left: 14px;
+    top: 14px;
+    right: -14px;
+    bottom: -14px;
+    background-color: #1B1A18;
+}
+
+.solo-countdown-card {
+    background-color: #F0EEE8;
+    border-width: 7px;
+    border-color: #1B1A18;
+}
+
+.solo-countdown-tape {
+    position: absolute;
+    width: 92px;
+    height: 28px;
+    background-color: rgba(255, 204, 34, 0.92);
+    border-width: 2px;
+    border-color: rgba(27, 26, 24, 0.35);
+    rotate: -28deg;
+}
+
+.solo-countdown-tape--top {
+    left: -34px;
+    top: -6px;
+}
+
+.solo-countdown-tape--bottom {
+    right: -34px;
+    bottom: -6px;
+}
+
+.solo-countdown-words {
+    padding: 14px 56px 10px 56px;
+}
+
+.solo-countdown-title,
+.solo-countdown-print,
+.solo-countdown-mark-text {
     margin: 0;
     padding: 0;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-center;
-    font-size: 48px;
+    font-size: 110px;
     white-space: nowrap;
-}
-
-.solo-countdown-title {
     color: #1B1A18;
+    flex-shrink: 0;
 }
 
 .solo-countdown-print {
+    position: absolute;
+    left: 56px;
+    right: 56px;
+    top: 14px;
+    bottom: 10px;
     color: #E05C2A;
-    translate: 3px 3px;
+    translate: 6px 6px;
 }
 
-.solo-countdown--number .solo-countdown-stamp {
-    width: 148px;
-    height: 156px;
+.solo-countdown-mark {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    padding: 18px 60px 12px 60px;
+}
+
+.solo-countdown-mark-text {
+    font-size: 104px;
+}
+
+.solo-countdown-bomb {
+    flex-shrink: 0;
+    width: 102px;
+    height: 102px;
+    margin: -22px 2px 0 -8px;
+    background-image: url("SlopArenaIcon.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.solo-countdown--number .solo-countdown-words {
+    padding: 0 58px;
+}
+
+.solo-countdown--number .solo-countdown-print {
+    left: 58px;
+    right: 58px;
+    top: 0;
+    bottom: 0;
 }
 
 .solo-countdown--number .solo-countdown-title,
 .solo-countdown--number .solo-countdown-print {
-    font-size: 122px;
+    font-size: 240px;
 }
 
-.solo-countdown--start .solo-countdown-stamp {
-    width: 468px;
-    height: 106px;
+.solo-countdown--start .solo-countdown-card {
     background-color: #FFCC22;
-    border-width: 3px;
+}
+
+.solo-countdown--start .solo-countdown-tape {
+    background-color: rgba(240, 238, 232, 0.92);
 }
 
 .solo-countdown--start .solo-countdown-title,
 .solo-countdown--start .solo-countdown-print {
-    font-size: 48px;
+    font-size: 84px;
+}
+
+.solo-countdown--mark .solo-countdown-words {
+    display: none;
+}
+
+.solo-countdown--mark .solo-countdown-mark {
+    display: flex;
 }
 
 
@@ -97,55 +176,98 @@
 .solo-end-anchor {
     position: absolute;
     left: 50%;
-    top: 32%;
+    top: 34%;
     translate: -50% -50%;
-    width: 640px;
-    height: 240px;
+    width: 2000px;
+    height: 900px;
     align-items: center;
     justify-content: center;
 }
 
+/* The finish poster bookends the start flyer: a taped portrait slip and a yellow declaration,
+   both in the heavy Ink frame with a hard Ink shadow; the headline is printed off-register in Orange. */
 .solo-end-poster {
-    width: 640px;
-    height: 226px;
+    flex-shrink: 0;
     flex-direction: row;
     align-items: center;
     rotate: -3deg;
     transform-origin: center;
 }
 
-.solo-end-portrait-slip {
-    width: 166px;
-    height: 198px;
-    margin-right: 14px;
-    padding: 8px 8px 5px 8px;
-    background-color: #F0EEE8;
-    border-width: 2px;
+.solo-end-shadow,
+.solo-end-card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.solo-end-shadow {
+    left: 14px;
+    top: 14px;
+    right: -14px;
+    bottom: -14px;
+    background-color: #1B1A18;
+}
+
+.solo-end-card {
+    border-width: 7px;
     border-color: #1B1A18;
-    rotate: 4deg;
+}
+
+.solo-end-card--slip { background-color: #F0EEE8; }
+.solo-end-card--declaration { background-color: #FFCC22; }
+
+.solo-end-tape {
+    position: absolute;
+    width: 92px;
+    height: 28px;
+    background-color: rgba(240, 238, 232, 0.92);
+    border-width: 2px;
+    border-color: rgba(27, 26, 24, 0.35);
+    rotate: -28deg;
+}
+
+.solo-end-tape--slip {
+    left: 72px;
+    top: -14px;
+    rotate: 6deg;
+    background-color: rgba(255, 204, 34, 0.92);
+}
+
+.solo-end-tape--top { left: -34px; top: -6px; }
+.solo-end-tape--bottom { right: -34px; bottom: -6px; }
+
+.solo-end-portrait-slip {
+    width: 246px;
+    margin-right: 30px;
+    padding: 16px 16px 10px 16px;
+    rotate: 5deg;
+    flex-shrink: 0;
 }
 
 .solo-end-portraits {
-    height: 150px;
+    height: 222px;
     flex-direction: row;
     justify-content: center;
 }
 
 .solo-end-portrait {
-    width: 144px;
-    height: 150px;
+    width: 214px;
+    height: 222px;
 }
 
 .solo-end-other-portrait {
     display: none;
-    width: 72px;
-    height: 150px;
+    width: 107px;
+    height: 222px;
 }
 
 .solo-end-name {
-    margin: 4px 0 0 0;
+    margin: 6px 0 0 0;
     padding: 0;
-    font-size: 22px;
+    font-size: 30px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-center;
     color: #1B1A18;
@@ -153,56 +275,47 @@
 }
 
 .solo-end-declaration {
-    width: 460px;
-    height: 226px;
-    padding: 8px 14px 12px 14px;
-    background-color: #FFCC22;
-    border-width: 3px;
-    border-color: #1B1A18;
+    padding: 22px 40px 28px 40px;
+    flex-shrink: 0;
 }
 
 .solo-end-headline {
-    height: 156px;
     flex-shrink: 0;
     position: relative;
 }
 
 .solo-end-title,
 .solo-end-print {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
     margin: 0;
     padding: 0;
-    font-size: 68px;
+    font-size: 108px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-left;
-    white-space: normal;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .solo-end-title { color: #1B1A18; }
-.solo-end-print { color: #E05C2A; translate: 3px 3px; }
+.solo-end-print { position: absolute; left: 0; top: 0; color: #E05C2A; translate: 6px 6px; }
 
 .solo-end-outcome {
-    height: 38px;
     flex-shrink: 0;
-    margin: 3px 0 0 0;
-    padding: 0 8px;
+    align-self: flex-start;
+    margin: 12px 0 0 0;
+    padding: 6px 18px;
     background-color: #1B1A18;
-    color: #F0EEE8;
-    font-size: 26px;
+    color: #FFCC22;
+    font-size: 40px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-left;
     white-space: nowrap;
 }
 
-.solo-end--shared .solo-end-declaration { background-color: #F0EEE8; }
-.solo-end--shared .solo-end-portraits { height: 140px; }
-.solo-end--shared .solo-end-portrait { width: 72px; height: 140px; }
-.solo-end--shared .solo-end-other-portrait { display: flex; height: 140px; }
-.solo-end--shared .solo-end-name { font-size: 14px; height: 34px; white-space: normal; }
+.solo-end--shared .solo-end-card--declaration { background-color: #F0EEE8; }
+.solo-end--shared .solo-end-portrait { width: 107px; }
+.solo-end--shared .solo-end-other-portrait { display: flex; }
+.solo-end--shared .solo-end-name { font-size: 20px; white-space: normal; }
+.solo-end--team .solo-end-portrait-slip { display: none; }
 
 .player-billboard {
     position: absolute;
@@ -234,50 +347,86 @@
 
 .stock-toast-player {
     position: absolute;
-    left: 342px;
-    top: 24px;
-    width: 172px;
-    height: 78px;
-    padding: 3px 10px 6px 10px;
-    background-color: #F0EEE8;
-    border-width: 2px;
-    border-color: #161513;
-    border-bottom-width: 5px;
+    left: 350px;
+    top: 14px;
+    padding: 6px 22px 12px 22px;
     rotate: -5deg;
     transform-origin: left center;
 }
 
-.stock-toast-title {
-    height: 46px;
+.stock-toast-shadow,
+.stock-toast-card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.stock-toast-shadow {
+    left: 7px;
+    top: 7px;
+    right: -7px;
+    bottom: -7px;
+    background-color: #1B1A18;
+}
+
+.stock-toast-card {
+    background-color: #F0EEE8;
+    border-width: 4px;
+    border-bottom-width: 8px;
+    border-color: #1B1A18;
+}
+
+.stock-toast-tape {
+    position: absolute;
+    left: -18px;
+    top: -4px;
+    width: 54px;
+    height: 17px;
+    background-color: rgba(255, 204, 34, 0.92);
+    border-width: 1px;
+    border-color: rgba(27, 26, 24, 0.35);
+    rotate: -28deg;
+}
+
+.stock-toast-headline {
+    position: relative;
+}
+
+.stock-toast-title,
+.stock-toast-print {
     margin: 0;
     padding: 0;
-    color: #1B1A18;
-    font-size: 42px;
+    font-size: 58px;
     -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-left;
+    white-space: nowrap;
+    color: #1B1A18;
+}
+
+.stock-toast-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #E05C2A;
+    translate: 4px 4px;
 }
 
 .stock-toast-detail {
     margin: 0;
     padding: 0;
     color: #1B1A18;
-    font-size: 11px;
-    -unity-font-style: bold;
+    font-size: 17px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-left;
+    white-space: nowrap;
 }
 
-.stock-toast-player--out {
-    background-color: #161513;
-    border-color: #F0EEE8;
-}
-
-.stock-toast-player--out .stock-toast-title {
-    color: #EF4444;
-}
-
-.stock-toast-player--out .stock-toast-detail {
-    color: #F0EEE8;
-}
+/* The last life: the same card printed in reverse, Ink with Paper lettering. */
+.stock-toast-player--out .stock-toast-card { background-color: #1B1A18; border-color: #F0EEE8; }
+.stock-toast-player--out .stock-toast-title,
+.stock-toast-player--out .stock-toast-detail { color: #F0EEE8; }
 
 .billboard-left {
     padding-left: 108px;

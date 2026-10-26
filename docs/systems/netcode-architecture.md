@@ -509,7 +509,8 @@ for marker 0 or 237 bytes for marker 1; mismatches are rejected. The client disc
 malformed/incompatible state datagrams without ending its receive loop. Historical codec source:
 `src/Shared/ServerEntityPacket.cs`.
 
-InputState is 22 bytes. `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
+InputState is 22 bytes. `Flags` (byte 8) carries `0x20=DashPressed`, the homing dash edge
+(ADR-0042); `0x40` stays reserved. `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
 `0x20=ShieldPressed`, `0x40=GrabPressed`, and `0x80=RetargetPressed`.
 `ShieldPressed` and `GrabPressed` are one-tick edges. The sim chooses grounded shield
 versus airborne dodge from authoritative state; client-side chord binding emits

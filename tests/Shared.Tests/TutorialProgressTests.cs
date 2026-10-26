@@ -122,13 +122,13 @@ public sealed class TutorialProgressTests
         var idle = Fighter(Player);
         Observe(progress, idle, idle, new[]
         {
-            Hit(AbilitySlots.Slot1, airborne: true), Hit(AbilitySlots.Slot2, blocked: true),
-            Hit(AbilitySlots.Slot3, target: 99), Hit(AbilitySlots.A),
+            Hit(AbilitySlots.Slot1, airborne: true), Hit(AbilitySlots.Slot3, blocked: true),
+            Hit(AbilitySlots.Slot4, target: 99), Hit(AbilitySlots.A),
         });
-        Assert.All(Enumerable.Range(0, 4), i => Assert.Equal(0f, progress.Amount(i)));
-        Assert.Equal(0b1111, Observe(progress, idle, idle, new[]
+        Assert.All(Enumerable.Range(0, 3), i => Assert.Equal(0f, progress.Amount(i)));
+        Assert.Equal(0b111, Observe(progress, idle, idle, new[]
         {
-            Hit(AbilitySlots.Slot1), Hit(AbilitySlots.Slot2), Hit(AbilitySlots.Slot3), Hit(AbilitySlots.Slot4),
+            Hit(AbilitySlots.Slot1), Hit(AbilitySlots.Slot3), Hit(AbilitySlots.Slot4),
         }));
         Assert.True(progress.LessonComplete);
     }
@@ -138,8 +138,8 @@ public sealed class TutorialProgressTests
     {
         var progress = At(TutorialLessonId.Aerials);
         var air = Fighter(Player, feet: 1f, grounded: false);
-        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot2, airborne: true) });
-        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot2, airborne: true, activation: 2) });
+        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot3, airborne: true) });
+        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot3, airborne: true, activation: 2) });
         Observe(progress, air, air, new[] { Hit(AbilitySlots.E, airborne: true, activation: 3) });
         Assert.Equal(1f, progress.Amount(0));
         Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot4, airborne: true, activation: 4) });
@@ -228,7 +228,7 @@ public sealed class TutorialProgressTests
         Assert.Equal(1f, progress.Amount(0));
 
         Observe(progress, idle, idle, dummyBefore: stunned, dummy: dummy);
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot2, activation: 2) }, dummy, stunned);
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot4, activation: 2) }, dummy, stunned);
         Assert.Equal(1, progress.ComboHits);
         Assert.False(progress.LessonComplete);
 

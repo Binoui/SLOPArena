@@ -266,7 +266,7 @@ public sealed class CombatReviewRegressionTests
                     new CookedTimelineOperation[] { new CookedSetAimStateOperation(0, AuthoringUnit.Ticks, AuthoringAimMode.CameraForward3D) }) }),
                 aimMovement: movement, aimMovementSpeedScale: .25f);
         slots[0] = AimSlot(0, false, AuthoringAimMovementMode.Fixed);
-        slots[8] = AimSlot(8, true, AuthoringAimMovementMode.Mobile);
+        slots[7] = AimSlot(7, true, AuthoringAimMovementMode.Mobile);
         def = def with { CookedSlots = slots };
         var sim = new ServerSimulation(Arena());
         var state = Initial(def, 1) with { PY = 4, IsGrounded = false };

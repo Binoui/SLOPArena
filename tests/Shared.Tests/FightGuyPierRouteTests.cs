@@ -249,7 +249,7 @@ public sealed class FightGuyPierRouteTests
         }
 
         /// <summary>Ground attacks (straight punch by default) until the target breaks.</summary>
-        public void Punch(string id, byte slot = AbilitySlots.Slot2, float range = 1.0f, Vector2? from = null)
+        public void Punch(string id, byte slot = AbilitySlots.Slot1, float range = 1.0f, Vector2? from = null)
         {
             Approach(id, range, from);
             var target = Target(id).Position;
@@ -313,7 +313,7 @@ public sealed class FightGuyPierRouteTests
         {
             static string Slot(byte slot) => slot switch
             {
-                AbilitySlots.Slot1 => "1", AbilitySlots.Slot2 => "2", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
+                AbilitySlots.Slot1 => "1", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
                 AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F",
                 _ => throw new InvalidOperationException("Unexpected slot " + slot),
             };

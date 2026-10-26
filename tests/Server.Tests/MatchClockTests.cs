@@ -246,7 +246,7 @@ public class MatchClockTests
             while (deadline.Elapsed < TimeSpan.FromSeconds(2) && match.ServerTick < resumeTick + 3)
                 Thread.Sleep(1);
             uint lateTick = match.ServerTick - 1;
-            var latePress = new InputState { Jump = true, ActiveSlot = AbilitySlots.Slot2 };
+            var latePress = new InputState { Jump = true, ActiveSlot = AbilitySlots.Slot3 };
             InputBundle.Write(inputFrame, firstEntity, lateTick, new[] { latePress });
             first.Send(inputFrame, inputFrame.Length, endpoint);
             uint rescuedTick = 0;
@@ -255,7 +255,7 @@ public class MatchClockTests
             {
                 Drain(first, firstBaseline, firstLatest, firstEntity, isFirstPeer: true);
                 foreach (var (tick, relayed) in firstInputs)
-                    if (tick > lateTick && relayed.Jump && relayed.ActiveSlot == AbilitySlots.Slot2)
+                    if (tick > lateTick && relayed.Jump && relayed.ActiveSlot == AbilitySlots.Slot3)
                         rescuedTick = tick;
                 Thread.Sleep(1);
             }

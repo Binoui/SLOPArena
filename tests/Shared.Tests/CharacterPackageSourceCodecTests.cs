@@ -69,20 +69,20 @@ public sealed class CharacterPackageSourceCodecTests
         var source = parsed.Source!.Character.Slots.Single(x => x.Id == "air.1")
             .Timeline.Stages[0].Operations.OfType<StartupAimCorrectionOperationSource>().Single();
         Assert.Equal((ushort)0, source.Tick);
-        Assert.Equal((ushort)7, source.EndTick);
+        Assert.Equal((ushort)8, source.EndTick);
         Assert.Equal(15f, source.MaxPitchDegrees);
         Assert.Equal(180f, source.PitchDegreesPerSecond);
 
         string serialized = CharacterPackageSourceCodec.SerializeCharacter(parsed.Source.Character);
         Assert.Contains("\"kind\": \"startupAimCorrection\"", serialized);
-        Assert.Contains("\"endTick\": 7", serialized);
+        Assert.Contains("\"endTick\": 8", serialized);
         var roundTrip = CharacterPackageSourceCodec.Load(Fixture("package.json"), serialized);
         Assert.True(roundTrip.IsValid, string.Join("\n", roundTrip.Diagnostics));
         var cooked = CharacterPackageCompiler.Compile(roundTrip.Source!, CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(cooked.CookedPackage);
         var operation = Assert.IsType<CookedStartupAimCorrectionOperation>(
             cooked.CookedPackage!.Definition.Slots.Single(x => x.Id == "air.1").Timeline.Stages[0].Operations[0]);
-        Assert.Equal((ushort)7, operation.EndTick);
+        Assert.Equal((ushort)8, operation.EndTick);
         Assert.Equal(15f, operation.MaxPitchDegrees);
 
         var malformed = JsonNode.Parse(serialized)!.AsObject();
@@ -353,7 +353,7 @@ public sealed class CharacterPackageSourceCodecTests
     public void MinimalTemplateHasExactlyUniversalSlotsAndNoCapabilities()
     {
         var source = CharacterPackageSourceCodec.CreateMinimal("test-character", "Test Character", "Binoui", "MIT", "SlopArena");
-        Assert.Equal(new[] { "ground.1", "ground.2", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F", "air.1", "air.2", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F" }, source.Character.Slots.Select(x => x.Id));
+        Assert.Equal(new[] { "ground.1", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F", "air.1", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F" }, source.Character.Slots.Select(x => x.Id));
         Assert.Empty(source.Character.CapabilityRequirements);
         Assert.All(source.Character.Slots, x => Assert.Empty(x.Timeline.Stages));
         Assert.DoesNotContain("FightGuy", CharacterPackageSourceCodec.SerializeCharacter(source.Character));
@@ -423,8 +423,8 @@ public sealed class CharacterPackageSourceCodecTests
     public void EditHelpersRejectOutOfRangeWithoutMutation()
     {
         var source = CharacterPackageSourceCodec.CreateMinimal("test-character", "Test", "Binoui", "MIT", "SlopArena");
-        var result = CharacterPackageSourceCodec.RemoveStage(source, 16, 0);
+        var result = CharacterPackageSourceCodec.RemoveStage(source, 14, 0);
         Assert.False(result.IsValid);
-        Assert.Equal(16, source.Character.Slots.Count);
+        Assert.Equal(14, source.Character.Slots.Count);
     }
 }

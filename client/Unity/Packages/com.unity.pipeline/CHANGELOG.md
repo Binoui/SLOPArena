@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Pressing Play in the Editor claims the lease for `human:owner`, so agent batches queue until Stop. Play pressed during an agent batch is cancelled, queued ahead of every agent and started by itself when that batch settles (pressing Play again cancels it); the handoff is atomic and revokes the agent token. While the owner plays, assembly reloads and auto-refresh wait. `Window/Pipeline/Hold Editor for Me` holds the lease in Edit Mode. `editor_play` and Play Mode test runs stay the agent's; the main window title shows a queued or held human lease.
 - Stop serving before a domain reload: close the listener, fail queued main-thread work and let admitted requests answer before ownership is persisted, keeping the discovery descriptor for the next domain. A request waiting for the main thread during the unload previously kept a thread in the old domain and hung the Editor.
 - Hold domain reloads while a command's returned Task is still running (test runs exempt), so a compile that finishes mid-command reloads after it instead of destroying its continuation and leaving its ownership operation unknown.
 - `editor_play` skips the domain reload unless `reload=true`, and restores the project's Enter Play Mode Options when Play Mode ends or on the next Editor start after a crash.

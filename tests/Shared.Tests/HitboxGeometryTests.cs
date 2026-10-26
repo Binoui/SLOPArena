@@ -48,7 +48,7 @@ public class HitboxGeometryTests
         def = def with { HipHeight = 0.5f };
         var slots = def.CookedSlots!.ToArray();
         slots[0] = NormalSlot(0, "ground.1", false, groundDuration);
-        slots[8] = NormalSlot(8, "air.1", true, airDuration);
+        slots[7] = NormalSlot(7, "air.1", true, airDuration);
         def = def with { CookedSlots = slots };
 
 
@@ -355,7 +355,7 @@ public class HitboxGeometryTests
                             "point", null, 0, 0, 0, 0, 0, 20, true, 0)),
                 }),
             }));
-        slots[8] = new CookedSlotDefinition(8, "air.1", true, "test", "", "",
+        slots[7] = new CookedSlotDefinition(7, "air.1", true, "test", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[] { new CookedStage(30, 0, 0, 0, 0, new[] { "airattack" }, Array.Empty<CookedTimelineOperation>()) }));
         def = def with { CookedSlots = slots };

@@ -51,10 +51,11 @@ namespace SlopArena.EditorTools
                 MouseButtonsCastAndHold(input, mouse, pad);
                 WheelDirectionsCastAndRelease(input, mouse);
                 MouseDefenseReachesSimulationInput(input, mouse);
+                ControllerLayoutJumpsDashesAndCastsSpecialA(input, pad);
                 ConflictsAndCancellationPreserveBindings(mouse, keyboard);
                 OverridesSurviveNewBindingIds();
                 LegacyOverridesStillLoad();
-                Debug.Log("[HumanInputRebindingSelfTest] Passed all five mouse buttons, normal/special holds, four wheel directions and repeated ticks, defense, conflicts, cancellation, saved/cleared bindings, and legacy preferences.");
+                Debug.Log("[HumanInputRebindingSelfTest] Passed all five mouse buttons, normal/special holds, four wheel directions and repeated ticks, defense, the controller layout (A jump, LB+A special, RB dash, X/Y/B normals), conflicts, cancellation, saved/cleared bindings, and legacy preferences.");
             }
             finally
             {
@@ -84,7 +85,6 @@ namespace SlopArena.EditorTools
             var cases = new[]
             {
                 ("Slot1", MouseButton.Left, "leftButton", AbilitySlots.Slot1),
-                ("Slot2", MouseButton.Right, "rightButton", AbilitySlots.Slot2),
                 ("Slot3", MouseButton.Middle, "middleButton", AbilitySlots.Slot3),
                 ("Slot4", MouseButton.Forward, "forwardButton", AbilitySlots.Slot4),
                 ("SlotA", MouseButton.Back, "backButton", AbilitySlots.A),
@@ -163,6 +163,39 @@ namespace SlopArena.EditorTools
             input.Poll();
             Require(!input.BuildInputState(null, 0f, 0, default, null).input.ShieldHeld,
                 "Mouse shield stayed held after release.");
+        }
+
+        /// <summary>ADR-0042: A jumps, LB + A casts special A without jumping, RB dashes, X/Y/B are the normals.</summary>
+        private static void ControllerLayoutJumpsDashesAndCastsSpecialA(InputController input, Gamepad pad)
+        {
+            HumanInputActions.ResetOverrides();
+            SlopArena.Shared.InputState Press(GamepadState state)
+            {
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                InputSystem.Update();
+                input.Poll();
+                input.ClearPendingFrameState();
+                InputSystem.QueueStateEvent(pad, state);
+                InputSystem.Update();
+                input.Poll();
+                return input.BuildInputState(null, 0f, input.ConsumePendingSlotPress(), default, null).input;
+            }
+
+            var jump = Press(new GamepadState().WithButton(GamepadButton.South));
+            Require(jump.Jump && jump.JumpHeld && jump.ActiveSlot == 0, "A did not jump on its own.");
+            var special = Press(new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.South));
+            Require(!special.Jump && !special.JumpHeld && special.ActiveSlot == AbilitySlots.A,
+                "LB + A did not cast special A without a jump.");
+            var dash = Press(new GamepadState().WithButton(GamepadButton.RightShoulder));
+            Require(dash.DashPressed && !dash.Jump && dash.ActiveSlot == 0, "RB did not press the homing dash.");
+            Require(Press(new GamepadState().WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.Slot1, "X is not normal 1.");
+            Require(Press(new GamepadState().WithButton(GamepadButton.North)).ActiveSlot == AbilitySlots.Slot3, "Y is not normal 2 (slot 3).");
+            Require(Press(new GamepadState().WithButton(GamepadButton.East)).ActiveSlot == AbilitySlots.Slot4, "B is not normal 3 (slot 4).");
+            Require(Press(new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.R,
+                "LB + X is not special R.");
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            InputSystem.Update();
+            input.ClearPendingFrameState();
         }
 
         private static void ConflictsAndCancellationPreserveBindings(Mouse mouse, Keyboard keyboard)

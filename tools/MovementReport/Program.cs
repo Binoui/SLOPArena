@@ -20,7 +20,7 @@ namespace SlopArena.MovementReport;
 /// every number comes out of the sim. Stage-relative rows use the real baked arenas
 /// (data/arenas/*.arena). Melee reference: docs/research/melee-movement-audit.md.
 /// </summary>
-internal static class Program
+internal static partial class Program
 {
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -41,7 +41,12 @@ internal static class Program
         string? outPath = ParseArg(args, "--out");
 
         var defs = new List<CharacterDefinition>();
-        if (charName == "all")
+        if (charName == "all" && (args.Contains("--ground-speed") || args.Contains("--progressive-tuning")))
+        {
+            var roster = BuiltInRosterManifestCodec.Load(Path.Combine("content-cooked", "roster", "manifest.json"));
+            foreach (var entry in roster.Entries) defs.Add(BuiltInContentResolver.Resolve(entry.Selector).Definition);
+        }
+        else if (charName == "all")
         {
             foreach (CharacterClass c in Enum.GetValues(typeof(CharacterClass)))
                 if (c != CharacterClass.None) defs.Add(BuiltInContentResolver.Resolve(c).Definition);
@@ -50,6 +55,9 @@ internal static class Program
         {
             defs.Add(ResolveCharacter(charName));
         }
+
+        if (args.Contains("--progressive-tuning")) return ReportProgressive(defs, args, jsonDir, outPath);
+        if (args.Contains("--ground-speed")) return ReportGroundSpeed(defs, args, jsonDir, outPath);
 
         var (_, stageWidth) = LoadStage(stageName);
         // The probe always runs on a flat arena: it measures MOVEMENT, and real stages

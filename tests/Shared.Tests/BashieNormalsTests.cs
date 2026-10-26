@@ -9,35 +9,6 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class BashieNormalsTests
 {
-    [Fact]
-    public void GroundOneSlapHitsOnceDuringTheReviewedActiveWindow()
-    {
-        var result = Run(0f, 1f, shield: false, slot: AbilitySlots.Slot1);
-        var hit = Assert.Single(result.Hits);
-        Assert.False(hit.Blocked);
-        Assert.Equal(4f, hit.Damage);
-        Assert.Equal((ushort)4, result.Victim.DamagePercent);
-        Assert.InRange(result.FirstContactTick, 9, 11);
-        Assert.Null(result.Sim.GetActiveAbility(1));
-        Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
-    }
-
-    [Fact]
-    public void GroundOneSlapRespectsShieldAndWhiffRecovery()
-    {
-        var blocked = Run(0f, 1f, shield: true, slot: AbilitySlots.Slot1);
-        Assert.True(Assert.Single(blocked.Hits).Blocked);
-        Assert.Equal((ushort)0, blocked.Victim.DamagePercent);
-        Assert.Null(blocked.Sim.GetActiveAbility(1));
-        Assert.Empty(blocked.Sim.Resolver.GetActiveHitboxes());
-
-        var missed = Run(0f, 3f, shield: false, slot: AbilitySlots.Slot1);
-        Assert.Empty(missed.Hits);
-        Assert.Equal((ushort)0, missed.Victim.DamagePercent);
-        Assert.Null(missed.Sim.GetActiveAbility(1));
-        Assert.Empty(missed.Sim.Resolver.GetActiveHitboxes());
-    }
-
     [Theory]
     [InlineData(0f)]
     [InlineData(45f)]
@@ -47,7 +18,7 @@ public sealed class BashieNormalsTests
     [InlineData(225f)]
     [InlineData(270f)]
     [InlineData(315f)]
-    public void GroundTwoHitsOnceAroundTheShell(float degrees)
+    public void GroundOneHitsOnceAroundTheShell(float degrees)
     {
         var result = Run(degrees, 1f, shield: false);
         var hit = Assert.Single(result.Hits);
@@ -62,7 +33,7 @@ public sealed class BashieNormalsTests
     }
 
     [Fact]
-    public void GroundTwoRespectsShieldAndWhiffRecovery()
+    public void GroundOneRespectsShieldAndWhiffRecovery()
     {
         var blocked = Run(180f, 1f, shield: true);
         Assert.NotEmpty(blocked.Hits);
@@ -82,7 +53,7 @@ public sealed class BashieNormalsTests
     [InlineData(90f)]
     [InlineData(180f)]
     [InlineData(270f)]
-    public void AirTwoHitsOnceAroundTheShell(float degrees)
+    public void AirOneHitsOnceAroundTheShell(float degrees)
     {
         var result = Run(degrees, 1f, false, airborne: true, ticks: 60);
         var hit = Assert.Single(result.Hits);
@@ -95,7 +66,7 @@ public sealed class BashieNormalsTests
     }
 
     [Fact]
-    public void AirTwoPreservesTakeoffMomentum()
+    public void AirOnePreservesTakeoffMomentum()
     {
         var attack = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true);
         var baseline = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, press: false);
@@ -107,7 +78,7 @@ public sealed class BashieNormalsTests
     }
 
     [Fact]
-    public void AirTwoLandingClearsAttackAndHitboxes()
+    public void AirOneLandingClearsAttackAndHitboxes()
     {
         var result = Run(0f, 20f, false, airborne: true, ticks: 120);
         Assert.True(result.Attacker.IsGrounded);
@@ -119,7 +90,7 @@ public sealed class BashieNormalsTests
     [Theory]
     [InlineData(1f, false)]
     [InlineData(4f, true)]
-    public void AirTwoLandingUsesItsAutoCancelWindow(float height, bool expectsLag)
+    public void AirOneLandingUsesItsAutoCancelWindow(float height, bool expectsLag)
     {
         var result = Run(0f, 20f, false, airborne: true, ticks: 80, height: height, falling: true);
         Assert.Equal(expectsLag, result.MaxLandingLag > 0);
@@ -293,7 +264,7 @@ public sealed class BashieNormalsTests
     private static (ServerSimulation Sim, CharacterState Attacker, CharacterState Victim,
         SpellResolver.HitResult[] Hits, int FirstContactTick, int MaxLandingLag, float MaxHorizontalDelta, float MaxRise, float ReturnHeightDelta, bool AirborneDuringAttack) Run(float degrees, float distance, bool shield,
         bool airborne = false, int ticks = 100, bool moving = false, bool press = true, float height = 12f, bool falling = false,
-        byte slot = AbilitySlots.Slot2, float victimHeight = 0f, int interruptAt = -1, bool steerDuringAttack = false, float attackerYawDegrees = 0f, bool victimGrounded = false)
+        byte slot = AbilitySlots.Slot1, float victimHeight = 0f, int interruptAt = -1, bool steerDuringAttack = false, float attackerYawDegrees = 0f, bool victimGrounded = false)
     {
         var package = Path.Combine(Root(), "client/Unity/Assets/CharacterPackages/bashie");
         var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(package, "package.json")),

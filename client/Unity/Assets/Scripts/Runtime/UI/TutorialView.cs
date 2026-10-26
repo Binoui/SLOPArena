@@ -201,10 +201,11 @@ namespace SlopArena.Client.UI
         private static readonly Dictionary<CharacterClass, (byte Starter, byte FollowUp, bool Jump)> ComboOpeners = new()
         {
             [CharacterClass.FightGuy] = (AbilitySlots.Slot3, AbilitySlots.Slot3, true),
-            [CharacterClass.Manki] = (AbilitySlots.Slot2, AbilitySlots.R, false),
+            // Manki and Bashie lost normal 2 to the three-normal merge (ADR-0042); re-probe both.
+            [CharacterClass.Manki] = (AbilitySlots.Slot1, AbilitySlots.R, false),
             [CharacterClass.Wibou] = (AbilitySlots.Slot3, AbilitySlots.Slot3, false),
             [CharacterClass.Bonk] = (AbilitySlots.Slot3, AbilitySlots.Slot1, true),
-            [CharacterClass.Bashie] = (AbilitySlots.Slot2, AbilitySlots.R, false), // Manki's borrowed kit (2026-10-22)
+            [CharacterClass.Bashie] = (AbilitySlots.Slot1, AbilitySlots.R, false),
         };
 
         private string ComboHint(bool gamepad)
@@ -221,7 +222,7 @@ namespace SlopArena.Client.UI
             TutorialLessonId.MoveAndLook => ("MOVE & LOOK", "You always move relative to the camera."),
             TutorialLessonId.Jump => ("JUMP", "Tap jump for a short hop, hold it for a full jump. You get one more jump in the air."),
             TutorialLessonId.FastFall => ("FAST FALL", "Fast falling gets you back on the ground sooner."),
-            TutorialLessonId.Attacks => ("ATTACKS", "Four buttons, four different moves."),
+            TutorialLessonId.Attacks => ("ATTACKS", "Three buttons, three different moves."),
             TutorialLessonId.Aerials => ("AERIALS", "The same buttons do different moves in the air."),
             TutorialLessonId.Specials => ("SPECIALS", "Specials hit harder but need to recharge. E also helps you get back to the stage."),
             TutorialLessonId.Recovery => ("RECOVERY", AimedRecovery
@@ -244,7 +245,6 @@ namespace SlopArena.Client.UI
                 + _layout.TallBlockHeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " m block",
             TutorialObjectiveId.FastFall => "While falling, press Down to fast fall",
             TutorialObjectiveId.HitNormal1 => "Hit the dummy with " + MoveName(AbilitySlots.Slot1),
-            TutorialObjectiveId.HitNormal2 => "Hit the dummy with " + MoveName(AbilitySlots.Slot2),
             TutorialObjectiveId.HitNormal3 => "Hit the dummy with " + MoveName(AbilitySlots.Slot3),
             TutorialObjectiveId.HitNormal4 => "Hit the dummy with " + MoveName(AbilitySlots.Slot4),
             TutorialObjectiveId.LandAerials => "Hit the dummy with two different aerials",
@@ -275,10 +275,10 @@ namespace SlopArena.Client.UI
 
         private static string SlotKey(byte wireSlot, bool gamepad) => wireSlot switch
         {
-            AbilitySlots.Slot1 => Key("Slot1", gamepad), AbilitySlots.Slot2 => Key("Slot2", gamepad),
+            AbilitySlots.Slot1 => Key("Slot1", gamepad),
             AbilitySlots.Slot3 => Key("Slot3", gamepad), AbilitySlots.Slot4 => Key("Slot4", gamepad),
-            AbilitySlots.A => Special("SlotA", "Slot1", gamepad), AbilitySlots.E => Special("SlotE", "Slot3", gamepad),
-            AbilitySlots.R => Special("SlotR", "Slot2", gamepad), AbilitySlots.F => Special("SlotF", "Slot4", gamepad),
+            AbilitySlots.A => Special("SlotA", "Jump", gamepad), AbilitySlots.E => Special("SlotE", "Slot3", gamepad),
+            AbilitySlots.R => Special("SlotR", "Slot1", gamepad), AbilitySlots.F => Special("SlotF", "Slot4", gamepad),
             _ => "",
         };
 
@@ -298,14 +298,13 @@ namespace SlopArena.Client.UI
                 or TutorialObjectiveId.RecoverToStage => Key("Jump", gamepad),
             TutorialObjectiveId.FastFall => Key("Down", gamepad),
             TutorialObjectiveId.HitNormal1 => Key("Slot1", gamepad),
-            TutorialObjectiveId.HitNormal2 => Key("Slot2", gamepad),
             TutorialObjectiveId.HitNormal3 => Key("Slot3", gamepad),
             TutorialObjectiveId.HitNormal4 => Key("Slot4", gamepad),
             TutorialObjectiveId.LandAerials or TutorialObjectiveId.Throw
                 => Key("Slot1", gamepad) + (gamepad ? " " : "-") + Key("Slot4", gamepad),
-            TutorialObjectiveId.UseSpecialA => Special("SlotA", "Slot1", gamepad),
+            TutorialObjectiveId.UseSpecialA => Special("SlotA", "Jump", gamepad),
             TutorialObjectiveId.UseSpecialE => Special("SlotE", "Slot3", gamepad),
-            TutorialObjectiveId.UseSpecialR => Special("SlotR", "Slot2", gamepad),
+            TutorialObjectiveId.UseSpecialR => Special("SlotR", "Slot1", gamepad),
             TutorialObjectiveId.UseSpecialF => Special("SlotF", "Slot4", gamepad),
             TutorialObjectiveId.BlockAttacks or TutorialObjectiveId.AirDodge => Key("Shield", gamepad),
             TutorialObjectiveId.Grab => gamepad ? Key("SpecialModifier", true) + " + " + Key("Shield", true) : Key("Grab", false),

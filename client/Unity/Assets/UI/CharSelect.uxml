@@ -44,8 +44,8 @@
         <ui:VisualElement name="solo-config" class="solo-config">
             <ui:Label name="selection-target" text="EDITING PLAYER" class="selection-target" />
             <ui:VisualElement class="selection-target-buttons">
-                <ui:Button name="btn-edit-player" text="PLAYER" class="selection-target-button active" />
-                <ui:Button name="btn-edit-cpu" text="CPU" class="selection-target-button" />
+                <ui:Button name="btn-edit-player" text="P1" class="selection-target-button active" />
+                <ui:Button name="btn-edit-cpu" text="P2" class="selection-target-button" />
             </ui:VisualElement>
             <ui:VisualElement name="solo-difficulty-buttons" class="solo-difficulty-buttons">
                 <ui:Button name="btn-cpu-difficulty-easy" text="EASY" class="btn-secondary solo-difficulty-button" />

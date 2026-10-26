@@ -7,7 +7,7 @@
     <ui:VisualElement name="page-frag">
         <ui:VisualElement name="page-header" class="page-section results-header-section">
             <ui:VisualElement class="results-header-copy">
-                <ui:Label name="results-headline" text="FIGHT OVER" class="results-headline" />
+                <ui:Label name="results-headline" text="BEST SLOPPER" class="results-headline" />
                 <ui:Label name="results-stage" text="MATCH COMPLETE // STAGE" class="results-stage" />
             </ui:VisualElement>
             <ui:Label name="results-metadata" text="DURATION N/A // 0 PLAYERS" class="results-metadata" />

@@ -26,6 +26,7 @@ namespace SlopArena.Client.World
         private LineRenderer _groundRing;
         private Material _groundMaterial;
         private float _ballFloorY;
+        private float? _courtNetZ;
         private uint _tick, _attackContacts;
         private InputState? _probeInput;
         private ArcadeRetryInput _retryInput;
@@ -111,6 +112,7 @@ namespace SlopArena.Client.World
             _inputController.RequireReleaseBeforeHumanInput();
             _retryInput = new ArcadeRetryInput();
             _ballFloorY = arena.Arcade.Slopball?.FloorY ?? arena.Heightmap.Sample(spawn.X, spawn.Z);
+            _courtNetZ = arena.Arcade.Slopball?.NetZ;
             CreateBallView(); PresentBall();
             OnBallMatchReady(entry, arena);
         }
@@ -219,6 +221,7 @@ namespace SlopArena.Client.World
             bool selected = presented.Active && owner.TargetEntityId == presented.EntityId;
             _aimHandler?.UpdateObjectTargetPresentation(owner, selected ? _ballView : null,
                 presented.Radius, (ushort)presented.DamagePercent);
+            _cameraMount?.SetCourt(_courtNetZ, presented.Active ? _ballView.position : null);
             if (owner.LockOn && selected) _cameraMount?.SetLockFocus(_playerRenderer.transform, _ballView.position);
             else _cameraMount?.ClearLockFocus(_playerRenderer.transform);
             SimulationAdvanced = true;

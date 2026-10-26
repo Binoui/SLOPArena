@@ -243,7 +243,7 @@ public sealed class TimelineRuntimeTests
     [Fact]
     public void AerialAuthoringSuspendsAmbientGravityButPreservesAuthoredVelocity()
     {
-        var slot = new CookedSlotDefinition(8, "air.1", true, "Test", "Test", "icon.test",
+        var slot = new CookedSlotDefinition(7, "air.1", true, "Test", "Test", "icon.test",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {
@@ -668,17 +668,18 @@ public sealed class TimelineRuntimeTests
 
 
     [Fact]
-    public void FightGuyCookedResolutionCoversEightWireNormalAndSpecialSlots()
+    public void FightGuyCookedResolutionCoversSevenWireNormalAndSpecialSlots()
     {
         var def = TestHelpers.FightGuyDef;
-        var expectedGround = new[] { "ground.1", "ground.E", "ground.R", "ground.F", "ground.2", "ground.3", "ground.4", "ground.A" };
-        var wireSlots = new byte[] { 3, 4, 5, 6, 7, 8, 9, 11 };
+        var expectedGround = new[] { "ground.1", "ground.E", "ground.R", "ground.F", "ground.3", "ground.4", "ground.A" };
+        var wireSlots = new byte[] { 3, 4, 5, 6, 8, 9, 11 };
         for (var i = 0; i < wireSlots.Length; i++)
         {
             Assert.Equal(expectedGround[i], def.GetCookedSlotAbility(wireSlots[i], false)!.Id);
             Assert.Equal("air." + expectedGround[i].Substring(expectedGround[i].IndexOf('.') + 1), def.GetCookedSlotAbility(wireSlots[i], true)!.Id);
         }
         Assert.Null(def.GetCookedSlotAbility(1, false));
+        Assert.Null(def.GetCookedSlotAbility(AbilitySlots.Slot2, false));
         Assert.Null(def.GetCookedSlotAbility(10, false));
     }
 
@@ -725,7 +726,7 @@ public sealed class TimelineRuntimeTests
         Assert.NotNull(compiled.CookedPackage);
         var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
         var directions = new[] { (X: 2.5f, Z: 0f), (X: -2.5f, Z: 0f), (X: 0f, Z: -2.5f) };
-        foreach (var slot in def.CookedSlots!.Where(slot => slot.Ordinal % 8 < 4))
+        foreach (var slot in def.CookedSlots!.Where(slot => slot.Ordinal % CanonicalSlotProjection.VariantSlotCount < 3))
         foreach (var direction in directions)
         {
             var profile = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
@@ -928,7 +929,7 @@ public sealed class TimelineRuntimeTests
             new CookedStartupAimCorrectionOperation(0, AuthoringUnit.Ticks, 3, 4f, 60f, 45f, 0f, 360f, 0f),
             new CookedForwardLungeOperation(3, AuthoringUnit.MetersPerSecond, 6f, 2),
             new CookedSpawnProjectileOperation(5, AuthoringUnit.Meters, projectile));
-        var slot = new CookedSlotDefinition(4, "ground.A", false, "Launch", "Launch", "icon.test",
+        var slot = new CookedSlotDefinition(3, "ground.A", false, "Launch", "Launch", "icon.test",
             AuthoringAbilityBehavior.AimedProjectile, AuthoringAimMode.CameraForward3D, 0, false, false, timeline.Timeline);
         var (sim, def) = Create(slot);
         sim.RegisterEntity(100, def, TestHelpers.NpcState(1.5f, 2.5f));
@@ -1133,12 +1134,12 @@ public sealed class TimelineRuntimeTests
                 new CookedSetAimStateOperation(20, AuthoringUnit.Ticks, AuthoringAimMode.None),
             }),
         });
-        var slot = new CookedSlotDefinition(airborne ? 8 : 0, airborne ? "air.1" : "ground.1", airborne, "Test", "Test",
+        var slot = new CookedSlotDefinition(airborne ? 7 : 0, airborne ? "air.1" : "ground.1", airborne, "Test", "Test",
             "icon.test", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false, timeline,
             aimMovement: AuthoringAimMovementMode.Mobile, aimMovementSpeedScale: 0.4f);
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
-        slots[airborne ? 8 : 0] = slot;
+        slots[airborne ? 7 : 0] = slot;
         def = def with { CookedSlots = slots };
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState() with

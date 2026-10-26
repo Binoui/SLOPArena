@@ -63,7 +63,7 @@ public sealed class ContactHookOwnershipTests
         var slots = definition.CookedSlots!.ToArray();
         var projectile = new CookedProjectile(0f, 0f, 0f, 4f, 0f, .3f, 3f, 45f, 4f, 10f, 10, 240,
             YawOffsetDegrees: 90f);
-        slots[4] = new CookedSlotDefinition(4, "ground.A", false, "Slow shot fixture", "", "",
+        slots[3] = new CookedSlotDefinition(3, "ground.A", false, "Slow shot fixture", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {
@@ -79,7 +79,7 @@ public sealed class ContactHookOwnershipTests
             0f, 0f, 0f, 0f, 0f, 0f, "_weapon_hilt", "_weapon_tip", 6f, 45f, 5f, 80f, 8, 9, true, 0);
         var dash = new CookedChargedDirectionalDashCapabilityParameters(
             60, 20, 45, 1.2f, 6.4f, 10.5f, 4, 31, 24, 9f, 12f, traversal, finisher);
-        slots[6] = new CookedSlotDefinition(6, "ground.R", false, "Charged dash fixture", "", "",
+        slots[5] = new CookedSlotDefinition(5, "ground.R", false, "Charged dash fixture", "", "",
             AuthoringAbilityBehavior.DirectionalDash, AuthoringAimMode.GroundVector, 0, false, false,
             new CookedTimeline(new[]
             {

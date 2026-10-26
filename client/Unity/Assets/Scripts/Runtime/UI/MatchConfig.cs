@@ -41,6 +41,10 @@ namespace SlopArena.Client.UI
         public static SlopArena.Shared.CharacterClass SoloBotClass
             = SlopArena.Shared.CharacterClass.FightGuy;
         public static CpuDifficulty SoloCpuDifficulty = CpuDifficulty.Normal;
+        /// <summary>Couch play (ADR-0041): Solo's P2 is a second Local Player instead of the CPU.</summary>
+        public static bool SoloP2Human;
+        /// <summary>InputDevice.deviceId of the pad P2 joined with; 0 while P2 waits to join.</summary>
+        public static int SoloP2DeviceId;
 
         // Per-match entity IDs assigned by the master server at match start
         // (issue #35). The local player drives LocalEntityId; the opponents
@@ -85,6 +89,8 @@ namespace SlopArena.Client.UI
             PlayerClass = SlopArena.Shared.CharacterClass.FightGuy;
             SoloBotClass = SlopArena.Shared.CharacterClass.FightGuy;
             SoloCpuDifficulty = CpuDifficulty.Normal;
+            SoloP2Human = false;
+            SoloP2DeviceId = 0;
             ArenaName = "training";
             IsHost = true;
             ServerIP = "127.0.0.1";

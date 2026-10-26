@@ -288,8 +288,8 @@ Presentation attachment IDs such as `bone.right-hand` resolve to the rig's
 ## Authority boundary
 
 Canonical package slot IDs are the persisted move identity. `CanonicalSlotProjection.All`
-exposes the sixteen read-only `SlotAddress` values in ground-then-air order, with input
-labels `1`, `2`, `3`, `4`, `A`, `E`, `R`, `F`. Human labels and `CharacterClass`
+exposes the fourteen read-only `SlotAddress` values in ground-then-air order, with input
+labels `1`, `3`, `4`, `A`, `E`, `R`, `F`. Human labels and `CharacterClass`
 roster selectors are adapters only; see ADR-0030.
 
 Valid stale source previews as a live draft using the verified pose/catalog/rig

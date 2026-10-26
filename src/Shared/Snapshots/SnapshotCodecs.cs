@@ -48,6 +48,10 @@ namespace SlopArena.Shared
             w.WriteByte(s.Deaths);
             w.WriteFloat(s.DashDirX);
             w.WriteFloat(s.DashDirZ);
+            w.WriteFloat(s.DashDirY);
+            w.WriteULong(s.HomingDashTargetId);
+            w.WriteUShort(s.HomingDashCooldownTicks);
+            w.WriteBool(s.HomingDashAirUsed);
             w.WriteUShort(s.InvincibilityTicks);
             w.WriteUShort(s.AttackElapsedTicks);
             w.WriteByte(s.AttackSlot);
@@ -156,6 +160,10 @@ namespace SlopArena.Shared
             s.Deaths = r.ReadByte();
             s.DashDirX = r.ReadFloat();
             s.DashDirZ = r.ReadFloat();
+            s.DashDirY = r.ReadFloat();
+            s.HomingDashTargetId = r.ReadULong();
+            s.HomingDashCooldownTicks = r.ReadUShort();
+            s.HomingDashAirUsed = r.ReadBool();
             s.InvincibilityTicks = r.ReadUShort();
             s.AttackElapsedTicks = r.ReadUShort();
             s.AttackSlot = r.ReadByte();
@@ -237,6 +245,7 @@ namespace SlopArena.Shared
             w.WriteBool(input.ShieldHeld);
             w.WriteBool(input.ShieldPressed);
             w.WriteBool(input.GrabPressed);
+            w.WriteBool(input.DashPressed);
             w.WriteBool(input.JumpHeld);
             w.WriteBool(input.FaceToCamera);
             w.WriteBool(input.ToggleLock);
@@ -265,6 +274,7 @@ namespace SlopArena.Shared
             input.ShieldHeld = r.ReadBool();
             input.ShieldPressed = r.ReadBool();
             input.GrabPressed = r.ReadBool();
+            input.DashPressed = r.ReadBool();
             input.JumpHeld = r.ReadBool();
             input.FaceToCamera = r.ReadBool();
             input.ToggleLock = r.ReadBool();

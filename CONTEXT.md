@@ -111,7 +111,7 @@ Reciprocal active grabs resolve as a grab clash with shared recovery. Simultaneo
 _Avoid_: parry (Wibou-specific), counter, trade
 
 **Slot**:
-One canonical move entry in the 16-entry grid, ground/air × `1`-`4`, `A`, `E`, `R`, `F`. There are eight button concepts, four normals and four specials, each with grounded and aerial entries. The grid therefore contains eight normal moves, four ground and four air, plus eight special moves. [`CanonicalSlotProjection`](src/Shared/SlotAddress.cs) defines the entries. `LMB` and `RMB` are camera controls, not attack slots. Normals are single moves; there are no automatic LMB chains or charged RMB attacks. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special.
+One canonical move entry in the 14-entry grid, ground/air × `1`, `3`, `4`, `A`, `E`, `R`, `F`. There are seven button concepts, three normals and four specials, each with grounded and aerial entries. The grid therefore contains six normal moves, three ground and three air, plus eight special moves. Normal `1` is the jab/all-rounder, `3` the upward normal and `4` the big one; the ids `3` and `4` predate the merge of normals 1 and 2 (ADR-0042) and players see them as 2 and 3. [`CanonicalSlotProjection`](src/Shared/SlotAddress.cs) defines the entries. `LMB` and `RMB` are camera controls, not attack slots. Normals are single moves; there are no automatic LMB chains or charged RMB attacks. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special.
 _Avoid_: button, ability slot, move slot
 
 **Move (UI label)**:

@@ -111,7 +111,7 @@ public sealed class TargetedLeapPoseTests
             null, null, 1f, 45f, 0f, 0f, 3, 3, true, 0);
         var parameters = new CookedTargetedLeapCapabilityParameters(0, 120, 1f, 12f, 16f, 0, 24, hitbox,
             LandingPresentationId: LandingId);
-        var slot = new CookedSlotDefinition(5, "ground.E", false, "Leap", "", "", AuthoringAbilityBehavior.AimedProjectile,
+        var slot = new CookedSlotDefinition(4, "ground.E", false, "Leap", "", "", AuthoringAbilityBehavior.AimedProjectile,
             AuthoringAimMode.GroundCursor, 0, true, false, new CookedTimeline(new[]
             {
                 new CookedStage(FlightTicks, 0, 0, 0, 0, clips, new CookedTimelineOperation[]
@@ -121,7 +121,7 @@ public sealed class TargetedLeapPoseTests
                 }),
             }));
         var slots = def.CookedSlots!.ToArray();
-        slots[5] = slot;
+        slots[4] = slot;
         def = def with { CookedSlots = slots };
         var sim = TestHelpers.MakeSim(arena);
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(20f, 10f) with { PY = TestHelpers.GroundPY(def) });

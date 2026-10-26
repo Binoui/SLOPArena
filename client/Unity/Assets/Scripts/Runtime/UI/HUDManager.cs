@@ -23,7 +23,6 @@ namespace SlopArena.Client.UI
     public class HUDManager : MonoBehaviour
     {
         [SerializeField] private UIDocument _uiDocument;
-        [SerializeField] private MatchTextVFX _textVfx;
 
         /// <summary>The HUD's UI document — the explicit host for match-surface
         /// overlays (pause menu) so nothing searches for a first document.</summary>
@@ -60,6 +59,8 @@ namespace SlopArena.Client.UI
             public Label StockCountLabel = null!;
             public VisualElement StockToast = null!;
             public Label StockToastTitle = null!;
+            public Label StockToastPrint = null!;
+            public VisualElement StockToastCard = null!;
             public Label StockToastDetail = null!;
             public float StockToastTimer;
             public float StockToastDuration;
@@ -128,7 +129,7 @@ namespace SlopArena.Client.UI
         private readonly struct AbilitySlotDef
         {
             public readonly string Name;
-            public readonly int SlotIndex; // zero-based wire index == cooldown index (0-10)
+            public readonly int SlotIndex; // zero-based wire index == cooldown index (0-10); -1 = dash
             public readonly string Action;
 
             public AbilitySlotDef(string name, int slotIndex, string action)
@@ -140,16 +141,16 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>
-        /// Canonical projection order: normals 1–4 then specials A/E/R/F.
-        /// UXML pairs 1/A, 2/R, 3/E, 4/F to match the existing input adapter.
+        /// The homing dash and the three normals, then specials A/E/R/F (ADR-0042).
+        /// UXML pairs each face button's normal with its LB special: dash/A, 1/R, 3/E, 4/F.
+        /// The A pair shows the dash because A itself is the jump button.
         /// SlotIndex is the AbilitySlots/cooldown index (key "1" = 2 … key "A" = 10).
-        /// LMB/RMB remain utility controls, and the former extra key position is outside the
-        /// canonical action grid, so neither is shown as an ability slot.
         /// </summary>
+        private const int DashSlotIndex = -1;
         private static readonly AbilitySlotDef[] AbilitySlotDefs =
         {
+            new("ab-dash", DashSlotIndex, "Dash"),
             new("ab-1", 2, "Slot1"),
-            new("ab-2", 6, "Slot2"),
             new("ab-3", 7, "Slot3"),
             new("ab-4", 8, "Slot4"),
             new("ab-a", 10, "SlotA"),
@@ -241,11 +242,6 @@ namespace SlopArena.Client.UI
             var root = _uiDocument.rootVisualElement;
             _soloCountdown = new SoloCountdownView(root);
             _soloEndCard = new SoloEndCardView(root);
-            if (_textVfx == null)
-                _textVfx = gameObject.AddComponent<MatchTextVFX>();
-            var cam = UnityEngine.Camera.main ?? FindFirstObjectByType<UnityEngine.Camera>();
-            if (cam != null)
-                _textVfx.SetCamera(cam);
             _networkClient = FindFirstObjectByType<NetworkClient>();
             _networkStatsLabel = new Label();
             _networkStatsLabel.style.position = Position.Absolute;
@@ -340,9 +336,9 @@ namespace SlopArena.Client.UI
                 string action = _showGamepadPrompts
                     ? AbilitySlotDefs[i].Action switch
                     {
-                        "SlotA" => "Slot1",
+                        "SlotA" => "Jump",
                         "SlotE" => "Slot3",
-                        "SlotR" => "Slot2",
+                        "SlotR" => "Slot1",
                         "SlotF" => "Slot4",
                         _ => AbilitySlotDefs[i].Action,
                     }
@@ -458,19 +454,32 @@ namespace SlopArena.Client.UI
             AddStocks(panel, copy);
             root.Add(copy);
 
+            // A small fight-flyer card taped beside the fighter card: KO!, or OUT! for the last life.
             var stockToast = new VisualElement();
             stockToast.AddToClassList("stock-toast-player");
             stockToast.style.display = DisplayStyle.None;
-            stockToast.style.borderBottomColor = identityColor;
-            var stockTitle = new Label("KO");
+            VisualElement Layer(string css) { var layer = new VisualElement(); layer.AddToClassList(css); stockToast.Add(layer); return layer; }
+            Layer("stock-toast-shadow");
+            var stockCard = Layer("stock-toast-card");
+            stockCard.style.borderBottomColor = identityColor;
+            Layer("stock-toast-tape");
+            var headline = new VisualElement();
+            headline.AddToClassList("stock-toast-headline");
+            var stockPrint = new Label("KO!");
+            stockPrint.AddToClassList("stock-toast-print");
+            var stockTitle = new Label("KO!");
             stockTitle.AddToClassList("stock-toast-title");
+            headline.Add(stockPrint);
+            headline.Add(stockTitle);
             var stockDetail = new Label();
             stockDetail.AddToClassList("stock-toast-detail");
-            stockToast.Add(stockTitle);
+            stockToast.Add(headline);
             stockToast.Add(stockDetail);
             root.Add(stockToast);
             panel.StockToast = stockToast;
+            panel.StockToastCard = stockCard;
             panel.StockToastTitle = stockTitle;
+            panel.StockToastPrint = stockPrint;
             panel.StockToastDetail = stockDetail;
             return panel;
         }
@@ -528,6 +537,16 @@ namespace SlopArena.Client.UI
             {
                 var slot = _abilitySlots[i];
                 var d = AbilitySlotDefs[i];
+                if (d.SlotIndex == DashSlotIndex)
+                {
+                    slot.MaxCooldown = HomingDashConfig.CooldownTicks;
+                    slot.Locked = false;
+                    slot.GroundAvailable = slot.AirAvailable = true;
+                    slot.DisplayName = "HOMING DASH";
+                    slot.Artwork = default;
+                    SetSlotPresentation(slot, isGrounded);
+                    continue;
+                }
                 var grounded = def.GetCookedSlotAbility((byte)((d.SlotIndex) + 1), airborne: false);
                 var airborne = def.GetCookedSlotAbility((byte)((d.SlotIndex) + 1), airborne: true);
 
@@ -613,25 +632,68 @@ namespace SlopArena.Client.UI
         /// Shows the authored particle-text broadcast. Match callouts deliberately
         /// have no UI Toolkit text fallback so one message cannot render twice.
         /// </summary>
-        public void ShowMatchCallout(string text, float seconds = 0.9f)
-        {
-            _textVfx?.Show(text, new Vector2(Screen.width * 0.5f, Screen.height * 0.5f),
-                text == "SLOP IT OUT" ? 0.9f : 1f,
-                Color.white, new Color(1f, 0.72f, 0.12f),
-                seconds / 1.5f, centerInCamera: true);
-        }
-
+        /// <summary>The match-start flyer every mode shares: READY, 3, 2, 1, SLOP IT OUT.</summary>
         public void ShowSoloCountdown(string text, float seconds)
             => _soloCountdown?.Show(text, seconds);
+
+        /// <summary>
+        /// The finish poster for an online match, read from the authoritative result snapshot:
+        /// the winner's portrait for fights and races, the team result for Slopball.
+        /// </summary>
+        public void ShowOnlineEnding(ClientSession.MatchResultsData results)
+        {
+            if (results == null) return;
+            _soloCountdown?.Clear();
+            if (results.Versus is { } versus)
+            {
+                _soloEndCard?.ShowPoster("BEST\nSLOPPER", versus.Winner.ToString().ToUpperInvariant() + " WINS!", "", CharacterClass.None);
+                return;
+            }
+            if (results.Run is { } run)
+            {
+                _soloEndCard?.ShowPoster("RUN\nOVER.", (run.TotalReturns == 1 ? "1 RETURN" : $"{run.TotalReturns} RETURNS")
+                    + $" · BEST COMBO {run.BestCombo}", "", CharacterClass.None);
+                return;
+            }
+
+            var winners = new List<ClientSession.ResultEntry>();
+            foreach (var entry in results.Entries)
+                if (entry.IsWinner) winners.Add(entry);
+            if (results.Course is { } course && (course.Cooperative || !course.Completed))
+            {
+                _soloEndCard?.ShowPoster(course.Completed ? "COURSE\nCLEARED." : "RUN\nOVER.",
+                    course.Completed ? "TEAM COMPLETE" : "RUN ENDED", "", CharacterClass.None);
+                return;
+            }
+            if (winners.Count == 0)
+            {
+                _soloEndCard?.ShowPoster("BEST\nSLOPPER", "FIGHT OVER", "", CharacterClass.None);
+                return;
+            }
+
+            var first = winners[0];
+            CharacterClass Fighter(ClientSession.ResultEntry entry)
+                => Enum.TryParse(entry.ClassName, true, out CharacterClass parsed) ? parsed : CharacterClass.None;
+            string Name(ClientSession.ResultEntry entry)
+                => (string.IsNullOrEmpty(entry.Name) ? $"P{entry.EntityId}" : entry.Name).ToUpperInvariant();
+            bool shared = results.SharedVictory && winners.Count > 1;
+            string headline = results.Course != null ? "COURSE\nCLEARED." : shared ? "DOUBLE\nK.O.!" : "BEST\nSLOPPER";
+            string outcome = shared ? "SHARED VICTORY" : first.EntityId == _localEntityId ? "YOU WIN!" : $"{Name(first)} WINS!";
+            string name = shared ? $"{Fighter(first).ToString().ToUpperInvariant()}\n{Fighter(winners[1]).ToString().ToUpperInvariant()}"
+                : Fighter(first).ToString().ToUpperInvariant();
+            _soloEndCard?.ShowPoster(headline, outcome, name, Fighter(first),
+                shared ? Fighter(winners[1]) : CharacterClass.None, shared);
+        }
 
         /// <summary>A headline on the gold start card, without the countdown beat (Character Course ALL CLEAR!).</summary>
         public void ShowSoloStamp(string text, float seconds)
             => _soloCountdown?.Show(text, seconds, wide: true, sound: false);
 
-        public void ShowSoloEnding(bool playerWon, bool sharedVictory, CharacterClass player, CharacterClass cpu)
+        public void ShowSoloEnding(bool playerWon, bool sharedVictory, CharacterClass player, CharacterClass cpu,
+            bool couch = false)
         {
             _soloCountdown?.Clear();
-            _soloEndCard?.Show(playerWon, sharedVictory, player, cpu);
+            _soloEndCard?.Show(playerWon, sharedVictory, player, cpu, couch);
         }
 
         public void ShowStockToast(ulong entityId, string text, float seconds = 1.15f)
@@ -640,22 +702,19 @@ namespace SlopArena.Client.UI
                 return;
 
             bool eliminated = _maxStocks > 0 && _getState != null && _getState(entityId).Deaths >= _maxStocks;
-            panel.StockToastTitle.text = eliminated ? "OUT" : "KO";
+            panel.StockToastTitle.text = panel.StockToastPrint.text = eliminated ? "OUT!" : "KO!";
             panel.StockToastDetail.text = text;
             panel.StockToastTimer = panel.StockToastDuration = Mathf.Max(0.01f, seconds);
             panel.StockToast.EnableInClassList("stock-toast-player--out", eliminated);
             panel.StockToast.style.display = DisplayStyle.Flex;
             panel.StockToast.style.opacity = 1f;
             panel.StockToast.style.scale = new Scale(Vector2.one);
-            panel.StockToast.style.borderBottomColor = panel.IdentityColor;
+            panel.StockToastCard.style.borderBottomColor = panel.IdentityColor;
         }
 
         public void SetCamera(UnityEngine.Camera camera)
         {
             _camera = camera;
-            if (_textVfx == null)
-                _textVfx = gameObject.AddComponent<MatchTextVFX>();
-            _textVfx.SetCamera(camera);
         }
 
         /// <summary>
@@ -707,8 +766,11 @@ namespace SlopArena.Client.UI
                     // The key stays pressed while its move runs, including repeated
                     // casts, and while its returning projectile is out; the cooldown
                     // only starts when the move ends.
-                    bool inUse = state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1
-                        || state.ReturningProjectileSlot == AbilitySlotDefs[i].SlotIndex + 1;
+                    bool dash = AbilitySlotDefs[i].SlotIndex == DashSlotIndex;
+                    bool inUse = dash
+                        ? state.State is ActionState.HomingDashFloat or ActionState.HomingDash
+                        : state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1
+                            || state.ReturningProjectileSlot == AbilitySlotDefs[i].SlotIndex + 1;
                     slot.Root.EnableInClassList("in-use", inUse);
                     if (inUse && slot.PulseTimer > 0f)
                     {
@@ -716,7 +778,8 @@ namespace SlopArena.Client.UI
                         slot.Root.RemoveFromClassList("ready-pulse");
                     }
                     if (slot.Locked) continue;
-                    UpdateCooldownSlot(slot, state.GetCooldown((byte)(AbilitySlotDefs[i].SlotIndex + 1)));
+                    UpdateCooldownSlot(slot, dash ? state.HomingDashCooldownTicks
+                        : state.GetCooldown((byte)(AbilitySlotDefs[i].SlotIndex + 1)));
                 }
             }
         }
@@ -871,8 +934,9 @@ namespace SlopArena.Client.UI
             {
                 panel.StockToastTimer -= dt;
                 float elapsed = panel.StockToastDuration - panel.StockToastTimer;
-                float scale = elapsed < 0.1f ? Mathf.Lerp(0.88f, 1.04f, elapsed / 0.1f)
-                    : elapsed < 0.18f ? Mathf.Lerp(1.04f, 1f, (elapsed - 0.1f) / 0.08f) : 1f;
+                // Slammed on like the start flyer: in from 1.6x with a little overshoot.
+                float t = Mathf.Clamp01(elapsed / 0.24f) - 1f;
+                float scale = Mathf.LerpUnclamped(1.6f, 1f, 1f + 2.70158f * t * t * t + 1.70158f * t * t);
                 panel.StockToast.style.scale = new Scale(Vector2.one *
                     (ClientSettingsService.Instance.ReducedFlashing ? 1f : scale));
                 panel.StockToast.style.opacity = Mathf.Clamp01(panel.StockToastTimer / 0.18f);

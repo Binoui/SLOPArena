@@ -9,7 +9,7 @@ Each fighter has eight button concepts, each with grounded and aerial entries:
 - normals `1`, `2`, `3`, and `4`;
 - specials `A`, `E`, `R`, and `F`.
 
-That produces the canonical 16-entry grid, including eight normal moves, four ground and four air, and eight special moves. [`CanonicalSlotProjection`](../../src/Shared/SlotAddress.cs) defines the entries. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special. A package may alias entries in authoring, but cooking expands them into explicit runtime slots. Physical labels such as `LMB` and `RMB` are input mappings, not move identity.
+That produces the canonical 14-entry grid, including six normal moves (normals `1`, `3` and `4`, ground and air) and eight special moves. [`CanonicalSlotProjection`](../../src/Shared/SlotAddress.cs) defines the entries. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special. A package may alias entries in authoring, but cooking expands them into explicit runtime slots. Physical labels such as `LMB` and `RMB` are input mappings, not move identity.
 
 Every move is a fixed-timeline entry with authored stage timing, animation IDs, and typed deterministic operations. The Shared simulation controls activation, duration, collision, interruption, and completion.
 
@@ -96,7 +96,7 @@ The previous facing-locked tuning (11 m/s for 10 ticks, then 20 ticks frozen in
 place) covered 1.83 m, less than holding the stick for the same 30 ticks, and a
 dodge just before touchdown left 29 ticks of grounded recovery.
 
-Universal Dash is retired; its legacy input bit no longer moves the fighter.
+The old Universal Dash is retired. Its input bit now starts the universal homing dash (ADR-0042): a startup float, then a dash that turns toward the target at a limited rate. Arriving opens a short window that any action cancels; running out of travel is a locked, punishable miss. It has a universal cooldown, one use per airtime, and starts from any state except being hit or attacking (an attack's IASA window counts as free). Shield, hitboxes and projectiles beat it. Values live in `HomingDashConfig`.
 Kit-owned dash/lunge/recovery abilities retain their own timing and mobility.
 The former Burst input bit is reserved and inert; Burst cannot escape
 Hitstop or Hitstun, interrupt a move, or grant invulnerability.
@@ -118,7 +118,7 @@ SlideJump uses ordinary jump squat, ShortHop and resources. Its takeoff cap is 1
 RunSpeed versus ordinary RunSpeed; caps never refill velocity or restore wall-blocked
 components. Grounded mobility uses normal movement; character-specific mobility stays in kit abilities.
 
-All four roster packages opt their grounded normals 1–4 into `allowSlideCarry`.
+The roster packages opt their grounded normals into `allowSlideCarry`.
 Activation switches immediately to the attack pose and caps existing Slide momentum at
 RunSpeed. For this brief-carry trial, Run starts cap existing momentum at the speed that
 brakes to zero in `DownActionTuning.RunAttackCarryTicks`, currently 8 ticks.

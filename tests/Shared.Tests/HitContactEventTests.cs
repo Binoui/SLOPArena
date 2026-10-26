@@ -17,7 +17,7 @@ public sealed class HitContactEventTests
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
         slots[0] = WithPresentation(slots[0], GroundPresentationId);
-        slots[8] = WithPresentation(slots[8], AirPresentationId);
+        slots[7] = WithPresentation(slots[7], AirPresentationId);
         def = def with { CookedSlots = slots };
         def = TestHelpers.WithMove(def, AbilitySlots.Slot1, false, "Ground contact", 20, hitPresentationId: GroundPresentationId);
         def = TestHelpers.WithMove(def, AbilitySlots.Slot1, true, "Air contact", 20, hitPresentationId: AirPresentationId);

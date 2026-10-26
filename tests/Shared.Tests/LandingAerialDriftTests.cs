@@ -72,7 +72,7 @@ public class LandingAerialDriftTests
         var def = TestHelpers.EngineDef;
         def = def with { Movement = def.Movement with { JumpSquatTicks = 2, FloatWindowTicks = 0 } };
         var slots = def.CookedSlots!.ToArray();
-        slots[8] = new CookedSlotDefinition(8, "air.1", true, "Jump startup landing fixture", "", "",
+        slots[7] = new CookedSlotDefinition(7, "air.1", true, "Jump startup landing fixture", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {
@@ -149,7 +149,7 @@ public class LandingAerialDriftTests
         var hitbox = new CookedHitbox(
             AuthoringHitboxShape.Sphere, 0.5f, 0f, 0f, 0f, 0f, 0f, 0f,
             null, null, 5f, 0f, 2f, 1f, 5, 3, true, 0);
-        slots[8] = new CookedSlotDefinition(8, "air.1", true, "Aerial landing fixture", "", "",
+        slots[7] = new CookedSlotDefinition(7, "air.1", true, "Aerial landing fixture", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {
@@ -173,12 +173,12 @@ public class LandingAerialDriftTests
         Assert.Equal(0f, vz[^1]); // After input release, ordinary ground braking stops drift.
     }
 
-    /// <summary>All four Wibou air normals (keys 1-4): none may drift after landing.</summary>
+    /// <summary>All three Wibou air normals (keys 1, 3, 4): none may drift after landing.</summary>
     [Fact]
     public void Wibou_AllAirNormals_Land_NoDrift()
     {
         var def = TestHelpers.WibouDef;
-        foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 })
+        foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 })
         {
             var sim = TestHelpers.MakeSim();
             var p = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def), PZ = 0f };

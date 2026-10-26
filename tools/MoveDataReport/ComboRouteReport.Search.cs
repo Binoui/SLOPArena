@@ -9,8 +9,8 @@ namespace SlopArena.MoveDataReport;
 internal static partial class ComboRouteReport
 {
     private sealed record SearchNode(Replay Replay, Outcome Outcome, string Di, string Grammar, int Drift);
-    private static readonly string[] GroundNormals = { "ground.1", "ground.2", "ground.3", "ground.4" };
-    private static readonly string[] AirNormals = { "air.1", "air.2", "air.3", "air.4" };
+    private static readonly string[] GroundNormals = { "ground.1", "ground.3", "ground.4" };
+    private static readonly string[] AirNormals = { "air.1", "air.3", "air.4" };
     private static readonly (float X, float Z)[] DriftInputs = { (0f, 0f), (0f, 1f), (-.5f, .8660254f), (.5f, .8660254f) };
     private static readonly int[] GroundOffsets = { 0, 1, 3, 6, 12, 24 };
     private static readonly int[] AirOffsets = { 0, 2, 5, 9, 14, 20 };
@@ -236,7 +236,8 @@ internal static partial class ComboRouteReport
         {
             if (nodes.Count == 0) return new List<SearchNode>();
             int depth = nodes[0].Replay.Actions.Count;
-            int shifts = depth >= 3 ? 16 : depth == 2 ? 4 : 1;
+            int normals = GroundNormals.Length;
+            int shifts = depth >= 3 ? normals * normals : depth == 2 ? normals : 1;
             var byDirection = new List<SearchNode>[options.DiDirections.Length];
             for (int d = 0; d < byDirection.Length; d++)
             {
@@ -246,8 +247,8 @@ internal static partial class ComboRouteReport
                 for (int starter = 0; starter < GroundNormals.Length; starter++)
                 {
                     string first = GroundNormals[starter];
-                    string second = GroundNormals[(starter + shift % 4) % 4];
-                    string third = AirNormals[(starter + shift / 4) % 4];
+                    string second = GroundNormals[(starter + shift % normals) % normals];
+                    string third = AirNormals[(starter + shift / normals) % normals];
                     groups.Add(nodes.Where(n => n.Di == options.DiDirections[d] && n.Replay.Actions[0].Slot == first
                         && (depth < 2 || n.Replay.Actions[1].Slot == second)
                         && (depth < 3 || n.Replay.Actions[2].Slot == third))

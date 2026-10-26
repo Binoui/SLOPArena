@@ -29,7 +29,7 @@ namespace SlopArena.EditorTools
             MainThreadRequired = true,
             Tags = new[] { "training/simulation" })]
         public static async Task<SlopArenaTrainingRunResult> Run(
-            [CliArg("steps", "JSON array of positive-tick steps. Optional fields: moveX/moveY, jumpHeld/jumpPressed, downHeld/downPressed, shieldHeld/shieldPressed, grabPressed, faceToCamera, toggleLock, retargetPressed, slot (1/2/3/4/A/E/R/F), isAiming, facingYaw, aimYaw, aimDistance, aimPitch, targetEntityId (decimal string), lockMode. Held values persist for each step; *Pressed fields and slot apply on its first tick only. Maximum 600 Shared ticks; mutates live Training state without rollback.", Required = true)]
+            [CliArg("steps", "JSON array of positive-tick steps. Optional fields: moveX/moveY, jumpHeld/jumpPressed, downHeld/downPressed, shieldHeld/shieldPressed, grabPressed, dashPressed, faceToCamera, toggleLock, retargetPressed, slot (1/3/4/A/E/R/F), isAiming, facingYaw, aimYaw, aimDistance, aimPitch, targetEntityId (decimal string), lockMode. Held values persist for each step; *Pressed fields and slot apply on its first tick only. Maximum 600 Shared ticks; mutates live Training state without rollback.", Required = true)]
             string steps)
         {
             RequireRunnableEditor();
@@ -49,6 +49,53 @@ namespace SlopArena.EditorTools
 
             var run = new SequenceRun(match, parsed, participantIds);
             return await run.Execute();
+        }
+
+        [CliCommand("sloparena.training.movement", "Select and persist live Training movement tuning, or inspect it. Other modes keep Current.",
+            MainThreadRequired = true, Tags = new[] { "training/simulation" })]
+        public static object Movement(
+            [CliArg("model", "Current, Tiers, Progressive, or Hybrid. Omit to inspect.")] string model = null,
+            [CliArg("snap", "on or off. Omit to preserve the current stick snap.")] string snap = null,
+            [CliArg("reset", "Reset all fighters to their spawns before a scripted measurement.")] bool reset = false,
+            [CliArg("ramp-ticks", "Progressive ramp ticks, 6..40.")] string rampTicks = null,
+            [CliArg("curve", "Progressive Linear or SlowStart.")] string curve = null,
+            [CliArg("turnaround-keep", "Progressive speed fraction, 0, 0.25, 0.5, 0.75, or 1.")] string turnaroundKeep = null,
+            [CliArg("stop-ticks", "Progressive release stop ticks, 4..30.")] string stopTicks = null,
+            [CliArg("start-ratio", "Progressive first-tick speed fraction, 0, 0.2, 0.3, 0.4, 0.5, or 0.6.")] string startRatio = null)
+        {
+            if (!EditorApplication.isPlaying || MatchConfig.Mode != GameMode.Training)
+                throw new InvalidOperationException("Movement prototype requires Play Mode Training.");
+            var match = ResolveActiveTrainingMatch();
+            GroundSpeedModel selected = match.MovementModel;
+            if (model != null && (!Enum.TryParse(model, true, out selected) || !Enum.IsDefined(typeof(GroundSpeedModel), selected)))
+                throw new ArgumentException("Unknown movement model.", nameof(model));
+            if (snap != null && snap != "on" && snap != "off")
+                throw new ArgumentException("snap must be on or off.", nameof(snap));
+            var t = match.ProgressiveTuning;
+            var selectedCurve = t.Curve;
+            if (curve != null && (!Enum.TryParse(curve, true, out selectedCurve)
+                || !Enum.IsDefined(typeof(GroundSpeedCurve), selectedCurve)))
+                throw new ArgumentException("curve must be Linear or SlowStart.", nameof(curve));
+            var tuning = GroundSpeedTuning.Progressive(
+                rampTicks == null ? t.RampTicks : int.Parse(rampTicks, CultureInfo.InvariantCulture), selectedCurve,
+                turnaroundKeep == null ? t.TurnaroundKeep : float.Parse(turnaroundKeep, CultureInfo.InvariantCulture),
+                stopTicks == null ? t.StopTicks : int.Parse(stopTicks, CultureInfo.InvariantCulture),
+                startRatio == null ? t.StartRatio : float.Parse(startRatio, CultureInfo.InvariantCulture));
+            if (reset && match.CaptureInputOverrideActive) throw new InvalidOperationException("Capture input is already owned.");
+            if (model != null || snap != null || rampTicks != null || curve != null || turnaroundKeep != null || stopTicks != null || startRatio != null)
+                match.SetMovementPrototype(selected, snap == null ? match.MovementStickSnap : snap == "on", tuning);
+            if (reset)
+            {
+                if (match.CaptureInputOverrideActive) throw new InvalidOperationException("Capture input is already owned.");
+                match.ResetTrainingPositions();
+            }
+            var state = match.GetCaptureState(MatchConfig.LocalEntityId);
+            return new { success = true, model = match.MovementModel.ToString(), snap = match.MovementStickSnap,
+                startRatio = match.ProgressiveTuning.StartRatio, rampTicks = match.ProgressiveTuning.RampTicks, curve = match.ProgressiveTuning.Curve.ToString(),
+                turnaroundKeep = match.ProgressiveTuning.TurnaroundKeep, stopTicks = match.ProgressiveTuning.StopTicks,
+                label = match.MovementPrototypeLabel, tick = match.CaptureTick,
+                position = new { x = state.PX, y = state.PY, z = state.PZ },
+                speed = Mathf.Sqrt(state.VX * state.VX + state.VZ * state.VZ) };
         }
 
         internal static List<TrainingSequenceStep> ParseSteps(string json)
@@ -87,7 +134,7 @@ namespace SlopArena.EditorTools
                             "moveX" or "moveY"
                                 => property.Value.Type is JTokenType.Integer or JTokenType.Float,
                             "jumpPressed" or "jumpHeld" or "downPressed" or "downHeld"
-                                or "shieldPressed" or "shieldHeld" or "grabPressed" or "faceToCamera"
+                                or "shieldPressed" or "shieldHeld" or "grabPressed" or "dashPressed" or "faceToCamera"
                                 or "toggleLock" or "retargetPressed" or "isAiming"
                                 => property.Value.Type == JTokenType.Boolean,
                             "slot" or "targetEntityId" or "lockMode"
@@ -148,8 +195,9 @@ namespace SlopArena.EditorTools
             if (slot == null) return AbilitySlots.None;
             if (!CanonicalSlotProjection.TryGet(false, slot, out var ground)
                 || !CanonicalSlotProjection.TryGet(true, slot, out var air)
-                || ground.Ordinal >= 8 || air.Ordinal != ground.Ordinal + 8)
-                throw new ArgumentException($"Unknown canonical slot label '{slot}'. Use 1, 2, 3, 4, A, E, R, or F.");
+                || ground.Ordinal >= CanonicalSlotProjection.VariantSlotCount
+                || air.Ordinal != ground.Ordinal + CanonicalSlotProjection.VariantSlotCount)
+                throw new ArgumentException($"Unknown canonical slot label '{slot}'. Use 1, 3, 4, A, E, R, or F.");
 
             return CanonicalSlotProjection.ToWire(ground);
         }
@@ -182,6 +230,7 @@ namespace SlopArena.EditorTools
                 ShieldHeld = step.ShieldHeld,
                 ShieldPressed = firstTick && step.ShieldPressed,
                 GrabPressed = firstTick && step.GrabPressed,
+                DashPressed = firstTick && step.DashPressed,
                 FaceToCamera = firstTick && step.FaceToCamera,
                 ToggleLock = firstTick && step.ToggleLock,
                 RetargetPressed = firstTick && step.RetargetPressed,
@@ -627,6 +676,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("shieldHeld")] public bool ShieldHeld { get; set; }
         [JsonProperty("shieldPressed")] public bool ShieldPressed { get; set; }
         [JsonProperty("grabPressed")] public bool GrabPressed { get; set; }
+        [JsonProperty("dashPressed")] public bool DashPressed { get; set; }
         [JsonProperty("faceToCamera")] public bool FaceToCamera { get; set; }
         [JsonProperty("toggleLock")] public bool ToggleLock { get; set; }
         [JsonProperty("retargetPressed")] public bool RetargetPressed { get; set; }

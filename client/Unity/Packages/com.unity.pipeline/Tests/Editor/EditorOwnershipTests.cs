@@ -152,6 +152,96 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
+        public void HumanClaim_WhenFree_HoldsLeaseUntilReleased()
+        {
+            var ownership = new EditorCommandOwnership("human-free-session");
+            Assert.IsTrue(ownership.TryClaimForHuman("playtest", out var held));
+            Assert.AreEqual("held", held.state);
+            Assert.IsTrue(held.settled, "An idle human lease reads as settled so agents wait instead of blocking.");
+            Assert.AreEqual("playtest", ownership.HumanLease);
+            Assert.AreEqual(EditorCommandOwnership.HumanHandle, ownership.OwnerHandle);
+            Assert.IsNull(ownership.TakeHumanGrant(), "A direct claim is not a queued grant.");
+
+            Assert.IsFalse(ownership.TryClaim("agent", "incarnation", "batch", out _, out var conflict));
+            Assert.AreEqual("held", conflict.state);
+            StringAssert.Contains("playtesting", conflict.reason);
+
+            Assert.IsTrue(ownership.ReleaseHuman());
+            Assert.AreEqual("free", ownership.GetStatus().state);
+            Assert.IsTrue(ownership.TryClaim("agent", "incarnation", "batch", out _, out _));
+        }
+
+        [Test]
+        public void HumanWait_IsHandedTheLeaseWhenAgentBatchSettles_AheadOfOtherAgents()
+        {
+            var ownership = new EditorCommandOwnership("human-wait-session");
+            Assert.IsTrue(ownership.TryClaim("agent-a", "incarnation-a", "batch-a", out var token, out _));
+            Assert.IsTrue(ownership.TryBeginOperation(token, "operation-1", "capture", out _, out _));
+
+            Assert.IsFalse(ownership.TryClaimForHuman("playtest", out var waiting));
+            Assert.AreEqual("held", waiting.state);
+            Assert.AreEqual("playtest", ownership.HumanWaiting);
+            Assert.IsNull(ownership.HumanLease);
+            Assert.IsTrue(ownership.CanExecute(token, "operation-1"), "Queuing the owner never interrupts admitted agent work.");
+
+            Assert.IsTrue(ownership.TryRelease(token, out var releasing));
+            Assert.AreEqual("releasing", releasing.state);
+            ownership.CompleteOperation("operation-1");
+
+            var status = ownership.GetStatus();
+            Assert.AreEqual("held", status.state, "The settled release hands over without a free window.");
+            Assert.AreEqual("playtest", ownership.HumanLease);
+            Assert.IsNull(ownership.HumanWaiting);
+            Assert.IsFalse(ownership.TryAuthorize(token, out _), "The agent token is revoked by the handoff.");
+            Assert.IsFalse(ownership.TryClaim("agent-b", "incarnation-b", "batch-b", out _, out _));
+            Assert.AreEqual("playtest", ownership.TakeHumanGrant());
+            Assert.IsNull(ownership.TakeHumanGrant(), "A grant is taken once.");
+        }
+
+        [Test]
+        public void HumanWait_Cancelled_LeavesTheEditorFreeForAgents()
+        {
+            var ownership = new EditorCommandOwnership("human-cancel-session");
+            Assert.IsTrue(ownership.TryClaim("agent", "incarnation", "batch", out var token, out _));
+            Assert.IsFalse(ownership.TryClaimForHuman("hold", out _));
+            ownership.CancelHumanWait();
+            Assert.IsTrue(ownership.TryRelease(token, out var released));
+            Assert.AreEqual("free", released.state);
+            Assert.IsNull(ownership.HumanLease);
+        }
+
+        [Test]
+        public void HumanWaitAndLease_SurviveReload()
+        {
+            var ownership = new EditorCommandOwnership("human-reload-session");
+            Assert.IsTrue(ownership.TryClaim("agent", "incarnation", "batch", out var token, out _));
+            Assert.IsFalse(ownership.TryClaimForHuman("playtest", out _));
+
+            var serialized = JsonConvert.SerializeObject(ownership.SnapshotForPersistence());
+            var reloaded = new EditorCommandOwnership("human-reload-session");
+            reloaded.Restore(JsonConvert.DeserializeObject<EditorCommandOwnership.PersistenceState>(serialized));
+            Assert.AreEqual("playtest", reloaded.HumanWaiting);
+
+            Assert.IsTrue(reloaded.TryRelease(token, out _));
+            serialized = JsonConvert.SerializeObject(reloaded.SnapshotForPersistence());
+            var again = new EditorCommandOwnership("human-reload-session");
+            again.Restore(JsonConvert.DeserializeObject<EditorCommandOwnership.PersistenceState>(serialized));
+            Assert.AreEqual("held", again.GetStatus().state);
+            Assert.AreEqual("playtest", again.HumanLease);
+            Assert.AreEqual("playtest", again.TakeHumanGrant(), "A grant not yet acted on survives the reload.");
+        }
+
+        [Test]
+        public void HumanClaim_IsRefusedWhileBlocked()
+        {
+            var ownership = new EditorCommandOwnership("human-blocked-session");
+            ownership.Block("test block");
+            Assert.IsFalse(ownership.TryClaimForHuman("playtest", out var status));
+            Assert.AreEqual("blocked", status.state);
+            Assert.IsNull(ownership.HumanWaiting);
+        }
+
+        [Test]
         public void HostActivity_PersistsOriginatingCommandAcrossReload()
         {
             var ownership = new EditorCommandOwnership("host-command-session");

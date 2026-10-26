@@ -220,10 +220,10 @@ public class AttackMomentumTests
         Assert.Equal(elapsed, before.AttackElapsedTicks);
         var originalAbility = sim.GetActiveAbility(1);
 
-        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot2, moveX: 1f));
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot3, moveX: 1f));
 
         Assert.Equal(ActionState.Attacking, after.State);
-        Assert.Equal(accepted ? AbilitySlots.Slot2 : AbilitySlots.Slot1, after.AttackSlot);
+        Assert.Equal(accepted ? AbilitySlots.Slot3 : AbilitySlots.Slot1, after.AttackSlot);
         Assert.Equal(!accepted, after.SlideAttackCarryActive);
         if (accepted)
         {

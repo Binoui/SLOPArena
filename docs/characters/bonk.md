@@ -1,5 +1,7 @@
 # Bonk
 
+> **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Squire's Cut stays on normal 1; Barn Door (normal 2) is retired. Normal-2 rows below are history.
+
 > **Identity (owner, 2026-10-20): Sir Bonk.** He knighted himself. A big, good-natured brute in
 > homemade armour: a bucket for a helm, a plank for a sword, pot lids on his shoulders and a
 > bedsheet cape with a crown he painted himself. He wants to be a hero, protects anyone smaller

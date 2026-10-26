@@ -52,6 +52,7 @@ namespace SlopArena.Client.UI
             _hold.Add(_holdFill); _live.Add(_hold);
             _toast = new VisualElement { name = "course-toast", pickingMode = PickingMode.Ignore };
             _toast.AddToClassList("course-toast");
+            Add(_toast, "", "course-toast-tape");
             _toastTitle = Add(_toast, "", "course-toast-title");
             _toastLine = Add(_toast, "", "course-toast-line");
             _live.Add(_toast);

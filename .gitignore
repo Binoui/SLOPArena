@@ -238,6 +238,7 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_hose_*.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_sr_*.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_e_ring_bounce.anim
+!client/Unity/Assets/CharacterPackages/bashie/Animations/bashie_whistle.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/crouch.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/tumble.anim
 !client/Unity/Assets/CharacterPackages/bashie/Animations/Borrowed/g4.anim

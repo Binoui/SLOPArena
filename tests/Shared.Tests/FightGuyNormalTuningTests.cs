@@ -37,18 +37,18 @@ public class FightGuyNormalTuningTests : KitScenarioTests
 
 
     [Fact]
-    public void G2_ForwardPunch_DealsAuthoredDamage()
+    public void G1_ForwardPunch_DealsAuthoredDamage()
     {
         AssertScenario(new KitScenario
         {
-            Name = "FightGuy G2 Forward Punch Hit Confirm",
+            Name = "FightGuy G1 Forward Punch Hit Confirm",
             Def = Def,
             Setup = GroundedPlayer,
-            Inputs = new InputSequence().Press(0, 7),
+            Inputs = new InputSequence().Press(0, 3),
             Assert = player => Assert.Equal((byte)0, player.AttackSlot),
             NpcSetup = () => TestHelpers.NpcState(0f, 1f) with { PY = GroundPy },
             NpcDef = Def,
-            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Slot2, false), (float)npc.DamagePercent),
+            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Slot1, false), (float)npc.DamagePercent),
             TotalTicks = 80,
         });
     }
@@ -71,9 +71,9 @@ public class FightGuyNormalTuningTests : KitScenarioTests
     }
 
     [Fact]
-    public void A2_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows()
+    public void A1_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows()
     {
-        var windows = Def.GetCookedSlotAbility(AbilitySlots.Slot2, airborne: true)!.Timeline.Stages
+        var windows = Def.GetCookedSlotAbility(AbilitySlots.Slot1, airborne: true)!.Timeline.Stages
             .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>()
             .OrderBy(operation => operation.Tick).ToArray();
         var sweet = windows.First();
@@ -98,7 +98,7 @@ public class FightGuyNormalTuningTests : KitScenarioTests
                 sim.SetState(101, target with { EntityId = 101, DamagePercent = sim.GetState(101).DamagePercent });
             sim.Tick(new Dictionary<ulong, InputState>
             {
-                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot2 } : default,
+                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default,
             });
             contacts.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1));
             foreach (var hitbox in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1))

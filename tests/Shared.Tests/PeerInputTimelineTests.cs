@@ -101,7 +101,7 @@ public class PeerInputTimelineTests
 
         var press = Move(1f);
         press.Jump = true;
-        press.ActiveSlot = AbilitySlots.Slot2;
+        press.ActiveSlot = AbilitySlots.Slot3;
         var report = timeline.Accept(12, 12, new[] { press }, Horizon);
         var next = timeline.Consume(13);
 
@@ -109,7 +109,7 @@ public class PeerInputTimelineTests
         Assert.Equal(ConsumedInputSource.Held, next.Source);
         Assert.Equal(1, next.RescuedPresses);
         Assert.True(next.Input.Jump);
-        Assert.Equal(AbilitySlots.Slot2, next.Input.ActiveSlot);
+        Assert.Equal(AbilitySlots.Slot3, next.Input.ActiveSlot);
         Assert.False(timeline.Consume(14).Input.Jump);
     }
 

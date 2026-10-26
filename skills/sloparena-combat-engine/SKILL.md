@@ -35,7 +35,7 @@ The engine owns deterministic behavior for:
 
 Creator/package data supplies bounded parameters and ordered operations. It does not ship executable simulation code, native plugins, arbitrary shaders, or a client-only gameplay implementation.
 
-Simultaneous attacks trade. Attack Clash is planned, not implemented, under [ADR-0015](../../docs/adr/0015-timing-model-combat-pivot.md). Universal Dash is retired, ledge grabs are disabled for the demo, and Burst is reserved and inert.
+Simultaneous attacks trade. Attack Clash is planned, not implemented, under [ADR-0015](../../docs/adr/0015-timing-model-combat-pivot.md). The old Universal Dash is retired in favour of the universal homing dash (ADR-0042), ledge grabs are disabled for the demo, and Burst is reserved and inert.
 
 ## Cooked runtime execution
 

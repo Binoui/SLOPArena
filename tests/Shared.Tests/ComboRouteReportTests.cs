@@ -74,7 +74,7 @@ public sealed class ComboRouteReportTests
     {
         var kit = CreateKit(
             (0, HitTimeline(new[] { 0 }, duration: 20, damage: 4f)),
-            (8, HitTimeline(new[] { 0 }, duration: 20, damage: 9f)));
+            (7, HitTimeline(new[] { 0 }, duration: 20, damage: 9f)));
         var context = ContextFor(kit);
         var replay = CreateReplay(context, 24, 101.6f, (0, "air.1"));
 
@@ -98,7 +98,7 @@ public sealed class ComboRouteReportTests
             (1, HitTimeline(new[] { 0 }, duration: 4, stunTicks: 0)));
         var context = ContextFor(kit);
         var replay = CreateReplay(context, 28, 101.6f,
-            (0, "ground.1"), (1, "ground.2"));
+            (0, "ground.1"), (1, "ground.3"));
 
         var outcome = ComboRouteReport.Execute(context, replay).Outcome;
 
@@ -129,7 +129,7 @@ public sealed class ComboRouteReportTests
         var context = ContextFor(kit);
         const int followupTick = 20;
         var replay = CreateReplay(context, 26, 101.6f,
-            (0, "ground.1"), (followupTick, "ground.2"));
+            (0, "ground.1"), (followupTick, "ground.3"));
 
         var outcome = ComboRouteReport.Execute(context, replay).Outcome;
 
@@ -311,7 +311,7 @@ public sealed class ComboRouteReportTests
     public void Search_DelayingSameSlotFollowUpMeasuresItsOwnAcceptanceWindow()
     {
         var timeline = HitTimeline(new[] { 0 }, duration: 40, radius: 2.5f);
-        var context = ContextFor(CreateKit((0, timeline), (8, timeline)));
+        var context = ContextFor(CreateKit((0, timeline), (7, timeline)));
         var options = SearchOptionsFor(1200, 200, new[] { "neutral" });
         options.Horizon = 150;
         options.TimingRadius = 2;
@@ -358,7 +358,7 @@ public sealed class ComboRouteReportTests
     public void Execute_ExplicitJumpFastFallAndLandingFollowUpRemainAuthoritative()
     {
         var timeline = HitTimeline(new[] { 0 }, duration: 20, radius: 3f, stunTicks: 0);
-        var context = ContextFor(CreateKit((0, timeline), (8, timeline)));
+        var context = ContextFor(CreateKit((0, timeline), (7, timeline)));
         var baseline = CreateReplay(context, 150, 101.6f, (0, "ground.1"), (50, "air.1"));
         baseline.AttackerInputs[40].Jump = true;
         for (int tick = 40; tick < 48; tick++) baseline.AttackerInputs[tick].JumpHeld = true;
@@ -391,7 +391,7 @@ public sealed class ComboRouteReportTests
             (0, HitTimeline(new[] { 0 }, 20, damage: 4f)),
             (1, HitTimeline(new[] { 0 }, 20, damage: 9f))));
         var first = CreateReplay(context, 24, 101.6f, (0, "ground.1"));
-        var second = CreateReplay(context, 24, 101.6f, (0, "ground.2"));
+        var second = CreateReplay(context, 24, 101.6f, (0, "ground.3"));
         first.Id = "first";
         second.Id = "second";
         var firstOutcome = ComboRouteReport.Execute(context, first).Outcome;
@@ -465,8 +465,8 @@ public sealed class ComboRouteReportTests
     {
         var timeline = HitTimeline(new[] { 0 }, duration: 40, stunTicks: 120, radius: 2.5f);
         return CreateKit(
-            (0, timeline), (1, timeline), (2, timeline), (3, timeline),
-            (8, timeline), (9, timeline), (10, timeline), (11, timeline));
+            (0, timeline), (1, timeline), (2, timeline),
+            (7, timeline), (8, timeline), (9, timeline));
     }
 
     private static ComboRouteReport.SearchOptions SearchOptionsFor(int budget, int measurementBudget,
@@ -487,7 +487,7 @@ public sealed class ComboRouteReportTests
     private static MatchContentEntry CreateKit(params (int Index, CookedTimeline Timeline)[] authored)
     {
         var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
-        var slots = Enumerable.Range(0, 16).Select(EmptySlot).ToArray();
+        var slots = Enumerable.Range(0, CanonicalSlotProjection.All.Count).Select(EmptySlot).ToArray();
         foreach (var (index, timeline) in authored)
             slots[index] = MakeSlot(index, timeline);
         var definition = TestHelpers.EngineDef;
@@ -505,15 +505,8 @@ public sealed class ComboRouteReportTests
 
     private static CookedSlotDefinition MakeSlot(int index, CookedTimeline timeline)
     {
-        string id = index switch
-        {
-            0 => "ground.1", 1 => "ground.2", 2 => "ground.3", 3 => "ground.4",
-            4 => "ground.A", 5 => "ground.E", 6 => "ground.R", 7 => "ground.F",
-            8 => "air.1", 9 => "air.2", 10 => "air.3", 11 => "air.4",
-            12 => "air.A", 13 => "air.E", 14 => "air.R", 15 => "air.F",
-            _ => throw new ArgumentOutOfRangeException(nameof(index)),
-        };
-        return new CookedSlotDefinition(index, id, index >= 8, "Route test move", "", "",
+        var address = CanonicalSlotProjection.All[index];
+        return new CookedSlotDefinition(index, address.Id, address.IsAirborne, "Route test move", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false, timeline);
     }
 

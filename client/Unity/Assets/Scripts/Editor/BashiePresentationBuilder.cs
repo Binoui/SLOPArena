@@ -44,7 +44,7 @@ namespace SlopArena.EditorTools
 
         private sealed class Materials
         {
-            public Material Streak, Drop, Mist, Crown, Puddle, Sign, Wave;
+            public Material Streak, Drop, Mist, Crown, Puddle, Ring, Wave;
             public Mesh WaveMesh;
         }
 
@@ -53,13 +53,14 @@ namespace SlopArena.EditorTools
         {
             using var kit = new PresentationBuilderKit("bashie", audioFolder: "Bashie");
             _kit = kit;
+            BuildPuff();
             _m = BuildMaterials();
             var (muzzle, barrel) = MuzzleInHand();
             var built = new List<(string id, GameObject prefab)>
             {
                 ("presentation.bashie.hose.pump", Pump(muzzle, barrel)),
                 ("presentation.bashie.hose.release", Release(muzzle, barrel)),
-                ("presentation.bashie.hose.sign", Sign()),
+                ("presentation.bashie.hose.sign", Sign("BashieHoseSign", "BashieSign", SignMaskPath)),
                 ("presentation.bashie.hose.hit", Hit()),
                 ("presentation.bashie.shell.tuck", Tuck()),
                 ("presentation.bashie.shell.plop", Plop()),
@@ -70,12 +71,247 @@ namespace SlopArena.EditorTools
                 ("presentation.bashie.shell.rise-tuck", RiseTuck()),
                 ("presentation.bashie.shell.air-strike-tuck", RiseTuck(airborne: true)),
                 ("presentation.bashie.shell.flip-tuck", FlipTuck()),
+                ("presentation.bashie.whistle.puff", WhistlePuff()),
+                ("presentation.bashie.whistle.blow", WhistleBlow()),
+                ("presentation.bashie.whistle.sign", Sign("BashieWhistleSign", "BashieNoRunningSign",
+                    "Assets/CharacterPackages/bashie/Presentation/Source/NoRunning.png")),
             };
             built.AddRange(BashieRingBounceBuilder.BuildPrefabs());
             var drop = StreamDrop();
             kit.BindProjectile("ground.A", drop, ProjectileOrientation.FlightPositiveY, "");
             kit.BindProjectile("air.A", drop, ProjectileOrientation.FlightPositiveY, "");
             return kit.Finish(built, new { drop = AssetDatabase.GetAssetPath(drop), muzzle = muzzle.ToString("F3") });
+        }
+
+        // Accepted C-full-balloon, 2026-10-26. Rerun after re-importing the rig or changing its albedo.
+        private static class PuffProfile
+        {
+            public const float Belly = 0.11f, Cheeks = 0.05f, Sides = 0.05f, Roundness = 0.7f;
+            public const int SmoothPasses = 6;
+        }
+
+        [CliCommand("sloparena.presentation.bashie.puff.build", "Bake Bashie's accepted C puff from the source FBX and bind the prefab body. Rerun after a rig re-import.", MainThreadRequired = true, Tags = new[] { "presentation", "character" })]
+        public static object BuildPuff()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new System.InvalidOperationException("Bashie's puff builder requires Edit Mode.");
+            const string prefabPath = "Assets/CharacterPackages/bashie/Presentation/BashieRig.prefab";
+            const string meshPath = "Assets/CharacterPackages/bashie/Presentation/BashieBodyPuff.asset";
+            var actor = PrefabUtility.LoadPrefabContents(prefabPath);
+            Mesh baked = null;
+            try
+            {
+                var body = actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).Single(s => s.name == "Bashie_Body");
+                var sourceBody = PrefabUtility.GetCorrespondingObjectFromOriginalSource(body);
+                var source = sourceBody != null ? sourceBody.sharedMesh : null;
+                if (source == null || AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(source)) is not ModelImporter)
+                    throw new System.InvalidOperationException("Bashie_Body must resolve to its source model mesh.");
+                baked = BakePuffMesh(actor, body, source);
+                var saved = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+                if (saved == null)
+                {
+                    AssetDatabase.CreateAsset(baked, meshPath);
+                    saved = baked;
+                    baked = null;
+                }
+                else
+                {
+                    EditorUtility.CopySerialized(baked, saved);
+                    EditorUtility.SetDirty(saved);
+                }
+                AssetDatabase.SaveAssetIfDirty(saved);
+                if (body.sharedMesh != saved)
+                {
+                    body.sharedMesh = saved;
+                    PrefabUtility.SaveAsPrefabAsset(actor, prefabPath);
+                }
+                return new { success = true, mesh = meshPath, source = AssetDatabase.GetAssetPath(source),
+                    vertices = saved.vertexCount, blendShape = saved.GetBlendShapeName(0), frameWeight = saved.GetBlendShapeFrameWeight(0, 0) };
+            }
+            finally
+            {
+                if (baked != null) Object.DestroyImmediate(baked);
+                PrefabUtility.UnloadPrefabContents(actor);
+            }
+        }
+
+        private static Mesh BakePuffMesh(GameObject actor, SkinnedMeshRenderer body, Mesh src)
+        {
+            var all = actor.GetComponentsInChildren<Transform>(true);
+            Transform FindT(string name) => all.Single(t => t.name == name);
+            var albedo = new Texture2D(2, 2);
+            try
+            {
+                string texPath = AssetDatabase.GetAssetPath(body.sharedMaterial.mainTexture);
+                if (!ImageConversion.LoadImage(albedo, System.IO.File.ReadAllBytes(texPath)))
+                    throw new System.InvalidOperationException("Cannot read Bashie's source albedo image.");
+                var hips = FindT("mixamorig:Hips");
+                var spine1 = FindT("mixamorig:Spine1");
+                var neck = FindT("mixamorig:Neck");
+                var head = FindT("mixamorig:Head");
+                var lArm = FindT("mixamorig:LeftArm");
+                var rArm = FindT("mixamorig:RightArm");
+                var V = src.vertices;
+                var N = src.normals;
+                var BW = src.boneWeights;
+                var UV = src.uv;
+                int n = V.Length;
+                var bones = body.bones;
+                bool[] torsoBone = new bool[bones.Length];
+                bool[] headBone = new bool[bones.Length];
+                for (int i = 0; i < bones.Length; i++)
+                {
+                    var bn = bones[i] != null ? bones[i].name : "";
+                    torsoBone[i] = bn == "mixamorig:Hips" || bn == "mixamorig:Spine" || bn == "mixamorig:Spine1" || bn == "mixamorig:Spine2";
+                    headBone[i] = bn == "mixamorig:Head";
+                }
+                float Sum(BoneWeight b, bool[] set)
+                {
+                    float w = 0f;
+                    if (set[b.boneIndex0]) w += b.weight0;
+                    if (set[b.boneIndex1]) w += b.weight1;
+                    if (set[b.boneIndex2]) w += b.weight2;
+                    if (set[b.boneIndex3]) w += b.weight3;
+                    return w;
+                }
+                var L2W = body.transform.localToWorldMatrix;
+                var W2L = body.transform.worldToLocalMatrix;
+                var P = new Vector3[n];
+                var Nw = new Vector3[n];
+                for (int i = 0; i < n; i++)
+                {
+                    P[i] = L2W.MultiplyPoint3x4(V[i]);
+                    Nw[i] = L2W.MultiplyVector(N[i]).normalized;
+                }
+                // Weld by position so seams share one weight and one normal.
+                var groupOf = new int[n];
+                var groups = new Dictionary<Vector3Int, int>();
+                var groupMembers = new List<List<int>>();
+                for (int i = 0; i < n; i++)
+                {
+                    var weld = new Vector3Int(Mathf.RoundToInt(P[i].x * 2000f), Mathf.RoundToInt(P[i].y * 2000f), Mathf.RoundToInt(P[i].z * 2000f));
+                    if (!groups.TryGetValue(weld, out int g))
+                    {
+                        g = groupMembers.Count;
+                        groups[weld] = g;
+                        groupMembers.Add(new List<int>());
+                    }
+                    groupOf[i] = g;
+                    groupMembers[g].Add(i);
+                }
+                int G = groupMembers.Count;
+                var nbr = new HashSet<int>[G]; for (int g = 0; g < G; g++) nbr[g] = new HashSet<int>();
+                var tris = src.triangles;
+                for (int k = 0; k < tris.Length; k += 3)
+                {
+                    int a = groupOf[tris[k]], b = groupOf[tris[k + 1]], c = groupOf[tris[k + 2]];
+                    if (a != b) { nbr[a].Add(b); nbr[b].Add(a); }
+                    if (b != c) { nbr[b].Add(c); nbr[c].Add(b); }
+                    if (a != c) { nbr[a].Add(c); nbr[c].Add(a); }
+                }
+                var gPos = new Vector3[G];
+                var gNorm = new Vector3[G];
+                var gYellow = new float[G];
+                var gTorso = new float[G];
+                var gHead = new float[G];
+                bool Yellow(Color c)
+                {
+                    Color.RGBToHSV(c, out float h, out float s, out float v);
+                    return h > 0.10f && h < 0.19f && s > 0.25f && v > 0.45f;
+                }
+                for (int g = 0; g < G; g++)
+                {
+                    var m = groupMembers[g];
+                    var nn = Vector3.zero; float y = 0f, to = 0f, he = 0f;
+                    foreach (int i in m)
+                    {
+                        nn += Nw[i];
+                        y += Yellow(albedo.GetPixelBilinear(UV[i].x, UV[i].y)) ? 1f : 0f;
+                        to += Sum(BW[i], torsoBone);
+                        he += Sum(BW[i], headBone);
+                    }
+                    gPos[g] = P[m[0]];
+                    gNorm[g] = nn.normalized;
+                    gYellow[g] = y / m.Count;
+                    gTorso[g] = to / m.Count;
+                    gHead[g] = he / m.Count;
+                }
+                var fwd = actor.transform.forward;
+                var upW = actor.transform.up;
+                var rightW = actor.transform.right;
+                // The snout tip excludes the hat brim and anchors the cheek mask below the eyes.
+                int snout = -1; float best = float.NegativeInfinity;
+                for (int g = 0; g < G; g++)
+                {
+                    if (gHead[g] < 0.8f) continue;
+                    var d = gPos[g] - head.position;
+                    if (Mathf.Abs(Vector3.Dot(d, rightW)) > 0.03f) continue;
+                    float up = Vector3.Dot(d, upW); if (up > 0.16f) continue;
+                    float f = Vector3.Dot(d, fwd); if (f > best) { best = f; snout = g; }
+                }
+                if (snout < 0) throw new System.InvalidOperationException("Bashie body has no snout-tip vertex.");
+                var snoutTip = gPos[snout];
+                float hipsY = Vector3.Dot(hips.position, upW), neckY = Vector3.Dot(neck.position, upW);
+                var bellyCentre = spine1.position - upW * 0.03f + fwd * 0.02f;
+                float Smooth(float e0, float e1, float x) { float t = Mathf.Clamp01((x - e0) / (e1 - e0)); return t * t * (3f - 2f * t); }
+                var wBelly = new float[G];
+                var wCheek = new float[G];
+                var wSides = new float[G];
+                for (int g = 0; g < G; g++)
+                {
+                    var p = gPos[g];
+                    float h = (Vector3.Dot(p, upW) - hipsY) / (neckY - hipsY);
+                    float vertical = Smooth(-0.25f, 0.15f, h) * (1f - Smooth(0.75f, 1.0f, h));
+                    float armClear = Smooth(0.03f, 0.10f, Mathf.Min((p - lArm.position).magnitude, (p - rArm.position).magnitude));
+                    wBelly[g] = gYellow[g] * Mathf.Clamp01(gTorso[g]) * vertical * armClear;
+                    var axisPoint = new Vector3(hips.position.x, p.y, hips.position.z);
+                    float frontness = Vector3.Dot((p - axisPoint).normalized, fwd);
+                    wSides[g] = (1f - gYellow[g]) * Mathf.Clamp01(gTorso[g]) * vertical * armClear * Smooth(-0.35f, 0.15f, frontness);
+                    var dh = p - head.position;
+                    float lateral = Mathf.Abs(Vector3.Dot(dh, rightW));
+                    float upH = Vector3.Dot(p - snoutTip, upW);
+                    float belowEyes = 1f - Smooth(0.02f, 0.07f, upH);
+                    wCheek[g] = gYellow[g] * Mathf.Clamp01(gHead[g]) * belowEyes * (0.35f + 0.65f * Smooth(0.03f, 0.12f, lateral));
+                }
+                float[] Blur(float[] w, int passes)
+                {
+                    var a = (float[])w.Clone();
+                    var b = new float[G];
+                    for (int k = 0; k < passes; k++)
+                    {
+                        for (int g = 0; g < G; g++)
+                        {
+                            if (nbr[g].Count == 0) { b[g] = a[g]; continue; }
+                            float s = 0f; foreach (int q in nbr[g]) s += a[q];
+                            b[g] = 0.5f * a[g] + 0.5f * s / nbr[g].Count;
+                        }
+                        var tmp = a;
+                        a = b;
+                        b = tmp;
+                    }
+                    return a;
+                }
+                int passes = PuffProfile.SmoothPasses;
+                wBelly = Blur(wBelly, passes);
+                wCheek = Blur(wCheek, passes);
+                wSides = Blur(wSides, passes);
+                var delta = new Vector3[n];
+                for (int g = 0; g < G; g++)
+                {
+                    var radial = (gPos[g] - bellyCentre).normalized;
+                    var belly = (gNorm[g] + PuffProfile.Roundness * radial).normalized * (PuffProfile.Belly * wBelly[g]);
+                    var sides = gNorm[g] * (PuffProfile.Sides * wSides[g]);
+                    var cheeks = gNorm[g] * (PuffProfile.Cheeks * wCheek[g]);
+                    var local = W2L.MultiplyVector(belly + sides + cheeks);
+                    foreach (int i in groupMembers[g]) delta[i] = local;
+                }
+                var mesh = Object.Instantiate(src);
+                mesh.name = "BashieBodyPuff";
+                mesh.ClearBlendShapes();
+                mesh.AddBlendShapeFrame("Puff", 100f, delta, null, null);
+                return mesh;
+            }
+            finally { Object.DestroyImmediate(albedo); }
         }
 
         [MenuItem("Tools/SLOPArena/Presentation/Rebuild Bashie Presentation")]
@@ -633,10 +869,13 @@ namespace SlopArena.EditorTools
         /// sprays so the match camera keeps it in frame, with a soft pop; it hangs and fades. A positive pivot keeps
         /// it in front of the fighters.
         /// </summary>
-        private static GameObject Sign()
+        private static GameObject Sign(string rootName, string materialName, string maskPath)
         {
-            var root = _kit.NewRoot("BashieHoseSign", attackBound: false);
-            var sign = Particles(root, "Sign", _m.Sign, 1.2f, ParticleSystemSimulationSpace.Local);
+            var mask = new MaskField(maskPath);
+            var material = _kit.ParticleMaterial(materialName, _kit.BakeTexture(materialName, 512, 84,
+                (u, v) => SignPixel(u, v, mask)));
+            var root = _kit.NewRoot(rootName, attackBound: false);
+            var sign = Particles(root, "Sign", material, 1.2f, ParticleSystemSimulationSpace.Local);
             Burst(sign, 1);
             var main = sign.main;
             main.startLifetime = 1.05f;
@@ -651,6 +890,41 @@ namespace SlopArena.EditorTools
             renderer.pivot = new Vector3(0f, 0f, 1.2f);
             InFront(sign);
             _kit.Sound(root, "bashie_sign", 0.5f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject WhistlePuff()
+        {
+            var root = _kit.NewRoot("BashieWhistlePuff", attackBound: false);
+            var puff = root.AddComponent<WhistlePuff>();
+            puff.Inhale = _kit.Sound(root, "bashie_whistle_inhale", 0.3f, 1f);
+            var deflate = new GameObject("Deflate");
+            deflate.transform.SetParent(root.transform, false);
+            puff.Deflate = _kit.Sound(deflate, "bashie_whistle_deflate", 0.3f, 1f);
+            if (puff.Deflate != null) puff.Deflate.playOnAwake = false;
+            return _kit.Save(root);
+        }
+
+        private static GameObject WhistleBlow()
+        {
+            var root = _kit.NewRoot("BashieWhistleBlow", attackBound: false);
+            var floor = new GameObject("Floor");
+            floor.transform.SetParent(root.transform, false);
+            floor.AddComponent<SnapToFloor>().MaxDrop = 12f;
+            for (int i = 0; i < 3; i++)
+            {
+                var ring = Particles(floor, "Ring" + i, _m.Ring, 0.5f, ParticleSystemSimulationSpace.Local);
+                Burst(ring, 1);
+                var main = ring.main;
+                main.startDelay = i * 0.045f;
+                main.startLifetime = 0.32f;
+                main.startSize = 10f;
+                main.maxParticles = 1;
+                ring.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+                SizeOverLife(ring, Curve((0f, 0.03f), (0.78f, 1f), (1f, 1f)));
+                Fade(ring, 0.65f);
+            }
+            _kit.Sound(root, "bashie_whistle_tweet", 0.32f, 1f);
             return _kit.Save(root);
         }
 
@@ -721,7 +995,6 @@ namespace SlopArena.EditorTools
 
         private static Materials BuildMaterials()
         {
-            var signMask = new MaskField(SignMaskPath);
             return new Materials
             {
                 Streak = _kit.ParticleMaterial("BashieStreak", _kit.BakeTexture("BashieStreak", 256, 64, StreakPixel)),
@@ -729,8 +1002,9 @@ namespace SlopArena.EditorTools
                 Mist = _kit.ParticleMaterial("BashieMist", _kit.BakeTexture("BashieMist", 64, 64, MistPixel)),
                 Crown = _kit.ParticleMaterial("BashieCrown", _kit.BakeTexture("BashieCrown", 256, 256, CrownPixel)),
                 Puddle = _kit.ParticleMaterial("BashiePuddle", _kit.BakeTexture("BashiePuddle", 128, 128, PuddlePixel)),
-                Sign = _kit.ParticleMaterial("BashieSign", _kit.BakeTexture("BashieSign", 512, 84,
-                    (u, v) => SignPixel(u, v, signMask))),
+                Ring = _kit.ParticleMaterial("BashieWhistleRing", _kit.BakeTexture("BashieWhistleRing", 256, 256,
+                    (u, v) => Bands((Mathf.Abs(Radius(u, v) - 0.97f) - 0.018f) * 128f,
+                        0.7f, 1.1f, Rim, Cyan, Foam))),
                 Wave = _kit.ParticleMaterial("BashieWave", _kit.BakeTexture("BashieWave", 8, 128, WavePixel), Color.white),
                 WaveMesh = WaveMesh(),
             };
@@ -809,15 +1083,12 @@ namespace SlopArena.EditorTools
             float board = Box(p, new Vector2(250f, 38f) - Vector2.one * 10f) - 10f;
             var color = Bands(board, 3.5f, 6f, Rim, SignBlue, Color.white);
             if (color.a <= 0f) return color;
-            // Lettering: the mask's text box (u 0.038-0.966, v 0.462-0.538: 950 x 77 mask pixels), kept to its
-            // aspect, in the board right of the pictogram.
             const float Left = -172f, Right = 238f;
-            float texels = (Right - Left) / ((0.966f - 0.038f) * mask.Width);
-            float halfHeight = 0.038f * mask.Height * texels;
-            float lu = Mathf.InverseLerp(Left, Right, p.x), lv = Mathf.InverseLerp(-halfHeight, halfHeight, p.y);
-            if (lu >= -0.02f && lu <= 1.02f && lv >= -0.3f && lv <= 1.3f)
+            float texels = (Right - Left) / (0.93f * mask.Width);
+            if (p.x >= Left - 3f && p.x <= Right + 3f && Mathf.Abs(p.y) < 28f)
             {
-                float mu = Mathf.LerpUnclamped(0.038f, 0.966f, lu), mv = Mathf.LerpUnclamped(0.462f, 0.538f, lv);
+                float mu = 0.5f + (p.x - (Left + Right) * 0.5f) / (texels * mask.Width);
+                float mv = 0.5f + p.y / (texels * mask.Height);
                 float letter = mask.Sample(mu, mv) * texels;
                 color = Color.Lerp(color, Bands(letter, 2f, 99f, Ink, SignRed, SignRed), Mathf.Clamp01(0.5f - letter));
             }
