@@ -74,6 +74,21 @@ def find_tail_geo(bm, deform, groups, bones, ds=0.02, min_len=0.2):
     centre = min(bm.verts, key=lambda v: (v.co - spine).length)
     from_centre = geodesic(bm, [centre], everything)
     cands = [v for v in bm.verts if dom(v) in ("RightUpLeg", "RightLeg", "LeftUpLeg", "LeftLeg") and seg_dist(v.co, leg_segs) > 0.12]
+    detached = [v for v in cands if v.index not in from_centre]
+    if detached:
+        # Manki v4's mesh is a kit of separate parts and the tail is its own island: take the island with the most
+        # candidates whole, from the end nearest the hips (root) to the far end (tip).
+        islands = []
+        for v in detached:
+            if not any(v.index in isl for isl in islands): islands.append(geodesic(bm, [v], everything))
+        island = max(islands, key=lambda isl: sum(v.index in isl for v in detached))
+        hips = bones["Hips"][0]
+        root = min((bm.verts[i] for i in island), key=lambda v: (v.co - hips).length)
+        from_root = geodesic(bm, [root], everything)
+        tip = bm.verts[max(island, key=lambda i: from_root[i])]
+        g = geodesic(bm, [tip], everything)
+        s_root = max(g.values()) + ds
+        return set(g), g, s_root, tip
     tip = max(cands, key=lambda v: from_centre.get(v.index, 0))
     # When the tail end hangs within reach of a leg (Manki v3's club), it is not a candidate and the pick above
     # lands mid-tail; keep climbing away from the spine to the actual end.

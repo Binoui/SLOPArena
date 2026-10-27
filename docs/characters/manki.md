@@ -137,7 +137,30 @@ weights and UVs. Renderer count stays **10**; material slots rise **10 → 12**
 through two additional body submeshes. Cooked `poses.bin` is unchanged.
 The original Art prefab's mesh/material bindings are restored.
 
-### Model — Manki v3 (2026-10-16)
+### Model — Manki v4 (2026-10-27)
+
+Manki v4 replaced v3 in the same files, rig prefab and GUIDs as below. It is a Tripo model
+the owner rigged in Mixamo (`newmanki2.fbx`, source and its 4K map in
+`artifacts/manki-v4-20261027/source/`, local). Next to v3 it has symmetric open eyes with
+no wink, a cream muzzle and chest, smoother painted fur, bigger ears and crest, and
+fingerless gloves. It also drops the black leg diamonds and has a paler orange.
+
+- **Rebuild:** the [rig README](../../tools/blender/manki_rig/README.md) steps 1, 2 and 4.
+  The Mixamo download already had a rig, so step 0 was skipped. Step 3 (face paint) was
+  skipped too: the face is clean. The 2048² colour map is a plain downscale of the 4K map.
+- **Source quirks** (handled in `fix_rig.py`): a centimetre, quad mesh bound to a rest pose
+  lying along −Y, where only the Mixamo clip stands it up; and a tail that is its own mesh
+  island, skinned to the left thigh.
+- **Size:** export scale 1.3486 gives humanScale 0.6194, as for v3. That makes him about
+  1.35 m to the top of the crest. Foot contact in Training was not measured.
+- **Tail:** 0.71 m chain, longer than v3's. In the T-pose its club hangs at floor level.
+- **Checks:** `sloparena.character.verify` reports `valid`, and the full Shared tests
+  pass on the new cook. Ability Lab captures of ground.1, air.3 and ground.4 deform cleanly.
+- **Rollback to v3:** the live v3 files (FBX, colour map, material, `MankiRig.prefab`) are
+  in `artifacts/manki-v4-20261027/unity-backup/`. Put the FBX and colour map where
+  `unity_import.eval.cs` expects them (its `Src` paths) and run it.
+
+### Model — Manki v3 (2026-10-16, replaced by v4)
 
 The catalog rig is `Presentation/MankiRig.prefab`, rebuilt with
 [`tools/blender/manki_rig`](../../tools/blender/manki_rig/README.md) from a re-generated

@@ -1,10 +1,10 @@
-"""Weld + smooth + tail chain + 4-influence weights + fur normals, then export.
+"""Weld + triangulate + smooth + tail chain + 4-influence weights + fur normals, then export.
 blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0] [fur_normal_iterations=40|0]"""
 import bpy, bmesh, sys, os, math, json
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from tail_segment import find_tail_geo
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 src, dst = argv[:2]
@@ -16,13 +16,31 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=src)
 arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
 body = max((o for o in bpy.data.objects if o.type == "MESH"), key=lambda o: len(o.data.vertices))
+report = {"source": src, "verts_before": len(body.data.vertices)}
+
+# 0. Manki v4's Mixamo FBX binds a centimetre, upside-down mesh to a rest pose lying along -Y; only the clip stands it
+#    up. Bake the visible T-pose into the mesh and the rest pose, in metres, so it matches v3's layout (mesh world =
+#    identity, upright rest). v3 and Manki 2 already match and skip this.
+bpy.context.scene.frame_set(1)
+upright = arm.data.bones[P + "Head"].head_local - arm.data.bones[P + "Hips"].head_local
+upright = (arm.matrix_world.to_3x3() @ upright).normalized().z > 0.9
+if not upright or abs(body.matrix_world.to_scale().x - 1) > 1e-3:
+    bpy.context.view_layer.objects.active = body
+    mod = next(m for m in body.modifiers if m.type == "ARMATURE")
+    keep = body.modifiers.new("Armature.keep", "ARMATURE"); keep.object = arm
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    keep.name = "Armature"
+    body.data.transform(body.matrix_world); body.matrix_world = Matrix.Identity(4)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="POSE"); bpy.ops.pose.armature_apply(selected=False); bpy.ops.object.mode_set(mode="OBJECT")
+    report["baked_pose_as_rest"] = True
 if arm.animation_data: arm.animation_data.action = None  # keep node pose, drop the 2-frame clip
 for a in list(bpy.data.actions): bpy.data.actions.remove(a)
-report = {"source": src, "verts_before": len(body.data.vertices)}
 
 # 1. weld the triangle soup (coincident verts carry identical weights; UVs are per corner)
 bm = bmesh.new(); bm.from_mesh(body.data)
 bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+bmesh.ops.triangulate(bm, faces=bm.faces)  # v4 arrives with quads; fur_normals and Unity want triangles
 bm.to_mesh(body.data); body.data.update()
 report["verts_welded"] = len(body.data.vertices)
 bpy.context.view_layer.objects.active = body
@@ -39,7 +57,8 @@ bm = bmesh.new(); bm.from_mesh(body.data); bm.verts.ensure_lookup_table()
 groups = {g.index: g.name.replace(P, "") for g in body.vertex_groups}
 tail, g, s_root, tip = find_tail_geo(bm, bm.verts.layers.deform.active, groups, bones)
 u = {i: 1 - g[i] / s_root for i in tail}  # 0 at the root, 1 at the tip
-report.update(tail_verts=len(tail), tail_surface_length=round(s_root, 3))
+detached = all(e.other_vert(bm.verts[i]).index in tail for i in tail for e in bm.verts[i].link_edges)
+report.update(tail_verts=len(tail), tail_surface_length=round(s_root, 3), tail_detached=detached)
 
 # 3. centreline from windowed ring centroids (root -> tip), resampled to N equal segments
 samples = []
@@ -93,7 +112,9 @@ for i in tail:
         new[names[j]] = 1 - f; new[names[j + 1]] = f
     v = body.data.vertices[i]
     old = {body.vertex_groups[x.group].name: x.weight for x in v.groups}
-    a = min(1.0, t / 0.08)  # first 8% of the tail keeps some of the body skin for a seamless join
+    # first 8% of the tail keeps some of the body skin for a seamless join; a detached tail (v4) has no join and its
+    # generated skin follows a thigh, so it takes the new weights outright
+    a = 1.0 if detached else min(1.0, t / 0.08)
     mix = {k_: (1 - a) * old.get(k_, 0) + a * new.get(k_, 0) for k_ in set(old) | set(new)}
     for x in list(v.groups): body.vertex_groups[x.group].remove([i])
     for k_, w in mix.items():

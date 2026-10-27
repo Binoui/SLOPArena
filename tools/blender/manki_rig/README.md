@@ -7,7 +7,18 @@ exports stay local and ignored (`Assets/Art/Characters/manki/Models/Manki2.fbx`,
 are kept so GUIDs do not change); this folder records how to rebuild them. The previous
 rigs are kept under `Presentation/Legacy/`.
 
-The live model is Manki v3 (2026-10-16). Mixamo rejected the generator's FBX (four
+The live model is Manki v4 (2026-10-27): a Tripo model that arrived already rigged in
+Mixamo, so it starts at step 1. It also skips step 3 (its face is clean): the colour map is
+the FBX's packed 4K map, downscaled to 2048. Export scale 1.3486 (humanScale 0.6194).
+Its FBX differs from v3's in three ways, and `fix_rig.py` handles each one:
+
+- It binds a centimetre mesh to a rest pose lying along −Y; only the Mixamo clip stands
+  it up. fix_rig bakes the visible T-pose into the mesh and the rest pose, in metres.
+- It has quads, which fix_rig triangulates.
+- Its tail is a separate mesh island. `tail_segment.py` takes that island whole and
+  gives it new weights, because the generated ones follow a thigh.
+
+v3 (2026-10-16) followed the steps below. Mixamo rejected the generator's FBX (four
 embedded PBR maps) and accepted the `mixamo_package.py` re-export, which matches the
 Manki 2 upload: one triangulated mesh and a single colour map beside it. The exact
 rejection cause was not isolated.

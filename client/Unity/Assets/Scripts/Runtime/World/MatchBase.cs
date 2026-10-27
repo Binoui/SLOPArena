@@ -267,7 +267,8 @@ namespace SlopArena.Client.World
         {
             PresentationFloor.Use(arena.Heightmap);
             CameraObstruction.SeeThroughThinWalls = false;
-            CameraObstruction.CutAwayOccluders = false;
+            // Prototype: only the Slopball court, in every mode that plays on it, lets the camera ignore walls.
+            CameraObstruction.CutAwayOccluders = cameraObstruction && arena.Name == SlopballMatch.ArenaKey;
             var stageRoot = new GameObject("Stage");
             var triangles = arena.CollisionTriangles;
             if (cameraObstruction && triangles != null && triangles.Length > 0)

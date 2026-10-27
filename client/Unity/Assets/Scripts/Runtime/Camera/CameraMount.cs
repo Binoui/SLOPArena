@@ -455,7 +455,9 @@ namespace SlopArena.Client.Camera
                 UpdateCouchFraming(deltaTime);
                 return;
             }
-            if (_style == CameraStyle.Steady)
+            // Owner playtest 2026-10-27: on a Slopball court Steady sat too close and ignored the
+            // ball; Arena's framing, which zooms out to hold the ball, played better there.
+            if (_style == CameraStyle.Steady && !_courtNetZ.HasValue)
             {
                 UpdateSteadyFraming(deltaTime, allowRecenter);
                 return;
@@ -468,6 +470,8 @@ namespace SlopArena.Client.Camera
                 bounds.Encapsulate(_combatTargetPosition.Value);
             if (_lockPlayer != null)
                 bounds.Encapsulate(_lockTargetPosition);
+            if (_courtNetZ.HasValue && _courtBall.HasValue)
+                bounds.Encapsulate(_courtBall.Value);
             // Leave room for bodies, weapons, jumps and the target indicator.
             bounds.Expand(new Vector3(3f, 4f, 3f));
             if (_settleArenaPitch && allowRecenter)

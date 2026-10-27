@@ -89,7 +89,6 @@ namespace SlopArena.Client.World
             if (!SetupPlayerRenderer(entry, arena)) { enabled = false; return; }
             // Enclosed courts also need the baked stage's camera-only obstruction.
             SpawnStageVisual(arena);
-            CameraObstruction.CutAwayOccluders = StageKey == SlopballMatch.ArenaKey;
             var spawn = arena.SpawnPoints[0];
             _bridge.RegisterEntity(PlayerEntityId, _playerDef, new CharacterState
             {
