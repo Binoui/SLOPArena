@@ -408,6 +408,8 @@ public sealed class MatchRecorder
             CookedMankiBazookaCapabilityParameters x => x.FireTriggerTick + x.MaxFlightTicks + x.RecoveryDuration,
             CookedChargedStreamCapabilityParameters x => x.MaxChargeTicks + x.FireTriggerTick + x.MaxStreamTicks
                 + Math.Max(x.RecoveryTicks, x.Projectile.MaxFlightTicks),
+            CookedFingerGunsCapabilityParameters x => x.FireTriggerTick
+                + Math.Max(x.ReloadTicks, Math.Max(x.RecoveryTicks, x.Projectile.MaxFlightTicks)),
             _ => 0,
         };
 }

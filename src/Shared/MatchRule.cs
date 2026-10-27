@@ -108,10 +108,11 @@ public sealed class SlopballCoopMatchRule : IMatchRule
     public const byte DefaultMissBudget = 0;
 
     public byte MissBudget { get; }
-    public bool FriendlyFire { get; }
+    public FriendlyFireMode FriendlyFire { get; }
 
-    public SlopballCoopMatchRule(byte missBudget = DefaultMissBudget, bool friendlyFire = false)
+    public SlopballCoopMatchRule(byte missBudget = DefaultMissBudget, FriendlyFireMode friendlyFire = FriendlyFireMode.Off)
     {
+        if (!MatchFormat.SlopballCoop.AdmitsFriendlyFire(friendlyFire)) throw new ArgumentOutOfRangeException(nameof(friendlyFire));
         MissBudget = missBudget;
         FriendlyFire = friendlyFire;
     }
@@ -119,5 +120,21 @@ public sealed class SlopballCoopMatchRule : IMatchRule
     public bool IsEliminated(CharacterState state) => false;
 
     /// <summary>Fighter states alone never end a run; see <see cref="ServerSimulation.EvaluateMatch"/>.</summary>
+    public MatchOutcome Evaluate(IReadOnlyDictionary<ulong, CharacterState> states) => default;
+}
+
+
+public enum FriendlyFireMode : byte { Off, Shoves, On }
+
+/// <summary>Competitive survival; the director owns scoring, benching and the Match outcome.</summary>
+public sealed class MankiMayhemMatchRule : IMatchRule
+{
+    public FriendlyFireMode FriendlyFire { get; }
+    public MankiMayhemMatchRule(FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
+    {
+        if (friendlyFire > FriendlyFireMode.On) throw new ArgumentOutOfRangeException(nameof(friendlyFire));
+        FriendlyFire = friendlyFire;
+    }
+    public bool IsEliminated(CharacterState state) => false;
     public MatchOutcome Evaluate(IReadOnlyDictionary<ulong, CharacterState> states) => default;
 }

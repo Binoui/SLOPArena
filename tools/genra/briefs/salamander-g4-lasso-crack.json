@@ -1,0 +1,140 @@
+{
+  "name": "salamander-g4-lasso-crack",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.4 (anim.salamander.g4), kit proposal 2026-10-27: Lasso Crack, his big normal. New timing: 52 ticks, hit 26-31 (a long reach in front of his right hand), act from 44.",
+  "description": "The salamander's ground.4, Lasso Crack: his big, slow, long-reaching normal. He twirls an invisible lasso over his head and cracks it forward like a whip. There is no rope: the hand circles and the whip-crack reads from the arm.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (52 ticks, played once):\n- Tick 0: the showdown stance.\n- Ticks 4-20, the twirl: his right hand rises above his hat and circles flat above it, one and a half loops, the forearm and wrist doing the circling (the hand loosely closed as if holding a rope), elbow high; the left hand on his left hip; weight shifting with the loops; he grins up at the lasso. Tick 10 and tick 18 are the hand at the back of a loop, tick 14 at the front.\n- Tick 23, the wind: the right arm cocks back behind his right shoulder, chest turned 30-40 degrees to his right, weight on the back (right) boot.\n- Tick 26, the crack: the arm whips forward and down to point straight ahead at shoulder height, fully extended, the hand flicking open; chest turned 20 degrees to his left, weight onto the front (left) boot, which slides forward 10-15 cm.\n- Ticks 26-31: the whip holds out in front.\n- Tick 44: he pulls the invisible rope back in, hand-over-hand once, recovered enough to act.\n- Tick 52: the showdown stance again, matching tick 0.",
+  "clock": {
+    "duration_ticks": 52,
+    "contact_tick": 26,
+    "active": [
+      26,
+      31
+    ],
+    "iasa_tick": 44
+  },
+  "timing": {
+    "fixed": [
+      "52 ticks played once; contact at tick 26, the hitbox reaches out in front of his right hand from tick 26 to 31",
+      "the player can act from tick 44",
+      "tick 0 and tick 52 are his showdown idle exactly"
+    ],
+    "adjustable": [
+      "the twirl may be one or two loops"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 52
+  },
+  "fast_windows": [
+    [
+      22,
+      28
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "keys": [
+    0,
+    6,
+    10,
+    14,
+    18,
+    23,
+    26,
+    31,
+    44,
+    52
+  ],
+  "review_ticks": [
+    0,
+    6,
+    10,
+    14,
+    18,
+    21,
+    23,
+    25,
+    26,
+    28,
+    31,
+    38,
+    44,
+    52
+  ],
+  "targets": [
+    {
+      "name": "right toe on the floor at the wind (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 23,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "left toe on the floor at the crack (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 28,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "twirl: right hand above the head at tick 14 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 14,
+      "min": 0.1
+    },
+    {
+      "name": "wind: right hand behind the chest at tick 23 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 23,
+      "max": 0.0
+    },
+    {
+      "name": "crack: right hand far in front at tick 26 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 26,
+      "min": 0.3
+    },
+    {
+      "name": "crack: right hand at shoulder height at tick 26 (m)",
+      "kind": "below",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 26,
+      "min": -0.12,
+      "max": 0.1
+    }
+  ]
+}

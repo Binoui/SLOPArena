@@ -48,10 +48,11 @@ namespace SlopArena.Shared
         {
             arena.Arcade?.Slopball?.ValidateCourt(in arena);
             arena.Arcade?.Course?.ValidateArena(in arena);
+            arena.Arcade?.Mayhem?.ValidateArena(in arena);
             byte[]? arcade = arena.Arcade != null ? ArcadeStageBinaryFormat.Serialize(arena.Arcade) : null;
             if (arcade?.Length > 8192) throw new ArgumentException("Arcade metadata exceeds the bounded stage section.");
-            if (arcade != null && (arena.SpawnPoints == null || arena.SpawnPoints.Length != 1))
-                throw new ArgumentException("An Arcade stage needs exactly one authored player start.");
+            if (arcade != null && (arena.SpawnPoints == null || arena.SpawnPoints.Length != (arena.Arcade?.Mayhem != null ? 4 : 1)))
+                throw new ArgumentException("An Arcade stage needs one authored start, or four for Mayhem.");
             // Calculate size upfront
             int size = 4 + 4; // magic + version
             size += 4 + Encoding.UTF8.GetByteCount(arena.Name ?? "");
@@ -290,13 +291,13 @@ namespace SlopArena.Shared
                 var section = new byte[length];
                 Array.Copy(data, pos, section, 0, length);
                 arena.Arcade = ArcadeStageBinaryFormat.Deserialize(section);
-                if (arena.Arcade == null || arena.SpawnPoints.Length != 1) return null;
+                if (arena.Arcade == null || arena.SpawnPoints.Length != (arena.Arcade?.Mayhem != null ? 4 : 1)) return null;
             }
 
             // The grid is derived at load time, not serialized. Direct match loads
             // need the same broadphase as registry loads.
             arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
-            try { arena.Arcade?.Slopball?.ValidateCourt(in arena); arena.Arcade?.Course?.ValidateArena(in arena); }
+            try { arena.Arcade?.Slopball?.ValidateCourt(in arena); arena.Arcade?.Course?.ValidateArena(in arena); arena.Arcade?.Mayhem?.ValidateArena(in arena); }
             catch (ArgumentException) { return null; }
             return arena;
         }

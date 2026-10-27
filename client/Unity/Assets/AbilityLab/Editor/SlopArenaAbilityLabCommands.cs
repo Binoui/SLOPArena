@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 using SlopArena.Client.Tools;
 using SlopArena.Shared;
@@ -553,6 +554,248 @@ public static class SlopArenaAbilityLabCommands
         return result;
     }
 
+    [CliCommand(
+        "sloparena.lab.capture-window",
+        "Grab PNGs of the whole Ability Lab window (toolbar, timeline, fields and embedded viewport) at authoring ticks or recorded scenario frames.",
+        MainThreadRequired = true,
+        Tags = new[] { "authoring/lab" })]
+    public static AbilityLabCommandResult CaptureWindow(
+        [CliArg("action", "Canonical action ID, for example ground.1 or air.R. A matching recorded scenario is replayed; otherwise the authoring timeline is scrubbed.", Required = true)] string action,
+        [CliArg("ticks", "Comma-separated distinct cumulative ticks or scenario frame indexes.", Required = true)] string ticks,
+        [CliArg("output", "Repository-relative output directory below .ability-lab-cache.", Required = true)] string output,
+        [CliArg("view", "'current', 'front', 'back', 'left', 'right', 'top', or 'bottom', relative to the actor's facing at the first tick.")] string view = null,
+        [CliArg("camera-yaw", "Absolute world camera yaw in degrees [-180,180]; cannot combine with --view.")] string cameraYaw = null,
+        [CliArg("camera-pitch", "Absolute world camera pitch in degrees [-90,90]; cannot combine with --view.")] string cameraPitch = null,
+        [CliArg("overlays", "'current', 'none', or comma-separated hitboxes,hurtboxes,bones,trajectory.")] string overlays = null,
+        [CliArg("dummy", "'on' or 'off' for the rendered opponent and its coupled hurtbox overlay; omit to retain current.")] string dummy = null,
+        [CliArg("frame", "'current' keeps the viewport camera distance; 'fit' frames the fighters of every requested tick once, so a sequence does not jitter.", Required = false, DefaultValue = "current")] string frame = "current")
+    {
+        AbilityLabWindow? window = AbilityLabWindow.FindExistingForCommand();
+        if (!CanMutate(out var modeError))
+            return Failure("lab.mode.unsupported", modeError, window);
+        if (!TryParseViewOptions(view, cameraYaw, cameraPitch, overlays, dummy, out var viewOptions, out string viewError))
+            return Failure("capture.options.invalid", viewError, window);
+        bool fit = string.Equals(frame, "fit", StringComparison.OrdinalIgnoreCase);
+        if (!fit && !string.Equals(frame, "current", StringComparison.OrdinalIgnoreCase))
+            return Failure("capture.options.invalid", "Frame must be current or fit.", window);
+        if (!TryParseTicks(ticks, out var requestedTicks, out string tickError))
+            return Failure("capture.ticks.invalid", tickError, window);
+        if (!TryResolveCaptureDirectory(output, out string outputDirectory, out string outputError))
+            return Failure("capture.output.invalid", outputError, window);
+        if (window == null || !window.CommandWorkspace.HasPackage)
+            return Failure("workspace.missing", "Open a Character Package with sloparena.lab.open first.", window);
+        if (window.CommandWorkspace.LiveDraftInvalid || window.CommandWorkspace.Preview?.IsAvailable != true)
+            return Failure("preview.unavailable", "The current source draft has no available Ability Lab preview.", window);
+
+        AbilityLab? currentLab = window.CommandLab;
+        if (currentLab == null || !currentLab.IsPackagePreview || currentLab.SelectedPackageId != window.CommandWorkspace.PackageId)
+            return Failure("lab.rig.missing", "The preview rig is not attached to the current package.", window);
+        AbilityLab lab = currentLab;
+        AbilityLabScenarioResult? scenario = lab.Scenario;
+        bool scenarioFrames = scenario?.Options.Action == action;
+        SlotAddress address = default;
+        AbilityLabTimelineProjection? projection = null;
+        if (scenarioFrames)
+        {
+            int maxFrame = scenario!.Frames.Count - 1;
+            if (requestedTicks.Any(sample => sample < 0 || sample > maxFrame))
+                return Failure("capture.tick.out-of-range",
+                    $"Every scenario frame must be in [0, {maxFrame}] for action '{action}'.", window);
+        }
+        else
+        {
+            if (action == "grab")
+                return Failure("scenario.missing", "Run a grab scenario with sloparena.lab.run before capturing it.", window);
+            if (!TryBuildTimeline(window, action, out address, out var builtProjection, out string actionCode, out string actionError))
+                return Failure(actionCode, actionError, window);
+            projection = builtProjection;
+            if (requestedTicks.Any(sample => sample < 0 || sample > projection.DurationTicks))
+                return Failure("capture.tick.out-of-range",
+                    $"Every cumulative tick must be in [0, {projection.DurationTicks}] for action '{action}'.", window);
+            if (!IsRuntimeSlotAvailable(window, lab, address))
+                return Failure("slot.unavailable", $"Action '{action}' is not available in the current runtime preview.", window);
+        }
+        string packageId = window.CommandWorkspace.PackageId;
+        var capturePaths = requestedTicks.Select(sample => Path.Combine(
+            outputDirectory, $"{packageId}_{action}_window-{sample.ToString("D4", CultureInfo.InvariantCulture)}.png")).ToArray();
+        if (capturePaths.Any(File.Exists))
+            return Failure("capture.output.exists", "One or more requested PNG paths already exist; choose an empty output directory.", window);
+
+        bool hasCursor = false, hasCameraState = false;
+        AbilityLab.TimelineCursor cursor = default;
+        AbilityLab.CameraState cameraState = default;
+        var writtenPaths = new List<string>();
+        var captures = new List<AbilityLabCommandCapture>(requestedTicks.Count);
+        var offscreenSkins = new List<SkinnedMeshRenderer>();
+        Exception? captureError = null;
+
+        void Seek(int sample)
+        {
+            if (scenarioFrames) lab.SeekScenario(sample);
+            else
+            {
+                window.ApplyCommandTimeline(action, address, projection!, sample);
+                window.CompleteCommandPreview(address);
+            }
+            ApplyViewFlags(lab, viewOptions);
+        }
+
+        try
+        {
+            if (!window.EnsureCommandUi())
+                throw new InvalidOperationException("Ability Lab window could not initialize its UI.");
+            cursor = lab.CaptureTimelineCursor();
+            hasCursor = true;
+            lab.EnsureCamera();
+            Camera camera = lab.PreviewCamera ?? throw new InvalidOperationException("Ability Lab has no camera to capture.");
+            cameraState = lab.CaptureCameraState();
+            hasCameraState = true;
+            foreach (var skin in lab.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin.forceMatrixRecalculationPerRender) continue;
+                offscreenSkins.Add(skin);
+                skin.forceMatrixRecalculationPerRender = true;
+            }
+            // Lay the window out before reading its viewport aspect.
+            RepaintWindowNow(window);
+
+            Seek(requestedTicks[0]);
+            if (viewOptions.View != "current")
+            {
+                var actor = lab.Renderer;
+                if (actor == null) throw new InvalidOperationException("Ability Lab has no actor whose facing can define the capture view.");
+                camera.transform.rotation = ResolveViewRotation(viewOptions, camera.transform.rotation, actor.transform.forward);
+            }
+            if (fit)
+            {
+                Bounds bounds = VisibleBounds(lab);
+                foreach (int sample in requestedTicks.Skip(1))
+                {
+                    Seek(sample);
+                    bounds.Encapsulate(VisibleBounds(lab));
+                }
+                float aspect = window.CommandViewportAspect;
+                if (aspect > 0f) camera.aspect = aspect;
+                FitCamera(camera, bounds);
+            }
+
+            Directory.CreateDirectory(outputDirectory);
+            if (!HasNoOutputSymlinks(outputDirectory, out outputError))
+                throw new InvalidOperationException(outputError);
+            if (capturePaths.Any(File.Exists))
+                throw new IOException("One or more requested PNG paths already exist; choose an empty output directory.");
+
+            foreach (int requestedTick in requestedTicks)
+            {
+                Seek(requestedTick);
+                window.RefreshScenarioControls();
+                string path = capturePaths[captures.Count];
+                writtenPaths.Add(path);
+                GrabWindow(window, path);
+                var capture = new AbilityLabCommandCapture
+                {
+                    Action = action, Tick = requestedTick, Path = RepositoryRelativePath(path),
+                    Camera = CaptureViewInfo(camera, lab, viewOptions.View)
+                };
+                if (scenarioFrames)
+                {
+                    capture.Frame = ToFrameDto(scenario!, scenario!.Frames[requestedTick]);
+                    capture.MatchTick = scenario.Frames[requestedTick].MatchTick;
+                }
+                else
+                {
+                    AbilityLabWindow.TryResolveCumulativeTick(projection!, requestedTick,
+                        out var appliedStage, out ushort appliedTick, out int appliedCumulativeTick);
+                    capture.AppliedStage = appliedStage.SourceStageIndex;
+                    capture.AppliedTick = appliedTick;
+                    capture.AppliedCumulativeTick = appliedCumulativeTick;
+                }
+                captures.Add(capture);
+            }
+        }
+        catch (Exception ex)
+        {
+            captureError = ex;
+        }
+        finally
+        {
+            foreach (var skin in offscreenSkins)
+                if (skin != null) skin.forceMatrixRecalculationPerRender = false;
+            if (hasCursor)
+            {
+                try { lab.RestoreTimelineCursor(cursor); }
+                catch (Exception ex) { captureError ??= ex; }
+            }
+            if (hasCameraState)
+            {
+                try { lab.RestoreCameraState(cameraState); }
+                catch (Exception ex) { captureError ??= ex; }
+            }
+            try
+            {
+                window.RefreshScenarioControls();
+                window.Repaint();
+            }
+            catch (Exception ex) { captureError ??= ex; }
+        }
+
+        if (captureError != null)
+        {
+            foreach (string path in writtenPaths)
+            {
+                try { if (File.Exists(path)) File.Delete(path); } catch { }
+            }
+            return Failure("capture.failed", captureError.Message, window);
+        }
+
+        var result = Snapshot(window);
+        result.Success = true;
+        result.Captures = captures;
+        return result;
+    }
+
+    private const BindingFlags EditorInternals = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+    // EditorWindow exposes no public way to paint synchronously or read its pixels; Unity's own
+    // screenshot tooling uses these internals, so a missing member fails loudly after an upgrade.
+    private static void RepaintWindowNow(EditorWindow window)
+    {
+        var repaint = typeof(EditorWindow).GetMethod("RepaintImmediately", EditorInternals, null, Type.EmptyTypes, null)
+            ?? throw new MissingMethodException("EditorWindow.RepaintImmediately is unavailable in this Unity version.");
+        repaint.Invoke(window, null);
+    }
+
+    private static void GrabWindow(EditorWindow window, string path)
+    {
+        object host = typeof(EditorWindow).GetField("m_Parent", EditorInternals)?.GetValue(window)
+            ?? throw new InvalidOperationException("Ability Lab window has no host view to grab.");
+        var grab = host.GetType().GetMethod("GrabPixels", EditorInternals, null, new[] { typeof(RenderTexture), typeof(Rect) }, null)
+            ?? throw new MissingMethodException("GUIView.GrabPixels is unavailable in this Unity version.");
+        RepaintWindowNow(window);
+        float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+        int width = Mathf.RoundToInt(window.position.width * pixelsPerPoint);
+        int height = Mathf.RoundToInt(window.position.height * pixelsPerPoint);
+        RenderTexture target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        RenderTexture? oldActive = RenderTexture.active;
+        var texture = new Texture2D(width, height, TextureFormat.RGB24, false) { hideFlags = HideFlags.HideAndDontSave };
+        try
+        {
+            grab.Invoke(host, new object[] { target, new Rect(0f, 0f, width, height) });
+            RenderTexture.active = target;
+            texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+            texture.Apply(false, false);
+            using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            byte[] png = texture.EncodeToPNG();
+            stream.Write(png, 0, png.Length);
+        }
+        finally
+        {
+            RenderTexture.active = oldActive;
+            RenderTexture.ReleaseTemporary(target);
+            UnityEngine.Object.DestroyImmediate(texture);
+        }
+    }
+
     internal readonly struct CommandViewOptions
     {
         internal readonly string View;
@@ -711,7 +954,9 @@ public static class SlopArenaAbilityLabCommands
         };
     }
 
-    private static void FrameCapture(Camera camera, AbilityLab lab)
+    private static void FrameCapture(Camera camera, AbilityLab lab) => FitCamera(camera, VisibleBounds(lab));
+
+    private static Bounds VisibleBounds(AbilityLab lab)
     {
         bool hasBounds = false;
         Bounds bounds = default;
@@ -726,7 +971,11 @@ public static class SlopArenaAbilityLabCommands
             else bounds.Encapsulate(renderer.bounds);
         }
         if (!hasBounds) throw new InvalidOperationException("Ability Lab has no visible model to capture.");
+        return bounds;
+    }
 
+    private static void FitCamera(Camera camera, Bounds bounds)
+    {
         // Fit all corners in the selected view; scenario motion must not leave
         // only the idle dummy onscreen. Keep the preview camera's orientation.
         float halfHeight = Mathf.Tan(camera.fieldOfView * Mathf.Deg2Rad * 0.5f);

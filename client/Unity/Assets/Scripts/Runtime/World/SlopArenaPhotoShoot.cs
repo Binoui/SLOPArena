@@ -24,7 +24,7 @@ namespace SlopArena.EditorTools
     {
         public int From, To;
         public byte Slot;
-        public bool Aim, Jump, Down, Shield, Grab;
+        public bool Aim, Jump, Down, Shield, Grab, Dash;
         /// <summary>World direction to run toward, in degrees (0 = +Z, 90 = +X).</summary>
         public float? MoveYaw;
         /// <summary>World facing in degrees, applied with a face edge on the first tick.</summary>
@@ -174,6 +174,9 @@ namespace SlopArena.EditorTools
             }
             for (int i = 0; i < Cameras.Count; i++)
                 _views.Add(CreateView(Cameras[i], i == 0));
+            // Billboards face the first camera; shoot one camera per run to judge them.
+            gameObject.AddComponent<HomingDashLockOn>().Init(_bridge.GetState, _renderers.Values.ToArray(),
+                null, _views.Count > 0 ? _views[0].Camera : null);
             if (Hud) SetupHudLayer();
             Survey = BuildSurvey();
             Ready = true;
@@ -365,6 +368,7 @@ namespace SlopArena.EditorTools
                     input.ShieldPressed |= edge;
                 }
                 if (step.Grab) input.GrabPressed |= edge;
+                if (step.Dash) input.DashPressed |= edge;
                 if (step.MoveYaw.HasValue)
                 {
                     float radians = step.MoveYaw.Value * Mathf.Deg2Rad;

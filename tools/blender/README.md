@@ -42,6 +42,8 @@ Character rigs follow the same rule: [manki_rig](manki_rig/README.md) rebuilds
 Manki's Unity rig from a Mixamo-rigged FBX.
 [wibou_coat](wibou_coat/README.md) fits, skins and binds Wibou's coat.
 [bashie_rig](bashie_rig/README.md) makes Bashie's Mixamo rig Unity-ready.
+[salamander_rig](salamander_rig/README.md) dresses the salamander gunslinger's Tripo kit, fits his poncho and
+jeans and makes his Mixamo rig Unity-ready.
 
 ## Shared kit
 
@@ -128,6 +130,12 @@ lists the whole pass; the generator side is:
   ceilings, rigs and the tops of tall walls are rarely on screen. Put what must read
   in the band the default and level views actually see, and check it in Unity
   captures; a lob-angle concept render shows views players never get.
+- **See-through parts need the camera's opt-in.** The gameplay camera pulls in at every
+  collision wall. A stage with clear parts (Hamster Habitat's tubes and wheel) exports an
+  empty named `Camera See-Through Thin Walls` (`CameraObstruction.SeeThroughMarker`, via
+  `export_fbx(..., anchors=...)`); the camera then crosses walls thinner than 0.3 m. Keep
+  every wall the camera must respect at 0.3 m or thicker, and draw the thin ones in
+  `SLOPArena/StageGlass`. Without the marker thin slabs stay solid (Wibou Mall's bridges).
 - **An Eevee world volume absorbs sunlight.** Since Eevee Next it acts as infinite
   fog between the sun and the scene, so a sunlit preview with world haze goes dark.
   Use a local volume box for preview haze instead.

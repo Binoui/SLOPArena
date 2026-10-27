@@ -6,6 +6,7 @@ camera directions (from the character toward the camera).
 """
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import numpy as np
@@ -256,9 +257,12 @@ def tick_label(image, tick, contact=None, active=None, font=None):
 
 
 def encode_video(frames, path, slow=4) -> Path:
-    """H.264 MP4 of equal-size frames at 60 fps (one per tick): twice at real speed, then once at 1/slow speed,
-    with the speed marked at the top right. Needs ffmpeg."""
-    return encode_passes([('1x', 1, frames + frames), (f'1/{slow}x', slow, frames)], path)
+    """H.264 MP4 of equal-size frames at 60 fps (one per tick): at real speed (twice, or looped to at least 2 s), then
+    once at 1/slow speed, with the speed marked at the top right. A short move is slowed further so the slow pass lasts
+    about 3 s: the owner could not judge a 14-tick shot at 1/4 speed (2026-10-27). Needs ffmpeg."""
+    slow = max(slow, math.ceil(180 / len(frames)))
+    loops = max(2, math.ceil(120 / len(frames)))
+    return encode_passes([('1x', 1, frames * loops), (f'1/{slow}x', slow, frames)], path)
 
 
 def encode_passes(passes, path) -> Path:

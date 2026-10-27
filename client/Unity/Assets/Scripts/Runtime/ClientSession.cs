@@ -124,11 +124,12 @@ namespace SlopArena.Client
                 string stageName,
                 uint durationTicks,
                 IReadOnlyList<ResultEntry> entries,
-                Shared.SlopballRunResult? run = null, Shared.SlopballVersusResult? versus = null, Shared.CourseRunResult? course = null)
+                Shared.SlopballRunResult? run = null, Shared.SlopballVersusResult? versus = null, Shared.CourseRunResult? course = null, Shared.MayhemRunResult? mayhem = null)
             {
                 Run = run;
                 Versus = versus;
                 Course = course;
+                Mayhem = mayhem;
                 if (entries == null) throw new ArgumentNullException(nameof(entries));
                 var copy = new ResultEntry[entries.Count];
                 for (int i = 0; i < entries.Count; i++)
@@ -150,6 +151,7 @@ namespace SlopArena.Client
             public Shared.SlopballRunResult? Run { get; }
             public Shared.SlopballVersusResult? Versus { get; }
             public Shared.CourseRunResult? Course { get; }
+            public Shared.MayhemRunResult? Mayhem { get; }
         }
 
         /// <summary>Store the server-authored final result without local re-ranking.</summary>
@@ -171,7 +173,7 @@ namespace SlopArena.Client
                 UI.MatchConfig.ArenaName,
                 packet.DurationTicks,
                 entries,
-                packet.Run, packet.Versus, packet.Course);
+                packet.Run, packet.Versus, packet.Course, packet.Mayhem);
         }
         public static void SetLocalMatchResults(MatchResultsData results)
             => CurrentMatchResults = results;

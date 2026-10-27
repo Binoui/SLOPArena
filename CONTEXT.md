@@ -74,14 +74,14 @@ An ordinary grounded jump accepted from Slide. It preserves remaining momentum t
 Reduced ordinary launch strength for a fighter already settled motionless in Crouch when a hit connects. The contact snapshot survives Hitstop and release; damage, freeze and Hitstun remain unchanged. Sliding, entry/braking crouch and fixed/custom forces do not qualify.
 
 **Run**:
-The single ground locomotion tier (ADR-0020 §1 — replaces the old walk/sprint split; Melee's "dash" tier is NOT adopted). Reached instantly from the Rush. Releasing brakes to a stop fast (`GroundStopFriction`, 36 m/s² — no semi-truck drift). Changing axis while at run speed is an instant redirect — the perpendicular velocity is cleared, never carried between axes (no diagonal drag), and reversing direction snaps immediately to `RunSpeed`. No selectable walk speed on 8-way input.
-_Avoid_: walk, sprint (the deleted two-tier model)
+The single ground locomotion tier. The first moving tick starts at 40% of RunSpeed. Twenty linear increments reach RunSpeed on completed tick 21, 350 ms. Release brakes along the velocity vector by RunSpeed/20 per tick. All fighters and modes share these constants. Tilt magnitude is ignored. Facing follows input. Stick 8-way snap is a client Controls preference, default on. Dash overspeed keeps its existing coast behavior.
+_Avoid_: walk, sprint, selectable movement model
 
 **Rush**:
-The reversal-free burst that starts a Run from a standstill — a fixed window (`RushTicks`, ~10 ticks) during which velocity is at `RunSpeed` immediately. Reversing within the window is an instant full-speed flip that restarts it; a perpendicular (90°) redirect also restarts the window. Releasing inside the window stops dead (no drift — a tap is a fixed burst, not a slide). Holding one direction steady past the window enters Run proper; reversals remain immediate.
+Retired by the 2026-10-27 amendment to ADR-0020. The old instant-start and dash-dance window have no gameplay use. Existing source/cooked fields and the snapshot ushort remain reserved compatibility data.
 
 **Turnaround**:
-~~Removed — grounded reversals are now immediate after the Rush window.~~
+An immediate grounded reversal that retains current speed, continues the Run ramp, and never starts below 40% of RunSpeed. There is no skid, turn delay, or Rush window. Reversing from dash overspeed keeps the existing pivot to RunSpeed.
 
 **Shield**:
 A permanent, full-body defensive state entered by holding Defense (Left Shift / RT) while actionable and grounded. It blocks ordinary attacks from every direction and freezes combat facing. Releasing enters a vulnerable 7-tick ShieldDrop; contact adds block stun and hitstop, and releasing during stun starts the full drop only after stun expires.
@@ -193,6 +193,21 @@ Solo minigames played with a selected fighter's movement and Character Kit, offe
 **Match Format**:
 What an online Match plays: a stock fight on a PvP stage, or an Arcade format such as co-op Slopball ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)). The Room Pick, the Match start contract and the client's Master push carry it; each format admits its own arena, places its fighters and decides when the Match ends.
 _Avoid_: game mode (when referring to the online contract)
+
+**Manki Mayhem**:
+A two-to-four-player Arcade Match on `manki_mayhem`. A seeded Shared director runs Call, Pattern, Settle, Score and Break phases. Fighters survive hazards to score, keep percent until KO, and return from the bench at the next Call. Tied highest scores share the win. Rooms use human seats and free fighter picks, including mirrors. The leader chooses Off, Shoves or On on the Stage Select card, with Shoves as the default. The shuffled bag contains SCATTER!, JUMP!, and BREAK OUT!. Positions reset to spawns each round.
+
+**Call Card**:
+The Mayhem director's current hazard pattern. Its Call phase announces the pattern before it starts. SCATTER! throws sticky bombs, JUMP! sends expanding shockwaves, and BREAK OUT! raises breakable cages with an incoming bomb. Each pass draws every card once.
+
+**Host Entity**:
+Mayhem's reserved presentation and hazard owner, `ServerSimulation.MayhemHostEntityId`. It is not a fighter, cannot be targeted, and receives no KO credit. Host-owned hits affect every fighter under every friendly-fire rule.
+
+**Hazard**:
+A deterministic Mayhem attack owned by the Host Entity. Bombs use ordinary resolver projectiles and explosions, with sticky fuses for SCATTER!. Bombs are blockable. JUMP! uses unblockable expanding rings with a swept band and one hit per fighter. Predicted state supplies telegraphs and projectiles; World Frame events pass through the Mayhem rollback ledger before presentation.
+
+**Runtime Solid**:
+A focused Mayhem wall in Shared's deterministic, snapshotted `RuntimeSolidSet`. Fighters sweep against its box after movement and slide along its faces. It supplies no floor support. Damaging attacks and projectiles consume its hit budget, and host explosions wreck walls in range. BREAK OUT! creates four walls per fighter, including a cracked wall away from the incoming bomb. Kit mobility can clear the top, while a plain double jump cannot.
 
 **Co-op Slopball Run**:
 An online Slopball Match in which two to four fighters share the player half against the Launcher. Returns count for the team; misses reset the combo and heat without ending the run. Fighters automatically target each new ball. Friendly fire defaults off: teammates cannot damage, block or grab one another unless the leader enables it in the Room lobby before preparation. The setting stays fixed during the Match. The leader can return everyone to the same Room from the match menu, preserving membership and chat.

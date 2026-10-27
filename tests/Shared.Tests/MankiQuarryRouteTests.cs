@@ -18,7 +18,6 @@ public sealed class MankiQuarryRouteTests
     public MankiQuarryRouteTests(ITestOutputHelper output) => _output = output;
 
     private const float BombLaunch = 30f * MathF.PI / 180f;
-    private const float RocketSpeed = 40f, RocketGravity = 15f, RocketLaunchOffset = 1f;
 
     internal sealed class Run
     {
@@ -165,20 +164,14 @@ public sealed class MankiQuarryRouteTests
             if (!WaitBreak(crates, 150)) throw new Exception($"bomb at {x},{y},{z} missed {string.Join(",", crates.Where(c => !Broken(c)))} from {Where()}");
         }
 
-        /// <summary>A Bazooka shot on the low ballistic arc through (x, y, z) (speed 40, gravity 15).</summary>
+        /// <summary>Press Bazooka with the course crate selected as the soft target.</summary>
         public void Rocket(float x, float y, float z, params string[] crates)
         {
             WaitReady(AbilitySlots.R);
-            var s = S; float dx = x - s.PX, dz = z - s.PZ, d = MathF.Sqrt(dx * dx + dz * dz);
-            float h = y - (s.PY + RocketLaunchOffset), v2 = RocketSpeed * RocketSpeed;
-            float root = v2 * v2 - RocketGravity * (RocketGravity * d * d + 2f * h * v2);
-            Assert.True(root >= 0f, $"rocket cannot reach {x},{y},{z} from {Where()}");
-            float pitch = MathF.Atan((v2 - MathF.Sqrt(root)) / (RocketGravity * d));
-            short yaw = Yaw(dx, dz), aimPitch = (short)MathF.Round(pitch * 18000f / MathF.PI);
-            Press(AbilitySlots.R, new() { IsAiming = true, AimYaw = yaw, FacingYaw = yaw, AimPitch = aimPitch });
-            // Like the client, keep sending the released aim until the cast fires the rocket.
-            for (int i = 1; i < 24; i++)
-                Tick(new() { IsAiming = i < 3, AimYaw = yaw, FacingYaw = yaw, AimPitch = aimPitch });
+            byte target = Sim.CourseTargetInputAlias(Index(crates[0]));
+            short yaw = Yaw(x - S.PX, z - S.PZ);
+            Press(AbilitySlots.R, new() { TargetEntityId = target, FacingYaw = yaw });
+            for (int i = 1; i < 12; i++) Tick(new() { TargetEntityId = target, FacingYaw = yaw });
             if (!WaitBreak(crates, 120)) throw new Exception($"rocket at {x},{y},{z} missed {string.Join(",", crates.Where(c => !Broken(c)))} from {Where()}");
         }
 

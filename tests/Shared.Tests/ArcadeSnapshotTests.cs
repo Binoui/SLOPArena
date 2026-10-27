@@ -123,7 +123,7 @@ public class ArcadeSnapshotTests
     internal static ServerSimulation NewRun(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration,
         bool friendlyFire = false)
     {
-        var sim = new ServerSimulation(arena, new SlopballCoopMatchRule(friendlyFire: friendlyFire));
+        var sim = new ServerSimulation(arena, new SlopballCoopMatchRule(friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off));
         var order = Enumerable.Range(0, roster.Length).ToList();
         if (reverseRegistration) order.Reverse();
         foreach (int slot in order)
@@ -168,6 +168,55 @@ public class ArcadeSnapshotTests
             { input.Jump = true; input.JumpHeld = true; }
             inputs[id] = input;
         }
+    }
+
+    [Theory]
+    [InlineData(41u)]
+    [InlineData(1337u)]
+    public void MayhemRestoreBeforeEveryTickMatchesContinuousRoundsAndEvents(uint seed)
+    {
+        var continuous = MankiMayhemTests.NewMatch(seed);
+        var restored = MankiMayhemTests.NewMatch(seed, reverse: true);
+        var phases = new HashSet<MankiMayhemPhase>();
+        var cards = new HashSet<MankiMayhemCard>();
+        int restores = 0, attachedTicks = 0, benchTicks = 0;
+        while (!continuous.EvaluateMatch().IsEnded && continuous.CurrentTick < 20000)
+        {
+            if (continuous.CurrentTick == 10)
+            {
+                var carrier = continuous.GetState(1);
+                continuous.Resolver.Spawn(new Hitbox { OwnerId = ServerSimulation.MayhemHostEntityId,
+                    X = carrier.PX, Y = carrier.PY, Z = carrier.PZ, Radius = .4f, DurationTicks = 2,
+                    StickyFuseTicks = 30, Explosion = new ProjectileExplosion { Radius = 2, Damage = 12, DurationTicks = 2 } });
+            }
+            if (continuous.CurrentTick == 22) MankiMayhemTests.Ko(continuous, 2);
+            if (continuous.CurrentTick == 30) continuous.WithdrawMayhemPlayer(3);
+            if (continuous.MayhemWalls.FirstOrDefault(w => w.Blocks) is { EntityId: > 0 } wall
+                && continuous.CurrentTick % 17 == 0)
+                continuous.Resolver.Spawn(new Hitbox { OwnerId = 1, X = wall.Center.X, Y = 1, Z = wall.Center.Z,
+                    Radius = .4f, Damage = 1, DurationTicks = 1 });
+            continuous.ClearPresentationEvents();
+            restored.RestoreSnapshot(continuous.CaptureSnapshot()); restores++;
+            var inputs = new Dictionary<ulong, InputState>
+            {
+                [1] = new() { MoveX = continuous.CurrentTick % 80 < 40 ? .1f : -.1f },
+                [2] = new() { Jump = continuous.CurrentTick % 101 == 0 },
+            };
+            continuous.Tick(new(inputs)); restored.Tick(new(inputs));
+            Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()),
+                $"Mayhem seed {seed} diverged at tick {continuous.CurrentTick}.");
+            Assert.Equal(continuous.LastTickMayhemEvents, restored.LastTickMayhemEvents);
+            Assert.Equal(continuous.GetPresentationEvents(), restored.GetPresentationEvents());
+            phases.Add(continuous.MankiMayhem!.Value.Phase);
+            cards.Add(continuous.MankiMayhem!.Value.Card);
+            if (continuous.Resolver.GetActiveHitboxes().Any(h => h.AttachedEntityId != 0)) attachedTicks++;
+            if (continuous.IsEntityInactive(2)) benchTicks++;
+        }
+        Assert.True(continuous.EvaluateMatch().IsEnded);
+        Assert.True(restores > 500); Assert.True(attachedTicks >= 30); Assert.True(benchTicks > 20);
+        Assert.Equal(6, phases.Count);
+        Assert.Equal(Enum.GetValues<MankiMayhemCard>().Order(), cards.Order());
+        _output.WriteLine($"seed {seed}: restores {restores}, attached ticks {attachedTicks}, bench ticks {benchTicks}");
     }
 
     private static IEnumerable<FieldInfo> MutableFields(Type type)

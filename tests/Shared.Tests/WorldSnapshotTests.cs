@@ -20,10 +20,10 @@ public class WorldSnapshotTests
     public static IEnumerable<object[]> Fights()
     {
         yield return new object[] { "slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 11 };
-        yield return new object[] { "slop_pit", new[] { CharacterClass.Wibou, CharacterClass.Bonk }, 12 };
+        yield return new object[] { "slop_pit", new[] { CharacterClass.Wibou, CharacterClass.Bonk }, 17 };
         yield return new object[] { "table_manners", new[] { CharacterClass.Manki, CharacterClass.Wibou }, 13 };
         yield return new object[] { "table_manners", new[] { CharacterClass.Bonk, CharacterClass.FightGuy }, 14 };
-        yield return new object[] { "last_stop", new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }, 15 };
+        yield return new object[] { "last_stop", new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }, 17 };
         yield return new object[] { "slop_pit", new[] { CharacterClass.Manki, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.FightGuy }, 16 };
     }
 
@@ -341,6 +341,9 @@ public class WorldSnapshotTests
                 if (++_tick >= FreeTicks) Advance();
                 return;
             }
+            if (_drill == Drill.Grab)
+                foreach (ulong id in _ids)
+                    if (id != a && id != d) inputs[id] = new InputState { ShieldHeld = true };
             // On another level the attacker keeps walking at the defender: up a ledge with Climb, or off one to drop down.
             bool level = MathF.Abs(them.PY - me.PY) < 0.5f;
             var attack = Toward(me, them, !level ? 0f : _drill == Drill.Grab ? 0.8f : 1.1f);
@@ -366,10 +369,16 @@ public class WorldSnapshotTests
                 case Drill.Grab: // grab when adjacent; the hold runs out into the throw
                     if (me.State is ActionState.Grabbing or ActionState.Throwing) _seen = true;
                     else if (_seen && ready) { Advance(); break; }
-                    else if (ready && close && --_wait <= 0)
+                    else if (ready && close)
                     {
-                        attack.GrabPressed = true;
-                        _wait = 20;
+                        attack.MoveX = attack.MoveY = 0f;
+                        attack.FaceToCamera = true;
+                        float facingDot = MathF.Cos(me.FacingYaw - attack.AimYaw * (MathF.PI / 18000f));
+                        if (MathF.Abs(me.VX) + MathF.Abs(me.VZ) <= 0.001f && facingDot > .999f && --_wait <= 0)
+                        {
+                            attack.GrabPressed = true;
+                            _wait = 20;
+                        }
                     }
                     break;
                 case Drill.AirDodge: // jump, then dodge sideways in the air

@@ -26,6 +26,46 @@ public class WorldSnapshotContractTests
     };
 
     [Fact]
+    public void MayhemDirectorSnapshotCoversCursorPlayersBenchWithdrawalsAndLandingRings()
+    {
+        var stage = MankiMayhemTests.Arena().Arcade!.Mayhem!;
+        var original = new MankiMayhemSimulation(stage);
+        original.Apply(new(new(81, 2, MankiMayhemCard.Scatter, MankiMayhemPhase.Pattern, 12, 1),
+            new[] { new MayhemPlayer(1, 3, 2, 1, true, false), new MayhemPlayer(2, 1, 1, 0, true, true) },
+            new[] { new MayhemLandingRing(0, new(3, 0, 4), 200, 289, 120) }, Array.Empty<MayhemSlam>(), Array.Empty<RuntimeSolid>()));
+        var w = new SnapshotWriter(); original.WriteSnapshot(w);
+        var r = new SnapshotReader(w.ToArray());
+        var copy = new MankiMayhemSimulation(stage);
+        copy.Apply(copy.ReadSnapshot(r, new ulong[] { 1, 2 }));
+        Assert.True(r.AtEnd);
+        Assert.Equal(original.State, copy.State); Assert.Equal(original.Players, copy.Players); Assert.Equal(original.Rings, copy.Rings);
+        var fields = typeof(MankiMayhemSimulation).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(f => !f.IsInitOnly).Select(f => f.Name).OrderBy(x => x).ToArray();
+        Assert.Equal(new[] { "_rings", "_slams", "_state" }, fields);
+    }
+
+    [Fact]
+    public void MayhemSnapshotPresenceAndMalformedCursorAreRejectedAtomically()
+    {
+        var run = MankiMayhemTests.NewMatch(); MankiMayhemTests.Step(run);
+        var practice = new ServerSimulation(MankiMayhemTests.Arena(), NoWinMatchRule.Instance);
+        for (ulong id = 1; id <= 4; id++) practice.RegisterEntity(id, TestHelpers.EngineDef, run.GetState(id));
+        var before = run.CaptureSnapshot();
+        Assert.Throws<InvalidDataException>(() => run.RestoreSnapshot(practice.CaptureSnapshot()));
+        Assert.True(before.ContentEquals(run.CaptureSnapshot()));
+        var director = (MankiMayhemSimulation)typeof(ServerSimulation)
+            .GetField("_mayhem", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(run)!;
+        var payload = new SnapshotWriter(); director.WriteSnapshot(payload);
+        var malformed = before.Data.ToArray();
+        malformed[malformed.Length - payload.ToArray().Length + 7] = byte.MaxValue;
+        Assert.Throws<InvalidDataException>(() => run.RestoreSnapshot(new WorldSnapshot(malformed)));
+        Assert.True(before.ContentEquals(run.CaptureSnapshot()));
+        var bytes = before.Data.ToArray(); bytes[0] = 9;
+        Assert.Throws<InvalidDataException>(() => run.RestoreSnapshot(new WorldSnapshot(bytes)));
+        Assert.True(before.ContentEquals(run.CaptureSnapshot()));
+    }
+
+    [Fact]
     public void CharacterStateCodecCoversEveryField()
     {
         var original = (CharacterState)Fill(typeof(CharacterState), new Random(1));
@@ -35,6 +75,19 @@ public class WorldSnapshotContractTests
         var copy = SnapshotCodecs.ReadCharacterState(r);
         Assert.True(r.AtEnd);
         AssertDeepEqual(original, copy, nameof(CharacterState));
+    }
+
+    [Fact]
+    public void FingerGunsRuntimeRoundTripsEveryField()
+    {
+        var operation = new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.FingerGunsCapabilityId,
+            CharacterPackageCompiler.FingerGunsCapabilityVersion, FingerGunsTests.Parameters);
+        var original = Create(operation);
+        FillAbility(original, new Random(93));
+        var copy = Create(operation);
+        RoundTrip(original, copy);
+        AssertAbilityEqual(original, copy);
     }
 
     [Fact]
@@ -140,6 +193,9 @@ public class WorldSnapshotContractTests
         yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
             CharacterPackageCompiler.ChargedStreamCapabilityId,
             CharacterPackageCompiler.ChargedStreamCapabilityVersion, ChargedStreamTests.Parameters);
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.FingerGunsCapabilityId,
+            CharacterPackageCompiler.FingerGunsCapabilityVersion, FingerGunsTests.Parameters);
     }
 
     private static ServerAbility Create(CookedStartCapabilityOperation operation)
@@ -241,6 +297,15 @@ public class WorldSnapshotContractTests
                 if (field.FieldType == typeof(CharacterDefinition) || field.FieldType == typeof(BakedAnimationData))
                     continue; // content references are re-linked, never written
                 field.SetValue(boxed, Fill(field.FieldType, rng));
+            }
+            if (boxed is Hitbox { Shape: HitboxShape.Ring } ring)
+            {
+                ring.PreviousRadius = MathF.Abs(ring.PreviousRadius);
+                ring.Radius = ring.PreviousRadius + MathF.Abs(ring.Radius);
+                ring.RingSpeed = MathF.Abs(ring.RingSpeed);
+                ring.RingHalfWidth = MathF.Abs(ring.RingHalfWidth) + .01f;
+                ring.RingHalfHeight = MathF.Abs(ring.RingHalfHeight) + .01f;
+                return ring;
             }
             return boxed;
         }

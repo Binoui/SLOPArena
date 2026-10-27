@@ -96,7 +96,7 @@ public sealed class AimMovementTests
     [Theory]
     [InlineData(AbilitySlots.A)]
     [InlineData(AbilitySlots.R)]
-    public void MankiAirborneHold_PreservesMomentumThroughReleaseAndCompletion(byte slot)
+    public void MankiAirborneSpecial_PreservesMomentumThroughCompletion(byte slot)
     {
         var def = TestHelpers.ResolveSourceDef("manki");
         var sim = TestHelpers.MakeSim();
@@ -115,7 +115,7 @@ public sealed class AimMovementTests
 
         var held = TestHelpers.TickHold(sim, hold, 10);
 
-        Assert.Equal(ActionState.Aiming, held.State);
+        Assert.Equal(slot == AbilitySlots.R ? ActionState.Attacking : ActionState.Aiming, held.State);
         Assert.True(held.PX > s.PX);
         Assert.True(held.PZ < s.PZ);
         Assert.True(held.VX > 0f);
@@ -144,7 +144,7 @@ public sealed class AimMovementTests
     [Theory]
     [InlineData(AbilitySlots.A)]
     [InlineData(AbilitySlots.R)]
-    public void MankiAirborneHold_LandingStopsDriftAndKeepsAim(byte slot)
+    public void MankiAirborneSpecial_LandingStopsDriftAndKeepsAction(byte slot)
     {
         var def = TestHelpers.ResolveSourceDef("manki");
         var sim = TestHelpers.MakeSim();
@@ -160,7 +160,7 @@ public sealed class AimMovementTests
             new InputState { ActiveSlot = slot, IsAiming = true, MoveX = 1f, MoveY = 1f }, 3);
 
         Assert.True(landed.IsGrounded);
-        Assert.Equal(ActionState.Aiming, landed.State);
+        Assert.Equal(slot == AbilitySlots.R ? ActionState.Attacking : ActionState.Aiming, landed.State);
         Assert.Equal(slot, landed.AttackSlot);
         Assert.Equal(0f, landed.VX);
         Assert.Equal(0f, landed.VZ);

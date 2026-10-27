@@ -28,11 +28,27 @@ internal sealed class NetplayLab
     private bool _started;
 
     public NetplayLab(string arenaName, CharacterClass[] roster, int seed,
-        Func<ulong, CharacterState, CharacterState>? placement = null)
+        Func<ulong, CharacterState, CharacterState>? placement = null,
+        MatchFormat format = MatchFormat.Stock, FriendlyFireMode friendlyFire = FriendlyFireMode.Off)
     {
         _rng = new Random(seed);
         var arena = WorldSnapshotTests.LoadArena(arenaName);
-        Server = WorldSnapshotTests.NewMatch(arena, roster, reverseRegistration: false);
+        if (format == MatchFormat.Stock) Server = WorldSnapshotTests.NewMatch(arena, roster, reverseRegistration: false);
+        else
+        {
+            Server = new ServerSimulation(arena, format.CreateRule(250, friendlyFire));
+            for (int i = 0; i < roster.Length; i++)
+            {
+                var content = ContentFor(roster[i]);
+                var start = format.StartFor(arena, i, roster.Length);
+                Server.RegisterEntity((ulong)i + 1, content.Definition, new CharacterState
+                {
+                    PX = start.X, PY = start.Y + content.Definition.CapsuleHeight * .5f, PZ = start.Z,
+                    FacingYaw = start.Yaw, IsGrounded = true, JumpsLeft = content.Definition.Movement.MaxJumps,
+                }, content.BakedAnimation);
+            }
+            if (format == MatchFormat.MankiMayhem) Server.BeginMankiMayhem((uint)seed);
+        }
         for (int slot = 0; slot < roster.Length; slot++)
         {
             ulong id = (ulong)(slot + 1);
@@ -42,7 +58,7 @@ internal sealed class NetplayLab
                 state = placement(id, state);
                 Server.SetState(id, state);
             }
-            _players.Add(new Player(id, new NetplayPredictor(arena, id, new StockMatchRule(250))));
+            _players.Add(new Player(id, new NetplayPredictor(arena, id, format.CreateRule(250, friendlyFire))));
         }
         // Every client registers every fighter itself first, then the others in reverse.
         foreach (var player in _players)
@@ -64,6 +80,7 @@ internal sealed class NetplayLab
     public Dictionary<uint, Dictionary<ulong, CharacterState>> ServerStates { get; } = new();
     /// <summary>Active resolver hitboxes (attacks and projectiles) after each GameHost tick.</summary>
     public Dictionary<uint, int> ServerHitboxes { get; } = new();
+    public List<MankiMayhemEvent> ServerMayhemEvents { get; } = new();
     public List<TimelinePresentationEvent> ServerEvents { get; } = new();
     public List<SpellResolver.HitResult> ServerHits { get; } = new();
     public Dictionary<ulong, int[]> ServerSources { get; } = new();
@@ -121,7 +138,7 @@ internal sealed class NetplayLab
         _consumed.Clear();
         foreach (var player in _players)
         {
-            if (player.ServerSeesDisconnected || Server.GetState(player.Id).Deaths >= 250)
+            if (player.ServerSeesDisconnected || Server.IsEntityInactive(player.Id))
             {
                 player.ServerInputs.Reset();
                 continue;
@@ -141,11 +158,13 @@ internal sealed class NetplayLab
         var events = Server.GetPresentationEvents(clear: true);
         ServerEvents.AddRange(events);
         ServerHits.AddRange(Server.LastTickHits);
+        ServerMayhemEvents.AddRange(Server.LastTickMayhemEvents);
         ServerStates[now] = new Dictionary<ulong, CharacterState>(Server.GetAllStates());
         ServerHitboxes[now] = Server.Resolver.GetActiveHitboxes().Count;
-        _history.Record(now, events, Server.LastTickHits);
+        _history.Record(now, events, Server.LastTickHits, Server.LastTickSlopballEvents, Server.LastTickOnlineCourseEvents, Server.LastTickMayhemEvents);
         var frame = new WorldFramePacket(MatchState.Playing, Server.CaptureSnapshot(), relayed,
-            _history.EventsForFrame(now).ToArray(), _history.HitsForFrame(now).ToArray()).Serialize();
+            _history.EventsForFrame(now).ToArray(), _history.HitsForFrame(now).ToArray(), _history.SlopballEventsForFrame(now).ToArray(),
+            _history.CourseEventsForFrame(now).ToArray(), _history.MayhemEventsForFrame(now).ToArray()).Serialize();
         foreach (var player in _players)
             player.Down.Send(now, frame, _rng);
     }
@@ -197,6 +216,10 @@ internal sealed class NetplayLab
             player.HitLog.Add((now, true, player.Hits[i]));
         for (int i = hitsRetractedBefore; i < player.RetractedHits.Count; i++)
             player.HitLog.Add((now, false, player.RetractedHits[i]));
+        int mayhemStarts = player.MayhemStarted.Count, mayhemRetracts = player.MayhemRetracted.Count;
+        player.Predictor.DrainMayhemEvents(player.MayhemStarted, player.MayhemRetracted);
+        foreach (var e in player.MayhemStarted.Skip(mayhemStarts)) player.MayhemLog.Add((true, e));
+        foreach (var e in player.MayhemRetracted.Skip(mayhemRetracts)) player.MayhemLog.Add((false, e));
         var window = player.Predictor.TakeStats();
         player.Windows.Add((now, window));
         player.Accumulate(window);
@@ -237,6 +260,9 @@ internal sealed class NetplayLab
         public bool ServerSeesDisconnected { get; set; }
         public PeerInputTimeline ServerInputs { get; } = new();
         public List<InputState> Recent { get; } = new();
+        public List<MankiMayhemEvent> MayhemStarted { get; } = new();
+        public List<MankiMayhemEvent> MayhemRetracted { get; } = new();
+        public List<(bool Start, MankiMayhemEvent Event)> MayhemLog { get; } = new();
         public List<TimelinePresentationEvent> Started { get; } = new();
         public List<TimelinePresentationEvent> Retracted { get; } = new();
         public List<SpellResolver.HitResult> Hits { get; } = new();

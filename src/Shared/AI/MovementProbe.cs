@@ -8,8 +8,7 @@ namespace SlopArena.Shared
     /// ServerSimulation with scripted inputs (hold run, shield, full jump, double jump,
     /// fast fall, drift, stop) and samples position/velocity per tick. Every metric is
     /// derived from the samples — no formulas re-derived from authored constants, so the
-    /// report reflects actual server-authoritative behavior (acceleration curves, rush
-    /// kick-off, float windows, caps).
+    /// report reflects actual server-authoritative behavior (acceleration curves, float windows, caps).
     ///
     /// Pure deterministic function of (def, arena): no statics, no RNG. Two calls with
     /// the same inputs yield identical samples. Mirrors SelfPlayMatch's "scenario in
@@ -55,10 +54,8 @@ namespace SlopArena.Shared
             var run = RunSim(def, arena, groundY, t => Input(right: true), 60);
             float runMax = Max(run, s => s.Speed);
             int runTimeToMax = First(run, s => s.Speed >= runMax * 0.999f, 0);
-            float runDistToMax = run[runTimeToMax].PosX - run[0].PosX;
-            string runNote = runTimeToMax <= 2
-                ? "instant cruise — Rush kick-off sets RunSpeed on the first tick (no ramp); the soft-start accel only shows after a turnaround skid"
-                : "";
+            float runDistToMax = run[runTimeToMax].PosX;
+            string runNote = "";
             var runMetrics = new RunMetrics(runMax, runTimeToMax, runDistToMax, runNote, run.ToArray());
 
 
@@ -73,8 +70,7 @@ namespace SlopArena.Shared
 
             // Full jump from standstill, stick held right (drift flight) — one sim gives
             // apex/airtime/horizontal AND the air-drift speed cap. Drift is the max speed
-            // while AIRBORNE only — the curve continues past landing, where the rush
-            // kick-off instantly re-hits RunSpeed and would pollute the cap.
+            // while AIRBORNE only — the curve continues past landing, where ground acceleration would pollute the cap.
             var jump = RunSim(def, arena, groundY, JumpHold(right: true), 300);
             int jumpTakeoff = First(jump, s => !s.IsGrounded, 0);
             int jumpLanding = FirstLanding(jump, jumpTakeoff);
@@ -153,13 +149,12 @@ namespace SlopArena.Shared
             // Stop: cruise 30 ticks, release everything.
             var stop = RunSim(def, arena, groundY, t => t < 30 ? Input(right: true) : default, 90);
             int stopTick = First(stop, s => s.Tick >= 30 && s.Speed < 0.01f, 30);
-            var stopMetrics = new StopMetrics(stopTick - 30, stop[stopTick].PosX - stop[30].PosX, stop.ToArray());
+            var stopMetrics = new StopMetrics(stopTick - 29, stop[stopTick].PosX - stop[29].PosX, stop.ToArray());
 
-            // Reversal: cruise right 30 ticks, then full opposite input. Ground reversals
-            // remain immediate even after the Rush window expires.
+            // Reversal: cruise right 30 ticks, then full opposite input.
             var rev = RunSim(def, arena, groundY, t => t < 30 ? Input(right: true) : Input(left: true), 90);
-            int revDone = First(rev, s => s.Tick > 30 && s.Speed >= m.RunSpeed * 0.99f, 89);
-            var reversalMetrics = new ReversalMetrics(revDone - 30, Math.Abs(rev[revDone].PosX - rev[30].PosX),
+            int revDone = First(rev, s => s.Tick >= 30 && s.Speed >= m.RunSpeed * 0.99f, 89);
+            var reversalMetrics = new ReversalMetrics(revDone - 29, Math.Abs(rev[revDone].PosX - rev[29].PosX),
                 rev.ToArray());
 
             return new CharacterMovement(def.DisplayName, m, runMetrics, shieldMetrics, jumpMetrics,

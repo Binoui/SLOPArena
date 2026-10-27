@@ -15,6 +15,8 @@ public static class HomingDashConfig
     /// <summary>Gap between the two capsules at which the dash counts as arrived.</summary>
     public const float ArrivalGap = 0.5f;
     public const ushort ArriveWindowTicks = 14;
+    /// <summary>An airborne arrival hangs without gravity this long, so an aerial can start at the target's height.</summary>
+    public const ushort ArriveHoverTicks = 20;
     public const ushort MissRecoveryTicks = 30;
     // Turn limit per tick, 4° (240°/s). Literal cosine and sine keep the steering free of
     // runtime trigonometry, so server and client predictions stay bit-identical.

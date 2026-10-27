@@ -99,7 +99,7 @@ namespace SlopArena.EditorTools
             }
             var removed = new List<string>();
             var markers = new List<object>();
-            object course = null;
+            object course = null, mayhem = null;
             try
             {
                 var root = scene.GetRootGameObjects().FirstOrDefault(x => x.name == "Stage_" + stage)
@@ -153,6 +153,10 @@ namespace SlopArena.EditorTools
                     kill.position = new Vector3(kill.position.x, killY, kill.position.z);
                 else if (Mathf.Abs(kill.position.y - killY) > 1e-4f)
                     throw new InvalidOperationException("The KillPlane marker is at " + kill.position.y + ", the layout says " + killY + "; pass --spawns move to set it.");
+                if (shell["course"] != null && shell["mayhem"] != null)
+                    throw new ArgumentException("A shell cannot define both a course and Mayhem.");
+                if (shell["mayhem"] is JObject mayhemSpec)
+                    mayhem = ApplyMayhem(kill.parent, mayhemSpec);
                 if (shell["course"] is JObject courseSpec)
                     course = ApplyCourse(kill.parent, courseSpec);
 
@@ -165,7 +169,7 @@ namespace SlopArena.EditorTools
             }
             return new
             {
-                success = true, stage, scene = scenePath, created = sceneCreated, spawns, course,
+                success = true, stage, scene = scenePath, created = sceneCreated, spawns, course, mayhem,
                 // Read mesh data here: the result is serialized off the main thread.
                 meshes = meshes.Select(m => new { m.name, asset = m.asset, vertices = m.mesh.vertexCount, triangles = m.mesh.triangles.Length / 3,
                     min = new[] { m.mesh.bounds.min.x, m.mesh.bounds.min.y, m.mesh.bounds.min.z },
@@ -215,6 +219,7 @@ namespace SlopArena.EditorTools
         {
             // GetComponent returns the Editor's fake null for a missing component, which ?? keeps.
             var config = aids.TryGetComponent<ArcadeStageAuthoring>(out var existing) ? existing : aids.gameObject.AddComponent<ArcadeStageAuthoring>();
+            config.MankiMayhem = false;
             config.CharacterCourse = true;
             config.Slopball = false;
             config.BallSpawn = null;
@@ -261,6 +266,28 @@ namespace SlopArena.EditorTools
             EditorUtility.SetDirty(config);
             config.Compile();   // Shared rejects an invalid course before the scene is saved
             return new { config.ProfileId, targets = config.Targets.Length, checkpoints = config.Checkpoints.Length, moved, removed };
+        }
+
+        private static object ApplyMayhem(Transform aids, JObject spec)
+        {
+            var config = aids.TryGetComponent<ArcadeStageAuthoring>(out var existing)
+                ? existing : aids.gameObject.AddComponent<ArcadeStageAuthoring>();
+            config.MankiMayhem = true; config.CharacterCourse = config.Slopball = false; config.BallSpawn = null;
+            config.ProfileId = (string)spec["profileId"]; config.GameplayRevision = (uint)spec["gameplayRevision"];
+            config.AllowedPackageIds = Array.Empty<string>(); config.DeckTop = (float)spec["deckTop"];
+            Transform Marker(string name, JToken position)
+            {
+                var marker = aids.Find(name);
+                if (marker == null) { marker = new GameObject(name).transform; marker.SetParent(aids, false); }
+                marker.position = Vector(position);
+                return marker;
+            }
+            config.HostOrigin = Marker("MayhemHostOrigin", spec["hostOrigin"]);
+            config.PlayAreaMin = Marker("MayhemPlayAreaMin", spec["playAreaMin"]);
+            config.PlayAreaMax = Marker("MayhemPlayAreaMax", spec["playAreaMax"]);
+            EditorUtility.SetDirty(config);
+            config.Compile();
+            return new { config.ProfileId, config.DeckTop };
         }
 
         private static Vector3 Vector(JToken value) => new((float)value[0], (float)value[1], (float)value[2]);

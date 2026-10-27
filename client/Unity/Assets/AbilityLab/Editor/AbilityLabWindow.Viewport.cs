@@ -19,6 +19,10 @@ public sealed partial class AbilityLabWindow
     private EventCallback<ChangeEvent<bool>>? _motionChanged;
     private bool _releasePreviewControl;
 
+    internal float CommandViewportAspect => _movesViewport is { contentRect: { width: > 0f, height: > 0f } rect }
+        ? rect.width / rect.height
+        : 0f;
+
     private void BindMovesViewport()
     {
         ReleaseMovesViewport();

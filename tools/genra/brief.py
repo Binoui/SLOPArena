@@ -13,7 +13,8 @@ A brief is JSON. Paths are relative to the rig pack. Keys:
   views [...]: review views for sheets (default profile, front, three-quarter from the striking side);
   preview_views [...]: views in the MP4 preview (default profile and the three-quarter view)
   fast_windows [[first, last]], targets [...] (see checks.measure), images [...], review_ticks [...]
-  planted [joints that must not drift, e.g. feet for grounded moves]
+  planted [joints that must not drift, e.g. feet for grounded moves], snap_degrees_per_tick (tightens the 35 default for
+  a calm move), snap_exempt [joints the snap check skips: a prop that spins by design, e.g. the salamander's Hat rotor]
   strike [joints that deliver the hit, e.g. RightHand or bladeEnd: pick the review side, measure visibility]
   two_hands [first, last]: ticks where both hands hold the weapon (the left hand stays on grip.json's grip)
   two_hands_hold: 'exact' (default: grip.json's transform) or 'loose' (solve.handle_target: the left fist anywhere on
@@ -177,6 +178,10 @@ class Brief:
             spec['exit'] = self.exit_pose
         if self.loop_from is not None:
             spec['loop_from_tick'] = self.loop_from
+        if self.data.get('snap_degrees_per_tick'):  # a calm move tightens the 35 deg/tick default (salamander reload)
+            spec['snap_degrees_per_tick'] = float(self.data['snap_degrees_per_tick'])
+        if self.data.get('snap_exempt'):
+            spec['snap_exempt'] = list(self.data['snap_exempt'])
         if self.data.get('planted'):
             spec['planted'] = self.data['planted']
         if self.data.get('two_hands'):

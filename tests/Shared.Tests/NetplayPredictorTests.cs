@@ -17,6 +17,104 @@ public class NetplayPredictorTests
     private readonly ITestOutputHelper _output;
     public NetplayPredictorTests(ITestOutputHelper output) => _output = output;
 
+    [Theory]
+    [InlineData(41, 1, 0, 0.0)]
+    [InlineData(1337, 4, 3, 0.15)]
+    public void MayhemLedgerSurvivesDelayJitterLossAndBenchReturn(int seed, int delay, int jitter, double loss)
+    {
+        var lab = new NetplayLab("manki_mayhem", Duel, seed, format: MatchFormat.MankiMayhem,
+            friendlyFire: FriendlyFireMode.Shoves);
+        foreach (var p in lab.Players)
+        {
+            p.Up.DelayTicks = p.Down.DelayTicks = delay;
+            p.Up.JitterTicks = p.Down.JitterTicks = jitter;
+            p.Up.Loss = p.Down.Loss = loss;
+        }
+        // Walk off during the first card. Keep sending movement while benched, then jump on return.
+        lab[1].Input = (p, tick) => p.Predictor.Simulation.MankiMayhem is { RoundIndex: 0 }
+            ? new InputState { MoveX = -1f } : new InputState { MoveX = .1f, JumpHeld = true };
+        lab.Run(15000);
+        lab.Quiesce(80);
+        Assert.True(lab.Server.MankiMayhem!.Value.Ended);
+        var bench = lab.ServerMayhemEvents.First(e => e.Kind == MankiMayhemEventKind.Bench && e.EntityId == 1);
+        var call = lab.ServerMayhemEvents.First(e => e.Kind == MankiMayhemEventKind.Call && e.MatchTick > bench.MatchTick);
+        for (uint tick = bench.MatchTick + 1; tick < call.MatchTick; tick++)
+        {
+            var state = lab.ServerStates[tick][1];
+            Assert.Equal(0f, state.VX); Assert.Equal(0f, state.VZ);
+        }
+        // Bench clears server input history. Allow fresh bundles through the configured delay and loss.
+        Assert.Contains(Enumerable.Range(1, 30), offset =>
+            lab.ServerStates[call.MatchTick + (uint)offset][1].PX != lab.ServerStates[call.MatchTick][1].PX);
+        foreach (var player in lab.Players)
+        {
+            Assert.Equal(0, player.Totals.RejectedFrames);
+            var active = new HashSet<MayhemEventKey>();
+            foreach (var (start, evt) in player.MayhemLog)
+                if (start) Assert.True(active.Add(evt.Key), $"duplicate Mayhem start {evt.Key}");
+                else Assert.True(active.Remove(evt.Key), $"unstarted Mayhem retraction {evt.Key}");
+            var expected = lab.ServerMayhemEvents.Select(e => e.Key).ToHashSet();
+            Assert.True(expected.SetEquals(active), $"peer {player.Id}: expected {expected.Count} events, presented {active.Count}");
+            Assert.Equal(lab.Server.MayhemPlayers, player.Predictor.Simulation.MayhemPlayers);
+            _output.WriteLine(player.Describe());
+        }
+    }
+
+    [Fact]
+    public void MayhemContradictedBenchRetractsAndHostRecordsAreAcceptedOnlyInMayhem()
+    {
+        var lab = new NetplayLab("manki_mayhem", Duel, 41, format: MatchFormat.MankiMayhem);
+        lab.Run(20);
+        var predictor = lab[1].Predictor;
+        var state = predictor.GetState(2); state.PY = -200;
+        predictor.Simulation.SetState(2, state);
+        predictor.Advance(default);
+        var started = new List<MankiMayhemEvent>(); var retracted = new List<MankiMayhemEvent>();
+        predictor.DrainMayhemEvents(started, retracted);
+        var contradicted = Assert.Single(started, e => e.Kind == MankiMayhemEventKind.Bench);
+        lab.Run(20);
+        Assert.Contains(lab[1].MayhemRetracted, e => e.Key == contradicted.Key);
+        Assert.False(lab.Server.IsEntityInactive(2));
+        Assert.Equal(0, lab[1].Totals.RejectedFrames);
+    }
+
+    [Theory]
+    [InlineData(2, 1, .05)]
+    [InlineData(5, 3, .15)]
+    public void ContradictedPredictedWallBreakRetractsAndRestoresTheWall(int delay, int jitter, double loss)
+    {
+        var lab = new NetplayLab("manki_mayhem", Duel, 1, format: MatchFormat.MankiMayhem);
+        foreach (var peer in lab.Players)
+        {
+            peer.Up.DelayTicks = peer.Down.DelayTicks = delay;
+            peer.Up.JitterTicks = peer.Down.JitterTicks = jitter;
+            peer.Up.Loss = peer.Down.Loss = loss;
+        }
+        lab.Run(30);
+        var predictor = lab[1].Predictor;
+        var wall = predictor.Simulation.MayhemWalls.First(w => w.Blocks);
+        var started = new List<MankiMayhemEvent>(); var retracted = new List<MankiMayhemEvent>();
+        predictor.DrainMayhemEvents(started, retracted); started.Clear(); retracted.Clear();
+        for (int i = 0; i < wall.HitsLeft; i++)
+        {
+            predictor.Simulation.Resolver.Spawn(new Hitbox { OwnerId = 1, X = wall.Center.X, Y = 1,
+                Z = wall.Center.Z, Radius = .4f, Damage = 1, DurationTicks = 1 });
+            predictor.Advance(default);
+        }
+        predictor.DrainMayhemEvents(started, retracted);
+        var broken = Assert.Single(started, e => e.Kind == MankiMayhemEventKind.WallBroken);
+        Assert.Equal(0, predictor.Simulation.MayhemWalls.Single(w => w.EntityId == wall.EntityId).HitsLeft);
+        lab.Run(35); lab.Quiesce(30);
+        Assert.Contains(lab[1].MayhemRetracted, e => e.Key == broken.Key);
+        Assert.Equal(wall.HitsLeft, predictor.Simulation.MayhemWalls.Single(w => w.EntityId == wall.EntityId).HitsLeft);
+        Assert.All(lab.Players, p => Assert.Equal(0, p.Totals.RejectedFrames));
+        Assert.Equal(lab.Server.MayhemWalls.Select(w => w with { PhaseTick = 0 }),
+            predictor.Simulation.MayhemWalls.Select(w => w with { PhaseTick = 0 }));
+        Assert.All(predictor.Simulation.MayhemWalls, w => Assert.Equal(
+            lab.Server.MayhemWalls.Single(x => x.EntityId == w.EntityId).PhaseTick + predictor.Simulation.CurrentTick - lab.Server.CurrentTick,
+            (uint)w.PhaseTick));
+    }
+
     private static readonly CharacterClass[] Duel = { CharacterClass.FightGuy, CharacterClass.Manki };
 
     [Fact]

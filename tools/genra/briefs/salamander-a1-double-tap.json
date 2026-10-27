@@ -1,0 +1,122 @@
+{
+  "name": "salamander-a1-double-tap",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander air.1 (anim.salamander.a1), kit proposal 2026-10-27: Double Tap, his quick aerial. Timing kept from the borrowed Air Kick: 38 ticks, hits at 7-12 (right hand) and 18-23 (left hand), act from 33, landing lag 9.",
+  "description": "The salamander's air.1, Double Tap: two quick finger-gun jabs in the air, right then left, 'pew pew'.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nIn the air. The entry pose is the fall he plays in the air (a borrowed pose): keep the hips where it has them and let the legs tuck under him, knees up, boots together, for the whole move. There is no floor contact.\n\nThe move (38 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 4: both hands pull back to his chest in finger guns, legs tucking.\n- Tick 7, first hit: the right finger gun jabs straight ahead at chest height, arm extended, chest turned 20 degrees to his left; the left hand stays pulled back at his chest.\n- Tick 12: the right hand pulls back.\n- Tick 18, second hit: the left finger gun jabs straight ahead, chest turned 20 degrees to his right; the right hand back at the chest.\n- Tick 23: the left hand pulls back, a cocky little spin of the right finger gun at his hip.\n- Tick 33: recovered.\n- Tick 38: back to the fall pose, matching tick 0.",
+  "clock": {
+    "duration_ticks": 38,
+    "contact_tick": 7,
+    "active": [
+      7,
+      23
+    ],
+    "iasa_tick": 33
+  },
+  "timing": {
+    "fixed": [
+      "38 ticks played once; hits on the right hand at ticks 7-12 and the left hand at 18-23",
+      "the player can act from tick 33",
+      "tick 0 and tick 38 are the fall pose exactly"
+    ],
+    "adjustable": [
+      "nothing else"
+    ]
+  },
+  "exit": {
+    "reference": "fall",
+    "tick": 0,
+    "from_tick": 38
+  },
+  "fast_windows": [
+    [
+      4,
+      9
+    ],
+    [
+      14,
+      20
+    ]
+  ],
+  "strike": [
+    "RightHand",
+    "LeftHand"
+  ],
+  "keys": [
+    0,
+    4,
+    7,
+    12,
+    18,
+    23,
+    33,
+    38
+  ],
+  "review_ticks": [
+    0,
+    4,
+    7,
+    10,
+    12,
+    15,
+    18,
+    21,
+    23,
+    28,
+    33,
+    38
+  ],
+  "targets": [
+    {
+      "name": "first jab: right hand far in front at tick 7 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 7,
+      "min": 0.28
+    },
+    {
+      "name": "second jab: left hand far in front at tick 18 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 18,
+      "min": 0.28
+    },
+    {
+      "name": "first jab: left hand back at the chest at tick 7 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 7,
+      "max": 0.15
+    },
+    {
+      "name": "second jab: right hand back at the chest at tick 18 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 18,
+      "max": 0.15
+    }
+  ]
+}

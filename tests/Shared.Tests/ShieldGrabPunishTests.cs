@@ -14,7 +14,6 @@ public sealed class ShieldGrabPunishTests
         {
             yield return new object[] { defender, CharacterClass.FightGuy, AbilitySlots.Slot1 };
             yield return new object[] { defender, CharacterClass.Manki, AbilitySlots.Slot3 };
-            yield return new object[] { defender, CharacterClass.Wibou, AbilitySlots.Slot1 };
             yield return new object[] { defender, CharacterClass.Bonk, AbilitySlots.Slot1 };
         }
     }

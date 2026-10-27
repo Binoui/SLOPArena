@@ -560,6 +560,16 @@ public sealed record CookedChargedStreamCapabilityParameters(
         => MinRecoilSpeed + (MaxRecoilSpeed - MinRecoilSpeed) * GetCharge(chargeTicks);
 }
 
+public sealed record CookedFingerGunsCapabilityParameters(
+    ushort FireTriggerTick,
+    ushort RecoveryTicks,
+    byte ShotsPerReload,
+    ushort ReloadTicks,
+    string ReloadAnimationId,
+    float AirMaxFallSpeed,
+    float AirRecoilSpeed,
+    CookedProjectile Projectile) : CookedCapabilityParameters;
+
 public sealed class CookedSetAimStateOperation : CookedTimelineOperation
 {
     public AuthoringAimMode AimState { get; }
@@ -619,7 +629,8 @@ public sealed record CookedAimedRecoveryCapabilityParameters(
     float DirectionalVerticalSpeed,
     float HorizontalSpeed,
     float PreparationRiseSpeed,
-    RecoveryHopParameters? Hop = null) : CookedCapabilityParameters;
+    RecoveryHopParameters? Hop = null,
+    float RiseSteerAcceleration = 0f) : CookedCapabilityParameters;
 public sealed record CookedRisingDragonCapabilityParameters(float RiseSpeed, ushort RiseTicks, ushort RiseDelay) : CookedCapabilityParameters;
 public sealed record CookedCycloneKickCapabilityParameters(
     float ForwardSpeed, ushort WindupTicks, ushort HitboxEndTick, ushort DurationTicks, float BodyRadius,
@@ -745,6 +756,9 @@ public sealed record CookedMankiBazookaCapabilityParameters(
     float ExplosionKbAngle,
     ushort CastDuration,
     ushort RecoveryDuration,
+    float HomingTurnDegPerTick,
+    float HomingTurnCos,
+    float HomingTurnSin,
     string ExplosionPresentationId = "") : CookedCapabilityParameters;
 
 public sealed record CookedMankiAerosolInfernoCapabilityParameters(

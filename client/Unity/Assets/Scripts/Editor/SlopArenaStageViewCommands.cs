@@ -72,7 +72,7 @@ namespace SlopArena.EditorTools
             string arenaPath = BakedContentPaths.ResolveArena(stage);
             var arena = arenaPath == null ? (ArenaDefinition?)null : ArenaBinaryFormat.LoadFromFile(arenaPath);
             bool slopball = arena.HasValue && arena.Value.Purpose == ArenaPurpose.Arcade && arena.Value.Arcade?.Slopball != null;
-            if (!arena.HasValue || arena.Value.Purpose != ArenaPurpose.PvP && !slopball)
+            if (!arena.HasValue || arena.Value.Purpose != ArenaPurpose.PvP && !slopball && arena.Value.Arcade?.Mayhem == null)
                 throw new InvalidOperationException("stage must resolve to a baked PvP arena or the Slopball court; use the course replay runner for Arcade courses.");
             string scenePath = slopball ? SlopballScenePath : ScenePath;
             if (AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Stages/" + stage + ".prefab") == null

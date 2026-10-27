@@ -24,6 +24,8 @@ namespace SlopArena.Client.Simulation
         private readonly List<SpellResolver.HitResult> _retractedHits = new();
         private readonly List<TimelinePresentationEvent> _events = new();
         private readonly List<TimelinePresentationEvent> _retractedEvents = new();
+        private readonly List<MankiMayhemEvent> _mayhemEvents = new();
+        private readonly List<MankiMayhemEvent> _retractedMayhemEvents = new();
         private readonly List<CourseTickEvent> _courseEvents = new();
         private readonly List<CourseTickEvent> _retractedCourseEvents = new();
         private readonly List<SlopballTickEvent> _slopballEvents = new();
@@ -52,6 +54,8 @@ namespace SlopArena.Client.Simulation
         /// <summary>Predicted hits the GameHost ruled out during the latest update.</summary>
         public IReadOnlyList<SpellResolver.HitResult> RetractedHits => _retractedHits;
         /// <summary>Slopball events to present from the latest update, each once (ADR-0040).</summary>
+        public IReadOnlyList<MankiMayhemEvent> MayhemEvents => _mayhemEvents;
+        public IReadOnlyList<MankiMayhemEvent> RetractedMayhemEvents => _retractedMayhemEvents;
         public IReadOnlyList<CourseTickEvent> CourseEvents => _courseEvents;
         public IReadOnlyList<CourseTickEvent> RetractedCourseEvents => _retractedCourseEvents;
         public IReadOnlyList<SlopballTickEvent> SlopballEvents => _slopballEvents;
@@ -107,6 +111,8 @@ namespace SlopArena.Client.Simulation
             _session.Predictor.DrainSlopballEvents(_slopballEvents, _retractedSlopballEvents);
             _courseEvents.Clear(); _retractedCourseEvents.Clear();
             _session.Predictor.DrainCourseEvents(_courseEvents, _retractedCourseEvents);
+            _mayhemEvents.Clear(); _retractedMayhemEvents.Clear();
+            _session.Predictor.DrainMayhemEvents(_mayhemEvents, _retractedMayhemEvents);
         }
 
         public ActiveMoveView? GetActiveMove(ulong id) => Simulation.GetActiveMove(id);

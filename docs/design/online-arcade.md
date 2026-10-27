@@ -2,7 +2,8 @@
 
 **Status:** Direction selected 2026-10-19; not an implementation specification.
 Co-op Slopball online (slice 2) and Versus 1v1/2v2 (slice 3) are built.
-Character Course Race and Co-op (slice 4) are implemented. Versus and courses still need human multiplayer playtest acceptance.
+Character Course Race and Co-op (slice 4) are implemented.
+[Manki Mayhem](manki-mayhem.md) joins the same Room flow with SCATTER! survival rounds. Versus and courses still need human multiplayer playtest acceptance.
 The maintainer named online Character Courses and volleyball as the most important
 modes going forward, and moved them ahead of upgrade rounds. The Room flow, the four
 decisions below and the format list are selected. Everything marked *proposal* is a
@@ -11,7 +12,7 @@ target; co-op permits unlimited misses. Technical choices live in the
 [implementation options](online-arcade-implementation.md).
 
 Online Arcade brings the two [Solo Arcade](arcade.md) challenges into online Rooms:
-Slopball on the Night Court and the Character Courses. It reuses their stages, Shared
+Slopball on the Night Court and the Character Courses. Manki Mayhem adds competitive survival on its own stage. It reuses their stages, Shared
 objects and presentation. The modes stay friends-first, like Solo Arcade: quick, readable
 rounds over rankings.
 
@@ -39,7 +40,7 @@ format decides the camps. Smash Ultimate also asks for the stage before fighters
 
 - **PVP tab:** today's stage cards and stock fight rules. Teams and upgrade rounds can
   appear here later.
-- **ARCADE tab:** a Slopball card and a Character Courses card. Slopball shows its
+- **ARCADE tab:** Manki Mayhem, Slopball and Character Courses cards. Mayhem takes two to four humans and sets friendly fire on its card, Off, Shoves or On, default Shoves. Slopball shows its
   formats (Versus 1v1, Versus 2v2, Co-op vs the Launcher) and their rules. Courses show
   one card per course with its fighter, then the Race and Co-op formats.
 - A format that doesn't fit the Room's size is shown but unavailable: Versus 1v1 needs
@@ -51,7 +52,7 @@ format decides the camps. Smash Ultimate also asks for the stage before fighters
 
 | Shape | Used by | Players choose |
 | --- | --- | --- |
-| Free pick | PvP, Slopball Co-op | Any admitted fighter; mirrors allowed |
+| Free pick | PvP, Slopball Co-op, Manki Mayhem | Any admitted fighter; mirrors allowed |
 | Camps | Slopball Versus | A camp, Teal or Clay after the court's halves, then any fighter. Members switch camps; leader shuffle remains a follow-up. |
 | Locked | Character Courses | A distinct ring colour; the course sets the fighter. Swapping colours unlocks both affected players |
 
@@ -61,6 +62,12 @@ Individual player colour selection remains a follow-up.
 *Proposal:* **Again** on Results returns the Room to Character Select with the same
 pick, and everyone locks in again. Again skips Lobby, so new members can join only when
 the Room goes back to Lobby.
+
+## Manki Mayhem
+
+The Room leader selects Mayhem and its friendly-fire rule on Stage Select. Character Select permits any admitted fighter and mirrors. The Match uses Shared's seeded hazard director through the normal GameHost and rollback session. Host bombs affect everyone. Off filters fighter hits, Shoves preserves Knockback and Hitstun without adding damage, and On permits normal fighter hits. A KO benches the fighter until the next Call. Results show points, rounds survived and bonuses, with tied winners. Online Rooms have no CPUs.
+
+SCATTER! is the current card. JUMP!, BREAK OUT!, CRT call cards and booth polish remain later steps of the [implementation plan](manki-mayhem-implementation.md).
 
 ## Volleyball (Slopball online)
 

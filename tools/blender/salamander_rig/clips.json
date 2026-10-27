@@ -1,0 +1,16 @@
+{
+ "anim.salamander.idle": "Assets/CharacterPackages/salamander/Animations/salamander_idle.anim",
+ "anim.salamander.run": "Assets/CharacterPackages/salamander/Animations/salamander_run.anim",
+ "anim.salamander.g1": "Assets/CharacterPackages/salamander/Animations/salamander_g1_pistol_whip.anim",
+ "anim.salamander.g3": "Assets/CharacterPackages/salamander/Animations/salamander_g3_stick_em_up.anim",
+ "anim.salamander.g4": "Assets/CharacterPackages/salamander/Animations/salamander_g4_lasso_crack.anim",
+ "anim.salamander.a1": "Assets/CharacterPackages/salamander/Animations/salamander_a1_double_tap.anim",
+ "anim.salamander.a3": "Assets/CharacterPackages/salamander/Animations/salamander_a3_tail_whip.anim",
+ "anim.salamander.a4": "Assets/CharacterPackages/salamander/Animations/salamander_a4_spur_stomp.anim",
+ "anim.salamander.ga": "Assets/CharacterPackages/salamander/Animations/salamander_ga_finger_gun_shot.anim",
+ "anim.salamander.ga-reload": "Assets/CharacterPackages/salamander/Animations/salamander_ga_finger_gun_reload.anim",
+ "anim.salamander.ge": "Assets/CharacterPackages/salamander/Animations/salamander_ge_sombrero_copter.anim",
+ "anim.salamander.gr": "Assets/CharacterPackages/salamander/Animations/salamander_gr_tumbleweed.anim",
+ "anim.salamander.gf-loop": "Assets/CharacterPackages/salamander/Animations/salamander_gf_big_iron_aim.anim",
+ "anim.salamander.gf": "Assets/CharacterPackages/salamander/Animations/salamander_gf_big_iron_blast.anim"
+}

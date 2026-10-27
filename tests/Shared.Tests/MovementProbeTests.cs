@@ -20,8 +20,8 @@ public class MovementProbeTests
     public void Run_HoldingStick_ReachesAuthoredRunSpeed()
     {
         var run = Measured().Run;
-        // Rush kick-off (ADR-0020): cruise speed on the first tick, no ramp.
-        Assert.True(run.TimeToMaxTicks <= 2, $"time-to-max {run.TimeToMaxTicks} ticks");
+        // The legacy full probe indexes tick 1 as sample zero.
+        Assert.Equal(20, run.TimeToMaxTicks);
         Assert.Equal(M.RunSpeed, run.MaxSpeed, 2); // 14 m/s
         Assert.True(run.Curve[30].Speed >= M.RunSpeed * 0.99f, "speed decays below cruise");
     }

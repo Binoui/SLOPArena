@@ -8,6 +8,16 @@ namespace SlopArena.Client.UI
     public enum GameMode { Training, Solo, PvP, Arcade, Tutorial }
     public enum MatchTransport { None, DevelopmentUdp, SteamP2P }
 
+    public enum SeatKind : byte { Open, Cpu, LocalPlayer }
+
+    public struct SoloSeat
+    {
+        public SeatKind Kind;
+        public CharacterClass Fighter;
+        public CpuDifficulty Difficulty;
+        public int DeviceId;
+    }
+
     public static class MatchConfig
     {
         public static GameMode Mode = GameMode.Training;
@@ -38,13 +48,72 @@ namespace SlopArena.Client.UI
             }
         }
 
-        public static SlopArena.Shared.CharacterClass SoloBotClass
-            = SlopArena.Shared.CharacterClass.FightGuy;
-        public static CpuDifficulty SoloCpuDifficulty = CpuDifficulty.Normal;
-        /// <summary>Couch play (ADR-0041): Solo's P2 is a second Local Player instead of the CPU.</summary>
-        public static bool SoloP2Human;
-        /// <summary>InputDevice.deviceId of the pad P2 joined with; 0 while P2 waits to join.</summary>
-        public static int SoloP2DeviceId;
+        /// <summary>P2–P4 of a Solo match (ADR-0041). P1 is always the local player with PlayerClass.</summary>
+        public static readonly SoloSeat[] SoloSeats = new SoloSeat[3];
+
+        static MatchConfig() => ResetSoloSeats();
+
+        public static ref SoloSeat Seat(int playerNumber)
+        {
+            if (playerNumber < 2 || playerNumber > 4)
+                throw new System.ArgumentOutOfRangeException(nameof(playerNumber));
+            return ref SoloSeats[playerNumber - 2];
+        }
+
+        public static int SoloOpponentCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (var seat in SoloSeats)
+                    if (seat.Kind != SeatKind.Open) count++;
+                return count;
+            }
+        }
+
+        public static int JoinSoloSeat(int deviceId)
+        {
+            if (deviceId <= 0) return 0;
+            for (int player = 2; player <= 4; player++)
+                if (Seat(player).Kind == SeatKind.LocalPlayer && Seat(player).DeviceId == deviceId)
+                    return player;
+            for (int player = 2; player <= 4; player++)
+            {
+                ref var seat = ref Seat(player);
+                if (seat.Kind == SeatKind.LocalPlayer) continue;
+                if (seat.Fighter == CharacterClass.None) seat.Fighter = CharacterClass.FightGuy;
+                seat.Kind = SeatKind.LocalPlayer;
+                seat.DeviceId = deviceId;
+                return player;
+            }
+            return 0;
+        }
+
+        public static void LeaveSoloSeat(int playerNumber)
+        {
+            ref var seat = ref Seat(playerNumber);
+            seat.Kind = SoloOpponentCount > 1 ? SeatKind.Open : SeatKind.Cpu;
+            seat.DeviceId = 0;
+            seat.Difficulty = CpuDifficulty.Normal;
+        }
+
+        public static bool RemoveSoloCpu(int playerNumber)
+        {
+            ref var seat = ref Seat(playerNumber);
+            if (seat.Kind != SeatKind.Cpu || SoloOpponentCount <= 1) return false;
+            seat.Kind = SeatKind.Open;
+            seat.DeviceId = 0;
+            return true;
+        }
+
+        private static void ResetSoloSeats()
+        {
+            System.Array.Clear(SoloSeats, 0, SoloSeats.Length);
+            Seat(2) = new SoloSeat
+            {
+                Kind = SeatKind.Cpu, Fighter = CharacterClass.FightGuy, Difficulty = CpuDifficulty.Normal,
+            };
+        }
 
         // Per-match entity IDs assigned by the master server at match start
         // (issue #35). The local player drives LocalEntityId; the opponents
@@ -60,7 +129,9 @@ namespace SlopArena.Client.UI
 
         /// <summary>What the online Match plays (ADR-0040); Master's push carries it, else a stock fight.</summary>
         public static MatchFormat Format = MatchFormat.Stock;
-        public static bool FriendlyFire;
+        public static uint MayhemSeed = 41;
+        public static bool IsLocalMayhem => Mode == GameMode.Solo && Format == MatchFormat.MankiMayhem;
+        public static FriendlyFireMode FriendlyFire;
         public static bool BallOnly;
         public static Dictionary<ulong, SlopballCamp> Camps = new();
         public static Dictionary<ulong, byte> Colours = new();
@@ -68,7 +139,7 @@ namespace SlopArena.Client.UI
         public static void ClearActiveMatch()
         {
             Format = MatchFormat.Stock;
-            FriendlyFire = false;
+            FriendlyFire = FriendlyFireMode.Off;
             BallOnly = false;
             Camps.Clear();
             Colours.Clear();
@@ -87,10 +158,7 @@ namespace SlopArena.Client.UI
             ClearActiveMatch();
             PlayerPackageId = "fightguy";
             PlayerClass = SlopArena.Shared.CharacterClass.FightGuy;
-            SoloBotClass = SlopArena.Shared.CharacterClass.FightGuy;
-            SoloCpuDifficulty = CpuDifficulty.Normal;
-            SoloP2Human = false;
-            SoloP2DeviceId = 0;
+            ResetSoloSeats();
             ArenaName = "training";
             IsHost = true;
             ServerIP = "127.0.0.1";

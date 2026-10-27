@@ -55,6 +55,7 @@ namespace SlopArena.Server
 		private const ushort CountdownDuration = 300; // 5 seconds at 60Hz
 		private readonly IMatchRule _rule;
 		private readonly MatchFormat _format;
+		private readonly uint? _mayhemSeed;
 		private ulong _winnerEntityId;
 		private MatchResultPacket? _matchResultPacket;
 
@@ -97,8 +98,9 @@ namespace SlopArena.Server
 			DateTimeOffset? admissionDeadlineUtc = null, string? contentHash = null,
 			Action<Guid, ulong, byte[], bool>? steamSend = null, TimeProvider? clock = null,
 			MatchContentHandleMap? contentHandleMap = null, Action? steamFlush = null,
-			MatchFormat format = MatchFormat.Stock, bool friendlyFire = false, bool ballOnly = false)
+			MatchFormat format = MatchFormat.Stock, FriendlyFireMode friendlyFire = FriendlyFireMode.Off, bool ballOnly = false, uint? mayhemSeed = null)
 		{
+			_mayhemSeed = mayhemSeed;
 			_steamFlush = steamFlush;
 			_format = format;
 			_port = port;
@@ -316,6 +318,8 @@ namespace SlopArena.Server
 			}
             if (_format == MatchFormat.SlopballVersus) _sim.BeginVersusSlopball();
             if (_format.IsCourse()) _sim.BeginOnlineCourse();
+            if (_format == MatchFormat.MankiMayhem)
+                _sim.BeginMankiMayhem(_mayhemSeed ?? (uint)System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue));
 
 			if (_steamSend is null)
 			{
@@ -727,7 +731,11 @@ namespace SlopArena.Server
 			{
 				lock (_steamGate)
 				{
-					if (slot.Disconnected) _sim.WithdrawCoursePlayer(slot.EntityId);
+					if (slot.Disconnected)
+                    {
+                        _sim.WithdrawCoursePlayer(slot.EntityId);
+                        _sim.WithdrawMayhemPlayer(slot.EntityId);
+                    }
                     if (slot.Disconnected || _sim.IsEntityInactive(slot.EntityId))
 					{
 						slot.Inputs.Reset();
@@ -778,7 +786,7 @@ namespace SlopArena.Server
 			_sim.Tick(inputs);
 			int droppedEvents = _frameHistory.DroppedEvents;
 			_frameHistory.Record(_serverTick, _sim.GetPresentationEvents(clear: true), _sim.LastTickHits,
-				_sim.LastTickSlopballEvents, _sim.LastTickOnlineCourseEvents);
+				_sim.LastTickSlopballEvents, _sim.LastTickOnlineCourseEvents, _sim.LastTickMayhemEvents);
 			if (_frameHistory.DroppedEvents != droppedEvents)
 				// Cosmetic only: an unencodable event must not cost the match.
 				Diagnostics.ReportError(_serverTick, "Unencodable presentation event dropped.");
@@ -792,7 +800,7 @@ namespace SlopArena.Server
 				Log(_format == MatchFormat.SlopballCoop && _sim.Slopball is { } run
 					? $"Co-op run over: {run.TotalReturns} returns, best combo {run.BestStreak}."
 					: outcome.IsSharedVictory
-						? "Shared victory — all players eliminated simultaneously."
+						? "Shared victory."
 						: $"Winner: {_winnerEntityId}");
 
 				if (_onMatchResult != null && Guid.TryParse(_matchId, out var matchGuid))
@@ -888,7 +896,7 @@ namespace SlopArena.Server
 			var snapshot = _sim.CaptureSnapshot();
 			return new WorldFramePacket(_matchState, snapshot, _relayedInputs,
 				_frameHistory.EventsForFrame(snapshot.Tick), _frameHistory.HitsForFrame(snapshot.Tick),
-				_frameHistory.SlopballEventsForFrame(snapshot.Tick), _frameHistory.CourseEventsForFrame(snapshot.Tick)).Serialize();
+				_frameHistory.SlopballEventsForFrame(snapshot.Tick), _frameHistory.CourseEventsForFrame(snapshot.Tick), _frameHistory.MayhemEventsForFrame(snapshot.Tick)).Serialize();
 		}
 
 		private void SendNetplayControl(PlayerSlot slot, NetplayControlKind kind)
@@ -978,7 +986,11 @@ namespace SlopArena.Server
                     return order != 0 ? order : a.EntityId.CompareTo(b.EntityId);
                 });
             }
-            return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run, versus, course);
+            MayhemRunResult? mayhem = _sim.MankiMayhem.HasValue ? MayhemRunResult.From(_sim) : null;
+            if (mayhem != null)
+                ranked = entries.Select(entry => new MatchResultEntry(entry.EntityId, mayhem.PlaceFor(entry.EntityId),
+                    entry.KOs, entry.Falls)).OrderBy(e => e.Placement == 0 ? 255 : e.Placement).ThenBy(e => e.EntityId).ToArray();
+            return new MatchResultPacket(_serverTick, outcome.IsSharedVictory, ranked, run, versus, course, mayhem);
 		}
 
 

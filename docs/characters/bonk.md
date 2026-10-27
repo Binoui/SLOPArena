@@ -207,7 +207,7 @@ back, hits again on the way and returns to his shoulder.
 | --- | --- | --- |
 | Clip | `bonk_sir_q_lid_throw` (`anim.bonk.ga`, `anim.bonk.aa` in the air) | 41 ticks. GenRA revision r1 (he leans into the throw), cut from 36 ticks with a slower wind-up (owner, 2026-10-22). Grab at 6, release at 19, can act at 35, idle from 38. |
 | Throw | `spawnProjectile` on tick 19 with a `return` block | 15 m/s out for 22 ticks, back at up to 16 m/s turning at 80 m/s². Standing still, he catches it around tick 84. 5 damage, 35°, knockback 4/12, 14 stun, radius 0.45. The self-hit stuns for 30 ticks with no damage. The hit numbers are first values for Training. |
-| Aim | `startupAimCorrection` 0–16 | Up to 45° of yaw toward a target, no pitch. The lid flies where he faces. Auto-aimed projectiles (`aimedProjectile`) would snap his facing at the release. |
+| Aim | `startupAimCorrection` 0–16 | Up to 90° of yaw toward a target, no pitch. The lid flies where he faces. Auto-aimed projectiles (`aimedProjectile`) would snap his facing at the release. |
 | Height | launch (-0.24, 0.45, 0.97) from his capsule centre | About 1.3 m off the floor, 20 cm under his hand. From his hand (1.5 m) it flew over Manki; this height hits all four fighters on both legs. |
 | Air | the same clip, half gravity for 30 ticks | As the Shoulder Bash did. |
 

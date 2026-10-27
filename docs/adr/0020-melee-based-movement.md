@@ -1,30 +1,69 @@
 # ADR-0020: Melee-Based Movement
 
-**Status:** Accepted — 2026-08-13 (wayfinder map #128, destination)
+**Status:** Accepted 2026-08-13. Ground movement amended 2026-10-27 after the owner approved the Progressive prototype.
 **Deciders:** @Binoui
 **Amends:** ADR-0001 (gravity — §3, three-phase ramp → float-window-only)
 **Related:** ADR-0015 (timing-based defense), ADR-0016 (keyboard-first input), ADR-0017 (facing), ADR-0018 (target lock), ADR-0019 (hit response), ADR-0021 (frame timing)
 
 ## Context
 
-The map's movement arc ([#128](https://github.com/Binoui/SlopArena/issues/128)): ground movement [#136](https://github.com/Binoui/SlopArena/issues/136), air movement [#137](https://github.com/Binoui/SlopArena/issues/137), ledge options [#144](https://github.com/Binoui/SlopArena/issues/144), grounded by the movement audit [#135](https://github.com/Binoui/SlopArena/issues/135) and the netcode impact scan [#140](https://github.com/Binoui/SlopArena/issues/140). Keyboard-first digital 8-way input (WASD, `MoveX`/`MoveY`, SOCD-canceled −1/0/+1, ADR-0016): **no analog stick, no vertical input axes** — everything below is designed for that. Melee is the base; 3D + free camera means the spacing game differs (ADR-0015), so movement is timing- and commitment-driven.
+The map's movement arc ([#128](https://github.com/Binoui/SlopArena/issues/128)): ground movement [#136](https://github.com/Binoui/SlopArena/issues/136), air movement [#137](https://github.com/Binoui/SlopArena/issues/137), ledge options [#144](https://github.com/Binoui/SlopArena/issues/144), grounded by the movement audit [#135](https://github.com/Binoui/SlopArena/issues/135) and the netcode impact scan [#140](https://github.com/Binoui/SlopArena/issues/140). Keyboard movement is digital and SOCD-canceled. Controller movement uses the same speed rule, with optional client-side 8-way stick snapping under ADR-0016. Melee is the base; 3D + free camera means the spacing game differs (ADR-0015), so movement is timing- and commitment-driven.
 
 ## Decision
 
-### 1. Terminology (locked)
+### 1. Current terminology
 
-- **SLOPA Dash = the Shift-triggered burst** — a *mechanic*, the shield substitute (SLOPA has no shields): a wavedash-like quick dodge/approach, not a locomotion tier. Redesigned (v2, [#136]): short burst (2-10 m per character), **grounded dash hard-stops** on expiry while **aerial dash preserves momentum** (approach tool), and **i-frames cover only the start** (`DashInvincibilityTicks` = 4) — dodging through is timing-tight.
-- Melee's "dash" (locomotion tier between walk and run) is **NOT adopted under that name**. The new locomotion tier is called **Run**.
-- The reversal-free burst at the start of a Run is called **Rush**; the turn-lag reversal at Run cruise is called **Turnaround**. Both keep "dash" reserved for the SLOPA mechanic.
-- Keeping the terms distinct in all docs/ADRs.
+- **Run** is the single ground locomotion tier. Progressive describes its acceleration rule, not a selectable model.
+- **Turnaround** is an immediate direction reversal that retains current speed and continues acceleration. It has no skid or timing window.
+- **Rush** is retired. There is no instant full-speed start, dash-dance window, or special tap-release stop.
+- **Dash** names the universal homing dash and kit-authored mobility. Shield and Air Dodge own grounded and airborne defense. Dash overspeed remains separate from ordinary Run acceleration.
 
-### 2. Ground movement ([#136])
+### 2. Universal ground movement, amended 2026-10-27
 
-- **Run cruise**: `RunSpeed` is reached instantly from the Rush (no soft-start ramp — Melee's instant dash); the soft-start accel (`a·dir ± b`) survives only to recover from a Turnaround (velocity parallel to input). A perpendicular redirect at run speed is instant — the perpendicular velocity is cleared, never carried between axes (no diagonal drag). Walk tier dies as a selectable speed (no analog on 8-way).
-- **Dash ending (v2)**: grounded dash **hard-stops** (`VX=VZ=0`) — the burst is the move, wavedash-like; aerial dash **preserves horizontal momentum** so it stays an approach tool. (An earlier "friction coast" ending was reverted by the wavedash redesign.)
-- **Rush window** (`MovementStats.RushTicks`, ~10 ticks): starting from a standstill opens a fixed dash-dance window. Within it, velocity is set to `RunSpeed` immediately and a reversal is an instant full-speed flip that restarts the window (the Melee dash-dance); a perpendicular (90°) redirect also restarts the window, so an 8-way dash-dance never drops to Run. Only holding a *steady* direction lets the window expire: once expired, the fighter is in Run proper, where a reversal is a **Turnaround** — friction-through-zero, the pivot skid. The runtime window rides the old `TurnaroundTicks` wire slot, now `CharacterState.RushTicks` (no new wire field).
-- **Ground friction**: linear (`V -= sign·f·dt`, `VelocityDeadZone` snap, ~6-9 m/s²) — the coast value (fixed-aim decel). The **Turnaround** pivot is a separate, harder decel (`TurnaroundFriction` 70 m/s² → ~0.2 s / ~1.4 m skid from full run speed), so reversing reads as a short pivot, not an ice slide.
-- **Dash-attack = attack-from-motion** (Q5=b): the attack gate opens to Dashing/Run with momentum preserved; dedicated dash-attack moves deferred past POC.
+Every fighter and mode uses the same immutable constants in `GroundSpeedTuning`.
+GameServer, client prediction, Training, Solo, Arcade, and replay playback all run this Shared rule.
+Only the character's `RunSpeed` changes the absolute speed.
+
+Let R be RunSpeed and S = 0.4*R. With held movement and speed below S, the first moving tick sets speed exactly to S.
+Each later tick adds `(R-S)/20 = 0.03*R`, clamped to R.
+The first completed tick is therefore 40%, and completed tick 21 reaches full speed, 350 ms after input begins at 60 Hz.
+The 20-tick ramp counts the increments after the initial step.
+
+Held turns redirect velocity immediately, retain 100% of current speed, and continue the same increment.
+A reversal during coast follows the same rule. Speed below S returns to S without an extra increment on that tick.
+Facing follows input. Tilt magnitude does not select a lower speed.
+Keyboard stays digital. Stick 8-way snap is a persisted Controls preference, default on, applied before simulation.
+Stage collision retains its tangent-slide handling so a held diagonal does not repeatedly lose its unblocked component.
+
+Release at or below RunSpeed subtracts R/20 from the horizontal velocity magnitude each tick, preserving direction until standstill.
+A full-speed release stops in 20 ticks and travels `19*R/120` metres after release.
+Short taps brake too. There is no Rush stop.
+Above RunSpeed, retain the shipped dash coast, component-wise release brake, and overspeed pivot to RunSpeed.
+A one-millionth tolerance at the start floor prevents repeated floor ticks after a rounded direction projection. The same tolerance at the speed cap prevents diagonal rounding residue from selecting the overspeed branch.
+Low posture, attack commitment, air movement, collision, and jump admission keep their existing owners.
+
+Steam Deck playtests with non-fighting-game players on 2026-10-24 and 2026-10-25 motivated the movement comparison.
+The owner tried the Training prototype on 2026-10-26/27 and approved Start 40%, Ramp 20 Linear, TurnaroundKeep 100%, Stop 20 on 2026-10-27.
+Tiers, Hybrid, variable curves, and live tuning are removed after that choice.
+
+The real MovementProbe measured five interleaved runs per fighter on a large flat floor, with identical curves and zero repeat spread.
+Tick zero is standstill. Held distance includes all 6, 12, or 18 moving ticks. Total includes every braking tick.
+FightGuy at R = 12 m/s starts at 4.8 m/s, reaches full speed on tick 21 over 2.940 m, and stops from run in 20 ticks over 1.900 m.
+Its 0.1, 0.2, and 0.3 second pushes travel 0.570/1.120 m, 1.356/2.350 m, and 2.358/3.924 m while held/through standstill.
+A cruise reversal is 12 m/s in the new direction on its first tick, over -0.200 m.
+These are simulation distances and timings, not hardware latency or a claim about player acceptance.
+
+Reproduce the roster measurements with:
+
+```sh
+dotnet run --project tools/MovementReport -p:SkipUnityPluginCopy=true -- --ground-speed --repeats 5 --json tmp/movement-final-20261027/curves --out tmp/movement-final-20261027/measurements.md
+```
+
+Simulation protocol 23 rejects peers running the old movement rule. No ramp counter or snapshot field is added.
+The `CharacterState.RushTicks` ushort remains reserved in snapshots and legacy packets, without runtime reads or updates.
+The source/cooked `rushTicks` field and old acceleration coefficients remain inert compatibility data. Existing package bytes and roster pins do not need a cook.
+Slopball record revision 11 and Course record revision 5 separate prior movement categories without deleting personal bests.
+Master admission must move to protocol 23 with the client and GameServer at release.
 
 ### 3. Air movement ([#137], completes the walk-death from §2)
 
@@ -55,11 +94,11 @@ The map's movement arc ([#128](https://github.com/Binoui/SlopArena/issues/128)):
 
 ## Consequences
 
-- **Cleanup**: remove `WalkSpeed`, `SprintThresholdTicks`, `IsSprinting`; add `ActionState.Run`. `TurnaroundTicks` is repurposed as `RushTicks` (same wire slot); `DashDurationTicks` stays.
+- **Ground cleanup, amended 2026-10-27**. `ActionState.Run` remains the only locomotion tier. Rush has no gameplay use. Its ushort layout slot remains reserved; `DashDurationTicks` stays with existing mobility content.
 - **All §3 fields are MovementStats** — zero wire change (per-character static data).
 - **`LedgeHang` = new ActionState value** — the state byte already exists on the wire (**0B netcode**); the rollback classifier marks it **Complex** (like AirDodging — never rebuilt from snapshots); invincibility is a server-side off-wire timer; landing-lag exclusion.
 - **`TryLedgeSnap` → grab path** (state set, KV cleared, VY=0) replacing the pop, **+ occupancy check** (§4).
-- Client: hang + drop/jump/stand anims + run pivot = asset work, deferred with the build.
-- **Goldens regenerate** (movement snapshots shift).
+- Run animation playback follows actual horizontal speed with a 0.35 floor for everyone. The historical ledge animation work below is separate from this ground change.
+- Behavioral tests and deterministic snapshot replay cover the new movement rule. Regenerate stored goldens only through their maintained tooling when affected.
 - **Balance pass** (post-design): RunSpeed/accel, per-char air stats + friction curves, fast-fall/short-hop multipliers, weights.
 - ADR-0001 amended (gravity); `docs/systems/combat-systems.md` updated.

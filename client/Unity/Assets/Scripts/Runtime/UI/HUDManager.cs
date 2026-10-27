@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using SlopArena.Shared;
 using SlopArena.Client.Input;
@@ -34,18 +35,20 @@ namespace SlopArena.Client.UI
             public readonly string Label;
             public readonly CharacterClass Class;
             public readonly bool IsLocal;
+            public readonly int PlayerNumber;
             /// <summary>Online player name for the fight card; null offline.</summary>
             public readonly string DisplayName;
             /// <summary>Chat identity of an online player, for speech slips; null offline.</summary>
             public readonly string ChatPlayerId;
 
             public HudPlayer(ulong entityId, string label, CharacterClass @class, bool isLocal,
-                string displayName = null, string chatPlayerId = null)
+                string displayName = null, string chatPlayerId = null, int playerNumber = 0)
             {
                 EntityId = entityId;
                 Label = label;
                 Class = @class;
                 IsLocal = isLocal;
+                PlayerNumber = playerNumber;
                 DisplayName = displayName;
                 ChatPlayerId = chatPlayerId;
             }
@@ -167,17 +170,11 @@ namespace SlopArena.Client.UI
 
         private static readonly Color MoveInk = new Color32(27, 26, 24, 255);
 
-        private static readonly Color[] BadgeColors;
         private static readonly Color OrangeDamage;
         private static readonly Color CrimsonDamage;
 
         static HUDManager()
         {
-            BadgeColors = new Color[4];
-            TryHex("#FBBF24", out BadgeColors[0]); // P1 gold
-            TryHex("#EA580C", out BadgeColors[1]); // P2 orange-red
-            TryHex("#3B82F6", out BadgeColors[2]); // P3 blue
-            TryHex("#22C55E", out BadgeColors[3]); // P4 green
             TryHex("#F97316", out OrangeDamage);   // damage 40-89
             TryHex("#EF4444", out CrimsonDamage);  // damage 90+
         }
@@ -391,7 +388,7 @@ namespace SlopArena.Client.UI
 
         private OverheadPanel BuildBillboardPanel(HudPlayer p, int colorIndex)
         {
-            var identityColor = BadgeColors[colorIndex % BadgeColors.Length];
+            var identityColor = SeatColours.For(p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1);
             var camp = MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(p.EntityId, out var selectedCamp)
                 ? selectedCamp : SlopballCamp.None;
             if (camp != SlopballCamp.None) identityColor = camp == SlopballCamp.Teal
@@ -644,6 +641,12 @@ namespace SlopArena.Client.UI
         {
             if (results == null) return;
             _soloCountdown?.Clear();
+            if (results.Mayhem is { } mayhem)
+            {
+                var players = mayhem.Players.Select(p => new MayhemPlayer(p.EntityId, p.Score, p.RoundsSurvived, p.Bonuses, false, p.Withdrawn)).ToArray();
+                _soloEndCard?.ShowMayhem(players, id => ClientSession.MatchRoster?.FirstOrDefault(p => p.EntityId == (int)id)?.Name ?? $"P{id}", online: true);
+                return;
+            }
             if (results.Versus is { } versus)
             {
                 _soloEndCard?.ShowPoster("BEST\nSLOPPER", versus.Winner.ToString().ToUpperInvariant() + " WINS!", "", CharacterClass.None);
@@ -689,11 +692,16 @@ namespace SlopArena.Client.UI
         public void ShowSoloStamp(string text, float seconds)
             => _soloCountdown?.Show(text, seconds, wide: true, sound: false);
 
-        public void ShowSoloEnding(bool playerWon, bool sharedVictory, CharacterClass player, CharacterClass cpu,
-            bool couch = false)
+        public void ShowSoloEnding(string winningSeat, CharacterClass winner, bool sharedVictory)
         {
             _soloCountdown?.Clear();
-            _soloEndCard?.Show(playerWon, sharedVictory, player, cpu, couch);
+            _soloEndCard?.Show(winningSeat, winner, sharedVictory);
+        }
+
+        public void ShowMayhemEnding(IReadOnlyList<MayhemPlayer> players, Func<ulong, string> name)
+        {
+            _soloCountdown?.Clear();
+            _soloEndCard?.ShowMayhem(players, name);
         }
 
         public void ShowStockToast(ulong entityId, string text, float seconds = 1.15f)

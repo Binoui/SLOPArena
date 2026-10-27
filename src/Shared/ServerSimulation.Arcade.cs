@@ -114,7 +114,7 @@ namespace SlopArena.Shared
         /// co-op Slopball run finishes together, so it reads as a shared result.
         /// </summary>
         public MatchOutcome EvaluateMatch()
-            => _onlineCourse != null ? _onlineCourse.Outcome
+            => _mayhem != null ? _mayhem.Outcome : _onlineCourse != null ? _onlineCourse.Outcome
                 : _rule is SlopballVersusMatchRule versus
                 ? _volley!.State.Ended
                     ? new MatchOutcome(true, versus.Camps.First(x => x.Value == _volley.State.Winner).Key, false)
@@ -190,6 +190,24 @@ namespace SlopArena.Shared
             return false;
         }
 
+        private Func<ulong, ulong, (bool Exists, float X, float Y, float Z)>? _homingTarget;
+
+        internal bool TryGetProjectileTargetPosition(ulong ownerId, ulong targetId, out ArcadePoint position)
+        {
+            if (targetId != 0 && targetId != ownerId && CanAttackTarget(ownerId, targetId)
+                && TryGetCombatTargetPosition(targetId, out position))
+            {
+                position = new(position.X, CombatTargetAimY(targetId, position.Y), position.Z);
+                return true;
+            }
+            position = default;
+            return false;
+        }
+
+        private (bool Exists, float X, float Y, float Z) HomingTarget(ulong ownerId, ulong targetId)
+            => TryGetProjectileTargetPosition(ownerId, targetId, out var position)
+                ? (true, position.X, position.Y, position.Z) : (false, 0f, 0f, 0f);
+
         private ulong ResolveObjectTargetAlias(byte id, ulong selfId)
             => _onlineCourse != null && id >= CharacterCourseSimulation.FirstInputAlias ? _onlineCourse.For(selfId)?.ResolveAlias(id) ?? 0
                 : _course != null && id >= CharacterCourseSimulation.FirstInputAlias ? _course.ResolveAlias(id)
@@ -210,6 +228,8 @@ namespace SlopArena.Shared
         // owner contact, but attacks and grabs pass through teammates.
         private bool CanAttackTarget(ulong ownerId, ulong targetId)
         {
+            if (_rule is MankiMayhemMatchRule { FriendlyFire: FriendlyFireMode.Off }
+                && ownerId != targetId && _states.ContainsKey(ownerId) && _states.ContainsKey(targetId)) return false;
             if (_onlineCourse != null && !_onlineCourse.CanAttack(ownerId, targetId)) return false;
             if (_rule is SlopballVersusMatchRule versus)
             {
@@ -219,7 +239,7 @@ namespace SlopArena.Shared
                 if (_states.ContainsKey(ownerId) && _states.ContainsKey(targetId) && ownerId != targetId)
                     return !versus.BallOnly && versus.CampOf(ownerId) != versus.CampOf(targetId);
             }
-            return _rule is not SlopballCoopMatchRule { FriendlyFire: false } || ownerId == targetId
+            return _rule is not SlopballCoopMatchRule { FriendlyFire: FriendlyFireMode.Off } || ownerId == targetId
                 || !_states.ContainsKey(ownerId) || !_states.ContainsKey(targetId);
         }
 

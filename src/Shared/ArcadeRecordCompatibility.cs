@@ -17,13 +17,15 @@ public static class ArcadeRecordCompatibility
     // 8: Slopball passes through passive fighter bodies; only attacks redirect it (2026-10-19).
     // 9: Slopball keeps each hit's launch direction and angle without automatic return assistance (2026-10-19).
     // 10: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
-    public const uint RulesRevision = 10;
+    // 11: universal Progressive ground movement (2026-10-27).
+    public const uint RulesRevision = 11;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
     // 3: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
     // 4: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
-    public const uint CourseRulesRevision = 4;
+    // 5: universal Progressive ground movement (2026-10-27).
+    public const uint CourseRulesRevision = 5;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)
@@ -182,6 +184,11 @@ public static class ArcadeRecordCompatibility
         {
             x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.FireTriggerTick, x.Tier2Radius, x.Tier3Radius,
             Projectile = Projectile(x.Projectile),
+        },
+        CookedFingerGunsCapabilityParameters x => new
+        {
+            x.FireTriggerTick, x.RecoveryTicks, x.ShotsPerReload, x.ReloadTicks,
+            x.AirMaxFallSpeed, x.AirRecoilSpeed, Projectile = Projectile(x.Projectile),
         },
         CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
             or CookedCycloneKickCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters

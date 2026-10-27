@@ -31,7 +31,7 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 11).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 12).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 
     public static CookedCharacterPackageLoadResult LoadAssembly(CharacterPackageAssemblyResult assembly)
     {
@@ -102,9 +102,11 @@ public static class CookedCharacterPackageLoader
                     d.Add(Error("package.targeting.retired", slot.Id,
                         "Cooked automatic warp and per-stage target tracking are retired."));
             ValidateCapabilityOperations(package.Definition, d);
+            ValidateMankiBazookas(package.Definition, d);
             ValidateChargedDirectionalDashes(package.Definition, m.RuntimeApiMin, d);
             ValidateChargedProjectiles(package.Definition, m.RuntimeApiMin, d);
             ValidateChargedStreams(package.Definition, m.RuntimeApiMin, d);
+            ValidateFingerGuns(package.Definition, m.RuntimeApiMin, d);
             ValidateArmorAndFixedHitstun(package.Definition, m.RuntimeApiMin, d);
             ValidateStartupAimCorrections(package.Definition, m.RuntimeApiMin, d);
             ValidateAimMovementSpeeds(package.Definition, m.RuntimeApiMin, d);
@@ -172,6 +174,44 @@ public static class CookedCharacterPackageLoader
                 diagnostics.Add(Error("package.capability.version-mismatch", capability.CapabilityId, "Runtime capability version does not match its declaration."));
         }
     }
+    private static void ValidateFingerGuns(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.Slots)
+        {
+            var guns = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+                .OfType<CookedStartCapabilityOperation>()
+                .Where(operation => operation.CapabilityId == CharacterPackageCompiler.FingerGunsCapabilityId).ToArray();
+            if (guns.Length == 0) continue;
+            if (runtimeApiMin != "1.11.0")
+                diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Finger Guns requires runtime API 1.11.0."));
+            bool invalid = guns.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo ||
+                slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0 ||
+                slot.ChargePool != null || slot.AllowSlideCarry ||
+                slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D);
+            foreach (var operation in guns)
+            {
+                if (operation.Parameters is not CookedFingerGunsCapabilityParameters g)
+                { invalid = true; continue; }
+                var p = g.Projectile;
+                var stage = slot.Timeline.Stages[0];
+                var values = new[] { p.Radius, p.Speed, p.Damage, p.Angle, p.BaseKnockback, p.KnockbackGrowth,
+                    p.Gravity, p.LaunchOffsetX, p.LaunchOffsetY, p.LaunchOffsetZ, p.YawOffsetDegrees };
+                invalid |= values.Any(value => float.IsNaN(value) || float.IsInfinity(value));
+                invalid |= operation.Tick != 0 || !CharacterPackageCompiler.ValidFingerGuns(
+                    g.FireTriggerTick, g.RecoveryTicks, g.ShotsPerReload, g.ReloadTicks, g.AirMaxFallSpeed, g.AirRecoilSpeed) ||
+                    string.IsNullOrEmpty(g.ReloadAnimationId) || !PhaseClip(stage, g.ReloadAnimationId) ||
+                    p.Return != null || p.Radius <= 0f || p.Speed <= 0f || p.MaxFlightTicks == 0 ||
+                    p.Damage < 0f || p.Angle < -90f || p.Angle > 90f;
+            }
+            invalid |= slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+                .Any(operation => operation != guns[0] && operation is not CookedEmitPresentationOperation);
+            if (invalid)
+                diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id,
+                    "Finger Guns lifecycle, cylinder, reload, air motion or projectile parameters are invalid."));
+        }
+    }
+
     private static void ValidateChargedStreams(
         CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
     {
@@ -181,7 +221,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedStreamCapabilityId).ToArray();
             if (streams.Length == 0) continue;
-            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0"))
+            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged stream requires runtime API 1.8.0."));
             bool invalid = streams.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
@@ -213,6 +253,23 @@ public static class CookedCharacterPackageLoader
         }
     }
 
+    private static void ValidateMankiBazookas(CookedCharacterDefinition definition, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.Slots)
+        foreach (var bazooka in slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<CookedStartCapabilityOperation>().Select(operation => operation.Parameters)
+            .OfType<CookedMankiBazookaCapabilityParameters>())
+        {
+            float norm = bazooka.HomingTurnCos * bazooka.HomingTurnCos + bazooka.HomingTurnSin * bazooka.HomingTurnSin;
+            if (!float.IsFinite(bazooka.HomingTurnDegPerTick) || bazooka.HomingTurnDegPerTick <= 0f
+                || bazooka.HomingTurnDegPerTick > 90f || !float.IsFinite(norm) || MathF.Abs(norm - 1f) > .00001f
+                || bazooka.HomingTurnCos < 0f || bazooka.HomingTurnCos > 1f
+                || bazooka.HomingTurnSin <= 0f || bazooka.HomingTurnSin > 1f)
+                diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id,
+                    "Bazooka requires a turn rate in (0, 90] degrees per tick and normalized nonnegative turn coefficients."));
+        }
+    }
+
     /// <summary>An optional phase clip: empty, or listed in the stage after its first clip.</summary>
     private static bool PhaseClip(CookedStage stage, string id)
         => id.Length == 0 || stage.AnimationIds.Count > 1 && stage.AnimationIds[0] != id
@@ -227,7 +284,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedProjectileCapabilityId).ToArray();
             if (charges.Length == 0) continue;
-            if (runtimeApiMin is not ("1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
+            if (runtimeApiMin is not ("1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged projectile requires runtime API 1.6.0 or later."));
             bool invalid = charges.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
@@ -273,7 +330,7 @@ public static class CookedCharacterPackageLoader
                         continue;
                     lifecycleCount++;
                     string path = slot.Id + ".chargedDirectionalDash";
-                    if (runtimeApiMin is not ("1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
+                    if (runtimeApiMin is not ("1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                         diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                             "Charged directional dash requires runtime API 1.5.0."));
                     if (capability.Parameters is not CookedChargedDirectionalDashCapabilityParameters dash)
@@ -376,7 +433,7 @@ public static class CookedCharacterPackageLoader
                 ValidateFixedHitstun(leap.Hitbox.FixedHitstunTicks, leap.Hitbox.StunTicks,
                     slot.Id, diagnostics, ref requiresApi13);
         }
-        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
+        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                 "Armor windows and fixed hitstun require runtime API 1.3.0 or later."));
     }
@@ -387,7 +444,7 @@ public static class CookedCharacterPackageLoader
         foreach (var slot in definition.Slots)
         {
             if (slot.AimMovementSpeedScale == 1f) continue;
-            if (runtimeApiMin is not ("1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
+            if (runtimeApiMin is not ("1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Aim movement speed scale requires runtime API 1.7.0."));
             if (!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f)
@@ -406,9 +463,11 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.AimedRecoveryCapabilityId).ToArray();
             if (recoveries.Length == 0) continue;
-            if (runtimeApiMin is not ("1.9.0" or "1.10.0") || recoveries.Any(op =>
-                op.Parameters is CookedAimedRecoveryCapabilityParameters { Hop: not null }) && runtimeApiMin != "1.10.0")
-                diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Aimed recovery requires runtime API 1.9.0, or 1.10.0 with a setup hop."));
+            if (runtimeApiMin is not ("1.9.0" or "1.10.0" or "1.11.0") || recoveries.Any(op =>
+                op.Parameters is CookedAimedRecoveryCapabilityParameters { Hop: not null }) && runtimeApiMin is not ("1.10.0" or "1.11.0")
+                || recoveries.Any(op => op.Parameters is CookedAimedRecoveryCapabilityParameters { RiseSteerAcceleration: > 0f })
+                    && runtimeApiMin != "1.11.0")
+                diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Aimed recovery requires runtime API 1.9.0, 1.10.0 with a setup hop, or 1.11.0 with rise steering."));
             var stage = slot.Timeline.Stages[0];
             if (recoveries.Length != 1 || slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0
                 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
@@ -416,7 +475,8 @@ public static class CookedCharacterPackageLoader
                 || stage.Operations.Any(op => op != recoveries[0] && op is not CookedEmitPresentationOperation)
                 || recoveries[0].Parameters is not CookedAimedRecoveryCapabilityParameters recovery
                 || !CharacterPackageCompiler.ValidAimedRecovery(recovery.StartupTicks, recovery.VerticalSpeed,
-                    recovery.DirectionalVerticalSpeed, recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop)
+                    recovery.DirectionalVerticalSpeed, recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop,
+                    recovery.RiseSteerAcceleration)
                 || recovery.StartupTicks >= stage.DurationTicks)
                 diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id,
                     "Aimed recovery requires bounded movement parameters and one tick-zero recovery lifecycle that launches within its stage, with no competing operations, aim or IASA."));
@@ -434,7 +494,7 @@ public static class CookedCharacterPackageLoader
                 .ToArray();
             if (charges.Length == 0) continue;
             string path = slot.Id + ".steeredCharge";
-            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0"))
+            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Steered charge requires runtime API 1.8.0."));
             if (charges.Length != 1 || slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0)
@@ -481,7 +541,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedSpawnProjectileOperation>()
                 .Where(operation => operation.Projectile.Return != null).ToArray();
             if (throws.Length == 0) continue;
-            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0"))
+            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Returning projectiles require runtime API 1.8.0."));
             if (throws.Length > 1)
@@ -521,7 +581,7 @@ public static class CookedCharacterPackageLoader
                 {
                     if (operation is CookedStartupAimCorrectionOperation correction)
                     {
-                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0"))
+                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
                             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                                 "Startup aim correction requires runtime API 1.4.0 or later."));
                         windowCount++;
@@ -829,6 +889,9 @@ public static class CookedCharacterPackageLoader
         private static CookedChargedProjectileCapabilityParameters ChargedProjectile(Dictionary<string, JsonElement> q)
             => new(U(q, "maxChargeTicks"), U(q, "tier2Ticks"), U(q, "tier3Ticks"), U(q, "fireTriggerTick"),
                 F(q, "tier2Radius"), F(q, "tier3Radius"), ParseProjectile(q["projectile"]));
+        private static CookedFingerGunsCapabilityParameters FingerGuns(Dictionary<string, JsonElement> q)
+            => new(U(q, "fireTriggerTick"), U(q, "recoveryTicks"), B(q, "shotsPerReload"), U(q, "reloadTicks"),
+                S(q, "reloadAnimationId"), F(q, "airMaxFallSpeed"), F(q, "airRecoilSpeed"), ParseProjectile(q["projectile"]));
         private static CookedChargedStreamCapabilityParameters ChargedStream(Dictionary<string, JsonElement> q)
             => new(U(q, "maxChargeTicks"), U(q, "fireTriggerTick"), U(q, "emitIntervalTicks"), U(q, "minStreamTicks"),
                 U(q, "maxStreamTicks"), U(q, "recoveryTicks"), F(q, "maxBaseKnockback"), F(q, "minRecoilSpeed"),
@@ -840,8 +903,9 @@ public static class CookedCharacterPackageLoader
                 throw new RetiredCapabilityException(id, retiredReason);
             return id switch
             {
-                "slop.ability.aimed-recovery.v1" => AimedRecovery(OOptional(e, new[] { "hop" }, "startupTicks", "verticalSpeed", "directionalVerticalSpeed", "horizontalSpeed", "preparationRiseSpeed")),
+                "slop.ability.aimed-recovery.v1" => AimedRecovery(OOptional(e, new[] { "hop", "riseSteerAcceleration" }, "startupTicks", "verticalSpeed", "directionalVerticalSpeed", "horizontalSpeed", "preparationRiseSpeed")),
                 "slop.ability.charged-projectile.v1" => ChargedProjectile(O(e, "maxChargeTicks", "tier2Ticks", "tier3Ticks", "fireTriggerTick", "tier2Radius", "tier3Radius", "projectile")),
+                "slop.ability.finger-guns.v1" => FingerGuns(O(e, "fireTriggerTick", "recoveryTicks", "shotsPerReload", "reloadTicks", "reloadAnimationId", "airMaxFallSpeed", "airRecoilSpeed", "projectile")),
                 "slop.ability.charged-stream.v1" => ChargedStream(OOptional(e, new[] { "sprayAnimationId", "sprayLoopTicks", "endAnimationId" }, "maxChargeTicks", "fireTriggerTick", "emitIntervalTicks", "minStreamTicks", "maxStreamTicks", "recoveryTicks", "maxBaseKnockback", "minRecoilSpeed", "maxRecoilSpeed", "projectile", "sprayAnimationId", "sprayLoopTicks", "endAnimationId")),
                 "slop.internal.fightguy.rising-dragon.v1" => RisingDragon(O(e, "riseSpeed", "riseTicks", "riseDelay")),
                 "slop.internal.fightguy.cyclone-kick.v1" => CycloneKick(O(e, "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY")),
@@ -852,7 +916,7 @@ public static class CookedCharacterPackageLoader
                 "slop.ability.targeted-leap.v1" => TargetedLeap(OOptional(e, new[] { "launchPresentationId", "landingPresentationId" }, "maxAimTicks", "maxFlightTicks", "minRange", "maxRange", "launchVerticalSpeed", "landingSeekTick", "recoveryTicks", "hitbox")),
                 "slop.internal.manki.round-bomb.v1" => MankiRoundBomb(OOptional(e, new[] { "explosionPresentationId" }, "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle")),
                 "slop.internal.manki.jetpack-boost.v1" => MankiJetpackBoost(OOptional(e, new[] { "explosionPresentationId" }, "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks")),
-                "slop.internal.manki.bazooka.v1" => MankiBazooka(OOptional(e, new[] { "explosionPresentationId" }, "fireTriggerTick", "projectileSpeed", "hitboxRadius", "damage", "gravity", "maxFlightTicks", "stunTicks", "explosionRadius", "kbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "castDuration", "recoveryDuration")),
+                "slop.internal.manki.bazooka.v2" => MankiBazooka(OOptional(e, new[] { "explosionPresentationId" }, "homingTurnDegPerTick", "homingTurnCos", "homingTurnSin", "fireTriggerTick", "projectileSpeed", "hitboxRadius", "damage", "gravity", "maxFlightTicks", "stunTicks", "explosionRadius", "kbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "castDuration", "recoveryDuration")),
                 "slop.internal.manki.aerosol-inferno.v1" => MankiAerosolInferno(OOptional(e, new[] { "minimumChargeTicks", "chargeTiers" }, "fireTriggerTick", "fireDurationTicks", "hitboxDurationTicks", "hitboxRadius", "offsetY", "offsetZ", "endOffsetZ", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "hitGroup")),
 
                 _ => throw new InvalidDataException("Unknown capability parameters.")
@@ -861,7 +925,8 @@ public static class CookedCharacterPackageLoader
         private static CookedCapabilityParameters AimedRecovery(Dictionary<string, JsonElement> q)
             => new CookedAimedRecoveryCapabilityParameters(U(q, "startupTicks"), F(q, "verticalSpeed"),
                 F(q, "directionalVerticalSpeed"), F(q, "horizontalSpeed"), F(q, "preparationRiseSpeed"),
-                q.TryGetValue("hop", out var hop) ? RecoveryHop(O(hop, "startTicks", "contactTicks", "forwardDistance", "arcHeight", "landingHeight")) : null);
+                q.TryGetValue("hop", out var hop) ? RecoveryHop(O(hop, "startTicks", "contactTicks", "forwardDistance", "arcHeight", "landingHeight")) : null,
+                FOrDefault(q, "riseSteerAcceleration", 0f));
         private static RecoveryHopParameters RecoveryHop(Dictionary<string, JsonElement> q)
             => new(U(q, "startTicks"), U(q, "contactTicks"), F(q, "forwardDistance"), F(q, "arcHeight"), F(q, "landingHeight"));
         private static CookedCapabilityParameters RisingDragon(Dictionary<string, JsonElement> q) => new CookedRisingDragonCapabilityParameters(F(q, "riseSpeed"), U(q, "riseTicks"), U(q, "riseDelay"));
@@ -901,7 +966,7 @@ public static class CookedCharacterPackageLoader
                 SO(q, "missEndingPresentationId", ""), SO(q, "airEndingPresentationId", ""));
         private static CookedCapabilityParameters MankiRoundBomb(Dictionary<string,JsonElement> q) => new CookedMankiRoundBombCapabilityParameters(U(q, "throwTriggerTick"), F(q, "maxRange"), F(q, "launchAngle"), F(q, "gravity"), F(q, "hitboxRadius"), F(q, "damage"), U(q, "stunTicks"), U(q, "maxFlightTicks"), F(q, "kbAngle"), F(q, "explosionDamage"), F(q, "explosionRadius"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), F(q, "explosionKbAngle"), SO(q, "explosionPresentationId", ""));
         private static CookedCapabilityParameters MankiJetpackBoost(Dictionary<string,JsonElement> q) => new CookedMankiJetpackBoostCapabilityParameters(U(q, "startupTicks"), F(q, "verticalSpeed"), F(q, "horizontalSpeed"), F(q, "explosionRadius"), F(q, "explosionDamage"), F(q, "explosionKbAngle"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), SO(q, "explosionPresentationId", ""));
-        private static CookedCapabilityParameters MankiBazooka(Dictionary<string,JsonElement> q) => new CookedMankiBazookaCapabilityParameters(U(q, "fireTriggerTick"), F(q, "projectileSpeed"), F(q, "hitboxRadius"), F(q, "damage"), F(q, "gravity"), U(q, "maxFlightTicks"), U(q, "stunTicks"), F(q, "explosionRadius"), F(q, "kbAngle"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), F(q, "explosionKbAngle"), U(q, "castDuration"), U(q, "recoveryDuration"), SO(q, "explosionPresentationId", ""));
+        private static CookedCapabilityParameters MankiBazooka(Dictionary<string,JsonElement> q) => new CookedMankiBazookaCapabilityParameters(U(q, "fireTriggerTick"), F(q, "projectileSpeed"), F(q, "hitboxRadius"), F(q, "damage"), F(q, "gravity"), U(q, "maxFlightTicks"), U(q, "stunTicks"), F(q, "explosionRadius"), F(q, "kbAngle"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), F(q, "explosionKbAngle"), U(q, "castDuration"), U(q, "recoveryDuration"), F(q, "homingTurnDegPerTick"), F(q, "homingTurnCos"), F(q, "homingTurnSin"), SO(q, "explosionPresentationId", ""));
         private static CookedCapabilityParameters MankiAerosolInferno(Dictionary<string, JsonElement> q) => new CookedMankiAerosolInfernoCapabilityParameters(U(q, "fireTriggerTick"), U(q, "fireDurationTicks"), U(q, "hitboxDurationTicks"), F(q, "hitboxRadius"), F(q, "offsetY"), F(q, "offsetZ"), F(q, "endOffsetZ"), F(q, "damage"), F(q, "knockbackAngle"), F(q, "knockbackBase"), F(q, "knockbackGrowth"), U(q, "stunTicks"), B(q, "hitGroup"), q.ContainsKey("minimumChargeTicks") ? U(q, "minimumChargeTicks") : (ushort)0,
             q.ContainsKey("chargeTiers") ? Array.AsReadOnly(A(q["chargeTiers"]).EnumerateArray().Select(value =>
             {

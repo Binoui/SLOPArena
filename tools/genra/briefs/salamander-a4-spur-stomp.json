@@ -1,0 +1,117 @@
+{
+  "name": "salamander-a4-spur-stomp",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander air.4 (anim.salamander.a4), kit proposal 2026-10-27: Spur Stomp, his big aerial. New timing: 50 ticks, hit 12-26 under his boots, act from 44, landing lag 12.",
+  "description": "The salamander's air.4, Spur Stomp: his big aerial. He pulls both knees up to his chest, then stamps both spurred boots straight down with all his weight, like stomping on a rattlesnake.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nIn the air. The entry pose is the fall he plays in the air (a borrowed pose). There is no floor contact.\n\nThe move (50 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 8, the coil: knees pulled high to his chest, boots together under his seat, arms raised out to the sides and up, elbows bent, hands in fists, hat tipped back.\n- Tick 12, the stomp: both legs drive straight down, fully extended, boots together and flat, toes down a little; arms thrown up overhead; body stretched long.\n- Ticks 12-26: he holds the stomp (a moving hold, the legs drifting 2-3 cm, the arms windmilling slightly).\n- Tick 34: legs come back up, knees bent.\n- Tick 44: recovered.\n- Tick 50: back to the fall pose, matching tick 0.",
+  "clock": {
+    "duration_ticks": 50,
+    "contact_tick": 12,
+    "active": [
+      12,
+      26
+    ],
+    "iasa_tick": 44
+  },
+  "timing": {
+    "fixed": [
+      "50 ticks played once; the hitbox is under his boots from tick 12 to 26",
+      "the player can act from tick 44",
+      "tick 0 and tick 50 are the fall pose exactly"
+    ],
+    "adjustable": [
+      "nothing else"
+    ]
+  },
+  "exit": {
+    "reference": "fall",
+    "tick": 0,
+    "from_tick": 50
+  },
+  "fast_windows": [
+    [
+      8,
+      14
+    ]
+  ],
+  "strike": [
+    "LeftFoot",
+    "RightFoot"
+  ],
+  "keys": [
+    0,
+    8,
+    12,
+    26,
+    34,
+    44,
+    50
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    10,
+    12,
+    16,
+    20,
+    26,
+    30,
+    34,
+    44,
+    50
+  ],
+  "targets": [
+    {
+      "name": "coil: knees up at tick 8 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftLeg",
+      "tick": 8,
+      "min": -0.06
+    },
+    {
+      "name": "stomp: left boot far below the hips at tick 12 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftFoot",
+      "tick": 12,
+      "max": -0.28
+    },
+    {
+      "name": "stomp: right boot far below the hips at tick 12 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightFoot",
+      "tick": 12,
+      "max": -0.28
+    },
+    {
+      "name": "stomp: boots together at tick 14 (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 14,
+      "max": 0.16
+    }
+  ]
+}

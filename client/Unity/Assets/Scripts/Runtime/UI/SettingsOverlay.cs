@@ -190,6 +190,10 @@ namespace SlopArena.Client.UI
             }
             if (_deviceName == "Controller")
             {
+                var snap = new Toggle("STICK 8-WAY SNAP") { name = "stick-8-way-snap", value = settings.Stick8WaySnap };
+                snap.AddToClassList("sa-settings-toggle");
+                snap.RegisterValueChangedCallback(evt => settings.SetStick8WaySnap(evt.newValue));
+                root.Add(snap);
                 AddSlider(root, "Stick Deadzone", settings.StickDeadzone, 5f, 50f, settings.SetStickDeadzone);
                 AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
                 var vibration = new Toggle("VIBRATION") { value = settings.Vibration };

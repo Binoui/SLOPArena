@@ -3,7 +3,7 @@ id: "manki"
 name: "Manki"
 title: "The Mad Bomber Monkey"
 status: "Package-native cooked character"
-archetype: "Hybrid Zoner / Recovery Skirmisher. Controls space with bounce bombs, launches from danger with Jetpack Boost, pokes with FPS bazooka, and commits with Aerosol Inferno."
+archetype: "Hybrid Zoner / Recovery Skirmisher. Controls space with bounce bombs, launches from danger with Jetpack Boost, pokes with homing rockets, and commits with Aerosol Inferno."
 source_image: "manki_action.png"
 palette:
   fur: "#D84315"
@@ -39,7 +39,7 @@ kit:
   - slot: "R"
     name: "Bazooka"
     type: "artillery"
-    description: "Fire a rocket in camera direction. Short cast, then fire. Projectile arcs with gravity, explodes on contact. Self-rocket-jump via explosion (4 self-damage)."
+    description: "Press to fire a homing rocket at the current target after a short cast. Tracking breaks when the target becomes invalid or passes behind the rocket. Explosions keep 4 self-damage."
   - slot: "F"
     name: "Aerosol Inferno"
     type: "area denial"
@@ -68,9 +68,9 @@ A pyromaniac/inventor macaque monkey. Always tinkering with explosives — bombs
 **Floaty explosive skirmisher / Jetpack-bazooka hybrid** — sustained airtime and strong aerial repositioning distinguish Manki from FightGuy's baseline.
 - Poke with round bombs, zone with aerosol flame, control space with Q pressure
 - Recover vertically with Jetpack Boost (E), then regain air drift at the apex
-- Gameplan: poke with Q → commit with ground combo → Jetpack Boost to recover → rocket jump for air follow-up
+- Gameplan: poke with Q → commit with ground combo → Jetpack Boost to recover → homing rocket to pressure airborne targets
 - E is a 3-tick vulnerable compression followed by one small ignition hitbox; horizontal input is sampled once at ignition
-- R is fast fire-and-forget poke with rocket jump utility; aim at feet for vertical launch, aim at distant enemies for explosive poking
+- R is a press-to-fire homing poke against the current target. Sidesteps and air dodges can break its tracking.
 - F is a committed area-denial finisher with a tall forward hitbox
 
 ### Local gamefeel tuning — 2026-10-03
@@ -192,7 +192,7 @@ see the [grounding tool](../../tools/character_sizes/README.md).
 | **Air RMB** | Knuckle Spike | Double knuckle punch down (hold to charge) | Two-phase charge: tap = quick spike (10 dmg), hold >45 ticks = charged spike (14 dmg). Downward, high KB |
 | **Q** | Round Bomb | Lob round bomb in arc → explodes on impact | Poke / zone, aimable air + ground |
 | **E** | Jetpack Boost | Compression → ignition launch | 3 vulnerable startup ticks; 15 m/s vertical, normalized 3.5 m/s horizontal cap; 1.25m ignition sphere, 4 damage, 75° / 2+8 KB, 8 stun, 4 ticks; no ascent steering; air drift returns at apex |
-| **R** | Bazooka | Short cast → fire rocket in camera direction | FPS-style fire-and-forget. Projectile arcs, explodes on impact. Rocket jump (4 self-dmg) |
+| **R** | Bazooka | Short cast → fire rocket at the current target | Press-to-fire homing rocket. Sidesteps and air dodges can break tracking. Explodes on impact. |
 | **F** | Aerosol Inferno | Hold aerosol can → release into a tall orange flame column | 18-tick minimum charge while stationary; camera yaw tracks facing; queued release fires after 8 startup ticks; 44-tick flame window, five charge tiers (10–26 damage), 30° launch, 30 ticks stun |
 
 ## Explosions and bomb aim — 2026-10-18
@@ -201,7 +201,7 @@ Approved with Manki's [Kaboom Quarry](../design/stages/manki_quarry.design.md) c
 
 - **Every blast reaches everything in range.** Round Bomb and Bazooka explosions hit each
   fighter, ball or course target inside their radius once, instead of stopping at the first
-  entity. A rocket jump now also hits the opponent standing beside Manki.
+  entity. A close Bazooka impact can hit both Manki and an opponent beside him.
 - **The bomb lands where the cursor points.** The ground cursor follows the stage's own
   collision, so it sits on raised islands, roofs and platforms. The server throw is
   unchanged (fixed 30° lob, 12 m reach at foot height); the client sends the distance whose
@@ -221,7 +221,8 @@ roster pins are unchanged.
 
 ## Design Notes
 - **E**: Jetpack Boost. On activation, Manki compresses for 3 vulnerable ticks while preserving vertical fall velocity and clearing horizontal velocity. On ignition, the authoritative simulation samples the current movement stick, normalizes it when above 0.001 magnitude, and launches at `VY=15` with horizontal speed `3.5` along that direction. A single owner-centered sphere (radius 1.25, damage 4, 75° angle, base 2, growth 8, stun 8, duration 4) resolves the ignition hit. The ascent is unsteerable; gravity is active immediately, and normal air drift/actions return when `VY <= 0`. Cooldown: 210 ticks. The move is a recovery move and aliases `air.E` to `ground.E`.
-- **R**: Bazooka (FPS-style). Short cast (20 ticks), fire a rocket projectile in camera direction (AimYaw/AimPitch). Projectile has gravity (15 m/s²), speed 40 m/s, max flight 45 ticks. Explodes on entity hit or ground contact with 3m AoE. CanHitOwner=true on explosion — aim at feet for rocket jump (4 self-damage, upward knockback). No rise, no hover, no hold-to-aim. 240 tick cooldown (4s).
+- **R**: Bazooka. Press to fire, with no aim hold or camera change. The 20-tick cast spawns one rocket at tick 6, followed by 15 recovery ticks. At spawn it aims at the current soft or locked target's chest, including airborne fighters, balls, and course targets. Without a valid target it fires horizontally along facing. The rocket keeps its launch target and turns toward its current position by at most `homingTurnDegPerTick`, preserving speed before gravity. Tracking ends permanently if the target becomes invalid or passes behind the rocket, so sidesteps and air dodges can beat it. First-pass Training values are speed 30 m/s, turn 2.5 degrees per tick, lifetime 60 ticks, and gravity 15 m/s². The 3 m explosion still has `CanHitOwner=true` and deals 4 self-damage. Aiming at your feet for a rocket jump is no longer available. Cooldown stays 240 ticks.
+
 - **F**: Aerosol Inferno. Hold enters the loop animation and freezes movement. An 18-tick minimum charge applies even to a tap; early release queues the shot, and a longer hold continues aiming until release. Manki follows camera yaw only; vertical aim is ignored. The firing phase starts the flame hitbox and VFX together at tick 8 and sustains both for 44 attack ticks; the move then recovers for 10 ticks (62-tick commitment, owner 2026-10-22, so he lowers the can before he can act). Charge tiers at 18/30/42/54/66 ticks select 10/14/18/22/26 damage and 0.6×/0.8×/1×/1.25×/1.5× flame size. Charge caps at 66 ticks but still waits for release. The facing-aligned capsule and flame grow together from 2.64 m to 6.6 m total length (0.84 m to 2.1 m diameter), anchored at the same near edge; the effect is independent of wrist rotation and ends on interruption. Cooldown: 600 ticks.
 
 ## Combat presentation — 2026-10-17

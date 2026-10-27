@@ -121,9 +121,9 @@ public class FullWorldNetplayTests
         var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Bonk) };
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog, _ => ended.Set(),
-            format: MatchFormat.SlopballCoop, friendlyFire: friendlyFire);
+            format: MatchFormat.SlopballCoop, friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off);
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
-        Func<IMatchRule> rule = () => new SlopballCoopMatchRule(friendlyFire: friendlyFire);
+        Func<IMatchRule> rule = () => new SlopballCoopMatchRule(friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off);
         var first = new Peer(1, arena, catalog, roster, endpoint, rule);
         var second = new Peer(2, arena, catalog, roster, endpoint, rule);
         first.Input = tick => tick - first.FirstPredictedTick is >= 10 and < 40 ? new InputState { MoveX = -1f } : default;
@@ -240,6 +240,50 @@ public class FullWorldNetplayTests
         }
     }
 
+    [Fact]
+    public void TwoNetplaySessionPeersFinishTheSameSeededMayhemMatch()
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        var provider = new MatchContentCatalogProvider();
+        Assert.True(provider.TryBuild(out var catalog, out _, out var error), error);
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
+        var arena = ArenaRegistry.Get("manki_mayhem")!.Value;
+        using var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port; reservation.Close();
+        using var ended = new ManualResetEventSlim();
+        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Manki) };
+        var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
+            roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog!, _ => ended.Set(),
+            format: MatchFormat.MankiMayhem, friendlyFire: FriendlyFireMode.Shoves, mayhemSeed: 41);
+        var endpoint = new IPEndPoint(IPAddress.Loopback, port);
+        using var first = new Peer(1, arena, catalog!, roster, endpoint, () => new MankiMayhemMatchRule());
+        using var second = new Peer(2, arena, catalog!, roster, endpoint, () => new MankiMayhemMatchRule());
+        first.Input = _ => first.Session.Predictor.Simulation.MankiMayhem is { RoundIndex: 0 }
+            ? new InputState { MoveX = -1f } : default;
+        try
+        {
+            match.Start(); var clock = Stopwatch.StartNew();
+            while (clock.Elapsed < TimeSpan.FromSeconds(240) && (first.LatestResult == null || second.LatestResult == null))
+            { double now = NetplayNow(); first.Step(now); second.Step(now); Thread.Sleep(10); }
+            Assert.NotNull(first.LatestResult); Assert.NotNull(second.LatestResult);
+            Assert.NotNull(first.LatestResult!.Mayhem);
+            Assert.Equal(first.LatestResult.Mayhem!.Players, second.LatestResult!.Mayhem!.Players);
+            Assert.True(first.MayhemEvents.Any(e => e.Kind == MankiMayhemEventKind.Bench));
+            foreach (var peer in new[] { first, second })
+            {
+                Assert.Equal(0, peer.Totals.RejectedFrames);
+                Assert.True(peer.PredictedTicks > 1000);
+                Assert.Equal(MatchState.Ended, peer.Session.MatchState);
+                Assert.Equal(41u, peer.Session.Predictor.Simulation.MankiMayhem!.Value.Seed);
+                Assert.Contains(peer.MayhemEvents, e => e.Kind == MankiMayhemEventKind.End);
+                Assert.Contains(peer.MayhemEvents, e => e.Kind == MankiMayhemEventKind.Slam);
+                Assert.Contains(peer.MayhemEvents, e => e.Kind == MankiMayhemEventKind.WallBroken);
+                Assert.Equal(peer.LatestResult!.Mayhem!.Players, MayhemRunResult.From(peer.Session.Predictor.Simulation).Players);
+            }
+        }
+        finally { match.Stop(); Assert.True(ended.Wait(3000), "Mayhem Match did not stop."); }
+    }
+
     private static double NetplayNow() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
 
     /// <summary>A headless client: the Unity bridge's protocol over a raw UDP socket.</summary>
@@ -327,6 +371,8 @@ public class FullWorldNetplayTests
         private readonly List<SlopballTickEvent> _slopballStarted = new();
         private readonly List<SlopballTickEvent> _slopballRetracted = new();
         public int PredictedTicks { get; private set; }
+        public MatchResultPacket? LatestResult { get; private set; }
+        public List<MankiMayhemEvent> MayhemEvents { get; } = new();
         public WorldFramePacket? LatestFrame { get; private set; }
         public NetplayPredictorStats Totals;
 
@@ -352,6 +398,7 @@ public class FullWorldNetplayTests
                     if (LatestFrame == null || frame!.Tick >= LatestFrame.Tick)
                         LatestFrame = frame;
                 }
+                else if (MatchResultPacket.TryDeserialize(datagram, out var result)) LatestResult = result;
             }
             Session.IngestFrames(_frames);
 
@@ -388,6 +435,11 @@ public class FullWorldNetplayTests
             ServedEvents += _slopballStarted.Count(e => e.Event.Kind == SlopballEventKind.Served);
             PointEvents += _slopballStarted.Count(e => e.Event.Kind == SlopballEventKind.PointScored);
             // Judge prediction from the first predicted tick on; countdown frames are plain jumps.
+            var mayhem = new List<MankiMayhemEvent>(); var retracted = new List<MankiMayhemEvent>();
+            Session.Predictor.DrainMayhemEvents(mayhem, retracted);
+            foreach (var item in retracted) MayhemEvents.RemoveAll(e => e.Key == item.Key);
+            foreach (var item in mayhem)
+            { Assert.DoesNotContain(MayhemEvents, e => e.Key == item.Key); MayhemEvents.Add(item); }
             var stats = Session.TakeStats(now).Prediction;
             if (FirstPredictedTick != 0)
                 Accumulate(stats);

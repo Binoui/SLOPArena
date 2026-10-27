@@ -145,6 +145,9 @@ internal static class Program
         if (args.Contains("--coverage"))
             return ContactCoverageReport.Run(args);
 
+        if (args.Contains("--dash"))
+            return DashReport.Run(args);
+
         string which = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "fightguy";
         int? trajSlot = ParseTraj(args);
         int[] pcts = ParsePcts(args) ?? (trajSlot.HasValue
@@ -160,7 +163,7 @@ internal static class Program
         var hits = CollectHits(def);
         if (example)
         {
-            var representative = hits.FirstOrDefault(h => !h.Slot.Air && h.Slot.Slot == 2 && h.HitIndex == 0)
+            var representative = hits.FirstOrDefault(h => !h.Slot.Air && h.Slot.Slot == 1 && h.HitIndex == 0)
                 ?? hits.FirstOrDefault();
             hits = representative == null ? new List<HitSpec>() : new List<HitSpec> { representative };
         }

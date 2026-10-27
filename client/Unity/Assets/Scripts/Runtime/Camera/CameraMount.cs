@@ -90,6 +90,16 @@ namespace SlopArena.Client.Camera
         private bool _cameraToggleReleaseRequired;
         private Label _cameraNote;
         public CouchCamera Couch { get; set; }
+        private Bounds? _showBounds;
+        private float _showPitch;
+
+        public void SetShowFraming(Bounds bounds, float pitch)
+        {
+            _showBounds = bounds;
+            _showPitch = pitch;
+            Couch = CouchCamera.Fixed;
+            ApplyStyle(CameraStyle.Arena);
+        }
         private bool _couchYawSet;
 
         // Steady camera state.
@@ -146,6 +156,7 @@ namespace SlopArena.Client.Camera
         private void Update()
         {
             if (_orbital == null) return;
+            if (_showBounds.HasValue) return;
 
             bool suppressCameraInput = ChatInputGate.SuppressGameplay ||
                 SettingsOverlay.Active is { IsOpen: true } || SettingsOverlay.ClosedThisFrame ||
@@ -289,6 +300,18 @@ namespace SlopArena.Client.Camera
         private void LateUpdate()
         {
             if (_orbital == null) return;
+            if (_showBounds is Bounds show)
+            {
+                SetCameraYawDeg(0f);
+                SetCameraPitchDeg(_showPitch);
+                _orbital.RadialAxis.Value = 1f;
+                _orbital.Radius = DistanceToFrame(show, show.center,
+                    Quaternion.Euler(_showPitch, 0f, 0f), _cmCam.Lens.FieldOfView,
+                    RenderCamera != null ? RenderCamera.aspect : 16f / 9f);
+                _framingAnchor.position = show.center;
+                UpdateBubbles();
+                return;
+            }
 
             // PlayerRenderer interpolates in Update. Frame that finished pose before
             // CinemachineBrain's LateUpdate (execution order 100), including the anchors.
@@ -543,7 +566,7 @@ namespace SlopArena.Client.Camera
 
         private void UpdateBubbles()
         {
-            bool show = _mode == CameraMode.Normal && _style == CameraStyle.Steady && Couch == CouchCamera.Off
+            bool show = (_showBounds.HasValue || _mode == CameraMode.Normal && _style == CameraStyle.Steady && Couch == CouchCamera.Off)
                 && _player != null;
             if (!show)
             {
@@ -555,6 +578,9 @@ namespace SlopArena.Client.Camera
             var root = FindFirstObjectByType<HUDManager>()?.Document?.rootVisualElement;
             if (camera == null || root == null) return;
             _bubbles.Begin(root);
+            if (_showBounds is Bounds showBounds)
+                _bubbles.Show(camera, _player.position + Vector3.up, _player.position.y - showBounds.min.y,
+                    showBounds.center, SeatColours.For(1));
             foreach (var subject in _subjects)
                 _bubbles.Show(camera, subject.Position + Vector3.up, subject.Position.y - _groundY,
                     _player!.position, OffscreenBubbles.FighterColor);
@@ -597,8 +623,15 @@ namespace SlopArena.Client.Camera
             // Fit a box aligned with the view; a world box around a diagonal pair is far too wide.
             var view = Quaternion.Euler(0f, GetCameraYawDeg(), 0f);
             var bounds = new Bounds(Vector3.zero, Vector3.zero);
-            if (_combatTargetPosition.HasValue)
-                bounds.Encapsulate(Quaternion.Inverse(view) * (_combatTargetPosition.Value - player));
+            bool playerAlive = MatchConfig.Mode != GameMode.Solo || SlopArena.Client.World.MatchBase.Active is not SlopArena.Client.World.TrainingMatch match
+                || match.GetCaptureState(MatchConfig.LocalEntityId).Deaths < MatchConfig.MaxStocks;
+            bool hasLiving = playerAlive;
+            foreach (var subject in _subjects)
+            {
+                var position = Quaternion.Inverse(view) * (subject.Position - player);
+                if (hasLiving) bounds.Encapsulate(position);
+                else { bounds = new Bounds(position, Vector3.zero); hasLiving = true; }
+            }
             bounds.Expand(new Vector3(3f, 4f, 3f));
             _framingOffset = Vector3.Lerp(_framingOffset, view * bounds.center, blend);
             var renderCamera = RenderCamera;

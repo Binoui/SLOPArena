@@ -58,8 +58,23 @@ namespace SlopArena.Client.World
         public Transform Finish;
         public Vector3 FinishHalfSize = new(2f, 2f, 2f);
 
+        [Header("Optional Manki Mayhem (instead of a ball or course)")]
+        public bool MankiMayhem;
+        public Transform HostOrigin;
+        public Transform PlayAreaMin;
+        public Transform PlayAreaMax;
+        public float DeckTop;
+
         public ArcadeStageDefinition Compile()
         {
+            if (MankiMayhem)
+            {
+                if (CharacterCourse || Slopball || BallSpawn != null || AllowedPackageIds.Length != 0)
+                    throw new ArgumentException("Mayhem cannot also define a ball/course or restrict packages.");
+                var min = Point(PlayAreaMin); var max = Point(PlayAreaMax);
+                return ArcadeStageDefinition.ForMayhem(ProfileId, GameplayRevision,
+                    new MankiMayhemDefinition(Point(HostOrigin), min.X, max.X, min.Z, max.Z, DeckTop));
+            }
             if (CharacterCourse)
             {
                 if (Slopball || BallSpawn != null || Targets == null || Checkpoints == null)
@@ -97,7 +112,7 @@ namespace SlopArena.Client.World
         {
             if (marker == null || !marker.IsChildOf(transform) || marker.childCount != 0
                 || marker.GetComponents<Component>().Length != 1)
-                throw new ArgumentException("Course markers must be empty children under AuthoringAids.");
+                throw new ArgumentException("Arcade markers must be empty children under AuthoringAids.");
             var p = marker.position; return new(p.x, p.y, p.z);
         }
     }

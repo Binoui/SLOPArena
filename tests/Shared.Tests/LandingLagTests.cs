@@ -336,11 +336,10 @@ public class LandingLagTests
     }
 
     [Fact]
-    public void MoveInputAfterLandingLagUnlock_StartsAtRunSpeed()
+    public void MoveInputAfterLandingLagUnlock_StartsAtFortyPercent()
     {
         var state = FallingStart(4.7f);
-        // Preserve an existing ground direction so this is specifically a recovery exit,
-        // not the ordinary standstill Rush kick-off.
+        // Preserve the preceding direction across recovery.
         state.LastDirX = 1f;
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         sim.RegisterEntity(1, LagDef, state);
@@ -363,9 +362,9 @@ public class LandingLagTests
         Assert.Equal(states[27].PX, states[44].PX);
         Assert.Equal(0f, states[44].VX);
 
-        // The first unlocked tick starts at cruise speed, rather than ramping from zero.
+        // Recovery exits use the same start floor as ordinary locomotion.
         Assert.Equal((ushort)0, states[45].LandingLagTicks);
-        TestHelpers.AssertNear(LagDef.Movement.RunSpeed, states[45].VX, 0.1f);
+        TestHelpers.AssertNear(.4f * LagDef.Movement.RunSpeed, states[45].VX, 0.1f);
         Assert.Equal(ActionState.Run, states[45].State);
     }
 

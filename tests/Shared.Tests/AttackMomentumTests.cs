@@ -84,7 +84,7 @@ public class AttackMomentumTests
     {
         var def = MakeDefinition();
         var sim = NewSimulation(def, ActionState.Idle, 0f);
-        var running = TestHelpers.TickHold(sim, TestHelpers.Input(moveY: 1f), def.Movement.RushTicks + 2);
+        var running = TestHelpers.TickHold(sim, TestHelpers.Input(moveY: 1f), 30);
         Assert.Equal(ActionState.Run, running.State);
         TestHelpers.AssertNear(def.Movement.RunSpeed, running.VZ);
         if (slide)

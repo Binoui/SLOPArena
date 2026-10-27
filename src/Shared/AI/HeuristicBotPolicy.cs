@@ -428,8 +428,14 @@ public sealed class HeuristicBotPolicy
 
     public InputState Decide(in CharacterState self, CharacterDefinition def,
         Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked = null,
-        CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null)
+        CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null,
+        MayhemThreats? mayhemThreats = null)
     {
+        if (mayhemThreats.HasValue && mayhemThreats.Value.TryAvoid(self, def, arena, out var escape))
+        {
+            memory.ClearPlan();
+            return escape;
+        }
         var input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove);
         // Recovery is allowed to cross an edge. Ordinary grounded approach, retreat,
         // and circling must stay on supported ground, including around stage holes.
@@ -1223,6 +1229,7 @@ public sealed class HeuristicBotPolicy
             or CookedCycloneKickCapabilityParameters
             or CookedChargedProjectileCapabilityParameters
             or CookedChargedStreamCapabilityParameters
+            or CookedFingerGunsCapabilityParameters
             or CookedChargedDirectionalDashCapabilityParameters
             or CookedWibouRisingSlashCapabilityParameters
             or CookedWibouBladeFlurryCapabilityParameters
@@ -1243,6 +1250,12 @@ public sealed class HeuristicBotPolicy
             case CookedRisingDragonCapabilityParameters x:
                 hasMovement = true; break;
             case CookedChargedProjectileCapabilityParameters x:
+                hitReach = MathF.Max(hitReach, MathF.Max(0f, x.Projectile.LaunchOffsetZ)
+                    + x.Projectile.Radius + x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
+                damage += x.Projectile.Damage;
+                hasDamage |= x.Projectile.Damage > 0f;
+                break;
+            case CookedFingerGunsCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, MathF.Max(0f, x.Projectile.LaunchOffsetZ)
                     + x.Projectile.Radius + x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
                 damage += x.Projectile.Damage;
@@ -1305,6 +1318,7 @@ public sealed class HeuristicBotPolicy
             CookedCycloneKickCapabilityParameters x => x.WindupTicks,
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
             CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
+            CookedFingerGunsCapabilityParameters x => x.FireTriggerTick,
             CookedChargedDirectionalDashCapabilityParameters _ => 0,
             CookedWibouRisingSlashCapabilityParameters _ => 0,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks,
@@ -1319,6 +1333,12 @@ public sealed class HeuristicBotPolicy
     {
         switch (parameters)
         {
+            case CookedFingerGunsCapabilityParameters x:
+                travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
+                travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);
+                travelOffset = MathF.Max(travelOffset,
+                    MathF.Max(0f, x.Projectile.LaunchOffsetZ) + x.Projectile.Radius);
+                break;
             case CookedChargedStreamCapabilityParameters x:
                 travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
                 travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);

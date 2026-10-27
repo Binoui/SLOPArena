@@ -31,11 +31,8 @@ namespace SlopArena.Client.UI
         private FrontendPageContext _context = null!;
 
         private CharacterClass _selected = CharacterClass.None;
-        private bool _selectingCpu;
+        private int _editingSeat = 1;
         private readonly List<Button> _gridButtons = new();
-        private Button _btnEditPlayer;
-        private Button _btnEditCpu;
-        private Label _selectionTarget;
 
         // PvP state
         private LobbyClient _lobby;
@@ -62,7 +59,7 @@ namespace SlopArena.Client.UI
             _lockedIn = false;
             _context?.Q<VisualElement>("camp-select")?.style.SetDisplay(false);
             _gridButtons.Clear();
-            _selectingCpu = false;
+            _editingSeat = 1;
             if (_context == null)
             {
                 Debug.LogError("[CharSelectController] No page context was injected; fighter select stays blank.");
@@ -76,10 +73,10 @@ namespace SlopArena.Client.UI
             _selected = classes.Contains(MatchConfig.PlayerClass)
                 ? MatchConfig.PlayerClass
                 : classes.Length > 0 ? classes[0] : CharacterClass.None;
-            if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) &&
-                classes.Length > 0 &&
-                !classes.Contains(MatchConfig.SoloBotClass))
-                MatchConfig.SoloBotClass = classes[0];
+            if (MatchConfig.Mode is GameMode.Solo or GameMode.Training && classes.Length > 0)
+                for (int player = 2; player <= 4; player++)
+                    if (!classes.Contains(MatchConfig.Seat(player).Fighter))
+                        MatchConfig.Seat(player).Fighter = classes[0];
 
             // Build portrait cards in the admitted manifest's authored order.
             if (grid != null)
@@ -98,6 +95,12 @@ namespace SlopArena.Client.UI
                     var texture = Resources.Load<Texture2D>($"UI/Portraits/{cls}");
                     if (texture != null)
                         portrait.style.backgroundImage = new StyleBackground(texture);
+                    else
+                    {
+                        var placeholder = new Label("?") { pickingMode = PickingMode.Ignore };
+                        placeholder.AddToClassList("fighter-panel__placeholder");
+                        portrait.Add(placeholder);
+                    }
 
                     var name = new Label(cls.ToString().ToUpperInvariant()) { name = "char-card-name" };
                     name.AddToClassList("char-card-name");
@@ -199,51 +202,26 @@ namespace SlopArena.Client.UI
 
             _rosterPanel = context.Q<VisualElement>("roster-panel");
 
-            var config = context.Q<VisualElement>("solo-config");
-            if (config != null)
-                config.style.display = DisplayStyle.Flex;
-
-            _btnEditPlayer = context.Q<Button>("btn-edit-player");
-            _btnEditCpu = context.Q<Button>("btn-edit-cpu");
-            _selectionTarget = context.Q<Label>("selection-target");
-            if (_btnEditPlayer != null)
-                _btnEditPlayer.clicked += () => SetSelectionTarget(context, selectingCpu: false);
-            if (_btnEditCpu != null)
-                _btnEditCpu.clicked += () => SetSelectionTarget(context, selectingCpu: true);
-            SetSelectionTarget(context, selectingCpu: false);
-
-            MatchConfig.SoloCpuDifficulty = BotDifficultyProfile.Normalize(MatchConfig.SoloCpuDifficulty);
-            foreach (CpuDifficulty difficulty in (CpuDifficulty[])Enum.GetValues(typeof(CpuDifficulty)))
-            {
-                var capturedDifficulty = difficulty;
-                var button = context.Q<Button>($"btn-cpu-difficulty-{difficulty.ToString().ToLowerInvariant()}");
-                if (button == null) continue;
-                button.clicked += () =>
-                {
-                    MatchConfig.SoloCpuDifficulty = capturedDifficulty;
-                    UpdateDifficultyButtons(context);
-                };
-            }
             if (training)
             {
-                MatchConfig.SoloP2Human = false;
-                MatchConfig.SoloP2DeviceId = 0;
+                MatchConfig.Seat(2).Kind = SeatKind.Cpu;
+                MatchConfig.Seat(2).DeviceId = 0;
             }
             else
             {
-                // Couch play: the controller that drove the menu here is P1; any other pad's A takes over P2.
                 var menuPad = SlopArena.Client.Input.HumanInputActions.LastUsedGamepad
                     ? UnityEngine.InputSystem.Gamepad.current : null;
-                if (menuPad == null || menuPad != SlopArena.Client.Input.CouchPads.P2)
+                if (menuPad == null || !SlopArena.Client.Input.CouchPads.IsJoined(menuPad))
                     SlopArena.Client.Input.CouchPads.P1MenuPad = menuPad;
+                if (MatchConfig.SoloOpponentCount == 0) MatchConfig.Seat(2).Kind = SeatKind.Cpu;
             }
-            UpdateDifficultyButtons(context);
+            SetSelectionTarget(context, 1);
 
             if (selectButton != null)
             {
                 selectButton.clicked += () =>
                 {
-                    if (_selected == CharacterClass.None) return;
+                    if (_selected == CharacterClass.None || MatchConfig.SoloOpponentCount == 0) return;
                     FrontendController.Show(FrontendPage.StageSelect);
                 };
             }
@@ -253,7 +231,7 @@ namespace SlopArena.Client.UI
             if (btnBack != null)
                 btnBack.clicked += back;
             ConfigureNavigation(context, MenuRoster.Classes.Length > 0
-                ? _btnEditPlayer ?? _gridButtons.FirstOrDefault()
+                ? _rosterPanel?.Q<Button>("solo-slot-p1") ?? _gridButtons.FirstOrDefault()
                 : null, btnBack, back, selectButton);
 
             if (MenuRoster.Classes.Length == 0)
@@ -263,14 +241,6 @@ namespace SlopArena.Client.UI
         private static void ApplyLocalSelectLayout(FrontendPageContext context)
         {
             context.Q<VisualElement>("page-header")?.AddToClassList("char-header--local");
-            var summary = context.Q<VisualElement>("page-summary");
-            var nextAction = context.Q<VisualElement>("solo-next-action");
-            var stepStatus = context.Q<VisualElement>("char-header-status");
-            if (summary == null || nextAction == null || stepStatus == null) return;
-
-            summary.AddToClassList("char-summary-section--local");
-            summary.Add(nextAction);
-            nextAction.Insert(0, stepStatus);
         }
 
         private static void SetModeChrome(FrontendPageContext context, string title, string progress)
@@ -306,34 +276,15 @@ namespace SlopArena.Client.UI
                 statusLabel.text = detail;
         }
 
-        private static void UpdateDifficultyButtons(FrontendPageContext context)
+        private void SetSelectionTarget(FrontendPageContext context, int playerNumber, bool focusSlot = false)
         {
-            CpuDifficulty current = BotDifficultyProfile.Normalize(MatchConfig.SoloCpuDifficulty);
-            foreach (CpuDifficulty difficulty in (CpuDifficulty[])Enum.GetValues(typeof(CpuDifficulty)))
-            {
-                var button = context.Q<Button>($"btn-cpu-difficulty-{difficulty.ToString().ToLowerInvariant()}");
-                button?.EnableInClassList("active", difficulty == current);
-            }
-        }
-
-        private void SetSelectionTarget(FrontendPageContext context, bool selectingCpu, bool focusSlot = false)
-        {
-            if (MatchConfig.Mode is not (GameMode.Solo or GameMode.Training))
-                return;
-
-            _selectingCpu = selectingCpu;
-            _selected = selectingCpu ? MatchConfig.SoloBotClass : MatchConfig.PlayerClass;
-            if (_selectionTarget != null)
-                _selectionTarget.text = selectingCpu
-                    ? MatchConfig.SoloP2Human ? "EDITING P2 // PLAYER" : "EDITING P2 // CPU"
-                    : "EDITING P1 // PLAYER";
-            _btnEditPlayer?.EnableInClassList("active", !selectingCpu);
-            _btnEditCpu?.EnableInClassList("active", selectingCpu);
-            context.Q<VisualElement>("solo-difficulty-buttons")?.style.SetDisplay(selectingCpu && !MatchConfig.SoloP2Human);
+            if (MatchConfig.Mode is not (GameMode.Solo or GameMode.Training)) return;
+            if (playerNumber > 1 && MatchConfig.Seat(playerNumber).Kind == SeatKind.LocalPlayer) return;
+            _editingSeat = playerNumber;
+            _selected = playerNumber == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(playerNumber).Fighter;
             UpdateSelectionVisuals(_selected, context);
             RenderSoloRoster();
-            if (focusSlot)
-                _rosterPanel?.Q<Button>(selectingCpu ? "solo-slot-p2" : "solo-slot-p1")?.Focus();
+            if (focusSlot) _rosterPanel?.Q<Button>($"solo-slot-p{playerNumber}")?.Focus();
         }
 
         private void UpdateSelectionVisuals(CharacterClass cls, FrontendPageContext context)
@@ -341,8 +292,16 @@ namespace SlopArena.Client.UI
             foreach (var btn in _gridButtons)
             {
                 btn.RemoveFromClassList("char-card--selected");
+                btn.Q<Label>("char-card-name").style.backgroundColor = StyleKeyword.Null;
+                btn.style.borderTopColor = btn.style.borderBottomColor =
+                    btn.style.borderLeftColor = btn.style.borderRightColor = StyleKeyword.Null;
                 if (btn.name == $"char-{cls}")
+                {
                     btn.AddToClassList("char-card--selected");
+                    FighterPanel.Frame(btn, _editingSeat);
+                    if (MatchConfig.Mode is GameMode.Solo or GameMode.Training)
+                        btn.Q<Label>("char-card-name").style.backgroundColor = SeatColours.For(_editingSeat);
+                }
             }
 
             var nameLabel = context.Q<Label>("char-name");
@@ -356,41 +315,86 @@ namespace SlopArena.Client.UI
         private void RenderSoloRoster()
         {
             if (_rosterPanel == null) return;
+            string? focusedName = (_rosterPanel.panel?.focusController.focusedElement as VisualElement)?.name;
             _rosterPanel.Clear();
-            if (MenuRoster.Classes.Length == 0)
-                return;
-
-            string playerCardName = $"char-{MatchConfig.PlayerClass}";
-            string cpuCardName = $"char-{MatchConfig.SoloBotClass}";
+            if (MenuRoster.Classes.Length == 0) return;
             foreach (var button in _gridButtons)
             {
                 var markers = button.Q<VisualElement>("char-markers");
                 markers.Clear();
-                bool playerSelected = button.name == playerCardName;
-                bool cpuSelected = button.name == cpuCardName;
-                if (!playerSelected && !cpuSelected) continue;
-                var marker = new Label(playerSelected && cpuSelected ? "P1 / P2" : playerSelected ? "P1" : "P2");
-                marker.AddToClassList("char-marker");
-                marker.AddToClassList("char-marker--local");
-                markers.Add(marker);
+                for (int player = 1; player <= 4; player++)
+                {
+                    bool filled = player == 1 || (MatchConfig.Mode != GameMode.Training || player == 2) && MatchConfig.Seat(player).Kind != SeatKind.Open;
+                    if (!filled) continue;
+                    var fighter = player == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(player).Fighter;
+                    if (button.name != $"char-{fighter}") continue;
+                    var marker = new Label($"P{player}");
+                    marker.AddToClassList("char-marker");
+                    marker.style.backgroundColor = SeatColours.For(player);
+                    markers.Add(marker);
+                }
             }
-
-            var player = (Button)BuildPlayerCard(
-                "P1", "YOU", MatchConfig.PlayerClass,
-                _selectingCpu ? "" : "EDITING FIGHTER", local: true, host: true);
-            player.name = "solo-slot-p1";
-            player.clicked += () => SetSelectionTarget(_context, selectingCpu: false, focusSlot: true);
-            _rosterPanel.Add(player);
-
-            var cpu = (Button)BuildPlayerCard(
-                "P2", MatchConfig.SoloP2Human ? "PLAYER 2" : "CPU", MatchConfig.SoloBotClass,
-                MatchConfig.SoloP2Human ? "LB/RB · B LEAVES"
-                    : _selectingCpu ? "EDITING FIGHTER"
-                    : MatchConfig.Mode == GameMode.Solo ? "PRESS A TO JOIN" : "", local: false, host: false);
-            cpu.name = "solo-slot-p2";
-            cpu.clicked += () => SetSelectionTarget(_context, selectingCpu: true, focusSlot: true);
-            _rosterPanel.Add(cpu);
+            for (int player = 1; player <= 4; player++)
+            {
+                int number = player;
+                bool practiceOpen = MatchConfig.Mode == GameMode.Training && player > 2;
+                var kind = player == 1 ? SeatKind.LocalPlayer : practiceOpen ? SeatKind.Open : MatchConfig.Seat(player).Kind;
+                bool open = kind == SeatKind.Open;
+                var fighter = player == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(player).Fighter;
+                var panel = FighterPanel.Build(player, player == 1 ? "YOU" : open ? "" : kind == SeatKind.Cpu ? "CPU" : $"PLAYER {player}",
+                    open ? "OPEN" : kind == SeatKind.Cpu ? "CPU" : "PLAYER", open ? null : fighter,
+                    practiceOpen ? "TRAINING · ONE PRACTICE CPU" : open ? "A: ADD CPU\nPAD: PRESS A TO JOIN"
+                        : player == 1 || MatchConfig.Mode == GameMode.Training ? "A: PICK FIGHTER" : kind == SeatKind.LocalPlayer ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN",
+                    interactive: !practiceOpen);
+                panel.name = $"solo-slot-p{player}";
+                if (practiceOpen) panel.SetEnabled(false);
+                if (_editingSeat == player && !open) FighterPanel.Frame(panel, player);
+                if (panel is Button pick)
+                    pick.clicked += () =>
+                    {
+                        if (number > 1 && MatchConfig.Seat(number).Kind == SeatKind.Open)
+                        {
+                            MatchConfig.Seat(number).Kind = SeatKind.Cpu;
+                            MatchConfig.Seat(number).Difficulty = CpuDifficulty.Normal;
+                        }
+                        SetSelectionTarget(_context, number, true);
+                    };
+                if (player > 1 && kind == SeatKind.Cpu)
+                {
+                    var controls = new VisualElement();
+                    controls.AddToClassList("fighter-panel__controls");
+                    foreach (CpuDifficulty difficulty in Enum.GetValues(typeof(CpuDifficulty)))
+                    {
+                        var value = difficulty;
+                        var choice = new Button(() =>
+                        {
+                            MatchConfig.Seat(number).Difficulty = value;
+                            SetSelectionTarget(_context, number);
+                        }) { name = $"seat-{number}-{difficulty.ToString().ToLowerInvariant()}", text = difficulty.ToString().ToUpperInvariant() };
+                        choice.AddToClassList("fighter-panel__control");
+                        choice.EnableInClassList("active", MatchConfig.Seat(number).Difficulty == difficulty);
+                        controls.Add(choice);
+                    }
+                    if (MatchConfig.Mode == GameMode.Solo)
+                    {
+                        var remove = new Button(() =>
+                        {
+                            if (!MatchConfig.RemoveSoloCpu(number)) return;
+                            SetSelectionTarget(_context, _editingSeat == number ? 1 : _editingSeat);
+                        }) { name = $"seat-{number}-remove", text = "REMOVE" };
+                        remove.AddToClassList("fighter-panel__control");
+                        remove.SetEnabled(MatchConfig.SoloOpponentCount > 1);
+                        controls.Add(remove);
+                    }
+                    panel.Add(controls);
+                }
+                _rosterPanel.Add(panel);
+            }
+            _context.Q<Button>("btn-select")?.SetEnabled(MatchConfig.SoloOpponentCount > 0);
+            if (!string.IsNullOrEmpty(focusedName)) _rosterPanel.Q<Button>(focusedName)?.Focus();
+            UpdateCouchCursors();
         }
+
         private void InitRoom(FrontendPageContext context)
         {
             _roomMode = true;
@@ -642,16 +646,19 @@ namespace SlopArena.Client.UI
                 _rosterPanel.Add(BuildPlayerCard(
                     CourseRoom ? $"P{i + 1} · {CourseColours.Names[member.Colour % 4]}" : string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
                     hasCharacter ? cls : (CharacterClass?)null,
-                    member.LockedIn ? "LOCKED" : "WAITING",
+                    member.LockedIn ? "LOCKED" : "PICKING",
                     member.SteamId == ClientSession.SteamId,
                     member.IsLeader));
             }
+            AddOpenRoomPanels(members.Length);
         }
 
         private void UpdateRoomControls()
         {
             var members = _roomSnapshot?.Members ?? Array.Empty<RoomMemberInfo>();
             bool versus = _roomSnapshot?.Format == MatchFormats.SlopballVersusWire;
+            if (_roomSnapshot?.Format == MatchFormats.MankiMayhemWire)
+                SetModeChrome(_context, "MANKI MAYHEM // FREE PICK", "ANY FIGHTER · MIRRORS ALLOWED · " + _roomSnapshot.MayhemFriendlyFire.ToUpperInvariant());
             bool balanced = !versus || members.Length is 2 or 4
                 && members.All(m => m.Camp is "teal" or "clay")
                 && members.Count(m => m.Camp == "teal") == members.Length / 2;
@@ -793,6 +800,7 @@ namespace SlopArena.Client.UI
                 var marker = new Label($"P{i + 1} {(members[i].LockedIn ? "LOCKED" : "SELECTING")}");
                 marker.AddToClassList("char-marker");
                 marker.AddToClassList(members[i].LockedIn ? "char-marker--ready" : "char-marker--selecting");
+                marker.style.backgroundColor = SeatColours.For(i + 1);
                 markers.Add(marker);
             }
         }
@@ -1077,74 +1085,24 @@ namespace SlopArena.Client.UI
                     player.SteamId == ClientSession.SteamId,
                     player.IsHost));
             }
+            AddOpenRoomPanels(players.Count);
         }
 
-        private VisualElement BuildPlayerCard(
-            string playerNumber,
-            string playerName,
-            CharacterClass? selectedClass,
-            string statusText,
-            bool local,
-            bool host)
+        private VisualElement BuildPlayerCard(string playerNumber, string playerName, CharacterClass? selectedClass,
+            string statusText, bool local, bool host)
         {
-            VisualElement card = MatchConfig.Mode is GameMode.Solo or GameMode.Training
-                ? new Button()
-                : new VisualElement();
-            card.AddToClassList("player-card");
-            if (local) card.AddToClassList("player-card--local");
-            if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && statusText == "EDITING FIGHTER")
-                card.AddToClassList("player-card--editing");
+            int number = playerNumber.Length > 1 && char.IsDigit(playerNumber[1]) ? playerNumber[1] - '0' : 1;
+            var panel = FighterPanel.Build(number, playerName, _roomMode ? host ? "LEADER" : "MEMBER" : host ? "HOST" : "PLAYER",
+                selectedClass, statusText);
+            panel.Q<Label>(className: "fighter-panel__number").text = playerNumber;
+            if (local && statusText != "LOCKED") FighterPanel.Frame(panel, number);
+            return panel;
+        }
 
-            var identity = new VisualElement();
-            identity.AddToClassList("player-card__identity");
-            var number = new Label(playerNumber);
-            number.AddToClassList("player-card__number");
-            identity.Add(number);
-            var role = new Label(_roomMode
-                ? (host ? "LEADER" : "MEMBER")
-                : MatchConfig.Mode == GameMode.PvP
-                    ? (host ? "HOST" : "PLAYER")
-                    : (local || MatchConfig.SoloP2Human ? "PLAYER" : "CPU"));
-            role.AddToClassList("player-card__host");
-            identity.Add(role);
-            card.Add(identity);
-
-            var name = new Label(playerName) { enableRichText = false };
-            name.AddToClassList("player-card__name");
-            card.Add(name);
-
-            if (selectedClass.HasValue)
-            {
-                var portrait = new VisualElement();
-                portrait.AddToClassList("player-card__portrait");
-                var texture = Resources.Load<Texture2D>($"UI/Portraits/{selectedClass.Value}");
-                if (texture != null)
-                    portrait.style.backgroundImage = new StyleBackground(texture);
-                card.Add(portrait);
-
-                var character = new Label(selectedClass.Value.ToString().ToUpper());
-                character.AddToClassList("player-card__character");
-                card.Add(character);
-            }
-            else
-            {
-                var waiting = new Label("WAITING FOR PLAYER");
-                waiting.AddToClassList("player-card__waiting");
-                card.Add(waiting);
-            }
-
-            if (!string.IsNullOrEmpty(statusText))
-            {
-                var status = new Label(statusText);
-                status.AddToClassList("player-card__status");
-                status.AddToClassList(statusText == "LOCKED" || statusText == "BOT"
-                    ? "player-card__status--locked"
-                    : statusText == "EDITING FIGHTER"
-                        ? "player-card__status--editing"
-                        : "player-card__status--picking");
-                card.Add(status);
-            }
-            return card;
+        private void AddOpenRoomPanels(int filled)
+        {
+            for (int player = filled + 1; player <= 4; player++)
+                _rosterPanel.Add(FighterPanel.Build(player, "", "OPEN", null, "INVITE A FRIEND"));
         }
 
         private void UpdateStartMatchButton()
@@ -1190,13 +1148,13 @@ namespace SlopArena.Client.UI
                 return;
 
             _selected = cls;
-            if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _selectingCpu)
-                MatchConfig.SoloBotClass = cls;
+            if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _editingSeat > 1)
+                MatchConfig.Seat(_editingSeat).Fighter = cls;
             else
                 MatchConfig.PlayerClass = cls;
 
             if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _rosterPanel != null)
-                SetSelectionTarget(context, _selectingCpu);
+                SetSelectionTarget(context, _editingSeat);
             else
                 UpdateSelectionVisuals(cls, context);
         }
@@ -1227,63 +1185,54 @@ namespace SlopArena.Client.UI
         }
 
 
-        /// <summary>
-        /// Couch play: in Solo, any pad but P1's takes over P2 from the CPU with A, picks P2's fighter
-        /// with LB/RB and hands P2 back to the CPU with B.
-        /// </summary>
+        private void UpdateCouchCursors()
+        {
+            for (int player = 2; player <= 4; player++)
+                PlayerCursors.SeatTargets[player - 2] = SlopArena.Client.Input.CouchPads.ForSeat(player) == null ? null
+                    : _gridButtons.FirstOrDefault(button => button.name == $"char-{MatchConfig.Seat(player).Fighter}");
+        }
+
         private void Update()
         {
-            var p2 = SlopArena.Client.Input.CouchPads.P2;
-            PlayerCursors.P2Target = p2 == null ? null
-                : _gridButtons.FirstOrDefault(button => button.name == $"char-{MatchConfig.SoloBotClass}");
             bool active = MatchConfig.Mode == GameMode.Solo && _rosterPanel != null;
-            SlopArena.Client.Input.CouchPads.Listening = active && p2 == null;
-            if (!active)
-                return;
-            if (p2 == null)
+            SlopArena.Client.Input.CouchPads.Listening = active;
+            if (!active) return;
+            bool changed = false;
+            for (int player = 2; player <= 4; player++)
             {
-                bool unplugged = MatchConfig.SoloP2Human;
-                MatchConfig.SoloP2Human = false;
-                MatchConfig.SoloP2DeviceId = 0;
-                foreach (var pad in UnityEngine.InputSystem.Gamepad.all)
-                    if (pad != SlopArena.Client.Input.CouchPads.P1MenuPad && pad.buttonSouth.wasPressedThisFrame)
-                    {
-                        MatchConfig.SoloP2Human = true;
-                        MatchConfig.SoloP2DeviceId = pad.deviceId;
-                        Debug.Log($"[Couch] P2 joined with {pad.displayName}.");
-                        break;
-                    }
-                if (unplugged || MatchConfig.SoloP2Human)
-                    SetSelectionTarget(_context, _selectingCpu);
-                return;
+                var pad = SlopArena.Client.Input.CouchPads.ForSeat(player);
+                if (MatchConfig.Seat(player).Kind != SeatKind.LocalPlayer) continue;
+                if (pad == null || pad.buttonEast.wasPressedThisFrame)
+                {
+                    MatchConfig.LeaveSoloSeat(player);
+                    changed = true;
+                    continue;
+                }
+                int step = pad.rightShoulder.wasPressedThisFrame ? 1 : pad.leftShoulder.wasPressedThisFrame ? -1 : 0;
+                var classes = MenuRoster.Classes;
+                if (step == 0 || classes.Length == 0) continue;
+                int index = Array.IndexOf(classes, MatchConfig.Seat(player).Fighter);
+                MatchConfig.Seat(player).Fighter = classes[((index < 0 ? 0 : index) + step + classes.Length) % classes.Length];
+                changed = true;
             }
-            if (p2.buttonEast.wasPressedThisFrame)
+            foreach (var pad in UnityEngine.InputSystem.Gamepad.all)
             {
-                // Keep the guard up this frame so the same B is not also P1's Back.
-                SlopArena.Client.Input.CouchPads.Listening = true;
-                MatchConfig.SoloP2Human = false;
-                MatchConfig.SoloP2DeviceId = 0;
-                SetSelectionTarget(_context, _selectingCpu);
-                return;
+                if (pad == SlopArena.Client.Input.CouchPads.P1MenuPad || SlopArena.Client.Input.CouchPads.IsJoined(pad)
+                    || !pad.buttonSouth.wasPressedThisFrame) continue;
+                int joined = MatchConfig.JoinSoloSeat(pad.deviceId);
+                if (joined == 0) continue;
+                if (_editingSeat == joined) _editingSeat = 1;
+                Debug.Log($"[Couch] P{joined} joined with {pad.displayName}.");
+                changed = true;
             }
-            int step = p2.rightShoulder.wasPressedThisFrame ? 1 : p2.leftShoulder.wasPressedThisFrame ? -1 : 0;
-            var classes = MenuRoster.Classes;
-            if (step == 0 || classes.Length == 0)
-                return;
-            int index = Array.IndexOf(classes, MatchConfig.SoloBotClass);
-            MatchConfig.SoloBotClass = classes[((index < 0 ? 0 : index) + step + classes.Length) % classes.Length];
-            if (_selectingCpu)
-            {
-                _selected = MatchConfig.SoloBotClass;
-                UpdateSelectionVisuals(_selected, _context);
-            }
-            RenderSoloRoster();
+            if (changed) SetSelectionTarget(_context, _editingSeat);
+            UpdateCouchCursors();
         }
 
         private void OnDisable()
         {
             SlopArena.Client.Input.CouchPads.Listening = false;
-            PlayerCursors.P2Target = null;
+            Array.Clear(PlayerCursors.SeatTargets, 0, PlayerCursors.SeatTargets.Length);
             if (_roomMode && _chatSession != null)
                 _chatSession.ActiveLobbyChanged -= OnActiveLobbyChanged;
             _chatSession = null;

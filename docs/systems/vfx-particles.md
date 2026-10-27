@@ -356,6 +356,32 @@ crescents turn about the dodge to face whichever camera draws them. The landing 
 every touchdown spawns also covers a dodge into the ground. `tools/sfx/air_dodge_clips.py`
 regenerates the sound from seeded noise; `--out` writes the three candidates for review.
 
+## Homing dash lock-on
+
+The universal homing dash ([ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md))
+shows a lock-on read (concept C, picked by the owner on 2026-10-27). Every player sees it, so the
+defender knows they are the target. It follows applied state (`HomingDashFloat`, `HomingDash`,
+`HomingDashArrive`, `HomingDashMiss`, `HomingDashTargetId`) and never changes gameplay.
+
+| Layer | Behaviour | Hook |
+|-------|-----------|------|
+| Outline | An Action Yellow inverted-hull outline grows on the dasher over 0.08 s and stays through the float and the dash. | Skin copies sharing the bones; `Resources/Shaders/HomingDashOutline.shader` |
+| Afterimages | During the dash, a baked yellow copy of the model is left every 3 applied ticks; each stays hidden for 2 ticks so it never tints the fighter, then fades out by tick 10. | `HomingDashPresentation`; `Resources/Shaders/HomingDashSprite.shader` |
+| Dotted line | From the dasher to the target while the dash is live, scrolling toward the target. | `HomingDashLockOn` (one per match, created next to `TargetIndicator`) |
+| Chevrons | Three `>` marks race along the line during the dash, pointing at the target on screen. | `HomingDashLockOn` |
+| Reticle | Pops onto the target during the float, spins, tightens as the dash closes in, snaps shut on arrival and fades; on a miss it drops away. Drawn through bodies. | `HomingDashLockOn` |
+| "!" stamp | Pops above the target on arrival, holds 0.45 s, fades. Drawn through bodies. | `HomingDashLockOn` |
+
+The marks are baked at runtime from signed distances into the shared bands (ink rim, Action
+Yellow, white core) by `HomingDashSprites`, so there are no ignored texture assets. Billboards
+face the match camera; the photo-shoot tool faces its first camera, so shoot one camera per run
+when judging them.
+
+Sounds play from the dasher (`HomingDashPresentation`): camera-focus clicks as the dash
+starts, a card-whip whoosh when it flies and a rubber-stamp thunk on arrival (set B, the owner's pick). `tools/sfx/homing_dash_clips.py`
+generates them from tones and seeded noise; `--pick a|b` installs the tonal or paper set and
+`--out` writes both for review.
+
 ## Authoring trails
 
 Character trails belong in the package's presentation assets and catalog: use a
@@ -465,6 +491,7 @@ The general rules still apply:
 | Jump, double-jump and landing effects | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
 | KO, respawn and respawn invincibility | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
 | Air dodge print slip: paper swooshes, misprint while invulnerable, printed bars, fwip | Implemented 2026-10-18; concept approved, in-game check pending | `AirDodgePresentation.cs` + `Resources/Shaders/AirDodgePrint*.shader`; see [Air dodge print slip](#air-dodge-print-slip) |
+| Homing dash lock-on: outline, afterimages, dotted line, chevrons, reticle, "!", lock/whoosh/ding | Implemented 2026-10-27; concept C approved, in-game check pending | `HomingDashPresentation.cs`, `HomingDashLockOn.cs`, `HomingDashSprites.cs`, `Resources/Shaders/HomingDash*.shader`; see [Homing dash lock-on](#homing-dash-lock-on) |
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
 | Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon timing/placement corrected 2026-10-22; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |

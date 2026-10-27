@@ -65,6 +65,7 @@ namespace SlopArena.Shared
             w.WriteByte(s.ChargeStockSpent);
             w.WriteUShort(s.ChargeStockRegenTicks);
             w.WriteUShort(s.ChargeStockRegenPeriod);
+            w.WriteByte(s.FingerGunsShotsSpent);
             w.WriteFloat(s.KVX);
             w.WriteFloat(s.KVY);
             w.WriteFloat(s.KVZ);
@@ -177,6 +178,7 @@ namespace SlopArena.Shared
             s.ChargeStockSpent = r.ReadByte();
             s.ChargeStockRegenTicks = r.ReadUShort();
             s.ChargeStockRegenPeriod = r.ReadUShort();
+            s.FingerGunsShotsSpent = r.ReadByte();
             s.KVX = r.ReadFloat();
             s.KVY = r.ReadFloat();
             s.KVZ = r.ReadFloat();
@@ -366,6 +368,8 @@ namespace SlopArena.Shared
             w.WriteUShort(explosion.StunTicks);
             w.WriteUShort(explosion.DurationTicks);
             w.WriteBool(explosion.CanHitOwner);
+            w.WriteBool(explosion.OwnerDamage.HasValue);
+            if (explosion.OwnerDamage.HasValue) w.WriteFloat(explosion.OwnerDamage.Value);
             w.WriteString(explosion.ExplosionPresentationId);
             w.WriteByte(explosion.PresentationAttackSequence);
             w.WriteInt(explosion.PresentationOperationIndex);
@@ -381,6 +385,7 @@ namespace SlopArena.Shared
             explosion.StunTicks = r.ReadUShort();
             explosion.DurationTicks = r.ReadUShort();
             explosion.CanHitOwner = r.ReadBool();
+            if (r.ReadBool()) explosion.OwnerDamage = r.ReadFloat();
             explosion.ExplosionPresentationId = r.ReadString()!;
             explosion.PresentationAttackSequence = r.ReadByte();
             explosion.PresentationOperationIndex = r.ReadInt();
@@ -482,6 +487,8 @@ namespace SlopArena.Shared
             w.WriteFloat(hb.EndX);
             w.WriteFloat(hb.EndY);
             w.WriteFloat(hb.EndZ);
+            w.WriteFloat(hb.PreviousRadius); w.WriteFloat(hb.RingSpeed);
+            w.WriteFloat(hb.RingHalfWidth); w.WriteFloat(hb.RingHalfHeight); w.WriteBool(hb.Unblockable);
             w.WriteFloat(hb.Damage);
             w.WriteFloat(hb.BaseKnockback);
             w.WriteFloat(hb.KnockbackGrowth);
@@ -498,6 +505,12 @@ namespace SlopArena.Shared
             w.WriteBool(hb.Active);
             w.WriteBool(hb.CancelWithAbility);
             w.WriteFloat(hb.Gravity);
+            w.WriteUShort(hb.StickyFuseTicks); w.WriteULong(hb.AttachedEntityId); w.WriteUShort(hb.FuseTicksLeft);
+            w.WriteULong(hb.HomingTargetEntityId);
+            w.WriteFloat(hb.HomingTurnCos);
+            w.WriteFloat(hb.HomingTurnSin);
+            w.WriteBool(hb.OwnerDamage.HasValue);
+            if (hb.OwnerDamage.HasValue) w.WriteFloat(hb.OwnerDamage.Value);
             w.WriteBool(hb.Explosion.HasValue);
             if (hb.Explosion.HasValue)
                 Write(w, hb.Explosion.Value);
@@ -548,6 +561,14 @@ namespace SlopArena.Shared
             hb.EndX = r.ReadFloat();
             hb.EndY = r.ReadFloat();
             hb.EndZ = r.ReadFloat();
+            hb.PreviousRadius = r.ReadFloat(); hb.RingSpeed = r.ReadFloat();
+            hb.RingHalfWidth = r.ReadFloat(); hb.RingHalfHeight = r.ReadFloat(); hb.Unblockable = r.ReadBool();
+            if (hb.Shape > HitboxShape.Ring || hb.Shape == HitboxShape.Ring &&
+                (!float.IsFinite(hb.Radius) || !float.IsFinite(hb.PreviousRadius) || !float.IsFinite(hb.RingSpeed)
+                 || !float.IsFinite(hb.RingHalfWidth) || !float.IsFinite(hb.RingHalfHeight)
+                 || hb.PreviousRadius < 0 || hb.Radius < hb.PreviousRadius || hb.RingSpeed < 0
+                 || hb.RingHalfWidth <= 0 || hb.RingHalfHeight <= 0))
+                throw SnapshotReader.Malformed("expanding ring");
             hb.Damage = r.ReadFloat();
             hb.BaseKnockback = r.ReadFloat();
             hb.KnockbackGrowth = r.ReadFloat();
@@ -564,6 +585,11 @@ namespace SlopArena.Shared
             hb.Active = r.ReadBool();
             hb.CancelWithAbility = r.ReadBool();
             hb.Gravity = r.ReadFloat();
+            hb.StickyFuseTicks = r.ReadUShort(); hb.AttachedEntityId = r.ReadULong(); hb.FuseTicksLeft = r.ReadUShort();
+            hb.HomingTargetEntityId = r.ReadULong();
+            hb.HomingTurnCos = r.ReadFloat();
+            hb.HomingTurnSin = r.ReadFloat();
+            if (r.ReadBool()) hb.OwnerDamage = r.ReadFloat();
             if (r.ReadBool())
                 hb.Explosion = ReadProjectileExplosion(r);
             if (r.ReadBool())

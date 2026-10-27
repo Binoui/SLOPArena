@@ -18,5 +18,5 @@ public sealed record MatchStartedConfig(
     string? ServerAddress = null,
     Guid MatchId = default,
     MatchFormat Format = MatchFormat.Stock,
-    bool FriendlyFire = false,
+    FriendlyFireMode FriendlyFire = FriendlyFireMode.Off,
     bool BallOnly = false);

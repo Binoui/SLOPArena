@@ -44,6 +44,8 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Solo Arcade implementation plan](design/arcade-implementation.md) | Focused Shared objects, unified stage migration, Slopball-first delivery and verification handoff |
 | [Online Arcade feature brief](design/online-arcade.md) | Stage-first Room flow, online Slopball (Versus, Co-op) and Character Course (Race, Co-op) formats, decisions and proposals |
 | [Online Arcade implementation options](design/online-arcade-implementation.md) | Room contract, admission, Match Format, Shared formats, rollback coverage and client hosting, for approval |
+| [Manki Mayhem feature brief](design/manki-mayhem.md) | Manki's game-show survival mode: call cards, rounds, scoring, friendly fire, host and show camera |
+| [Manki Mayhem implementation plan](design/manki-mayhem-implementation.md) | Ordered slices, files and tests, maintainer test path, risks and open decisions ([ADR-0044](adr/0044-manki-mayhem-hazard-director.md)) |
 | [Arcade Phase 1](design/arcade-phase-1.md) | Ball/contact foundation, test-court launch steps and verification status |
 | [Arcade Phase 2](design/arcade-phase-2.md) | Playable Slopball, court/shot rules, launch steps and native verification |
 | [Arcade Phase 3](design/arcade-phase-3.md) | Offline menu, locked starts, results/retry and compatible local personal bests |

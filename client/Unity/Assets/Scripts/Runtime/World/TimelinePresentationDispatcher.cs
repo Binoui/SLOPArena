@@ -35,6 +35,7 @@ namespace SlopArena.Client.World
         private sealed class Entry
         {
             public PlayerRenderer Renderer;
+            public Transform Root;
             public CharacterAnimationCatalog Catalog;
         }
 
@@ -54,8 +55,11 @@ namespace SlopArena.Client.World
                 _entries.Remove(entityId);
                 return;
             }
-            _entries[entityId] = new Entry { Renderer = renderer, Catalog = catalog };
+            _entries[entityId] = new Entry { Renderer = renderer, Root = renderer.transform, Catalog = catalog };
         }
+
+        public void RegisterHost(ulong entityId, Transform root, CharacterAnimationCatalog catalog)
+            => _entries[entityId] = new Entry { Root = root, Catalog = catalog };
 
         public void Tick(IReadOnlyList<TimelinePresentationEvent> events)
         {
@@ -103,7 +107,7 @@ namespace SlopArena.Client.World
                     continue;
                 }
                 if (!_entries.TryGetValue(presentationEvent.EntityId, out Entry entry)) continue;
-                if (entry.Renderer == null || entry.Catalog == null) continue;
+                if (entry.Root == null || entry.Catalog == null) continue;
                 // An empty ID is the authored "no effect" (an optional explosionPresentationId left blank, as on
                 // Bashie's borrowed Manki specials), not a missing binding.
                 if (string.IsNullOrEmpty(presentationEvent.PresentationId)) continue;
@@ -125,7 +129,7 @@ namespace SlopArena.Client.World
                     && presentationEvent.Placement?.AttachmentMode == AuthoringPresentationAttachmentMode.Bone
                     && binding.Prefab.GetComponent<AttackBoundPresentation>() != null;
                 // Late confirmations must not attach an old effect to a new move or idle pose.
-                if (attachedToAttack && (!entry.Renderer.isActiveAndEnabled
+                if (attachedToAttack && (entry.Renderer == null || !entry.Renderer.isActiveAndEnabled
                     || !PresentationLifetime.IsCurrentAttack(entry.Renderer.CurrentActionState,
                         entry.Renderer.CurrentAttackSequence, presentationEvent.AttackSequence)))
                     continue;
@@ -134,7 +138,7 @@ namespace SlopArena.Client.World
                     binding,
                     presentationEvent.Placement,
                     entry.Renderer,
-                    entry.Renderer.transform,
+                    entry.Root,
                     new Vector3(presentationEvent.WorldX, presentationEvent.WorldY, presentationEvent.WorldZ),
                     Quaternion.Euler(0f, presentationEvent.WorldYaw * Mathf.Rad2Deg, 0f));
                 if (instance == null) continue;
@@ -145,7 +149,7 @@ namespace SlopArena.Client.World
                     Key = presentationEvent.Key,
                     Instance = instance,
                     Lifetime = new PresentationLifetime(LifetimeTicks(presentationEvent), attachedToAttack,
-                        presentationEvent.AttackSequence, entry.Renderer.CurrentAttackElapsedTicks),
+                        presentationEvent.AttackSequence, entry.Renderer != null ? entry.Renderer.CurrentAttackElapsedTicks : 0),
                     AttackEntityId = presentationEvent.EntityId,
                     AttackOwner = attachedToAttack ? entry.Renderer : null,
                 });

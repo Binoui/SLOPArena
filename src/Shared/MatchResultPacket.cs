@@ -42,6 +42,9 @@ public sealed class MatchResultPacket
     private const int RunSize = 10;
     private const byte VersusMarker = 2;
     private const int VersusSize = 6;
+    private const byte MayhemMarker = 4;
+    private const int MayhemHeaderSize = 2;
+    private const int MayhemPlayerSize = 15;
     private const byte CourseMarker = 3;
     private const int CourseHeaderSize = 12;
     private const int CoursePlayerSize = 22;
@@ -49,7 +52,7 @@ public sealed class MatchResultPacket
     public const int MaxSize = HeaderSize + EntrySize * MaxPlayers + CourseHeaderSize + CoursePlayerSize * MaxPlayers;
 
     public MatchResultPacket(uint durationTicks, bool sharedVictory, MatchResultEntry[] entries,
-        SlopballRunResult? run = null, SlopballVersusResult? versus = null, CourseRunResult? course = null)
+        SlopballRunResult? run = null, SlopballVersusResult? versus = null, CourseRunResult? course = null, MayhemRunResult? mayhem = null)
     {
         if (entries == null) throw new ArgumentNullException(nameof(entries));
         if (entries.Length is < 1 or > MaxPlayers)
@@ -64,6 +67,9 @@ public sealed class MatchResultPacket
         if (course != null && (run.HasValue || versus.HasValue || !ValidCourse(course, entries)))
             throw new ArgumentException("Invalid course result.", nameof(course));
         Course = course;
+        if (mayhem != null && (course != null || run.HasValue || versus.HasValue || !ValidMayhem(mayhem, entries)))
+            throw new ArgumentException("Invalid Mayhem result.", nameof(mayhem));
+        Mayhem = mayhem;
     }
 
     public uint DurationTicks { get; }
@@ -73,7 +79,8 @@ public sealed class MatchResultPacket
     public SlopballRunResult? Run { get; }
     public SlopballVersusResult? Versus { get; }
     public CourseRunResult? Course { get; }
-    public int WireSize => HeaderSize + EntrySize * Entries.Length + (Run.HasValue ? RunSize : Versus.HasValue ? VersusSize : Course != null ? CourseHeaderSize + Course.Players.Count * CoursePlayerSize : 0);
+    public MayhemRunResult? Mayhem { get; }
+    public int WireSize => HeaderSize + EntrySize * Entries.Length + (Run.HasValue ? RunSize : Versus.HasValue ? VersusSize : Course != null ? CourseHeaderSize + Course.Players.Count * CoursePlayerSize : Mayhem != null ? MayhemHeaderSize + Mayhem.Players.Count * MayhemPlayerSize : 0);
 
     private static bool ValidCourse(CourseRunResult course, MatchResultEntry[] entries)
         => course.Players != null && course.Players.Count == entries.Length
@@ -83,6 +90,15 @@ public sealed class MatchResultPacket
                 && x.Place <= entries.Length && (x.Place == 0) == (x.FinishTicks == 0)
                 && x.FinishTicks <= course.ElapsedTicks && (x.Place == 0 || x.BrokenTargets == x.TotalTargets))
             && course.Completed == course.Players.Any(x => x.Place != 0);
+
+    private static bool ValidMayhem(MayhemRunResult result, MatchResultEntry[] entries)
+        => result.Players != null && result.Players.Count == entries.Length
+            && result.Players.Select(p => p.EntityId).Distinct().Count() == entries.Length
+            && result.Players.All(p => p.EntityId is > 0 and < ServerSimulation.MayhemHostEntityId
+                && p.RoundsSurvived <= MankiMayhemTuning.DeckPasses * MankiMayhemRounds.DeckSize
+                && p.Bonuses <= p.RoundsSurvived * MankiMayhemTuning.LastStandingBonus
+                && p.Score == p.RoundsSurvived * MankiMayhemTuning.SurvivalPoints + p.Bonuses
+                && Array.Exists(entries, e => e.EntityId == p.EntityId && e.Placement == result.PlaceFor(p.EntityId)));
 
     public void Serialize(Span<byte> buffer)
     {
@@ -116,6 +132,18 @@ public sealed class MatchResultPacket
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset + 1, 2), versus.TealScore);
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset + 3, 2), versus.ClayScore);
             buffer[offset + 5] = (byte)versus.Winner;
+        }
+        else if (Mayhem is { } mayhem)
+        {
+            buffer[offset++] = MayhemMarker; buffer[offset++] = (byte)mayhem.Players.Count;
+            foreach (var player in mayhem.Players)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(offset, 8), player.EntityId); offset += 8;
+                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.Score); offset += 2;
+                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.RoundsSurvived); offset += 2;
+                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.Bonuses); offset += 2;
+                buffer[offset++] = player.Withdrawn ? (byte)1 : (byte)0;
+            }
         }
         else if (Course is { } course)
         {
@@ -160,7 +188,26 @@ public sealed class MatchResultPacket
         SlopballRunResult? run = null;
         SlopballVersusResult? versus = null;
         CourseRunResult? course = null;
-        if (buffer.Length > offset && buffer[offset] == CourseMarker)
+        MayhemRunResult? mayhem = null;
+        if (buffer.Length > offset && buffer[offset] == MayhemMarker)
+        {
+            if (buffer.Length < offset + MayhemHeaderSize || buffer[offset + 1] != count
+                || buffer.Length != offset + MayhemHeaderSize + count * MayhemPlayerSize) return false;
+            offset += MayhemHeaderSize;
+            var players = new MayhemFinishResult[count];
+            for (int i = 0; i < count; i++)
+            {
+                if (buffer[offset + 14] > 1) return false;
+                players[i] = new(BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset, 8)),
+                    BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 8, 2)),
+                    BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 10, 2)),
+                    BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 12, 2)), buffer[offset + 14] == 1);
+                offset += MayhemPlayerSize;
+            }
+            mayhem = new(Array.AsReadOnly(players));
+            if (!ValidMayhem(mayhem, entries)) return false;
+        }
+        else if (buffer.Length > offset && buffer[offset] == CourseMarker)
         {
             if (buffer.Length < offset + CourseHeaderSize || buffer[offset + 1] > 1 || buffer[offset + 2] > 1
                 || buffer[offset + 11] != count || buffer.Length != offset + CourseHeaderSize + count * CoursePlayerSize) return false;
@@ -201,7 +248,7 @@ public sealed class MatchResultPacket
             BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(4, 4)),
             buffer[8] != 0,
             entries,
-            run, versus, course);
+            run, versus, course, mayhem);
         return true;
     }
 }

@@ -1,6 +1,6 @@
 # Stage-select roster
 
-The stage picker currently offers six PVP maps:
+The stage picker currently offers seven PVP maps:
 
 | Stage | Current assessment |
 | --- | --- |
@@ -10,6 +10,7 @@ The stage picker currently offers six PVP maps:
 | [After Hours](after_hours.md) | Rebuilt 2026-10-16 as a broad neon rooftop; accepted 2026-10-17 |
 | [Last Stop](last_stop.md) | Remade 2026-10-16 as Mind the Gap; accepted 2026-10-17 |
 | [Log Off](log_off.md) | Rebuilt 2026-10-16 as a split stump with fungus shelves and a sunset campsite; accepted 2026-10-17 |
+| [Hamster Habitat](hamster_habitat.md) | New 2026-10-27: two hamster bins joined by see-through tubes in Table Manners' bedroom at night; accepted from captures 2026-10-27, not yet played in a match |
 
 Training remains available only in training mode. License Test (Fighter's License) is the Tutorial's map and is never offered here.
 

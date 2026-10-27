@@ -1,0 +1,136 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e24271275a4fc0af82df0240843b6bf, type: 3}
+  m_Name: CharacterAssetCatalog
+  m_EditorClassIdentifier: 
+  _packageId: salamander
+  _catalogSchemaVersion: 2
+  _rig: {fileID: 5034046216621652252, guid: d38aba3bf7fab2a7dac65a7b7c02b009, type: 3}
+  _weaponConfig: {fileID: 0}
+  _sampleRate: 60
+  _bindings:
+  - _semanticId: anim.salamander.a1
+    _clip: {fileID: 7400000, guid: 3386a7e522fdee9838d525e30ba333b7, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.a1
+  - _semanticId: anim.salamander.a3
+    _clip: {fileID: 7400000, guid: 412627475ca23514bbaaecd14aee36d0, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.a3
+  - _semanticId: anim.salamander.a4
+    _clip: {fileID: 7400000, guid: 6b61abe3c5c9f023592fad5add6dd4dc, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.a4
+  - _semanticId: anim.salamander.crouch
+    _clip: {fileID: 7400000, guid: 26c76379659870ddda214db6682a61e4, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.crouch
+  - _semanticId: anim.salamander.dash
+    _clip: {fileID: 7400000, guid: 385f0851e8be956d4b39605234967583, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.dash
+  - _semanticId: anim.salamander.fall
+    _clip: {fileID: 7400000, guid: a990176f29560e2469c49b9987e21afb, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.fall
+  - _semanticId: anim.salamander.g1
+    _clip: {fileID: 7400000, guid: 4007cb4dc167da92faf8304efbf088e0, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.g1
+  - _semanticId: anim.salamander.g3
+    _clip: {fileID: 7400000, guid: 85ad980abdbd90e3691f18b56def6fe4, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.g3
+  - _semanticId: anim.salamander.g4
+    _clip: {fileID: 7400000, guid: 7c20de191a69299de8a61edd4c264faa, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.g4
+  - _semanticId: anim.salamander.ga
+    _clip: {fileID: 7400000, guid: a9da2dd6ad2ed399db2ac9d2a931cb13, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.ga
+  - _semanticId: anim.salamander.ga-reload
+    _clip: {fileID: 7400000, guid: 9b4e98fa7bf97dec5a67fda0fc31a51f, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.ga-reload
+  - _semanticId: anim.salamander.ge
+    _clip: {fileID: 7400000, guid: d9aeda83687abd5b49bd61a607865613, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.ge
+  - _semanticId: anim.salamander.gf
+    _clip: {fileID: 7400000, guid: 211c604dd2eb189b2a354dc7e6c462a1, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.gf
+  - _semanticId: anim.salamander.gf-loop
+    _clip: {fileID: 7400000, guid: b46c20eade36822c88dc3078f66d180f, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.gf-loop
+  - _semanticId: anim.salamander.gr
+    _clip: {fileID: 7400000, guid: 16b122de2ca3d3d3eab898324c13705c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.gr
+  - _semanticId: anim.salamander.hit-hard
+    _clip: {fileID: 7400000, guid: 6b077694b8d1ef4b0bc64888759c0a99, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.hit-hard
+  - _semanticId: anim.salamander.hit-medium
+    _clip: {fileID: 7400000, guid: 60920ed876bfc78cb918164326c16cbc, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.hit-medium
+  - _semanticId: anim.salamander.hit-small
+    _clip: {fileID: 7400000, guid: 28d624bdacdc1efea976801e62acac89, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.hit-small
+  - _semanticId: anim.salamander.idle
+    _clip: {fileID: 7400000, guid: 89fb625ef4ccfe7de8fcb7a7b1f78b67, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.idle
+  - _semanticId: anim.salamander.jump
+    _clip: {fileID: 7400000, guid: ffeb352a88fdd2327b3453bf8849672a, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.jump
+  - _semanticId: anim.salamander.run
+    _clip: {fileID: 7400000, guid: 320b5d8d08e4933bbaac37fc7b5d38a2, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.run
+  - _semanticId: anim.salamander.slide
+    _clip: {fileID: 7400000, guid: 26c76379659870ddda214db6682a61e4, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.slide
+  - _semanticId: anim.salamander.tumble
+    _clip: {fileID: 7400000, guid: f2299ef646f932ea29631ae65ff7fc80, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.tumble
+  _presentations: []
+  _presentationProfile:
+    _respawnTint: {r: 1, g: 1, b: 1, a: 0.95}
+    _swing:
+      _selection: 0
+      _clips: []
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles: []

@@ -50,6 +50,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
     [SerializeField] private bool _reloadPlaying, _restoreReloadCursor;
     private bool _refreshAfterCompilation;
     [NonSerialized] private bool _waitingForAssemblyReload;
+    [NonSerialized] private double _waitingForAssemblyReloadSince;
     private AbilityLabPackageWorkspace _workspace = new();
     private AbilityLabPackagePreviewResult? _preview;
     private readonly List<PackageOption> _packages = new();
@@ -328,6 +329,13 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
     private void Update()
     {
+        // A compile that changes no assembly, or fails, skips the domain reload, so OnEnable never
+        // clears the wait and the preview rig is never recreated. A reload follows a finished
+        // compile within moments; a reload that still comes releases the rig before it runs.
+        if (_waitingForAssemblyReload && !EditorApplication.isCompiling && !EditorApplication.isUpdating &&
+            !EditorApplication.isPlayingOrWillChangePlaymode &&
+            EditorApplication.timeSinceStartup - _waitingForAssemblyReloadSince > 2.0)
+            _waitingForAssemblyReload = false;
         if (_uiReady && _refreshAfterCompilation && !_waitingForAssemblyReload && !EditorApplication.isCompiling)
         {
             _refreshAfterCompilation = false;
@@ -818,13 +826,10 @@ public sealed partial class AbilityLabWindow : EditorWindow
         BindDelayedFloat("character-hurtbox-radius", value => CommitGeneral(current => current with { HurtboxRadius = value }));
 
         BindDelayedFloat("movement-run-speed", value => CommitMovement(current => current with { RunSpeed = value }));
-        BindDelayedFloat("movement-run-acceleration-a", value => CommitMovement(current => current with { RunAccelerationA = value }));
-        BindDelayedFloat("movement-run-acceleration-b", value => CommitMovement(current => current with { RunAccelerationB = value }));
         BindDelayedFloat("movement-dash-speed", value => CommitMovement(current => current with { DashSpeed = value }));
         BindDelayedFloat("movement-ground-friction", value => CommitMovement(current => current with { GroundFriction = value }));
         BindDelayedInteger("movement-dash-duration-ticks", value => CommitMovement(current => current with { DashDurationTicks = ClampUShort(value) }));
         BindDelayedInteger("movement-dash-cooldown-ticks", value => CommitMovement(current => current with { DashCooldownTicks = ClampUShort(value) }));
-        BindDelayedInteger("movement-rush-ticks", value => CommitMovement(current => current with { RushTicks = ClampUShort(value) }));
 
         BindDelayedFloat("movement-air-speed-max", value => CommitMovement(current => current with { AirSpeedMax = value }));
         BindDelayedFloat("movement-air-acceleration-stick", value => CommitMovement(current => current with { AirAccelStick = value }));
@@ -1034,13 +1039,10 @@ public sealed partial class AbilityLabWindow : EditorWindow
 
         var movement = character.Movement;
         SetFloat("movement-run-speed", movement.RunSpeed);
-        SetFloat("movement-run-acceleration-a", movement.RunAccelerationA);
-        SetFloat("movement-run-acceleration-b", movement.RunAccelerationB);
         SetFloat("movement-dash-speed", movement.DashSpeed);
         SetFloat("movement-ground-friction", movement.GroundFriction);
         SetInteger("movement-dash-duration-ticks", movement.DashDurationTicks);
         SetInteger("movement-dash-cooldown-ticks", movement.DashCooldownTicks);
-        SetInteger("movement-rush-ticks", movement.RushTicks);
         SetFloat("movement-air-speed-max", movement.AirSpeedMax);
         SetFloat("movement-air-acceleration-stick", movement.AirAccelStick);
         SetFloat("movement-air-acceleration-base", movement.AirAccelBase);
@@ -3391,6 +3393,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
     {
         CheckpointWorkspace();
         _waitingForAssemblyReload = true;
+        _waitingForAssemblyReloadSince = EditorApplication.timeSinceStartup;
         _reloadPackageId = _workspace.PackageId;
         _refreshAfterCompilation = true;
         DestroyOwnedLab();

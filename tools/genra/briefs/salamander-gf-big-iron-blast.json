@@ -1,0 +1,128 @@
+{
+  "name": "salamander-gf-big-iron-blast",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0,
+    "match": false
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.F release (anim.salamander.gf), kit proposal 2026-10-27: the charged-projectile capability fires at tick 8 of a 45-tick release. The gag: the blast throws his arms up, knocks him back a step and peels his fake mustache off one side; he presses it back on (the same gag as his idle).",
+  "description": "The salamander's F, Big Iron: the blast. He releases the charged two-handed shot, and the recoil nearly knocks him over and half peels off his fake mustache.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe release (45 ticks, played once):\n- Tick 0: the aim pose of the charge loop: boots wide, knees bent, both arms straight out in front at eye level, hands clasped into one two-handed finger gun.\n- Tick 8, BOOM: the huge recoil: both arms fly up and back over his head, his chest arches back, the hat tips back, his right boot hops back 15-20 cm (he is shoved back a step) and the tail kicks up; joint Mustache flips 40-60 degrees so the mustache dangles from one end.\n- Tick 16: he stumbles, windmilling one arm for balance, knees bent.\n- Tick 26: steady again, he notices the mustache, his LEFT index finger presses it back onto his snout (fingertip at joint Mustache), joint Mustache snapping back to rest by tick 30.\n- Tick 36: a cocky shrug, hands back over the holsters.\n- Tick 45: the showdown stance.",
+  "clock": {
+    "duration_ticks": 45,
+    "contact_tick": 8,
+    "active": [
+      8,
+      8
+    ],
+    "iasa_tick": 45
+  },
+  "timing": {
+    "fixed": [
+      "45 ticks played once; the shot leaves at tick 8",
+      "tick 45 is his showdown idle"
+    ],
+    "adjustable": [
+      "the stumble beats"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 45
+  },
+  "fast_windows": [
+    [
+      6,
+      12
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "keys": [
+    0,
+    8,
+    16,
+    26,
+    30,
+    36,
+    45
+  ],
+  "review_ticks": [
+    0,
+    4,
+    7,
+    8,
+    10,
+    12,
+    16,
+    21,
+    26,
+    30,
+    36,
+    45
+  ],
+  "targets": [
+    {
+      "name": "aim: hands together in front at tick 0 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 0,
+      "max": 0.06
+    },
+    {
+      "name": "boom: hands above the head at tick 8 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 10,
+      "min": 0.05
+    },
+    {
+      "name": "boom: right boot steps back (m)",
+      "kind": "range",
+      "a": "RightFoot",
+      "axis": "front",
+      "window": [
+        6,
+        16
+      ],
+      "min": 0.1
+    },
+    {
+      "name": "press: left fingertip at the mustache at tick 26 (m)",
+      "kind": "distance",
+      "a": "LeftHandIndex3",
+      "b": "Mustache",
+      "tick": 26,
+      "max": 0.05
+    },
+    {
+      "name": "settled: left toe on the floor at tick 36 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 36,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    }
+  ]
+}

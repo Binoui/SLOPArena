@@ -122,18 +122,30 @@ public sealed class SteamMatchRoutingWireTests
         Assert.Equal(MatchFormat.Stock, LobbyPayloadCodec.TryParseMatchStarted(valid.RootElement)!.Format);
         using var coop = JsonDocument.Parse(serialized.Insert(serialized.LastIndexOf('}'), ",\"format\":\"slopball-coop\""));
         Assert.Equal(MatchFormat.SlopballCoop, LobbyPayloadCodec.TryParseMatchStarted(coop.RootElement)!.Format);
-        Assert.False(LobbyPayloadCodec.TryParseMatchStarted(coop.RootElement)!.FriendlyFire);
-        foreach (string value in new[] { "true", "false", "null", "1", "\"true\"" })
+        Assert.Equal(FriendlyFireMode.Off, LobbyPayloadCodec.TryParseMatchStarted(coop.RootElement)!.FriendlyFire);
+        foreach (string value in new[] { "\"on\"", "\"off\"", "true", "false", "null", "1", "\"shoves\"" })
         {
             using var rules = JsonDocument.Parse(coop.RootElement.GetRawText().Insert(1, $"\"friendlyFire\":{value},"));
             var parsed = LobbyPayloadCodec.TryParseMatchStarted(rules.RootElement);
-            if (value is "true" or "false") Assert.Equal(value == "true", parsed!.FriendlyFire);
+            if (value is "\"on\"" or "\"off\"") Assert.Equal(value == "\"on\"" ? FriendlyFireMode.On : FriendlyFireMode.Off, parsed!.FriendlyFire);
             else Assert.Null(parsed);
         }
         using var stockFriendly = JsonDocument.Parse(serialized.Insert(1, "\"friendlyFire\":true,"));
         Assert.Null(LobbyPayloadCodec.TryParseMatchStarted(stockFriendly.RootElement));
         using var unknown = JsonDocument.Parse(serialized.Insert(serialized.LastIndexOf('}'), ",\"format\":\"volleyball\""));
         Assert.Null(LobbyPayloadCodec.TryParseMatchStarted(unknown.RootElement));
+
+        var development = System.Text.Json.Nodes.JsonNode.Parse(serialized)!;
+        development["descriptor"] = null;
+        development["matchPort"] = 19883;
+        development["serverAddress"] = "127.0.0.1";
+        development["format"] = "manki-mayhem";
+        development["friendlyFire"] = "shoves";
+        using var developmentPush = JsonDocument.Parse(development.ToJsonString());
+        var mayhem = LobbyPayloadCodec.TryParseMatchStarted(developmentPush.RootElement);
+        Assert.NotNull(mayhem);
+        Assert.Equal(MatchFormat.MankiMayhem, mayhem!.Format);
+        Assert.Equal(FriendlyFireMode.Shoves, mayhem.FriendlyFire);
 
     }
 }

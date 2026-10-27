@@ -113,6 +113,7 @@ namespace SlopArena.Shared
             public ushort HitstopTicks;
             /// <summary>True when this contact was blocked by an active shield.</summary>
             public bool Blocked;
+            public bool Unblockable;
             /// <summary>Authoritative simulation tick used by the stable block feedback key.</summary>
             public uint MatchTick;
             /// <summary>Contact fraction within the tick, including moving Arcade spheres.</summary>
@@ -145,6 +146,8 @@ namespace SlopArena.Shared
             public ushort InvincibilityTicks;
             /// <summary>Shared shield collision surface, distinct from body/grab hurtboxes.</summary>
             public bool ShieldSurface;
+            public bool ProtectedByShield;
+            public bool RuntimeSolid;
             public bool Active;
             /// <summary>Continuous sphere path; null retains the ordinary fighter path.</summary>
             public IReadOnlyList<SphereMotionSegment>? MotionPath;
@@ -253,6 +256,91 @@ namespace SlopArena.Shared
                         ax *= limit / change; ay *= limit / change; az *= limit / change;
                     }
                     hb.VX += ax; hb.VY += ay; hb.VZ += az;
+                }
+                _hitboxes[i] = hb;
+            }
+        }
+
+        internal bool HasOwnerEffects(ulong ownerId)
+            => _hitboxes.Exists(h => h.Active && h.OwnerId == ownerId)
+                || _pendingExplosions.Exists(e => e.ownerId == ownerId);
+
+        internal void UpdateStickyProjectiles(Func<ulong, (bool Exists, float X, float Y, float Z)> carrierPosition)
+        {
+            for (int i = _hitboxes.Count - 1; i >= 0; i--)
+            {
+                var hb = _hitboxes[i];
+                if (hb.AttachedEntityId == 0) continue;
+                var carrier = carrierPosition(hb.AttachedEntityId);
+                if (!carrier.Exists) { ExplodeSticky(i, hb); continue; }
+                hb.X = carrier.X; hb.Y = carrier.Y; hb.Z = carrier.Z;
+                _hitboxes[i] = hb;
+            }
+        }
+
+        internal void ExplodeAttachedTo(ulong carrierId)
+        {
+            for (int i = _hitboxes.Count - 1; i >= 0; i--)
+                if (_hitboxes[i].AttachedEntityId == carrierId) ExplodeSticky(i, _hitboxes[i]);
+        }
+
+        private void ExplodeSticky(int index, Hitbox hb)
+        {
+            if (hb.Explosion.HasValue)
+                _pendingExplosions.Add((hb.X, hb.Y, hb.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
+                    hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));
+            OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
+            _hitboxes.RemoveAt(index);
+        }
+
+        internal void StopHomingAt(ulong targetId)
+        {
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var hb = _hitboxes[i];
+                if (hb.HomingTargetEntityId != targetId) continue;
+                hb.HomingTargetEntityId = 0;
+                _hitboxes[i] = hb;
+            }
+        }
+
+        internal void UpdateHomingProjectiles(
+            Func<ulong, ulong, (bool Exists, float X, float Y, float Z)> targetPosition)
+        {
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var hb = _hitboxes[i];
+                if (!hb.Active || hb.HomingTargetEntityId == 0) continue;
+                var target = targetPosition(hb.OwnerId, hb.HomingTargetEntityId);
+                float dx = target.X - hb.X, dy = target.Y - hb.Y, dz = target.Z - hb.Z;
+                float along = hb.VX * dx + hb.VY * dy + hb.VZ * dz;
+                if (!target.Exists || along <= 0f)
+                {
+                    hb.HomingTargetEntityId = 0;
+                }
+                else
+                {
+                    float speed = MathF.Sqrt(hb.VX * hb.VX + hb.VY * hb.VY + hb.VZ * hb.VZ);
+                    float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                    dx /= distance; dy /= distance; dz /= distance;
+                    float x = hb.VX / speed, y = hb.VY / speed, z = hb.VZ / speed;
+                    float dot = x * dx + y * dy + z * dz;
+                    if (dot >= hb.HomingTurnCos)
+                    {
+                        x = dx; y = dy; z = dz;
+                    }
+                    else
+                    {
+                        float px = dx - dot * x, py = dy - dot * y, pz = dz - dot * z;
+                        float perpendicular = MathF.Sqrt(px * px + py * py + pz * pz);
+                        px /= perpendicular; py /= perpendicular; pz /= perpendicular;
+                        x = x * hb.HomingTurnCos + px * hb.HomingTurnSin;
+                        y = y * hb.HomingTurnCos + py * hb.HomingTurnSin;
+                        z = z * hb.HomingTurnCos + pz * hb.HomingTurnSin;
+                        float norm = MathF.Sqrt(x * x + y * y + z * z);
+                        x /= norm; y /= norm; z /= norm;
+                    }
+                    hb.VX = x * speed; hb.VY = y * speed; hb.VZ = z * speed;
                 }
                 _hitboxes[i] = hb;
             }
@@ -457,7 +545,7 @@ namespace SlopArena.Shared
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
             {
                 var hb = _hitboxes[i];
-                if (!hb.Active || !hb.Explosion.HasValue || hb.Gravity <= 0f) continue;
+                if (!hb.Active || !hb.Explosion.HasValue || hb.Gravity <= 0f || hb.AttachedEntityId != 0) continue;
 
                 // Sample ground height at projectile's current XZ
                 float groundY = arena.Heightmap.Data != null && arena.Heightmap.Data.Length > 0
@@ -555,9 +643,24 @@ namespace SlopArena.Shared
                 var hb = _hitboxes[i];
                 if (!hb.Active) { _hitboxes.RemoveAt(i); continue; }
 
+                if (hb.AttachedEntityId != 0)
+                {
+                    if (hb.FuseTicksLeft > 0) hb.FuseTicksLeft--;
+                    if (hb.FuseTicksLeft == 0) ExplodeSticky(i, hb);
+                    else _hitboxes[i] = hb;
+                    _lastTickChecked.Add(hb);
+                    continue;
+                }
+
                 // Save position before movement (for explosion spawning)
                 float prevX = hb.X, prevY = hb.Y, prevZ = hb.Z;
                 var removalOrigin = (X: prevX, Y: prevY, Z: prevZ);
+
+                if (hb.Shape == HitboxShape.Ring)
+                {
+                    hb.PreviousRadius = hb.Radius;
+                    hb.Radius += hb.RingSpeed * Simulation.TickDt;
+                }
 
                 // Move projectile
                 hb.X += hb.VX * Simulation.TickDt;
@@ -590,6 +693,8 @@ namespace SlopArena.Shared
                 foreach (var entity in candidates)
                 {
                     if (!entity.Active) continue;
+                    if (entity.RuntimeSolid && (hb.Damage <= 0 || hb.OwnerId == ServerSimulation.MayhemHostEntityId)) continue;
+                    if (hb.Unblockable ? entity.ShieldSurface : entity.ProtectedByShield) continue;
                     if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
                     // Reject friendly contacts before consuming a projectile or its hit history.
                     if (canHitTarget != null && !canHitTarget(hb.OwnerId, entity.Id)) continue;
@@ -664,15 +769,24 @@ namespace SlopArena.Shared
                         launchAngle = ComputeAdaptiveAngle(dx, hurtboxCenterY - contact.Y, dz);
                     }
 
+                    if (hb.StickyFuseTicks > 0 && !entity.ShieldSurface)
+                    {
+                        hb.AttachedEntityId = entity.Id; hb.FuseTicksLeft = hb.StickyFuseTicks;
+                        hb.X = entity.PosX; hb.Y = (entity.PosY + entity.EndY) * .5f; hb.Z = entity.PosZ;
+                        hb.VX = hb.VY = hb.VZ = hb.Gravity = 0f;
+                        break;
+                    }
+
                     results.Add(new HitResult
                     {
                         TargetEntityId = entity.Id,
+                        Unblockable = hb.Unblockable,
                         OwnerEntityId = hb.OwnerId,
                         AttackSlot = hb.AttackSlot,
                         ActivationId = hb.ActivationId,
                         Airborne = hb.ActivationAirborne,
                         ReturnPhase = hb.Return.HasValue ? (hb.ReturnLeg ? (byte)2 : (byte)1) : (byte)0,
-                        Damage = hb.Damage,
+                        Damage = entity.Id == hb.OwnerId ? hb.OwnerDamage ?? hb.Damage : hb.Damage,
                         AttackSequence = hb.AttackSequence,
                         DirX = dirXNorm,
                         KnockbackAngle = launchAngle,
@@ -705,11 +819,13 @@ namespace SlopArena.Shared
                     break;
                 }
                 _lastTickChecked.Add(hb);
+                if (hb.StickyFuseTicks > 0 && hb.Active)
+                    removalOrigin = (hb.X, hb.Y, hb.Z);
 
                 // Age / expire
                 if (!hb.CancelWithAbility || frozenOwners == null || !frozenOwners.Contains(hb.OwnerId))
                     hb.AgeTicks++;
-                if (hb.AgeTicks >= hb.DurationTicks || !hb.Active)
+                if (hb.AttachedEntityId == 0 && (hb.AgeTicks >= hb.DurationTicks || !hb.Active))
                 {
                     if (hb.Explosion.HasValue)
                         _pendingExplosions.Add((removalOrigin.X, removalOrigin.Y, removalOrigin.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
@@ -745,6 +861,35 @@ namespace SlopArena.Shared
             contactTime = 1f;
             movingTargetY = entity.PosY;
 
+            if (hb.Shape == HitboxShape.Ring)
+            {
+                float ex = entity.Shape == HitboxShape.Capsule ? entity.EndX : entity.PosX;
+                float ey = entity.Shape == HitboxShape.Capsule ? entity.EndY : entity.PosY;
+                float ez = entity.Shape == HitboxShape.Capsule ? entity.EndZ : entity.PosZ;
+                float low = hb.Y - hb.RingHalfHeight - entity.Radius;
+                float high = hb.Y + hb.RingHalfHeight + entity.Radius;
+                float a = 0f, b = 1f, vy = ey - entity.PosY;
+                if (MathF.Abs(vy) < .000001f)
+                { if (entity.PosY < low || entity.PosY > high) return false; }
+                else
+                {
+                    float t0 = (low - entity.PosY) / vy, t1 = (high - entity.PosY) / vy;
+                    a = MathF.Max(a, MathF.Min(t0, t1)); b = MathF.Min(b, MathF.Max(t0, t1));
+                    if (a > b) return false;
+                }
+                float ax = entity.PosX + (ex - entity.PosX) * a - hb.X;
+                float az = entity.PosZ + (ez - entity.PosZ) * a - hb.Z;
+                float bx = entity.PosX + (ex - entity.PosX) * b - hb.X;
+                float bz = entity.PosZ + (ez - entity.PosZ) * b - hb.Z;
+                float sx = bx - ax, sz = bz - az, length = sx * sx + sz * sz;
+                float t = length > .000001f ? Math.Clamp(-(ax * sx + az * sz) / length, 0f, 1f) : 0f;
+                dx = ax + sx * t; dz = az + sz * t;
+                dist = MathF.Sqrt(dx * dx + dz * dz);
+                float far = MathF.Sqrt(MathF.Max(ax * ax + az * az, bx * bx + bz * bz));
+                float width = hb.RingHalfWidth + entity.Radius;
+                hitX = hb.X + dx; hitY = hb.Y; hitZ = hb.Z + dz;
+                return dist <= hb.Radius + width && far >= MathF.Max(0f, hb.PreviousRadius - width);
+            }
             if (entity.MotionPath != null)
             {
                 hit = MovingSphereContact(in hb, in entity, prevX, prevY, prevZ,

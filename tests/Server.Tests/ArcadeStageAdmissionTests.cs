@@ -7,6 +7,7 @@ namespace SlopArena.Server.Tests;
 public class ArcadeStageAdmissionTests
 {
     [Theory]
+    [InlineData("manki_mayhem")]
     [InlineData("arcade_ball_lab")]
     [InlineData("slopball")]
     [InlineData("fightguy_sanctuary")]
@@ -73,6 +74,32 @@ public class ArcadeStageAdmissionTests
             Assert.Equal(0, orchestrator.CurrentMatchCount);
         }
         finally { orchestrator.Shutdown(); }
+    }
+
+    [Theory]
+    [InlineData("manki_mayhem", 2, FriendlyFireMode.Off, true)]
+    [InlineData("manki_mayhem", 3, FriendlyFireMode.Shoves, true)]
+    [InlineData("manki_mayhem", 4, FriendlyFireMode.On, true)]
+    [InlineData("manki_mayhem", 1, FriendlyFireMode.Shoves, false)]
+    [InlineData("manki_mayhem", 5, FriendlyFireMode.Shoves, false)]
+    [InlineData("manki_mayhem", 2, (FriendlyFireMode)255, false)]
+    [InlineData("slop_pit", 2, FriendlyFireMode.Shoves, false)]
+    [InlineData("slopball", 2, FriendlyFireMode.Shoves, false)]
+    public void MayhemAdmissionChecksArenaSizeAndRules(string stage, int count, FriendlyFireMode mode, bool admitted)
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
+        var host = new MultiMatchOrchestrator(new ServerConfig { MaxConcurrentMatches = 0 });
+        try
+        {
+            Assert.True(host.ContentReady);
+            Assert.False(host.TryAssignMatch("mayhem-admission", stage,
+                Enumerable.Range(1, count).Select(i => new MatchPlayer(100 + i, CharacterClass.Manki, i)).ToArray(),
+                3, null, null, out _, out _, out _, out var error, MatchFormat.MankiMayhem, mode));
+            Assert.Equal(admitted, error!.StartsWith("No capacity", StringComparison.Ordinal));
+            Assert.Equal(0, host.CurrentMatchCount);
+        }
+        finally { host.Shutdown(); }
     }
 
     [Fact]

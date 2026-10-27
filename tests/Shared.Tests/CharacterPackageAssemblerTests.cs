@@ -365,6 +365,71 @@ public sealed class CharacterPackageAssemblerTests
     }
 
     [Fact]
+    public void FingerGunsRoundTripsTheVerifiedCookedPackage()
+    {
+        var package = CompileFingerGuns();
+        var loaded = LoadFingerGuns(package);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
+        Assert.Equal("1.11.0", loaded.Package!.Metadata.RuntimeApiMin);
+        Assert.Equal(package.Definition.Slots.Single(slot => slot.Id == "ground.A").Timeline.Stages.Single().Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters,
+            loaded.Package.Definition.Slots.Single(slot => slot.Id == "ground.A").Timeline.Stages.Single().Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+    }
+
+    [Theory]
+    [InlineData("api")]
+    [InlineData("fireTriggerTick")]
+    [InlineData("recoveryTicks")]
+    [InlineData("shotsPerReload")]
+    [InlineData("reloadTicks")]
+    [InlineData("reloadAnimationId")]
+    [InlineData("airMaxFallSpeed")]
+    [InlineData("airRecoilSpeed")]
+    [InlineData("projectile")]
+    [InlineData("iasa")]
+    public void FingerGunsLoaderRejectsTamperedCookedParametersOrApi(string field)
+    {
+        var package = CompileFingerGuns();
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        string api = field == "api" ? "1.10.0" : "1.11.0";
+        runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = api;
+        var stage = runtime["character"]!["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.A")!
+            ["timeline"]!["stages"]![0]!;
+        var p = stage["operations"]![0]!["parameters"]!;
+        switch (field)
+        {
+            case "api": break;
+            case "reloadAnimationId": p[field] = "anim.missing"; break;
+            case "airMaxFallSpeed": case "airRecoilSpeed": p[field] = 31; break;
+            case "projectile": p[field]!["speed"] = 0; break;
+            case "iasa": stage["iasaTicks"] = 1; break;
+            default: p[field] = 0; break;
+        }
+        var tampered = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = api }, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var rejected = LoadFingerGuns(tampered);
+        Assert.False(rejected.IsValid);
+        Assert.Contains(rejected.Diagnostics, d => d.Code == (field == "api"
+            ? "package.compatibility.unsupported" : "package.capability.parameters-invalid"));
+    }
+
+    private static CookedCharacterPackage CompileFingerGuns()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+        FingerGunsTests.UseGuns(character);
+        var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        return compiled.CookedPackage!;
+    }
+
+    private static CookedCharacterPackageLoadResult LoadFingerGuns(CookedCharacterPackage package)
+        => CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(package,
+            Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+
+    [Fact]
     public void ChargedStreamRoundTripsTheVerifiedCookedPackage()
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");

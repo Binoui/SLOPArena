@@ -121,7 +121,7 @@ public class IasaTests
 
 
     [Fact]
-    public void GroundAttackNaturalEnd_HeldMovementStartsAtRunSpeed()
+    public void GroundAttackNaturalEnd_HeldMovementUsesTheStartFloor()
     {
         var def = MakeGroundRecoveryDef();
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
@@ -132,8 +132,8 @@ public class IasaTests
 
         // Establish a held direction before the attack. The attack then clears velocity
         // while preserving the direction, which distinguishes a fresh recovery from a
-        // normal standstill Rush kick-off.
-        for (int tick = 0; tick < 20; tick++)
+        // normal standstill start.
+        for (int tick = 0; tick < 30; tick++)
             sim.Tick(new Dictionary<ulong, InputState> { [1] = TestHelpers.Input(moveY: 1f) });
         var beforeAttack = sim.GetState(1);
         TestHelpers.AssertNear(def.Movement.RunSpeed, beforeAttack.VZ, 0.1f);
@@ -156,11 +156,11 @@ public class IasaTests
         Assert.Equal(0f, states[Slot1Duration - 2].VZ);
 
         // Natural completion unlocks on this tick; the following held-input tick must start
-        // at the configured cruise speed, not accelerate up from zero.
+        // at the same 40% floor as an ordinary start.
         Assert.Equal(ActionState.Idle, states[Slot1Duration - 1].State);
         Assert.Equal(0f, states[Slot1Duration - 1].VZ);
         Assert.Equal(ActionState.Run, states[Slot1Duration].State);
-        TestHelpers.AssertNear(def.Movement.RunSpeed, states[Slot1Duration].VZ, 0.1f);
+        TestHelpers.AssertNear(.4f * def.Movement.RunSpeed, states[Slot1Duration].VZ, 0.1f);
     }
     [Fact]
     public void IasaUnlock_RequiresAttackingStateAndActiveSlot()

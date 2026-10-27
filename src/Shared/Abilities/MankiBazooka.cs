@@ -2,24 +2,13 @@ using System;
 
 namespace SlopArena.Shared.Abilities
 {
-    /// <summary>
-    /// Manki's R (slot 4): Bazooka — hold to aim (camera direction), release to fire.
-    /// 
-    /// Phases:
-    ///   0 (Aiming): Hold key, show loop animation, camera controls aim direction.
-    ///     Transition to Firing on release (input.IsAiming == false).
-    ///   1 (Firing): Short cast animation, spawn rocket at trigger tick in AimYaw/AimPitch direction.
-    ///   2 (Recovery): Endlag, then EndAbility.
-    ///
-    /// Projectile has gravity + ground collision + explosion with CanHitOwner=true.
-    /// Rocket jump: aim at feet → projectile ground-collides near self → explosion.
-    /// </summary>
-    public sealed class MankiBazooka : ServerAbility, IAimHoldCapability
+    /// <summary>Press-to-fire rocket. Its captured target and steering live on the projectile.</summary>
+    public sealed class MankiBazooka : ServerAbility
     {
         public override bool OwnsVerticalMotion => true;
 
         private readonly CookedMankiBazookaCapabilityParameters _parameters;
-        private enum BazookaPhase { Aiming, Firing, Recovery }
+        private enum BazookaPhase { Firing, Recovery }
         private BazookaPhase _phase;
         private bool _projectileSpawned;
 
@@ -30,17 +19,16 @@ namespace SlopArena.Shared.Abilities
             ClearVelocityOwnership(ref s);
             s.IsFastFalling = false;
 
-            _phase = BazookaPhase.Aiming;
+            _phase = BazookaPhase.Firing;
             _projectileSpawned = false;
 
-            // Fixed aim stops on the ground and coasts with existing momentum in the air.
-            s.State = ActionState.Aiming;
+            s.State = ActionState.Attacking;
             s.AttackSlot = (byte)(Slot + 1);
-            AnimIndex = 0;  // spell_r_loop (aim hold)
-            s.ComboStage = 0;
+            AnimIndex = 1;
+            s.ComboStage = 1;
             s.AttackElapsedTicks = 0;
-            s.IsAiming = true;
-            s.AnimLockTicks = 180;
+            s.IsAiming = false;
+            s.AnimLockTicks = _parameters.CastDuration;
         }
 
         public override void OnEnd(ref CharacterState s)
@@ -55,35 +43,16 @@ namespace SlopArena.Shared.Abilities
 
         public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
         {
+            s.IsAiming = false;
+            if (s.IsGrounded) s.VX = s.VZ = 0f;
             switch (_phase)
             {
-                case BazookaPhase.Aiming:
-                    TickAiming(ref s, input, def);
-                    break;
                 case BazookaPhase.Firing:
                     TickFiring(ref s, def);
                     break;
                 case BazookaPhase.Recovery:
                     TickRecovery(ref s, def);
                     break;
-            }
-        }
-
-        private void TickAiming(ref CharacterState s, InputState input, CharacterDefinition def)
-        {
-            s.IsAiming = true;
-            // Server no longer enforces facing = aim direction — character
-            // faces naturally based on movement direction.
-
-            if (!input.IsAiming)
-            {
-                // Firing is an action phase — re-enter Attacking (hold was Aiming).
-                s.State = ActionState.Attacking;
-                _phase = BazookaPhase.Firing;
-                s.AttackElapsedTicks = 0;
-                AnimIndex = 1;      // spell_r_attack
-                s.ComboStage = 1;   // renderer switches loop -> attack clip
-                s.AnimLockTicks = _parameters.CastDuration;
             }
         }
 
@@ -114,17 +83,21 @@ namespace SlopArena.Shared.Abilities
         private void SpawnRocket(ref CharacterState s, CharacterDefinition def)
         {
             float speed = _parameters.ProjectileSpeed;
-            float pitch = s.AimPitch;
-            float yaw = s.AimYaw;
-
-            float cosPitch = MathF.Cos(pitch);
-            float vx = speed * cosPitch * MathF.Sin(yaw);
-            float vy = speed * MathF.Sin(pitch);
-            float vz = speed * cosPitch * MathF.Cos(yaw);
-
-            if (Simulation.OnDebugLog != null)
-                Simulation.OnDebugLog.Invoke(
-                    $"[MankiBazooka] Firing! pitch={pitch:F3}({pitch*(180f/MathF.PI):F1}°) yaw={yaw:F3}({yaw*(180f/MathF.PI):F1}°) vy={vy:F2} vz={vz:F2}");
+            float vx = speed * MathF.Sin(s.FacingYaw), vy = 0f, vz = speed * MathF.Cos(s.FacingYaw);
+            ulong targetId = 0;
+            if (OwnerSimulation != null
+                && OwnerSimulation.TryGetProjectileTargetPosition(s.EntityId, s.TargetEntityId, out var target))
+            {
+                float dx = target.X - s.PX, dy = target.Y - (s.PY + 1f), dz = target.Z - s.PZ;
+                float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                if (distance > 0.0001f)
+                {
+                    targetId = s.TargetEntityId;
+                    vx = dx / distance * speed;
+                    vy = dy / distance * speed;
+                    vz = dz / distance * speed;
+                }
+            }
 
             SpawnResolverHitbox(new Hitbox
             {
@@ -144,6 +117,9 @@ namespace SlopArena.Shared.Abilities
                 OwnerId = s.EntityId,
                 AttackSlot = (byte)(Slot + 1),
                 Gravity = _parameters.Gravity,
+                HomingTargetEntityId = targetId,
+                HomingTurnCos = _parameters.HomingTurnCos,
+                HomingTurnSin = _parameters.HomingTurnSin,
                 Explosion = new ProjectileExplosion
                 {
                     Radius = _parameters.ExplosionRadius,
@@ -152,23 +128,13 @@ namespace SlopArena.Shared.Abilities
                     StunTicks = _parameters.ExplosionStunTicks,
                     DurationTicks = _parameters.ExplosionDurationTicks,
                     CanHitOwner = true,
+                    OwnerDamage = 4f,
                     ExplosionPresentationId = _parameters.ExplosionPresentationId,
                     PresentationAttackSequence = PresentationAttackSequence,
                     PresentationOperationIndex = PresentationOperationIndex,
                     PresentationYaw = s.FacingYaw,
                 },
             });
-        }
-
-        public override void OnHitEntity(ref CharacterState attacker, ref CharacterState target,
-            CharacterDefinition attackerDef, CharacterDefinition targetDef,
-            ref float damage, ref float knockbackForce)
-        {
-            if (target.EntityId == attacker.EntityId)
-            {
-                int corrected = target.DamagePercent - (ushort)damage + 4;
-                target.DamagePercent = (ushort)Math.Clamp(corrected, 0, 999);
-            }
         }
 
         internal override void WriteSnapshot(SnapshotWriter w)

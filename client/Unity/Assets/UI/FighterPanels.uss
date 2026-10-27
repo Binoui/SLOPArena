@@ -1,0 +1,108 @@
+.frontend-shell--fighters .shell-page-lower-host,
+.frontend-shell--compact.frontend-shell--fighters .shell-page-lower-host,
+.frontend-shell--stage .shell-page-lower-host,
+.frontend-shell--compact.frontend-shell--stage .shell-page-lower-host { margin-left: 0; }
+.frontend-shell--fighters .shell-lower-row { margin-top: 18px; }
+.frontend-shell--fighters .char-body-section { justify-content: center; }
+.frontend-shell--fighters .char-body-section .char-grid {
+    flex-grow: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 0;
+    padding: 12px 12px 0;
+}
+.frontend-shell--fighters .char-body-section .char-grid .char-card {
+    width: 10.5%;
+    min-width: 0;
+    max-width: 190px;
+    min-height: 0;
+    height: 200px;
+    margin: 0 7px 12px;
+    border-width: 3px;
+}
+.frontend-shell--fighters .char-card .char-portrait { margin-bottom: 30px; }
+.frontend-shell--fighters .char-card .char-card-name {
+    min-height: 30px;
+    font-size: 18px;
+    padding: 3px 5px;
+    -unity-text-align: middle-center;
+}
+.frontend-shell--fighters .char-card .char-card-check { display: none; }
+.frontend-shell--fighters .char-card .char-markers { left: 4px; top: 4px; right: 4px; }
+.frontend-shell--fighters .char-card .char-marker { font-size: 12px; padding: 1px 4px; margin-right: 3px; margin-bottom: 3px; }
+.frontend-shell--fighters .char-summary-section { flex-direction: column; align-items: center; flex-wrap: nowrap; }
+.frontend-shell--fighters .char-summary-section .roster-panel {
+    width: 84%;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    height: 440px;
+}
+.frontend-shell--fighters .char-header-status { background-color: transparent; border-width: 0; }
+.frontend-shell--fighters .char-header-status .char-select-meta { display: none; }
+.frontend-shell--fighters .char-actions-section { margin-top: 20px; }
+.frontend-shell--fighters .solo-next-action { width: 250px; min-width: 0; }
+.frontend-shell--fighters .pvp-action-area { width: auto; min-width: 0; flex-direction: row; align-items: center; }
+.frontend-shell--fighters .pvp-status { margin-right: 18px; }
+.fighter-panel {
+    flex-direction: column;
+    align-items: stretch;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 0;
+    margin: 0 10px;
+    padding: 0;
+    background-color: rgb(27, 26, 24);
+    border-width: 4px;
+    border-color: rgb(27, 26, 24);
+    border-radius: 0;
+    overflow: hidden;
+    color: rgb(240, 238, 232);
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+}
+.fighter-panel:hover, .fighter-panel:focus { background-color: rgb(27, 26, 24); border-color: rgb(240, 238, 232); }
+.fighter-panel Label { margin: 0; padding: 0; }
+.fighter-panel__heading { flex-direction: row; align-items: center; min-height: 42px; padding: 3px 10px; color: rgb(27, 26, 24); flex-shrink: 0; }
+.fighter-panel__number { font-size: 28px; }
+.fighter-panel__role { font-size: 14px; margin-left: 8px; }
+.fighter-panel__name { font-size: 14px; flex-grow: 1; -unity-text-align: middle-right; overflow: hidden; text-overflow: ellipsis; }
+.fighter-panel__art { flex-grow: 0; flex-shrink: 0; height: 55%; min-height: 0; background-color: rgb(58, 54, 49); -unity-background-scale-mode: scale-and-crop; background-position: center top; }
+.fighter-panel--Manki .fighter-panel__art { background-image: url("SplashArt/Manki.png"); }
+.fighter-panel--FightGuy .fighter-panel__art { background-image: url("SplashArt/FightGuy.png"); }
+.fighter-panel--Wibou .fighter-panel__art { background-image: url("SplashArt/Wibou.png"); }
+.fighter-panel--Bonk .fighter-panel__art { background-image: url("SplashArt/Bonk.png"); }
+.fighter-panel .fighter-panel__fighter { font-size: 34px; padding: 7px 10px 0; flex-shrink: 0; }
+.fighter-panel .fighter-panel__description { font-size: 16px; -unity-font-definition: url("../Fonts/Baloo2.asset"); opacity: 0.75; padding: 0 10px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.fighter-panel .fighter-panel__status { font-size: 14px; padding: 4px 10px 10px; white-space: normal; flex-shrink: 0; }
+.fighter-panel__controls { flex-direction: row; flex-wrap: wrap; padding: 0 6px 8px; flex-shrink: 0; }
+.fighter-panel__control { min-width: 0; margin: 2px; padding: 4px 6px; border-width: 2px; border-color: rgb(240, 238, 232); border-radius: 0; background-color: rgb(27, 26, 24); color: rgb(240, 238, 232); font-size: 13px; }
+.fighter-panel__control.active, .fighter-panel__control:focus { background-color: rgb(240, 238, 232); color: rgb(27, 26, 24); }
+.fighter-panel__control:disabled { opacity: 0.3; }
+.fighter-panel--open { background-color: rgba(27, 26, 24, 0.12); color: rgb(27, 26, 24); }
+.fighter-panel--open:hover, .fighter-panel--open:focus { background-color: rgba(240, 238, 232, 0.3); border-color: rgb(27, 26, 24); }
+.fighter-panel--open .fighter-panel__heading { display: none; }
+.fighter-panel .fighter-panel__empty { flex-grow: 1; -unity-text-align: lower-center; font-size: 24px; padding: 15px; }
+.fighter-panel--open .fighter-panel__status { flex-grow: 1; -unity-text-align: upper-center; font-size: 16px; }
+.fighter-panel__placeholder { flex-grow: 1; font-size: 90px; color: rgb(176, 165, 148); -unity-text-align: middle-center; }
+.frontend-shell--stage .stage-player-cards { justify-content: center; flex-wrap: nowrap; margin: 0 0 0 150px; }
+.frontend-shell--stage .stage-summary-section { justify-content: center; margin-top: 8px; }
+.frontend-shell--stage .stage-actions-section { margin-top: 16px; padding: 0; background-color: transparent; border-width: 0; width: 290px; }
+.fighter-panel--compact { height: 130px; max-width: 340px; }
+.fighter-panel--compact .fighter-panel__heading { min-height: 30px; }
+.fighter-panel--compact .fighter-panel__number { font-size: 22px; }
+.fighter-panel--compact .fighter-panel__art { position: absolute; left: 0; bottom: 0; top: 30px; width: 28%; height: auto; }
+.fighter-panel--compact .fighter-panel__fighter { padding-left: 31%; padding-top: 18px; font-size: 24px; }
+.fighter-panel--compact .fighter-panel__status { padding-left: 31%; font-size: 14px; }
+
+.fighter-panel .fighter-panel__role { margin-left: 8px; }
+.fighter-panel .fighter-panel__fighter, .fighter-panel .fighter-panel__description,
+.fighter-panel .fighter-panel__status { -unity-text-align: middle-left; }
+.fighter-panel--open .fighter-panel__status { -unity-text-align: upper-center; }
+
+.frontend-shell--stage .stage-body-section .stage-grid { width: 72%; align-self: center; justify-content: center; }
+.frontend-shell--stage .stage-body-section .stage-card { width: 31%; height: 236px; }
+
+.frontend-shell--stage .stage-actions-section .stage-selected-label { white-space: normal; -unity-text-align: middle-center; }

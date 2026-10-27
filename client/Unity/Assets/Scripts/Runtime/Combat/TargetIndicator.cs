@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SlopArena.Shared;
 using SlopArena.Client.Entities;
+using SlopArena.Client.UI;
 using UnityEngine;
 
 namespace SlopArena.Client.Combat
@@ -45,7 +46,7 @@ namespace SlopArena.Client.Combat
         // a lower ring is hidden by the depth test.
         private const float RingHeightAboveFloor = 0.06f;
         private static readonly Color Paper = new Color(240f / 255f, 238f / 255f, 232f / 255f);
-        private static readonly Color LocalAccent = new Color(1f, 204f / 255f, 34f / 255f);
+        private static readonly Color LocalAccent = SeatColours.For(1);
         private static readonly Color DropLineOrange = new Color(1f, 176f / 255f, 59f / 255f);
         private static readonly int AirborneProperty = Shader.PropertyToID("_Airborne");
         private static readonly int AccentProperty = Shader.PropertyToID("_Accent");

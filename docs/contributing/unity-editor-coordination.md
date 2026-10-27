@@ -102,6 +102,10 @@ another owner to insert ordinary verification into their runtime or retain a lea
 for an entire conversation. Stdout is native-result JSON followed by final ownership
 JSON; the exit code propagates transport, typed semantic, compile and native-test
 failure. Visual claims still require inspecting requested captures.
+Redirect gateway stdout to a file and read that file afterwards. Never pipe it into a reader
+that can close early (`| head`, `| grep -m`, `| sed q`). On 2026-10-27, `--query capture | head`
+killed the gateway with SIGPIPE before release. That left an orphaned `held` lease that
+only `Recover Editor Lease...` could clear.
 
 ## Agent messaging
 

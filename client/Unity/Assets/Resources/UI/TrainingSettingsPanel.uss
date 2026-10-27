@@ -15,14 +15,6 @@
 
 .ts-panel:disabled { opacity: 1; }
 
-.ts-movement-summary {
-    font-size: 16px;
-    -unity-font-style: bold;
-    color: #ffcc22;
-    white-space: normal;
-    margin-top: 4px;
-}
-
 .ts-panel--compact {
     border-bottom-color: #ffcc22;
 }

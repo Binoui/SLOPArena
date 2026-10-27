@@ -17,7 +17,7 @@ Target: keyboard-competitive platform fighter with the WoW hotkey layout (proven
 2. **No directional commands.** Attack direction = facing + tracking. Facing is already input-only; `RotateTowardTarget`/`TrackingStrength` (kept, ADR-0015) handle aim during attacks.
 3. **Short hop:** Space release within a window (3–5 ticks) → reduced jump velocity. Release-timing is digital-optimal (box-controller proven).
 4. **Fast fall:** down (camera-relative) while airborne → gravity multiplier toward `MaxFallSpeed`. Uses the existing `Down` bit — the crouch mapping is deprecated (ADR-0014), so it is free in the air.
-5. **SOCD + 8-way contract:** opposites cancel to neutral (current behavior, codified); all movement and move design targets 8 directions. No analog-only tech (no light-press moves) is ever designed.
+5. **SOCD and movement direction, amended 2026-10-27.** Keyboard opposites cancel to neutral and keyboard movement stays digital in eight directions. Controller sticks default to 8-way snap, with a persisted **Stick 8-way snap** toggle under Controls. Turning snap off permits continuous stick direction. This is client input adaptation only. Shared ignores tilt magnitude and applies the universal Run rule in ADR-0020. No light-press movement tier or analog-only move is introduced. The owner chose this after the 2026-10-24/25 Steam Deck playtests and the 2026-10-26/27 Training prototype.
 6. **Mouse = aim only** for projectile specials (the PC identity: platform-fighter movement + FPS-aimed specials). `Space` jump, `Shift` dodge, `C` burst — all unchanged.
 7. **Controllers later map to the same slots.** `InputState` stays device-agnostic; a controller's buttons map 1:1 to the 10 slots + jump/dodge/burst. Keyboard remains the competitive floor.
 
@@ -28,7 +28,7 @@ Target: keyboard-competitive platform fighter with the WoW hotkey layout (proven
 - **Directional attacks (Smash model)** — rejected: chord ambiguity on keyboard (W is movement), and tracking makes input direction redundant in 3D lock-on.
 - **Keep 6 slots (current Q/E/R/F + mouse buttons)** — rejected: too few for the FG move budget (8 roles minimum); auto-combo chains were masking the count.
 - **Controller-first** — rejected: keyboard is the competitive floor; hotkeys are frame-consistent and zero-ambiguity, and timing tech is digital-optimal.
-- **Analog emulation (partial-stick via pressure)** — rejected: needs analog hardware or awkward emulation; violates the 8-way contract.
+- **Analog emulation as a speed tier**. Rejected because it needs analog hardware or awkward keyboard emulation. The 2026-10-27 amendment permits continuous stick direction while every nonzero tilt uses the same speed rule.
 
 ## Consequences
 
@@ -37,7 +37,7 @@ Target: keyboard-competitive platform fighter with the WoW hotkey layout (proven
 - **`InputController.Poll()` remap:** one switch, plus key-remap support (keys are currently hardcoded — ZQSD is a remap away for AZERTY).
 - **Ergonomics:** left hand on ZQSD + 1-5 + A/E/R/F + Space/Shift/C; right hand on mouse (aim + LMB/RMB). ~15 inputs, all WoW-proven under high APM.
 - **Data expansion:** 4 × 10 move definitions (ground/air variants) replace the chain data; the auto-combo removal (ADR-0015) and this slot expansion are one data pass.
-- **Feel risk:** 8-way drift is coarser than analog; accepted (Rivals of Aether precedent). The short-hop release window is the single most feel-critical constant — tune 3–5 ticks in playtest.
+- **Feel risk, amended 2026-10-27.** Keyboard and default snapped-stick drift stay in eight directions. Controller players can turn snap off for finer direction control. The short-hop release window is the single most feel-critical constant — tune 3–5 ticks in playtest.
 
 ## Implementation notes (issue #116, 2026-08-10)
 

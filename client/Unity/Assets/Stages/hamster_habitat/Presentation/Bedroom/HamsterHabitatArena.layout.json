@@ -1,0 +1,63 @@
+{
+ "generator": "tools/blender/hamster_habitat/build.py",
+ "source": "client/Unity/Assets/Stages/hamster_habitat/hamster_habitat.unity",
+ "sourceSha256": "1698440cd9a2034b96fcbbabb8edd70bd996b092dacf47c221bc8c22afb402fb",
+ "arena": "data/arenas/hamster_habitat.arena",
+ "arenaSha256": "f4092c9c66f11242b70871587f455c06541ab9d614958bbb42dabcf7ad12f0f5",
+ "blender": "5.2.3 LTS",
+ "materials": [
+  "HH_Lit",
+  "HH_Glass",
+  "HH_Shavings",
+  "HH_Glow",
+  "HH_Toon",
+  "HH_Posters"
+ ],
+ "anchors": {
+  "Camera See-Through Thin Walls": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "shadowed": [
+  "Desk Bin Shavings",
+  "Shelf Bin Shavings",
+  "Bins",
+  "House",
+  "Food Bowl",
+  "Wheel Deck",
+  "Wheel Rims",
+  "Wheel Post",
+  "TP Roll",
+  "Junction Step",
+  "Low Tube Frame",
+  "High Tube Frame",
+  "Hamster"
+ ],
+ "objects": [
+  "Bedroom",
+  "Bedroom Clutter",
+  "Bedroom Glow",
+  "Bedroom Posters",
+  "Bins",
+  "Desk Bin Shavings",
+  "Food Bowl",
+  "Hamster",
+  "Hamster Glints",
+  "High Tube Frame",
+  "High Tube Glass",
+  "House",
+  "Junction Step",
+  "Low Tube Frame",
+  "Low Tube Glass",
+  "Shelf Bin Shavings",
+  "TP Roll",
+  "Wheel",
+  "Wheel Deck",
+  "Wheel Post",
+  "Wheel Rims"
+ ],
+ "geometryDigest": "9d95352543d1b1d7a0c689e8f6224aefcb0961350b4d3a4ce8e50a4425f727f1",
+ "problems": 0
+}

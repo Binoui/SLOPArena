@@ -183,15 +183,17 @@ public class AbilityLifecycleTests
     // ══════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void MankiR_BasicActivation_EntersAiming()
+    public void MankiR_BasicActivation_EntersFiring()
     {
         var arena = TestHelpers.TestArena();
         var sim = TestHelpers.MakeSim(arena);
         var state = TestHelpers.PlayerState();
         TestHelpers.RegisterPlayer(sim, Def, state);
 
-        var after = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5, aiming: true), 1);
-        Assert.Equal(ActionState.Aiming, after.State);
+        var after = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5), 1);
+        Assert.Equal(ActionState.Attacking, after.State);
+        Assert.False(after.IsAiming);
+        Assert.Equal((byte)1, after.ComboStage);
         Assert.Equal((byte)5, after.AttackSlot);
     }
 
@@ -211,18 +213,18 @@ public class AbilityLifecycleTests
     }
 
     [Fact]
-    public void MankiR_ProjectileUsesAimDirection()
+    public void MankiR_WithoutTargetUsesFacingAndIgnoresAimPitch()
     {
         var sim = TestHelpers.MakeSim();
         TestHelpers.RegisterPlayer(sim, Def,
-            TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(Def) });
+            TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(Def), FacingYaw = MathF.PI / 3f });
         var aim = new InputState
         {
-            ActiveSlot = AbilitySlots.R, IsAiming = true, AimYaw = 6000, AimPitch = 3000,
+            ActiveSlot = AbilitySlots.R, FacingYaw = 6000, AimYaw = 6000, AimPitch = 3000,
         };
         sim.Tick(new() { [1] = aim });
         aim.ActiveSlot = 0;
-        for (int tick = 0; tick < 5; tick++)
+        for (int tick = 0; tick < 4; tick++)
             sim.Tick(new() { [1] = aim });
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
 
@@ -239,8 +241,9 @@ public class AbilityLifecycleTests
         float horizontalSpeed = MathF.Sqrt(rocket.VX * rocket.VX + rocket.VZ * rocket.VZ);
         Assert.True(horizontalSpeed > 0f);
         Assert.Equal(MathF.PI / 3f, MathF.Atan2(rocket.VX, rocket.VZ), 3);
-        Assert.Equal(MathF.PI / 6f,
+        Assert.Equal(0f,
             MathF.Atan2(rocket.VY + rocket.Gravity * Simulation.TickDt, horizontalSpeed), 3);
+        Assert.Equal(0UL, rocket.HomingTargetEntityId);
     }
 
     // ══════════════════════════════════════════════════════════════════

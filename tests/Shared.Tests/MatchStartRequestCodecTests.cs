@@ -23,16 +23,32 @@ public class MatchStartRequestCodecTests
     ]}
     """;
 
-    [Fact]
-    public void FriendlyFireDefaultsOffAndOnlyAcceptsACoopBoolean()
+    [Theory]
+    [InlineData("stock", "off", true)]
+    [InlineData("stock", "on", false)]
+    [InlineData("slopball-coop", "off", true)]
+    [InlineData("slopball-coop", "on", true)]
+    [InlineData("slopball-coop", "shoves", false)]
+    [InlineData("manki-mayhem", "off", true)]
+    [InlineData("manki-mayhem", "shoves", true)]
+    [InlineData("manki-mayhem", "on", true)]
+    public void FriendlyFireIsAFormatCheckedRule(string format, string mode, bool valid)
     {
-        Assert.False(MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody))!.FriendlyFire);
-        string Coop(string value) => TwoPlayerBody.Insert(1, $"\"format\":\"slopball-coop\",\"friendlyFire\":{value},");
-        Assert.True(MatchStartRequestCodec.TryParse(Parse(Coop("true")))!.FriendlyFire);
-        Assert.False(MatchStartRequestCodec.TryParse(Parse(Coop("false")))!.FriendlyFire);
-        foreach (string value in new[] { "null", "1", "\"true\"", "{}" })
-            Assert.Null(MatchStartRequestCodec.TryParse(Parse(Coop(value))));
-        Assert.Null(MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody.Insert(1, "\"friendlyFire\":true,"))));
+        string body = TwoPlayerBody.Insert(1, $"\"format\":\"{format}\",\"friendlyFire\":\"{mode}\",");
+        var request = MatchStartRequestCodec.TryParse(Parse(body));
+        Assert.Equal(valid, request != null);
+        if (valid) Assert.Equal(mode, request!.FriendlyFire.ToWire());
+    }
+
+    [Fact]
+    public void FriendlyFireDefaultsAndMalformedRules()
+    {
+        Assert.Equal(FriendlyFireMode.Off, MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody))!.FriendlyFire);
+        Assert.Equal(FriendlyFireMode.Shoves, MatchStartRequestCodec.TryParse(Parse(
+            TwoPlayerBody.Insert(1, "\"format\":\"manki-mayhem\",")))!.FriendlyFire);
+        foreach (string value in new[] { "true", "false", "null", "1", "\"true\"", "{}", "\"SHOVES\"" })
+            Assert.Null(MatchStartRequestCodec.TryParse(Parse(TwoPlayerBody.Insert(1,
+                $"\"format\":\"manki-mayhem\",\"friendlyFire\":{value},"))));
     }
 
     [Fact]

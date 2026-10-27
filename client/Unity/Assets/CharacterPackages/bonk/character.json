@@ -238,9 +238,9 @@
                 "endTick": 11,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -359,9 +359,9 @@
                 "endTick": 21,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -480,9 +480,9 @@
                 "endTick": 48,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -604,9 +604,9 @@
                 "endTick": 16,
                 "acquisitionRange": 8,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -777,9 +777,9 @@
                 "endTick": 12,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -1117,9 +1117,9 @@
                 "endTick": 12,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 15,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 180
               },
               {
@@ -1221,9 +1221,9 @@
                 "endTick": 20,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -1325,9 +1325,9 @@
                 "endTick": 28,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -1432,9 +1432,9 @@
                 "endTick": 16,
                 "acquisitionRange": 8,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -1611,9 +1611,9 @@
                 "endTick": 12,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {

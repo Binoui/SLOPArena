@@ -51,53 +51,6 @@ namespace SlopArena.EditorTools
             return await run.Execute();
         }
 
-        [CliCommand("sloparena.training.movement", "Select and persist live Training movement tuning, or inspect it. Other modes keep Current.",
-            MainThreadRequired = true, Tags = new[] { "training/simulation" })]
-        public static object Movement(
-            [CliArg("model", "Current, Tiers, Progressive, or Hybrid. Omit to inspect.")] string model = null,
-            [CliArg("snap", "on or off. Omit to preserve the current stick snap.")] string snap = null,
-            [CliArg("reset", "Reset all fighters to their spawns before a scripted measurement.")] bool reset = false,
-            [CliArg("ramp-ticks", "Progressive ramp ticks, 6..40.")] string rampTicks = null,
-            [CliArg("curve", "Progressive Linear or SlowStart.")] string curve = null,
-            [CliArg("turnaround-keep", "Progressive speed fraction, 0, 0.25, 0.5, 0.75, or 1.")] string turnaroundKeep = null,
-            [CliArg("stop-ticks", "Progressive release stop ticks, 4..30.")] string stopTicks = null,
-            [CliArg("start-ratio", "Progressive first-tick speed fraction, 0, 0.2, 0.3, 0.4, 0.5, or 0.6.")] string startRatio = null)
-        {
-            if (!EditorApplication.isPlaying || MatchConfig.Mode != GameMode.Training)
-                throw new InvalidOperationException("Movement prototype requires Play Mode Training.");
-            var match = ResolveActiveTrainingMatch();
-            GroundSpeedModel selected = match.MovementModel;
-            if (model != null && (!Enum.TryParse(model, true, out selected) || !Enum.IsDefined(typeof(GroundSpeedModel), selected)))
-                throw new ArgumentException("Unknown movement model.", nameof(model));
-            if (snap != null && snap != "on" && snap != "off")
-                throw new ArgumentException("snap must be on or off.", nameof(snap));
-            var t = match.ProgressiveTuning;
-            var selectedCurve = t.Curve;
-            if (curve != null && (!Enum.TryParse(curve, true, out selectedCurve)
-                || !Enum.IsDefined(typeof(GroundSpeedCurve), selectedCurve)))
-                throw new ArgumentException("curve must be Linear or SlowStart.", nameof(curve));
-            var tuning = GroundSpeedTuning.Progressive(
-                rampTicks == null ? t.RampTicks : int.Parse(rampTicks, CultureInfo.InvariantCulture), selectedCurve,
-                turnaroundKeep == null ? t.TurnaroundKeep : float.Parse(turnaroundKeep, CultureInfo.InvariantCulture),
-                stopTicks == null ? t.StopTicks : int.Parse(stopTicks, CultureInfo.InvariantCulture),
-                startRatio == null ? t.StartRatio : float.Parse(startRatio, CultureInfo.InvariantCulture));
-            if (reset && match.CaptureInputOverrideActive) throw new InvalidOperationException("Capture input is already owned.");
-            if (model != null || snap != null || rampTicks != null || curve != null || turnaroundKeep != null || stopTicks != null || startRatio != null)
-                match.SetMovementPrototype(selected, snap == null ? match.MovementStickSnap : snap == "on", tuning);
-            if (reset)
-            {
-                if (match.CaptureInputOverrideActive) throw new InvalidOperationException("Capture input is already owned.");
-                match.ResetTrainingPositions();
-            }
-            var state = match.GetCaptureState(MatchConfig.LocalEntityId);
-            return new { success = true, model = match.MovementModel.ToString(), snap = match.MovementStickSnap,
-                startRatio = match.ProgressiveTuning.StartRatio, rampTicks = match.ProgressiveTuning.RampTicks, curve = match.ProgressiveTuning.Curve.ToString(),
-                turnaroundKeep = match.ProgressiveTuning.TurnaroundKeep, stopTicks = match.ProgressiveTuning.StopTicks,
-                label = match.MovementPrototypeLabel, tick = match.CaptureTick,
-                position = new { x = state.PX, y = state.PY, z = state.PZ },
-                speed = Mathf.Sqrt(state.VX * state.VX + state.VZ * state.VZ) };
-        }
-
         internal static List<TrainingSequenceStep> ParseSteps(string json)
         {
             if (string.IsNullOrWhiteSpace(json))

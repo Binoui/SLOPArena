@@ -159,6 +159,17 @@ namespace SlopArena.Shared
             vSpeed = speed * MathF.Sin(launchAngleRad);
         }
 
+        /// <summary>Launch for an exact landing tick under SpellResolver's move-then-gravity integration.</summary>
+        public static void ComputeProjectileLaunch(ArcadePoint origin, ArcadePoint target, float gravity,
+            ushort flightTicks, out ArcadePoint velocity)
+        {
+            if (flightTicks == 0) throw new ArgumentOutOfRangeException(nameof(flightTicks));
+            float time = flightTicks * Simulation.TickDt;
+            velocity = new((target.X - origin.X) / time,
+                (target.Y - origin.Y) / time + gravity * Simulation.TickDt * (flightTicks - 1) * .5f,
+                (target.Z - origin.Z) / time);
+        }
+
         /// <summary>
         /// Inverse of <see cref="ComputeProjectileLaunch"/> for a throw whose distance is always
         /// measured at one landing height: the distance to send so the same fixed-angle arc passes

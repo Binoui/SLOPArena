@@ -84,6 +84,7 @@ namespace SlopArena.EditorTools
             {
                 "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
                 "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
+                "salamander" => CharacterClass.Salamander,
                 _ => throw new ArgumentException("Unknown roster fighter.", nameof(fighter))
             };
             if (!File.Exists(scenePath)) throw new InvalidOperationException("Run phase1.prepare first.");

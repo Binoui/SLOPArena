@@ -57,6 +57,7 @@ namespace SlopArena.Client.UI
                 CharacterClass.Wibou => "He studied the blade. A lot.",
                 CharacterClass.Bonk => "Bonk do bonky bonks.",
                 CharacterClass.Bashie => "NO RUNNING! (She speed-walks.)",
+                CharacterClass.Salamander => "The fastest fingers in the West.",
                 _ => "Admitted fighter with a style all its own.",
             };
         }

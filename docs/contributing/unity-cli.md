@@ -298,7 +298,7 @@ no retained Editor owner's permission or response is required.
 requested, proposed, before and observed after values. Supported keys are `cameraStyle`
 (`Manual`, `Arena`, or `Steady`; also `controllerCameraStyle`), `uiScale`
 (80/90/100/110/120/130/140 percent), `targetOpacity` (20–100 percent),
-`screenShake` (0–100 percent), `showOverheadDamage`, `reducedFlashing` and
+`screenShake` (0–100 percent), `showOverheadDamage`, `reducedFlashing`, `stick8WaySnap` and
 `recordSessionLog` (booleans; the last starts a [practice session log](../systems/practice-session-log.md)
 with the next Training or Solo match). No scene places the settings owner; it is
 created at runtime, so these commands need Play Mode.
@@ -319,6 +319,121 @@ Receipts report actual Shared ticks, participant states, accepted hits and prese
 events. Paused, unsupported or capture-owned sessions reject without stepping/resuming.
 This semantic route does not verify physical key bindings or InputController routing.
 
+
+### Live gameplay clips with a controller
+
+`sloparena.photo.live-begin` records the composited gameplay camera and HUD in
+Training, Slopball, Character Course, or Tutorial. It writes numbered JPG frames
+and `states.jsonl` below a fresh `--output` directory. Training receipts include
+the selected CPU and moving projectile positions and homing targets.
+`--from 0 --to 299 --step 1` records five seconds at 60 fps. Capture uses
+`Time.captureFramerate = 60` and one Shared tick per rendered frame.
+Omit `--camera`, `--yaw`, and `--pitch` to retain the real gameplay camera.
+`sloparena.photo.live-end` writes the receipt and restores timing and quality.
+
+For a disposable Training capture, use `sloparena.photo.prepare --stage after_hours
+--fighter manki --training true`, then `editor_play`. This reuses stage-view
+scene restoration and keeps Training, input, aim, and camera components enabled.
+`sloparena.training.arrange --distance 10 --behavior Attack` resets the duel and
+places the selected CPU in front of the existing camera. It changes no camera
+settings. CPU behaviors are `Idle`, `Attack`, `Shield`, and `Avoid`.
+The supported arrangement distance is 1–25 metres.
+`photo.prepare --opponent fightguy` selects the CPU and restores the previous
+Training P2 fighter afterward. `--damage 60` sets
+its starting percent. `--no-cooldowns true` uses Training's existing player
+no-cooldowns option, which allows repeated shots for an airborne follow-up.
+
+`sloparena.input.pad-run --timeline tmp/pad-timeline.json --timeout 180` creates a
+virtual Gamepad and queues its states before normal Dynamic Input System updates.
+The real actions, bindings, `InputController`, and `AimHandler` consume that pad.
+It does not inject semantic player input. The file has this shape:
+
+```json
+{
+  "frames": 300,
+  "events": [
+    { "frame": 15, "down": ["LeftShoulder"] },
+    { "frame": 30, "down": ["South"] },
+    { "frame": 60, "leftStick": [0.5, 0] },
+    { "frame": 72, "leftStick": [0, 0] },
+    { "frame": 100, "up": ["South", "LeftShoulder"] }
+  ]
+}
+```
+
+`frames` is 1–600. Events use ascending zero-based rendered-frame offsets.
+At capture's 60 fps, these are also 60 Hz offsets. Fields are patches, so omitted
+controls retain their state. `down` and `up` accept case-sensitive Unity
+`GamepadButton` names. `leftStick` and `rightStick` are two-component vectors
+with magnitude at most one. `leftTrigger` and `rightTrigger` accept 0–1.
+The parser rejects unknown fields, duplicate keys, and out-of-range values.
+Files must be repository-relative below `tmp/` or `scenarios/`.
+The runner removes its device on completion, failure, Play Mode exit, or reload.
+`sloparena.input.pad-stop` also removes it and is safe when none is active.
+
+For a scripted Training CPU, add `--target-timeline tmp/target-timeline.json`
+to the same `pad-run` command. The CPU receives semantic Shared inputs through
+Training's existing NPC input path. Player input still comes from the virtual pad.
+The target file has this shape:
+
+```json
+{
+  "ticks": 300,
+  "space": "camera",
+  "events": [
+    { "tick": 0, "move": [1, 0] },
+    { "tick": 40, "jump": true, "jumpHeld": true },
+    { "tick": 55, "jumpHeld": false },
+    { "tick": 60, "airDodge": true },
+    { "tick": 100, "move": [0, 0] }
+  ]
+}
+```
+
+`ticks` is 1–600 and must equal the pad file's `frames`. Target events have
+strictly ascending zero-based ticks. `space` accepts `camera`, the default, or
+`world`. `move` is a two-component vector of magnitude at most one.
+Camera coordinates are right and forward, resolved once from the gameplay
+camera's yaw at run admission. World coordinates are X and Z. Full magnitude
+requests normal running. There is no separate run button.
+`jump` and `airDodge` are one-tick press edges. `jumpHeld`, `shield`, and
+`fastFall` are held booleans. A rising `shield` sets the defense press edge.
+`airDodge` uses the held movement direction and Shared decides its admission.
+`fastFall` supplies the normal Down input, including its rising edge.
+Omitted held fields persist. Press edges clear on the next tick.
+
+The target timeline starts on the first virtual pad input frame. The receipt's
+`targetStartTick` identifies that first Shared input tick, before it runs.
+Live capture `matchTick` identifies the completed tick, so target tick zero
+appears at `matchTick = targetStartTick + 1`. Capture may begin before pad-run;
+use these receipts instead of assuming capture frame zero equals input tick zero.
+The target returns to its configured CPU behavior when pad-run completes, fails,
+stops, exits Play Mode, or reloads assemblies. With no target file, CPU behavior
+is unchanged. `sloparena.training.target-clear` explicitly clears this runner's
+target input and is safe to repeat. Include it in capture restoration alongside
+`pad-stop`, `live-end --wait 0`, `photo.stop`, and `photo.restore`.
+`sloparena.training.target-test` checks coordinates, holds, edge lifetime, and
+rejected inputs without advancing Training.
+Training `states.jsonl` receipts include the actual target input, action state,
+velocity, damage, accepted hits, and projectile velocity and homing target.
+
+For the default ADR-0042 bindings, Q uses `LeftShoulder` + `South`, and R uses
+`LeftShoulder` + `West`. Press the modifier before the face button. User rebindings
+still apply. The example holds Q, nudges the ground cursor, then releases it.
+
+Keep setup, capture, and pad playback in your own gateway batch. Its `restore`
+commands must include `sloparena.input.pad-stop`, `sloparena.training.target-clear`,
+`sloparena.photo.live-end --wait 0`,
+`sloparena.photo.stop`, and `sloparena.photo.restore`, in that order.
+Stage-view restoration also restores the selected Game View size and gizmos.
+Use `sloparena.ui.viewport` before capture if a particular resolution is required.
+Check `live-end`'s `done`, `frames`, and `screen` fields and inspect the frames
+before encoding. For contiguous frames starting at zero:
+
+```bash
+ffmpeg -framerate 60 -i tmp/clip/%04d.jpg -c:v libx264 -crf 18 \
+  -pix_fmt yuv420p -movflags +faststart tmp/clip.mp4
+```
 
 ## Screenshots and visual evidence
 
@@ -557,7 +672,10 @@ plugin `.dll` under `Assets/` or `Packages/` is newer than `Library/ScriptAssemb
 it runs `recompile` (and `recompile_status`) first as its own step and reports the
 file. Compile errors from someone else's unfinished scripts are reported and the
 batch continues with the loaded scripts. `SLOPARENA_GATEWAY_AUTO_RECOMPILE=0` turns
-the check off for a batch that must not compile. Prefer typed commands that import
+the check off for a batch that must not compile. The check can miss a script edited
+just after another thread's compile updated `Library/ScriptAssemblies` (2026-10-27).
+If a batch reports "No scripts needed recompilation" but behaves like old code, compare
+the edited file's mtime with `Assembly-CSharp-Editor.dll` before debugging further. Prefer typed commands that import
 only their own files (`sloparena.stage.art-apply` does) over an `eval_file` that calls
 `AssetDatabase.Refresh`.
 

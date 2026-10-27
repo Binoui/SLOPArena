@@ -250,8 +250,8 @@ public sealed class SlopArenaStageAuthoringService
             result.CollisionTriangleCount = arena.CollisionTriangles?.Length ?? 0;
             result.SpawnCount = arena.SpawnPoints?.Length ?? 0;
             if (result.CollisionTriangleCount == 0) Add(result.Diagnostics, "ARENA_NO_COLLISION_TRIANGLES", result.ArenaPath);
-            if (arena.Purpose == ArenaPurpose.Arcade && (arena.SpawnPoints == null || arena.SpawnPoints.Length != 1))
-                Add(result.Diagnostics, "ARCADE_SPAWN_COUNT", "Arcade stages require one valid player start.");
+            if (arena.Purpose == ArenaPurpose.Arcade && (arena.SpawnPoints == null || arena.SpawnPoints.Length != (arena.Arcade?.Mayhem != null ? 4 : 1)))
+                Add(result.Diagnostics, "ARCADE_SPAWN_COUNT", "Arcade stages require one start, or four for Mayhem.");
             if (arena.Purpose == ArenaPurpose.PvP && (arena.SpawnPoints == null || arena.SpawnPoints.Length < 4))
                 Add(result.Diagnostics, "ARENA_FEWER_THAN_FOUR_SPAWNS", "Selectable stages require four valid spawn points.");
         }
@@ -918,9 +918,9 @@ public sealed class SlopArenaStageAuthoringService
         if (triangles.Count == 0) Add(build.Diagnostics, "SOURCE_NO_COLLISION_TRIANGLES", "GameplayGeometry must contain readable mesh triangles.");
 
         var spawnTransforms = spawns.Cast<Transform>().ToArray();
-        int expectedSpawnCount = arcadeSource != null ? 1 : 4;
+        int expectedSpawnCount = arcadeSource != null && arcade?.Mayhem == null ? 1 : 4;
         if (spawnTransforms.Length != expectedSpawnCount)
-            Add(build.Diagnostics, "SPAWN_COUNT", arcadeSource != null
+            Add(build.Diagnostics, "SPAWN_COUNT", expectedSpawnCount == 1
                 ? "Arcade SpawnPoints must contain exactly Spawn_01."
                 : "SpawnPoints must contain exactly Spawn_01 through Spawn_04.");
         var spawnPoints = new List<SpawnPoint>();

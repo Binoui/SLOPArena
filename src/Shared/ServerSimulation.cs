@@ -102,15 +102,14 @@ namespace SlopArena.Shared
 		/// <param name="downActionTuning">Immutable down-action tuning. Defaults to the shared production values.</param>
 		/// <param name="combatTuning">Immutable combat tuning. Defaults to the shipped profile.</param>
 		public ServerSimulation(ArenaDefinition arena, IMatchRule? rule = null, DownActionTuning? downActionTuning = null,
-			CombatTuning? combatTuning = null, GroundSpeedTuning? groundSpeedTuning = null)
+			CombatTuning? combatTuning = null)
 		{
 			_arena = arena;
 			_blastLines = ArenaCollision.ResolveBlastLines(in arena);
 			_rule = rule ?? new StockMatchRule(3);
-			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule or CourseMatchRule ? CanAttackTarget : null;
+			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule or CourseMatchRule or MankiMayhemMatchRule ? CanAttackTarget : null;
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
-            GroundSpeedTuning = groundSpeedTuning ?? SlopArena.Shared.GroundSpeedTuning.Default;
 			if (arena.Arcade?.Ball is ArcadeBallDefinition ball)
             {
                 _arcadeBall = new ArcadeBallSimulation(ball, in arena);
@@ -128,6 +127,12 @@ namespace SlopArena.Shared
                 if (_rule is CourseMatchRule courseRule) _onlineCourse = new OnlineCourseSimulation(course, courseRule.Cooperative);
                 else _course = new CharacterCourseSimulation(course);
             }
+            if (_rule is MankiMayhemMatchRule)
+            {
+                if (arena.Arcade?.Mayhem == null) throw new ArgumentException("Mayhem needs a Mayhem arena.", nameof(rule));
+                arena.Arcade.Mayhem.ValidateArena(in arena);
+                _mayhem = new MankiMayhemSimulation(arena.Arcade.Mayhem);
+            }
             if (_rule is CourseMatchRule && _onlineCourse == null)
                 throw new ArgumentException("Online courses need a course arena.", nameof(rule));
             if (_rule is SlopballCoopMatchRule && _slopball == null)
@@ -135,22 +140,6 @@ namespace SlopArena.Shared
             if (_rule is SlopballVersusMatchRule && _volley == null)
                 throw new ArgumentException("Versus Slopball needs a Slopball court.", nameof(rule));
 		}
-
-        public GroundSpeedTuning GroundSpeedTuning { get; private set; }
-
-        /// <summary>Training switches immutable profiles between ticks. Other callers keep Default.</summary>
-        public void SetGroundSpeedTuning(GroundSpeedTuning tuning)
-        {
-            if (ReferenceEquals(GroundSpeedTuning, tuning)) return;
-            GroundSpeedTuning = tuning ?? throw new ArgumentNullException(nameof(tuning));
-            foreach (ulong id in new List<ulong>(_states.Keys))
-            {
-                var state = _states[id];
-                state.RushTicks = 0;
-                state.LastDirX = state.LastDirZ = 0f;
-                _states[id] = state;
-            }
-        }
 
         /// <summary>Game-wide connecting-hit freeze, preserving shipped default timing.</summary>
         public static ushort ComputeHitstopTicks(float damage)
@@ -165,6 +154,9 @@ namespace SlopArena.Shared
 				throw new ArgumentException("Course target aliases and object identities are reserved.", nameof(id));
 			if (_arcadeBall != null && (id == ArcadeBallSimulation.TargetInputId || id >= ArcadeBallSimulation.FirstEntityId))
 				throw new ArgumentException("Arcade reserves the ball target alias and object identity range.", nameof(id));
+            if (_mayhem != null && (id == 0 || id >= ArcadeBallSimulation.FirstEntityId
+                || !_states.ContainsKey(id) && (_states.Count >= 4 || _mayhem.State.Seed != 0)))
+                throw new ArgumentException("Mayhem reserves object identities and admits up to four fighters before Begin.", nameof(id));
 			_defs[id] = def;
                 if (_onlineCourse != null) _onlineCourse.Register(id);
 			initialState.EntityId = id;
@@ -236,9 +228,6 @@ namespace SlopArena.Shared
                 ability.ClearArmorWindow();
                 if (exit != AbilityExit.Removed && exit != AbilityExit.Reset)
                     ApplyAbilityCooldown(id, ability, ref state);
-                if (exit == AbilityExit.Completed && !ability.AirborneAtStart && state.IsGrounded
-                    && state.State == ActionState.Idle && _defs.TryGetValue(id, out var def))
-                    state.RushTicks = def.Movement.RushTicks;
                 _activeAbilities.Remove(id);
             }
             if (exit == AbilityExit.Removed)
@@ -331,6 +320,9 @@ namespace SlopArena.Shared
 			ability.ClearArmorWindow();
 			state.ClearStartupAimCorrection();
 			state.BufferedSlot = 0;
+			// The homing dash arrival window is timed by StateTicks; its expiry must not end the attack.
+			if (state.State == ActionState.HomingDashArrive)
+				state.StateTicks = 0;
             bool aimingAbility = cookedSlot?.AimMode is { } aimMode && aimMode != AuthoringAimMode.None;
             if (aimingAbility && ability is CookedTimelineAbility { UsesStartupAimCorrection: true })
                 state.FacingYaw = state.AimYaw;
@@ -828,13 +820,13 @@ namespace SlopArena.Shared
 				|| !TryGetCombatTargetPosition(targetId, out var target))
 			{
 				state.HomingDashTargetId = 0;
-				Simulation.StepHomingDash(ref state, false, 0f, 0f, 0f, 0f);
+				Simulation.StepHomingDash(ref state, false, 0f, 0f, 0f, 0f, def.Movement.FloatWindowTicks);
 				return;
 			}
 			float targetRadius = _defs.TryGetValue(targetId, out var targetDef) ? targetDef.CapsuleRadius : 0f;
 			Simulation.StepHomingDash(ref state, true,
 				target.X - state.PX, target.Y - state.PY, target.Z - state.PZ,
-				def.CapsuleRadius + targetRadius + HomingDashConfig.ArrivalGap);
+				def.CapsuleRadius + targetRadius + HomingDashConfig.ArrivalGap, def.Movement.FloatWindowTicks);
 		}
 
 		private static bool HasQueuedShieldLaunch(in CharacterState state)
@@ -908,6 +900,7 @@ namespace SlopArena.Shared
 			foreach (var id in entityIds)
 			{
 				if (!_states.TryGetValue(id, out var state)) continue;
+				if (IsEliminated(state)) continue;
 				var input = inputs.TryGetValue(id, out var i) ? i : default;
 				var def = _defs[id];
 				if (input.DashPressed && TryStartHomingDash(id, ref state))
@@ -1393,11 +1386,12 @@ namespace SlopArena.Shared
 					owner.StateTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
 					owner.AnimLockTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
 					partner.ClearAttackFields();
-					partner.DamagePercent = (ushort)Math.Min(999, partner.DamagePercent + (ushort)ThrowDamage);
+					float throwDamage = IsMayhemShove(ownerId, partnerId) ? 0f : ThrowDamage;
+                    partner.DamagePercent = (ushort)Math.Min(999, partner.DamagePercent + (ushort)throwDamage);
 					partner.CrouchSettled = false;
 					partner.QueuedCrouchBrace = false;
 					Simulation.ApplyKnockback(ref partner, MathF.Sin(yaw), MathF.Cos(yaw),
-						30, ThrowBaseKnockback, ThrowGrowthKnockback, ThrowDamage, 1,
+						30, ThrowBaseKnockback, ThrowGrowthKnockback, throwDamage, 1,
 						_defs[partnerId].Weight, combatTuning: CombatTuning);
 					// Retain percent/weight-scaled horizontal launch. The paired animation
 					// owns the vertical flight time, with ground contact at victim frame 34.
@@ -1408,7 +1402,7 @@ namespace SlopArena.Shared
 						* (DefenseConfig.ThrownLandingTicks - DefenseConfig.ThrowReleaseTicks + 1)
 						* Simulation.TickDt * 0.5f;
 					partner.VX = partner.KVX; partner.VY = partner.KVY; partner.VZ = partner.KVZ;
-					_lastHitCredits[partnerId] = (ownerId, _tick, 0);
+					if (_mayhem == null) _lastHitCredits[partnerId] = (ownerId, _tick, 0);
 					_lastHitContexts[partnerId] = (ownerId, _tick, 0);
 					MarkInteractionTerminal(ref owner, interactionId);
 					MarkInteractionTerminal(ref partner, interactionId);
@@ -1502,7 +1496,7 @@ namespace SlopArena.Shared
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned, GetActiveMove(id),
-					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning, GroundSpeedTuning);
+					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
 				if (state.State == ActionState.Grabbing && state.InteractionId != 0
 					&& _states.TryGetValue(state.InteractionPartnerId, out var heldPartner)
 					&& !CanPlaceVictim(in state, in heldPartner, def, _defs[state.InteractionPartnerId],
@@ -2008,6 +2002,7 @@ namespace SlopArena.Shared
 			if (_arcadeBall != null && _arcadeBall.State.Active) entityList.Add(_arcadeBall.CollisionTarget);
             if (_course != null) entityList.AddRange(_course.CollisionTargets());
             if (_onlineCourse != null) entityList.AddRange(_onlineCourse.CollisionTargets());
+            if (_mayhem != null) entityList.AddRange(_mayhem.Solids.CollisionTargets());
 			_lastEntityList = entityList;
 			return entityList;
 		}
@@ -2032,7 +2027,8 @@ namespace SlopArena.Shared
 					_attackEntities.Add(hurtbox);
 					continue;
 				}
-				if (_shieldSurfaceEntities.Add(hurtbox.Id))
+				var body = hurtbox; body.ProtectedByShield = true; _attackEntities.Add(body);
+                if (_shieldSurfaceEntities.Add(hurtbox.Id))
 					AddShieldSurface(hurtbox.Id, _states[hurtbox.Id]);
 			}
 			// Missing bone tracks do not remove a fighter's active guard.
@@ -2257,6 +2253,8 @@ namespace SlopArena.Shared
 			// the owners' current (post-movement) states before the collision pass.
 			_spellResolver.UpdateBoneHitboxes(_states);
 			_spellResolver.UpdateReturningProjectiles(_returnTarget ??= ReturnTarget, _arena);
+			_spellResolver.UpdateHomingProjectiles(_homingTarget ??= HomingTarget);
+            _spellResolver.UpdateStickyProjectiles(StickyCarrier);
 
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
@@ -2298,13 +2296,15 @@ namespace SlopArena.Shared
 					ResolveCourseTargetHit(hit, courseTarget, inputs, hitContactOperationIndex++);
 					continue;
 				}
+                if (_mayhem != null && _mayhem.Solids.Contains(hit.TargetEntityId))
+                { ResolveMayhemWallHit(hit); continue; }
 				if (!_states.TryGetValue(hit.TargetEntityId, out var targetState)) continue;
 				bool attackerExists = _states.TryGetValue(hit.OwnerEntityId, out var attackerState);
 
 				// Invincible (respawn grace, dash) — the hit is fully ignored (issue #37).
 				if (targetState.InvincibilityTicks > 0) continue;
 				if (!PredictCoupledInteractions && targetState.InteractionId != 0) continue;
-				if (targetState.State == ActionState.Shielding)
+				if (targetState.State == ActionState.Shielding && !hit.Unblockable)
 				{
 					// A shield turns a returning projectile back on its way out.
 					if (hit.ReturnPhase == 1)
@@ -2328,7 +2328,7 @@ namespace SlopArena.Shared
 					hit.TargetEntityId, in targetState, _defs[hit.TargetEntityId]);
 				if (!hit.ArmorProtected)
 					Simulation.ClearMovementInterruptionFlags(ref targetState);
-				if (attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
+				if (_mayhem == null && attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
 					_lastHitCredits[hit.TargetEntityId] = (hit.OwnerEntityId, _tick, hit.AttackSlot);
 				if (hit.OwnerEntityId != 0)
 					_lastHitContexts[hit.TargetEntityId] = (hit.OwnerEntityId, _tick, hit.AttackSlot);
@@ -2363,7 +2363,9 @@ namespace SlopArena.Shared
 
 
 
-				float finalDamage = hit.Damage;
+				bool shove = IsMayhemShove(hit.OwnerEntityId, hit.TargetEntityId);
+                ushort percentBefore = targetState.DamagePercent;
+                float finalDamage = shove ? 0f : hit.Damage;
 				targetState.DamagePercent += (ushort)finalDamage;
 				if (targetState.DamagePercent > 999) targetState.DamagePercent = 999;
 
@@ -2409,12 +2411,17 @@ namespace SlopArena.Shared
                     hookSuppliedForce = kbForce != kbForceDefault;
                     hookZeroForce = hookSuppliedForce && kbForce <= 0f;
                 }
+                if (shove)
+                {
+                    targetState.DamagePercent = percentBefore; finalDamage = 0f;
+                    kbForce = kbForceDefault; hookSuppliedForce = hookZeroForce = false;
+                }
                 bool ordinaryFormulaLaunch = !hookSuppliedForce;
                 float launchBase = hookSuppliedForce ? 0f : hit.BaseKnockback;
                 float launchGrowth = hookSuppliedForce ? 0f : hit.KnockbackGrowth;
                 // A pure push (no damage, no stun: a shove such as one drop of Bashie's Hose Down stream) does not
                 // freeze its target, so a stream of them keeps pushing instead of stuttering it in place.
-                freeze = finalDamage <= 0f && hit.StunTicks == 0 ? (ushort)0 : ComputeHitstopTicks(finalDamage);
+                freeze = (shove ? hit.Damage : finalDamage) <= 0f && hit.StunTicks == 0 ? (ushort)0 : ComputeHitstopTicks(shove ? hit.Damage : finalDamage);
 				if (freeze > 0)
 				{
 					targetState.HitstopTicks = freeze;
@@ -2559,6 +2566,9 @@ namespace SlopArena.Shared
             // and authored MankiBazooka configs both use this path.
 			foreach (var (ex, ey, ez, explosion, ownerId, attackSlot, activationId, airborne, attackSequence) in _spellResolver.DrainPendingExplosions())
 			{
+                if (_mayhem != null && ownerId == MayhemHostEntityId)
+                    foreach (ulong wall in _mayhem.Solids.InBlast(ex, ey, ez, explosion.Radius).ToArray())
+                        _mayhem.HitWall(_tick, wall, wreck: true);
 				var (kbAngle, kbBase, kbGrowth) = explosion.Knockback.Resolve();
 				_spellResolver.Spawn(new Hitbox
 				{
@@ -2577,6 +2587,7 @@ namespace SlopArena.Shared
 					ActivationAirborne = airborne,
 					AttackSequence = attackSequence,
 					CanHitOwner = explosion.CanHitOwner,
+					OwnerDamage = explosion.OwnerDamage,
 					// A blast hits everything in its radius once (fighters, the owner when
 					// allowed, balls and course targets), not just the first entity it meets.
 					HitsMultipleOpponents = true,
@@ -2628,7 +2639,7 @@ namespace SlopArena.Shared
 					lastHitTick = lastHit.tick;
 					lastHitSlot = lastHit.slot;
 				}
-				if (_lastHitCredits.TryGetValue(id, out var credit)
+				if (_mayhem == null && _lastHitCredits.TryGetValue(id, out var credit)
 				    && _tick - credit.tick <= KillCreditWindowTicks
 				    && credit.attackerId != id
 				    && _kos.ContainsKey(credit.attackerId))
@@ -2650,6 +2661,8 @@ namespace SlopArena.Shared
 				RetireAbility(id, ref oldState, AbilityExit.Superseded);
 				// A returning projectile in flight is back on his shoulder when he respawns.
 				_spellResolver.RemoveReturningProjectiles(id);
+				_spellResolver.StopHomingAt(id);
+                _spellResolver.ExplodeAttachedTo(id);
 				if (killerEntityId != 0 && _kos[killerEntityId] < byte.MaxValue)
 					_kos[killerEntityId]++;
 				_lastHitCredits.Remove(id);
@@ -2772,15 +2785,21 @@ namespace SlopArena.Shared
                 if (_course != null)
                     foreach (var state in _states.Values) coursePrevious = new(state.PX, state.PY, state.PZ);
 				_tick++;
+                if (_mayhem != null && !_mayhem.BeginTick(_tick, _states, ResetMayhemFighters, _spellResolver))
+                { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                if (_mayhem != null && inputs.Keys.Any(id => _mayhem.Inactive(id)))
+                    inputs = inputs.Where(pair => !_mayhem.Inactive(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
 				if (PredictCoupledInteractions && HasCoupledInteraction())
 					UpdateCoupledInteractions(releaseDue: false, inputs);
 				CaptureSettledCrouchCandidates();
+                CaptureMayhemPositions();
 				PreTickAbilities(inputs);
 
 				ProcessTargetLock(inputs);
 
 				SimulateMovement(inputs);
                 ConstrainSlopballFighters();
+                ConstrainMayhemFighters();
 				// Grab contact is committed after ordinary damage has interrupted candidates.
 
 				AdmitLowLandings(inputs);
@@ -2807,6 +2826,7 @@ namespace SlopArena.Shared
 				CheckBlastDeaths();
                 FinishCourseTick(coursePrevious);
                 FinishOnlineCourseTick();
+                _mayhem?.FinishTick(_tick, _states, LastTickDeaths.Select(d => d.EntityId), BenchMayhemFighter, _spellResolver);
 				MirrorReturningProjectileSlots();
                 if (_volley != null && _volley.Events.Any(e => e.Kind == SlopballEventKind.PointScored))
                     ResetVersusPoint();

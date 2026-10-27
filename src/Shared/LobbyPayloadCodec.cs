@@ -136,7 +136,7 @@ public static class LobbyPayloadCodec
             if (ms.ValueKind != JsonValueKind.Number || !ms.TryGetInt32(out maxStocks) || maxStocks < 1 || maxStocks > 99) return null;
         }
         SteamMatchDescriptor? descriptor = null;
-        if (element.TryGetProperty("descriptor", out var route) &&
+        if (element.TryGetProperty("descriptor", out var route) && route.ValueKind != JsonValueKind.Null &&
             !SteamMatchDescriptor.TryParse(route, out descriptor))
             return null;
         if ((matchPort > 0) == (descriptor != null))
@@ -182,13 +182,12 @@ public static class LobbyPayloadCodec
         }
         if (!MatchFormats.TryParseWire(formatName, out var format))
             return null;
-        bool friendlyFire = false;
+        var friendlyFire = format == MatchFormat.MankiMayhem ? FriendlyFireMode.Shoves : FriendlyFireMode.Off;
         if (element.TryGetProperty("friendlyFire", out var friendly))
         {
-            if (friendly.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
-            friendlyFire = friendly.GetBoolean();
+            if (friendly.ValueKind != JsonValueKind.String || !FriendlyFireModes.TryParseWire(friendly.GetString(), out friendlyFire)) return null;
         }
-        if (friendlyFire && format != MatchFormat.SlopballCoop) return null;
+        if (!format.AdmitsFriendlyFire(friendlyFire)) return null;
         bool ballOnly = false;
         if (element.TryGetProperty("ballOnly", out var ballOnlyElement))
         {

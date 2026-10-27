@@ -7,22 +7,12 @@ using SlopArena.Client.World;
 
 namespace SlopArena.Client.UI
 {
-    /// <summary>
-    /// Player cursors: a bobbing P1 tag and frame follow UI focus in every document, so controller and
-    /// keyboard players can see where they are. During couch play Fighter Select adds P2's tag on P2's
-    /// fighter. Presentation only; focus and navigation are unchanged. Hidden while the mouse drives the UI.
-    /// </summary>
+    /// <summary>Presentation-only focus and joined-seat tags across live UI documents.</summary>
     public sealed class PlayerCursors : MonoBehaviour
     {
-        /// <summary>The element P2 is pointing at, set by Fighter Select during couch play.</summary>
-        public static VisualElement? P2Target;
-
-        private static readonly Color P1Colour = new(1f, 204f / 255f, 34f / 255f);
-        private static readonly Color P2Colour = new(234f / 255f, 88f / 255f, 12f / 255f);
+        public static readonly VisualElement?[] SeatTargets = new VisualElement?[3];
         private static readonly Color Ink = new(27f / 255f, 26f / 255f, 24f / 255f);
-
-        // Built in Awake: UI Toolkit forbids creating elements in a MonoBehaviour field initializer.
-        private Tag? _p1, _p2;
+        private readonly Tag[] _tags = new Tag[4];
         private readonly List<UIDocument> _documents = new();
         private float _nextScan;
         private bool _mouseMode;
@@ -30,7 +20,7 @@ namespace SlopArena.Client.UI
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Create()
         {
-            P2Target = null;
+            System.Array.Clear(SeatTargets, 0, SeatTargets.Length);
             if (FindFirstObjectByType<PlayerCursors>() != null) return;
             var host = new GameObject(nameof(PlayerCursors));
             DontDestroyOnLoad(host);
@@ -39,13 +29,13 @@ namespace SlopArena.Client.UI
 
         private void Awake()
         {
-            _p1 = new Tag("P1", P1Colour);
-            _p2 = new Tag("P2", P2Colour);
+            for (int i = 0; i < _tags.Length; i++)
+                _tags[i] = new Tag($"P{i + 1}", SeatColours.For(i + 1));
         }
 
         private void Update()
         {
-            if (_p1 == null || _p2 == null) return;
+            if (_tags[0] == null) return;
             TrackInputMode();
             if (Time.unscaledTime >= _nextScan)
             {
@@ -56,18 +46,23 @@ namespace SlopArena.Client.UI
 
             float bob = -10f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 7f));
             var focused = _mouseMode || !MenuOpen() ? null : FocusedElement();
-            if (focused != null) _p1.Show(focused, 0f, bob);
-            else _p1.Hide();
+            if (focused != null) _tags[0].Show(focused, 0f, bob);
+            else _tags[0].Hide();
 
-            var p2 = P2Target != null && GamepadUIBridge.IsAvailable(P2Target) ? P2Target : null;
-            if (p2 != null) _p2.Show(p2, p2 == focused ? 140f : 0f, bob);
-            else _p2.Hide();
+            for (int i = 1; i < _tags.Length; i++)
+            {
+                var target = SeatTargets[i - 1];
+                if (target == null || !GamepadUIBridge.IsAvailable(target)) { _tags[i].Hide(); continue; }
+                int overlap = target == focused ? 1 : 0;
+                for (int previous = 0; previous < i - 1; previous++)
+                    if (SeatTargets[previous] == target) overlap++;
+                _tags[i].Show(target, overlap * 85f, bob);
+            }
         }
 
         private void OnDestroy()
         {
-            _p1?.Hide();
-            _p2?.Hide();
+            foreach (var tag in _tags) tag?.Hide();
         }
 
         // In a match only the pause and settings menus take a cursor; the HUD never does.
@@ -119,12 +114,12 @@ namespace SlopArena.Client.UI
                 _chip.style.position = Position.Absolute;
                 _chip.style.backgroundColor = colour;
                 SetBorder(_chip, 6f, Ink);
-                _chip.style.paddingLeft = _chip.style.paddingRight = 20f;
+                _chip.style.paddingLeft = _chip.style.paddingRight = 12f;
                 _chip.style.paddingTop = 4f;
                 _chip.style.paddingBottom = 6f;
                 _label = new Label(text) { pickingMode = PickingMode.Ignore };
                 _label.style.color = Ink;
-                _label.style.fontSize = 46f;
+                _label.style.fontSize = 30f;
                 _label.style.unityFontStyleAndWeight = FontStyle.Bold;
                 _label.style.marginLeft = _label.style.marginRight = _label.style.marginTop = _label.style.marginBottom = 0f;
                 _label.style.paddingLeft = _label.style.paddingRight = _label.style.paddingTop = _label.style.paddingBottom = 0f;
@@ -164,7 +159,7 @@ namespace SlopArena.Client.UI
                 _frame.style.width = bounds.width + grow * 2f;
                 _frame.style.height = bounds.height + grow * 2f;
                 // Above the element, or just inside its top edge when it touches the top of the screen.
-                float chipTop = min.y - 86f < 0f ? min.y + 10f : min.y - 86f;
+                float chipTop = min.y - 62f < 0f ? min.y + 10f : min.y - 62f;
                 _chip.style.left = min.x + 6f + dx;
                 _chip.style.top = chipTop;
                 _chip.style.translate = new Translate(0f, bob);

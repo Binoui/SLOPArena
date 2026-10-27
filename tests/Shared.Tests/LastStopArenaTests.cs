@@ -172,7 +172,7 @@ public class LastStopArenaTests
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
         var landed = JumpRoute(arena, def, Grounded(def, -6f, 5f, RoofY), -1f, 0f,
-            s => s.PX <= -6.6f, s => s.PX < -9f);
+            s => s.PX <= -7f, s => s.PX < -9f);
         Assert.Equal(TestHelpers.GroundPY(def, CabY), landed.PY, precision: 2);
         Assert.InRange(landed.PX, -11f, -8f);
     }

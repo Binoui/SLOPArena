@@ -163,6 +163,23 @@ clips: they sort after the stage's first clip and play in real time. Its slot ha
 `chargeAttack` stage with IASA zero and one lifecycle. Motion, hitbox, projectile,
 aim and other capability operations are rejected. Ability Lab does not edit it yet.
 
+`slop.ability.finger-guns.v1` requires runtime API `1.11.0`. Each press fires one
+projectile at `fireTriggerTick`, with `recoveryTicks` after an ordinary shot. The
+last of `shotsPerReload` shots starts `reloadAnimationId` immediately for
+`reloadTicks`; pressing with an empty cylinder reloads without firing. Only a
+completed reload refills it. Cancellation preserves spent rounds; respawn refills
+it. `CharacterState.FingerGunsShotsSpent` persists through World Snapshot v9
+(simulation protocol 19), with no passive regeneration. In air the capability
+caps falling at `airMaxFallSpeed` and applies horizontal recoil opposite each shot
+at `airRecoilSpeed`; grounded it stays planted. It uses the ordinary projectile
+presentation path. One tick-zero `meleeCombo` lifecycle owns completion and landing
+continuation, with IASA disabled and only presentation operations alongside it.
+`aimMode` is `none` (launch-time auto-target) or `cameraForward3D` (press-time aim).
+The reload clip must be listed after the stage's first clip in sorted order.
+Bounds: fire 1–120 ticks, recovery 1–240, cylinder 1–24 rounds, reload 1–600,
+both air speeds 0–30 m/s; projectile parameters use the existing projectile spec
+with positive speed/radius/lifetime and no return. Package wiring is separate.
+
 `slop.ability.steered-charge.v1` requires runtime API `1.8.0` (Sir Bonk's Joust). It
 gallops at a fixed speed whose heading the stick turns at a capped rate (at most
 1440°/s), with a lance hitbox that follows the fighter and optional armour while it
@@ -265,7 +282,7 @@ contacts and input timing.
 | `slop.internal.wibou.blade-flurry.v2` | Wibou F, per-tick flight control | Keep the versioned contract until cooked operations reproduce held-input motion |
 | `slop.internal.manki.round-bomb.v1` | Manki A, charged bomb | Public charged-projectile behavior after charge and explosion parity |
 | `slop.internal.manki.jetpack-boost.v1` | Manki E, jetpack recovery | Public recovery primitive after trajectory and landing parity |
-| `slop.internal.manki.bazooka.v1` | Manki R, held launch and recoil | Public charged-projectile behavior after hold, recoil and cancellation parity |
+| `slop.internal.manki.bazooka.v2` | Manki R, press-to-fire homing rocket | Public projectile behavior after target capture, limited steering, cancellation and explosion parity |
 | `slop.internal.manki.aerosol-inferno.v1` | Manki F | Public charged-stream behavior after charge and contact parity. Bashie's F uses her own cooked whistle timeline. |
 
 Blade Flurry v2 authors ascent start/end, descent start, rise/descent speed and
@@ -273,6 +290,17 @@ forward speed. The unused v1 `moveTicks` contract is rejected. Wibou's package
 version and hashes changed, so older local Arcade records remain stored but do
 not compare against this content. Generic movement operations were rejected for
 this migration because they changed flight under held input.
+
+Bazooka v2 replaces the held v1 input contract with immediate firing. Its authored
+stage clock starts on press. The rocket captures the current target at its fire
+trigger and stores the target id and cooked turn sine/cosine on `Hitbox`.
+`SpellResolver` steers it after the ability ends or is interrupted. An invalid
+target, a target death, or a nonpositive velocity-to-target dot product clears
+homing permanently. The compiler accepts `homingTurnDegPerTick` in `(0, 90]` and
+writes its sine and cosine into cooked content, keeping tick steering free of
+runtime trigonometry. Bazooka v1 is rejected rather than silently changing its
+hold semantics. The package hashes change with this contract. Explosion owner
+damage is also persistent projectile data, so the 4 self-damage survives recovery.
 
 ## Shared ability lifecycle
 

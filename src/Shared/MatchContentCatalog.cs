@@ -215,7 +215,7 @@ public static class BuiltInRosterManifestCodec
     private static CharacterClass ParseSelector(string value) => value switch
     {
         "Manki" => CharacterClass.Manki, "FightGuy" => CharacterClass.FightGuy, "Wibou" => CharacterClass.Wibou, "Bonk" => CharacterClass.Bonk,
-        "Bashie" => CharacterClass.Bashie,
+        "Bashie" => CharacterClass.Bashie, "Salamander" => CharacterClass.Salamander,
         _ => throw new InvalidDataException("Unknown roster selector.")
     };
     private static Dictionary<string, JsonElement> ParseObject(string json, string path)

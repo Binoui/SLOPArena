@@ -156,6 +156,18 @@ namespace SlopArena.EditorTools
                 foreach (var poster in spec.posters)
                     if (File.Exists(folder + "/" + poster.texture))
                         posters.Add(InstallPoster(root, art, folder, poster));
+                foreach (var surface in spec.surfaces)
+                {
+                    var marker = root.transform.Find(surface.name);
+                    if (marker == null)
+                    {
+                        marker = new GameObject(surface.name).transform;
+                        marker.SetParent(root.transform, false);
+                    }
+                    marker.localPosition = new Vector3(surface.position[0], surface.position[1], surface.position[2]);
+                    marker.localRotation = Quaternion.Euler(surface.rotation[0], surface.rotation[1], surface.rotation[2]);
+                    marker.localScale = new Vector3(surface.size[0], surface.size[1], 1f);
+                }
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
@@ -180,6 +192,13 @@ namespace SlopArena.EditorTools
             public LightSpec[] lights;
             public AtmosphereSpec atmosphere;
             public PosterSpec[] posters = Array.Empty<PosterSpec>();
+            public SurfaceSpec[] surfaces = Array.Empty<SurfaceSpec>();
+        }
+
+        private sealed class SurfaceSpec
+        {
+            public string name;
+            public float[] position, rotation, size;
         }
 
         private sealed class TextureSpec
@@ -236,6 +255,13 @@ namespace SlopArena.EditorTools
 
         private static void Validate(Presentation spec, string stage)
         {
+            spec.surfaces ??= Array.Empty<SurfaceSpec>();
+            if (spec.surfaces.Select(s => s.name).Distinct().Count() != spec.surfaces.Length
+                || spec.surfaces.Any(s => string.IsNullOrWhiteSpace(s.name) || s.name.Contains("/")
+                    || s.position?.Length != 3 || s.rotation?.Length != 3 || s.size?.Length != 2
+                    || s.size.Any(v => !(v > 0f) || float.IsInfinity(v))
+                    || s.position.Concat(s.rotation).Any(v => float.IsNaN(v) || float.IsInfinity(v))))
+                throw new InvalidOperationException("Surfaces need unique direct-child names, finite position/rotation and positive width/height.");
             if (spec.format != 1) throw new InvalidOperationException("Unsupported presentation format " + spec.format + "; expected 1.");
             if (spec.stage != stage) throw new InvalidOperationException("The presentation describes '" + spec.stage + "', not '" + stage + "'.");
             string prefix = "Assets/Stages/" + stage + "/Presentation/";

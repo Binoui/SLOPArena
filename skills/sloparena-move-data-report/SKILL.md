@@ -52,6 +52,19 @@ scripts/move-data.sh <char> --truecombos --di --html report.html    # + true-com
 - `<char>`: `fightguy` (default) | `manki` | `wibou` | `bonk`, resolved through the cooked roster.
 - Default markdown output: `docs/generated/<char>-move-data.md`.
 
+### Homing dash frame data (ADR-0042)
+
+```bash
+dotnet run --project tools/MoveDataReport -p:SkipUnityPluginCopy=true -- --dash [character|all] [--out tmp/dash.md]
+```
+
+Mirror matches on flat ground, per fighter: press → arrival by distance, press → first contact for
+each normal pressed on the first arrival tick, the defender's reaction window, press → actionable
+without a follow-up, aerial follow-ups after a jump-then-dash at standing and jumping targets (with the
+attacker's drop before contact), sideways runners, and the out-of-range miss. A no-dash control row
+presses each normal from standstill at the arrival spacing, so a dash-only whiff stands out. Tune with
+`HomingDashConfig` and rerun.
+
 ### Analysis modes (issue #147)
 
 - `--truecombos` — freeform true-combo reachability graph: for each normal × hit state (grounded/airborne)

@@ -13,7 +13,12 @@ namespace SlopArena.Shared
         // 4: Versus Slopball rally, score and serve rotation.
         // 5: solo and multiplayer Character Course progress, clocks, finish order and withdrawals.
         // 7: homing dash direction, target, cooldown and air use in CharacterState (ADR-0042).
-        public const uint SnapshotFormatVersion = 7;
+        // 8: projectile homing target/turn limits and persistent explosion self-damage.
+        // 9: persistent Finger Guns cylinder state.
+        // 10: Mayhem director, scores, bench flags and sticky-fuse projectiles.
+        // 11: expanding shockwave rings and per-hazard shield policy.
+        // 12: deterministic breakable cage walls.
+        public const uint SnapshotFormatVersion = 12;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -84,6 +89,8 @@ namespace SlopArena.Shared
             w.WriteBool(_onlineCourse != null);
             _onlineCourse?.WriteSnapshot(w);
             if (_course != null) w.WriteBool(_arcadeInputReleaseRequired);
+            w.WriteBool(_mayhem != null);
+            _mayhem?.WriteSnapshot(w);
             return new WorldSnapshot(w.ToArray());
         }
 
@@ -174,11 +181,14 @@ namespace SlopArena.Shared
             if (hasOnlineCourse != (_onlineCourse != null)) throw SnapshotReader.Malformed("online course presence");
             var onlineCourse = hasOnlineCourse ? _onlineCourse!.ReadSnapshot(r) : null;
             if (hasCourse) inputRelease = r.ReadBool();
+            bool hasMayhem = r.ReadBool();
+            if (hasMayhem != (_mayhem != null)) throw SnapshotReader.Malformed("Mayhem presence");
+            var mayhem = hasMayhem ? _mayhem!.ReadSnapshot(r, ids) : null;
             if (!r.AtEnd)
                 throw SnapshotReader.Malformed("trailing data");
 
             return new PreparedSnapshot(tick, nextActivationId, nextInteractionId, fighters,
-                resolver, ball, rules, volley, inputRelease, course, onlineCourse);
+                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem);
         }
 
         internal void ApplySnapshot(PreparedSnapshot prepared)
@@ -202,6 +212,7 @@ namespace SlopArena.Shared
                     _activeAbilities[id] = fighter.Ability;
             }
             _spellResolver.ApplySnapshot(prepared.Resolver);
+            if (prepared.Mayhem != null) _mayhem!.Apply(prepared.Mayhem);
             if (prepared.Course.HasValue) _course!.Apply(prepared.Course.Value);
             if (prepared.OnlineCourse != null) _onlineCourse!.Apply(prepared.OnlineCourse);
             if (_course != null) _arcadeInputReleaseRequired = prepared.InputRelease;
@@ -309,7 +320,8 @@ namespace SlopArena.Shared
             FighterSnapshot[] Fighters, SpellResolver.SnapshotData Resolver,
             ArcadeBallSimulation.Snapshot Ball, SlopballSimulation.Snapshot Rules,
             SlopballVersusSimulation.Snapshot Volley, bool InputRelease,
-            CharacterCourseSimulation.Snapshot? Course, OnlineCourseSimulation.Snapshot? OnlineCourse);
+            CharacterCourseSimulation.Snapshot? Course, OnlineCourseSimulation.Snapshot? OnlineCourse,
+            MankiMayhemSimulation.Snapshot? Mayhem);
 
         internal sealed class FighterSnapshot
         {

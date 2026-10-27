@@ -14,7 +14,9 @@ namespace SlopArena.Shared
         Wibou,
         Bonk,
         // 5 was Nilus, retired: old match requests still carry it, so it must never parse again.
-        Bashie = 6
+        Bashie = 6,
+        // Working name until the fighter #6 salamander gunslinger has his own (2026-10-26).
+        Salamander = 7
     }
 
     [Serializable]
@@ -43,7 +45,7 @@ namespace SlopArena.Shared
         public byte MaxJumps;
         public ushort JumpSquatTicks;
         public ushort FloatWindowTicks;
-        public ushort RushTicks;           // Rush window (ground dash-dance), ticks
+        public ushort RushTicks;           // Reserved authoring/cooked field; ground locomotion ignores it.
     }
 
     public sealed record CharacterDefinition
