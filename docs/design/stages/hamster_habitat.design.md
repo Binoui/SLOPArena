@@ -16,7 +16,7 @@ On 2026-10-27 the maintainer asked for PvP maps that challenge the current form 
 safe layout wise") with sections, verticality and hallways, citing Melee's Hyrule
 Temple as iconic despite being a poor competitive stage. From four directions they
 chose the hamster habitat, and from three layouts on the
-[layout board](../../../tmp/hamster-habitat/index.html) they picked **C, Two Cages**
+layout board (local `tmp/hamster-habitat/index.html`) they picked **C, Two Cages**
 ("I like C especially, want to try that layout"). That pick locks this gray-box. The
 setting (bedroom, classroom or pet store) and the hamster (peeking in, asleep as a hill,
 not home) are still open and decide the art pass. The maintainer judges the gray-box in
@@ -78,7 +78,7 @@ desk cage toward the shelf cage.
 
 The maintainer wanted the bedroom but "we already have that" (Table Manners): the same room
 from another angle, or way different. They picked the same room at night, then concept C
-("c is amazing", [C_lamp.png](../../../tmp/hamster-habitat-concepts/C_lamp.png)) over a
+("c is amazing", local `tmp/hamster-habitat-concepts/C_lamp.png`) over a
 moonlit and a nightlight take. The hamster peeks in from outside.
 
 8. **Deep bin cages.** The cages are deep blue plastic storage bins filled almost to the
