@@ -1,6 +1,6 @@
 # ADR-0041: Couch play in Solo
 
-**Status:** Proposed — 2026-10-26
+**Status:** Proposed — 2026-10-26; extended to four seats 2026-10-27
 
 ## Context
 
@@ -24,11 +24,17 @@ fighter per tick, and Fighter Select already shows a P1 card and a P2 card
    one gamepad, or the keyboard and mouse. Each gets their own instance of the gameplay
    action map, restricted to that device. Menus keep the shared map, so any device
    navigates. Bindings stay per device type. `InputState` and Shared do not change.
-2. **P2 can be a Local Player.** Solo's P2 card switches between CPU and PLAYER. A PLAYER
-   P2 is paired with the next device that presses a button and picks their own fighter.
-   In the match, P2's input comes from that device instead of the CPU policy. Stocks,
-   countdown and results stay Solo's; the end card names P1 or P2. Each Local Player's
-   facing ring and fight card take a player colour, so mirror matches stay readable.
+2. **Four seats.** Solo always has four seats, P1 to P4, like an online Room. P1 is the
+   local player. P2 to P4 are each Open, CPU or a Local Player; a match needs at least one
+   of them filled. P2 starts as a CPU and P3 and P4 start Open. On Fighter Select, P1 adds
+   or removes CPUs and sets each CPU's fighter and difficulty. A pad other than P1's that
+   presses A takes the lowest seat without a Local Player and picks its own fighter; B
+   hands the seat back. In the match a Local Player's input comes from their pad and a
+   CPU's from the CPU policy, which targets the nearest fighter still in. The match is a
+   free-for-all stock fight; countdown and results stay Solo's and the end card names the
+   winning seat. Each seat has a player colour (P1 yellow, P2 orange, P3 teal, P4 lilac)
+   on its Fighter Select panel, menu cursor, facing ring and fight card, so mirror
+   matches stay readable. Training keeps P1 and one practice CPU.
 3. **Couch camera.** With two Local Players, one shared camera keeps both fighters in view
    as much as possible. It builds on the SideDuel style, which already turns side-on to
    the fight, centres between the fighters and zooms out to fit them. The couch version
@@ -52,8 +58,8 @@ fighter per tick, and Fighter Select already shows a P1 card and a P2 card
   Steam Deck match unchanged.
 - The camera's yaw follows the fight, so both players' stick directions rotate slowly with
   it. The prototype decides whether that turn rate feels right.
-- More than two Local Players is a later extension; the camera would then turn side-on to
-  the fighters' widest spread.
+- With more than two fighters the couch camera fits every fighter still in. Turning it
+  side-on to the fighters' widest spread belongs to the separate camera rework.
 - On acceptance, `CONTEXT.md` gains Local Player and couch camera.
 
 ## Considered alternatives

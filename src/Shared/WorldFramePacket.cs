@@ -22,13 +22,15 @@ namespace SlopArena.Shared
     {
         public const uint Magic = 0x4D524657; // "WFRM"
         /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040).</summary>
-        public const byte FormatVersion = 4;
+        public const byte FormatVersion = 7;
         public const int HeaderSize = 16;
         public const int MaxBodyBytes = 64 * 1024;
         public const int MaxPresentationEvents = 256;
         public const int MaxHits = 128;
         public const int MaxSlopballEvents = 32;
         public const int MaxCourseEvents = 1024;
+        public const int MaxMayhemEvents = 64;
+        private const int MayhemEventBytes = 21;
         private const int CourseEventBytes = 27;
         private const int SlopballEventBytes = 4 + 1 + 8 + 8 + 4 + 1;
         /// <summary>Ticks whose complete event and hit record each frame carries, ending at its own tick.</summary>
@@ -37,7 +39,8 @@ namespace SlopArena.Shared
 
         public WorldFramePacket(MatchState matchState, WorldSnapshot snapshot, IReadOnlyList<RelayedInput> inputs,
             IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits,
-            IReadOnlyList<SlopballTickEvent>? slopballEvents = null, IReadOnlyList<CourseTickEvent>? courseEvents = null)
+            IReadOnlyList<SlopballTickEvent>? slopballEvents = null, IReadOnlyList<CourseTickEvent>? courseEvents = null,
+            IReadOnlyList<MankiMayhemEvent>? mayhemEvents = null)
         {
             MatchState = matchState;
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
@@ -46,6 +49,8 @@ namespace SlopArena.Shared
             Hits = hits ?? throw new ArgumentNullException(nameof(hits));
             SlopballEvents = slopballEvents ?? Array.Empty<SlopballTickEvent>();
             CourseEvents = courseEvents ?? Array.Empty<CourseTickEvent>();
+            MayhemEvents = mayhemEvents ?? Array.Empty<MankiMayhemEvent>();
+            if (MayhemEvents.Count > MaxMayhemEvents) throw new ArgumentOutOfRangeException(nameof(mayhemEvents));
             if (CourseEvents.Count > MaxCourseEvents) throw new ArgumentOutOfRangeException(nameof(courseEvents));
             if (events.Count > MaxPresentationEvents)
                 throw new ArgumentOutOfRangeException(nameof(events));
@@ -66,6 +71,7 @@ namespace SlopArena.Shared
         /// <summary>Every Slopball event of the ticks <see cref="EventsFromTick"/> to <see cref="Tick"/>; empty for a stock fight.</summary>
         public IReadOnlyList<SlopballTickEvent> SlopballEvents { get; }
         public IReadOnlyList<CourseTickEvent> CourseEvents { get; }
+        public IReadOnlyList<MankiMayhemEvent> MayhemEvents { get; }
 
         /// <summary>First tick whose complete event and hit record this frame carries.</summary>
         public uint EventsFromTick => EventsFrom(Tick);
@@ -151,6 +157,13 @@ namespace SlopArena.Shared
                 if (!ValidCourseEvent(item, Tick)) throw new ArgumentOutOfRangeException(nameof(CourseEvents));
                 w.WriteUInt(item.MatchTick); w.WriteULong(item.EntityId); w.WriteByte((byte)item.Event.Kind);
                 w.WriteInt(item.Event.Index); w.WriteULong(item.Event.ElapsedTicks); w.WriteUShort(item.Sequence);
+            }
+            w.WriteInt(MayhemEvents.Count);
+            foreach (var item in MayhemEvents)
+            {
+                if (!ValidMayhemEvent(item, Tick)) throw new ArgumentOutOfRangeException(nameof(MayhemEvents));
+                w.WriteUInt(item.MatchTick); w.WriteUShort(item.RoundIndex); w.WriteByte((byte)item.Kind);
+                w.WriteULong(item.EntityId); w.WriteInt(item.OperationIndex); w.WriteUShort(item.Points);
             }
             byte[] body = w.ToArray();
             if (body.Length > MaxBodyBytes)
@@ -305,9 +318,32 @@ namespace SlopArena.Shared
                 courses[i] = new(eventTick, entity, new(kind, index, elapsed), sequence);
                 if (!ValidCourseEvent(courses[i], tick)) throw Malformed("course event");
             }
+            int mayhemCount = r.ReadCount(MayhemEventBytes);
+            if (mayhemCount > MaxMayhemEvents) throw Malformed("Mayhem event count");
+            var mayhem = new MankiMayhemEvent[mayhemCount];
+            for (int i = 0; i < mayhem.Length; i++)
+            {
+                mayhem[i] = new(r.ReadUInt(), r.ReadUShort(), (MankiMayhemEventKind)r.ReadByte(),
+                    r.ReadULong(), r.ReadInt(), r.ReadUShort());
+                if (!ValidMayhemEvent(mayhem[i], tick)) throw Malformed("Mayhem event");
+            }
             if (!r.AtEnd)
                 throw Malformed("trailing data");
-            return new WorldFramePacket(matchState, snapshot, inputs, events, hits, slopball, courses);
+            return new WorldFramePacket(matchState, snapshot, inputs, events, hits, slopball, courses, mayhem);
+        }
+
+        public static bool ValidMayhemEvent(MankiMayhemEvent item, uint tick)
+        {
+            bool wall = item.Kind is MankiMayhemEventKind.WallHit or MankiMayhemEventKind.WallBroken;
+            bool fighter = item.Kind is MankiMayhemEventKind.Bench or MankiMayhemEventKind.Score;
+            bool hazard = item.Kind is MankiMayhemEventKind.WindUp or MankiMayhemEventKind.Launch or MankiMayhemEventKind.Slam;
+            return item.MatchTick >= EventsFrom(tick) && item.MatchTick <= tick
+                && item.Kind <= MankiMayhemEventKind.WallBroken
+                && item.RoundIndex < MankiMayhemTuning.DeckPasses * MankiMayhemRounds.DeckSize
+                && (wall ? RuntimeSolidSet.IsWallId(item.EntityId) : fighter ? item.EntityId is > 0 and < ArcadeBallSimulation.FirstEntityId
+                    : item.EntityId == ServerSimulation.MayhemHostEntityId)
+                && (wall ? item.OperationIndex == (int)(item.EntityId - RuntimeSolidSet.FirstEntityId) : hazard ? item.OperationIndex is >= 0 and < 64 : item.OperationIndex == 0)
+                && (item.Kind == MankiMayhemEventKind.Score ? item.Points is > 0 and <= 2 : item.Points == 0);
         }
 
         private static bool ValidCourseEvent(CourseTickEvent item, uint tick)
@@ -321,7 +357,7 @@ namespace SlopArena.Shared
                         ? item.Event.Index == -1 : item.Event.Index is >= -1 and < 32);
         }
 
-        private const int HitBytes = 8 + 8 + 1 + 8 + 1 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 2 + 2 + 1 + 1 + 12 + 4 + 2 + 1 + 4 + 4;
+        private const int HitBytes = 1 + 8 + 8 + 1 + 8 + 1 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 2 + 2 + 1 + 1 + 12 + 4 + 2 + 1 + 4 + 4;
 
         private static void WriteHit(SnapshotWriter w, in SpellResolver.HitResult hit)
         {
@@ -348,6 +384,7 @@ namespace SlopArena.Shared
             w.WriteFloat(hit.ImpactForce);
             w.WriteUShort(hit.HitstopTicks);
             w.WriteBool(hit.Blocked);
+            w.WriteBool(hit.Unblockable);
             w.WriteUInt(hit.MatchTick);
             w.WriteFloat(hit.ContactTime);
         }
@@ -379,6 +416,7 @@ namespace SlopArena.Shared
                 ImpactForce = r.ReadFloat(),
                 HitstopTicks = r.ReadUShort(),
                 Blocked = r.ReadBool(),
+                Unblockable = r.ReadBool(),
                 MatchTick = r.ReadUInt(),
                 ContactTime = r.ReadFloat(),
             };

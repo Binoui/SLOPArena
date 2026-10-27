@@ -376,7 +376,7 @@ namespace SlopArena.Client.Input
         /// <summary>
         /// Get raw movement input for current frame.
         /// </summary>
-        public Vector2 GetMovement(bool digitalKeyboard = false)
+        public Vector2 GetMovement()
         {
             if (HumanInputBlocked) return Vector2.zero;
             float x = (Act("MoveRight").IsPressed() ? 1f : 0f)
@@ -385,7 +385,7 @@ namespace SlopArena.Client.Input
                     - (Act("MoveDown").IsPressed() ? 1f : 0f);
             Vector2 stick = Act("MoveStick").ReadValue<Vector2>();
             Vector2 keyboard = new Vector2(x, y);
-            if (digitalKeyboard && keyboard.sqrMagnitude > 0f) return keyboard.normalized;
+            if (keyboard.sqrMagnitude > 0f) return keyboard.normalized;
             return Vector2.ClampMagnitude(keyboard + stick, 1f);
         }
 
@@ -417,8 +417,6 @@ namespace SlopArena.Client.Input
             Camera.AimContext aimCtx,
             Func<bool>? canMove,
             byte targetEntityId = 0,
-            GroundSpeedModel groundSpeedModel = GroundSpeedModel.Current,
-            bool stickSnap = true,
             bool aimFromFacing = false)
         {
             var input = new InputState();
@@ -441,8 +439,8 @@ namespace SlopArena.Client.Input
             }
 
             // Build raw camera-relative direction from unified digital and stick input.
-            bool prototypeSpeed = groundSpeedModel != GroundSpeedModel.Current;
-            Vector2 moveInput = GetMovement(digitalKeyboard: prototypeSpeed || !stickSnap);
+            bool stickSnap = ClientSettingsService.Instance.Stick8WaySnap;
+            Vector2 moveInput = GetMovement();
             // Steady camera (ADR-0043): keep the basis a held direction started with, so a camera
             // turn does not bend a run already underway. A new direction re-reads the camera.
             if (camera != null && camera.HoldsMoveDirection && moveInput.sqrMagnitude >= 0.04f)
@@ -489,9 +487,8 @@ namespace SlopArena.Client.Input
                 moveDirection = moveDirection.normalized;
             }
 
-            float movementMagnitude = prototypeSpeed ? Mathf.Clamp01(moveInput.magnitude) : 1f;
-            input.MoveX = moveDirection.x * movementMagnitude;
-            input.MoveY = moveDirection.z * movementMagnitude;
+            input.MoveX = moveDirection.x;
+            input.MoveY = moveDirection.z;
             input.Up = moveDirection.z > 0.3f;
             // Dedicated Down remains independent from backward movement.
             input.Down = !_downReleaseRequired && Act("Down").IsPressed();

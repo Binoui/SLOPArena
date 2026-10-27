@@ -40,6 +40,7 @@ namespace SlopArena.Client.UI
         private bool _arcadeTab;
         // The leader's local Arcade choice before it is confirmed: co-op Slopball, the one online format so far.
         private bool _arcadePick;
+        private string _mayhemFriendlyFire = "shoves";
         private string _arcadeFormat = MatchFormats.SlopballCoopWire;
         private string _arcadeArena = SlopballArena;
         private const string SlopballArena = "slopball";
@@ -257,6 +258,16 @@ namespace SlopArena.Client.UI
             if (_context.Q<Button>("stage-arcade-slopball") is { } slopball) slopball.clicked += PickSlopball;
             if (_context.Q<Button>("stage-arcade-versus") is { } versus) versus.clicked += PickVersus;
             if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked += ShowCourses;
+            _context.Q<Button>("stage-arcade-mayhem").clicked += PickMayhem;
+            foreach (string mode in new[] { "off", "shoves", "on" })
+            {
+                string choice = mode;
+                _context.Q<Button>("mayhem-rule-" + mode).clicked += () =>
+                {
+                    if (!ClientSession.IsLobbyHost || _roomActionPending) return;
+                    _mayhemFriendlyFire = choice; PickMayhem();
+                };
+            }
             ShowRoomTab(false);
         }
 
@@ -316,10 +327,23 @@ namespace SlopArena.Client.UI
                 if (format == CoopFormat && card?.Q<Label>(className: "arcade-mode-rule") is { } rule)
                     rule.text = "Two to four of you against the Launcher. Unlimited misses.";
             }
+            var mayhem = _context.Q<Button>("stage-arcade-mayhem");
+            bool mayhemAdmitted = ArcadeAdmitted(MatchFormats.MankiMayhemWire, "manki_mayhem");
+            mayhem?.SetEnabled(mayhemAdmitted && leader && !_roomActionPending);
+            _context.Q<VisualElement>("mayhem-card")?.EnableInClassList("arcade-mode-card--selected", selected == MatchFormats.MankiMayhemWire);
+            if (_context.Q<Label>("mayhem-badge") is { } mayhemBadge)
+                mayhemBadge.text = mayhemAdmitted ? "2–4 PLAYERS" : "NOT AVAILABLE";
+            foreach (string mode in new[] { "off", "shoves", "on" })
+            {
+                var chip = _context.Q<Button>("mayhem-rule-" + mode);
+                chip?.EnableInClassList("active", (leader ? _mayhemFriendlyFire : _roomSnapshot?.MayhemFriendlyFire) == mode);
+                chip?.SetEnabled(leader && mayhemAdmitted && !_roomActionPending && _lobby?.IsConnected == true);
+            }
             BuildCourseOptions();
             string selectedArena = leader && _arcadePick ? _arcadeArena : _roomSnapshot?.ArenaName;
             bool courseSelected = MatchFormats.TryParseWire(selected, out var selectedFormat) && selectedFormat.IsCourse();
             string label = courseSelected ? CharacterCourseMatch.Course(selectedArena).Title + (selectedFormat == MatchFormat.CourseRace ? " · RACE" : " · CO-OP")
+                : selected == MatchFormats.MankiMayhemWire ? "MANKI MAYHEM · " + (leader ? _mayhemFriendlyFire : _roomSnapshot?.MayhemFriendlyFire)?.ToUpperInvariant()
                 : selected == MatchFormats.SlopballVersusWire ? "SLOPBALL VERSUS · FIRST TO 21" : "SLOPBALL CO-OP";
             if (_lblSelectedStage != null)
                 _lblSelectedStage.text = _arcadePick || _roomSnapshot != null && IsSlopballPick(_roomSnapshot)
@@ -331,8 +355,15 @@ namespace SlopArena.Client.UI
                 _btnConfirm.SetEnabled(leader && _arcadePick && ArcadeAdmitted(_arcadeFormat)
                     && !_roomActionPending && _lobby?.IsConnected == true);
             }
-            ShowRoomStatus(leader ? "Choose Slopball or a Character Course. Courses set the fighter; each player picks a colour."
+            ShowRoomStatus(leader ? "Pick a format, then choose fighters."
                 : "The Room leader chooses the format.", false);
+        }
+
+        private void PickMayhem()
+        {
+            if (!ClientSession.IsLobbyHost || !ArcadeAdmitted(MatchFormats.MankiMayhemWire, "manki_mayhem")) return;
+            _arcadePick = true; _arcadeFormat = MatchFormats.MankiMayhemWire; _arcadeArena = "manki_mayhem";
+            ApplyArcadeTabState();
         }
 
         private void PickSlopball() => PickSlopballFormat(CoopFormat);
@@ -581,6 +612,7 @@ namespace SlopArena.Client.UI
                 FrontendController.Show(FrontendPage.FighterSelect);
                 return;
             }
+            if (_roomSnapshot == null) _mayhemFriendlyFire = room.MayhemFriendlyFire;
             _roomSnapshot = room;
             _roomActionPending = _confirmInFlight;
             ClientSession.IsLobbyHost = IsLocalRoomLeader(room);
@@ -599,7 +631,7 @@ namespace SlopArena.Client.UI
             {
                 // The Room's pick is Arcade: everyone sees it on the ARCADE tab.
                 if (!_arcadeTab) SetTabVisuals(true);
-                if (ClientSession.IsLobbyHost) { _arcadePick = true; _arcadeFormat = room.Format; _arcadeArena = room.ArenaName; }
+                if (ClientSession.IsLobbyHost) { _arcadePick = true; _arcadeFormat = room.Format; _arcadeArena = room.ArenaName; _mayhemFriendlyFire = room.MayhemFriendlyFire; }
                 ApplyArcadeTabState();
                 return;
             }
@@ -721,8 +753,9 @@ namespace SlopArena.Client.UI
             try
             {
                 if (!string.Equals(_roomSnapshot.ArenaName, arena, StringComparison.OrdinalIgnoreCase) ||
-                    !string.Equals(_roomSnapshot.Format, format, StringComparison.Ordinal))
-                    await lobby.RoomChoosePickAsync(format, arena);
+                    !string.Equals(_roomSnapshot.Format, format, StringComparison.Ordinal)
+                    || format == MatchFormats.MankiMayhemWire && _roomSnapshot.MayhemFriendlyFire != _mayhemFriendlyFire)
+                    await lobby.RoomChoosePickAsync(format, arena, _mayhemFriendlyFire);
                 if (!OwnsRoomOperation(context, lobby, roomId))
                     return;
                 ShowRoomStatus("Opening Character Select…", false);
@@ -771,10 +804,14 @@ namespace SlopArena.Client.UI
             {
                 _playerCards.Add(BuildPlayerCard(
                     "P1", "YOU", MatchConfig.PlayerClass, "READY", true, true));
-                _playerCards.Add(BuildPlayerCard(
-                    "P2", MatchConfig.SoloP2Human ? "PLAYER 2" : "CPU", MatchConfig.SoloBotClass,
-                    MatchConfig.SoloP2Human ? "READY" : $"CPU {BotDifficultyProfile.DisplayName(MatchConfig.SoloCpuDifficulty)}",
-                    false, false));
+                for (int player = 2; player <= (MatchConfig.Mode == GameMode.Training ? 2 : 4); player++)
+                {
+                    var seat = MatchConfig.Seat(player);
+                    if (seat.Kind == SeatKind.Open && MatchConfig.Mode == GameMode.Solo) continue;
+                    _playerCards.Add(FighterPanel.Build(player, seat.Kind == SeatKind.LocalPlayer ? $"PLAYER {player}" : "CPU",
+                        seat.Kind == SeatKind.LocalPlayer ? "PLAYER" : "CPU", seat.Fighter,
+                        seat.Kind == SeatKind.LocalPlayer ? "READY" : BotDifficultyProfile.DisplayName(seat.Difficulty).ToUpperInvariant(), compact: true));
+                }
                 return;
             }
 
@@ -803,49 +840,10 @@ namespace SlopArena.Client.UI
             bool local,
             bool host)
         {
-            var card = new VisualElement();
-            card.AddToClassList("player-card");
-            if (local) card.AddToClassList("player-card--local");
-
-            var identity = new VisualElement();
-            identity.AddToClassList("player-card__identity");
-            var number = new Label(playerNumber);
-            number.AddToClassList("player-card__number");
-            identity.Add(number);
-            var role = new Label(_roomMode
-                ? (host ? "LEADER" : "MEMBER")
-                : MatchConfig.Mode == GameMode.PvP
-                    ? (host ? "HOST" : "PLAYER")
-                    : (local || MatchConfig.SoloP2Human ? "PLAYER" : "CPU"));
-            role.AddToClassList("player-card__host");
-            identity.Add(role);
-            card.Add(identity);
-
-            var name = new Label(playerName) { enableRichText = false };
-            name.AddToClassList("player-card__name");
-            card.Add(name);
-
-            if (selectedClass.HasValue)
-            {
-                var portrait = new VisualElement();
-                portrait.AddToClassList("player-card__portrait");
-                var texture = Resources.Load<Texture2D>($"UI/Portraits/{selectedClass.Value}");
-                if (texture != null)
-                    portrait.style.backgroundImage = new StyleBackground(texture);
-                card.Add(portrait);
-
-                var character = new Label(selectedClass.Value.ToString().ToUpper());
-                character.AddToClassList("player-card__character");
-                card.Add(character);
-            }
-
-            var status = new Label(statusText);
-            status.AddToClassList("player-card__status");
-            status.AddToClassList(statusText == "LOCKED" || statusText == "BOT" || statusText == "READY"
-                ? "player-card__status--locked"
-                : "player-card__status--picking");
-            card.Add(status);
-            return card;
+            int number = playerNumber.Length > 1 && char.IsDigit(playerNumber[1]) ? playerNumber[1] - '0' : 1;
+            return FighterPanel.Build(number, playerName, _roomMode ? host ? "LEADER" : "MEMBER"
+                : MatchConfig.Mode == GameMode.PvP ? host ? "HOST" : "PLAYER" : local ? "PLAYER" : "CPU",
+                selectedClass, statusText, compact: true);
         }
 
         private void OnConfirmClicked()
@@ -870,6 +868,7 @@ namespace SlopArena.Client.UI
                 return;
             }
 
+            if (MatchConfig.Mode == GameMode.Solo && MatchConfig.SoloOpponentCount == 0) return;
             MatchConfig.ArenaName = _selectedArena;
             if (MatchConfig.Mode != GameMode.PvP)
             {

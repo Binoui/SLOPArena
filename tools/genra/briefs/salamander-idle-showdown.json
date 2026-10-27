@@ -1,0 +1,286 @@
+{
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache stuck on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, and long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans to the floor.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "name": "salamander-idle-showdown",
+  "notes": "Salamander (fighter #6, package salamander, working name) idle for presentation.idle, 2026-10-27. The owner picked personality A, the Wannabe Legend, from the generated sheets (tmp/salamander-gunslinger/personality-v1/a-wannabe.png): its IDLE panel is the showdown stance. His rig pack's references are Manki's clips borrowed onto his body (raised 0.44 m in Unity); they crouch him and are not a style reference. Owner note: keep his joke pure mime, no props, so it stays apart from Sir Bonk's prop make-believe. Revision 1 (2026-10-27, owner present): the owner's note on every GenRA move, it lacks fluidity and secondary motion. Revision 2 (2026-10-27, owner present): the owner found the mustache-press arm unnatural. Measured on revision 1 (same press as round 0): the left shoulder joint rose 9.5 cm and slid 8.6 cm in toward the chin (7.6 cm above the neck joint, 2.3 cm below at rest), the elbow came up to shoulder height with the forearm flat across the chin, the fingertip reached 19 cm out in front of the chest at ticks 78 and 94, and the hand froze from tick 81 to 90. The press is now a close gesture with the head meeting the finger, with targets for the shoulder, elbow, hand path and head dip. Slowed (2026-10-27, owner present): the owner liked revision 2 but wanted it much slower (\"just to give him a bit of life\"); revision 2 played 3x slower (a 6 s loop) was accepted and promoted. This brief now runs on that 360-tick clock; the tick numbers in the revision notes above are on the old 120-tick clock.",
+  "description": "The salamander's idle: the clip he plays whenever he stands in a fight, between moves, while waiting and after landing.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero with a red band, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns), and he says BANG himself. No props beyond what he wears.\n\nHow the game plays it. The idle loops (ticks 0-360 are 6 s, wrapping from 360 back to 0). The game crossfades into it from every move, and out of it into the run and every attack, over about 0.1-0.2 s. The match camera sits straight behind him, so players mostly see his sombrero, poncho, tail and the backs of his hands: the hands hovering out at his hips and the twitching fingers must read from behind. The entry pose only sets the frame: it is another character's crouched idle on his body.\n\nThe floor. It is at up = -0.383 m in this character frame (the frame's origin is the entry hips). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor (up about -0.375) and the ankle (Foot) about 0.078 m above it (up about -0.305). Standing straight, his hip joint (Hips) is 0.42 m above the floor (up about +0.04). Never push a boot through the floor.\n\nThe showdown stance, the whole loop (image 2, the IDLE panel). He faces front, square to his opponent, like a gunfighter at high noon. Boots planted wide (ankles 0.28-0.38 m apart), toes turned out 15-25 degrees, both soles flat. Knees bent about 20-30 degrees, so the hips sit a little low. Slight forward lean from the hips, 5-10 degrees, shoulders down and wide, chin low so he squints out from under the brim. Both hands hover just out to the sides of his hips, over imaginary holsters: each hand about 6-12 cm out from the side of the hip and level with it, palms facing his thighs and a little back, fingers loose and slightly curled, ready to draw; elbows bent about 30-50 degrees and held out from the body. His drawing hand is the right one. The tail rests on the floor behind him in a lazy curve.\n\nPace (owner, 2026-10-27): an idle is a bit of life while the player presses nothing, not a performance. Everything is slow and small: the hand-made Manki and Wibou idles turn their body joints 2-11 degrees a second on average. The mustache press is the one gesture, and it is slow too.\n\nThe loop, five beats:\n- Tick 0: the showdown: still and tense, hands hovering, squinting ahead.\n- Tick 90: twitchy fingers: from tick 54 to 42 both hands' fingers twitch over the holsters, curling and opening two or three times, the index finger leading and the right hand a few ticks ahead of the left, the wrists flexing a little with them. The straw bobs once (joint Straw dips 10-15 degrees and comes back) around ticks 72-108: he chews it.\n- Tick 180: a glance: his head turns 20-30 degrees to his right (as if hearing something), the chest follows a third as far, the weight shifts onto his left leg (hips 1-2 cm over the left boot); the hands stay hovering. By tick 216 he looks ahead again.\n- Tick 255: the mustache check, the joke of his idle. From about tick 216 the fake mustache starts to peel: joint Mustache tilts 10-15 degrees, its left end dropping. He notices and fixes it with one small, close gesture. His arm is short for his snout, so the head comes down to meet the finger; the shoulder never climbs to the face. From about tick 228 he tucks his chin and tips his head forward and down 15-25 degrees, turning it 10-15 degrees to his left toward the hand, the chest curling forward a few degrees with it. Meanwhile his LEFT hand comes up close in front of the poncho: the elbow leads and stays low and out to the side (at least 7 cm below the shoulder joint, away from the ribs, never pointing forward), the forearm rises steeply and the wrist bends so the index finger points up and in at the mustache while the other fingers curl. The hand never swings out in front of him: on the way up and on the way down the fingertip stays within about 13 cm in front of the chest, never a straight forearm reaching forward. The left shoulder stays down and out (a shrug of 1-2 cm at most). Around ticks 246-264 the index finger presses the middle of the mustache back on (the fingertip at joint Mustache): two small pats with the head nodding into each, never a frozen hold. Joint Mustache snaps back to its rest rotation by tick 264. From tick 267 the hand drops back down the front of the poncho the way it came, elbow leading, the hand and fingers trailing and loosening, to hover over its holster by about tick 300; the head rebounds a little past level, then settles. The right hand stays hovering over its holster the whole time: a gunfighter never leaves his draw hand.\n- Tick 315: the left hand is back hovering over its holster, a small satisfied settle (knees dip 1-2 cm), the straw bobs once more.\n- Tick 360: the pose of tick 0.\n\nLife. The head leads each look and the chest follows a few ticks later. A slow breath under it all: the chest rises 1-2 cm and settles once per loop. The tail sways slowly side to side once per loop, each joint 4-10 degrees, the tip trailing the root by several ticks, always behind the legs and never through them or the floor. Offset the parts so they never all stop on the same tick, and let holds drift one way rather than freeze. Keep joint Hat at its rest rotation (the sombrero sits on his head). The poncho follows his chest by itself.\n\nFluidity and secondary motion (the owner's main note on every GenRA move). Nothing arrives anywhere all at once: the hips settle first, the chest a tick or two later, the head and the hands two or three ticks after that, the tail last. Every hold is a moving hold that keeps drifting one way. The fingers twitch in layers (index first, the others a tick or two later, one hand ahead of the other), not as a block. When he glances, the hat lags a hair behind the head and the straw swings. The mustache press is a small physical beat: the head tips into the finger, then rebounds a little past rest and settles. The tail never stops: a slow sway with a lazy flick of the tip at each end, the tip trailing the root by several ticks.\n\nNo steps, no spins, no drawing or shooting (that is his attack), no props.",
+  "clock": {
+    "duration_ticks": 360
+  },
+  "timing": {
+    "fixed": [
+      "it loops, and the game crossfades into it from every move and out of it into the run and every attack"
+    ],
+    "adjustable": [
+      "the loop length (360 ticks, 6 s: the owner accepted revision 2 played 3x slower, 2026-10-27)",
+      "the ticks of the beats inside the loop"
+    ]
+  },
+  "planted": [
+    "LeftFoot",
+    "LeftToeBase",
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png",
+    "../../salamander-idle-run-20261027/idle-a-showdown.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side): sombrero, poncho, patched jeans with the tail out through the seat, boots, mustache and straw. 2: the pose reference the owner picked (generated concept art drawn from his model): the showdown stance, ticks 0 and 120. The concept is stylised; keep the model's real proportions.",
+  "review_ticks": [
+    0,
+    54,
+    90,
+    135,
+    180,
+    216,
+    240,
+    255,
+    285,
+    315,
+    360
+  ],
+  "keys": [
+    0,
+    90,
+    180,
+    255,
+    315,
+    360
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.385,
+      "max": -0.355
+    },
+    {
+      "name": "right toe joint on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.385,
+      "max": -0.355
+    },
+    {
+      "name": "boots planted wide (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.28,
+      "max": 0.38
+    },
+    {
+      "name": "hips a little low, knees bent, tick 0 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.04,
+      "max": 0.015
+    },
+    {
+      "name": "right hand out at the right hip, tick 0 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.13,
+      "max": 0.24
+    },
+    {
+      "name": "left hand out at the left hip, tick 0 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "min": -0.24,
+      "max": -0.13
+    },
+    {
+      "name": "right hand level with the hip, tick 0 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 0,
+      "min": -0.08,
+      "max": 0.06
+    },
+    {
+      "name": "left hand level with the hip, tick 0 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": -0.08,
+      "max": 0.06
+    },
+    {
+      "name": "right hand still hovering at the mustache check, tick 85 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 255,
+      "min": -0.08,
+      "max": 0.08
+    },
+    {
+      "name": "left index fingertip at the mustache, tick 85 (m)",
+      "kind": "distance",
+      "a": "LeftHandIndex3",
+      "b": "Mustache",
+      "tick": 255,
+      "max": 0.05
+    },
+    {
+      "name": "left shoulder stays down at the mustache check, tick 85 (m)",
+      "kind": "below",
+      "a": "LeftArm",
+      "b": "Neck",
+      "tick": 255,
+      "min": 0.0
+    },
+    {
+      "name": "shoulders stay wide at the mustache check, tick 85 (m)",
+      "kind": "distance",
+      "a": "LeftArm",
+      "b": "RightArm",
+      "tick": 255,
+      "min": 0.21
+    },
+    {
+      "name": "left elbow low at the mustache check, tick 85 (m)",
+      "kind": "below",
+      "a": "LeftForeArm",
+      "b": "LeftArm",
+      "tick": 255,
+      "min": 0.07
+    },
+    {
+      "name": "head dips to meet the finger, tick 85 (m)",
+      "kind": "char",
+      "a": "Mustache",
+      "axis": "up",
+      "tick": 255,
+      "max": 0.355
+    },
+    {
+      "name": "left fingertip close in front of the chest on the way up, tick 78 (m)",
+      "kind": "ahead",
+      "a": "LeftHandIndex3",
+      "b": "Spine2",
+      "tick": 234,
+      "max": 0.13
+    },
+    {
+      "name": "left fingertip close in front of the chest on the way down, tick 94 (m)",
+      "kind": "ahead",
+      "a": "LeftHandIndex3",
+      "b": "Spine2",
+      "tick": 282,
+      "max": 0.13
+    },
+    {
+      "name": "left hand back at the hip, tick 105 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 315,
+      "min": -0.08,
+      "max": 0.08
+    },
+    {
+      "name": "straw chews (m)",
+      "kind": "range",
+      "a": "Straw",
+      "axis": "up",
+      "window": [
+        54,
+        126
+      ],
+      "min": 0.003
+    },
+    {
+      "name": "chest breathes (m)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.008,
+      "max": 0.04
+    },
+    {
+      "name": "tail tip sways (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.08,
+      "max": 0.25
+    },
+    {
+      "name": "secondary: head drifts (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "right",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.02
+    },
+    {
+      "name": "secondary: straw moves all loop (m)",
+      "kind": "range",
+      "a": "Straw",
+      "axis": "up",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.008
+    },
+    {
+      "name": "secondary: tail tip bobs (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "up",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.02
+    }
+  ]
+}

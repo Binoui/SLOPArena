@@ -1,0 +1,118 @@
+{
+  "name": "salamander-ge-sombrero-copter",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.E (anim.salamander.ge), kit proposal 2026-10-27: Sombrero Copter, his recovery, on slop.ability.aimed-recovery.v1 (as Bashie Ring Bounce): 16 ticks of startup, then he rises; the stage lasts 50. The owner liked the idea: 'funny, need to make it work animation wise'. The hat stays on its joint and spins there. 2026-10-27 calm revision with the owner: frame data kept (startup 16, 50 ticks); the first take snapped both arms to the brim in one tick (~1600 deg/s) and pedalled fast; the owner wants the rise steerable (engine: riseSteerAcceleration 24 m/s2), so the clip must not lean or point a direction of its own.",
+  "description": "The salamander's E, Sombrero Copter: his recovery. He grabs the brim of his sombrero with both hands and spins it on his head like a helicopter rotor, and it lifts him into the air, legs dangling and pedalling. Pure cartoon logic.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (50 ticks, played once; the game lifts him from tick 16 and the player steers him left, right, forward or back while he rises):\n- Ticks 0-8: from the showdown stance both hands come up, unhurried, and take the hat brim at the sides of his head, elbows high and out. The hands lead and the elbows follow; the head tips down a touch as the hands arrive.\n- Ticks 8-14: he twists the brim (one smooth turn of the wrists, not a jerk) and joint Hat starts to turn about its own vertical axis. He sinks a little into his knees (ticks 9-12) and rises onto his toes by tick 14.\n- Hat spin: Hat speeds up smoothly from rest at tick 8 to one full turn every 12 ticks (30 deg per tick) by tick 20, then keeps that speed to the end. It turns the same way the whole time.\n- Tick 16: lift-off. His body stretches up under the hat, arms nearly straight up holding the brim (hands either side of the head, at or above the brim), toes pointing down as they leave the floor.\n- Ticks 16-50: hanging from the hat. Legs dangle and pedal lazily: knees lift in turn with small, soft strides (the left knee highest at tick 26, the right at tick 42), boots below him; the tail hangs and drifts a beat behind the hips; the body sways gently under the hat. He does not lean toward any direction: the player steers him, so his hang stays centred.\n- Tick 50: still hanging and spinning (the game moves on to his fall).\nThe feet leave the floor from tick 16 (the game lifts him; in the clip the boots simply hang below him).\n\nPace. Calm and readable, not snappy: no body joint turns faster than about 8 degrees per tick (the hat rotor is exempt). Ease into and out of every beat, and let the arms, tail and legs overlap rather than all stopping together.",
+  "clock": {
+    "duration_ticks": 50
+  },
+  "timing": {
+    "fixed": [
+      "50 ticks played once; 16 ticks of startup on the ground, then the game launches him up (about 15 m/s) and the player steers him while he rises"
+    ],
+    "adjustable": [
+      "the beats inside the startup, as long as the hands are on the brim by tick 8 and he leaves the floor at 16"
+    ]
+  },
+  "keys": [
+    0,
+    8,
+    14,
+    16,
+    26,
+    42,
+    50
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    11,
+    14,
+    16,
+    20,
+    26,
+    34,
+    42,
+    50
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor at the twist (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 14,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "hands on the brim at tick 8: right hand near the head (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "Hat",
+      "tick": 8,
+      "max": 0.2
+    },
+    {
+      "name": "hands on the brim at tick 8: left hand near the head (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hat",
+      "tick": 8,
+      "max": 0.2
+    },
+    {
+      "name": "hands on the brim at tick 30: left hand near the head (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hat",
+      "tick": 30,
+      "max": 0.22
+    },
+    {
+      "name": "hanging: hands above the head at tick 30 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 30,
+      "min": -0.03
+    },
+    {
+      "name": "pedalling: left boot moves (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "up",
+      "window": [
+        16,
+        50
+      ],
+      "min": 0.05,
+      "max": 0.16
+    }
+  ],
+  "snap_degrees_per_tick": 8,
+  "snap_exempt": [
+    "Hat"
+  ]
+}

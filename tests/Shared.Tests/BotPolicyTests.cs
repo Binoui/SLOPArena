@@ -1124,5 +1124,37 @@ public class BotPolicyTests
         Assert.True(released);
         Assert.Single(sim.Resolver.GetActiveHitboxes());
     }
+}
 
+public sealed class MankiBazookaBotPolicyTests
+{
+    [Fact]
+    public void MankiBazooka_BotPressesWithoutHoldingAim()
+    {
+        var def = TestHelpers.ResolveSourceDef("manki");
+        var self = TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(def) };
+        foreach (var slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.E, AbilitySlots.F })
+            self.SetCooldown(slot, 999);
+        self.SetCooldown(AbilitySlots.A, 999);
+        self.SetCooldown(AbilitySlots.R, 0);
+        var target = TestHelpers.NpcState(20f, 27f) with { PY = TestHelpers.GroundPY(TestHelpers.EngineDef) };
+        bool selected = false;
+        for (int seed = 0; seed < 64; seed++)
+        {
+            var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
+            int delay = BotDifficultyProfile.ForDifficulty(memory.Difficulty).ReactionDelayTicks;
+            for (int tick = 0; tick <= delay; tick++) memory.ObserveOpponent(target);
+            var input = new HeuristicBotPolicy().Decide(self, target, def, new Random(seed), memory);
+            if (input.ActiveSlot != AbilitySlots.R) continue;
+            selected = true;
+            Assert.False(input.IsAiming);
+            var sim = TestHelpers.MakeSim();
+            sim.RegisterEntity(1, def, self);
+            sim.RegisterEntity(100, TestHelpers.EngineDef, target);
+            sim.Tick(new() { [1] = input, [100] = default });
+            Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+            Assert.False(sim.GetState(1).IsAiming);
+        }
+        Assert.True(selected, "The bot must consider Bazooka a press projectile.");
+    }
 }

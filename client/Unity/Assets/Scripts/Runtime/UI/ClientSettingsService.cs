@@ -40,6 +40,7 @@ namespace SlopArena.Client.UI
             public string bindingOverrides = "";
             public float stickDeadzone = 12.5f;
             public bool vibration = true;
+            public bool stick8WaySnap = true;
             public float cameraSensitivity = 100f;
             public float stickLookSpeed = 100f;
             public int cameraStyle = (int)CameraStyle.Steady;
@@ -86,6 +87,7 @@ namespace SlopArena.Client.UI
         public string BindingOverrides => _settings.bindingOverrides;
         public float StickDeadzone => _settings.stickDeadzone;
         public bool Vibration => _settings.vibration;
+        public bool Stick8WaySnap => _settings.stick8WaySnap;
         public float CameraSensitivity => _settings.cameraSensitivity / 100f;
         // The manual delta-driven camera path runs at half the former default gain.
         public float CameraInputGain => CameraSensitivity * 0.5f;
@@ -268,6 +270,7 @@ namespace SlopArena.Client.UI
         public void SetShowOverheadDamage(bool value) { _settings.showOverheadDamage = value; ChangedAndApply(); }
         public void SetScreenShake(float percent) { _settings.screenShake = Clamp(percent); ChangedAndApply(); }
         public void SetReducedFlashing(bool value) { _settings.reducedFlashing = value; ChangedAndApply(); }
+        public void SetStick8WaySnap(bool value) { _settings.stick8WaySnap = value; ChangedAndApply(); }
         public void SetRecordSessionLog(bool value) { _settings.recordSessionLog = value; ChangedAndApply(); }
         public void SetAutoLockMode(TargetLockMode value)
         {
@@ -282,6 +285,7 @@ namespace SlopArena.Client.UI
             _settings.bindingOverrides = "";
             _settings.stickDeadzone = HumanInputActions.DefaultDeadzone * 100f;
             _settings.vibration = true;
+            _settings.stick8WaySnap = true;
             _settings.stickLookSpeed = 100f;
             ApplyControls(); ChangedAndApply(); Save();
         }

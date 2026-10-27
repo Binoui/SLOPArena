@@ -88,21 +88,24 @@ public sealed class ExplosionReachTests
     }
 
     [Fact]
-    public void BazookaRocketJumpAlsoHitsTheOpponentStandingBeside()
+    public void BazookaCloseImpactAlsoHitsTheOwnerAndBystander()
     {
         var manki = TestHelpers.MankiDef; var target = TestHelpers.EngineDef;
         var sim = new ServerSimulation(Flat(), NoWinMatchRule.Instance);
         sim.RegisterEntity(1, manki, Grounded(1, manki, Centre, Centre));
         sim.RegisterEntity(100, target, Grounded(100, target, Centre + 1.4f, Centre));
+        sim.RegisterEntity(101, target, Grounded(101, target, Centre + 1.4f, Centre + 2f));
 
         for (int tick = 0; tick < 90; tick++)
             sim.Tick(new()
             {
-                [1] = new() { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0, IsAiming = tick < 2, AimPitch = -9000 },
+                [1] = new() { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0, TargetEntityId = 100 },
                 [100] = default,
+                [101] = default,
             });
 
         Assert.Equal(4, sim.GetState(1).DamagePercent);   // the Bazooka's fixed self-damage
         Assert.True(sim.GetState(100).DamagePercent > 0, "the same blast also hits the opponent");
+        Assert.Equal((ushort)10, sim.GetState(101).DamagePercent);
     }
 }

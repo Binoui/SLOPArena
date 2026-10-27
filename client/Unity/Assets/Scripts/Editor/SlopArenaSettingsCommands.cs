@@ -87,6 +87,7 @@ namespace SlopArena.EditorTools
                 if (parsed.ShowOverheadDamage.HasValue) { owner.SetShowOverheadDamage(parsed.ShowOverheadDamage.Value); result.AppliedFields.Add("showOverheadDamage"); }
                 if (parsed.ReducedFlashing.HasValue) { owner.SetReducedFlashing(parsed.ReducedFlashing.Value); result.AppliedFields.Add("reducedFlashing"); }
                 if (parsed.ScreenShake.HasValue) { owner.SetScreenShake(parsed.ScreenShake.Value); result.AppliedFields.Add("screenShake"); }
+                if (parsed.Stick8WaySnap.HasValue) { owner.SetStick8WaySnap(parsed.Stick8WaySnap.Value); result.AppliedFields.Add("stick8WaySnap"); }
                 if (parsed.RecordSessionLog.HasValue) { owner.SetRecordSessionLog(parsed.RecordSessionLog.Value); result.AppliedFields.Add("recordSessionLog"); }
                 if (parsed.CameraStyle.HasValue) { owner.SetCameraStyle(parsed.CameraStyle.Value); result.AppliedFields.Add("cameraStyle"); }
                 if (parsed.ControllerCameraStyle.HasValue) { owner.SetCameraStyle(parsed.ControllerCameraStyle.Value, true); result.AppliedFields.Add("controllerCameraStyle"); }
@@ -199,6 +200,7 @@ namespace SlopArena.EditorTools
                     case "showOverheadDamage":
                     case "reducedFlashing":
                     case "recordSessionLog":
+                    case "stick8WaySnap":
                         if (property.Value.Type != JTokenType.Boolean)
                         {
                             error = property.Name + " must be a JSON boolean.";
@@ -206,6 +208,7 @@ namespace SlopArena.EditorTools
                         }
                         if (property.Name == "showOverheadDamage") patch.ShowOverheadDamage = (bool)property.Value;
                         else if (property.Name == "reducedFlashing") patch.ReducedFlashing = (bool)property.Value;
+                        else if (property.Name == "stick8WaySnap") patch.Stick8WaySnap = (bool)property.Value;
                         else patch.RecordSessionLog = (bool)property.Value;
                         break;
                     default:
@@ -273,6 +276,7 @@ namespace SlopArena.EditorTools
                 ReducedFlashing = owner.ReducedFlashing,
                 ScreenShake = owner.ScreenShake * 100f,
                 RecordSessionLog = owner.RecordSessionLog,
+                Stick8WaySnap = owner.Stick8WaySnap,
                 CameraStyle = owner.CameraStyle.ToString(),
                 ControllerCameraStyle = owner.ControllerCameraStyle.ToString()
             };
@@ -286,6 +290,7 @@ namespace SlopArena.EditorTools
                 ReducedFlashing = patch.ReducedFlashing,
                 ScreenShake = patch.ScreenShake,
                 RecordSessionLog = patch.RecordSessionLog,
+                Stick8WaySnap = patch.Stick8WaySnap,
                 CameraStyle = patch.CameraStyle?.ToString(),
                 ControllerCameraStyle = patch.ControllerCameraStyle?.ToString()
             };
@@ -299,6 +304,7 @@ namespace SlopArena.EditorTools
                 ReducedFlashing = patch.ReducedFlashing ?? before.ReducedFlashing,
                 ScreenShake = patch.ScreenShake.HasValue ? Mathf.Round(patch.ScreenShake.Value) : before.ScreenShake,
                 RecordSessionLog = patch.RecordSessionLog ?? before.RecordSessionLog,
+                Stick8WaySnap = patch.Stick8WaySnap ?? before.Stick8WaySnap,
                 CameraStyle = patch.CameraStyle?.ToString() ?? before.CameraStyle,
                 ControllerCameraStyle = patch.ControllerCameraStyle?.ToString() ?? before.ControllerCameraStyle
             };
@@ -324,6 +330,7 @@ namespace SlopArena.EditorTools
             internal bool? ReducedFlashing;
             internal float? ScreenShake;
             internal bool? RecordSessionLog;
+            internal bool? Stick8WaySnap;
             internal CameraStyle? CameraStyle;
             internal CameraStyle? ControllerCameraStyle;
         }
@@ -351,6 +358,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("reducedFlashing", NullValueHandling = NullValueHandling.Ignore)] public bool? ReducedFlashing { get; set; }
         [JsonProperty("screenShake", NullValueHandling = NullValueHandling.Ignore)] public float? ScreenShake { get; set; }
         [JsonProperty("recordSessionLog", NullValueHandling = NullValueHandling.Ignore)] public bool? RecordSessionLog { get; set; }
+        [JsonProperty("stick8WaySnap", NullValueHandling = NullValueHandling.Ignore)] public bool? Stick8WaySnap { get; set; }
         [JsonProperty("cameraStyle", NullValueHandling = NullValueHandling.Ignore)] public string CameraStyle { get; set; }
         [JsonProperty("controllerCameraStyle", NullValueHandling = NullValueHandling.Ignore)] public string ControllerCameraStyle { get; set; }
     }
@@ -364,6 +372,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("reducedFlashing")] public bool ReducedFlashing { get; set; }
         [JsonProperty("screenShake")] public float ScreenShake { get; set; }
         [JsonProperty("recordSessionLog")] public bool RecordSessionLog { get; set; }
+        [JsonProperty("stick8WaySnap")] public bool Stick8WaySnap { get; set; }
         [JsonProperty("cameraStyle")] public string CameraStyle { get; set; }
         [JsonProperty("controllerCameraStyle")] public string ControllerCameraStyle { get; set; }
     }

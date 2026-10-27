@@ -1,0 +1,211 @@
+{
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache stuck on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, and long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans to the floor.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "name": "salamander-run",
+  "notes": "Salamander (fighter #6, package salamander, working name) run for presentation.run, 2026-10-27. The owner picked personality A, the Wannabe Legend, and said of the run: 'not sure we need the horse for his run, it's fine to just have him running'. So: a plain, confident run with his own lanky character, no gag. His rig pack's references are Manki's clips borrowed onto his body; not a style reference. Revision 1 (2026-10-27, owner present): the owner finds GenRA moves lack fluidity and secondary motion; round 0 passed with mirrored legs and sine-wave joints.",
+  "description": "The salamander's run: the clip he plays while moving on the ground.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero with a red band, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns), and he says BANG himself. No props beyond what he wears.\n\nHow the game plays it. The clip loops at full ground speed: ticks 0-28 are 0.47 s and two steps, wrapping from 28 back to 0. The fighter does not move in the clip; the game carries him forward, so the boots cycle under the body as on a treadmill. The game crossfades into it from his idle and out of it into the idle, jumps and attacks. The match camera sits straight behind him, so players mostly see his sombrero, poncho, the tail swinging and his boots kicking up behind. The entry pose only sets the frame: it is another character's crouched idle on his body.\n\nThe floor. It is at up = -0.383 m in this character frame (the frame's origin is the entry hips). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor (up about -0.375) and the ankle (Foot) about 0.078 m above it (up about -0.305). Standing straight, his hip joint (Hips) is 0.42 m above the floor (up about +0.04). Never push a boot through the floor.\n\nThe run. A plain, confident cowboy run that fits his long legs: no gag, no horse.\n- Legs. The left boot strikes at tick 0 and the right at tick 14. Long, loose strides: each boot travels about 0.35-0.5 m front to back over the cycle. Each boot lands on its heel, a little ahead of the hips, knee slightly bent, rolls flat and pushes off from the toes behind him; a short flight between pushes off and strikes is fine (a real run). The swinging boot kicks up behind (heel rising toward the seat) and then reaches forward low. His knees point a touch outward, a hint of a bow-legged cowboy, never knock-kneed. Boots never go through the floor.\n- Hips. The pelvis turns 8-12 degrees toward the front leg, bobs 2-4 cm (lowest just after each strike, highest at push-off), and sways a little over the stance boot.\n- Arms. His LEFT hand holds his sombrero down on his head the whole loop: the palm on top of the crown or the fingers on the front of the brim, the elbow out to the side and up, as if riding into the wind. His RIGHT arm pumps loosely front to back, elbow bent about 80-100 degrees, the hand relaxed, opposite to the legs.\n- Chest and head. The chest leans forward 8-15 degrees and counter-rotates against the pelvis. The head stays fairly level, chin a little forward, smirking ahead.\n- Tail. The tail streams out behind him off the floor, swinging side to side opposite to the hips, each joint 5-12 degrees, the tip trailing the root by a few ticks. It never goes through the legs or the floor.\n- Props. Keep joint Hat at its rest rotation (his hand keeps it on). The straw (joint Straw) flicks 5-10 degrees with each step, a few ticks behind. The mustache (joint Mustache) stays at rest.\n- Life and secondary motion (the owner's main note on every GenRA move). The two steps are not mirror copies: the left step lands a little harder and the right one a little longer, so the timing and height differ by a few ticks and 1-2 cm. Overlap everything: the hips lead, the chest trails them by 1-2 ticks, the head and the pumping arm by 2-3, the tail by 3-6 along its length (each tail joint a tick or two behind the one before, the tip snapping at the ends of its swing). Nothing moves as a plain sine wave: sharper landings, slower recoveries, a short hang at the top of each bob. The pumping right hand stays loose: its fingers curl and uncurl a little with the swing. The straw flicks up on each landing and settles. The elbow holding the hat bobs with the steps (2-3 cm) while the hand stays on the hat.\n\nNo spins, no attack, no props.",
+  "clock": {
+    "duration_ticks": 28
+  },
+  "timing": {
+    "fixed": [
+      "it loops at full ground speed while the game carries him forward (treadmill boots)",
+      "the game crossfades into it from the idle and out of it into the idle, jumps and attacks"
+    ],
+    "adjustable": [
+      "the cycle length (28 ticks for two steps proposed; the roster's runs take 22-44)"
+    ]
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side): sombrero, poncho, patched jeans with the tail out through the seat, boots, mustache and straw. There is no pose reference for the run: the owner asked for a plain run.",
+  "review_ticks": [
+    0,
+    3,
+    7,
+    10,
+    14,
+    17,
+    21,
+    24,
+    28
+  ],
+  "keys": [
+    0,
+    7,
+    14,
+    21,
+    28
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor just after the left strike, tick 3 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 3,
+      "min": -0.385,
+      "max": -0.33
+    },
+    {
+      "name": "right toe joint on the floor just after the right strike, tick 17 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 17,
+      "min": -0.385,
+      "max": -0.33
+    },
+    {
+      "name": "left boot stride front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.33,
+      "max": 0.52
+    },
+    {
+      "name": "right boot stride front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.33,
+      "max": 0.52
+    },
+    {
+      "name": "hips bob (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.015,
+      "max": 0.05
+    },
+    {
+      "name": "left hand on the hat, tick 0 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hat",
+      "tick": 0,
+      "max": 0.12
+    },
+    {
+      "name": "left hand on the hat, tick 14 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hat",
+      "tick": 14,
+      "max": 0.12
+    },
+    {
+      "name": "right hand pumps front to back (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "front",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.12
+    },
+    {
+      "name": "head steady (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        28
+      ],
+      "max": 0.05
+    },
+    {
+      "name": "tail tip swings (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.04,
+      "max": 0.25
+    },
+    {
+      "name": "secondary: tail tip swings wide (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.08,
+      "max": 0.3
+    },
+    {
+      "name": "secondary: tail tip bobs (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "up",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.03
+    },
+    {
+      "name": "secondary: straw flicks (m)",
+      "kind": "range",
+      "a": "Straw",
+      "axis": "up",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.004
+    },
+    {
+      "name": "secondary: hat elbow bobs (m)",
+      "kind": "range",
+      "a": "LeftForeArm",
+      "axis": "up",
+      "window": [
+        0,
+        28
+      ],
+      "min": 0.015
+    }
+  ]
+}

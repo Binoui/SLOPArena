@@ -201,6 +201,12 @@ namespace SlopArena.Client.UI
                 _headline.text = !course.Completed ? "RUN OVER." : results.SharedVictory && !course.Cooperative ? "TIED FINISH!" : "COURSE CLEARED.";
                 _metadata.text = $"{CharacterCourseView.FormatTime(course.ElapsedTicks)} // {results.PlayerCount} PLAYERS";
             }
+            if (results.Mayhem != null)
+            {
+                _stage.text = "SHOW COMPLETE // MANKI MAYHEM";
+                _headline.text = results.SharedVictory ? "SHARED WIN!" : "SHOW WINNER!";
+                _metadata.text = $"SURVIVAL POINTS // {results.PlayerCount} PLAYERS // {FormatDuration(results.DurationTicks)}";
+            }
             ordered.Sort((a, b) =>
             {
                 int byPlacement = (a.Placement == 0 ? 255 : a.Placement).CompareTo(b.Placement == 0 ? 255 : b.Placement);
@@ -288,6 +294,14 @@ namespace SlopArena.Client.UI
         {
             var stats = new VisualElement();
             stats.AddToClassList(className);
+            if (ClientSession.CurrentMatchResults?.Mayhem is { } mayhem)
+            {
+                var finish = System.Linq.Enumerable.First(mayhem.Players, p => p.EntityId == entry.EntityId);
+                var label = new Label($"{finish.Score} POINTS · {finish.RoundsSurvived} SURVIVED · {finish.Bonuses} BONUS"
+                    + (finish.Withdrawn ? " · DISCONNECTED" : ""));
+                label.AddToClassList("results-stat-label"); stats.Add(label);
+                return stats;
+            }
             if (ClientSession.CurrentMatchResults?.Versus is { } score
                 && MatchConfig.Camps.TryGetValue(entry.EntityId, out var camp))
             {

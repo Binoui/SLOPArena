@@ -25,7 +25,7 @@ public sealed class CombatReviewRegressionTests
         var sim = new ServerSimulation(Arena());
         sim.RegisterEntity(1, def, Initial(def, 1));
         sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.R, IsAiming = true } });
-        while (sim.CurrentTick < 22) sim.Tick(new());
+        while (sim.CurrentTick < 20) sim.Tick(new());
         var before = sim.GetState(1);
         Assert.Equal(1, before.ComboStage);
         Assert.Equal(0, before.AttackElapsedTicks);
@@ -51,7 +51,7 @@ public sealed class CombatReviewRegressionTests
     }
 
     [Fact]
-    public void InterruptedAimReleasesAttackStateAndAllowsAnotherNormal()
+    public void InterruptedBazookaReleasesAttackStateAndAllowsAnotherNormal()
     {
         var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
         var sim = Create(entry);
@@ -277,7 +277,7 @@ public sealed class CombatReviewRegressionTests
             sim.Tick(new() { [1] = new InputState { IsAiming = true, MoveY = 1 } });
         Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
         Assert.True(sim.GetActiveMove(1)!.Value.AirborneAtStart);
-        Assert.Equal(def.Movement.RunSpeed * .25f, sim.GetState(1).VZ, 4);
+        Assert.Equal(def.Movement.RunSpeed * .25f * .67f, sim.GetState(1).VZ, 4);
     }
 
     [Fact]

@@ -79,6 +79,8 @@ namespace SlopArena.Shared
         public ushort DurationTicks;
         /// <summary>If true, this explosion can hit its spawner (mine jump, etc.).</summary>
         public bool CanHitOwner;
+        /// <summary>Optional self-damage, retained after the firing ability ends.</summary>
+        public float? OwnerDamage;
         /// <summary>Optional semantic presentation emitted when this explosion is spawned.</summary>
         public string ExplosionPresentationId;
         /// <summary>Attack sequence captured by the originating capability activation.</summary>

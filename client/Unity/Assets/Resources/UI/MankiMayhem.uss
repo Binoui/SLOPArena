@@ -1,0 +1,11 @@
+.mayhem-heading { position: absolute; left: 24px; top: 20px; background-color: rgba(17, 13, 21, 0.94); padding: 12px 18px; border-left-width: 5px; border-left-color: rgb(255, 190, 40); }
+.mayhem-brand { font-size: 25px; -unity-font-style: bold; color: rgb(255, 193, 39); }
+.mayhem-round { font-size: 17px; color: white; }
+.mayhem-scores { position: absolute; right: 22px; top: 18px; width: 324px; }
+.mayhem-row { flex-direction: row; align-items: center; background-color: rgba(17, 13, 21, 0.94); border-left-width: 5px; margin-bottom: 5px; padding: 5px; }
+.mayhem-portrait { flex-shrink: 0; width: 44px; height: 49px; margin-right: 9px; }
+.mayhem-player { flex-shrink: 1; font-size: 15px; -unity-font-style: bold; color: white; white-space: normal; }
+.mayhem-call { position: absolute; left: 31%; right: 31%; top: 3%; background-color: rgb(255, 191, 33); padding: 7px 16px; border-bottom-width: 6px; border-bottom-color: rgb(58, 24, 14); rotate: -2deg; }
+.mayhem-call-title { font-size: 32px; -unity-font-style: bold; -unity-text-align: middle-center; color: rgb(29, 17, 19); }
+.mayhem-call-line { font-size: 13px; -unity-font-style: bold; -unity-text-align: middle-center; color: rgb(29, 17, 19); white-space: normal; }
+.mayhem-stamp { position: absolute; translate: -50% -100%; background-color: rgb(255, 193, 39); border-bottom-width: 3px; border-bottom-color: rgb(60, 20, 16); color: rgb(30, 15, 17); font-size: 22px; -unity-font-style: bold; padding: 4px 10px; }

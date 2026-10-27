@@ -20,7 +20,6 @@ namespace SlopArena.Client.Entities
     /// </summary>
     public class PlayerRenderer : MonoBehaviour
     {
-        public bool GroundSpeedPrototypeActive { get; set; }
         [Header("Entity")]
         [SerializeField] private string _entityName = "Entity";
         [SerializeField] private ulong _entityId;
@@ -430,6 +429,7 @@ namespace SlopArena.Client.Entities
             instance.transform.localScale = Vector3.one * _modelVisualScale;
             _hitFeel?.AttachModel(instance.transform);
             _airDodge?.AttachModel(instance.transform);
+            _homingDash?.AttachModel(instance.transform);
         }
 
         private static CharacterAnimationConfig LoadFallbackAnimationConfig(CharacterDefinition def)
@@ -796,7 +796,7 @@ namespace SlopArena.Client.Entities
                 _airDodge.Init(this);
                 _homingDash = TryGetComponent(out HomingDashPresentation homingDash)
                     ? homingDash : gameObject.AddComponent<HomingDashPresentation>();
-                _homingDash.Init();
+                _homingDash.Init(this);
             }
         }
 
@@ -1922,9 +1922,9 @@ namespace SlopArena.Client.Entities
                             float fadeDuration = _lastAnimState is ActionState.Crouching or ActionState.Sliding
                                 ? 0f : 0.1f;
                             var locomotion = _animancer.Play(clip, fadeDuration);
-                            if (state.State == ActionState.Run && GroundSpeedPrototypeActive)
+                            if (animationId == _charDef.RunAnim)
                                 locomotion.Speed = Mathf.Max(0.35f, hSpeed / _charDef.Movement.RunSpeed);
-                            else if (state.State == ActionState.Run)
+                            else
                                 locomotion.Speed = 1f;
                         }
                     }

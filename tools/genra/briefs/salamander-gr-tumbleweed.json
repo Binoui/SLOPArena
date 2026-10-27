@@ -1,0 +1,160 @@
+{
+  "name": "salamander-gr-tumbleweed",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.R (anim.salamander.gr), kit proposal 2026-10-27: Tumbleweed, the owner's idea: he curls into a ball, rolls in the aimed direction (a forwardLunge in the timeline), pops out and shoots backward along his path (a projectile with a 180 degree yaw offset). 64 ticks: tuck to 8, roll 8-40, pop at 40, back shot at 48.",
+  "description": "The salamander's R, Tumbleweed: he tucks into a ball and rolls like a tumbleweed in the wind across the stage, pops out at the end and, without looking, fires a finger gun back over his shoulder along the way he came.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (64 ticks, played once; the game rolls him forward from tick 8 to tick 40):\n- Tick 0: the showdown stance.\n- Tick 8, the tuck: he dives into a ball: knees pulled to his chest, arms wrapped round his shins, chin down, hat pressed on, tail wrapped round him; his body already tipping forward.\n- Ticks 8-40, the roll: he tumbles forward head over heels, staying a tight ball: the body turns about his right-left axis, forward, one full turn every 12 ticks (ticks 8, 20, 32 are the same upright ball; 14, 26, 38 upside down), the ball's lowest point always on the floor: the ball is about 0.45 m across, so his hip joint sits about 0.2 m above the floor during the roll (up about -0.19), much lower than when he stands.\n- Tick 44, the pop: he springs open into a low crouch, boots planted, facing front, arms flung out.\n- Tick 48, the back shot: still facing front he twists his chest to his right and fires his right finger gun backward over his right shoulder, arm straight back behind him, not looking (chin forward, eyes ahead).\n- Tick 54: the hand comes back, blows the fingertip once.\n- Tick 64: the showdown stance.",
+  "clock": {
+    "duration_ticks": 64,
+    "contact_tick": 48,
+    "active": [
+      48,
+      48
+    ],
+    "iasa_tick": 58
+  },
+  "timing": {
+    "fixed": [
+      "64 ticks played once; the game rolls him forward from tick 8 to 40",
+      "the back shot leaves at tick 48",
+      "the player can act from tick 58",
+      "tick 64 is his showdown idle"
+    ],
+    "adjustable": [
+      "the roll speed (one turn every 10-14 ticks)"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 64
+  },
+  "fast_windows": [
+    [
+      4,
+      44
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "keys": [
+    0,
+    8,
+    14,
+    20,
+    26,
+    32,
+    38,
+    44,
+    48,
+    54,
+    64
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    11,
+    14,
+    17,
+    20,
+    26,
+    32,
+    38,
+    41,
+    44,
+    48,
+    54,
+    64
+  ],
+  "targets": [
+    {
+      "name": "tuck: hands near the shins at tick 8 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "RightLeg",
+      "tick": 8,
+      "max": 0.16
+    },
+    {
+      "name": "roll: upside down at tick 14, head below the hips (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Head",
+      "tick": 14,
+      "max": 0.0
+    },
+    {
+      "name": "roll: upright ball at tick 20, head above the hips (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Head",
+      "tick": 20,
+      "min": 0.05
+    },
+    {
+      "name": "roll: the ball sits on the floor, hips low at tick 14 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 14,
+      "min": -0.24600000000000002,
+      "max": -0.15600000000000003
+    },
+    {
+      "name": "roll: the ball sits on the floor, hips low at tick 20 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.24600000000000002,
+      "max": -0.15600000000000003
+    },
+    {
+      "name": "roll: the ball sits on the floor, hips low at tick 32 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 32,
+      "min": -0.24600000000000002,
+      "max": -0.15600000000000003
+    },
+    {
+      "name": "pop: left toe on the floor at tick 44 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 44,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "back shot: right hand behind him at tick 48 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 48,
+      "max": -0.2
+    }
+  ]
+}

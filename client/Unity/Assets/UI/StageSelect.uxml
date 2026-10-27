@@ -26,6 +26,24 @@
             <ui:ScrollView name="stage-scroll" class="stage-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden">
                 <ui:VisualElement name="stage-grid" class="stage-grid" />
                 <ui:VisualElement name="stage-arcade" class="stage-arcade" style="display: none;">
+                    <ui:VisualElement name="mayhem-card" class="arcade-mode-card stage-arcade-card">
+                        <ui:Button name="stage-arcade-mayhem" class="mayhem-pick" tooltip="Manki Mayhem. Survive SCATTER! and score.">
+                            <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
+                                <ui:VisualElement class="arcade-mode-heading">
+                                    <ui:Label text="MANKI MAYHEM" class="arcade-mode-title" />
+                                    <ui:Label name="mayhem-badge" text="2–4 PLAYERS" class="stage-arcade-soon" />
+                                </ui:VisualElement>
+                                <ui:Label text="SCATTER! Dodge sticky bombs. Survive to score." class="arcade-mode-rule" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="arcade-mode-art arcade-mode-art--mayhem" picking-mode="Ignore" />
+                        </ui:Button>
+                        <ui:VisualElement class="mayhem-rules">
+                            <ui:Label text="FRIENDLY FIRE" class="arcade-mode-rule" />
+                            <ui:Button name="mayhem-rule-off" text="OFF" class="selection-target-button" />
+                            <ui:Button name="mayhem-rule-shoves" text="SHOVES" class="selection-target-button" />
+                            <ui:Button name="mayhem-rule-on" text="ON" class="selection-target-button" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                     <ui:Button name="stage-arcade-slopball" class="arcade-mode-card stage-arcade-card" tooltip="Slopball online is coming">
                         <ui:VisualElement class="arcade-mode-caption" picking-mode="Ignore">
                             <ui:VisualElement class="arcade-mode-heading">

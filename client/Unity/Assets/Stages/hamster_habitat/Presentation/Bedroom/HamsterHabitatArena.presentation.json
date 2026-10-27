@@ -1,0 +1,457 @@
+{
+ "format": 1,
+ "stage": "hamster_habitat",
+ "folder": "Assets/Stages/hamster_habitat/Presentation/Bedroom",
+ "model": "HamsterHabitatArena.fbx",
+ "stamp": "HamsterHabitatArena.layout.json",
+ "root": "Hamster Habitat Night",
+ "supersededRoots": [
+  "Hamster Habitat Blockout"
+ ],
+ "textures": [
+  {
+   "file": "HamsterHabitatWhite.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 32,
+   "aniso": 1
+  },
+  {
+   "file": "HamsterHabitatShavings.png",
+   "srgb": true,
+   "wrap": "repeat",
+   "maxSize": 256,
+   "aniso": 8
+  },
+  {
+   "file": "HamsterHabitatPosters.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "HH_Lit",
+   "asset": "HamsterHabitatLit",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "HamsterHabitatWhite.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_DetailStrength": 0,
+    "_Wrap": 0.35,
+    "_Specular": 0.06,
+    "_Gloss": 18,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.42,
+     0.48,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "HH_Shavings",
+   "asset": "HamsterHabitatShavings",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "HamsterHabitatShavings.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_DetailStrength": 0,
+    "_Wrap": 0.25,
+    "_Specular": 0.06,
+    "_Gloss": 18,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.42,
+     0.48,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "HH_Posters",
+   "asset": "HamsterHabitatPosters",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "HamsterHabitatPosters.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_DetailStrength": 0,
+    "_Wrap": 0.35,
+    "_Specular": 0.06,
+    "_Gloss": 18,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 0.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.42,
+     0.48,
+     0.78
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "HH_Glass",
+   "asset": "HamsterHabitatGlass",
+   "shader": "SLOPArena/StageGlass",
+   "baseMap": "HamsterHabitatWhite.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    0.1
+   ],
+   "floats": {
+    "_Rim": 0.45,
+    "_RimPower": 2.5,
+    "_Specular": 0.7,
+    "_Gloss": 64,
+    "_Cull": 2.0
+   }
+  },
+  {
+   "slot": "HH_Glow",
+   "asset": "HamsterHabitatGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "HamsterHabitatWhite.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.9,
+    "_Ambient": 0.2,
+    "_Shade": 0,
+    "_Glow": 2.2,
+    "_FogAmount": 0.2,
+    "_TimeScale": 0,
+    "_Cull": 0.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.3,
+     0.8,
+     0.4,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "HH_Toon",
+   "asset": "HamsterHabitatToon",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "HamsterHabitatWhite.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.55,
+    "_Ambient": 0.45,
+    "_Shade": 0.5,
+    "_Glow": 0,
+    "_FogAmount": 0.2,
+    "_TimeScale": 0,
+    "_Cull": 0.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     -0.35,
+     0.55,
+     -0.75,
+     0
+    ]
+   }
+  }
+ ],
+ "shadows": {
+  "cast": false,
+  "receive": false,
+  "objects": {
+   "Desk Bin Shavings": {
+    "cast": true,
+    "receive": true
+   },
+   "Shelf Bin Shavings": {
+    "cast": true,
+    "receive": true
+   },
+   "Bins": {
+    "cast": true,
+    "receive": true
+   },
+   "House": {
+    "cast": true,
+    "receive": true
+   },
+   "Food Bowl": {
+    "cast": true,
+    "receive": true
+   },
+   "Wheel Deck": {
+    "cast": true,
+    "receive": true
+   },
+   "Wheel Rims": {
+    "cast": true,
+    "receive": true
+   },
+   "Wheel Post": {
+    "cast": true,
+    "receive": true
+   },
+   "TP Roll": {
+    "cast": true,
+    "receive": true
+   },
+   "Junction Step": {
+    "cast": true,
+    "receive": true
+   },
+   "Low Tube Frame": {
+    "cast": true,
+    "receive": true
+   },
+   "High Tube Frame": {
+    "cast": true,
+    "receive": true
+   },
+   "Hamster": {
+    "cast": true,
+    "receive": true
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Lamp Key",
+   "type": "directional",
+   "rotation": [
+    62,
+    150,
+    0
+   ],
+   "color": [
+    1,
+    0.78,
+    0.52
+   ],
+   "intensity": 0.72,
+   "shadows": "soft",
+   "shadowStrength": 0.65
+  },
+  {
+   "name": "Lamp Bulb",
+   "type": "point",
+   "position": [
+    -40.0,
+    7.0,
+    49.0
+   ],
+   "color": [
+    1,
+    0.74,
+    0.45
+   ],
+   "intensity": 7,
+   "range": 95
+  },
+  {
+   "name": "Moonlight",
+   "type": "directional",
+   "rotation": [
+    28,
+    200,
+    0
+   ],
+   "color": [
+    0.55,
+    0.65,
+    1
+   ],
+   "intensity": 0.28
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.02,
+   0.025,
+   0.06
+  ],
+  "ambientSky": [
+   0.34,
+   0.38,
+   0.62
+  ],
+  "ambientGround": [
+   0.07,
+   0.06,
+   0.1
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.03,
+   0.04,
+   0.1
+  ],
+  "fogStart": 50,
+  "fogEnd": 260
+ },
+ "cameras": [
+  {
+   "name": "thumbnail",
+   "position": [
+    10,
+    15,
+    -44
+   ],
+   "target": [
+    -8,
+    2,
+    12
+   ],
+   "fov": 50
+  },
+  {
+   "name": "gap-south",
+   "position": [
+    0,
+    5,
+    -39
+   ],
+   "target": [
+    0,
+    0,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "gap-north",
+   "position": [
+    0,
+    7,
+    39
+   ],
+   "target": [
+    0,
+    0,
+    0
+   ],
+   "fov": 55
+  },
+  {
+   "name": "hamster",
+   "position": [
+    -16,
+    6,
+    -22
+   ],
+   "target": [
+    -22,
+    6,
+    40
+   ],
+   "fov": 45
+  },
+  {
+   "name": "room-east",
+   "position": [
+    20,
+    6,
+    -40
+   ],
+   "target": [
+    45,
+    -15,
+    60
+   ],
+   "fov": 60
+  },
+  {
+   "name": "drop",
+   "position": [
+    0,
+    -6,
+    -30
+   ],
+   "target": [
+    0,
+    -40,
+    5
+   ],
+   "fov": 55
+  },
+  {
+   "name": "west",
+   "position": [
+    -6,
+    8,
+    2
+   ],
+   "target": [
+    -120,
+    -25,
+    -5
+   ],
+   "fov": 60
+  },
+  {
+   "name": "south",
+   "position": [
+    -12,
+    8,
+    4
+   ],
+   "target": [
+    -20,
+    -20,
+    -150
+   ],
+   "fov": 60
+  }
+ ]
+}

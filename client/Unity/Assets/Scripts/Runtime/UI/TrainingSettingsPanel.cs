@@ -23,17 +23,6 @@ namespace SlopArena.Client.UI
         private Label _modeDescription;
         private Label _inputHint;
         private Label _summaryMode;
-        private Label _movementSummary;
-        private Label _movementDescription;
-        private Button _movementButton;
-        private Button _snapButton;
-        private VisualElement _progressiveControls;
-        private Button _startButton;
-        private Button _rampButton;
-        private Button _curveButton;
-        private Button _keepButton;
-        private Button _stopButton;
-        private Button _pauseMovementEntry;
         private ScrollView _controls;
         private bool _showDuringPlay;
         private readonly Dictionary<NpcAiMode, Button> _modeButtons = new();
@@ -62,68 +51,12 @@ namespace SlopArena.Client.UI
             // Added above the pause cover so the panel keeps its position and stays
             // usable while paused. Settings dialogs added later still cover it.
             document.rootVisualElement.Add(_root);
-            var pauseSettings = document.rootVisualElement.Q<Button>("pause-settings");
-            if (pauseSettings != null)
-            {
-                _pauseMovementEntry = new Button(() =>
-                {
-                    RefreshVisibility();
-                    _controls.ScrollTo(_movementButton);
-                    _movementButton.Focus();
-                }) { name = "pause-movement-prototype", text = "MOVEMENT PROTOTYPE" };
-                _pauseMovementEntry.AddToClassList("match-pause-action");
-                pauseSettings.parent.Insert(pauseSettings.parent.IndexOf(pauseSettings), _pauseMovementEntry);
-            }
             RefreshSelection();
             RefreshVisibility();
         }
 
         private void BindControls()
         {
-            _movementSummary = _panel.Q<Label>("movement-summary");
-            _movementDescription = _panel.Q<Label>("movement-description");
-            _movementButton = _panel.Q<Button>("movement-model");
-            _snapButton = _panel.Q<Button>("movement-snap");
-            _movementButton.clicked += () => _match.SetMovementPrototype(
-                (GroundSpeedModel)(((int)_match.MovementModel + 1) % 4), _match.MovementStickSnap);
-            _snapButton.clicked += () => _match.SetMovementPrototype(_match.MovementModel, !_match.MovementStickSnap);
-            _progressiveControls = _panel.Q<VisualElement>("movement-progressive-controls");
-            _startButton = _panel.Q<Button>("movement-start");
-            _rampButton = _panel.Q<Button>("movement-ramp");
-            _curveButton = _panel.Q<Button>("movement-curve");
-            _keepButton = _panel.Q<Button>("movement-keep");
-            _stopButton = _panel.Q<Button>("movement-stop");
-            _startButton.clicked += () =>
-            {
-                var t = _match.ProgressiveTuning;
-                var values = new[] { 0f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f };
-                SetProgressive(t.RampTicks, t.Curve, t.TurnaroundKeep, t.StopTicks,
-                    values[(System.Array.IndexOf(values, t.StartRatio) + 1) % values.Length]);
-            };
-            _rampButton.clicked += () =>
-            {
-                var t = _match.ProgressiveTuning;
-                SetProgressive(t.RampTicks > 38 ? 6 : t.RampTicks + 2, t.Curve, t.TurnaroundKeep, t.StopTicks);
-            };
-            _curveButton.clicked += () =>
-            {
-                var t = _match.ProgressiveTuning;
-                SetProgressive(t.RampTicks, t.Curve == GroundSpeedCurve.Linear ? GroundSpeedCurve.SlowStart : GroundSpeedCurve.Linear,
-                    t.TurnaroundKeep, t.StopTicks);
-            };
-            _keepButton.clicked += () =>
-            {
-                var t = _match.ProgressiveTuning;
-                SetProgressive(t.RampTicks, t.Curve, t.TurnaroundKeep >= 1f ? 0f : t.TurnaroundKeep + 0.25f, t.StopTicks);
-            };
-            _stopButton.clicked += () =>
-            {
-                var t = _match.ProgressiveTuning;
-                SetProgressive(t.RampTicks, t.Curve, t.TurnaroundKeep, t.StopTicks > 28 ? 4 : t.StopTicks + 2);
-            };
-            foreach (var button in new[] { _movementButton, _snapButton, _startButton, _rampButton, _curveButton, _keepButton, _stopButton })
-                button.RegisterCallback<FocusInEvent>(_ => _controls.ScrollTo(button));
-            RefreshMovement();
             var cooldownToggle = _panel.Q<Toggle>("no-cd-toggle");
             cooldownToggle.SetValueWithoutNotify(_match.NoCooldowns);
             cooldownToggle.RegisterValueChangedCallback(evt => _match.SetNoCooldowns(evt.newValue));
@@ -134,6 +67,10 @@ namespace SlopArena.Client.UI
                 _showDuringPlay = evt.newValue;
                 RefreshVisibility();
             });
+            _panel.Q<Button>("cpu-previous").clicked += () => _match.SelectNpc((_match.SelectedNpcIndex + _match.NpcCount - 1) % _match.NpcCount);
+            _panel.Q<Button>("cpu-next").clicked += () => _match.SelectNpc((_match.SelectedNpcIndex + 1) % _match.NpcCount);
+            _panel.Q<Button>("cpu-add").clicked += _match.AddNpc;
+            _panel.Q<Button>("cpu-remove").clicked += _match.DeleteSelectedNpc;
             _damageLabel = _panel.Q<Label>("npc-damage-label");
             _modeDescription = _panel.Q<Label>("npc-mode-description");
             _inputHint = _panel.Q<Label>("ts-input-hint");
@@ -167,10 +104,6 @@ namespace SlopArena.Client.UI
             };
         }
 
-        private void SetProgressive(int ramp, GroundSpeedCurve curve, float keep, int stop, float? start = null)
-            => _match.SetMovementPrototype(_match.MovementModel, _match.MovementStickSnap,
-                GroundSpeedTuning.Progressive(ramp, curve, keep, stop, start ?? _match.ProgressiveTuning.StartRatio));
-
         private void ResetPositions()
         {
             _match.ResetTrainingPositions();
@@ -201,34 +134,15 @@ namespace SlopArena.Client.UI
             _inputHint.text = paused ? "PAUSED · ADJUST TRAINING" : "ESC / START · ADJUST TRAINING";
         }
 
-        public void RefreshMovement()
-        {
-            if (_movementSummary == null) return;
-            _movementSummary.text = _match.MovementPrototypeLabel;
-            _movementButton.text = $"MODEL · {_match.MovementModel.ToString().ToUpperInvariant()}  ›";
-            _snapButton.text = $"STICK 8-WAY SNAP · {(_match.MovementStickSnap ? "ON" : "OFF")}";
-            var t = _match.ProgressiveTuning;
-            _progressiveControls.style.display = _match.MovementModel == GroundSpeedModel.Progressive
-                ? DisplayStyle.Flex : DisplayStyle.None;
-            _startButton.text = $"START SPEED · {t.StartRatio * 100f:F0}%  ›";
-            _rampButton.text = $"RAMP · {t.RampTicks} TICKS  ›";
-            _curveButton.text = $"CURVE · {(t.Curve == GroundSpeedCurve.SlowStart ? "SLOW START" : "LINEAR")}  ›";
-            _keepButton.text = $"TURNAROUND KEEP · {t.TurnaroundKeep * 100f:F0}%  ›";
-            _stopButton.text = $"STOP · {t.StopTicks} TICKS  ›";
-            _movementDescription.text = _match.MovementModel switch
-            {
-                GroundSpeedModel.Tiers => "Tilt ≤70% walks at 40%. Full tilt runs instantly. Walk stops in 3 ticks.",
-                GroundSpeedModel.Progressive => "Any tilt starts at START SPEED, then ramps to full run. At 0%, ramping starts on tick 1. Turns keep at least START SPEED.",
-                GroundSpeedModel.Hybrid => "Tilt ≤70% walks at 40%. Walk ramps in 3 ticks, run in 6. Run keeps Rush reversals.",
-                _ => "Current movement. Any tilt gives full run immediately.",
-            };
-        }
-
         public void RefreshRoster() => RefreshSelection();
 
         public void RefreshSelection()
         {
             if (_panel == null) return;
+            _panel.Q<Label>("cpu-roster-label").text = $"CPU {_match.SelectedNpcIndex + 1} OF {_match.NpcCount}";
+            _panel.Q<Button>("cpu-remove").SetEnabled(_match.NpcCount > 1);
+            _panel.Q<Button>("cpu-previous").SetEnabled(_match.NpcCount > 1);
+            _panel.Q<Button>("cpu-next").SetEnabled(_match.NpcCount > 1);
             _summaryMode.text = _match.CurrentNpcMode.ToString().ToUpperInvariant();
             if (_match.CurrentNpcMode is NpcAiMode.Attack or NpcAiMode.Avoid)
                 _summaryMode.text += $" · {_match.CurrentNpcDifficulty.ToString().ToUpperInvariant()}";
@@ -251,7 +165,6 @@ namespace SlopArena.Client.UI
 
         private void OnDestroy()
         {
-            _pauseMovementEntry?.RemoveFromHierarchy();
             _root?.RemoveFromHierarchy();
         }
     }

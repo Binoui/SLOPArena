@@ -49,6 +49,22 @@ public sealed class HomingDashTests
     }
 
     [Fact]
+    public void AnAttackFromTheArrivalWindowOutlastsTheWindow()
+    {
+        ushort duration = (ushort)(HomingDashConfig.ArriveWindowTicks + 20);
+        var def = TestHelpers.WithMove(Def, AbilitySlots.Slot4, false, "Slow big normal", duration);
+        var sim = Duel(6f, def);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot4 });
+        for (int i = 0; i < HomingDashConfig.ArriveWindowTicks + 5; i++)
+        {
+            Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+            Tick(sim);
+        }
+    }
+
+    [Fact]
     public void RunningOutOfTravelIsALockedPunishableMiss()
     {
         var sim = Duel(19.5f);
@@ -80,6 +96,30 @@ public sealed class HomingDashTests
         Assert.True(arrived, "the dash follows the target into the air");
         Assert.False(sim.GetState(100).IsGrounded);
         Assert.False(sim.GetState(1).IsGrounded);
+    }
+
+    [Fact]
+    public void AnAirborneArrivalHoversBeforeGravityReturns()
+    {
+        var sim = Duel(6f);
+        var target = sim.GetState(100);
+        // A fresh float window keeps the target hanging at 3 m while the dash flies up to it.
+        target.PY += 3f;
+        target.IsGrounded = false;
+        target.AirTimeTicks = 0;
+        sim.SetState(100, target);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
+        float arrivalY = sim.GetState(1).PY;
+        Assert.False(sim.GetState(1).IsGrounded);
+        for (int i = 1; i < HomingDashConfig.ArriveHoverTicks; i++)
+        {
+            Tick(sim);
+            Assert.True(MathF.Abs(sim.GetState(1).PY - arrivalY) < 0.05f, $"tick {i}: {sim.GetState(1).PY} vs {arrivalY} vy {sim.GetState(1).VY}");
+        }
+        for (int i = 0; i < 4; i++)
+            Tick(sim);
+        Assert.True(sim.GetState(1).PY < arrivalY, "gravity returns after the hover");
     }
 
     [Fact]

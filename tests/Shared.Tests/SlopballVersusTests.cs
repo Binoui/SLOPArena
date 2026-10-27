@@ -236,8 +236,8 @@ public class SlopballVersusTests
         var sim = Match();
         var before = sim.CaptureSnapshot();
         var data = before.Data.ToArray();
-        // The versus footer precedes the input-release flag and two course-presence flags.
-        data[^8] = (byte)SlopballCamp.Clay;
+        // The versus footer precedes input release, two course flags and the v10 Mayhem flag.
+        data[^9] = (byte)SlopballCamp.Clay;
         Assert.Throws<System.IO.InvalidDataException>(() => sim.RestoreSnapshot(new WorldSnapshot(data)));
         Assert.True(before.ContentEquals(sim.CaptureSnapshot()));
     }

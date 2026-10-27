@@ -54,7 +54,6 @@ public class LedgeWalkOffTests
         s.IsGrounded = true;
         s.VX = def.Movement.RunSpeed;
         s.VZ = 0f;
-        s.RushTicks = 0;
         sim.RegisterEntity(1, def, s);
         var input = TestHelpers.Input(moveX: 1f);
 

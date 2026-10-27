@@ -30,9 +30,11 @@ public static class DefenseInputEdgesSelfTest
             "Defense defaults are not Left Shift and RT.");
         Require(grabPaths.Length == 1 && grabPaths[0] == "<Keyboard>/c" &&
             HumanInputActions.RebindableActions.Contains("Grab"), "C grab is not independently rebindable.");
-        Require(!HumanInputActions.RebindableActions.Contains("Dash") &&
-            !HumanInputActions.RebindableActions.Contains("Burst"),
-            "A retired universal action remains rebindable.");
+        Require(!HumanInputActions.RebindableActions.Contains("Burst"),
+            "The retired Burst action remains rebindable.");
+        var dashPaths = HumanInputActions.Get("Dash").bindings.Select(binding => binding.path).ToArray();
+        Require(HumanInputActions.RebindableActions.Contains("Dash") && dashPaths.Contains("<Keyboard>/4")
+            && dashPaths.Contains("<Gamepad>/rightShoulder"), "The homing dash is not rebindable on 4 and RB (ADR-0042).");
     }
 
     private static void KeyboardDefenseAndDirectGrabLatchOnce()

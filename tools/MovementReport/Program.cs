@@ -41,22 +41,16 @@ internal static partial class Program
         string? outPath = ParseArg(args, "--out");
 
         var defs = new List<CharacterDefinition>();
-        if (charName == "all" && (args.Contains("--ground-speed") || args.Contains("--progressive-tuning")))
+        if (charName == "all")
         {
             var roster = BuiltInRosterManifestCodec.Load(Path.Combine("content-cooked", "roster", "manifest.json"));
             foreach (var entry in roster.Entries) defs.Add(BuiltInContentResolver.Resolve(entry.Selector).Definition);
-        }
-        else if (charName == "all")
-        {
-            foreach (CharacterClass c in Enum.GetValues(typeof(CharacterClass)))
-                if (c != CharacterClass.None) defs.Add(BuiltInContentResolver.Resolve(c).Definition);
         }
         else
         {
             defs.Add(ResolveCharacter(charName));
         }
 
-        if (args.Contains("--progressive-tuning")) return ReportProgressive(defs, args, jsonDir, outPath);
         if (args.Contains("--ground-speed")) return ReportGroundSpeed(defs, args, jsonDir, outPath);
 
         var (_, stageWidth) = LoadStage(stageName);
@@ -147,9 +141,9 @@ internal static partial class Program
         sb.AppendLine("> Run: hold right from standstill. Shield: raise at cruise and hold. Jump: full jump (held past the short-hop ");
         sb.AppendLine("> window). Short hop: press + release inside the window. Double jump: jump edge at first apex. ");
         sb.AppendLine("> Drift: stick held through the full hop. Fall: spawned airborne at 50 m (float window skipped). ");
-        sb.AppendLine("> Reversal: cruise right, then full opposite input (pivot skid + re-accel). Stop: release at cruise. ");
+        sb.AppendLine("> Reversal: cruise right, then full opposite input (immediate direction flip). Stop: release at cruise. ");
         sb.AppendLine($"> Stage-relative rows use the real baked <b>{stageName}</b> arena ({stageWidth:F1} m wide). ");
-        sb.AppendLine("> Values are measured (effective behavior, incl. rush kick-off, pivot skids, caps), not authored constants.");
+        sb.AppendLine("> Values are measured (effective behavior, including ramp, turns, and caps), not authored constants.");
         sb.AppendLine();
 
         // Side-by-side comparison
@@ -188,7 +182,7 @@ internal static partial class Program
                 + $"fast fall {m.Fall.FastFallSpeed:F0} m/s (authored {m.Authored.FastFallSpeed:F0}), "
                 + $"from jump apex {m.Fall.FastFallFromJumpTicks / 60f:F2} s (natural {m.Jump.AirtimeTicks / 60f:F2} s full hop)");
             sb.AppendLine($"- **Reversal** (cruise → opposite cruise): {m.Reversal.ReversalTicks / 60f:F2} s, "
-                + $"{m.Reversal.Displacement:F2} m covered (pivot skid + re-accel)");
+                + $"{m.Reversal.Displacement:F2} m covered (immediate direction flip)");
             sb.AppendLine($"- **Stop** (cruise → standstill): {m.Stop.StopTicks / 60f:F2} s, {m.Stop.StopDistance:F2} m");
             sb.AppendLine();
         }
@@ -301,7 +295,7 @@ internal static partial class Program
             new("Fast fall / fall", Rng("{0:F2}", ff), "1.14–1.26 (Fox 3.4/2.8 … Puff 1.6/1.3)", "Melee-shaped, adopted (audit §3.4)"),
             new("Air speed / run", Rng("{0:F2}", ar), "0.38 Fox – 0.5 Marth – 1.23 Puff", "upper-mid band — air slower than ground, Melee norm"),
             new("Stop from run", Rng("{0:F2} s", stop), "Fox 27.5 f, Marth 30 f, Puff 12 f", "SLOPA brakes faster than Fox/Marth"),
-            new("Reversal (cruise→cruise)", Rng("{0:F2} s", rev), "direction-change pivot", "SLOPA pivot 2–3× slower"),
+            new("Reversal (cruise→cruise)", Rng("{0:F2} s", rev), "direction-change pivot", "SLOPA reverses immediately"),
         };
     }
 
@@ -365,7 +359,7 @@ internal static partial class Program
             sb.AppendLine($"<h2>{Escape(def.DisplayName)}</h2>");
             sb.AppendLine("<table><tr><th>metric</th><th>value</th></tr>");
             Add(sb, "Run max speed", $"{m.Run.MaxSpeed:F1} m/s <span class=\"note\">(authored {m.Authored.RunSpeed:F0})</span>");
-            Add(sb, "Run time-to-max", m.Run.Note.Length > 0 ? "instant — tick 1 <span class=\"note\">(rush kick-off, no ramp)</span>"
+            Add(sb, "Run time-to-max", m.Run.Note.Length > 0 ? "instant — tick 1 <span class=\"note\">(first-tick cruise)</span>"
                 : $"{m.Run.TimeToMaxTicks + 1} ticks, {m.Run.DistanceToMax:F2} m");
             Add(sb, "Shield", $"brakes in {m.Shield.StopTicks} tick(s) &middot; {m.Shield.StopDistance:F2} m &middot; held {m.Shield.HoldTicks} ticks");
             Add(sb, "Jump", $"apex {m.Jump.ApexHeight:F2} m at {m.Jump.TimeToApexTicks} ticks &middot; airtime {m.Jump.AirtimeTicks / 60f:F2} s &middot; "
@@ -379,7 +373,7 @@ internal static partial class Program
                 + $"time-to-max {m.Fall.TimeToMaxFallTicks / 60f:F2} s &middot; descent {m.Fall.DescentTicks / 60f:F2} s");
             Add(sb, "Fast fall", $"{m.Fall.FastFallSpeed:F0} m/s <span class=\"note\">(authored {m.Authored.FastFallSpeed:F0})</span> &middot; "
                 + $"from jump apex {m.Fall.FastFallFromJumpTicks / 60f:F2} s (natural full-hop fall ~{(m.Jump.AirtimeTicks - m.Jump.TimeToApexTicks) / 60f:F2} s)");
-            Add(sb, "Reversal", $"{m.Reversal.ReversalTicks / 60f:F2} s &middot; {m.Reversal.Displacement:F2} m covered (pivot skid + re-accel; no rush flip on 180°)");
+            Add(sb, "Reversal", $"{m.Reversal.ReversalTicks / 60f:F2} s &middot; {m.Reversal.Displacement:F2} m covered (immediate direction flip)");
             Add(sb, "Stop", $"{m.Stop.StopTicks / 60f:F2} s &middot; {m.Stop.StopDistance:F2} m");
             sb.AppendLine("</table>");
 
@@ -465,13 +459,12 @@ internal static partial class Program
             rows.Add(new Row(label, all.Select(f).ToArray()));
 
         Row_("Run max speed (m/s)", x => $"{F1(x.M.Run.MaxSpeed)} {Note(x.M, x.M.Authored.RunSpeed)}");
-        Row_("Run time-to-max", x => x.M.Run.TimeToMaxTicks <= 2 ? "instant <span class=\"note\">(rush kick-off)</span>"
+        Row_("Run time-to-max", x => x.M.Run.TimeToMaxTicks <= 2 ? "instant <span class=\"note\">(first-tick cruise)</span>"
             : $"{x.M.Run.TimeToMaxTicks + 1} ticks");
         Row_("Run cross-stage time (s)", x => $"{stageWidth / x.M.Run.MaxSpeed:F2}");
         Row_("Shield stop ticks", x => $"{x.M.Shield.StopTicks}");
         Row_("Shield hold ticks", x => $"{x.M.Shield.HoldTicks}");
         Row_("Jump squat (ticks)", x => $"{x.M.Authored.JumpSquatTicks}");
-        Row_("Rush redirect window (ticks)", x => $"{x.M.Authored.RushTicks} <span class=\"note\">(rush, on standstill / redirect)</span>");
         Row_("Jump apex (m)", x => F(x.M.Jump.ApexHeight));
         Row_("Jump time-to-apex (ticks)", x => $"{x.M.Jump.TimeToApexTicks}");
         Row_("Jump airtime (s)", x => $"{x.M.Jump.AirtimeTicks / 60f:F2}");

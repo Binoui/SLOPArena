@@ -105,13 +105,10 @@
         <ui:VisualElement name="movement-groups" class="movement-groups">
         <ui:Foldout name="movement-ground" text="Ground" value="true" class="movement-group">
           <ui:FloatField name="movement-run-speed" label="Run speed" />
-          <ui:FloatField name="movement-run-acceleration-a" label="Run acceleration A" />
-          <ui:FloatField name="movement-run-acceleration-b" label="Run acceleration B" />
           <ui:FloatField name="movement-dash-speed" label="Dash speed" />
           <ui:FloatField name="movement-ground-friction" label="Ground friction" />
           <ui:IntegerField name="movement-dash-duration-ticks" label="Dash duration ticks" />
           <ui:IntegerField name="movement-dash-cooldown-ticks" label="Dash cooldown ticks" />
-          <ui:IntegerField name="movement-rush-ticks" label="Rush ticks" />
         </ui:Foldout>
         <ui:Foldout name="movement-air" text="Air" value="true" class="movement-group">
           <ui:FloatField name="movement-air-speed-max" label="Air speed max" />

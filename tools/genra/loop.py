@@ -9,7 +9,8 @@ briefs and the owner's own look beat more unattended rounds, which trade small p
 the latest clip (review.py, with the
 brief's review block for the style reference and travel) and, unless the director accepts it with every check passing,
 revises it (run.py --revise). The last revision is reviewed too, so the owner gets the final clip with its review.
---polish keeps revising an accepted clip while the director still lists (minor) issues; --start-review reuses an
+--polish keeps revising an accepted clip while the director still lists (minor) issues, and --owner always gets its
+revision even when the director accepts round 0; --start-review reuses an
 existing review of the --from clip as round 0 instead of rendering and reviewing it again. --owner gives the first
 revision the owner's direction after their look at the take, ahead of the director's, and --skip sets aside review
 issues the owner does not want (2026-10-22: a smoothing pass that keeps the approved poses, not the re-pose the review
@@ -180,7 +181,10 @@ def main(argv=None):
         notes = verdict['review']
         passed = author_passed and full_checks_passed(review_dir / 'checks.json')
         rounds.append((number, run_dir, review_dir, passed))
-        if finished(notes, passed, args.polish) or number == args.rounds:
+        # An owner's direction always gets its revision: the director accepting round 0 does not overrule the owner
+        # (salamander run, 2026-10-27: the review accepted it, so the owner's fluidity note was dropped unseen).
+        owner_pending = number == 0 and bool(args.owner)
+        if (finished(notes, passed, args.polish) and not owner_pending) or number == args.rounds:
             break
         previous = notes
         first = number == 0

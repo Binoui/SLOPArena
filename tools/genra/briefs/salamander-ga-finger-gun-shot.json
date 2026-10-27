@@ -1,0 +1,194 @@
+{
+  "name": "salamander-ga-finger-gun-shot",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0,
+    "match": false
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png",
+    "../../salamander-idle-run-20261027/q-a-bang.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). 2: the concept the owner picked for his Q (generated art): the quick-draw BANG, right arm out in a finger gun, left hand on the hip.",
+  "notes": "Salamander ground.A (anim.salamander.ga), kit proposal 2026-10-27: Finger Guns, one shot. The engine capability slop.ability.finger-guns.v1 fires at tick 4 and recovers for 10 ticks: 14 ticks a shot, tapped up to four a second. The owner approved the shape: tap to shoot, six shots then a reload gag, no refill over time. Revision 1 (2026-10-27, owner present): the owner found 4 ticks way too fast and set the shot to fire at tick 8 in an 18-tick shot (recovery 10). Measured on round 0: tail and straw never moved (0 degrees a tick), the head jolted once with no rebound, and only 8% of the shot showed from the match camera (the hand 16 cm right of centre, under the brim). The arm now angles out to his right and the recoil carries through the body. Finger gun (owner, 2026-10-27): two fingers, index and middle together; his fingers were rebuilt as separate geometry (rig-build-v18) so each one articulates on its own. Revision 2 (2026-10-27, accepted): starts and ends aimed, kick about 12 degrees, follow-through at 40%; built from the two-finger take (artifacts/genra-runs/*-salamander-ga-finger-gun-shot-r2-aimed), promoted as anim.salamander.ga.",
+  "description": "The salamander's Q, Finger Guns: one shot. The player taps it up to six times in a row, about three shots a second, so the clip plays again and again: it must start from his idle and from its own end pose.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe shot (18 ticks, replayed from tick 0 on every tap; image 2 is the shot pose). It starts and ends AIMED: the game restarts the clip on each tap, so a clip that drew from the hip flailed the arm three times a second (owner, 2026-10-27). The quick draw is the game's blend from the idle into the first shot.\n- Ticks 0-8: aimed, a two-finger gun (index and middle straight and pressed together, ring curled, thumb up as the hammer) at shoulder height, angled 25-35 degrees out to his right so it reads from behind; a tiny settle as he lines up.\n- Tick 8, BANG: the thumb drops onto the fingers like a hammer and the gun kicks up about 12 degrees, quick and small.\n- Ticks 8-18: back down onto the aim with the thumb cocking up; tick 18 is the pose of tick 0.\nFeet stay planted.\n\nFollow-through and secondary motion (the owner's note on every GenRA move: they lack fluidity and secondary motion). The recoil travels through the body in order: kept light because it repeats three times a second: the hand and forearm kick at tick 8, the chest barely follows, the head nods and rebounds a little past rest before settling by about tick 16. The sombrero lags the head by a tick or two and wobbles once. The straw flicks up on the BANG and swings back. The left elbow on the hip bounces with the chest. The tail never stays still: it flicks up 2-3 ticks after the recoil, the tip trailing the root, and settles back toward its rest curve by tick 18 so the clip loops into the next shot. Nothing freezes: between the BANG and tick 18 every part keeps drifting toward the ready pose.",
+  "clock": {
+    "duration_ticks": 18,
+    "contact_tick": 8,
+    "active": [
+      8,
+      8
+    ],
+    "iasa_tick": 18
+  },
+  "timing": {
+    "fixed": [
+      "18 ticks: the bullet leaves at tick 8, recovery is 10 ticks (the owner, 2026-10-27)",
+      "it replays on every tap, so tick 18 is the aim pose of tick 6"
+    ],
+    "adjustable": [
+      "the recoil size"
+    ]
+  },
+  "fast_windows": [
+    [
+      0,
+      12
+    ]
+  ],
+  "strike": [
+    "RightHandIndex3"
+  ],
+  "keys": [
+    0,
+    8,
+    12,
+    18
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    9,
+    10,
+    12,
+    14,
+    16,
+    18
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor at the shot (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "right toe on the floor at the shot (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "aim: right hand far in front at tick 6 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 6,
+      "min": 0.25
+    },
+    {
+      "name": "aim: right hand at shoulder height at tick 6 (m)",
+      "kind": "below",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 6,
+      "min": -0.1,
+      "max": 0.08
+    },
+    {
+      "name": "recoil: hand kicks a little above the aim at tick 12 (m)",
+      "kind": "below",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 12,
+      "min": -0.03,
+      "max": 0.02
+    },
+    {
+      "name": "ready again: right hand far in front at tick 18 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 18,
+      "min": 0.25
+    },
+    {
+      "name": "left hand on the left hip at tick 8 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 8,
+      "max": -0.1
+    },
+    {
+      "name": "readable from behind: right hand out to his right at the aim, tick 6 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 6,
+      "min": 0.22
+    },
+    {
+      "name": "readable from behind: right hand out to his right at the BANG, tick 8 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 8,
+      "min": 0.22
+    },
+    {
+      "name": "secondary: tail tip flicks after the shot (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "up",
+      "window": [
+        8,
+        18
+      ],
+      "min": 0.016
+    },
+    {
+      "name": "secondary: tail tip sways after the shot (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        8,
+        18
+      ],
+      "min": 0.012
+    },
+    {
+      "name": "secondary: head snaps back and rebounds (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "front",
+      "window": [
+        7,
+        16
+      ],
+      "min": 0.006
+    },
+    {
+      "name": "secondary: hat wobbles (m)",
+      "kind": "range",
+      "a": "Hat",
+      "axis": "up",
+      "window": [
+        8,
+        18
+      ],
+      "min": 0.004
+    }
+  ]
+}

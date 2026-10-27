@@ -6,24 +6,9 @@
                 <ui:Label class="ts-title" text="TRAINING" />
                 <ui:Label name="ts-summary-mode" class="ts-summary-mode" text="IDLE" />
             </ui:VisualElement>
-            <ui:Label name="movement-summary" class="ts-movement-summary" text="MOVEMENT · CURRENT · SNAP ON" />
             <ui:Label name="ts-input-hint" class="ts-hint" text="ESC / START · ADJUST TRAINING" />
         </ui:VisualElement>
         <ui:ScrollView name="ts-scroll" class="ts-scroll" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
-            <ui:VisualElement class="ts-section">
-                <ui:Label class="ts-label" text="MOVEMENT PROTOTYPE" />
-                <ui:Button name="movement-model" class="ts-btn ts-reset-all" text="MODEL · CURRENT  ›" />
-                <ui:Button name="movement-snap" class="ts-btn ts-reset-all" text="STICK 8-WAY SNAP · ON" />
-                <ui:VisualElement name="movement-progressive-controls">
-                    <ui:Button name="movement-start" class="ts-btn ts-reset-all" text="START SPEED · 40%  ›" />
-                    <ui:Button name="movement-ramp" class="ts-btn ts-reset-all" text="RAMP · 20 TICKS  ›" />
-                    <ui:Button name="movement-curve" class="ts-btn ts-reset-all" text="CURVE · LINEAR  ›" />
-                    <ui:Button name="movement-keep" class="ts-btn ts-reset-all" text="TURNAROUND KEEP · 100%  ›" />
-                    <ui:Button name="movement-stop" class="ts-btn ts-reset-all" text="STOP · 20 TICKS  ›" />
-                </ui:VisualElement>
-                <ui:Label name="movement-description" class="ts-description" text="Current movement. Any tilt gives full run immediately." />
-                <ui:Label class="ts-hint" text="A · CYCLE    B / START · RESUME" />
-            </ui:VisualElement>
             <ui:VisualElement class="ts-section">
                 <ui:Label class="ts-label" text="BEHAVIOR" />
                 <ui:VisualElement class="ts-btn-row">
@@ -35,6 +20,17 @@
                     <ui:Button name="mode-avoid" class="ts-btn ts-mode-btn" text="AVOID" />
                 </ui:VisualElement>
                 <ui:Label name="npc-mode-description" class="ts-description" text="Stands still. Practice hits and combos." />
+            </ui:VisualElement>
+            <ui:VisualElement class="ts-section">
+                <ui:Label name="cpu-roster-label" class="ts-label" text="CPU 1 OF 1" />
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="cpu-previous" class="ts-btn ts-grow" text="PREVIOUS" />
+                    <ui:Button name="cpu-next" class="ts-btn ts-grow" text="NEXT" />
+                </ui:VisualElement>
+                <ui:VisualElement class="ts-btn-row">
+                    <ui:Button name="cpu-add" class="ts-btn ts-grow" text="ADD CPU" />
+                    <ui:Button name="cpu-remove" class="ts-btn ts-grow" text="REMOVE" />
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="difficulty-section" class="ts-section">
                 <ui:Label class="ts-label" text="DIFFICULTY" />

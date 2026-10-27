@@ -44,6 +44,9 @@ namespace SlopArena.Shared.Rollback
             new(static e => e.Key, static k => k.MatchTick);
         private readonly RollbackLedger<CourseEventKey, CourseTickEvent> _courses =
             new(static e => e.Key, static k => k.MatchTick);
+        private readonly RollbackLedger<MayhemEventKey, MankiMayhemEvent> _mayhem =
+            new(static e => e.Key, static k => k.MatchTick);
+        private readonly List<MankiMayhemEvent> _tickMayhem = new();
         private readonly List<CourseTickEvent> _tickCourses = new();
         private readonly List<SlopballTickEvent> _tickSlopball = new();
         private readonly List<TimelinePresentationEvent> _tickEvents = new();
@@ -220,6 +223,9 @@ namespace SlopArena.Shared.Rollback
             => _hits.Drain(started, retracted);
 
         /// <summary>Slopball events to present, and predicted ones the GameHost ruled out, since the previous call (ADR-0040).</summary>
+        public void DrainMayhemEvents(List<MankiMayhemEvent> started, List<MankiMayhemEvent> retracted)
+            => _mayhem.Drain(started, retracted);
+
         public void DrainCourseEvents(List<CourseTickEvent> started, List<CourseTickEvent> retracted)
             => _courses.Drain(started, retracted);
 
@@ -335,6 +341,7 @@ namespace SlopArena.Shared.Rollback
             _hits.BeginResimulation(tick);
             _slopball.BeginResimulation(tick);
             _courses.BeginResimulation(tick);
+            _mayhem.BeginResimulation(tick);
         }
 
         private void EndResimulation()
@@ -343,6 +350,7 @@ namespace SlopArena.Shared.Rollback
             _hits.EndResimulation();
             _slopball.EndResimulation();
             _courses.EndResimulation();
+            _mayhem.EndResimulation();
         }
 
         private void ValidateRecords(WorldFramePacket frame)
@@ -350,7 +358,7 @@ namespace SlopArena.Shared.Rollback
             if (frame.MatchState > MatchState.Ended)
                 throw SnapshotReader.Malformed("match state");
             if (frame.Events.Count > WorldFramePacket.MaxPresentationEvents || frame.Hits.Count > WorldFramePacket.MaxHits ||
-                frame.SlopballEvents.Count > WorldFramePacket.MaxSlopballEvents || frame.CourseEvents.Count > WorldFramePacket.MaxCourseEvents)
+                frame.SlopballEvents.Count > WorldFramePacket.MaxSlopballEvents || frame.CourseEvents.Count > WorldFramePacket.MaxCourseEvents || frame.MayhemEvents.Count > WorldFramePacket.MaxMayhemEvents)
                 throw SnapshotReader.Malformed("frame record count");
             ulong previous = 0;
             bool first = true;
@@ -364,10 +372,10 @@ namespace SlopArena.Shared.Rollback
                 previous = input.EntityId;
             }
             foreach (var evt in frame.Events)
-                if (!InEventRange(evt.MatchTick, frame) || !_fighters.Contains(evt.EntityId) || !WorldFramePacket.CanCarry(evt))
+                if (!InEventRange(evt.MatchTick, frame) || !ValidPresentationOwner(evt.EntityId) || !WorldFramePacket.CanCarry(evt))
                     throw SnapshotReader.Malformed("presentation event");
             foreach (var hit in frame.Hits)
-                if (!InEventRange(hit.MatchTick, frame) || !_fighters.Contains(hit.OwnerEntityId) ||
+                if (!InEventRange(hit.MatchTick, frame) || !ValidPresentationOwner(hit.OwnerEntityId) ||
                     hit.KnockbackDirection > AuthoringKnockbackDirection.TowardOwner ||
                     !float.IsFinite(hit.Damage) || !float.IsFinite(hit.DirX) || !float.IsFinite(hit.DirZ) ||
                     !float.IsFinite(hit.BaseKnockback) || !float.IsFinite(hit.KnockbackGrowth) ||
@@ -384,6 +392,12 @@ namespace SlopArena.Shared.Rollback
                     throw SnapshotReader.Malformed("Slopball event");
             if (frame.CourseEvents.Count > 0 && !_sim.OnlineCourse.HasValue)
                 throw SnapshotReader.Malformed("course event mode");
+            if (frame.MayhemEvents.Count > 0 && !_sim.MankiMayhem.HasValue)
+                throw SnapshotReader.Malformed("Mayhem event mode");
+            foreach (var item in frame.MayhemEvents)
+                if (!WorldFramePacket.ValidMayhemEvent(item, frame.Tick)
+                    || item.EntityId != ServerSimulation.MayhemHostEntityId && !RuntimeSolidSet.IsWallId(item.EntityId) && !_fighters.Contains(item.EntityId))
+                    throw SnapshotReader.Malformed("Mayhem event");
             foreach (var item in frame.CourseEvents)
             {
                 bool target = item.Event.Kind is CharacterCourseEventKind.TargetHit or CharacterCourseEventKind.TargetBroken;
@@ -397,6 +411,9 @@ namespace SlopArena.Shared.Rollback
                     throw SnapshotReader.Malformed("course event");
             }
         }
+
+        private bool ValidPresentationOwner(ulong id) => _fighters.Contains(id)
+            || _sim.MankiMayhem.HasValue && id == ServerSimulation.MayhemHostEntityId;
 
         private static bool InEventRange(uint tick, WorldFramePacket frame)
             => tick >= frame.EventsFromTick && tick <= frame.Tick;
@@ -433,6 +450,7 @@ namespace SlopArena.Shared.Rollback
                 _slopball.RecordPredicted(_tickSlopball);
             }
             if (_sim.OnlineCourse.HasValue) _courses.RecordPredicted(_sim.LastTickOnlineCourseEvents);
+            if (_sim.MankiMayhem.HasValue) _mayhem.RecordPredicted(_sim.LastTickMayhemEvents);
             StorePrediction(tick, _sim.CaptureSnapshot());
         }
 
@@ -445,6 +463,13 @@ namespace SlopArena.Shared.Rollback
                     if (evt.MatchTick == tick)
                         _tickEvents.Add(evt);
                 _events.RecordAuthoritative(tick, _tickEvents);
+                if (_sim.MankiMayhem.HasValue)
+                {
+                    _tickMayhem.Clear();
+                    foreach (var item in frame.MayhemEvents)
+                        if (item.MatchTick == tick) _tickMayhem.Add(item);
+                    _mayhem.RecordAuthoritative(tick, _tickMayhem);
+                }
                 if (_sim.OnlineCourse.HasValue)
                 {
                     _tickCourses.Clear();

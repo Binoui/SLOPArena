@@ -27,7 +27,7 @@ Camera aim input cannot put these slots into an aiming stance.
 
 ## Movement and resources
 
-- Camera-relative 8-direction movement uses one ground Run tier; there is no selectable walk/sprint split.
+- Camera-relative movement uses one ground Run tier. Keyboard stays digital in eight directions. Controller stick 8-way snap is a persisted Controls setting, default on, applied only by the client.
 - Jump and double jump use the character's movement definition. ShortHop is release-timed during the opening jump window.
 - FastFall requires a fresh Down press while already descending; it sets and latches the configured downward speed until landing or interruption. Release preserves the latch; ascent/apex and locked/owned presses are discarded. Ordinary aerial attacks may coexist, but Hitstop, Hitstun, ledges and authored vertical motion prevent activation. FastFall overrides any active gravity window.
 - Shield is a permanent, full-body grounded defense held with Left Shift / RT. It stops ordinary melee, projectile and explosion attacks from every direction, freezes combat facing, and enters a vulnerable 7-tick drop after release. Grab is C or the controller LB+RT chord.
@@ -36,6 +36,18 @@ Camera aim input cannot put these slots into an aiming stance.
 - RecoveryMove is the per-character return-to-stage move. It is the only ordinary move that resets the FloatWindow mid-air.
 
 All gameplay timing uses 60 Hz ticks. Values are authored in package data and resolved by Shared simulation.
+
+### Ground Run
+
+Every simulation uses the same immutable `GroundSpeedTuning` constants, including online prediction and replay playback.
+The first moving tick sets speed to 40% of RunSpeed. The next 20 linear increments each add 3% of RunSpeed.
+Full speed arrives on completed tick 21, 350 ms at 60 Hz. Tilt magnitude is ignored.
+Turns and Turnaround redirect immediately at retained speed and continue acceleration, with the same 40% floor.
+Facing follows input. Release removes RunSpeed/20 along the velocity vector per tick, so full-speed stopping takes 20 ticks.
+Dash overspeed retains its shipped coast, release braking, and pivot behavior until ordinary Run resumes.
+Rush, its dash-dance window, and its instant tap-release stop are retired.
+The Run clip plays at actual horizontal speed divided by RunSpeed, with a 0.35 playback floor.
+See the 2026-10-27 amendment to [ADR-0020](../adr/0020-melee-based-movement.md) for measured distances and the tick convention.
 
 ### Permanent shield bubble
 
@@ -60,7 +72,7 @@ authoritative state and scales it to the same diameter.
 A fresh airborne Defense press (Left Shift / RT) starts an air dodge if the
 fighter has an air dodge left and is otherwise actionable. Holding Defense
 through a shield-jump does not produce a fresh press. The dodge goes in the
-held 8-way stick direction, camera-relative like running; a neutral stick
+held stick direction, camera-relative like running and subject to the client snap setting; a neutral stick
 dodges toward the current facing. Facing never changes, so a backward dodge
 works like a backdash and aerials still point the same way.
 
@@ -111,8 +123,7 @@ lag. Locked landings bank no slide. Zero-speed landings never gain propulsion.
 Slide caps live horizontal magnitude at 1.25× RunSpeed, then decays by 2× RunSpeed per
 second without steering. Below .15× RunSpeed it becomes Crouch. The landing contact tick
 adds neither a second integration nor slide friction. Crouch brakes at 36 units/s² and
-snaps below .015; release restores ordinary control that tick. Slide freezes Rush and
-preserves LastDir. Walk-off clears low posture without automatically fast-falling.
+snaps below .015; release restores ordinary control that tick. Slide preserves LastDir. Walk-off clears low posture without automatically fast-falling.
 
 SlideJump uses ordinary jump squat, ShortHop and resources. Its takeoff cap is 1.15×
 RunSpeed versus ordinary RunSpeed; caps never refill velocity or restore wall-blocked
@@ -301,11 +312,11 @@ No Unity physics query or client-only trajectory determines gameplay.
 
 The client may provide camera-derived aim and target intent. The Shared simulation validates targetability and range and owns the selected target. Target lock is passive while moving: it does not steer facing outside attacks. Ordinary stages do not continuously track targets. `startupAimCorrection` is an explicit cooked timeline operation available to any slot. Normals and selected specials opt in through their package's `character.json`; read that source for current coverage and tuning. When opted in, the simulation captures one eligible target at activation, even if the operation's correction tick is later. It prefers the currently selected/locked target when valid in the acquisition envelope; otherwise it picks the nearest eligible enemy, breaking distance ties by entity ID. RetargetPressed keeps its existing nearest-valid-enemy semantics; correction never switches target after capture.
 
-Current normal tuning uses 4 m acquisition range and full-circle acquisition (`acquisitionHalfAngleDegrees: 180`, no forward-cone restriction), at most 45° yaw at 360°/s, and pitch up to 15° at 180°/s only for air.1/air.2 except Bonk air.2; grounded normals and other aerial normals have zero pitch. Selected/locked opponents beside or behind the fighter can be acquired, but the attack still turns only within its existing startup time and 45° cap. The hip world pivot is the simulation hip-height pivot (`BoneYToWorldY(PY, 0)`), shared by model, collision and trails. Target reference is the opponent torso at `PY + 0.25 × targetCapsuleHeight`. Pitch changes rendered pose geometry, not physics capsule or trajectories.
+Current normal tuning uses 4 m acquisition range and full-circle acquisition (`acquisitionHalfAngleDegrees: 180`, no forward-cone restriction), at most 90° yaw at 720°/s, and pitch up to 15° at 180°/s only for air.1/air.2 except Bonk air.2; grounded normals and other aerial normals have zero pitch. Selected/locked opponents beside or behind the fighter can be acquired, but the attack still turns only within its existing startup time and 90° cap. The hip world pivot is the simulation hip-height pivot (`BoneYToWorldY(PY, 0)`), shared by model, collision and trails. Target reference is the opponent torso at `PY + 0.25 × targetCapsuleHeight`. Pitch changes rendered pose geometry, not physics capsule or trajectories.
 
 Each operation has stage-relative `tick`, `unit: "ticks"`, exclusive `endTick`, `acquisitionRange`, `acquisitionHalfAngleDegrees`, `maxYawDegrees`, `maxPitchDegrees`, `yawDegreesPerSecond`, and `pitchDegreesPerSecond`. The range/cone acquire once; per-tick rates and total-angle caps bound yaw from initial facing and pitch from the neutral attack pose, independently of raw camera aim. `endTick` must be later than the operation tick and within its stage. The compiler requires the window to end no later than the earliest authored hitbox, projectile, forward-lunge or horizontal SetVelocity commitment; it may close earlier. Capability-owned active timing also needs an appropriate authored cutoff. No correction runs on the exclusive cutoff tick, during active contact or recovery, or after target invalidation. Hitstop freezes both correction and attack clock. There is no late acquisition, target switching or physics pull.
 
-The opted-in specials use the same 4 m acquisition, full-circle selection and 45° yaw cap at 360°/s, with zero pitch. Manki F preserves manual facing while held, but validates the captured target throughout the hold. Release rebases its turn limit on final manual/cached facing, applies the first correction step before resuming the timeline, and can continue correcting until its tick-18 flame. FightGuy R retains immediate movement and steers only during its existing six-tick windup, committing before the first active hit at tick 7. FightGuy F and Wibou F commit before first contact; Bonk A/R commit before their tick-12 lunges. No damage, speed, duration or hit timing changes are part of this assistance. Wibou R instead uses the public charged directional dash: manual direction is locked on release, with no startup correction, target tracking or post-release steering.
+The opted-in specials use the same 4 m acquisition, full-circle selection and 90° yaw cap at 720°/s, with zero pitch. Manki F preserves manual facing while held, but validates the captured target throughout the hold. Release rebases its turn limit on final manual/cached facing, applies the first correction step before resuming the timeline, and can continue correcting until its tick-18 flame. FightGuy R retains immediate movement and steers only during its existing six-tick windup, committing before the first active hit at tick 7. FightGuy F and Wibou F commit before first contact; Bonk A/R commit before their tick-12 lunges. No damage, speed, duration or hit timing changes are part of this assistance. Wibou R instead uses the public charged directional dash: manual direction is locked on release, with no startup correction, target tracking or post-release steering.
 
 The Gameplay target-lock setting has three modes: **Always auto-lock** (default) acquires an enemy automatically; **Never auto-lock** requires manual activation; **Auto-lock on hit** activates when the fighter deals or receives a damaging hit. An active lock keeps its target while valid within 20 m rather than switching as the camera moves. Retarget selects the nearest valid enemy within 20 m; the lock toggle explicitly disables or reenables automatic locking. If a target leaves range, automatic modes may reacquire when one returns, but explicit lock-off remains off until reenabling. Manual camera-facing snap does not disable lock.
 

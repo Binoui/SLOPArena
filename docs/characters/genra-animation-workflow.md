@@ -110,6 +110,18 @@ authored as one 148-tick clip to keep the leap's rules. Only afterwards did the
 owner say the physics and timing could change as long as aim, flight and the hit
 with its recovery stay. The move was then cut into phase clips.
 
+A move the game restarts on every tap (a rapid-fire shot) starts and ends on its held pose, not on the idle: the salamander's Finger Guns shot drew from the hip at tick 0, so six fast taps flailed the arm between hip and aim three times a second (owner, 2026-10-27: "like he's having an epilepsy attack"). The draw belongs to the game's blend from the idle into the first shot. Keep its recoil small (about 12 degrees, not 28) and its follow-through light, and review it as the game plays it: `unity_clip.py timeline` with the idle, a burst of taps at the fastest rate and the exit, not one clip looped.
+
+Keep idles calm. An idle plays while the player presses nothing, so it gives the
+fighter a bit of life; it is not a performance (owner, 2026-10-27, on Bashie's and
+the salamander's GenRA idles: "way too quick and active"). The hand-made Manki and
+Wibou idles turn their body joints 2–11°/s on average and move their hands
+0.05–0.08 body lengths a second (hips to head) against the hips. Those two GenRA
+idles moved 34–43°/s and 0.5–1.2 body lengths a second. Brief a long loop of slow
+breathing and drift, with at most one small, slow gesture, and measure it against
+those numbers before review. Slowed 3× to a 6 s loop, the salamander's idle fell to
+6.6°/s and 0.054 outside its one gesture.
+
 Split a long move into one authoring job per clip the game plays, such as a
 leap's flight and its landing. Chain the jobs with the brief's `entry`/`exit`
 references, so each job starts on the previous job's pose and an accepted phase

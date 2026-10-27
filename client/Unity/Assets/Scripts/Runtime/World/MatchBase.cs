@@ -89,7 +89,7 @@ namespace SlopArena.Client.World
             _framingSubjects.Clear();
             float nearestDistance = float.PositiveInfinity;
             ulong nearestId = ulong.MaxValue;
-            bool stockMatch = MatchConfig.Mode == GameMode.Solo
+            bool stockMatch = MatchConfig.Mode == GameMode.Solo && !MatchConfig.IsLocalMayhem
                 || MatchConfig.Mode == GameMode.PvP && MatchConfig.Format == MatchFormat.Stock;
             foreach (var pair in states)
             {
@@ -203,6 +203,9 @@ namespace SlopArena.Client.World
         protected void PresentTimelineEvents()
             => _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
 
+        protected void RegisterHostPresentation(ulong id, Transform root, CharacterAnimationCatalog catalog)
+            => _timelinePresentations.RegisterHost(id, root, catalog);
+
         /// <summary>Online rollback: stop the presentations of events the GameHost ruled out.</summary>
         protected void RetractTimelineEvents(IReadOnlyList<TimelinePresentationEvent> events)
             => _timelinePresentations.Retract(events);
@@ -263,6 +266,8 @@ namespace SlopArena.Client.World
         protected void SpawnStageVisual(ArenaDefinition arena, bool cameraObstruction = true)
         {
             PresentationFloor.Use(arena.Heightmap);
+            CameraObstruction.SeeThroughThinWalls = false;
+            CameraObstruction.CutAwayOccluders = false;
             var stageRoot = new GameObject("Stage");
             var triangles = arena.CollisionTriangles;
             if (cameraObstruction && triangles != null && triangles.Length > 0)
@@ -302,6 +307,11 @@ namespace SlopArena.Client.World
             }
             var visual = Instantiate(prefab, stageRoot.transform);
             StageVisual = visual.transform;
+            // A stage whose art exports the see-through anchor (Hamster Habitat's clear tubes)
+            // lets the camera look through its thin walls; every other stage keeps them solid.
+            foreach (var child in visual.GetComponentsInChildren<Transform>(true))
+                if (child.name == CameraObstruction.SeeThroughMarker)
+                    CameraObstruction.SeeThroughThinWalls = true;
             visual.transform.localPosition = Vector3.zero;
             visual.transform.localRotation = Quaternion.identity;
             // A stage whose art command built a "Stage Lights" rig is lit by that rig alone, as in
@@ -333,7 +343,7 @@ namespace SlopArena.Client.World
             int maxStocks = MatchConfig.Mode is GameMode.Solo or GameMode.PvP
                 ? MatchConfig.MaxStocks
                 : 0;
-            if (MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse()) maxStocks = 0;
+            if (MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse() || MatchConfig.Format == MatchFormat.MankiMayhem) maxStocks = 0;
             _hudManager?.Initialize(Bridge.GetState, players, maxStocks);
             _hudManager?.SetCharacterDefinition(def);
             _hudManager?.SetCamera(_cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
@@ -344,7 +354,7 @@ namespace SlopArena.Client.World
         /// Master roster, which names the player and ties their chat identity
         /// to the fighter for speech slips; offline cards keep the fighter name.
         /// </summary>
-        private static HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, CharacterClass @class, bool isLocal)
+        protected static HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, CharacterClass @class, bool isLocal)
         {
             string label = $"P{entityId}";
             if (MatchConfig.Mode == GameMode.PvP && ClientSession.MatchRoster != null)
@@ -356,16 +366,28 @@ namespace SlopArena.Client.World
                     string chatId = member.SteamId > 0
                         ? member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture)
                         : null;
-                    return new HUDManager.HudPlayer(entityId, label, @class, isLocal, name, chatId);
+                    return new HUDManager.HudPlayer(entityId, label, @class, isLocal, name, chatId, playerNumber: (int)entityId);
                 }
-            return new HUDManager.HudPlayer(entityId, label, @class, isLocal);
+            return new HUDManager.HudPlayer(entityId, label, @class, isLocal, playerNumber: (int)entityId);
         }
 
         protected void SetupAimHandler(CharacterDefinition def)
         {
             _aimHandler?.Init(_cameraMount, _cameraMount?.RenderCamera,
-                _playerRenderer.transform, def.CapsuleHeight);
+                _playerRenderer.transform, def.CapsuleHeight, ResolveAimTarget);
             _aimHandler?.BindTargetPresentation(_hudManager?.TargetingRoot);
+        }
+
+        private Vector3? ResolveAimTarget(ulong entityId)
+        {
+            var simulation = Bridge switch
+            {
+                LocalSimulationBridge local => local.InternalSim,
+                RollbackSimulationBridge online => online.Simulation,
+                _ => null,
+            };
+            return simulation != null && simulation.TryGetCombatTargetPosition(entityId, out var position)
+                ? new Vector3(position.X, position.Y, position.Z) : null;
         }
 
         /// <summary>
@@ -380,6 +402,7 @@ namespace SlopArena.Client.World
             indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
                     ? camp : SlopballCamp.None, CourseColours.ForEntity, LocalAccentOf);
+            go.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
         }
 
         /// <summary>Couch play: extra Local Players and their facing-ring accent; null for everyone else.</summary>

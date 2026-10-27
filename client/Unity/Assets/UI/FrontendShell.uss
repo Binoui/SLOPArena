@@ -2245,3 +2245,37 @@
 }
 .frontend-shell .unity-scroller--vertical .unity-base-slider__dragger-border { border-width: 0; }
 
+
+/* Page title as an ink tag (2026-10-27): no paper strip behind the header;
+   the title is a tilted ink label with a yellow offset edge, BACK and the
+   step sit on small paper chips. UI Toolkit has no box-shadow, so the
+   offset is a thick right and bottom border. */
+.frontend-shell .shell-header-host { background-color: rgba(0, 0, 0, 0); }
+.frontend-shell .shell-header-host .flow-title,
+.frontend-shell .arcade-page-title,
+.sa-settings-title {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 6px 18px 5px 18px;
+    background-color: rgb(27, 26, 24);
+    color: rgb(240, 238, 232);
+    border-width: 0;
+    border-right-width: 7px;
+    border-bottom-width: 7px;
+    border-color: rgb(255, 204, 34);
+    font-size: 34px;
+    white-space: nowrap;
+    rotate: -1.4deg;
+}
+.frontend-shell--compact .shell-header-host .flow-title,
+.frontend-shell--compact .arcade-page-title { font-size: 26px; padding: 4px 14px; }
+.frontend-shell .shell-header-host .btn-back { rotate: 1deg; }
+.frontend-shell .shell-header-host .flow-progress {
+    padding: 4px 10px;
+    background-color: rgb(240, 238, 232);
+    border-width: 3px;
+    border-color: rgb(27, 26, 24);
+    color: rgb(27, 26, 24);
+    rotate: 1.5deg;
+}
+.frontend-shell .stage-header-section { margin-bottom: 30px; }

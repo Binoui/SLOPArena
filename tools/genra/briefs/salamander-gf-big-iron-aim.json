@@ -1,0 +1,115 @@
+{
+  "name": "salamander-gf-big-iron-aim",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0,
+    "match": false
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.F aim loop (anim.salamander.gf-loop), kit proposal 2026-10-27: Big Iron on slop.ability.charged-projectile.v1 (as FightGuy Ki Shot): hold to charge, release a big slow shot. My pick from the F pitches (owner: 'not sure' about HIGH NOON); the owner had not chosen an F.",
+  "description": "The salamander's F, Big Iron: the charge. He clasps both hands into one big two-handed finger gun and aims it, trembling with the effort of holding the 'big iron'. It loops while the player holds the button.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe aim (30 ticks, a loop):\n- The stance: boots wider than his idle, knees bent, weight low and back; both arms straight out in front at eye level, hands together, both index fingers pointing ahead side by side, thumbs up; chin down sighting along the arms; elbows locked.\n- The tremble: the arms and the chest shake in small quick jitters (1-2 cm, a new direction every 3-4 ticks), as if the gun weighs a ton; the knees sag 1-2 cm and push back up once per loop (ticks 0, 15, 30); the mustache quivers (joint Mustache rocks 3-6 degrees).\n- Tick 30: the pose of tick 0.\nThe entry pose only sets the frame (his idle); the game crossfades into the aim.",
+  "clock": {
+    "duration_ticks": 30
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "timing": {
+    "fixed": [
+      "it loops while held; the game crossfades into it from the idle"
+    ],
+    "adjustable": [
+      "the loop length"
+    ]
+  },
+  "keys": [
+    0,
+    8,
+    15,
+    23,
+    30
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    12,
+    15,
+    19,
+    23,
+    27,
+    30
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "right toe on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "two-handed: hands together at tick 0 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 0,
+      "max": 0.06
+    },
+    {
+      "name": "two-handed: hands far in front at tick 0 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 0,
+      "min": 0.28
+    },
+    {
+      "name": "arms at eye level at tick 0 (m)",
+      "kind": "below",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 0,
+      "min": -0.06
+    },
+    {
+      "name": "tremble: hands jitter (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "up",
+      "window": [
+        0,
+        30
+      ],
+      "min": 0.008,
+      "max": 0.04
+    }
+  ]
+}

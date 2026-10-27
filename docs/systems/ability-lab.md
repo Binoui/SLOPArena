@@ -177,6 +177,20 @@ Capture temporarily enables per-render skinned-mesh matrix recalculation so
 freshly evaluated bones are reflected in the PNG without waiting for an Editor
 frame. Original renderer settings are restored afterward.
 
+`sloparena.lab.capture-window` grabs the whole Ability Lab window instead:
+toolbar, tabs, timeline and fields rail around the embedded viewport, at the
+window's current size, for demos and documentation. It takes the same
+`--action`, `--ticks`, `--output`, `--view`/`--camera-*`, `--overlays` and
+`--dummy` options. A matching recorded scenario is replayed; otherwise the
+authoring timeline is scrubbed, so its cursor moves along the move. Run
+grabs first. `--frame fit` frames the visible fighters of every requested tick
+once, so a frame sequence keeps one camera; long knockback travel widens it.
+Files are named `<package>_<action>_window-<tick>.png`. The command paints
+the window synchronously and reads it through Unity's internal
+`EditorWindow.RepaintImmediately` and `GUIView.GrabPixels`. A Unity upgrade
+that removes either one fails the capture with `MissingMethodException`. It
+restores the cursor and camera like `capture`.
+
 Authoring and recorded-frame scrubs explicitly evaluate skeletal poses even
 when the model is offscreen. The Animator's culling policy is restored after
 each seek. Edit Mode playback is driven by the editor update loop and editor

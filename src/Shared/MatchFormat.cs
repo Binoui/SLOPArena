@@ -15,10 +15,12 @@ public enum MatchFormat : byte
     SlopballVersus = 2,
     CourseRace = 3,
     CourseCoop = 4,
+    MankiMayhem = 5,
 }
 
 public static class MatchFormats
 {
+    public const string MankiMayhemWire = "manki-mayhem";
     public const string StockWire = "stock";
     public const string SlopballCoopWire = "slopball-coop";
     public const string SlopballVersusWire = "slopball-versus";
@@ -33,6 +35,7 @@ public static class MatchFormats
 
     public static string ToWire(this MatchFormat format) => format switch
     {
+        MatchFormat.MankiMayhem => MankiMayhemWire,
         MatchFormat.Stock => StockWire,
         MatchFormat.SlopballCoop => SlopballCoopWire,
         MatchFormat.SlopballVersus => SlopballVersusWire,
@@ -49,6 +52,9 @@ public static class MatchFormats
             case null:
             case StockWire:
                 format = MatchFormat.Stock;
+                return true;
+            case MankiMayhemWire:
+                format = MatchFormat.MankiMayhem;
                 return true;
             case SlopballCoopWire:
                 format = MatchFormat.SlopballCoop;
@@ -71,6 +77,7 @@ public static class MatchFormats
     /// <summary>The arena a format needs: stock fights use PvP stages, Slopball formats its court.</summary>
     public static bool Admits(this MatchFormat format, in ArenaDefinition arena) => format switch
     {
+        MatchFormat.MankiMayhem => arena.Arcade?.Mayhem != null,
         MatchFormat.Stock => arena.Purpose == ArenaPurpose.PvP,
         MatchFormat.SlopballCoop => arena.Arcade?.Slopball != null,
         MatchFormat.SlopballVersus => arena.Arcade?.Slopball != null,
@@ -79,9 +86,17 @@ public static class MatchFormats
     };
 
     /// <summary>The rule a format plays under; stock fights keep the Match's stock count.</summary>
-    public static IMatchRule CreateRule(this MatchFormat format, byte maxStocks, bool friendlyFire = false,
+    public static bool AdmitsFriendlyFire(this MatchFormat format, FriendlyFireMode mode) => format switch
+    {
+        MatchFormat.MankiMayhem => mode <= FriendlyFireMode.On,
+        MatchFormat.SlopballCoop => mode is FriendlyFireMode.Off or FriendlyFireMode.On,
+        _ => mode == FriendlyFireMode.Off,
+    };
+
+    public static IMatchRule CreateRule(this MatchFormat format, byte maxStocks, FriendlyFireMode friendlyFire = FriendlyFireMode.Off,
         System.Collections.Generic.IReadOnlyDictionary<ulong, SlopballCamp>? camps = null, bool ballOnly = false) => format switch
     {
+        MatchFormat.MankiMayhem => new MankiMayhemMatchRule(friendlyFire),
         MatchFormat.Stock => new StockMatchRule(maxStocks),
         MatchFormat.SlopballCoop => new SlopballCoopMatchRule(friendlyFire: friendlyFire),
         MatchFormat.SlopballVersus => new SlopballVersusMatchRule(camps!, ballOnly),

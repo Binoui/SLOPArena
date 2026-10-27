@@ -37,7 +37,7 @@ public class DownActionTests
         var released = Tick(sim, new InputState { MoveX = 1 });
         Assert.Equal(ActionState.Run, released.State);
         Assert.False(released.CrouchSettled);
-        TestHelpers.AssertNear(Run, released.VX);
+        TestHelpers.AssertNear(.4f * Run, released.VX);
     }
 
     [Theory]
@@ -114,16 +114,15 @@ public class DownActionTests
     }
 
     [Fact]
-    public void Slide_FreezesRushAndLastDirection_AndRefreshesGroundResources()
+    public void Slide_PreservesLastDirection_AndRefreshesGroundResources()
     {
         var sim = Ground(Run, action: ActionState.Run);
         var state = sim.GetState(1);
-        state.RushTicks = 5; state.LastDirX = 1; state.LastDirZ = 0;
+        state.LastDirX = 1; state.LastDirZ = 0;
         state.JumpsLeft = 0; state.AirDodgesLeft = 0; state.Cooldown1 = 20;
         sim.SetState(1, state);
         state = Tick(sim, Press);
         state = Tick(sim, new InputState { Down = true, MoveY = -1 });
-        Assert.Equal(5, state.RushTicks);
         Assert.Equal(1, state.LastDirX);
         Assert.Equal(0, state.LastDirZ);
         Assert.Equal(Def.Movement.MaxJumps, state.JumpsLeft);

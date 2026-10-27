@@ -14,6 +14,9 @@ game-view screenshot route. For runtime menus, settings, or HUD, use
 `sloparena.capture.game-view --source screen` and the live
 `sloparena.ui.status`/navigation/viewport commands instead (see the Unity CLI
 reference, *Screenshots and visual evidence*).
+To show the editor itself (timeline, fields and viewport) for a demo or social
+clip, use `sloparena.lab.capture-window` with the same action/ticks/view options
+and `--frame fit`. See the Ability Lab guide.
 
 ## Steps
 

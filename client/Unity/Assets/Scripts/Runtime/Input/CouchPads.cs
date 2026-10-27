@@ -5,20 +5,26 @@ using SlopArena.Client.UI;
 
 namespace SlopArena.Client.Input
 {
-    /// <summary>Couch play (ADR-0041): the pad that Solo's second Local Player joined with.</summary>
+    /// <summary>Device ownership for Solo's menus and joined Local Players.</summary>
     public static class CouchPads
     {
-        public static Gamepad? P2 => MatchConfig.SoloP2Human && MatchConfig.SoloP2DeviceId != 0
-            ? InputSystem.GetDeviceById(MatchConfig.SoloP2DeviceId) as Gamepad
-            : null;
+        public static Gamepad? ForSeat(int playerNumber) => MatchConfig.Mode == GameMode.Solo &&
+            MatchConfig.Seat(playerNumber).Kind == SeatKind.LocalPlayer
+                ? InputSystem.GetDeviceById(MatchConfig.Seat(playerNumber).DeviceId) as Gamepad : null;
 
-        /// <summary>Set by Fighter Select while it waits for P2: any pad but P1's is joining, not navigating.</summary>
         public static bool Listening;
         public static Gamepad? P1MenuPad;
 
-        private static bool OwnsMenus(Gamepad pad) => Listening ? pad == P1MenuPad : pad != P2;
+        public static bool IsJoined(Gamepad pad)
+        {
+            for (int player = 2; player <= 4; player++)
+                if (ForSeat(player) == pad) return true;
+            return false;
+        }
 
-        /// <summary>Menus belong to P1, so P2's presses never click P1's buttons.</summary>
+        private static bool OwnsMenus(Gamepad pad) => Listening || MatchConfig.Mode == GameMode.Solo
+            ? pad == P1MenuPad : !IsJoined(pad);
+
         public static Gamepad? MenuPad => Gamepad.current != null && OwnsMenus(Gamepad.current) ? Gamepad.current : null;
 
         /// <summary>

@@ -377,7 +377,7 @@ public sealed class FightGuyPierRouteTests
     static void OldPierBySpecials(Run r)
     {
         r.Walk(-6.5f, -9f);
-        r.JumpCyclone(-26f, -9f, rTick: 18);                            // over the gap through the balloon line
+        r.JumpCyclone(-26f, -9f, rTick: 18, runUp: 12);                            // over the gap through the balloon line
         Assert.True(r.AllBroken("line_1", "line_2", "line_3", "line_4"),
             "the line: " + string.Join(",", new[] { "line_1", "line_2", "line_3", "line_4" }.Where(t => !r.Broken(t))) + " at " + r.Where());
         r.Fury("pinata", 1.4f, new(1, 0));
@@ -385,7 +385,7 @@ public sealed class FightGuyPierRouteTests
         r.Jump(-30f, 2.5f, runUp: 4);                                   // old deck B
         r.KiShot("bell");                                               // the bell buoy out at sea
         r.Walk(-31f, 5.4f);
-        r.Jump(-31f, 12.5f, runUp: 3);                                  // old deck C
+        r.Jump(-31f, 12.5f, secondJumpTick: 18, runUp: 3);                                  // old deck C
         r.Walk(-32f, 14.2f);
         r.Jump(-34f, 20.5f, runUp: 3);                                  // old deck D
         r.Walk(-33.5f, 21f);
@@ -438,12 +438,12 @@ public sealed class FightGuyPierRouteTests
         r.JumpPunch("striker_2", attackTick: 12, from: new(0, -1));
         r.JumpPunch("striker_3", attackTick: 30, secondJumpTick: 18, from: new(0, -1));
         r.Walk(-5.5f, -30f);
-        r.Jump(-10.5f, -30f, runUp: 2);                                 // dunk buoy
+        r.Jump(-10.5f, -30f, secondJumpTick: 18, runUp: 2);                                 // dunk buoy
         r.Walk(-10.2f, -30f);
         r.Jump(-16.5f, -30f, runUp: 1);                                 // the dunk tank
         r.Punch("dunk", range: 1.0f, from: new(1, 0));
         r.Walk(-15.5f, -30f);
-        r.Jump(-10.5f, -30f, runUp: 2);
+        r.Jump(-10.5f, -30f, secondJumpTick: 18, runUp: 2);
         r.Walk(-10.8f, -30f);
         r.Jump(-5f, -30f, runUp: 1);
         r.Walk(-7f, -9f);                                               // checkpoint 1
@@ -473,7 +473,7 @@ public sealed class FightGuyPierRouteTests
         r.Walk(-41.6f, -0.5f);
         r.Jump(-34.5f, 2f, secondJumpTick: 16, runUp: 1);
         r.Walk(-31f, 5.4f);
-        r.Jump(-31f, 12.5f, runUp: 3);                                  // old deck C
+        r.Jump(-31f, 12.5f, secondJumpTick: 18, runUp: 3);                                  // old deck C
         r.Walk(-32f, 14.2f);
         r.Jump(-34f, 20.5f, runUp: 3);                                  // old deck D
         r.Walk(-33.5f, 21f);

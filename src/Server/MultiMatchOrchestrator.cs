@@ -66,7 +66,7 @@ namespace SlopArena.Server
         public bool TryAssignMatch(string matchId, string arenaName, IReadOnlyList<MatchPlayer> roster, byte maxStocks,
             DateTimeOffset? admissionDeadlineUtc, string? expectedCatalogHash,
             out int port, out MatchContentHandleMap? content, out string? contentHash, out string? error,
-            MatchFormat format = MatchFormat.Stock, bool friendlyFire = false, bool ballOnly = false)
+            MatchFormat format = MatchFormat.Stock, FriendlyFireMode friendlyFire = FriendlyFireMode.Off, bool ballOnly = false)
         {
             port = -1; content = null; contentHash = null; error = null;
             lock (_admissionGate)
@@ -76,7 +76,7 @@ namespace SlopArena.Server
                 || (format == MatchFormat.SlopballVersus ? !SlopballCamps.AreBalanced(roster.Select(p => p.Camp))
                         || roster.Any(p => p.EntityId <= 0 || p.EntityId >= ServerSimulation.ArcadeBallTargetInputId)
                     : ballOnly || roster.Any(p => p.Camp != SlopballCamp.None))
-                || friendlyFire && format != MatchFormat.SlopballCoop)
+                || !format.AdmitsFriendlyFire(friendlyFire))
             { error = "Invalid Slopball camps or format rules."; return false; }
             bool steamTransport = _config.IsVps;
             if (steamTransport && (_steamHost is null || !_steamHost.IsReady || admissionDeadlineUtc is null))

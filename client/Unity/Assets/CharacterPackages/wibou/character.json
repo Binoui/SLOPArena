@@ -211,9 +211,9 @@
   "slots": [
     {
       "id": "ground.1",
-      "name": "Double Slash",
-      "description": "Double Slash",
-      "iconId": "icon.2",
+      "name": "Quick Slash",
+      "description": "Quick Slash",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -225,31 +225,31 @@
         "stages": [
           {
             "durationTicks": 63,
-            "iasaTicks": 23,
+            "iasaTicks": 28,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
-            "attackRange": 2.75,
+            "attackRange": 2.5,
             "warpRange": 0,
             "animationIds": [
-              "anim.wibou.g2"
+              "anim.wibou.g1"
             ],
             "operations": [
               {
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 9,
+                "endTick": 13,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
                 "kind": "emitPresentation",
-                "tick": 4,
+                "tick": 8,
                 "unit": "ticks",
                 "presentationId": "presentation.wibou.blade.glint",
                 "placement": {
@@ -269,7 +269,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 9,
+                "tick": 13,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -282,12 +282,12 @@
                   "endOffsetZ": 0,
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
-                  "damage": 3,
-                  "angle": 25,
-                  "baseKnockback": 3,
-                  "knockbackGrowth": 16,
-                  "stunTicks": 10,
-                  "durationTicks": 8,
+                  "damage": 4,
+                  "angle": 30,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 20,
+                  "stunTicks": 14,
+                  "durationTicks": 12,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -332,9 +332,9 @@
                 "endTick": 14,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -422,9 +422,9 @@
                 "endTick": 41,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -481,9 +481,9 @@
     },
     {
       "id": "air.1",
-      "name": "Reverse Slash",
-      "description": "Reverse Slash",
-      "iconId": "icon.2",
+      "name": "Air Slash",
+      "description": "Air Slash",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -494,32 +494,32 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 25,
-            "iasaTicks": 21,
+            "durationTicks": 27,
+            "iasaTicks": 23,
             "landingLagTicks": 9,
-            "autoCancelBeforeTicks": 4,
-            "autoCancelAfterTicks": 15,
-            "attackRange": 2.5,
+            "autoCancelBeforeTicks": 5,
+            "autoCancelAfterTicks": 16,
+            "attackRange": 2.25,
             "warpRange": 0,
             "animationIds": [
-              "anim.wibou.a2"
+              "anim.wibou.a1"
             ],
             "operations": [
               {
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 4,
+                "endTick": 6,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 15,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 180
               },
               {
                 "kind": "emitPresentation",
-                "tick": 0,
+                "tick": 1,
                 "unit": "ticks",
                 "presentationId": "presentation.wibou.blade.glint",
                 "placement": {
@@ -539,7 +539,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 4,
+                "tick": 6,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -552,11 +552,11 @@
                   "endOffsetZ": 0,
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
-                  "damage": 7,
-                  "angle": 40,
-                  "baseKnockback": 5,
-                  "knockbackGrowth": 24,
-                  "stunTicks": 16,
+                  "damage": 5,
+                  "angle": 30,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 20,
+                  "stunTicks": 14,
                   "durationTicks": 8,
                   "interruptible": true,
                   "hitGroup": 0,
@@ -602,9 +602,9 @@
                 "endTick": 9,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -692,9 +692,9 @@
                 "endTick": 8,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -1156,9 +1156,9 @@
                 "endTick": 14,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {

@@ -18,7 +18,8 @@ public partial class ServerSimulation
     public ulong CourseTargetEntityId(ulong id, int index) => CourseSimulationFor(id)?.EntityId(index) ?? 0;
     private CharacterCourseSimulation? CourseSimulationFor(ulong id) => _onlineCourse?.For(id) ?? _course;
     public bool IsEntityInactive(ulong id) => _states.TryGetValue(id, out var state) && IsEliminated(state);
-    private bool IsEliminated(CharacterState state) => _rule.IsEliminated(state) || (_onlineCourse?.Inactive(state.EntityId) ?? false);
+    private bool IsEliminated(CharacterState state) => _rule.IsEliminated(state) || (_onlineCourse?.Inactive(state.EntityId) ?? false)
+        || (_mayhem?.Inactive(state.EntityId) ?? false);
 
     public void BeginOnlineCourse()
     {

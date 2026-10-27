@@ -28,6 +28,7 @@ Shader "SLOPArena/StageNeon"
 
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        #include "SlopArenaStageCutaway.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseMap_ST;
@@ -129,6 +130,7 @@ Shader "SLOPArena/StageNeon"
                 float2 uv : TEXCOORD1;
                 half anim : TEXCOORD2;
                 half fogFactor : TEXCOORD3;
+                float3 positionWS : TEXCOORD4;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -139,6 +141,7 @@ Shader "SLOPArena/StageNeon"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 positionWS = StageTravel(positionWS, input.travel, input.dirLoop);
+                output.positionWS = positionWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 half4 color = input.color;
@@ -154,6 +157,7 @@ Shader "SLOPArena/StageNeon"
 
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
+                StageCutawayClip(input.positionWS, input.positionCS);
                 half3 normalWS = normalize(input.normalWS);
                 normalWS = IS_FRONT_VFACE(face, normalWS, -normalWS);
                 half4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
@@ -189,14 +193,26 @@ Shader "SLOPArena/StageNeon"
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            float4 DepthVert(DepthAttributes input) : SV_POSITION
+            struct DepthVaryings
             {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+            };
+
+            DepthVaryings DepthVert(DepthAttributes input)
+            {
+                DepthVaryings output;
                 UNITY_SETUP_INSTANCE_ID(input);
-                float3 positionWS = StageTravel(TransformObjectToWorld(input.positionOS.xyz), input.travel, input.dirLoop);
-                return TransformWorldToHClip(positionWS);
+                output.positionWS = StageTravel(TransformObjectToWorld(input.positionOS.xyz), input.travel, input.dirLoop);
+                output.positionCS = TransformWorldToHClip(output.positionWS);
+                return output;
             }
 
-            half DepthFrag() : SV_Target { return 0; }
+            half DepthFrag(DepthVaryings input) : SV_Target
+            {
+                StageCutawayClip(input.positionWS, input.positionCS);
+                return 0;
+            }
             ENDHLSL
         }
 
@@ -225,6 +241,7 @@ Shader "SLOPArena/StageNeon"
             {
                 float4 positionCS : SV_POSITION;
                 half3 normalWS : TEXCOORD0;
+                float3 positionWS : TEXCOORD1;
             };
 
             NormalsVaryings NormalsVert(NormalsAttributes input)
@@ -232,6 +249,7 @@ Shader "SLOPArena/StageNeon"
                 NormalsVaryings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 float3 positionWS = StageTravel(TransformObjectToWorld(input.positionOS.xyz), input.travel, input.dirLoop);
+                output.positionWS = positionWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
@@ -239,6 +257,7 @@ Shader "SLOPArena/StageNeon"
 
             half4 NormalsFrag(NormalsVaryings input) : SV_Target
             {
+                StageCutawayClip(input.positionWS, input.positionCS);
                 return half4(normalize(input.normalWS), 0.0h);
             }
             ENDHLSL

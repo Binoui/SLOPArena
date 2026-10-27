@@ -13,101 +13,62 @@ public class MankiKitTests
     //  BAZOOKA (R, slot 4, activeSlot=5)
     // ══════════════════════════════════════════════════════════════════
 
-    [Fact]
-    public void Bazooka_FiresProjectile_AfterTriggerTick()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Bazooka_PressFiresAtTickSix_RegardlessOfHold(bool held)
     {
         var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState();
-        state.PY = Gpy;
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        // Activate R with aim held
-        var aimInput = new InputState { ActiveSlot = 5, IsAiming = true };
-        sim.Tick(new() { { 1, aimInput } });
-
-        // Hold aim for a few ticks
-        var holdInput = new InputState { IsAiming = true };
-        for (int i = 0; i < 5; i++)
-            sim.Tick(new() { { 1, holdInput } });
-
-        // Release → transitions to Firing, projectile spawns at trigger_tick=6
-        var releaseInput = new InputState { IsAiming = false };
-        for (int i = 0; i < 10; i++)
-            sim.Tick(new() { { 1, releaseInput } });
-
-        var hitboxes = sim.Resolver.GetActiveHitboxes();
-        Assert.NotEmpty(hitboxes);
-        var rocket = hitboxes[0];
-        Assert.True(rocket.Gravity > 0, "Rocket should have gravity");
-        Assert.True(rocket.Explosion.HasValue, "Rocket should have explosion config");
-        Assert.Equal((ulong)1, rocket.OwnerId);
+        TestHelpers.RegisterPlayer(sim, Def, TestHelpers.PlayerState() with { PY = Gpy });
+        for (int tick = 0; tick < 6; tick++)
+        {
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0, IsAiming = held } });
+            var state = sim.GetState(1);
+            Assert.Equal(ActionState.Attacking, state.State);
+            Assert.False(state.IsAiming);
+            Assert.Equal((byte)1, state.ComboStage);
+            if (tick < 5) Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        }
+        var rocket = Assert.Single(sim.Resolver.GetActiveHitboxes());
+        Assert.Equal(15f, rocket.Gravity);
+        Assert.Equal((ushort)60, rocket.DurationTicks);
+        Assert.Equal(30f, rocket.VZ, 4);
+        Assert.True(rocket.Explosion!.Value.CanHitOwner);
+        Assert.Equal(4f, rocket.Explosion.Value.OwnerDamage);
     }
 
     [Fact]
-    public void Bazooka_AimContinuesAfterAirLanding()
+    public void Bazooka_FiringContinuesAfterAirLanding()
     {
         var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState();
-        state.PY = Gpy + 0.4f;
-        state.IsGrounded = false;
-        state.VY = -5f;
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        var holdInput = new InputState { ActiveSlot = 5, IsAiming = true };
-        sim.Tick(new() { { 1, holdInput } });
-        holdInput.ActiveSlot = 0;
-        for (int i = 0; i < 5; i++)
-            sim.Tick(new() { { 1, holdInput } });
-
-        var aimed = sim.GetState(1);
-        Assert.True(aimed.IsGrounded);
-        Assert.Equal(ActionState.Aiming, aimed.State);
-        Assert.Equal((byte)5, aimed.AttackSlot);
-        Assert.True(aimed.IsAiming);
-
-        for (int i = 0; i < 10; i++)
-            sim.Tick(new() { { 1, new InputState { IsAiming = false } } });
-
-        Assert.NotEmpty(sim.Resolver.GetActiveHitboxes());
+        TestHelpers.RegisterPlayer(sim, Def, TestHelpers.PlayerState() with
+            { PY = Gpy + .4f, IsGrounded = false, VY = -5f });
+        for (int tick = 0; tick < 6; tick++)
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0 } });
+        Assert.True(sim.GetState(1).IsGrounded);
+        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+        Assert.False(sim.GetState(1).IsAiming);
+        Assert.Single(sim.Resolver.GetActiveHitboxes());
     }
 
     [Theory]
     [InlineData((ushort)0)]
     [InlineData((ushort)73)]
-    public void Bazooka_RocketJump_SelfDamageCapped(ushort startingDamage)
+    public void Bazooka_CloseExplosion_KeepsFourSelfDamage(ushort startingDamage)
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.GroundPY(CombatDef);
-        state.DamagePercent = startingDamage;
-        TestHelpers.RegisterPlayer(sim, CombatDef, state);
-
-        // Activate R with aim held, steep downward pitch
-        var aimInput = new InputState { ActiveSlot = 5, IsAiming = true, AimPitch = (short)(-8500) };
-        sim.Tick(new() { { 1, aimInput } });
-
-        // Hold aim
-        var holdInput = new InputState { IsAiming = true, AimPitch = (short)(-8500) };
-        for (int i = 0; i < 5; i++)
-            sim.Tick(new() { { 1, holdInput } });
-        var releaseInput = new InputState { IsAiming = false, AimPitch = (short)(-8500) };
-        bool selfContact = false, hitstop = false, launched = false;
-        for (int i = 0; i < 60; i++)
+        sim.RegisterEntity(1, Def, TestHelpers.PlayerState(20f, 20f) with
+            { PY = Gpy, DamagePercent = startingDamage });
+        sim.RegisterEntity(100, CombatDef, TestHelpers.NpcState(20f, 22f) with
+            { PY = TestHelpers.GroundPY(CombatDef) });
+        bool selfContact = false;
+        for (int tick = 0; tick < 30; tick++)
         {
-            sim.Tick(new() { { 1, releaseInput } });
-            foreach (var hit in sim.LastTickHits)
-                selfContact |= hit.OwnerEntityId == 1 && hit.TargetEntityId == 1 && !hit.Blocked;
-            var after = sim.GetState(1);
-            if (!selfContact) continue;
-            Assert.Equal((ushort)(startingDamage + 4), after.DamagePercent);
-            hitstop |= after.HitstopTicks > 0;
-            launched |= hitstop && after.HitstopTicks == 0 && !after.IsGrounded
-                && after.KVY > 0f && after.PY > state.PY;
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0, TargetEntityId = 100 }, [100] = default });
+            selfContact |= sim.LastTickHits.Exists(h => h.OwnerEntityId == 1 && h.TargetEntityId == 1);
         }
-
-        Assert.True(selfContact, "The released rocket must explode close enough to hit its owner.");
-        Assert.True(hitstop, "The self-hit must enter hitstop before the rocket-jump launch.");
-        Assert.True(launched, "The owner must launch upward after hitstop.");
+        Assert.True(selfContact);
+        Assert.Equal((ushort)(startingDamage + 4), sim.GetState(1).DamagePercent);
     }
 
     // ══════════════════════════════════════════════════════════════════

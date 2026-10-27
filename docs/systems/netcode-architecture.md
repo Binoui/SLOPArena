@@ -27,6 +27,36 @@ projectile does not reassign surviving visuals or trails. Restoring the counter
 reproduces future emission identities during resimulation. Snapshot decoding rejects
 zero, duplicate, or out-of-range live emission IDs before applying the world.
 
+## Universal ground movement cutover
+
+Simulation protocol 23 applies the fixed Progressive Run rule in every mode.
+Start is 40% of RunSpeed, followed by 20 linear increments. Turnaround retains 100% of current speed.
+Release brakes the velocity vector by RunSpeed/20 each tick. Dash overspeed keeps its prior coast behavior.
+No packet, World Frame, or World Snapshot layout changes. The former Rush ushort remains reserved and inert.
+The existing source/cooked movement fields remain for content compatibility, without per-character ramp overrides.
+Saved input routes and replay playback execute the current Shared rule. Historical routes may need new run-ups or jump timing.
+Slopball record revision 11 and Course record revision 5 produce new comparison keys. Older personal bests remain stored under their original keys.
+Client stick snapping is an ordinary local Controls preference and is not negotiated with the server.
+Clients and GameServers must update together. Master admission must learn protocol 23 at release in its separate repository.
+
+## Finger Guns cylinder cutover
+
+Simulation protocol 19 and World Snapshot format 9 add
+`CharacterState.FingerGunsShotsSpent`. The cylinder survives activations,
+interrupted reloads and rollback; only a completed reload or respawn refills it.
+Its capability runtime also snapshots startup/reload progress and committed aim.
+Clients, GameServers and Master admission must update together; protocol 18 peers
+and older snapshots are rejected. Packages using Finger Guns require runtime API
+1.11.0. Projectile presentation continues through the existing spawn path.
+
+## Homing Bazooka cutover
+
+Simulation protocol 18 and World Snapshot format 8 serialize each projectile's
+captured homing target, cooked turn cosine and sine, and optional owner-damage
+override. The explosion payload retains the same override after the ability ends.
+Clients and GameServers must update together, with Master admission configured
+for protocol 18. Older snapshot layouts and protocol 17 peers are rejected.
+
 ## Historical protocol records
 
 These records preserve the behavior and verification reported at each cutover,

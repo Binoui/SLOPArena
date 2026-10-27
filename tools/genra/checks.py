@@ -17,6 +17,7 @@ DEFAULT_SPEC = {
     'snap_degrees_per_tick': 35.0,     # local rotation change limit outside fast windows
     'snap_ceiling_degrees_per_tick': 90.0,  # hard limit everywhere: more is a one-frame jump, not speed
     'fast_windows': [],                # [[first_tick, last_tick], ...] where fast motion is intended
+    'snap_exempt': [],                 # joints that spin by design (a rotor prop): no snap or ceiling limit
     'clearance_metres': 0.01,          # region pairs closer than this are reported
     'pose_tolerance_metres': 0.001,
     'humanoid_degrees': 5.0,           # rotation Unity's Humanoid cannot play (digits off-axis, limits exceeded)
@@ -209,11 +210,15 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     limit = s['snap_degrees_per_tick']
     snaps = []
     ceiling = s['snap_ceiling_degrees_per_tick']
+    exempt = {rig.names.index(n) for n in s['snap_exempt'] if n in rig.names}
     for i, j in zip(*np.where(speed > limit)):
         tick = int(i) + 1
+        if j in exempt:
+            continue
         if tick not in fast or speed[i, j] > ceiling:
             snaps.append((tick, rig.names[j], float(speed[i, j])))
-    metrics['maxDegreesPerTick'] = float(speed.max()) if len(speed) else 0.0
+    paced = np.delete(speed, sorted(exempt), axis=1) if len(speed) else speed
+    metrics['maxDegreesPerTick'] = float(paced.max()) if paced.size else 0.0
     if snaps:
         snaps.sort(key=lambda x: -x[2])
         worst = ', '.join(f'{name} {deg:.0f} deg at tick {tick}' for tick, name, deg in snaps[:5])

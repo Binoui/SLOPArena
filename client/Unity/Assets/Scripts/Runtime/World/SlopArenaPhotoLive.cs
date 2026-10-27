@@ -13,7 +13,7 @@ using UnityEngine.UIElements;
 namespace SlopArena.EditorTools
 {
     /// <summary>
-    /// Disposable burst capture for live Slopball, Character Course or Tutorial gameplay: each
+    /// Disposable burst capture for live Slopball, Character Course, Tutorial or Training gameplay: each
     /// requested tick of the real match is read back from the composited Game View, HUD included,
     /// with the chat overlay hidden. An optional free camera replaces the gameplay orbit, or the
     /// orbit is held at a fixed yaw/pitch. Never included in a player build.
@@ -23,6 +23,7 @@ namespace SlopArena.EditorTools
         public ArcadeBallMatch? Ball;
         public CharacterCourseMatch? Course;
         public TutorialMatch? Tutorial;
+        public TrainingMatch? Training;
         public UnityEngine.Camera RenderCamera = null!;
         public CameraMount? Mount;
         public float? HoldYaw, HoldPitch;
@@ -45,13 +46,14 @@ namespace SlopArena.EditorTools
         public string? Failure { get; private set; }
         public bool Done => Elapsed >= To;
 
-        private ServerSimulation? Simulation => Ball != null ? Ball.Simulation : Course != null ? Course.Simulation : Tutorial != null ? Tutorial.Simulation : null;
+        private ServerSimulation? Simulation => Ball != null ? Ball.Simulation : Course != null ? Course.Simulation : Tutorial != null ? Tutorial.Simulation : Training != null ? Training.CaptureSimulation : null;
 
         private void OnEnable()
         {
             if (Ball != null) Ball.ProbeTickCompleted += OnTick;
             if (Course != null) Course.ProbeTickCompleted += OnTick;
             if (Tutorial != null) Tutorial.ProbeTickCompleted += OnTick;
+            if (Training != null) Training.CaptureSimulationTickCompleted += OnTick;
             StartCoroutine(Capture());
         }
 
@@ -60,6 +62,7 @@ namespace SlopArena.EditorTools
             if (Ball != null) Ball.ProbeTickCompleted -= OnTick;
             if (Course != null) Course.ProbeTickCompleted -= OnTick;
             if (Tutorial != null) Tutorial.ProbeTickCompleted -= OnTick;
+            if (Training != null) Training.CaptureSimulationTickCompleted -= OnTick;
             if (_pixels != null) Destroy(_pixels);
         }
 
@@ -84,6 +87,7 @@ namespace SlopArena.EditorTools
             }
             var fighter = sim.GetState(1);
             _states.Append("{\"tick\":").Append(Elapsed)
+                .Append(",\"matchTick\":").Append(tick)
                 .Append(",\"fighter\":[").Append(Num(fighter.PX)).Append(',').Append(Num(fighter.PY)).Append(',').Append(Num(fighter.PZ))
                 .Append("],\"state\":\"").Append(fighter.State).Append("\",\"slot\":").Append(fighter.AttackSlot)
                 .Append(",\"grounded\":").Append(fighter.IsGrounded ? "true" : "false")
@@ -95,6 +99,43 @@ namespace SlopArena.EditorTools
                 _states.Append(",\"phase\":\"").Append(s.Phase).Append("\",\"returns\":").Append(s.Returns);
             if (sim.Course is CharacterCourseState c)
                 _states.Append(",\"phase\":\"").Append(c.Phase).Append('"');
+            if (Training != null)
+            {
+                var target = sim.GetState(Training.SelectedNpcId);
+                _states.Append(",\"target\":[").Append(Num(target.PX)).Append(',').Append(Num(target.PY)).Append(',').Append(Num(target.PZ))
+                    .Append("],\"targetGrounded\":").Append(target.IsGrounded ? "true" : "false")
+                    .Append(",\"targetState\":\"").Append(target.State).Append('"')
+                    .Append(",\"targetVelocity\":[").Append(Num(target.VX)).Append(',').Append(Num(target.VY)).Append(',').Append(Num(target.VZ)).Append(']')
+                    .Append(",\"targetDamage\":").Append(target.DamagePercent).Append(",\"projectiles\":[");
+                bool first = true;
+                foreach (var hitbox in sim.Resolver.GetActiveHitboxes())
+                {
+                    if (hitbox.TracksBone || hitbox.VX * hitbox.VX + hitbox.VY * hitbox.VY + hitbox.VZ * hitbox.VZ < 0.001f) continue;
+                    if (!first) _states.Append(',');
+                    first = false;
+                    _states.Append("{\"pos\":[").Append(Num(hitbox.X)).Append(',').Append(Num(hitbox.Y)).Append(',').Append(Num(hitbox.Z))
+                        .Append("],\"velocity\":[").Append(Num(hitbox.VX)).Append(',').Append(Num(hitbox.VY)).Append(',').Append(Num(hitbox.VZ))
+                        .Append("],\"homing\":").Append(hitbox.HomingTargetEntityId).Append('}');
+                }
+                _states.Append(']');
+                var input = Training.CaptureLastTargetInput;
+                _states.Append(",\"targetInput\":{\"move\":[").Append(Num(input.MoveX)).Append(',').Append(Num(input.MoveY))
+                    .Append("],\"jump\":").Append(input.Jump ? "true" : "false")
+                    .Append(",\"jumpHeld\":").Append(input.JumpHeld ? "true" : "false")
+                    .Append(",\"shieldHeld\":").Append(input.ShieldHeld ? "true" : "false")
+                    .Append(",\"shieldPressed\":").Append(input.ShieldPressed ? "true" : "false")
+                    .Append(",\"down\":").Append(input.Down ? "true" : "false").Append('}')
+                    .Append(",\"hits\":[");
+                first = true;
+                foreach (var hit in Training.CaptureLastTickHits)
+                {
+                    if (!first) _states.Append(',');
+                    first = false;
+                    _states.Append("{\"owner\":").Append(hit.OwnerEntityId).Append(",\"target\":").Append(hit.TargetEntityId)
+                        .Append(",\"damage\":").Append(Num(hit.Damage)).Append(",\"blocked\":").Append(hit.Blocked ? "true" : "false").Append('}');
+                }
+                _states.Append(']');
+            }
             _states.Append("}\n");
         }
 

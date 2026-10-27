@@ -2,7 +2,7 @@
 
 Each stage keeps a presentation.py beside its build.py with one PRESENTATION dict:
 texture imports, materials (shader properties by name), shadow flags per object, the
-Stage Lights rig, atmosphere, optional poster faces and the review cameras that
+Stage Lights rig, atmosphere, optional poster faces, named surface markers and the review cameras that
 sloparena.stage.views.cameras captures ("thumbnail" is the stage-select card). build.py
 writes it on export as
 <Stem>.presentation.json next to the FBX. A lighting or material change needs no Blender
@@ -11,6 +11,10 @@ run and no C#: write the JSON alone, then apply it from that directory.
     python3 tools/blender/stagekit/presentation.py <stage> --out /tmp/<stage>-generated
     bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \\
         sloparena.stage.art-apply --stage <stage> --from /tmp/<stage>-generated
+
+Optional `surfaces` name direct-child Transform markers with Unity `position`, Euler
+`rotation` and positive `size` (width, height). They add no meshes or collision.
+Runtime presenters use their transforms to place content on existing art.
 
 Colours are Unity Color values (0..1, alpha optional); rotations are Euler degrees; a
 directional light may give `sun` (azimuth clockwise from north, elevation) instead, to
@@ -21,6 +25,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import os
 import re
 import sys
@@ -69,6 +74,18 @@ def validate(p):
     for c in p.get("cameras") or []:
         if len(c.get("position", ())) != 3 or len(c.get("target", ())) != 3:
             raise ValueError("review camera %s needs a position and a target" % c["name"])
+    surfaces = p.get("surfaces") or []
+    if len({s["name"] for s in surfaces}) != len(surfaces):
+        raise ValueError("surface names must be unique")
+    for s in surfaces:
+        if not s.get("name") or "/" in s["name"]:
+            raise ValueError("surface names must name direct children")
+        for field, length in (("position", 3), ("rotation", 3), ("size", 2)):
+            values = s.get(field, [])
+            if len(values) != length or not all(math.isfinite(v) for v in values):
+                raise ValueError("surface %s needs finite %s" % (s["name"], field))
+        if not all(v > 0 for v in s["size"]):
+            raise ValueError("surface sizes must be positive")
 
 
 def document(p):

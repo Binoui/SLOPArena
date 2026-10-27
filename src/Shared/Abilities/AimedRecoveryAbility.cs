@@ -6,6 +6,8 @@ namespace SlopArena.Shared.Abilities;
 /// A fixed automatic setup, then one launch aimed by the movement input on the launch tick.
 /// Neutral maximizes height; stick magnitude trades height for horizontal reach. The outer
 /// timeline owns the short follow-through and completion. No floor, target, or spare jump is needed.
+/// With RiseSteerAcceleration the stick keeps steering after launch, toward stick × HorizontalSpeed;
+/// a neutral stick keeps the current drift.
 /// </summary>
 public sealed class AimedRecoveryAbility : ServerAbility
 {
@@ -35,7 +37,11 @@ public sealed class AimedRecoveryAbility : ServerAbility
 
     public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
     {
-        if (_launched) return;
+        if (_launched)
+        {
+            Steer(ref s, input);
+            return;
+        }
         ++_elapsedTicks;
         if (_elapsedTicks < _parameters.StartupTicks)
         {
@@ -76,6 +82,19 @@ public sealed class AimedRecoveryAbility : ServerAbility
         // Ordinary ballistic gravity from launch, matching normal jumps and the old recovery.
         // Activation's recovery-designated FloatWindow reset remains simulation-owned.
         s.AirTimeTicks = def.Movement.FloatWindowTicks;
+    }
+
+    private void Steer(ref CharacterState s, InputState input)
+    {
+        float accel = _parameters.RiseSteerAcceleration;
+        float magnitude = MathF.Sqrt(input.MoveX * input.MoveX + input.MoveY * input.MoveY);
+        if (accel <= 0f || magnitude <= 0.001f) return;
+        float scale = MathF.Min(1f, magnitude) * _parameters.HorizontalSpeed / magnitude;
+        float dx = input.MoveX * scale - s.VX, dz = input.MoveY * scale - s.VZ;
+        float gap = MathF.Sqrt(dx * dx + dz * dz), step = accel / 60f;
+        if (gap <= step) { s.VX += dx; s.VZ += dz; return; }
+        s.VX += dx / gap * step;
+        s.VZ += dz / gap * step;
     }
 
     internal override void WriteSnapshot(SnapshotWriter w)

@@ -37,7 +37,7 @@ Universal Dash was retired earlier; its input bit is still reserved and inert.
    | Bashie | Whirlpool Spin (g2) | Slap (g1) |
    | Manki | Monkey Punch (g1) | Straight Punch (g2) |
    | FightGuy | Straight Punch (g2) | Low Kick (g1) |
-   | Wibou | Double Slash (g2) | Quick Slash (g1) |
+   | Wibou | Quick Slash (g1) | Double Slash (g2) |
    | Sir Bonk | Squire's Cut (g1) | Barn Door (g2) |
 
    The aerial merges are still open; air.2 is sometimes a distinct tool (Wibou's Reverse
@@ -102,7 +102,8 @@ Dash numbers (float length, speed, turn rate, range, cooldown) come from Trainin
   `CanonicalSlotProjection` has 14 entries (air ordinals start at 7) and the compiler rejects
   `ground.2`/`air.2`. Wire value `AbilitySlots.Slot2` is reserved. Players see the normals as
   1/2/3 through the bindings. Cooked schema 4; every package was recooked and repinned.
-- **Merges.** Where slot 2 survived (Bashie, FightGuy, Wibou), its move moved into slot `1`.
+- **Merges.** Where slot 2 survived (Bashie, FightGuy), its move moved into slot `1`. Wibou
+  first kept slot 2 too; on 2026-10-27 the owner switched him back to Quick Slash and Air Slash.
   The aerial follows the grounded pick: the kept slot keeps both variants. The retired clips'
   catalog bindings were removed. Tutorial combo openers for Manki and Bashie now start from
   normal 1 and need a re-probe; FightGuy no longer has a normal that is safe on block (Low Kick
@@ -121,7 +122,11 @@ Dash numbers (float length, speed, turn rate, range, cooldown) come from Trainin
 - **Controls.** A = jump, X/Y/B = normals 1/3/4, LB + A/X/Y/B = specials A/R/E/F, RB = dash;
   keyboard 1/2/3 = normals, 4 = dash. `InputController` turns LB + A into special A without a
   jump. The HUD pairs dash/A, 1/R, 3/E, 4/F and shows the dash cooldown.
-- **Presentation is a placeholder:** the air-dodge clip winds up during the float and holds
-  through the dash, with a yellow chest trail (`HomingDashPresentation`). The real look and a
-  sound go through the VFX concept workflow.
-
+- **Presentation:** the air-dodge clip winds up during the float and holds through the dash.
+  The look is the lock-on read (concept C, 2026-10-27): outline, afterimages, dotted line,
+  chevrons, reticle and an arrival "!" (see `docs/systems/vfx-particles.md#homing-dash-lock-on`),
+  with generated lock, whoosh and arrival sounds (`tools/sfx/homing_dash_clips.py`).
+- **Tuning pass 2026-10-27.** An airborne arrival now hovers for `ArriveHoverTicks` (20) in the
+  float window before gravity returns; an airborne miss falls at once. An attack started from the
+  arrival window used to inherit its timer and was forced to Idle after 14 ticks, which cut slow
+  follow-ups; activation now clears it. Frame data comes from `MoveDataReport --dash`.

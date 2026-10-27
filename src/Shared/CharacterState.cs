@@ -144,6 +144,10 @@ namespace SlopArena.Shared
         /// <summary>Full regen period for one charge, cached from the ability spec at spend time.</summary>
         public ushort ChargeStockRegenPeriod;
 
+        /// <summary>Finger Guns rounds spent since the last completed reload. Zero is a full cylinder,
+        /// including on spawn; cancellation and idle time never reset this resource.</summary>
+        public byte FingerGunsShotsSpent;
+
         /// <summary>
         /// ── Knockback ──
         /// </summary>
@@ -232,14 +236,10 @@ namespace SlopArena.Shared
         public bool IsAiming;
 
         /// <summary>
-        /// ── Rush / ledge ──
+        /// ── Reserved movement / ledge fields ──
         /// </summary>
-        /// <summary>
-        /// Rush window remaining ticks. Counts down only while the fighter is purely
-        /// running in one direction on the ground. Any other action freezes it; landings
-        /// refill it. A reversal is always an instant full-speed flip; zero only means
-        /// the Rush kick-off window has expired.
-        /// </summary>
+        /// <summary>Reserved ushort in snapshot and legacy state-packet layouts.
+        /// Rush locomotion is retired. The simulation never reads or updates this value.</summary>
         public ushort RushTicks;
         /// <summary>Reserved ledge re-grab timer; retained in the versioned state packet
         /// while automatic ledge grabs are disabled.</summary>

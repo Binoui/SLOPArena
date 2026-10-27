@@ -211,64 +211,25 @@ public class PhysicsTests
     }
 
     [Fact]
-    public void RushReversal_FlipsInstantlyWithinRushWindow()
+    public void RunReversal_AtCruiseFlipsInstantly()
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
         var state = TestHelpers.PlayerState(50f, 50f);
         state.PY = GroundPx;
         TestHelpers.RegisterPlayer(sim, Def, state);
 
-        // Move +Z for 5 ticks — still inside the Rush window (RushTicks = 10). Velocity
-        // is already at cruise (instant kick-off), not ramping.
-        for (int i = 0; i < 5; i++)
+        // Reach full speed before reversing.
+        for (int i = 0; i < 30; i++)
             sim.Tick(new() { { 1, TestHelpers.Input(moveY: 1f) } });
         var before = sim.GetState(1);
-        Assert.Equal(ActionState.Run, before.State);
         TestHelpers.AssertNear(Move.RunSpeed, before.VZ, 0.1f);
 
-        // Reverse within the Rush window: instant full-speed flip (no friction).
+        // Cruise reversal keeps full speed.
         sim.Tick(new() { { 1, TestHelpers.Input(moveY: -1f) } });
         var after = sim.GetState(1);
         TestHelpers.AssertNear(-Move.RunSpeed, after.VZ, 0.1f);
     }
 
-    [Fact]
-    public void RunReversal_AfterRushWindowFlipsInstantly()
-    {
-        var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
-        var state = TestHelpers.PlayerState(50f, 50f);
-        state.PY = GroundPx;
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        // Hold +Z past the Rush window (RushTicks = 10) into Run proper.
-        for (int i = 0; i < 20; i++)
-            sim.Tick(new() { { 1, TestHelpers.Input(moveY: 1f) } });
-        var before = sim.GetState(1);
-        TestHelpers.AssertNear(Move.RunSpeed, before.VZ, 0.1f);
-
-        // Reversal remains responsive after Rush: instant full-speed flip.
-        sim.Tick(new() { { 1, TestHelpers.Input(moveY: -1f) } });
-        var after = sim.GetState(1);
-        TestHelpers.AssertNear(-Move.RunSpeed, after.VZ, 0.1f);
-    }
-
-
-    [Fact]
-    public void RushRelease_StopsInstantly()
-    {
-        var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
-        var state = TestHelpers.PlayerState(50f, 50f);
-        state.PY = GroundPx;
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        // A short press opens the Rush window; releasing inside it stops dead (no drift).
-        TestHelpers.TickHold(sim, TestHelpers.Input(moveY: 1f), 3);
-        Assert.True(sim.GetState(1).VZ > 0f, "should be moving");
-
-        sim.Tick(new() { { 1, default(InputState) } });
-        Assert.Equal(0f, sim.GetState(1).VZ);
-        Assert.Equal(0f, sim.GetState(1).VX);
-    }
 
     [Fact]
     public void RunRelease_BrakesToStop()
@@ -278,8 +239,8 @@ public class PhysicsTests
         state.PY = GroundPx;
         TestHelpers.RegisterPlayer(sim, Def, state);
 
-        // Hold +Z past the Rush window into Run, then release: brake to a stop (not instant).
-        for (int i = 0; i < 20; i++)
+        // Release after reaching cruise speed.
+        for (int i = 0; i < 30; i++)
             sim.Tick(new() { { 1, TestHelpers.Input(moveY: 1f) } });
         var before = sim.GetState(1);
         TestHelpers.AssertNear(Move.RunSpeed, before.VZ, 0.1f);
@@ -298,9 +259,9 @@ public class PhysicsTests
         state.PY = GroundPx;
         TestHelpers.RegisterPlayer(sim, Def, state);
 
-        // Run right past the Rush window (Run mode), then press forward (+Z): the
+        // Run right to full speed, then press forward (+Z): the
         // rightward velocity must be cleared instantly — no diagonal drag.
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             sim.Tick(new() { { 1, TestHelpers.Input(moveX: 1f) } });
         TestHelpers.AssertNear(Move.RunSpeed, sim.GetState(1).VX, 0.1f);
 
@@ -311,33 +272,6 @@ public class PhysicsTests
     }
 
     [Fact]
-    public void RushDance_WasdCycleStaysInRushThenReversesCrisply()
-    {
-        var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
-        var state = TestHelpers.PlayerState(50f, 50f);
-        state.PY = GroundPx;
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        // W→A→S→D is a chain of 90° redirects. Each must restart the Rush window,
-        // and reversals remain crisp after the window expires.
-        var dirs = new (float x, float z)[] { (0f, 1f), (-1f, 0f), (0f, -1f), (1f, 0f) };
-        for (int i = 0; i < 12; i++)
-        {
-            var (x, z) = dirs[i % 4];
-            sim.Tick(new() { { 1, TestHelpers.Input(moveX: x, moveY: z) } });
-            Assert.True(sim.GetState(1).RushTicks > 0,
-                $"tick {i}: fell out of Rush (RushTicks={sim.GetState(1).RushTicks})");
-        }
-
-        // Last dir was D (+X); reverse to A (−X) — must be an instant full-speed flip.
-        sim.Tick(new() { { 1, TestHelpers.Input(moveX: -1f) } });
-        var s = sim.GetState(1);
-        TestHelpers.AssertNear(-Move.RunSpeed, s.VX, 0.01f);
-        Assert.Equal(0f, s.VZ);
-    }
-
-
-    [Fact]
     public void RunDiagonalStraighten_ClearsReleasedAxis()
     {
         var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
@@ -345,8 +279,8 @@ public class PhysicsTests
         state.PY = GroundPx;
         TestHelpers.RegisterPlayer(sim, Def, state);
 
-        // Hold up-right diagonal past the Rush window into Run.
-        for (int i = 0; i < 20; i++)
+        // Reach cruise on the diagonal before releasing one axis.
+        for (int i = 0; i < 30; i++)
             sim.Tick(new() { { 1, TestHelpers.Input(moveX: 0.707f, moveY: 0.707f) } });
 
         // Release W (keep D): the released Z axis must clear instantly.

@@ -18,10 +18,6 @@
     </ui:VisualElement>
     <ui:VisualElement name="page-body" class="page-section char-body-section">
         <ui:VisualElement name="char-grid" class="char-grid" />
-        <ui:VisualElement name="selection-copy" class="selection-copy">
-            <ui:Label name="char-name" text="CHOOSE A FIGHTER" class="char-name" />
-            <ui:Label name="char-role" text="Select a portrait to see the brief." class="char-role" />
-        </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="page-summary" class="page-section char-summary-section">
         <ui:VisualElement name="roster-panel" class="roster-panel" />
@@ -39,18 +35,6 @@
             <ui:VisualElement class="selection-target-buttons">
                 <ui:Button name="btn-camp-teal" text="TEAL" class="selection-target-button" />
                 <ui:Button name="btn-camp-clay" text="CLAY" class="selection-target-button" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:VisualElement name="solo-config" class="solo-config">
-            <ui:Label name="selection-target" text="EDITING PLAYER" class="selection-target" />
-            <ui:VisualElement class="selection-target-buttons">
-                <ui:Button name="btn-edit-player" text="P1" class="selection-target-button active" />
-                <ui:Button name="btn-edit-cpu" text="P2" class="selection-target-button" />
-            </ui:VisualElement>
-            <ui:VisualElement name="solo-difficulty-buttons" class="solo-difficulty-buttons">
-                <ui:Button name="btn-cpu-difficulty-easy" text="EASY" class="btn-secondary solo-difficulty-button" />
-                <ui:Button name="btn-cpu-difficulty-normal" text="NORMAL" class="btn-secondary solo-difficulty-button" />
-                <ui:Button name="btn-cpu-difficulty-hard" text="HARD" class="btn-secondary solo-difficulty-button" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

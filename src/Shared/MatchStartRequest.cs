@@ -27,7 +27,7 @@ public sealed record MatchStartRequest(
     DateTimeOffset? AdmissionExpiresAtUtc = null,
     string? CatalogHash = null,
     MatchFormat Format = MatchFormat.Stock,
-    bool FriendlyFire = false,
+    FriendlyFireMode FriendlyFire = FriendlyFireMode.Off,
     bool BallOnly = false);
 
 /// <summary>
@@ -174,13 +174,12 @@ public static class MatchStartRequestCodec
         }
         if (!MatchFormats.TryParseWire(formatName, out var format))
             return null;
-        bool friendlyFire = false;
+        var friendlyFire = format == MatchFormat.MankiMayhem ? FriendlyFireMode.Shoves : FriendlyFireMode.Off;
         if (element.TryGetProperty("friendlyFire", out var friendly))
         {
-            if (friendly.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
-            friendlyFire = friendly.GetBoolean();
+            if (friendly.ValueKind != JsonValueKind.String || !FriendlyFireModes.TryParseWire(friendly.GetString(), out friendlyFire)) return null;
         }
-        if (friendlyFire && format != MatchFormat.SlopballCoop) return null;
+        if (!format.AdmitsFriendlyFire(friendlyFire)) return null;
         bool ballOnly = false;
         if (element.TryGetProperty("ballOnly", out var ballOnlyElement))
         {

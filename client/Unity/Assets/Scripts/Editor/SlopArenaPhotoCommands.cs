@@ -34,13 +34,15 @@ namespace SlopArena.EditorTools
         private const string SessionKey = "SlopArena.Photo.Active";
         private static readonly string[] ArtifactPrefixes = { "tmp/", ".impeccable/", ".ability-lab-cache/", "client/Unity/Temp/" };
 
-        private sealed class Saved { public string stage = ""; public int captureFramerate; }
+        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public CharacterClass playerClass; public string packageId = ""; public CharacterClass opponentClass; }
 
-        [CliCommand("sloparena.photo.prepare", "Prepare an in-memory photo shoot on a PvP stage, or the live Slopball scene for sloparena.photo.live, using the stage-view save/restore lifecycle.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
+        [CliCommand("sloparena.photo.prepare", "Prepare an in-memory photo shoot on a PvP stage, real Training, or the live Slopball scene for sloparena.photo.live, using the stage-view save/restore lifecycle.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
         public static object Prepare(
             [CliArg("stage", "Baked PvP stage key with a Resources presentation prefab, or slopball.", Required = true)] string stage,
             [CliArg("lighting", "scene (default, as Training and Solo) or pvp (the stage's own lights only).")] string lighting = "scene",
-            [CliArg("fighter", "Slopball only: fightguy (default), manki, wibou or bonk.")] string fighter = "fightguy")
+            [CliArg("fighter", "Training or Slopball fighter package ID, default fightguy.")] string fighter = "fightguy",
+            [CliArg("training", "Run real Training instead of the staged photo shoot on a PvP stage.")] bool training = false,
+            [CliArg("opponent", "Training CPU fighter, default fightguy.")] string opponent = "fightguy")
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
                 throw new InvalidOperationException("Photo preparation requires stopped, compiled Edit Mode.");
@@ -51,10 +53,15 @@ namespace SlopArena.EditorTools
             {
                 "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
                 "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
+                "salamander" => CharacterClass.Salamander,
                 _ => throw new ArgumentException("fighter must be fightguy, manki, wibou, bonk or bashie.")
             };
+            if (!Enum.TryParse(opponent, true, out CharacterClass opponentClass) || opponentClass == CharacterClass.None
+                || !Enum.GetNames(typeof(CharacterClass)).Any(name => string.Equals(name, opponent, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException("opponent must be a fighter name.");
             // Save before the first mutation so the declared restore also handles partial setup failure.
-            SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate }));
+            SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate,
+                training = training, playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, opponentClass = MatchConfig.Seat(2).Fighter }));
             SlopArenaStageViewCommands.Prepare(stage, lighting);
             if (stage == SlopballMatch.ArenaKey)
             {
@@ -64,11 +71,22 @@ namespace SlopArena.EditorTools
                 SessionState.SetString(ArcadeBallMatch.FighterSessionKey, selected.ToString());
                 return new { success = true, stage, fighter };
             }
+            if (training)
+            {
+                MatchConfig.Seat(2).Fighter = opponentClass;
+                MatchConfig.PlayerClass = selected;
+                MatchConfig.PlayerPackageId = fighter;
+                var match = Object.FindFirstObjectByType<TrainingMatch>();
+                var serialized = new SerializedObject(match);
+                serialized.FindProperty("_playerClassOverride").enumValueIndex = Array.IndexOf(Enum.GetValues(typeof(CharacterClass)), selected);
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                return new { success = true, stage, fighter, training, opponent };
+            }
             var camera = GameplayCamera();
             // In memory only: Training never starts, so the shoot owns fighters, stage, camera and HUD.
-            var training = Object.FindFirstObjectByType<TrainingMatch>()
+            var trainingMatch = Object.FindFirstObjectByType<TrainingMatch>()
                 ?? throw new InvalidOperationException("The baseline scene has no TrainingMatch.");
-            training.enabled = false;
+            trainingMatch.enabled = false;
             foreach (var renderer in Object.FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None))
                 Object.DestroyImmediate(renderer.gameObject);
             foreach (var input in Object.FindObjectsByType<InputController>(FindObjectsSortMode.None)) input.enabled = false;
@@ -367,7 +385,7 @@ namespace SlopArena.EditorTools
         private static short WireYaw(float radians)
             => (short)Mathf.Clamp(Mathf.RoundToInt(Mathf.DeltaAngle(0f, radians * Mathf.Rad2Deg) * 100f), -18000, 18000);
 
-        [CliCommand("sloparena.photo.live-begin", "Start capturing ticks of live Slopball, Character Course or Tutorial gameplay (for example around replay or tutorial input runs); finish with sloparena.photo.live-end.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
+        [CliCommand("sloparena.photo.live-begin", "Start capturing ticks of live Slopball, Character Course, Tutorial or Training gameplay (for example around replay or tutorial input runs); finish with sloparena.photo.live-end.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
         public static async Task<object> LiveBegin(
             [CliArg("output", "Fresh repository-relative directory below tmp/, .impeccable/, .ability-lab-cache/ or client/Unity/Temp/.", Required = true)] string output,
             [CliArg("from", "First captured tick after Go (course elapsed ticks).")] int from = 0,
@@ -385,14 +403,18 @@ namespace SlopArena.EditorTools
                 var ball = Object.FindFirstObjectByType<ArcadeBallMatch>();
                 var course = Object.FindFirstObjectByType<CharacterCourseMatch>();
                 var tutorial = Object.FindFirstObjectByType<TutorialMatch>();
-                if (ball != null && ball.Ready || course != null && course.Ready || tutorial != null && tutorial.Ready)
+                var training = Object.FindFirstObjectByType<TrainingMatch>();
+                if (ball != null && ball.Ready || course != null && course.Ready || tutorial != null && tutorial.Ready || training != null && training.CaptureSequenceReady)
                 {
                     var live = BeginLive(ball != null && ball.Ready ? ball : null, course != null && course.Ready ? course : null,
-                        output, from, to, step, quality, yaw, pitch, camera, tutorial != null && tutorial.Ready ? tutorial : null);
-                    return new { success = true, output, from, to, step, scene = ball != null && ball.Ready ? "slopball" : course != null && course.Ready ? "course" : "tutorial" };
+                        output, from, to, step, quality, yaw, pitch, camera, tutorial != null && tutorial.Ready ? tutorial : null,
+                        training != null && training.CaptureSequenceReady ? training : null);
+                    return new { success = true, output, from, to, step, cameraStyle = live.Mount?.Style.ToString(),
+                        cameraYaw = live.Mount?.GetCameraYawDeg(), cameraPitch = live.Mount?.GetCameraPitchDeg(),
+                        freeCamera = live.Free != null, scene = ball != null && ball.Ready ? "slopball" : course != null && course.Ready ? "course" : tutorial != null && tutorial.Ready ? "tutorial" : "training" };
                 }
                 if (!EditorApplication.isPlaying || EditorApplication.timeSinceStartup > deadline)
-                    throw new InvalidOperationException("No ready Slopball, Character Course or Tutorial match; enter Play Mode in its scene first.");
+                    throw new InvalidOperationException("No ready Slopball, Character Course, Tutorial or Training match; enter Play Mode in its scene first.");
                 await Task.Delay(50);
             }
         }
@@ -435,7 +457,7 @@ namespace SlopArena.EditorTools
         }
 
         private static SlopArenaPhotoLive BeginLive(ArcadeBallMatch? ball, CharacterCourseMatch? course, string output,
-            int from, int to, int step, int quality, float? yaw, float? pitch, string? camera, TutorialMatch? tutorial = null)
+            int from, int to, int step, int quality, float? yaw, float? pitch, string? camera, TutorialMatch? tutorial = null, TrainingMatch? training = null)
         {
             if (_live != null) throw new InvalidOperationException("A live capture is already running; call sloparena.photo.live-end.");
             if (from < 0 || to < from || step < 1 || step > 600 || quality < 50 || quality > 100)
@@ -486,7 +508,7 @@ namespace SlopArena.EditorTools
             session.Host = new GameObject("Photo Live (temporary)");
             session.Host.SetActive(false);
             var live = session.Host.AddComponent<SlopArenaPhotoLive>();
-            live.Ball = ball; live.Course = course; live.Tutorial = tutorial; live.RenderCamera = render; live.Mount = mount;
+            live.Ball = ball; live.Course = course; live.Tutorial = tutorial; live.Training = training; live.RenderCamera = render; live.Mount = mount;
             live.Free = free; live.FreeFollow = follow; live.HoldYaw = free == null ? yaw : null; live.HoldPitch = free == null ? pitch : null;
             live.From = from; live.To = to; live.Step = step; live.Quality = quality; live.OutputDirectory = directory;
             session.Live = live;
@@ -503,23 +525,25 @@ namespace SlopArena.EditorTools
                 && EditorApplication.isPlaying && EditorApplication.timeSinceStartup < deadline)
                 await Task.Delay(30);
             _live = null;
-            object result;
-            if (session.Live != null)
+            try
             {
+                if (session.Live == null)
+                    return new { success = false, failure = "The live capture component was destroyed (Play Mode stopped?).", output = session.Output };
                 session.Live.WriteStates();
-                result = new { success = session.Live.Failure == null, failure = session.Live.Failure, output = session.Output,
+                return new { success = session.Live.Failure == null, failure = session.Live.Failure, output = session.Output,
                     frames = session.Live.FramesWritten, elapsed = session.Live.Elapsed, done = session.Live.Done,
                     screen = $"{Screen.width}x{Screen.height}" };
             }
-            else result = new { success = false, failure = "The live capture component was destroyed (Play Mode stopped?).", output = session.Output };
-            if (session.Host != null) Object.Destroy(session.Host);
-            Time.captureFramerate = session.CaptureRate;
-            Time.fixedDeltaTime = session.FixedDeltaTime;
-            QualitySettings.SetQualityLevel(session.Quality, true);
-            if (session.Render != null) session.Render.fieldOfView = session.Fov;
-            if (session.Mount != null) session.Mount.enabled = session.MountEnabled;
-            foreach (var brain in session.Brains) if (brain != null) brain.enabled = true;
-            return result;
+            finally
+            {
+                if (session.Host != null) Object.Destroy(session.Host);
+                Time.captureFramerate = session.CaptureRate;
+                Time.fixedDeltaTime = session.FixedDeltaTime;
+                QualitySettings.SetQualityLevel(session.Quality, true);
+                if (session.Render != null) session.Render.fieldOfView = session.Fov;
+                if (session.Mount != null) session.Mount.enabled = session.MountEnabled;
+                foreach (var brain in session.Brains) if (brain != null) brain.enabled = true;
+            }
         }
 
         [CliCommand("sloparena.photo.stop", "Stop Play Mode only for an active photo session.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
@@ -539,6 +563,12 @@ namespace SlopArena.EditorTools
                 throw new InvalidOperationException("Stop and settle Play Mode before restoring a photo session.");
             var saved = JsonConvert.DeserializeObject<Saved>(text) ?? new Saved();
             Time.captureFramerate = saved.captureFramerate;
+            if (saved.training)
+            {
+                MatchConfig.PlayerClass = saved.playerClass;
+                MatchConfig.PlayerPackageId = saved.packageId;
+                MatchConfig.Seat(2).Fighter = saved.opponentClass;
+            }
             var result = SlopArenaStageViewCommands.Restore();
             SessionState.EraseString(SessionKey);
             return result;
@@ -668,7 +698,7 @@ namespace SlopArena.EditorTools
 
         private static PhotoInput ParseInput(JObject item)
         {
-            Only(item, "input", "at", "from", "to", "press", "aim", "jump", "down", "shield", "grab", "move", "face");
+            Only(item, "input", "at", "from", "to", "press", "aim", "jump", "down", "shield", "grab", "dash", "move", "face");
             int at = Int(item, "at", -1, -1, 900);
             int from = at >= 0 ? at : Int(item, "from", -1, 0, 900);
             int to = Int(item, "to", from, 0, 900);
@@ -684,6 +714,7 @@ namespace SlopArena.EditorTools
                 Down = (bool?)item["down"] ?? false,
                 Shield = (bool?)item["shield"] ?? false,
                 Grab = (bool?)item["grab"] ?? false,
+                Dash = (bool?)item["dash"] ?? false,
                 MoveYaw = item["move"] == null ? (float?)null : Float(item, "move", 0f, -360f, 360f),
                 FaceYaw = item["face"] == null ? (float?)null : Float(item, "face", 0f, -360f, 360f)
             };

@@ -1,0 +1,46 @@
+{
+ "generator": "tools/blender/manki_mayhem/build.py",
+ "seed": 20261027,
+ "source": "client/Unity/Assets/Stages/manki_mayhem/manki_mayhem.unity",
+ "sourceSha256": "8bc9ef126bb01ee7554ef0c6063589bf380c78623b3dada166f05ff1b0f37e01",
+ "arena": "data/arenas/manki_mayhem.arena",
+ "arenaSha256": "8b4f2fd37a8edb66c831356e03c40bfe7b622fd83366bfae51bcd686470c6501",
+ "blender": "5.2.3 LTS",
+ "materials": [
+  "MM_Night",
+  "MM_Lit",
+  "MM_Floor",
+  "MM_Screen",
+  "MM_Beam"
+ ],
+ "shadowed": [
+  "Concrete Deck",
+  "Deck Hoarding",
+  "Deck Scaffold Tower"
+ ],
+ "objects": [
+  "Audience",
+  "Audience Fences",
+  "CRT Walls",
+  "Concrete Deck",
+  "Deck Hoarding",
+  "Deck Scaffold Tower",
+  "Host Booth",
+  "Lighting Rig",
+  "Scaffold Stands",
+  "Side Identities",
+  "Venue Backlight",
+  "Warehouse",
+  "Warehouse Light Pools",
+  "Warm Light Shafts"
+ ],
+ "anchors": {
+  "MankiHostAnchor": [
+   0.0,
+   6.5,
+   41.5
+  ]
+ },
+ "geometryDigest": "4e0dacfdeb7f4136f1a6ce62b61961961014ebd219069e38512854cd2820505b",
+ "problems": 0
+}

@@ -124,16 +124,29 @@ def _deterministic_fbx_exporter():
     export_fbx_bin.datetime = types.SimpleNamespace(datetime=FixedDateTime)
 
 
-def export_fbx(objects, path):
-    """Export with the project's Unity conventions (see geo.to_object); repeatable bytes."""
+def export_fbx(objects, path, anchors=None):
+    """Export repeatable art, with optional named empty anchors in Unity coordinates.
+
+    Existing callers export exactly the same mesh-only selection. Anchors are
+    presentation attachment points, with no mesh or gameplay component.
+    """
     for o in bpy.context.scene.objects:
         o.select_set(o.name in objects)
+    empty_objects = []
+    for name, (x, y, z) in (anchors or {}).items():
+        anchor = bpy.data.objects.new(name, None)
+        bpy.context.scene.collection.objects.link(anchor)
+        anchor.location = (-x, -z, y)
+        anchor.select_set(True)
+        empty_objects.append(anchor)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     _deterministic_fbx_exporter()
-    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={"MESH"}, axis_forward="-Z", axis_up="Y",
+    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={"MESH", "EMPTY"} if anchors else {"MESH"}, axis_forward="-Z", axis_up="Y",
                              bake_space_transform=True, apply_scale_options="FBX_SCALE_ALL", mesh_smooth_type="FACE",
                              colors_type="SRGB", prioritize_active_color=True, use_mesh_modifiers=True,
                              add_leaf_bones=False, path_mode="STRIP", embed_textures=False, use_custom_props=False)
+    for anchor in empty_objects:
+        bpy.data.objects.remove(anchor, do_unlink=True)
 
 
 def mesh_health(objects, min_area=1e-10):

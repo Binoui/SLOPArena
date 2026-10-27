@@ -1,6 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <ui:Style src="FrontendShell.uss" />
     <ui:Style src="SlopArena.uss" />
+    <ui:Style src="FighterPanels.uss" />
     <ui:VisualElement name="frontend-shell" class="frontend-shell">
         <ui:VisualElement name="shell-backdrop" class="shell-backdrop" picking-mode="Ignore" />
         <ui:VisualElement name="shell-top-bar" class="shell-top-bar">

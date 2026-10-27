@@ -1,0 +1,124 @@
+{
+  "name": "salamander-ga-finger-gun-reload",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda",
+    "shot": "references/shot.usda"
+  },
+  "entry": {
+    "reference": "shot",
+    "tick": 8
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png",
+    "../../salamander-idle-run-20261027/q-a-bang.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). 2: the concept the owner picked for his Q (generated art): the quick-draw BANG, right arm out in a finger gun, left hand on the hip.",
+  "notes": "Salamander ground.A reload (anim.salamander.finger-guns-reload), kit proposal 2026-10-27: after the sixth shot the capability plays this for its reloadTicks (90), committed. The owner approved: blow on the fingertip, twirl, holster. Revision 1 (2026-10-27, owner present): option A, 90 ticks with three slow beats (blow, one twirl, holster with one pat) instead of five; starts on the accepted aimed shot's BANG. Measured on round 0: hand up to 965 deg/s in the twirl, arm 617-674 deg/s off the aim, fingertip 2.2-2.8 m/s.",
+  "description": "The salamander's Q reload gag: after the sixth shot his invisible gun is 'empty', and he does the full gunslinger routine before he can shoot again. It is his comedy beat, so it must read clearly from behind the camera. He is committed: nothing can interrupt it except a hit.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe routine (90 ticks, played once, three slow beats; owner 2026-10-27: the first take snapped and spun far too fast, so every beat moves calmly and holds long enough to read):\n- Tick 0: the sixth shot's BANG, where the game starts the reload: the aimed two-finger gun (index and middle straight and pressed together, ring curled, thumb down on them like a dropped hammer) out to his right at shoulder height, left hand on his left hip. This is the pose of the shot clip's tick 8 (reference `shot`).\n- Ticks 0-30, blow the smoke: the gun hand rises in a slow arc to beside his snout, the two fingers pointing up; around tick 18 he leans his head in and blows on the fingertips (snout 5-8 cm away), cheeks puffed, holding the pose a few ticks so it reads.\n- Ticks 30-58, one twirl: the hand lowers out to his side at hip height and the two-finger gun makes ONE slow circle on the wrist, fingers leading, like a revolver spun once on the trigger finger. Wrist turn under 400 degrees a second.\n- Ticks 58-78, holster: he slides the gun down into the invisible holster at his right hip (hand pushed down beside the thigh), gives it one pat with the flat hand around tick 70, and the left hand leaves the hip.\n- Ticks 78-90: both hands come up to hover over the holsters and he settles into the showdown stance (his idle at tick 0) exactly at tick 90.\nFeet stay planted; weight shifts a little with each beat. Pace: continuous arcs, never a dash between frozen poses; every hold keeps drifting (2-5 degrees over the hold), and no joint turns faster than 7 degrees a tick (420 a second). Follow-through stays light: the head leads the blow, the hat lags a tick, the tail sways slowly.",
+  "clock": {
+    "duration_ticks": 90
+  },
+  "timing": {
+    "fixed": [
+      "90 ticks played once, the capability reloadTicks; he is committed for all of it",
+      "tick 90 is his showdown idle exactly"
+    ],
+    "adjustable": [
+      "the beats inside, as long as blow, one twirl and the holster all read"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 90
+  },
+  "keys": [
+    0,
+    18,
+    30,
+    44,
+    58,
+    70,
+    78,
+    90
+  ],
+  "review_ticks": [
+    0,
+    10,
+    18,
+    30,
+    37,
+    44,
+    51,
+    58,
+    70,
+    78,
+    90
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor at the blow (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 18,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "right toe on the floor at the twirl (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 44,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "blow: fingertip near the snout at tick 18 (m)",
+      "kind": "distance",
+      "a": "RightHandIndex3",
+      "b": "Mustache",
+      "tick": 18,
+      "max": 0.12
+    },
+    {
+      "name": "twirl: right hand out at the hip at tick 44 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 44,
+      "min": 0.12
+    },
+    {
+      "name": "holster: right hand down at the thigh at tick 66 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 66,
+      "max": 0.0
+    },
+    {
+      "name": "twirl: the hand circles (m)",
+      "kind": "range",
+      "a": "RightHandIndex3",
+      "axis": "front",
+      "window": [
+        30,
+        58
+      ],
+      "min": 0.05
+    }
+  ],
+  "snap_degrees_per_tick": 7
+}

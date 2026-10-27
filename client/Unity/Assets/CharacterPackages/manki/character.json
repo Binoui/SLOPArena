@@ -208,7 +208,7 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.internal.manki.bazooka.v1",
+      "capabilityId": "slop.internal.manki.bazooka.v2",
       "capabilityVersion": "1"
     },
     {
@@ -254,9 +254,9 @@
                 "endTick": 9,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -347,9 +347,9 @@
                 "endTick": 7,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 15,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 180
               },
               {
@@ -486,9 +486,9 @@
                 "endTick": 9,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -579,9 +579,9 @@
                 "endTick": 23,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -672,9 +672,9 @@
                 "endTick": 10,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -765,9 +765,9 @@
                 "endTick": 5,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {
@@ -1001,10 +1001,10 @@
     {
       "id": "ground.R",
       "name": "Bazooka",
-      "description": "Launch a rocket that explodes on impact",
+      "description": "Press to fire a homing rocket at your target. Dodge past it to break tracking.",
       "iconId": "icon.r",
       "behavior": "projectile",
-      "aimMode": "cameraForward3D",
+      "aimMode": "none",
       "aimMovement": "fixed",
       "cooldownTicks": 240,
       "isRecoveryMove": false,
@@ -1031,15 +1031,16 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.bazooka.v1",
+                "capabilityId": "slop.internal.manki.bazooka.v2",
                 "capabilityVersion": "1",
                 "parameters": {
                   "fireTriggerTick": 6,
-                  "projectileSpeed": 40,
+                  "projectileSpeed": 30,
+                  "homingTurnDegPerTick": 2.5,
                   "hitboxRadius": 0.6,
                   "damage": 15,
                   "gravity": 15,
-                  "maxFlightTicks": 45,
+                  "maxFlightTicks": 60,
                   "stunTicks": 24,
                   "explosionRadius": 3,
                   "kbAngle": 25,
@@ -1156,9 +1157,9 @@
                 "endTick": 8,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 45,
+                "maxYawDegrees": 90,
                 "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 360,
+                "yawDegreesPerSecond": 720,
                 "pitchDegreesPerSecond": 0
               },
               {

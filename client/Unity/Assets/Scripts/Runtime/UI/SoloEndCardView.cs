@@ -26,6 +26,36 @@ namespace SlopArena.Client.UI
         private readonly Label _print;
         private readonly Label _outcome;
         private float _age;
+        private float _duration = Duration;
+        private VisualElement _standings;
+
+        public void ShowMayhem(System.Collections.Generic.IReadOnlyList<MayhemPlayer> players, System.Func<ulong, string> name, bool online = false)
+        {
+            var ordered = new System.Collections.Generic.List<MayhemPlayer>(players);
+            ordered.Sort((a, b) => a.Withdrawn != b.Withdrawn ? a.Withdrawn.CompareTo(b.Withdrawn)
+                : a.Score != b.Score ? b.Score.CompareTo(a.Score) : a.EntityId.CompareTo(b.EntityId));
+            int winners = ordered.FindAll(p => p.Score == ordered[0].Score && !p.Withdrawn).Count;
+            ShowPoster("SHOW'S\nOVER!", winners == 0 ? "MATCH ENDED" : winners > 1 ? "SHARED WIN!" : $"{name(ordered[0].EntityId)} WINS!",
+                "MANKI MAYHEM", CharacterClass.None);
+            _duration = float.PositiveInfinity;
+            _standings = new VisualElement { name = "mayhem-standings", pickingMode = PickingMode.Ignore };
+            _standings.style.position = Position.Absolute;
+            _standings.style.left = Length.Percent(27); _standings.style.right = Length.Percent(27);
+            _standings.style.top = Length.Percent(53);
+            _standings.style.backgroundColor = new Color(.07f, .045f, .07f, .97f);
+            _standings.style.paddingTop = _standings.style.paddingBottom = 14;
+            _standings.style.paddingLeft = _standings.style.paddingRight = 22;
+            foreach (var player in ordered)
+            {
+                int place = 1 + ordered.FindAll(p => !p.Withdrawn && p.Score > player.Score).Count;
+                var row = new Label($"{(player.Withdrawn ? "OUT" : place.ToString())}.  {name(player.EntityId)}     {player.Score} POINTS\n     {player.RoundsSurvived} SURVIVED · {player.Bonuses} BONUS");
+                row.style.fontSize = 22; row.style.color = !player.Withdrawn && player.Score == ordered[0].Score ? new Color(1f, .77f, .12f) : Color.white;
+                row.style.marginBottom = 10; _standings.Add(row);
+            }
+            var hint = new Label(online ? "RESULTS" : "PAUSE TO LEAVE · STOP / PLAY TO REPLAY");
+            hint.style.fontSize = 14; hint.style.color = Color.white; _standings.Add(hint);
+            _root.Add(_standings);
+        }
 
         public SoloEndCardView(VisualElement hud)
         {
@@ -43,14 +73,11 @@ namespace SlopArena.Client.UI
             Clear();
         }
 
-        public void Show(bool playerWon, bool sharedVictory, CharacterClass player, CharacterClass cpu, bool couch = false)
+        public void Show(string winningSeat, CharacterClass winner, bool sharedVictory)
         {
-            CharacterClass winner = playerWon || sharedVictory ? player : cpu;
             ShowPoster(sharedVictory ? "DOUBLE\nK.O.!" : "BEST\nSLOPPER",
-                sharedVictory ? "SHARED VICTORY" : playerWon ? couch ? "P1 WINS!" : "YOU WIN!" : couch ? "P2 WINS!" : "CPU WINS!",
-                sharedVictory ? $"{player.ToString().ToUpperInvariant()}\n{cpu.ToString().ToUpperInvariant()}"
-                    : winner.ToString().ToUpperInvariant(),
-                winner, sharedVictory ? cpu : CharacterClass.None, sharedVictory);
+                sharedVictory ? "SHARED VICTORY" : $"{winningSeat.ToUpperInvariant()} WINS!",
+                winner.ToString().ToUpperInvariant(), winner, shared: sharedVictory);
         }
 
         /// <summary>
@@ -62,6 +89,8 @@ namespace SlopArena.Client.UI
             CharacterClass other = CharacterClass.None, bool shared = false)
         {
             if (_root == null) return;
+            _standings?.RemoveFromHierarchy();
+            _duration = Duration;
             bool slip = portrait != CharacterClass.None;
             _root.EnableInClassList("solo-end--shared", shared && other != CharacterClass.None);
             _root.EnableInClassList("solo-end--team", !slip);
@@ -81,7 +110,7 @@ namespace SlopArena.Client.UI
         {
             if (_root == null || _root.style.display == DisplayStyle.None) return;
             _age += dt;
-            if (_age >= Duration) { Clear(); return; }
+            if (_age >= _duration) { Clear(); return; }
             float width = _root.parent.layout.width, height = _root.parent.layout.height;
             if (!float.IsFinite(width) || !float.IsFinite(height) || width <= 0f || height <= 0f) return;
             Rect laid = _poster.layout;
@@ -89,14 +118,16 @@ namespace SlopArena.Client.UI
             float cardRight = _players != null ? _players.worldBound.xMax - _root.worldBound.xMin : 0f;
             // Reserve the tilted corners, tape and hard shadow as well as the settled field.
             float fit = Mathf.Min(1f, Mathf.Max(1f, width - cardRight - 56f) / (size.x * 1.08f), height * 0.5f / size.y);
+            bool mayhem = _standings != null && _standings.parent == _root;
+            if (mayhem) fit *= .55f;
             float half = size.x * fit * 0.54f;
             _anchor.style.left = Mathf.Clamp(Mathf.Max(width * 0.5f, cardRight + 28f + half), half + 20f, width - half - 20f);
-            _anchor.style.top = height * 0.34f;
+            _anchor.style.top = height * (mayhem ? .42f : .34f);
 
             // Slammed up like the start flyer, then torn off sideways.
             bool reduced = ClientSettingsService.Instance.ReducedFlashing;
             float slam = reduced ? 1f : Mathf.Clamp01(_age / SlamSeconds);
-            float exit = reduced ? 0f : Mathf.Clamp01((_age - (Duration - 0.18f)) / 0.18f);
+            float exit = reduced ? 0f : Mathf.Clamp01((_age - (_duration - 0.18f)) / 0.18f);
             _poster.style.scale = new Scale(Vector2.one * (fit * Mathf.LerpUnclamped(SlamScale, 1f, EaseOutBack(slam))));
             _poster.style.translate = new Translate(28f * exit, 0f, 0f);
             _root.style.opacity = Mathf.Min(1f, slam / 0.35f) * (1f - exit);

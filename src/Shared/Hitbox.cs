@@ -8,7 +8,8 @@ namespace SlopArena.Shared
         /// <summary>
         /// segment from (X,Y,Z) to (EndX,EndY,EndZ), radius = Radius
         /// </summary>
-        Capsule = 1
+        Capsule = 1,
+        Ring = 2
     }
 
     /// <summary>
@@ -38,6 +39,9 @@ namespace SlopArena.Shared
         /// Capsule end point (ignored for Sphere)
         /// </summary>
         public float EndX, EndY, EndZ;
+
+        public float PreviousRadius, RingSpeed, RingHalfWidth, RingHalfHeight;
+        public bool Unblockable;
 
         /// <summary>
         /// Damage data
@@ -78,6 +82,19 @@ namespace SlopArena.Shared
         /// Gravity applied each tick (m/s²). 0 = no gravity (default for melee hitboxes).
         /// </summary>
         public float Gravity;
+
+        /// <summary>Version 1 sticky fuse. First body contact attaches without dealing contact damage.</summary>
+        public ushort StickyFuseTicks;
+        public ulong AttachedEntityId;
+        public ushort FuseTicksLeft;
+
+        /// <summary>Captured launch target. Zero means ballistic, with no reacquisition.</summary>
+        public ulong HomingTargetEntityId;
+        /// <summary>Cooked cosine and sine of the maximum turn per tick.</summary>
+        public float HomingTurnCos, HomingTurnSin;
+
+        /// <summary>Optional damage override for contact with the owner.</summary>
+        public float? OwnerDamage;
 
         /// <summary>
         /// Optional explosion spawned when this hitbox deactivates (hits entity or expires).

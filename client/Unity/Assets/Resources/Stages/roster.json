@@ -6,12 +6,17 @@
   "slop_pit",
   "after_hours",
   "last_stop",
-  "log_off"
+  "log_off",
+  "hamster_habitat"
  ],
  "trainingOnly": [
   "training"
  ],
  "arcade": [
+  {
+   "arena": "manki_mayhem",
+   "formats": ["manki-mayhem"]
+  },
   {
    "arena": "slopball",
    "formats": [

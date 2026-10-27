@@ -60,8 +60,10 @@ namespace SlopArena.Client.Combat
         /// both horizontal AND vertical mouse movement rotate it naturally (1:1 with the mouse).
         /// </summary>
         private Vector2 _aimScreenOffset;
-        private Vector2 _controllerCursorPosition;
+        private Vector3 _controllerCursorGroundPoint;
         private bool _controllerCursorActive;
+        private System.Func<ulong, Vector3?> _resolveAimTarget;
+        private const float GroundCursorSpeed = 16f;
         /// <summary>Dead zone radius (px) — below this the aim keeps its last direction.</summary>
         private const float AimScreenDeadZone = 20f;
         /// <summary>Max cursor offset (px) — clamps runaway spin while keeping the angle.</summary>
@@ -78,12 +80,14 @@ namespace SlopArena.Client.Combat
         /// Wire camera into the aim pipeline once the scene is ready.
         /// Call from OnMatchStart after the camera hierarchy exists.
         /// </summary>
-        public void Init(CameraMount cameraMount, UnityEngine.Camera renderCamera, Transform characterTransform, float capsuleHeight)
+        public void Init(CameraMount cameraMount, UnityEngine.Camera renderCamera, Transform characterTransform, float capsuleHeight,
+            System.Func<ulong, Vector3?> resolveAimTarget = null)
         {
             _cameraMount = cameraMount;
             _characterTransform = characterTransform;
             _characterRenderer = characterTransform != null ? characterTransform.GetComponent<PlayerRenderer>() : null;
             _capsuleHeight = capsuleHeight;
+            _resolveAimTarget = resolveAimTarget;
             EnsureViewComponents();
             if (_targetLockIndicator != null)
                 _targetLockIndicator.Init(null, renderCamera);
@@ -138,7 +142,7 @@ namespace SlopArena.Client.Combat
             _lastAimPitchRad = 0f;
             _lastAimDistanceCm = 0;
             _aimScreenOffset = Vector2.zero;
-            _controllerCursorPosition = Vector2.zero;
+            _controllerCursorGroundPoint = Vector3.zero;
             _controllerCursorActive = false;
             _hasGroundAimTarget = false;
             ShowCrosshair = false;
@@ -214,7 +218,6 @@ namespace SlopArena.Client.Combat
                 if (_activeMode == CameraMode.Aiming)
                     _aimCameraMount?.Deactivate();
 
-                // Entering GroundCursor — preserve mouse position or seed a virtual cursor.
                 if (desired == CameraMode.FreeCursor)
                 {
                     _cameraMount?.FreezeAtCurrentAngles();
@@ -225,10 +228,14 @@ namespace SlopArena.Client.Combat
                         foreach (var operation in stage.Operations)
                             if (operation is CookedStartCapabilityOperation { Parameters: CookedMankiRoundBombCapabilityParameters lob })
                                 _lob = lob;
-                    _controllerCursorPosition = Mouse.current != null
-                        ? Mouse.current.position.ReadValue()
-                        : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-                    _controllerCursorActive = Mouse.current == null;
+                    if (_characterTransform != null)
+                    {
+                        Vector3 facing = new(Mathf.Sin(playerState.FacingYaw), 0f, Mathf.Cos(playerState.FacingYaw));
+                        _controllerCursorGroundPoint = ClampGroundCursor(
+                            _resolveAimTarget?.Invoke(playerState.TargetEntityId) ?? BodyCentre + facing * 6f,
+                            BodyCentre, _lob?.MaxRange ?? _maxRange);
+                    }
+                    _controllerCursorActive = HumanInputActions.LastUsedGamepad || Mouse.current == null;
                 }
                 // Entering Frozen (GroundVector) — freeze the camera; mouse delta rotates the
                 // aim direction instead. Inherit the current view yaw as the initial aim.
@@ -447,23 +454,31 @@ namespace SlopArena.Client.Combat
             var mouse = Mouse.current;
             if (stick.sqrMagnitude > 0.01f)
             {
-                if (!_controllerCursorActive && mouse != null)
-                    _controllerCursorPosition = mouse.position.ReadValue();
-                _controllerCursorPosition += stick * (700f * Time.deltaTime * ClientSettingsService.Instance.StickInputGain);
-                _controllerCursorPosition.x = Mathf.Clamp(_controllerCursorPosition.x, 0f, Screen.width);
-                _controllerCursorPosition.y = Mathf.Clamp(_controllerCursorPosition.y, 0f, Screen.height);
+                Vector3 forward = unityCam.transform.forward;
+                Vector3 right = unityCam.transform.right;
+                forward.y = right.y = 0f;
+                _controllerCursorGroundPoint += (forward.normalized * stick.y + right.normalized * stick.x)
+                    * (GroundCursorSpeed * Time.deltaTime * ClientSettingsService.Instance.StickInputGain);
                 _controllerCursorActive = true;
             }
             else if (HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f)
                 _controllerCursorActive = false;
-            Vector2 mousePos = _controllerCursorActive
-                ? _controllerCursorPosition
-                : mouse != null ? mouse.position.ReadValue() : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-            var mouseRay = unityCam.ScreenPointToRay(mousePos);
+            Vector2 mousePos = mouse != null ? mouse.position.ReadValue() : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            if (_controllerCursorActive)
+            {
+                _controllerCursorGroundPoint = ClampGroundCursor(_controllerCursorGroundPoint, BodyCentre, _lob?.MaxRange ?? _maxRange);
+                _controllerCursorGroundPoint.y = PresentationFloor.TrySample(
+                    _controllerCursorGroundPoint.x, _controllerCursorGroundPoint.z, out float floor) ? floor : 0f;
+            }
+            var cursorRay = _controllerCursorActive
+                ? new Ray(unityCam.transform.position, _controllerCursorGroundPoint - unityCam.transform.position)
+                : unityCam.ScreenPointToRay(mousePos);
 
-            var resolved = ResolveGroundCursor(mouseRay, BodyCentre, _characterTransform.forward, _capsuleHeight, _lob, _minRange, _maxRange);
+            var resolved = ResolveGroundCursor(cursorRay, BodyCentre, _characterTransform.forward, _capsuleHeight, _lob, _minRange, _maxRange);
             if (!resolved.HasValue) return (null, null, null);
             var (yaw, dist, aimTarget) = resolved.Value;
+            if (!_controllerCursorActive)
+                _controllerCursorGroundPoint = aimTarget;
             aimTarget.y += 0.05f; // slight offset to avoid z-fight with the surface
             _groundAimTarget = aimTarget;
             _hasGroundAimTarget = true;
@@ -473,6 +488,13 @@ namespace SlopArena.Client.Combat
 
         /// <summary>The simulated body centre (state PY): the renderer root carries the model's Y offset.</summary>
         private Vector3 BodyCentre => _characterTransform.position - Vector3.up * (_characterRenderer != null ? _characterRenderer.ModelYOffset : 0f);
+
+        private static Vector3 ClampGroundCursor(Vector3 point, Vector3 bodyCentre, float maxRange)
+        {
+            Vector3 offset = point - bodyCentre;
+            offset.y = 0f;
+            return bodyCentre + Vector3.ClampMagnitude(offset, maxRange);
+        }
 
         /// <summary>
         /// Where a ground-cursor ray points and what to send. The ray hits the authoritative stage:

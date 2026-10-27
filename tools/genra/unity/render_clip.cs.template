@@ -147,6 +147,7 @@ try {
     }
     foreach (var c in copies) {
       c.skin.BakeMesh(c.mesh, false);
+      c.mesh.RecalculateBounds();  // stale bounds culled tick 0 out of tight close-ups (--focus)
       c.copy.transform.SetPositionAndRotation(c.skin.transform.position, c.skin.transform.rotation);
     }
   }

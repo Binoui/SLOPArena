@@ -1,0 +1,165 @@
+{
+  "name": "salamander-g3-stick-em-up",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.3 (anim.salamander.g3), kit proposal 2026-10-27: Stick 'Em Up!, his up normal (launcher). Timing kept from the borrowed Sweeping Kick: 44 ticks, hit 9-20, act from 29.",
+  "description": "The salamander's ground.3, Stick 'Em Up!: his launcher. He crouches and then thrusts BOTH finger guns straight up over his head, as if shouting 'Stick 'em up!' at the sky: the hands-up gag turned into an uppercut.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (44 ticks, played once):\n- Tick 0: the showdown stance.\n- Tick 5, the dip: knees bend deep (hips drop 6-9 cm), both hands pull down to his hips in finger guns, chest leaning forward a little.\n- Tick 9, contact: he springs up onto his toes (heels off the floor, legs straight), both arms thrust up and out in a wide V, finger guns pointing at the sky. His sombrero's brim is 0.58 m wide (0.29 m to each side of his head): the arms must pass OUTSIDE it, never through it, so each hand ends at least 0.34 m out to its side of the head and above the brim; chest up, chin only a little up (the hat stays on, tipping back a few degrees at most).\n- Ticks 9-20: he holds the hands-up pose (a moving hold: the hands drift up 2-3 cm, a tiny wobble on the toes).\n- Tick 29: he comes down onto his heels, arms lowering, recovered enough to act.\n- Tick 44: the showdown stance again, matching tick 0.\nFeet stay on the floor (only the heels lift). Fingers: finger guns from tick 4 to tick 26.",
+  "clock": {
+    "duration_ticks": 44,
+    "contact_tick": 9,
+    "active": [
+      9,
+      20
+    ],
+    "iasa_tick": 29
+  },
+  "timing": {
+    "fixed": [
+      "44 ticks played once; contact at tick 9, the hitbox is on both hands above his head from tick 9 to 20",
+      "the player can act from tick 29",
+      "tick 0 and tick 44 are his showdown idle exactly"
+    ],
+    "adjustable": [
+      "the dip may be deeper or shallower"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 44
+  },
+  "fast_windows": [
+    [
+      5,
+      10
+    ]
+  ],
+  "strike": [
+    "RightHand",
+    "LeftHand"
+  ],
+  "keys": [
+    0,
+    5,
+    9,
+    20,
+    29,
+    44
+  ],
+  "review_ticks": [
+    0,
+    3,
+    5,
+    7,
+    9,
+    14,
+    20,
+    25,
+    29,
+    36,
+    44
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor at the dip (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 5,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "right toe joint on the floor at the dip (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 5,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "dip: hips low at tick 5 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 5,
+      "max": -0.05
+    },
+    {
+      "name": "contact: right hand above the head at tick 9 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 9,
+      "min": 0.1
+    },
+    {
+      "name": "contact: left hand above the head at tick 9 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "LeftHand",
+      "tick": 9,
+      "min": 0.1
+    },
+    {
+      "name": "hold: right hand still up at tick 18 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 18,
+      "min": 0.08
+    },
+    {
+      "name": "V: right hand outside the brim at tick 9 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 9,
+      "min": 0.34
+    },
+    {
+      "name": "V: left hand outside the brim at tick 9 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 9,
+      "max": -0.34
+    },
+    {
+      "name": "V: right hand outside the brim at tick 20 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 20,
+      "min": 0.32
+    },
+    {
+      "name": "V: left hand outside the brim at tick 20 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 20,
+      "max": -0.32
+    }
+  ]
+}

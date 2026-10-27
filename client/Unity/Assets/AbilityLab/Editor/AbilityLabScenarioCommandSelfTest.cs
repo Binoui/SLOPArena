@@ -124,7 +124,8 @@ public static class AbilityLabScenarioCommandSelfTest
                               lab.PreviewCamera.targetTexture != cameraTarget || lab.PreviewCamera.aspect != cameraAspect))
                 throw new InvalidOperationException("Capture did not restore the camera transform, target, and aspect.");
             AssertDistinctImages(capture.Captures[0].Path, capture.Captures[1].Path);
-            var shortRun = SlopArenaAbilityLabCommands.Run(action, ticks: 12, distance: 9f,
+            AssertWindowCapture(lab, action, output + "/window");
+            var shortRun =SlopArenaAbilityLabCommands.Run(action, ticks: 12, distance: 9f,
                 opponent: "shield", damage: 7, facing: 90f);
             if (!shortRun.Success) throw new InvalidOperationException("Cross-action fixture could not run.");
             var beforeCross = lab.Scenario;
@@ -511,6 +512,53 @@ public static class AbilityLabScenarioCommandSelfTest
             previewCamera.cullingMask = originalMask;
             UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= CheckFrame;
         }
+    }
+
+    [MenuItem("Tools/SLOPArena/Tests/Ability Lab Window Capture")]
+    public static void RunWindowCapture()
+    {
+        if (EditorApplication.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException("Ability Lab window capture self-test requires Edit Mode.");
+        AbilityLabWindow? window = AbilityLabWindow.FindExistingForCommand();
+        AbilityLab? lab = window?.CommandLab;
+        if (window == null || lab == null || !lab.IsPackagePreview || window.CommandWorkspace.LiveDraftInvalid)
+            throw new InvalidOperationException("Open a valid Character Package in Ability Lab before running this self-test.");
+        string action = SlopArenaAbilityLabCommands.Inspect().Slots?.Find(slot => slot.Available)?.Id
+            ?? throw new InvalidOperationException("The open package has no available canonical action to capture.");
+        var cursor = lab.CaptureTimelineCursor();
+        string output = $".ability-lab-cache/window-capture-selftest-{Guid.NewGuid():N}";
+        try
+        {
+            if (!SlopArenaAbilityLabCommands.Run(action, ticks: 24, distance: 0.5f).Success)
+                throw new InvalidOperationException("Window capture fixture could not run a scenario.");
+            AssertWindowCapture(lab, action, output);
+        }
+        finally
+        {
+            lab.RestoreTimelineCursor(cursor);
+            window.RefreshScenarioControls();
+            if (SlopArenaAbilityLabCommands.TryResolveCaptureDirectory(output, out string directory, out _) && Directory.Exists(directory))
+                Directory.Delete(directory, true);
+        }
+    }
+
+    private static void AssertWindowCapture(AbilityLab lab, string action, string output)
+    {
+        AbilityLabScenarioResult recorded = lab.Scenario ?? throw new InvalidOperationException("Window capture needs a recorded scenario.");
+        lab.SeekScenario(4);
+        Camera camera = lab.PreviewCamera ?? throw new InvalidOperationException("Ability Lab camera is unavailable for window capture coverage.");
+        Vector3 position = camera.transform.position;
+        Quaternion rotation = camera.transform.rotation;
+        var capture = SlopArenaAbilityLabCommands.CaptureWindow(action, "0,4", output, view: "right", frame: "fit");
+        if (!capture.Success || capture.Captures?.Count != 2 || capture.Captures[1].Frame?.FrameIndex != 4 ||
+            !ReferenceEquals(recorded, lab.Scenario) || lab.ScenarioFrame != 4)
+            throw new InvalidOperationException("Window capture did not report recorded frames or restore its scenario cursor.");
+        if (lab.PreviewCamera != camera || camera.transform.position != position || camera.transform.rotation != rotation)
+            throw new InvalidOperationException("Window capture did not restore the fitted camera.");
+        AssertDistinctImages(capture.Captures[0].Path, capture.Captures[1].Path);
+        if (SlopArenaAbilityLabCommands.CaptureWindow(action, "0", output + "-invalid", frame: "wide").Success ||
+            SlopArenaAbilityLabCommands.CaptureWindow(action, "999", output + "-range").Success)
+            throw new InvalidOperationException("Window capture accepted an unknown --frame value or an out-of-range frame.");
     }
 
     private static void AssertDistinctImages(string firstPath, string secondPath)

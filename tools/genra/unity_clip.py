@@ -269,17 +269,27 @@ def clip_source(source: str) -> dict:
     return {'asset': source} if source.startswith('Assets/') else {'semanticId': source}
 
 
-def review_cameras(brief, result: Path | None, views, margin: float, offset=None) -> list[dict]:
+def review_cameras(brief, result: Path | None, views, margin: float, offset=None, focus=None, focus_ticks=None) -> list[dict]:
     """Unity cameras for the toolkit's review views, framing the brief's entry pose and the toolkit result's whole
-    motion with `margin` around it; `offset` is the originOffsetMetres of the `write` that made the clip."""
+    motion with `margin` around it; `offset` is the originOffsetMetres of the `write` that made the clip. `focus` (joint
+    names) frames only the vertices those joints and their children drive, and `focus_ticks` (first, last) only those
+    ticks of the result: a hand close-up (2026-10-27, the salamander's finger gun was 60 px across at body framing)."""
     from genra.clip import Clip
     from genra.render import Renderer
     from genra.skin import Skin
     renderer = Renderer(Skin(brief.rig), brief.entry_frame)
-    worlds = [brief.entry_pose.world()]
+    worlds = [] if result and focus_ticks else [brief.entry_pose.world()]
     if result:
-        worlds += list(Clip.load(brief.rig, result, frame=brief.entry_frame).world())
-    points = np.concatenate([np.concatenate(renderer.skin.points(w))[::5] for w in worlds[::2]])
+        motion = list(Clip.load(brief.rig, result, frame=brief.entry_frame).world())
+        worlds += motion[focus_ticks[0]:focus_ticks[1] + 1] if focus_ticks else motion
+    masks = None
+    if focus:
+        joints = {j for name in focus for j in brief.rig.descendants(name)}
+        masks = [np.isin(m['dominant'], list(joints)) for m in renderer.skin.meshes]
+    def sample(world):
+        meshes = renderer.skin.points(world)
+        return np.concatenate([p[k] for p, k in zip(meshes, masks)] if masks else meshes)[::1 if masks else 5]
+    points = np.concatenate([sample(w) for w in (worlds if masks else worlds[::2])])
     mirror = np.array([-1.0, 1.0, 1.0])  # pack space mirrors Unity's x; mirroring the camera too keeps the image
     cameras = []
     for view in views:  # each view frames the candidate's whole motion, with room for the clips compared with it
@@ -303,14 +313,16 @@ def weapon_attachments(mapping, shown=None) -> list[dict]:
 
 
 def render(brief_path: Path, clips: list[dict], result: Path | None = None, views=('gameplay', 'three-quarter-right', 'profile'),
-           size=360, slow=4, name=None, offset=None, margin=1.3, springs=True, travel=0.0, background=None) -> dict:
+           size=360, slow=4, name=None, offset=None, margin=1.3, springs=True, travel=0.0, background=None, focus=None,
+           focus_ticks=None) -> dict:
     """Render clips on the character's actual prefab (materials, weapons, Animancer playback stretched over the brief's
     ticks, as the game plays them) from the toolkit's review views and framing, into one synchronized video: a row per
     clip, a column per view. `clips` are {'label', 'asset'} (an Assets/... .anim) or {'label', 'semanticId'} (the clip
     bound in the package catalog, e.g. the move it would replace). `result` (the toolkit clip) sets the framing.
     Presentation springs (BoneChainSpring: a tail, a cape) are stepped once per tick as in Play Mode unless `springs` is
     False; `travel` (metres per tick) carries the fighter forward so they trail as they do in a run. `background` is an
-    RGB colour (0-255) for the frames, e.g. a light studio grey for first frames of generated videos."""
+    RGB colour (0-255) for the frames, e.g. a light studio grey for first frames of generated videos. `focus` and
+    `focus_ticks` frame a close-up (review_cameras)."""
     from PIL import Image, ImageDraw
     from genra.brief import Brief
     from genra.render import BACKGROUND, _font, encode_video, tick_label
@@ -321,8 +333,8 @@ def render(brief_path: Path, clips: list[dict], result: Path | None = None, view
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-render-{name}'
     job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'clips': clips, 'ticks': clock['duration_ticks'], 'size': size * 2,
            'frames': str(run_dir / 'frames'), 'background': [c / 255 for c in (background or BACKGROUND)],
-           'views': review_cameras(brief, result, views, margin, offset), 'weapons': weapon_attachments(mapping, brief.get('props_shown')),
-           'springs': springs, 'travel': travel}
+           'views': review_cameras(brief, result, views, margin, offset, focus, focus_ticks),
+           'weapons': weapon_attachments(mapping, brief.get('props_shown')), 'springs': springs, 'travel': travel}
     data = run_unity(job, run_dir, 'render_clip')
     header, font, small = 28, _font(16), _font(13)
     def cell(label, view, tick):
@@ -461,6 +473,8 @@ def main(argv=None):
     show.add_argument('--background', help='frame colour r,g,b (0-255; default the review dark blue)')
     show.add_argument('--travel', type=float, default=0.0,
                       help='carry the fighter forward this many metres per tick (a run at ground speed), for springs')
+    show.add_argument('--focus', help='close-up: frame only these joints and their children, e.g. RightHand (needs --result)')
+    show.add_argument('--focus-ticks', help='close-up: frame only these ticks of the result, first-last (e.g. 6-18)')
     line = sub.add_parser('timeline', help='play clip sequences on the actual prefab as the game drives them (handoffs)')
     line.add_argument('spec', help='timeline JSON: rows of clip events and travel (see timeline())')
     line.add_argument('--brief', required=True, help='brief whose rig pack and entry pose frame the views')
@@ -486,7 +500,9 @@ def main(argv=None):
         offset = np.array(json.loads(Path(args.write_report).read_text())['originOffsetMetres']) if args.write_report else None
         report = render(Path(args.brief), clips, Path(args.result) if args.result else None, tuple(args.views.split(',')),
                         args.size, name=args.name, offset=offset, margin=args.margin, springs=not args.no_springs,
-                        travel=args.travel, background=[int(c) for c in args.background.split(',')] if args.background else None)
+                        travel=args.travel, background=[int(c) for c in args.background.split(',')] if args.background else None,
+                        focus=args.focus.split(',') if args.focus else None,
+                        focus_ticks=tuple(int(t) for t in args.focus_ticks.split('-')) if args.focus_ticks else None)
     elif args.command == 'promote':
         report = promote(args.source, args.over)
     elif args.command == 'timeline':

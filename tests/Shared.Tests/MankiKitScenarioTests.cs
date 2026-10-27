@@ -16,7 +16,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
 {
     private const string RoundBombCapabilityId = "slop.internal.manki.round-bomb.v1";
     private const string JetpackCapabilityId = "slop.internal.manki.jetpack-boost.v1";
-    private const string BazookaCapabilityId = "slop.internal.manki.bazooka.v1";
+    private const string BazookaCapabilityId = "slop.internal.manki.bazooka.v2";
     private const string AerosolCapabilityId = "slop.internal.manki.aerosol-inferno.v1";
 
     private static readonly CharacterDefinition Def = TestHelpers.MankiDef;
@@ -82,7 +82,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             p => Assert.IsType<CookedMankiRoundBombCapabilityParameters>(p));
         AssertSpecial(package, "ground.E", JetpackCapabilityId, AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None,
             p => Assert.IsType<CookedMankiJetpackBoostCapabilityParameters>(p));
-        AssertSpecial(package, "ground.R", BazookaCapabilityId, AuthoringAbilityBehavior.Projectile, AuthoringAimMode.CameraForward3D,
+        AssertSpecial(package, "ground.R", BazookaCapabilityId, AuthoringAbilityBehavior.Projectile, AuthoringAimMode.None,
             p => Assert.IsType<CookedMankiBazookaCapabilityParameters>(p));
         var jetpackSlot = package.Definition.Slots.Single(x => x.Id == "ground.E");
         Assert.True(jetpackSlot.IsRecoveryMove);
@@ -277,53 +277,28 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
     }
 
     [Fact]
-    public void R_Bazooka_AimDownRelease_RocketJumpsAndRecovers()
+    public void R_Bazooka_PressFiresAndRecoversWithoutAiming()
     {
         var sim = TestHelpers.MakeSim();
-        var player = GroundedPlayer() with { PX = 20f, PZ = 20f };
-        sim.RegisterEntity(1, Def, player, TestHelpers.LoadBakedData(Def));
-        var inputs = HoldRelease(AbilitySlots.R, aimDistance: 600, aimPitch: -9000);
+        sim.RegisterEntity(1, Def, GroundedPlayer() with { PX = 20f, PZ = 20f }, TestHelpers.LoadBakedData(Def));
         int spawned = 0;
-        bool selfContact = false, frozen = false, launched = false;
-        for (int tick = 0; tick < 160; tick++)
+        for (int tick = 0; tick < 90; tick++)
         {
-            var input = inputs.ForTick(tick);
-            input.AimPitch = -9000;
-            sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
-            var rockets = sim.Resolver.LastTickCheckedHitboxes
-                .Where(h => h.OwnerId == 1 && h.Explosion.HasValue).ToArray();
-            if (tick < 20)
-            {
-                Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
-                Assert.Empty(rockets);
-            }
-            foreach (var rocket in rockets.Where(h => h.AgeTicks == 0))
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0 } });
+            Assert.NotEqual(ActionState.Aiming, sim.GetState(1).State);
+            foreach (var rocket in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1 && h.Explosion.HasValue && h.AgeTicks == 0))
             {
                 spawned++;
-                Assert.True(rocket.VY < 0f, "The released shot must travel toward the owner's feet.");
+                Assert.Equal(6u, sim.CurrentTick);
+                Assert.Equal(4f, rocket.Explosion!.Value.OwnerDamage);
             }
-            selfContact |= sim.LastTickHits.Any(h =>
-                h.OwnerEntityId == 1 && h.TargetEntityId == 1 && !h.Blocked);
-            var current = sim.GetState(1);
-            if (!selfContact) continue;
-            Assert.Equal((ushort)4, current.DamagePercent);
-            frozen |= current.HitstopTicks > 0;
-            launched |= frozen && current.HitstopTicks == 0 && !current.IsGrounded
-                && current.KVY > 0f && current.PY > player.PY;
         }
-
         Assert.Equal(1, spawned);
-        Assert.True(selfContact, "The downward rocket must explode against its owner.");
-        Assert.True(frozen && launched, "The self-hit must produce an upward rocket jump after hitstop.");
+        Assert.Equal((ushort)0, sim.GetState(1).DamagePercent);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
         Assert.Null(sim.GetActiveAbility(1));
-        sim.Tick(new Dictionary<ulong, InputState>
-        {
-            [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 },
-        });
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
         Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
-        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
-        Assert.NotNull(sim.GetActiveAbility(1));
     }
 
     [Fact]

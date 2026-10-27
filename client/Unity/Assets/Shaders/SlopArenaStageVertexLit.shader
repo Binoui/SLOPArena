@@ -28,6 +28,7 @@ Shader "SLOPArena/StageVertexLit"
 
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        #include "SlopArenaStageCutaway.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseMap_ST;
@@ -128,6 +129,7 @@ Shader "SLOPArena/StageVertexLit"
 
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
+                StageCutawayClip(input.positionWS, input.positionCS);
                 half3 normalWS = normalize(input.normalWS);
                 normalWS = IS_FRONT_VFACE(face, normalWS, -normalWS);
 
@@ -246,15 +248,28 @@ Shader "SLOPArena/StageVertexLit"
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            float4 DepthVert(DepthAttributes input) : SV_POSITION
+            struct DepthVaryings
             {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+            };
+
+            DepthVaryings DepthVert(DepthAttributes input)
+            {
+                DepthVaryings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 positionWS += StageWind(positionWS, input.color.a);
-                return TransformWorldToHClip(positionWS);
+                output.positionWS = positionWS;
+                output.positionCS = TransformWorldToHClip(positionWS);
+                return output;
             }
 
-            half DepthFrag() : SV_Target { return 0; }
+            half DepthFrag(DepthVaryings input) : SV_Target
+            {
+                StageCutawayClip(input.positionWS, input.positionCS);
+                return 0;
+            }
             ENDHLSL
         }
 
@@ -282,6 +297,7 @@ Shader "SLOPArena/StageVertexLit"
             {
                 float4 positionCS : SV_POSITION;
                 half3 normalWS : TEXCOORD0;
+                float3 positionWS : TEXCOORD1;
             };
 
             NormalsVaryings NormalsVert(NormalsAttributes input)
@@ -290,6 +306,7 @@ Shader "SLOPArena/StageVertexLit"
                 UNITY_SETUP_INSTANCE_ID(input);
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 positionWS += StageWind(positionWS, input.color.a);
+                output.positionWS = positionWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
@@ -297,6 +314,7 @@ Shader "SLOPArena/StageVertexLit"
 
             half4 NormalsFrag(NormalsVaryings input) : SV_Target
             {
+                StageCutawayClip(input.positionWS, input.positionCS);
                 return half4(normalize(input.normalWS), 0.0h);
             }
             ENDHLSL

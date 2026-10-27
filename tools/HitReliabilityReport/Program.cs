@@ -36,6 +36,7 @@ internal static class Program
         ["fightguy"] = CharacterClass.FightGuy, ["manki"] = CharacterClass.Manki,
         ["wibou"] = CharacterClass.Wibou, ["bonk"] = CharacterClass.Bonk,
         ["bashie"] = CharacterClass.Bashie,
+        ["salamander"] = CharacterClass.Salamander,
     };
 
     private static int Main(string[] args)

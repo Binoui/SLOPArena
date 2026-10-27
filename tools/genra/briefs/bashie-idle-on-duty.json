@@ -1,9 +1,9 @@
 {
   "name": "bashie-idle-on-duty",
-  "notes": "Bashie (fighter #5, candidate BashieRig.prefab, no package yet) idle for presentation.idle, 2026-10-22. The owner picked idle A, 'on duty', from the generated direction sheets: a lifeguard scanning the pool under a visor hand. Her rig pack is a candidate pack on Manki's package (she plays on Manki's fighter until she has her own), so its references are Manki's clips on her body; they sink her about 5 cm and are not a style reference.",
+  "notes": "Bashie (fighter #5, candidate BashieRig.prefab, no package yet) idle for presentation.idle, 2026-10-22. The owner picked idle A, 'on duty', from the generated direction sheets: a lifeguard scanning the pool under a visor hand. Her rig pack is a candidate pack on Manki's package (she plays on Manki's fighter until she has her own), so its references are Manki's clips on her body; they sink her about 5 cm and are not a style reference. Slowed (2026-10-27): the owner found the GenRA idles too quick and active (\"just to give him a bit of life\") and asked for Bashie's to be slowed like the salamander's; the accepted idle played 3x slower (a 6 s loop) is bound, and this brief runs on its 360-tick clock.",
   "rigpack": "artifacts/genra-rigpacks/manki-unity-bashie",
   "character": "Bashie (49 joints: a Humanoid body with Mixamo names and full fingers, plus two rigid props on joints of their own: her turtle shell on joint Shell under Spine1, pivoting on her mid-back, and her whistle on joint Whistle under Spine2, pivoting on its ring at the top of her chest; a red cord runs from the ring round her neck). She is small and round: 1.0 m to the top of her hat in the rig, a big head under a wide bucket hat, short legs (hip joints 0.3 m above the floor, thigh 0.10 m, shin 0.07 m, ankle to toe joint 0.17 m) and short arms (upper arm 0.115 m, forearm 0.107 m).",
-  "description": "Bashie's idle: the clip she plays whenever she stands in a fight, between moves, while waiting and after landing.\n\nWho she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, red pool slides and a domed olive shell on her back. She wants everyone to follow the pool rules and breaks every rule herself. She is cute, proud and a little bossy: always on duty, watching for someone to blow her whistle at.\n\nHow the game plays it. The idle loops (ticks 0-120 are 2 s, wrapping from 120 back to 0). The game crossfades into it from every move, and out of it into the run and every attack, over about 0.1-0.2 s. The match camera sits straight behind her, so players mostly see her shell and her hat; the visor hand and the head turns must read from behind too, as a hand up at the hat brim and the hat turning. The entry pose only sets the frame: it is another character's idle on her body, sunk into the floor.\n\nThe floor. It is at up = +0.050 m in this character frame (the frame's origin is the entry hips, which sit below it). With a flat foot the toe joint (ToeBase) sits about 0.005 m above the floor (up about +0.055) and the ankle (Foot) about 0.12 m above it (up about +0.17). Standing straight, her hip joint (Hips) is 0.31 m above the floor (up about +0.36). Never push a foot through the floor.\n\nThe stance, the whole loop. Feet planted side by side, shoulder-width apart (ankles 0.16-0.26 m apart), toes turned out 10-20 degrees, both soles flat. Knees soft, never locked, never deeply bent. Chest out and chin up: proud. The left fist rests on her left hip the whole time, knuckles against the hip, the elbow out to the side and a little back. The right hand is her visor: flat, fingers together and straight, palm down, raised to the front edge of her hat brim above her eyes, as if shading them from the sun. Her arms are short and the brim is wide: if the hand cannot reach the brim's edge, keep it as high as it reaches in front of her forehead, palm down, under the brim, never through the hat or in front of her eyes.\n\nThe loop, four beats (image 2 shows them left to right as poses 1-4):\n- Tick 0 (image pose 2): looking straight ahead under the visor hand, eyes narrowed, chest puffed out.\n- Tick 30 (image pose 1): her head and the visor hand have turned to her left, scanning the pool; the weight sits on her right leg, the hips shifted 1-2 cm over the right foot.\n- Tick 70 (image pose 3): she scans back across to her right; the weight moves to her left leg and her right toes tap up off the floor once (the right heel stays down), around ticks 65-80.\n- Tick 100 (image pose 4): satisfied, the visor hand drops to chest height for a moment, a small smile, the knees dip 1-2 cm in a little bounce.\n- Tick 120: the visor hand is back up at the brim, looking straight ahead: the pose of tick 0.\n\nLife. The head leads each scan and the chest follows a few ticks later, turning about a third as far; the visor hand travels with the head. A slow breath under it all: the chest rises 1-2 cm and settles once per loop. Offset the parts so they never all stop on the same tick, and let holds drift one way rather than freeze. The shell rides on her back: keep joint Shell at its rest rotation, or let it follow the breath by a degree or two. Keep joint Whistle at its rest rotation. The upper arms stay out of the shell, whose rim sits at her sides from her shoulders to her hips.\n\nNo steps, no spins, no attack, no other props.",
+  "description": "Bashie's idle: the clip she plays whenever she stands in a fight, between moves, while waiting and after landing.\n\nWho she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, red pool slides and a domed olive shell on her back. She wants everyone to follow the pool rules and breaks every rule herself. She is cute, proud and a little bossy: always on duty, watching for someone to blow her whistle at.\n\nHow the game plays it. The idle loops (ticks 0-360 are 6 s, wrapping from 360 back to 0). The game crossfades into it from every move, and out of it into the run and every attack, over about 0.1-0.2 s. The match camera sits straight behind her, so players mostly see her shell and her hat; the visor hand and the head turns must read from behind too, as a hand up at the hat brim and the hat turning. The entry pose only sets the frame: it is another character's idle on her body, sunk into the floor.\n\nThe floor. It is at up = +0.050 m in this character frame (the frame's origin is the entry hips, which sit below it). With a flat foot the toe joint (ToeBase) sits about 0.005 m above the floor (up about +0.055) and the ankle (Foot) about 0.12 m above it (up about +0.17). Standing straight, her hip joint (Hips) is 0.31 m above the floor (up about +0.36). Never push a foot through the floor.\n\nThe stance, the whole loop. Feet planted side by side, shoulder-width apart (ankles 0.16-0.26 m apart), toes turned out 10-20 degrees, both soles flat. Knees soft, never locked, never deeply bent. Chest out and chin up: proud. The left fist rests on her left hip the whole time, knuckles against the hip, the elbow out to the side and a little back. The right hand is her visor: flat, fingers together and straight, palm down, raised to the front edge of her hat brim above her eyes, as if shading them from the sun. Her arms are short and the brim is wide: if the hand cannot reach the brim's edge, keep it as high as it reaches in front of her forehead, palm down, under the brim, never through the hat or in front of her eyes.\n\nThe loop, four beats (image 2 shows them left to right as poses 1-4):\n- Tick 0 (image pose 2): looking straight ahead under the visor hand, eyes narrowed, chest puffed out.\n- Tick 90 (image pose 1): her head and the visor hand have turned to her left, scanning the pool; the weight sits on her right leg, the hips shifted 1-2 cm over the right foot.\n- Tick 210 (image pose 3): she scans back across to her right; the weight moves to her left leg and her right toes tap up off the floor once (the right heel stays down), around ticks 195-240.\n- Tick 300 (image pose 4): satisfied, the visor hand drops to chest height for a moment, a small smile, the knees dip 1-2 cm in a little bounce.\n- Tick 360: the visor hand is back up at the brim, looking straight ahead: the pose of tick 0.\n\nLife. The head leads each scan and the chest follows a few ticks later, turning about a third as far; the visor hand travels with the head. A slow breath under it all: the chest rises 1-2 cm and settles once per loop. Offset the parts so they never all stop on the same tick, and let holds drift one way rather than freeze. The shell rides on her back: keep joint Shell at its rest rotation, or let it follow the breath by a degree or two. Keep joint Whistle at its rest rotation. The upper arms stay out of the shell, whose rim sits at her sides from her shoulders to her hips.\n\nNo steps, no spins, no attack, no other props.",
   "references": {
     "idle": "references/idle.usda",
     "run": "references/run.usda",
@@ -18,7 +18,7 @@
     "from_tick": 0
   },
   "clock": {
-    "duration_ticks": 120
+    "duration_ticks": 360
   },
   "timing": {
     "fixed": [
@@ -47,18 +47,18 @@
   "image_notes": "1: the Bashie model in its rest T-pose (front, three-quarter, side, back, three-quarter back): the bucket hat, the whistle on its red cord and the shell. 2: the pose reference the owner picked (generated concept art drawn from her model). Its four poses read left to right; the brief maps them to ticks 30 (pose 1), 0 (pose 2), 70 (pose 3) and 100 (pose 4).",
   "review_ticks": [
     0,
-    30,
-    50,
-    70,
-    100,
-    120
+    90,
+    150,
+    210,
+    300,
+    360
   ],
   "keys": [
     0,
-    30,
-    70,
-    100,
-    120
+    90,
+    210,
+    300,
+    360
   ],
   "targets": [
     {
@@ -136,7 +136,7 @@
       "kind": "below",
       "a": "Head",
       "b": "RightHand",
-      "tick": 30,
+      "tick": 90,
       "min": -0.03
     },
     {
@@ -144,7 +144,7 @@
       "kind": "below",
       "a": "Head",
       "b": "RightHand",
-      "tick": 70,
+      "tick": 210,
       "min": -0.03
     },
     {
@@ -152,7 +152,7 @@
       "kind": "below",
       "a": "Spine2",
       "b": "RightHand",
-      "tick": 100,
+      "tick": 300,
       "min": -0.08,
       "max": 0.08
     },
@@ -162,8 +162,8 @@
       "a": "RightToeBase",
       "axis": "up",
       "window": [
-        55,
-        90
+        165,
+        270
       ],
       "min": 0.015,
       "max": 0.06
@@ -175,7 +175,7 @@
       "axis": "up",
       "window": [
         0,
-        120
+        360
       ],
       "min": 0.008,
       "max": 0.04
@@ -187,7 +187,7 @@
       "axis": "up",
       "window": [
         0,
-        120
+        360
       ],
       "min": 0.004,
       "max": 0.03

@@ -48,7 +48,7 @@ kit:
 
 # Wibou — The Kitsune Blade
 
-> **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Double Slash (ground) and Reverse Slash (air), formerly normal 2, are now normal 1; Quick Slash and Air Slash are retired. Normal-2 rows below are history.
+> **Three normals ([ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** normal 1 is Quick Slash (ground) and Air Slash (air). Double Slash and Reverse Slash (normal 2) are retired (owner, 2026-10-27, reversing the 2026-10-26 pick). Normal-2 rows below are history.
 
 > **Identity (owner, 2026-10-17):** Wibou is an ironic mall-ninja weeaboo: a cringe Neo
 > from *The Matrix* with a katana, kunai and green "hacker" pixels. The kitsune, fox tails

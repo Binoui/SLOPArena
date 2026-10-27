@@ -1,7 +1,8 @@
 # Game mode exploration
 
 **Status:** exploratory design notes, started 2026-10-13; solo arcade direction
-added 2026-10-14; upgrade rounds added 2026-10-17; online Arcade added 2026-10-19.
+added 2026-10-14; upgrade rounds added 2026-10-17; online Arcade added 2026-10-19;
+Manki Mayhem added 2026-10-27.
 These record the maintainer's preferred directions and proposed rules to try; they
 are not an implementation specification or a claim of supported features. The
 [friends demo](../plans/2026-09-05-playable-demo-reset.md) remains the current
@@ -36,6 +37,9 @@ upgrades between rounds.
   on 2026-10-19 as the next multiplayer modes, ahead of upgrade rounds: volleyball
   Versus (1v1, 2v2) and Co-op against the Launcher, course Race and Co-op, behind a
   stage-first Room flow. See the [Online Arcade brief](online-arcade.md).
+- **Manki Mayhem:** an online Arcade mode where Manki hosts a game show and throws
+  a hazard pattern each round; survivors score. Selected on 2026-10-27; see
+  [below](#manki-mayhem).
 
 Rules below are design proposals. No capture duration, score target, map size,
 player maximum or ball-speed value has been selected.
@@ -263,6 +267,27 @@ ladder of escalating CPU fights is a possible spin-off, not the goal.
 Open choices include private offers versus a shared pool where a pick denies
 that upgrade to others, what happens when a player leaves mid-Match, and
 whether a character upgrade modifies its move or replaces it.
+
+## Manki Mayhem
+
+Selected on 2026-10-27: a WarioWare-style show on its own stage,
+[Manki Mayhem](stages/manki_mayhem.design.md). Each round Manki shouts a call card
+and throws one pattern from his booth; two to four fighters dodge it. Hazards hit like
+normal attacks and recovery matters. It is **competitive survival**, not co-op and not a
+fight: survivors score each round. Cards come from a shuffled deck that speeds up as
+the Match goes, and friendly fire is a Room rule (Off, Shoves by default, On).
+
+The match rhythm is **call → dodge → recover → score → next call**. The first slice
+plays SCATTER! (sticky bombs), JUMP! (shockwave rings) and BREAK OUT! (walls around
+every fighter, a bomb incoming) online from the start, with the big animated host and
+a fixed show camera. TAKE COVER!, WEAVE! and GET HIM! follow. It needs no new kit work:
+the hazards belong to the show, not to a fighter.
+
+The [feature brief](manki-mayhem.md) holds the rules, rounds and presentation;
+[ADR-0044](../adr/0044-manki-mayhem-hazard-director.md) proposes the hazard director,
+host identity and runtime breakable walls; the
+[implementation plan](manki-mayhem-implementation.md) orders the work and lists the
+open decisions. No round count, score or timing is selected.
 
 ## Moving geometry
 

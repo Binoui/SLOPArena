@@ -50,10 +50,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 3f3fbde2c4e4181669da0484ea7f2a8f, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.hit-hard
-  - _semanticId: anim.wibou.g2
-    _clip: {fileID: 7400000, guid: da8521f1a5193dad5a6d315fa11cf975, type: 2}
+  - _semanticId: anim.wibou.g1
+    _clip: {fileID: 7400000, guid: 09f1224361da525a18810294325a0d31, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.wibou.g2
+    _poseTrackId: anim.wibou.g1
   - _semanticId: anim.wibou.g3
     _clip: {fileID: 7400000, guid: 4cca1ea500278a6ebafdc0912dbef47b, type: 2}
     _extrapolation: 0
@@ -62,10 +62,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 3244bf07d135262598e18cb08d499786, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.g4
-  - _semanticId: anim.wibou.a2
-    _clip: {fileID: 1827226128182048838, guid: 51d235237d7dfe04183d966dd22e2418, type: 3}
+  - _semanticId: anim.wibou.a1
+    _clip: {fileID: 7400000, guid: 43a6eb59e651238c19b81cd42115426f, type: 3}
     _extrapolation: 0
-    _poseTrackId: anim.wibou.a2
+    _poseTrackId: anim.wibou.a1
   - _semanticId: anim.wibou.a3
     _clip: {fileID: 7400000, guid: 7dfa09206a30e2456a951e8afa182157, type: 2}
     _extrapolation: 0

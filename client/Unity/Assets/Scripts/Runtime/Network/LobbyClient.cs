@@ -37,6 +37,7 @@ namespace SlopArena.Client.Network
     {
         public Guid? ActiveMatchId { get; set; }
         public bool FriendlyFire { get; set; }
+        public string MayhemFriendlyFire { get; set; } = "shoves";
         public bool BallOnly { get; set; }
         public string? ArenaName { get; set; }
         /// <summary>The pick's format: <c>stock</c> or an Arcade format such as <c>slopball-coop</c> (ADR-0040).</summary>
@@ -768,8 +769,8 @@ namespace SlopArena.Client.Network
         public Task<RoomSnapshot> RoomChooseArenaAsync(string arena) =>
             InvokeRoomAsync<RoomSnapshot>("RoomChooseArena", arena);
         /// <summary>The leader's pick: <c>stock</c> with a PvP arena, or an admitted Arcade format and its arena.</summary>
-        public Task<RoomSnapshot> RoomChoosePickAsync(string format, string arena) =>
-            InvokeRoomAsync<RoomSnapshot>("RoomChoosePick", format, arena);
+        public Task<RoomSnapshot> RoomChoosePickAsync(string format, string arena, string mayhemFriendlyFire = "shoves") =>
+            InvokeRoomAsync<RoomSnapshot>("RoomChoosePick", format, arena, mayhemFriendlyFire);
         public Task<RoomSnapshot> RoomSetFriendlyFireAsync(bool enabled) =>
             InvokeRoomAsync<RoomSnapshot>("RoomSetFriendlyFire", enabled);
         public Task<RoomSnapshot> RoomSetBallOnlyAsync(bool enabled) =>

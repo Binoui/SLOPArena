@@ -11,6 +11,7 @@ public sealed class AimedRecoveryTests
     private static readonly CookedAimedRecoveryCapabilityParameters Parameters = new(LaunchTick, 15f, 13f, 8f, .8f);
     private static readonly CookedAimedRecoveryCapabilityParameters HopParameters = new(44, 15f, 13f, 8f, 0f,
         new RecoveryHopParameters(18, 34, .72f, .45f, .18f));
+    private static readonly CookedAimedRecoveryCapabilityParameters SteerParameters = Parameters with { RiseSteerAcceleration = 30f };
 
     [Theory]
     [InlineData(false)]
@@ -115,6 +116,25 @@ public sealed class AimedRecoveryTests
         Tick(sim, new InputState { MoveX = -x, MoveY = -z });
         Assert.Equal(launched.VX, sim.GetState(1).VX);
         Assert.Equal(launched.VZ, sim.GetState(1).VZ);
+    }
+
+    [Fact]
+    public void RiseSteeringEasesTowardTheStickAndNeutralKeepsTheDrift()
+    {
+        var sim = MakeSim(steer: true);
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.E });
+        while (sim.GetState(1).AttackElapsedTicks < LaunchTick) Tick(sim, default);
+        Assert.Equal((0f, 15f), (sim.GetState(1).VX, sim.GetState(1).VY));
+        Tick(sim, new InputState { MoveX = 1f });
+        Assert.InRange(sim.GetState(1).VX, .5f - .0001f, .5f + .0001f);
+        Tick(sim, default);
+        Assert.InRange(sim.GetState(1).VX, .5f - .0001f, .5f + .0001f);
+        var fast = sim.GetState(1); fast.VX = 7.8f; sim.SetState(1, fast);
+        Tick(sim, new InputState { MoveX = 1f });
+        Assert.Equal(8f, sim.GetState(1).VX);
+        Tick(sim, new InputState { MoveX = 1f });
+        Assert.NotNull(sim.GetActiveAbility(1));
+        Assert.Equal(8f, sim.GetState(1).VX);
     }
 
     [Fact]
@@ -233,7 +253,7 @@ public sealed class AimedRecoveryTests
         Assert.Equal(15f, sim.GetState(1).VY);
     }
 
-    private static CharacterDefinition Definition(bool hop = false)
+    private static CharacterDefinition Definition(bool hop = false, bool steer = false)
     {
         var definition = TestHelpers.EngineDef;
         definition = definition with { Movement = definition.Movement with { Gravity = 24f } };
@@ -245,15 +265,15 @@ public sealed class AimedRecoveryTests
                 "Aimed recovery fixture", "", "", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 210, true, false,
                 new CookedTimeline(new[] { new CookedStage(hop ? (ushort)54 : EndTick, 0, 0, 0, 0, Array.Empty<string>(),
                     new CookedTimelineOperation[] { new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
-                        CharacterPackageCompiler.AimedRecoveryCapabilityId, "1", hop ? HopParameters : Parameters) }) }));
+                        CharacterPackageCompiler.AimedRecoveryCapabilityId, "1", hop ? HopParameters : steer ? SteerParameters : Parameters) }) }));
         }
         definition = definition with { CookedSlots = slots };
         return definition;
     }
 
-    private static ServerSimulation MakeSim(bool grounded = false, bool hop = false, float yaw = 0f)
+    private static ServerSimulation MakeSim(bool grounded = false, bool hop = false, float yaw = 0f, bool steer = false)
     {
-        var definition = Definition(hop);
+        var definition = Definition(hop, steer);
         var state = TestHelpers.PlayerState(100f, 100f);
         state.FacingYaw = yaw;
         state.PY = TestHelpers.GroundPY(definition) + (grounded ? 0f : 10f);

@@ -120,7 +120,7 @@ public class SlopballCoopTests
     [InlineData(true)]
     public void AutoLockIgnoresTeammatesAndFollowsEachNewBall(bool friendlyFire)
     {
-        var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: friendlyFire));
+        var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off));
         sim.RegisterEntity(1, TestHelpers.EngineDef, TestHelpers.PlayerState() with { PX = 5, PZ = -5 });
         sim.RegisterEntity(2, TestHelpers.EngineDef, TestHelpers.PlayerState() with { PX = 4, PZ = -5 });
         sim.BeginSlopballRun(3);
@@ -202,7 +202,7 @@ public class SlopballCoopTests
     [Fact]
     public void EnabledFriendlyFireAllowsTeammateDamageWithoutAutoTargetingThem()
     {
-        var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: true));
+        var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: FriendlyFireMode.On));
         var def = TestHelpers.EngineDef;
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(-3, -3) with { PY = TestHelpers.GroundPY(def) });
         sim.RegisterEntity(2, def, TestHelpers.PlayerState(0, -3) with { PY = TestHelpers.GroundPY(def) });
@@ -255,7 +255,7 @@ public class SlopballCoopTests
     [InlineData(true)]
     public void GrabsCaptureTeammatesOnlyWithFriendlyFireEnabled(bool friendlyFire)
     {
-        var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: friendlyFire));
+        var sim = new ServerSimulation(Court(), new SlopballCoopMatchRule(friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off));
         var def = TestHelpers.EngineDef;
         def = def with { CaptureGeometry = new CookedCaptureGeometry(1.5f, .8f, 1.2f, .6f,
             new CaptureAnchor(0, .6f, .2f), new CaptureAnchor(0, .6f, .65f)) };
@@ -332,7 +332,7 @@ public class SlopballCoopTests
         Assert.False(MatchFormat.SlopballCoop.Admits(TestHelpers.TestArena()));
         Assert.False(MatchFormat.Stock.Admits(Court()));
         Assert.IsType<SlopballCoopMatchRule>(MatchFormat.SlopballCoop.CreateRule(3));
-        Assert.True(Assert.IsType<SlopballCoopMatchRule>(MatchFormat.SlopballCoop.CreateRule(3, friendlyFire: true)).FriendlyFire);
+        Assert.Equal(FriendlyFireMode.On, Assert.IsType<SlopballCoopMatchRule>(MatchFormat.SlopballCoop.CreateRule(3, friendlyFire: FriendlyFireMode.On)).FriendlyFire);
         Assert.Equal((byte)5, Assert.IsType<StockMatchRule>(MatchFormat.Stock.CreateRule(5)).MaxStocks);
     }
 }

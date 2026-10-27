@@ -361,7 +361,7 @@ public sealed class WibouMallRouteTests
         r.Walk(9.0f, 3.0f);
         r.Slash("escalator_1", range: 0.8f, from: new(0, -1));
         r.Walk(9.0f, 7.2f);
-        r.Jump(9.0f, 10.4f);                                            // over the missing steps
+        r.Jump(9.0f, 10.4f, runUp: 4);                                            // over the missing steps
         r.Slash("escalator_2", range: 0.6f, from: new(0, -1));
         r.Slash("escalator_3", range: 0.8f, from: new(0, -1));
         r.Walk(9.0f, 14.2f);
@@ -417,7 +417,7 @@ public sealed class WibouMallRouteTests
         r.Walk(9.0f, 3.0f);
         r.Slash("escalator_1", range: 0.8f, from: new(0, -1));
         r.Walk(9.0f, 7.2f);
-        r.Jump(9.0f, 10.4f);
+        r.Jump(9.0f, 10.4f, runUp: 4);
         r.Slash("escalator_2", range: 0.6f, from: new(0, -1));
         r.Slash("escalator_3", range: 0.8f, from: new(0, -1));
         r.Walk(9.0f, 14.2f);

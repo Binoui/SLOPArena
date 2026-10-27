@@ -10,11 +10,11 @@ namespace SlopArena.Client.Simulation
         private readonly IMatchRule? _rule;
         private readonly List<TimelinePresentationEvent> _lastTickPresentationEvents = new();
 
-        public LocalSimulationBridge(ArenaDefinition arena, IMatchRule? rule = null, GroundSpeedTuning? groundSpeedTuning = null)
+        public LocalSimulationBridge(ArenaDefinition arena, IMatchRule? rule = null)
         {
             _arena = arena;
             _rule = rule;
-            _server = new ServerSimulation(arena, rule, groundSpeedTuning: groundSpeedTuning);
+            _server = new ServerSimulation(arena, rule);
         }
 
         /// <summary>

@@ -24,6 +24,10 @@ public static class InternalCapabilityRegistry
                 when parameters is CookedChargedProjectileCapabilityParameters projectile:
                 capability = new ChargedProjectileAbility(projectile);
                 return true;
+            case CharacterPackageCompiler.FingerGunsCapabilityId
+                when parameters is CookedFingerGunsCapabilityParameters guns:
+                capability = new FingerGunsAbility(guns);
+                return true;
             case CharacterPackageCompiler.ChargedStreamCapabilityId
                 when parameters is CookedChargedStreamCapabilityParameters stream:
                 capability = new ChargedStreamAbility(stream);
@@ -58,7 +62,7 @@ public static class InternalCapabilityRegistry
             case "slop.internal.manki.jetpack-boost.v1" when parameters is CookedMankiJetpackBoostCapabilityParameters jetpack:
                 capability = new MankiJetpackBoost(jetpack);
                 return true;
-            case "slop.internal.manki.bazooka.v1" when parameters is CookedMankiBazookaCapabilityParameters bazooka:
+            case "slop.internal.manki.bazooka.v2" when parameters is CookedMankiBazookaCapabilityParameters bazooka:
                 capability = new MankiBazooka(bazooka);
                 return true;
             case "slop.internal.manki.aerosol-inferno.v1" when parameters is CookedMankiAerosolInfernoCapabilityParameters aerosol:

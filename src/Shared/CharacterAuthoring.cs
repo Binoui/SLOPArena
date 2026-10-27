@@ -302,14 +302,16 @@ public sealed record ProjectileReturnSource(
 
 public abstract record TypedCapabilityParameters;
 
-/// <summary>Automatic setup followed by a movement-input-aimed ballistic recovery (runtime API 1.9.0).</summary>
+/// <summary>Automatic setup followed by a movement-input-aimed ballistic recovery (runtime API 1.9.0).
+/// Optional RiseSteerAcceleration (API 1.11.0, m/s²) lets the stick steer horizontally after launch, up to HorizontalSpeed.</summary>
 public sealed record AimedRecoveryCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
     float DirectionalVerticalSpeed,
     float HorizontalSpeed,
     float PreparationRiseSpeed,
-    RecoveryHopParameters? Hop = null) : TypedCapabilityParameters;
+    RecoveryHopParameters? Hop = null,
+    float RiseSteerAcceleration = 0f) : TypedCapabilityParameters;
 
 /// <summary>Optional automatic setup hop (API 1.10.0), in ticks and world metres. ArcHeight is above the entry-to-landing chord.</summary>
 public sealed record RecoveryHopParameters(
@@ -349,6 +351,17 @@ public sealed record ChargedStreamCapabilityParameters(
     ushort SprayLoopTicks = 0,
     string EndAnimationId = "") : TypedCapabilityParameters;
 
+
+/// <summary>One aimed shot, then recovery; the last shot starts a committed reload, with no passive refill.</summary>
+public sealed record FingerGunsCapabilityParameters(
+    ushort FireTriggerTick,
+    ushort RecoveryTicks,
+    byte ShotsPerReload,
+    ushort ReloadTicks,
+    string ReloadAnimationId,
+    float AirMaxFallSpeed,
+    float AirRecoilSpeed,
+    ProjectileSource Projectile) : TypedCapabilityParameters;
 
 public sealed record RisingDragonCapabilityParameters(
     float RiseSpeed,
@@ -487,6 +500,7 @@ public sealed record MankiBazookaCapabilityParameters(
     float ExplosionKbAngle,
     ushort CastDuration,
     ushort RecoveryDuration,
+    float HomingTurnDegPerTick,
     string ExplosionPresentationId = "") : TypedCapabilityParameters;
 
 public sealed record MankiAerosolChargeTier(ushort ChargeTicks, float Damage, float ReachScale);

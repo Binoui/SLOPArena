@@ -9,6 +9,7 @@ their artifacts are absent.
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import subprocess
 import sys
@@ -531,6 +532,18 @@ class GenraTests(unittest.TestCase):
         self.assertIn('fist gap at contact (m)', {f.get('target') for f in report['failures']})
         self.assertNotIn('hinge', kinds)
 
+    def test_snap_exempt_skips_a_spinning_prop(self):
+        clip = self.brief.reference('fall')
+        from scipy.spatial.transform import Rotation
+        head = clip.rig.index('Head')
+        clip.q[:, head] = Rotation.from_euler('y', (np.arange(len(clip)) * 50)[:, None], degrees=True).as_quat()
+        spec = {'clearance': False, 'face': False, 'snap_degrees_per_tick': 90}
+        self.assertIn('Head', {j for f in check_clip(clip, dict(spec, snap_degrees_per_tick=35))['failures']
+                               if f['check'] == 'snap' for j in f['joints']})
+        report = check_clip(clip, dict(spec, snap_degrees_per_tick=35, snap_exempt=['Head']))
+        self.assertNotIn('Head', {j for f in report['failures'] if f['check'] == 'snap' for j in f['joints']})
+        self.assertLess(report['metrics']['maxDegreesPerTick'], 50)
+
     def test_contact_sheet_renders(self):
         sheet = contact_sheet(self.brief.reference('fall'), [0, 20], ('profile', 'three-quarter-right'), size=96, skin=self.skin)
         self.assertEqual(sheet.size, (192, 192))
@@ -543,7 +556,8 @@ class GenraTests(unittest.TestCase):
             out = preview_video(clip, Path(tmp) / 'p.mp4', ('profile',), size=64, skin=self.skin, contact=3, active=[2, 4], slow=2)
             frames = subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries',
                                      'stream=nb_read_frames', '-of', 'csv=p=0', str(out)], capture_output=True, text=True).stdout
-            self.assertEqual(int(frames), 2 * len(clip) + 2 * len(clip))
+            n = len(clip)  # short clips loop to 2 s at real speed and slow down so their slow pass lasts about 3 s
+            self.assertEqual(int(frames), n * max(2, math.ceil(120 / n)) + n * max(2, math.ceil(180 / n)))
 
     def test_motion_overview_draws_paths(self):
         clip = self.brief.reference('fall')

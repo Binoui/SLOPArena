@@ -59,7 +59,13 @@ CHARACTERS = {  # package -> {reference label: catalog semantic id}
     'wibou': {'idle': 'anim.wibou.idle', 'run': 'anim.wibou.run', 'jump': 'anim.wibou.jump', 'fall': 'anim.wibou.fall'},
     # Her idle and run are her own; jump and fall are raised stand-ins borrowed from Manki (2026-10-22).
     'bashie': {'idle': 'anim.bashie.idle', 'run': 'anim.bashie.run', 'jump': 'anim.bashie.jump', 'fall': 'anim.bashie.fall'},
+    # All four are raised stand-ins borrowed from Manki (2026-10-27) until his own clips exist.
+    'salamander': {'idle': 'anim.salamander.idle', 'run': 'anim.salamander.run', 'jump': 'anim.salamander.jump',
+                   'fall': 'anim.salamander.fall'},
 }
+# Skinned meshes the game simulates as cloth rather than animates: left out of the pack, so the animator poses the body
+# under them and the checks don't treat them as limbs (the salamander's poncho, 2026-10-27).
+CLOTH_MESHES = {'salamander': {'Salamander_Poncho'}}
 SLOTS = {'E': 4, 'R': 5, 'F': 6, 'A': 11}  # AbilitySlots numbers of the letter keys, as weapon configs store them
 BAKE_FRAMES = [0, 10, -1]  # -1 = last frame
 MIRROR = np.diag([-1.0, 1.0, 1.0])
@@ -187,6 +193,7 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
     snap_path = snap_path or latest_snapshot(package, refs, label)
     data = json.loads(snap_path.read_text())
     data['weapons'], props = split_props(data['weapons'], props)
+    data['meshes'] = [m for m in data['meshes'] if m['name'] not in CLOTH_MESHES.get(package, set())]
     out = out_dir or pack_dir(package, refs, label)
     if out.exists():
         shutil.rmtree(out)

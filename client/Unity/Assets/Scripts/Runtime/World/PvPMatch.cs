@@ -47,6 +47,7 @@ namespace SlopArena.Client.World
         private int _clockAcknowledgedGeneration = -1;
         private bool _resultsScheduled;
         private Coroutine? _countdownPresentation;
+        private MankiMayhemPresentation? _mayhem;
         private OnlineSlopball? _slopball;
         private float? _courtNetZ;
         private OnlineCharacterCourse? _course;
@@ -264,7 +265,7 @@ namespace SlopArena.Client.World
             if (MatchConfig.Format.IsSlopball() && _hudManager != null)
                 _slopball = new OnlineSlopball(transform, StageVisual, arena, _hudManager,
                     () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
-            if ((MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse()) &&
+            if ((MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse() || MatchConfig.Format == MatchFormat.MankiMayhem) &&
                 ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room &&
                 ClientSession.ActiveLobby is { } roomLobby)
             {
@@ -356,6 +357,17 @@ namespace SlopArena.Client.World
             _bridge.RegisterEntity(PlayerEntityId, playerDef, initialPlayerState, playerEntry.BakedAnimation);
             _playerRenderer.RenderInterpolation = true;
             _playerRenderer.ApplyServerState(initialPlayerState, null);
+            if (MatchConfig.Format == MatchFormat.MankiMayhem && _hudManager != null)
+            {
+                var renderers = new Dictionary<ulong, PlayerRenderer>(_opponentRenderers) { [PlayerEntityId] = _playerRenderer };
+                var players = MatchConfig.Opponents.Select(p => OnlineHudPlayer(p.EntityId, p.Class, false)).ToList();
+                players.Add(OnlineHudPlayer(PlayerEntityId, playerDef.Class, true));
+                players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
+                _mayhem = new MankiMayhemPresentation(transform, _bridge.Simulation, arena.Arcade.Mayhem,
+                    contentCatalog.Resolve(CharacterClass.Manki), renderers, players, _hudManager, _projectileVFX,
+                    _cameraMount, () => _cameraMount.RenderCamera, MatchConfig.FriendlyFire);
+                RegisterHostPresentation(ServerSimulation.MayhemHostEntityId, _mayhem.Host.Root, _mayhem.Host.Catalog);
+            }
             _lastPresentedDeaths.Clear();
             _lastPresentedDeaths[PlayerEntityId] = 0;
             foreach (var id in _opponentRenderers.Keys)
@@ -496,6 +508,8 @@ namespace SlopArena.Client.World
             PresentTimelineEvents();
 
             var presentationState = _bridge.GetState(PlayerEntityId);
+            _mayhem?.Host.Present(_bridge.Simulation, _bridge.MayhemEvents, _bridge.RetractedMayhemEvents);
+            _mayhem?.AfterTick(_bridge.MayhemEvents, _bridge.RetractedMayhemEvents);
             _course?.AfterUpdate(_bridge.Simulation, _bridge.CourseEvents, _bridge.RetractedCourseEvents, IsPaused);
             if (_slopball != null)
             {
@@ -680,7 +694,7 @@ namespace SlopArena.Client.World
                 return;
 
             _lastPresentedDeaths[entityId] = state.Deaths;
-            _hudManager?.ShowStockToast(entityId, MatchConfig.Format.IsCourse() ? $"{PlayerLabel(entityId)} · FALL · CHECKPOINT RESET" : $"{PlayerLabel(entityId)} · −1 LIFE");
+            _hudManager?.ShowStockToast(entityId, MatchConfig.Format == MatchFormat.MankiMayhem ? $"{PlayerLabel(entityId)} · OUT · BACK NEXT ROUND" : MatchConfig.Format.IsCourse() ? $"{PlayerLabel(entityId)} · FALL · CHECKPOINT RESET" : $"{PlayerLabel(entityId)} · −1 LIFE");
         }
 
         private string PlayerLabel(ulong entityId)
@@ -742,6 +756,7 @@ namespace SlopArena.Client.World
             }
             if (_networkClient != null)
                 _networkClient.ConnectionFailed -= OnSteamConnectionFailed;
+            _mayhem?.Dispose();
             _slopball?.Dispose();
             _course?.Dispose();
             base.OnDestroy();

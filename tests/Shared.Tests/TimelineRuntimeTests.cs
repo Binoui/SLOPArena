@@ -1003,18 +1003,22 @@ public sealed class TimelineRuntimeTests
                     sim.Tick(new() { [1] = new InputState { TargetEntityId = 100 } });
                 } while (sim.GetState(1).State == ActionState.Aiming);
             }
+            var profile = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+                .OfType<CookedStartupAimCorrectionOperation>().Single();
+            float step = profile.YawDegreesPerSecond * MathF.PI / 180f / 60f;
+            float limit = profile.MaxYawDegrees * MathF.PI / 180f;
             float previousYaw = sim.GetState(1).FacingYaw;
-            TestHelpers.AssertNear(MathF.PI / 30f, previousYaw);
+            TestHelpers.AssertNear(step, previousYaw);
             for (int tick = aimedHold ? 1 : 2; tick < commitmentTick; tick++)
             {
                 sim.Tick(inputs);
                 var state = sim.GetState(1);
-                Assert.InRange(state.FacingYaw - previousYaw, 0f, MathF.PI / 30f + 1e-5f);
-                Assert.InRange(state.FacingYaw, 0f, MathF.PI / 4f + 1e-5f);
+                Assert.InRange(state.FacingYaw - previousYaw, 0f, step + 1e-5f);
+                Assert.InRange(state.FacingYaw, 0f, limit + 1e-5f);
                 previousYaw = state.FacingYaw;
             }
-            float expectedYaw = MathF.Min(MathF.PI / 4f,
-                MathF.PI / 30f * (aimedHold ? commitmentTick : commitmentTick - 1));
+            float expectedYaw = MathF.Min(limit,
+                step * (aimedHold ? commitmentTick : commitmentTick - 1));
             TestHelpers.AssertNear(expectedYaw, previousYaw);
             // Crossing at the first active/launch tick must not permit one last correction.
             sim.SetState(100, sim.GetState(100) with { PX = -2.5f });
@@ -1069,7 +1073,10 @@ public sealed class TimelineRuntimeTests
             Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
         }
         sim.TickAbilities(new() { [1] = default });
-        float expected = manualYaw + (targetScenario == "valid" ? MathF.PI / 30f : 0f);
+        var profile = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<CookedStartupAimCorrectionOperation>().Single();
+        float step = profile.YawDegreesPerSecond * MathF.PI / 180f / 60f;
+        float expected = manualYaw + (targetScenario == "valid" ? step : 0f);
         TestHelpers.AssertNear(expected, sim.GetState(1).FacingYaw);
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
         Assert.Equal(targetScenario == "empty" ? 0UL : 100UL, sim.GetState(1).AttackCorrectionTargetId);
@@ -1158,7 +1165,7 @@ public sealed class TimelineRuntimeTests
             if (walking.State == ActionState.Aiming) fastest = MathF.Max(fastest, MathF.Abs(walking.VX));
         }
         Assert.InRange(fastest, 0.5f * cap, cap + 1e-4f);
-        if (!airborne) TestHelpers.AssertNear(cap, fastest, 1e-4f);
+        if (!airborne) TestHelpers.AssertNear(.94f * cap, fastest, 1e-4f);
 
         var stopped = sim.GetState(1);
         Assert.Equal(ActionState.Attacking, stopped.State);

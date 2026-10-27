@@ -379,3 +379,9 @@
 .course-online-player .course-pips { flex-wrap: wrap; }
 
 .course-live--online { right: 18px; top: 76px; width: 320px; }
+
+.mayhem-pick { flex-grow: 1; margin: 0; padding: 0; border-width: 0; background-color: transparent; flex-direction: column; }
+.arcade-mode-art--mayhem { background-image: url("Stages/manki_mayhem.png"); }
+.mayhem-rules { flex-direction: row; align-items: center; padding: 8px 12px; background-color: rgb(240, 238, 232); }
+.mayhem-rules .arcade-mode-rule { margin-right: 12px; font-size: 12px; }
+.mayhem-rules .selection-target-button { flex-grow: 1; min-width: 64px; }

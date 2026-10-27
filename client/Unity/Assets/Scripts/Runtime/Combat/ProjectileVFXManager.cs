@@ -34,6 +34,19 @@ namespace SlopArena.Client.Combat
         private ProjectileVFXConfig _config;
 
         private readonly Dictionary<ulong, (CharacterAnimationCatalog Catalog, PlayerRenderer Renderer)> _owners = new();
+        private readonly Dictionary<ulong, ProjectilePresentation> _hazardVisuals = new();
+        private readonly Dictionary<ulong, Transform> _hazardHands = new();
+        private readonly Dictionary<ulong, Vector3> _launchOffsets = new();
+
+        public void RegisterHazardOwner(ulong owner, CharacterAnimationCatalog catalog, ProjectilePresentation visual, Transform hand)
+        {
+            RegisterOwner(owner, catalog);
+            _hazardVisuals[owner] = visual;
+            _hazardHands[owner] = hand;
+        }
+
+        private ProjectilePresentation VisualFor(ulong owner, byte slot, bool airborne)
+            => _hazardVisuals.TryGetValue(owner, out var visual) ? visual : ProfileFor(owner)?.FindProjectile(slot, airborne);
 
         public void RegisterOwner(ulong owner, CharacterAnimationCatalog catalog, PlayerRenderer renderer = null)
         {
@@ -46,6 +59,8 @@ namespace SlopArena.Client.Combat
             if (expectedRenderer != null && _owners.TryGetValue(owner, out var current)
                 && !ReferenceEquals(current.Renderer, expectedRenderer)) return;
             ClearOwnerVisuals(owner);
+            _hazardVisuals.Remove(owner);
+            _hazardHands.Remove(owner);
             _owners.Remove(owner);
         }
 
@@ -57,7 +72,11 @@ namespace SlopArena.Client.Combat
             _goneLocal.Clear();
             foreach (var pair in _activeVisuals)
                 if (pair.Key.Owner == owner) { DestroyVisual(pair.Value); _goneLocal.Add(pair.Key); }
-            foreach (var key in _goneLocal) _activeVisuals.Remove(key);
+            foreach (var key in _goneLocal)
+            {
+                _activeVisuals.Remove(key);
+                _launchOffsets.Remove(key.Emission);
+            }
             ClearHeldVisual(owner);
         }
 
@@ -165,6 +184,7 @@ namespace SlopArena.Client.Combat
             foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
             foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
             _activeVisuals.Clear();
+            _launchOffsets.Clear();
             _heldVisuals.Clear();
             _sim = sim;
             _config = Resources.Load<ProjectileVFXConfig>("VFXConfigs/ProjectileVisuals");
@@ -185,7 +205,7 @@ namespace SlopArena.Client.Combat
                 var hb = hitboxes[i];
                 if (!_owners.ContainsKey(hb.OwnerId)) continue;
                 float speedSq = hb.VX * hb.VX + hb.VY * hb.VY + hb.VZ * hb.VZ;
-                if (speedSq <= 0.0001f)
+                if (speedSq <= 0.0001f && hb.StickyFuseTicks == 0)
                     continue;
 
                 var projectileKey = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex,
@@ -196,12 +216,26 @@ namespace SlopArena.Client.Combat
                     vis = TakeHeldVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne, hb.AttackSequence)
                         ?? CreateProjectileVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
                     _activeVisuals[projectileKey] = vis;
+                    if (_hazardHands.TryGetValue(hb.OwnerId, out var hand) && hand != null)
+                        _launchOffsets[hb.EmissionId] = hand.position - new Vector3(hb.X, hb.Y, hb.Z);
                 }
                 vis.transform.position = new Vector3(hb.X, hb.Y, hb.Z);
+                // The booth origin is gameplay metadata. Blend the cosmetic handoff over the
+                // first eight ticks; collision and the rest of the flight remain Shared's.
+                if (_hazardHands.ContainsKey(hb.OwnerId) && hb.AgeTicks < 9
+                    && _launchOffsets.TryGetValue(hb.EmissionId, out var offset))
+                    vis.transform.position += offset * Mathf.Clamp01(1f - (hb.AgeTicks - 1) / 8f);
+                if (_hazardVisuals.TryGetValue(hb.OwnerId, out var hazard) && hb.AttachedEntityId != 0)
+                {
+                    float fraction = hb.FuseTicksLeft / (float)Mathf.Max(1, hb.StickyFuseTicks);
+                    float pulse = SlopArena.Client.UI.ClientSettingsService.Instance.ReducedFlashing ? 0f
+                        : .12f * Mathf.Sin(_sim.CurrentTick / 60f * Mathf.Lerp(26f, 8f, fraction));
+                    vis.transform.localScale = Vector3.one * hazard.Scale * (1f + pulse);
+                }
                 ScaleProjectileVisual(vis, hb.Radius,
                     GetChargedProjectileParameters(_sim.GetDefinition(hb.OwnerId)?.GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)),
                     hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
-                OrientProjectile(vis.transform, ProfileFor(hb.OwnerId)?.FindProjectile(hb.AttackSlot, hb.ActivationAirborne), hb.VX, hb.VY, hb.VZ);
+                OrientProjectile(vis.transform, VisualFor(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne), hb.VX, hb.VY, hb.VZ);
             }
 
             _goneLocal.Clear();
@@ -211,7 +245,11 @@ namespace SlopArena.Client.Combat
                 _goneLocal.Add(kv.Key);
                 DestroyVisual(kv.Value);
             }
-            foreach (var id in _goneLocal) _activeVisuals.Remove(id);
+            foreach (var id in _goneLocal)
+            {
+                _activeVisuals.Remove(id);
+                _launchOffsets.Remove(id.Emission);
+            }
         }
 
         private static CookedChargedProjectileCapabilityParameters GetChargedProjectileParameters(
@@ -237,7 +275,7 @@ namespace SlopArena.Client.Combat
 
         private GameObject CreateProjectileVisual(ulong owner, byte attackSlot, bool airborne)
         {
-            var row = ProfileFor(owner)?.FindProjectile(attackSlot, airborne);
+            var row = VisualFor(owner, attackSlot, airborne);
             if (row?.Prefab != null)
             {
                 try
