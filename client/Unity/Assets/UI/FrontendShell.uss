@@ -1005,6 +1005,7 @@
 .stage-header-section .flow-title,
 .stage-header-section .btn-back,
 .stage-card .stage-name,
+.stage-hero-name,
 .stage-actions-section .stage-confirm,
 .stage-player-cards .player-card__number,
 .stage-player-cards .player-card__name,
@@ -1479,17 +1480,67 @@
 }
 .stage-body-section .stage-grid {
     width: 100%;
+    justify-content: flex-start;
 }
 
-/* Four previews per row, tall enough to show the arena instead of a strip. */
+/* One big preview of the focused stage beside a small picker: the stage
+   shows once, large, and the picker holds a dozen stages without growing. */
+.stage-pick {
+    flex-grow: 1;
+    min-height: 0;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.stage-hero {
+    width: 960px;
+    height: 540px;
+    flex-shrink: 0;
+    margin: 6px 24px 0 0;
+    background-color: rgb(22, 21, 19);
+    border-width: 4px;
+    border-bottom-width: 10px;
+    border-right-width: 9px;
+    border-color: rgb(22, 21, 19);
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.stage-hero-name {
+    position: absolute;
+    left: -12px;
+    bottom: 22px;
+    padding: 4px 22px;
+    background-color: var(--shell-action);
+    color: var(--shell-canvas);
+    border-width: 3px;
+    border-color: rgb(22, 21, 19);
+    font-size: 40px;
+    rotate: -1.5deg;
+}
+
+.stage-pick .stage-scroll {
+    flex-grow: 0;
+    width: 664px;
+}
+
+.stage-pick--arcade .stage-scroll {
+    flex-grow: 1;
+    width: auto;
+}
+
 .stage-body-section .stage-card {
-    width: 23.6%;
-    height: 236px;
+    width: 206px;
+    height: 116px;
+    margin: 5px;
+}
+
+.stage-body-section .stage-card--selected {
+    border-width: 4px;
 }
 
 .stage-body-section .stage-card .stage-name {
-    min-height: 38px;
-    font-size: 16px;
+    display: none;
 }
 
 
@@ -1539,17 +1590,6 @@
 
 .frontend-shell--compact .stage-header-section .flow-subtitle {
     display: none;
-}
-
-.frontend-shell--compact .stage-body-section .stage-card {
-    width: 23.4%;
-    height: 230px;
-}
-
-.frontend-shell--compact .stage-body-section .stage-card .stage-name {
-    min-height: 30px;
-    padding: 6px 6px 4px;
-    font-size: 13px;
 }
 
 

@@ -92,6 +92,9 @@ namespace SlopArena.EditorTools
 
         private void FixedUpdate() => OnMatchFixedUpdate();
 
+        protected override bool ShowFighterIndicators => false;
+
+
         protected override void OnMatchStart()
         {
             FilmCamera.transform.SetParent(null, true);

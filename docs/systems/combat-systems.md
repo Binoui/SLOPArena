@@ -130,11 +130,12 @@ RunSpeed versus ordinary RunSpeed; caps never refill velocity or restore wall-bl
 components. Grounded mobility uses normal movement; character-specific mobility stays in kit abilities.
 
 The roster packages opt their grounded normals into `allowSlideCarry`.
-Activation switches immediately to the attack pose and caps existing Slide momentum at
-RunSpeed. For this brief-carry trial, Run starts cap existing momentum at the speed that
-brakes to zero in `DownActionTuning.RunAttackCarryTicks`, currently 8 ticks.
-Both origins decay by 6× RunSpeed per second without steering, acceleration or refilling
-lower incoming speed. At the caps, Run stops after 8 unfrozen ticks and Slide after 10.
+Activation switches immediately to the attack pose and caps existing Run or Slide
+momentum at RunSpeed. Run starts brake to zero over `DownActionTuning.RunAttackCarryTicks`,
+currently 20 ticks (3× RunSpeed per second), so a run attack slides as far as releasing
+the stick. Slide starts decay by 6× RunSpeed per second. Neither origin steers, accelerates
+or refills lower incoming speed. At the cap, Run stops after 20 unfrozen ticks and Slide
+after 10. The replicated `AttackCarryFromRun` flag selects the Run rate.
 `PreserveMomentumOnStart` overrides Run braking; opted-in Slide carry retains priority.
 Idle starts and chained normals do not gain carry. Carry freezes during Hitstop and clears
 on completion, cancellation, hit or motion takeover. Aerial momentum and normal attack locks

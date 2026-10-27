@@ -8,7 +8,7 @@ namespace SlopArena.Shared.Tests;
 public class AttackMomentumTests
 {
     [Theory]
-    [InlineData(ActionState.Run, .8f, 8)]
+    [InlineData(ActionState.Run, 1f, 20)]
     [InlineData(ActionState.Sliding, 1f, 10)]
     [InlineData(ActionState.Idle, 0f, 0)]
     public void EligibleNormal_BrakesBeforeIntegrationWithoutSteeringOrAcceleration(
@@ -20,13 +20,13 @@ public class AttackMomentumTests
         float startZ = sim.GetState(1).PZ;
         float distance = 0f;
 
-        for (int tick = 1; tick <= 12; tick++)
+        for (int tick = 1; tick <= 22; tick++)
         {
             var state = Tick(sim, TestHelpers.Input(
                 activeSlot: tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None,
                 moveX: tick % 2 == 0 ? -1f : 1f, moveY: 1f,
                 down: origin == ActionState.Sliding));
-            float speed = MathF.Max(0f, entryRatio - .1f * tick) * def.Movement.RunSpeed;
+            float speed = MathF.Max(0f, entryRatio - Brake(origin) * tick) * def.Movement.RunSpeed;
             distance += speed * Simulation.TickDt;
 
             Assert.Equal(ActionState.Attacking, state.State);
@@ -41,7 +41,7 @@ public class AttackMomentumTests
     }
 
     [Theory]
-    [InlineData(ActionState.Run, 1.2f, .9f, .8f)]
+    [InlineData(ActionState.Run, 1.2f, .9f, 1f)]
     [InlineData(ActionState.Run, .24f, .18f, .3f)]
     [InlineData(ActionState.Run, .03f, .04f, .05f)]
     [InlineData(ActionState.Sliding, 1.2f, .9f, 1f)]
@@ -58,12 +58,12 @@ public class AttackMomentumTests
         float directionZ = zRatio / magnitude;
         float distance = 0f;
 
-        for (int tick = 1; tick <= 12; tick++)
+        for (int tick = 1; tick <= 22; tick++)
         {
             var after = Tick(sim, TestHelpers.Input(
                 activeSlot: tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None,
                 moveX: -1f, moveY: -1f, down: origin == ActionState.Sliding));
-            float speed = MathF.Max(0f, entryRatio - .1f * tick) * runSpeed;
+            float speed = MathF.Max(0f, entryRatio - Brake(origin) * tick) * runSpeed;
             distance += speed * Simulation.TickDt;
 
             Assert.Equal(ActionState.Attacking, after.State);
@@ -91,8 +91,9 @@ public class AttackMomentumTests
             Assert.Equal(ActionState.Sliding,
                 Tick(sim, new InputState { MoveY = 1f, Down = true, DownPressed = true }).State);
         var before = sim.GetState(1);
-        float entrySpeed = slide ? before.VZ : .8f * def.Movement.RunSpeed;
-        float expectedSpeed = entrySpeed - .1f * def.Movement.RunSpeed;
+        float entrySpeed = slide ? before.VZ : def.Movement.RunSpeed;
+        float expectedSpeed = entrySpeed
+            - Brake(slide ? ActionState.Sliding : ActionState.Run) * def.Movement.RunSpeed;
 
         var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1, moveY: 1f, down: slide));
 
@@ -194,11 +195,11 @@ public class AttackMomentumTests
         }
 
         float distance = 0f;
-        int remainingTicks = origin == ActionState.Run ? 7 : 9;
+        int remainingTicks = origin == ActionState.Run ? 19 : 9;
         for (int tick = 1; tick <= remainingTicks + 1; tick++)
         {
             var after = Tick(sim, TestHelpers.Input(moveY: 1f));
-            float speed = MathF.Max(0f, before.VX - tick * .1f * def.Movement.RunSpeed);
+            float speed = MathF.Max(0f, before.VX - tick * Brake(origin) * def.Movement.RunSpeed);
             distance += speed * Simulation.TickDt;
             TestHelpers.AssertNear(speed, after.VX, .001f);
             TestHelpers.AssertNear(before.PX + distance, after.PX, .001f);
@@ -234,7 +235,7 @@ public class AttackMomentumTests
         else
         {
             Assert.Same(originalAbility, sim.GetActiveAbility(1));
-            TestHelpers.AssertNear(.6f * def.Movement.RunSpeed, after.VX, .001f);
+            TestHelpers.AssertNear(.9f * def.Movement.RunSpeed, after.VX, .001f);
             TestHelpers.AssertNear(before.PX + after.VX * Simulation.TickDt, after.PX, .001f);
         }
         Assert.Equal(0f, after.VZ);
@@ -260,8 +261,7 @@ public class AttackMomentumTests
         if (operationTick > 0)
         {
             Assert.Equal(lunge, after.SlideAttackCarryActive);
-            float entryRatio = origin == ActionState.Run ? .8f : 1f;
-            float speed = (entryRatio - (lunge ? .1f : 0f)) * def.Movement.RunSpeed;
+            float speed = (1f - (lunge ? Brake(origin) : 0f)) * def.Movement.RunSpeed;
             TestHelpers.AssertNear(speed, after.VX, .001f);
             TestHelpers.AssertNear(before.PX + speed * Simulation.TickDt, after.PX, .001f);
             for (int tick = 1; tick < operationTick; tick++)
@@ -306,7 +306,7 @@ public class AttackMomentumTests
             var expected = Tick(continuous);
             var actual = Tick(restored);
             Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()));
-            float speed = MathF.Max(0f, before.VX - Math.Max(0, tick - hitstop) * .1f * def.Movement.RunSpeed);
+            float speed = MathF.Max(0f, before.VX - Math.Max(0, tick - hitstop) * Brake(origin) * def.Movement.RunSpeed);
             if (tick > hitstop)
                 distance += speed * Simulation.TickDt;
             TestHelpers.AssertNear(speed, actual.VX, .001f);
@@ -354,6 +354,8 @@ public class AttackMomentumTests
         Assert.Equal(before.PZ, after.PZ);
         Assert.Null(sim.GetActiveAbility(1));
     }
+
+    private static float Brake(ActionState origin) => origin == ActionState.Run ? .05f : .1f;
 
     private static CharacterState Tick(ServerSimulation sim, InputState input = default)
     {

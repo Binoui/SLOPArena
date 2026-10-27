@@ -43,6 +43,7 @@ namespace SlopArena.Shared
             w.WriteBool(s.IsFastFalling);
             w.WriteBool(s.JumpFromSlide);
             w.WriteBool(s.SlideAttackCarryActive);
+            w.WriteBool(s.AttackCarryFromRun);
             w.WriteBool(s.CrouchSettled);
             w.WriteBool(s.QueuedCrouchBrace);
             w.WriteByte(s.Deaths);
@@ -156,6 +157,7 @@ namespace SlopArena.Shared
             s.IsFastFalling = r.ReadBool();
             s.JumpFromSlide = r.ReadBool();
             s.SlideAttackCarryActive = r.ReadBool();
+            s.AttackCarryFromRun = r.ReadBool();
             s.CrouchSettled = r.ReadBool();
             s.QueuedCrouchBrace = r.ReadBool();
             s.Deaths = r.ReadByte();

@@ -83,7 +83,6 @@ namespace SlopArena.Client.World
             SetupHUD(_playerDef, new List<HUDManager.HudPlayer>
                 { new(DummyEntityId, "DUMMY", _dummyEntry.Definition.Class, isLocal: false) });
             SetupCamera(); SetupAimHandler(_playerDef);
-            SetupLockIndicator(new[] { _playerRenderer, _dummyRenderer }, arena);
             _inputController.RequireReleaseBeforeHumanInput();
             Progress = new TutorialProgress(Layout, _playerDef.CapsuleHeight);
             _view = new TutorialView(_hudManager.Document.rootVisualElement, _playerDef, Layout, SkipLesson, RestartLesson,

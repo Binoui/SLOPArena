@@ -102,7 +102,5 @@
 .fighter-panel .fighter-panel__status { -unity-text-align: middle-left; }
 .fighter-panel--open .fighter-panel__status { -unity-text-align: upper-center; }
 
-.frontend-shell--stage .stage-body-section .stage-grid { width: 72%; align-self: center; justify-content: center; }
-.frontend-shell--stage .stage-body-section .stage-card { width: 31%; height: 236px; }
 
 .frontend-shell--stage .stage-actions-section .stage-selected-label { white-space: normal; -unity-text-align: middle-center; }

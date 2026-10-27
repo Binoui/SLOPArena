@@ -49,6 +49,9 @@ namespace SlopArena.Client.World
         protected UnityEngine.Camera _mainCamera;
         private readonly TimelinePresentationDispatcher _timelinePresentations = new();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
+        private readonly Dictionary<ulong, PlayerRenderer> _fighters = new();
+        private ArenaDefinition _fighterArena;
+        private GameObject _fighterIndicator;
         private readonly HashSet<ulong> _activeSwordOwners = new();
         protected MatchPauseMenu _pauseMenu;
         private Mesh _cameraCollisionMesh;
@@ -67,6 +70,7 @@ namespace SlopArena.Client.World
                 _hudManager != null ? _hudManager.Document : null,
                 freezeSimulation: this is not PvPMatch, onRetry: PauseRetry);
             OnMatchStart();
+            if (enabled) RebuildFighterIndicators();
             gameObject.AddComponent<MatchVisualStyle>().Apply();
         }
         private void FixedUpdate()
@@ -126,6 +130,7 @@ namespace SlopArena.Client.World
             foreach (var weapon in _weapons.Values)
                 if (weapon != null) weapon.SetHitboxTrailActive(false);
             _weapons.Clear();
+            _fighters.Clear();
             if (_cameraCollisionMesh != null)
                 Destroy(_cameraCollisionMesh);
         }
@@ -198,6 +203,8 @@ namespace SlopArena.Client.World
             var weapon = renderer.GetComponent<WeaponAttach>() ?? renderer.gameObject.AddComponent<WeaponAttach>();
             weapon.Init(renderer, weaponConfig);
             _weapons[entityId] = weapon;
+            _fighters[entityId] = renderer;
+            _fighterArena = arena;
             return true;
         }
         protected void PresentTimelineEvents()
@@ -391,20 +398,32 @@ namespace SlopArena.Client.World
                 ? new Vector3(position.X, position.Y, position.Z) : null;
         }
 
+        /// <summary>Capture and review tools turn off the fighter indicators for clean shots.</summary>
+        protected virtual bool ShowFighterIndicators => true;
+
         /// <summary>
-        /// Instantiate the global ground-shadow indicator (ADR-0018 / issue #127):
-        /// one quiet ground marker pinned to the arena floor under every renderer.
+        /// (Re)build the global ground-shadow indicator (ADR-0018 / issue #127) for every fighter
+        /// set up through <see cref="SetupRenderer"/>: floor ring with facing crescent, airborne
+        /// drop line and homing-dash lock-on. Runs after <see cref="OnMatchStart"/>; call again
+        /// after the fighter roster changes.
         /// </summary>
-        protected void SetupLockIndicator(PlayerRenderer[] renderers, ArenaDefinition arena)
+        protected void RebuildFighterIndicators()
         {
-            var go = new GameObject("LockTargetIndicator");
-            go.transform.SetParent(transform, false);
-            var indicator = go.AddComponent<TargetIndicator>();
-            indicator.Init(Bridge.GetState, renderers, arena, PlayerEntityId, _cameraMount?.RenderCamera,
+            if (_fighterIndicator != null) Destroy(_fighterIndicator);
+            _fighterIndicator = null;
+            var renderers = _fighters.Values.Where(r => r != null).ToArray();
+            if (!ShowFighterIndicators || renderers.Length == 0) return;
+            _fighterIndicator = new GameObject("LockTargetIndicator");
+            _fighterIndicator.transform.SetParent(transform, false);
+            var indicator = _fighterIndicator.AddComponent<TargetIndicator>();
+            indicator.Init(Bridge.GetState, renderers, _fighterArena, PlayerEntityId, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
                     ? camp : SlopballCamp.None, CourseColours.ForEntity, LocalAccentOf);
-            go.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
+            _fighterIndicator.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
         }
+
+        /// <summary>Drop a fighter whose renderer is being destroyed; rebuild the indicators afterwards.</summary>
+        protected void ForgetFighter(ulong entityId) => _fighters.Remove(entityId);
 
         /// <summary>Couch play: extra Local Players and their facing-ring accent; null for everyone else.</summary>
         protected virtual Func<ulong, Color?> LocalAccentOf => null;

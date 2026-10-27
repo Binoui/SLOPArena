@@ -97,6 +97,9 @@ namespace SlopArena.EditorTools
             }
         }
 
+        protected override bool ShowFighterIndicators => false;
+
+
         protected override void OnMatchStart()
         {
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)

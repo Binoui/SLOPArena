@@ -192,6 +192,25 @@ Fox-spirit theme gives a distinct roster silhouette (monkey / human / fox) and n
 - Mobility: agile, for **repositioning and spacing**, not stealth/escape. Not a full run-in rushdown — a pressure-at-range fighter.
 - **Designed weakness:** weak once an opponent gets *inside* the blade (classic Marth flaw) and an **honestly exploitable recovery** (see below).
 
+### Kill power pass — 2026-10-27
+
+Wibou had no killing hit: ground.4 sent at 8° (the victim skidded along the floor),
+and Skyfall's −90° spike lost all its knockback on ground contact, since the sim has
+no ground bounce. Changed values:
+
+| Hit | Before (dmg / angle / base / growth) | After |
+|---|---|---|
+| ground.4 Heavy Down Slash | 12 / 8° / 8 / 32 | 14 / 40° / 9 / 44 |
+| air.4 Air Heavy Down Slash | 10 / −65° / 6 / 26 | 12 / −70° / 8 / 36 |
+| F Skyfall finisher | 16 / −90° / 16 / 18 | 16 / 35° / 12 / 42 |
+
+On the move-data 60×60 proxy, ground.4 now kills at 193% (FightGuy/Manki ground.4:
+~220%) and the Skyfall finisher at ~200%; before, neither killed. air.4 stays an
+offstage spike, which the flat proxy cannot measure. ground.4 hits on frame 41
+(FightGuy 12, Manki 10), so it is meant to kill a little earlier than the fast heavies.
+Awaiting a Training feel check, including whether the Skyfall spike animation
+reads with an upward-outward launch.
+
 ### Local gamefeel tuning — 2026-10-02
 
 Wibou retains the fastest Run at 14 m/s. Air cap remains 7 m/s and air

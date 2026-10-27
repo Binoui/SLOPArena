@@ -15,6 +15,7 @@ namespace SlopArena.Shared
         // 21: JUMP! shockwaves, World Snapshot v11 and World Frame v6.
         // 22: BREAK OUT! walls, World Snapshot v12 and World Frame v7.
         // 23: universal progressive ground locomotion. Snapshot and input layouts unchanged.
-        public const byte Version = 23;
+        // 24: Run-started attack carry brakes over 20 ticks; replicated carry origin.
+        public const byte Version = 24;
     }
 }

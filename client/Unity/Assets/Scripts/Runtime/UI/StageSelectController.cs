@@ -31,6 +31,8 @@ namespace SlopArena.Client.UI
         private Label _lblWaiting;
         private VisualElement _playerCards;
         private VisualElement _grid;
+        private VisualElement _hero;
+        private Label _heroName;
         private LobbyClient _lobby;
         private ChatSession _chatSession;
         private bool _roomMode;
@@ -59,6 +61,9 @@ namespace SlopArena.Client.UI
             _confirmInFlight = false;
             _grid = _context.Q<VisualElement>("stage-grid");
             _grid?.Clear();
+            _hero = _context.Q<VisualElement>("stage-hero");
+            _heroName = _context.Q<Label>("stage-hero-name");
+            ShowHero("");
             _btnConfirm = _context.Q<Button>("btn-confirm");
             _lblSelectedStage = _context.Q<Label>("lbl-selected-stage");
             _lblWaiting = _context.Q<Label>("lbl-waiting");
@@ -118,6 +123,11 @@ namespace SlopArena.Client.UI
                     name = $"stage-{arena.Name}"
                 };
                 card.AddToClassList("stage-card");
+                card.tooltip = DisplayName(arena);
+                card.RegisterCallback<FocusInEvent>(_ => ShowHero(capturedName));
+                card.RegisterCallback<PointerEnterEvent>(_ => ShowHero(capturedName));
+                card.RegisterCallback<FocusOutEvent>(_ => ShowHero(_selectedArena));
+                card.RegisterCallback<PointerLeaveEvent>(_ => ShowHero(_selectedArena));
 
                 var swatch = new VisualElement();
                 swatch.AddToClassList("stage-swatch");
@@ -296,6 +306,8 @@ namespace SlopArena.Client.UI
             _context.Q<Button>("stage-tab-pvp")?.EnableInClassList("shell-nav-tab--selected", !arcade);
             _context.Q<Button>("stage-tab-arcade")?.EnableInClassList("shell-nav-tab--selected", arcade);
             _grid?.style.SetDisplay(!arcade);
+            _hero?.style.SetDisplay(!arcade);
+            _context.Q<VisualElement>("stage-pick")?.EnableInClassList("stage-pick--arcade", arcade);
             _context.Q<VisualElement>("stage-arcade")?.style.SetDisplay(arcade);
         }
 
@@ -928,6 +940,7 @@ namespace SlopArena.Client.UI
         }
         private void SelectStage(string name)
         {
+            ShowHero(name);
             if (MatchConfig.Mode == GameMode.PvP && !ClientSession.IsLobbyHost)
                 return;
 
@@ -946,10 +959,12 @@ namespace SlopArena.Client.UI
 
             ArenaDefinition? arena = ArenaRegistry.Get(name);
             string label = arena.HasValue ? DisplayName(arena.Value) : name.Replace('_', ' ');
+            // Outside Rooms the hero already names the pick.
             if (_lblSelectedStage != null)
-                _lblSelectedStage.text = _roomMode
-                    ? $"ARENA TO CONFIRM: {label.ToUpperInvariant()}"
-                    : $"STAGE SELECTED: {label.ToUpperInvariant()}";
+            {
+                _lblSelectedStage.text = $"ARENA TO CONFIRM: {label.ToUpperInvariant()}";
+                _lblSelectedStage.style.SetDisplay(_roomMode);
+            }
             if (_lblWaiting != null)
                 _lblWaiting.style.display = DisplayStyle.None;
             if (_btnConfirm != null)
@@ -960,6 +975,17 @@ namespace SlopArena.Client.UI
                 _btnConfirm.SetEnabled(!_roomMode || ClientSession.IsLobbyHost &&
                     !_roomActionPending && _lobby?.IsConnected == true);
             }
+        }
+
+        private void ShowHero(string name)
+        {
+            if (_hero == null) return;
+            var preview = string.IsNullOrEmpty(name) ? null : Resources.Load<Texture2D>($"UI/Stages/{name}");
+            _hero.style.backgroundImage = preview != null ? new StyleBackground(preview) : new StyleBackground(StyleKeyword.None);
+            ArenaDefinition? arena = string.IsNullOrEmpty(name) ? null : ArenaRegistry.Get(name);
+            if (_heroName == null) return;
+            _heroName.text = arena.HasValue ? DisplayName(arena.Value) : "";
+            _heroName.style.SetDisplay(arena.HasValue);
         }
     }
 }

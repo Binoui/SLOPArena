@@ -334,12 +334,6 @@ namespace SlopArena.Client.World
             }
             _opponentArray = new List<PlayerRenderer>(_opponentRenderers.Values).ToArray();
 
-            // Ground-shadow rings under every player: local + all opponents.
-            var lockRenderers = new PlayerRenderer[_opponentArray.Length + 1];
-            lockRenderers[0] = _playerRenderer;
-            Array.Copy(_opponentArray, 0, lockRenderers, 1, _opponentArray.Length);
-            SetupLockIndicator(lockRenderers, arena);
-
             // Player spawns at its own roster spawn point (entityId 1..N ↔ spawnPoints[0..N-1]).
             _playerRenderer.transform.position = SpawnPosition(arena, PlayerEntityId);
 

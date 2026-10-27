@@ -69,7 +69,6 @@ namespace SlopArena.Client.World
 #endif
         private ArenaDefinition _arenaDef;
         private const ulong NpcEntityId = 100;
-        private TargetIndicator _lockIndicator;
         private TrainingSettingsPanel _settingsPanel;
         // Opt-in local measurement of this match (Settings → Gameplay); presentation-only.
         private PracticeSessionLog? _sessionLog;
@@ -334,6 +333,7 @@ namespace SlopArena.Client.World
             if (_npcs.Count <= 1) return;
             var slot = _npcs[_selectedNpcIndex];
             _bridge.InternalSim.RemoveEntity(slot.Id);
+            ForgetFighter(slot.Id);
             if (slot.Renderer != null)
                 Destroy(slot.Renderer.gameObject);
             _npcs.RemoveAt(_selectedNpcIndex);
@@ -461,8 +461,6 @@ namespace SlopArena.Client.World
             if (solo && !Mayhem)
                 _hudManager?.ShowSoloCountdown("READY", 2f);
             SetupAimHandler(playerDef);
-            SetupLockIndicator(new[] { _playerRenderer }.Concat(_npcs.Select(n => n.Renderer)).ToArray(), arena);
-            _lockIndicator = FindFirstObjectByType<TargetIndicator>();
             // Training controls remain visible on the HUD throughout practice.
             if (MatchConfig.Mode == GameMode.Training)
             {
@@ -565,10 +563,7 @@ namespace SlopArena.Client.World
             // Roster rebuild may destroy the currently marked NPC renderer.
             _aimHandler?.UpdateTargetPresentation(_bridge.GetState(PlayerEntityId), null, 0);
             SetupHUD(_playerDef, HudExtraPlayers());
-            if (_lockIndicator != null)
-                Destroy(_lockIndicator.gameObject);
-            SetupLockIndicator(new[] { _playerRenderer }.Concat(_npcs.Select(n => n.Renderer)).ToArray(), _arenaDef);
-            _lockIndicator = FindFirstObjectByType<TargetIndicator>();
+            RebuildFighterIndicators();
         }
 
         private List<HUDManager.HudPlayer> HudExtraPlayers()

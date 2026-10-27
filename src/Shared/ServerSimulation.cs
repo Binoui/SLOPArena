@@ -294,11 +294,12 @@ namespace SlopArena.Shared
                 && (state.State == ActionState.Sliding
                     || state.State == ActionState.Run && !preserveMomentum);
             state.SlideAttackCarryActive = false;
+            state.AttackCarryFromRun = attackCarry && state.State == ActionState.Run;
             if (attackCarry)
             {
-                float capRatio = state.State == ActionState.Sliding
-                    ? DownActionTuning.AttackEntryCapRatio
-                    : DownActionTuning.RunAttackEntryCapRatio;
+                float capRatio = state.AttackCarryFromRun
+                    ? DownActionTuning.RunAttackEntryCapRatio
+                    : DownActionTuning.AttackEntryCapRatio;
                 Simulation.ClampHorizontalSpeed(ref state, def.Movement.RunSpeed * capRatio);
                 state.SlideAttackCarryActive = true;
             }
@@ -2695,6 +2696,7 @@ namespace SlopArena.Shared
 					IsFastFalling = false,
 					JumpFromSlide = false,
 					SlideAttackCarryActive = false,
+					AttackCarryFromRun = false,
 					CrouchSettled = false,
 					QueuedCrouchBrace = false,
 					InPostHitstunFlight = false,

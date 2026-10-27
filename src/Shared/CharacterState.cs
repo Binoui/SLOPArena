@@ -76,6 +76,8 @@ namespace SlopArena.Shared
         public bool JumpFromSlide;
         /// <summary>True while an opted-in grounded attack brakes residual Run or Slide momentum.</summary>
         public bool SlideAttackCarryActive;
+        /// <summary>True when the active attack carry started from Run and brakes at the Run rate.</summary>
+        public bool AttackCarryFromRun;
         /// <summary>True after a complete stationary crouch tick.</summary>
         public bool CrouchSettled;
         /// <summary>Captured crouch brace state for a deferred ordinary launch.</summary>
@@ -219,6 +221,7 @@ namespace SlopArena.Shared
             IsAiming = false;
             AnimIndex = 0;
             SlideAttackCarryActive = false;
+            AttackCarryFromRun = false;
             ClearStartupAimCorrection();
         }
 

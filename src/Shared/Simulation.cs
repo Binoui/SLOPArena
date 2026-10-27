@@ -306,8 +306,10 @@ namespace SlopArena.Shared
                 && s.AttackSlot > 0
                 && (s.State == ActionState.Attacking || s.State == ActionState.Aiming))
             {
-                DecayHorizontalSpeed(ref s,
-                    DownActionTuning.AttackDecelerationRatio * stats.RunSpeed * TickDt);
+                float ratio = s.AttackCarryFromRun
+                    ? DownActionTuning.RunAttackDecelerationRatio
+                    : DownActionTuning.AttackDecelerationRatio;
+                DecayHorizontalSpeed(ref s, ratio * stats.RunSpeed * TickDt);
             }
 
 
