@@ -121,7 +121,8 @@ Dash numbers (float length, speed, turn rate, range, cooldown) come from Trainin
   ticks, miss lock 30 ticks, cooldown 180 ticks.
 - **Controls.** A = jump, X/Y/B = normals 1/3/4, LB + A/X/Y/B = specials A/R/E/F, RB = dash;
   keyboard 1/2/3 = normals, 4 = dash. `InputController` turns LB + A into special A without a
-  jump. The HUD pairs dash/A, 1/R, 3/E, 4/F and shows the dash cooldown.
+  jump. The HUD shows the Beeline as a round badge whose ring refills over the
+  cooldown (2026-10-28), with the three normals centred over the four specials.
 - **Presentation:** the air-dodge clip winds up during the float and holds through the dash.
   The look is the lock-on read (concept C, 2026-10-27): outline, afterimages, dotted line,
   chevrons, reticle and an arrival "!" (see `docs/systems/vfx-particles.md#homing-dash-lock-on`),

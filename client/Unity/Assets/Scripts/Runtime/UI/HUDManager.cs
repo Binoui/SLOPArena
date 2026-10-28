@@ -145,9 +145,8 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>
-        /// The homing dash and the three normals, then specials A/E/R/F (ADR-0042).
-        /// UXML pairs each face button's normal with its LB special: dash/A, 1/R, 3/E, 4/F.
-        /// The A pair shows the dash because A itself is the jump button.
+        /// The Beeline (homing dash), the three normals, then specials A/R/E/F (ADR-0042).
+        /// UXML centres the normals over the specials; every slot shows its own prompt.
         /// SlotIndex is the AbilitySlots/cooldown index (key "1" = 2 … key "A" = 10).
         /// </summary>
         private const int DashSlotIndex = -1;
@@ -170,6 +169,11 @@ namespace SlopArena.Client.UI
         private const float ReadyDuration = 0.42f;
 
         private static readonly Color MoveInk = new Color32(27, 26, 24, 255);
+        private static readonly Color BeelineInk = new Color32(22, 21, 19, 255);
+        private static readonly Color BeelineYellow = new Color32(255, 204, 34, 255);
+        private static readonly Color BeelineTrack = new Color32(58, 56, 51, 255);
+        private static readonly Color BeelineFace = new Color32(42, 39, 34, 255);
+        private static readonly Color BeelineIdle = new Color32(109, 104, 93, 255);
 
         private static readonly Color OrangeDamage;
         private static readonly Color CrimsonDamage;
@@ -191,10 +195,10 @@ namespace SlopArena.Client.UI
         private VisualElement _moveDeck;
         private VisualElement _movePairs;
         private Label _moveTooltip;
-        private VisualElement _modifierPrompt;
-        private Image _modifierButton;
-        private Label _modifierKey;
         private bool _modifierHeld;
+        private VisualElement _beelineRing;
+        private float _beelineProgress = 1f;
+        private bool _beelineLit = true;
         private bool _moveDeckRightAligned;
         private float _moveDeckScale = -1f;
         public VisualElement TargetingRoot
@@ -284,10 +288,8 @@ namespace SlopArena.Client.UI
             var root = _uiDocument.rootVisualElement;
             _movePairs = root.Q<VisualElement>("move-pairs");
             _moveTooltip = root.Q<Label>("move-tooltip");
-            _modifierPrompt = root.Q<VisualElement>("special-modifier-prompt");
-            _modifierButton = root.Q<Image>("special-modifier-button");
-            _modifierButton.scaleMode = ScaleMode.ScaleToFit;
-            _modifierKey = root.Q<Label>("special-modifier-key");
+            _beelineRing = root.Q<VisualElement>("ab-dash-ring");
+            _beelineRing.generateVisualContent = DrawBeeline;
 
             _abilitySlots = new ActionSlot[AbilitySlotDefs.Length];
             for (int i = 0; i < AbilitySlotDefs.Length; i++)
@@ -357,21 +359,6 @@ namespace SlopArena.Client.UI
                 }
             }
 
-            string modifierPath = BindingPath("SpecialModifier", HumanInputActions.GamepadGroup);
-            string shoulderLabel = modifierPath?.EndsWith("/leftShoulder", StringComparison.OrdinalIgnoreCase) == true
-                ? "LB" : modifierPath?.EndsWith("/rightShoulder", StringComparison.OrdinalIgnoreCase) == true
-                    ? "RB" : null;
-            var modifierGlyph = default(InputPromptAtlas.Glyph);
-            bool hasModifier = _showGamepadPrompts &&
-                (_promptAtlas ??= new InputPromptAtlas()).TryXbox(modifierPath, out modifierGlyph);
-            bool showModifierGlyph = hasModifier && shoulderLabel == null;
-            _modifierButton.style.display = showModifierGlyph ? DisplayStyle.Flex : DisplayStyle.None;
-            _modifierKey.style.display = showModifierGlyph ? DisplayStyle.None : DisplayStyle.Flex;
-            _modifierKey.text = _showGamepadPrompts
-                ? shoulderLabel ?? HumanInputActions.BindingLabel("SpecialModifier", HumanInputActions.GamepadGroup)
-                : "SPECIALS";
-            if (hasModifier) SetPromptImage(_modifierButton, modifierGlyph);
-            _modifierPrompt.EnableInClassList("keyboard-modifier", !_showGamepadPrompts);
         }
 
         private static string BindingPath(string action, string group)
@@ -789,7 +776,94 @@ namespace SlopArena.Client.UI
                     if (slot.Locked) continue;
                     UpdateCooldownSlot(slot, dash ? state.HomingDashCooldownTicks
                         : state.GetCooldown((byte)(AbilitySlotDefs[i].SlotIndex + 1)));
+                    if (dash) UpdateBeeline(slot, state);
                 }
+            }
+        }
+
+        /// <summary>The badge ring refills over the cooldown; after the one airborne use it greys out until landing.</summary>
+        private void UpdateBeeline(ActionSlot slot, in CharacterState state)
+        {
+            ushort cooldown = state.HomingDashCooldownTicks;
+            bool airUsed = cooldown == 0 && !state.IsGrounded && state.HomingDashAirUsed;
+            slot.Root.EnableInClassList("air-used", airUsed);
+            if (airUsed)
+            {
+                slot.Timer.style.display = DisplayStyle.Flex;
+                slot.Timer.text = "LAND";
+            }
+            float progress = airUsed ? 0f : 1f - Mathf.Clamp01(cooldown / (float)HomingDashConfig.CooldownTicks);
+            bool lit = cooldown == 0 && !airUsed;
+            if (Mathf.Abs(progress - _beelineProgress) < 0.002f && lit == _beelineLit) return;
+            _beelineProgress = progress;
+            _beelineLit = lit;
+            _beelineRing?.MarkDirtyRepaint();
+        }
+
+        private void DrawBeeline(MeshGenerationContext context)
+        {
+            var rect = _beelineRing.contentRect;
+            var painter = context.painter2D;
+            var c = rect.center;
+            float r = Mathf.Min(rect.width, rect.height) * 0.5f;
+            float band = r * 0.17f;
+            float ringRadius = r - 3f - band * 0.5f;
+
+            FillDisc(painter, c, r, BeelineInk);
+            painter.lineCap = LineCap.Butt;
+            painter.lineWidth = band;
+            painter.strokeColor = BeelineTrack;
+            painter.BeginPath();
+            painter.Arc(c, ringRadius, Angle.Degrees(0f), Angle.Degrees(360f));
+            painter.Stroke();
+            if (_beelineProgress > 0f)
+            {
+                painter.strokeColor = BeelineYellow;
+                painter.BeginPath();
+                painter.Arc(c, ringRadius, Angle.Degrees(-90f), Angle.Degrees(-90f + 360f * _beelineProgress));
+                painter.Stroke();
+            }
+
+            float inner = r - 3f - band - 2f;
+            FillDisc(painter, c, inner, BeelineInk);
+            FillDisc(painter, c, inner - 3f, BeelineFace);
+
+            // Lock-on brackets around a double chevron on a 100-unit box: the dash's lock-on read.
+            float unit = (inner - 3f) * 1.3f / 100f;
+            var origin = c - new Vector2(50f, 52f) * unit;
+            painter.lineJoin = LineJoin.Miter;
+            StrokeBeelineMark(painter, origin, unit, 17f * unit, BeelineInk);
+            StrokeBeelineMark(painter, origin, unit, 9f * unit, _beelineLit ? BeelineYellow : BeelineIdle);
+        }
+
+        private static void FillDisc(Painter2D painter, Vector2 centre, float radius, Color colour)
+        {
+            painter.fillColor = colour;
+            painter.BeginPath();
+            painter.Arc(centre, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+            painter.Fill();
+        }
+
+        private static readonly Vector2[][] BeelineMark =
+        {
+            new[] { new Vector2(10, 32), new Vector2(10, 10), new Vector2(32, 10) },
+            new[] { new Vector2(68, 10), new Vector2(90, 10), new Vector2(90, 32) },
+            new[] { new Vector2(90, 68), new Vector2(90, 90), new Vector2(68, 90) },
+            new[] { new Vector2(32, 90), new Vector2(10, 90), new Vector2(10, 68) },
+            new[] { new Vector2(28, 30), new Vector2(48, 50), new Vector2(28, 70) },
+            new[] { new Vector2(52, 30), new Vector2(72, 50), new Vector2(52, 70) },
+        };
+
+        private static void StrokeBeelineMark(Painter2D painter, Vector2 origin, float unit, float width, Color colour)
+        {
+            painter.lineWidth = width;
+            painter.strokeColor = colour;
+            foreach (var line in BeelineMark)
+            {
+                painter.BeginPath();
+                painter.MoveTo(origin + line[0] * unit);
+                for (int i = 1; i < line.Length; i++) painter.LineTo(origin + line[i] * unit);
+                painter.Stroke();
             }
         }
 
@@ -887,7 +961,7 @@ namespace SlopArena.Client.UI
             if (_moveDeck == null || _movePairs == null || _moveDeck.panel == null) return;
             float width = _moveDeck.resolvedStyle.width;
             if (float.IsNaN(width) || width <= 0f) return;
-            const float preferredWidth = 304f;
+            const float preferredWidth = 468f;
             bool rightAligned = _billboardLayer != null && _billboardLayer.childCount > 0 &&
                 _moveDeck.worldBound.yMin < _billboardLayer.worldBound.yMax + 20f &&
                 (width - preferredWidth) * 0.5f < _billboardLayer.worldBound.xMax + 20f;

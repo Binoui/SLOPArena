@@ -610,7 +610,8 @@
     -unity-font-style: bold;
 }
 
-/* Move keys: a paper tab per normal over a raised ink key per special.
+/* Move deck (ADR-0042): the Beeline badge, then the three normals centred over the four
+   specials. Every slot shows its own prompt; normals never cool down, so they are a legend.
    Depth is state. A ready key stands on its offset plate; it sinks while its
    move runs or cools down, refills, then pops back up with a brief yellow edge. */
 .move-deck {
@@ -618,7 +619,7 @@
     left: 0;
     right: 0;
     bottom: 18px;
-    height: 132px;
+    height: 160px;
     flex-direction: row;
     justify-content: center;
     align-items: flex-end;
@@ -628,16 +629,24 @@
     position: relative;
     flex-direction: row;
     flex-shrink: 0;
+    align-items: flex-end;
     transform-origin: right bottom;
 }
 
-.move-pair {
-    position: relative;
-    width: 68px;
-    margin: 0 4px;
-    flex-shrink: 0;
+.move-stack {
     flex-direction: column;
-    overflow: visible;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.normal-row,
+.special-row {
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+.normal-row {
+    margin-bottom: 14px;
 }
 
 .slot {
@@ -647,34 +656,34 @@
 }
 
 .normal-slot {
-    width: 67px;
-    height: 37px;
+    width: 54px;
+    height: 54px;
+    margin: 0 11px;
 }
 
 .special-slot {
-    width: 68px;
-    height: 68px;
-    margin-top: 8px;
+    width: 76px;
+    height: 76px;
+    margin: 0 7px;
 }
 
 .slot-plate {
     position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 64px;
-    height: 34px;
+    left: 4px;
+    top: 4px;
+    width: 50px;
+    height: 50px;
     background-color: #E05C2A;
     border-width: 2px;
     border-color: #161513;
 }
 
 .special-slot .slot-plate {
-    left: 4px;
-    top: 4px;
-    height: 64px;
+    left: 5px;
+    top: 5px;
+    width: 71px;
+    height: 71px;
     background-color: #39A9FF;
-    border-width: 2px;
-    border-color: #161513;
     transition-property: background-color;
     transition-duration: 0.1s;
 }
@@ -687,29 +696,29 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 64px;
-    height: 34px;
+    width: 50px;
+    height: 50px;
     background-color: #F0EEE8;
-    border-width: 2px;
+    border-width: 3px;
     border-color: #161513;
     transition-property: translate, border-color;
     transition-duration: 0.07s;
 }
 
 .special-slot .slot-face {
-    height: 64px;
+    width: 71px;
+    height: 71px;
     background-color: #1B1A18;
-    border-color: #F0EEE8;
+    border-color: #161513;
 }
 
-.normal-slot.in-use .slot-face,
-.normal-slot.on-cooldown .slot-face {
-    translate: 3px 3px;
+.normal-slot.in-use .slot-face {
+    translate: 4px 4px;
 }
 
 .special-slot.in-use .slot-face,
 .special-slot.on-cooldown .slot-face {
-    translate: 4px 4px;
+    translate: 5px 5px;
 }
 
 .special-slot.on-cooldown .slot-face {
@@ -735,17 +744,17 @@
 
 .slot-content {
     position: absolute;
-    left: 26px;
-    top: 0;
-    width: 30px;
-    height: 30px;
+    left: 3px;
+    top: 3px;
+    right: 3px;
+    bottom: 3px;
 }
 
 .special-slot .slot-content {
-    left: 2px;
-    top: 2px;
-    width: 56px;
-    height: 56px;
+    left: 4px;
+    top: 4px;
+    right: 4px;
+    bottom: 4px;
 }
 
 .slot-icon-inner {
@@ -788,17 +797,13 @@
     bottom: 0;
     margin: 0;
     padding: 0;
-    font-size: 24px;
-    -unity-font-style: bold;
+    font-size: 26px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-center;
     -unity-text-outline-width: 1px;
     -unity-text-outline-color: #000000;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
     color: #F0EEE8;
-}
-
-.normal-slot .slot-timer {
-    font-size: 14px;
 }
 
 /* Cooldown completion is shown by the pop and yellow edge, not a text tag. */
@@ -808,51 +813,121 @@
 
 .slot-prompt {
     position: absolute;
-    left: 1px;
-    top: 0;
-    min-width: 22px;
-    height: 30px;
+    left: -11px;
+    top: -11px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
+    rotate: -4deg;
 }
 
 .slot-prompt-image {
     display: none;
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
 }
 
 .slot-key-label {
+    min-width: 22px;
+    height: 22px;
     margin: 0;
-    padding: 0;
-    font-size: 17px;
+    padding: 0 4px;
+    font-size: 13px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
     white-space: nowrap;
     color: #1B1A18;
-}
-
-.special-slot .slot-prompt {
-    left: -9px;
-    top: -9px;
-    min-width: 0;
-    height: auto;
-    rotate: -4deg;
-}
-
-.special-slot .slot-key-label {
-    min-width: 20px;
-    height: 20px;
-    padding: 0 4px;
-    font-size: 12px;
     background-color: #F0EEE8;
     border-width: 2px;
     border-color: #161513;
 }
 
-.controller-prompts .special-slot .slot-prompt {
+.normal-slot .slot-prompt-image {
+    width: 24px;
+    height: 24px;
+}
+
+/* Beeline: a round badge whose ring refills over the shared cooldown (drawn by HUDManager). */
+.beeline-slot {
+    width: 96px;
+    height: 96px;
+    margin-right: 26px;
+    margin-bottom: -10px;
+    transition-property: scale, translate;
+    transition-duration: 0.08s;
+}
+
+.beeline-slot.in-use {
+    translate: 3px 3px;
+}
+
+.beeline-slot.ready-pulse {
+    scale: 1.08;
+}
+
+.beeline-slot.quiet-feedback {
+    transition-duration: 0s;
+}
+
+.beeline-slot.quiet-feedback.ready-pulse {
+    scale: 1;
+}
+
+.beeline-ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.beeline-slot .slot-content,
+.beeline-slot .slot-cooldown {
     display: none;
+}
+
+.beeline-slot .slot-timer {
+    font-size: 30px;
+}
+
+.beeline-slot.air-used .slot-timer {
+    font-size: 17px;
+    color: #CFC9BB;
+}
+
+.beeline-tag {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: -22px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
+    rotate: -4deg;
+    background-color: #FFCC22;
+    border-width: 3px;
+    border-color: #161513;
+    color: #161513;
+    font-size: 12px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-text-align: middle-center;
+}
+
+.beeline-slot.on-cooldown .beeline-tag,
+.beeline-slot.air-used .beeline-tag {
+    background-color: #3A3833;
+    color: #CFC9BB;
+}
+
+.beeline-slot .slot-prompt {
+    left: 30px;
+    top: 78px;
+    rotate: 0deg;
+}
+
+/* Stick on the camera: specials are LB + a face button, so holding LB lights their plates. */
+.modifier-held .special-slot .slot-plate {
+    background-color: #FFCC22;
 }
 
 .move-tooltip {
@@ -870,59 +945,6 @@
     font-size: 12px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
-}
-
-.modifier-rail {
-    display: none;
-}
-
-/* Controller only: specials share each face button behind the modifier. */
-.modifier-prompt {
-    position: absolute;
-    left: -58px;
-    top: 63px;
-    height: 28px;
-    min-width: 48px;
-    padding: 0 6px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    background-color: #F0EEE8;
-    border-width: 2px;
-    border-color: #1B1A18;
-    transition-property: background-color;
-    transition-duration: 0.1s;
-}
-
-.keyboard-modifier {
-    display: none;
-}
-
-.modifier-button {
-    width: 34px;
-    height: 24px;
-    background-color: #1B1A18;
-}
-
-.modifier-key {
-    margin: 0;
-    padding: 0;
-    font-size: 16px;
-    -unity-font-style: bold;
-    color: #1B1A18;
-}
-
-.modifier-plus {
-    margin: 0;
-    padding: 0 0 0 3px;
-    color: #1B1A18;
-    font-size: 16px;
-    -unity-font-style: bold;
-}
-
-.modifier-held .modifier-prompt,
-.modifier-held .special-slot .slot-plate {
-    background-color: #FFCC22;
 }
 
 /* Locked target: a bare outlined damage number over a chevron in the target's seat colour.
