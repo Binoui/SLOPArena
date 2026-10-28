@@ -16,6 +16,8 @@ Ideas, the owner's comments, takes, runs and scout reports live in the content f
 (`tools/content_factory/`, http://100.68.254.9:8765 on the tailnet). The owner reviews there, on
 the phone or at the desk, not in threads. Read and write it with `python3 tools/factory.py` (its
 docstring lists the commands); never keep idea state in the repo.
+[docs/systems/content-factory.md](../../docs/systems/content-factory.md) covers the board, data
+locations and deploy.
 
 - An idea has `id`, `status`, `format`: `moment` (one gameplay payoff, no explanation), `fighter`
   (one distinctive interaction of one fighter), `building` (a before/after or tool moment),

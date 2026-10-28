@@ -26,6 +26,7 @@ Read these in order:
 | [Replay v1 implementation spec](spec-replay-v1/spec-replay-v1.md) | Draft recording/API contracts, parallel ownership and verification gates; proposed storage revision |
 | [Release Pipeline](systems/release-pipeline.md) | Isolated client build, coordinated CI/VPS release and manual Steam activation |
 | [Hosted owner console](systems/owner-console.md) | Independent console deployment, owner password login and private Master access |
+| [Content factory](systems/content-factory.md) | The owner's social clip board on alfred: using it, agent runs, data locations and deploy |
 | [Operations skill](../skills/sloparena-ops/SKILL.md) | Match diagnostics, exact VPS process-log commands and readiness |
 | [Troubleshooting](systems/troubleshooting.md) | Current Steam startup, lag and admission investigation |
 | [Restricted local stack](../deploy/local/README.md) | Caddy/PostgreSQL/GameServer image-only integration without changing the home endpoint |
