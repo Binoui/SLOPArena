@@ -47,6 +47,13 @@ The owner tuned the prototype live against the CPU and in Slopball, and accepted
 3. **Migration:** stored values stay integers (Manual 0, Arena 2, Steady 6). Saves without
    `cameraRevision` held the old defaults rather than player choices, so they move once to
    Steady on both devices. Later invalid values also become Steady.
+4. **Stage geometry (owner request, 2026-10-28):** walls and platforms no longer pull the orbit
+   camera in, in any style. The stage shaders dither away geometry above a fighter's feet inside a
+   cone from the camera to each of up to four fighters (`StageSightHoles`), so the view keeps its
+   distance and the fighters stay visible. URP/Lit stage materials are swapped at load to a Lit
+   copy with the same holes. When the sight line to the player has been blocked for 0.5 s, Steady
+   and Arena drift at 12°/s toward the nearest clear angle within 90° that keeps the target in
+   view. Player camera input cancels the drift. The aim camera still pulls in.
 
 ## Consequences
 

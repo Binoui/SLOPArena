@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using SlopArena.Shared.Abilities;
 
 namespace SlopArena.Shared.Tests;
 
@@ -20,7 +21,8 @@ public sealed class AimedRecoveryTests
     {
         var sim = MakeSim(grounded, hop: true, yaw: MathF.PI / 2f);
         var start = sim.GetState(1);
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.E, MoveY = -1 });
+        // The stick waits out the recovery turn window, so the hop keeps the fighter's facing.
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.E });
         for (int tick = 1; tick <= 44; tick++)
         {
             var state = sim.GetState(1);
@@ -35,7 +37,7 @@ public sealed class AimedRecoveryTests
             if (tick < 18 || tick is >= 34 and < 44)
                 Assert.Equal((0f, 0f, 0f), (state.VX, state.VY, state.VZ));
             if (tick == 44) break;
-            Tick(sim, new InputState { MoveY = -1 });
+            Tick(sim, tick < RecoveryTurn.WindowTicks ? default : new InputState { MoveY = -1 });
         }
         Assert.Equal(13f, sim.GetState(1).VY);
         Assert.Equal(-8f, sim.GetState(1).VZ);

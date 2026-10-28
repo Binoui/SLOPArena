@@ -3,8 +3,7 @@ using System;
 namespace SlopArena.Shared.Abilities
 {
     /// <summary>
-    /// Manki's Q — Round Bomb: hold to aim a ground cursor, release to lob a bomb that
-    /// explodes on impact. Holds are unlimited; release is debounced for eight ticks.
+    /// Hold to aim, then lob a can. The resolver owns its landing pop, fuse and fire reactions.
     /// </summary>
     public sealed class MankiRoundBomb : ServerAbility, IAimHoldCapability
     {
@@ -79,6 +78,31 @@ namespace SlopArena.Shared.Abilities
             CombatMath.ComputeProjectileLaunch(D, launchRad, g, dY, out float _, out float hSpeed, out float vSpeed);
             float aimCos = MathF.Cos(_cachedAimYaw);
             float aimSin = MathF.Sin(_cachedAimYaw);
+            var blast = new ProjectileExplosion
+            {
+                Radius = _parameters.ExplosionRadius, Damage = _parameters.ExplosionDamage,
+                Knockback = new() { Profile = KnockbackProfile.Custom, Angle = (sbyte)_parameters.ExplosionKbAngle,
+                    BaseKnockback = _parameters.ExplosionKbBase, KnockbackGrowth = _parameters.ExplosionKbGrowth },
+                StunTicks = _parameters.ExplosionStunTicks, DurationTicks = _parameters.ExplosionDurationTicks,
+                CanHitOwner = true, OwnerDamage = 0f, IgnitesOwnerCans = true,
+                ExplosionPresentationId = _parameters.ExplosionPresentationId,
+                PresentationAttackSequence = PresentationAttackSequence,
+                PresentationOperationIndex = PresentationOperationIndex,
+                PresentationYaw = s.FacingYaw,
+            };
+            var earlyBlast = blast;
+            earlyBlast.Damage = _parameters.EarlyDamage;
+            earlyBlast.Radius = _parameters.EarlyRadius;
+            earlyBlast.Knockback.BaseKnockback *= 1.35f;
+            var impact = blast;
+            impact.Damage = _parameters.Damage;
+            impact.Radius = _parameters.ImpactRadius;
+            impact.StunTicks = _parameters.StunTicks;
+            impact.Knockback.BaseKnockback = 2f;
+            impact.Knockback.KnockbackGrowth = 12f;
+            impact.Knockback.Angle = (sbyte)_parameters.KbAngle;
+            impact.CanHitOwner = false;
+            impact.ExplosionPresentationId = Move?.HitPresentationId ?? "";
             SpawnResolverHitbox(new Hitbox
             {
                 X = s.PX, Y = s.PY + launchOffsetY, Z = s.PZ,
@@ -88,16 +112,8 @@ namespace SlopArena.Shared.Abilities
                 Damage = _parameters.Damage, BaseKnockback = 4f, KnockbackGrowth = 6f,
                 KnockbackAngle = (sbyte)_parameters.KbAngle, DurationTicks = _parameters.MaxFlightTicks,
                 OwnerId = s.EntityId, AttackSlot = (byte)(Slot + 1), Gravity = g,
-                Explosion = new ProjectileExplosion
-                {
-                    Radius = _parameters.ExplosionRadius, Damage = _parameters.ExplosionDamage,
-                    Knockback = new() { Profile = KnockbackProfile.Custom, Angle = (sbyte)_parameters.ExplosionKbAngle, BaseKnockback = _parameters.ExplosionKbBase, KnockbackGrowth = _parameters.ExplosionKbGrowth },
-                    StunTicks = _parameters.ExplosionStunTicks, DurationTicks = _parameters.ExplosionDurationTicks,
-                    ExplosionPresentationId = _parameters.ExplosionPresentationId,
-                    PresentationAttackSequence = PresentationAttackSequence,
-                    PresentationOperationIndex = PresentationOperationIndex,
-                    PresentationYaw = s.FacingYaw,
-                },
+                Explosion = impact,
+                MankiCan = new(_parameters.FuseTicks, _parameters.WarningTicks, blast, earlyBlast),
             });
         }
 

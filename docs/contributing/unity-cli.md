@@ -139,6 +139,9 @@ after acquisition the gateway settles owned work/restoration before release.
 For gameplay scenarios, run and inspect the native Shared two-fighter scenario
 first. Do not generate temporary C# or use `eval` to create opponents or arrange
 gameplay. `eval` is reserved for novel diagnostics not covered by a typed command.
+Callbacks an `eval` adds (`EditorApplication.update`, `RenderPipelineManager` events) outlive the
+batch and Play Mode. Wrap their body in `try`/`catch`, unsubscribe on any exception or when Play Mode
+ends, and cap their lifetime; a throwing leftover hook trips Error Pause in later batches.
 
 Keep open/run/inspect in one gateway batch. Save this as `/tmp/ability-lab-run.json`:
 

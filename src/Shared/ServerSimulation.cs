@@ -236,6 +236,8 @@ namespace SlopArena.Shared
             }
             if (exit == AbilityExit.Removed)
                 _spellResolver.RemoveOwnerEffects(id);
+            else if (exit == AbilityExit.Reset)
+                _spellResolver.RemoveMankiCans(id);
             ushort completionRecoveryLockTicks = exit == AbilityExit.Completed ? state.AnimLockTicks : (ushort)0;
             state.ClearAttackFields();
             state.AnimLockTicks = completionRecoveryLockTicks;
@@ -602,6 +604,8 @@ namespace SlopArena.Shared
                 if (GetActiveMove(id) is { } move)
                     targetAnim = move.Pose.AnimationId;
             }
+            // A reeled fighter wears the small-hit pose, as its client presentation does.
+            else if (state.State == ActionState.Reeled) targetAnim = def.HitSmallAnim;
             else if (state.State == ActionState.Hitstun) targetAnim = state.HitstunLevel switch
             {
                 1 => def.HitMediumAnim,
@@ -808,7 +812,7 @@ namespace SlopArena.Shared
 				return false;
 			if (state.State is ActionState.Hitstun or ActionState.Aiming or ActionState.GrabAttempt
 				or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
-				or ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashMiss)
+				or ActionState.Reeled or ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashMiss)
 				return false;
 
 			if (_activeAbilities.ContainsKey(id))
@@ -1006,6 +1010,7 @@ namespace SlopArena.Shared
 				}
 
                 int maxCharges = cookedSlot.ChargePool?.MaxCharges ?? 0;
+                if (maxCharges > 0 && _spellResolver.MankiCanOccupancy(id) >= maxCharges) continue;
 				if (maxCharges > 0 && state.ChargeStockSpent >= maxCharges
 				    || _spellResolver.HasReturningProjectile(id, input.ActiveSlot))
 				{
@@ -1041,11 +1046,7 @@ namespace SlopArena.Shared
                 // Spend charges from the cooked pool; they return only through regen.
                 if (maxCharges > 0 && _states.TryGetValue(id, out var afterState))
                 {
-                    afterState.ChargeStockSpent++;
-                    ushort regenPeriod = cookedSlot.ChargePool?.RegenTicks ?? 180;
-                    afterState.ChargeStockRegenPeriod = regenPeriod;
-                    if (afterState.ChargeStockRegenTicks == 0)
-                        afterState.ChargeStockRegenTicks = regenPeriod;
+                    afterState.SpendCharge(cookedSlot.ChargePool!.RegenTicks);
                     _states[id] = afterState;
                 }
 
@@ -1347,6 +1348,15 @@ namespace SlopArena.Shared
 					|| _states.TryGetValue(owner.InteractionPartnerId, out var dyingPartner)
 						&& IsOutsideBlastZone(in dyingPartner))
 					continue;
+				if (owner.InteractionPhase == (byte)DefenseInteractionPhase.Reeling)
+				{
+					if (!TetherHolds(ownerId, in owner))
+					{
+						InterruptInteraction(ref owner);
+						_states[ownerId] = owner;
+					}
+					continue;
+				}
 				if (owner.State == ActionState.Grabbed)
 				{
 					if (!_states.TryGetValue(owner.InteractionPartnerId, out var grabber)
@@ -1462,7 +1472,7 @@ namespace SlopArena.Shared
 			if (_states.TryGetValue(partnerId, out var partner)
 				&& partner.InteractionId == interactionId)
 			{
-				if (partner.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing)
+				if (ActionStates.InPairedInteraction(partner.State))
 				{
 					partner.ClearAttackFields();
 					partner.State = partner.HitstunTicks > 0
@@ -1472,8 +1482,7 @@ namespace SlopArena.Shared
 				MarkInteractionTerminal(ref partner, interactionId);
 				_states[partnerId] = partner;
 			}
-			if ((affected.State is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing)
-				&& affected.HitstunTicks == 0)
+			if (ActionStates.InPairedInteraction(affected.State) && affected.HitstunTicks == 0)
 			{
 				affected.ClearAttackFields();
 				affected.State = ActionState.Idle;
@@ -1615,6 +1624,10 @@ namespace SlopArena.Shared
 						continue;
                     // She skates under the fighters she bowls over.
                     if (first.State == ActionState.Shell || second.State == ActionState.Shell)
+                        continue;
+                    // A line being reeled in has one writer, the thrower's tether (ADR-0048).
+                    if (first.State == ActionState.Reeled && first.InteractionId != 0
+                        || second.State == ActionState.Reeled && second.InteractionId != 0)
                         continue;
                     if ((_activeAbilities.TryGetValue(firstId, out var firstAbility)
                             && firstAbility.IgnoresFighterPushboxes)
@@ -2257,8 +2270,8 @@ namespace SlopArena.Shared
 		/// </summary>
 		internal static bool CatchesReturningProjectile(in CharacterState owner)
 		{
-			bool held = owner.InteractionId != 0 || owner.State is ActionState.Grabbed or ActionState.Thrown
-				or ActionState.Grabbing or ActionState.Throwing;
+			bool held = owner.InteractionId != 0 || owner.State == ActionState.Thrown
+				|| ActionStates.InPairedInteraction(owner.State);
 			bool beingHit = owner.State == ActionState.Hitstun || owner.HitstunTicks > 0 || Simulation.HasKnockback(owner);
 			bool free = owner.HitstopTicks == 0 && owner.BlockStunTicks == 0 && owner.LandingLagTicks == 0
 				&& (ActionStates.AdmitsActions(owner.State) || owner.State == ActionState.JumpSquat);
@@ -2283,10 +2296,13 @@ namespace SlopArena.Shared
 		{
 			// Bone-tracked hitboxes sweep with their limb: re-resolve positions from
 			// the owners' current (post-movement) states before the collision pass.
+            foreach (var state in _states.Values)
+                if (IsOutsideBlastZone(in state)) _spellResolver.RemoveMankiCans(state.EntityId);
 			_spellResolver.UpdateBoneHitboxes(_states);
 			_spellResolver.UpdateReturningProjectiles(_returnTarget ??= ReturnTarget, _arena);
 			_spellResolver.UpdateHomingProjectiles(_homingTarget ??= HomingTarget);
             _spellResolver.UpdateStickyProjectiles(StickyCarrier);
+            _spellResolver.TickMankiCans();
 
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
@@ -2309,6 +2325,7 @@ namespace SlopArena.Shared
 				else
 					hits.RemoveAt(i);
 			}
+			ClashTetherCatches(hits);
 			LastTickHits.Clear();
 			int hitContactOperationIndex = 0;
 			foreach (var hit in hits)
@@ -2356,6 +2373,14 @@ namespace SlopArena.Shared
 						Shell.Blocked(ref attackerState, blockedShell);
 						_states[hit.OwnerEntityId] = attackerState;
 					}
+					continue;
+				}
+				// A tether's ring catches instead of hitting (ADR-0048).
+				if (attackerExists && ContactAbility(hit)?.Tether is { } tether)
+				{
+					CatchOnTether(in hit, tether, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
+					_states[hit.OwnerEntityId] = attackerState;
+					_states[hit.TargetEntityId] = targetState;
 					continue;
 				}
 
@@ -2574,33 +2599,38 @@ namespace SlopArena.Shared
 
 				_states[hit.TargetEntityId] = targetState;
 				LastTickHits.Add(resolvedHit);
-				if (_defs.TryGetValue(hit.OwnerEntityId, out var hitOwnerDefinition)
-				    && (hit.AttackSlot > 0 || hit.OwnerWindow))
-				{
-					string? hitPresentationId = hit.OwnerWindow
-						? hitOwnerDefinition.Shell?.HitPresentationId
-						: hitOwnerDefinition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
-					if (!string.IsNullOrEmpty(hitPresentationId))
-					{
-						// Confirmed contact carries cosmetic weight, including through replay.
-						float presentationScale = Math.Clamp(MathF.Sqrt(finalDamage / 6f), 0.6f, 1.6f);
-						_presentationEvents.Add(new TimelinePresentationEvent(
-							_tick, hit.OwnerEntityId, hitContactOperationIndex,
-							hitPresentationId!, hit.AttackSequence,
-							PresentationEventSource.HitContact,
-							hit.HitX, hit.HitY, hit.HitZ,
-							attackerExists ? attackerState.FacingYaw : 0f)
-						{
-							Placement = new PresentationPlacement(
-								LocalScaleX: presentationScale,
-								LocalScaleY: presentationScale,
-								LocalScaleZ: presentationScale,
-								DurationTicks: 150),
-						});
-					}
-				}
+				EmitHitPresentation(in hit, finalDamage, in attackerState, attackerExists, hitContactOperationIndex);
 				hitContactOperationIndex++;
 			}
+		}
+
+		/// <summary>The slot's (or the shell's) hit effect at a confirmed contact, weighted by its damage.</summary>
+		private void EmitHitPresentation(in SpellResolver.HitResult hit, float finalDamage,
+			in CharacterState attackerState, bool attackerExists, int operationIndex)
+		{
+			if (!_defs.TryGetValue(hit.OwnerEntityId, out var hitOwnerDefinition)
+			    || hit.AttackSlot == 0 && !hit.OwnerWindow)
+				return;
+			string? hitPresentationId = hit.OwnerWindow
+				? hitOwnerDefinition.Shell?.HitPresentationId
+				: hitOwnerDefinition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
+			if (string.IsNullOrEmpty(hitPresentationId))
+				return;
+			// Confirmed contact carries cosmetic weight, including through replay.
+			float presentationScale = Math.Clamp(MathF.Sqrt(finalDamage / 6f), 0.6f, 1.6f);
+			_presentationEvents.Add(new TimelinePresentationEvent(
+				_tick, hit.OwnerEntityId, operationIndex,
+				hitPresentationId!, hit.AttackSequence,
+				PresentationEventSource.HitContact,
+				hit.HitX, hit.HitY, hit.HitZ,
+				attackerExists ? attackerState.FacingYaw : 0f)
+			{
+				Placement = new PresentationPlacement(
+					LocalScaleX: presentationScale,
+					LocalScaleY: presentationScale,
+					LocalScaleZ: presentationScale,
+					DurationTicks: 150),
+			});
 		}
 
 		private void ProcessProjectileExplosions()
@@ -2638,18 +2668,25 @@ namespace SlopArena.Shared
 					ActivationAirborne = airborne,
 					AttackSequence = attackSequence,
 					CanHitOwner = explosion.CanHitOwner,
+                    IgnitesOwnerCans = explosion.IgnitesOwnerCans,
 					OwnerDamage = explosion.OwnerDamage,
 					// A blast hits everything in its radius once (fighters, the owner when
 					// allowed, balls and course targets), not just the first entity it meets.
 					HitsMultipleOpponents = true,
 				});
+                float presentationScale = explosion.IgnitesOwnerCans && explosion.CanHitOwner && attackSlot == AbilitySlots.A
+                    ? explosion.Radius / 3f : 1f;
                 if (!string.IsNullOrEmpty(explosion.ExplosionPresentationId))
                     _presentationEvents.Add(new TimelinePresentationEvent(
                         _tick, ownerId, explosion.PresentationOperationIndex,
                         explosion.ExplosionPresentationId, explosion.PresentationAttackSequence,
                         PresentationEventSource.CapabilityExplosion, ex, ey, ez, explosion.PresentationYaw)
                     {
-                        Placement = new PresentationPlacement(DurationTicks: 150),
+                        Placement = new PresentationPlacement(
+                            LocalScaleX: presentationScale,
+                            LocalScaleY: presentationScale,
+                            LocalScaleZ: presentationScale,
+                            DurationTicks: 150),
                     });
 			}
 		}
@@ -2712,6 +2749,7 @@ namespace SlopArena.Shared
 				RetireAbility(id, ref oldState, AbilityExit.Superseded);
 				// A returning projectile in flight is back on his shoulder when he respawns.
 				_spellResolver.RemoveReturningProjectiles(id);
+                _spellResolver.RemoveMankiCans(id);
 				_spellResolver.StopHomingAt(id);
                 _spellResolver.ExplodeAttachedTo(id);
 				if (killerEntityId != 0 && _kos[killerEntityId] < byte.MaxValue)

@@ -41,6 +41,9 @@ the request travels through T3's relay. Until then the Running strip says
 "waiting for T3". The relay holds requests while the desk is off and delivers
 them when it is back.
 
+A run closes with `factory.py run <run> done --made <ids>`, listing every idea it
+added or gave a take and any `report:<n>` it wrote. The Runs tab links to those.
+
 ## How it works
 
 ```

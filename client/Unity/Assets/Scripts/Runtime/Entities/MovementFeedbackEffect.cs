@@ -14,7 +14,6 @@ namespace SlopArena.Client.Entities
         HeavyLanding,
         FastFall,
         Launch,
-        Knockout,
         Respawn,
         Invincibility,
         AirRing,
@@ -82,11 +81,6 @@ namespace SlopArena.Client.Entities
             if (kind == MovementFeedbackKind.Respawn)
             {
                 SpawnRespawn(position, direction, Color.white);
-                return;
-            }
-            if (kind == MovementFeedbackKind.Knockout)
-            {
-                SpawnOne(position, direction, MovementFeedbackKind.Knockout);
                 return;
             }
 
@@ -280,8 +274,6 @@ namespace SlopArena.Client.Entities
                 if (_kind is MovementFeedbackKind.Dash or MovementFeedbackKind.FastFall
                     or MovementFeedbackKind.Launch)
                     main.duration = Mathf.Min(main.duration, 0.18f);
-                if (_kind == MovementFeedbackKind.Knockout)
-                    main.duration = Mathf.Min(main.duration, 1.1f);
             }
         }
 
@@ -471,7 +463,6 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.HeavyLanding => 0.54f,
             MovementFeedbackKind.FastFall => 0.55f,
             MovementFeedbackKind.Launch => 0.65f,
-            MovementFeedbackKind.Knockout => 1.45f,
             MovementFeedbackKind.Respawn => 0.95f,
             MovementFeedbackKind.Invincibility => 0.62f,
             _ => 0.5f,
@@ -483,15 +474,12 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.AirRing => 0.8f,
             MovementFeedbackKind.GroundRing => 0.55f,
             MovementFeedbackKind.Launch => 0.65f,
-            MovementFeedbackKind.Knockout => 1.1f,
             MovementFeedbackKind.Respawn => 1.0f,
             _ => 1.1f,
         };
 
         private static string ResourcePath(MovementFeedbackKind kind) => kind switch
         {
-            MovementFeedbackKind.Knockout
-                => "VFX/SlopArena/CFXR4 Wave Explosion Purple",
             MovementFeedbackKind.Dash or MovementFeedbackKind.FastFall
                 or MovementFeedbackKind.Launch
                 => "VFX/SlopArena/MovementWindTrails",
@@ -532,7 +520,6 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.HeavyLanding,
             MovementFeedbackKind.FastFall,
             MovementFeedbackKind.Launch,
-            MovementFeedbackKind.Knockout,
             MovementFeedbackKind.Respawn,
             MovementFeedbackKind.Invincibility,
             MovementFeedbackKind.AirRing,

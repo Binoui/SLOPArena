@@ -306,7 +306,7 @@ public class AbilityLifecycleTests
     }
 
     [Fact]
-    public void MankiE_LaunchesThenReturnsToIdleAtApex()
+    public void MankiE_FliesThenReturnsToIdleAfterFuel()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState();
@@ -320,12 +320,12 @@ public class AbilityLifecycleTests
             after = TestHelpers.TickN(sim,
                 tick == 0 ? TestHelpers.Input(activeSlot: AbilitySlots.E) : default, 1);
             launched |= after.VY > 0f;
-            if (launched && after.VY <= 0f)
+            if (launched && sim.GetActiveAbility(1) == null)
                 break;
         }
 
-        Assert.True(launched, "Jetpack must launch before its apex can be checked.");
-        Assert.True(after.VY <= 0f, "Jetpack must reach its apex within the scenario.");
+        Assert.True(launched, "Jetpack must ignite before powered flight.");
+        Assert.True(after.VY <= 0f, "Jetpack must release vertical ownership when fuel ends.");
         Assert.Equal(ActionState.Idle, after.State);
         Assert.Equal((byte)0, after.AttackSlot);
     }

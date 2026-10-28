@@ -200,7 +200,7 @@
   ],
   "capabilityRequirements": [
     {
-      "capabilityId": "slop.ability.charged-stream.v1",
+      "capabilityId": "slop.ability.tether.v1",
       "capabilityVersion": "1"
     },
     {
@@ -1512,21 +1512,20 @@
     },
     {
       "id": "ground.A",
-      "name": "Hose Down",
-      "description": "Hold to pump the water blaster while aiming with the camera, release to spray a stream that pushes instead of hurting. The longer she pumps, the longer and stronger the stream; in the air it pushes her back.",
+      "name": "Rescue Ring",
+      "description": "Throw your life ring straight at your target. The first fighter it meets is reeled in to your feet, stuck just long enough for one normal. A miss, a wall or a shield means reeling the empty ring back.",
       "iconId": "icon.a",
-      "behavior": "chargeAttack",
-      "aimMode": "cameraForward3D",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
       "aimMovement": "fixed",
-      "aimAnimationId": "anim.bashie.hose-pump",
-      "cooldownTicks": 90,
+      "cooldownTicks": 150,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 4,
+            "durationTicks": 30,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1537,112 +1536,49 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.hose",
-              "anim.bashie.hose-end",
-              "anim.bashie.hose-spray"
+              "anim.bashie.ring",
+              "anim.bashie.ring-reel",
+              "anim.bashie.ring-retract"
             ],
             "operations": [
               {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.charged-stream.v1",
+                "capabilityId": "slop.ability.tether.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "maxChargeTicks": 60,
-                  "fireTriggerTick": 4,
-                  "emitIntervalTicks": 3,
-                  "minStreamTicks": 12,
-                  "maxStreamTicks": 45,
-                  "recoveryTicks": 14,
-                  "maxBaseKnockback": 40,
-                  "minRecoilSpeed": 1.5,
-                  "maxRecoilSpeed": 4.5,
+                  "throwTick": 10,
                   "projectile": {
-                    "launchOffsetX": 0,
-                    "launchOffsetY": -0.1,
-                    "launchOffsetZ": 0.65,
-                    "speed": 16,
-                    "gravity": 4,
-                    "radius": 0.35,
-                    "damage": 0,
+                    "launchOffsetX": 0.25,
+                    "launchOffsetY": 0.1,
+                    "launchOffsetZ": 0.6,
+                    "speed": 24,
+                    "gravity": 0,
+                    "radius": 0.45,
+                    "damage": 2,
                     "angle": 0,
-                    "baseKnockback": 22,
-                    "knockbackGrowth": 2,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
                     "stunTicks": 0,
-                    "maxFlightTicks": 26,
+                    "maxFlightTicks": 20,
                     "yawOffsetDegrees": 0
                   },
-                  "sprayAnimationId": "anim.bashie.hose-spray",
-                  "sprayLoopTicks": 12,
-                  "endAnimationId": "anim.bashie.hose-end"
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 0,
-                "unit": "ticks",
-                "presentationId": "presentation.bashie.hose.pump",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.right-hand",
-                  "localPositionX": 0,
-                  "localPositionY": 0.0,
-                  "localPositionZ": 0,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 600
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 1,
-                "unit": "ticks",
-                "presentationId": "presentation.bashie.hose.release",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.right-hand",
-                  "localPositionX": 0,
-                  "localPositionY": 0.0,
-                  "localPositionZ": 0,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 60
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 1,
-                "unit": "ticks",
-                "presentationId": "presentation.bashie.hose.sign",
-                "placement": {
-                  "attachmentMode": "world",
-                  "boneId": null,
-                  "localPositionX": 0,
-                  "localPositionY": 0.62,
-                  "localPositionZ": 1.0,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 70
+                  "reelSpeed": 16,
+                  "anchorDistance": 0.9,
+                  "arrivalStunTicks": 13,
+                  "maxReelTicks": 45,
+                  "retractSpeed": 16,
+                  "missRecoveryTicks": 12,
+                  "airGravityScale": 0.35,
+                  "reelAnimationId": "anim.bashie.ring-reel",
+                  "retractAnimationId": "anim.bashie.ring-retract"
                 }
               }
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.bashie.hose.hit"
+      }
     },
     {
       "id": "ground.E",

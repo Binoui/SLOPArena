@@ -252,6 +252,12 @@ $PY tools/genra/unity_clip.py render --brief BRIEF.json --result RESULT.json \
   `--asset` names a new path (default `Assets/Art/Experiments/GenRA/<package>/<name>.anim`),
   and nothing is bound.
 - Judge written clips with `render`, `timeline`, the Ability Lab or Training, not Unity's Inspector preview.
+  For grounded locomotion, set `"grounding": "reference-sole"` in the brief. The writer
+  measures the lowest foot-weighted skinned vertex on the entry reference, then changes
+  only `RootT.y` to keep one sole at that height every tick. It verifies the result through
+  Animancer and reports each vertical correction and residual. This is for walks without
+  flight, not jumps or runs with airborne phases. Character-frame up is relative to the
+  entry hips, so a prose floor height must not be mistaken for the prefab's world floor.
   The clips name no preview model, so the Inspector shows them broken on its default mannequin
   (Wibou's R charge loop, 2026-10-18), and plain sampling applies the prefab's root motion.
 - Unity loops only a whole clip. A loop from tick 0 (an aim hold) is saved looping, and the

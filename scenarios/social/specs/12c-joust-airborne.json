@@ -1,0 +1,66 @@
+{
+ "stage": "hamster_habitat",
+ "notes": "12c airborne: Sir Bonk jumps off the desk cage floor (x -20, z 0.5) and presses R rising: rears in mid-air (NEIGH, half gravity), gallops 120 ticks on thin air east over the gap, looks down (?, gulp) over the void and drops. Camera north-east of him (the south side looks through the high tube); strides at y 4.67 from t~44, look-down at x 4.87 t~165-188, then the fall.",
+ "capture": {
+  "from": 1,
+  "to": 260,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    -20.0,
+    0,
+    0.5
+   ],
+   "yaw": 90,
+   "damage": 0,
+   "input": [
+    {
+     "from": 3,
+     "to": 12,
+     "jump": true
+    },
+    {
+     "from": 3,
+     "to": 14,
+     "move": 90
+    },
+    {
+     "at": 14,
+     "press": "R"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "n",
+   "pos": [
+    -17.5,
+    2.4,
+    7.5
+   ],
+   "look": [
+    -20.0,
+    1.0,
+    0.5
+   ],
+   "follow": 1,
+   "lookOffset": [
+    1.0,
+    0.1,
+    0
+   ],
+   "move": true,
+   "ease": 0.2,
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

@@ -71,6 +71,10 @@ namespace SlopArena.Shared
         // tools/MoveDataReport prints the live values.
         public const float FlightGravity = 14f;
         public const float FlightFriction = 6f;
+        /// <summary>Horizontal brake (m/s²) when the stick points straight against post-hitstun
+        /// launch momentum. Air steering would brake at 12-24 m/s² and cancel half a launch;
+        /// this lets the stick cancel about a fifth.</summary>
+        public const float HeldFlightBrake = 8f;
 
         private const byte MaxAirDodges = 1;
 
@@ -164,8 +168,7 @@ namespace SlopArena.Shared
             _lastDownAdmissionReason = null;
             ordinaryActionOpportunity = false;
             movementActionAccepted = false;
-            if (s.InteractionId != 0
-                && s.State is (ActionState.Grabbed or ActionState.Throwing))
+            if (s.InteractionId != 0 && ActionStates.MovedByPartner(s.State))
             {
                 TickTimers(ref s);
                 return;
@@ -756,25 +759,14 @@ namespace SlopArena.Shared
                 if (cd > 0) s.SetCooldown(slot, (ushort)(cd - 1));
             }
 
-            // Charge-stock regen (ability charge pools, e.g. Wibou Rising Slash).
-            // Only active when a charge is spent; recovers one charge per regen period.
-            if (s.ChargeStockSpent > 0)
-            {
-                if (s.ChargeStockRegenTicks > 0) s.ChargeStockRegenTicks--;
-                if (s.ChargeStockRegenTicks == 0)
-                {
-                    s.ChargeStockSpent--;
-                    if (s.ChargeStockSpent > 0)
-                        s.ChargeStockRegenTicks = s.ChargeStockRegenPeriod > 0 ? s.ChargeStockRegenPeriod : (ushort)180;
-                }
-            }
+            s.RegenerateCharges();
 
 
         }
         private static bool IsDefenseActionState(ActionState state)
             => state is ActionState.Shielding or ActionState.ShieldDrop or ActionState.GrabAttempt
                 or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
-                or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery;
+                or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery or ActionState.Reeled;
 
         private static bool CanAcceptDefenseAction(in CharacterState state, ActiveMoveView? activeMove,
             bool blockStunLocked, bool verticalMotionOwned)
@@ -1007,7 +999,7 @@ namespace SlopArena.Shared
                 state.State = ActionState.Idle;
         }
 
-        private static void MoveDefenseBody(ref CharacterState state, CharacterDefinition def,
+        internal static void MoveDefenseBody(ref CharacterState state, CharacterDefinition def,
             in ArenaDefinition arena)
         {
             MoveThroughStage(ref state, def, arena,
@@ -1919,7 +1911,17 @@ namespace SlopArena.Shared
             s.IsGrounded = false;
 
             bool hasInput = ((dirX * dirX) + (dirZ * dirZ)) > 1e-4f;
-            if (hasInput)
+            float speed = MathF.Sqrt((s.VX * s.VX) + (s.VZ * s.VZ));
+            float opposing = speed > 0f ? -((dirX * s.VX) + (dirZ * s.VZ)) / speed : 0f;
+            if (hasInput && s.InPostHitstunFlight && (opposing > 0f || speed > stats.AirSpeedMax))
+            {
+                // Launch momentum outranks steering: it only brakes, harder the more the
+                // stick opposes it, and ordinary drift resumes once it is spent.
+                float brake = FlightFriction
+                    + ((HeldFlightBrake - FlightFriction) * Math.Clamp(opposing, 0f, 1f));
+                DecayHorizontalSpeed(ref s, brake * TickDt);
+            }
+            else if (hasInput)
             {
                 float accel = (stats.AirAccelStick + stats.AirAccelBase) * TickDt;
                 s.VX = MoveToward(s.VX, dirX * stats.AirSpeedMax, accel);

@@ -37,6 +37,8 @@ namespace SlopArena.Shared.Abilities
         public virtual bool IgnoresFighterPushboxes => false;
         /// <summary>Whether body overlap moves only the other fighter during this activation.</summary>
         public virtual bool HoldsFighterPushboxPosition => false;
+        /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
+        public virtual TetherAbility? Tether => null;
 
         /// <summary>
         /// True while this activation's authored armor window remains active. A capability may report
@@ -172,7 +174,8 @@ namespace SlopArena.Shared.Abilities
         /// When evt.BoneName is set and baked data is available, positions at the
         /// bone's world position instead of the fixed OffX/Y/Z offset.
         /// </summary>
-        protected HashSet<ulong> SpawnHitbox(ref CharacterState s, HitboxEvent evt, bool followOwner = false)
+        protected HashSet<ulong> SpawnHitbox(ref CharacterState s, HitboxEvent evt, bool followOwner = false,
+            bool ignitesOwnerCans = false)
         {
             // Position resolution is shared with the Ability Lab preview + tests
             // (spec #119) — one implementation, previews cannot drift from the server.
@@ -214,6 +217,7 @@ namespace SlopArena.Shared.Abilities
                 Shape = evt.Shape,
                 EndX = wex, EndY = wey, EndZ = wez,
                 Damage = damage,
+                IgnitesOwnerCans = ignitesOwnerCans,
                 BaseKnockback = kbBase,
                 KnockbackGrowth = kbGrowth,
                 KnockbackAngle = kbAngle,
@@ -253,8 +257,12 @@ namespace SlopArena.Shared.Abilities
             s.VZ = vz;
         }
 
-        /// <summary>Spawn an authored projectile using launch-time targeting or the locked aim; returns it as spawned.</summary>
-        protected Hitbox SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget)
+        /// <summary>
+        /// Spawn an authored projectile using launch-time targeting or the locked aim; returns it as spawned.
+        /// One that cancels with its ability leaves with an interrupted move instead of flying on.
+        /// </summary>
+        protected Hitbox SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget,
+            bool cancelWithAbility = false)
         {
             float aimYaw;
             float aimPitch;
@@ -299,6 +307,7 @@ namespace SlopArena.Shared.Abilities
                 AttackSlot = (byte)(Slot + 1),
                 VisualOperationIndex = operationIndex,
                 Gravity = projectile.Gravity,
+                CancelWithAbility = cancelWithAbility,
             };
             if (projectile.Return is { } back)
             {

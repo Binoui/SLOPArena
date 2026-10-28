@@ -52,7 +52,8 @@ with `final --image <file>`.
 `shield`, `grab`, `move` and `face` as world yaw in degrees). Cameras are free (`pos`,
 `look`, `fov`, `roll`, `ortho`) or follow a fighter (`follow`, `lookOffset`, `move`, `ease`).
 `capture` sets the tick window, step, size (up to 3840×2160) and JPG quality; `hud` renders
-the real match HUD for one local fighter into a transparent layer. One tick runs per
+the real match HUD for one local fighter into a transparent layer (`"prompts": "gamepad"`
+shows the move deck's controller prompts, with a virtual pad if none is plugged in). One tick runs per
 rendered frame, so frame N is the state after N ticks. Each run also writes `states.jsonl`
 and `survey.json` (collision bounds, kill lines, spawns, camera poses and the bounds of
 stage objects matching `landmarks`). The shoot switches to the Ultra preset and restores

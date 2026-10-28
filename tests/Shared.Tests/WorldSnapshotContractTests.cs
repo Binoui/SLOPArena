@@ -202,6 +202,9 @@ public class WorldSnapshotContractTests
         yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
             CharacterPackageCompiler.ThrustCapabilityId,
             CharacterPackageCompiler.ThrustCapabilityVersion, BashieShellFixture.JetParameters);
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.TetherCapabilityId,
+            CharacterPackageCompiler.TetherCapabilityVersion, TetherTests.Parameters);
     }
 
     private static ServerAbility Create(CookedStartCapabilityOperation operation)

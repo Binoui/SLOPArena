@@ -44,6 +44,27 @@ namespace SlopArena.Client.World
             return full > 0 ? Mathf.Clamp01(chargeTicks / (float)full) : 0f;
         }
 
+        /// <summary>Steps a HUD card shows for the slot's charge: its tiers, three for a stream; 0 when it has none.</summary>
+        public static int Steps(CookedSlotDefinition? move) => Find(move) switch
+        {
+            CookedMankiAerosolInfernoCapabilityParameters aerosol => aerosol.ChargeTiers?.Count ?? 0,
+            null => 0,
+            _ => 3,
+        };
+
+        /// <summary>Steps reached at this charge: tiered moves light tier 1 on the press, Aerosol at its minimum.</summary>
+        public static int StepsReached(CookedSlotDefinition? move, ushort chargeTicks)
+        {
+            if (chargeTicks == 0) return 0;
+            return Find(move) switch
+            {
+                CookedMankiAerosolInfernoCapabilityParameters aerosol => Reached(aerosol, chargeTicks),
+                CookedChargedStreamCapabilityParameters => Mathf.CeilToInt(Progress(move, chargeTicks) * 3f),
+                null => 0,
+                _ => Of(move, chargeTicks) + 1,
+            };
+        }
+
         private static int Reached(CookedMankiAerosolInfernoCapabilityParameters aerosol, ushort chargeTicks)
         {
             int reached = 0;

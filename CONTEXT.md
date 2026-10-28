@@ -85,6 +85,13 @@ A special whose slot declares `shellPolicy: tuck` (Shell Shift, Shell Dive, Hydr
 **Pop out**:
 Leaving the Shell into an action: a grounded normal starts at skate speed, a jump keeps her speed; hits, shield, grab, air dodge and homing dash leave it too. Popping up is the skate running out, or a wall or shield stopping it.
 
+**Tether**:
+A thrown line that catches the first fighter it meets and reels them to the thrower's feet (ADR-0048, `slop.ability.tether.v1`, Bashie's Rescue Ring). It is a paired interaction like a Grab, with phase `Reeling`, so deaths, resets and damaging hits end it the same way. A miss (range, a wall, a shield) reels the empty ring back, and that wait is the punish.
+_Avoid_: hook, pull, ranged grab
+
+**Reeled**:
+The caught fighter's state on a Tether. While the line holds, the thrower's tether is its only mover and it takes no input. Delivered, it stays Reeled for a short arrival window with ordinary gravity and no launch, then becomes Idle. Any hit ends it with that hit's own reaction.
+
 **CrouchBrace**:
 Reduced ordinary launch strength for a fighter already settled motionless in Crouch when a hit connects. The contact snapshot survives Hitstop and release; damage, freeze and Hitstun remain unchanged. Sliding, entry/braking crouch and fixed/custom forces do not qualify.
 
@@ -128,7 +135,7 @@ punishable miss. Shared cooldown, one use per airtime.
 _Avoid_: super dash, homing dash (in player-facing text)
 
 **RecoveryMove**:
-The per-character dedicated upward/diagonal burst used to return to the stage after being knocked out — one Slot per kit, long cooldown. The only move that resets the FloatWindow; normal air attacks no longer do (ADR-0015).
+The per-character dedicated upward/diagonal burst used to return to the stage after being knocked out — one Slot per kit, long cooldown. The only move that resets the FloatWindow; normal air attacks no longer do (ADR-0015). Unless it is cursor-aimed, it goes where the stick points during its first three input ticks, even behind the fighter; a neutral stick keeps facing.
 _Avoid_: up-B, getup move, escape move
 
 **Clash**:

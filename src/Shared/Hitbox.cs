@@ -102,6 +102,10 @@ namespace SlopArena.Shared
         /// </summary>
         public ProjectileExplosion? Explosion;
 
+        public MankiCanPayload? MankiCan;
+        public bool IgnitesOwnerCans;
+        public bool IsCanIgniterOnly;
+
         /// <summary>Optional boomerang behaviour: the projectile flies out, turns and comes back to its owner.</summary>
         public ProjectileReturn? Return;
         /// <summary>True once a returning projectile has turned back toward its owner.</summary>

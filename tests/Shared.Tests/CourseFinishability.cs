@@ -67,8 +67,8 @@ public sealed class CourseFinishability
         sim.SetRespawnPosition(1, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
         if (_format != null)
         {
-            sim.RegisterEntity(2, entry.Definition, new() { PX = spawn.X, PY = spawn.Y, PZ = spawn.Z }, entry.BakedAnimation);
-            sim.SetRespawnPosition(2, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
+            sim.RegisterEntity(2, entry.Definition, new() { PX = spawn.X, PY = spawn.Y, PZ = spawn.Z - 3 }, entry.BakedAnimation);
+            sim.SetRespawnPosition(2, spawn.X, spawn.Y, spawn.Z - 3, spawn.Yaw);
             sim.BeginOnlineCourse();
             sim.Tick(new());
             // Isolate traversal from the shared target gate: a rival has claimed the points.

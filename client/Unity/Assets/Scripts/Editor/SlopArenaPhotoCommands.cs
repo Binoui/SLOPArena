@@ -672,11 +672,16 @@ namespace SlopArena.EditorTools
             bool hud = root["hud"] is JObject;
             ulong hudLocal = 1;
             int hudStocks = 3;
+            bool hudGamepad = false;
             if (root["hud"] is JObject hudObject)
             {
-                Only(hudObject, "hud", "local", "stocks");
+                Only(hudObject, "hud", "local", "stocks", "prompts");
                 hudLocal = (ulong)Int(hudObject, "local", 1, 1, 4);
                 hudStocks = Int(hudObject, "stocks", 3, 0, 9);
+                string prompts = (string?)hudObject["prompts"] ?? "keyboard";
+                if (prompts is not ("keyboard" or "gamepad"))
+                    throw new ArgumentException("hud.prompts must be keyboard or gamepad.");
+                hudGamepad = prompts == "gamepad";
                 if (fighters.All(f => f.Id != hudLocal))
                     throw new ArgumentException("hud.local must name a fighter in the shoot.");
             }
@@ -694,7 +699,7 @@ namespace SlopArena.EditorTools
                 shoot.Cameras = cameras;
                 shoot.From = from; shoot.To = to; shoot.Step = step;
                 shoot.Width = width; shoot.Height = height; shoot.Quality = quality;
-                shoot.Hud = hud; shoot.HudLocal = hudLocal; shoot.HudStocks = hudStocks;
+                shoot.Hud = hud; shoot.HudLocal = hudLocal; shoot.HudStocks = hudStocks; shoot.HudGamepad = hudGamepad;
                 shoot.Landmarks = landmarks;
             };
         }

@@ -487,7 +487,7 @@ public sealed class CharacterPackageCompilerTests
         Assert.True(SlopArena.Shared.AI.HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, false, baked) >= hitbox.EndZ);
     }
     [Fact]
-    public void Wibou_Package_CooksCanonicalSlotsAttachmentsSpreadAndChargePool()
+    public void Wibou_Package_CooksCanonicalSlotsAttachmentsAndSpread()
     {
         var result = CharacterPackageCompiler.Compile(
             File.ReadAllText(FindRepoFile("client/Unity/Assets/CharacterPackages/wibou/package.json")),
@@ -499,7 +499,8 @@ public sealed class CharacterPackageCompilerTests
         Assert.Equal(new[] { "_weapon_hilt", "_weapon_tip" }, package.Definition.AttachmentBoneIds.OrderBy(x => x).ToArray());
         var shuriken = package.Definition.Slots.Single(x => x.Id == "ground.A").Timeline.Stages.Single().Operations.OfType<CookedSpawnProjectileOperation>().ToArray();
         Assert.Equal(new[] { -15f, 0f, 15f }, shuriken.Select(x => x.Projectile.YawOffsetDegrees).OrderBy(x => x).ToArray());
-        Assert.Equal((2, (ushort)240), (package.Definition.Slots.Single(x => x.Id == "ground.E").ChargePool!.MaxCharges, package.Definition.Slots.Single(x => x.Id == "ground.E").ChargePool!.RegenTicks));
+        // Rising Slash is a plain cooldown move: Wibou has no stored uses.
+        Assert.Null(package.Definition.Slots.Single(x => x.Id == "ground.E").ChargePool);
     }
     [Fact]
     public void ChargedDirectionalDash_IsPublicRoundTripAndValidatesBounds()

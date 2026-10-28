@@ -1185,13 +1185,20 @@
                   "bodyRadius": 0.8,
                   "sideRadius": 0.4,
                   "sideOffset": 0.8,
-                  "damage": 7,
-                  "knockbackAngle": 15,
-                  "knockbackBase": 8,
-                  "knockbackGrowth": 5,
+                  "damage": 1,
+                  "knockbackAngle": 0,
+                  "knockbackBase": 60,
+                  "knockbackGrowth": 0,
                   "stunTicks": 6,
                   "bodyY": 0.8,
-                  "sideY": 0.3
+                  "sideY": 0.3,
+                  "hitIntervalTicks": 8,
+                  "fixedHitstunTicks": 14,
+                  "finisherTick": 44,
+                  "finisherDamage": 6,
+                  "finisherKnockbackAngle": 35,
+                  "finisherKnockbackBase": 16,
+                  "finisherKnockbackGrowth": 24
                 }
               },
               {

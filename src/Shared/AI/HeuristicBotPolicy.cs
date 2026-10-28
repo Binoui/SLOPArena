@@ -1234,6 +1234,7 @@ public sealed class HeuristicBotPolicy
             or CookedTargetedLeapCapabilityParameters
             or CookedSteeredChargeCapabilityParameters
             or CookedThrustCapabilityParameters
+            or CookedTetherCapabilityParameters
             or CookedMankiRoundBombCapabilityParameters
             or CookedMankiJetpackBoostCapabilityParameters
             or CookedMankiBazookaCapabilityParameters;
@@ -1298,6 +1299,13 @@ public sealed class HeuristicBotPolicy
                 recoveryHorizontal = MathF.Max(recoveryHorizontal, x.Speed * MathF.Cos(pitch) * x.ThrustTicks / 60f);
                 recoveryVertical = MathF.Max(recoveryVertical, x.Speed * MathF.Sin(pitch) * x.ThrustTicks / 60f);
                 hasMovement = true; break;
+            case CookedTetherCapabilityParameters x:
+                // The ring is thrown like a projectile; the catch and the reel are not modelled.
+                hitReach = MathF.Max(hitReach, MathF.Max(0f, x.Projectile.LaunchOffsetZ)
+                    + x.Projectile.Radius + x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
+                damage += x.Projectile.Damage;
+                hasDamage |= x.Projectile.Damage > 0f;
+                break;
             case CookedSteeredChargeCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.GallopSpeed * x.MaxGallopTicks / 60f
                     + MathF.Max(x.LanceHitbox.OffsetZ, x.LanceHitbox.EndOffsetZ) + x.LanceHitbox.Radius);
@@ -1323,6 +1331,7 @@ public sealed class HeuristicBotPolicy
             CookedCycloneKickCapabilityParameters x => x.WindupTicks,
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
             CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
+            CookedTetherCapabilityParameters x => x.ThrowTick,
             CookedFingerGunsCapabilityParameters x => x.FireTriggerTick,
             CookedChargedDirectionalDashCapabilityParameters _ => 0,
             CookedWibouRisingSlashCapabilityParameters _ => 0,
@@ -1339,6 +1348,12 @@ public sealed class HeuristicBotPolicy
         switch (parameters)
         {
             case CookedFingerGunsCapabilityParameters x:
+                travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
+                travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);
+                travelOffset = MathF.Max(travelOffset,
+                    MathF.Max(0f, x.Projectile.LaunchOffsetZ) + x.Projectile.Radius);
+                break;
+            case CookedTetherCapabilityParameters x:
                 travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
                 travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);
                 travelOffset = MathF.Max(travelOffset,

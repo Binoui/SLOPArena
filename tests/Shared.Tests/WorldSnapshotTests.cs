@@ -63,6 +63,43 @@ public class WorldSnapshotTests
     }
 
     [Theory]
+    [InlineData("flight")]
+    [InlineData("reel")]
+    [InlineData("retract")]
+    [InlineData("arrival")]
+    public void BashieRingRestoredMidPhaseReplaysIdentically(string phase)
+    {
+        const ulong dummy = RingDuel.Dummy;
+        RingDuel Make() => new RingDuel().WithBashie()
+            .WithFighter(dummy, RingDuel.Standing(0f, phase == "retract" ? -30f : 5f, yawDegrees: 180f));
+        Func<RingDuel, bool> reached = phase switch
+        {
+            "flight" => d => d.RingOut,
+            "reel" => d => d.State(dummy).InteractionId != 0,
+            "retract" => d => d.Retracts.Any(),
+            _ => d => d.State(dummy).State == ActionState.Reeled && d.State(dummy).InteractionId == 0,
+        };
+        var continuous = Make();
+        continuous.Step(new InputState { ActiveSlot = AbilitySlots.A });
+        continuous.RunUntil(() => reached(continuous), 120);
+        continuous.Step();
+        continuous.Step();
+        int hits = continuous.Hits.Count, events = continuous.Events.Count;
+
+        var restored = Make();
+        restored.Sim.RestoreSnapshot(continuous.Sim.CaptureSnapshot());
+        for (int tick = 0; tick < 60; tick++)
+        {
+            continuous.Step();
+            restored.Step();
+            Assert.True(continuous.Sim.CaptureSnapshot().ContentEquals(restored.Sim.CaptureSnapshot()),
+                $"{phase} diverged {tick + 1} ticks after the restore");
+        }
+        Assert.Equal(continuous.Hits.Skip(hits), restored.Hits);
+        Assert.Equal(continuous.Events.Skip(events), restored.Events);
+    }
+
+    [Theory]
     [MemberData(nameof(Fights))]
     public void FreshSimulationsRestoredMidFightMatchTheContinuousOneEveryTick(
         string arenaName, CharacterClass[] roster, int seed)

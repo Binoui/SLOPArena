@@ -195,8 +195,8 @@
   "slots": [
     {
       "id": "ground.1",
-      "name": "Backhand Slap",
-      "description": "A quick, insulting saloon backhand with the open hand, swept out to his right.",
+      "name": "Haymaker",
+      "description": "Cock the fist out wide, step in and throw a big looping hook that carries him off balance.",
       "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -208,8 +208,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 35,
-            "iasaTicks": 18,
+            "durationTicks": 72,
+            "iasaTicks": 58,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -226,7 +226,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 9,
+                "endTick": 28,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -236,17 +236,43 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 9,
+                "tick": 31,
                 "unit": "meters",
                 "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.45,
-                  "offsetX": 0.4,
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 4,
+                  "angle": 8,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 20,
+                  "stunTicks": 14,
+                  "durationTicks": 8,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 32,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.55,
+                  "offsetX": 0,
                   "offsetY": 0.35,
-                  "offsetZ": 0.35,
-                  "endOffsetX": -0.1,
-                  "endOffsetY": 0.3,
-                  "endOffsetZ": 0.95,
+                  "offsetZ": 0.6,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
                   "startBoneId": null,
                   "endBoneId": null,
                   "damage": 4,
@@ -254,7 +280,7 @@
                   "baseKnockback": 4,
                   "knockbackGrowth": 20,
                   "stunTicks": 14,
-                  "durationTicks": 6,
+                  "durationTicks": 4,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -365,8 +391,8 @@
     },
     {
       "id": "ground.3",
-      "name": "Uppercut",
-      "description": "Dip, then drive the fist straight up over the sombrero: a launcher.",
+      "name": "Jumping Uppercut",
+      "description": "Sink deep, then spring off the floor driving the fist up over the sombrero: a launcher.",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -378,8 +404,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 44,
-            "iasaTicks": 29,
+            "durationTicks": 84,
+            "iasaTicks": 58,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -396,7 +422,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 8,
+                "endTick": 30,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -406,7 +432,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 8,
+                "tick": 31,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
@@ -432,7 +458,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 9,
+                "tick": 33,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
@@ -450,7 +476,7 @@
                   "baseKnockback": 6,
                   "knockbackGrowth": 26,
                   "stunTicks": 18,
-                  "durationTicks": 12,
+                  "durationTicks": 10,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -706,10 +732,10 @@
     {
       "id": "ground.A",
       "name": "Finger Guns",
-      "description": "Tap to fire one shot along the camera aim. Six shots, then he blows the smoke, twirls and holsters: the reload. No refill over time. In the air each shot slows his fall and pushes him back.",
+      "description": "Tap to fire one shot where he faces; the stick turns him first. Six shots, then he blows the smoke, twirls and holsters: the reload. No refill over time. In the air each shot slows his fall and pushes him back.",
       "iconId": "icon.a",
       "behavior": "meleeCombo",
-      "aimMode": "cameraForward3D",
+      "aimMode": "groundVector",
       "aimMovement": "fixed",
       "cooldownTicks": 0,
       "isRecoveryMove": false,

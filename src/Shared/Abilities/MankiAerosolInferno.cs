@@ -38,9 +38,7 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
         s.IsFastFalling = false;
         if (!_released)
         {
-            s.VX = 0f;
             s.VY = 0f;
-            s.VZ = 0f;
             s.FacingYaw = s.AimYaw;
             // A tap queues release, but cannot skip the authored minimum charge.
             if (s.ChargeTicks < _parameters.MinimumChargeTicks)
@@ -55,6 +53,7 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
             }
 
             _released = true;
+            s.VX = s.VZ = 0f;
             s.State = ActionState.Attacking;
             s.IsAiming = false;
             s.ComboStage = 1;
@@ -122,7 +121,7 @@ public sealed class MankiAerosolInferno : ServerAbility, IAimHoldCapability
             Interruptible = true,
             HitGroup = _parameters.HitGroup,
             KnockbackDirection = AuthoringKnockbackDirection.AwayFromOwner,
-        });
+        }, ignitesOwnerCans: true);
     }
 
     internal override void WriteSnapshot(SnapshotWriter w)

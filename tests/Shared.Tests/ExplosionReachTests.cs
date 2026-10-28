@@ -34,7 +34,7 @@ public sealed class ExplosionReachTests
     /// <summary>Hold A aimed straight ahead (+Z) at <paramref name="metres"/>, release, then let the bomb land.</summary>
     private static void ThrowBomb(ServerSimulation sim, float metres, params ulong[] bystanders)
     {
-        for (int tick = 0; tick < 150; tick++)
+        for (int tick = 0; tick < 400; tick++)
         {
             var inputs = new Dictionary<ulong, InputState>
             {

@@ -98,7 +98,7 @@ public class WibouAbilityTests
     }
 
     [Fact]
-    public void RisingSlashConnectsWithAirborneVictimWithoutRefundingItsCharge()
+    public void RisingSlashConnectsWithAirborneVictim()
     {
         var sim = SimWithPlayer(out _);
         var victim = TestHelpers.NpcState(0f, 4f);
@@ -107,7 +107,6 @@ public class WibouAbilityTests
         victim.DamagePercent = 120;
         sim.RegisterEntity(100, Def, victim, TestHelpers.LoadBakedData(Def));
         sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.E) }, { 100, default } });
-        Assert.Equal(1, sim.GetState(1).ChargeStockSpent);
 
         bool connected = false;
         bool launched = false;
@@ -117,28 +116,26 @@ public class WibouAbilityTests
             connected |= sim.LastTickHits.Any(hit => hit.TargetEntityId == 100 && !hit.Blocked);
             var state = sim.GetState(100);
             launched |= state.HitstunTicks > 0 && state.KVY > 0f;
-            // Only regen returns a charge; a connect no longer refunds it.
-            Assert.Equal(1, sim.GetState(1).ChargeStockSpent);
         }
         Assert.True(connected, "The recovery slash should connect with an airborne victim in its path.");
         Assert.True(launched, "The connected recovery slash should retain an upward launch.");
     }
 
     [Fact]
-    public void E_RecoveryUsesCameraDirection_NotTargetDirection()
+    public void E_RecoveryUsesStickDirection_NotTargetOrCamera()
     {
         var sim = SimWithPlayer(out _);
         var target = TestHelpers.NpcState(0f, 4f);
         target.PY = GroundPY;
         TestHelpers.RegisterNpc(sim, Def, target);
 
-        // Camera yaw +90° points along +X; the target is straight ahead on +Z.
-        sim.Tick(new() { { 1, new InputState { ActiveSlot = 4, AimYaw = 9000 } }, { 100, default } });
+        // The stick points along -X, the camera along +X, and the target is straight ahead on +Z.
+        sim.Tick(new() { { 1, new InputState { ActiveSlot = 4, MoveX = -1f, AimYaw = 9000 } }, { 100, default } });
         for (int i = 0; i < 10; i++)
             sim.Tick(new() { { 1, default }, { 100, default } });
 
         var s = sim.GetState(1);
-        Assert.True(s.PX > 1f, $"expected recovery movement along camera +X, got PX={s.PX:F2}");
+        Assert.True(s.PX < -1f, $"expected recovery movement along the stick's -X, got PX={s.PX:F2}");
         Assert.True(MathF.Abs(s.PZ) < 0.1f, $"recovery must not home toward target +Z, got PZ={s.PZ:F2}");
     }
 

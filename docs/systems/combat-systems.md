@@ -34,15 +34,16 @@ Camera aim input cannot put these slots into an aiming stance.
 - Automatic ledge grabs and LedgeHang are disabled for the friends demo. Fighters fall past stage edges; return with jumps, movement, and kit recovery moves.
 - Each ability entry can be limited to one use per flight. Landing resets air-use counters.
 - RecoveryMove is the per-character return-to-stage move. It is the only ordinary move that resets the FloatWindow mid-air.
+- A RecoveryMove goes where the stick points, not where the fighter faces, like a Melee up-B reversal in 360°. The stick held on the press tick or either of the next two ticks turns the fighter and the move (`RecoveryTurn`); a later turn wins. A neutral stick keeps the current facing; the camera does not aim it. Moves that read the stick later still do so (Manki's ignition, Salamander's launch). Cursor-aimed recoveries such as Sir Bonk's Targeted Jump Slam keep their cursor.
 
 All gameplay timing uses 60 Hz ticks. Values are authored in package data and resolved by Shared simulation.
 
 ### Ground Run
 
 Every simulation uses the same immutable `GroundSpeedTuning` constants, including online prediction and replay playback.
-The first moving tick sets speed to 40% of RunSpeed. The next 20 linear increments each add 3% of RunSpeed.
-Full speed arrives on completed tick 21, 350 ms at 60 Hz. Tilt magnitude is ignored.
-Turns and Turnaround redirect immediately at retained speed and continue acceleration, with the same 40% floor.
+The first moving tick sets speed to 60% of RunSpeed. The next 12 linear increments each add RunSpeed/30.
+Full speed arrives on completed tick 13, about 217 ms at 60 Hz. Tilt magnitude is ignored.
+Turns and Turnaround redirect immediately at retained speed and continue acceleration, with the same 60% floor.
 Facing follows input. Release removes RunSpeed/20 along the velocity vector per tick, so full-speed stopping takes 20 ticks.
 Dash overspeed retains its shipped coast, release braking, and pivot behavior until ordinary Run resumes.
 Rush, its dash-dance window, and its instant tap-release stop are retired.
@@ -245,6 +246,37 @@ startup, orange active contact, gray whiff recovery. The Edit Mode menu
 **Tools → SLOPArena → Tests → Grab Animation Presentation** checks held loops,
 both walk directions and roles, throw frame 11, victim landing frame 34, recorded
 poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
+
+### Tether
+
+A tether ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md), Bashie's Rescue Ring) is a thrown line that
+delivers the first fighter it meets to the thrower's feet. It is the second kind of paired interaction. A catch writes
+the same pair fields as a capture, with phase `Reeling`, and the victim enters `ActionState.Reeled`. Deaths, removal,
+mode resets and damaging hits therefore end it through the grab path, and a fighter already in a pair cannot be
+grabbed or caught (a ring that meets one bounces).
+
+- **Thrower:** stays `Attacking` from the throw to the end, so clips, cooldown and interruption follow her move. The
+  ring is an ordinary projectile of her activation that leaves with an interrupted move. It flies straight, aimed once
+  by the auto-target projectile aim. Each tick she checks its next travel against the stage and stops it there.
+- **Catch:** a ring contact after the shield, invincibility and mode-target rules. It supersedes the victim's move and
+  any reaction in progress, deals the ring's damage with no launch, hitstop or DI, and credits the hit. Armour does not
+  resist it. Two rings that meet each other's throwers in one batch clash and both come back empty. A fighter already
+  hit in that batch bounces the ring.
+- **Reel:** once per thrower ability tick, `ReelTether` steps the victim toward an anchor in front of her feet. Height
+  and ground distance close separately, so a victim below a ledge lip rises over it, and the body mover slides it
+  along walls. The victim's own movement step and the pushbox pass skip a paired `Reeled` fighter. A step that gains
+  too little (a head-on wall) or the reel running out of time snaps the line and frees the victim.
+- **Arrival:** the pair ends, the victim stays `Reeled` for the authored window facing her, under ordinary gravity with
+  no launch or DI, then becomes Idle. She acts on the next tick. Any hit in the window gives its own reaction.
+- **Miss:** range, a wall, a shield, a ball or a course target spends the ring. The empty ring has no body: its retract
+  time is fixed at the miss and drawn from a `TetherRetract` presentation event, then a short recovery locks her.
+- **Validator:** every pair pass checks both sides. The thrower must be `Attacking` with her tether reeling, the victim
+  `Reeled`, both naming each other, and neither carrying a hit reaction. Anything else interrupts the pair: a hit on
+  her drops the line with the victim free and unstunned, a hit on the victim breaks it and she reels back empty.
+
+World Snapshots carry the tether's phase, clocks and ring position; the pair lives in the fighter states. Coverage:
+[`TetherTests`](../../tests/Shared.Tests/TetherTests.cs) and the ring restores in
+[`WorldSnapshotTests`](../../tests/Shared.Tests/WorldSnapshotTests.cs).
 
 ## Damage and hit response
 

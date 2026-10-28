@@ -609,7 +609,7 @@ public sealed class TimelineRuntimeTests
     {
         var slot = Slot(10,
             new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
-                "slop.internal.manki.round-bomb.v1", "1",
+                "slop.internal.manki.round-bomb.v2", "1",
                 new CookedMankiRoundBombCapabilityParameters(10, 12f, 30f, 30f, .6f, 6f, 22, 90, 30, 4f, 2.3f, 5f, 9f, 15, 4, 45)),
             new CookedSetAimStateOperation(0, AuthoringUnit.Ticks, AuthoringAimMode.CameraForward3D));
         var initial = TestHelpers.PlayerState() with { PY = 100f, IsGrounded = false, VX = 4f, VZ = 5f };
@@ -1165,7 +1165,7 @@ public sealed class TimelineRuntimeTests
             if (walking.State == ActionState.Aiming) fastest = MathF.Max(fastest, MathF.Abs(walking.VX));
         }
         Assert.InRange(fastest, 0.5f * cap, cap + 1e-4f);
-        if (!airborne) TestHelpers.AssertNear(.94f * cap, fastest, 1e-4f);
+        if (!airborne) TestHelpers.AssertNear(cap, fastest, 1e-4f); // the ground ramp completes inside the aim
 
         var stopped = sim.GetState(1);
         Assert.Equal(ActionState.Attacking, stopped.State);

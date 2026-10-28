@@ -29,6 +29,41 @@ namespace SlopArena.Client.Combat
         [SerializeField] private float _impactLifetime = 1f;
         [SerializeField] private Color _impactColor = new(0f, 0.7f, 1f, 1f);
 
+        private readonly Dictionary<(ulong Owner, ulong Id), MankiCanVisual> _canVisuals = new();
+        private readonly List<(ulong Owner, ulong Id)> _goneCans = new();
+
+        private void ClearCanVisuals(ulong? owner = null)
+        {
+            _goneCans.Clear();
+            foreach (var pair in _canVisuals)
+                if (!owner.HasValue || pair.Key.Owner == owner.Value)
+                {
+                    if (pair.Value != null) DestroyVisual(pair.Value.gameObject);
+                    _goneCans.Add(pair.Key);
+                }
+            foreach (var key in _goneCans) _canVisuals.Remove(key);
+        }
+
+        private void UpdateCanVisuals()
+        {
+            _goneCans.Clear();
+            _goneCans.AddRange(_canVisuals.Keys);
+            foreach (var can in _resolver.MankiCans)
+            {
+                if (!_owners.ContainsKey(can.OwnerId)) continue;
+                var key = (can.OwnerId, can.Id);
+                _goneCans.Remove(key);
+                if (!_canVisuals.TryGetValue(key, out var visual) || visual == null)
+                    _canVisuals[key] = visual = MankiCanVisual.Create();
+                visual.Apply(in can, _sim.CurrentTick);
+            }
+            foreach (var key in _goneCans)
+            {
+                if (_canVisuals[key] != null) DestroyVisual(_canVisuals[key].gameObject);
+                _canVisuals.Remove(key);
+            }
+        }
+
         private ServerSimulation _sim;
         private SpellResolver _resolver;
         private ProjectileVFXConfig _config;
@@ -69,6 +104,7 @@ namespace SlopArena.Client.Combat
 
         private void ClearOwnerVisuals(ulong owner)
         {
+            ClearCanVisuals(owner);
             _goneLocal.Clear();
             foreach (var pair in _activeVisuals)
                 if (pair.Key.Owner == owner) { DestroyVisual(pair.Value); _goneLocal.Add(pair.Key); }
@@ -186,6 +222,7 @@ namespace SlopArena.Client.Combat
             _activeVisuals.Clear();
             _launchOffsets.Clear();
             _heldVisuals.Clear();
+            ClearCanVisuals();
             _sim = sim;
             _config = Resources.Load<ProjectileVFXConfig>("VFXConfigs/ProjectileVisuals");
             _resolver = sim.Resolver;
@@ -198,6 +235,7 @@ namespace SlopArena.Client.Combat
         {
             if (_resolver == null) return;
 
+            UpdateCanVisuals();
             var hitboxes = _resolver.GetActiveHitboxes();
             _matchedLocal.Clear();
             for (int i = 0; i < hitboxes.Count; i++)
@@ -214,7 +252,8 @@ namespace SlopArena.Client.Combat
                 if (!_activeVisuals.TryGetValue(projectileKey, out var vis))
                 {
                     vis = TakeHeldVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne, hb.AttackSequence)
-                        ?? CreateProjectileVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
+                        ?? (hb.MankiCan.HasValue ? MankiCanVisual.Create().gameObject
+                            : CreateProjectileVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne));
                     _activeVisuals[projectileKey] = vis;
                     if (_hazardHands.TryGetValue(hb.OwnerId, out var hand) && hand != null)
                         _launchOffsets[hb.EmissionId] = hand.position - new Vector3(hb.X, hb.Y, hb.Z);
@@ -482,6 +521,7 @@ namespace SlopArena.Client.Combat
                 _resolver.OnHitboxRemoved -= OnHitboxRemoved;
             foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
             foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
+            ClearCanVisuals();
             _owners.Clear();
         }
     }

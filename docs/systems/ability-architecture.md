@@ -148,8 +148,8 @@ projectile operations are rejected. Target-assisted slots resolve the opponent
 at launch; manually aimed slots retain the release direction. Ability Lab edits
 the typed charge and nested projectile parameters. Projectile visual packet v2
 carries radius so remote visuals match authoritative collision size.
-`slop.ability.charged-stream.v1` requires runtime API `1.8.0` (Bashie's Hose
-Down, like FLUDD). Holding pumps it, in place, up to `maxChargeTicks`; a manually
+`slop.ability.charged-stream.v1` requires runtime API `1.8.0` (Bashie's retired Hose
+Down, like FLUDD; FightGuy's test fixture keeps its coverage). Holding pumps it, in place, up to `maxChargeTicks`; a manually
 aimed slot turns the fighter to its aim while she pumps. Release sprays a stream:
 one projectile every `emitIntervalTicks` from `fireTriggerTick`, along the release
 aim. The pump scales the stream linearly, from a tap to a full pump:
@@ -214,6 +214,21 @@ Its slot is one tick-zero lifecycle in one `meleeCombo` stage with no aim, along
 presentation and armour; IASA is allowed. A `setVelocity` may use `velocityMode: vertical`
 (same API): it writes only the vertical speed and keeps horizontal carry. Compiler and cooked
 loader enforce the same rules (`ShellBoundsError`, `ThrustBoundsError`).
+
+`slop.ability.tether.v1` requires runtime API `1.13.0`
+([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md), Bashie's Rescue Ring; rules in
+[combat systems](combat-systems.md#tether)). At `throwTick` (1–120) it throws its `projectile`, the existing
+projectile spec with 0 < speed ≤ 60, 0 < radius ≤ 3, `maxFlightTicks` 1–240, no gravity, no yaw offset, no `return`,
+damage ≥ 0 and no knockback or stun. The ring is aimed once by the auto-target projectile aim and leaves with an
+interrupted move. A caught fighter is reeled at `reelSpeed` per axis (0–60 m/s) to `anchorDistance` (0–3 m, at least
+body contact) in front of her feet and held `arrivalStunTicks` (1–240) after it arrives; `maxReelTicks` (1–600) snaps
+the line. A miss reels the empty ring back at `retractSpeed` (0–60 m/s), then `missRecoveryTicks` (0–240).
+`airGravityScale` (0–1) scales her gravity while the move runs in the air. `reelAnimationId` and
+`retractAnimationId` are phase clips listed after the stage's first clip; `throwPresentationId` and
+`retractPresentationId` are optional. The retract always emits a `TetherRetract` presentation event whose placement
+duration is the empty ring's time home. Its slot is one tick-zero lifecycle in one `meleeCombo` stage with no aim,
+IASA disabled and only presentation alongside; it cannot tuck. Compiler and cooked loader enforce the same rules
+(`TetherSlotError`, `TetherBoundsError`). Ability Lab does not edit it yet.
 
 A `spawnProjectile` may carry a `return` block (runtime API `1.8.0`; Sir Bonk's pot
 lid). The projectile needs a positive speed and no gravity. It flies out for

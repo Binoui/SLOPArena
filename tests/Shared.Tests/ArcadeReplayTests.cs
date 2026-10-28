@@ -194,7 +194,7 @@ public sealed class ArcadeReplayTests
     private static CookedSlotDefinition CopySlot(CookedSlotDefinition s, IReadOnlyList<CookedStage> stages, string? name = null)
         => new(s.Ordinal, s.Id, s.IsAir, name ?? s.Name, "cosmetic description", "new.icon", s.Behavior, s.AimMode,
             s.CooldownTicks, s.IsRecoveryMove, s.PreserveMomentumOnStart, new(stages), s.ChargePool, s.AimMovement,
-            s.AimAnimationId, s.AllowSlideCarry, "new.hit.vfx");
+            s.AimAnimationId, s.AllowSlideCarry, "new.hit.vfx", s.AimMovementSpeedScale, s.ShellPolicy);
     private static MatchContentEntry Copy(MatchContentEntry source, CookedMovement movement, CookedPresentation presentation,
         IReadOnlyList<CookedSlotDefinition> slots)
     {

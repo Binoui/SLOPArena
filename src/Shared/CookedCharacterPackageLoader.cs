@@ -31,7 +31,7 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 13).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 14).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 
     /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
     private static bool ApiAtLeast(string runtimeApiMin, int minor)
@@ -119,6 +119,7 @@ public static class CookedCharacterPackageLoader
             ValidateAimedRecoveries(package.Definition, m.RuntimeApiMin, d);
             ValidateReturningProjectiles(package.Definition, m.RuntimeApiMin, d);
             ValidateShellStance(package.Definition, m.RuntimeApiMin, d);
+            ValidateTethers(package.Definition, m.RuntimeApiMin, d);
             if(package.Metadata.PackageId!=m.PackageId||package.Metadata.Version!=m.Version||package.Metadata.CookedSchemaVersion!=m.CookedSchemaVersion) d.Add(Error("package.runtime.metadata-mismatch",CharacterPackageAssembler.RuntimePath,"Runtime package metadata does not match manifest."));
             var baked=BakedAnimationData.LoadFromBin(copied[CharacterPackageAssembler.PosePath]);
             using var bindings = JsonDocument.Parse(copied[CharacterPackageAssembler.BindingPath]);
@@ -165,6 +166,8 @@ public static class CookedCharacterPackageLoader
         {
             if (operation is not CookedStartCapabilityOperation capability)
                 continue;
+            if (MankiCapabilityBounds.Error(capability.Parameters) is { } mankiError)
+                diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id, mankiError));
             if (capability.Parameters is CookedWibouBladeFlurryCapabilityParameters flurry &&
                 (!CharacterPackageCompiler.ValidBladeFlurry(flurry.ForwardSpeed, flurry.AscentStartTick,
                     flurry.AscentEndTick, flurry.DescentStartTick, flurry.RiseSpeed, flurry.DescentSpeed)
@@ -194,7 +197,7 @@ public static class CookedCharacterPackageLoader
             bool invalid = guns.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0 ||
                 slot.ChargePool != null || slot.AllowSlideCarry ||
-                slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D);
+                slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D or AuthoringAimMode.GroundVector);
             foreach (var operation in guns)
             {
                 if (operation.Parameters is not CookedFingerGunsCapabilityParameters g)
@@ -496,6 +499,41 @@ public static class CookedCharacterPackageLoader
                 Fail(slot.Id, thrustError);
             else if (thrust.ThrustTicks > stage.DurationTicks)
                 Fail(slot.Id, "The thrust must end within its stage.");
+        }
+    }
+
+    /// <summary>Mirrors the compiler's tether rules (ADR-0048).</summary>
+    private static void ValidateTethers(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.Slots)
+        {
+            var tethers = slot.Timeline.Stages.SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>()
+                .Where(op => op.CapabilityId == CharacterPackageCompiler.TetherCapabilityId).ToList();
+            if (tethers.Count == 0) continue;
+            void Fail(string message) => diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id, message));
+            if (!ApiAtLeast(runtimeApiMin, 13))
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "The tether requires runtime API 1.13.0."));
+            var stage = slot.Timeline.Stages[0];
+            if (CharacterPackageCompiler.TetherSlotError(tethers.Count, slot.Timeline.Stages.Count, tethers[0].Tick,
+                    slot.Behavior, slot.AimMode, stage.IasaTicks, slot.ShellPolicy,
+                    stage.Operations.Any(other => other != tethers[0] && other is not CookedEmitPresentationOperation))
+                is { } shapeError)
+                Fail(shapeError);
+            if (tethers[0].Parameters is not CookedTetherCapabilityParameters tether)
+            {
+                Fail("Tether parameters are missing.");
+                continue;
+            }
+            if (CharacterPackageCompiler.TetherBoundsError(tether) is { } boundsError)
+                Fail(boundsError);
+            foreach (string clip in new[] { tether.ReelAnimationId, tether.RetractAnimationId })
+                if (clip.Length > 0 && stage.AnimationIds.ToList().IndexOf(clip) <= 0)
+                    Fail("A tether phase clip must be listed in its stage after the throw clip.");
+            foreach (string id in new[] { tether.ThrowPresentationId, tether.RetractPresentationId })
+                if (id.Length > 0 && !definition.PresentationIds.Contains(id, StringComparer.Ordinal))
+                    Fail("Tether presentation ID is not declared.");
         }
     }
 
@@ -833,7 +871,7 @@ public static class CookedCharacterPackageLoader
                 BoOrDefault(q, "allowSlideCarry", false), hitPresentationId, FOrDefault(q, "aimMovementSpeedScale", 1f),
                 (ShellPolicy)BOrDefault(q, "shellPolicy", 0));
         }
-        private static CookedChargePool ParseChargePool(JsonElement e){var q=O(e,"maxCharges","regenTicks");return new CookedChargePool(I(q,"maxCharges"),U(q,"regenTicks"));}
+        private static CookedChargePool ParseChargePool(JsonElement e){var q=O(e,"maxCharges","regenTicks");var pool = new CookedChargePool(I(q,"maxCharges"),U(q,"regenTicks")); if (pool.MaxCharges is < 1 or > 3 || pool.RegenTicks == 0) throw new InvalidDataException("Charge pool requires one to three charges and positive regen."); return pool;}
         private static CookedStage ParseStage(JsonElement e){var q=OOptional(e,new[]{"attackRange","warpRange","useTargetLock","rotateTowardTarget","trackingStrength"},"durationTicks","iasaTicks","landingLagTicks","autoCancelBeforeTicks","autoCancelAfterTicks","attackRange","warpRange","useTargetLock","rotateTowardTarget","trackingStrength","animationIds","operations");return new CookedStage(U(q,"durationTicks"),U(q,"iasaTicks"),U(q,"landingLagTicks"),U(q,"autoCancelBeforeTicks"),U(q,"autoCancelAfterTicks"),A(q["animationIds"]).EnumerateArray().Select(x=>x.GetString()!).ToList(),A(q["operations"]).EnumerateArray().Select(ParseOperation).ToList(),FOrDefault(q,"attackRange",0f),FOrDefault(q,"warpRange",0f),BoOrDefault(q,"useTargetLock",false),BoOrDefault(q,"rotateTowardTarget",false),FOrDefault(q,"trackingStrength",0f));}
         private static CookedTimelineOperation ParseOperation(JsonElement e)
         {
@@ -979,16 +1017,19 @@ public static class CookedCharacterPackageLoader
                 "slop.ability.finger-guns.v1" => FingerGuns(O(e, "fireTriggerTick", "recoveryTicks", "shotsPerReload", "reloadTicks", "reloadAnimationId", "airMaxFallSpeed", "airRecoilSpeed", "projectile")),
                 "slop.ability.charged-stream.v1" => ChargedStream(OOptional(e, new[] { "sprayAnimationId", "sprayLoopTicks", "endAnimationId" }, "maxChargeTicks", "fireTriggerTick", "emitIntervalTicks", "minStreamTicks", "maxStreamTicks", "recoveryTicks", "maxBaseKnockback", "minRecoilSpeed", "maxRecoilSpeed", "projectile", "sprayAnimationId", "sprayLoopTicks", "endAnimationId")),
                 "slop.internal.fightguy.rising-dragon.v1" => RisingDragon(O(e, "riseSpeed", "riseTicks", "riseDelay")),
-                "slop.internal.fightguy.cyclone-kick.v1" => CycloneKick(O(e, "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY")),
+                "slop.internal.fightguy.cyclone-kick.v1" => CycloneKick(OOptional(e, CycloneKickOptional, "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY", "hitIntervalTicks", "fixedHitstunTicks", "finisherTick", "finisherDamage", "finisherKnockbackAngle", "finisherKnockbackBase", "finisherKnockbackGrowth")),
                 "slop.ability.charged-directional-dash.v1" => ChargedDirectionalDash(O(e, "maxChargeTicks", "tier2Ticks", "tier3Ticks", "minDistance", "maxDistance", "dashSpeed", "finisherLeadTicks", "finisherSeekTick", "recoveryTicks", "tier2Damage", "tier3Damage", "traversalHitbox", "finisherHitbox")),
                 "slop.internal.wibou.rising-slash.v1" => WibouRisingSlash(O(e, "riseSpeed", "riseTicks", "homingRange", "homingSpeed")),
                 CharacterPackageCompiler.BladeFlurryCapabilityId => WibouBladeFlurry(O(e, "forwardSpeed", "ascentStartTick", "ascentEndTick", "descentStartTick", "riseSpeed", "descentSpeed")),
                 "slop.ability.steered-charge.v1" => SteeredCharge(OOptional(e, SteeredChargeOptional, SteeredChargeFields)),
+                "slop.ability.tether.v1" => Tether(OOptional(e, TetherOptional, "throwTick", "projectile", "reelSpeed",
+                    "anchorDistance", "arrivalStunTicks", "maxReelTicks", "retractSpeed", "missRecoveryTicks", "airGravityScale",
+                    "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId")),
                 "slop.ability.thrust.v1" => Thrust(OOptional(e, new[] { "trailHitbox" }, "aim", "targetConeDegrees", "neutralPitchDegrees",
                     "stickPitchDegrees", "speed", "acceleration", "maxSpeed", "keepIncomingSpeed", "thrustTicks", "trailHitbox")),
                 "slop.ability.targeted-leap.v1" => TargetedLeap(OOptional(e, new[] { "launchPresentationId", "landingPresentationId" }, "maxAimTicks", "maxFlightTicks", "minRange", "maxRange", "launchVerticalSpeed", "landingSeekTick", "recoveryTicks", "hitbox")),
-                "slop.internal.manki.round-bomb.v1" => MankiRoundBomb(OOptional(e, new[] { "explosionPresentationId" }, "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle")),
-                "slop.internal.manki.jetpack-boost.v1" => MankiJetpackBoost(OOptional(e, new[] { "explosionPresentationId" }, "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks")),
+                "slop.internal.manki.round-bomb.v2" => MankiRoundBomb(OOptional(e, new[] { "explosionPresentationId" }, "fuseTicks", "warningTicks", "earlyDamage", "earlyRadius", "impactRadius", "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle")),
+                "slop.internal.manki.jetpack-boost.v2" => MankiJetpackBoost(OOptional(e, new[] { "explosionPresentationId" }, "fuelTicks", "sinkSpeed", "jumpBurstSpeed", "jumpBurstTicks", "exhaustRadius", "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks")),
                 "slop.internal.manki.bazooka.v2" => MankiBazooka(OOptional(e, new[] { "explosionPresentationId" }, "homingTurnDegPerTick", "homingTurnCos", "homingTurnSin", "fireTriggerTick", "projectileSpeed", "hitboxRadius", "damage", "gravity", "maxFlightTicks", "stunTicks", "explosionRadius", "kbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "castDuration", "recoveryDuration")),
                 "slop.internal.manki.aerosol-inferno.v1" => MankiAerosolInferno(OOptional(e, new[] { "minimumChargeTicks", "chargeTiers" }, "fireTriggerTick", "fireDurationTicks", "hitboxDurationTicks", "hitboxRadius", "offsetY", "offsetZ", "endOffsetZ", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "hitGroup")),
 
@@ -1003,7 +1044,12 @@ public static class CookedCharacterPackageLoader
         private static RecoveryHopParameters RecoveryHop(Dictionary<string, JsonElement> q)
             => new(U(q, "startTicks"), U(q, "contactTicks"), F(q, "forwardDistance"), F(q, "arcHeight"), F(q, "landingHeight"));
         private static CookedCapabilityParameters RisingDragon(Dictionary<string, JsonElement> q) => new CookedRisingDragonCapabilityParameters(F(q, "riseSpeed"), U(q, "riseTicks"), U(q, "riseDelay"));
-        private static CookedCapabilityParameters CycloneKick(Dictionary<string, JsonElement> q) => new CookedCycloneKickCapabilityParameters(F(q, "forwardSpeed"), U(q, "windupTicks"), U(q, "hitboxEndTick"), U(q, "durationTicks"), F(q, "bodyRadius"), F(q, "sideRadius"), F(q, "sideOffset"), F(q, "damage"), F(q, "knockbackAngle"), F(q, "knockbackBase"), F(q, "knockbackGrowth"), U(q, "stunTicks"), F(q, "bodyY"), F(q, "sideY"));
+        private static CookedCapabilityParameters CycloneKick(Dictionary<string, JsonElement> q) => new CookedCycloneKickCapabilityParameters(F(q, "forwardSpeed"), U(q, "windupTicks"), U(q, "hitboxEndTick"), U(q, "durationTicks"), F(q, "bodyRadius"), F(q, "sideRadius"), F(q, "sideOffset"), F(q, "damage"), F(q, "knockbackAngle"), F(q, "knockbackBase"), F(q, "knockbackGrowth"), U(q, "stunTicks"), F(q, "bodyY"), F(q, "sideY"),
+            UOrDefault(q, "hitIntervalTicks", 0), UOrDefault(q, "fixedHitstunTicks", 0), UOrDefault(q, "finisherTick", 0),
+            FOrDefault(q, "finisherDamage", 0f), FOrDefault(q, "finisherKnockbackAngle", 0f),
+            FOrDefault(q, "finisherKnockbackBase", 0f), FOrDefault(q, "finisherKnockbackGrowth", 0f));
+        private static readonly string[] CycloneKickOptional = { "hitIntervalTicks", "fixedHitstunTicks", "finisherTick",
+            "finisherDamage", "finisherKnockbackAngle", "finisherKnockbackBase", "finisherKnockbackGrowth" };
         private static CookedCapabilityParameters ChargedDirectionalDash(Dictionary<string, JsonElement> q)
             => new CookedChargedDirectionalDashCapabilityParameters(
                 U(q, "maxChargeTicks"), U(q, "tier2Ticks"), U(q, "tier3Ticks"),
@@ -1028,6 +1074,13 @@ public static class CookedCharacterPackageLoader
             "gallopSpeed", "turnDegreesPerSecond", "maxGallopTicks", "armored", "lanceHitbox", "hitEndingTicks",
             "missEndingTicks", "skidTicks", "turnAroundOnMiss", "airStrideTicks", "lookDownTicks",
         };
+        private static readonly string[] TetherOptional =
+            { "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId" };
+        private static CookedCapabilityParameters Tether(Dictionary<string, JsonElement> q)
+            => new CookedTetherCapabilityParameters(U(q, "throwTick"), ParseProjectile(q["projectile"]), F(q, "reelSpeed"),
+                F(q, "anchorDistance"), U(q, "arrivalStunTicks"), U(q, "maxReelTicks"), F(q, "retractSpeed"),
+                U(q, "missRecoveryTicks"), F(q, "airGravityScale"), SO(q, "reelAnimationId", ""),
+                SO(q, "retractAnimationId", ""), SO(q, "throwPresentationId", ""), SO(q, "retractPresentationId", ""));
         private static CookedCapabilityParameters Thrust(Dictionary<string, JsonElement> q)
             => new CookedThrustCapabilityParameters((ThrustAim)B(q, "aim"), F(q, "targetConeDegrees"), F(q, "neutralPitchDegrees"),
                 F(q, "stickPitchDegrees"), F(q, "speed"), F(q, "acceleration"), F(q, "maxSpeed"), Bo(q, "keepIncomingSpeed"),
@@ -1041,8 +1094,8 @@ public static class CookedCharacterPackageLoader
                 SO(q, "hitEndingAnimationId", ""), SO(q, "missEndingAnimationId", ""), SO(q, "airEndingAnimationId", ""),
                 SO(q, "gallopPresentationId", ""), SO(q, "hitEndingPresentationId", ""),
                 SO(q, "missEndingPresentationId", ""), SO(q, "airEndingPresentationId", ""));
-        private static CookedCapabilityParameters MankiRoundBomb(Dictionary<string,JsonElement> q) => new CookedMankiRoundBombCapabilityParameters(U(q, "throwTriggerTick"), F(q, "maxRange"), F(q, "launchAngle"), F(q, "gravity"), F(q, "hitboxRadius"), F(q, "damage"), U(q, "stunTicks"), U(q, "maxFlightTicks"), F(q, "kbAngle"), F(q, "explosionDamage"), F(q, "explosionRadius"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), F(q, "explosionKbAngle"), SO(q, "explosionPresentationId", ""));
-        private static CookedCapabilityParameters MankiJetpackBoost(Dictionary<string,JsonElement> q) => new CookedMankiJetpackBoostCapabilityParameters(U(q, "startupTicks"), F(q, "verticalSpeed"), F(q, "horizontalSpeed"), F(q, "explosionRadius"), F(q, "explosionDamage"), F(q, "explosionKbAngle"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), SO(q, "explosionPresentationId", ""));
+        private static CookedCapabilityParameters MankiRoundBomb(Dictionary<string,JsonElement> q) => new CookedMankiRoundBombCapabilityParameters(U(q, "throwTriggerTick"), F(q, "maxRange"), F(q, "launchAngle"), F(q, "gravity"), F(q, "hitboxRadius"), F(q, "damage"), U(q, "stunTicks"), U(q, "maxFlightTicks"), F(q, "kbAngle"), F(q, "explosionDamage"), F(q, "explosionRadius"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), F(q, "explosionKbAngle"), SO(q, "explosionPresentationId", ""), U(q, "fuseTicks"), U(q, "warningTicks"), F(q, "earlyDamage"), F(q, "earlyRadius"), F(q, "impactRadius"));
+        private static CookedCapabilityParameters MankiJetpackBoost(Dictionary<string,JsonElement> q) => new CookedMankiJetpackBoostCapabilityParameters(U(q, "startupTicks"), F(q, "verticalSpeed"), F(q, "horizontalSpeed"), F(q, "explosionRadius"), F(q, "explosionDamage"), F(q, "explosionKbAngle"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), SO(q, "explosionPresentationId", ""), U(q, "fuelTicks"), F(q, "sinkSpeed"), F(q, "jumpBurstSpeed"), U(q, "jumpBurstTicks"), F(q, "exhaustRadius"));
         private static CookedCapabilityParameters MankiBazooka(Dictionary<string,JsonElement> q) => new CookedMankiBazookaCapabilityParameters(U(q, "fireTriggerTick"), F(q, "projectileSpeed"), F(q, "hitboxRadius"), F(q, "damage"), F(q, "gravity"), U(q, "maxFlightTicks"), U(q, "stunTicks"), F(q, "explosionRadius"), F(q, "kbAngle"), F(q, "explosionKbBase"), F(q, "explosionKbGrowth"), U(q, "explosionStunTicks"), U(q, "explosionDurationTicks"), F(q, "explosionKbAngle"), U(q, "castDuration"), U(q, "recoveryDuration"), F(q, "homingTurnDegPerTick"), F(q, "homingTurnCos"), F(q, "homingTurnSin"), SO(q, "explosionPresentationId", ""));
         private static CookedCapabilityParameters MankiAerosolInferno(Dictionary<string, JsonElement> q) => new CookedMankiAerosolInfernoCapabilityParameters(U(q, "fireTriggerTick"), U(q, "fireDurationTicks"), U(q, "hitboxDurationTicks"), F(q, "hitboxRadius"), F(q, "offsetY"), F(q, "offsetZ"), F(q, "endOffsetZ"), F(q, "damage"), F(q, "knockbackAngle"), F(q, "knockbackBase"), F(q, "knockbackGrowth"), U(q, "stunTicks"), B(q, "hitGroup"), q.ContainsKey("minimumChargeTicks") ? U(q, "minimumChargeTicks") : (ushort)0,
             q.ContainsKey("chargeTiers") ? Array.AsReadOnly(A(q["chargeTiers"]).EnumerateArray().Select(value =>

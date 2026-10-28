@@ -12,7 +12,8 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
     python3 tools/factory.py comment <idea> "<text>"        # an agent's note on the idea
     python3 tools/factory.py take <idea> <clip.mp4> [--sheet sheet.jpg] [--note "..."]   # upload a new take
     python3 tools/factory.py fetch <idea> [--out file.mp4]  # download the chosen (or latest) take
-    python3 tools/factory.py run <run> running|done|failed [--summary "..."]
+    python3 tools/factory.py run <run> running|done|failed [--summary "..."] [--made 12b-x,12c-y,report:2]
+                                                            # done needs --made: every idea added or given a take, and reports
     python3 tools/factory.py inbox                          # scout inbox items not yet reported on
     python3 tools/factory.py report scout <report.md> [--inbox 3,4]
     python3 tools/factory.py reports [--kind scout] [--limit 3]
@@ -138,6 +139,7 @@ def main() -> None:
     run.add_argument("run", type=int)
     run.add_argument("state", choices=["running", "done", "failed"])
     run.add_argument("--summary", default="")
+    run.add_argument("--made", help="comma-separated idea ids and report:<n> this run produced; required with done")
     sub.add_parser("inbox")
     report = sub.add_parser("report")
     report.add_argument("kind", choices=["scout", "analyst"])
@@ -169,7 +171,10 @@ def main() -> None:
     elif args.command == "fetch":
         print(fetch(args.idea, args.out or ROOT / f"tmp/content/{args.idea}/{args.idea}-vertical.mp4"))
     elif args.command == "run":
-        print(call("PATCH", f"/api/runs/{args.run}", {"state": args.state, "summary": args.summary})["state"])
+        if args.state == "done" and args.made is None:
+            parser.error('done needs --made (ideas added or given a take, report:<n>; --made "" when nothing)')
+        made = None if args.made is None else [x.strip() for x in args.made.split(",") if x.strip()]
+        print(call("PATCH", f"/api/runs/{args.run}", {"state": args.state, "summary": args.summary, "made": made})["state"])
     elif args.command == "inbox":
         for item in call("GET", "/api/inbox?open=1"):
             print(f"[{item['id']}] {item['at'][:10]}  {item['body']}")

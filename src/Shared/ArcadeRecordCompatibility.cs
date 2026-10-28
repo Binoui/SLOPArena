@@ -18,14 +18,16 @@ public static class ArcadeRecordCompatibility
     // 9: Slopball keeps each hit's launch direction and angle without automatic return assistance (2026-10-19).
     // 10: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
     // 11: universal Progressive ground movement (2026-10-27).
-    public const uint RulesRevision = 11;
+    // 12: ground movement starts at 60% and ramps over 12 ticks (2026-10-28).
+    public const uint RulesRevision = 12;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
     // 3: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
     // 4: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
     // 5: universal Progressive ground movement (2026-10-27).
-    public const uint CourseRulesRevision = 5;
+    // 6: ground movement starts at 60% and ramps over 12 ticks (2026-10-28).
+    public const uint CourseRulesRevision = 6;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)
@@ -188,6 +190,7 @@ public static class ArcadeRecordCompatibility
         CookedMankiRoundBombCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiJetpackBoostCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiBazookaCapabilityParameters x => x with { ExplosionPresentationId = "" },
+        CookedTetherCapabilityParameters x => x with { ThrowPresentationId = "", RetractPresentationId = "" },
         CookedChargedProjectileCapabilityParameters x => new
         {
             x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.FireTriggerTick, x.Tier2Radius, x.Tier3Radius,

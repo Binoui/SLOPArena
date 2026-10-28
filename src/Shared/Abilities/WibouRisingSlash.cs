@@ -6,15 +6,15 @@ namespace SlopArena.Shared.Abilities;
 /// Wibou's E — Rising Slash. Movement for the cooked timeline.
 ///
 /// - Rises vertically for "rise_ticks", carrying Wibou up (doubles as vertical recovery).
-/// - Moves horizontally in the camera direction captured when the move starts, so the
-///   recovery remains controllable and does not pull Wibou toward a target.
+/// - Moves horizontally along its RecoveryTurn direction (the stick in the first ticks, else
+///   facing), so the recovery remains controllable and does not pull Wibou toward a target.
 /// - The cooked timeline owns authored hitboxes and completion.
 /// - Limited by the cooked charge pool (see ServerSimulation charge-stock gate): each cast
 ///   spends one charge, and charges return only through regen. Hits never refund them.
 ///
-/// HomingRange remains reserved in the cooked schema; recovery uses camera direction.
+/// HomingRange remains reserved in the cooked schema.
 /// </summary>
-public sealed class WibouRisingSlash : ServerAbility
+public sealed class WibouRisingSlash : ServerAbility, IRecoveryTurnCapability
 {
     public override bool OwnsVerticalMotion => true;
 
@@ -30,11 +30,10 @@ public sealed class WibouRisingSlash : ServerAbility
         ClearVelocityOwnership(ref s);
         s.IsFastFalling = false;
         _ticks = 0;
-        _recoveryYaw = s.AimYaw;
+        _recoveryYaw = s.FacingYaw;
 
         s.State = ActionState.Attacking;
         s.AttackSlot = (byte)(Slot + 1);
-        s.FacingYaw = _recoveryYaw;
         AnimIndex = 0;
         s.ComboStage = 0;
         s.AttackElapsedTicks = 0;
@@ -55,11 +54,12 @@ public sealed class WibouRisingSlash : ServerAbility
         // Vertical rise for the rise window, then hold (gravity resumes when the ability ends).
         s.VY = _ticks <= riseTicks ? riseSpeed : 0f;
 
-        // Recovery direction is chosen from the camera at activation, never from target position.
         float horizontalSpeed = _parameters.HomingSpeed;
         s.VX = MathF.Sin(_recoveryYaw) * horizontalSpeed;
         s.VZ = MathF.Cos(_recoveryYaw) * horizontalSpeed;
     }
+
+    public void OnRecoveryTurn(ref CharacterState s, in InputState input) => _recoveryYaw = s.FacingYaw;
 
     public override void OnCancel(ref CharacterState s)
     {

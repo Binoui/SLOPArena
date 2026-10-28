@@ -106,7 +106,7 @@ def fit(data) -> dict:
             'beforeRefinementMetres': float(before.max())}
 
 
-def mesh_vs_toolkit(rig, world, mapping, bakes, offset) -> dict:
+def mesh_vs_toolkit(rig, world, mapping, bakes, offset, grounding=None) -> dict:
     """Max distance (metres) between Unity's skinned vertices as the game plays the clip and the toolkit's own
     skinning of the same ticks (which matches Unity per vertex for the same pose), after the origin offset. A mesh
     whose vertex count no longer matches the pack's (the model was re-exported after the pack was snapshotted, as Sir
@@ -123,6 +123,8 @@ def mesh_vs_toolkit(rig, world, mapping, bakes, offset) -> dict:
             if k is None:
                 continue
             ours = points[k] * [-1.0, 1.0, 1.0] + offset  # pack space mirrors Unity's x
+            if grounding:
+                ours[:, 1] += grounding['translationMetres'][bake['tick']]
             theirs = np.array(renderer['vertices']).reshape(-1, 3)
             if len(theirs) != len(ours):
                 worst.setdefault('meshChanged', {})[renderer['path'].rsplit('/', 1)[-1]] = [len(ours), len(theirs)]
@@ -179,7 +181,13 @@ def write_flags(brief) -> dict:
     stays where the toolkit put it: moving its centre onto the entry clip's lifted a crouched loop 17-21 cm off the
     floor. Unity can only loop a whole clip: a loop from tick 0 is saved looping (an aim hold plays it as is); a loop
     after a build-up is saved one-shot and the game wraps it (PlayerRenderer's tumble)."""
-    return {'alignOrigin': brief.entry_matches, 'loopTime': brief.loop_from == 0}
+    flags = {'alignOrigin': brief.entry_matches, 'loopTime': brief.loop_from == 0}
+    grounding = brief.get('grounding')
+    if grounding is not None:
+        if grounding != 'reference-sole':
+            raise ValueError('grounding must be "reference-sole" when specified')
+        flags['groundToReference'] = True
+    return flags
 
 
 def phase_check(clip, brief, ticks=None, retime=None) -> dict:
@@ -240,7 +248,13 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None, t
                              prefab=pack_prefab(mapping)) | flags, run_dir)
     runtime = np.array(data['newRuntime'])
     start = np.array(data['reference']['positions'])
-    offset = (runtime[0] - intended[0]).mean(axis=0)  # the constant origin correction, in metres
+    expected = intended.copy()
+    if data.get('grounding'):
+        moving = {mapping['joints'].get(brief.rig.joint_paths[i]) for i in brief.rig.descendants('Hips')}
+        for i, path in enumerate(paths):
+            if path in moving:
+                expected[:, i, 1] += data['grounding']['translationMetres']
+    offset = (runtime[0] - expected[0]).mean(axis=0)  # the constant origin correction, in metres
     if np.linalg.norm(offset) > 0.01:
         print(f'warning: the clip plays {np.linalg.norm(offset) * 100:.1f} cm from where the toolkit put it: tick 0 '
               'misses the entry pose, or the rig pack is older than the prefab', file=sys.stderr)
@@ -248,12 +262,14 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None, t
         'package': mapping['package'], 'name': name, 'ticks': data['ticks'], 'humanMotion': data['humanMotion'],
         'curves': data['curves'], 'entryClip': data['reference']['clip'], 'entryTick': reference['tick'], **flags,
         'originOffsetMetres': offset.round(5).tolist(), 'muscleFit': fit(data),
-        'playbackVsToolkit': worst(distances(runtime - offset, intended), paths),
-        'meshVsToolkit': mesh_vs_toolkit(brief.rig, clip.world(), mapping, data['bakes'], offset),
+        'playbackVsToolkit': worst(distances(runtime - offset, expected), paths),
+        'meshVsToolkit': mesh_vs_toolkit(brief.rig, clip.world(), mapping, data['bakes'], offset, data.get('grounding')),
         'entryVsEntryClip': worst(distances(runtime[:1], start[None]), paths),
         'exitVsEntryClip': worst(distances(runtime[-1:], start[None]), paths),
         'playbackVsSampling': worst(distances(runtime, np.array(data['newSample'])), paths),
         'inBetweenJoints': data['inBetween'], 'asset': data['asset'], 'evidence': str(run_dir.relative_to(REPO))}
+    if data.get('grounding'):
+        report['grounding'] = data['grounding']
     if checked:
         report['phaseCheck'] = checked
     if brief.loop_from is not None:  # the last tick replays the loop's first: the seam as the game plays it

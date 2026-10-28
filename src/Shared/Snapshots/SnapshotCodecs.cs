@@ -65,6 +65,7 @@ namespace SlopArena.Shared
             w.WriteUShort(s.ChargeTicks);
             w.WriteByte(s.ChargeStockSpent);
             w.WriteUShort(s.ChargeStockRegenTicks);
+            w.WriteUShort(s.ChargeStockRegenTicks2); w.WriteUShort(s.ChargeStockRegenTicks3);
             w.WriteUShort(s.ChargeStockRegenPeriod);
             w.WriteByte(s.FingerGunsShotsSpent);
             w.WriteFloat(s.KVX);
@@ -186,6 +187,7 @@ namespace SlopArena.Shared
             s.ChargeTicks = r.ReadUShort();
             s.ChargeStockSpent = r.ReadByte();
             s.ChargeStockRegenTicks = r.ReadUShort();
+            s.ChargeStockRegenTicks2 = r.ReadUShort(); s.ChargeStockRegenTicks3 = r.ReadUShort();
             s.ChargeStockRegenPeriod = r.ReadUShort();
             s.FingerGunsShotsSpent = r.ReadByte();
             s.KVX = r.ReadFloat();
@@ -377,6 +379,7 @@ namespace SlopArena.Shared
             w.WriteUShort(explosion.StunTicks);
             w.WriteUShort(explosion.DurationTicks);
             w.WriteBool(explosion.CanHitOwner);
+            w.WriteBool(explosion.IgnitesOwnerCans);
             w.WriteBool(explosion.OwnerDamage.HasValue);
             if (explosion.OwnerDamage.HasValue) w.WriteFloat(explosion.OwnerDamage.Value);
             w.WriteString(explosion.ExplosionPresentationId);
@@ -394,6 +397,7 @@ namespace SlopArena.Shared
             explosion.StunTicks = r.ReadUShort();
             explosion.DurationTicks = r.ReadUShort();
             explosion.CanHitOwner = r.ReadBool();
+            explosion.IgnitesOwnerCans = r.ReadBool();
             if (r.ReadBool()) explosion.OwnerDamage = r.ReadFloat();
             explosion.ExplosionPresentationId = r.ReadString()!;
             explosion.PresentationAttackSequence = r.ReadByte();
@@ -401,6 +405,15 @@ namespace SlopArena.Shared
             explosion.PresentationYaw = r.ReadFloat();
             return explosion;
         }
+
+        public static void Write(SnapshotWriter w, in MankiCanPayload can)
+        {
+            w.WriteUShort(can.FuseTicks); w.WriteUShort(can.WarningTicks);
+            Write(w, can.Blast); Write(w, can.EarlyBlast);
+        }
+
+        public static MankiCanPayload ReadMankiCanPayload(SnapshotReader r)
+            => new(r.ReadUShort(), r.ReadUShort(), ReadProjectileExplosion(r), ReadProjectileExplosion(r));
 
         public static void Write(SnapshotWriter w, in ProjectileReturn projectileReturn)
         {
@@ -520,6 +533,10 @@ namespace SlopArena.Shared
             w.WriteFloat(hb.HomingTurnSin);
             w.WriteBool(hb.OwnerDamage.HasValue);
             if (hb.OwnerDamage.HasValue) w.WriteFloat(hb.OwnerDamage.Value);
+            w.WriteBool(hb.IgnitesOwnerCans);
+            w.WriteBool(hb.IsCanIgniterOnly);
+            w.WriteBool(hb.MankiCan.HasValue);
+            if (hb.MankiCan.HasValue) Write(w, hb.MankiCan.Value);
             w.WriteBool(hb.Explosion.HasValue);
             if (hb.Explosion.HasValue)
                 Write(w, hb.Explosion.Value);
@@ -600,6 +617,9 @@ namespace SlopArena.Shared
             hb.HomingTurnCos = r.ReadFloat();
             hb.HomingTurnSin = r.ReadFloat();
             if (r.ReadBool()) hb.OwnerDamage = r.ReadFloat();
+            hb.IgnitesOwnerCans = r.ReadBool();
+            hb.IsCanIgniterOnly = r.ReadBool();
+            if (r.ReadBool()) hb.MankiCan = ReadMankiCanPayload(r);
             if (r.ReadBool())
                 hb.Explosion = ReadProjectileExplosion(r);
             if (r.ReadBool())

@@ -22,6 +22,7 @@ public sealed class CookedTimelineAbility : ServerAbility
     private readonly bool _timelineOwnsVerticalMotion;
     private readonly CookedStartupAimCorrectionOperation? _startupCorrection;
     private readonly int _startupCorrectionStage;
+    private readonly bool _turnsWithStick;
     internal bool UsesStartupAimCorrection { get; }
 
     public override float GravityMultiplier
@@ -57,6 +58,16 @@ public sealed class CookedTimelineAbility : ServerAbility
                 if (_capabilities[i].HasArmor)
                     return true;
             return false;
+        }
+    }
+    public override TetherAbility? Tether
+    {
+        get
+        {
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].Tether is { } tether)
+                    return tether;
+            return null;
         }
     }
     public override bool IgnoresFighterPushboxes
@@ -115,6 +126,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             }
         }
         _timelineOwnsVerticalMotion = ownsVerticalMotion;
+        _turnsWithStick = RecoveryTurn.Applies(slot);
     }
     internal ActiveMoveView GetMoveView(in CharacterState owner)
         => new(_slot, _stageIndex, _stageTick, AirborneAtStart, AnimIndex,
@@ -160,6 +172,8 @@ public sealed class CookedTimelineAbility : ServerAbility
                 throw new InvalidOperationException("Startup correction requires a registered simulation.");
             OwnerSimulation.BeginStartupAimCorrection(ref s, _startupCorrection, ActivationInput);
         }
+        if (_turnsWithStick && RecoveryTurn.TryStickYaw(ActivationInput, out float yaw))
+            s.FacingYaw = yaw;
         ExecuteOperations(ref s, def);
         if (_completed)
             return;
@@ -184,6 +198,15 @@ public sealed class CookedTimelineAbility : ServerAbility
         {
             // Validate the captured target while held without fighting manual aim.
             OwnerSimulation!.UpdateStartupAimCorrection(ref s, _startupCorrection, applyPose: false);
+        }
+        // The activation tick also ticks once (stage tick 1), so ticks 1-3 are the three input ticks.
+        if (_turnsWithStick && _stageIndex == 0 && _stageTick <= RecoveryTurn.WindowTicks
+            && RecoveryTurn.TryStickYaw(input, out float yaw))
+        {
+            s.FacingYaw = yaw;
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i] is IRecoveryTurnCapability turning)
+                    turning.OnRecoveryTurn(ref s, input);
         }
         ExecuteOperations(ref s, def);
         if (_completed)
@@ -362,6 +385,9 @@ public sealed class CookedTimelineAbility : ServerAbility
                     StartCapability(ref s, def, capability, flattenedOperationIndex);
                     break;
                 case CookedEmitPresentationOperation presentation:
+                    if (presentation.PresentationId == FightGuyCycloneKick.DizzyPresentationId
+                        && _capabilities.Exists(c => c is FightGuyCycloneKick { ShowsDizzy: false }))
+                        break;
                     var placement = presentation.Placement;
                     if (presentation.PresentationId == "presentation.manki.aerosol-inferno.start")
                         foreach (var activeCapability in _capabilities)

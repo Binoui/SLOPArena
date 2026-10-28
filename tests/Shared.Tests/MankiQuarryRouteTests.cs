@@ -115,7 +115,10 @@ public sealed class MankiQuarryRouteTests
             {
                 var s = S; float d = Vector2.Distance(new(s.PX, s.PZ), new(x, z));
                 if (i > eTick + 30 && s.IsGrounded && d < 1.6f) { Stop(); return; }
-                var input = Toward(x, z); input.Jump = i == 0; input.JumpHeld = i < 24;
+                var input = Toward(x, z);
+                input.Jump = i == 0 || i > eTick + 3 && i < eTick + 39 && (i - eTick - 3) % 12 == 0;
+                input.JumpHeld = i < 24;
+                if (i == eTick + 40) input.ActiveSlot = AbilitySlots.E;
                 if (i == eTick) input.ActiveSlot = AbilitySlots.E;
                 Tick(input);
             }
@@ -161,7 +164,7 @@ public sealed class MankiQuarryRouteTests
             Press(AbilitySlots.A, new() { IsAiming = true, AimYaw = yaw, FacingYaw = yaw, AimDistance = distance });
             for (int i = 1; i < 12; i++)
                 Tick(new() { IsAiming = true, AimYaw = yaw, FacingYaw = yaw, AimDistance = distance });
-            if (!WaitBreak(crates, 150)) throw new Exception($"bomb at {x},{y},{z} missed {string.Join(",", crates.Where(c => !Broken(c)))} from {Where()}");
+            if (!WaitBreak(crates, 400)) throw new Exception($"bomb at {x},{y},{z} missed {string.Join(",", crates.Where(c => !Broken(c)))} from {Where()}");
         }
 
         /// <summary>Press Bazooka with the course crate selected as the soft target.</summary>
@@ -532,8 +535,15 @@ public sealed class MankiQuarryRouteTests
                 case "double jump then E": input.Jump = i == 0 || i == 22; input.JumpHeld = i < 40; if (i == 40) input.ActiveSlot = AbilitySlots.E; break;
                 case "jump then E": input.Jump = i == 0; input.JumpHeld = i < 24; if (i == 22) input.ActiveSlot = AbilitySlots.E; break;
             }
+            int ignition = attempt == "jump then E" ? 22 : attempt == "double jump then E" ? 40 : -1;
+            if (ignition >= 0)
+            {
+                input.Jump |= i > ignition + 3 && i < ignition + 39 && (i - ignition - 3) % 12 == 0;
+                if (i == ignition + 40) input.ActiveSlot = AbilitySlots.E;
+            }
             r.Tick(input);
             onBench |= r.S.IsGrounded && r.S.PY > 7f;
+            if (onBench) break;
         }
         Assert.Equal(reaches, onBench);
     }

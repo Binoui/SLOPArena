@@ -134,17 +134,30 @@ namespace SlopArena.Shared
         /// aimed charge progress (0 = none, >0 = charging)
         /// </summary>
         public ushort ChargeTicks;
-        /// <summary>
-        /// ── Charge-stock pool (regenerating ability charges, e.g. Wibou Rising Slash) ──
-        /// Number of charges currently spent/unavailable (0 = full pool). The pool max
-        /// and regen cadence come from the ability spec's "max_charges"/"charge_regen_ticks"
-        /// params. Spent charges return only through regen. Server-sim only (not on the wire).
-        /// </summary>
+        /// <summary>Spent charges in the cooked, bounded three-charge pool.</summary>
         public byte ChargeStockSpent;
-        /// <summary>Ticks until the next spent charge regenerates. 0 when nothing is regenerating.</summary>
         public ushort ChargeStockRegenTicks;
-        /// <summary>Full regen period for one charge, cached from the ability spec at spend time.</summary>
+        public ushort ChargeStockRegenTicks2;
+        public ushort ChargeStockRegenTicks3;
         public ushort ChargeStockRegenPeriod;
+
+        internal void SpendCharge(ushort period)
+        {
+            if (ChargeStockRegenTicks == 0) ChargeStockRegenTicks = period;
+            else if (ChargeStockRegenTicks2 == 0) ChargeStockRegenTicks2 = period;
+            else if (ChargeStockRegenTicks3 == 0) ChargeStockRegenTicks3 = period;
+            else throw new InvalidOperationException("Charge pool is full.");
+            ChargeStockSpent++;
+            ChargeStockRegenPeriod = period;
+        }
+
+        internal void RegenerateCharges()
+        {
+            if (ChargeStockSpent == 0) return;
+            if (ChargeStockRegenTicks > 0 && --ChargeStockRegenTicks == 0) ChargeStockSpent--;
+            if (ChargeStockRegenTicks2 > 0 && --ChargeStockRegenTicks2 == 0) ChargeStockSpent--;
+            if (ChargeStockRegenTicks3 > 0 && --ChargeStockRegenTicks3 == 0) ChargeStockSpent--;
+        }
 
         /// <summary>Finger Guns rounds spent since the last completed reload. Zero is a full cylinder,
         /// including on spawn; cancellation and idle time never reset this resource.</summary>
@@ -328,7 +341,9 @@ namespace SlopArena.Shared
         Attempt = 1,
         Captured = 2,
         Throwing = 3,
-        Terminal = 4
+        Terminal = 4,
+        /// <summary>A tether holds the pair (ADR-0048): the thrower is Attacking in her tether, the victim Reeled.</summary>
+        Reeling = 5
     }
 
     /// <summary>Hitstop reason for defensive block contacts.</summary>

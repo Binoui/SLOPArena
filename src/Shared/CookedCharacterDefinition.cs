@@ -665,7 +665,9 @@ public sealed record CookedRisingDragonCapabilityParameters(float RiseSpeed, ush
 public sealed record CookedCycloneKickCapabilityParameters(
     float ForwardSpeed, ushort WindupTicks, ushort HitboxEndTick, ushort DurationTicks, float BodyRadius,
     float SideRadius, float SideOffset, float Damage, float KnockbackAngle, float KnockbackBase,
-    float KnockbackGrowth, ushort StunTicks, float BodyY, float SideY) : CookedCapabilityParameters;
+    float KnockbackGrowth, ushort StunTicks, float BodyY, float SideY,
+    ushort HitIntervalTicks = 0, ushort FixedHitstunTicks = 0, ushort FinisherTick = 0, float FinisherDamage = 0f,
+    float FinisherKnockbackAngle = 0f, float FinisherKnockbackBase = 0f, float FinisherKnockbackGrowth = 0f) : CookedCapabilityParameters;
 public sealed record CookedChargedDirectionalDashCapabilityParameters(
     ushort MaxChargeTicks,
     ushort Tier2Ticks,
@@ -720,6 +722,22 @@ public sealed record CookedThrustCapabilityParameters(
     ushort ThrustTicks,
     CookedHitbox? TrailHitbox) : CookedCapabilityParameters;
 
+/// <summary>slop.ability.tether.v1 (ADR-0048); see <see cref="TetherCapabilityParameters"/>.</summary>
+public sealed record CookedTetherCapabilityParameters(
+    ushort ThrowTick,
+    CookedProjectile Projectile,
+    float ReelSpeed,
+    float AnchorDistance,
+    ushort ArrivalStunTicks,
+    ushort MaxReelTicks,
+    float RetractSpeed,
+    ushort MissRecoveryTicks,
+    float AirGravityScale,
+    string ReelAnimationId = "",
+    string RetractAnimationId = "",
+    string ThrowPresentationId = "",
+    string RetractPresentationId = "") : CookedCapabilityParameters;
+
 public sealed record CookedSteeredChargeCapabilityParameters(
     float GallopSpeed,
     float TurnDegreesPerSecond,
@@ -769,7 +787,12 @@ public sealed record CookedMankiRoundBombCapabilityParameters(
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
     float ExplosionKbAngle,
-    string ExplosionPresentationId = "") : CookedCapabilityParameters;
+    string ExplosionPresentationId = "",
+    ushort FuseTicks = 240,
+    ushort WarningTicks = 8,
+    float EarlyDamage = 16f,
+    float EarlyRadius = 4f,
+    float ImpactRadius = 1.1f) : CookedCapabilityParameters;
 public sealed record CookedMankiJetpackBoostCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
@@ -781,7 +804,12 @@ public sealed record CookedMankiJetpackBoostCapabilityParameters(
     float ExplosionKbGrowth,
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
-    string ExplosionPresentationId = "") : CookedCapabilityParameters;
+    string ExplosionPresentationId = "",
+    ushort FuelTicks = 120,
+    float SinkSpeed = 1.2f,
+    float JumpBurstSpeed = 10f,
+    ushort JumpBurstTicks = 12,
+    float ExhaustRadius = 1.4f) : CookedCapabilityParameters;
 public sealed record CookedMankiBazookaCapabilityParameters(
     ushort FireTriggerTick,
     float ProjectileSpeed,

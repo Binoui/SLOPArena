@@ -26,6 +26,10 @@ namespace SlopArena.EditorTools
     {
         private const string WeaponConfigPath = "Assets/CharacterPackages/bashie/Presentation/BashieWeaponAttachments.asset";
         private const string SignMaskPath = "Assets/CharacterPackages/bashie/Presentation/Source/NoSplashing.png";
+        private const string RingPrefabPath = "Assets/CharacterPackages/bashie/Presentation/BashieRing.prefab";
+
+        private static GameObject LoadPrefab(string path)
+            => AssetDatabase.LoadAssetAtPath<GameObject>(path) ?? throw new System.InvalidOperationException($"{path} is missing.");
         // character.json presentation.visualScale: her bones carry it in game, and the blaster's offset with them.
         private const float VisualScale = 1.1f;
         // The stream's projectile (character.json ground.A): its speed and gravity, which the streaks keep pace with.
@@ -76,10 +80,15 @@ namespace SlopArena.EditorTools
                 ("presentation.bashie.whistle.sign", Sign("BashieWhistleSign", "BashieNoRunningSign",
                     "Assets/CharacterPackages/bashie/Presentation/Source/NoRunning.png")),
             };
-            built.AddRange(BashieRingBounceBuilder.BuildPrefabs());
+            // The retired Ring Bounce cues keep their accepted prefabs while her package still declares them.
+            foreach (var (id, name) in new[] { ("presentation.bashie.ring.bounce", "BashieRingBounce"),
+                         ("presentation.bashie.ring.rebound", "BashieRingRebound") })
+                built.Add((id, LoadPrefab($"Assets/CharacterPackages/bashie/Presentation/{name}.prefab")));
             var drop = StreamDrop();
-            kit.BindProjectile("ground.A", drop, ProjectileOrientation.FlightPositiveY, "");
-            kit.BindProjectile("air.A", drop, ProjectileOrientation.FlightPositiveY, "");
+            // Rescue Ring (ADR-0048): her life ring prop is the thrown ring.
+            var ring = LoadPrefab(RingPrefabPath);
+            kit.BindProjectile("ground.A", ring);
+            kit.BindProjectile("air.A", ring);
             return kit.Finish(built, new { drop = AssetDatabase.GetAssetPath(drop), muzzle = muzzle.ToString("F3") });
         }
 

@@ -876,10 +876,6 @@
       "isRecoveryMove": true,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
-      "chargePool": {
-        "maxCharges": 2,
-        "regenTicks": 240
-      },
       "timeline": {
         "stages": [
           {

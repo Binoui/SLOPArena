@@ -26,3 +26,9 @@ class ProtocolTests(unittest.TestCase):
         for source in ("public const byte Version = Build.Version;", "public const byte Version = 8; public const byte Version = 7;"):
             with self.assertRaises(ValueError):
                 protocol.protocol_value(source, r"\bpublic\s+const\s+byte\s+Version")
+
+    def test_release_bump_is_required_only_when_shared_changed(self):
+        protocol.verify_release_bump("playtest-client-1", 8, 8, simulation_changed=False)
+        protocol.verify_release_bump("playtest-client-1", 8, 9, simulation_changed=True)
+        with self.assertRaisesRegex(ValueError, "bump SimulationProtocol.Version and the Master Protocol to 9"):
+            protocol.verify_release_bump("playtest-client-1", 8, 8, simulation_changed=True)

@@ -179,6 +179,26 @@ def source_pair(game_root, game_revision, master_root, master_revision):
     return playtest_protocol.verify_sources(game, master, game_revision, master_revision)
 
 
+def verify_release_bump(root, game_revision, version, protocol):
+    # Remote tags, read without creating local refs: a local clone can miss the newest release.
+    own = playtest_protocol.RELEASE_TAG_PREFIX + version
+    released = {}
+    for line in git(root, "ls-remote", "--tags", "origin", playtest_protocol.RELEASE_TAG_PREFIX + "*").splitlines():
+        sha, ref = line.split()
+        tag = ref.removeprefix("refs/tags/").removesuffix("^{}")
+        if tag != own and (ref.endswith("^{}") or tag not in released):
+            released[tag] = sha
+    if not released:
+        return
+    previous = max(released, key=lambda tag: [int(part) for part in re.findall(r"[0-9]+", tag)])
+    ensure_revision(root, released[previous])
+    git(root, "merge-base", "--is-ancestor", released[previous], game_revision)
+    previous_protocol = playtest_protocol.protocol_value(
+        git(root, "show", f"{released[previous]}:{playtest_protocol.GAME_FILES[0]}"), playtest_protocol.GAME_DECLARATION)
+    changed = git(root, "diff", "--name-only", released[previous], game_revision, "--", *playtest_protocol.SIMULATION_PATHS)
+    playtest_protocol.verify_release_bump(previous, previous_protocol, protocol, bool(changed))
+
+
 def prepare(args, root, path):
     master_root = args.master_root.expanduser().resolve(strict=True)
     if Path(git(master_root, "rev-parse", "--show-toplevel")).resolve() != master_root:
@@ -196,6 +216,7 @@ def prepare(args, root, path):
     ensure_revision(master_root, master_revision)
     git(master_root, "merge-base", "--is-ancestor", master_revision, published_master)
     compatibility = source_pair(root, game_revision, master_root, master_revision)
+    verify_release_bump(root, game_revision, args.version, compatibility["game_protocol"])
     tooling = git(root, "show", f"{game_revision}:scripts/playtest-release.py")
     if not re.search(r"^CONTROLLER_CONTRACT_VERSION = 1$", tooling, re.MULTILINE):
         raise ControllerError("Selected source lacks the controller-compatible pipeline; publish the tooling first")

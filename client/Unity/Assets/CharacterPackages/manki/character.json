@@ -200,11 +200,11 @@
   ],
   "capabilityRequirements": [
     {
-      "capabilityId": "slop.internal.manki.round-bomb.v1",
+      "capabilityId": "slop.internal.manki.round-bomb.v2",
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+      "capabilityId": "slop.internal.manki.jetpack-boost.v2",
       "capabilityVersion": "1"
     },
     {
@@ -823,14 +823,14 @@
     },
     {
       "id": "ground.A",
-      "name": "Round Bomb",
-      "description": "Hold to aim a ground cursor, release to lob an explosive round bomb",
+      "name": "Can Bomb",
+      "description": "Lob a can. Landing pops, then its fuse burns. Your fire or blasts trigger a larger chained burst.",
       "iconId": "icon.a",
       "behavior": "aimedProjectile",
       "aimMode": "groundCursor",
       "aimMovement": "fixed",
       "aimAnimationId": "anim.manki.ga-loop",
-      "cooldownTicks": 240,
+      "cooldownTicks": 18,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
@@ -855,7 +855,7 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.round-bomb.v1",
+                "capabilityId": "slop.internal.manki.round-bomb.v2",
                 "capabilityVersion": "1",
                 "parameters": {
                   "throwTriggerTick": 10,
@@ -863,8 +863,8 @@
                   "launchAngle": 30,
                   "gravity": 30,
                   "hitboxRadius": 0.6,
-                  "damage": 6,
-                  "stunTicks": 22,
+                  "damage": 3,
+                  "stunTicks": 10,
                   "maxFlightTicks": 90,
                   "kbAngle": 30,
                   "explosionDamage": 10,
@@ -874,19 +874,28 @@
                   "explosionStunTicks": 18,
                   "explosionDurationTicks": 8,
                   "explosionKbAngle": 30,
-                  "explosionPresentationId": "presentation.manki.round-bomb.explosion"
+                  "explosionPresentationId": "presentation.manki.round-bomb.explosion",
+                  "fuseTicks": 240,
+                  "warningTicks": 8,
+                  "earlyDamage": 16,
+                  "earlyRadius": 4,
+                  "impactRadius": 1.1
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.manki.blast.hit"
+      "hitPresentationId": "presentation.manki.blast.hit",
+      "chargePool": {
+        "maxCharges": 3,
+        "regenTicks": 360
+      }
     },
     {
       "id": "ground.E",
-      "name": "Jetpack Boost",
-      "description": "Explode upward with a strong vertical boost; drift after reaching the apex.",
+      "name": "Jetpack Flight",
+      "description": "Ignite, steer a low powered flight, and tap jump for lift. E again cuts the fuel.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -898,7 +907,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 60,
+            "durationTicks": 123,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -916,12 +925,12 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+                "capabilityId": "slop.internal.manki.jetpack-boost.v2",
                 "capabilityVersion": "1",
                 "parameters": {
                   "startupTicks": 3,
-                  "verticalSpeed": 15,
-                  "horizontalSpeed": 3.5,
+                  "verticalSpeed": 8,
+                  "horizontalSpeed": 12,
                   "explosionRadius": 1.5,
                   "explosionDamage": 10,
                   "explosionKbAngle": 30,
@@ -929,7 +938,12 @@
                   "explosionKbGrowth": 24,
                   "explosionStunTicks": 18,
                   "explosionDurationTicks": 8,
-                  "explosionPresentationId": "presentation.manki.jetpack-boost.ignition"
+                  "explosionPresentationId": "presentation.manki.jetpack-boost.ignition",
+                  "fuelTicks": 120,
+                  "sinkSpeed": 1.2,
+                  "jumpBurstSpeed": 10,
+                  "jumpBurstTicks": 12,
+                  "exhaustRadius": 1.4
                 }
               },
               {
@@ -949,7 +963,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 57
+                  "durationTicks": 120
                 }
               },
               {
@@ -969,12 +983,12 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 80
+                  "durationTicks": 120
                 }
               },
               {
                 "kind": "emitPresentation",
-                "tick": 38,
+                "tick": 115,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.jetpack-boost.cough",
                 "placement": {
@@ -1126,8 +1140,8 @@
       "description": "Shake and point an aerosol can, then project a forward fire column",
       "iconId": "icon.f",
       "behavior": "areaDenial",
-      "aimMode": "cameraForward3D",
-      "aimMovement": "fixed",
+      "aimMode": "groundVector",
+      "aimMovement": "mobile",
       "aimAnimationId": "anim.manki.gf-loop",
       "cooldownTicks": 600,
       "isRecoveryMove": false,
@@ -1276,7 +1290,8 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.manki.aerosol-inferno.hit"
+      "hitPresentationId": "presentation.manki.aerosol-inferno.hit",
+      "aimMovementSpeedScale": 0.35
     }
   ],
   "aliases": [

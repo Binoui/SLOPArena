@@ -9,7 +9,7 @@ namespace SlopArena.Shared
     /// Spawn hitboxes via Spawn(), then call Tick() each server tick.
     /// Handles: movement (projectiles), sphere-sphere collision, aging, knockback.
     /// </summary>
-    public class SpellResolver
+    public partial class SpellResolver
     {
         private readonly List<Hitbox> _hitboxes = new();
         private ulong _lastEmissionId;
@@ -223,6 +223,7 @@ namespace SlopArena.Shared
                 _hitboxes.RemoveAt(i);
             }
             _pendingExplosions.RemoveAll(explosion => explosion.ownerId == ownerId);
+            RemoveMankiCans(ownerId);
         }
 
 
@@ -379,8 +380,11 @@ namespace SlopArena.Shared
         // Share of its speed a returning projectile keeps when it bounces off the stage or a shield.
         private const float BounceRetention = 0.5f;
 
-        /// <summary>Whether this tick's travel would bring a projectile into the stage, and the surface normal.</summary>
-        private bool MeetsStage(in Hitbox hb, in ArenaDefinition arena, out float nx, out float ny, out float nz)
+        /// <summary>
+        /// Whether this tick's travel would bring a projectile into the stage, and the surface normal. Returning
+        /// projectiles bounce on it and a tether's ring stops on it (ADR-0048).
+        /// </summary>
+        internal bool MeetsStage(in Hitbox hb, in ArenaDefinition arena, out float nx, out float ny, out float nz)
         {
             nx = 0f; ny = 1f; nz = 0f;
             float ex = hb.X + hb.VX * Simulation.TickDt, ey = hb.Y + hb.VY * Simulation.TickDt, ez = hb.Z + hb.VZ * Simulation.TickDt;
@@ -408,6 +412,19 @@ namespace SlopArena.Shared
                 if (hb.Active && hb.Return.HasValue && hb.OwnerId == ownerId)
                     return hb.AttackSlot;
             return 0;
+        }
+
+        /// <summary>The live projectile one activation owns (a tether's ring), if any.</summary>
+        internal bool TryGetActivationProjectile(ulong ownerId, ulong activationId, out Hitbox projectile)
+        {
+            foreach (var hb in _hitboxes)
+                if (hb.Active && hb.OwnerId == ownerId && hb.ActivationId == activationId && !hb.OwnerWindow)
+                {
+                    projectile = hb;
+                    return true;
+                }
+            projectile = default;
+            return false;
         }
 
         /// <summary>Whether an owner has a returning projectile from this wire slot in flight.</summary>
@@ -473,6 +490,7 @@ namespace SlopArena.Shared
         public void Clear()
         {
             _hitboxes.Clear();
+            _mankiCans.Clear();
             _lastTickChecked.Clear();
             _pendingExplosions.Clear();
         }
@@ -486,6 +504,7 @@ namespace SlopArena.Shared
             w.WriteInt(_hitboxes.Count);
             foreach (var hb in _hitboxes)
                 SnapshotCodecs.Write(w, hb, ownerContent);
+            WriteMankiCans(w);
             w.WriteInt(_pendingExplosions.Count);
             foreach (var (x, y, z, explosion, ownerId, attackSlot, activationId, airborne, attackSequence) in _pendingExplosions)
             {
@@ -505,6 +524,7 @@ namespace SlopArena.Shared
         internal sealed class SnapshotData
         {
             public ulong LastEmissionId;
+            public readonly List<MankiCanState> Cans = new();
             public readonly List<Hitbox> Hitboxes = new();
             public readonly List<(float x, float y, float z, ProjectileExplosion explosion, ulong ownerId, byte attackSlot, ulong activationId, bool airborne, byte attackSequence)> Explosions = new();
         }
@@ -523,6 +543,7 @@ namespace SlopArena.Shared
                     throw SnapshotReader.Malformed("hitbox emission identity");
                 data.Hitboxes.Add(hitbox);
             }
+            ReadMankiCans(r, data, ownerContent);
             int explosions = r.ReadCount(1);
             for (int i = 0; i < explosions; i++)
             {
@@ -538,9 +559,11 @@ namespace SlopArena.Shared
         {
             _lastEmissionId = data.LastEmissionId;
             _hitboxes.Clear();
+            _mankiCans.Clear();
             _lastTickChecked.Clear();
             _pendingExplosions.Clear();
             _hitboxes.AddRange(data.Hitboxes);
+            _mankiCans.AddRange(data.Cans);
             _pendingExplosions.AddRange(data.Explosions);
         }
 
@@ -573,9 +596,15 @@ namespace SlopArena.Shared
                     ? arena.Heightmap.Sample(hb.X, hb.Z)
                     : 0f;
                 // Fallback for invalid sample (outside heightmap bounds)
-                if (groundY == float.MinValue) groundY = 0f;
+                if (groundY == float.MinValue)
+                {
+                    if (hb.MankiCan.HasValue) continue;
+                    groundY = 0f;
+                }
 
                 if (hb.Y - hb.Radius > groundY) continue;
+
+                if (hb.MankiCan.HasValue) LandMankiCan(in hb, groundY);
 
                 // Ground contact: queue explosion at ground level, deactivate
                 var exp = hb.Explosion.Value;
@@ -692,6 +721,7 @@ namespace SlopArena.Shared
                 if (hb.Gravity > 0f)
                     hb.VY -= hb.Gravity * Simulation.TickDt;
 
+                IgniteMankiCans(in hb);
                 List<EntityData> candidates = entities;
                 if (entities.Count > 1)
                 {
@@ -713,7 +743,7 @@ namespace SlopArena.Shared
                 _contacts.Clear();
                 foreach (var entity in candidates)
                 {
-                    if (!entity.Active) continue;
+                    if (!entity.Active || hb.MankiCan.HasValue || hb.IsCanIgniterOnly) continue;
                     if (entity.RuntimeSolid && (hb.Damage <= 0 || hb.OwnerId == ServerSimulation.MayhemHostEntityId)) continue;
                     if (hb.Unblockable ? entity.ShieldSurface : entity.ProtectedByShield) continue;
                     if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
@@ -849,7 +879,7 @@ namespace SlopArena.Shared
                     hb.AgeTicks++;
                 if (hb.AttachedEntityId == 0 && (hb.AgeTicks >= hb.DurationTicks || !hb.Active))
                 {
-                    if (hb.Explosion.HasValue)
+                    if (hb.Explosion.HasValue && !hb.MankiCan.HasValue)
                         _pendingExplosions.Add((removalOrigin.X, removalOrigin.Y, removalOrigin.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
                             hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));
                     OnHitboxRemoved?.Invoke(hb, removalOrigin.X, removalOrigin.Y, removalOrigin.Z);

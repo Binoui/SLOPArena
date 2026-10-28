@@ -415,11 +415,62 @@ public sealed class CharacterPackageAssemblerTests
             ? "package.compatibility.unsupported" : "package.capability.parameters-invalid"));
     }
 
+    [Fact]
+    public void TetherRoundTripsTheVerifiedCookedPackage()
+    {
+        var package = RingDuel.Compile(null);
+        var loaded = LoadFingerGuns(package);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
+        Assert.Equal("1.13.0", loaded.Package!.Metadata.RuntimeApiMin);
+        Assert.Equal(TetherTests.Parameters, loaded.Package.Definition.Slots.Single(slot => slot.Id == "ground.A")
+            .Timeline.Stages.Single().Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters);
+    }
+
+    [Theory]
+    [InlineData("api")]
+    [InlineData("tick")]
+    [InlineData("iasa")]
+    [InlineData("operation")]
+    [InlineData("gravity")]
+    [InlineData("knockback")]
+    [InlineData("speed")]
+    [InlineData("arrivalStunTicks")]
+    [InlineData("reelAnimationId")]
+    public void TetherLoaderRejectsTamperedCookedSlotsOrApi(string field)
+    {
+        var package = RingDuel.Compile(null);
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        string api = field == "api" ? "1.12.0" : "1.13.0";
+        runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = api;
+        var stage = runtime["character"]!["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.A")!
+            ["timeline"]!["stages"]![0]!;
+        var operation = stage["operations"]![0]!;
+        var p = operation["parameters"]!;
+        switch (field)
+        {
+            case "api": break;
+            case "tick": operation["tick"] = 1; break;
+            case "iasa": stage["iasaTicks"] = 1; break;
+            case "operation": stage["operations"]!.AsArray().Add(operation.DeepClone()); break;
+            case "gravity": p["projectile"]!["gravity"] = 4; break;
+            case "knockback": p["projectile"]!["baseKnockback"] = 4; break;
+            case "speed": p["projectile"]!["speed"] = 0; break;
+            case "arrivalStunTicks": p[field] = 0; break;
+            case "reelAnimationId": p[field] = "anim.bashie.ring"; break;
+        }
+        var tampered = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = api }, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var rejected = LoadFingerGuns(tampered);
+        Assert.False(rejected.IsValid);
+        Assert.Contains(rejected.Diagnostics, d => d.Code == (field == "api"
+            ? "package.compatibility.unsupported" : "package.capability.parameters-invalid"));
+    }
+
     private static CookedCharacterPackage CompileFingerGuns()
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
         var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
-        FingerGunsTests.UseGuns(character);
+        FingerGunsTests.UseGuns(character, slot => slot["aimMode"] = "groundVector");
         var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
             character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(compiled.CookedPackage);
@@ -429,6 +480,41 @@ public sealed class CharacterPackageAssemblerTests
     private static CookedCharacterPackageLoadResult LoadFingerGuns(CookedCharacterPackage package)
         => CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(package,
             Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+
+    [Theory]
+    [InlineData("ground.A", "fuseTicks", 0)]
+    [InlineData("ground.A", "warningTicks", 0)]
+    [InlineData("ground.A", "earlyDamage", 10)]
+    [InlineData("ground.A", "earlyRadius", 3)]
+    [InlineData("ground.A", "impactRadius", 0)]
+    [InlineData("ground.E", "fuelTicks", 0)]
+    [InlineData("ground.E", "sinkSpeed", 0)]
+    [InlineData("ground.E", "jumpBurstTicks", 121)]
+    [InlineData("ground.E", "jumpBurstSpeed", 31)]
+    [InlineData("ground.E", "exhaustRadius", 5)]
+    public void MankiSourceAndCookedLoaderRejectTheSameInvalidCanAndFlightBounds(string slotId, string field, int value)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
+        string metadata = File.ReadAllText(Path.Combine(root, "package.json"));
+        string source = File.ReadAllText(Path.Combine(root, "character.json"));
+        JsonNode Parameters(JsonNode character) => character["slots"]!.AsArray()
+            .Single(slot => (string?)slot!["id"] == slotId)!["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+            .Single(operation => operation!.AsObject().ContainsKey("capabilityId"))!["parameters"]!;
+        var authoring = JsonNode.Parse(source)!;
+        Parameters(authoring)[field] = value;
+        var rejectedSource = CharacterPackageCompiler.Compile(metadata, authoring.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+        Assert.Null(rejectedSource.CookedPackage);
+        Assert.Contains(rejectedSource.Diagnostics, d => d.Code == "value.out-of-range");
+
+        var package = CharacterPackageCompiler.Compile(metadata, source, CharacterCookProfile.TrustedBuiltIn).CookedPackage!;
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        Parameters(runtime["character"]!)[field] = value;
+        var tampered = new CookedCharacterPackage(package.Metadata, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var rejectedCooked = LoadFingerGuns(tampered);
+        Assert.False(rejectedCooked.IsValid);
+        Assert.Contains(rejectedCooked.Diagnostics, d => d.Code == "package.capability.parameters-invalid");
+    }
 
     [Fact]
     public void ChargedStreamRoundTripsTheVerifiedCookedPackage()

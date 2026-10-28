@@ -29,6 +29,7 @@ namespace SlopArena.Client.Combat
         [SerializeField] private TargetLockIndicator _targetLockIndicator;
         [SerializeField] private GroundDestinationIndicator _groundDestinationIndicator;
         [SerializeField] private ProjectileTrajectoryIndicator _trajectoryIndicator;
+        private FacingAimMarker _facingAimMarker;
 
         [Header("Camera")]
         [SerializeField] private CameraMount _cameraMount;
@@ -43,6 +44,14 @@ namespace SlopArena.Client.Combat
         private bool _hasChargedDashParameters;
         /// <summary>The aimed slot's lobbed throw (Round Bomb), read from the cooked slot when the cursor opens.</summary>
         private CookedMankiRoundBombCapabilityParameters _lob;
+        /// <summary>
+        /// GroundVector slots that author travel aim a dash: the stick picks the direction instantly.
+        /// Every other one aims the fighter's facing: the stick turns him progressively.
+        /// </summary>
+        private enum GroundVectorAim { Dash, Facing }
+        private GroundVectorAim _groundVectorAim;
+        private const float FacingAimTurnDegreesPerSecond = 360f;
+        private FacingAimShape _facingAimShape = FacingAimShape.Lane;
         private PlayerRenderer _characterRenderer;
         private CameraMode _activeMode = CameraMode.Normal;
         private byte _aimingSlot;
@@ -134,6 +143,7 @@ namespace SlopArena.Client.Combat
         {
             _targetLockIndicator?.Clear(immediate: true);
             _groundDestinationIndicator?.Clear();
+            _facingAimMarker?.Clear();
             _trajectoryIndicator?.Clear();
             _aimCameraMount?.Deactivate();
             _cameraMount?.SetMode(CameraMode.Normal);
@@ -266,8 +276,18 @@ namespace SlopArena.Client.Combat
                             {
                                 _chargedDashParameters = parameters;
                                 _hasChargedDashParameters = true;
-                                break;
                             }
+                    _groundVectorAim = authoredDistance > 0f || _hasChargedDashParameters
+                        ? GroundVectorAim.Dash : GroundVectorAim.Facing;
+                    if (_groundVectorAim == GroundVectorAim.Facing)
+                    {
+                        // Aim continues from the fighter's facing so a press does not snap him to the camera,
+                        // unless the stick already says where to aim.
+                        _lastAimYawRad = aimStick.sqrMagnitude > 0.01f
+                            ? ScreenDirectionToYaw(aimStick.normalized) : playerState.FacingYaw;
+                        _aimScreenOffset = YawToScreenOffset(_lastAimYawRad);
+                        _facingAimShape = spec != null ? FacingAimShape.For(spec) : FacingAimShape.Lane;
+                    }
                 }
 
                 // Entering Aiming — activate aim camera, inherit current yaw + zoom distance
@@ -291,6 +311,7 @@ namespace SlopArena.Client.Combat
 
             if (aimMode == AimMode.GroundCursor)
             {
+                _facingAimMarker?.Clear();
                 var (yawRad, distCm, aimTarget) = ComputeGroundCursorAim(aimStick);
                 _lastAimYawRad = yawRad ?? _lastAimYawRad;
                 _lastAimPitchRad = 0f;
@@ -329,61 +350,84 @@ namespace SlopArena.Client.Combat
                 if (cameraSettings.InvertCameraHorizontal) delta.x = -delta.x;
                 if (cameraSettings.InvertCameraVertical) delta.y = -delta.y;
                 _aimScreenOffset += delta;
-                // Stick direction selects the ground direction immediately. Keeping the
-                // last offset on neutral preserves the chosen aim through release.
-                if (aimStick.sqrMagnitude > 0.01f)
-                    _aimScreenOffset = aimStick.normalized * (AimScreenDeadZone * 2f);
-                _aimScreenOffset = Vector2.ClampMagnitude(_aimScreenOffset, AimScreenMaxOffset);
-                if (_aimScreenOffset.sqrMagnitude > AimScreenDeadZone * AimScreenDeadZone)
+                bool stickAim = aimStick.sqrMagnitude > 0.01f;
+                if (stickAim && _groundVectorAim == GroundVectorAim.Facing)
                 {
-                    Vector2 screenDir = _aimScreenOffset.normalized;
-                    Vector3 camFwd = _cameraMount?.GetForwardDirection() ?? Vector3.forward;
-                    Vector3 camRight = _cameraMount?.GetRightDirection() ?? Vector3.right;
-                    Vector3 worldDir = (camFwd * screenDir.y + camRight * screenDir.x).normalized;
-                    _lastAimYawRad = Mathf.Atan2(worldDir.x, worldDir.z);
+                    // The stick turns the fighter at a steady rate instead of snapping, so every angle
+                    // between two stick positions is reachable.
+                    _lastAimYawRad = Mathf.MoveTowardsAngle(_lastAimYawRad * Mathf.Rad2Deg,
+                        ScreenDirectionToYaw(aimStick.normalized) * Mathf.Rad2Deg,
+                        FacingAimTurnDegreesPerSecond * Time.deltaTime) * Mathf.Deg2Rad;
+                    // The hidden cursor follows, so switching to the mouse continues from this yaw.
+                    _aimScreenOffset = YawToScreenOffset(_lastAimYawRad);
+                }
+                else
+                {
+                    // A dash's stick selects the ground direction immediately. Keeping the
+                    // last offset on neutral preserves the chosen aim through release.
+                    if (stickAim)
+                        _aimScreenOffset = aimStick.normalized * (AimScreenDeadZone * 2f);
+                    _aimScreenOffset = Vector2.ClampMagnitude(_aimScreenOffset, AimScreenMaxOffset);
+                    if (_aimScreenOffset.sqrMagnitude > AimScreenDeadZone * AimScreenDeadZone)
+                        _lastAimYawRad = ScreenDirectionToYaw(_aimScreenOffset.normalized);
                 }
                 _lastAimingSlot = _aimingSlot;
 
-                // Use the authored dash travel for the endpoint; width follows the hitbox.
-                float dashDistance = _groundVectorDistance;
-                float dashWidth = 1.1f;
-                if (spec?.Timeline.Stages is { Count: > 0 } && spec.Timeline.Stages[0].ReadHitboxes() is { Length: > 0 })
-                    dashWidth = spec.Timeline.Stages[0].ReadHitboxes()[0].Radius * 2f;
-                if (_hasChargedDashParameters)
-                    dashWidth = _chargedDashParameters.FinisherHitbox.Radius * 2f;
-                byte? chargeTier = null;
-                if (_hasChargedDashParameters)
-                {
-                    dashDistance = _chargedDashParameters.GetDashDistance(playerState.ChargeTicks);
-                    chargeTier = _chargedDashParameters.GetChargeTier(playerState.ChargeTicks);
-                }
-
                 float yaw = _lastAimYawRad;
-                ushort distCm = (ushort)Mathf.Clamp(dashDistance * 100f, 0f, 6500f);
-                ctx = new AimContext
+                if (_groundVectorAim == GroundVectorAim.Facing)
                 {
-                    IsAiming      = true,
-                    AimYawRad     = yaw,
-                    AimDistanceCm = distCm,
-                };
-
-                // Reticle at the dash endpoint + short wedge showing travel direction.
-                if (_characterTransform != null)
-                {
-                    Vector3 dir = new(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
-                    Vector3 feetY = _characterTransform.position;
-                    Vector3 destination = feetY + dir * dashDistance;
-                    _groundDestinationIndicator?.SetDestination(destination, dir, dashWidth, chargeTier,
-                        _hasChargedDashParameters
-                            ? Mathf.Lerp(0.7f, 1.3f, Mathf.InverseLerp(
-                                _chargedDashParameters.MinDistance, _chargedDashParameters.MaxDistance, dashDistance))
-                            : 1f);
+                    // Facing moves fire along the yaw alone; the floor marker draws the move's hit area.
+                    ctx = new AimContext { IsAiming = true, AimYawRad = yaw };
+                    _groundDestinationIndicator?.Clear();
                     _trajectoryIndicator?.Clear();
+                    // Draw along the simulated facing, not the requested aim: a shot that already left
+                    // (Finger Guns) keeps its line while the button stays held.
+                    if (_characterTransform != null)
+                        _facingAimMarker?.Show(_characterTransform.position, playerState.FacingYaw, _facingAimShape, playerState.ChargeTicks);
+                }
+                else
+                {
+                    _facingAimMarker?.Clear();
+                    // Use the authored dash travel for the endpoint; width follows the hitbox.
+                    float dashDistance = _groundVectorDistance;
+                    float dashWidth = 1.1f;
+                    byte? chargeTier = null;
+                    if (spec?.Timeline.Stages is { Count: > 0 } && spec.Timeline.Stages[0].ReadHitboxes() is { Length: > 0 })
+                        dashWidth = spec.Timeline.Stages[0].ReadHitboxes()[0].Radius * 2f;
+                    if (_hasChargedDashParameters)
+                    {
+                        dashWidth = _chargedDashParameters.FinisherHitbox.Radius * 2f;
+                        dashDistance = _chargedDashParameters.GetDashDistance(playerState.ChargeTicks);
+                        chargeTier = _chargedDashParameters.GetChargeTier(playerState.ChargeTicks);
+                    }
+
+                    ushort distCm = (ushort)Mathf.Clamp(dashDistance * 100f, 0f, 6500f);
+                    ctx = new AimContext
+                    {
+                        IsAiming      = true,
+                        AimYawRad     = yaw,
+                        AimDistanceCm = distCm,
+                    };
+
+                    // Reticle at the dash endpoint + short wedge showing travel direction.
+                    if (_characterTransform != null)
+                    {
+                        Vector3 dir = new(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
+                        Vector3 feetY = _characterTransform.position;
+                        Vector3 destination = feetY + dir * dashDistance;
+                        _groundDestinationIndicator?.SetDestination(destination, dir, dashWidth, chargeTier,
+                            _hasChargedDashParameters
+                                ? Mathf.Lerp(0.7f, 1.3f, Mathf.InverseLerp(
+                                    _chargedDashParameters.MinDistance, _chargedDashParameters.MaxDistance, dashDistance))
+                                : 1f);
+                        _trajectoryIndicator?.Clear();
+                    }
                 }
             }
             else
             {
                 _groundDestinationIndicator?.Clear();
+                _facingAimMarker?.Clear();
                 _trajectoryIndicator?.Clear();
 
                 if (aimMode == AimMode.CameraForward3D && SharedCamera)
@@ -400,12 +444,10 @@ namespace SlopArena.Client.Combat
                     if (cameraSettings.InvertCameraHorizontal) delta.x = -delta.x;
                     if (cameraSettings.InvertCameraVertical) delta.y = -delta.y;
                     _aimCameraMount.Tick(_characterTransform);
-                    bool horizontalOnly = charDef.Class == CharacterClass.Manki
-                        && (byte)(_aimingSlot + 1) == AbilitySlots.F;
-                    _aimCameraMount.ApplyMouseDelta(delta, _aimSensitivity, !horizontalOnly);
+                    _aimCameraMount.ApplyMouseDelta(delta, _aimSensitivity, true);
 
                     _lastAimYawRad = _aimCameraMount.GetAimYawRad();
-                    _lastAimPitchRad = horizontalOnly ? 0f : _aimCameraMount.GetAimPitchRad();
+                    _lastAimPitchRad = _aimCameraMount.GetAimPitchRad();
                     _lastAimingSlot = _aimingSlot;
 
                     ctx = new AimContext
@@ -491,6 +533,24 @@ namespace SlopArena.Client.Combat
             _hasGroundAimTarget = true;
             ushort distCm = (ushort)Mathf.Clamp(dist * 100f, 0f, 6500f);
             return (yaw, distCm, aimTarget);
+        }
+
+        /// <summary>GroundVector aim: a screen direction (x right, y up) mapped onto the frozen camera's ground plane.</summary>
+        private float ScreenDirectionToYaw(Vector2 screenDir)
+        {
+            Vector3 camFwd = _cameraMount?.GetForwardDirection() ?? Vector3.forward;
+            Vector3 camRight = _cameraMount?.GetRightDirection() ?? Vector3.right;
+            Vector3 worldDir = (camFwd * screenDir.y + camRight * screenDir.x).normalized;
+            return Mathf.Atan2(worldDir.x, worldDir.z);
+        }
+
+        /// <summary>The hidden-cursor offset that <see cref="ScreenDirectionToYaw"/> maps back to <paramref name="yawRad"/>.</summary>
+        private Vector2 YawToScreenOffset(float yawRad)
+        {
+            Vector3 dir = new(Mathf.Sin(yawRad), 0f, Mathf.Cos(yawRad));
+            Vector3 camFwd = _cameraMount?.GetForwardDirection() ?? Vector3.forward;
+            Vector3 camRight = _cameraMount?.GetRightDirection() ?? Vector3.right;
+            return new Vector2(Vector3.Dot(dir, camRight), Vector3.Dot(dir, camFwd)).normalized * (AimScreenDeadZone * 2f);
         }
 
         /// <summary>The simulated body centre (state PY): the renderer root carries the model's Y offset.</summary>
@@ -593,6 +653,13 @@ namespace SlopArena.Client.Combat
                     ?? gameObject.AddComponent<TargetLockIndicator>();
             if (_groundDestinationIndicator == null)
                 _groundDestinationIndicator = gameObject.GetComponentInChildren<GroundDestinationIndicator>();
+            if (_facingAimMarker == null)
+            {
+                var markerObject = new GameObject(nameof(FacingAimMarker));
+                markerObject.layer = gameObject.layer;
+                markerObject.transform.SetParent(transform, false);
+                _facingAimMarker = markerObject.AddComponent<FacingAimMarker>();
+            }
             if (_trajectoryIndicator == null)
                 _trajectoryIndicator = gameObject.GetComponentInChildren<ProjectileTrajectoryIndicator>()
                     ?? FindFirstObjectByType<ProjectileTrajectoryIndicator>();

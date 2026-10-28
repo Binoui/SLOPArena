@@ -384,7 +384,7 @@ public sealed class BashieShellTests
     [Fact]
     public void ShellContentNeedsRuntimeApi112AndOtherPackagesWriteNoShellFields()
     {
-        Assert.Equal("1.12.0", CompilePackage("bashie", F.Apply).Metadata.RuntimeApiMin);
+        Assert.Equal("1.12.0", CompilePackage("bashie", c => { F.Apply(c); F.WithoutRing(c); }).Metadata.RuntimeApiMin);
         foreach (var package in new[] { "fightguy", "wibou", "manki", "bonk" })
         {
             var cooked = CompilePackage(package, null);

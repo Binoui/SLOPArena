@@ -277,7 +277,7 @@ public sealed class CombatReviewRegressionTests
             sim.Tick(new() { [1] = new InputState { IsAiming = true, MoveY = 1 } });
         Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
         Assert.True(sim.GetActiveMove(1)!.Value.AirborneAtStart);
-        Assert.Equal(def.Movement.RunSpeed * .25f * .67f, sim.GetState(1).VZ, 4);
+        Assert.Equal(def.Movement.RunSpeed * .25f * .9f, sim.GetState(1).VZ, 4);
     }
 
     [Fact]

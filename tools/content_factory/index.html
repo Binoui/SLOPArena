@@ -44,11 +44,16 @@ textarea{width:100%;border:3px solid #1b1a18;padding:6px;font:inherit;min-height
 a.sheetlink{font-size:12px;font-weight:700;color:#1b1a18}
 table.list{width:100%;border-collapse:collapse;background:#fff;border:3px solid #1b1a18}
 table.list td,table.list th{border:1px solid #1b1a18;padding:6px;font-size:13px;text-align:left;vertical-align:top}
+table.list a{color:#1b1a18;font-weight:700}
 table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 .state{font-weight:800}.state.failed{color:#c22}.state.done{color:#272}.state.running,.state.sent,.state.queued{color:#d84}
-.report{background:#fff;border:3px solid #1b1a18;padding:10px 12px;margin-bottom:10px;white-space:pre-wrap;font-size:14px}
+.report{background:#fff;border:3px solid #1b1a18;padding:10px 14px;margin-bottom:10px;font-size:15px;line-height:1.45;max-width:760px}
+.report summary{cursor:pointer;font-weight:800}.report p,.report ul,.report ol{margin:0 0 8px}.report ul,.report ol{padding-left:20px}
+.report li{margin-bottom:4px}.report h3{font-size:18px;margin:10px 0 6px}.report h4{font-size:14px;margin:14px 0 6px}
+.report code{background:#f0eee8;padding:0 3px}.report a{color:#1b1a18;word-break:break-all}
 .inbox div{background:#fff;border:2px solid #1b1a18;padding:6px 8px;margin-bottom:6px;font-size:13px;word-break:break-word}
 .inbox div.used{opacity:.5}
+.tabrun{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tabrun span{font-size:13px}
 @media(max-width:700px){body{padding:12px}.sheet{grid-template-columns:1fr}.sheet video{width:100%;max-width:340px}
   .grid{grid-template-columns:repeat(2,1fr);gap:12px}h1{font-size:21px}}
 </style>
@@ -56,8 +61,6 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 <body>
 <h1>SLOPArena content factory</h1>
 <div class="bar">
-  <button class="btn go" onclick="startRun('propose')">Propose clips</button>
-  <button class="btn" onclick="startRun('render')">Render approved</button>
   <div class="run" id="running">Loading...</div>
 </div>
 <div id="msg"></div>
@@ -69,8 +72,10 @@ const TABS = [["review","To review",["rendered"]],["proposed","Proposed",["propo
   ["ready","Ready to post",["ready"]],["posted","Posted",["posted"]],["rejected","Rejected",["rejected"]],
   ["numbers","Numbers",[]],["scout","Scout",[]],["runs","Runs",[]]];
 const ACTIONS = {rendered:[["ready","Ready to post","go"],["approved","Redo with note",""],["rejected","Reject",""]],
-  proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["proposed","Back to proposed",""],["rejected","Reject",""]],
+  proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["ready","Ready to post","go"],["proposed","Back to proposed",""],["rejected","Reject",""]],
   ready:[["posted","Mark posted","go"],["approved","Redo with note",""],["rejected","Reject",""]], posted:[], rejected:[["proposed","Restore",""]]};
+const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer reads the latest scout reports and what changed in the game, then adds 5 to 7 ideas here."],
+  approved: ["render", "Render approved", "Films every idea in this tab; each take lands in To review."]};
 const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
 const RUN_TEXT = {propose: "Sent to T3: the designer thread appears in about 2 minutes, ideas land in PROPOSED.", render: "Sent to T3: the thread appears in about 2 minutes, clips land in TO REVIEW.",
   scout: "Sent to T3: the scout thread appears in about 2 minutes, its report lands in this tab.", redo: "Sent to T3: the redo thread appears in about 2 minutes, the new take lands in TO REVIEW."};
@@ -104,8 +109,9 @@ function draw() {
   }).join("");
   const [, , s] = TABS.find(t => t[0] === tab);
   const list = top_().filter(d => s.includes(d.status)).reverse();
-  document.getElementById("view").innerHTML = tab === "numbers" ? numbers() : tab === "scout" ? scout() : tab === "runs" ? runs()
-    : list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<div class="empty">Nothing here.</div>`;
+  const tr = TAB_RUNS[tab], head = tr ? `<div class="tabrun"><button class="btn go" onclick="startRun('${tr[0]}')">${tr[1]}</button><span>${tr[2]}</span></div>` : "";
+  document.getElementById("view").innerHTML = head + (tab === "numbers" ? numbers() : tab === "scout" ? scout() : tab === "runs" ? runs()
+    : list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<div class="empty">Nothing here.</div>`);
 }
 function card(d) {
   const shots = (d.beats || []).filter(b => b.type === "shot").length, t = pickTake(d), r = busy(d.id);
@@ -136,7 +142,7 @@ function show(id, scroll = true) {
     ${d.for ? `<p><a href="#" onclick="show('${esc(d.for)}');return false">← part of ${esc(d.for)}</a></p>` : ""}
     ${d.comments.length ? `<div class="notes">${d.comments.map(c => `<div class="${c.author === "owner" ? "" : "agent"}"><small>${esc(c.author === "owner" ? "You" : "Agent")} ${esc(String(c.at).slice(0, 10))}</small> ${esc(c.body)}</div>`).join("")}</div>` : ""}
     <textarea id="note" placeholder="Note for the agent: what to change, a caption idea, why it's rejected...">${esc(note)}</textarea>
-    <div class="acts">${(ACTIONS[d.status] || []).map(([s, l, c]) => `<button class="btn ${c}" onclick="act('${d.id}','${s}')">${l}</button>`).join("")}
+    <div class="acts">${(ACTIONS[d.status] || []).filter(([s]) => s !== "ready" || t).map(([s, l, c]) => `<button class="btn ${c}" onclick="act('${d.id}','${s}')">${l}</button>`).join("")}
       <button class="btn" onclick="act('${d.id}','')">Save note</button>
       ${t?.clip ? `<a class="btn ${d.status === "ready" ? "go" : ""}" href="${t.clip}?dl" download>Download</a>` : ""}
       <button class="btn" onclick="hide();draw()">Close</button></div>
@@ -182,7 +188,24 @@ function scout() {
     <textarea id="inboxText" placeholder="https://www.tiktok.com/@.../video/... why it caught your eye"></textarea>
     <div class="acts"><button class="btn" onclick="addInbox()">Add to inbox</button><button class="btn go" onclick="startRun('scout')">Run scout</button></div>
     <h4>Inbox (${open_.length} new)</h4><div class="inbox">${open_.concat(used).map(i => `<div class="${i.report ? "used" : ""}">${esc(i.body)}${i.report ? ` <small>(report ${i.report})</small>` : ""}</div>`).join("") || "Empty."}</div>
-    <h4>Reports</h4>${B.reports.map(r => `<div class="report"><b>${esc(r.kind)} report ${r.id}, ${esc(r.at.slice(0, 10))}</b>\n\n${esc(r.body)}</div>`).join("") || "None yet."}`;
+    <h4>Reports</h4>${B.reports.map((r, i) => `<details class="report" id="report-${r.id}" ${i ? "" : "open"}><summary>${esc(r.kind)} report ${r.id}, ${esc(r.at.slice(0, 10))}</summary>${md(r.body)}</details>`).join("") || "None yet."}`;
+}
+function md(text) {  // the subset agents write in reports: headings, paragraphs, lists, bold, code, bare links
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/https?:\/\/[^\s<)]*[^\s<).,;:!?]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+  let out = "", para = [], list = "";
+  const flush = () => { if (para.length) out += `<p>${inline(para.join(" "))}</p>`; para = []; };
+  const close = () => { flush(); if (list) out += `</li></${list}>`; list = ""; };
+  for (const line of String(text).split("\n")) {
+    const h = line.match(/^(#{1,3})\s+(.*)/), li = line.match(/^([-*]|\d+\.)\s+(.*)/);
+    if (h) { close(); out += `<h${h[1].length + 2}>${inline(h[2])}</h${h[1].length + 2}>`; }
+    else if (li) { const kind = /\d/.test(li[1]) ? "ol" : "ul";
+      if (list === kind) out += `</li><li>${inline(li[2])}`; else { close(); out += `<${kind}><li>${inline(li[2])}`; list = kind; } }
+    else if (list && /^\s+\S/.test(line)) out += " " + inline(line.trim());
+    else if (!line.trim()) close();
+    else { if (list) close(); para.push(line.trim()); }
+  }
+  close(); return out;
 }
 async function addInbox() {
   const text = document.getElementById("inboxText").value;
@@ -190,12 +213,23 @@ async function addInbox() {
 }
 function runs() {
   if (!B.runs.length) return `<div class="empty">No runs yet. The buttons above and Redo start them; each one is a T3 thread.</div>`;
-  return `<table class="list"><tr><th>#</th><th>Run</th><th>State</th><th>Result</th><th>Started</th><th></th></tr>` + B.runs.map(r =>
-    `<tr><td>${r.id}</td><td>${esc(runName(r))}</td><td class="state ${r.state}">${r.state}</td><td>${esc(r.summary || r.error || "")}</td>
+  return `<table class="list"><tr><th>#</th><th>Run</th><th>State</th><th>Result</th><th>Output</th><th>Started</th><th></th></tr>` + B.runs.map(r =>
+    `<tr><td>${r.id}</td><td>${esc(runName(r))}</td><td class="state ${r.state}">${r.state}</td><td>${esc(r.summary || r.error || "")}</td><td>${outputs(r).map(o => o.report
+      ? `<a href="#" onclick="openReport(${o.report});return false">report ${o.report}</a>`
+      : `<a href="#" onclick="openIdea('${o.id}');return false">${esc(o.title || o.id)}</a>`).join("<br>")}</td>
      <td>${esc(r.created.replace("T", " ").slice(5, 16))}</td><td>${["queued", "failed"].includes(r.state) ? `<button class="btn small" onclick="resend(${r.id})">Resend</button>` : ""}</td></tr>`).join("") + `</table>`;
 }
-load().then(() => { const id = decodeURIComponent(location.hash.slice(1)); const d = byId(id);
-  if (d) { tab = (TABS.find(t => t[2].includes(d.status)) || TABS[0])[0]; show(id); } });
+function outputs(r) {  // a shot links to the explainer it was made for
+  const made = JSON.parse(r.made || "[]"), reports = made.filter(m => m.startsWith("report:")).map(m => ({report: +m.slice(7)}));
+  const ideas = new Set(made.filter(m => !m.startsWith("report:")).map(id => byId(id)?.for || id));
+  return reports.concat([...ideas].map(byId).filter(Boolean));
+}
+function openIdea(id) { const d = byId(id); if (!d) return; tab = localStorage.tab = (TABS.find(t => t[2].includes(d.status)) || TABS[0])[0]; show(id); }
+function openReport(n) {
+  pick("scout"); const el = document.getElementById(`report-${n}`);
+  if (el) { el.open = true; el.scrollIntoView({behavior: "smooth", block: "start"}); }
+}
+load().then(() => openIdea(decodeURIComponent(location.hash.slice(1))));
 setInterval(() => { const typing = ["note", "inboxText"].includes(document.activeElement?.id); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
   if (!typing && !playing) load(); }, 15000);
 </script>

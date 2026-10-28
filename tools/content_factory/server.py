@@ -32,14 +32,14 @@ CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY, idea TEXT NOT NULL 
 CREATE TABLE IF NOT EXISTS takes (idea TEXT NOT NULL REFERENCES ideas, n INTEGER NOT NULL, note TEXT, at TEXT NOT NULL,
   PRIMARY KEY (idea, n));
 CREATE TABLE IF NOT EXISTS runs (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, idea TEXT, state TEXT NOT NULL,
-  summary TEXT, error TEXT, created TEXT NOT NULL, updated TEXT NOT NULL);
+  summary TEXT, error TEXT, created TEXT NOT NULL, updated TEXT NOT NULL, made TEXT);
 CREATE TABLE IF NOT EXISTS inbox (id INTEGER PRIMARY KEY, body TEXT NOT NULL, at TEXT NOT NULL, report INTEGER);
 CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL);
 """
 # The statuses the owner may move an idea to from each status. A new take moves it to "rendered".
 VERDICTS = {
     "proposed": {"approved", "rejected"},
-    "approved": {"proposed", "rejected"},
+    "approved": {"ready", "proposed", "rejected"},  # ready: an earlier take the owner still wants
     "rendered": {"ready", "approved", "rejected"},
     "ready": {"posted", "approved", "rejected"},
     "posted": set(),
@@ -156,6 +156,8 @@ def verdict(idea_id: str, status: str, note: str, take: int | None) -> dict:
             chosen = row["chosen"]
             if status == "ready":
                 last = con.execute("SELECT max(n) FROM takes WHERE idea = ?", (idea_id,)).fetchone()[0]
+                if last is None:
+                    raise Refused(f"{idea_id} has no take to mark ready", 409)
                 chosen = take or last
             con.execute("UPDATE ideas SET status = ?, chosen = ?, posted = ?, updated = ? WHERE id = ?",
                         (status, chosen, date.today().isoformat() if status == "posted" else row["posted"],
@@ -242,14 +244,21 @@ def start_run(kind: str, idea_id: str | None) -> dict:
         return dict(con.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone())
 
 
-def report_run(run_id: int, state: str, summary: str) -> dict:
+def report_run(run_id: int, state: str, summary: str, made: list | None) -> dict:
+    """`made` lists what the run produced, for the board's links: idea ids (shots included) and "report:<n>"."""
     if state not in RUN_STATES - {"queued", "sent"}:
         raise Refused("an agent reports running, done or failed")
     with db() as con:
         if not con.execute("SELECT 1 FROM runs WHERE id = ?", (run_id,)).fetchone():
             raise Refused(f"no run {run_id}", 404)
-        con.execute("UPDATE runs SET state = ?, summary = coalesce(?, summary), updated = ? WHERE id = ?",
-                    (state, summary or None, now(), run_id))
+        for item in made or []:
+            report = re.fullmatch(r"report:(\d+)", str(item))
+            found = con.execute("SELECT 1 FROM reports WHERE id = ?", (int(report[1]),)) if report else \
+                con.execute("SELECT 1 FROM ideas WHERE id = ?", (str(item),))
+            if not found.fetchone():
+                raise Refused(f"made: no idea or report {item}", 404)
+        con.execute("UPDATE runs SET state = ?, summary = coalesce(?, summary), made = coalesce(?, made), updated = ? "
+                    "WHERE id = ?", (state, summary or None, None if made is None else json.dumps(made), now(), run_id))
         return dict(con.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone())
 
 
@@ -378,7 +387,7 @@ class Handler(BaseHTTPRequestHandler):
         if api[0] == "runs" and len(api) >= 2:
             if method == "PATCH" and len(api) == 2:
                 body = self.body()
-                return self.json(report_run(int(api[1]), body.get("state", ""), body.get("summary", "")))
+                return self.json(report_run(int(api[1]), body.get("state", ""), body.get("summary", ""), body.get("made")))
             if method == "POST" and api[2:] == ["resend"]:
                 send(int(api[1]))
                 with db() as con:
@@ -433,6 +442,8 @@ def main() -> None:
     (DATA / "media").mkdir(parents=True, exist_ok=True)
     with db() as con:
         con.executescript(SCHEMA)
+        if "made" not in {col["name"] for col in con.execute("PRAGMA table_info(runs)")}:
+            con.execute("ALTER TABLE runs ADD COLUMN made TEXT")
     threading.Thread(target=resend_loop, daemon=True).start()
     print(f"SLOPArena content factory on http://{args.host}:{args.port}, data in {DATA}", flush=True)
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()

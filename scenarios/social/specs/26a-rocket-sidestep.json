@@ -1,0 +1,76 @@
+{
+ "stage": "splash_deck",
+ "notes": "final: Wibou (110%) sprints north across the deck, Manki fires the homing Bazooka 15 m away (press t12); the rocket bends after him and launches him off the deck (hit t50); camera behind Manki on their midpoint, bazooka in the foreground",
+ "capture": {
+  "from": 1,
+  "to": 135,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -6,
+    0,
+    4
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 12,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    9,
+    0,
+    2
+   ],
+   "yaw": 270,
+   "damage": 110,
+   "target": 1,
+   "input": [
+    {
+     "from": 4,
+     "to": 70,
+     "move": 0
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "d",
+   "pos": [
+    -8.8,
+    4.0,
+    3.2
+   ],
+   "look": [
+    5,
+    0,
+    6.5
+   ],
+   "follow": [
+    1,
+    2
+   ],
+   "lookOffset": [
+    1.0,
+    0.3,
+    0
+   ],
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

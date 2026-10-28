@@ -59,10 +59,13 @@ public static class InternalCapabilityRegistry
             case CharacterPackageCompiler.ThrustCapabilityId when parameters is CookedThrustCapabilityParameters thrust:
                 capability = new ThrustAbility(thrust);
                 return true;
-            case "slop.internal.manki.round-bomb.v1" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
+            case CharacterPackageCompiler.TetherCapabilityId when parameters is CookedTetherCapabilityParameters tether:
+                capability = new TetherAbility(tether);
+                return true;
+            case "slop.internal.manki.round-bomb.v2" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
                 capability = new MankiRoundBomb(bomb);
                 return true;
-            case "slop.internal.manki.jetpack-boost.v1" when parameters is CookedMankiJetpackBoostCapabilityParameters jetpack:
+            case "slop.internal.manki.jetpack-boost.v2" when parameters is CookedMankiJetpackBoostCapabilityParameters jetpack:
                 capability = new MankiJetpackBoost(jetpack);
                 return true;
             case "slop.internal.manki.bazooka.v2" when parameters is CookedMankiBazookaCapabilityParameters bazooka:

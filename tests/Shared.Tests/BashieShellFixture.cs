@@ -29,7 +29,7 @@ internal static class BashieShellFixture
     internal static void Apply(JsonObject character)
     {
         var requirements = new JsonArray();
-        foreach (var id in new[] { CharacterPackageCompiler.ChargedStreamCapabilityId,
+        foreach (var id in new[] { CharacterPackageCompiler.TetherCapabilityId,
                      CharacterPackageCompiler.ShellStanceCapabilityId, CharacterPackageCompiler.ThrustCapabilityId })
             requirements.Add(new JsonObject { ["capabilityId"] = id, ["capabilityVersion"] = "1" });
         character["capabilityRequirements"] = requirements;
@@ -66,6 +66,22 @@ internal static class BashieShellFixture
         foreach (var stage in SlotNamed(character, "ground.4")["timeline"]!["stages"]!.AsArray())
             foreach (var operation in stage!["operations"]!.AsArray())
                 if ((string?)operation!["kind"] == "setVelocity") operation["velocityMode"] = "vertical";
+    }
+
+    /// <summary>Takes her Rescue Ring (ADR-0048) out, for checks of what the shell alone needs.</summary>
+    internal static void WithoutRing(JsonObject character)
+    {
+        var requirements = character["capabilityRequirements"]!.AsArray();
+        for (int i = requirements.Count - 1; i >= 0; i--)
+            if ((string?)requirements[i]!["capabilityId"] == CharacterPackageCompiler.TetherCapabilityId)
+                requirements.RemoveAt(i);
+        foreach (var stage in SlotNamed(character, "ground.A")["timeline"]!["stages"]!.AsArray())
+        {
+            var operations = stage!["operations"]!.AsArray();
+            for (int i = operations.Count - 1; i >= 0; i--)
+                if ((string?)operations[i]!["capabilityId"] == CharacterPackageCompiler.TetherCapabilityId)
+                    operations.RemoveAt(i);
+        }
     }
 
     internal static JsonObject SlotNamed(JsonObject character, string id)

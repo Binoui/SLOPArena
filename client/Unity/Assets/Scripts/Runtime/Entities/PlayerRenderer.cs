@@ -869,6 +869,9 @@ namespace SlopArena.Client.Entities
             _thrownClip = shared?.GetClipByName("Grab_Throw_B");
         }
 
+        // Where the stand-in reeled pose holds the small-hit clip: past its flinch, before it recovers.
+        private const int ReeledPoseTicks = 6;
+
         private bool TryResolveGrabAnimation(in CharacterState snapshot, out AnimationClip clip, out float time)
         {
             clip = null;
@@ -973,6 +976,11 @@ namespace SlopArena.Client.Entities
                         time = TumbleTime(tumbleClip.isLooping, tumbleClip.length, (elapsed - TumbleImpactSnapTicks) / 60f);
                         return true;
                     }
+                }
+                else if (snapshot.State == ActionState.Reeled)
+                {
+                    id = _charDef.HitSmallAnim;
+                    elapsed = ReeledPoseTicks;
                 }
                 else if (snapshot.State == ActionState.Crouching) id = _charDef.CrouchAnim;
                 else if (snapshot.State == ActionState.Sliding) id = _charDef.SlideAnim;
@@ -1290,14 +1298,9 @@ namespace SlopArena.Client.Entities
         private void PresentStockTransition(
             CharacterState previous, CharacterState respawned, Vector3 respawnPosition)
         {
-            Vector3 deathDirection = new(previous.KVX, previous.KVY, previous.KVZ);
-            if (deathDirection.sqrMagnitude < 0.01f)
-                deathDirection = new(previous.VX, previous.VY, previous.VZ);
-            if (deathDirection.sqrMagnitude < 0.01f)
-                deathDirection = Vector3.up;
-
-            MovementFeedbackEffect.Spawn(
-                KnockoutLimitPosition(previous), deathDirection, MovementFeedbackKind.Knockout);
+            // Capture rigs and some setups leave PlayerNumber at 0, which has no seat.
+            KnockoutBurst.Spawn(KnockoutLimitPosition(previous),
+                PlayerNumber > 0 ? SeatColours.ForFighter(EntityId, PlayerNumber) : Color.white);
             OnDeath();
 
             if (respawned.InvincibilityTicks == 0)
@@ -1817,6 +1820,27 @@ namespace SlopArena.Client.Entities
                     _activeExtrapolator = null;
                     _currentExtrapolationMode = ExtrapolationMode.None;
                     _animancer.Evaluate(0f);
+                }
+                _lastClipIndex = state.AnimIndex;
+                _lastAttackSlot = state.AttackSlot;
+                _lastAnimState = state.State;
+                _wasGrounded = state.IsGrounded;
+                return;
+            }
+
+            // Caught on a tether (ADR-0048): a stand-in held small-hit pose while the line holds and the arrival
+            // window runs. The Shared hurtbox uses the same clip.
+            if (state.State == ActionState.Reeled)
+            {
+                _jumpArcActive = false;
+                if (TryGetAnimation(_charDef.HitSmallAnim, out var reeledClip, out _))
+                {
+                    var animation = _animancer.States.Current;
+                    if (animation == null || animation.Clip != reeledClip)
+                        animation = _animancer.Play(reeledClip, 0.08f);
+                    animation.Time = Mathf.Min(ReeledPoseTicks / 60f, reeledClip.length);
+                    animation.Speed = 0f;
+                    _currentAnimState = animation;
                 }
                 _lastClipIndex = state.AnimIndex;
                 _lastAttackSlot = state.AttackSlot;

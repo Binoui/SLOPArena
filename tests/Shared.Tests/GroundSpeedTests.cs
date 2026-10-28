@@ -7,13 +7,13 @@ namespace SlopArena.Shared.Tests;
 public class GroundSpeedTests
 {
     [Fact]
-    public void StartsAtFortyPercentThenReachesCruiseAfterTwentyIncrements()
+    public void StartsAtSixtyPercentThenReachesCruiseAfterTwelveIncrements()
     {
         var sim = Create();
         for (int tick = 1; tick <= 30; tick++)
         {
             Step(sim, 1f);
-            float expected = tick >= 21 ? 14f : 5.6f + (tick - 1) * 0.42f;
+            float expected = tick >= 13 ? 14f : 8.4f + (tick - 1) * (5.6f / 12f);
             Assert.Equal(expected, sim.GetState(1).VX, 4);
             Assert.Equal(ActionState.Run, sim.GetState(1).State);
         }
@@ -36,9 +36,9 @@ public class GroundSpeedTests
     }
 
     [Theory]
-    [InlineData(0f, 5.6f)]
-    [InlineData(2f, 5.6f)]
-    [InlineData(7f, 7.42f)]
+    [InlineData(0f, 8.4f)]
+    [InlineData(2f, 8.4f)]
+    [InlineData(10f, 10.466667f)]
     [InlineData(14f, 14f)]
     public void TurnsRetainSpeedContinueRampingAndFaceInput(float speed, float expected)
     {
@@ -59,7 +59,7 @@ public class GroundSpeedTests
     }
 
     [Fact]
-    public void ContinuousDirectionsReachCruiseOnTickTwentyOne()
+    public void ContinuousDirectionsReachCruiseOnTickThirteen()
     {
         foreach (float runSpeed in new[] { 10f, 11.5f, 12f, 14f })
         for (int degrees = 0; degrees < 360; degrees += 5)
@@ -69,10 +69,10 @@ public class GroundSpeedTests
             def = def with { Movement = def.Movement with { RunSpeed = runSpeed } };
             sim.RegisterEntity(1, def, sim.GetState(1));
             float angle = degrees * MathF.PI / 180f;
-            for (int tick = 1; tick <= 21; tick++)
+            for (int tick = 1; tick <= 13; tick++)
             {
                 Step(sim, MathF.Sin(angle), MathF.Cos(angle));
-                float expected = tick == 21 ? runSpeed : runSpeed * (.4f + .03f * (tick - 1));
+                float expected = tick == 13 ? runSpeed : runSpeed * (.6f + .4f / 12f * (tick - 1));
                 Assert.True(MathF.Abs(Speed(sim.GetState(1)) - expected) < .0001f,
                     $"run={runSpeed}, direction={degrees}, tick={tick}, speed={Speed(sim.GetState(1))}, expected={expected}");
             }
@@ -85,23 +85,23 @@ public class GroundSpeedTests
         var sim = Create();
         float diagonal = -1f / MathF.Sqrt(2f);
         var state = sim.GetState(1);
-        state.VX = 7f;
+        state.VX = 10f;
         state.LastDirX = state.LastDirZ = diagonal;
         sim.RegisterEntity(1, TestHelpers.EngineDef, state);
         Step(sim, diagonal, diagonal);
-        Assert.Equal(7.42f * diagonal, sim.GetState(1).VX, 4);
-        Assert.Equal(7.42f * diagonal, sim.GetState(1).VZ, 4);
+        Assert.Equal(10.466667f * diagonal, sim.GetState(1).VX, 4);
+        Assert.Equal(10.466667f * diagonal, sim.GetState(1).VZ, 4);
     }
 
     [Fact]
-    public void ReapplyingInputBelowTheStartFloorStartsAtFortyPercent()
+    public void ReapplyingInputBelowTheStartFloorStartsAtSixtyPercent()
     {
         var sim = Create();
         Step(sim, 1f);
         for (int tick = 0; tick < 5; tick++) Step(sim, 0f);
-        Assert.InRange(sim.GetState(1).VX, 0f, 5.59f);
+        Assert.InRange(sim.GetState(1).VX, 0f, 8.39f);
         Step(sim, 1f);
-        Assert.Equal(5.6f, sim.GetState(1).VX, 4);
+        Assert.Equal(8.4f, sim.GetState(1).VX, 4);
     }
 
     [Theory]
@@ -126,16 +126,16 @@ public class GroundSpeedTests
     }
 
     [Theory]
-    [InlineData(6, 0.665f, 1.3066667f)]
-    [InlineData(12, 1.582f, 2.7416667f)]
-    [InlineData(18, 2.751f, 4.578f)]
+    [InlineData(6, 0.9566667f, 2.24f)]
+    [InlineData(12, 2.1933333f, 4.2622222f)]
+    [InlineData(18, 3.5933333f, 5.81f)]
     public void ShortPushesIncludeEveryHeldAndReleaseTick(int ticks, float held, float total)
     {
         var metrics = MovementProbe.MeasureGroundSpeed(TestHelpers.EngineDef, TestHelpers.TestArena());
         var tap = ticks == 6 ? metrics.Tap6 : ticks == 12 ? metrics.Tap12 : metrics.Tap18;
         Assert.Equal(held, tap.HeldDistance, 4);
         Assert.Equal(total, tap.TotalDistance, 4);
-        Assert.Equal(21, metrics.TimeToRunTicks);
+        Assert.Equal(13, metrics.TimeToRunTicks);
         Assert.Equal(20, metrics.RunStop.StopTicks);
         Assert.Equal(1, metrics.Reversal.RecoveryTicks);
         Assert.Equal(14f, metrics.Reversal.FirstReverseSpeed);

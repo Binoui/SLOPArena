@@ -50,13 +50,15 @@ def cap(cid, params, tick=0):
             'parameters': params}
 
 SLOTS = [
-    slot('ground.1', 'Backhand Slap', 'A quick, insulting saloon backhand with the open hand, swept out to his right.',
-         [stage(35, [A + 'g1'], [aim_correction(9), hitbox(9, 6, 4, 8, 4, 20, 14, shape='capsule', radius=0.45,
-                                                         off=(0.4, 0.35, 0.35), end=(-0.1, 0.3, 0.95))], iasa=18,
+    # Haymaker and Jumping Uppercut: authored slow (72/84 ticks, owner 2026-10-28: "we can speed them up easily unity
+    # side"); played at authored length until the owner retimes them. Hit values kept from the moves they replace.
+    slot('ground.1', 'Haymaker', 'Cock the fist out wide, step in and throw a big looping hook that carries him off balance.',
+         [stage(72, [A + 'g1'], [aim_correction(28), hitbox(31, 8, 4, 8, 4, 20, 14, bone='bone.right-hand', radius=0.5),
+                                 hitbox(32, 4, 4, 8, 4, 20, 14, radius=0.55, off=(0, 0.35, 0.6))], iasa=58,
                 attack_range=2.25)], slide=True),
-    slot('ground.3', 'Uppercut', 'Dip, then drive the fist straight up over the sombrero: a launcher.',
-         [stage(44, [A + 'g3'], [aim_correction(8), hitbox(8, 5, 7, 80, 6, 26, 18, radius=0.6, off=(0, 0.35, 0.6)),
-                                 hitbox(9, 12, 7, 80, 6, 26, 18, bone='bone.right-hand', radius=0.6)], iasa=29,
+    slot('ground.3', 'Jumping Uppercut', 'Sink deep, then spring off the floor driving the fist up over the sombrero: a launcher.',
+         [stage(84, [A + 'g3'], [aim_correction(30), hitbox(31, 5, 7, 80, 6, 26, 18, radius=0.6, off=(0, 0.35, 0.6)),
+                                 hitbox(33, 10, 7, 80, 6, 26, 18, bone='bone.right-hand', radius=0.6)], iasa=58,
                 attack_range=2)]),
     slot('ground.4', 'Tail Spin', 'Spin one full turn with the tail stretched out, sweeping all round him: slow and wide.',
          # clip authored at 48 ticks, played 1.5x slower (owner 2026-10-28: "good, just too fast")
@@ -73,14 +75,15 @@ SLOTS = [
     slot('air.4', 'Spur Stomp', 'Knees up, then stamp both spurred boots straight down.',
          [stage(50, [A + 'a4'], [aim_correction(12), hitbox(12, 14, 13, 25, 8, 42, 26, bone='bone.left-foot'),
                                  hitbox(12, 14, 13, 25, 8, 42, 26, bone='bone.right-foot')], iasa=44, landing=12)]),
-    slot('ground.A', 'Finger Guns', 'Tap to fire one shot along the camera aim. Six shots, then he blows the smoke, twirls '
-         'and holsters: the reload. No refill over time. In the air each shot slows his fall and pushes him back.',
+    slot('ground.A', 'Finger Guns', 'Tap to fire one shot where he faces; the stick turns him first. Six shots, then he '
+         'blows the smoke, twirls and holsters: the reload. No refill over time. In the air each shot slows his fall and '
+         'pushes him back.',
          [stage(2, [A + 'ga', A + 'ga-reload'], [cap('slop.ability.finger-guns.v1', {
              'fireTriggerTick': 8, 'recoveryTicks': 10, 'shotsPerReload': 6, 'reloadTicks': 90,
              'reloadAnimationId': A + 'ga-reload', 'airMaxFallSpeed': 3, 'airRecoilSpeed': 4,
              'projectile': projectile(launchOffsetY=0.3, launchOffsetZ=0.6, speed=28, radius=0.15, damage=4, angle=15,
                                       baseKnockback=5, knockbackGrowth=12, stunTicks=10, maxFlightTicks=30)})])],
-         aim='cameraForward3D'),
+         aim='groundVector'),
     slot('ground.E', 'Sombrero Copter', 'Grab the brim and spin the sombrero like a rotor: it lifts him high. Movement '
          'input trades height for reach, and steers him while he rises. Works with jumps spent.',
          [stage(50, [A + 'ge'], [cap('slop.ability.aimed-recovery.v1', {

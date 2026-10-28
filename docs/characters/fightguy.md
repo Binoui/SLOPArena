@@ -131,6 +131,16 @@ or further input, the intended live Training trace is approximately 12 units of 
 travel.
 This is a local feel-test tuning; animation/gamefeel acceptance remains pending.
 
+**Carry on hit (2026-10-28).** The single 7-damage hit left FightGuy 23–39 ticks
+minus on hit, pinned beside the victim, so a landed kick was punished. The hit set
+now clears every 8 ticks from tick 7: each carry hit deals 1, pushes 60 base
+knockback straight ahead and holds the victim in 14 ticks of fixed hitstun, so the
+victim stays in the spin even when caught off-centre. From tick 44 a finisher (6
+damage, 35°, base 16, growth 24) launches them. Against a standing dummy from 3 m:
+six hits for 11 damage, FightGuy acts about 11 ticks before the victim at 0% and
+22 at 100%, about 4 m apart. The dizzy stars play only when nothing was hit, so a
+whiff or a blocked kick still shows the punish window. Training verdict pending.
+
 Fist of Fury uses `fightguy_spell_f_2` for its full two-phase presentation:
 seven inward-stunning punches followed by a right-foot knockback finisher.
 Punches use horizontal, zero-growth pull so damage percent cannot eject the victim.
@@ -158,7 +168,7 @@ damage, hitboxes and timing did not.
 | Normals (ground and air 1–4) | A blue toon ribbon behind the striking limb and a puff of chalk off the wraps; heavies use a gold-cored ribbon. Hits use `normal.hit`: a round blue "pow" and speed lines. Ground and air 4 use `normal.heavy-hit`, which adds a gold star and chalk specks. |
 | Ki Shot (A) | While charging, ki motes are pulled into his palm. Reaching tier 2 and tier 3 pops a gold ring around the ball and paparazzi camera flashes around him (`ChargeTierCues`). Release: shockwave rings at the palm. The ball is a toon blue sphere with a slowly spinning gold 肉, a comet tail and motes, and grows with the charge tier. Hit: a blue impact with a small gold 肉 spark; a fully charged shot also slaps a red 肉 ink stamp on the victim (`ChargeTierVariant`). |
 | Rising Dragon (E) | A blue ki glow on the uppercut fist shedding gold sparkles, and twin blue and gold helices growing up his body. At the top a spotlight finds him and his fist pops into a giant foam "#1" finger with a star glint. Hit: gold behind blue with rising speed lines. |
-| Cyclone Kick (R) | Fast twin helices and wind rings around his legs, chalk kicked up from both feet. Gold dizzy stars circle his head through the recovery and vanish exactly when he can act: the gag doubles as a punish window. Hit: a blue impact in a gold swirl with chalk specks. |
+| Cyclone Kick (R) | Fast twin helices and wind rings around his legs, chalk kicked up from both feet. Gold dizzy stars circle his head through the recovery after a whiff and vanish exactly when he can act: the gag doubles as a punish window. A landed kick skips them. Hit: a blue impact in a gold swirl with chalk specks. |
 | Fist of Fury (F) | He locks in: gold power lines rise around him over a gold ring on the floor, and his eye glints. Each punch throws a blue ghost fist. Punch hits are a small blue impact with a gold 肉; the finisher kick (`DamageScaleVariant`) is a gold-and-blue starburst stamped with a gold 肉 seal, a shockwave ring and speed lines. |
 
 Bone-attached cues put their content under a `PresentationFrame` child, which cancels

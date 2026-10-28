@@ -26,14 +26,15 @@ locations and deploy.
   on screen, one or two sentences), and for clips a `spec` in `scenarios/social/specs/` plus the
   render fields at the top of `tools/social_clip.py` (`fovScale`, `camera`, `capture`, `end`, `hold`).
 - Status: `proposed` → `approved` (owner) → `rendered` (a new take arrived) → `ready` (owner picked
-  a take) → `posted`; `rejected` at any point. Only the owner's buttons and new takes move it:
+  a take, also from `approved` when an earlier take is still wanted) → `posted`; `rejected` at any point. Only the owner's buttons and new takes move it:
   `factory.py set` changes fields, never the status.
 - Each render is a take; earlier takes stay beside it. Comments hold the owner's dated notes; the
   newest one is the brief for a redo. Add your own with `factory.py comment` when a choice needs
   explaining.
 - Every button press is a run: one T3 thread from the "Content factory run" webhook task, which
-  marks it `running` and `done` or `failed` with a one-line summary. Results reach the owner on
-  the board, so runs do not send attachments.
+  marks it `running` and `done` or `failed` with a one-line summary. `done` also lists what the run
+  made (`--made`: every idea it added or gave a take, shots included, and `report:<n>`), which the
+  board's Runs tab links to. Results reach the owner on the board, so runs do not send attachments.
 
 Tested landscape specs from the 2026-10-28 promo set live in `scenarios/social/specs/` (09 is the
 owner's favourite). Reuse them before staging new ones.
@@ -56,6 +57,9 @@ in that idea. Manki Mayhem is not ready to show.
 
 1. Read the idea and its comments (`factory.py get <idea>`). For a redo, the newest owner comment
    says what to change and the earlier takes show what was tried.
+   When the note asks for more clips of the same thing, make each as its own idea and also join
+   them with the original into one explainer (below), so the owner gets both the parts and the
+   longer video.
 2. If the idea has no spec, stage one in `scenarios/social/specs/<id>.json`, starting from the
    nearest tested spec. Follow "Video clips" in `docs/steam/store-screenshots.md` and the rules below.
 3. `python3 tools/social_clip.py make <idea> --probe` (about 15 s of Editor time) and read

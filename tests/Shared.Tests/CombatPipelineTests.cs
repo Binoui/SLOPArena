@@ -130,9 +130,9 @@ public class CombatPipelineTests
         Assert.True(npcAfter.DamagePercent > 0,
             $"NPC should have taken damage from Q projectile or explosion, got {npcAfter.DamagePercent}");
 
-        // Direct projectile hit = 6 damage minimum (not stacking with explosion 10)
-        Assert.True(npcAfter.DamagePercent >= 6,
-            $"Direct projectile hit = 6 damage minimum, got {npcAfter.DamagePercent}");
+        // The first ground contact deals the small landing pop.
+        Assert.True(npcAfter.DamagePercent >= 3,
+            $"Landing pop = 3 damage minimum, got {npcAfter.DamagePercent}");
         // Both direct hit (stun=28) and explosion (stun=20) are ≤30 → HitstunLevel = 0
         Assert.Equal(0, (int)npcAfter.HitstunLevel);
     }

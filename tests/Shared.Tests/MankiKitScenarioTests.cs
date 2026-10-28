@@ -14,8 +14,8 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public sealed class MankiKitScenarioTests : KitScenarioTests
 {
-    private const string RoundBombCapabilityId = "slop.internal.manki.round-bomb.v1";
-    private const string JetpackCapabilityId = "slop.internal.manki.jetpack-boost.v1";
+    private const string RoundBombCapabilityId = "slop.internal.manki.round-bomb.v2";
+    private const string JetpackCapabilityId = "slop.internal.manki.jetpack-boost.v2";
     private const string BazookaCapabilityId = "slop.internal.manki.bazooka.v2";
     private const string AerosolCapabilityId = "slop.internal.manki.aerosol-inferno.v1";
 
@@ -89,7 +89,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.False(jetpackSlot.PreserveMomentumOnStart);
         var aerosol = package.Definition.Slots.Single(x => x.Id == "ground.F");
         Assert.Equal(AuthoringAbilityBehavior.AreaDenial, aerosol.Behavior);
-        Assert.Equal(AuthoringAimMode.CameraForward3D, aerosol.AimMode);
+        Assert.Equal(AuthoringAimMode.GroundVector, aerosol.AimMode);
         var aerosolStage = Assert.Single(aerosol.Timeline.Stages);
         Assert.Equal((ushort)0, aerosolStage.IasaTicks);
         var start = Assert.Single(aerosolStage.Operations.OfType<CookedStartCapabilityOperation>());
@@ -263,7 +263,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             {
                 Assert.Equal((ushort)0, player.HitstopTicks);
                 Assert.True(player.PY > GroundPy);
-                Assert.True(player.VY > 0f);
+                Assert.True(MathF.Abs(player.VX) + MathF.Abs(player.VZ) > 1f);
                 Assert.False(player.IsGrounded);
                 Assert.Equal((byte)AbilitySlots.E, player.AttackSlot);
             },

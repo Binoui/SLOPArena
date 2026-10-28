@@ -37,7 +37,7 @@ public class DownActionTests
         var released = Tick(sim, new InputState { MoveX = 1 });
         Assert.Equal(ActionState.Run, released.State);
         Assert.False(released.CrouchSettled);
-        TestHelpers.AssertNear(.4f * Run, released.VX);
+        TestHelpers.AssertNear(GroundSpeedTuning.StartRatio * Run, released.VX);
     }
 
     [Theory]

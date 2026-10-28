@@ -40,7 +40,12 @@ namespace SlopArena.Shared
         /// Tucked in the shell with no move running (ADR-0045): she skates straight on the ground and coasts in
         /// the air. StateTicks is the skate clock (0 is an untimed coast); its expiry pops her up into Idle.
         /// </summary>
-        Shell = 26
+        Shell = 26,
+        /// <summary>
+        /// Caught on a tether (ADR-0048). Paired (phase Reeling), the thrower's line is the only writer of its
+        /// position. Delivered, it stays here unpaired for a StateTicks countdown with ordinary gravity, then Idle.
+        /// </summary>
+        Reeled = 27
     }
 
     /// <summary>Where a jump that is taking off started; selects its horizontal speed cap.</summary>
@@ -74,5 +79,13 @@ namespace SlopArena.Shared
         public static bool AdmitsActions(ActionState state)
             => state is ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
                 or ActionState.Shell;
+
+        /// <summary>States that only exist inside a paired interaction; ending the pair frees them.</summary>
+        public static bool InPairedInteraction(ActionState state)
+            => state is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Reeled;
+
+        /// <summary>Paired states whose fighter skips its own movement step: the partner's pass places it.</summary>
+        public static bool MovedByPartner(ActionState state)
+            => state is ActionState.Grabbed or ActionState.Throwing or ActionState.Reeled;
     }
 }

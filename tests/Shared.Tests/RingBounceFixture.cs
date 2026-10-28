@@ -5,8 +5,8 @@ namespace SlopArena.Shared.Tests;
 
 /// <summary>
 /// Bashie's retired Ring Bounce (slop.ability.aimed-recovery.v1), kept as the aimed-recovery admission fixture: it
-/// replaces her E in a copy of her source, with her shell kit (ADR-0045) taken out so the copy needs only the
-/// runtime API that aimed recovery itself needs.
+/// replaces her E in a copy of her source, with her shell kit (ADR-0045) and Rescue Ring tether (ADR-0048) taken
+/// out so the copy needs only the runtime API that aimed recovery itself needs.
 /// </summary>
 internal static class RingBounceFixture
 {
@@ -21,7 +21,7 @@ internal static class RingBounceFixture
         var requirements = character["capabilityRequirements"]!.AsArray();
         for (int i = requirements.Count - 1; i >= 0; i--)
             if ((string?)requirements[i]!["capabilityId"] is CharacterPackageCompiler.ShellStanceCapabilityId
-                or CharacterPackageCompiler.ThrustCapabilityId)
+                or CharacterPackageCompiler.ThrustCapabilityId or CharacterPackageCompiler.TetherCapabilityId)
                 requirements.RemoveAt(i);
         foreach (var slot in character["slots"]!.AsArray())
         {
@@ -32,7 +32,8 @@ internal static class RingBounceFixture
                 for (int i = operations.Count - 1; i >= 0; i--)
                 {
                     var operation = operations[i]!;
-                    if ((string?)operation["capabilityId"] == CharacterPackageCompiler.ThrustCapabilityId)
+                    if ((string?)operation["capabilityId"] is CharacterPackageCompiler.ThrustCapabilityId
+                        or CharacterPackageCompiler.TetherCapabilityId)
                         operations.RemoveAt(i);
                     else if ((string?)operation["velocityMode"] == "vertical")
                         operation["velocityMode"] = "absolute";

@@ -10,11 +10,13 @@ using Unity.Collections;
 using SlopArena.Client;
 using SlopArena.Client.Combat;
 using SlopArena.Client.Entities;
+using SlopArena.Client.Input;
 using SlopArena.Client.Simulation;
 using SlopArena.Client.UI;
 using SlopArena.Client.World;
 using SlopArena.Shared;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 
@@ -85,6 +87,8 @@ namespace SlopArena.EditorTools
         public bool Hud;
         public ulong HudLocal = 1;
         public int HudStocks = 3;
+        /// <summary>Show controller prompts on the move deck; a virtual pad stands in when none is plugged in.</summary>
+        public bool HudGamepad;
         public string[] Landmarks = Array.Empty<string>();
         public string OutputDirectory = "";
 
@@ -109,6 +113,8 @@ namespace SlopArena.EditorTools
         private UIDocument? _hudDocument;
         private PanelSettings? _hudOriginalPanel, _hudPanel;
         private bool _hudWasEnabled;
+        private bool _wasGamepad;
+        private Gamepad? _photoPad;
         private RenderTexture? _hudTarget;
         private Texture2D? _pixels, _hudPixels;
         private bool _stepping;
@@ -301,6 +307,12 @@ namespace SlopArena.EditorTools
             var players = Fighters
                 .Select(f => new HUDManager.HudPlayer(f.Id, $"P{f.Id}", _entries[f.Id].Definition.Class, f.Id == HudLocal))
                 .OrderBy(p => p.EntityId).ToList();
+            if (HudGamepad)
+            {
+                _wasGamepad = HumanInputActions.LastUsedGamepad;
+                if (Gamepad.current == null) _photoPad = InputSystem.AddDevice<Gamepad>();
+                HumanInputActions.LastUsedGamepad = true;
+            }
             _hudManager.Initialize(_bridge.GetState, players, HudStocks);
             _hudManager.SetCharacterDefinition(_entries[HudLocal].Definition);
             _hudManager.SetCamera(_views.Count > 0 ? _views[0].Camera : Template);
@@ -597,6 +609,8 @@ namespace SlopArena.EditorTools
         protected override void OnDestroy()
         {
             StopAudio();
+            if (HudGamepad) HumanInputActions.LastUsedGamepad = _wasGamepad;
+            if (_photoPad != null) InputSystem.RemoveDevice(_photoPad);
             if (_hudDocument != null)
             {
                 _hudDocument.panelSettings = _hudOriginalPanel;

@@ -5,6 +5,22 @@
  "model": "NeoMall.fbx",
  "stamp": "NeoMall.layout.json",
  "root": "Neo Mall",
+ "cameras": [
+  {
+   "name": "racing-overview",
+   "position": [
+    4.5,
+    22,
+    -27
+   ],
+   "target": [
+    4.5,
+    4,
+    -26.5
+   ],
+   "fov": 65
+  }
+ ],
  "textures": [
   {
    "file": "NeoMallGround.png",

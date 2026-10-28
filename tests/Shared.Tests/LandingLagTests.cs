@@ -336,7 +336,7 @@ public class LandingLagTests
     }
 
     [Fact]
-    public void MoveInputAfterLandingLagUnlock_StartsAtFortyPercent()
+    public void MoveInputAfterLandingLagUnlock_StartsAtTheStartFloor()
     {
         var state = FallingStart(4.7f);
         // Preserve the preceding direction across recovery.
@@ -364,7 +364,7 @@ public class LandingLagTests
 
         // Recovery exits use the same start floor as ordinary locomotion.
         Assert.Equal((ushort)0, states[45].LandingLagTicks);
-        TestHelpers.AssertNear(.4f * LagDef.Movement.RunSpeed, states[45].VX, 0.1f);
+        TestHelpers.AssertNear(GroundSpeedTuning.StartRatio * LagDef.Movement.RunSpeed, states[45].VX, 0.1f);
         Assert.Equal(ActionState.Run, states[45].State);
     }
 

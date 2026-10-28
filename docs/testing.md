@@ -111,6 +111,11 @@ from the roster manifest and verify all four payloads for each admitted package.
   text editing, Social focus, and active rebinding keep input ownership.
 - Xbox stickers show only after pad input. Mouse or keyboard hides them and
   restores the E and Q text hints. Missing local glyph sheets leave readable labels.
+- Test pads in the Editor with Steam's desktop controller layout off. While Steam runs,
+  a program it did not launch receives Steam's desktop key echoes: Start sends Escape
+  (opens MENU), View sends Tab, A sends Enter, B sends Space, and the d-pad sends arrows.
+  Each pad press then acts twice. Builds launched from Steam use the game's own Steam
+  Input layout and are unaffected.
 
 Test in Unity with a controller: navigate Home → Solo/Training → fighters →
 stages without a mouse; select cards with A, continue with Start and return with

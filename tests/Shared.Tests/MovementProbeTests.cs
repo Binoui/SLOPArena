@@ -21,7 +21,7 @@ public class MovementProbeTests
     {
         var run = Measured().Run;
         // The legacy full probe indexes tick 1 as sample zero.
-        Assert.Equal(20, run.TimeToMaxTicks);
+        Assert.Equal(12, run.TimeToMaxTicks);
         Assert.Equal(M.RunSpeed, run.MaxSpeed, 2); // 14 m/s
         Assert.True(run.Curve[30].Speed >= M.RunSpeed * 0.99f, "speed decays below cruise");
     }

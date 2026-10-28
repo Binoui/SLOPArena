@@ -96,7 +96,8 @@ namespace SlopArena.Client.UI
             public readonly VisualElement Cooldown;
             public readonly Label Timer;
             public readonly Label Key;
-            public readonly Image Button;
+            public readonly VisualElement Prompt;
+            public readonly VisualElement PromptArrow;
             public readonly Label Ready;
             public readonly Label MoveName;
             public readonly Image Icon;
@@ -110,6 +111,10 @@ namespace SlopArena.Client.UI
             public int TimerValue = -1;
             public float PulseTimer;
             public bool Locked;
+            // Hold-to-charge specials: one pip per charge step, lit while the move charges.
+            public CookedSlotDefinition ChargeMove;
+            public VisualElement ChargePips;
+            public int ChargeLit = -1;
 
             public ActionSlot(VisualElement root, string cooldownName, string timerName, string keyName)
             {
@@ -118,8 +123,9 @@ namespace SlopArena.Client.UI
                 Timer = root.Q<Label>(timerName);
                 Timer.style.display = DisplayStyle.None;
                 Key = root.Q<Label>(keyName);
-                Button = root.Q<Image>(root.name + "-button");
-                Button.scaleMode = ScaleMode.ScaleToFit;
+                Prompt = Key.parent;
+                PromptArrow = Prompt.Q(className: "slot-prompt-arrow");
+                PromptArrow.generateVisualContent = DrawStickArrow;
                 Ready = root.Q<Label>(root.name + "-ready")
                     ?? new Label("READY") { name = root.name + "-ready" };
                 Ready.AddToClassList("slot-ready");
@@ -217,7 +223,6 @@ namespace SlopArena.Client.UI
         private UnityEngine.Camera _camera;
 
         private ActionSlot[] _abilitySlots = Array.Empty<ActionSlot>();
-        private InputPromptAtlas _promptAtlas;
         private int _seenBindingRevision = -1;
         private bool _showGamepadPrompts;
 
@@ -353,39 +358,66 @@ namespace SlopArena.Client.UI
                     "SlotF" => "<Gamepad>/rightStick/right",
                     _ => BindingPath(action, group),
                 } : BindingPath(action, group);
-                var buttonGlyph = default(InputPromptAtlas.Glyph);
-                bool hasButton = _showGamepadPrompts &&
-                    (_promptAtlas ??= new InputPromptAtlas()).TryXbox(path, out buttonGlyph);
-                slot.Button.style.display = hasButton ? DisplayStyle.Flex : DisplayStyle.None;
-                slot.Key.style.display = hasButton ? DisplayStyle.None : DisplayStyle.Flex;
-                if (hasButton)
-                    SetPromptImage(slot.Button, buttonGlyph);
-                else
-                {
-                    // Without the gitignored prompt sheet, stick directions read as arrows.
-                    string label = stickSpecials && path?.Contains("/rightStick/") == true
-                        ? "R" + path.Substring(path.LastIndexOf('/') + 1) switch
-                        {
-                            "up" => "\u2191", "down" => "\u2193", "left" => "\u2190", _ => "\u2192",
-                        }
-                        : HumanInputActions.BindingLabel(action, group);
-                    slot.Key.text = _showGamepadPrompts
-                        ? label : InputPromptAtlas.KeyboardDisplayLabel(path, label);
-                }
+                string label = HumanInputActions.BindingLabel(action, group);
+                var (text, kind) = _showGamepadPrompts
+                    ? GamepadPrompt(path, label)
+                    : (HumanInputActions.KeyboardDisplayLabel(path, label), null);
+                slot.Key.text = text;
+                foreach (string k in PromptKinds) slot.Prompt.EnableInClassList(k, k == kind);
+                slot.PromptArrow.MarkDirtyRepaint();
             }
+        }
 
+        private static readonly string[] PromptKinds =
+            { "prompt-a", "prompt-b", "prompt-x", "prompt-y", "stick-up", "stick-down", "stick-left", "stick-right" };
+
+        // Controller prompts are HUD chips like the keyboard keys: face buttons wear their pad
+        // colours, a right-stick flick is an R pill with an arrow on the flick side.
+        private static (string Text, string Kind) GamepadPrompt(string path, string label)
+        {
+            string control = path?.Substring(path.LastIndexOf('/') + 1);
+            if (path?.Contains("/rightStick/") == true) return ("R", "stick-" + control);
+            return control switch
+            {
+                "buttonSouth" => ("A", "prompt-a"),
+                "buttonEast" => ("B", "prompt-b"),
+                "buttonWest" => ("X", "prompt-x"),
+                "buttonNorth" => ("Y", "prompt-y"),
+                "leftShoulder" => ("LB", null),
+                "rightShoulder" => ("RB", null),
+                "leftTrigger" => ("LT", null),
+                "rightTrigger" => ("RT", null),
+                _ => (label, null),
+            };
+        }
+
+        private static void DrawStickArrow(MeshGenerationContext context)
+        {
+            var element = context.visualElement;
+            var prompt = element.parent;
+            var r = element.contentRect;
+            Vector2 c = r.center, along, across;
+            if (prompt.ClassListContains("stick-up")) along = Vector2.down;
+            else if (prompt.ClassListContains("stick-down")) along = Vector2.up;
+            else if (prompt.ClassListContains("stick-left")) along = Vector2.left;
+            else if (prompt.ClassListContains("stick-right")) along = Vector2.right;
+            else return;
+            across = new Vector2(-along.y, along.x);
+            float h = Mathf.Min(r.width, r.height) * 0.5f;
+            var painter = context.painter2D;
+            painter.fillColor = new Color32(22, 21, 19, 255);
+            painter.BeginPath();
+            painter.MoveTo(c + along * h);
+            painter.LineTo(c - along * h * 0.8f + across * h);
+            painter.LineTo(c - along * h * 0.8f - across * h);
+            painter.ClosePath();
+            painter.Fill();
         }
 
         private static string BindingPath(string action, string group)
         {
             int index = HumanInputActions.BindingIndex(action, group);
             return index < 0 ? null : HumanInputActions.Get(action).bindings[index].effectivePath;
-        }
-
-        private static void SetPromptImage(Image image, InputPromptAtlas.Glyph glyph)
-        {
-            image.image = glyph.Texture;
-            image.uv = glyph.Uv;
         }
 
 
@@ -561,6 +593,7 @@ namespace SlopArena.Client.UI
                 var displayAbility = grounded ?? airborne;
                 slot.DisplayName = MoveLabel(displayAbility);
                 slot.Artwork = LoadSlotIcon(displayAbility, normal);
+                SetChargePips(slot, normal ? null : displayAbility);
                 SetSlotPresentation(slot, isGrounded);
             }
 
@@ -579,6 +612,42 @@ namespace SlopArena.Client.UI
             var cardIcons = Resources.LoadAll<Sprite>(cardPath + spec.IconId);
             if (cardIcons.Length > 0) return new SlotArtwork(null, cardIcons[0], Color.white);
             return new SlotArtwork(Resources.Load<Texture2D>(path + spec.IconId), null, tint);
+        }
+
+        /// <summary>Empty pips on the card's bottom edge say the move charges before it is ever pressed.</summary>
+        private static void SetChargePips(ActionSlot slot, CookedSlotDefinition move)
+        {
+            int steps = World.ChargeTiers.Steps(move);
+            slot.ChargeMove = steps > 0 ? move : null;
+            slot.ChargeLit = -1;
+            slot.Root.RemoveFromClassList("charge-full");
+            if (slot.ChargePips == null)
+            {
+                slot.ChargePips = new VisualElement { name = slot.Root.name + "-charge", pickingMode = PickingMode.Ignore };
+                slot.ChargePips.AddToClassList("charge-pips");
+                slot.Root.Q(className: "slot-face").Add(slot.ChargePips);
+            }
+            slot.ChargePips.Clear();
+            slot.ChargePips.EnableInClassList("many", steps > 3);
+            slot.ChargePips.style.display = steps > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            for (int i = 0; i < steps; i++)
+            {
+                var pip = new VisualElement { pickingMode = PickingMode.Ignore };
+                pip.AddToClassList("charge-pip");
+                slot.ChargePips.Add(pip);
+            }
+        }
+
+        private static void UpdateChargePips(ActionSlot slot, in CharacterState state, bool charging)
+        {
+            if (slot.ChargeMove == null) return;
+            int lit = charging ? World.ChargeTiers.StepsReached(slot.ChargeMove, state.ChargeTicks) : 0;
+            if (lit == slot.ChargeLit) return;
+            slot.ChargeLit = lit;
+            int steps = slot.ChargePips.childCount;
+            for (int i = 0; i < steps; i++)
+                slot.ChargePips[i].EnableInClassList("lit", i < lit);
+            slot.Root.EnableInClassList("charge-full", lit >= steps);
         }
 
         private static void SetSlotPresentation(ActionSlot slot, bool grounded)
@@ -783,6 +852,7 @@ namespace SlopArena.Client.UI
                         : state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1
                             || state.ReturningProjectileSlot == AbilitySlotDefs[i].SlotIndex + 1;
                     slot.Root.EnableInClassList("in-use", inUse);
+                    if (!dash) UpdateChargePips(slot, state, state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1);
                     if (inUse && slot.PulseTimer > 0f)
                     {
                         slot.PulseTimer = 0f;
@@ -802,13 +872,12 @@ namespace SlopArena.Client.UI
             ushort cooldown = state.HomingDashCooldownTicks;
             bool airUsed = cooldown == 0 && !state.IsGrounded && state.HomingDashAirUsed;
             slot.Root.EnableInClassList("air-used", airUsed);
-            if (airUsed)
-            {
-                slot.Timer.style.display = DisplayStyle.Flex;
-                slot.Timer.text = "LAND";
-            }
+            // The ring refilling is the whole cooldown read: no square refill or countdown over the badge.
+            slot.Cooldown.style.display = DisplayStyle.None;
+            slot.Timer.style.display = airUsed ? DisplayStyle.Flex : DisplayStyle.None;
+            if (airUsed) slot.Timer.text = "LAND";
             float progress = airUsed ? 0f : 1f - Mathf.Clamp01(cooldown / (float)HomingDashConfig.CooldownTicks);
-            bool lit = cooldown == 0 && !airUsed;
+            bool lit = !airUsed;
             if (Mathf.Abs(progress - _beelineProgress) < 0.002f && lit == _beelineLit) return;
             _beelineProgress = progress;
             _beelineLit = lit;

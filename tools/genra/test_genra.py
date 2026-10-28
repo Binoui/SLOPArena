@@ -932,6 +932,18 @@ class HitArcTests(unittest.TestCase):
 class UnityJobTests(unittest.TestCase):
     """How results and timelines become Unity jobs; no Unity or rig pack needed."""
 
+    def test_grounded_export_is_explicit_and_rejects_unknown_modes(self):
+        from genra.unity_clip import write_flags
+
+        class Settings(dict):
+            entry_matches = False
+            loop_from = 0
+
+        self.assertTrue(write_flags(Settings(grounding='reference-sole'))['groundToReference'])
+        self.assertNotIn('groundToReference', write_flags(Settings()))
+        with self.assertRaisesRegex(ValueError, 'grounding'):
+            write_flags(Settings(grounding='guess'))
+
     def test_free_entries_keep_their_origin_and_only_whole_loops_cycle(self):
         from genra.brief import Brief
         from genra.unity_clip import write_flags

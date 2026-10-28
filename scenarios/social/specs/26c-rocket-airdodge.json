@@ -1,0 +1,84 @@
+{
+ "stage": "splash_deck",
+ "notes": "final: Wibou (60%) jumps as Manki fires the homing Bazooka from 13 m (press t12), air-dodges north at t38 (print-slip trail); the rocket loses him, sails past and on out of frame; moving camera behind Wibou",
+ "capture": {
+  "from": 6,
+  "to": 110,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -9,
+    0,
+    4.5
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 12,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    4,
+    0,
+    4.5
+   ],
+   "yaw": 270,
+   "damage": 60,
+   "target": 1,
+   "input": [
+    {
+     "from": 14,
+     "to": 26,
+     "jump": true
+    },
+    {
+     "from": 36,
+     "to": 50,
+     "move": 0
+    },
+    {
+     "at": 38,
+     "shield": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "wm",
+   "pos": [
+    7.8,
+    2.3,
+    3.0
+   ],
+   "look": [
+    -3,
+    2,
+    4.5
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -2.5,
+    0.6,
+    0
+   ],
+   "move": true,
+   "ease": 0.15,
+   "fov": 48,
+   "far": 4000
+  }
+ ]
+}

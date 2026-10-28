@@ -349,7 +349,7 @@ namespace SlopArena.Client.UI
             if (index < 0) return "";
             string label = HumanInputActions.BindingLabel(action, group).ToUpperInvariant();
             return gamepad ? label
-                : InputPromptAtlas.KeyboardDisplayLabel(HumanInputActions.Get(action).bindings[index].effectivePath, label);
+                : HumanInputActions.KeyboardDisplayLabel(HumanInputActions.Get(action).bindings[index].effectivePath, label);
         }
 
         private static Label Add(VisualElement parent, string text, string css)

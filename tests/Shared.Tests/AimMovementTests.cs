@@ -171,7 +171,6 @@ public sealed class AimMovementTests
     [Theory]
     [InlineData(CharacterClass.Manki, AbilitySlots.A)]
     [InlineData(CharacterClass.Manki, AbilitySlots.R)]
-    [InlineData(CharacterClass.Manki, AbilitySlots.F)]
     [InlineData(CharacterClass.Bonk, AbilitySlots.E)]
     [InlineData(CharacterClass.Wibou, AbilitySlots.R)]
     public void AuthoredAimedHolds_UseFixedMovementOnGroundAndInAir(CharacterClass character, byte slot)

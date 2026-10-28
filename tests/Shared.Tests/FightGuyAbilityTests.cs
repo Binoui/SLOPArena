@@ -111,22 +111,44 @@ public class FightGuyAbilityTests
 
 
     [Fact]
-    public void FightGuyCycloneKick_HitsEachTargetOnceWithModerateKnockback()
+    public void FightGuyCycloneKick_CarriesVictimAndRecoversFirst()
     {
-        var def = TestHelpers.FightGuyDef;
-        var baked = TestHelpers.LoadBakedData(def);
-        var sim = TestHelpers.MakeSim();
-        var player = TestHelpers.PlayerState();
-        player.PY = GroundPY;
-        player.FacingYaw = 0f;
-        sim.RegisterEntity(1, def, player);
+        var (sim, _) = CycloneVersusDummy(3f);
+        int hits = 0, lastPercent = 0, fighterFree = -1, victimFree = -1;
+        for (int i = 0; i < 140; i++)
+        {
+            sim.Tick(new()
+            {
+                { 1, i == 0 ? TestHelpers.Input(activeSlot: 5) : default },
+                { 100, default },
+            });
+            var fighter = sim.GetState(1);
+            var victim = sim.GetState(100);
+            if (victim.DamagePercent != lastPercent)
+            {
+                hits++;
+                lastPercent = victim.DamagePercent;
+                victimFree = -1;
+            }
+            if (hits > 0 && victimFree < 0 && victim.State != ActionState.Hitstun
+                && victim.HitstunTicks == 0 && victim.HitstopTicks == 0)
+                victimFree = i;
+            if (i > 2 && fighterFree < 0 && fighter.State != ActionState.Attacking && fighter.HitstopTicks == 0)
+                fighterFree = i;
+        }
 
-        var npc = TestHelpers.NpcState(0f, 3f);
-        npc.PY = GroundPY;
-        sim.RegisterEntity(100, def, npc, baked);
+        Assert.True(hits >= 4, $"expected the cyclone to keep hitting, got {hits} hits");
+        Assert.True(victimFree > fighterFree,
+            $"Cyclone must be safe on hit: victim free at {victimFree}, FightGuy at {fighterFree}");
+    }
 
-        float maxHorizontalVelocity = 0f;
-        ushort maxStun = 0;
+    [Theory]
+    [InlineData(3f, false)]
+    [InlineData(30f, true)]
+    public void FightGuyCycloneKick_DizzyOnlyOnWhiff(float distance, bool expectDizzy)
+    {
+        var (sim, _) = CycloneVersusDummy(distance);
+        bool dizzy = false;
         for (int i = 0; i < 80; i++)
         {
             sim.Tick(new()
@@ -134,15 +156,25 @@ public class FightGuyAbilityTests
                 { 1, i == 0 ? TestHelpers.Input(activeSlot: 5) : default },
                 { 100, default },
             });
-            var target = sim.GetState(100);
-            maxHorizontalVelocity = MathF.Max(maxHorizontalVelocity,
-                MathF.Sqrt(target.VX * target.VX + target.VZ * target.VZ));
-            maxStun = Math.Max(maxStun, target.HitstunTicks);
+            dizzy |= sim.GetPresentationEvents(clear: true)
+                .Any(e => e.PresentationId == "presentation.fightguy.cyclone-kick.dizzy");
         }
 
-        Assert.Equal((ushort)7, sim.GetState(100).DamagePercent);
-        Assert.True(maxHorizontalVelocity > 0f, "Cyclone must apply nonzero knockback");
-        Assert.True(maxStun > 0 && maxStun <= 6, $"expected short stun, got {maxStun}");
+        Assert.Equal(expectDizzy, dizzy);
+    }
+
+    private static (ServerSimulation sim, CharacterDefinition def) CycloneVersusDummy(float distance)
+    {
+        var def = TestHelpers.FightGuyDef;
+        var sim = TestHelpers.MakeSim();
+        var player = TestHelpers.PlayerState();
+        player.PY = GroundPY;
+        player.FacingYaw = 0f;
+        sim.RegisterEntity(1, def, player);
+        var npc = TestHelpers.NpcState(0f, distance);
+        npc.PY = GroundPY;
+        sim.RegisterEntity(100, def, npc, TestHelpers.LoadBakedData(def));
+        return (sim, def);
     }
 
     [Fact]
@@ -174,8 +206,8 @@ public class FightGuyAbilityTests
             });
         }
 
-        Assert.Equal((ushort)7, sim.GetState(100).DamagePercent);
-        Assert.Equal((ushort)7, sim.GetState(101).DamagePercent);
+        Assert.True(sim.GetState(100).DamagePercent > 0);
+        Assert.True(sim.GetState(101).DamagePercent > 0);
     }
 
     // ── F (FightGuy Fist of Fury) ──

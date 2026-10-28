@@ -48,6 +48,8 @@ namespace SlopArena.Client.World
         protected CharacterDefinition _playerDef = null!;
         protected UnityEngine.Camera _mainCamera;
         private readonly TimelinePresentationDispatcher _timelinePresentations = new();
+        private TetherRopePresenter? _tetherRopes;
+        private TetherRopePresenter TetherRopes => _tetherRopes ??= gameObject.AddComponent<TetherRopePresenter>();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
         private readonly Dictionary<ulong, PlayerRenderer> _fighters = new();
         private ArenaDefinition _fighterArena;
@@ -196,6 +198,7 @@ namespace SlopArena.Client.World
             var feedback = FindFirstObjectByType<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
             feedback.RegisterRenderer(renderer);
             _timelinePresentations.Register(entityId, renderer, animationCatalog);
+            TetherRopes.Register(entityId, renderer, animationCatalog);
 
             var weaponConfig = entry.CookedCharacterPackage != null
                 ? cookedWeaponConfig
@@ -210,7 +213,10 @@ namespace SlopArena.Client.World
             return true;
         }
         protected void PresentTimelineEvents()
-            => _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
+        {
+            _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
+            TetherRopes.Present(Bridge, Bridge.LastTickPresentationEvents);
+        }
 
         protected void RegisterHostPresentation(ulong id, Transform root, CharacterAnimationCatalog catalog)
             => _timelinePresentations.RegisterHost(id, root, catalog);
@@ -223,6 +229,7 @@ namespace SlopArena.Client.World
         protected void ResetSimulationPresentation()
         {
             _timelinePresentations.ResetForFreshSimulation();
+            _tetherRopes?.Clear();
             _activeSwordOwners.Clear();
             ApplySwordTrailOwners();
             _aimHandler?.ResetPresentation();
@@ -276,8 +283,6 @@ namespace SlopArena.Client.World
         {
             PresentationFloor.Use(arena.Heightmap);
             CameraObstruction.SeeThroughThinWalls = false;
-            // Prototype: only the Slopball court, in every mode that plays on it, lets the camera ignore walls.
-            CameraObstruction.CutAwayOccluders = cameraObstruction && arena.Name == SlopballMatch.ArenaKey;
             var stageRoot = new GameObject("Stage");
             var triangles = arena.CollisionTriangles;
             if (cameraObstruction && triangles != null && triangles.Length > 0)
@@ -317,6 +322,7 @@ namespace SlopArena.Client.World
             }
             var visual = Instantiate(prefab, stageRoot.transform);
             StageVisual = visual.transform;
+            StageSightHoles.Adopt(visual);
             // A stage whose art exports the see-through anchor (Hamster Habitat's clear tubes)
             // lets the camera look through its thin walls; every other stage keeps them solid.
             foreach (var child in visual.GetComponentsInChildren<Transform>(true))

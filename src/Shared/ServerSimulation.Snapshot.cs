@@ -19,7 +19,8 @@ namespace SlopArena.Shared
         // 11: expanding shockwave rings and per-hazard shield policy.
         // 12: deterministic breakable cage walls.
         // 13: the shell (ADR-0045): owner-window hitboxes, jump takeoff and attack carry origins, thrust state.
-        public const uint SnapshotFormatVersion = 13;
+        // 14: Manki floor cans, ignition metadata, and powered flight.
+        public const uint SnapshotFormatVersion = 14;
 
         private readonly List<ulong> _abilityOrder = new();
 

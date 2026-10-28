@@ -45,6 +45,7 @@ public partial class ServerSimulation
         for (int index = 0; index < ids.Count; index++)
         {
             ulong id = ids[index];
+            _spellResolver.RemoveMankiCans(id);
             if (_mayhem!.Inactive(id)) continue;
             var previous = _states[id];
             if (previous.InteractionId != 0) InterruptInteraction(ref previous);

@@ -146,7 +146,7 @@ public class MayhemBreakOutTests
             if (jump && tick != 0) second = true;
             bool use = second && !boost && self.JumpsLeft == 0 && self.VY <= 0;
             if (use) boost = true;
-            sim.Tick(new() { [1] = new() { Jump = jump, JumpHeld = true,
+            sim.Tick(new() { [1] = new() { Jump = jump || boost && tick % 12 == 0, JumpHeld = true,
                 ActiveSlot = use ? AbilitySlots.E : (byte)0, MoveY = boost ? -1f : 0f, FacingYaw = 18000, AimYaw = 18000 } });
             self = sim.GetState(1); apex = MathF.Max(apex, self.PY - def.CapsuleHeight * .5f);
             if (self.PZ < origin.PZ - MankiMayhemTuning.CageHalfSize - def.CapsuleRadius)

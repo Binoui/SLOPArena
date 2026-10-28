@@ -48,6 +48,8 @@ public static class CharacterPackageCompiler
     public const string ShellStanceCapabilityVersion = "1";
     public const string ThrustCapabilityId = "slop.ability.thrust.v1";
     public const string ThrustCapabilityVersion = "1";
+    public const string TetherCapabilityId = "slop.ability.tether.v1";
+    public const string TetherCapabilityVersion = "1";
     internal const string BladeFlurryCapabilityId = "slop.internal.wibou.blade-flurry.v2";
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
     private const ushort ManifestSchemaVersion = 1;
@@ -71,8 +73,8 @@ public static class CharacterPackageCompiler
         ["slop.internal.fightguy.cyclone-kick.v1"] = "1",
         ["slop.internal.wibou.rising-slash.v1"] = "1",
         [BladeFlurryCapabilityId] = "2",
-        ["slop.internal.manki.round-bomb.v1"] = "1",
-        ["slop.internal.manki.jetpack-boost.v1"] = "1",
+        ["slop.internal.manki.round-bomb.v2"] = "1",
+        ["slop.internal.manki.jetpack-boost.v2"] = "1",
         ["slop.internal.manki.bazooka.v2"] = "1",
         ["slop.internal.manki.aerosol-inferno.v1"] = "1",
     };
@@ -87,7 +89,8 @@ public static class CharacterPackageCompiler
             || id == FingerGunsCapabilityId && version == FingerGunsCapabilityVersion
             || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion
             || id == ShellStanceCapabilityId && version == ShellStanceCapabilityVersion
-            || id == ThrustCapabilityId && version == ThrustCapabilityVersion;
+            || id == ThrustCapabilityId && version == ThrustCapabilityVersion
+            || id == TetherCapabilityId && version == TetherCapabilityVersion;
 
     internal static bool IsRuntimeCapability(string id, string version)
         => IsPublicCapability(id, version) || IsTrustedCapability(id, version);
@@ -111,6 +114,10 @@ public static class CharacterPackageCompiler
                 || slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                     operation is StartCapabilityOperationSource { CapabilityId: ThrustCapabilityId }
                         or SetVelocityOperationSource { VelocityMode: AuthoringVelocityMode.Vertical })));
+    /// <summary>The tether (ADR-0048).</summary>
+    private static bool RequiresRuntimeApi113(CharacterAuthoringDocument character)
+        => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is StartCapabilityOperationSource { CapabilityId: TetherCapabilityId })));
     private static bool RequiresRuntimeApi15(CharacterAuthoringDocument character)
         => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
             operation is StartCapabilityOperationSource capability &&
@@ -188,7 +195,8 @@ public static class CharacterPackageCompiler
                      requirement.CapabilityId == FingerGunsCapabilityId ||
                      requirement.CapabilityId == SteeredChargeCapabilityId ||
                      requirement.CapabilityId == ShellStanceCapabilityId ||
-                     requirement.CapabilityId == ThrustCapabilityId)
+                     requirement.CapabilityId == ThrustCapabilityId ||
+                     requirement.CapabilityId == TetherCapabilityId)
             {
                 string supportedVersion = requirement.CapabilityId == TargetedLeapCapabilityId
                     ? TargetedLeapCapabilityVersion : "1";
@@ -240,7 +248,8 @@ public static class CharacterPackageCompiler
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            RequiresRuntimeApi112(c) ? "1.12.0"
+            RequiresRuntimeApi113(c) ? "1.13.0"
+            : RequiresRuntimeApi112(c) ? "1.12.0"
             : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                 operation is StartCapabilityOperationSource { CapabilityId: FingerGunsCapabilityId }
                     or StartCapabilityOperationSource { Parameters: AimedRecoveryCapabilityParameters { RiseSteerAcceleration: > 0f } }))) ? "1.11.0"
@@ -292,7 +301,7 @@ public static class CharacterPackageCompiler
         if (slot.Timeline.Stages.Count == 0 || slot.Timeline.Stages.Count > CookedBudget.MaxStagesPerTimeline) d.Error("budget.exceeded", $"character.slots[{index}].timeline.stages", "Timeline stage budget exceeded or empty.");
         if (slot.ChargePool != null)
         {
-            if (slot.ChargePool.MaxCharges <= 0) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.maxCharges", "Max charges must be positive.");
+            if (slot.ChargePool.MaxCharges is < 1 or > 3) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.maxCharges", "Max charges must be between one and three.");
             if (slot.ChargePool.RegenTicks == 0) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.regenTicks", "Regen ticks must be positive.");
         }
         var targetedLeapCount = slot.Timeline.Stages.Sum(stage =>
@@ -381,7 +390,8 @@ public static class CharacterPackageCompiler
             var stage = slot.Timeline.Stages[0];
             if (fingerGuns.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo ||
                 slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0 || slot.ChargePool != null ||
-                slot.AllowSlideCarry || slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D) ||
+                slot.AllowSlideCarry ||
+                slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D or AuthoringAimMode.GroundVector) ||
                 stage.Operations.Any(operation => operation != fingerGuns[0] && operation is not EmitPresentationOperationSource))
                 d.Error("capability.ambiguous", $"character.slots[{index}]",
                     "Finger Guns requires one tick-zero meleeCombo lifecycle, no IASA, slide carry or charge pool, and only presentation operations alongside it.");
@@ -424,6 +434,11 @@ public static class CharacterPackageCompiler
             .Where(operation => operation.CapabilityId == ThrustCapabilityId).ToArray();
         if (thrusts.Length > 0)
             ValidateThrustSlot(slot, index, thrusts, d);
+        var tethers = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>()
+            .Where(operation => operation.CapabilityId == TetherCapabilityId).ToArray();
+        if (tethers.Length > 0)
+            ValidateTetherSlot(slot, index, tethers, d);
         foreach (var stage in slot.Timeline.Stages)
         {
             if (stage.DurationTicks == 0 || stage.IasaTicks > stage.DurationTicks || stage.LandingLagTicks > stage.DurationTicks || stage.AutoCancelBeforeTicks > stage.DurationTicks || stage.AutoCancelAfterTicks > stage.DurationTicks) d.Error("value.out-of-range", "character.slots[" + index + "].timeline", "Stage timing is outside its duration.");
@@ -572,6 +587,71 @@ public static class CharacterPackageCompiler
                 "Thrust requires one tick-zero lifecycle in one meleeCombo stage with no aim, and only presentation or armour alongside it.");
         if (thrusts[0].Parameters is ThrustCapabilityParameters thrust && thrust.ThrustTicks > stage.DurationTicks)
             d.Error("value.out-of-range", path + ".operations.parameters.thrustTicks", "The thrust must end within its stage.");
+    }
+
+    /// <summary>
+    /// A tether owns the end of its move (ADR-0048): one per slot, at tick zero of a single meleeCombo stage with
+    /// no aim and IASA disabled, beside presentation only, and never tucked. Its phase clips sort after the
+    /// stage's first clip, the throw.
+    /// </summary>
+    private static void ValidateTetherSlot(CharacterSlotSource slot, int index,
+        StartCapabilityOperationSource[] tethers, DiagnosticBag d)
+    {
+        string path = $"character.slots[{index}].timeline";
+        var stage = slot.Timeline.Stages[0];
+        if (TetherSlotError(tethers.Length, slot.Timeline.Stages.Count, tethers[0].Tick, slot.Behavior, slot.AimMode,
+                stage.IasaTicks, slot.ShellPolicy,
+                stage.Operations.Any(operation => operation != tethers[0] && operation is not EmitPresentationOperationSource))
+            is { } error)
+            d.Error("capability.ambiguous", path, error);
+        if (tethers[0].Parameters is not TetherCapabilityParameters x)
+            return;
+        var clips = stage.AnimationIds.OrderBy(id => id, StringComparer.Ordinal).ToList();
+        foreach (var (id, field) in new[] { (x.ReelAnimationId, "reelAnimationId"), (x.RetractAnimationId, "retractAnimationId") })
+        {
+            if (string.IsNullOrEmpty(id)) continue;
+            int clip = clips.IndexOf(id);
+            if (clip < 0)
+                d.Error("reference.unresolved", path + ".operations.parameters." + field,
+                    "A tether phase clip must be listed in its stage's animationIds.");
+            else if (clip == 0)
+                d.Error("value.out-of-range", path + ".operations.parameters." + field,
+                    "The stage's first clip is the throw; phase clips sort after it (name them after it).");
+        }
+    }
+
+    /// <summary>The tether slot's shape, shared by the compiler and the cooked loader; null when admissible.</summary>
+    internal static string? TetherSlotError(int tethers, int stages, ushort tick, AuthoringAbilityBehavior behavior,
+        AuthoringAimMode aim, ushort iasaTicks, ShellPolicy shellPolicy, bool otherOperations)
+        => tethers != 1 || stages != 1 || tick != 0 || behavior != AuthoringAbilityBehavior.MeleeCombo
+            || aim != AuthoringAimMode.None || iasaTicks != 0 || otherOperations
+            ? "Tether requires one tick-zero lifecycle in one meleeCombo stage with no aim and IASA disabled, and only presentation alongside it."
+            : shellPolicy == ShellPolicy.Tuck ? "A tether pops her out of the shell; it cannot tuck." : null;
+
+    /// <summary>Bounds shared by the compiler and the cooked loader; null when the tether is admissible.</summary>
+    internal static string? TetherBoundsError(CookedTetherCapabilityParameters x)
+    {
+        var ring = x.Projectile;
+        if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.RetractSpeed, x.AirGravityScale, ring.LaunchOffsetX,
+                ring.LaunchOffsetY, ring.LaunchOffsetZ, ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
+                ring.BaseKnockback, ring.KnockbackGrowth, ring.YawOffsetDegrees))
+            return "Tether values must be finite.";
+        if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
+        if (!(ring.Speed > 0f && ring.Speed <= 60f) || !(ring.Radius > 0f && ring.Radius <= 3f)
+            || ring.MaxFlightTicks == 0 || ring.MaxFlightTicks > 240)
+            return "The ring needs 0 < speed <= 60, 0 < radius <= 3 and maxFlightTicks 1 to 240.";
+        if (ring.Gravity != 0f || ring.YawOffsetDegrees != 0f || ring.Return != null)
+            return "The ring flies straight: no gravity, no yaw offset and no return block.";
+        if (ring.Damage < 0f || ring.BaseKnockback != 0f || ring.KnockbackGrowth != 0f || ring.StunTicks != 0)
+            return "The ring catches instead of launching: damage >= 0, no knockback and no stun.";
+        if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f) || !(x.RetractSpeed > 0f && x.RetractSpeed <= 60f))
+            return "reelSpeed and retractSpeed must be above 0 and at most 60.";
+        if (!(x.AnchorDistance >= 0f && x.AnchorDistance <= 3f)) return "anchorDistance must be 0 to 3.";
+        if (x.ArrivalStunTicks == 0 || x.ArrivalStunTicks > 240) return "arrivalStunTicks must be 1 to 240.";
+        if (x.MaxReelTicks == 0 || x.MaxReelTicks > 600) return "maxReelTicks must be 1 to 600.";
+        if (x.MissRecoveryTicks > 240) return "missRecoveryTicks must be 0 to 240.";
+        if (!(x.AirGravityScale >= 0f && x.AirGravityScale <= 1f)) return "airGravityScale must be 0 to 1.";
+        return null;
     }
 
     private static void ValidateShell(CharacterAuthoringDocument c, Dictionary<string, string> capabilities, DiagnosticBag d)
@@ -823,6 +903,10 @@ public static class CharacterPackageCompiler
                     d.Error("value.out-of-range", "character.operation.parameters",
                         "Aimed recovery needs bounded speeds, rise steering 0–120 m/s² and startup 1–120 ticks. An optional hop requires zero preparation rise, start>0, at least 4 flight ticks, contact before launch, forward/arc distances in (0,3] m and landing lift in [0,1] m.");
                 break;
+            case StartCapabilityOperationSource capability when capability.Parameters is MankiRoundBombCapabilityParameters or MankiJetpackBoostCapabilityParameters:
+                if (MankiCapabilityBounds.Error(CookParameters(capability.Parameters)) is { } mankiError)
+                    d.Error("value.out-of-range", "character.operation.parameters", mankiError);
+                break;
             case StartCapabilityOperationSource { Parameters: MankiBazookaCapabilityParameters bazooka }:
                 ValidateFiniteValues(new[] { bazooka.HomingTurnDegPerTick }, "character.operation.parameters.homingTurnDegPerTick", d);
                 if (bazooka.HomingTurnDegPerTick <= 0f || bazooka.HomingTurnDegPerTick > 90f)
@@ -881,6 +965,14 @@ public static class CharacterPackageCompiler
                 if (thrust.TrailHitbox != null) ValidateCapabilityHitbox(thrust.TrailHitbox, c, "trailHitbox", d);
                 if (ThrustBoundsError((CookedThrustCapabilityParameters)CookParameters(thrust)) is { } thrustError)
                     d.Error("value.out-of-range", "character.operation.parameters", thrustError);
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is TetherCapabilityParameters tether:
+                if (TetherBoundsError((CookedTetherCapabilityParameters)CookParameters(tether)) is { } tetherError)
+                    d.Error("value.out-of-range", "character.operation.parameters", tetherError);
+                foreach (var (id, field) in new[] { (tether.ThrowPresentationId, "throwPresentationId"),
+                             (tether.RetractPresentationId, "retractPresentationId") })
+                    if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                        d.Error("reference.unresolved", "character.operation.parameters." + field, "Presentation ID is not declared.");
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is ChargedProjectileCapabilityParameters charge:
                 if (charge.MaxChargeTicks == 0 || charge.Tier2Ticks == 0 ||
@@ -1343,6 +1435,7 @@ public static class CharacterPackageCompiler
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { } },
             ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
+            TetherCapabilityParameters x => x with { Projectile = x.Projectile with { } },
             MankiRoundBombCapabilityParameters x => x with { },
             MankiJetpackBoostCapabilityParameters x => x with { },
             MankiBazookaCapabilityParameters x => x with { },
@@ -1379,7 +1472,7 @@ public static class CharacterPackageCompiler
                         if (x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters
                             or ThrustCapabilityParameters { TrailHitbox: not null }) hitboxes++;
                         else if (x.Parameters is ChargedDirectionalDashCapabilityParameters) hitboxes += 2;
-                        else if (x.Parameters is ChargedProjectileCapabilityParameters) projectiles++;
+                        else if (x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters) projectiles++;
                         cookedOps.Add(new CookedStartCapabilityOperation(x.Tick, x.Unit, x.CapabilityId, x.CapabilityVersion, CookParameters(x.Parameters)));
                         break;
                     case StartupAimCorrectionOperationSource x:
@@ -1430,7 +1523,7 @@ public static class CharacterPackageCompiler
                 x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks,
                 x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees)),
         RisingDragonCapabilityParameters x => new CookedRisingDragonCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.RiseDelay),
-        CycloneKickCapabilityParameters x => new CookedCycloneKickCapabilityParameters(x.ForwardSpeed, x.WindupTicks, x.HitboxEndTick, x.DurationTicks, x.BodyRadius, x.SideRadius, x.SideOffset, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.BodyY, x.SideY),
+        CycloneKickCapabilityParameters x => new CookedCycloneKickCapabilityParameters(x.ForwardSpeed, x.WindupTicks, x.HitboxEndTick, x.DurationTicks, x.BodyRadius, x.SideRadius, x.SideOffset, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.BodyY, x.SideY, x.HitIntervalTicks, x.FixedHitstunTicks, x.FinisherTick, x.FinisherDamage, x.FinisherKnockbackAngle, x.FinisherKnockbackBase, x.FinisherKnockbackGrowth),
         ChargedDirectionalDashCapabilityParameters x => new CookedChargedDirectionalDashCapabilityParameters(
             x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.MinDistance, x.MaxDistance, x.DashSpeed,
             x.FinisherLeadTicks, x.FinisherSeekTick, x.RecoveryTicks, x.Tier2Damage, x.Tier3Damage,
@@ -1438,12 +1531,21 @@ public static class CharacterPackageCompiler
         WibouRisingSlashCapabilityParameters x => new CookedWibouRisingSlashCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.HomingRange, x.HomingSpeed),
         WibouBladeFlurryCapabilityParameters x => new CookedWibouBladeFlurryCapabilityParameters(x.ForwardSpeed, x.AscentStartTick, x.AscentEndTick, x.DescentStartTick, x.RiseSpeed, x.DescentSpeed),
         TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox), x.LaunchPresentationId, x.LandingPresentationId),
+        TetherCapabilityParameters x => new CookedTetherCapabilityParameters(x.ThrowTick,
+            new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ,
+                x.Projectile.Speed, x.Projectile.Gravity, x.Projectile.Radius, x.Projectile.Damage, x.Projectile.Angle,
+                x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks,
+                x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees,
+                x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed,
+                    back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks) : null),
+            x.ReelSpeed, x.AnchorDistance, x.ArrivalStunTicks, x.MaxReelTicks, x.RetractSpeed, x.MissRecoveryTicks,
+            x.AirGravityScale, x.ReelAnimationId, x.RetractAnimationId, x.ThrowPresentationId, x.RetractPresentationId),
         ThrustCapabilityParameters x => new CookedThrustCapabilityParameters(x.Aim, x.TargetConeDegrees, x.NeutralPitchDegrees,
             x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed, x.KeepIncomingSpeed, x.ThrustTicks,
             x.TrailHitbox == null ? null : CookHitbox(x.TrailHitbox)),
         SteeredChargeCapabilityParameters x => new CookedSteeredChargeCapabilityParameters(x.GallopSpeed, x.TurnDegreesPerSecond, x.MaxGallopTicks, x.Armored, CookHitbox(x.LanceHitbox), x.HitEndingTicks, x.MissEndingTicks, x.SkidTicks, x.TurnAroundOnMiss, x.AirStrideTicks, x.LookDownTicks, x.GallopAnimationId, x.GallopLoopTicks, x.HitEndingAnimationId, x.MissEndingAnimationId, x.AirEndingAnimationId, x.GallopPresentationId, x.HitEndingPresentationId, x.MissEndingPresentationId, x.AirEndingPresentationId),
-        MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.ThrowTriggerTick, x.MaxRange, x.LaunchAngle, x.Gravity, x.HitboxRadius, x.Damage, x.StunTicks, x.MaxFlightTicks, x.KbAngle, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.ExplosionPresentationId),
-        MankiJetpackBoostCapabilityParameters x => new CookedMankiJetpackBoostCapabilityParameters(x.StartupTicks, x.VerticalSpeed, x.HorizontalSpeed, x.ExplosionRadius, x.ExplosionDamage, x.ExplosionKbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionPresentationId),
+        MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.ThrowTriggerTick, x.MaxRange, x.LaunchAngle, x.Gravity, x.HitboxRadius, x.Damage, x.StunTicks, x.MaxFlightTicks, x.KbAngle, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.ExplosionPresentationId, x.FuseTicks, x.WarningTicks, x.EarlyDamage, x.EarlyRadius, x.ImpactRadius),
+        MankiJetpackBoostCapabilityParameters x => new CookedMankiJetpackBoostCapabilityParameters(x.StartupTicks, x.VerticalSpeed, x.HorizontalSpeed, x.ExplosionRadius, x.ExplosionDamage, x.ExplosionKbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionPresentationId, x.FuelTicks, x.SinkSpeed, x.JumpBurstSpeed, x.JumpBurstTicks, x.ExhaustRadius),
         MankiBazookaCapabilityParameters x => new CookedMankiBazookaCapabilityParameters(x.FireTriggerTick, x.ProjectileSpeed, x.HitboxRadius, x.Damage, x.Gravity, x.MaxFlightTicks, x.StunTicks, x.ExplosionRadius, x.KbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.CastDuration, x.RecoveryDuration, x.HomingTurnDegPerTick,
             (float)Math.Cos(x.HomingTurnDegPerTick * Math.PI / 180d),
             (float)Math.Sin(x.HomingTurnDegPerTick * Math.PI / 180d), x.ExplosionPresentationId),
@@ -1721,7 +1823,7 @@ public static class CharacterPackageCompiler
                 Number(w, "airMaxFallSpeed", x.AirMaxFallSpeed); Number(w, "airRecoilSpeed", x.AirRecoilSpeed);
                 WriteProjectile(w, x.Projectile); break;
             case CookedRisingDragonCapabilityParameters x: Number(w, "riseSpeed", x.RiseSpeed); w.WriteNumber("riseTicks", x.RiseTicks); w.WriteNumber("riseDelay", x.RiseDelay); break;
-            case CookedCycloneKickCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("windupTicks", x.WindupTicks); w.WriteNumber("hitboxEndTick", x.HitboxEndTick); w.WriteNumber("durationTicks", x.DurationTicks); Number(w, "bodyRadius", x.BodyRadius); Number(w, "sideRadius", x.SideRadius); Number(w, "sideOffset", x.SideOffset); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "bodyY", x.BodyY); Number(w, "sideY", x.SideY); break;
+            case CookedCycloneKickCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("windupTicks", x.WindupTicks); w.WriteNumber("hitboxEndTick", x.HitboxEndTick); w.WriteNumber("durationTicks", x.DurationTicks); Number(w, "bodyRadius", x.BodyRadius); Number(w, "sideRadius", x.SideRadius); Number(w, "sideOffset", x.SideOffset); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "bodyY", x.BodyY); Number(w, "sideY", x.SideY); WriteCycloneCarry(w, x.HitIntervalTicks, x.FixedHitstunTicks, x.FinisherTick, x.FinisherDamage, x.FinisherKnockbackAngle, x.FinisherKnockbackBase, x.FinisherKnockbackGrowth); break;
             case CookedChargedDirectionalDashCapabilityParameters x:
                 w.WriteNumber("maxChargeTicks", x.MaxChargeTicks); w.WriteNumber("tier2Ticks", x.Tier2Ticks);
                 w.WriteNumber("tier3Ticks", x.Tier3Ticks); Number(w, "minDistance", x.MinDistance);
@@ -1754,6 +1856,17 @@ public static class CharacterPackageCompiler
                 w.WriteBoolean("keepIncomingSpeed", x.KeepIncomingSpeed); w.WriteNumber("thrustTicks", x.ThrustTicks);
                 if (x.TrailHitbox != null) WriteHitboxObject(w, x.TrailHitbox, "trailHitbox");
                 break;
+            case CookedTetherCapabilityParameters x:
+                w.WriteNumber("throwTick", x.ThrowTick); WriteProjectile(w, x.Projectile);
+                Number(w, "reelSpeed", x.ReelSpeed); Number(w, "anchorDistance", x.AnchorDistance);
+                w.WriteNumber("arrivalStunTicks", x.ArrivalStunTicks); w.WriteNumber("maxReelTicks", x.MaxReelTicks);
+                Number(w, "retractSpeed", x.RetractSpeed); w.WriteNumber("missRecoveryTicks", x.MissRecoveryTicks);
+                Number(w, "airGravityScale", x.AirGravityScale);
+                OptionalString(w, "reelAnimationId", x.ReelAnimationId);
+                OptionalString(w, "retractAnimationId", x.RetractAnimationId);
+                OptionalString(w, "throwPresentationId", x.ThrowPresentationId);
+                OptionalString(w, "retractPresentationId", x.RetractPresentationId);
+                break;
             case CookedSteeredChargeCapabilityParameters x:
                 Number(w, "gallopSpeed", x.GallopSpeed); Number(w, "turnDegreesPerSecond", x.TurnDegreesPerSecond);
                 w.WriteNumber("maxGallopTicks", x.MaxGallopTicks); w.WriteBoolean("armored", x.Armored);
@@ -1771,14 +1884,28 @@ public static class CharacterPackageCompiler
                 OptionalString(w, "missEndingPresentationId", x.MissEndingPresentationId);
                 OptionalString(w, "airEndingPresentationId", x.AirEndingPresentationId);
                 break;
-            case CookedMankiRoundBombCapabilityParameters x: w.WriteNumber("throwTriggerTick", x.ThrowTriggerTick); Number(w, "maxRange", x.MaxRange); Number(w, "launchAngle", x.LaunchAngle); Number(w, "gravity", x.Gravity); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
-            case CookedMankiJetpackBoostCapabilityParameters x: w.WriteNumber("startupTicks", x.StartupTicks); Number(w, "verticalSpeed", x.VerticalSpeed); Number(w, "horizontalSpeed", x.HorizontalSpeed); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
+            case CookedMankiRoundBombCapabilityParameters x: w.WriteNumber("throwTriggerTick", x.ThrowTriggerTick); Number(w, "maxRange", x.MaxRange); Number(w, "launchAngle", x.LaunchAngle); Number(w, "gravity", x.Gravity); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); w.WriteNumber("fuseTicks", x.FuseTicks); w.WriteNumber("warningTicks", x.WarningTicks); Number(w, "earlyDamage", x.EarlyDamage); Number(w, "earlyRadius", x.EarlyRadius); Number(w, "impactRadius", x.ImpactRadius); break;
+            case CookedMankiJetpackBoostCapabilityParameters x: w.WriteNumber("startupTicks", x.StartupTicks); Number(w, "verticalSpeed", x.VerticalSpeed); Number(w, "horizontalSpeed", x.HorizontalSpeed); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); w.WriteNumber("fuelTicks", x.FuelTicks); Number(w, "sinkSpeed", x.SinkSpeed); Number(w, "jumpBurstSpeed", x.JumpBurstSpeed); w.WriteNumber("jumpBurstTicks", x.JumpBurstTicks); Number(w, "exhaustRadius", x.ExhaustRadius); break;
             case CookedMankiBazookaCapabilityParameters x: Number(w, "homingTurnDegPerTick", x.HomingTurnDegPerTick); Number(w, "homingTurnCos", x.HomingTurnCos); Number(w, "homingTurnSin", x.HomingTurnSin); w.WriteNumber("fireTriggerTick", x.FireTriggerTick); Number(w, "projectileSpeed", x.ProjectileSpeed); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); Number(w, "gravity", x.Gravity); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); w.WriteNumber("castDuration", x.CastDuration); w.WriteNumber("recoveryDuration", x.RecoveryDuration); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
             case CookedMankiAerosolInfernoCapabilityParameters x: if (x.MinimumChargeTicks != 0) w.WriteNumber("minimumChargeTicks", x.MinimumChargeTicks); if (x.ChargeTiers != null) { w.WritePropertyName("chargeTiers"); w.WriteStartArray(); foreach (var tier in x.ChargeTiers) { w.WriteStartObject(); w.WriteNumber("chargeTicks", tier.ChargeTicks); Number(w, "damage", tier.Damage); Number(w, "reachScale", tier.ReachScale); w.WriteEndObject(); } w.WriteEndArray(); } w.WriteNumber("fireTriggerTick", x.FireTriggerTick); w.WriteNumber("fireDurationTicks", x.FireDurationTicks); w.WriteNumber("hitboxDurationTicks", x.HitboxDurationTicks); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetZ", x.EndOffsetZ); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("hitGroup", x.HitGroup); break;
             default: throw new InvalidDataException("Unknown capability parameters.");
         }
         w.WriteEndObject();
     }
+    /// <summary>Optional carry/finisher fields; absent when zero so single-hit tunings keep their hashes.</summary>
+    internal static void WriteCycloneCarry(Utf8JsonWriter w, ushort hitIntervalTicks, ushort fixedHitstunTicks,
+        ushort finisherTick, float finisherDamage, float finisherAngle, float finisherBase, float finisherGrowth)
+    {
+        if (hitIntervalTicks != 0) w.WriteNumber("hitIntervalTicks", hitIntervalTicks);
+        if (fixedHitstunTicks != 0) w.WriteNumber("fixedHitstunTicks", fixedHitstunTicks);
+        if (finisherTick == 0) return;
+        w.WriteNumber("finisherTick", finisherTick);
+        Number(w, "finisherDamage", finisherDamage);
+        Number(w, "finisherKnockbackAngle", finisherAngle);
+        Number(w, "finisherKnockbackBase", finisherBase);
+        Number(w, "finisherKnockbackGrowth", finisherGrowth);
+    }
+
     internal static void WriteRecoveryHop(Utf8JsonWriter w, RecoveryHopParameters? hop)
     {
         if (hop == null) return;

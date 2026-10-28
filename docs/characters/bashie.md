@@ -16,14 +16,15 @@ shell, with her own clips, a surf wave and sounds, and Ring Bounce (E) supplied 
 owner replaced both with the shell kit ([ADR-0045](../adr/0045-bashie-shell-state.md)): Shell Shift and Shell Dive on R
 and Hydro Jet on E share one shell state, built as a Training prototype. Ground and air 1
 now have Whirlpool Spin after ADR-0042. Ground 4 has Rising Shell and air 4 its diagonal shell strike. Ground and air 3
-have Shell Flip. NO RUNNING! now supplies her F. Her movement still comes from Manki.
+have Shell Flip. NO RUNNING! now supplies her F. Rescue Ring replaced Hose Down on A the same day
+([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)), also a Training prototype. Her movement still comes from Manki.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
 - Her movement still comes from Manki. Her
-  own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
+  own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Rescue Ring in
   place of his Round Bomb, Shell Shift and Shell Dive in place of his Bazooka, Hydro Jet in place of his Jetpack Boost, and Whirlpool
   Spin on ground and air 1, the diagonal shell strikes on ground and air 4, Shell Flip on ground and air 3, and NO RUNNING! on F.
 - The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
@@ -252,60 +253,42 @@ the one rule she enforces, on everyone else.
 
 | Slot | Special | Shape | The opening |
 | --- | --- | --- | --- |
-| A | Hose Down | She pulls a toy water blaster out of her shell. Hold to pump it, release to fire a gush that shoves rather than hurts; more pumping makes a bigger gush. In the air the recoil pushes her back. Sign: NO SPLASHING! | Pumping keeps her in place, and the recoil can push her away from the stage. |
+| A | Rescue Ring | She throws her life ring straight at her target. The first fighter it meets is reeled in to her feet, stuck just long enough for one normal. It works in the air, and from the shell she pops out to throw. | A miss (range, a wall, a shield) leaves her reeling the empty ring back. Hit her or the caught fighter and the line drops. |
 | E | Hydro Jet | She tucks and jets off in the stick's direction with no wind-up (neutral goes straight up). The jet behind her shoves. R mid-jet becomes Shell Dive without untucking; landing still tucked flows into the skate. | No armour: any hit pops her out. The jet's direction is fixed once it starts. |
 | R | Shell Shift / Shell Dive | On the ground she drops into her shell and skates straight on at her speed, bowling fighters up and skating on under them. In the air she dives steeply at the ground ahead, leaning toward a target in front; the dive's speed becomes the skate's. | A wall or a shield pops her up bouncing back; the skate cannot steer. |
 | F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! The blow stuns fighters within 5 m for 2 s with no damage or horizontal push. Shields block it. The owner changed the original slow to a stun on 2026-10-26. Sign: NO RUNNING!. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
 
-### Hose Down (A)
+### Rescue Ring (A)
+
+**Accepted 2026-10-28** for a Training prototype ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)): the owner chose
+it over Hose Down. Ground A and its air alias start one public `slop.ability.tether.v1`
+([ability architecture](../systems/ability-architecture.md), [combat](../systems/combat-systems.md#tether)). First-pass
+values, open to play:
+
+- **Throw:** at tick 10 the ring flies straight at her current target's torso, 24 m/s for 20 ticks (8 m), radius
+  0.45 m. With no fighter in the 20 m lock range it flies level along her facing. It never homes.
+- **Catch:** the first fighter it meets takes 2% and is reeled to 0.9 m in front of her feet at 16 m/s on each axis,
+  over a ledge lip if it was below one. Air dodge invincibility lets the ring pass.
+- **Arrival:** the caught fighter stays stuck for 13 ticks and she is free on the next tick. Measured on her package:
+  ground 1 started then lands 10 ticks after the arrival; ground 4 (14) and ground 3 (24) meet a held shield. The
+  first pass of 22 ticks let ground 4 land as well.
+- **Miss:** the empty ring reels back at 16 m/s, then 12 ticks of recovery. A full-range miss locks her about 72
+  ticks. A wall head-on or 45 ticks of reeling snaps the line.
+- **Cooldown:** 150 ticks.
+- **Presentation (stand-ins):** the old Ring Bounce clip throws (`anim.bashie.ring`), the pump clip reels and the
+  spray clip retracts. Her life ring prop flies as the projectile and sits on the caught fighter's hips. A rope runs
+  from her right hand ([`TetherRopePresenter`](../../client/Unity/Assets/Scripts/Runtime/Combat/TetherRopePresenter.cs)).
+  The caught fighter holds a small-hit pose. Capture: `tmp/bashie-ring/ingame/rescue-ring-training.mp4`.
+- **Open:** the owner's play verdict on these values, real clips, effects and sounds. The CPU sees only the throw.
+
+### Hose Down (A, retired 2026-10-28)
 
 ![Hose Down](../design/references/bashie/bashie-a-hose-down.jpg)
 
-- Ledge hang is off, so a fighter hosed away from the stage while recovering is in real trouble. She doesn't knock
-  you off the stage; she hoses you off it.
-- Idea for later: the water puts out Manki's fire.
-
-**Like FLUDD (owner, 2026-10-22):** "i like C pose. i think like fludd in smash. more you charge, more water comes out
-and more push it does. barely any dmg. i think we want aim like manki F". The first build fired one Ki Shot-style
-gush; it became a stream.
-
-**In the game (2026-10-22)**, on the new `slop.ability.charged-stream.v1`
-([ability architecture](../systems/ability-architecture.md)):
-- **Pump:** holding A pumps, in place, for up to 60 ticks. Like Manki's F, the player aims with the camera and she turns
-  to face the aim.
-- **Spray:** release sprays a stream 4 ticks later, one drop every 3 ticks along the release aim. Each drop flies
-  16 m/s for 26 ticks, about 7 m.
-- **More pump, more water:** a tap sprays for 12 ticks, a full pump for 45. Each drop's push rises from base 22 to
-  40, about 4 to 7 m/s; the move ends 14 ticks after the stream.
-- **Push without hurting:** the drops deal 0%, no hitstun and no hitstop, and they push flat (`angle` 0), because a
-  push without hitstun ends when the victim lands.
-  - Against a dummy 5 m away, a tap slid it about 1.5 m, half a pump about 4 m, and a full pump about 5.4 m. The
-    full pump pushed it out of the stream's reach before the last drops.
-  - The CPU knows the move's reach but scores it as doing no damage.
-- **Recoil:** sprayed in the air, the stream pushes her back at 1.5 to 4.5 m/s by pump; on the ground she stays put.
-  A pump in the air, then the spray, moved her 0.75 m before she landed.
-- **Blaster:** her water blaster comes out for the pump and the spray, on her right hand with a pistol grip
-  ([tools/blender/bashie_rig](../../tools/blender/bashie_rig/README.md)).
-- **Animation:**
-  - Pose direction C ("big comic pumps", `tmp/bashie-model/anim-directions/hose-c-big-pumps.png`) became two GenRA
-    loops: a 24-tick pump and a 12-tick spray judder.
-  - Their key poses are bound in game until the motion pass and the owner's check. Her idle stands in for the end
-    clip.
-- **Effects (2026-10-22):** the owner picked the hose-spray look ("C") from three painted concepts (a toon jet,
-  water bullets, a spray). The concept boards were painted over "before" captures in `tmp/vfx/bashie-a/concepts/`.
-  `BashiePresentationBuilder` (`sloparena.presentation.bashie.build`) builds them in toon bands of pool water: a deep
-  blue rim, blue, light cyan and white foam.
-  - Each drop's visual fires five streaks at its own speed in a narrow cone. Twenty drops a second make a spray that
-    fans out as it flies, with mist and drips peeling off.
-  - While she pumps, each stroke spits drops out of the muzzle.
-  - The release puts a splash crown at the muzzle and throws a gush of water forward. Like Manki's F flame, it grows
-    with the pump: a full pump is nearly twice the size, with three and a half times the water. The NO SPLASHING!
-    pool sign she is breaking pops just over her hat.
-  - A drop that lands throws a splash crown, drops and mist, and leaves a little puddle on the floor.
-  - The drops skip the white hit flash, the impact sound and the rumble that every hit had.
-  - Her sounds are synthesized by `tools/sfx/bashie_clips.py`: the pump's squish, the hose, the splash and the
-    sign's pop. They are low and soft, because the owner found the first set too shrill.
-- **Open:** the end clip. The cooldown is 90 ticks.
+Built 2026-10-22 on the public `slop.ability.charged-stream.v1`: hold to pump the water blaster, release to spray a
+stream that pushed without hurting (FLUDD, the owner's reference). Rescue Ring replaced it. The capability stays
+public and keeps its coverage through FightGuy's fixture in `ChargedStreamTests`. Its blaster, clips and NO SPLASHING!
+cues stay in the package, unbound from her A.
 
 ### The shell: Shell Shift, Shell Dive and Hydro Jet (R and E)
 
@@ -405,7 +388,7 @@ The real effects pass follows concept approval. Slopball interaction and human c
 | Special | What exists | What's new |
 | --- | --- | --- |
 | R | The shell state ([ADR-0045](../adr/0045-bashie-shell-state.md)): `ActionState.Shell`, `slop.ability.shell-stance.v1` and `slop.ability.thrust.v1` ([ability architecture](../systems/ability-architecture.md)). | Built 2026-10-28 as a Training prototype; Shell Slide (steered charge) retired. |
-| A | Ki Shot's hold-and-release, and `stunTicks` 0 already shoves without hitstun. | Done 2026-10-22: `slop.ability.charged-stream.v1` (FLUDD: pump, stream, air push back) and no hitstop for pure pushes. |
+| A | Grab pairs (`InteractionId`, `InteractionPartnerId`), projectiles, auto-target projectile aim and the body mover. | Built 2026-10-28: `slop.ability.tether.v1` and `ActionState.Reeled` ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)); Hose Down's charged stream retired from her kit. |
 | E | `slop.ability.thrust.v1` with a trailing hitbox, a tuck move like R. | Built 2026-10-28 with the shell; Ring Bounce (aimed recovery) retired. |
 | F | An ordinary hitbox with `fixedHitstunTicks: 120`, `stunTicks: 1` and base knockback 1 pointed straight down at -90 degrees prevents horizontal slide. | Built 2026-10-26 with package data and client presentation only. No Shared engine change. |
 

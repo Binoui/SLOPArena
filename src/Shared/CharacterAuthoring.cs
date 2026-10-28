@@ -409,7 +409,14 @@ public sealed record CycloneKickCapabilityParameters(
     float KnockbackGrowth,
     ushort StunTicks,
     float BodyY,
-    float SideY) : TypedCapabilityParameters;
+    float SideY,
+    ushort HitIntervalTicks = 0,
+    ushort FixedHitstunTicks = 0,
+    ushort FinisherTick = 0,
+    float FinisherDamage = 0f,
+    float FinisherKnockbackAngle = 0f,
+    float FinisherKnockbackBase = 0f,
+    float FinisherKnockbackGrowth = 0f) : TypedCapabilityParameters;
 
 
 public sealed record ChargedDirectionalDashCapabilityParameters(
@@ -495,6 +502,29 @@ public sealed record ThrustCapabilityParameters(
     bool KeepIncomingSpeed,
     ushort ThrustTicks,
     HitboxSource? TrailHitbox = null) : TypedCapabilityParameters;
+
+/// <summary>
+/// slop.ability.tether.v1 (runtime API 1.13.0, ADR-0048), Bashie's Rescue Ring: at <see cref="ThrowTick"/> the
+/// projectile flies straight at her target (her facing without one). The first fighter it meets is reeled to
+/// <see cref="AnchorDistance"/> in front of her feet at <see cref="ReelSpeed"/> per axis and arrives stuck for
+/// <see cref="ArrivalStunTicks"/>. A miss reels the empty ring back at <see cref="RetractSpeed"/>, then
+/// <see cref="MissRecoveryTicks"/>. Airborne her gravity is scaled by <see cref="AirGravityScale"/>. The projectile
+/// has no gravity, no yaw offset and no return. Ticks are 60 Hz, distances metres, speeds m/s.
+/// </summary>
+public sealed record TetherCapabilityParameters(
+    ushort ThrowTick,
+    ProjectileSource Projectile,
+    float ReelSpeed,
+    float AnchorDistance,
+    ushort ArrivalStunTicks,
+    ushort MaxReelTicks,
+    float RetractSpeed,
+    ushort MissRecoveryTicks,
+    float AirGravityScale,
+    string ReelAnimationId = "",
+    string RetractAnimationId = "",
+    string ThrowPresentationId = "",
+    string RetractPresentationId = "") : TypedCapabilityParameters;
 public sealed record TargetedLeapCapabilityParameters(
     ushort MaxAimTicks,
     ushort MaxFlightTicks,
@@ -523,7 +553,12 @@ public sealed record MankiRoundBombCapabilityParameters(
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
     float ExplosionKbAngle,
-    string ExplosionPresentationId = "") : TypedCapabilityParameters;
+    string ExplosionPresentationId = "",
+    ushort FuseTicks = 240,
+    ushort WarningTicks = 8,
+    float EarlyDamage = 16f,
+    float EarlyRadius = 4f,
+    float ImpactRadius = 1.1f) : TypedCapabilityParameters;
 public sealed record MankiJetpackBoostCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
@@ -535,7 +570,12 @@ public sealed record MankiJetpackBoostCapabilityParameters(
     float ExplosionKbGrowth,
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
-    string ExplosionPresentationId = "") : TypedCapabilityParameters;
+    string ExplosionPresentationId = "",
+    ushort FuelTicks = 120,
+    float SinkSpeed = 1.2f,
+    float JumpBurstSpeed = 10f,
+    ushort JumpBurstTicks = 12,
+    float ExhaustRadius = 1.4f) : TypedCapabilityParameters;
 public sealed record MankiBazookaCapabilityParameters(
     ushort FireTriggerTick,
     float ProjectileSpeed,

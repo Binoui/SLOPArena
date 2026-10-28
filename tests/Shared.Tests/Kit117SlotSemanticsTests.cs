@@ -147,13 +147,12 @@ public class Kit117SlotSemanticsTests
         Assert.True(t0.VY > 0f, $"expected upward burst in the air, got VY={t0.VY:F3}");
     }
     [Fact]
-    public void RisingDragon_CommitsToCameraFacing_NotTargetLock()
+    public void RisingDragon_CommitsToStickDirection_NotCameraOrTargetLock()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState();
         state.PY = GroundPy;
         state.FacingYaw = 0f;       // target is in front of the old facing
-        state.AimYaw = MathF.PI;    // camera points behind the fighter
         TestHelpers.RegisterPlayer(sim, Def, state);
 
         var target = TestHelpers.NpcState(0f, 1f);
@@ -163,7 +162,8 @@ public class Kit117SlotSemanticsTests
         var input = new InputState
         {
             ActiveSlot = 4,
-            AimYaw = 18000,          // camera direction: π radians
+            MoveY = -1f,             // stick points behind the fighter: π radians
+            AimYaw = 9000,           // camera points along +X
             TargetEntityId = 100,    // prove target lock cannot override E
         };
         var afterStart = TestHelpers.TickN(sim, input, 1);

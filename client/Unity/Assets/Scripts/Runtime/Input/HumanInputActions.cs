@@ -21,7 +21,7 @@ namespace SlopArena.Client.Input
         private static bool _capturing;
 
         public static int BindingRevision { get; private set; }
-        public static bool LastUsedGamepad { get; private set; }
+        public static bool LastUsedGamepad { get; internal set; }
 
         [Serializable]
         private sealed class BindingOverridesJson { public BindingOverrideJson[] bindings; }
@@ -176,6 +176,16 @@ namespace SlopArena.Client.Input
             foreach (char c in label ?? "") printable &= !char.IsControl(c);
             return printable ? label : InputControlPath.ToHumanReadableString(action.bindings[index].effectivePath,
                 InputControlPath.HumanReadableStringOptions.OmitDevice);
+        }
+
+        // Number-row binds are physical keys: AZERTY reports &/é/"/' as their
+        // legends, but the canonical 1–4 prompts should keep their digits.
+        public static string KeyboardDisplayLabel(string path, string label)
+        {
+            const string prefix = "<Keyboard>/";
+            if (path == null || !path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+                path.Length != prefix.Length + 1 || !char.IsDigit(path[prefix.Length])) return label;
+            return path.Substring(prefix.Length);
         }
 
         public static void Rebind(string actionName, string group, Action<string, string> completed)

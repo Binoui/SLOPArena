@@ -29,6 +29,8 @@ python3 scripts/release.py run --version "$version"
 
 `prepare` checks the protocol declarations from both exact source revisions,
 Unity version/module availability and the allowed licensed input fingerprint.
+It also requires one forward protocol bump when `src/Shared` changed since the
+newest remote `playtest-client-*` tag; development changes never bump it.
 `run` checks documentation/source completeness in its own clean checkout,
 builds and verifies the client, publishes
 it, dispatches a workflow with a durable request identity, follows that exact

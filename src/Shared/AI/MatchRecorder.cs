@@ -402,10 +402,13 @@ public sealed class MatchRecorder
             CookedWibouBladeFlurryCapabilityParameters x => x.DescentStartTick,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks + x.MaxFlightTicks + x.RecoveryTicks,
             CookedThrustCapabilityParameters x => x.ThrustTicks,
+            CookedTetherCapabilityParameters x => x.ThrowTick + x.Projectile.MaxFlightTicks
+                + Math.Max(x.MaxReelTicks, (int)MathF.Ceiling(x.Projectile.Speed / x.RetractSpeed * x.Projectile.MaxFlightTicks)
+                    + x.MissRecoveryTicks),
             CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
                 + Math.Max(x.HitEndingTicks, x.MissEndingTicks),
-            CookedMankiRoundBombCapabilityParameters x => x.ThrowTriggerTick + x.MaxFlightTicks + x.ExplosionDurationTicks,
-            CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks + x.ExplosionDurationTicks,
+            CookedMankiRoundBombCapabilityParameters x => x.ThrowTriggerTick + x.MaxFlightTicks + x.FuseTicks + x.WarningTicks + x.ExplosionDurationTicks,
+            CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks + x.FuelTicks + x.ExplosionDurationTicks,
             CookedMankiBazookaCapabilityParameters x => x.FireTriggerTick + x.MaxFlightTicks + x.RecoveryDuration,
             CookedChargedStreamCapabilityParameters x => x.MaxChargeTicks + x.FireTriggerTick + x.MaxStreamTicks
                 + Math.Max(x.RecoveryTicks, x.Projectile.MaxFlightTicks),
