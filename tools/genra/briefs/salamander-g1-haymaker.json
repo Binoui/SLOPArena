@@ -1,0 +1,225 @@
+{
+  "name": "salamander-g1-haymaker",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.1 (anim.salamander.g1): Haymaker, his jab slot. Replaces Backhand Slap (owner 2026-10-28: \"too simple and confusing\", every attack \"too fast\"). Authored slow at 72 ticks; the game sets the final speed.",
+  "description": "The salamander's ground.1, Haymaker: a wide, looping saloon-brawl right hook, thrown with everything he has, that carries him off balance.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who plays every Western cliche with total conviction. His finger guns belong to his specials only. His normals are plain, scrappy saloon-brawl hits with his own body: no finger guns, no props, open or loosely closed hands. One clear idea per move, performed with his whole body and given time to develop: a real anticipation, weight shifts and steps, the hit carried through the hips and shoulders, a follow-through that carries him off balance, and a cocky settle. The game speeds the clip up to the move's length, so never rush a beat: the owner's note on every earlier attack was \"too fast, too simple\".\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (72 ticks, played once; the game may speed it up):\n- Tick 0: the showdown stance.\n- Tick 10, gathering: knees give a little, weight rolls back onto his right boot, the right shoulder starts to draw back, the left hand lifts off its holster.\n- Tick 20, fully cocked: chest turned 50-60 degrees to his right and leaning back a touch; the right fist (loosely closed) is pulled far back and out to his right at about shoulder height, BEHIND his back line, so from behind it pokes out wide right of his body; the left arm reaches forward and a little left, open hand, like sighting the target; chin over the left shoulder, eyes on the target; the tail swings out to his left as counterweight.\n- Tick 28, the step: the left boot steps forward 12-16 cm and plants; the hips start to turn left first while the shoulders and the fist stay back (the coil is tightest here).\n- Tick 33, contact: hips then shoulders whip round to face front; the right arm swings through in a wide, flat arc at shoulder height and at contact it reaches FORWARD, nearly straight, the fist on his centre line well out in front of his chin (where an opponent standing straight in front of him is), not tucked by his face and not off to his right. From behind, the arm reads as a long swing out in front of him. The left fist tucks in to his chest.\n- Tick 40, overshoot: the fist keeps going across to his left, the chest over-rotates 30-40 degrees past front, all his weight on the left boot, the right heel lifts.\n- Tick 50, the stumble: the right boot takes a half step forward to catch him, the tail swings out to his right, the hat tips forward. The right arm simply comes back down from the swing toward his side; the left hand stays low. No flailing.\n- Tick 58, recovered (he can act): weight back in the middle, both hands low near the holsters.\n- Ticks 58-72: he steps his boots back into the wide stance (right, then left) and the hands settle over the holsters. After the hit he just recovers: no gesture, flourish or arm business in the ending lag (owner 2026-10-28: \"normals don't need to have personality in ending lag\"); the arms take the shortest calm path back to the holsters while the body regains its balance.\n- Tick 72: the showdown stance again, matching tick 0.\nNo boot slides on the floor: a boot is either planted or stepping.\n- Life. Overlap everything: the hips lead, the chest follows 1-2 ticks later, the arms and head trail 2-3 ticks, the tail and the hat (joint Hat, a few degrees at most) trail the most. No two parts stop on the same tick, and every hold is a moving hold (key its end 2-5 degrees on from its start). Use the follow-through helpers from the guide's Life and Flow sections. Treat every flow or life warning as a failure.",
+  "clock": {
+    "duration_ticks": 72,
+    "contact_tick": 33,
+    "active": [
+      31,
+      38
+    ],
+    "iasa_tick": 58
+  },
+  "timing": {
+    "fixed": [
+      "72 ticks played once; contact at tick 33, the right fist sweeps in front of him from tick 31 to 38",
+      "the player can act from tick 58",
+      "tick 0 and tick 72 are his showdown idle exactly"
+    ],
+    "adjustable": [
+      "the step length, the stumble size and the overshoot angle"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 72
+  },
+  "fast_windows": [
+    [
+      26,
+      36
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "keys": [
+    0,
+    10,
+    20,
+    28,
+    33,
+    40,
+    50,
+    58,
+    72
+  ],
+  "review_ticks": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    24,
+    28,
+    31,
+    33,
+    36,
+    40,
+    45,
+    50,
+    54,
+    58,
+    64,
+    72
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor when cocked (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.4,
+      "max": -0.351
+    },
+    {
+      "name": "right toe on the floor when cocked (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.4,
+      "max": -0.351
+    },
+    {
+      "name": "left toe planted at contact (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 33,
+      "min": -0.4,
+      "max": -0.351
+    },
+    {
+      "name": "cocked: right fist out wide to his right (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 20,
+      "min": 0.25
+    },
+    {
+      "name": "cocked: right fist behind his chest (m)",
+      "kind": "ahead",
+      "a": "Spine2",
+      "b": "RightHand",
+      "tick": 20,
+      "min": 0.05
+    },
+    {
+      "name": "cocked: right fist about shoulder height (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 20,
+      "min": 0.12
+    },
+    {
+      "name": "cocked: left hand reaching forward (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "front",
+      "tick": 20,
+      "min": 0.15
+    },
+    {
+      "name": "step: left toe forward of the stance (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "tick": 28,
+      "min": 0.22
+    },
+    {
+      "name": "overshoot: right fist across to his left (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 40,
+      "max": -0.12
+    },
+    {
+      "name": "stumble: right toe stepped forward (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "front",
+      "tick": 50,
+      "min": 0.2
+    },
+    {
+      "name": "fist sweeps wide side to side (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "right",
+      "window": [
+        18,
+        42
+      ],
+      "min": 0.4
+    },
+    {
+      "name": "tail counter-swings (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        10,
+        55
+      ],
+      "min": 0.2
+    },
+    {
+      "name": "contact: right fist on his centre line (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 33,
+      "min": -0.06,
+      "max": 0.08
+    },
+    {
+      "name": "contact: right fist well out in front of his chest (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 33,
+      "min": 0.32
+    },
+    {
+      "name": "contact: right fist at shoulder height (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 33,
+      "min": 0.15,
+      "max": 0.4
+    }
+  ],
+  "snap_exempt": [
+    "Hat"
+  ]
+}

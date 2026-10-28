@@ -44,6 +44,10 @@ public static class CharacterPackageCompiler
     public const string TargetedLeapCapabilityVersion = "1";
     public const string SteeredChargeCapabilityId = "slop.ability.steered-charge.v1";
     public const string SteeredChargeCapabilityVersion = "1";
+    public const string ShellStanceCapabilityId = "slop.ability.shell-stance.v1";
+    public const string ShellStanceCapabilityVersion = "1";
+    public const string ThrustCapabilityId = "slop.ability.thrust.v1";
+    public const string ThrustCapabilityVersion = "1";
     internal const string BladeFlurryCapabilityId = "slop.internal.wibou.blade-flurry.v2";
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
     private const ushort ManifestSchemaVersion = 1;
@@ -81,7 +85,9 @@ public static class CharacterPackageCompiler
             || id == ChargedProjectileCapabilityId && version == ChargedProjectileCapabilityVersion
             || id == ChargedStreamCapabilityId && version == ChargedStreamCapabilityVersion
             || id == FingerGunsCapabilityId && version == FingerGunsCapabilityVersion
-            || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion;
+            || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion
+            || id == ShellStanceCapabilityId && version == ShellStanceCapabilityVersion
+            || id == ThrustCapabilityId && version == ThrustCapabilityVersion;
 
     internal static bool IsRuntimeCapability(string id, string version)
         => IsPublicCapability(id, version) || IsTrustedCapability(id, version);
@@ -98,6 +104,13 @@ public static class CharacterPackageCompiler
             operation is StartCapabilityOperationSource capability &&
             (capability.CapabilityId == SteeredChargeCapabilityId || capability.CapabilityId == ChargedStreamCapabilityId)
             || operation is SpawnProjectileOperationSource { Projectile.Return: not null })));
+    /// <summary>The shell stance, tuck moves, thrust and vertical-only velocity (ADR-0045).</summary>
+    private static bool RequiresRuntimeApi112(CharacterAuthoringDocument character)
+        => character.Shell != null
+            || character.Slots.Any(slot => slot.ShellPolicy != ShellPolicy.PopOut
+                || slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+                    operation is StartCapabilityOperationSource { CapabilityId: ThrustCapabilityId }
+                        or SetVelocityOperationSource { VelocityMode: AuthoringVelocityMode.Vertical })));
     private static bool RequiresRuntimeApi15(CharacterAuthoringDocument character)
         => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
             operation is StartCapabilityOperationSource capability &&
@@ -173,7 +186,9 @@ public static class CharacterPackageCompiler
                      requirement.CapabilityId == ChargedProjectileCapabilityId ||
                      requirement.CapabilityId == ChargedStreamCapabilityId ||
                      requirement.CapabilityId == FingerGunsCapabilityId ||
-                     requirement.CapabilityId == SteeredChargeCapabilityId)
+                     requirement.CapabilityId == SteeredChargeCapabilityId ||
+                     requirement.CapabilityId == ShellStanceCapabilityId ||
+                     requirement.CapabilityId == ThrustCapabilityId)
             {
                 string supportedVersion = requirement.CapabilityId == TargetedLeapCapabilityId
                     ? TargetedLeapCapabilityVersion : "1";
@@ -191,6 +206,7 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", "character.shieldRadius", "Shield radius must be positive and greater than half capsule height.");
         ValidateCaptureGeometry(c.CaptureGeometry, d);
         ValidateIds(c, d);
+        ValidateShell(c, capabilityMap, d);
         var explicitSlots = new Dictionary<string, CharacterSlotSource>(StringComparer.Ordinal);
         for (var i = 0; i < (c.Slots?.Count ?? 0); i++)
         {
@@ -216,14 +232,16 @@ public static class CharacterPackageCompiler
             if (!resolved.TryGetValue(CanonicalSlots[ordinal], out var slot)) continue;
             ValidateSlideCarry(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
             ValidateAimMovementSpeed(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
+            ValidateShellPolicy(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), c, d);
             var timeline = CookTimeline(slot.Timeline, d, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
-            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= CanonicalSlotProjection.VariantSlotCount, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale));
+            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= CanonicalSlotProjection.VariantSlotCount, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale, slot.ShellPolicy));
         }
         if (resolved.Count != CanonicalSlots.Length) d.Error("reference.unresolved", "character.slots", "Not all canonical slots resolve.");
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            RequiresRuntimeApi112(c) ? "1.12.0"
+            : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                 operation is StartCapabilityOperationSource { CapabilityId: FingerGunsCapabilityId }
                     or StartCapabilityOperationSource { Parameters: AimedRecoveryCapabilityParameters { RiseSteerAcceleration: > 0f } }))) ? "1.11.0"
             : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
@@ -254,7 +272,8 @@ public static class CharacterPackageCompiler
             c.AttachmentBoneIds.OrderBy(x => x, StringComparer.Ordinal).ToList(),
             c.PresentationIds.OrderBy(x => x, StringComparer.Ordinal).ToList(),
             c.CapabilityRequirements.OrderBy(x => x.CapabilityId, StringComparer.Ordinal).Select(x => new CookedCapabilityRequirement(x.CapabilityId, x.CapabilityVersion)).ToList(),
-            cookedSlots);
+            cookedSlots,
+            c.Shell == null ? null : CookShell(c.Shell));
         var budget = new CookedBudget(cookedSlots.Count, stageCount, operationCount, hitboxCount, projectileCount, capabilityOperationCount, maxDuration);
         var bytes = WriteCanonical(metadata, definition, budget);
         package = new CookedCharacterPackage(metadata, definition, budget, d.ToList(), bytes);
@@ -400,6 +419,11 @@ public static class CharacterPackageCompiler
             .Where(operation => operation.CapabilityId == SteeredChargeCapabilityId).ToArray();
         if (steeredCharges.Length > 0)
             ValidateSteeredChargeSlot(slot, index, steeredCharges, c, d);
+        var thrusts = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>()
+            .Where(operation => operation.CapabilityId == ThrustCapabilityId).ToArray();
+        if (thrusts.Length > 0)
+            ValidateThrustSlot(slot, index, thrusts, d);
         foreach (var stage in slot.Timeline.Stages)
         {
             if (stage.DurationTicks == 0 || stage.IasaTicks > stage.DurationTicks || stage.LandingLagTicks > stage.DurationTicks || stage.AutoCancelBeforeTicks > stage.DurationTicks || stage.AutoCancelAfterTicks > stage.DurationTicks) d.Error("value.out-of-range", "character.slots[" + index + "].timeline", "Stage timing is outside its duration.");
@@ -529,6 +553,105 @@ public static class CharacterPackageCompiler
                     "The stage's first clip is the startup; phase clips sort after it (name them after it).");
         }
     }
+
+    /// <summary>
+    /// A thrust picks its direction when its move starts and owns the fighter's travel: one per slot, at tick
+    /// zero of a single meleeCombo stage with no aim, alongside presentation and armour only. IASA is allowed
+    /// (Hydro Jet hands off to Shell Dive mid-thrust).
+    /// </summary>
+    private static void ValidateThrustSlot(CharacterSlotSource slot, int index,
+        StartCapabilityOperationSource[] thrusts, DiagnosticBag d)
+    {
+        string path = $"character.slots[{index}].timeline";
+        var stage = slot.Timeline.Stages[0];
+        if (thrusts.Length != 1 || slot.Timeline.Stages.Count != 1 || thrusts[0].Tick != 0
+            || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
+            || stage.Operations.Any(operation => operation != thrusts[0]
+                && operation is not (EmitPresentationOperationSource or ArmorWindowOperationSource)))
+            d.Error("capability.ambiguous", path,
+                "Thrust requires one tick-zero lifecycle in one meleeCombo stage with no aim, and only presentation or armour alongside it.");
+        if (thrusts[0].Parameters is ThrustCapabilityParameters thrust && thrust.ThrustTicks > stage.DurationTicks)
+            d.Error("value.out-of-range", path + ".operations.parameters.thrustTicks", "The thrust must end within its stage.");
+    }
+
+    private static void ValidateShell(CharacterAuthoringDocument c, Dictionary<string, string> capabilities, DiagnosticBag d)
+    {
+        bool stance = capabilities.ContainsKey(ShellStanceCapabilityId);
+        if (c.Shell == null)
+        {
+            if (stance) d.Error("schema.missing", "character.shell", "The shell-stance capability needs a shell block.");
+            if (!string.IsNullOrEmpty(c.Presentation.Shell))
+                d.Error("capability.unknown", "character.presentation.shell", "A shell pose needs the shell-stance capability and a shell block.");
+            return;
+        }
+        if (!stance) d.Error("capability.unknown", "character.shell", "A shell block needs the slop.ability.shell-stance.v1 requirement.");
+        if (string.IsNullOrEmpty(c.Presentation.Shell))
+            d.Error("schema.missing", "character.presentation.shell", "A shell block needs a shell pose.");
+        ValidateCapabilityHitbox(c.Shell.Hitbox, c, "shell.hitbox", d);
+        if (ShellBoundsError(CookShell(c.Shell)) is { } error)
+            d.Error("value.out-of-range", "character.shell", error);
+        if (c.Shell.HitPresentationId is { } hit && !c.PresentationIds.Contains(hit, StringComparer.Ordinal))
+            d.Error("reference.unresolved", "character.shell.hitPresentationId", "Presentation ID is not declared.");
+    }
+
+    /// <summary>A tuck move runs in the shell: it needs a shell block, is a special, and does not carry Run or Slide.</summary>
+    private static void ValidateShellPolicy(string canonicalId, CharacterSlotSource slot, int sourceIndex,
+        CharacterAuthoringDocument c, DiagnosticBag d)
+    {
+        if (slot.ShellPolicy == ShellPolicy.PopOut) return;
+        string path = sourceIndex >= 0 ? $"character.slots[{sourceIndex}].shellPolicy" : $"character.slots.{canonicalId}.shellPolicy";
+        if (slot.ShellPolicy != ShellPolicy.Tuck)
+            d.Error("value.out-of-range", path, "Unknown shell policy.");
+        else if (c.Shell == null)
+            d.Error("capability.unknown", path, "A tuck move needs the character's shell block.");
+        else if (!(canonicalId.EndsWith(".A", StringComparison.Ordinal) || canonicalId.EndsWith(".E", StringComparison.Ordinal)
+                || canonicalId.EndsWith(".R", StringComparison.Ordinal) || canonicalId.EndsWith(".F", StringComparison.Ordinal)))
+            d.Error("value.out-of-range", path, "Only specials (A, E, R, F) can tuck.");
+        else if (slot.AllowSlideCarry || slot.PreserveMomentumOnStart)
+            d.Error("capability.ambiguous", path, "A tuck move already keeps her momentum: leave allowSlideCarry and preserveMomentumOnStart off.");
+    }
+
+    /// <summary>Bounds shared by the compiler and the cooked loader; null when the shell is admissible.</summary>
+    internal static string? ShellBoundsError(CookedShellDefinition x)
+    {
+        if (!AllFinite(x.MinSkateSpeed, x.MaxSkateSpeed, x.LandingSpeedRatio, x.PopOutDeceleration, x.BlockedRecoilSpeed))
+            return "Shell values must be finite.";
+        if (x.SkateTicks == 0 || x.SkateTicks > 600) return "skateTicks must be 1 to 600.";
+        if (!(x.MinSkateSpeed > 0f && x.MinSkateSpeed <= x.MaxSkateSpeed && x.MaxSkateSpeed <= 60f))
+            return "Skate speeds need 0 < minSkateSpeed <= maxSkateSpeed <= 60.";
+        if (!(x.LandingSpeedRatio >= 0f && x.LandingSpeedRatio <= 2f)) return "landingSpeedRatio must be 0 to 2.";
+        if (!(x.PopOutDeceleration >= 0f && x.PopOutDeceleration <= 600f)) return "popOutDeceleration must be 0 to 600.";
+        if (!(x.BlockedRecoilSpeed >= 0f && x.BlockedRecoilSpeed <= 30f)) return "blockedRecoilSpeed must be 0 to 30.";
+        if (x.Hitbox.StartBoneId != null || x.Hitbox.EndBoneId != null || x.Hitbox.HitGroup != 0)
+            return "The bowling hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
+        return null;
+    }
+
+    /// <summary>Bounds shared by the compiler and the cooked loader; null when the thrust is admissible.</summary>
+    internal static string? ThrustBoundsError(CookedThrustCapabilityParameters x)
+    {
+        if (!AllFinite(x.TargetConeDegrees, x.NeutralPitchDegrees, x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed))
+            return "Thrust values must be finite.";
+        if (x.Aim is not (ThrustAim.Stick or ThrustAim.TargetAhead)) return "Unknown thrust aim.";
+        if (!(x.TargetConeDegrees >= 0f && x.TargetConeDegrees <= 180f)
+            || x.Aim == ThrustAim.Stick && x.TargetConeDegrees != 0f)
+            return "targetConeDegrees is 0 to 180 and only applies to targetAhead.";
+        if (!(MathF.Abs(x.NeutralPitchDegrees) <= 90f && MathF.Abs(x.StickPitchDegrees) <= 90f))
+            return "Pitches must be -90 to 90 degrees.";
+        if (!(x.Speed > 0f && x.Speed <= x.MaxSpeed && x.MaxSpeed <= 60f)) return "Speeds need 0 < speed <= maxSpeed <= 60.";
+        if (!(x.Acceleration >= 0f && x.Acceleration <= 240f)) return "acceleration must be 0 to 240.";
+        if (x.ThrustTicks == 0 || x.ThrustTicks > 600) return "thrustTicks must be 1 to 600.";
+        if (x.TrailHitbox is { } trail && (trail.StartBoneId != null || trail.EndBoneId != null || trail.HitGroup != 0))
+            return "The trail hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
+        return null;
+    }
+
+    private static bool AllFinite(params float[] values)
+        => values.All(value => !float.IsNaN(value) && !float.IsInfinity(value));
+
+    private static CookedShellDefinition CookShell(ShellSource x)
+        => new(x.SkateTicks, x.MinSkateSpeed, x.MaxSkateSpeed, x.LandingSpeedRatio, x.PopOutDeceleration,
+            x.BlockedRecoilSpeed, CookHitbox(x.Hitbox), x.HitPresentationId);
 
     private static void ValidateStartupAimCorrection(CharacterSlotSource slot, int slotIndex, DiagnosticBag d)
     {
@@ -753,6 +876,11 @@ public static class CharacterPackageCompiler
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is SteeredChargeCapabilityParameters charge:
                 ValidateSteeredCharge(charge, c, d);
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is ThrustCapabilityParameters thrust:
+                if (thrust.TrailHitbox != null) ValidateCapabilityHitbox(thrust.TrailHitbox, c, "trailHitbox", d);
+                if (ThrustBoundsError((CookedThrustCapabilityParameters)CookParameters(thrust)) is { } thrustError)
+                    d.Error("value.out-of-range", "character.operation.parameters", thrustError);
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is ChargedProjectileCapabilityParameters charge:
                 if (charge.MaxChargeTicks == 0 || charge.Tier2Ticks == 0 ||
@@ -1074,7 +1202,8 @@ public static class CharacterPackageCompiler
             (c.Presentation.Grab, "grab"),
             (c.Presentation.Grabbed, "grabbed"),
             (c.Presentation.ThrowForward, "throwForward"),
-            (c.Presentation.AirDodge, "airDodge")
+            (c.Presentation.AirDodge, "airDodge"),
+            (c.Presentation.Shell, "shell")
         })
         {
             if (string.IsNullOrEmpty(id)) continue;
@@ -1086,6 +1215,7 @@ public static class CharacterPackageCompiler
 
     private static bool PresentationUsed(string id, CharacterAuthoringDocument c)
         => c.Slots.Any(slot => slot.HitPresentationId == id)
+            || c.Shell?.HitPresentationId == id
             || c.Slots.SelectMany(s => s.Timeline.Stages).SelectMany(s => s.Operations).Any(op =>
             op is EmitPresentationOperationSource emit && emit.PresentationId == id ||
             op is SpawnProjectileOperationSource { Projectile.Return: { } back }
@@ -1212,6 +1342,7 @@ public static class CharacterPackageCompiler
             WibouBladeFlurryCapabilityParameters x => x with { },
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { } },
+            ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
             MankiRoundBombCapabilityParameters x => x with { },
             MankiJetpackBoostCapabilityParameters x => x with { },
             MankiBazookaCapabilityParameters x => x with { },
@@ -1245,7 +1376,8 @@ public static class CharacterPackageCompiler
                     case SetAimStateOperationSource x: cookedOps.Add(new CookedSetAimStateOperation(x.Tick, x.Unit, x.AimState)); break;
                     case StartCapabilityOperationSource x:
                         capabilities++;
-                        if (x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters) hitboxes++;
+                        if (x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters
+                            or ThrustCapabilityParameters { TrailHitbox: not null }) hitboxes++;
                         else if (x.Parameters is ChargedDirectionalDashCapabilityParameters) hitboxes += 2;
                         else if (x.Parameters is ChargedProjectileCapabilityParameters) projectiles++;
                         cookedOps.Add(new CookedStartCapabilityOperation(x.Tick, x.Unit, x.CapabilityId, x.CapabilityVersion, CookParameters(x.Parameters)));
@@ -1306,6 +1438,9 @@ public static class CharacterPackageCompiler
         WibouRisingSlashCapabilityParameters x => new CookedWibouRisingSlashCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.HomingRange, x.HomingSpeed),
         WibouBladeFlurryCapabilityParameters x => new CookedWibouBladeFlurryCapabilityParameters(x.ForwardSpeed, x.AscentStartTick, x.AscentEndTick, x.DescentStartTick, x.RiseSpeed, x.DescentSpeed),
         TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox), x.LaunchPresentationId, x.LandingPresentationId),
+        ThrustCapabilityParameters x => new CookedThrustCapabilityParameters(x.Aim, x.TargetConeDegrees, x.NeutralPitchDegrees,
+            x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed, x.KeepIncomingSpeed, x.ThrustTicks,
+            x.TrailHitbox == null ? null : CookHitbox(x.TrailHitbox)),
         SteeredChargeCapabilityParameters x => new CookedSteeredChargeCapabilityParameters(x.GallopSpeed, x.TurnDegreesPerSecond, x.MaxGallopTicks, x.Armored, CookHitbox(x.LanceHitbox), x.HitEndingTicks, x.MissEndingTicks, x.SkidTicks, x.TurnAroundOnMiss, x.AirStrideTicks, x.LookDownTicks, x.GallopAnimationId, x.GallopLoopTicks, x.HitEndingAnimationId, x.MissEndingAnimationId, x.AirEndingAnimationId, x.GallopPresentationId, x.HitEndingPresentationId, x.MissEndingPresentationId, x.AirEndingPresentationId),
         MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.ThrowTriggerTick, x.MaxRange, x.LaunchAngle, x.Gravity, x.HitboxRadius, x.Damage, x.StunTicks, x.MaxFlightTicks, x.KbAngle, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.ExplosionPresentationId),
         MankiJetpackBoostCapabilityParameters x => new CookedMankiJetpackBoostCapabilityParameters(x.StartupTicks, x.VerticalSpeed, x.HorizontalSpeed, x.ExplosionRadius, x.ExplosionDamage, x.ExplosionKbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionPresentationId),
@@ -1321,7 +1456,7 @@ public static class CharacterPackageCompiler
         => new(x.Idle, x.Run, x.Dash, x.Jump, x.Fall, x.HitSmall, x.HitMedium, x.HitHard,
             x.LandStartOffsetSeconds, x.ModelResourcePath, x.VisualScale, x.HurtboxBoneScale,
             x.ModelYOffset, x.ModelSoleOffset, x.AutoModelYOffset, x.Tumble, x.Crouch, x.Slide,
-            x.Shield, x.Grab, x.Grabbed, x.ThrowForward, x.AirDodge);
+            x.Shield, x.Grab, x.Grabbed, x.ThrowForward, x.AirDodge, x.Shell);
     private static CookedCaptureGeometry CookCaptureGeometry(CharacterCaptureGeometrySource x)
         => new(x.Reach, x.Width, x.Height, x.OffsetY,
             new CaptureAnchor(x.AttackerAnchor.X, x.AttackerAnchor.Y, x.AttackerAnchor.Z),
@@ -1341,6 +1476,7 @@ public static class CharacterPackageCompiler
             writer.WritePropertyName("attachmentBoneIds"); writer.WriteStartArray(); foreach (var x in definition.AttachmentBoneIds) writer.WriteStringValue(x); writer.WriteEndArray();
             writer.WritePropertyName("presentationIds"); writer.WriteStartArray(); foreach (var x in definition.PresentationIds) writer.WriteStringValue(x); writer.WriteEndArray();
             writer.WritePropertyName("capabilityRequirements"); writer.WriteStartArray(); foreach (var x in definition.CapabilityRequirements) { writer.WriteStartObject(); writer.WriteString("capabilityId", x.CapabilityId); writer.WriteString("capabilityVersion", x.CapabilityVersion); writer.WriteEndObject(); } writer.WriteEndArray();
+            if (definition.Shell != null) WriteShell(writer, definition.Shell);
             writer.WritePropertyName("slots"); writer.WriteStartArray(); foreach (var x in definition.Slots.OrderBy(x => x.Ordinal)) WriteSlot(writer, x); writer.WriteEndArray(); writer.WriteEndObject();
             writer.WritePropertyName("budget"); writer.WriteStartObject(); writer.WriteNumber("slotCount", budget.SlotCount); writer.WriteNumber("stageCount", budget.StageCount); writer.WriteNumber("operationCount", budget.OperationCount); writer.WriteNumber("hitboxCount", budget.HitboxCount); writer.WriteNumber("projectileCount", budget.ProjectileCount); writer.WriteNumber("capabilityCount", budget.CapabilityCount); writer.WriteNumber("maxTimelineDurationTicks", budget.MaxTimelineDurationTicks); writer.WriteEndObject(); writer.WriteEndObject(); writer.Flush();
         }
@@ -1368,6 +1504,7 @@ public static class CharacterPackageCompiler
         if (!string.IsNullOrEmpty(x.Grabbed)) w.WriteString("grabbed", x.Grabbed);
         if (!string.IsNullOrEmpty(x.ThrowForward)) w.WriteString("throwForward", x.ThrowForward);
         if (!string.IsNullOrEmpty(x.AirDodge)) w.WriteString("airDodge", x.AirDodge);
+        if (!string.IsNullOrEmpty(x.Shell)) w.WriteString("shell", x.Shell);
         Number(w, "landStartOffsetSeconds", x.LandStartOffsetSeconds);
         w.WriteString("modelResourcePath", x.ModelResourcePath);
         Number(w, "visualScale", x.VisualScale);
@@ -1375,6 +1512,21 @@ public static class CharacterPackageCompiler
         Number(w, "modelYOffset", x.ModelYOffset);
         Number(w, "modelSoleOffset", x.ModelSoleOffset);
         w.WriteBoolean("autoModelYOffset", x.AutoModelYOffset);
+        w.WriteEndObject();
+    }
+
+    private static void WriteShell(Utf8JsonWriter w, CookedShellDefinition x)
+    {
+        w.WritePropertyName("shell");
+        w.WriteStartObject();
+        w.WriteNumber("skateTicks", x.SkateTicks);
+        Number(w, "minSkateSpeed", x.MinSkateSpeed);
+        Number(w, "maxSkateSpeed", x.MaxSkateSpeed);
+        Number(w, "landingSpeedRatio", x.LandingSpeedRatio);
+        Number(w, "popOutDeceleration", x.PopOutDeceleration);
+        Number(w, "blockedRecoilSpeed", x.BlockedRecoilSpeed);
+        WriteHitboxObject(w, x.Hitbox, "hitbox");
+        if (!string.IsNullOrEmpty(x.HitPresentationId)) w.WriteString("hitPresentationId", x.HitPresentationId);
         w.WriteEndObject();
     }
 
@@ -1420,6 +1572,7 @@ public static class CharacterPackageCompiler
         w.WriteBoolean("preserveMomentumOnStart", x.PreserveMomentumOnStart);
         w.WriteBoolean("allowSlideCarry", x.AllowSlideCarry);
         if (!string.IsNullOrEmpty(x.HitPresentationId)) w.WriteString("hitPresentationId", x.HitPresentationId);
+        if (x.ShellPolicy != ShellPolicy.PopOut) w.WriteNumber("shellPolicy", (byte)x.ShellPolicy);
         if (x.ChargePool == null) w.WriteNull("chargePool");
         else
         {
@@ -1592,6 +1745,14 @@ public static class CharacterPackageCompiler
                 WriteHitbox(w, x.Hitbox);
                 OptionalString(w, "launchPresentationId", x.LaunchPresentationId);
                 OptionalString(w, "landingPresentationId", x.LandingPresentationId);
+                break;
+            case CookedThrustCapabilityParameters x:
+                w.WriteNumber("aim", (byte)x.Aim);
+                Number(w, "targetConeDegrees", x.TargetConeDegrees);
+                Number(w, "neutralPitchDegrees", x.NeutralPitchDegrees); Number(w, "stickPitchDegrees", x.StickPitchDegrees);
+                Number(w, "speed", x.Speed); Number(w, "acceleration", x.Acceleration); Number(w, "maxSpeed", x.MaxSpeed);
+                w.WriteBoolean("keepIncomingSpeed", x.KeepIncomingSpeed); w.WriteNumber("thrustTicks", x.ThrustTicks);
+                if (x.TrailHitbox != null) WriteHitboxObject(w, x.TrailHitbox, "trailHitbox");
                 break;
             case CookedSteeredChargeCapabilityParameters x:
                 Number(w, "gallopSpeed", x.GallopSpeed); Number(w, "turnDegreesPerSecond", x.TurnDegreesPerSecond);

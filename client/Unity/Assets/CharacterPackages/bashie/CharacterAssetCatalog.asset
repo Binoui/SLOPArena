@@ -54,22 +54,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 350fcd55cc96fa8f49af7446e44586e4, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g4
-  - _semanticId: anim.bashie.ge
-    _clip: {fileID: 7400000, guid: a4b82b7cbeeba814abf93587596d4018, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.ge
   - _semanticId: anim.bashie.gr
     _clip: {fileID: 7400000, guid: bd5d1a687f9b7531890a35e230f592bd, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.gr
-  - _semanticId: anim.bashie.gr-flip
-    _clip: {fileID: 7400000, guid: 2c7c17f34a06e2dabb63223759151535, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.gr-flip
-  - _semanticId: anim.bashie.gr-lookdown
-    _clip: {fileID: 7400000, guid: 6bf1f1718569bbca98bfc4f661f89844, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.gr-lookdown
   - _semanticId: anim.bashie.gr-pop
     _clip: {fileID: 7400000, guid: 215ba6d4b00832ca3b0847513a6fbc2e, type: 2}
     _extrapolation: 0

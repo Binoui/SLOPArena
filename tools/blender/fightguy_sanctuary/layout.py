@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -117,7 +118,46 @@ def load(scene: Path = SOURCE_SCENE) -> dict:
     }
 
 
-if __name__ == "__main__":
+def unity_shell(scene=SOURCE_SCENE):
+    """Update markers through shell-apply while retaining the original box collision source."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from stagekit import shell
+    docs = list(_documents(scene.read_text()))
+    transforms = {d["id"]: d["lines"] for d in docs if d["class"] == 4}
+    config = next(d["lines"] for d in docs if d["class"] == 114 and _field(d["lines"], "CharacterCourse") == "1")
+
+    def position(reference):
+        return _vector(_field(transforms[_REF.search(reference).group(1)], "m_LocalPosition"))
+
+    def yaw(reference):
+        q = _vector(_field(transforms[_REF.search(reference).group(1)], "m_LocalRotation"))
+        return math.degrees(math.atan2(2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] ** 2 + q[2] ** 2)))
+
+    text = "\n".join(config)
+    target_text = text.split("  Targets:\n")[1].split("  Checkpoints:\n")[0]
+    targets = [(i, position(m), float(r), int(h or 1)) for i, m, r, h in re.findall(
+        r"  - Id: (\S+)\n    Marker: (.+)\n    Radius: (\S+)(?:\n    Hits: (\d+))?", target_text)]
+    checkpoint_text = text.split("  Checkpoints:\n")[1].split("  Finish:")[0]
+    checkpoints = [(i, position(m), _vector(h), position(r), yaw(r), int(n)) for i, m, h, r, n in re.findall(
+        r"  - Id: (\S+)\n    Marker: (.+)\n    HalfSize: (.+)\n    Respawn: (.+)\n    RequiredTargetCount: (\d+)", checkpoint_text)]
+    data = load(scene)
+    spawn = next(d for d in docs if d["class"] == 1 and _field(d["lines"], "m_Name") == "Spawn_01")
+    spawn_transform = next(d for d in docs if d["class"] == 4 and _REF.search(_field(d["lines"], "m_GameObject")).group(1) == spawn["id"])
+    p = data["markers"]["Spawn_01"]
+    course = shell.course(_field(config, "ProfileId"), targets, checkpoints,
+        (position(_field(config, "Finish")), _vector(_field(config, "FinishHalfSize"))),
+        revision=int(_field(config, "GameplayRevision")),
+        racing_line=json.loads(Path(__file__).with_name("racing_line.json").read_text()))
+    document = shell.document("fightguy_sanctuary", min(s["min"][1] for s in data["surfaces"]), [],
+        [(*p, yaw("{fileID: " + spawn_transform["id"] + "}"))], course=course)
+    document["markersOnly"] = True
+    return document
+
+
+if __name__ == "__main__" and "--unity-shell" in sys.argv:
+    json.dump(unity_shell(), sys.stdout, indent=1)
+    sys.stdout.write("\n")
+elif __name__ == "__main__":
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else SOURCE_SCENE
     json.dump(load(path), sys.stdout, indent=1)
     sys.stdout.write("\n")

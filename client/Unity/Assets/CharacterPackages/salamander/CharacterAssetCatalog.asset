@@ -43,15 +43,15 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.salamander.fall
   - _semanticId: anim.salamander.g1
-    _clip: {fileID: 7400000, guid: 4007cb4dc167da92faf8304efbf088e0, type: 2}
+    _clip: {fileID: 7400000, guid: e31bd830c244a35ed8c747abda3db0b0, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.salamander.g1
   - _semanticId: anim.salamander.g3
-    _clip: {fileID: 7400000, guid: 85ad980abdbd90e3691f18b56def6fe4, type: 2}
+    _clip: {fileID: 7400000, guid: 7e63e1cfe686ffc8aa2743fd5782536a, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.salamander.g3
   - _semanticId: anim.salamander.g4
-    _clip: {fileID: 7400000, guid: 7c20de191a69299de8a61edd4c264faa, type: 2}
+    _clip: {fileID: 7400000, guid: 7e4bbe4ea5084d7b394e00f2815b0230, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.salamander.g4
   - _semanticId: anim.salamander.ga

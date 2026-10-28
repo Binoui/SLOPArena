@@ -321,9 +321,11 @@ namespace SlopArena.Shared
                 float sign = clay ? -1f : 1f;
                 float limit = rules.NetZ - sign * (rules.NetHalfThickness + _defs[id].CapsuleRadius);
                 if (sign * (state.PZ - limit) <= 0f) continue;
+                var before = state;
                 state.PZ = limit;
                 if (sign * state.VZ > 0f) state.VZ = 0f;
                 if (sign * state.KVZ > 0f) state.KVZ = 0f;
+                StopShellAtRuntimeWall(id, in before, ref state);
                 _states[id] = state;
             }
         }

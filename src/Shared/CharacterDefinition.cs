@@ -171,6 +171,10 @@ namespace SlopArena.Shared
         public string GrabbedAnim { get; init; } = "";
         public string ThrowForwardAnim { get; init; } = "";
         public string AirDodgeAnim { get; init; } = "";
+        /// <summary>The pose, and hurtbox, while in <see cref="ActionState.Shell"/> (ADR-0045).</summary>
+        public string ShellAnim { get; init; } = "";
+        /// <summary>The shell stance (ADR-0045), or null for fighters without one.</summary>
+        public CookedShellDefinition? Shell { get; init; }
         /// <summary>Landing uses JumpAnim clip with this start offset (seconds). Default: 0.49f</summary>
         public float LandStartOffset { get; init; } = 0.49f;
         /// <summary>Per-clip overrides for non-default timeline/loop settings.</summary>

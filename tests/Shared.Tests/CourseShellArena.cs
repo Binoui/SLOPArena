@@ -87,7 +87,8 @@ internal static class CourseShellArena
         var finish = c.GetProperty("finish");
         return ArcadeStageDefinition.ForCourse(c.GetProperty("profileId").GetString()!, c.GetProperty("gameplayRevision").GetUInt32(),
             c.GetProperty("allowedPackageIds").EnumerateArray().Select(x => x.GetString()!).ToArray(),
-            new CharacterCourseDefinition(targets, checkpoints, new(Arcade(finish.GetProperty("centre")), Arcade(finish.GetProperty("halfSize")))));
+            new CharacterCourseDefinition(targets, checkpoints, new(Arcade(finish.GetProperty("centre")), Arcade(finish.GetProperty("halfSize"))),
+                c.TryGetProperty("racingLine", out var line) ? new CourseRacingLine(line.EnumerateArray().Select(Arcade).ToArray()) : null));
     }
 
     /// <summary>Unity stores yaw in degrees; the bake keeps eulerAngles.y (0–360) in radians.</summary>

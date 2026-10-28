@@ -104,6 +104,9 @@ namespace SlopArena.Client.Entities
             return null;
         }
 
+        /// <summary>The tuck weight applied last frame; 0 when the rig is at rest.</summary>
+        public float AppliedWeight => _applied ? _weight : 0f;
+
         /// <summary>Tuck this frame at <paramref name="weight"/> (0 rest, 1 tucked; beyond overshoots).</summary>
         public void Request(in ShellTuckPose pose, float weight)
         {

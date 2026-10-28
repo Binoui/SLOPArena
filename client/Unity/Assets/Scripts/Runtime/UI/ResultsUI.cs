@@ -372,7 +372,7 @@ namespace SlopArena.Client.UI
 
             var content = ClientSession.MatchContentCatalog?.Resolve(character);
             string fighterName = string.IsNullOrEmpty(content?.DisplayName)
-                ? character.ToString()
+                ? MenuRoster.Name(character)
                 : content!.DisplayName;
             return new PlayerMetadata(
                 playerName.ToUpperInvariant(),

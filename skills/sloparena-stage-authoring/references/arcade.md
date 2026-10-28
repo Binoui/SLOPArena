@@ -28,6 +28,10 @@ ground heightmap. Shared validates serve arcs against the court.
 
 Character Courses compile typed section v5 inside the same arena v6 artifact (section v6
 when a course has bonus targets that take several hits; one-hit courses keep v5 bytes).
+Section v8 adds an optional 2–64-point racing line for Scramble progress. Generate it from
+`CourseFinishability.Routes` with `CourseRacingLineGenerator` and `SLOPARENA_GENERATE_RACING_LINES=1`.
+Keep `racing_line.json` beside the layout and pass it to `shell.course(..., racing_line=...)`.
+Readers retain v5/v6 courses and v7 Mayhem. Solo records exclude the racing line.
 `ArcadeStageAuthoring.CharacterCourse` selects targets, checkpoints with sensor
 volumes/respawns and cumulative target prerequisites, and a finish volume instead
 of a ball/Slopball profile. Markers must be empty children under AuthoringAids;
@@ -38,11 +42,11 @@ See the [Sanctuary production contract](../../../docs/design/stages/fightguy_san
 and [Phase 4 commands](../../../docs/design/arcade-phase-4.md#authoring-and-native-commands).
 
 A new course needs no Editor code of its own. Keep the shell and the markers in
-`tools/blender/<key>/layout.py`, add `shell.course(profile, packages, targets, checkpoints,
+`tools/blender/<key>/layout.py`, add `shell.course(profile, targets, checkpoints,
 finish)` to its `--unity-shell` document and run `sloparena.stage.shell-apply --create` once:
 it creates the source scene and writes `ArcadeStageAuthoring` with empty markers, which later
 applies move with the layout. Add the course to `CharacterCourseMatch.Courses` (title, finish
-name, tips) so Arcade offers it to the fighters its profile admits; every course plays in the
+name, tips) so Arcade offers it to every roster fighter; course profiles write an empty package list. Every course plays in the
 one course scene. [Kaboom Quarry](../../../tools/blender/manki_quarry/README.md) works this way.
 A target tuple may add a hit count, `(id, position, radius, hits)`, for a bonus target
 ([Fight Night Pier](../../../tools/blender/fightguy_pier/README.md)); give it a `TargetLooks`
@@ -50,6 +54,9 @@ entry with `CourseBonusTarget` damage stages in the course's presentation set. B
 run the route tests on the shell JSON through `CourseShellArena`
 (`SLOPARENA_COURSE_SHELL=<shell json>`), and keep each checkpoint sensor clear of the targets
 it requires.
+Courses are racing maps for any fighter: add the course's ordinary route (walk, hop and
+break steps) to `CourseFinishability.Routes` so `CourseFinishabilityTests` proves every roster
+fighter finishes it with jumps, air dodges and normals only.
 A kill plane exactly 1 m under the spawn floor trips `ArenaShippingTests`' unbaked-heightmap
 check; keep the water a little lower.
 

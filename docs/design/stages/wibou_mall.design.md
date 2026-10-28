@@ -124,3 +124,37 @@ and reaches the source scene through `sloparena.stage.shell-apply`, then the nor
 The [production contract](wibou_mall.md) names the artifacts and checks. Scripted Shared
 routes prove reachability with the real cooked Wibou kit; they are not human difficulty,
 camera or feel acceptance, which the owner gives after playing.
+
+## Racing pass — 2026-10-28 (Slop Rally)
+
+The maintainer approved the complete Neo Mall racing board on 2026-10-28 for
+[Slop Rally](../../adr/0046-courses-open-to-every-fighter.md) and
+[couch Scramble](../../adr/0047-course-scramble-couch-race.md). Any roster fighter can
+trade target opportunities for an earlier position on the main route.
+
+- **S1, Sale Balloon Hop.** Two static display platforms have 1.4 m square tops at
+  `(x, y, z) = (3.8, 4, -26.5)` and `(6.4, 4, -23)`. From the fashion podium's
+  northeast corner they lead to the east gallery near `(9, 4, -19.5)`, bypassing
+  the skybridge. Pink and yellow balloons support cream decks with SALE fascia
+  from the existing banner atlas. The east gallery's southwest rails open for
+  the landing. A missed hop falls to the mopped ground floor.
+- **S2, Service Ladder.** Two lit shop-sign tops at `(15, 11, 18.6)` and
+  `(12.5, 13, 19.2)` climb from the level-3 landing near `(15, 9, 16)` to level 4
+  near `(11.5, 15, 21.5)`. Their 1.4 m square decks and 2 m rises make the shortcut
+  narrow. SOLE MATES and PIXEL PALACE use the existing neon atlas and materials.
+  The level-3 north rail and level-4 south rail open at the route. No new deck or
+  decoration hangs over the route.
+- **S3 and C1–C4 stay.** The tower face, planter crossing, escalator into THE AGENT,
+  tower sign stack and Officer Doug keep their existing gameplay geometry.
+
+`CourseFinishability.NeoMallShortcutRoute` defines S1, S2 and combined Scramble
+variants beside the unchanged ordinary route. Every variant restricts traversal
+to plain jumps and replays its accepted inputs. The fixture gives shared target
+points to a rival before traversal, because the finish still requires every
+shared target to break. This proves traversal and completion after rivals clear
+the gate, without claiming that skipping targets alone opens the finish.
+
+The main-path racing line stays unchanged. Tests project each fighter's actual
+committed shortcut frames against a rival ahead on the ordinary route and check
+that the shortcut racer leads after rejoining. Scripted verification does not
+establish controller difficulty or human visual acceptance.

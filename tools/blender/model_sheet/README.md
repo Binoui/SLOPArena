@@ -21,11 +21,14 @@ render $A/manki/Models/aerosol.glb - manki_aerosol
 render $A/wibou/Models/wibou.fbx $A/wibou/Textures/Baked_BaseColor.png wibou
 render $A/wibou/Models/katana.fbx grey wibou_katana
 render $A/wibou/Models/kunai.fbx - wibou_kunai
-render $A/bonk/Models/bonk.fbx $A/bonk/Textures/Color.jpg bonk
-render $A/bonk/Models/bonk_sword.fbx $A/bonk/Textures/bonk_sword.jpg bonk_sword
+render tmp/bonk-sir/tripo-v2/build-v1/SirBonk.fbx tmp/bonk-sir/tripo-v2/build-v1/textures/SirBonk_BaseColor.png bonk
+render $A/bonk/Models/sir_bonk_plank.fbx $A/bonk/Textures/SirBonkPlank_BaseColor.png bonk_plank
+render $A/bonk/Models/sir_bonk_v2_lid.fbx $A/bonk/Textures/SirBonkV2_BaseColor.png bonk_lid
 python3 tools/blender/model_sheet/compose.py "$R" docs/design/references/key-art
 ```
 
 `Manki2.fbx` holds the live Manki v3 (the name predates v3; see
 [manki_rig](../manki_rig/README.md)). The katana's texture is missing, so it renders as
-flat grey for its shape only.
+flat grey for its shape only. Sir Bonk renders from the v2 build output (both pot lids on
+the body); the live `sir_bonk_v2.fbx` has the left lid split off for Q
+(see [bonk_rig](../bonk_rig/README.md)).

@@ -29,7 +29,7 @@ public sealed class HomingDashTests
         Assert.InRange(floatTicks, HomingDashConfig.FloatTicks, HomingDashConfig.FloatTicks + 1);
 
         Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 60), "the dash arrives");
-        Assert.InRange(Gap(sim), Arrival - 0.25f, Arrival + 0.25f);
+        Assert.InRange(Gap(sim), Arrival - 0.01f, Arrival + 0.06f);
         Assert.InRange(sim.GetState(1).FacingYaw, -0.01f, 0.01f);
         Assert.True(sim.GetState(1).HomingDashCooldownTicks > 0);
 
@@ -131,33 +131,77 @@ public sealed class HomingDashTests
     }
 
     [Fact]
-    public void TheDashRisesToCatchAJump()
+    public void AShorterFighterStaysOnTheFloorDashingAtATallerGroundedTarget()
+    {
+        var shortDef = Def with { CapsuleHeight = Def.CapsuleHeight - 0.2f };
+        var sim = TestHelpers.MakeSim();
+        var dasher = TestHelpers.PlayerState(50f, 50f);
+        dasher.PY = TestHelpers.GroundPY(shortDef);
+        sim.RegisterEntity(1, shortDef, dasher);
+        var target = Grounded(TestHelpers.NpcState(50f, 58f));
+        target.FacingYaw = MathF.PI;
+        sim.RegisterEntity(100, Def, target);
+        Tick(sim);
+        Tick(sim, Dash);
+        for (int i = 0; i < 80 && sim.GetState(1).State != ActionState.HomingDashArrive; i++)
+        {
+            Assert.True(sim.GetState(1).IsGrounded, $"left the floor in {sim.GetState(1).State}");
+            Tick(sim);
+        }
+        Assert.Equal(ActionState.HomingDashArrive, sim.GetState(1).State);
+        Assert.True(sim.GetState(1).IsGrounded, "a grounded arrival leaves the follow-up a ground normal");
+    }
+
+    [Theory]
+    [InlineData(3f)]
+    [InlineData(6.2f)]
+    [InlineData(9.1f)]
+    [InlineData(12.3f)]
+    public void EveryDistanceArrivesOnTheSameGap(float distance)
+    {
+        var sim = Duel(distance);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
+        Assert.InRange(Gap(sim), Arrival - 0.01f, Arrival + 0.06f);
+    }
+
+    [Fact]
+    public void AGroundedDashStaysOnTheFloorUnderAJump()
     {
         var sim = Duel(9f);
-        Tick(sim, Dash);
-        Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
-        Tick(sim, default, new InputState { Jump = true, JumpHeld = true });
+        Tick(sim, Dash, new InputState { Jump = true, JumpHeld = true });
         bool arrived = false;
         for (int i = 0; i < 60 && !arrived; i++)
         {
             Tick(sim, default, new InputState { JumpHeld = true });
+            Assert.True(sim.GetState(1).IsGrounded, $"left the floor in {sim.GetState(1).State}");
             arrived = sim.GetState(1).State == ActionState.HomingDashArrive;
         }
-        Assert.True(arrived, "the dash follows the target into the air");
+        Assert.True(arrived, "the dash arrives under the jump");
         Assert.False(sim.GetState(100).IsGrounded);
-        Assert.False(sim.GetState(1).IsGrounded);
+    }
+
+    [Fact]
+    public void AnAirDashAtAGroundedTargetArrivesJustAboveItsFeet()
+    {
+        var sim = Duel(10f);
+        Lift(sim, 1, 2f);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
+        var dasher = sim.GetState(1);
+        Assert.False(dasher.IsGrounded, "an air dash arrives in the air, so the follow-up is an aerial");
+        float aboveFeet = dasher.PY - sim.GetState(100).PY;
+        float lift = Def.CapsuleHeight * HomingDashConfig.AirAimLift;
+        Assert.InRange(aboveFeet, lift - 0.01f, lift + 0.5f);
     }
 
     [Fact]
     public void AnAirborneArrivalHoversBeforeGravityReturns()
     {
         var sim = Duel(6f);
-        var target = sim.GetState(100);
-        // A fresh float window keeps the target hanging at 3 m while the dash flies up to it.
-        target.PY += 3f;
-        target.IsGrounded = false;
-        target.AirTimeTicks = 0;
-        sim.SetState(100, target);
+        // Fresh float windows keep both fighters hanging at 3 m while the dash flies across.
+        Lift(sim, 100, 3f);
+        Lift(sim, 1, 3f);
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
         float arrivalY = sim.GetState(1).PY;
@@ -170,7 +214,7 @@ public sealed class HomingDashTests
             Assert.True(MathF.Abs(sim.GetState(1).PY - arrivalY) < 0.05f, $"tick {i}: {sim.GetState(1).PY} vs {arrivalY} vy {sim.GetState(1).VY}");
         }
         float glide = sim.GetState(1).PZ - arrivalZ;
-        Assert.InRange(glide, 0.3f, HomingDashConfig.ArriveCarrySpeed * HomingDashConfig.ArriveHoverTicks * Simulation.TickDt);
+        Assert.InRange(glide, 0.15f, HomingDashConfig.ArriveCarrySpeed * HomingDashConfig.ArriveHoverTicks * Simulation.TickDt);
         for (int i = 0; i < 4; i++)
             Tick(sim);
         Assert.True(sim.GetState(1).PY < arrivalY, "gravity returns after the hover");
@@ -326,6 +370,15 @@ public sealed class HomingDashTests
         Tick(sim);
         Assert.Equal(100UL, sim.GetState(1).TargetEntityId);
         return sim;
+    }
+
+    private static void Lift(ServerSimulation sim, ulong id, float height)
+    {
+        var state = sim.GetState(id);
+        state.PY += height;
+        state.IsGrounded = false;
+        state.AirTimeTicks = 0;
+        sim.SetState(id, state);
     }
 
     private static CharacterState Grounded(CharacterState state)

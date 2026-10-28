@@ -5,6 +5,12 @@ game store on level 4. The approved scope is the [design brief](../../../docs/de
 the [production contract](../../../docs/design/stages/wibou_mall.md) lists the artifacts and
 checks.
 
+The Slop Rally racing pass adds two SALE balloon decks from the podium to the east
+gallery and two lit service signs from level 3 to level 4. Every roster fighter
+can take either shortcut with plain jumps. `CourseFinishabilityTests` checks S1,
+S2 and both together, alongside the ordinary route. The main racing line remains
+the ordinary path in `racing_line.json`.
+
 - `layout.py` keeps the whole shell as a `SPEC`: decks (floating balcony and bridge slabs, the
   podium and the elevator tower on the floor, hanging planters and signs), the escalator's
   sloped slabs and balustrades, 1 m railings on the deck edges, the envelope walls, the start,

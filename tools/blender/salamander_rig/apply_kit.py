@@ -50,18 +50,18 @@ def cap(cid, params, tick=0):
             'parameters': params}
 
 SLOTS = [
-    slot('ground.1', 'Pistol Whip', 'A quick backhand with the finger gun, like pistol-whipping with a revolver butt.',
+    slot('ground.1', 'Backhand Slap', 'A quick, insulting saloon backhand with the open hand, swept out to his right.',
          [stage(35, [A + 'g1'], [aim_correction(9), hitbox(9, 6, 4, 8, 4, 20, 14, shape='capsule', radius=0.45,
-                                                         off=(0.35, 0.35, 0.35), end=(-0.2, 0.25, 0.95))], iasa=18,
+                                                         off=(0.4, 0.35, 0.35), end=(-0.1, 0.3, 0.95))], iasa=18,
                 attack_range=2.25)], slide=True),
-    slot('ground.3', "Stick 'Em Up!", 'Crouch, then thrust both finger guns straight up at the sky: a launcher.',
+    slot('ground.3', 'Uppercut', 'Dip, then drive the fist straight up over the sombrero: a launcher.',
          [stage(44, [A + 'g3'], [aim_correction(8), hitbox(8, 5, 7, 80, 6, 26, 18, radius=0.6, off=(0, 0.35, 0.6)),
-                                 hitbox(9, 12, 7, 80, 6, 26, 18, bone='bone.right-hand', radius=0.55),
-                                 hitbox(9, 12, 7, 80, 6, 26, 18, bone='bone.left-hand', radius=0.55)], iasa=29,
+                                 hitbox(9, 12, 7, 80, 6, 26, 18, bone='bone.right-hand', radius=0.6)], iasa=29,
                 attack_range=2)]),
-    slot('ground.4', 'Lasso Crack', 'Twirl an invisible lasso overhead and crack it forward like a whip: slow, long reach.',
-         [stage(52, [A + 'g4'], [aim_correction(20), hitbox(26, 6, 14, 28, 9, 42, 26, shape='capsule', radius=0.45,
-                                                          off=(0.25, 1.1, 0.3), end=(0, 1.0, 2.2))], iasa=44, attack_range=2)]),
+    slot('ground.4', 'Tail Spin', 'Spin one full turn with the tail stretched out, sweeping all round him: slow and wide.',
+         # clip authored at 48 ticks, played 1.5x slower (owner 2026-10-28: "good, just too fast")
+         [stage(72, [A + 'g4'], [aim_correction(18), hitbox(21, 16, 14, 28, 9, 42, 26, radius=1.25, off=(0, 0.5, 0))],
+                iasa=54, attack_range=1.6)]),
     slot('air.1', 'Double Tap', 'Two quick finger-gun jabs in the air, right then left.',
          [stage(38, [A + 'a1'], [aim_correction(7),
                                  hitbox(7, 6, 3, 55, 5, 24, 12, shape='capsule', radius=0.45, off=(0.15, 0.2, 0.3), end=(0.1, -0.25, 1.0)),

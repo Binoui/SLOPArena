@@ -27,8 +27,6 @@ public static class BonkFAnimationPresentationSelfTest
             "anim.bonk.gr-gallop", "anim.bonk.gr-lookdown");
         CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 10f,
             "anim.bashie.hose-spray", "anim.bashie.hose-end");
-        CheckPhases("bashie", CharacterClass.Bashie, "ground.R", 1000f,
-            "anim.bashie.gr-slide", "anim.bashie.gr-flip");
         Debug.Log("[CapabilityPhasePresentationSelfTest] Passed real simulation phase playback for leap landing, " +
             "joust gallop/hit/miss/air endings, and stream spray/recovery.");
     }

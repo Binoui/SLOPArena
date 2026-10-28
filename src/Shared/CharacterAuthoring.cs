@@ -38,7 +38,32 @@ public sealed record CharacterAuthoringDocument(
     IReadOnlyList<string> PresentationIds,
     IReadOnlyList<CapabilityRequirementSource> CapabilityRequirements,
     IReadOnlyList<CharacterSlotSource> Slots,
-    IReadOnlyList<CharacterAliasSource> Aliases);
+    IReadOnlyList<CharacterAliasSource> Aliases,
+    ShellSource? Shell = null);
+
+/// <summary>
+/// A character's shell stance (slop.ability.shell-stance.v1, ADR-0045): the state between her tuck moves.
+/// She skates on the ground for <see cref="SkateTicks"/> and coasts in the air, bowling fighters over with
+/// <see cref="Hitbox"/>, until the skate runs out, a wall or a shield stops her, or she acts.
+/// </summary>
+public sealed record ShellSource(
+    ushort SkateTicks,
+    float MinSkateSpeed,
+    float MaxSkateSpeed,
+    float LandingSpeedRatio,
+    float PopOutDeceleration,
+    float BlockedRecoilSpeed,
+    HitboxSource Hitbox,
+    string? HitPresentationId = null);
+
+/// <summary>How a move treats the shell (ADR-0045). Omitted means PopOut.</summary>
+public enum ShellPolicy : byte
+{
+    /// <summary>Starting the move pops her out; from a grounded shell it starts at skate speed.</summary>
+    PopOut = 0,
+    /// <summary>The move runs in the shell, tucking her if she is not; when it ends she is back in the shell.</summary>
+    Tuck = 1,
+}
 
 public sealed record CharacterMovementSource(
     float RunSpeed,
@@ -89,7 +114,8 @@ public sealed record CharacterPresentationSource(
     string Grab = "",
     string Grabbed = "",
     string ThrowForward = "",
-    string AirDodge = "");
+    string AirDodge = "",
+    string Shell = "");
 
 public sealed record HurtboxCapsuleSource(
     float StartX,
@@ -134,7 +160,8 @@ public sealed record CharacterSlotSource(
     string? AimAnimationId = null,
     bool AllowSlideCarry = false,
     string? HitPresentationId = null,
-    float AimMovementSpeedScale = 1f);
+    float AimMovementSpeedScale = 1f,
+    ShellPolicy ShellPolicy = ShellPolicy.PopOut);
 
 public sealed record ChargePoolSource(int MaxCharges, ushort RegenTicks);
 public sealed record CharacterAliasSource(string From, string To);
@@ -442,6 +469,32 @@ public sealed record SteeredChargeCapabilityParameters(
     string HitEndingPresentationId = "",
     string MissEndingPresentationId = "",
     string AirEndingPresentationId = "") : TypedCapabilityParameters;
+/// <summary>Where a thrust points (ADR-0045).</summary>
+public enum ThrustAim : byte
+{
+    /// <summary>Yaw from the movement stick, facing when it is neutral.</summary>
+    Stick = 0,
+    /// <summary>Yaw toward the current target when it is inside the cone ahead of her facing, else as Stick.</summary>
+    TargetAhead = 1,
+}
+
+/// <summary>
+/// slop.ability.thrust.v1 (runtime API 1.12.0): travel along one direction chosen at start, gravity off,
+/// for <see cref="ThrustTicks"/>, then leave the velocity alone. Pitch runs from the neutral pitch to the
+/// stick pitch with stick magnitude (+90 straight up). An optional trail hitbox is authored in the travel
+/// frame (+Z along the travel, behind her is -Z) and lasts as long as the thrust.
+/// </summary>
+public sealed record ThrustCapabilityParameters(
+    ThrustAim Aim,
+    float TargetConeDegrees,
+    float NeutralPitchDegrees,
+    float StickPitchDegrees,
+    float Speed,
+    float Acceleration,
+    float MaxSpeed,
+    bool KeepIncomingSpeed,
+    ushort ThrustTicks,
+    HitboxSource? TrailHitbox = null) : TypedCapabilityParameters;
 public sealed record TargetedLeapCapabilityParameters(
     ushort MaxAimTicks,
     ushort MaxFlightTicks,
@@ -563,6 +616,8 @@ public enum AuthoringVelocityMode : byte
 {
     Absolute = 0,
     Additive = 1,
+    /// <summary>Writes only the vertical speed and keeps horizontal carry (runtime API 1.12.0).</summary>
+    Vertical = 2,
 }
 
 public enum AuthoringUnit : byte

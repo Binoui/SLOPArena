@@ -56,7 +56,6 @@ namespace SlopArena.Client.Network
     /// <summary>An Arcade format and its arena that Master admits for Rooms.</summary>
     public sealed class RoomArcadeEntry
     {
-        public string? Fighter { get; set; }
         public string Format { get; set; } = string.Empty;
         public string Arena { get; set; } = string.Empty;
     }

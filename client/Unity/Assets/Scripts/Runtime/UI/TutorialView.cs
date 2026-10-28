@@ -219,11 +219,15 @@ namespace SlopArena.Client.UI
 
         private (string Title, string Hint) Describe(TutorialLessonId lesson, bool gamepad) => lesson switch
         {
-            TutorialLessonId.MoveAndLook => ("MOVE & LOOK", "You always move relative to the camera."),
+            TutorialLessonId.MoveAndLook => ("MOVE & LOOK", gamepad && StickSpecials
+                ? "You always move relative to the camera. Run around the dummy and the camera turns to keep it in view."
+                : "You always move relative to the camera."),
             TutorialLessonId.Jump => ("JUMP", "Tap jump for a short hop, hold it for a full jump. You get one more jump in the air."),
             TutorialLessonId.FastFall => ("FAST FALL", "Fast falling gets you back on the ground sooner."),
-            TutorialLessonId.Attacks => ("ATTACKS", "Three buttons, three different moves."),
+            TutorialLessonId.Attacks => ("ATTACKS", "Quick hit, upward hit, big hit. Each normal has a job."),
             TutorialLessonId.Aerials => ("AERIALS", "The same buttons do different moves in the air."),
+            TutorialLessonId.Beeline => ("BEELINE", "Beeline, then attack on arrival. Nothing in reach means a punishable miss."),
+            TutorialLessonId.BeelineTricks => ("BEELINE TRICKS", "Block a swing, then Beeline to punish. It homes on the nearest opponent within 20 m; no lock needed. Cooldowns are off."),
             TutorialLessonId.Specials => ("SPECIALS", "Specials hit harder but need to recharge. E also helps you get back to the stage."),
             TutorialLessonId.Recovery => ("RECOVERY", AimedRecovery
                 ? "There are no ledges to grab. Use your air jump, then hold E, aim at the stage and release."
@@ -244,10 +248,15 @@ namespace SlopArena.Client.UI
             TutorialObjectiveId.ReachTallBlock => "Stand on the "
                 + _layout.TallBlockHeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " m block",
             TutorialObjectiveId.FastFall => "While falling, press Down to fast fall",
-            TutorialObjectiveId.HitNormal1 => "Hit the dummy with " + MoveName(AbilitySlots.Slot1),
-            TutorialObjectiveId.HitNormal3 => "Hit the dummy with " + MoveName(AbilitySlots.Slot3),
-            TutorialObjectiveId.HitNormal4 => "Hit the dummy with " + MoveName(AbilitySlots.Slot4),
+            TutorialObjectiveId.HitNormal1 => "Quick hit: " + MoveName(AbilitySlots.Slot1),
+            TutorialObjectiveId.HitNormal3 => "Hit upward: " + MoveName(AbilitySlots.Slot3),
+            TutorialObjectiveId.HitNormal4 => "Big hit: " + MoveName(AbilitySlots.Slot4),
             TutorialObjectiveId.LandAerials => "Hit the dummy with two different aerials",
+            TutorialObjectiveId.BeelineHit => "Beeline to the dummy, then hit on the ground",
+            TutorialObjectiveId.BeelineAerial => "Jump, Beeline, then hit with an aerial",
+            TutorialObjectiveId.BeelineOutOfShield => "Beeline straight out of Shield",
+            TutorialObjectiveId.BeelineRecovery => "Drop off an edge, Beeline and land back on stage",
+            TutorialObjectiveId.BeelineChase => "Launch the dummy, Beeline after it and hit it",
             TutorialObjectiveId.UseSpecialA => "Use " + MoveName(AbilitySlots.A),
             TutorialObjectiveId.UseSpecialE => "Use " + MoveName(AbilitySlots.E),
             TutorialObjectiveId.UseSpecialR => "Use " + MoveName(AbilitySlots.R),
@@ -293,7 +302,8 @@ namespace SlopArena.Client.UI
         {
             TutorialObjectiveId.Run => gamepad ? "L-STICK"
                 : Key("MoveUp", false) + Key("MoveLeft", false) + Key("MoveDown", false) + Key("MoveRight", false),
-            TutorialObjectiveId.LookAround => gamepad ? "R-STICK" : "MOUSE",
+            // With right-stick specials the Steady camera turns as you circle the dummy.
+            TutorialObjectiveId.LookAround => !gamepad ? "MOUSE" : StickSpecials ? "L-STICK" : "R-STICK",
             TutorialObjectiveId.StandOnBlock or TutorialObjectiveId.DoubleJump or TutorialObjectiveId.ReachTallBlock
                 or TutorialObjectiveId.RecoverToStage => Key("Jump", gamepad),
             TutorialObjectiveId.FastFall => Key("Down", gamepad),
@@ -301,19 +311,36 @@ namespace SlopArena.Client.UI
             TutorialObjectiveId.HitNormal3 => Key("Slot3", gamepad),
             TutorialObjectiveId.HitNormal4 => Key("Slot4", gamepad),
             TutorialObjectiveId.LandAerials or TutorialObjectiveId.Throw
-                => Key("Slot1", gamepad) + (gamepad ? " " : "-") + Key("Slot4", gamepad),
+                => Key("Slot1", gamepad) + " " + Key("Slot3", gamepad) + " " + Key("Slot4", gamepad),
+            TutorialObjectiveId.BeelineHit or TutorialObjectiveId.BeelineRecovery or TutorialObjectiveId.BeelineChase
+                => Key("Dash", gamepad),
+            TutorialObjectiveId.BeelineAerial => Key("Jump", gamepad) + ", " + Key("Dash", gamepad),
+            TutorialObjectiveId.BeelineOutOfShield => Key("Shield", gamepad) + ", " + Key("Dash", gamepad),
             TutorialObjectiveId.UseSpecialA => Special("SlotA", "Jump", gamepad),
             TutorialObjectiveId.UseSpecialE => Special("SlotE", "Slot3", gamepad),
             TutorialObjectiveId.UseSpecialR => Special("SlotR", "Slot1", gamepad),
             TutorialObjectiveId.UseSpecialF => Special("SlotF", "Slot4", gamepad),
             TutorialObjectiveId.BlockAttacks or TutorialObjectiveId.AirDodge => Key("Shield", gamepad),
-            TutorialObjectiveId.Grab => gamepad ? Key("SpecialModifier", true) + " + " + Key("Shield", true) : Key("Grab", false),
+            TutorialObjectiveId.Grab => gamepad && !StickSpecials
+                ? Key("SpecialModifier", true) + " + " + Key("Shield", true) : Key("Grab", gamepad),
             _ => "",
         };
 
-        /// <summary>Specials are their own keys on keyboard and the modifier plus a face button on gamepad.</summary>
+        /// <summary>
+        /// Specials are their own keys on keyboard. On gamepad they are a right-stick direction, or
+        /// the modifier plus a face button when the right stick is the camera stick.
+        /// </summary>
         private static string Special(string keyboardAction, string face, bool gamepad)
-            => gamepad ? Key("SpecialModifier", true) + " + " + Key(face, true) : Key(keyboardAction, false);
+        {
+            if (!gamepad) return Key(keyboardAction, false);
+            if (!StickSpecials) return Key("SpecialModifier", true) + " + " + Key(face, true);
+            return "R-STICK " + keyboardAction switch
+            {
+                "SlotE" => "UP", "SlotR" => "LEFT", "SlotF" => "RIGHT", _ => "DOWN",
+            };
+        }
+
+        private static bool StickSpecials => HumanInputActions.RightStickSpecials;
 
         private static string Key(string action, bool gamepad)
         {

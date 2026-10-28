@@ -19,7 +19,7 @@ public readonly struct MayhemThreats
         input = default;
         if (Rings == null || !self.IsGrounded || self.HitstopTicks > 0 || self.HitstunTicks > 0
             || self.LandingLagTicks > 0 || self.AnimLockTicks > 0 || self.InteractionId != 0
-            || self.State is not (ActionState.Idle or ActionState.Run)) return false;
+            || !ActionStates.AdmitsActions(self.State)) return false;
         if (Walls != null)
         {
             RuntimeSolid? exit = null;

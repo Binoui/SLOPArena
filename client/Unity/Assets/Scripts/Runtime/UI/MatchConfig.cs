@@ -93,7 +93,7 @@ namespace SlopArena.Client.UI
         public static void LeaveSoloSeat(int playerNumber)
         {
             ref var seat = ref Seat(playerNumber);
-            seat.Kind = SoloOpponentCount > 1 ? SeatKind.Open : SeatKind.Cpu;
+            seat.Kind = LocalMode == LocalPlayMode.CharacterCourse || SoloOpponentCount > 1 ? SeatKind.Open : SeatKind.Cpu;
             seat.DeviceId = 0;
             seat.Difficulty = CpuDifficulty.Normal;
         }

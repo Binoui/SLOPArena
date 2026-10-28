@@ -39,6 +39,7 @@ namespace SlopArena.EditorTools
             public LocalPlayMode localMode;
             public CharacterClass playerClass;
             public int nextChunk;
+            public SoloSeat[] seats;
         }
 
         [CliCommand("sloparena.replay.prepare", "Validate a course replay, save Editor state, isolate records and open its local course scene.", MainThreadRequired = true, Tags = new[] { "arcade", "replay" })]
@@ -46,7 +47,8 @@ namespace SlopArena.EditorTools
             [CliArg("session", "Runner session ID.", Required = true)] string session,
             [CliArg("stage", "Baked Character Course key.", Required = true)] string stage,
             [CliArg("fighter", "Admitted package ID.", Required = true)] string fighter,
-            [CliArg("output", "Fresh runner artifact directory containing chunks.json.", Required = true)] string output)
+            [CliArg("output", "Fresh runner artifact directory containing chunks.json.", Required = true)] string output,
+            [CliArg("extra-fighters", "Comma-separated P2–P4 packages for a local Scramble probe; empty keeps the solo replay.")] string extraFighters = "")
         {
             if (!Guid.TryParseExact(session, "N", out _) || !Regex.IsMatch(stage ?? "", "^[a-z][a-z0-9_]{0,99}$"))
                 throw new ArgumentException("Invalid replay session or stage key.");
@@ -75,10 +77,13 @@ namespace SlopArena.EditorTools
                 throw new InvalidOperationException("Local content catalog: " + failure);
             var entry = catalog.ResolvePackage(fighter);
             if (entry == null || !arena.Value.Arcade.AllowsPackage(fighter)) throw new ArgumentException("The course does not admit package " + fighter);
+            var extras = string.IsNullOrWhiteSpace(extraFighters) ? Array.Empty<string>() : extraFighters.Split(',');
+            if (extras.Length > 3 || extras.Any(id => catalog.ResolvePackage(id)?.LegacySelector == null))
+                throw new ArgumentException("Scramble needs one to three additional admitted fighter packages.");
             var view = GameView();
             var saved = new Saved
             {
-                session = session, stage = stage, fighter = fighter, output = directory, chunksHash = Hash(System.Text.Encoding.UTF8.GetBytes(chunksText)),
+                session = session, stage = stage, fighter = fighter, output = directory, seats = (SoloSeat[])MatchConfig.SoloSeats.Clone(), chunksHash = Hash(System.Text.Encoding.UTF8.GetBytes(chunksText)),
                 stageHash = Hash(ArenaBinaryFormat.Serialize(arena.Value)), cookedHash = entry.Identity.CookedContentHash, packageHash = entry.Identity.PackageHash,
                 scenes = scenes, selection = Selection.objects.Select(x => GlobalObjectId.GetGlobalObjectIdSlow(x).ToString()).ToArray(),
                 optionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, options = (int)EditorSettings.enterPlayModeOptions,
@@ -96,6 +101,9 @@ namespace SlopArena.EditorTools
             EditorApplication.isPaused = false; Time.timeScale = 1;
             ArcadeRecordsStore.VerificationDirectory = Path.Combine(directory, "records");
             CharacterCourseMatch.FreezeOnStartForProbe = true; CharacterCourseMatch.MovementTipsEnabled = false;
+            Array.Clear(MatchConfig.SoloSeats, 0, MatchConfig.SoloSeats.Length);
+            for (int i = 0; i < extras.Length; i++) MatchConfig.Seat(i + 2) = new SoloSeat
+                { Kind = SeatKind.LocalPlayer, Fighter = catalog.ResolvePackage(extras[i]).LegacySelector.Value };
             MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.CharacterCourse; MatchConfig.ArenaName = stage; MatchConfig.PlayerPackageId = fighter;
             if (entry.LegacySelector.HasValue) MatchConfig.PlayerClass = entry.LegacySelector.Value;
             EditorSceneManager.OpenScene(SlopArenaCharacterCourseCommands.ScenePath, OpenSceneMode.Single);
@@ -140,12 +148,13 @@ namespace SlopArena.EditorTools
             [CliArg("pitch", "Optional camera pitch in degrees (0–45).")] float? pitch = null)
         {
             var saved = Read(session); var match = Object.FindFirstObjectByType<CharacterCourseMatch>();
-            if (match == null || !match.Ready || !match.ProbeFrozen || match.Simulation.Course.Value.ElapsedTicks != (ulong)tick)
+            if (match == null || !match.Ready || !match.ProbeFrozen || (match.Simulation.OnlineCourse?.ElapsedTicks ?? match.Simulation.Course?.ElapsedTicks) != (ulong)tick)
                 throw new InvalidOperationException("Capture tick was not reached exactly at a frozen replay boundary (the course may have ended earlier).");
             string fullOutput = Path.GetFullPath(Path.Combine(RepositoryRoot(), output));
             if (!fullOutput.StartsWith(saved.output + Path.DirectorySeparatorChar, StringComparison.Ordinal)) throw new ArgumentException("Capture must stay inside this replay's artifact directory.");
             if (yaw.HasValue != pitch.HasValue || (yaw.HasValue && (float.IsNaN(yaw.Value) || float.IsInfinity(yaw.Value) || yaw < -360 || yaw > 360 || float.IsNaN(pitch.Value) || pitch < 0 || pitch > 45)))
                 throw new ArgumentException("Camera needs finite yaw -360..360 and pitch 0..45 together.");
+            if (match.IsScramble && yaw.HasValue) throw new ArgumentException("Scramble captures retain the actual leader camera.");
             if (yaw.HasValue)
             {
                 var camera = Object.FindFirstObjectByType<CameraMount>();
@@ -153,7 +162,7 @@ namespace SlopArena.EditorTools
                 camera.SetCameraYawDeg(yaw.Value); camera.SetCameraPitchDeg(pitch.Value);
             }
             var capture = await SlopArenaCaptureCommands.Capture(output, "screen");
-            if (match.Simulation.Course.Value.ElapsedTicks != (ulong)tick) throw new InvalidOperationException("Simulation drifted while capturing.");
+            if ((match.Simulation.OnlineCourse?.ElapsedTicks ?? match.Simulation.Course?.ElapsedTicks) != (ulong)tick) throw new InvalidOperationException("Simulation drifted while capturing.");
             return new { success = true, tick, capture };
         }
 
@@ -177,6 +186,7 @@ namespace SlopArena.EditorTools
             ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             CharacterCourseMatch.FreezeOnStartForProbe = saved.freezeOnStart; CharacterCourseMatch.MovementTipsEnabled = saved.tips;
             MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.PlayerPackageId = saved.playerPackageId; MatchConfig.PlayerClass = saved.playerClass;
+            if (saved.seats != null) Array.Copy(saved.seats, MatchConfig.SoloSeats, MatchConfig.SoloSeats.Length);
             Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             Selection.objects = saved.selection.Select(x => GlobalObjectId.TryParse(x, out var id) ? GlobalObjectId.GlobalObjectIdentifierToObjectSlow(id) : null).Where(x => x != null).ToArray();

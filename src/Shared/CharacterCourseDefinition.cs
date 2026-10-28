@@ -84,11 +84,13 @@ namespace SlopArena.Shared
         public IReadOnlyList<CourseTargetDefinition> Targets { get; }
         public IReadOnlyList<CourseCheckpointDefinition> Checkpoints { get; }
         public ArcadeVolume Finish { get; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public CourseRacingLine? RacingLine { get; }
         /// <summary>True when some target takes more than one hit (arena section v6).</summary>
         [System.Text.Json.Serialization.JsonIgnore]
         public bool HasMultiHitTargets { get; }
         public CharacterCourseDefinition(IReadOnlyList<CourseTargetDefinition> targets,
-            IReadOnlyList<CourseCheckpointDefinition> checkpoints, ArcadeVolume finish)
+            IReadOnlyList<CourseCheckpointDefinition> checkpoints, ArcadeVolume finish, CourseRacingLine? racingLine = null)
         {
             if (targets == null || targets.Count == 0 || targets.Count > MaxTargets
                 || checkpoints == null || checkpoints.Count > 32 || finish == null)
@@ -113,6 +115,16 @@ namespace SlopArena.Shared
                 previous = checkpoint.RequiredTargetCount; checkpointCopy[i] = checkpoint;
             }
             Targets = Array.AsReadOnly(targetCopy); Checkpoints = Array.AsReadOnly(checkpointCopy); Finish = finish;
+            RacingLine = racingLine;
+            if (racingLine != null)
+            {
+                var end = racingLine.Points[racingLine.Points.Count - 1];
+                float tolerance = CourseRacingLine.EndpointTolerance;
+                if (MathF.Abs(end.X - finish.Center.X) > finish.HalfSize.X + tolerance
+                    || MathF.Abs(end.Y - finish.Center.Y) > finish.HalfSize.Y + tolerance
+                    || MathF.Abs(end.Z - finish.Center.Z) > finish.HalfSize.Z + tolerance)
+                    throw new ArgumentException("Racing line must end near the finish volume.");
+            }
         }
 
         internal static void ValidateId(string id)
@@ -135,6 +147,17 @@ namespace SlopArena.Shared
                 if (!Inside(checkpoint.Volume.Center, checkpoint.Volume.HalfSize) || !Inside(checkpoint.Respawn, default))
                     throw new ArgumentException("Course checkpoint is outside the stage's blast bounds: " + checkpoint.Id);
             if (!Inside(Finish.Center, Finish.HalfSize)) throw new ArgumentException("Course finish is outside the stage's blast bounds.");
+            if (RacingLine != null)
+            {
+                foreach (var point in RacingLine.Points)
+                    if (!Inside(point, default)) throw new ArgumentException("Racing line is outside the stage's blast bounds.");
+                if (arena.SpawnPoints == null || arena.SpawnPoints.Length == 0)
+                    throw new ArgumentException("A racing line needs a course start.");
+                var spawn = arena.SpawnPoints[0];
+                if (CourseRacingLine.DistanceSquared(RacingLine.Points[0], new(spawn.X, spawn.Y, spawn.Z))
+                    > CourseRacingLine.EndpointTolerance * CourseRacingLine.EndpointTolerance)
+                    throw new ArgumentException("Racing line must begin near the course start.");
+            }
         }
     }
 }

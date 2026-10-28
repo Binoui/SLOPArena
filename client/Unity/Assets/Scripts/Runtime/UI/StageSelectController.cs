@@ -36,6 +36,7 @@ namespace SlopArena.Client.UI
         private LobbyClient _lobby;
         private ChatSession _chatSession;
         private bool _roomMode;
+        private bool LocalCourse => MatchConfig.Mode == GameMode.Arcade && LocalPlayModes.Current.CourseFirst;
         private RoomSnapshot _roomSnapshot;
         private bool _roomActionPending;
         private bool _confirmInFlight;
@@ -71,24 +72,30 @@ namespace SlopArena.Client.UI
 
             _roomMode = MatchConfig.Mode == GameMode.PvP &&
                 ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room;
+            if (LocalCourse)
+            {
+                var style = Resources.Load<StyleSheet>("UI/LocalPlay");
+                foreach (var root in _context.OwnedRoots)
+                    if (style != null) root.styleSheets.Add(style);
+            }
             bool isOnline = MatchConfig.Mode == GameMode.PvP;
             bool isTraining = MatchConfig.Mode == GameMode.Training;
             bool isHost = _roomMode ? false : !isOnline || ClientSession.IsLobbyHost;
             SetModeChrome(_roomMode ? "ROOM // WHAT DO WE PLAY?" : isOnline ? "ONLINE // SELECT STAGE" :
-                isTraining ? "TRAINING // SELECT STAGE" : LocalPlayModes.Current.Title + " // SELECT STAGE",
-                _roomMode ? "STEP 1 OF 2  /  WHAT TO PLAY" : isTraining || isOnline ? "STEP 2 OF 2  /  STAGE" : $"STEP {LocalPlayModes.Current.TotalSteps} OF {LocalPlayModes.Current.TotalSteps}  /  STAGE");
+                isTraining ? "TRAINING // SELECT STAGE" : LocalPlayModes.Current.Title + (LocalCourse ? " // SELECT COURSE" : " // SELECT STAGE"),
+                _roomMode ? "STEP 1 OF 2  /  WHAT TO PLAY" : LocalCourse ? "STEP 2 OF 3  /  COURSE" : isTraining || isOnline ? "STEP 2 OF 2  /  STAGE" : $"STEP {LocalPlayModes.Current.TotalSteps} OF {LocalPlayModes.Current.TotalSteps}  /  STAGE");
             _context.Q<Label>("subtitle").text = _roomMode
                 ? (isHost ? "CHOOSE WHAT THE ROOM PLAYS" : "THE ROOM LEADER IS CHOOSING WHAT TO PLAY")
-                : isHost ? "CHOOSE YOUR BATTLEGROUND" : "THE HOST WILL CHOOSE THE BATTLEGROUND";
+                : LocalCourse ? "CHOOSE A COURSE, THEN ANY FIGHTER" : isHost ? "CHOOSE YOUR BATTLEGROUND" : "THE HOST WILL CHOOSE THE BATTLEGROUND";
             _context.Q<Label>("lbl-host").text = _roomMode
                 ? (isHost ? "ROOM LEADER CHOOSES" : "WAITING FOR ROOM LEADER")
                 : isOnline ? (isHost ? "HOST CHOOSES THE STAGE" : "WAITING FOR HOST")
-                : "YOU CHOOSE THE STAGE";
+                : LocalCourse ? "ANY FIGHTER · 1–4 HUMAN SEATS" : "YOU CHOOSE THE STAGE";
 
             if (_btnConfirm != null)
             {
                 _btnConfirm.style.display = DisplayStyle.None;
-                _btnConfirm.text = _roomMode ? "PICK FIGHTERS" : isOnline ? "START MATCH" :
+                _btnConfirm.text = _roomMode || LocalCourse ? "PICK FIGHTERS" : isOnline ? "START MATCH" :
                     isTraining ? "ENTER TRAINING" : "START " + LocalPlayModes.Current.Title;
             }
             if (_lblWaiting != null)
@@ -106,14 +113,14 @@ namespace SlopArena.Client.UI
             Button firstStageButton = null;
             int stageCount = 0;
             var roster = StageRoster.Load();
-            foreach (var arena in ArenaRegistry.All)
+            foreach (var arena in LocalCourse ? LocalChallengeSetup.AvailableCourses().Select(course => course.Arena) : ArenaRegistry.All)
             {
-                if (!roster.Offers(arena.Name, isTraining)) continue;
+                if (!LocalCourse && !roster.Offers(arena.Name, isTraining)) continue;
                 string? baked = BakedContentPaths.ResolveArena(arena.Name);
                 if (baked == null) continue;
                 var arenaOpt = ArenaBinaryFormat.LoadFromFile(baked);
                 if (arenaOpt is not ArenaDefinition arenaDef) continue;
-                if (arenaDef.Purpose != ArenaPurpose.PvP) continue;
+                if (LocalCourse ? arenaDef.Arcade?.Course == null : arenaDef.Purpose != ArenaPurpose.PvP) continue;
                 if (arenaDef.CollisionTriangles == null || arenaDef.CollisionTriangles.Length == 0) continue;
                 if (Resources.Load<GameObject>($"Stages/{arena.Name}") == null) continue;
 
@@ -123,7 +130,9 @@ namespace SlopArena.Client.UI
                     name = $"stage-{arena.Name}"
                 };
                 card.AddToClassList("stage-card");
-                card.tooltip = DisplayName(arena);
+                card.EnableInClassList("stage-course-card", LocalCourse);
+                string title = LocalCourse ? CharacterCourseMatch.Course(arena.Name).Title : DisplayName(arena);
+                card.tooltip = title;
                 card.RegisterCallback<FocusInEvent>(_ => ShowHero(capturedName));
                 card.RegisterCallback<PointerEnterEvent>(_ => ShowHero(capturedName));
                 card.RegisterCallback<FocusOutEvent>(_ => ShowHero(_selectedArena));
@@ -132,13 +141,14 @@ namespace SlopArena.Client.UI
                 var swatch = new VisualElement();
                 swatch.AddToClassList("stage-swatch");
                 var preview = Resources.Load<Texture2D>($"UI/Stages/{arena.Name}");
+                swatch.EnableInClassList("local-poster--course", LocalCourse && preview == null);
                 if (preview != null)
                     swatch.style.backgroundImage = new StyleBackground(preview);
                 else if (!string.IsNullOrEmpty(arena.PreviewColor) &&
                     ColorUtility.TryParseHtmlString(arena.PreviewColor, out var swatchColor))
                     swatch.style.backgroundColor = swatchColor;
 
-                var label = new Label(DisplayName(arena));
+                var label = new Label(title);
                 label.AddToClassList("stage-name");
                 card.Add(swatch);
                 card.Add(label);
@@ -173,7 +183,7 @@ namespace SlopArena.Client.UI
             // Solo keeps its in-flow stage choice through backward navigation;
             // online stage selection derives from server state, never from a
             // restored preference left by a previous flow (issue #213).
-            else if (MatchConfig.Mode == GameMode.Solo && !string.IsNullOrEmpty(MatchConfig.ArenaName) &&
+            else if ((MatchConfig.Mode == GameMode.Solo || LocalCourse) && !string.IsNullOrEmpty(MatchConfig.ArenaName) &&
                 MatchConfig.ArenaName != "training" &&
                 _grid?.Q<VisualElement>($"stage-{MatchConfig.ArenaName}") != null)
             {
@@ -182,7 +192,7 @@ namespace SlopArena.Client.UI
             // Local modes always open with a stage chosen, so the start action is
             // visible at once: Training's own arena, or Solo's first stage when no
             // earlier Solo stage is remembered.
-            else if ((isTraining || MatchConfig.Mode == GameMode.Solo) && firstStageButton != null)
+            else if ((isTraining || MatchConfig.Mode == GameMode.Solo || LocalCourse) && firstStageButton != null)
             {
                 SelectStage(firstStageButton.name.Substring("stage-".Length));
             }
@@ -190,7 +200,7 @@ namespace SlopArena.Client.UI
             BindRoomTabs();
 
             var btnBack = _context.Q<Button>("btn-back");
-            Action back = _roomMode ? BackToRoom : BackToFighterSelect;
+            Action back = _roomMode ? BackToRoom : LocalCourse ? () => FrontendController.Show(FrontendPage.ModeSelect) : BackToFighterSelect;
             if (btnBack != null)
             {
                 btnBack.clicked += back;
@@ -880,6 +890,12 @@ namespace SlopArena.Client.UI
                 return;
             }
 
+            if (LocalCourse)
+            {
+                MatchConfig.ArenaName = _selectedArena;
+                FrontendController.Show(FrontendPage.FighterSelect);
+                return;
+            }
             if (MatchConfig.Mode == GameMode.Solo && MatchConfig.SoloOpponentCount == 0) return;
             MatchConfig.ArenaName = _selectedArena;
             if (MatchConfig.Mode != GameMode.PvP)
@@ -982,10 +998,13 @@ namespace SlopArena.Client.UI
         {
             if (_hero == null) return;
             var preview = string.IsNullOrEmpty(name) ? null : Resources.Load<Texture2D>($"UI/Stages/{name}");
-            _hero.style.backgroundImage = preview != null ? new StyleBackground(preview) : new StyleBackground(StyleKeyword.None);
+            _hero.EnableInClassList("local-poster--course", LocalCourse && preview == null);
+            _hero.style.backgroundImage = preview != null ? new StyleBackground(preview)
+                : new StyleBackground(LocalCourse ? StyleKeyword.Null : StyleKeyword.None);
             ArenaDefinition? arena = string.IsNullOrEmpty(name) ? null : ArenaRegistry.Get(name);
             if (_heroName == null) return;
-            _heroName.text = arena.HasValue ? DisplayName(arena.Value) : "";
+            _heroName.text = LocalCourse && !string.IsNullOrEmpty(name) ? CharacterCourseMatch.Course(name).Title
+                : arena.HasValue ? DisplayName(arena.Value) : "";
             _heroName.style.SetDisplay(arena.HasValue);
         }
     }

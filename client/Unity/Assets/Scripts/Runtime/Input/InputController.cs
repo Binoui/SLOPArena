@@ -137,7 +137,7 @@ namespace SlopArena.Client.Input
                         return true;
             foreach (byte heldSlot in _controllerSlots)
                 if (heldSlot == slotIdx + 1) return true;
-            return false;
+            return _stickSlot != 0 && _stickSlot == slotIdx + 1;
         }
 
         private static string SlotAction(byte slotIdx) => slotIdx switch
@@ -156,6 +156,12 @@ namespace SlopArena.Client.Input
         // Face-button slots are fixed at press time; changing the modifier never changes a hold.
         private readonly byte[] _controllerSlots = new byte[4];
         private readonly ButtonControl?[] _controllerButtons = new ButtonControl?[4];
+        // Right-stick specials: the slot a flick picked stays held until the stick returns to centre.
+        private const float StickSpecialPress = 0.6f;
+        private const float StickSpecialRelease = 0.35f;
+        private byte _stickSlot;
+        private bool _stickNeedsCentre;
+        private static bool StickSpecials => HumanInputActions.RightStickSpecials;
         private bool HumanInputBlocked => HumanInputSuppressed || _humanReleaseRequired;
 
         public void RequireReleaseBeforeHumanInput()
@@ -240,7 +246,8 @@ namespace SlopArena.Client.Input
 
             if (Act("FaceToCamera").WasPressedThisFrame())
                 _pendingFaceToCamera = true;
-            if (Act("ToggleLock").WasPerformedThisFrame())
+            // An R3 click during a special flick is part of the flick, not a lock toggle.
+            if (Act("ToggleLock").WasPerformedThisFrame() && _stickSlot == 0)
                 _pendingToggleLock = true;
             if (Act("Retarget").WasPressedThisFrame())
                 _pendingRetarget = true;
@@ -261,7 +268,7 @@ namespace SlopArena.Client.Input
         private bool PollSlots()
         {
             bool jumpBecameSpecial = false;
-            bool modifier = Act("SpecialModifier").IsPressed();
+            bool modifier = !StickSpecials && Act("SpecialModifier").IsPressed();
             for (int face = 0; face < 4; face++)
             {
                 var held = _controllerButtons[face];
@@ -296,12 +303,40 @@ namespace SlopArena.Client.Input
                 if (Act(actionName).WasPressedThisFrame() && _pendingSlotPress == 0)
                     _pendingSlotPress = slot;
             }
+            if (StickSpecials) PollStickSpecial();
+            else _stickSlot = 0;
             return jumpBecameSpecial;
         }
+
+        /// <summary>
+        /// A right-stick flick past 60% presses the special in that direction. Holding the stick
+        /// holds the slot for aiming and charging; a new special needs the stick back near centre.
+        /// </summary>
+        private void PollStickSpecial()
+        {
+            Vector2 stick = Act("StickLook").ReadValue<Vector2>();
+            float magnitude = stick.magnitude;
+            if (magnitude < StickSpecialRelease)
+            {
+                _stickSlot = 0;
+                _stickNeedsCentre = false;
+                return;
+            }
+            if (_stickSlot != 0 || _stickNeedsCentre || magnitude < StickSpecialPress) return;
+            _stickSlot = StickSpecialSlot(stick);
+            if (_pendingSlotPress == 0) _pendingSlotPress = _stickSlot;
+        }
+
+        /// <summary>The face diamond on the stick: up E (Y), left R (X), right F (B), down A (A).</summary>
+        public static byte StickSpecialSlot(Vector2 stick) =>
+            Mathf.Abs(stick.x) > Mathf.Abs(stick.y)
+                ? stick.x > 0f ? AbilitySlots.F : AbilitySlots.R
+                : stick.y > 0f ? AbilitySlots.E : AbilitySlots.A;
         private void PollDefense()
         {
             var shield = Act("Shield");
             var modifier = Act("SpecialModifier");
+            bool stickSpecials = StickSpecials;
             bool rtHeld = false;
             bool rtPressed = false;
             bool desktopShieldPressed = false;
@@ -315,10 +350,17 @@ namespace SlopArena.Client.Input
                 else if (control.device is Keyboard or Mouse)
                     desktopShieldPressed |= WasControlPressedThisFrame(control, shield);
             }
+            // Grab's LB binding is the special modifier unless the right stick holds the specials.
+            bool grabPressed = false;
+            var grab = Act("Grab");
+            foreach (var control in grab.controls)
+                if (control.device is Gamepad && control is ButtonControl button)
+                    grabPressed |= stickSpecials && button.wasPressedThisFrame;
+                else if (control.device is Keyboard or Mouse)
+                    grabPressed |= WasControlPressedThisFrame(control, grab);
             _defenseInputEdges.Update(
-                shield.IsPressed(), rtHeld, rtPressed, modifier.IsPressed(),
-                modifier.WasPressedThisFrame(), desktopShieldPressed,
-                Act("Grab").WasPressedThisFrame());
+                shield.IsPressed(), rtHeld, rtPressed, !stickSpecials && modifier.IsPressed(),
+                !stickSpecials && modifier.WasPressedThisFrame(), desktopShieldPressed, grabPressed);
         }
 
         private static bool WasControlPressedThisFrame(InputControl control, InputAction action) =>
@@ -349,6 +391,8 @@ namespace SlopArena.Client.Input
             _pendingSlotPress = 0;
             Array.Clear(_controllerSlots, 0, _controllerSlots.Length);
             Array.Clear(_controllerButtons, 0, _controllerButtons.Length);
+            _stickNeedsCentre |= _stickSlot != 0;
+            _stickSlot = 0;
             if (IsDownHeld())
                 _downReleaseRequired = true;
         }
@@ -389,13 +433,16 @@ namespace SlopArena.Client.Input
             return Vector2.ClampMagnitude(keyboard + stick, 1f);
         }
 
-        /// <summary>Stationary aim uses the left stick; the right stick remains a fallback.</summary>
+        /// <summary>
+        /// Stationary aim uses the left stick. The right stick is a fallback only while it is the
+        /// camera stick; with right-stick specials it is holding the special.
+        /// </summary>
         public Vector2 GetAimStick(bool locksMovement)
         {
             if (HumanInputBlocked) return Vector2.zero;
             Vector2 left = Act("MoveStick").ReadValue<Vector2>();
-            return locksMovement && left.sqrMagnitude > 0.01f
-                ? left : Act("StickLook").ReadValue<Vector2>();
+            if (locksMovement && left.sqrMagnitude > 0.01f) return left;
+            return StickSpecials ? Vector2.zero : Act("StickLook").ReadValue<Vector2>();
         }
 
         // ════════════════════════════════════════════════════════════════

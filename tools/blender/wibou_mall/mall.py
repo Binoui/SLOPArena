@@ -107,6 +107,10 @@ class Mall:
                 self.planter(name)
             elif kind in ("sign", "speaker"):
                 self.hanging_sign(name)
+            elif kind == "balloon":
+                self.sale_balloon(name)
+            elif kind == "service_sign":
+                self.service_sign(name)
         self.podium()
         self.tower()
         self.escalator()
@@ -213,6 +217,37 @@ class Mall:
             for x, z in ((x0 + 0.1, z0 + 0.1), (x1 - 0.1, z1 - 0.1)):
                 K.cable(m, (x, top, z), (x, DOME + 4.0, z), P.STEEL_DARK, 0.025)
         self.b.part("cable", "Cables", name + "Cables", cables)
+
+    def sale_balloon(self, name):
+        x0, z0, x1, z1, top = self.P[name]
+        base = self.spec["floating"][name]
+        cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+        color = P.PINK if name.endswith("1") else P.YELLOW
+
+        def build(m):
+            geo.lathe(m, (cx, base, cz), [(0.08, 0), (0.38, 0.12), (0.64, 0.42),
+                      (0.67, 0.7), (0.55, 1.02), (0.3, 1.1)], 16, color, cap_bottom=True)
+            for key, plane, u0, u1 in K.box_planes(x0, z0, x1, z1):
+                K.panel(m, plane, u0, top - 0.24, u1, top, P.INK, off=0.02)
+                K.panel(m, plane, u0 + 0.06, top - 0.22, u1 - 0.06, top - 0.02,
+                        P.WHITE, off=0.03, uvs=T.SALE_UV)
+            geo.box_minmax(m, (cx - 0.06, base - 0.12, cz - 0.06), (cx + 0.06, base, cz + 0.06), color)
+        self.b.part("side", "SaleBalloons", name, build)
+
+    def service_sign(self, name):
+        x0, z0, x1, z1, top = self.P[name]
+        base = self.spec["floating"][name]
+        cell = "sole" if name.endswith("1") else "pixel"
+
+        def build(m):
+            for key, plane, u0, u1 in K.box_planes(x0, z0, x1, z1):
+                K.panel(m, plane, u0, base, u1, top, P.INK, off=0.02)
+                with geo.state(m, alpha=1.0):
+                    K.panel(m, plane, u0 + 0.04, base + 0.05, u1 - 0.04, top - 0.05,
+                            P.WHITE, off=0.03, mat=K.GLOW, uvs=T.uv(cell))
+            geo.oriented(m, [(x0, base, z0), (x1, base, z0), (x1, base, z1), (x0, base, z1)],
+                         (0, -1, 0), P.STEEL_DARK)
+        self.b.part("side", "ServiceSigns", name, build)
 
     # ------------------------------------------------------------ the fashion podium
     def podium(self):

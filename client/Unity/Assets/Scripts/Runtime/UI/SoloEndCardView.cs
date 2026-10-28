@@ -79,7 +79,7 @@ namespace SlopArena.Client.UI
         {
             ShowPoster(sharedVictory ? "DOUBLE\nK.O.!" : "BEST\nSLOPPER",
                 sharedVictory ? "SHARED VICTORY" : $"{winningSeat.ToUpperInvariant()} WINS!",
-                winner.ToString().ToUpperInvariant(), winner, shared: sharedVictory);
+                MenuRoster.Name(winner).ToUpperInvariant(), winner, shared: sharedVictory);
         }
 
         /// <summary>

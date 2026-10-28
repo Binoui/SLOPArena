@@ -765,7 +765,7 @@ namespace SlopArena.Client.UI
             {
                 var member = members[index];
                 if (!string.IsNullOrWhiteSpace(member.CharacterSelection))
-                    slot.Add(new Label(member.CharacterSelection.ToUpperInvariant()) { name = "room-character" });
+                    slot.Add(new Label((Enum.TryParse(member.CharacterSelection, true, out CharacterClass picked) ? MenuRoster.Name(picked) : member.CharacterSelection).ToUpperInvariant()) { name = "room-character" });
                 slot.Add(new Label(member.LockedIn ? "LOCKED" : "WAITING")
                     { name = "room-member-status" });
             }

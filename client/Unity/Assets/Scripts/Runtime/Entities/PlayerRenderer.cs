@@ -64,6 +64,7 @@ namespace SlopArena.Client.Entities
             { ActionState.Idle,       new Color(1f, 1f, 1f, 0.8f) },       // white
             { ActionState.Hitstun,    new Color(1f, 0.2f, 0.2f, 0.8f) },   // red
             { ActionState.Sliding,    new Color(0.5f, 0.5f, 0.5f, 0.8f) }, // gray
+            { ActionState.Shell,      new Color(0.2f, 0.8f, 0.7f, 0.8f) }, // teal
             { ActionState.Attacking,  new Color(1f, 0.6f, 0f, 0.8f) },     // orange
             { ActionState.AirDodgeMovement, new Color(1f, 0.8f, 0f, 0.8f) }, // yellow
             { ActionState.AirDodgeRecovery, new Color(1f, 0.8f, 0f, 0.8f) }, // yellow
@@ -975,6 +976,7 @@ namespace SlopArena.Client.Entities
                 }
                 else if (snapshot.State == ActionState.Crouching) id = _charDef.CrouchAnim;
                 else if (snapshot.State == ActionState.Sliding) id = _charDef.SlideAnim;
+                else if (snapshot.State == ActionState.Shell && !string.IsNullOrEmpty(_charDef.ShellAnim)) id = _charDef.ShellAnim;
                 else if (!snapshot.IsGrounded) id = snapshot.VY > 0f ? _charDef.JumpAnim : _charDef.FallAnim;
                 else id = snapshot.VX * snapshot.VX + snapshot.VZ * snapshot.VZ > _runSpeedThreshold * _runSpeedThreshold
                     ? _charDef.RunAnim : _charDef.IdleAnim;
@@ -1397,6 +1399,16 @@ namespace SlopArena.Client.Entities
         {
             _landingLagActive = false;
         }
+        /// <summary>The shell pose (ADR-0045) skating and coasting; it continues a tuck move that showed the same clip.</summary>
+        private bool TryPlayShellPose()
+        {
+            if (!TryGetAnimation(_charDef.ShellAnim, out var clip, out _))
+                return false;
+            if (_animancer.States.Current?.Clip != clip)
+                _currentAnimState = _animancer.Play(clip, 0.1f);
+            return true;
+        }
+
         private bool TryPlayLowPose(string animationId)
         {
             if (string.IsNullOrEmpty(animationId) || _bakedData == null)
@@ -1856,6 +1868,10 @@ namespace SlopArena.Client.Entities
                         _jumpArcActive = true;
                     }
                 }
+                else if (state.State == ActionState.Shell && TryPlayShellPose())
+                {
+                    _jumpArcActive = false;
+                }
                 else if (state.State == ActionState.LedgeHang)
                 {
                     // Placeholder pose: no hang anim asset yet (ADR-0020 §4) — play fall.
@@ -2150,6 +2166,7 @@ namespace SlopArena.Client.Entities
             {
                 "bone.head" => "mixamorig:Head",
                 "bone.hips" => "mixamorig:Hips",
+                "bone.spine2" => "mixamorig:Spine2",
                 "bone.right-hand" => "mixamorig:RightHand",
                 "bone.left-hand" => "mixamorig:LeftHand",
                 "bone.right-foot" => "mixamorig:RightFoot",

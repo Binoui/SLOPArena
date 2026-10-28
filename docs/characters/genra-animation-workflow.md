@@ -122,6 +122,38 @@ breathing and drift, with at most one small, slow gesture, and measure it agains
 those numbers before review. Slowed 3× to a 6 s loop, the salamander's idle fell to
 6.6°/s and 0.054 outside its one gesture.
 
+Author attacks slow and full, then speed them up in the game. The owner has
+called GenRA attacks too fast again and again (2026-10-28, on the salamander's
+new normals, briefed at 35–48 ticks: "needs to take the time to develop and be
+more complex movement wise. we can speed them up easily unity side"). The game
+plays each move clip over its stage's `durationTicks`
+(`PlayerRenderer.GetAnimSpeedFromDuration`), so a clip authored at 70 ticks
+plays at double speed in a 35-tick stage. That is a one-number change in the
+move data. Slowing a rushed clip down later does not add the beats it never had.
+So brief an attack's clock about twice the move's game length. Give the
+anticipation, a weight shift or step, the hit carried through the hips and
+shoulders, follow-through, settle and the overlap the time they need. Then set
+the stage length and hit ticks in proportion. Judge readability from the
+`gameplay` view, which sits behind the fighter. The salamander's backhand and
+uppercut stayed in front of his chest, hidden by his own back, and the owner
+found them "too simple and confusing".
+
+Put a forward hit on the fighter's centre line. GenRA keeps landing the striking
+hand beside the shoulder on its own side, where an opponent standing straight
+ahead is never touched (owner, 2026-10-28, on the salamander's uppercut keys:
+"this uppercut will only hit on right side. this is also a consistent issue, not
+going middle enough for hitting forward"). At contact, target the striking joint
+both on the centre line (a `char` `right` target within a few centimetres of 0)
+and well ahead of the chest or head (an `ahead` target). Say it in the move text
+too, because the model reads the prose before the numbers.
+
+Keep a normal's ending lag plain. After the hit, the body regains its balance
+and the arms take the shortest calm path back to the stance. Don't add a
+gesture, flourish or "cocky beat": the owner called the salamander's brim push,
+shoulder roll and arm swing-round "weird arm movement after the hit... normals
+don't need to have personality in ending lag" (2026-10-28). Character goes into
+the wind-up and the hit. Specials may still end on a gag.
+
 Split a long move into one authoring job per clip the game plays, such as a
 leap's flight and its landing. Chain the jobs with the brief's `entry`/`exit`
 references, so each job starts on the previous job's pose and an accepted phase

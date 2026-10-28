@@ -6,6 +6,7 @@ and 2 (co-op Slopball online, initially protocol 11) are implemented. Slice 3
 slice 4 (Course Race and Co-op, protocol 15) is implemented and awaits human playtests. Decisions 4, 6 and 8 were refined while building slice 2;
 see [Revisions](#revisions-during-slice-2) and the
 [implementation options](../design/online-arcade-implementation.md).
+**Course admission update:** [ADR-0046](0046-courses-open-to-every-fighter.md) supersedes slice 4's one-fighter course lock. Courses admit every roster fighter and use `format:arena`.
 **Extends:** [ADR-0037](0037-arcade-shared-objects-and-unified-stage-artifact.md) (focused
 Shared Arcade objects) and [ADR-0039](0039-full-world-rollback.md) (World Snapshots)
 

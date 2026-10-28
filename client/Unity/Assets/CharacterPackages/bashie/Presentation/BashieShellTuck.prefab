@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4230278285296424027}
-  - component: {fileID: 2099356078330033277}
   - component: {fileID: 7277629564490826703}
   m_Layer: 0
   m_Name: BashieShellTuck
@@ -33,18 +32,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2099356078330033277
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8101341052854985472}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e8a29c545c7202dd841fef2f80097aa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &7277629564490826703
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71,9 +58,8 @@ MonoBehaviour:
     WobbleDegrees: 4
     WobbleHz: 1.6
     FollowAnimatedHeading: 0
-  HoldAnimationIds:
-  - anim.bashie.gr
-  - anim.bashie.gr-slide
+  HoldAnimationIds: []
+  HoldWhileTucked: 1
   InSeconds: 0.1
   OutSeconds: 0.12
   Overshoot: 1.7

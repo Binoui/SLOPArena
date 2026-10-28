@@ -25,8 +25,8 @@ SHEETS = {
                ("manki_aerosol/front.png", "AEROSOL CAN (F)")]),
     "wibou": ("WIBOU", "about 1.05x FightGuy height", 900,
               [("wibou_katana/q3.png", "KATANA (BLACK HILT, STEEL BLADE)"), ("wibou_kunai/q3.png", "KUNAI")]),
-    "bonk": ("BONK", "about 1.7x FightGuy height; huge torso, tiny head", 700,
-             [("bonk_sword/q3.png", "RIVETED PLANK GREATSWORD")]),
+    "bonk": ("SIR BONK", "about 1.5x FightGuy height; bucket helm, junk armour", 760,
+             [("bonk_plank/q3.png", "PLANK GREATSWORD"), ("bonk_lid/front.png", "POT LID (Q)")]),
 }
 
 
@@ -50,7 +50,7 @@ for key, (title, note, height, props) in SHEETS.items():
     extras = []
     for path, caption in props:
         image = trimmed(os.path.join(RENDERS, path), 16)
-        image.thumbnail((760 if "SWORD" in caption or "KATANA" in caption else 420, face_height - 60), Image.LANCZOS)
+        image.thumbnail((760 if "SWORD" in caption or "GREATSWORD" in caption or "KATANA" in caption else 420, face_height - 60), Image.LANCZOS)
         extras.append((caption, image))
     gap, margin, top = 32, 48, 130
     row1 = sum(i.size[0] for _, i in bodies) + gap * 2

@@ -34,6 +34,9 @@ namespace SlopArena.EditorTools
         private const float CanCentre = 0.36f;
         // Blast radii of the cooked capabilities, for the floor rings (metres).
         private const float BlastRadius = 3f, IgnitionRadius = 1.5f;
+        // The jetpack's two can nozzles sit this far either side of the E cues' Spine2 anchor (measured).
+        private const float NozzleHalfSpacing = 0.176f;
+        private static readonly (string Name, float X)[] Nozzles = { ("L", -NozzleHalfSpacing), ("R", NozzleHalfSpacing) };
 
         private static readonly Color Soot = new(0.11f, 0.075f, 0.063f);
         private static readonly Color Ember = new(0.76f, 0.21f, 0.106f);
@@ -255,94 +258,101 @@ namespace SlopArena.EditorTools
             return _kit.Save(root);
         }
 
-        /// <summary>A flaring toon exhaust under the hips while he rises; it ends with the move at the apex.</summary>
+        /// <summary>A flaring toon jet under each can of the jetpack while he rises; it ends with the move at the apex.</summary>
         private static GameObject Exhaust()
         {
             var root = _kit.NewRoot("MankiJetpackExhaust", attackBound: true);
             var frame = Frame(root, upright: true);
-            var glow = Particles(frame, "Glow", _m.Glow, 1f, ParticleSystemSimulationSpace.Local);
-            glow.transform.localPosition = new Vector3(0f, -0.12f, 0f);
-            var main = glow.main;
-            main.loop = true;
-            main.startLifetime = 0.12f;
-            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 0.8f);
-            main.startColor = new Color(1f, 0.62f, 0.25f, 0.55f);
-            var emission = glow.emission;
-            emission.rateOverTime = 20f;
-            Behind(glow);
+            foreach (var (side, x) in Nozzles)
+            {
+                var glow = Particles(frame, "Glow " + side, _m.Glow, 1f, ParticleSystemSimulationSpace.Local);
+                glow.transform.localPosition = new Vector3(x, -0.1f, 0f);
+                var main = glow.main;
+                main.loop = true;
+                main.startLifetime = 0.12f;
+                main.startSize = new ParticleSystem.MinMaxCurve(0.45f, 0.6f);
+                main.startColor = new Color(1f, 0.62f, 0.25f, 0.55f);
+                var emission = glow.emission;
+                emission.rateOverTime = 20f;
+                Behind(glow);
 
-            var flame = Particles(frame, "Flame", _m.Flame, 1f, ParticleSystemSimulationSpace.Local);
-            flame.transform.localPosition = new Vector3(0f, -0.1f, 0f);
-            main = flame.main;
-            main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.08f, 0.13f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.42f, 0.6f);
-            main.startRotation = new ParticleSystem.MinMaxCurve(Mathf.PI - 0.25f, Mathf.PI + 0.25f);
-            main.maxParticles = 32;
-            emission = flame.emission;
-            emission.rateOverTime = 40f;
-            Sphere(flame, 0.05f);
-            var velocity = flame.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.x = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);
-            velocity.y = new ParticleSystem.MinMaxCurve(-3f, -1.6f);
-            velocity.z = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);
-            RandomFrame(flame, 2, 2);
-            SizeOverLife(flame, Curve((0f, 0.55f), (0.3f, 1f), (1f, 0.7f)));
+                var flame = Particles(frame, "Flame " + side, _m.Flame, 1f, ParticleSystemSimulationSpace.Local);
+                flame.transform.localPosition = new Vector3(x, -0.12f, 0f);
+                main = flame.main;
+                main.loop = true;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.08f, 0.13f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.32f, 0.45f);
+                main.startRotation = new ParticleSystem.MinMaxCurve(Mathf.PI - 0.25f, Mathf.PI + 0.25f);
+                main.maxParticles = 32;
+                emission = flame.emission;
+                emission.rateOverTime = 40f;
+                Sphere(flame, 0.04f);
+                var velocity = flame.velocityOverLifetime;
+                velocity.enabled = true;
+                velocity.space = ParticleSystemSimulationSpace.Local;
+                velocity.x = new ParticleSystem.MinMaxCurve(-0.3f, 0.3f);
+                velocity.y = new ParticleSystem.MinMaxCurve(-3f, -1.6f);
+                velocity.z = new ParticleSystem.MinMaxCurve(-0.3f, 0.3f);
+                RandomFrame(flame, 2, 2);
+                SizeOverLife(flame, Curve((0f, 0.55f), (0.3f, 1f), (1f, 0.7f)));
+            }
             _kit.Sound(root, "manki_jet_sputter", 0.55f, 1f);
             return _kit.Save(root);
         }
 
         /// <summary>
-        /// The sputtering, dotted puff column the ascent leaves behind. Not attack-bound: it emits
-        /// only during the rise and fades on its own after the move ends at the apex.
+        /// The sputtering, dotted puff columns the ascent leaves behind, one per can. Not attack-bound:
+        /// they emit only during the rise and fade on their own after the move ends at the apex.
         /// </summary>
         private static GameObject ExhaustTrail()
         {
             var root = _kit.NewRoot("MankiJetpackTrail", attackBound: false);
             var frame = Frame(root, upright: true);
-            var puffs = Particles(frame, "Puffs", _m.Puff, 0.62f);
-            puffs.transform.localPosition = new Vector3(0f, -0.38f, 0f);
-            var main = puffs.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 0.8f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.34f);
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.maxParticles = 64;
-            var emission = puffs.emission;
-            // Random spacing between puffs is the sputter.
-            emission.rateOverDistance = new ParticleSystem.MinMaxCurve(1.2f, 4.2f);
-            Sphere(puffs, 0.07f);
-            Drift(puffs, 0.15f, -0.1f, 0.2f);
-            RandomFrame(puffs, 2, 2);
-            SizeOverLife(puffs, Curve((0f, 0.5f), (0.25f, 1f), (1f, 1.25f)));
-            Fade(puffs, 0.4f);
+            foreach (var (side, x) in Nozzles)
+            {
+                var puffs = Particles(frame, "Puffs " + side, _m.Puff, 0.62f);
+                puffs.transform.localPosition = new Vector3(x, -0.35f, 0f);
+                var main = puffs.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 0.8f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.2f, 0.3f);
+                main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+                main.maxParticles = 48;
+                var emission = puffs.emission;
+                // Random spacing between puffs is the sputter.
+                emission.rateOverDistance = new ParticleSystem.MinMaxCurve(0.8f, 2.8f);
+                Sphere(puffs, 0.06f);
+                Drift(puffs, 0.15f, -0.1f, 0.2f);
+                RandomFrame(puffs, 2, 2);
+                SizeOverLife(puffs, Curve((0f, 0.5f), (0.25f, 1f), (1f, 1.25f)));
+                Fade(puffs, 0.4f);
 
-            var embers = Particles(frame, "Embers", _m.Spark, 0.62f);
-            embers.transform.localPosition = new Vector3(0f, -0.25f, 0f);
-            main = embers.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.12f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1f, 3f);
-            main.gravityModifier = 0.5f;
-            emission = embers.emission;
-            emission.rateOverTime = 18f;
-            var shape = embers.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 30f;
-            shape.radius = 0.05f;
-            shape.rotation = new Vector3(90f, 0f, 0f);
-            Spin(embers, 300f);
-            Fade(embers, 0.5f);
+                var embers = Particles(frame, "Embers " + side, _m.Spark, 0.62f);
+                embers.transform.localPosition = new Vector3(x, -0.2f, 0f);
+                main = embers.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.12f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(1f, 3f);
+                main.gravityModifier = 0.5f;
+                emission = embers.emission;
+                emission.rateOverTime = 10f;
+                var shape = embers.shape;
+                shape.enabled = true;
+                shape.shapeType = ParticleSystemShapeType.Cone;
+                shape.angle = 30f;
+                shape.radius = 0.05f;
+                shape.rotation = new Vector3(90f, 0f, 0f);
+                Spin(embers, 300f);
+                Fade(embers, 0.5f);
+            }
             return _kit.Save(root);
         }
 
-        /// <summary>At the apex the engine coughs: a ring of puffs, a "pff" and a bolt dropping off.</summary>
+        /// <summary>At the apex the jetpack coughs: a ring of puffs, a "pff" and a bolt dropping off.</summary>
         private static GameObject Cough()
         {
             var root = _kit.NewRoot("MankiJetpackCough", attackBound: false);
-            var ring = Particles(root, "Smoke ring", _m.Puff, 0.2f);
+            var frame = Frame(root, upright: true);
+            var ring = Particles(frame, "Smoke ring", _m.Puff, 0.2f);
             Burst(ring, 12);
             var main = ring.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 0.65f);
@@ -361,7 +371,7 @@ namespace SlopArena.EditorTools
             SizeOverLife(ring, Curve((0f, 0.5f), (0.2f, 1f), (1f, 1.15f)));
             Fade(ring, 0.45f);
 
-            var pff = Particles(root, "Pff", _m.Soot, 0.3f);
+            var pff = Particles(frame, "Pff", _m.Soot, 0.3f);
             Burst(pff, 1);
             main = pff.main;
             main.startLifetime = 0.3f;
@@ -369,8 +379,8 @@ namespace SlopArena.EditorTools
             RandomFrame(pff, 2, 2);
             SizeOverLife(pff, Curve((0f, 0.4f), (0.2f, 1.1f), (1f, 1f)));
             Fade(pff, 0.4f);
-            Junk(root, "Bolt", Bolt, 1, 0.3f, 0.8f, 0.2f, 0.85f, ParticleSystemScalingMode.Local, floor: null, gravity: 1.5f, upward: false);
-            Sparks(root, 3, ParticleSystemScalingMode.Local, 0.1f, 1.5f, 3f);
+            Junk(frame, "Bolt", Bolt, 1, 0.3f, 0.8f, 0.2f, 0.85f, ParticleSystemScalingMode.Local, floor: null, gravity: 1.5f, upward: false);
+            Sparks(frame, 3, ParticleSystemScalingMode.Local, 0.1f, 1.5f, 3f);
             _kit.Sound(root, "manki_jet_cough", 0.7f, 1f);
             return _kit.Save(root);
         }

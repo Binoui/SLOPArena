@@ -131,6 +131,7 @@ def sub_uv(name, fu0, fv0, fu1, fv1, inset=2):
 
 
 LAMP_UV = ((CELLS["lamp"][0] + CELLS["lamp"][2] / 2) / SIZE, 1 - (CELLS["lamp"][1] + CELLS["lamp"][3] / 2) / SIZE)
+SALE_UV = sub_uv("banner_sale", 0.08, 0.76, 0.92, 0.85)
 SHOP_NAMES = [name for name, *_ in SHOPS]
 
 
@@ -567,6 +568,8 @@ KIND = {
     "FoodCourt": "food", "Podium": "runway", "PlanterW": "planter", "PlanterE": "planter",
     "BridgeW": "bridge", "BridgeE": "bridge", "BridgeL3": "bridge", "BridgeL4": "bridge",
     "Sign1": "sign", "Sign2": "speaker", "Sign3": "sign", "Tower": "tower",
+    "SaleBalloon1": "balloon", "SaleBalloon2": "balloon",
+    "ServiceSign1": "service_sign", "ServiceSign2": "service_sign",
 }
 
 
@@ -646,7 +649,11 @@ def ground(path, data):
             col = np.where(leaf[..., None], np.array(P.PLANT_LIGHT, np.float32), col)
             rim = np.minimum.reduce([X - x0, x1 - X, Z - z0, z1 - Z]) < 0.12
             col = np.where(rim[..., None], np.array(P.POT, np.float32), col)
-        elif k in ("sign", "speaker"):
+        elif k == "balloon":
+            col = np.array(P.CREAM, np.float32) + 0 * X[..., None]
+            rim = np.minimum.reduce([X - x0, x1 - X, Z - z0, z1 - Z]) < 0.12
+            col = np.where(rim[..., None], np.array(P.PINK if name.endswith("1") else P.YELLOW, np.float32), col)
+        elif k in ("sign", "speaker", "service_sign"):
             col = np.array(P.STEEL_DARK, np.float32) * (0.9 + 0.2 * fbm(X * 2, Z * 2, seed, 2))[..., None]
             rim = np.minimum.reduce([X - x0, x1 - X, Z - z0, z1 - Z]) < 0.1
             col = np.where(rim[..., None], np.array(P.HAZARD_YELLOW, np.float32), col)

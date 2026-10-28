@@ -26,6 +26,22 @@ everything works at any moment, but only the current lesson's objectives count.
 - **Entry:** a TUTORIAL button above the four Home modes, badged *NEW HERE?* and focused
   until the tutorial has been finished once on this machine.
 
+## Decisions (maintainer, 2026-10-28)
+
+- Teach the three normal roles from ADR-0042. Slot `1` is the quick jab or all-rounder,
+  slot `3` hits upward, and slot `4` is the big hit. Each checklist entry also names the
+  selected fighter's move. Aerial and throw prompts show all three normal buttons.
+- Add **Beeline** after Aerials. Teach a grounded hit and an aerial hit from the arrival
+  window against a reset, idle dummy. A miss with nothing in reach is punishable.
+- Add **Beeline Tricks** after Combo and before Knockout. Reset the dummy to 30% and
+  disable cooldowns. Teach Beeline out of Shield, offstage recovery, and a chase: launch the
+  dummy, Beeline after it while it is airborne, and hit it from the arrival. The chase does not
+  require the hit before the dummy lands, because Manki and Bonk cannot reach that (see
+  Findings); the maintainer chose the chase over dropping the objective. The dummy spars until
+  the shield exit objective completes, then rests.
+- Beeline homes on the nearest opponent within 20 m without a lock. Its input action is
+  `Dash`. Code and state names remain `HomingDash*`.
+
 ## Lessons
 
 | # | Lesson | Objectives | Dummy |
@@ -33,14 +49,16 @@ everything works at any moment, but only the current lesson's objectives count.
 | 1 | Move & Look | Run 15 m; turn the camera 180° | idle |
 | 2 | Jump | Land on a block; jump in mid-air; stand on the 3 m block (the tower also counts) | idle |
 | 3 | Fast Fall | Fast fall twice | idle |
-| 4 | Attacks | Hit the dummy with each ground normal 1–4 | reset, idle |
+| 4 | Attacks | Quick hit, upward hit, and big hit with ground normals `1`, `3`, and `4` | reset, idle |
 | 5 | Aerials | Hit it with two different air normals | reset, idle |
-| 6 | Specials | Use A, E, R and F | reset, idle |
-| 7 | Recovery | Drop 0.5 m below the floor and land back on it without losing a life | idle |
-| 8 | Shield & Dodge | Block three of the dummy's swings; air dodge | reset, sparring until three blocks |
-| 9 | Grab & Throw | Grab the dummy; throw it | reset, idle |
-| 10 | Combo | Hit the dummy again before it lands (juggle); cooldowns are off | reset at 30%, idle |
-| 11 | Knockout | Knock the dummy off the stage | at 100% beside an open edge |
+| 6 | Beeline | Beeline into a grounded hit; jump, Beeline, and hit with an aerial | reset, idle |
+| 7 | Specials | Use A, E, R, and F | reset, idle |
+| 8 | Recovery | Drop 0.5 m below the floor and land back on it without losing a life | idle |
+| 9 | Shield & Dodge | Block three of the dummy's swings; air dodge | reset, sparring until three blocks |
+| 10 | Grab & Throw | Grab the dummy; throw it | reset, idle |
+| 11 | Combo | Hit the dummy again before it lands; cooldowns are off | reset at 30%, idle |
+| 12 | Beeline Tricks | Beeline out of Shield; Beeline back from offstage; launch the dummy, Beeline after it and hit it; cooldowns are off | reset at 30%, sparring until shield exit |
+| 13 | Knockout | Knock the dummy off the stage | at 100% beside an open edge |
 
 Each lesson start clears the player's cooldowns. A completed lesson stamps *PASSED* on
 screen (gold *LICENSE GRANTED* after the last test), waits 1.5 s and starts the next. The
@@ -91,6 +109,42 @@ hit, and the throw counts once the dummy is released.
 - **QWERTY conflict (fixed 2026-10-18).** Special A was bound to whichever key types
   "A", which on QWERTY is also move-left. It now uses the key position right of Tab, as
   ADR-0016 intended: A on AZERTY, Q on QWERTY (`HumanInputActions`).
+
+### Beeline probes, 2026-10-28
+
+`TutorialProgressTests` drives every resolvable roster fighter (Salamander included) against
+the live tutorial's dummy (Bonk, or FightGuy for a Bonk player) on the Training Lab with ordinary
+scripted inputs. Slots are canonical IDs. The first probes used mirror matches and missed a
+Beeline bug the Editor run then found: Manki and Bashie, 1.5 m tall against a 1.7 m dummy,
+climbed toward its centre, arrived airborne and could not land a ground hit. Beeline now climbs
+feet to feet (ADR-0042, protocol 27); with the old aim the Manki and Bashie probes fail.
+
+| Fighter | Ground hit | Aerial hit | Shield exit | Recovery | Chase | Juggle (rejected rule) |
+| --- | --- | --- | --- | --- | --- | --- |
+| FightGuy | Dash, buffer `1` | Jump, Dash, buffer `1` | passed | passed | passed | `3`, Dash, `1` |
+| Manki | Dash, buffer `1` | Jump, Dash, buffer `1` | passed | passed | passed | not reached |
+| Wibou | Dash, buffer `1` | Jump, Dash, buffer `1` | passed | passed | passed | `3`, Dash, `1` |
+| Bonk | Dash, buffer `1` | Jump, Dash, buffer `1` | passed | passed | passed | not reached |
+| Bashie | Dash, buffer `3` | Jump, Dash, buffer `1` | passed | passed | passed | `3`, Dash, `1` |
+| Salamander | Dash, buffer `1` | Jump, Dash, buffer `1` | passed | passed | passed | `3`, Dash, `1` |
+
+- Ground and aerial probes start 6 m apart and buffer the follow-up during travel. Shield
+  probes block a swing from a sparring Bonk and Beeline after blockstun. Recovery starts
+  beyond the west edge (x = -23, feet 0.7 m below the floor) with the dummy at x = -17;
+  Beeline alone returns everyone without a death.
+- Chase probes open with `3` at 1.2 m against the dummy at 30%, Beeline once it is airborne
+  and buffer `1`.
+- **Why the chase replaced a juggle.** A Beeline follow-up that lands before the dummy
+  does is out of reach for Manki and Bonk: their launches are low, and the 12-tick float,
+  travel and startup outlast the airtime. Every opener/follow-up pair from `1`, `3`, `4`
+  and `R`, at 30% and 60%, with and without a jump, hit only after the dummy had landed
+  with no Hitstun left (Manki arrives on tick 58 with the dummy grounded; Bonk arrives
+  airborne on tick 77 and his `1` hits on tick 89). Re-probe if launches or Beeline
+  numbers change; a true Beeline juggle could return then.
+- Editor, Manki on the deck: the aerial, out-of-Shield, recovery and chase objectives completed
+  through `sloparena.tutorial.run` with zero console errors; the ground objective failed, which
+  exposed the climb bug above. The replay after the fix did not run: the tutorial's local
+  catalog would not load while Bashie's package failed its cook during other in-progress work.
 
 ## Native commands
 

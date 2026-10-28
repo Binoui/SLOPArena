@@ -56,6 +56,9 @@ public static class InternalCapabilityRegistry
             case CharacterPackageCompiler.SteeredChargeCapabilityId when parameters is CookedSteeredChargeCapabilityParameters charge:
                 capability = new SteeredChargeAbility(charge);
                 return true;
+            case CharacterPackageCompiler.ThrustCapabilityId when parameters is CookedThrustCapabilityParameters thrust:
+                capability = new ThrustAbility(thrust);
+                return true;
             case "slop.internal.manki.round-bomb.v1" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
                 capability = new MankiRoundBomb(bomb);
                 return true;

@@ -102,6 +102,29 @@ public class ArcadeStageAdmissionTests
         finally { host.Shutdown(); }
     }
 
+    [Theory]
+    [InlineData(MatchFormat.CourseRace, CharacterClass.Bonk, CharacterClass.Bashie, 1, true)]
+    [InlineData(MatchFormat.CourseCoop, CharacterClass.Bashie, CharacterClass.Bashie, 1, true)]
+    [InlineData(MatchFormat.CourseRace, CharacterClass.Bonk, CharacterClass.Bonk, 0, false)]
+    [InlineData(MatchFormat.CourseCoop, CharacterClass.None, CharacterClass.Bashie, 1, false)]
+    public void CourseAdmissionAllowsAnyRosterFighterAndMirrorsWithDistinctColours(
+        MatchFormat format, CharacterClass first, CharacterClass second, byte secondColour, bool admitted)
+    {
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
+        var host = new MultiMatchOrchestrator(new ServerConfig { MaxConcurrentMatches = 0 });
+        try
+        {
+            Assert.True(host.ContentReady);
+            Assert.False(host.TryAssignMatch("course-admission", "wibou_mall",
+                new[] { new MatchPlayer(1001, first, 1, Colour: 0), new MatchPlayer(1002, second, 2, Colour: secondColour) },
+                3, null, null, out _, out _, out _, out var error, format));
+            Assert.Equal(admitted, error!.StartsWith("No capacity", StringComparison.Ordinal));
+            Assert.Equal(0, host.CurrentMatchCount);
+        }
+        finally { host.Shutdown(); }
+    }
+
     [Fact]
     public void CoopCourtPassesArenaAdmissionWithoutAllocatingAMatch()
     {

@@ -29,32 +29,28 @@
    "formats": [
     "course-race",
     "course-coop"
-   ],
-   "fighter": "FightGuy"
+   ]
   },
   {
    "arena": "fightguy_sanctuary",
    "formats": [
     "course-race",
     "course-coop"
-   ],
-   "fighter": "FightGuy"
+   ]
   },
   {
    "arena": "manki_quarry",
    "formats": [
     "course-race",
     "course-coop"
-   ],
-   "fighter": "Manki"
+   ]
   },
   {
    "arena": "wibou_mall",
    "formats": [
     "course-race",
     "course-coop"
-   ],
-   "fighter": "Wibou"
+   ]
   }
  ]
 }

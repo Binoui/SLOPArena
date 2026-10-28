@@ -73,7 +73,7 @@ namespace SlopArena.Shared
             if (string.IsNullOrWhiteSpace(profileId) || Encoding.UTF8.GetByteCount(profileId) > 256
                 || gameplayRevision == 0 || ((ball != null ? 1 : 0) + (course != null ? 1 : 0) + (mayhem != null ? 1 : 0) != 1)
                 || (slopball != null && ball == null)
-                || allowedPackageIds == null || (allowedPackageIds.Count == 0 && mayhem == null) || allowedPackageIds.Count > 16)
+                || allowedPackageIds == null || (allowedPackageIds.Count == 0 && course == null && mayhem == null) || allowedPackageIds.Count > 16)
                 throw new ArgumentException("Arcade needs a profile, gameplay revision, exactly one challenge kind and its allowed packages.");
             var packages = new string[allowedPackageIds.Count];
             var unique = new HashSet<string>(StringComparer.Ordinal);
@@ -90,7 +90,7 @@ namespace SlopArena.Shared
 
         public bool AllowsPackage(string packageId)
         {
-            if (Mayhem != null && AllowedPackageIds.Count == 0) return true;
+            if (Course != null || Mayhem != null && AllowedPackageIds.Count == 0) return true;
             foreach (string id in AllowedPackageIds)
                 if (string.Equals(id, packageId, StringComparison.Ordinal)) return true;
             return false;
@@ -101,9 +101,10 @@ namespace SlopArena.Shared
     internal static class ArcadeStageBinaryFormat
     {
         // 5: Character Course. 6: a course whose targets carry hit counts (bonus targets); a
-        // course of single-hit targets keeps writing v5, byte for byte.
+        // course of single-hit targets keeps writing v5, byte for byte. 8 adds a racing line.
         private const ushort SectionVersion = 6;
         private const ushort MayhemVersion = 7;
+        private const ushort RacingLineVersion = 8;
         private const byte MayhemKind = 2;
         private const ushort CourseVersion = 5;
 
@@ -111,7 +112,7 @@ namespace SlopArena.Shared
         {
             using var stream = new MemoryStream();
             using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-            ushort version = stage.Mayhem != null ? MayhemVersion : stage.Course != null ? (stage.Course.HasMultiHitTargets ? SectionVersion : CourseVersion)
+            ushort version = stage.Mayhem != null ? MayhemVersion : stage.Course != null ? (stage.Course.RacingLine != null ? RacingLineVersion : stage.Course.HasMultiHitTargets ? SectionVersion : CourseVersion)
                 : stage.Slopball is { } varied && (varied.SpawnHalfWidth > 0f || varied.SpawnHalfDepth > 0f)
                 ? (ushort)4 : stage.Ball!.LinearDrag > 0f ? (ushort)3 : stage.Slopball == null ? (ushort)1 : (ushort)2;
             writer.Write(version);
@@ -141,6 +142,11 @@ namespace SlopArena.Shared
                     WritePoint(writer, checkpoint.Respawn); writer.Write(checkpoint.RespawnYaw); writer.Write(checkpoint.RequiredTargetCount);
                 }
                 WriteVolume(writer, course.Finish);
+                if (course.RacingLine is { } line)
+                {
+                    writer.Write((byte)line.Points.Count);
+                    foreach (var point in line.Points) WritePoint(writer, point);
+                }
                 return stream.ToArray();
             }
             var ball = stage.Ball!;
@@ -166,12 +172,12 @@ namespace SlopArena.Shared
                 using var stream = new MemoryStream(bytes, false);
                 using var reader = new BinaryReader(stream, Encoding.UTF8, true);
                 ushort version = reader.ReadUInt16();
-                if (version < 1 || version > MayhemVersion) return null;
+                if (version < 1 || version > RacingLineVersion) return null;
                 if (version == MayhemVersion && reader.ReadByte() != MayhemKind) return null;
                 string profile = ReadString(reader);
                 uint revision = reader.ReadUInt32();
                 int count = reader.ReadByte();
-                if ((count == 0 && version != MayhemVersion) || count > 16) return null;
+                if ((count == 0 && version < CourseVersion) || count > 16) return null;
                 var packages = new string[count];
                 for (int i = 0; i < count; i++) packages[i] = ReadString(reader);
                 if (version == MayhemVersion)
@@ -193,7 +199,17 @@ namespace SlopArena.Shared
                     var checkpoints = new CourseCheckpointDefinition[checkpointCount];
                     for (int i = 0; i < checkpoints.Length; i++) checkpoints[i] = new(ReadString(reader), ReadVolume(reader),
                         ReadPoint(reader), reader.ReadSingle(), reader.ReadUInt16());
-                    var course = new CharacterCourseDefinition(targets, checkpoints, ReadVolume(reader));
+                    var finish = ReadVolume(reader);
+                    CourseRacingLine? line = null;
+                    if (version == RacingLineVersion)
+                    {
+                        int pointCount = reader.ReadByte();
+                        if (pointCount is < 2 or > CourseRacingLine.MaxPoints) return null;
+                        var points = new ArcadePoint[pointCount];
+                        for (int i = 0; i < points.Length; i++) points[i] = ReadPoint(reader);
+                        line = new(points);
+                    }
+                    var course = new CharacterCourseDefinition(targets, checkpoints, finish, line);
                     if (stream.Position != stream.Length) return null;
                     return ArcadeStageDefinition.ForCourse(profile, revision, packages, course);
                 }

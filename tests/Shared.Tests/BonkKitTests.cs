@@ -510,7 +510,7 @@ public sealed class BonkKitTests
                 .Where(x => x.OwnerEntityId == 1 && x.TargetEntityId == 100)
                 .Select(x => x.Damage));
         }
-        Assert.Equal(new[] { 2.5f, 2.5f, 12f }, damage);
+        Assert.Equal(new[] { 2.5f, 2.5f, 2.5f, 2.5f, 12f }, damage);
         Assert.Null(sim.GetActiveAbility(1));
     }
 

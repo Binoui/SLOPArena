@@ -205,7 +205,12 @@ namespace SlopArena.Shared
             bool slotInputBlocked = s.LandingLagTicks > 0 || IsDefenseActionState(s.State);
 
             if (verticalMotionOwned)
+            {
+                // A hop out of the shell owns only her height: the skate-speed carry brakes on (ADR-0045).
+                bool shellCarry = s.SlideAttackCarryActive && s.AttackCarryFrom == AttackCarryOrigin.Shell;
                 ClearMovementInterruptionFlags(ref s);
+                s.SlideAttackCarryActive = shellCarry;
+            }
             bool canFastFallEdge = !wasGrounded
                 && s.VY < 0f
                 && input.DownPressed
@@ -308,10 +313,13 @@ namespace SlopArena.Shared
                 && s.AttackSlot > 0
                 && (s.State == ActionState.Attacking || s.State == ActionState.Aiming))
             {
-                float ratio = s.AttackCarryFrom == AttackCarryOrigin.Run
-                    ? DownActionTuning.RunAttackDecelerationRatio
-                    : DownActionTuning.AttackDecelerationRatio;
-                DecayHorizontalSpeed(ref s, ratio * stats.RunSpeed * TickDt);
+                float brake = s.AttackCarryFrom switch
+                {
+                    AttackCarryOrigin.Run => DownActionTuning.RunAttackDecelerationRatio * stats.RunSpeed,
+                    AttackCarryOrigin.Shell => def.Shell?.PopOutDeceleration ?? 0f,
+                    _ => DownActionTuning.AttackDecelerationRatio * stats.RunSpeed,
+                };
+                DecayHorizontalSpeed(ref s, brake * TickDt);
             }
 
 
@@ -346,8 +354,12 @@ namespace SlopArena.Shared
                         s.IsGrounded = false;
                         s.State = ActionState.Idle;
                         s.AirTimeTicks = stats.FloatWindowTicks;
-                        float jumpCap = stats.RunSpeed * (s.JumpTakeoff == JumpTakeoff.Slide ? DownActionTuning.JumpCapRatio : 1f);
-                        ClampHorizontalSpeed(ref s, jumpCap);
+                        // A hop out of the shell keeps her skate speed.
+                        if (s.JumpTakeoff != JumpTakeoff.Shell)
+                        {
+                            float jumpCap = stats.RunSpeed * (s.JumpTakeoff == JumpTakeoff.Slide ? DownActionTuning.JumpCapRatio : 1f);
+                            ClampHorizontalSpeed(ref s, jumpCap);
+                        }
                         s.JumpTakeoff = JumpTakeoff.Standing;
                     }
                 // During squat: preserve horizontal momentum, no acceleration
@@ -450,7 +462,10 @@ namespace SlopArena.Shared
                     s.State = ActionState.Idle;
                     ClearMovementInterruptionFlags(ref s);
                 }
-                var takeoff = s.IsGrounded && s.State == ActionState.Sliding ? JumpTakeoff.Slide : JumpTakeoff.Standing;
+                var takeoff = !s.IsGrounded ? JumpTakeoff.Standing
+                    : s.State == ActionState.Sliding ? JumpTakeoff.Slide
+                    : s.State == ActionState.Shell ? JumpTakeoff.Shell
+                    : JumpTakeoff.Standing;
                 ClearMovementInterruptionFlags(ref s);
                 s.ShieldDropTicks = 0;
                 if (s.IsGrounded)
@@ -462,6 +477,12 @@ namespace SlopArena.Shared
                 }
                 else
                 {
+                    // An air jump hops out of the coast.
+                    if (s.State == ActionState.Shell)
+                    {
+                        s.State = ActionState.Idle;
+                        s.StateTicks = 0;
+                    }
                     s.VY = stats.JumpForce * stats.AirJumpVMultiplier;
                     (float dirX, float dirZ) = GetInputDirection(input);
                     s.VX += dirX * stats.AirSpeedMax * stats.AirJumpHMultiplier;
@@ -558,7 +579,7 @@ namespace SlopArena.Shared
             // Runs AFTER normal movement so an accepted snap wins its input tick. It does
             // not break persistent target lock.
             if (input.FaceToCamera && s.LandingLagTicks == 0 && s.AnimLockTicks == 0
-                && s.State != ActionState.Hitstun && s.State != ActionState.JumpSquat
+                && s.State != ActionState.Hitstun && s.State != ActionState.JumpSquat && s.State != ActionState.Shell
                 && s.State != ActionState.Aiming && !IsDefenseActionState(s.State))
             {
                 s.FacingYaw = input.AimYaw * 0.01f * (MathF.PI / 180f);
@@ -580,7 +601,9 @@ namespace SlopArena.Shared
             // skip during LedgeHang — a hang is a hang, no gravity, else the character
             // slides down through the FindLedge tolerance window and falls off on its own)
             if (s.State != ActionState.Hitstun && s.State != ActionState.LedgeHang)
-                ApplyGravity(ref s, stats, gravityMultiplier);
+                ApplyGravity(ref s, stats, gravityMultiplier, verticalMotionOwned);
+            float fallSpeedBeforeMove = -s.VY;
+            bool skating = s.State == ActionState.Shell && wasGrounded;
             
             // 9-10. Authoritative triangle collision, with the old heightmap path kept
             // intact for legacy and synthetic unbaked arenas.
@@ -590,7 +613,9 @@ namespace SlopArena.Shared
             if (ArenaCollision.HasTriangles(arena))
             {
                 MoveThroughStage(ref s, def, arena,
-                    s.VX * TickDt, s.VY * TickDt, s.VZ * TickDt);
+                    s.VX * TickDt, s.VY * TickDt, s.VZ * TickDt, out float wallX, out float wallZ);
+                if (skating && def.Shell != null && Shell.IsHeadOn(s.FacingYaw, wallX, wallZ))
+                    Shell.Blocked(ref s, def.Shell);
                 if (s.IsGrounded)
                 {
                     surfaceY = s.PY - capsuleHalf;
@@ -665,6 +690,9 @@ namespace SlopArena.Shared
 
             if (!wasGrounded && s.IsGrounded)
                 ClearMovementInterruptionFlags(ref s);
+            // A coast that lands skates on; a higher fall skates faster. The running clock carries on.
+            if (s.State == ActionState.Shell && !wasGrounded && s.IsGrounded && def.Shell != null)
+                Shell.Settle(ref s, def.Shell, fallSpeedBeforeMove, restartClock: false);
 
             if (s.State is (ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery)
                 && s.IsGrounded)
@@ -764,7 +792,7 @@ namespace SlopArena.Shared
         private static bool CanAcceptAirDodge(in CharacterState state,
             bool blockStunLocked, bool verticalMotionOwned)
             => !verticalMotionOwned && !blockStunLocked
-                && state.State is (ActionState.Idle or ActionState.Run or ActionState.HomingDashArrive)
+                && state.State is (ActionState.Idle or ActionState.Run or ActionState.Shell or ActionState.HomingDashArrive)
                 && state.AttackSlot == 0 && state.AnimLockTicks == 0
                 && state.LandingLagTicks == 0 && state.HitstunTicks == 0
                 && state.HitstopTicks == 0
@@ -857,10 +885,11 @@ namespace SlopArena.Shared
             }
             else if (state.State != ActionState.HomingDash)
                 return;
-            else if (hasTarget)
+            float speed = HomingDashConfig.Speed;
+            if (hasTarget)
             {
-                float reach = arrivalDistance + HomingDashConfig.Speed * TickDt * 0.5f;
-                if (dx * dx + dy * dy + dz * dz <= reach * reach)
+                float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                if (distance <= arrivalDistance + ArrivalTolerance)
                 {
                     EndHomingDash(ref state, ActionState.HomingDashArrive, HomingDashConfig.ArriveWindowTicks);
                     // An airborne arrival hangs in the float window (AirFloatGravity) for the hover
@@ -874,6 +903,9 @@ namespace SlopArena.Shared
                     return;
                 }
                 AimHomingDash(ref state, dx, dy, dz, snap: false);
+                // The last step shortens to land on the arrival gap, so every distance arrives at
+                // the same spacing instead of anywhere within one step of it.
+                speed = MathF.Min(speed, (distance - arrivalDistance) / TickDt);
             }
             if (state.StateTicks == 0)
             {
@@ -883,10 +915,13 @@ namespace SlopArena.Shared
                 state.AirTimeTicks = floatWindowTicks;
                 return;
             }
-            state.VX = state.DashDirX * HomingDashConfig.Speed;
-            state.VY = state.DashDirY * HomingDashConfig.Speed;
-            state.VZ = state.DashDirZ * HomingDashConfig.Speed;
+            state.VX = state.DashDirX * speed;
+            state.VY = state.DashDirY * speed;
+            state.VZ = state.DashDirZ * speed;
         }
+
+        /// <summary>A shortened last step can stop just short of the gap after float rounding or a turning target.</summary>
+        private const float ArrivalTolerance = 0.05f;
 
         private static void EndHomingDash(ref CharacterState state, ActionState end, ushort ticks)
         {
@@ -1093,12 +1128,21 @@ namespace SlopArena.Shared
         /// </summary>
         internal static bool MoveThroughStage(ref CharacterState s, CharacterDefinition def,
             in ArenaDefinition arena, float dx, float dy, float dz)
+            => MoveThroughStage(ref s, def, arena, dx, dy, dz, out _, out _);
+
+        /// <param name="wallX">Horizontal normal of the side contact (a face too steep to stand on) that most
+        /// opposed this move, with <paramref name="wallZ"/>; zero when there was none.</param>
+        internal static bool MoveThroughStage(ref CharacterState s, CharacterDefinition def,
+            in ArenaDefinition arena, float dx, float dy, float dz, out float wallX, out float wallZ)
         {
+            wallX = wallZ = 0f;
             if (!ArenaCollision.HasTriangles(arena))
             {
                 s.PX += dx; s.PY += dy; s.PZ += dz;
                 return false;
             }
+            float travel = MathF.Sqrt(dx * dx + dz * dz);
+            float mostInto = 0f;
 
             bool wasGrounded = s.IsGrounded;
             bool followingGround = wasGrounded && MathF.Abs(dy) <= 0.000001f;
@@ -1184,6 +1228,17 @@ namespace SlopArena.Shared
 
                 float inward = remainingX * contact.NormalX
                     + remainingY * contact.NormalY + remainingZ * contact.NormalZ;
+                float sideNormal = MathF.Sqrt(contact.NormalX * contact.NormalX + contact.NormalZ * contact.NormalZ);
+                if (travel > 0.000001f && MathF.Abs(contact.NormalY) <= 0.5f && sideNormal > 0.000001f)
+                {
+                    float into = (dx * contact.NormalX + dz * contact.NormalZ) / (travel * sideNormal);
+                    if (into < mostInto)
+                    {
+                        mostInto = into;
+                        wallX = contact.NormalX / sideNormal;
+                        wallZ = contact.NormalZ / sideNormal;
+                    }
+                }
                 float verticalDisplacementBeforeProjection = remainingY;
                 if (inward < 0f)
                 {
@@ -2107,7 +2162,8 @@ namespace SlopArena.Shared
             verticalVelocity = MathF.Max(verticalVelocity - FlightGravity * TickDt, fallLimit);
         }
 
-        private static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier)
+        private static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier,
+            bool verticalMotionOwned = false)
         {
             if (!s.IsGrounded)
             {
@@ -2132,7 +2188,8 @@ namespace SlopArena.Shared
 
                 s.VY -= gravity * gravityMultiplier * TickDt;
 
-                if (s.VY < -stats.MaxFallSpeed)
+                // With gravity off, a move that owns her vertical motion (a dive) keeps its own speed.
+                if (s.VY < -stats.MaxFallSpeed && !(verticalMotionOwned && gravityMultiplier == 0f))
                     s.VY = -stats.MaxFallSpeed;
             }
         }

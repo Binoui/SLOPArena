@@ -17,8 +17,6 @@ namespace SlopArena.Client.UI
         private CharacterClass _selected;
         private readonly bool _courseSelected;
         private ArenaDefinition? _slopballArena;
-        /// <summary>Baked courses with a presentation, in menu order; each fighter plays the first that admits it.</summary>
-        private readonly List<(CharacterCourseInfo Info, ArenaDefinition Arena)> _courses = new();
         private CharacterCourseInfo? _course;
         private ArcadeRecordKey? _key;
 
@@ -28,10 +26,11 @@ namespace SlopArena.Client.UI
             _courseSelected = MatchConfig.LocalMode == LocalPlayMode.CharacterCourse;
             ClientSession.TryBuildLocalMatchCatalog(out _catalog, out _);
             _slopballArena = LoadArena(SlopballMatch.ArenaKey);
-            foreach (var info in CharacterCourseMatch.Courses)
-                if (LoadArena(info.Key) is ArenaDefinition arena && arena.Arcade?.Course != null)
-                    _courses.Add((info, arena));
-            if (_slopballArena.HasValue) _arena = _slopballArena.Value;
+            if (_courseSelected)
+                foreach (var course in AvailableCourses())
+                    if (course.Info.Key == MatchConfig.ArenaName)
+                    { _course = course.Info; _arena = course.Arena; break; }
+            if (!_courseSelected && _slopballArena.HasValue) _arena = _slopballArena.Value;
         }
 
         public static bool Available(LocalPlayModeInfo mode)
@@ -40,14 +39,13 @@ namespace SlopArena.Client.UI
             if (mode.HasStageStep) return MenuRoster.Classes.Length > 0;
             if (mode.Seats == LocalSeatPolicy.FourSeats) return LoadArena(mode.Arena)?.Arcade?.Mayhem != null;
             if (mode.Mode == LocalPlayMode.CharacterCourse)
-                return CharacterCourseMatch.Courses.Any(info => LoadArena(info.Key) is ArenaDefinition arena
-                    && arena.Arcade?.Course != null && MenuRoster.Classes.Any(cls => catalog.Resolve(cls) is { } entry && arena.Arcade.AllowsPackage(entry.Identity.PackageId)));
+                return AvailableCourses().Any() && MenuRoster.Classes.Any(cls => catalog.Resolve(cls) != null);
             return LoadArena(mode.Arena) is ArenaDefinition ball && ball.Arcade?.Slopball != null
                 && MenuRoster.Classes.Any(cls => catalog.Resolve(cls) is { } entry && ball.Arcade.AllowsPackage(entry.Identity.PackageId));
         }
 
         public bool Admits(CharacterClass fighter)
-            => _catalog?.Resolve(fighter) is { } entry && (_courseSelected ? TryCourse(entry, out _, out _)
+            => _catalog?.Resolve(fighter) is { } entry && (_courseSelected ? _course != null && _arena.Arcade?.Course != null
                 : _slopballArena?.Arcade?.Slopball != null && _arena.Arcade!.AllowsPackage(entry.Identity.PackageId));
 
         public void Bind()
@@ -65,25 +63,18 @@ namespace SlopArena.Client.UI
             return ArenaBinaryFormat.LoadFromFile(path);
         }
 
-        /// <summary>The course this fighter plays: the first listed course whose profile admits it.</summary>
-        private bool TryCourse(MatchContentEntry entry, out CharacterCourseInfo info, out ArenaDefinition arena)
+        /// <summary>Baked courses with a presentation, in the course menu's authored order.</summary>
+        public static IEnumerable<(CharacterCourseInfo Info, ArenaDefinition Arena)> AvailableCourses()
         {
-            foreach (var course in _courses)
-                if (course.Arena.Arcade!.AllowsPackage(entry.Identity.PackageId))
-                { info = course.Info; arena = course.Arena; return true; }
-            info = null!; arena = default; return false;
+            foreach (var info in CharacterCourseMatch.Courses)
+                if (LoadArena(info.Key) is ArenaDefinition arena && arena.Arcade?.Course != null)
+                    yield return (info, arena);
         }
 
         public void Select(CharacterClass fighter)
         {
             var entry = _catalog?.Resolve(fighter);
             if (entry == null || !Admits(fighter)) return;
-            if (_courseSelected)
-            {
-                TryCourse(entry, out _course, out var courseArena);
-                _arena = courseArena;
-                _context.Q<Label>("arcade-selected-mode")!.text = _course!.Title;
-            }
             _selected = fighter;
             MatchConfig.PlayerClass = fighter;
             MatchConfig.PlayerPackageId = entry.Identity.PackageId;
@@ -112,6 +103,7 @@ namespace SlopArena.Client.UI
                 _context.Q<Foldout>("arcade-older-bests")!.style.display = archive.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 SetFeedback(store.Feedback);
                 _context.Q<Button>("btn-select")!.SetEnabled(true);
+                RefreshSeats();
             }
             catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
             {
@@ -126,6 +118,14 @@ namespace SlopArena.Client.UI
             var label = _context.Q<Label>("arcade-feedback")!;
             label.text = message ?? "";
             label.style.display = string.IsNullOrWhiteSpace(message) ? DisplayStyle.None : DisplayStyle.Flex;
+        }
+
+        public void RefreshSeats()
+        {
+            if (!_courseSelected) return;
+            bool scramble = MatchConfig.SoloSeats.Any(s => s.Kind == SeatKind.LocalPlayer);
+            _context.Q<Button>("btn-select")!.text = scramble ? "START SCRAMBLE" : "START COURSE";
+            _context.Q<VisualElement>("local-record-panel")!.style.SetDisplay(!scramble);
         }
 
         public void Launch()

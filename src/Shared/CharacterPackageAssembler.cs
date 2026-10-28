@@ -304,11 +304,11 @@ public static class CharacterPackageAssembler
                 EnsureFields(metadata, new[] { "packageId", "version", "cookedSchemaVersion", "compatibility" }, RuntimePath + ".metadata", d);
                 if (HasObject(metadata, "compatibility"))
                     EnsureFields(metadata.GetProperty("compatibility"), new[] { "runtimeApiMin", "runtimeApiMax" }, RuntimePath + ".metadata.compatibility", d);
-                EnsureFieldsOptional(root.GetProperty("character"), new[] { "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "slots" }, RuntimePath + ".character", d);
+                EnsureFieldsOptional(root.GetProperty("character"), new[] { "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots" }, RuntimePath + ".character", d);
                 if (!root.GetProperty("character").TryGetProperty("shieldRadius", out _))
                     d.Add(Error("package.runtime.schema", RuntimePath + ".character.shieldRadius", "Shield radius is required."));
                 if (HasObject(root.GetProperty("character"), "presentation"))
-                    EnsureFields(root.GetProperty("character").GetProperty("presentation"), new[] { "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset" }, RuntimePath + ".character.presentation", d);
+                    EnsureFields(root.GetProperty("character").GetProperty("presentation"), new[] { "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset" }, RuntimePath + ".character.presentation", d);
                 if (!HasObject(root.GetProperty("character"), "captureGeometry"))
                     d.Add(Error("package.runtime.schema", RuntimePath + ".character.captureGeometry", "Capture geometry is required."));
                 else
@@ -361,6 +361,7 @@ public static class CharacterPackageAssembler
         AddOptional(required, package.Definition.Presentation.Grabbed, d, "character.presentation");
         AddOptional(required, package.Definition.Presentation.ThrowForward, d, "character.presentation");
         AddOptional(required, package.Definition.Presentation.AirDodge, d, "character.presentation");
+        AddOptional(required, package.Definition.Presentation.Shell, d, "character.presentation");
         foreach (var slot in package.Definition.Slots)
         {
             if (!string.IsNullOrEmpty(slot.AimAnimationId))
@@ -386,7 +387,7 @@ public static class CharacterPackageAssembler
                 AddOptional(required, crouch.GetString() ?? "", d, "character.presentation");
             if (presentation.TryGetProperty("slide", out var slide) && slide.ValueKind == JsonValueKind.String)
                 AddOptional(required, slide.GetString() ?? "", d, "character.presentation");
-            foreach (string name in new[] { "shield", "grab", "grabbed", "throwForward", "airDodge" })
+            foreach (string name in new[] { "shield", "grab", "grabbed", "throwForward", "airDodge", "shell" })
                 if (presentation.TryGetProperty(name, out var role) && role.ValueKind == JsonValueKind.String)
                     AddOptional(required, role.GetString() ?? "", d, "character.presentation");
         }

@@ -84,7 +84,7 @@ namespace SlopArena.Client.UI
             {
                 var identity = Find(player.EntityId);
                 var row = _rows[player.EntityId];
-                row.text = $"{identity.Label} · {identity.Class.ToString().ToUpperInvariant()}     {player.Score}\n"
+                row.text = $"{identity.Label} · {MenuRoster.Name(identity.Class).ToUpperInvariant()}     {player.Score}\n"
                     + (player.Withdrawn ? "DISCONNECTED" : player.Benched ? "OUT · BOOTH · BACK NEXT ROUND" : $"{sim.GetState(player.EntityId).DamagePercent}% · ON DECK");
                 row.parent.style.opacity = player.Benched ? .55f : 1f;
                 string stamp = "";

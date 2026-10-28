@@ -34,7 +34,7 @@ namespace SlopArena.Client.UI
                 if (portrait == null && fighter.Value is not (CharacterClass.Manki or CharacterClass.FightGuy or CharacterClass.Wibou or CharacterClass.Bonk))
                     art.Add(Text("?", "fighter-panel__placeholder"));
                 panel.Add(art);
-                panel.Add(Text(fighter.Value.ToString().ToUpperInvariant(), "fighter-panel__fighter"));
+                panel.Add(Text(MenuRoster.Name(fighter.Value).ToUpperInvariant(), "fighter-panel__fighter"));
                 if (!compact) panel.Add(Text(MenuRoster.Description(fighter.Value), "fighter-panel__description"));
             }
             else

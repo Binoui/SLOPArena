@@ -108,6 +108,18 @@ namespace SlopArena.Client.Input
         }
         public static void CancelCapture() => _operation?.Cancel();
 
+        /// <summary>
+        /// The right stick flicks the specials and LB grabs; false keeps the stick on the camera
+        /// with LB as the special modifier. Set from Client Settings; prompts refresh on change.
+        /// </summary>
+        public static bool RightStickSpecials { get; private set; } = true;
+        public static void SetRightStickSpecials(bool value)
+        {
+            if (RightStickSpecials == value) return;
+            RightStickSpecials = value;
+            BindingRevision++;
+        }
+
         public static void ClearBinding(string actionName, string group)
         {
             if (_capturing) return;
@@ -253,7 +265,10 @@ namespace SlopArena.Client.Input
                 if (pair.Key == actionName) continue;
                 if (group == GamepadGroup &&
                     (actionName == "ToggleLock" && pair.Key == "CameraToggle" ||
-                     actionName == "CameraToggle" && pair.Key == "ToggleLock")) continue;
+                     actionName == "CameraToggle" && pair.Key == "ToggleLock" ||
+                     // Only one of the two is read, depending on the right-stick setting.
+                     actionName == "Grab" && pair.Key == "SpecialModifier" ||
+                     actionName == "SpecialModifier" && pair.Key == "Grab")) continue;
                 foreach (var binding in pair.Value.bindings)
                     if (binding.groups?.Contains(group, StringComparison.OrdinalIgnoreCase) == true &&
                         string.Equals(binding.effectivePath, path, StringComparison.OrdinalIgnoreCase))
@@ -295,10 +310,13 @@ namespace SlopArena.Client.Input
             AddButton("MoveLeft", "<Keyboard>/a");
             AddButton("MoveRight", "<Keyboard>/d");
             // Controller layout v2 (ADR-0042): A jumps, X/Y/B are the three normals, RB dashes.
-            // LB + a face button is a special, A included; InputController owns that chord.
+            // Right-stick specials (default): a right-stick flick is a special and LB grabs.
+            // With the stick on the camera, LB + a face button is a special, A included, and
+            // LB + RT grabs. Grab and SpecialModifier share LB; InputController reads only the one
+            // the setting selects.
             AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
             AddButton("Shield", "<Keyboard>/leftShift", "<Gamepad>/rightTrigger");
-            AddButton("Grab", "<Keyboard>/c");
+            AddButton("Grab", "<Keyboard>/c", "<Gamepad>/leftShoulder");
             AddButton("Dash", "<Keyboard>/4", "<Gamepad>/rightShoulder");
             AddButton("Down", "<Keyboard>/x", "<Gamepad>/leftTrigger");
             AddButton("Slot1", "<Keyboard>/1", "<Gamepad>/buttonWest");

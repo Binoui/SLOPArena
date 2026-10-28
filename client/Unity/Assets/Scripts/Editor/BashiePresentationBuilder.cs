@@ -455,16 +455,16 @@ namespace SlopArena.EditorTools
         // ── Shell Slide ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Folds her into her shell for the dive and the slide (<see cref="ShellTuck"/>), the look the owner picked
-        /// ("A", 2026-10-22): her hat and face peek out of the front. It pops her back out when the slide shows its
-        /// hit, miss or look-down clip, or when the attack ends.
+        /// Folds her into her shell (<see cref="ShellTuck"/>), the look the owner picked ("A", 2026-10-22): her hat
+        /// and face peek out of the front. It holds for as long as the simulation has her in the shell (ADR-0045),
+        /// through Shell Shift, Hydro Jet, Shell Dive and the skate, so it is not bound to one attack.
         /// </summary>
         private static GameObject Tuck()
         {
-            var root = _kit.NewRoot("BashieShellTuck", attackBound: true);
+            var root = _kit.NewRoot("BashieShellTuck", attackBound: false);
             var tuck = root.AddComponent<ShellTuck>();
             tuck.Pose = ShellTuckPose.Bashie;
-            tuck.HoldAnimationIds = new[] { "anim.bashie.gr", "anim.bashie.gr-slide" };
+            tuck.HoldWhileTucked = true;
             return _kit.Save(root);
         }
 

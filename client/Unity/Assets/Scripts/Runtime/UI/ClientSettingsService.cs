@@ -41,6 +41,8 @@ namespace SlopArena.Client.UI
             public float stickDeadzone = 12.5f;
             public bool vibration = true;
             public bool stick8WaySnap = true;
+            // Right stick flicks the four specials and LB grabs; false keeps the stick on the camera.
+            public bool rightStickSpecials = true;
             public float cameraSensitivity = 100f;
             public float stickLookSpeed = 100f;
             public int cameraStyle = (int)CameraStyle.Steady;
@@ -88,6 +90,7 @@ namespace SlopArena.Client.UI
         public float StickDeadzone => _settings.stickDeadzone;
         public bool Vibration => _settings.vibration;
         public bool Stick8WaySnap => _settings.stick8WaySnap;
+        public bool RightStickSpecials => _settings.rightStickSpecials;
         public float CameraSensitivity => _settings.cameraSensitivity / 100f;
         // The manual delta-driven camera path runs at half the former default gain.
         public float CameraInputGain => CameraSensitivity * 0.5f;
@@ -271,6 +274,12 @@ namespace SlopArena.Client.UI
         public void SetScreenShake(float percent) { _settings.screenShake = Clamp(percent); ChangedAndApply(); }
         public void SetReducedFlashing(bool value) { _settings.reducedFlashing = value; ChangedAndApply(); }
         public void SetStick8WaySnap(bool value) { _settings.stick8WaySnap = value; ChangedAndApply(); }
+        public void SetRightStickSpecials(bool value)
+        {
+            _settings.rightStickSpecials = value;
+            HumanInputActions.SetRightStickSpecials(value);
+            ChangedAndApply();
+        }
         public void SetRecordSessionLog(bool value) { _settings.recordSessionLog = value; ChangedAndApply(); }
         public void SetAutoLockMode(TargetLockMode value)
         {
@@ -286,6 +295,7 @@ namespace SlopArena.Client.UI
             _settings.stickDeadzone = HumanInputActions.DefaultDeadzone * 100f;
             _settings.vibration = true;
             _settings.stick8WaySnap = true;
+            _settings.rightStickSpecials = true;
             _settings.stickLookSpeed = 100f;
             ApplyControls(); ChangedAndApply(); Save();
         }
@@ -414,6 +424,7 @@ namespace SlopArena.Client.UI
         private void ApplyControls()
         {
             HumanInputActions.ApplyOverrides(_settings.bindingOverrides);
+            HumanInputActions.SetRightStickSpecials(_settings.rightStickSpecials);
             InputSystem.settings.defaultDeadzoneMin = Mathf.Clamp(_settings.stickDeadzone / 100f, 0.05f, 0.5f);
         }
 

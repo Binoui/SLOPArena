@@ -16,6 +16,7 @@ public enum MatchFormat : byte
     CourseRace = 3,
     CourseCoop = 4,
     MankiMayhem = 5,
+    CourseScramble = 6,
 }
 
 public static class MatchFormats
@@ -26,7 +27,8 @@ public static class MatchFormats
     public const string SlopballVersusWire = "slopball-versus";
     public const string CourseRaceWire = "course-race";
     public const string CourseCoopWire = "course-coop";
-    public static bool IsCourse(this MatchFormat format) => format is MatchFormat.CourseRace or MatchFormat.CourseCoop;
+    public const string CourseScrambleWire = "course-scramble";
+    public static bool IsCourse(this MatchFormat format) => format is MatchFormat.CourseRace or MatchFormat.CourseCoop or MatchFormat.CourseScramble;
     public static bool IsSlopball(this MatchFormat format)
         => format is MatchFormat.SlopballCoop or MatchFormat.SlopballVersus;
 
@@ -41,6 +43,7 @@ public static class MatchFormats
         MatchFormat.SlopballVersus => SlopballVersusWire,
         MatchFormat.CourseRace => CourseRaceWire,
         MatchFormat.CourseCoop => CourseCoopWire,
+        MatchFormat.CourseScramble => CourseScrambleWire,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
@@ -64,6 +67,9 @@ public static class MatchFormats
                 return true;
             case CourseRaceWire:
                 format = MatchFormat.CourseRace;
+                return true;
+            case CourseScrambleWire:
+                format = MatchFormat.CourseScramble;
                 return true;
             case CourseCoopWire:
                 format = MatchFormat.CourseCoop;
@@ -100,6 +106,7 @@ public static class MatchFormats
         MatchFormat.Stock => new StockMatchRule(maxStocks),
         MatchFormat.SlopballCoop => new SlopballCoopMatchRule(friendlyFire: friendlyFire),
         MatchFormat.SlopballVersus => new SlopballVersusMatchRule(camps!, ballOnly),
+        MatchFormat.CourseScramble => new CourseMatchRule(CourseFormat.Scramble),
         MatchFormat.CourseRace => new CourseMatchRule(cooperative: false),
         MatchFormat.CourseCoop => new CourseMatchRule(cooperative: true),
         _ => throw new ArgumentOutOfRangeException(nameof(format)),

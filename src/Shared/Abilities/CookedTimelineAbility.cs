@@ -107,7 +107,7 @@ public sealed class CookedTimelineAbility : ServerAbility
                     UsesStartupAimCorrection = true;
                 }
                 if (operations[j] is CookedSetVelocityOperation velocity &&
-                    (velocity.VelocityMode == AuthoringVelocityMode.Absolute ||
+                    (velocity.VelocityMode is AuthoringVelocityMode.Absolute or AuthoringVelocityMode.Vertical ||
                      velocity.Y != 0f))
                 {
                     ownsVerticalMotion = true;
@@ -303,6 +303,11 @@ public sealed class CookedTimelineAbility : ServerAbility
             {
                 case CookedStartupAimCorrectionOperation:
                     // OnStart captures once; the cached profile drives its authored window.
+                    break;
+                case CookedSetVelocityOperation { VelocityMode: AuthoringVelocityMode.Vertical } vertical:
+                    // A hop that keeps the horizontal carry (a normal out of the shell at skate speed).
+                    s.IsFastFalling = false;
+                    s.VY = vertical.Y;
                     break;
                 case CookedSetVelocityOperation velocity:
                     ClearVelocityOwnership(ref s);

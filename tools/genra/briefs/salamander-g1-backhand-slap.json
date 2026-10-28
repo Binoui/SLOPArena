@@ -1,0 +1,157 @@
+{
+  "name": "salamander-g1-backhand-slap",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.1 (anim.salamander.g1): Backhand Slap, his jab. Replaces Pistol Whip (owner 2026-10-28: the finger-gun normals felt random and too complex; normals are now simple body hits). Clock kept from Pistol Whip: 35 ticks, hit 9-14, act 18.",
+  "description": "The salamander's ground.1, Backhand Slap: his fast jab. A quick, insulting saloon backhand with his open right hand: the back of the hand leads, sweeping out from across his chest to his right side.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who plays every Western cliche with total conviction. His finger guns belong to his specials only. His normals are plain, scrappy saloon-brawl hits with his own body: no finger guns, no props, open or loosely closed hands. They should be simple to read: one clear idea per move, big silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (35 ticks, played once):\n- Tick 0: the showdown stance.\n- Tick 5, the wind: his right hand pulls across in front of his chest to his left shoulder, back of the hand facing forward, elbow up and out in front at shoulder height; chest turned 20-30 degrees to his left; weight on the left boot. His left hand goes to his left hip, knuckles on the belt (a cocky hand-on-hip).\n- Tick 9, contact: the backhand. The forearm whips out and the open hand sweeps from his left shoulder across to in front of his right chest, the back of the hand leading, fingers together and loose; the arm nearly straight, the hand at chest height 0.3-0.45 m in front of his chest; chest turned through to 10-20 degrees to his right; weight onto the right boot. Chin up, smirk.\n- Ticks 9-14: the follow-through carries the hand on out to his right side, ending about 45 degrees out to his right at shoulder height, well clear of his body, so from behind the whole slap reads beside him.\n- Ticks 18-26: recovered enough to act at 18. The gag: the slap stung. He drops the hand to his right hip and shakes it out twice (wrist flicks of 15-25 degrees, the fingers loose and lagging), a tiny wince of the head.\n- Tick 35: the showdown stance again, matching tick 0.\nFeet stay planted (the boots may pivot a little on their soles). The tail swings against the chest: to his right on the wind, to his left on the slap, 2-3 ticks late.\n- Life. Overlap everything: the hips lead, the chest follows 1-2 ticks later, the arms and head trail 2-3 ticks, the tail and the hat (joint Hat, a few degrees at most) trail the most. No two parts stop on the same tick, and every hold is a moving hold (key its end 2-5 degrees on from its start). Use the follow-through helpers from the guide's Life and Flow sections. Treat every flow or life warning as a failure.",
+  "clock": {
+    "duration_ticks": 35,
+    "contact_tick": 9,
+    "active": [
+      9,
+      14
+    ],
+    "iasa_tick": 18
+  },
+  "timing": {
+    "fixed": [
+      "35 ticks played once; contact at tick 9, the hitbox is in front of his chest and right hand from tick 9 to 14",
+      "the player can act from tick 18",
+      "tick 0 and tick 35 are his showdown idle exactly"
+    ],
+    "adjustable": [
+      "the hand-shake gag after tick 18 (keep it small and quick)",
+      "keep the wind-up short, it is his fastest move"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 35
+  },
+  "fast_windows": [
+    [
+      5,
+      12
+    ],
+    [
+      18,
+      26
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "keys": [
+    0,
+    5,
+    9,
+    14,
+    18,
+    26,
+    35
+  ],
+  "review_ticks": [
+    0,
+    3,
+    5,
+    7,
+    9,
+    11,
+    14,
+    18,
+    22,
+    26,
+    35
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor at contact (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 9,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "right toe on the floor at contact (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 9,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "wind: right hand crossed to his left at tick 5 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 5,
+      "max": 0.0
+    },
+    {
+      "name": "wind: right hand at shoulder height at tick 5 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 5,
+      "min": 0.17
+    },
+    {
+      "name": "contact: right hand in front of the chest at tick 9 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 9,
+      "min": 0.25
+    },
+    {
+      "name": "follow-through: right hand out to his right at tick 14 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 14,
+      "min": 0.28
+    },
+    {
+      "name": "left hand on the hip at tick 9 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "LeftUpLeg",
+      "tick": 9,
+      "max": 0.2
+    },
+    {
+      "name": "tail swings with the body (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        0,
+        20
+      ],
+      "min": 0.06
+    }
+  ]
+}

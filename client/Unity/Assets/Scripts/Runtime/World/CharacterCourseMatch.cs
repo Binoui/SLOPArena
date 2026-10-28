@@ -14,7 +14,7 @@ namespace SlopArena.Client.World
     /// <summary>
     /// One Character Course offered by Arcade: its stage key, the menu and HUD title, how cues name
     /// the finish and optional movement tips (before any save, then after checkpoint 1, 2, …).
-    /// The course's baked profile decides which fighters it admits.
+    /// Every roster fighter can play every course.
     /// </summary>
     public sealed class CharacterCourseInfo
     {
@@ -29,46 +29,44 @@ namespace SlopArena.Client.World
     }
 
     /// <summary>Local course input and presentation. Shared owns hits, progress, respawns and the clock.</summary>
-    public sealed class CharacterCourseMatch : MatchBase
+    public sealed partial class CharacterCourseMatch : MatchBase
     {
         public const string ArenaKey = "fightguy_sanctuary";
         /// <summary>Every course plays in this scene; the stage, fighter and look come from the course.</summary>
         public const string SceneName = "Arcade_FightGuyCourse";
         public static readonly CharacterCourseInfo[] Courses =
         {
-            // A fighter plays the first listed course whose arena is baked and admits it
-            // (ModeSelectController), so FightGuy gets the pier when it is baked and Sanctuary otherwise.
             new("fightguy_pier", "FIGHT NIGHT PIER", "the ring", new[]
             {
-                "F wrecks the car in one go. R sweeps a row, E pops a stack, A reaches far balloons.",
-                "Jump then R to the old pier through the balloon line, or hop the pilings and punch them.",
-                "Jump then E up the wheel tower through the stack, or climb the gondolas. Then max out the punch machine.",
-                "R sweeps the coaster straight. Ki Shot the prize buoy, F the heavy bag, then into the ring.",
+                "Break the car, then follow the balloons along the pier.",
+                "Hop the pilings to the old pier, or cut across the balloon line.",
+                "Climb the gondolas up the wheel tower. Clear the stack and punch machine.",
+                "Follow the coaster to the prize buoy and heavy bag, then enter the ring.",
             }),
             new(ArenaKey, "SANCTUARY COURSE", "the shrine", new[]
             {
-                "Jump then R to cross the broken bridge, or use the pole detour. Any route counts.",
-                "Jump then E to reach the upper terrace, or climb the staggered ledges.",
-                "The summit shortcut combines Jump, E, then R. Islands offer another route.",
-                "Press Down again while descending to FastFall after committed move motion ends.",
+                "Cross the broken bridge, or hop along the pole detour.",
+                "Climb the staggered ledges to the upper terrace, or take a shortcut up.",
+                "Hop the islands to the summit, or cut straight across the gap.",
+                "The shrine is beyond the summit. Clear every target before entering.",
             }),
             new("manki_quarry", "KABOOM QUARRY", "the detonator", new[]
             {
-                "Lob A bombs onto the islands, or jump over and punch. One blast breaks every crate it reaches.",
-                "Bomb low rafts from above; rocket (R) the high stacks. Aim R a little high at long range.",
-                "Jump then E up the blast face, or climb the benches on the left.",
-                "Dive-bomb the crates below on your way down to the detonator.",
+                "Hop between the islands and break every crate along the way.",
+                "The low rafts lead past the high stacks. Look for shortcuts between them.",
+                "Climb the benches on the left, or take a shortcut up the blast face.",
+                "Clear the crates below as you descend to the detonator.",
             }),
             new("wibou_mall", "NEO MALL", "the game store", new[]
             {
-                "R cuts a row in one dash, A fans three kunai. E carries you over the closed skybridge, or hop the planters.",
-                "Jump the missing escalator steps. Bosses take five hits: Skyfall lands two, close kunai three.",
-                "Jump, jump, E up the elevator tower, or climb the hanging signs. Kunai the agents peeking over level 4.",
-                "R the top bridge row, cut the agents at the railing, then get past Officer Doug to the game store.",
+                "Hop the planters around the closed skybridge, or cut across the gap.",
+                "Jump the missing escalator steps. Boss targets take five hits.",
+                "Climb the hanging signs up the elevator tower. Check level four for targets.",
+                "Clear the top bridge and railing, then pass the guard to reach the game store.",
             }),
         };
         public static CharacterCourseInfo Course(string key)
-            => Array.Find(Courses, c => c.Key == key) ?? new CharacterCourseInfo(key, "CHARACTER COURSE", "the finish", Array.Empty<string>());
+            => Array.Find(Courses, c => c.Key == key) ?? new CharacterCourseInfo(key, "SLOP RALLY", "the finish", Array.Empty<string>());
         /// <summary>
         /// A retry starts with a short READY…SLOP IT OUT instead of 3-2-1. The countdown never advances the
         /// simulation (the clock starts at Go), so it cannot change times or record compatibility.
@@ -125,6 +123,8 @@ namespace SlopArena.Client.World
             ClientSession.InstallLocalMatchCatalog(catalog);
             if (entry.LegacySelector.HasValue) MatchConfig.PlayerClass = entry.LegacySelector.Value;
             MatchConfig.PlayerPackageId = entry.Identity.PackageId;
+            if (MatchConfig.LocalMode == LocalPlayMode.CharacterCourse && Array.Exists(MatchConfig.SoloSeats, s => s.Kind == SeatKind.LocalPlayer))
+            { StartScramble(catalog, arena, entry); return; }
             _playerDef = entry.Definition; _course = arena.Arcade.Course;
             _arena = arena; _baked = entry.BakedAnimation;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
@@ -178,6 +178,7 @@ namespace SlopArena.Client.World
 
         private void Update()
         {
+            if (_scrambleActive) { UpdateScramble(); return; }
             if (!Ready) return;
             bool retry = _retryInput.Poll(!IsPaused && !ChatInputGate.SuppressShortcuts);
             _view.PresentRetryHold(_retryInput.HoldProgress);
@@ -196,6 +197,7 @@ namespace SlopArena.Client.World
 
         protected override void OnMatchFixedUpdate()
         {
+            if (_scrambleActive) { TickScramble(); return; }
             if (!Ready || IsPaused || ProbeFrozen) return;
             if (Simulation.Course.Value.Ended) { ProbeTickCompleted?.Invoke(SimulationTick); return; }
             byte slot = _inputController.ConsumePendingSlotPress();
@@ -275,6 +277,7 @@ namespace SlopArena.Client.World
         /// </summary>
         public void RestartAttempt()
         {
+            if (_scrambleActive) { RestartScramble(); return; }
             if (!Ready) return;
             Simulation.StopCourse();
             _bridge.Restart();
@@ -298,6 +301,7 @@ namespace SlopArena.Client.World
         { Simulation?.StopCourse(); MatchConfig.ClearActiveMatch(); MatchConfig.Mode = GameMode.Arcade; FrontendController.Show(FrontendPage.FighterSelect); }
         protected override void OnDestroy()
         {
+            DisposeScramble();
             Simulation?.StopCourse(); _view?.Dispose(); _presentation?.Dispose();
             base.OnDestroy();
         }

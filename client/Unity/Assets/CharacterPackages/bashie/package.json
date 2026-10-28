@@ -1,7 +1,7 @@
 {
   "manifestSchemaVersion": 1,
   "packageId": "bashie",
-  "version": "0.0.0-dev",
+  "version": "0.0.1-dev",
   "creator": "Binoui",
   "license": "MIT",
   "attribution": "SlopArena",

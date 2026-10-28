@@ -40,7 +40,7 @@ format decides the camps. Smash Ultimate also asks for the stage before fighters
 
 - **PVP tab:** today's stage cards and stock fight rules. Teams and upgrade rounds can
   appear here later.
-- **ARCADE tab:** Manki Mayhem, Slopball and Character Courses cards. Mayhem takes two to four humans and sets friendly fire on its card, Off, Shoves or On, default Shoves. Slopball shows its
+- **ARCADE tab:** Manki Mayhem, Slopball and Slop Rally cards. Mayhem takes two to four humans and sets friendly fire on its card, Off, Shoves or On, default Shoves. Slopball shows its
   formats (Versus 1v1, Versus 2v2, Co-op vs the Launcher) and their rules. Courses show
   one card per course with its fighter, then the Race and Co-op formats.
 - A format that doesn't fit the Room's size is shown but unavailable: Versus 1v1 needs

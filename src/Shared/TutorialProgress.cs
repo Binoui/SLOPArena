@@ -6,7 +6,7 @@ namespace SlopArena.Shared
     /// <summary>Tutorial lessons in teaching order; presentation owns their wording.</summary>
     public enum TutorialLessonId : byte
     {
-        MoveAndLook, Jump, FastFall, Attacks, Aerials, Specials, Recovery, ShieldAndDodge, GrabAndThrow, Combo, Knockout,
+        MoveAndLook, Jump, FastFall, Attacks, Aerials, Beeline, Specials, Recovery, ShieldAndDodge, GrabAndThrow, Combo, BeelineTricks, Knockout,
     }
 
     public enum TutorialObjectiveId : byte
@@ -16,11 +16,13 @@ namespace SlopArena.Shared
         FastFall,
         HitNormal1, HitNormal3, HitNormal4,
         LandAerials,
+        BeelineHit, BeelineAerial,
         UseSpecialA, UseSpecialE, UseSpecialR, UseSpecialF,
         RecoverToStage,
         BlockAttacks, AirDodge,
         Grab, Throw,
         Combo,
+        BeelineOutOfShield, BeelineRecovery, BeelineChase,
         Knockout,
     }
 
@@ -67,6 +69,8 @@ namespace SlopArena.Shared
                 (TutorialObjectiveId.HitNormal4, 1f)),
             Lesson(TutorialLessonId.Aerials, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
                 (TutorialObjectiveId.LandAerials, 2f)),
+            Lesson(TutorialLessonId.Beeline, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
+                (TutorialObjectiveId.BeelineHit, 1f), (TutorialObjectiveId.BeelineAerial, 1f)),
             Lesson(TutorialLessonId.Specials, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
                 (TutorialObjectiveId.UseSpecialA, 1f), (TutorialObjectiveId.UseSpecialE, 1f),
                 (TutorialObjectiveId.UseSpecialR, 1f), (TutorialObjectiveId.UseSpecialF, 1f)),
@@ -80,6 +84,9 @@ namespace SlopArena.Shared
             // dummy lands) is achievable for all four, some only through a long-cooldown special.
             Lesson(TutorialLessonId.Combo, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
                 (TutorialObjectiveId.Combo, 2f)) with { DummyPercent = 30, NoCooldowns = true },
+            Lesson(TutorialLessonId.BeelineTricks, TutorialDummySetup.Reset, TutorialDummyBehavior.Sparring,
+                (TutorialObjectiveId.BeelineOutOfShield, 1f), (TutorialObjectiveId.BeelineRecovery, 1f),
+                (TutorialObjectiveId.BeelineChase, 1f)) with { DummyPercent = 30, NoCooldowns = true },
             Lesson(TutorialLessonId.Knockout, TutorialDummySetup.KnockoutReady, TutorialDummyBehavior.Idle,
                 (TutorialObjectiveId.Knockout, 1f)) with { DummyPercent = 100 },
         };
@@ -135,6 +142,9 @@ namespace SlopArena.Shared
         private ulong _comboActivation;
         private bool _offstage, _recovered;
         private byte _offstageDeaths;
+        private byte? _beelineAttack;
+        private bool _beelineGroundHit, _beelineAirHit, _chaseDash, _beelineChase;
+        private bool _offstageBeeline, _beelineRecovered;
 
         public IReadOnlyList<TutorialLesson> Lessons { get; }
         public int LessonIndex { get; private set; }
@@ -145,7 +155,7 @@ namespace SlopArena.Shared
         /// <summary>Longest combo in the current lesson, for presentation.</summary>
         public int ComboHits => _comboHits;
 
-        /// <summary>The dummy's behaviour now: a sparring dummy rests once its swings have all been blocked.</summary>
+        /// <summary>The dummy's behaviour now: a sparring dummy rests once objectives needing swings are done.</summary>
         public TutorialDummyBehavior DummyBehavior
         {
             get
@@ -153,7 +163,8 @@ namespace SlopArena.Shared
                 var lesson = Lesson;
                 if (lesson.DummyBehavior != TutorialDummyBehavior.Sparring) return lesson.DummyBehavior;
                 for (int i = 0; i < lesson.Objectives.Count; i++)
-                    if (lesson.Objectives[i].Id == TutorialObjectiveId.BlockAttacks && !IsComplete(i))
+                    if (lesson.Objectives[i].Id is TutorialObjectiveId.BlockAttacks or TutorialObjectiveId.BeelineOutOfShield
+                        && !IsComplete(i))
                         return TutorialDummyBehavior.Sparring;
                 return TutorialDummyBehavior.Idle;
             }
@@ -211,10 +222,20 @@ namespace SlopArena.Shared
             _aerialSlots = _comboHits = 0;
             _comboActivation = 0;
             _offstage = _recovered = false;
+            _offstageDeaths = 0;
+            _beelineAttack = null;
+            _beelineGroundHit = _beelineAirHit = _chaseDash = _beelineChase = false;
+            _offstageBeeline = _beelineRecovered = false;
         }
 
         private void Track(in TutorialFrame f)
         {
+            _beelineGroundHit = _beelineAirHit = _beelineChase = false;
+            // A chase is a Beeline started while the dummy is airborne; the idle or sparring dummy only leaves the ground when launched.
+            if (DashStarted(in f)) _chaseDash = !f.Dummy.IsGrounded;
+            if (f.Player.AttackSequence != f.PlayerBefore.AttackSequence)
+                _beelineAttack = f.PlayerBefore.State == ActionState.HomingDashArrive
+                    ? f.Player.AttackSequence : null;
             ulong player = f.Player.EntityId, dummy = f.Dummy.EntityId;
             bool dummyHit = false;
             foreach (var hit in f.Hits)
@@ -224,6 +245,12 @@ namespace SlopArena.Shared
                 if (hit.Airborne && IsNormal(hit.AttackSlot)) _aerialSlots |= 1 << hit.AttackSlot;
                 if (_comboHits == 0 || !Reeling(in f.DummyBefore)) { _comboHits = 1; _comboActivation = hit.ActivationId; }
                 else if (hit.ActivationId != _comboActivation) { _comboHits++; _comboActivation = hit.ActivationId; }
+                if (_beelineAttack == f.Player.AttackSequence)
+                {
+                    if (hit.Airborne) _beelineAirHit = true;
+                    else _beelineGroundHit = true;
+                    if (_chaseDash) _beelineChase = true;
+                }
             }
             if (!dummyHit && !Reeling(in f.Dummy)) _comboHits = 0;
 
@@ -231,11 +258,16 @@ namespace SlopArena.Shared
             if (!_offstage)
             {
                 if (!p.IsGrounded && Feet(in p) < _layout.FloorHeight - OffstageDepth)
-                { _offstage = true; _offstageDeaths = p.Deaths; }
+                { _offstage = true; _offstageDeaths = p.Deaths; _offstageBeeline = false; }
             }
-            else if (p.Deaths != _offstageDeaths) _offstage = false;
+            else if (p.Deaths != _offstageDeaths) { _offstage = false; _offstageBeeline = false; }
             else if (p.IsGrounded && Feet(in p) >= _layout.FloorHeight - SurfaceTolerance)
-            { _offstage = false; _recovered = true; }
+            {
+                _offstage = false; _recovered = true;
+                if (_offstageBeeline) _beelineRecovered = true;
+                _offstageBeeline = false;
+            }
+            if (_offstage && DashStarted(in f)) _offstageBeeline = true;
         }
 
         private float Advance(TutorialObjectiveId id, float amount, in TutorialFrame f)
@@ -261,6 +293,12 @@ namespace SlopArena.Shared
                 case TutorialObjectiveId.HitNormal3: return amount + GroundHits(in f, AbilitySlots.Slot3);
                 case TutorialObjectiveId.HitNormal4: return amount + GroundHits(in f, AbilitySlots.Slot4);
                 case TutorialObjectiveId.LandAerials: return BitCount(_aerialSlots);
+                case TutorialObjectiveId.BeelineHit: return _beelineGroundHit ? 1f : amount;
+                case TutorialObjectiveId.BeelineAerial: return _beelineAirHit ? 1f : amount;
+                case TutorialObjectiveId.BeelineOutOfShield:
+                    return before.State == ActionState.Shielding && DashStarted(in f) ? 1f : amount;
+                case TutorialObjectiveId.BeelineRecovery: return _beelineRecovered ? 1f : amount;
+                case TutorialObjectiveId.BeelineChase: return _beelineChase ? 1f : amount;
                 case TutorialObjectiveId.UseSpecialA: return amount + Activated(in f, AbilitySlots.A);
                 case TutorialObjectiveId.UseSpecialE: return amount + Activated(in f, AbilitySlots.E);
                 case TutorialObjectiveId.UseSpecialR: return amount + Activated(in f, AbilitySlots.R);
@@ -302,6 +340,9 @@ namespace SlopArena.Shared
 
         private static float Activated(in TutorialFrame f, byte slot)
             => f.Player.AttackSequence != f.PlayerBefore.AttackSequence && f.Player.AttackSlot == slot ? 1f : 0f;
+
+        private static bool DashStarted(in TutorialFrame f)
+            => f.Player.State == ActionState.HomingDashFloat && f.PlayerBefore.State != ActionState.HomingDashFloat;
 
         private static bool IsNormal(byte slot)
             => slot is AbilitySlots.Slot1 or AbilitySlots.Slot3 or AbilitySlots.Slot4;

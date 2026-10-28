@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 namespace SlopArena.Client.UI
 {
     public enum LocalPlayMode { Brawl, Slopball, CharacterCourse, MankiMayhem }
-    public enum LocalSeatPolicy { FourSeats, OneSeat }
+    public enum LocalSeatPolicy { FourSeats, OneSeat, HumanCourseSeats }
 
     public sealed class LocalPlayModeInfo
     {
@@ -18,7 +18,8 @@ namespace SlopArena.Client.UI
         public string PosterClass { get; }
         public LocalSeatPolicy Seats { get; }
         public bool HasStageStep { get; }
-        public int TotalSteps => HasStageStep ? 3 : 2;
+        public bool CourseFirst => Mode == LocalPlayMode.CharacterCourse;
+        public int TotalSteps => HasStageStep || CourseFirst ? 3 : 2;
         public string FighterAction { get; }
         public GameMode GameMode { get; }
         public MatchFormat Format { get; }
@@ -61,8 +62,8 @@ namespace SlopArena.Client.UI
             new LocalPlayModeInfo(LocalPlayMode.Slopball, "SLOPBALL", "Land the ball beyond the net. A miss resets your combo.",
                 "1 PLAYER", "local-poster--slopball", LocalSeatPolicy.OneSeat, false, "START SLOPBALL",
                 GameMode.Arcade, MatchFormat.Stock, World.SlopballMatch.ArenaKey, World.SlopballMatch.SceneName),
-            new LocalPlayModeInfo(LocalPlayMode.CharacterCourse, "CHARACTER COURSES", "Break every target. Reach the finish. Beat your time.",
-                "1 PLAYER · TIMED", "local-poster--course", LocalSeatPolicy.OneSeat, false, "START COURSE",
+            new LocalPlayModeInfo(LocalPlayMode.CharacterCourse, "SLOP RALLY", "Solo time trial, or race friends for targets and finish points.",
+                "1–4 · HUMAN SEATS · COUCH", "local-poster--course", LocalSeatPolicy.HumanCourseSeats, false, "START COURSE",
                 GameMode.Arcade, MatchFormat.Stock, "", World.CharacterCourseMatch.SceneName),
             new LocalPlayModeInfo(LocalPlayMode.MankiMayhem, "MANKI MAYHEM", "Manki calls the round. Survive it to score.",
                 "2–4 · CPUS · COUCH", "local-poster--mayhem", LocalSeatPolicy.FourSeats, false, "START MAYHEM",
@@ -78,6 +79,10 @@ namespace SlopArena.Client.UI
             MatchConfig.LocalMode = mode;
             var info = Current;
             info.Apply();
+            if (info.Seats == LocalSeatPolicy.HumanCourseSeats)
+                for (int player = 2; player <= 4; player++)
+                    if (MatchConfig.Seat(player).Kind == SeatKind.Cpu)
+                    { MatchConfig.Seat(player).Kind = SeatKind.Open; MatchConfig.Seat(player).DeviceId = 0; }
             if (info.Format == MatchFormat.MankiMayhem)
             {
                 var roster = new[] { CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bashie };
@@ -85,7 +90,7 @@ namespace SlopArena.Client.UI
                     if (MatchConfig.Seat(player).Kind == SeatKind.Open)
                         MatchConfig.Seat(player) = new SoloSeat { Kind = SeatKind.Cpu, Fighter = roster[player - 2], Difficulty = CpuDifficulty.Normal };
             }
-            FrontendController.Show(FrontendPage.FighterSelect);
+            FrontendController.Show(info.CourseFirst ? FrontendPage.StageSelect : FrontendPage.FighterSelect);
         }
     }
 }

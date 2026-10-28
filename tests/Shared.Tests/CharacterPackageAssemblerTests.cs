@@ -314,6 +314,7 @@ public sealed class CharacterPackageAssemblerTests
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/bashie");
         string manifest = File.ReadAllText(Path.Combine(root, "package.json"));
         var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
+        RingBounceFixture.Apply(character);
         if (!hop)
         {
             var p = character["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.E")!

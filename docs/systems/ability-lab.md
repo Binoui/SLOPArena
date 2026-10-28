@@ -298,6 +298,9 @@ semantic presentation bindings. Manki F holds `manki_aerosol.prefab` on the righ
 hand during aiming/attacking and emits `MankiAerosolInferno` at attack tick 18.
 Presentation attachment IDs such as `bone.right-hand` resolve to the rig's
 `mixamorig:RightHand` transform; they are not literal transform names.
+`PlayerRenderer.PresentationBoneName` maps `bone.head`, `bone.hips`, `bone.spine2`
+and the hands and feet. An unmapped ID logs a warning and the cue falls back to the
+event's world transform.
 
 ## Authority boundary
 

@@ -1550,6 +1550,10 @@
     display: none;
 }
 
+.stage-body-section .stage-course-card .stage-name {
+    display: flex;
+}
+
 
 .stage-summary-section {
     flex-shrink: 0;

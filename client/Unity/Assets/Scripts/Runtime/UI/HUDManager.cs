@@ -328,6 +328,8 @@ namespace SlopArena.Client.UI
             _showGamepadPrompts = HumanInputActions.LastUsedGamepad && Gamepad.current != null;
             _seenBindingRevision = HumanInputActions.BindingRevision;
             _moveDeck.EnableInClassList("controller-prompts", _showGamepadPrompts);
+            bool stickSpecials = _showGamepadPrompts && HumanInputActions.RightStickSpecials;
+            _moveDeck.EnableInClassList("stick-specials", stickSpecials);
             string group = _showGamepadPrompts ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardMouseGroup;
 
             for (int i = 0; i < _abilitySlots.Length; i++)
@@ -343,7 +345,14 @@ namespace SlopArena.Client.UI
                         _ => AbilitySlotDefs[i].Action,
                     }
                     : AbilitySlotDefs[i].Action;
-                string path = BindingPath(action, group);
+                string path = stickSpecials ? AbilitySlotDefs[i].Action switch
+                {
+                    "SlotA" => "<Gamepad>/rightStick/down",
+                    "SlotE" => "<Gamepad>/rightStick/up",
+                    "SlotR" => "<Gamepad>/rightStick/left",
+                    "SlotF" => "<Gamepad>/rightStick/right",
+                    _ => BindingPath(action, group),
+                } : BindingPath(action, group);
                 var buttonGlyph = default(InputPromptAtlas.Glyph);
                 bool hasButton = _showGamepadPrompts &&
                     (_promptAtlas ??= new InputPromptAtlas()).TryXbox(path, out buttonGlyph);
@@ -353,7 +362,13 @@ namespace SlopArena.Client.UI
                     SetPromptImage(slot.Button, buttonGlyph);
                 else
                 {
-                    string label = HumanInputActions.BindingLabel(action, group);
+                    // Without the gitignored prompt sheet, stick directions read as arrows.
+                    string label = stickSpecials && path?.Contains("/rightStick/") == true
+                        ? "R" + path.Substring(path.LastIndexOf('/') + 1) switch
+                        {
+                            "up" => "\u2191", "down" => "\u2193", "left" => "\u2190", _ => "\u2192",
+                        }
+                        : HumanInputActions.BindingLabel(action, group);
                     slot.Key.text = _showGamepadPrompts
                         ? label : InputPromptAtlas.KeyboardDisplayLabel(path, label);
                 }
@@ -413,7 +428,7 @@ namespace SlopArena.Client.UI
             tape.Add(badge);
             details.Add(tape);
 
-            string character = p.Class.ToString().ToUpperInvariant();
+            string character = MenuRoster.Name(p.Class).ToUpperInvariant();
             bool named = !string.IsNullOrEmpty(p.DisplayName);
             var fighterName = new Label(named ? p.DisplayName : character) { enableRichText = false };
             fighterName.AddToClassList("fighter-name");
@@ -524,7 +539,7 @@ namespace SlopArena.Client.UI
                     slot.MaxCooldown = HomingDashConfig.CooldownTicks;
                     slot.Locked = false;
                     slot.GroundAvailable = slot.AirAvailable = true;
-                    slot.DisplayName = "HOMING DASH";
+                    slot.DisplayName = "BEELINE";
                     slot.Artwork = default;
                     SetSlotPresentation(slot, isGrounded);
                     continue;
@@ -667,8 +682,8 @@ namespace SlopArena.Client.UI
             bool shared = results.SharedVictory && winners.Count > 1;
             string headline = results.Course != null ? "COURSE\nCLEARED." : shared ? "DOUBLE\nK.O.!" : "BEST\nSLOPPER";
             string outcome = shared ? "SHARED VICTORY" : first.EntityId == _localEntityId ? "YOU WIN!" : $"{Name(first)} WINS!";
-            string name = shared ? $"{Fighter(first).ToString().ToUpperInvariant()}\n{Fighter(winners[1]).ToString().ToUpperInvariant()}"
-                : Fighter(first).ToString().ToUpperInvariant();
+            string name = shared ? $"{MenuRoster.Name(Fighter(first)).ToUpperInvariant()}\n{MenuRoster.Name(Fighter(winners[1])).ToUpperInvariant()}"
+                : MenuRoster.Name(Fighter(first)).ToUpperInvariant();
             _soloEndCard?.ShowPoster(headline, outcome, name, Fighter(first),
                 shared ? Fighter(winners[1]) : CharacterClass.None, shared);
         }
@@ -947,7 +962,8 @@ namespace SlopArena.Client.UI
         private void UpdateModifierFeedback()
         {
             if (_moveDeck == null) return;
-            bool held = _showGamepadPrompts && HumanInputActions.Get("SpecialModifier").IsPressed() &&
+            bool held = _showGamepadPrompts && !HumanInputActions.RightStickSpecials &&
+                HumanInputActions.Get("SpecialModifier").IsPressed() &&
                 !ChatInputGate.SuppressGameplay && !HumanInputActions.IsCapturing &&
                 !(SettingsOverlay.Active is { IsOpen: true }) &&
                 !(MatchPauseMenu.Active is { IsPaused: true });

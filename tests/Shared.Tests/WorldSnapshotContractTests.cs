@@ -196,6 +196,12 @@ public class WorldSnapshotContractTests
         yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
             CharacterPackageCompiler.FingerGunsCapabilityId,
             CharacterPackageCompiler.FingerGunsCapabilityVersion, FingerGunsTests.Parameters);
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.AimedRecoveryCapabilityId,
+            CharacterPackageCompiler.AimedRecoveryCapabilityVersion, AimedRecoveryTests.HopParameters);
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.ThrustCapabilityId,
+            CharacterPackageCompiler.ThrustCapabilityVersion, BashieShellFixture.JetParameters);
     }
 
     private static ServerAbility Create(CookedStartCapabilityOperation operation)

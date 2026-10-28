@@ -78,6 +78,7 @@ public sealed class CharacterPackageCompilerTests
     {
         string root = Path.GetDirectoryName(FindRepoFile("client/Unity/Assets/CharacterPackages/bashie/character.json"))!;
         var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+        RingBounceFixture.Apply(character);
         edit?.Invoke(character);
         return CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
             character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);

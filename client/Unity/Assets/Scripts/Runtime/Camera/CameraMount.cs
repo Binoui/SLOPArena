@@ -182,7 +182,7 @@ namespace SlopArena.Client.Camera
 
             if (_chatInputSuppressed)
             {
-                if (HumanInputActions.StickLook.ReadValue<Vector2>().sqrMagnitude > 0.01f ||
+                if (CameraStick.sqrMagnitude > 0.01f ||
                     HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f ||
                     Mathf.Abs(HumanInputActions.ZoomDelta) > 0.01f)
                 {
@@ -226,7 +226,7 @@ namespace SlopArena.Client.Camera
                 }
                 ApplyStyle(preferences.ResolveCameraStyle(HumanInputActions.LastUsedGamepad));
                 Vector2 mouseLook = HumanInputActions.MouseLook.ReadValue<Vector2>();
-                Vector2 stickLook = HumanInputActions.StickLook.ReadValue<Vector2>();
+                Vector2 stickLook = CameraStick;
                 // Controllers get a shorter manual grace and stronger lock assistance.
                 bool controller = HumanInputActions.LastUsedGamepad;
                 bool manualLook = mouseLook.sqrMagnitude > 0.0001f || stickLook.sqrMagnitude > 0.0001f;
@@ -782,6 +782,10 @@ namespace SlopArena.Client.Camera
         public float LockYawSpeedDegrees => _lockYawSpeed;
         public Vector2 PitchRangeDegrees => _orbital != null ? _orbital.VerticalAxis.Range : Vector2.zero;
         /// <summary>Right-stick yaw at full deflection with the current Stick Look Speed, degrees/second.</summary>
+        /// <summary>The right stick, unless it is holding the specials.</summary>
+        private static Vector2 CameraStick => HumanInputActions.RightStickSpecials
+            ? Vector2.zero : HumanInputActions.StickLook.ReadValue<Vector2>();
+
         public float StickYawRateDegrees => _stickYawSpeed * ClientSettingsService.Instance.StickLookSpeed;
 
         /// <summary>

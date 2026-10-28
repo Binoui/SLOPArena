@@ -162,9 +162,9 @@ namespace SlopArena.Shared
             s.WasAirborneDuringKnockback = r.ReadBool();
             s.InPostHitstunFlight = r.ReadBool();
             s.IsFastFalling = r.ReadBool();
-            s.JumpTakeoff = (JumpTakeoff)ReadEnumByte(r, (byte)JumpTakeoff.Slide, "jump takeoff");
+            s.JumpTakeoff = (JumpTakeoff)ReadEnumByte(r, (byte)JumpTakeoff.Shell, "jump takeoff");
             s.SlideAttackCarryActive = r.ReadBool();
-            s.AttackCarryFrom = (AttackCarryOrigin)ReadEnumByte(r, (byte)AttackCarryOrigin.Run, "attack carry origin");
+            s.AttackCarryFrom = (AttackCarryOrigin)ReadEnumByte(r, (byte)AttackCarryOrigin.Shell, "attack carry origin");
             s.CrouchSettled = r.ReadBool();
             s.QueuedCrouchBrace = r.ReadBool();
             s.Deaths = r.ReadByte();
@@ -530,6 +530,7 @@ namespace SlopArena.Shared
             w.WriteUShort(hb.LegTicks);
             w.WriteBool(hb.CanHitOwner);
             w.WriteBool(hb.FreezesOwner);
+            w.WriteBool(hb.OwnerWindow);
             w.WriteBool(hb.HitsMultipleOpponents);
             w.WriteSet(hb.HitEntities);
             w.WriteBool(hb.TracksBone);
@@ -607,6 +608,7 @@ namespace SlopArena.Shared
             hb.LegTicks = r.ReadUShort();
             hb.CanHitOwner = r.ReadBool();
             hb.FreezesOwner = r.ReadBool();
+            hb.OwnerWindow = r.ReadBool();
             hb.HitsMultipleOpponents = r.ReadBool();
             hb.HitEntities = r.ReadSet();
             hb.TracksBone = r.ReadBool();
