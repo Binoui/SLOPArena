@@ -1,0 +1,80 @@
+{
+ "stage": "log_off",
+ "notes": "22b Salamander Finger Guns: six taps at FightGuy, each shot lands, then the automatic reload gag (blow, twirl, holster)",
+ "capture": {
+  "from": 1,
+  "to": 215,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "salamander",
+   "feet": [
+    -10.0,
+    0,
+    -3.0
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 3,
+     "press": "A"
+    },
+    {
+     "at": 22,
+     "press": "A"
+    },
+    {
+     "at": 41,
+     "press": "A"
+    },
+    {
+     "at": 60,
+     "press": "A"
+    },
+    {
+     "at": 79,
+     "press": "A"
+    },
+    {
+     "at": 98,
+     "press": "A"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    -7.5,
+    0,
+    -3.0
+   ],
+   "yaw": 270,
+   "damage": 0,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "c",
+   "pos": [
+    -13.5,
+    1.5,
+    -5.96
+   ],
+   "look": [
+    -8.2,
+    1.0,
+    -3.15
+   ],
+   "fov": 50,
+   "far": 4000
+  }
+ ]
+}

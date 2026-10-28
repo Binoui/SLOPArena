@@ -1,0 +1,60 @@
+{
+ "stage": "log_off",
+ "notes": "22a Salamander intro: he runs in holding his hat, stops, turns three-quarter to a fixed low camera and idles",
+ "capture": {
+  "from": 1,
+  "to": 200,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "salamander",
+   "feet": [
+    -12.0,
+    0,
+    -0.5
+   ],
+   "yaw": 50,
+   "input": [
+    {
+     "from": 3,
+     "to": 34,
+     "move": 50
+    },
+    {
+     "at": 60,
+     "face": 140
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "c",
+   "pos": [
+    -6.49,
+    0.9,
+    -0.45
+   ],
+   "look": [
+    -6.8,
+    0.9,
+    3.8
+   ],
+   "follow": 1,
+   "lookOffset": [
+    0,
+    0.3,
+    0
+   ],
+   "ease": 0.35,
+   "fov": 40,
+   "far": 4000,
+   "move": false
+  }
+ ]
+}

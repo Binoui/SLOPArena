@@ -1,0 +1,83 @@
+{
+ "stage": "splash_deck",
+ "notes": "final (r4): Wibou (140%) Beelines at Sir Bonk with a buffered Quick Slash; Sir Bonk shields it on arrival (blocked t41), drops the shield and punishes with Sunrise (hit t83) while Wibou is still in the slash; 3/4 camera from the south-east",
+ "capture": {
+  "from": 1,
+  "to": 150,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    2.5,
+    0,
+    4
+   ],
+   "yaw": 270,
+   "damage": 140,
+   "target": 2,
+   "input": [
+    {
+     "at": 4,
+     "dash": true
+    },
+    {
+     "at": 18,
+     "press": "1"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "bonk",
+   "feet": [
+    -2.0,
+    0,
+    4
+   ],
+   "yaw": 90,
+   "target": 1,
+   "input": [
+    {
+     "from": 14,
+     "to": 45,
+     "shield": true
+    },
+    {
+     "at": 62,
+     "press": "3"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "p",
+   "pos": [
+    4.5,
+    2.2,
+    -1.8
+   ],
+   "look": [
+    0.1,
+    1.5,
+    4.0
+   ],
+   "follow": 2,
+   "lookOffset": [
+    2.1,
+    0.4,
+    0
+   ],
+   "move": true,
+   "ease": 0.12,
+   "fov": 58,
+   "far": 4000
+  }
+ ]
+}

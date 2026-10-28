@@ -1,0 +1,101 @@
+{
+ "stage": "log_off",
+ "notes": "22c Salamander melee: Backhand Slap into Tail Spin on Wibou, three-quarter from his side",
+ "capture": {
+  "from": 1,
+  "to": 160,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "salamander",
+   "feet": [
+    -9.0,
+    0,
+    -3.0
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 4,
+     "press": "1"
+    },
+    {
+     "from": 32,
+     "to": 42,
+     "move": 90
+    },
+    {
+     "at": 43,
+     "press": "4"
+    },
+    {
+     "at": 45,
+     "press": "4"
+    },
+    {
+     "at": 47,
+     "press": "4"
+    },
+    {
+     "at": 49,
+     "press": "4"
+    },
+    {
+     "at": 51,
+     "press": "4"
+    },
+    {
+     "at": 53,
+     "press": "4"
+    },
+    {
+     "at": 55,
+     "press": "4"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    -7.9,
+    0,
+    -3.0
+   ],
+   "yaw": 270,
+   "damage": 30,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "c",
+   "pos": [
+    -6.8,
+    1.5,
+    3.0
+   ],
+   "look": [
+    -8.0,
+    1.0,
+    -3.0
+   ],
+   "follow": 1,
+   "lookOffset": [
+    0.6,
+    0.5,
+    0
+   ],
+   "ease": 0.25,
+   "fov": 50,
+   "far": 4000,
+   "move": true
+  }
+ ]
+}

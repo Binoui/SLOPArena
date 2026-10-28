@@ -18,7 +18,9 @@ prints it. Status moves `proposed` → `approved` (owner picked it) → `rendere
 with `clip`) → `ready` (owner accepted the clip) → `posted`; `rejected` at any point. Fields:
 
 - `id` (file name), `status`, `format`: `moment` (one gameplay payoff, no explanation), `fighter`
-  (one distinctive interaction of one fighter) or `building` (a before/after or tool moment).
+  (one distinctive interaction of one fighter), `building` (a before/after or tool moment),
+  `explainer` (a feature, teaser or design decision told in shots and text plates) or `shot` (a
+  short clip made for an explainer, with `"for": "<explainer id>"`).
 - `title`, `idea`: what happens on screen, one or two sentences.
 - `spec`: a photo-mode spec in `scenarios/social/specs/`, plus the render fields documented at the
   top of `tools/social_clip.py` (`fovScale`, `camera`, `capture`, `end`, `hold`).
@@ -56,6 +58,20 @@ in that idea. Manki Mayhem is not ready to show.
 The gateway waits for the shared Editor by itself. Redirect its output to files (the tool does);
 if status is `blocked`, stop and report. Never recover or restart the Editor.
 
+## Explainers, teasers and design decisions
+
+The owner wants one for each new feature, upcoming fighter and big design decision, ending on a
+question that invites comments ("Fair or broken?", "Name her?", "Which would you play?").
+
+1. Render each shot as its own `shot` entry (2.5 to 4 s, one beat each), as above.
+2. Write the explainer's `beats` (documented at the top of `tools/social_explainer.py`): shots,
+   images (concept art, stills) and text cards. Frame 0 is the thumbnail and the hook: open on a
+   shot with its plate at `at` 0, never on a card. Five words or fewer per line; a beat every 2 to
+   4 s; 10 to 20 s in total.
+3. `python3 tools/social_explainer.py <explainer> --snapshot` and read the contact sheet under
+   `tmp/content/<id>/hf/.hyperframes/artifacts/snapshots/`; then run it without `--snapshot` to
+   render `tmp/content/<id>/<id>-vertical.mp4` (60 fps, -14 LUFS, game sound only) and deliver as above.
+
 ## Staging rules
 
 - One move fills about 2.5 s, so script a short exchange: lead-in, hit, payoff. Action starts
@@ -70,7 +86,10 @@ if status is `blocked`, stop and report. Never recover or restart the Editor.
   Bazooka homes on the nearest target and can hit Manki within about 3 m.
 - Sir Bonk's sword and a pauldron float detached on tick 0: start captures at tick 1 or later.
   The BONK only cancels early on a shield press, which flashes the shield for one frame.
-- Cameras move only by following a fighter (`follow`, `move`, `ease`); there are no keyframes.
+- Cameras move only by following (`follow`, `move`, `ease`); there are no keyframes. `follow`
+  takes one fighter id or a list: a list aims at their midpoint, and `spread` (with `move`) pulls
+  back by that many metres per metre between them. Use the midpoint for exchanges, where portrait
+  framing otherwise loses one fighter; follow the victim alone for launches and flights.
 - Portrait framing from landscape specs: `fovScale` about 1.1, the look point moved toward the
   victim and up (`lookOffset`), and `ease` about 0.2 so launches stay in frame.
 - Fighters read at phone size: the main fighter is about a quarter of the frame height at the
@@ -79,5 +98,5 @@ if status is `blocked`, stop and report. Never recover or restart the Editor.
 ## Not supported yet
 
 Live Slopball, course replays, HUD composites and Manki Mayhem do not go through
-`social_clip.py`. Bigger pieces (a weekly reel, a fighter reveal) can reuse the HyperFrames trailer
-projects in `tmp/promo-20261028/trailer*` with these clips as footage; ask first.
+`social_clip.py`. A longer reel with music beats can reuse the HyperFrames trailer projects in
+`tmp/promo-20261028/trailer*` (local); ask first.

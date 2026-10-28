@@ -66,7 +66,7 @@ the previous one.
 fighter to a spot offset from where the ball descends, then times and aims a projectile
 special at it; the capture window follows the predicted impact.
 
-**Character Course.** Run the course replay (`sloparena.replay.*`, see
+**Slop Rally.** Run the course replay (`sloparena.replay.*`, see
 [course replay](../testing/course-replay.md)) and wrap the chunk that contains the moment
 in `sloparena.photo.live-begin` / `sloparena.photo.live-end`. `photo_shoot.py batch` builds
 this from a recipe with `inputs`, `window` and `camera`.
@@ -92,7 +92,9 @@ see `skills/social-clips/SKILL.md` and `tools/social_clip.py`.
   dropped, not buffered.
 - A KO'd fighter jumps back to its spawn on the KO tick, which swings a follow camera.
   End the clip within about 12 ticks of the KO.
-- Cameras move only by `follow`; there are no keyframes or orbits.
+- Cameras move only by `follow`; there are no keyframes or orbits. `follow` takes a fighter
+  id or a list of ids (the camera aims at their midpoint); `spread` pulls a moving camera back
+  by that many metres per metre between the followed fighters.
 - Manki's Aerosol Inferno turns toward the nearest fighter within 4 m at release and
   ignores `target`. Manki's Bazooka homes on the nearest target, and inside about 3 m it
   can hit Manki himself.

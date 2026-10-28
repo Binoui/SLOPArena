@@ -1,0 +1,15 @@
+{
+ "id": "10-fist-of-fury",
+ "status": "rendered",
+ "format": "moment",
+ "title": "Fist of Fury",
+ "idea": "Tested promo clip in portrait: FightGuy's High Kick on Sir Bonk's shield, then Fist of Fury and the gold-seal launch.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/10-fist-of-fury.json",
+ "fovScale": 1.1,
+ "capture": {
+  "from": 4
+ },
+ "hold": 0.3,
+ "clip": "tmp/content/10-fist-of-fury/10-fist-of-fury-vertical.mp4"
+}

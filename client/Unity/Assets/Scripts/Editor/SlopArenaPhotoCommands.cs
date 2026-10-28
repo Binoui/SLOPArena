@@ -641,13 +641,16 @@ namespace SlopArena.EditorTools
             foreach (var token in root["cameras"] as JArray ?? new JArray())
             {
                 var item = token as JObject ?? throw new ArgumentException("Every camera must be an object.");
-                Only(item, "camera", "name", "pos", "look", "follow", "lookOffset", "move", "ease", "fov", "ortho", "roll", "far", "up");
+                Only(item, "camera", "name", "pos", "look", "follow", "lookOffset", "move", "spread", "ease", "fov", "ortho", "roll", "far", "up");
                 var camera = new PhotoCamera
                 {
                     Name = (string?)item["name"] ?? "",
                     Position = Vec(item, "pos", Vector3.zero),
                     LookAt = Vec(item, "look", Vector3.zero),
-                    Follow = (ulong)Int(item, "follow", 0, 0, 4),
+                    // One fighter id, or a list whose midpoint the camera follows.
+                    Follow = (item["follow"] is JArray ids ? ids.Select(id => (int)id) : new[] { Int(item, "follow", 0, 0, 4) })
+                        .Where(id => id != 0).Select(id => (ulong)id).ToArray(),
+                    Spread = Float(item, "spread", 0f, 0f, 5f),
                     LookOffset = Vec(item, "lookOffset", Vector3.zero),
                     Move = (bool?)item["move"] ?? false,
                     Ease = Float(item, "ease", 1f, 0.01f, 1f),
@@ -659,7 +662,7 @@ namespace SlopArena.EditorTools
                 };
                 if (!Regex.IsMatch(camera.Name, "^[a-z0-9-]{1,24}$") || camera.Name == "hud")
                     throw new ArgumentException($"Camera name '{camera.Name}' must be 1–24 lowercase letters, digits or dashes (not 'hud').");
-                if (camera.Follow != 0 && fighters.All(f => f.Id != camera.Follow))
+                if (camera.Follow.Any(id => fighters.All(f => f.Id != id)))
                     throw new ArgumentException($"Camera '{camera.Name}' follows a fighter that is not in the shoot.");
                 cameras.Add(camera);
             }

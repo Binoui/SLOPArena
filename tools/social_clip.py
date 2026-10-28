@@ -123,23 +123,35 @@ def mix(job: dict, out: Path) -> Path:
     seconds = (end - start + 1) / FPS + hold
     final = out / f"{job['id']}-vertical.mp4"
     # Photo mode records the game's own sound (music stopped) frame-locked to the shoot in audio.wav.
-    # Two-pass loudnorm: one pass guesses badly on a 5-second clip.
-    trim, target = f"apad,atrim=0:{seconds}", "loudnorm=I=-14:TP=-2:LRA=11"
-    report = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(run / "audio.wav"), "-af",
-                             f"{trim},{target}:print_format=json", "-f", "null", "-"],
-                            capture_output=True, text=True, check=True).stderr
-    m = json.loads(report[report.rindex("{"):report.rindex("}") + 1])
-    measured = (f"{target}:linear=true:measured_I={m['input_i']}:measured_TP={m['input_tp']}"
-                f":measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}")
+    trim = f"apad,atrim=0:{seconds}"
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(video), "-i", str(run / "audio.wav"),
                     "-filter_complex", f"[0:v]tpad=stop_mode=clone:stop_duration={hold}[v];"
-                    f"[1:a]{trim},{measured},alimiter=limit=0.79:level=false[a]",
+                    f"[1:a]{trim},{loudness(run / 'audio.wav', trim)}[a]",
                     "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "slow", "-crf", "18",
                     "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-shortest",
                     "-movflags", "+faststart", str(final)], check=True)
     sheet(run, spec, start, end, 30, out / f"{job['id']}-sheet.jpg")
     print(final)
     return final
+
+
+def loudness(source: Path, pre: str) -> str:
+    """Two-pass loudnorm to -14 LUFS, -2 dBTP: one pass guesses badly on a 5-second clip."""
+    target = "loudnorm=I=-14:TP=-2:LRA=11"
+    report = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(source), "-af", f"{pre},{target}:print_format=json",
+                             "-f", "null", "-"], capture_output=True, text=True, check=True).stderr
+    m = json.loads(report[report.rindex("{"):report.rindex("}") + 1])
+    if m["input_i"] == "-inf":
+        return "anull"  # a silent shot (no hits, or a package without sounds yet) stays silent
+    return (f"{target}:linear=true:measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}"
+            f":measured_thresh={m['input_thresh']}:offset={m['target_offset']},alimiter=limit=0.79:level=false")
+
+
+def normalize(source: Path, out: Path) -> None:
+    """Copy the picture, bring the sound to the clips' loudness."""
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source), "-af",
+                    loudness(source, "anull"), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+                    "-movflags", "+faststart", str(out)], check=True)
 
 
 def set_status(path: str, status: str, **fields: str) -> None:

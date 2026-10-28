@@ -1,0 +1,84 @@
+{
+ "stage": "splash_deck",
+ "notes": "21c Bashie NO RUNNING!: she faces the camera; Wibou and FightGuy run at her from behind, she puffs up and blows the whistle, both freeze stunned under the NO RUNNING! sign",
+ "capture": {
+  "from": 1,
+  "to": 180,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bashie",
+   "feet": [
+    4.0,
+    0,
+    3.0
+   ],
+   "yaw": 0,
+   "target": 2,
+   "input": [
+    {
+     "at": 3,
+     "press": "F"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    3.1,
+    0,
+    -8.5
+   ],
+   "yaw": 0,
+   "target": 1,
+   "input": [
+    {
+     "from": 3,
+     "to": 60,
+     "move": 0
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "package": "fightguy",
+   "feet": [
+    4.9,
+    0,
+    -8.5
+   ],
+   "yaw": 0,
+   "target": 1,
+   "input": [
+    {
+     "from": 3,
+     "to": 60,
+     "move": 0
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "c",
+   "pos": [
+    4.0,
+    1.1,
+    7.8
+   ],
+   "look": [
+    4.0,
+    1.4,
+    0.0
+   ],
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

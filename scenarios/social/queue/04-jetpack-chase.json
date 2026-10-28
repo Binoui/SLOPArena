@@ -1,0 +1,34 @@
+{
+ "id": "04-jetpack-chase",
+ "status": "ready",
+ "format": "moment",
+ "title": "Jetpack chase",
+ "idea": "Tested promo clip in portrait: a platform chase on Last Stop, Manki dives into the gap and jetpacks back past his chaser.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/04-last-stop-jetpack.json",
+ "fovScale": 1.1,
+ "camera": {
+  "pos": [
+   6.0,
+   2.2,
+   -3.0
+  ],
+  "look": [
+   0,
+   0,
+   0
+  ],
+  "lookOffset": [
+   -1.5,
+   0.8,
+   0.4
+  ],
+  "ease": 0.2
+ },
+ "capture": {
+  "from": 60
+ },
+ "end": 292,
+ "hold": 0.5,
+ "clip": "tmp/content/04-jetpack-chase/04-jetpack-chase-vertical.mp4"
+}

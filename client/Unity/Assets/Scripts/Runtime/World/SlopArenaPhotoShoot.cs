@@ -54,11 +54,13 @@ namespace SlopArena.EditorTools
     {
         public string Name = "a";
         public Vector3 Position, LookAt;
-        /// <summary>Look at this fighter's capsule centre plus LookOffset instead of LookAt.</summary>
-        public ulong Follow;
+        /// <summary>Look at the midpoint of these fighters' capsule centres plus LookOffset instead of LookAt.</summary>
+        public ulong[] Follow = Array.Empty<ulong>();
         public Vector3 LookOffset;
         /// <summary>With Follow, keep the Position − LookAt offset from the followed point.</summary>
         public bool Move;
+        /// <summary>With Move, pull back along the view by this many metres per metre between the followed fighters.</summary>
+        public float Spread;
         /// <summary>Per-tick blend toward the followed framing; 1 snaps.</summary>
         public float Ease = 1f;
         public float Fov = 40f, Ortho, Roll, Far;
@@ -256,11 +258,18 @@ namespace SlopArena.EditorTools
         {
             var spec = view.Spec;
             Vector3 look = spec.LookAt, position = spec.Position;
-            if (spec.Follow != 0 && _entries.ContainsKey(spec.Follow))
+            var followed = spec.Follow.Where(_entries.ContainsKey)
+                .Select(id => _bridge.GetState(id)).Select(s => new Vector3(s.PX, s.PY, s.PZ)).ToArray();
+            if (followed.Length > 0)
             {
-                var state = _bridge.GetState(spec.Follow);
-                look = new Vector3(state.PX, state.PY, state.PZ) + spec.LookOffset;
-                if (spec.Move) position = look + (spec.Position - spec.LookAt);
+                Vector3 centre = followed.Aggregate(Vector3.zero, (sum, p) => sum + p) / followed.Length;
+                look = centre + spec.LookOffset;
+                if (spec.Move)
+                {
+                    Vector3 offset = spec.Position - spec.LookAt;
+                    float apart = followed.Max(a => followed.Max(b => Vector3.Distance(a, b)));
+                    position = look + offset + offset.normalized * (spec.Spread * apart);
+                }
             }
             float blend = snap ? 1f : Mathf.Clamp01(spec.Ease);
             view.Look = Vector3.Lerp(view.Look, look, blend);

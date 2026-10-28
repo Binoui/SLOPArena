@@ -1,0 +1,12 @@
+{
+ "id": "21b-bashie-shell",
+ "status": "rendered",
+ "format": "shot",
+ "for": "21-bashie-teaser",
+ "title": "Bashie Shell Shift",
+ "idea": "Bashie tucks into her shell and skates into Sir Bonk, bowling him up and skating on under him.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/21b-bashie-shell.json",
+ "fovScale": 1.1,
+ "clip": "tmp/content/21b-bashie-shell/21b-bashie-shell-vertical.mp4"
+}

@@ -1,0 +1,83 @@
+{
+ "stage": "after_hours",
+ "notes": "redo 2026-10-28: side camera on the dance floor (Manki left, Bonk right, both faces in profile). Manki starts shaking the can at t3 (full charge t69); Bonk (40%) strides in from z 6 and stops ~2.7 m in front (t~45), stares, ducks (t100-112), turns and runs at the camera (t118); Manki releases at t124, the flame catches Bonk mid-run at t133 and launches him out of frame right; picture ends 166",
+ "capture": {
+  "from": 1,
+  "to": 220,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    0,
+    0,
+    -2.6
+   ],
+   "yaw": 0,
+   "target": 2,
+   "input": [
+    {
+     "at": 3,
+     "press": "F"
+    },
+    {
+     "from": 3,
+     "to": 123,
+     "aim": true
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "bonk",
+   "feet": [
+    0,
+    0,
+    6.0
+   ],
+   "yaw": 180,
+   "damage": 40,
+   "target": 1,
+   "input": [
+    {
+     "from": 3,
+     "to": 34,
+     "move": 180
+    },
+    {
+     "from": 100,
+     "to": 112,
+     "down": true
+    },
+    {
+     "from": 118,
+     "to": 200,
+     "move": 107,
+     "face": 107
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "side",
+   "pos": [
+    6.3,
+    1.35,
+    -1.1
+   ],
+   "look": [
+    0,
+    1.0,
+    -1.1
+   ],
+   "fov": 50,
+   "far": 4000
+  }
+ ]
+}
