@@ -31,7 +31,7 @@ public class SteamGameServerAdmissionTests
 
     private static MatchInstance NewSteamMatch(string id, MatchContentCatalog catalog, TestClock clock,
         IReadOnlyList<MatchPlayer> roster, DateTimeOffset deadline,
-        Action<Guid, string>? onCancel = null, Action<Guid, long>? onResult = null) =>
+        Action<Guid, string>? onCancel = null, Action<MatchResultReport>? onResult = null) =>
         new(0, id, ArenaRegistry.Get("slop_pit")!.Value, roster, catalog, _ => { }, onMatchResult: onResult,
             onMatchCancelled: onCancel, admissionDeadlineUtc: deadline, contentHash: ContentHash,
             steamSend: static (_, _, _, _) => { }, clock: clock);
@@ -385,7 +385,7 @@ public class SteamGameServerAdmissionTests
         var waiting = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
             new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
             clock.GetUtcNow().AddSeconds(60), (_, reason) => waitingReason.TrySetResult(reason),
-            (_, _) => Interlocked.Increment(ref resultReports));
+            _ => Interlocked.Increment(ref resultReports));
         waiting.Start();
         clock.Advance(TimeSpan.FromSeconds(61));
         Assert.Equal("unfilled", await waitingReason.Task.WaitAsync(TimeSpan.FromSeconds(2)));
@@ -394,7 +394,7 @@ public class SteamGameServerAdmissionTests
         var active = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
             new[] { new MatchPlayer(2001, CharacterClass.FightGuy, 1), new MatchPlayer(2002, CharacterClass.Manki, 2) },
             clock.GetUtcNow().AddSeconds(60), (_, reason) => absenceReason.TrySetResult(reason),
-            (_, _) => Interlocked.Increment(ref resultReports));
+            _ => Interlocked.Increment(ref resultReports));
         active.Start();
         try
         {
@@ -426,7 +426,7 @@ public class SteamGameServerAdmissionTests
         var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), ArenaRegistry.Get("slop_pit")!.Value,
             new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
                 new MatchPlayer(1002, CharacterClass.Manki, 2) }, catalog, _ => { },
-            onMatchResult: (_, _) => Interlocked.Increment(ref resultReports),
+            onMatchResult: _ => Interlocked.Increment(ref resultReports),
             onMatchCancelled: (_, reason) => canceled.TrySetResult(reason),
             admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60), clock: clock);
         match.Start();
