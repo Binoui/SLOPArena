@@ -63,9 +63,11 @@ namespace SlopArena.Client.Combat
                 // A pure push (no damage, no stun: a drop of Bashie's Hose Down stream) shows only its own
                 // presentation. No flash, impact sound or rumble, at up to 20 drops a second.
                 if (hit.Damage <= 0f && hit.StunTicks == 0) continue;
+                _renderers.TryGetValue(hit.OwnerEntityId, out var attacker);
+                var attackerColour = attacker != null ? MatchVisualStyle.RimColorFor(attacker) : new Color(0.18f, 0.78f, 1f);
                 if (_renderers.TryGetValue(hit.TargetEntityId, out var victim) && victim != null)
-                    victim.HitFeel?.ReceiveHit(in hit, tier, MatchVisualStyle.RimColorFor(hit.OwnerEntityId));
-                if (_renderers.TryGetValue(hit.OwnerEntityId, out var attacker) && attacker != null)
+                    victim.HitFeel?.ReceiveHit(in hit, tier, attackerColour);
+                if (attacker != null)
                     _sfx.Play(tier, attacker.PresentationCatalog);
                 ClientSettingsService.Instance.PlayConfirmedImpact();
             }

@@ -75,8 +75,8 @@ namespace SlopArena.Client.UI
             bool isTraining = MatchConfig.Mode == GameMode.Training;
             bool isHost = _roomMode ? false : !isOnline || ClientSession.IsLobbyHost;
             SetModeChrome(_roomMode ? "ROOM // WHAT DO WE PLAY?" : isOnline ? "ONLINE // SELECT STAGE" :
-                isTraining ? "TRAINING // SELECT STAGE" : "SOLO // SELECT STAGE",
-                _roomMode ? "STEP 1 OF 2  /  WHAT TO PLAY" : "STEP 2 OF 2  /  STAGE");
+                isTraining ? "TRAINING // SELECT STAGE" : LocalPlayModes.Current.Title + " // SELECT STAGE",
+                _roomMode ? "STEP 1 OF 2  /  WHAT TO PLAY" : isTraining || isOnline ? "STEP 2 OF 2  /  STAGE" : $"STEP {LocalPlayModes.Current.TotalSteps} OF {LocalPlayModes.Current.TotalSteps}  /  STAGE");
             _context.Q<Label>("subtitle").text = _roomMode
                 ? (isHost ? "CHOOSE WHAT THE ROOM PLAYS" : "THE ROOM LEADER IS CHOOSING WHAT TO PLAY")
                 : isHost ? "CHOOSE YOUR BATTLEGROUND" : "THE HOST WILL CHOOSE THE BATTLEGROUND";
@@ -89,7 +89,7 @@ namespace SlopArena.Client.UI
             {
                 _btnConfirm.style.display = DisplayStyle.None;
                 _btnConfirm.text = _roomMode ? "PICK FIGHTERS" : isOnline ? "START MATCH" :
-                    isTraining ? "ENTER TRAINING" : "START SOLO";
+                    isTraining ? "ENTER TRAINING" : "START " + LocalPlayModes.Current.Title;
             }
             if (_lblWaiting != null)
             {
@@ -820,7 +820,7 @@ namespace SlopArena.Client.UI
                 {
                     var seat = MatchConfig.Seat(player);
                     if (seat.Kind == SeatKind.Open && MatchConfig.Mode == GameMode.Solo) continue;
-                    _playerCards.Add(FighterPanel.Build(player, seat.Kind == SeatKind.LocalPlayer ? $"PLAYER {player}" : "CPU",
+                    _playerCards.Add(FighterPanel.Build(player, seat.Kind == SeatKind.LocalPlayer ? $"PLAYER {player}" : "",
                         seat.Kind == SeatKind.LocalPlayer ? "PLAYER" : "CPU", seat.Fighter,
                         seat.Kind == SeatKind.LocalPlayer ? "READY" : BotDifficultyProfile.DisplayName(seat.Difficulty).ToUpperInvariant(), compact: true));
                 }
@@ -884,7 +884,8 @@ namespace SlopArena.Client.UI
             MatchConfig.ArenaName = _selectedArena;
             if (MatchConfig.Mode != GameMode.PvP)
             {
-                SceneManager.LoadScene("Arena_Offline");
+                if (MatchConfig.Mode == GameMode.Solo) LocalPlayModes.Current.Launch();
+                else SceneManager.LoadScene("Arena_Offline");
                 return;
             }
             _btnConfirm?.SetEnabled(false);

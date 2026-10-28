@@ -1,0 +1,290 @@
+{
+  "name": "bonk-sir-idle-attention",
+  "notes": "Sir Bonk v2 (SirBonkV2Rig.prefab, Junk Knight model, swapped live 2026-10-28) idle for presentation.idle. Replaces the hero idle (bonk-sir-idle-hero.json): on v2 its plank-on-shoulder carry tucks the right forearm and a 137-degree folded wrist into the right pot-lid pauldron (render artifacts/genra-unity-clips/20261028-095810-render-sir-v2-idle-close). The owner asked for something else and picked take A, 'At attention', on 2026-10-28. The run and fall already hold the plank upright in front of the right shoulder and do not clip on v2, so the idle uses the same hand placement (measured on the run: right hand 0.33-0.40 m right, 0.26-0.33 m ahead, about 0.44 m above the hips). Owner direction for idles (2026-10-27): calm, a long slow loop, at most one slow gesture. Floor measured on the v2 mesh in this frame: up -1.033 (boot soles); toe joints rest at about -1.0.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirv2",
+  "character": "Sir Bonk v2 (a Humanoid body with Mixamo names, index-finger chains only besides the thumbs; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 1.42 m plank greatsword fixed to the right hand as joint Weapon0, with bladeHilt at the crossguard and bladeEnd at the tip; a pot-lid pauldron fixed to the left upper arm as joint Weapon1). The right pauldron, a big round pot lid, is part of the body mesh and sits out over the right shoulder joint: keep the right forearm and hand out of it.",
+  "description": "Sir Bonk's idle: the clip he plays whenever he stands in a fight, between moves, while waiting and after landing.\n\nWho he is. Sir Bonk is a goofy, good-hearted wannabe knight who read one book about knights and dubbed himself (image 1): a blue mop bucket worn as a helm with a broom-head crest, two pot lids as pauldrons, a barrel-stave chest plate, a teal and cream tabard with a crown he painted himself, a mustard sash, a cream cape, a colander on the right elbow, big boots, and a wooden plank greatsword with red stripes. He is lean, not a brute. He takes himself completely seriously, and that is the joke: every pose is copied from his book and held with total sincerity.\n\nHow the game plays it. The idle loops (ticks 0-240 are 4 s, wrapping from 240 back to 0). The game crossfades into it from every move, and out of it into the run and every attack, over about 0.1-0.2 s. The match camera sits straight behind him, so players mostly see his back: the cape, the bucket and crest, and the plank. The entry pose is his old idle on this body; it only sets the frame, do not copy it.\n\nThe floor is at up = -1.033 m in this character frame (the boot soles). With a flat boot the toe joint (ToeBase) sits about 0.03 m above it (up about -1.0) and the ankle (Foot) about 0.27 m above it (up about -0.77). Never push a boot through the floor.\n\nThe pose, the whole loop: AT ATTENTION, like a soldier presenting arms (image 1 shows where the right hand holds the plank in his run; the idle keeps that hand placement and stands the plank more upright).\n- Stand square to the front, chest and hips facing front, weight even on both feet.\n- Feet: side by side, ankles 0.45-0.6 m apart, toes turned out 15-25 degrees, both soles flat. Knees almost straight (5-10 degrees), never locked.\n- Chest puffed out and shoulders back and down: the upper chest lifts and the spine leans back 3-5 degrees. Head up, chin level, looking straight ahead. The bucket sits high and clear above the shoulders, never sunk between them.\n- Right arm and the plank: the plank stands upright in front of his right shoulder. The right fist holds the grip at chest height, in front of the right side of the chest and a little out to the right (the same place as in his run). The upper arm hangs down and slightly forward from the shoulder, the elbow points down and a little out, bent about 80-100 degrees, so the forearm points forward and up to the fist. The wrist stays straight (in line with the forearm, at most 25 degrees bent). The forearm and fist stay well in front of and below the right pot-lid pauldron, never inside it. The plank rises from the fist almost vertical, 65-80 degrees above level, its tip leaning a little back and staying to the right of the bucket and crest, clear of the helm, the pauldron, the arm and the cape. From behind, the plank stands up beside the bucket on the right.\n- Left arm: fist on the hip. The left hand closes into a fist resting on the left side of the waist, on the sash, knuckles against the hip. The elbow points out to the left and a little back.\n\nPace (owner, 2026-10-27): an idle is a bit of life while the player presses nothing, not a performance. Everything is slow and small. The hand-made idles turn their body joints 2-11 degrees a second on average. One slow gesture per loop at most.\n\nThe loop, three beats:\n- Tick 0: at attention, at the bottom of a breath. Proud, still, serious.\n- Tick 130: the proudest moment, the one gesture. Over ticks 0-130 he takes one slow, deep breath in: the chest swells and rises 1.5-3 cm, the shoulders roll back a little, and from about tick 60 the chin slowly lifts 8-12 degrees, nose up, a picture of solemn pride. The plank rises with the chest and stays upright.\n- Tick 240 (the pose of tick 0): from tick 130 he breathes out slowly; the chin settles back to level by about tick 200 and the chest sinks back down.\n\nFluidity and secondary motion (the owner's main note on every GenRA move). Nothing arrives anywhere all at once: the chest leads the breath, the shoulders follow 4-8 ticks later, the head 8-12 ticks after the chest. Every hold is a moving hold that keeps drifting slowly one way; never the same pose twice. The plank trails the chest: the fist and plank follow the breath 3-6 ticks late, so the plank tip drifts 2-5 cm and settles after the chest stops. A slight weight drift under it all: the hips sway 0.5-1.5 cm to his left and back once per loop. The left fist stays on the hip; its elbow can breathe a little with the chest.\n\nDo not animate the cape joints (Cape_L/C/R1..4): a spring drives them in the game, so leave them at their rest rotation. No steps, no spins, no salute, no attack, and the plank never leaves the right hand.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 240
+  },
+  "timing": {
+    "fixed": [
+      "it loops, and the game crossfades into it from every move and out of it into the run and every attack"
+    ],
+    "adjustable": [
+      "the loop length (240 ticks, 4 s, proposed; the old idle was 120 ticks)",
+      "the ticks of the beats inside the loop"
+    ]
+  },
+  "snap_degrees_per_tick": 5,
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../sir-bonk-idle-v2-20261028/sir-bonk-v2-run-carry.png"
+  ],
+  "image_notes": "1: the Sir Bonk v2 model in his run pose (front, and three-quarter from his right): left fist on the hip and the plank held in the right fist in front of the right shoulder. The idle keeps that right-hand placement and the fist on the hip, stands the plank more upright and to the right of the bucket, and stands square with the feet side by side. The horizontal lines in the front view are a height scale.",
+  "review_ticks": [
+    0,
+    60,
+    130,
+    180,
+    240
+  ],
+  "keys": [
+    0,
+    130,
+    240
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.025,
+      "max": -0.975
+    },
+    {
+      "name": "right toe joint on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.025,
+      "max": -0.975
+    },
+    {
+      "name": "feet side by side, ankles apart (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.45,
+      "max": 0.62
+    },
+    {
+      "name": "hips stand tall above the left toe joint (m)",
+      "kind": "below",
+      "a": "LeftToeBase",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.97,
+      "max": 1.06
+    },
+    {
+      "name": "head high above the upper chest at tick 0 (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 0,
+      "min": 0.235
+    },
+    {
+      "name": "head high above the upper chest at the proud breath, tick 130 (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "Head",
+      "tick": 130,
+      "min": 0.235
+    },
+    {
+      "name": "left fist out on the left side (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.25
+    },
+    {
+      "name": "left fist at waist height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": -0.05,
+      "max": 0.22
+    },
+    {
+      "name": "left fist beside the body, not in front (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": -0.2,
+      "max": 0.2
+    },
+    {
+      "name": "left elbow out to the side (m)",
+      "kind": "char",
+      "a": "LeftForeArm",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.42
+    },
+    {
+      "name": "right fist out on the right, as in the run (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.24,
+      "max": 0.42
+    },
+    {
+      "name": "right fist in front of the body, as in the run (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.15,
+      "max": 0.38
+    },
+    {
+      "name": "right fist at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 0,
+      "min": 0.28,
+      "max": 0.5
+    },
+    {
+      "name": "right fist away from the shoulder joint, out of the pauldron (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 0,
+      "min": 0.24
+    },
+    {
+      "name": "right fist away from the shoulder joint at the proud breath, tick 130 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 130,
+      "min": 0.24
+    },
+    {
+      "name": "right elbow well below the shoulder joint (m)",
+      "kind": "below",
+      "a": "RightForeArm",
+      "b": "RightArm",
+      "tick": 0,
+      "min": 0.12
+    },
+    {
+      "name": "right fist above the elbow (m)",
+      "kind": "below",
+      "a": "RightForeArm",
+      "b": "RightHand",
+      "tick": 0,
+      "min": 0.05
+    },
+    {
+      "name": "plank upright: tip high above the crossguard (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 0,
+      "min": 1.28
+    },
+    {
+      "name": "plank upright at the proud breath, tick 130 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 130,
+      "min": 1.28
+    },
+    {
+      "name": "plank tip leans a little back, never forward (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 0,
+      "min": -0.55,
+      "max": 0.0
+    },
+    {
+      "name": "plank tip to the right of the bucket (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.28,
+      "max": 0.7
+    },
+    {
+      "name": "chest rises with the breath (m)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        0,
+        240
+      ],
+      "min": 0.012,
+      "max": 0.04
+    },
+    {
+      "name": "hips stay calm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        240
+      ],
+      "min": 0.003,
+      "max": 0.02
+    },
+    {
+      "name": "head moves with the breath and the chin-lift (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        240
+      ],
+      "min": 0.012,
+      "max": 0.05
+    },
+    {
+      "name": "plank tip drifts a little with the breath (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "up",
+      "window": [
+        0,
+        240
+      ],
+      "min": 0.015,
+      "max": 0.06
+    }
+  ]
+}

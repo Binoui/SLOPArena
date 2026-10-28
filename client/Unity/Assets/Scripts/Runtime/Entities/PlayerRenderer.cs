@@ -456,6 +456,8 @@ namespace SlopArena.Client.Entities
             set => _entityName = value;
         }
 
+        public int PlayerNumber { get; set; }
+
         /// <summary>Server-assigned entity ID.</summary>
         public ulong EntityId
         {

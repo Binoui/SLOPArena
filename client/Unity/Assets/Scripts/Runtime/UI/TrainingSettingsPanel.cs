@@ -139,7 +139,10 @@ namespace SlopArena.Client.UI
         public void RefreshSelection()
         {
             if (_panel == null) return;
-            _panel.Q<Label>("cpu-roster-label").text = $"CPU {_match.SelectedNpcIndex + 1} OF {_match.NpcCount}";
+            int playerNumber = _match.SelectedNpcPlayerNumber;
+            var rosterLabel = _panel.Q<Label>("cpu-roster-label");
+            rosterLabel.text = $"P{playerNumber} · CPU {_match.SelectedNpcIndex + 1} OF {_match.NpcCount}";
+            rosterLabel.style.color = SeatColours.For(playerNumber);
             _panel.Q<Button>("cpu-remove").SetEnabled(_match.NpcCount > 1);
             _panel.Q<Button>("cpu-previous").SetEnabled(_match.NpcCount > 1);
             _panel.Q<Button>("cpu-next").SetEnabled(_match.NpcCount > 1);

@@ -148,7 +148,7 @@ public class ShieldStateTests
         Assert.Equal((byte)(initial.JumpsLeft - 1), state.JumpsLeft);
         Assert.Equal(0f, state.VX);
         Assert.Equal(0f, state.VZ);
-        Assert.False(state.JumpFromSlide);
+        Assert.Equal(JumpTakeoff.Standing, state.JumpTakeoff);
         Assert.False(state.CrouchSettled);
         Assert.Equal((ushort)0, state.InvincibilityTicks);
     }

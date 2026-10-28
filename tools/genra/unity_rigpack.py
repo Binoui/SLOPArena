@@ -54,8 +54,9 @@ CHARACTERS = {  # package -> {reference label: catalog semantic id}
     'manki': {'idle': 'anim.manki.idle', 'run': 'anim.manki.run', 'jump': 'anim.manki.jump', 'fall': 'anim.manki.fall'},
     'fightguy': {'idle': 'anim.idle', 'run': 'anim.run', 'jump': 'anim.jump', 'fall': 'anim.fall'},
     # Bonk's approved two-handed attacks: grip.json is measured from them, and briefs may reference them.
+    # 'swing' was g2 (Barn Door) until it was unbound; Squire's Cut (g1) is his bound swing since (2026-10-28).
     'bonk': {'idle': 'anim.idle', 'run': 'anim.run', 'jump': 'anim.jump', 'fall': 'anim.fall',
-             'swing': 'anim.bonk.g2', 'rising': 'anim.bonk.g3', 'double': 'anim.bonk.g4', 'charge': 'anim.bonk.gr'},
+             'swing': 'anim.bonk.g1', 'rising': 'anim.bonk.g3', 'double': 'anim.bonk.g4', 'charge': 'anim.bonk.gr'},
     'wibou': {'idle': 'anim.wibou.idle', 'run': 'anim.wibou.run', 'jump': 'anim.wibou.jump', 'fall': 'anim.wibou.fall'},
     # Her idle and run are her own; jump and fall are raised stand-ins borrowed from Manki (2026-10-22).
     'bashie': {'idle': 'anim.bashie.idle', 'run': 'anim.bashie.run', 'jump': 'anim.bashie.jump', 'fall': 'anim.bashie.fall'},

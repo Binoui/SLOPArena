@@ -294,9 +294,11 @@ namespace SlopArena.Shared
             }
 
             // The homing dash owns its motion: ServerSimulation steers it before this tick,
-            // and the body moves without gravity, friction or stick control.
+            // and the body moves without gravity, friction or stick control. A slot pressed
+            // during the dash is held for the arrival window (the latest press wins).
             if (s.State is ActionState.HomingDashFloat or ActionState.HomingDash)
             {
+                if (input.ActiveSlot > 0) s.BufferedSlot = input.ActiveSlot;
                 TickTimers(ref s);
                 MoveDefenseBody(ref s, def, arena);
                 return;
@@ -306,7 +308,7 @@ namespace SlopArena.Shared
                 && s.AttackSlot > 0
                 && (s.State == ActionState.Attacking || s.State == ActionState.Aiming))
             {
-                float ratio = s.AttackCarryFromRun
+                float ratio = s.AttackCarryFrom == AttackCarryOrigin.Run
                     ? DownActionTuning.RunAttackDecelerationRatio
                     : DownActionTuning.AttackDecelerationRatio;
                 DecayHorizontalSpeed(ref s, ratio * stats.RunSpeed * TickDt);
@@ -344,9 +346,9 @@ namespace SlopArena.Shared
                         s.IsGrounded = false;
                         s.State = ActionState.Idle;
                         s.AirTimeTicks = stats.FloatWindowTicks;
-                        float jumpCap = stats.RunSpeed * (s.JumpFromSlide ? DownActionTuning.JumpCapRatio : 1f);
+                        float jumpCap = stats.RunSpeed * (s.JumpTakeoff == JumpTakeoff.Slide ? DownActionTuning.JumpCapRatio : 1f);
                         ClampHorizontalSpeed(ref s, jumpCap);
-                        s.JumpFromSlide = false;
+                        s.JumpTakeoff = JumpTakeoff.Standing;
                     }
                 // During squat: preserve horizontal momentum, no acceleration
             }
@@ -441,19 +443,19 @@ namespace SlopArena.Shared
             {
                 movementActionAccepted = true;
                 if (s.IsGrounded && input.ShieldHeld
-                    && s.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding))
+                    && ActionStates.AdmitsActions(s.State))
                 {
                     // Brake before squat, without carrying a protected frame or slide momentum.
                     s.VX = s.VZ = 0f;
                     s.State = ActionState.Idle;
                     ClearMovementInterruptionFlags(ref s);
                 }
-                bool jumpFromSlide = s.IsGrounded && s.State == ActionState.Sliding;
+                var takeoff = s.IsGrounded && s.State == ActionState.Sliding ? JumpTakeoff.Slide : JumpTakeoff.Standing;
                 ClearMovementInterruptionFlags(ref s);
                 s.ShieldDropTicks = 0;
                 if (s.IsGrounded)
                 {
-                    s.JumpFromSlide = jumpFromSlide;
+                    s.JumpTakeoff = takeoff;
                     s.State = ActionState.JumpSquat;
                     s.StateTicks = stats.JumpSquatTicks;
                     s.JumpsLeft--;
@@ -517,8 +519,7 @@ namespace SlopArena.Shared
                 && input.ActiveSlot > 0 && s.LandingLagTicks == 0 && s.BufferedSlot == 0)
             {
                 bool readyAfterTimers = s.AnimLockTicks == 0 && s.HitstunTicks == 0
-                    && s.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
-                        or ActionState.HomingDashArrive)
+                    && (ActionStates.AdmitsActions(s.State) || s.State == ActionState.HomingDashArrive)
                     && s.GetCooldown(input.ActiveSlot) == 0;
                 if (readyAfterTimers || s.State == ActionState.JumpSquat
                     || (s.AnimLockTicks > 0 && s.AnimLockTicks <= InputBufferWindow)
@@ -756,9 +757,8 @@ namespace SlopArena.Shared
                 || state.LandingLagTicks > 0)
                 return false;
 
-            return state.State is ActionState.Idle or ActionState.Run or ActionState.Crouching
-                or ActionState.Sliding or ActionState.Attacking or ActionState.Shielding
-                or ActionState.HomingDashArrive;
+            return ActionStates.AdmitsActions(state.State) || state.State is ActionState.Attacking
+                or ActionState.Shielding or ActionState.HomingDashArrive;
         }
 
         private static bool CanAcceptAirDodge(in CharacterState state,
@@ -863,8 +863,14 @@ namespace SlopArena.Shared
                 if (dx * dx + dy * dy + dz * dz <= reach * reach)
                 {
                     EndHomingDash(ref state, ActionState.HomingDashArrive, HomingDashConfig.ArriveWindowTicks);
-                    // An airborne arrival hangs in the float window (AirFloatGravity) for the hover.
+                    // An airborne arrival hangs in the float window (AirFloatGravity) for the hover
+                    // and glides on along the dash instead of stopping dead.
                     state.AirTimeTicks = (ushort)Math.Max(0, floatWindowTicks - HomingDashConfig.ArriveHoverTicks);
+                    if (!state.IsGrounded)
+                    {
+                        state.VX = state.DashDirX * HomingDashConfig.ArriveCarrySpeed;
+                        state.VZ = state.DashDirZ * HomingDashConfig.ArriveCarrySpeed;
+                    }
                     return;
                 }
                 AimHomingDash(ref state, dx, dy, dz, snap: false);
@@ -873,6 +879,7 @@ namespace SlopArena.Shared
             {
                 EndHomingDash(ref state, ActionState.HomingDashMiss, HomingDashConfig.MissRecoveryTicks);
                 state.AnimLockTicks = HomingDashConfig.MissRecoveryTicks;
+                state.BufferedSlot = 0;
                 state.AirTimeTicks = floatWindowTicks;
                 return;
             }
@@ -1891,7 +1898,7 @@ namespace SlopArena.Shared
         internal static void ClearMovementInterruptionFlags(ref CharacterState s)
         {
             s.IsFastFalling = false;
-            s.JumpFromSlide = false;
+            s.JumpTakeoff = JumpTakeoff.Standing;
             s.SlideAttackCarryActive = false;
             s.CrouchSettled = false;
             s.QueuedCrouchBrace = false;
@@ -1942,6 +1949,9 @@ namespace SlopArena.Shared
             ushort stunTicks, float weight, bool applyScale = true, CombatTuning? combatTuning = null)
         {
             var tuning = combatTuning ?? CombatTuning.Default;
+            // A press held for the homing dash arrival must not fire after the hit.
+            if (s.State is ActionState.HomingDashFloat or ActionState.HomingDash)
+                s.BufferedSlot = 0;
             ClearMovementInterruptionFlags(ref s);
             s.ClearStartupAimCorrection();
             s.LandingLagTicks = 0;
@@ -2002,6 +2012,8 @@ namespace SlopArena.Shared
             sbyte angleDeg, float force, ushort stunTicks, CombatTuning? combatTuning = null)
         {
             var tuning = combatTuning ?? CombatTuning.Default;
+            if (s.State is ActionState.HomingDashFloat or ActionState.HomingDash)
+                s.BufferedSlot = 0;
             ClearMovementInterruptionFlags(ref s);
             s.ClearStartupAimCorrection();
             s.LandingLagTicks = 0;

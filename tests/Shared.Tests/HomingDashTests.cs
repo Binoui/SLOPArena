@@ -65,6 +65,56 @@ public sealed class HomingDashTests
     }
 
     [Fact]
+    public void AnAttackPressedMidDashStartsOnArrival()
+    {
+        var sim = Duel(8f);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Assert.Equal(ActionState.HomingDash, sim.GetState(1).State);
+        Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 60), "the press does not cut the dash short");
+        Tick(sim);
+        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+    }
+
+    [Fact]
+    public void AMissDropsTheMidDashPress()
+    {
+        var sim = Duel(19.5f);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Assert.True(RunUntil(sim, ActionState.HomingDashMiss, 80));
+        for (int i = 0; i < HomingDashConfig.MissRecoveryTicks + 20; i++)
+        {
+            Assert.NotEqual(ActionState.Attacking, sim.GetState(1).State);
+            Tick(sim);
+        }
+    }
+
+    [Fact]
+    public void AHitDropsTheMidDashPress()
+    {
+        var sim = Duel(10f);
+        Tick(sim, Dash);
+        Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        var dasher = sim.GetState(1);
+        sim.Resolver.Spawn(new Hitbox
+        {
+            X = dasher.PX, Y = dasher.PY, Z = dasher.PZ + 0.6f,
+            Radius = 0.8f, Damage = 6, BaseKnockback = 30, StunTicks = 20, DurationTicks = 2, OwnerId = 100,
+        });
+        Assert.True(RunUntil(sim, ActionState.Hitstun, 10));
+        for (int i = 0; i < 180; i++)
+        {
+            Assert.NotEqual(ActionState.Attacking, sim.GetState(1).State);
+            Tick(sim);
+        }
+    }
+
+    [Fact]
     public void RunningOutOfTravelIsALockedPunishableMiss()
     {
         var sim = Duel(19.5f);
@@ -111,12 +161,16 @@ public sealed class HomingDashTests
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
         float arrivalY = sim.GetState(1).PY;
+        float arrivalZ = sim.GetState(1).PZ;
         Assert.False(sim.GetState(1).IsGrounded);
+        Assert.True(sim.GetState(1).VZ > 0f, "an airborne arrival glides on instead of stopping dead");
         for (int i = 1; i < HomingDashConfig.ArriveHoverTicks; i++)
         {
             Tick(sim);
             Assert.True(MathF.Abs(sim.GetState(1).PY - arrivalY) < 0.05f, $"tick {i}: {sim.GetState(1).PY} vs {arrivalY} vy {sim.GetState(1).VY}");
         }
+        float glide = sim.GetState(1).PZ - arrivalZ;
+        Assert.InRange(glide, 0.3f, HomingDashConfig.ArriveCarrySpeed * HomingDashConfig.ArriveHoverTicks * Simulation.TickDt);
         for (int i = 0; i < 4; i++)
             Tick(sim);
         Assert.True(sim.GetState(1).PY < arrivalY, "gravity returns after the hover");

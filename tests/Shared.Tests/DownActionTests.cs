@@ -230,7 +230,7 @@ public void AcceptedJump_WinsOverLowPosture()
         var sim = Ground(Run * 1.5f, Run * 1.5f, slide ? ActionState.Sliding : ActionState.Run);
         var state = Tick(sim, new InputState { Jump = true, JumpHeld = true, Down = true });
         Assert.Equal(ActionState.JumpSquat, state.State);
-        Assert.Equal(slide, state.JumpFromSlide);
+        Assert.Equal(slide ? JumpTakeoff.Slide : JumpTakeoff.Standing, state.JumpTakeoff);
         byte jumps = state.JumpsLeft;
         int squatTicks = 0;
         while (state.IsGrounded && squatTicks++ < 20)
@@ -239,7 +239,7 @@ public void AcceptedJump_WinsOverLowPosture()
             Assert.Equal(jumps, state.JumpsLeft);
         }
         Assert.False(state.IsGrounded);
-        Assert.False(state.JumpFromSlide);
+        Assert.Equal(JumpTakeoff.Standing, state.JumpTakeoff);
         float cap = Run * (slide ? DownActionTuning.JumpCapRatio : 1f);
         Assert.InRange(Speed(state), cap - .3f, cap);
         float force = fullHop ? Def.Movement.JumpForce : Def.Movement.ShortHopForce;

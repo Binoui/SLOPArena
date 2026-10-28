@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Cinemachine;
+using SlopArena.Client.Entities;
 using SlopArena.Client.Input;
 using SlopArena.Client.UI;
 using UnityEngine.UIElements;
@@ -21,7 +22,8 @@ namespace SlopArena.Client.Camera
         public readonly ulong Id;
         public readonly Vector3 Position;
         public readonly bool Launched;
-        public FramingSubject(ulong id, Vector3 position, bool launched) { Id = id; Position = position; Launched = launched; }
+        public readonly Color Colour;
+        public FramingSubject(ulong id, Vector3 position, bool launched, Color colour) { Id = id; Position = position; Launched = launched; Colour = colour; }
     }
 
     /// <summary>Couch play (ADR-0041): one shared camera for every Local Player. Off keeps the player's style.</summary>
@@ -36,6 +38,7 @@ namespace SlopArena.Client.Camera
         private CinemachineInputAxisController _inputAxisController;
 
         private Transform _player;
+        private PlayerRenderer _playerRenderer;
         private Transform _framingAnchor;
         private Vector3 _framingOffset;
         private Vector3? _combatTargetPosition;
@@ -392,6 +395,7 @@ namespace SlopArena.Client.Camera
         public void SetTarget(Transform target)
         {
             _player = target;
+            _playerRenderer = target != null ? target.GetComponent<PlayerRenderer>() : null;
             ApplyTrackingTarget();
         }
 
@@ -584,10 +588,11 @@ namespace SlopArena.Client.Camera
             _bubbles.Begin(root);
             if (_showBounds is Bounds showBounds)
                 _bubbles.Show(camera, _player.position + Vector3.up, _player.position.y - showBounds.min.y,
-                    showBounds.center, SeatColours.For(1));
+                    showBounds.center, _playerRenderer != null
+                        ? SeatColours.ForFighter(_playerRenderer.EntityId, _playerRenderer.PlayerNumber) : SeatColours.For(1));
             foreach (var subject in _subjects)
                 _bubbles.Show(camera, subject.Position + Vector3.up, subject.Position.y - _groundY,
-                    _player!.position, OffscreenBubbles.FighterColor);
+                    _player!.position, subject.Colour);
             _bubbles.End();
         }
 

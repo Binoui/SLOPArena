@@ -1,64 +1,3 @@
-.arcade-header {
-    flex-direction: row;
-    align-items: center;
-    align-self: flex-start;
-    padding: 0;
-}
-.arcade-header .btn-back {
-    margin: 0 10px 0 0;
-    min-height: 48px;
-}
-.arcade-page-title {
-    margin: 0;
-    padding: 8px 16px;
-    background-color: rgb(240, 238, 232);
-    color: rgb(27, 26, 24);
-    font-size: 30px;
-    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
-    -unity-font-style: normal;
-}
-.arcade-body {
-    flex-grow: 1;
-    min-height: 0;
-    padding-top: 16px;
-    padding-bottom: 24px;
-}
-.arcade-layout {
-    flex-grow: 1;
-    min-height: 0;
-    flex-direction: row;
-    align-items: stretch;
-}
-.arcade-mode-browser {
-    flex-grow: 1;
-    flex-basis: 0;
-    min-width: 0;
-    min-height: 0;
-    margin-right: 24px;
-}
-.arcade-section-label {
-    align-self: flex-start;
-    margin: 0;
-    padding: 6px 10px;
-    background-color: rgb(240, 238, 232);
-    color: rgb(27, 26, 24);
-    font-size: 12px;
-    -unity-font-style: bold;
-    letter-spacing: 1px;
-}
-.arcade-mode-gallery {
-    flex-grow: 1;
-    min-height: 0;
-    margin-top: 12px;
-}
-.arcade-mode-gallery .unity-scroll-view__content-container {
-    min-height: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-    align-content: flex-start;
-    justify-content: space-between;
-}
 .arcade-mode-card {
     width: 48%;
     height: 360px;
@@ -72,17 +11,9 @@
     border-radius: 0;
     color: rgb(27, 26, 24);
 }
-.arcade-mode-gallery--single .arcade-mode-card {
-    width: 100%;
-    height: 100%;
-    min-height: 320px;
-    margin-bottom: 0;
-}
 .arcade-mode-card--selected {
     border-color: rgb(255, 204, 34);
 }
-/* Focus uses the stage cards' yellow frame; selection adds the check. Combat
-   Orange stays reserved for impact. */
 .arcade-mode-card:hover,
 .arcade-mode-card:focus {
     border-color: rgb(255, 204, 34);
@@ -117,7 +48,6 @@
     letter-spacing: -1px;
     white-space: normal;
 }
-.arcade-mode-gallery--single .arcade-mode-title { font-size: 38px; }
 .arcade-mode-check {
     flex-shrink: 0;
     width: 24px;
@@ -136,162 +66,19 @@
     white-space: normal;
     -unity-text-align: upper-left;
 }
-.arcade-setup {
-    width: 34%;
-    min-width: 340px;
-    max-width: 520px;
-    min-height: 0;
-    flex-shrink: 0;
-    padding: 20px;
-    background-color: rgb(240, 238, 232);
-    color: rgb(27, 26, 24);
-    border-width: 2px;
-    border-color: rgb(27, 26, 24);
-}
-.arcade-selected-mode {
-    margin: 0 0 12px;
-    font-size: 22px;
-    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
-    -unity-font-style: normal;
-}
-.arcade-setup .arcade-section-label { padding: 0; }
-.arcade-roster {
-    flex-grow: 1;
-    min-height: 0;
-    margin-top: 12px;
-}
-.arcade-fighters {
-    flex-grow: 1;
-    min-height: 0;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    padding: 0;
-}
-.arcade-fighters .char-card {
-    width: 48%;
-    min-width: 0;
-    min-height: 0;
-    height: 48%;
-    flex-shrink: 0;
-    margin: 0;
-    border-width: 3px;
-    border-color: rgb(27, 26, 24);
-    translate: 0 0;
-}
-.arcade-fighters .char-card--selected { border-color: rgb(255, 204, 34); }
-.arcade-fighters .char-card:hover,
-.arcade-fighters .char-card:focus,
-.arcade-fighters .char-card--selected:hover,
-.arcade-fighters .char-card--selected:focus {
-    border-width: 3px;
-    border-color: rgb(255, 204, 34);
-    translate: 0 0;
-}
-.arcade-fighters .char-portrait {
-    flex-grow: 1;
-    flex-shrink: 1;
-    min-height: 0;
-    -unity-background-image-tint-color: rgb(255, 255, 255);
-}
-.arcade-fighters .char-card-name {
-    min-height: 28px;
-    height: 28px;
-    padding-left: 10px;
-    padding-right: 28px;
-    border-top-width: 2px;
-    font-size: 13px;
-}
-.arcade-fighters .char-card-check {
-    width: 14px;
-    height: 14px;
-    right: 8px;
-    bottom: 10px;
-}
-.arcade-record-panel {
-    flex-shrink: 0;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top-width: 1px;
-    border-top-color: rgb(123, 120, 114);
-}
-.arcade-best-fighter {
-    margin: 0 0 4px;
-    font-size: 12px;
-    -unity-font-style: bold;
-    white-space: normal;
-}
-.arcade-best {
-    margin: 0;
-    font-size: 24px;
-    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
-    -unity-font-style: normal;
-    white-space: normal;
-}
-.arcade-record-panel .unity-foldout__toggle {
-    min-height: 24px;
-    margin: 8px 0 0 0;
-    font-size: 12px;
-}
-.arcade-record-panel .unity-foldout__text {
-    color: rgb(27, 26, 24);
-    font-size: 11px;
-    letter-spacing: 1px;
-    -unity-font-style: bold;
-}
-.arcade-record-panel .unity-foldout__checkmark {
-    -unity-background-image-tint-color: rgb(27, 26, 24);
-}
-.arcade-archive { max-height: 72px; }
-.arcade-archive Label { font-size: 12px; }
-.arcade-feedback {
-    margin-top: 8px;
-    font-size: 13px;
-    white-space: normal;
-}
-.arcade-launch-row {
-    flex-shrink: 0;
-    margin-top: 16px;
-}
-.arcade-launch-row .btn-primary {
-    width: 100%;
-    min-width: 0;
-    min-height: 56px;
-    margin: 0;
-    border-width: 3px;
-    border-bottom-width: 8px;
-    border-right-width: 6px;
-    font-size: 20px;
-    letter-spacing: 0;
-    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
-    -unity-font-style: normal;
-}
-.frontend-shell--compact .arcade-page-title { font-size: 26px; }
-.frontend-shell--compact .arcade-body { padding-top: 12px; padding-bottom: 16px; }
-.frontend-shell--compact .arcade-mode-browser { margin-right: 16px; }
-.frontend-shell--compact .arcade-mode-gallery { margin-top: 8px; }
 .frontend-shell--compact .arcade-mode-card { width: 100%; height: 300px; }
-.frontend-shell--compact .arcade-mode-gallery--single .arcade-mode-card {
-    height: 100%;
-    min-height: 240px;
-}
 .frontend-shell--compact .arcade-mode-caption { padding: 12px 16px; }
 .frontend-shell--compact .arcade-mode-title { font-size: 28px; }
 .frontend-shell--compact .arcade-mode-rule { font-size: 13px; }
-.frontend-shell--compact .arcade-setup {
-    width: 40%;
-    min-width: 300px;
-    max-width: 420px;
-    padding: 14px;
+.arcade-mode-art--course {
+    background-image: url("../../UI/Arcade/CoursesPoster.png");
 }
-.frontend-shell--compact .arcade-selected-mode { font-size: 18px; margin-bottom: 10px; }
-.frontend-shell--compact .arcade-fighters .char-card-name { min-height: 24px; height: 24px; font-size: 12px; }
-.frontend-shell--compact .arcade-roster { margin-top: 10px; }
-.frontend-shell--compact .arcade-record-panel { margin-top: 8px; padding-top: 8px; }
-.frontend-shell--compact .arcade-best { font-size: 20px; }
-.frontend-shell--compact .arcade-archive { max-height: 48px; }
-.frontend-shell--compact .arcade-launch-row { margin-top: 12px; }
-.frontend-shell--compact .arcade-launch-row .btn-primary { min-height: 48px; font-size: 17px; }
+.course-results .arcade-mode-title { color: rgb(240, 238, 232); }
+.mayhem-pick { flex-grow: 1; margin: 0; padding: 0; border-width: 0; background-color: transparent; flex-direction: column; }
+.arcade-mode-art--mayhem { background-image: url("Stages/manki_mayhem.png"); -unity-background-scale-mode: scale-and-crop; }
+.mayhem-rules { flex-direction: row; align-items: center; padding: 8px 12px; background-color: rgb(240, 238, 232); }
+.mayhem-rules .arcade-mode-rule { margin-right: 12px; font-size: 12px; }
+.mayhem-rules .selection-target-button { flex-grow: 1; min-width: 64px; }
 
 .slopball-live { position: absolute; right: 18px; top: 76px; width: 265px; padding: 12px; background-color: rgba(22, 21, 19, 0.86); color: rgb(240, 238, 232); border-left-width: 4px; border-left-color: rgb(255, 204, 34); }
 .arcade-eyebrow { font-size: 12px; -unity-font-style: bold; letter-spacing: 1px; }
@@ -335,9 +122,6 @@
     color: rgb(255, 154, 145);
 }
 
-.arcade-mode-art--course {
-    background-image: url("../../UI/Arcade/CoursesPoster.png");
-}
 .course-time { font-size: 30px; color: rgb(255, 204, 34); -unity-font-style: bold; margin-top: 8px; margin-bottom: 8px; }
 .course-results { position: absolute; left: 25%; right: 25%; top: 24%; padding: 28px; background-color: rgb(27, 26, 24); color: rgb(240, 238, 232); border-top-width: 5px; border-top-color: rgb(255, 204, 34); }
 .course-results .arcade-mode-title { color: rgb(240, 238, 232); }
@@ -379,9 +163,3 @@
 .course-online-player .course-pips { flex-wrap: wrap; }
 
 .course-live--online { right: 18px; top: 76px; width: 320px; }
-
-.mayhem-pick { flex-grow: 1; margin: 0; padding: 0; border-width: 0; background-color: transparent; flex-direction: column; }
-.arcade-mode-art--mayhem { background-image: url("Stages/manki_mayhem.png"); }
-.mayhem-rules { flex-direction: row; align-items: center; padding: 8px 12px; background-color: rgb(240, 238, 232); }
-.mayhem-rules .arcade-mode-rule { margin-right: 12px; font-size: 12px; }
-.mayhem-rules .selection-target-button { flex-grow: 1; min-width: 64px; }

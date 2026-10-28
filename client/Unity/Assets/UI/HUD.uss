@@ -925,12 +925,13 @@
     background-color: #FFCC22;
 }
 
-/* Locked marker keeps its anchor when the optional damage tab is hidden. */
+/* Locked target: a bare outlined damage number over a chevron in the target's seat colour.
+   The chevron keeps its anchor when the optional damage number is hidden. */
 .target-lock {
     position: absolute;
     display: none;
-    width: 100px;
-    height: 58px;
+    width: 140px;
+    height: 54px;
 }
 
 .target-lock.visible {
@@ -939,89 +940,50 @@
 
 .target-lock-readout {
     position: absolute;
-    left: 12px;
-    right: 12px;
+    left: 0;
+    right: 0;
     top: 0;
-    height: 28px;
-    padding-left: 6px;
-    padding-right: 6px;
+    height: 38px;
     flex-direction: row;
     justify-content: center;
-    align-items: center;
-    background-color: #1B1A18;
+    align-items: flex-end;
 }
 
 .target-lock.damage-hidden .target-lock-readout {
     display: none;
 }
 
-.target-lock-damage {
+.target-lock-damage,
+.target-lock-percent {
     margin: 0;
     padding: 0;
     flex-shrink: 0;
-    font-size: 22px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
+    -unity-text-align: lower-center;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: #161513;
+    text-shadow: 3px 4px 0 #161513;
     color: #F0EEE8;
 }
 
+.target-lock-damage {
+    font-size: 30px;
+}
+
 .target-lock-percent {
-    margin: 0;
-    margin-left: 2px;
-    padding: 0;
-    flex-shrink: 0;
-    font-size: 12px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
-    translate: 0 3px;
-    color: #F0EEE8;
+    margin-left: 1px;
+    margin-bottom: 3px;
+    font-size: 15px;
+    -unity-text-outline-width: 1px;
+    text-shadow: 2px 2px 0 #161513;
 }
 
 .target-lock-marker {
     position: absolute;
-    left: 29px;
+    left: 59px;
     bottom: 0;
-    width: 42px;
-    height: 26px;
-}
-
-.target-lock-bracket {
-    position: absolute;
-    top: 0;
-    width: 10px;
-    height: 15px;
-    border-top-width: 3px;
-    border-top-color: #EF4444;
-}
-
-.target-lock-bracket-left {
-    left: 0;
-    border-left-width: 3px;
-    border-left-color: #EF4444;
-}
-
-.target-lock-bracket-right {
-    right: 0;
-    border-right-width: 3px;
-    border-right-color: #EF4444;
-}
-
-.target-lock-pointer {
-    position: absolute;
-    top: 12px;
-    width: 15px;
-    height: 4px;
-    background-color: #EF4444;
-}
-
-.target-lock-pointer-left {
-    left: 8px;
-    rotate: 45deg;
-}
-
-.target-lock-pointer-right {
-    right: 8px;
-    rotate: -45deg;
+    width: 22px;
+    height: 13px;
 }
 
 /* Match overlays share the frontend control language, not gameplay colors. */

@@ -130,3 +130,11 @@ Dash numbers (float length, speed, turn rate, range, cooldown) come from Trainin
   float window before gravity returns; an airborne miss falls at once. An attack started from the
   arrival window used to inherit its timer and was forced to Idle after 14 ticks, which cut slow
   follow-ups; activation now clears it. Frame data comes from `MoveDataReport --dash`.
+- **Tuning pass 2026-10-28** (protocol 25). A slot pressed during the float or travel used to be
+  dropped; it is now held (latest press wins) and starts on the first arrival-window tick, so
+  jump → dash → aerial works without timing the press after arrival. A miss or a hit drops it.
+  An airborne arrival keeps `ArriveCarrySpeed` (3 m/s) along the dash instead of stopping dead;
+  air friction ends the glide. In the apex-dash rows of `MoveDataReport --dash`, a press in
+  flight now hits as often as a press on arrival. With the glide, aerials hit far more often
+  (Manki 14 → 24 of 27, Bashie 21 → 23). The remaining misses are mostly slow aerials against
+  a jumping target that falls away during the hover.

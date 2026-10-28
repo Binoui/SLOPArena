@@ -12,17 +12,18 @@ Playable with a stand-in kit. On 2026-10-21 the owner approved the look (concept
 the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22 she got her package and joined the
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
 own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
-shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery, and ground/air 2 have
-her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap and ground 3 her Shell Flip. NO RUNNING! now supplies her F. Air 1 and air 3 still use stand-ins.
+shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery. Ground and air 1
+now have Whirlpool Spin after ADR-0042. Ground 4 has Rising Shell and air 4 its diagonal shell strike. Ground and air 3
+have Shell Flip. NO RUNNING! now supplies her F. Her movement still comes from Manki.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her movement, air 1 and air 3 still come from Manki. Her
+- Her movement still comes from Manki. Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
   place of his Round Bomb, Shell Slide in place of his Bazooka, Ring Bounce in place of his Jetpack Boost, and Whirlpool
-  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, Slap on ground 1, Shell Flip on ground 3, and NO RUNNING! on F.
+  Spin on ground and air 1, the diagonal shell strikes on ground and air 4, Shell Flip on ground and air 3, and NO RUNNING! on F.
 - The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
   Played on her as they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -173,7 +174,7 @@ forward and upward reach around contact. The head and red hat stay visible while
   startup aim correction remains. Slide carry is disabled. The simulated actor stays grounded and stationary.
 - One root-relative capsule has radius 0.32 m, start offset `(0, -0.20, 0.65)` and end delta `(0, 0.60, -0.30)`.
   Its absolute end offset is `(0, 0.40, 0.35)`. It uses hit group 1, is interruptible, and has no bone anchor.
-- `anim.bashie.g3` binds `Animations/bashie_g3_shell_flip.anim`. Air 3 retains Manki's borrowed Double Fist Slam.
+- `anim.bashie.g3` and `anim.bashie.a3` bind `Animations/bashie_g3_shell_flip.anim`.
 - `presentation.bashie.shell.flip-tuck` starts at tick 4 for 38 ticks. The optional ShellTuck flip profile applies
   the accepted native hips rotation after the tuck during ticks 10 through 29. Its 43 lift samples carry the measured
   floor corrections. Runtime code reads no preview artifacts and scans no meshes.
@@ -186,6 +187,21 @@ Hitstop and cleanup after injected Hitstun at ticks 18 and 25. G2, G4 and air 3 
 Evidence is in `artifacts/bashie-g3-integration-20261023-r1/implementation/cutover/`. The raw hierarchy probe used an
 incorrect scaled mesh conversion. Its corrected report includes every skin and agrees with weighted bone skinning.
 Sub-tick floor clearance and human controller feel remain unverified.
+
+### Air Shell Flip (air 3)
+
+Reuses the accepted G3 clip under `anim.bashie.a3`. She tucks into her shell and somersaults backward while
+preserving airborne momentum and normal gravity. No velocity writes, gravity windows or air-resource resets apply.
+
+- **Clock:** 42 ticks at 60 Hz, actionable at tick 42. Startup aim correction runs through tick 9.
+- **Hit:** the same root-relative capsule as ground 3, active ticks 24 through 29. It hits each opponent once for
+  7% at 75 degrees, with base knockback 5, growth 26 and Hitstun 18. Slide carry is disabled.
+- **Landing:** 9 ticks of landing lag, auto-cancel before tick 10 and from tick 36. Landing and interruption clear
+  the hitbox and tuck through the existing ability and presentation lifetime.
+- **Presentation:** `presentation.bashie.shell.flip-tuck` starts at tick 4 for 38 ticks on `bone.hips`.
+  The shared cue holds both G3 and A3. There is no water cue.
+- **Verification:** source-compiled Shared tests cover four facings, momentum and fall equivalence, landing windows,
+  grounded Shield, a 3 m whiff and interruption. Unity rebuild, cook, roster refresh and visual verification remain pending.
 
 ### Rising Shell (ground 4)
 

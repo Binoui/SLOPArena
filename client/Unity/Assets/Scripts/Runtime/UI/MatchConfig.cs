@@ -21,6 +21,7 @@ namespace SlopArena.Client.UI
     public static class MatchConfig
     {
         public static GameMode Mode = GameMode.Training;
+        public static LocalPlayMode LocalMode = LocalPlayMode.Brawl;
         public static MatchTransport Transport = MatchTransport.None;
         public static System.Guid? MatchId;
 
@@ -156,6 +157,7 @@ namespace SlopArena.Client.UI
         public static void Reset()
         {
             ClearActiveMatch();
+            LocalMode = LocalPlayMode.Brawl;
             PlayerPackageId = "fightguy";
             PlayerClass = SlopArena.Shared.CharacterClass.FightGuy;
             ResetSoloSeats();

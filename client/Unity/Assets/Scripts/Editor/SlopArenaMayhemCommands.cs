@@ -23,6 +23,7 @@ namespace SlopArena.EditorTools
         {
             public MatchFormat format;
             public GameMode mode;
+            public LocalPlayMode localMode;
             public CharacterClass fighter;
             public string package, arena;
             public SoloSeat[] seats;
@@ -45,13 +46,14 @@ namespace SlopArena.EditorTools
             if (cpus < 1 || cpus > 3 || seed == 0 || !Enum.TryParse(fighter, true, out CharacterClass selected) || selected == CharacterClass.None)
                 throw new ArgumentException("Expected 1–3 CPUs, nonzero seed, and an admitted fighter name.");
             if (!string.IsNullOrEmpty(SessionState.GetString(Key, ""))) throw new InvalidOperationException("Restore the preceding Mayhem session first.");
-            var saved = new Saved { format = MatchConfig.Format, mode = MatchConfig.Mode, fighter = MatchConfig.PlayerClass,
+            var saved = new Saved { format = MatchConfig.Format, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, fighter = MatchConfig.PlayerClass,
                 package = MatchConfig.PlayerPackageId, arena = MatchConfig.ArenaName, seed = MatchConfig.MayhemSeed,
                 seats = (SoloSeat[])MatchConfig.SoloSeats.Clone(), entity = MatchConfig.LocalEntityId };
             SlopArenaStageViewCommands.Prepare("manki_mayhem");
             SessionState.SetString(Key, JsonConvert.SerializeObject(saved));
             var driver = GameObject.Find("BaselineCaptureDriver");
             if (driver != null) UnityEngine.Object.DestroyImmediate(driver);
+            MatchConfig.LocalMode = LocalPlayMode.MankiMayhem;
             MatchConfig.Mode = GameMode.Solo;
             MatchConfig.Format = MatchFormat.MankiMayhem;
             MatchConfig.MayhemSeed = seed;
@@ -210,7 +212,7 @@ namespace SlopArena.EditorTools
             var saved = JsonConvert.DeserializeObject<Saved>(SessionState.GetString(Key, ""));
             if (saved == null) return new { success = true, restored = false };
             SlopArenaStageViewCommands.Restore();
-            MatchConfig.Format = saved.format; MatchConfig.Mode = saved.mode;
+            MatchConfig.Format = saved.format; MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode;
             MatchConfig.PlayerClass = saved.fighter; MatchConfig.PlayerPackageId = saved.package;
             MatchConfig.ArenaName = saved.arena; MatchConfig.MayhemSeed = saved.seed; MatchConfig.LocalEntityId = saved.entity;
             Array.Copy(saved.seats, MatchConfig.SoloSeats, 3);

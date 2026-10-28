@@ -103,7 +103,8 @@ namespace SlopArena.Client.World
                 var position = new Vector3(state.PX, state.PY, state.PZ);
                 bounds.Encapsulate(position);
                 _framingSubjects.Add(new FramingSubject(pair.Key, position,
-                    !state.IsGrounded && (state.HitstunTicks > 0 || state.InPostHitstunFlight)));
+                    !state.IsGrounded && (state.HitstunTicks > 0 || state.InPostHitstunFlight),
+                    SeatColours.ForFighter(pair.Key, _fighters.TryGetValue(pair.Key, out var renderer) ? renderer.PlayerNumber : 2)));
                 // Prefer Shared's selected target. The nearest fallback is camera-only:
                 // it never changes target selection, facing, or attack admission.
                 float distance = (position - playerPosition).sqrMagnitude;
@@ -187,6 +188,7 @@ namespace SlopArena.Client.World
             }
 
             renderer.EntityId = entityId;
+            renderer.PlayerNumber = entityId is >= 1 and <= 4 ? (int)entityId : 2;
             renderer.SetBlastLines(arena);
             var projectiles = FindFirstObjectByType<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
             projectiles.RegisterOwner(entityId, animationCatalog, renderer);
@@ -416,17 +418,14 @@ namespace SlopArena.Client.World
             _fighterIndicator = new GameObject("LockTargetIndicator");
             _fighterIndicator.transform.SetParent(transform, false);
             var indicator = _fighterIndicator.AddComponent<TargetIndicator>();
-            indicator.Init(Bridge.GetState, renderers, _fighterArena, PlayerEntityId, _cameraMount?.RenderCamera,
+            indicator.Init(Bridge.GetState, renderers, _fighterArena, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
-                    ? camp : SlopballCamp.None, CourseColours.ForEntity, LocalAccentOf);
+                    ? camp : SlopballCamp.None, CourseColours.ForEntity);
             _fighterIndicator.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
         }
 
         /// <summary>Drop a fighter whose renderer is being destroyed; rebuild the indicators afterwards.</summary>
         protected void ForgetFighter(ulong entityId) => _fighters.Remove(entityId);
-
-        /// <summary>Couch play: extra Local Players and their facing-ring accent; null for everyone else.</summary>
-        protected virtual Func<ulong, Color?> LocalAccentOf => null;
 
 
         /// <summary>

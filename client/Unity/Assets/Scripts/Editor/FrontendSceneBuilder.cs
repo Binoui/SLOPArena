@@ -28,7 +28,7 @@ public static class FrontendSceneBuilder
         ("ResultsPage", "Assets/UI/Results.uxml", typeof(ResultsUI)),
         ("ServerBrowserPage", "Assets/UI/ServerBrowser.uxml", typeof(ServerBrowserUI)),
         ("LobbyRoomPage", "Assets/UI/LobbyRoom.uxml", typeof(LobbyRoomUI)),
-        ("ArcadePage", "Assets/UI/Arcade.uxml", typeof(ArcadeSelectController)),
+        ("ModeSelectPage", "Assets/UI/ModeSelect.uxml", typeof(ModeSelectController)),
     };
 
     private static readonly string[] RemovedScenes =
@@ -86,7 +86,7 @@ public static class FrontendSceneBuilder
         shellSerialized.FindProperty("_resultsPage").objectReferenceValue = pageObjects[3];
         shellSerialized.FindProperty("_serverBrowserPage").objectReferenceValue = pageObjects[4];
         shellSerialized.FindProperty("_lobbyRoomPage").objectReferenceValue = pageObjects[5];
-        shellSerialized.FindProperty("_arcadePage").objectReferenceValue = pageObjects[6];
+        shellSerialized.FindProperty("_modeSelectPage").objectReferenceValue = pageObjects[6];
         shellSerialized.FindProperty("_shell").objectReferenceValue = shellView;
         for (int i = 0; i < Pages.Length; i++)
         {
@@ -98,7 +98,7 @@ public static class FrontendSceneBuilder
                 3 => "_resultsFragment",
                 4 => "_serverBrowserFragment",
                 5 => "_lobbyRoomFragment",
-                6 => "_arcadeFragment",
+                6 => "_modeSelectFragment",
                 _ => throw new System.InvalidOperationException($"Unexpected page index {i}.")
             };
             shellSerialized.FindProperty(fragmentField).objectReferenceValue =

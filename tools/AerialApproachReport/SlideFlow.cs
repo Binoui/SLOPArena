@@ -474,7 +474,7 @@ internal static partial class Program
             input.Down, input.DownPressed, input.Jump, input.JumpHeld, input.ActiveSlot, state.State, state.IsGrounded,
             state.PX.ToString("0.###", CultureInfo.InvariantCulture), state.PY.ToString("0.###", CultureInfo.InvariantCulture), state.PZ.ToString("0.###", CultureInfo.InvariantCulture),
             state.VX.ToString("0.###", CultureInfo.InvariantCulture), state.VY.ToString("0.###", CultureInfo.InvariantCulture), state.VZ.ToString("0.###", CultureInfo.InvariantCulture), speed.ToString("0.###", CultureInfo.InvariantCulture),
-            state.IsFastFalling, state.JumpFromSlide, state.SlideAttackCarryActive, state.CrouchSettled, state.QueuedCrouchBrace,
+            state.IsFastFalling, state.JumpTakeoff == JumpTakeoff.Slide, state.SlideAttackCarryActive, state.CrouchSettled, state.QueuedCrouchBrace,
             state.JumpsLeft, state.AirDodgesLeft, state.AttackSlot, state.AttackElapsedTicks, state.AnimLockTicks, state.LandingLagTicks,
             state.HitstopTicks, state.HitstunTicks, actionRequest, accepted, touchdown, reason,
             state.RushTicks, state.ChargeStockSpent,

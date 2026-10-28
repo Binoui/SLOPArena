@@ -89,6 +89,7 @@ namespace SlopArena.EditorTools
             };
             if (!File.Exists(scenePath)) throw new InvalidOperationException("Run phase1.prepare first.");
             MatchConfig.ClearActiveMatch();
+            MatchConfig.LocalMode = scenePath == SlopArenaCharacterCourseCommands.ScenePath ? LocalPlayMode.CharacterCourse : LocalPlayMode.Slopball;
             MatchConfig.Mode = GameMode.Arcade;
             MatchConfig.PlayerClass = selected; MatchConfig.PlayerPackageId = fighter;
             MatchConfig.ArenaName = stageKey;

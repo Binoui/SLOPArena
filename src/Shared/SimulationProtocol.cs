@@ -16,6 +16,7 @@ namespace SlopArena.Shared
         // 22: BREAK OUT! walls, World Snapshot v12 and World Frame v7.
         // 23: universal progressive ground locomotion. Snapshot and input layouts unchanged.
         // 24: Run-started attack carry brakes over 20 ticks; replicated carry origin.
-        public const byte Version = 24;
+        // 25: homing dash holds a slot pressed in flight for the arrival; airborne arrivals glide.
+        public const byte Version = 25;
     }
 }

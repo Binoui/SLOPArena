@@ -129,7 +129,7 @@ public void AcceptedJump_ResetsMovementInterruptions()
     var jump = TestHelpers.PlayerState();
     jump.PY = TestHelpers.GroundPY(Def);
     jump.IsFastFalling = true;
-    jump.JumpFromSlide = true;
+    jump.JumpTakeoff = JumpTakeoff.Slide;
     jump.SlideAttackCarryActive = true;
     jump.CrouchSettled = true;
     Simulation.SimulateTick(ref jump, Def, TestHelpers.Input(jump: true),
@@ -137,7 +137,7 @@ public void AcceptedJump_ResetsMovementInterruptions()
         DownActionTuning.Default, false);
     Assert.True(jumpAccepted);
     Assert.False(jump.IsFastFalling);
-    Assert.False(jump.JumpFromSlide);
+    Assert.Equal(JumpTakeoff.Standing, jump.JumpTakeoff);
     Assert.False(jump.SlideAttackCarryActive);
     Assert.False(jump.CrouchSettled);
 }
@@ -147,7 +147,7 @@ public void AcceptedJump_ResetsMovementInterruptions()
     {
         var state = SimFalling().GetState(1);
         state.IsFastFalling = true;
-        state.JumpFromSlide = true;
+        state.JumpTakeoff = JumpTakeoff.Slide;
         state.SlideAttackCarryActive = true;
         state.CrouchSettled = true;
         state.QueuedCrouchBrace = true;
@@ -155,7 +155,7 @@ public void AcceptedJump_ResetsMovementInterruptions()
         Simulation.ApplyKnockback(ref state, 0f, 1f, 45, 8f, 0f, 1f, 10, Def.Weight);
 
         Assert.False(state.IsFastFalling);
-        Assert.False(state.JumpFromSlide);
+        Assert.Equal(JumpTakeoff.Standing, state.JumpTakeoff);
         Assert.False(state.SlideAttackCarryActive);
         Assert.False(state.CrouchSettled);
         Assert.False(state.QueuedCrouchBrace);

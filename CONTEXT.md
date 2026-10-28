@@ -187,6 +187,9 @@ _Avoid_: control scheme
 
 ## Arcade
 
+**Local Play**:
+The frontend entry for Brawl, Slopball, Character Courses and Manki Mayhem. Choose Mode, then Fighters. Brawl adds Stage Select. Brawl and Mayhem support CPUs and couch players; Slopball and Courses use P1 only.
+
 **Arcade**:
 Solo minigames played with a selected fighter's movement and Character Kit, offering repeatable challenges and records to beat. Online Rooms can play them too (see Match Format).
 
@@ -356,7 +359,7 @@ An operator-run, always-on GameHost available to Master for Match allocation. Pl
 _Avoid_: public Room, dedicated Room, hosted lobby
 
 **MatchFlow**:
-The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Stage Select → Character Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. The leader chooses what to play before anyone picks a fighter ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)); Solo and Training still pick fighters first. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
+The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Stage Select → Character Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. The leader chooses what to play before anyone picks a fighter ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)); Local Play chooses Mode, then Fighters, then Stage for Brawl. Training still picks fighters first. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
 _Avoid_: physical-server lobby flow, automatic rematch
 
 ## Replays & Spectating

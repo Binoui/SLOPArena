@@ -37,7 +37,7 @@ namespace SlopArena.Client.World
         public static readonly CharacterCourseInfo[] Courses =
         {
             // A fighter plays the first listed course whose arena is baked and admits it
-            // (ArcadeSelectController), so FightGuy gets the pier when it is baked and Sanctuary otherwise.
+            // (ModeSelectController), so FightGuy gets the pier when it is baked and Sanctuary otherwise.
             new("fightguy_pier", "FIGHT NIGHT PIER", "the ring", new[]
             {
                 "F wrecks the car in one go. R sweeps a row, E pops a stack, A reaches far balloons.",
@@ -295,7 +295,7 @@ namespace SlopArena.Client.World
         }
         protected override void LeaveMatch() => ReturnToArcade();
         private void ReturnToArcade()
-        { Simulation?.StopCourse(); MatchConfig.ClearActiveMatch(); MatchConfig.Mode = GameMode.Arcade; FrontendController.Show(FrontendPage.ArcadeSelect); }
+        { Simulation?.StopCourse(); MatchConfig.ClearActiveMatch(); MatchConfig.Mode = GameMode.Arcade; FrontendController.Show(FrontendPage.FighterSelect); }
         protected override void OnDestroy()
         {
             Simulation?.StopCourse(); _view?.Dispose(); _presentation?.Dispose();

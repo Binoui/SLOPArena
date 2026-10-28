@@ -289,7 +289,7 @@ namespace SlopArena.Client.UI
             _root?.EnableInClassList("frontend-shell--home", page == FrontendPage.Home);
             _root?.EnableInClassList("frontend-shell--stage", page == FrontendPage.StageSelect);
             _root?.EnableInClassList("frontend-shell--fighters", page == FrontendPage.FighterSelect);
-            _root?.EnableInClassList("frontend-shell--arcade", page == FrontendPage.ArcadeSelect);
+            _root?.EnableInClassList("frontend-shell--local", page == FrontendPage.ModeSelect);
             ApplyDensityGeometry();
             SetPageContext(page switch
             {
@@ -299,7 +299,7 @@ namespace SlopArena.Client.UI
                 FrontendPage.Results => "RESULTS",
                 FrontendPage.ServerBrowser => "ONLINE // SERVER BROWSER",
                 FrontendPage.LobbyRoom => "ONLINE // ROOM",
-                FrontendPage.ArcadeSelect => "ARCADE // SOLO CHALLENGES",
+                FrontendPage.ModeSelect => "LOCAL PLAY // CHOOSE A MODE",
                 _ => string.Empty
             });
         }

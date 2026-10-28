@@ -108,7 +108,7 @@ The previous facing-locked tuning (11 m/s for 10 ticks, then 20 ticks frozen in
 place) covered 1.83 m, less than holding the stick for the same 30 ticks, and a
 dodge just before touchdown left 29 ticks of grounded recovery.
 
-The old Universal Dash is retired. Its input bit now starts the universal homing dash (ADR-0042): a startup float, then a dash that turns toward the target at a limited rate. Arriving opens a short window that any action cancels; running out of travel is a locked, punishable miss. It has a universal cooldown, one use per airtime, and starts from any state except being hit or attacking (an attack's IASA window counts as free). Shield, hitboxes and projectiles beat it. Values live in `HomingDashConfig`.
+The old Universal Dash is retired. Its input bit now starts the universal homing dash (ADR-0042): a startup float, then a dash that turns toward the target at a limited rate. Arriving opens a short window that any action cancels, and a slot pressed during the dash starts there; an airborne arrival glides on briefly instead of stopping dead; running out of travel is a locked, punishable miss. It has a universal cooldown, one use per airtime, and starts from any state except being hit or attacking (an attack's IASA window counts as free). Shield, hitboxes and projectiles beat it. Values live in `HomingDashConfig`.
 Kit-owned dash/lunge/recovery abilities retain their own timing and mobility.
 The former Burst input bit is reserved and inert; Burst cannot escape
 Hitstop or Hitstun, interrupt a move, or grant invulnerability.

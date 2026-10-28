@@ -294,10 +294,10 @@ namespace SlopArena.Shared
                 && (state.State == ActionState.Sliding
                     || state.State == ActionState.Run && !preserveMomentum);
             state.SlideAttackCarryActive = false;
-            state.AttackCarryFromRun = attackCarry && state.State == ActionState.Run;
+            state.AttackCarryFrom = attackCarry && state.State == ActionState.Run ? AttackCarryOrigin.Run : AttackCarryOrigin.Slide;
             if (attackCarry)
             {
-                float capRatio = state.AttackCarryFromRun
+                float capRatio = state.AttackCarryFrom == AttackCarryOrigin.Run
                     ? DownActionTuning.RunAttackEntryCapRatio
                     : DownActionTuning.AttackEntryCapRatio;
                 Simulation.ClampHorizontalSpeed(ref state, def.Movement.RunSpeed * capRatio);
@@ -722,9 +722,7 @@ namespace SlopArena.Shared
 				|| state.LandingLagTicks > 0)
 				return false;
 			bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId));
-			if (state.State != ActionState.Idle && state.State != ActionState.Run
-				&& state.State != ActionState.Crouching && state.State != ActionState.Sliding
-				&& state.State != ActionState.HomingDashArrive && !iasaUnlocked)
+			if (!ActionStates.AdmitsActions(state.State) && state.State != ActionState.HomingDashArrive && !iasaUnlocked)
 				return false;
 			if (state.AnimLockTicks > 0 && !iasaUnlocked)
 				return false;
@@ -847,10 +845,8 @@ namespace SlopArena.Shared
                 || state.AnimLockTicks > 0 && !Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId)))
 				return false;
 
-			return state.State is ActionState.Idle or ActionState.Run
-				or ActionState.Crouching or ActionState.Sliding
-				or ActionState.Attacking or ActionState.Shielding
-				or ActionState.HomingDashArrive;
+			return ActionStates.AdmitsActions(state.State) || state.State is ActionState.Attacking
+				or ActionState.Shielding or ActionState.HomingDashArrive;
 		}
 
 		private bool CanAcceptGroundShieldAfterTimers(
@@ -920,8 +916,7 @@ namespace SlopArena.Shared
 				if (CanTakeOrdinaryAbilityAction(state, def))
 					_lastTickOrdinaryActionOpportunities.Add(id);
 				bool bufferedPress = input.ActiveSlot == 0 && state.BufferedSlot > 0
-					&& state.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
-						or ActionState.HomingDashArrive)
+					&& (ActionStates.AdmitsActions(state.State) || state.State == ActionState.HomingDashArrive)
 					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed;
 				if (bufferedPress)
 					input.ActiveSlot = state.BufferedSlot;
@@ -943,9 +938,8 @@ namespace SlopArena.Shared
 				if (state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
 					|| state.LandingLagTicks > 0
 					|| (state.AnimLockTicks > 0 && !iasaUnlocked)) continue; // ADR-0014
-				if (state.State != ActionState.Idle && state.State != ActionState.Attacking
-					&& state.State != ActionState.Run && state.State != ActionState.Crouching
-					&& state.State != ActionState.Sliding && state.State != ActionState.HomingDashArrive) continue;
+				if (!ActionStates.AdmitsActions(state.State) && state.State != ActionState.Attacking
+					&& state.State != ActionState.HomingDashArrive) continue;
 				if (bufferedPress)
 				{
 					state.BufferedSlot = 0;
@@ -2229,8 +2223,7 @@ namespace SlopArena.Shared
 				or ActionState.Grabbing or ActionState.Throwing;
 			bool beingHit = owner.State == ActionState.Hitstun || owner.HitstunTicks > 0 || Simulation.HasKnockback(owner);
 			bool free = owner.HitstopTicks == 0 && owner.BlockStunTicks == 0 && owner.LandingLagTicks == 0
-				&& owner.State is ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
-					or ActionState.JumpSquat;
+				&& (ActionStates.AdmitsActions(owner.State) || owner.State == ActionState.JumpSquat);
 			return held || beingHit || free || owner.State is ActionState.Shielding or ActionState.LedgeHang;
 		}
 
@@ -2407,7 +2400,7 @@ namespace SlopArena.Shared
                         targetState.InPostHitstunFlight = armoredReaction.InPostHitstunFlight;
                         targetState.LandingLagTicks = armoredReaction.LandingLagTicks;
                         targetState.IsFastFalling = armoredReaction.IsFastFalling;
-                        targetState.JumpFromSlide = armoredReaction.JumpFromSlide;
+                        targetState.JumpTakeoff = armoredReaction.JumpTakeoff;
                     }
                     hookSuppliedForce = kbForce != kbForceDefault;
                     hookZeroForce = hookSuppliedForce && kbForce <= 0f;
@@ -2694,9 +2687,9 @@ namespace SlopArena.Shared
 					State = ActionState.Idle,
 					IsGrounded = true,
 					IsFastFalling = false,
-					JumpFromSlide = false,
+					JumpTakeoff = JumpTakeoff.Standing,
 					SlideAttackCarryActive = false,
-					AttackCarryFromRun = false,
+					AttackCarryFrom = AttackCarryOrigin.Slide,
 					CrouchSettled = false,
 					QueuedCrouchBrace = false,
 					InPostHitstunFlight = false,

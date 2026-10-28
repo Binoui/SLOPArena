@@ -161,7 +161,7 @@ namespace SlopArena.Client.World
             Simulation?.StopSlopball(); BankBest();
             MatchConfig.ClearActiveMatch();
             MatchConfig.Mode = GameMode.Arcade;
-            FrontendController.Show(FrontendPage.ArcadeSelect);
+            FrontendController.Show(FrontendPage.FighterSelect);
         }
 
         protected override void OnDestroy()

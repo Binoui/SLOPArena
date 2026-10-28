@@ -17,6 +17,8 @@ public static class HomingDashConfig
     public const ushort ArriveWindowTicks = 14;
     /// <summary>An airborne arrival hangs without gravity this long, so an aerial can start at the target's height.</summary>
     public const ushort ArriveHoverTicks = 20;
+    /// <summary>Horizontal glide an airborne arrival keeps along the dash; air friction then stops it.</summary>
+    public const float ArriveCarrySpeed = 3f;
     public const ushort MissRecoveryTicks = 30;
     // Turn limit per tick, 4° (240°/s). Literal cosine and sine keep the steering free of
     // runtime trigonometry, so server and client predictions stay bit-identical.

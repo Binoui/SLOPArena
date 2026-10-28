@@ -490,7 +490,7 @@ internal static partial class Program
             }
             else if (phase == 2 || phase == 3)
             {
-                if (!sim.LastTickAcceptedActions.Contains(id) || !after.JumpFromSlide) break;
+                if (!sim.LastTickAcceptedActions.Contains(id) || after.JumpTakeoff != JumpTakeoff.Slide) break;
                 jumpTick = tick;
                 phase = 4;
             }

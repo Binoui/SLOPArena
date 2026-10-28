@@ -36,6 +36,7 @@ namespace SlopArena.EditorTools
             public float timeScale;
             public string recordDirectory, arenaName, playerPackageId;
             public GameMode mode;
+            public LocalPlayMode localMode;
             public CharacterClass playerClass;
             public int nextChunk;
         }
@@ -84,7 +85,7 @@ namespace SlopArena.EditorTools
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale,
                 freezeOnStart = CharacterCourseMatch.FreezeOnStartForProbe, tips = CharacterCourseMatch.MovementTipsEnabled,
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory, arenaName = MatchConfig.ArenaName,
-                playerPackageId = MatchConfig.PlayerPackageId, playerClass = MatchConfig.PlayerClass, mode = MatchConfig.Mode,
+                playerPackageId = MatchConfig.PlayerPackageId, playerClass = MatchConfig.PlayerClass, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view)
             };
@@ -95,7 +96,7 @@ namespace SlopArena.EditorTools
             EditorApplication.isPaused = false; Time.timeScale = 1;
             ArcadeRecordsStore.VerificationDirectory = Path.Combine(directory, "records");
             CharacterCourseMatch.FreezeOnStartForProbe = true; CharacterCourseMatch.MovementTipsEnabled = false;
-            MatchConfig.Mode = GameMode.Arcade; MatchConfig.ArenaName = stage; MatchConfig.PlayerPackageId = fighter;
+            MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.CharacterCourse; MatchConfig.ArenaName = stage; MatchConfig.PlayerPackageId = fighter;
             if (entry.LegacySelector.HasValue) MatchConfig.PlayerClass = entry.LegacySelector.Value;
             EditorSceneManager.OpenScene(SlopArenaCharacterCourseCommands.ScenePath, OpenSceneMode.Single);
             return new { success = true, stage, fighter, requestedTicks = total, recordsDirectory = ArcadeRecordsStore.VerificationDirectory };
@@ -175,7 +176,7 @@ namespace SlopArena.EditorTools
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled; EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
             ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             CharacterCourseMatch.FreezeOnStartForProbe = saved.freezeOnStart; CharacterCourseMatch.MovementTipsEnabled = saved.tips;
-            MatchConfig.Mode = saved.mode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.PlayerPackageId = saved.playerPackageId; MatchConfig.PlayerClass = saved.playerClass;
+            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.PlayerPackageId = saved.playerPackageId; MatchConfig.PlayerClass = saved.playerClass;
             Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             Selection.objects = saved.selection.Select(x => GlobalObjectId.TryParse(x, out var id) ? GlobalObjectId.GlobalObjectIdentifierToObjectSlow(id) : null).Where(x => x != null).ToArray();

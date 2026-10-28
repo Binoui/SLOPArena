@@ -37,4 +37,32 @@ namespace SlopArena.Shared
         /// <summary>The dash ran out without arriving; a locked, punishable end.</summary>
         HomingDashMiss = 25
     }
+
+    /// <summary>Where a jump that is taking off started; selects its horizontal speed cap.</summary>
+    public enum JumpTakeoff : byte
+    {
+        /// <summary>Capped at RunSpeed.</summary>
+        Standing = 0,
+        /// <summary>Capped at RunSpeed × <see cref="DownActionTuning.JumpCapRatio"/>.</summary>
+        Slide = 1,
+    }
+
+    /// <summary>Where a grounded attack's carried momentum came from; selects its entry cap and braking.</summary>
+    public enum AttackCarryOrigin : byte
+    {
+        /// <summary>Capped at the slide entry ratio, brakes at <see cref="DownActionTuning.AttackDecelerationRatio"/>.</summary>
+        Slide = 0,
+        /// <summary>Capped at the run entry ratio, brakes at <see cref="DownActionTuning.RunAttackDecelerationRatio"/>.</summary>
+        Run = 1,
+    }
+
+    public static class ActionStates
+    {
+        /// <summary>
+        /// States that admit a new action the way Idle does: a slot press, a jump, a shield, a grab.
+        /// Movement processing keeps its own list.
+        /// </summary>
+        public static bool AdmitsActions(ActionState state)
+            => state is ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding;
+    }
 }

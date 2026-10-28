@@ -48,6 +48,7 @@ namespace SlopArena.EditorTools
             public int options, viewSize;
             public float timeScale;
             public GameMode mode;
+            public LocalPlayMode localMode;
             public bool slopball;
             public CharacterClass playerClass;
             public string packageId, arenaName, fighterSession, recordDirectory;
@@ -83,7 +84,7 @@ namespace SlopArena.EditorTools
             {
                 stage = stage, scenes = scenes, selection = Selection.objects.Select(x => GlobalObjectId.GetGlobalObjectIdSlow(x).ToString()).ToArray(),
                 optionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, options = (int)EditorSettings.enterPlayModeOptions,
-                paused = EditorApplication.isPaused, timeScale = Time.timeScale, mode = MatchConfig.Mode, slopball = slopball,
+                paused = EditorApplication.isPaused, timeScale = Time.timeScale, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, slopball = slopball,
                 playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, arenaName = MatchConfig.ArenaName,
                 fighterSession = SessionState.GetString(ArcadeBallMatch.FighterSessionKey, ""),
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory,
@@ -98,7 +99,7 @@ namespace SlopArena.EditorTools
             if (slopball)
             {
                 // The real Arcade scene: FightGuy receives live serves; the camera orbit is the normal one.
-                MatchConfig.Mode = GameMode.Arcade;
+                MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.Slopball;
                 MatchConfig.ArenaName = stage;
                 MatchConfig.PlayerClass = CharacterClass.FightGuy;
                 MatchConfig.PlayerPackageId = "fightguy";
@@ -214,7 +215,7 @@ namespace SlopArena.EditorTools
             if (EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying)
                 throw new InvalidOperationException("Stop the stage views and settle Play Mode before restoring.");
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled; EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
-            MatchConfig.Mode = saved.mode; Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
+            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             if (saved.slopball)
             {
                 MatchConfig.PlayerClass = saved.playerClass; MatchConfig.PlayerPackageId = saved.packageId; MatchConfig.ArenaName = saved.arenaName;

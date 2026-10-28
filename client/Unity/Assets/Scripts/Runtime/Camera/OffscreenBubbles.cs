@@ -12,7 +12,6 @@ namespace SlopArena.Client.Camera
     /// </summary>
     internal sealed class OffscreenBubbles : IDisposable
     {
-        public static readonly Color FighterColor = new(0.94f, 0.36f, 0.21f);
         private const float Size = 46f;
         private readonly List<(VisualElement chip, VisualElement pointer, Label text)> _pool = new();
         private VisualElement? _root;

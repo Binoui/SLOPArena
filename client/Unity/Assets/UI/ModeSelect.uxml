@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="page-frag">
+        <ui:VisualElement name="page-header" class="page-section frag-header char-header--local">
+            <ui:Button name="btn-back" text="BACK" class="btn-back" />
+            <ui:VisualElement class="flow-header-copy">
+                <ui:Label text="LOCAL PLAY" class="flow-eyebrow" />
+                <ui:Label name="title" text="LOCAL PLAY // CHOOSE A MODE" class="flow-title" />
+                <ui:Label text="Pick what to play. Then pick your fighter." class="flow-subtitle" />
+            </ui:VisualElement>
+            <ui:VisualElement class="char-header-status"><ui:Label name="flow-progress" text="STEP 1 OF 3  /  MODE" class="flow-progress" /></ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="page-body" class="page-section local-mode-body">
+            <ui:VisualElement name="local-mode-hero" class="local-mode-hero" />
+            <ui:VisualElement name="local-mode-stack" class="local-mode-stack" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

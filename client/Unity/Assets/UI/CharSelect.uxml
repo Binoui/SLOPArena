@@ -21,6 +21,17 @@
     </ui:VisualElement>
     <ui:VisualElement name="page-summary" class="page-section char-summary-section">
         <ui:VisualElement name="roster-panel" class="roster-panel" />
+        <ui:VisualElement name="local-record-panel" class="local-record-panel" style="display: none;">
+            <ui:VisualElement name="local-record-poster" class="local-record-poster" />
+            <ui:Label name="arcade-selected-mode" class="local-record-title" />
+            <ui:Label name="arcade-best-fighter" class="local-record-label" />
+            <ui:Label name="arcade-best" class="local-record-best" />
+            <ui:Foldout name="arcade-older-bests" text="PAST VERSIONS" value="false">
+                <ui:ScrollView name="arcade-archive" class="local-record-archive" />
+            </ui:Foldout>
+            <ui:Label name="arcade-feedback" class="local-record-feedback" />
+            <ui:Toggle name="arcade-course-tips" text="MOVEMENT TIPS" />
+        </ui:VisualElement>
         <ui:VisualElement name="colour-select" class="solo-config" style="display: none;">
             <ui:Label text="YOUR COLOUR" class="selection-target" />
             <ui:VisualElement class="selection-target-buttons">

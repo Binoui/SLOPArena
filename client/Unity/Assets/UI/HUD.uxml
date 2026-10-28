@@ -52,12 +52,7 @@
                 <ui:Label name="target-lock-damage" class="target-lock-damage" />
                 <ui:Label name="target-lock-percent" class="target-lock-percent" text="%" />
             </ui:VisualElement>
-            <ui:VisualElement name="target-lock-marker" class="target-lock-marker">
-                <ui:VisualElement class="target-lock-bracket target-lock-bracket-left" />
-                <ui:VisualElement class="target-lock-bracket target-lock-bracket-right" />
-                <ui:VisualElement class="target-lock-pointer target-lock-pointer-left" />
-                <ui:VisualElement class="target-lock-pointer target-lock-pointer-right" />
-            </ui:VisualElement>
+            <ui:VisualElement name="target-lock-marker" class="target-lock-marker" />
         </ui:VisualElement>
         <ui:VisualElement name="player-billboard" class="player-billboard" />
         <ui:VisualElement name="kit-diamonds" class="move-deck">

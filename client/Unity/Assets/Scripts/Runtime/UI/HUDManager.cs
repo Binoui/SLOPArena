@@ -69,6 +69,7 @@ namespace SlopArena.Client.UI
             public float StockToastDuration;
             public Color TierColor = Color.white;
             public Color IdentityColor;
+            public int PlayerNumber;
             public bool HasState;
             public ushort PrevDamage;
             public int PrevStocks = -1;
@@ -388,12 +389,7 @@ namespace SlopArena.Client.UI
 
         private OverheadPanel BuildBillboardPanel(HudPlayer p, int colorIndex)
         {
-            var identityColor = SeatColours.For(p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1);
-            var camp = MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(p.EntityId, out var selectedCamp)
-                ? selectedCamp : SlopballCamp.None;
-            if (camp != SlopballCamp.None) identityColor = camp == SlopballCamp.Teal
-                ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
-            if (CourseColours.ForEntity(p.EntityId) is { } courseColour) identityColor = courseColour;
+            var identityColor = SeatColours.ForFighter(p.EntityId, p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1);
             var root = new VisualElement { name = $"billboard-{p.EntityId}" };
             root.AddToClassList("billboard-card");
             root.AddToClassList("billboard-left");
@@ -422,6 +418,8 @@ namespace SlopArena.Client.UI
             var tape = new VisualElement();
             tape.AddToClassList("fighter-tape");
             var badge = new Label(p.Label);
+            var camp = MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(p.EntityId, out var selectedCamp)
+                ? selectedCamp : SlopballCamp.None;
             if (camp != SlopballCamp.None) badge.text += " · " + camp.ToString().ToUpperInvariant();
             badge.AddToClassList("badge");
             badge.style.backgroundColor = identityColor;
@@ -447,7 +445,7 @@ namespace SlopArena.Client.UI
             damage.AddToClassList("overhead-damage");
             copy.Add(damage);
 
-            var panel = new OverheadPanel { Root = root, Damage = damage, IdentityColor = identityColor };
+            var panel = new OverheadPanel { Root = root, Damage = damage, IdentityColor = identityColor, PlayerNumber = p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1 };
             AddStocks(panel, copy);
             root.Add(copy);
 
@@ -644,7 +642,7 @@ namespace SlopArena.Client.UI
             if (results.Mayhem is { } mayhem)
             {
                 var players = mayhem.Players.Select(p => new MayhemPlayer(p.EntityId, p.Score, p.RoundsSurvived, p.Bonuses, false, p.Withdrawn)).ToArray();
-                _soloEndCard?.ShowMayhem(players, id => ClientSession.MatchRoster?.FirstOrDefault(p => p.EntityId == (int)id)?.Name ?? $"P{id}", online: true);
+                _soloEndCard?.ShowMayhem(players, id => ClientSession.MatchRoster?.FirstOrDefault(p => p.EntityId == (int)id)?.Name ?? $"P{id}", SeatOf, online: true);
                 return;
             }
             if (results.Versus is { } versus)
@@ -698,10 +696,13 @@ namespace SlopArena.Client.UI
             _soloEndCard?.Show(winningSeat, winner, sharedVictory);
         }
 
+        private int SeatOf(ulong entityId) => _billboardPanels.TryGetValue(entityId, out var panel)
+            ? panel.PlayerNumber : entityId is >= 1 and <= 4 ? (int)entityId : 2;
+
         public void ShowMayhemEnding(IReadOnlyList<MayhemPlayer> players, Func<ulong, string> name)
         {
             _soloCountdown?.Clear();
-            _soloEndCard?.ShowMayhem(players, name);
+            _soloEndCard?.ShowMayhem(players, name, SeatOf);
         }
 
         public void ShowStockToast(ulong entityId, string text, float seconds = 1.15f)

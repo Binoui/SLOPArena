@@ -43,19 +43,20 @@ namespace SlopArena.EditorTools
             {
                 if (scene.isDirty) throw new InvalidOperationException("Save the frontend before preparing Arcade.");
                 var shell = scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<FrontendController>(true)).Single();
-                var page = shell.transform.Find("ArcadePage")?.gameObject;
+                var serialized = new SerializedObject(shell);
+                var page = serialized.FindProperty("_modeSelectPage").objectReferenceValue as GameObject;
                 if (page == null)
                 {
-                    page = new GameObject("ArcadePage"); page.SetActive(false);
+                    page = new GameObject("ModeSelectPage"); page.SetActive(false);
                     SceneManager.MoveGameObjectToScene(page, scene);
                     page.transform.SetParent(shell.transform, false);
-                    page.AddComponent<ArcadeSelectController>();
+                    page.AddComponent<ModeSelectController>();
                 }
-                var serialized = new SerializedObject(shell);
-                serialized.FindProperty("_arcadePage").objectReferenceValue = page;
-                serialized.FindProperty("_arcadeFragment").objectReferenceValue =
-                    AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Arcade.uxml");
-                if (serialized.FindProperty("_arcadeFragment").objectReferenceValue == null)
+                page.name = "ModeSelectPage";
+                serialized.FindProperty("_modeSelectPage").objectReferenceValue = page;
+                serialized.FindProperty("_modeSelectFragment").objectReferenceValue =
+                    AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/ModeSelect.uxml");
+                if (serialized.FindProperty("_modeSelectFragment").objectReferenceValue == null)
                     throw new InvalidOperationException("Arcade UI fragment has not imported.");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 EditorSceneManager.SaveScene(scene);

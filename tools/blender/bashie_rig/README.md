@@ -21,9 +21,35 @@ blender -b --factory-startup --python-exit-code 1 --python tools/blender/bashie_
 ```
 
 The build writes `Bashie.fbx` (no embedded media), one colour map per piece in `textures/` (`Bashie_Body`, `_Shell`,
-`_Whistle` and `_Cord`), `Bashie_rig.blend` and `Bashie_report.json`. Its options (shell fit, whistle size and
+`_Whistle`, `_Cord`, and with the outfit `_Suit` and `_Wings`), `Bashie_rig.blend` and `Bashie_report.json`. Its options (shell fit, whistle size and
 height, cord radius) are listed at the top of `build_rig.py`. The 2026-10-22 inputs and outputs are local, under
-`tmp/bashie-model/` (`v4-raw/`, `rig-build-v4/`).
+`tmp/bashie-model/` (`v4-raw/`, `rig-build-v4/`; with the outfit, `rig-build-v5/`).
+
+## Outfit (2026-10-28)
+
+Her red one-piece swimsuit and orange water wings come from a Tripo character-extraction kit of concept take 6
+(one mesh, every part an island beside a regenerated body). `kit_pieces.py` lists the islands and renders them,
+then exports the chosen ones; `build_rig.py` fits them onto the existing body, so her rig, clips and tuck stay as they are:
+
+```bash
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/bashie_rig/kit_pieces.py -- <kit.fbx> <pieces_dir>
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/bashie_rig/kit_pieces.py -- <kit.fbx> <pieces_dir> \
+  suit=3 wing_l=14 wing_r=13
+# then add to step 1: suit=<pieces_dir>/suit.fbx wings=<pieces_dir>/wing_l.fbx,<pieces_dir>/wing_r.fbx
+```
+
+- **Suit:** only its outer layer is kept (faces pointing away from its centre line). It is stretched over her torso's
+  box, crotch to neck, then wrapped onto the nearest torso surface 0.004 out (`suit_offset`). It takes her body's
+  weights from the triangle under each vertex. A normal-ray inner test fails here: inner faces looking out through
+  the arm and leg holes pass it and z-fight.
+- **Water wings:** the generator's closed pucks, centred on each forearm (`wing_fit` = position along the bone,
+  length as a share of it, clearance). Both are sized from the thicker forearm, joined into one `Bashie_Wings` mesh
+  and skinned rigidly to the forearms, so the shell tuck shrinks them with her arms.
+- **Textures:** each piece keeps only its corner of the kit atlas (`keep_texture(..., crop=True)`).
+- **Puff:** `sloparena.presentation.bashie.puff.build` bakes `BashieSuitPuff.asset` too. Each suit vertex follows the
+  nearest point on the body's puffed triangles, plus a 12% margin. `WhistlePuffRig` drives every skin that has a
+  `Puff` shape. Following the nearest body vertices instead let her belly poke through the suit.
+- **Known:** in her idle salute, the raised wing cuts into the hat brim.
 
 ## Her package
 

@@ -10,9 +10,9 @@ namespace SlopArena.Client.Combat
     /// <summary>
     /// Small broken floor rings and contact shadows, one per player entity. Pinned to the
     /// arena heightmap so position stays readable while airborne; hidden without floor.
-    /// Airborne fighters also get a dotted orange drop line from their feet down to the ring,
+    /// Airborne fighters also get a dotted identity-coloured drop line from their feet down to the ring,
     /// with dots at a fixed world spacing so a higher jump shows more of them.
-    /// The local fighter has a yellow facing crescent; other fighters show a faint facing tip.
+    /// Every fighter has the same facing crescent in their seat colour; camps and courses add an inner ring.
     /// Selection and lock feedback moved to TargetLockIndicator (targeting pass 1). The launch
     /// trajectory remains editor gizmos only, never gameplay.
     /// </summary>
@@ -27,10 +27,9 @@ namespace SlopArena.Client.Combat
             public readonly LineRenderer DropLine;
             public readonly Color Accent;
             public readonly Color CampColor;
-            public readonly bool IsLocal;
 
             public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh,
-                LineRenderer dropLine, Color accent, Color campColor, bool isLocal)
+                LineRenderer dropLine, Color accent, Color campColor)
             {
                 Renderer = renderer;
                 EntityId = renderer != null ? renderer.EntityId : 0;
@@ -39,19 +38,14 @@ namespace SlopArena.Client.Combat
                 DropLine = dropLine;
                 Accent = accent;
                 CampColor = campColor;
-                IsLocal = isLocal;
             }
         }
         // Stage art floors can sit above the simulation floor (Training's tiles top out at 5.3 cm);
         // a lower ring is hidden by the depth test.
         private const float RingHeightAboveFloor = 0.06f;
-        private static readonly Color Paper = new Color(240f / 255f, 238f / 255f, 232f / 255f);
-        private static readonly Color LocalAccent = SeatColours.For(1);
-        private static readonly Color DropLineOrange = new Color(1f, 176f / 255f, 59f / 255f);
         private static readonly int AirborneProperty = Shader.PropertyToID("_Airborne");
         private static readonly int AccentProperty = Shader.PropertyToID("_Accent");
         private static readonly int CampColorProperty = Shader.PropertyToID("_CampColor");
-        private static readonly int IsLocalProperty = Shader.PropertyToID("_IsLocal");
         private static readonly int LengthInWidthsProperty = Shader.PropertyToID("_LengthInWidths");
         private static readonly int SpacingProperty = Shader.PropertyToID("_Spacing");
         private static readonly int CoreProperty = Shader.PropertyToID("_Core");
@@ -65,7 +59,6 @@ namespace SlopArena.Client.Combat
         [SerializeField, Min(1.05f)] private float _dropLineSpacing = 2f;
         [Tooltip("Light core radius in line widths; the rest of the dot is a dark rim.")]
         [SerializeField, Range(0f, 0.5f)] private float _dropLineCore = 0.3f;
-        [SerializeField] private Color _dropLineColor = DropLineOrange;
         /// <summary>Min knockback speed that counts as a launch (State == Hitstun).</summary>
         private const float LaunchSpeedThreshold = 0.05f;
         /// <summary>Max ticks to forward-simulate a launch (mirrors AbilityLab, ~40s).</summary>
@@ -87,9 +80,8 @@ namespace SlopArena.Client.Combat
         private bool[] _arcActive = Array.Empty<bool>();
 
         public void Init(Func<ulong, CharacterState> getState, PlayerRenderer[] renderers,
-            ArenaDefinition arena, ulong localEntityId = 0, UnityEngine.Camera renderCamera = null,
-            Func<ulong, SlopballCamp> campOf = null, Func<ulong, Color?> colourOf = null,
-            Func<ulong, Color?> localAccentOf = null)
+            ArenaDefinition arena, UnityEngine.Camera renderCamera = null,
+            Func<ulong, SlopballCamp> campOf = null, Func<ulong, Color?> colourOf = null)
         {
             _getState = getState;
             _heightmap = arena.Heightmap;
@@ -119,17 +111,13 @@ namespace SlopArena.Client.Combat
                 mr.sharedMaterial = _markerMaterial;
                 mr.receiveShadows = false;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                // Couch play: every Local Player gets the self crescent, each in their own accent.
-                Color? ownAccent = renderer != null ? localAccentOf?.Invoke(renderer.EntityId) : null;
-                bool isLocal = renderer != null && (renderer.EntityId == localEntityId || ownAccent.HasValue);
-                Color accent = isLocal ? ownAccent ?? LocalAccent : Paper;
+                Color accent = renderer != null ? SeatColours.For(renderer.PlayerNumber) : Color.clear;
                 var camp = renderer != null ? campOf?.Invoke(renderer.EntityId) ?? SlopballCamp.None : SlopballCamp.None;
                 Color campColor = camp == SlopballCamp.None ? Color.clear : camp == SlopballCamp.Teal
                     ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
                 var courseColour = renderer != null ? colourOf?.Invoke(renderer.EntityId) : null;
                 if (courseColour.HasValue) campColor = courseColour.Value;
-                if ((camp != SlopballCamp.None || courseColour.HasValue) && !isLocal) accent = campColor;
-                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor, isLocal);
+                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor);
                 ringGO.SetActive(false);
             }
         }
@@ -194,7 +182,6 @@ namespace SlopArena.Client.Combat
                 _markerProperties.SetFloat(AirborneProperty, airborne);
                 _markerProperties.SetColor(AccentProperty, ring.Accent);
                 _markerProperties.SetColor(CampColorProperty, ring.CampColor);
-                _markerProperties.SetFloat(IsLocalProperty, ring.IsLocal ? 1f : 0f);
                 ring.Mesh.SetPropertyBlock(_markerProperties);
                 UpdateDropLine(ring, ring.Transform.position, floorY + heightAboveFloor, airborne);
                 UpdateLaunchArc(i, ring, state);
@@ -238,7 +225,7 @@ namespace SlopArena.Client.Combat
             _dropLineProperties.SetFloat(LengthInWidthsProperty, length / width);
             _dropLineProperties.SetFloat(SpacingProperty, _dropLineSpacing);
             _dropLineProperties.SetFloat(CoreProperty, _dropLineCore);
-            _dropLineProperties.SetColor(ColorProperty, _dropLineColor);
+            _dropLineProperties.SetColor(ColorProperty, ring.Accent);
             line.SetPropertyBlock(_dropLineProperties);
             line.enabled = true;
         }

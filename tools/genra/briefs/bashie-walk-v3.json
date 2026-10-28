@@ -1,0 +1,378 @@
+{
+  "name": "bashie-walk-v3",
+  "notes": "Bashie's run, v3 (2026-10-28). The owner kept the joke (she never runs: an Olympic race walk) but found the live walk 'a bit too poor as far as movement goes', picked 'same walk, way bigger' and a slower 32-tick cycle (was 26). Measured on the live take (v2, artifacts/genra-runs/20261022-010446-bashie-run-not-running): the legs move like the roster's runs, but the upper body barely moves. Fists pump 11 cm, hips bob 0.9 cm, shoulders twist 2.4 cm, head bobs 0.9 cm. Muscle ranges: arms half of FightGuy/Wibou, spine a third, head a fifth. The v2 brief itself boxed it in (head steady <= 3.5 cm, fists 12 cm below the head, elbows 2 cm behind the chest). v3 keeps v2's fixed feet and opens up the body. Rig pack rebuilt 2026-10-28 with the red one-piece and orange water wings (outfit awaiting the owner's verdict).",
+  "rigpack": "artifacts/genra-rigpacks/bashie-unity",
+  "character": "Bashie (49 joints: a Humanoid body with Mixamo names and full fingers, plus two rigid props on joints of their own: her turtle shell on joint Shell under Spine1, pivoting on her mid-back, and her whistle on joint Whistle under Spine2, pivoting on its ring at the top of her chest; a red cord runs from the ring round her neck). She is small and round: 1.0 m to the top of her hat in the rig, a big head under a wide bucket hat, short legs (hip joints 0.3 m above the floor, thigh 0.10 m, shin 0.07 m, ankle to toe joint 0.17 m) and short arms (upper arm 0.115 m, forearm 0.107 m). She wears a red one-piece swimsuit (skinned to her body) and an orange inflatable water wing round each upper arm: fat rings about 0.05 m thick, skinned to the upper arms.",
+  "description": "Bashie's run: the clip she plays while moving on the ground.\n\nWho she is. Bashie is a pool lifeguard, a small round red-eared slider turtle (image 1): plain green skin, a yellow face and belly, big brown eyes with lashes, a white stripe of zinc sunscreen on her snout, a red bucket hat with a white band, a silver whistle on a red cord, a red one-piece swimsuit, orange water wings on her upper arms, red pool slides and a domed olive shell on her back. She enforces the pool rule NO RUNNING at everyone, so she never runs: she speed-walks, very fast and very proper, like an Olympic race walker. That is the joke: straight legs, wiggling hips, hard pumping elbows, chin up, and always a foot on the floor.\n\nWhat is wrong with the current walk (the owner: \"a bit too poor as far as movement goes\"). The legs are fine; everything above them is nearly still. Her fists pump only 11 cm, her hips bob under 1 cm, her shoulders barely turn and her head does not move at all, so she reads as a stiff doll gliding on shuffling feet. This version keeps the same walk and the same legs, and makes the body sell it: about twice the motion everywhere above the hips, cartoon race walker, with every loose part answering a beat late.\n\nHow the game plays it. The clip loops: ticks 0-32 are 0.53 s and two steps, wrapping from 32 back to 0. The fighter does not move in the clip; the game carries her forward, so the feet cycle under the body as on a treadmill. The game crossfades into it from her idle and out of it into the idle, jumps and attacks. The match camera sits straight behind her, so players mostly see her shell, her hat and her hips from behind: the hip wiggle, the shell rocking and the elbows flashing out past the shell are what sells the walk in play. The entry pose only sets the frame: it is another character's idle on her body, sunk into the floor.\n\nThe floor. It is at up = +0.050 m in this character frame (the frame's origin is the entry hips, which sit below it). With a flat foot the toe joint (ToeBase) sits about 0.005 m above the floor (up about +0.055) and the ankle (Foot) about 0.12 m above it (up about +0.17). Standing straight, her hip joint (Hips) is 0.31 m above the floor (up about +0.36). Never push a foot through the floor.\n\nThe power walk (image 2 shows four poses left to right; push all of them further):\n- Legs, kept from the approved v2 walk. The left heel strikes at tick 0 and the right heel at tick 16. Quick, tidy steps under her body: each foot travels about 0.2-0.3 m front to back over the cycle, landing just ahead of the hips and leaving just behind them. Each foot lands heel first with the knee nearly straight (5-10 degrees) and the toes up 10-20 degrees, rolls flat within 2-3 ticks and stays on the floor while the body passes over it, the knee still nearly straight (ticks 8 and 24). Then the heel lifts a little and the foot leaves the floor toes last. Her slides are stiff: the toe joints bend at most 15 degrees from rest, and the foot never points down onto its toes. There is never a flight: the front heel touches down before the back toes leave. The swinging foot skims low, 1-3 cm over the floor, knee bent, and reaches forward for the next strike.\n- Hips, the signature, much bigger than before. The pelvis twists 12-18 degrees about the vertical toward the front leg at each strike (so 25-35 degrees from one strike to the other); the hip on the swing side drops 6-10 degrees; and the pelvis sways 3.5-6 cm sideways over the stance foot. From behind this is a proud, exaggerated wiggle. The hips rise 1.5-3 cm to their highest over the straight stance leg (ticks 8 and 24) and dip just after each strike: a smooth bob, not a bounce.\n- Torso. A small forward lean of about 5 degrees, chest proud. The chest counter-rotates 10-15 degrees against the pelvis (left shoulder forward when the right foot is forward), arriving 2 ticks after the pelvis, so the shoulders visibly swing from behind. The spine also bends a few degrees sideways against the hip drop, so the body sways like a metronome.\n- Arms, the race walker's pump, much harder than before. Both elbows stay bent about 80-90 degrees, fists loosely closed, pumping hard opposite to the legs (left foot forward, right fist forward). Each fist travels 18-26 cm front to back and 12-18 cm up and down: forward and up until it reaches her chin, then back and down to beside her waist. Her shell's rim sits at her sides and each upper arm wears a fat water wing, so flare the elbows out 15-25 degrees from her sides: the back swing passes outside the shell rim (the elbow may go up to 6 cm behind her chest joint Spine2, beside the shell, never into it), and the wings never sink into her body, shell or hat. The fists swing in front of her body but never cross her belly's centre line. The forearms lag the upper arms by 1-2 ticks at each turnaround, and the fists flick a few degrees, so the pump snaps instead of stopping.\n- Head. Chin up, prim and proper, but alive: it bobs 1.5-3 cm with the hips, 2-3 ticks late, nods 3-6 degrees on each strike, and tilts 3-5 degrees against the side sway, leading a little into each turn, so the big hat rocks from behind. The eyes stay on the way ahead: the head turns at most 5 degrees side to side.\n- Props. Her shell rocks 4-7 degrees with each step on joint Shell, side to side with the hip drop, 2-3 ticks behind the hips. Her whistle swings 10-18 degrees on joint Whistle with each step, a few ticks behind the chest, never into her chest. The water wings and the swimsuit follow her body.\n- Life. Overlap everything: the hips lead, the chest follows 2 ticks later, the arms and head trail 2-4 ticks, and the shell and whistle trail the most. No two parts stop on the same tick, and there are no frozen holds anywhere in the loop. Use the follow-through helpers from the guide's Life and Flow sections. Treat every flow or life warning as a failure.\n\nNo flight, no spins, no attack, no other props.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 32
+  },
+  "timing": {
+    "fixed": [
+      "it loops while the game carries her forward (treadmill feet)",
+      "the game crossfades into it from the idle and out of it into the idle, jumps and attacks",
+      "32 ticks for two steps (the owner, 2026-10-28: slightly slower than v2's 26)"
+    ],
+    "adjustable": [
+      "the beat ticks inside the loop"
+    ]
+  },
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../bashie-idle-run-20261022/bashie-model.png",
+    "../../bashie-idle-run-20261022/run-c-not-running.png"
+  ],
+  "image_notes": "1: the Bashie model in its rest T-pose (front, three-quarter, side, back, three-quarter back): the bucket hat, the whistle on its red cord and the shell. She now also wears a red one-piece and orange water wings on her upper arms (not in the image). 2: the pose reference the owner picked for the walk (generated concept art drawn from her model). Its four poses read left to right and map to ticks 0 (left heel strike), 8 (passing over the left foot), 16 (right heel strike) and 24 (passing over the right foot). The new walk keeps these poses but pushes them much further: bigger hip twist, bigger arm pump, a body that bobs and sways.",
+  "review_ticks": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28,
+    32
+  ],
+  "keys": [
+    0,
+    8,
+    16,
+    24,
+    32
+  ],
+  "targets": [
+    {
+      "name": "left toe joint on the floor just after the left strike, tick 3 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 3,
+      "min": 0.04,
+      "max": 0.09
+    },
+    {
+      "name": "right toe joint on the floor just after the right strike, tick 19 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 19,
+      "min": 0.04,
+      "max": 0.09
+    },
+    {
+      "name": "left foot stride front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.2,
+      "max": 0.3
+    },
+    {
+      "name": "left foot skims low, no high knee lift (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "window": [
+        0,
+        32
+      ],
+      "max": 0.08
+    },
+    {
+      "name": "right foot stride front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.2,
+      "max": 0.3
+    },
+    {
+      "name": "right foot skims low, no high knee lift (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "up",
+      "window": [
+        0,
+        32
+      ],
+      "max": 0.08
+    },
+    {
+      "name": "hips tall over the straight stance leg, tick 8 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 8,
+      "min": 0.32,
+      "max": 0.38
+    },
+    {
+      "name": "hips tall over the straight stance leg, tick 24 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 24,
+      "min": 0.32,
+      "max": 0.38
+    },
+    {
+      "name": "hips bob, bigger than v2's 0.9 cm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.015,
+      "max": 0.035
+    },
+    {
+      "name": "hips sway over the stance foot, bigger than v2's 3.9 cm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "right",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.045,
+      "max": 0.08
+    },
+    {
+      "name": "left shoulder swings with the chest counter-rotation, v2 2.4 cm (m)",
+      "kind": "range",
+      "a": "LeftArm",
+      "axis": "front",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.045
+    },
+    {
+      "name": "right shoulder swings with the chest counter-rotation, v2 2.3 cm (m)",
+      "kind": "range",
+      "a": "RightArm",
+      "axis": "front",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.045
+    },
+    {
+      "name": "left fist pumps front to back, v2 11 cm (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.18,
+      "max": 0.28
+    },
+    {
+      "name": "left fist rises and falls with the pump (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "up",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.12
+    },
+    {
+      "name": "right fist pumps front to back, v2 11 cm (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "front",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.18,
+      "max": 0.28
+    },
+    {
+      "name": "right fist rises and falls with the pump (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "up",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.12
+    },
+    {
+      "name": "head bobs with the walk, v2 0.9 cm (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.015,
+      "max": 0.04
+    },
+    {
+      "name": "head sways with the hips (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "right",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.03,
+      "max": 0.07
+    },
+    {
+      "name": "left elbow bent, tick 0 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "tick": 0,
+      "max": 0.18
+    },
+    {
+      "name": "left elbow bent, tick 16 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "tick": 16,
+      "max": 0.18
+    },
+    {
+      "name": "right elbow bent, tick 0 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 0,
+      "max": 0.18
+    },
+    {
+      "name": "right elbow bent, tick 16 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 16,
+      "max": 0.18
+    },
+    {
+      "name": "right fist forward up at her chin, tick 0 (m)",
+      "kind": "below",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 0,
+      "min": 0.03,
+      "max": 0.09
+    },
+    {
+      "name": "left fist forward up at her chin, tick 16 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "Head",
+      "tick": 16,
+      "min": 0.03,
+      "max": 0.09
+    },
+    {
+      "name": "left fist back beside her waist, tick 0 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": -0.03,
+      "max": 0.12
+    },
+    {
+      "name": "right fist back beside her waist, tick 16 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 16,
+      "min": -0.03,
+      "max": 0.12
+    },
+    {
+      "name": "left elbow back swing beside the shell, not into it, tick 0 (m)",
+      "kind": "ahead",
+      "a": "LeftForeArm",
+      "b": "Spine2",
+      "tick": 0,
+      "min": -0.06
+    },
+    {
+      "name": "right elbow back swing beside the shell, not into it, tick 16 (m)",
+      "kind": "ahead",
+      "a": "RightForeArm",
+      "b": "Spine2",
+      "tick": 16,
+      "min": -0.06
+    },
+    {
+      "name": "right foot not pitched onto its toes, tick 0 (m)",
+      "kind": "below",
+      "a": "RightToeBase",
+      "b": "RightFoot",
+      "tick": 0,
+      "max": 0.14
+    },
+    {
+      "name": "left foot not pitched onto its toes, tick 0 (m)",
+      "kind": "below",
+      "a": "LeftToeBase",
+      "b": "LeftFoot",
+      "tick": 0,
+      "max": 0.14
+    },
+    {
+      "name": "right foot not pitched onto its toes, tick 16 (m)",
+      "kind": "below",
+      "a": "RightToeBase",
+      "b": "RightFoot",
+      "tick": 16,
+      "max": 0.14
+    },
+    {
+      "name": "left foot not pitched onto its toes, tick 16 (m)",
+      "kind": "below",
+      "a": "LeftToeBase",
+      "b": "LeftFoot",
+      "tick": 16,
+      "max": 0.14
+    }
+  ]
+}

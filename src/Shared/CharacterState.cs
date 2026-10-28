@@ -72,12 +72,12 @@ namespace SlopArena.Shared
         public bool InPostHitstunFlight;
         /// <summary>Latched deliberate fast-fall action, replicated for reconstruction.</summary>
         public bool IsFastFalling;
-        /// <summary>True when the current jump originated from a slide.</summary>
-        public bool JumpFromSlide;
+        /// <summary>Where the current jump took off from; selects its takeoff speed cap.</summary>
+        public JumpTakeoff JumpTakeoff;
         /// <summary>True while an opted-in grounded attack brakes residual Run or Slide momentum.</summary>
         public bool SlideAttackCarryActive;
-        /// <summary>True when the active attack carry started from Run and brakes at the Run rate.</summary>
-        public bool AttackCarryFromRun;
+        /// <summary>Where the active attack carry came from; selects its braking.</summary>
+        public AttackCarryOrigin AttackCarryFrom;
         /// <summary>True after a complete stationary crouch tick.</summary>
         public bool CrouchSettled;
         /// <summary>Captured crouch brace state for a deferred ordinary launch.</summary>
@@ -221,7 +221,7 @@ namespace SlopArena.Shared
             IsAiming = false;
             AnimIndex = 0;
             SlideAttackCarryActive = false;
-            AttackCarryFromRun = false;
+            AttackCarryFrom = AttackCarryOrigin.Slide;
             ClearStartupAimCorrection();
         }
 
