@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SLOPArena content factory</title>
+<style>
+@font-face{font-family:"Archivo Black";src:url(/font.ttf) format("truetype");font-display:block}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0eee8;color:#1b1a18;font:15px/1.35 system-ui,sans-serif;padding:18px 22px 40px;max-width:1280px;margin:auto}
+h1,.chip,.btn,.tab,h3,h4{font-family:"Archivo Black","Arial Black",Impact,sans-serif;text-transform:uppercase;letter-spacing:-.01em}
+h1{font-size:28px;background:#ffcc22;display:inline-block;padding:6px 14px 4px;box-shadow:6px 6px 0 #161513;transform:rotate(-1.5deg);margin:4px 0 16px}
+h4{font-size:14px;margin:12px 0 6px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.btn{border:3px solid #1b1a18;background:#fff;color:#1b1a18;padding:7px 12px 5px;font-size:13px;cursor:pointer;box-shadow:3px 3px 0 #161513;text-decoration:none;display:inline-block}
+.btn.go{background:#ffcc22}.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #161513}.btn.small{padding:3px 8px 2px;font-size:11px;box-shadow:2px 2px 0 #161513}
+.run{flex:1;min-width:260px;font-size:13px;border:3px solid #1b1a18;padding:6px 10px;background:#fff}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#3a3;margin-right:5px}.dot.busy{background:#f05b35}
+#msg{font-weight:700;min-height:22px;margin-bottom:6px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{border:3px solid #1b1a18;padding:6px 10px 4px;font-size:13px;white-space:nowrap;cursor:pointer;background:#fff}
+.tab.on{background:#1b1a18;color:#ffcc22}.tab b{background:#f05b35;color:#fff;padding:0 6px;margin-left:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+.card{background:#fff;border:3px solid #1b1a18;box-shadow:5px 5px 0 #161513;cursor:pointer;display:flex;flex-direction:column;position:relative}
+.card.sel{outline:4px solid #f05b35}
+.card img,.card .noimg{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;border-bottom:3px solid #1b1a18;background:#2a2826}
+.card .noimg{display:flex;align-items:center;justify-content:center;color:#f0eee8;font-weight:700;padding:10px;text-align:center}
+.card .t{padding:7px 8px 4px;font-weight:800;font-size:14px}
+.card .busy{position:absolute;top:8px;left:8px;background:#f05b35;color:#fff;font-weight:800;font-size:11px;padding:2px 6px}
+.chip{font-size:10px;padding:2px 6px 1px;background:#1b1a18;color:#ffcc22;margin:0 8px 8px;align-self:flex-start}
+.chip.explainer{background:#f05b35;color:#fff}
+.empty{padding:30px;text-align:center;border:3px dashed #1b1a18;font-weight:700}
+.sheet{background:#fff;border:4px solid #1b1a18;box-shadow:8px 8px 0 #161513;padding:16px;display:none;grid-template-columns:300px 1fr;gap:18px;margin-bottom:18px}
+.sheet.on{display:grid}
+.sheet video{width:300px;aspect-ratio:9/16;background:#1b1a18;border:3px solid #1b1a18}
+.sheet h3{font-size:22px;margin-bottom:6px}.sheet p{margin-bottom:8px}
+.takes{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.takes .btn.on{background:#1b1a18;color:#ffcc22}
+.notes{margin-bottom:8px}.notes div{background:#f0eee8;border-left:5px solid #f05b35;padding:5px 8px;font-size:13px;margin-bottom:4px;white-space:pre-wrap}
+.notes div.agent{border-left-color:#1b1a18}.notes small{opacity:.6;font-weight:700}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.shots{display:flex;gap:8px;margin:6px 0 10px;flex-wrap:wrap}.shots div{width:84px;font-size:11px;cursor:pointer}
+.shots img{width:84px;aspect-ratio:9/16;object-fit:cover;border:2px solid #1b1a18;display:block}
+textarea{width:100%;border:3px solid #1b1a18;padding:6px;font:inherit;min-height:60px}
+a.sheetlink{font-size:12px;font-weight:700;color:#1b1a18}
+table.list{width:100%;border-collapse:collapse;background:#fff;border:3px solid #1b1a18}
+table.list td,table.list th{border:1px solid #1b1a18;padding:6px;font-size:13px;text-align:left;vertical-align:top}
+table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
+.state{font-weight:800}.state.failed{color:#c22}.state.done{color:#272}.state.running,.state.sent,.state.queued{color:#d84}
+.report{background:#fff;border:3px solid #1b1a18;padding:10px 12px;margin-bottom:10px;white-space:pre-wrap;font-size:14px}
+.inbox div{background:#fff;border:2px solid #1b1a18;padding:6px 8px;margin-bottom:6px;font-size:13px;word-break:break-word}
+.inbox div.used{opacity:.5}
+@media(max-width:700px){body{padding:12px}.sheet{grid-template-columns:1fr}.sheet video{width:100%;max-width:340px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:12px}h1{font-size:21px}}
+</style>
+</head>
+<body>
+<h1>SLOPArena content factory</h1>
+<div class="bar">
+  <button class="btn go" onclick="startRun('propose')">Propose clips</button>
+  <button class="btn" onclick="startRun('render')">Render approved</button>
+  <div class="run" id="running">Loading...</div>
+</div>
+<div id="msg"></div>
+<div class="tabs" id="tabs"></div>
+<div class="sheet" id="sheet"></div>
+<div id="view"></div>
+<script>
+const TABS = [["review","To review",["rendered"]],["proposed","Proposed",["proposed"]],["approved","Rendering",["approved"]],
+  ["ready","Ready to post",["ready"]],["posted","Posted",["posted"]],["rejected","Rejected",["rejected"]],
+  ["numbers","Numbers",[]],["scout","Scout",[]],["runs","Runs",[]]];
+const ACTIONS = {rendered:[["ready","Ready to post","go"],["approved","Redo with note",""],["rejected","Reject",""]],
+  proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["proposed","Back to proposed",""],["rejected","Reject",""]],
+  ready:[["posted","Mark posted","go"],["approved","Redo with note",""],["rejected","Reject",""]], posted:[], rejected:[["proposed","Restore",""]]};
+const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
+const RUN_TEXT = {propose: "Designer started in T3: new ideas land in PROPOSED.", render: "Renderer started in T3: clips land in TO REVIEW.",
+  scout: "Scout started in T3: its report lands in this tab.", redo: "Redo started in T3: the new take lands in TO REVIEW."};
+let B = {ideas: [], runs: [], inbox: [], reports: []}, tab = localStorage.tab || "review", open = null, shown = {};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const byId = id => B.ideas.find(d => d.id === id);
+const top_ = () => B.ideas.filter(d => d.format !== "shot");
+const say = m => document.getElementById("msg").textContent = m ? "▸ " + m : "";
+const last = d => d.takes[d.takes.length - 1];
+const pickTake = d => d.takes.find(t => t.n === shown[d.id]) || d.takes.find(t => t.n === d.chosen) || last(d);
+const busy = id => B.runs.find(r => r.idea === id && ACTIVE.includes(r.state));
+const runName = r => `${r.kind}${r.idea ? " " + (byId(r.idea)?.title || r.idea) : ""}`;
+
+async function load() {
+  B = await (await fetch("/api/board")).json();
+  const active = B.runs.filter(r => ACTIVE.includes(r.state));
+  document.getElementById("running").innerHTML = `<span class="dot ${active.length ? "busy" : ""}"></span><b>Running:</b> ` +
+    (active.length ? active.map(r => `#${r.id} ${esc(runName(r))} (${r.state})`).join(", ") : "nothing");
+  draw();
+  if (open) show(open, false);
+}
+function count(k, s) {
+  if (k === "scout") return B.inbox.filter(i => !i.report).length;
+  if (k === "runs") return B.runs.filter(r => r.state === "failed").length;
+  return k === "numbers" ? 0 : top_().filter(d => s.includes(d.status)).length;
+}
+function draw() {
+  document.getElementById("tabs").innerHTML = TABS.map(([k, l, s]) => {
+    const n = count(k, s);
+    return `<div class="tab ${k === tab ? "on" : ""}" onclick="pick('${k}')">${l}${n ? `<b>${n}</b>` : ""}</div>`;
+  }).join("");
+  const [, , s] = TABS.find(t => t[0] === tab);
+  const list = top_().filter(d => s.includes(d.status)).reverse();
+  document.getElementById("view").innerHTML = tab === "numbers" ? numbers() : tab === "scout" ? scout() : tab === "runs" ? runs()
+    : list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<div class="empty">Nothing here.</div>`;
+}
+function card(d) {
+  const shots = (d.beats || []).filter(b => b.type === "shot").length, t = pickTake(d), r = busy(d.id);
+  const img = t?.poster ? `<img src="${t.poster}" alt="" loading="lazy">` : `<div class="noimg">${d.status === "proposed" ? "Idea, not filmed yet" : "No clip yet"}</div>`;
+  return `<div class="card ${open === d.id ? "sel" : ""}" onclick="show('${d.id}')">${r ? `<span class="busy">RUN #${r.id} ${r.state.toUpperCase()}</span>` : ""}${img}
+    <div class="t">${esc(d.title || d.id)}</div>
+    <span class="chip ${esc(d.format)}">${esc(d.format)}${shots ? ` &middot; ${shots} shots` : ""}${d.takes.length > 1 ? ` &middot; ${d.takes.length} takes` : ""}</span></div>`;
+}
+function pick(k) { tab = localStorage.tab = k; hide(); draw(); }
+function hide() { open = null; history.replaceState(null, "", location.pathname); document.getElementById("sheet").classList.remove("on"); }
+function show(id, scroll = true) {
+  const d = byId(id); if (!d) return;
+  const note = open === id ? document.getElementById("note")?.value || "" : "";
+  open = id; history.replaceState(null, "", "#" + id);
+  const t = pickTake(d), r = busy(id);
+  const shots = (d.beats || []).filter(b => b.type === "shot").map(b => byId(b.clip)).filter(Boolean);
+  const unused = B.ideas.filter(x => x.for === d.id && !shots.includes(x));
+  const sheet = document.getElementById("sheet");
+  sheet.innerHTML = `${t?.clip ? `<video src="${t.clip}" poster="${t.poster}" controls playsinline preload="metadata"></video>` : `<div class="empty">No clip yet</div>`}
+    <div><h3>${esc(d.title || d.id)}</h3>
+    <span class="chip ${esc(d.format)}" style="margin:0 0 8px;display:inline-block">${esc(d.format)} &middot; ${esc(d.status)}</span>
+    ${r ? `<p><b>Run #${r.id} ${esc(r.kind)} is ${esc(r.state)}</b>: follow it in T3 (thread "${esc(runName(r))}").</p>` : ""}
+    <p>${esc(d.idea)}</p>
+    ${d.takes.length > 1 ? `<div class="takes">${d.takes.map(x => `<button class="btn small ${x.n === t.n ? "on" : ""}" onclick="shown['${d.id}']=${x.n};show('${d.id}',false)">Take ${x.n}${x.n === d.chosen ? " ★" : ""}</button>`).join("")}</div>` : ""}
+    ${t?.note ? `<p><b>Take ${t.n}:</b> ${esc(t.note)}</p>` : ""}
+    ${shots.concat(unused).length ? `<div class="shots">${shots.concat(unused).map(s => `<div onclick="show('${s.id}')">
+      ${pickTake(s)?.poster ? `<img src="${pickTake(s).poster}" alt="">` : ""}${esc(s.title)}${unused.includes(s) ? " (unused)" : ""}</div>`).join("")}</div>` : ""}
+    ${d.for ? `<p><a href="#" onclick="show('${esc(d.for)}');return false">← part of ${esc(d.for)}</a></p>` : ""}
+    ${d.comments.length ? `<div class="notes">${d.comments.map(c => `<div class="${c.author === "owner" ? "" : "agent"}"><small>${esc(c.author === "owner" ? "You" : "Agent")} ${esc(String(c.at).slice(0, 10))}</small> ${esc(c.body)}</div>`).join("")}</div>` : ""}
+    <textarea id="note" placeholder="Note for the agent: what to change, a caption idea, why it's rejected...">${esc(note)}</textarea>
+    <div class="acts">${(ACTIONS[d.status] || []).map(([s, l, c]) => `<button class="btn ${c}" onclick="act('${d.id}','${s}')">${l}</button>`).join("")}
+      <button class="btn" onclick="act('${d.id}','')">Save note</button>
+      ${t?.clip ? `<a class="btn ${d.status === "ready" ? "go" : ""}" href="${t.clip}?dl" download>Download</a>` : ""}
+      <button class="btn" onclick="hide();draw()">Close</button></div>
+    ${t?.sheet ? `<a class="sheetlink" href="${t.sheet}" target="_blank">Contact sheet of take ${t.n}</a>` : ""}</div>`;
+  sheet.classList.add("on"); draw(); if (scroll) sheet.scrollIntoView({behavior: "smooth", block: "nearest"});
+}
+async function send(method, url, body) {
+  const res = await (await fetch(url, {method, headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})).json();
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+async function act(id, status) {
+  const d = byId(id), note = document.getElementById("note")?.value || "";
+  if (status === "approved" && ["rendered", "ready"].includes(d.status) && !note.trim()) return say("Write what to change first, the redo agent works from your note.");
+  try {
+    await send("POST", `/api/ideas/${id}/verdict`, {status, note, take: status === "ready" ? pickTake(d)?.n : undefined});
+    say(status === "approved" && ["rendered", "ready"].includes(d.status) ? `${d.title}: ${RUN_TEXT.redo}` : `${d.title || id}: ${status || "note saved"}`);
+    hide(); await load();
+  } catch (e) { say("Failed: " + e.message); }
+}
+async function startRun(kind) {
+  try { const r = await send("POST", "/api/runs", {kind}); say(r.state === "sent" ? RUN_TEXT[kind] : `Run #${r.id} is queued: the T3 webhook did not answer (${r.error}). It retries every 2 minutes.`); await load(); }
+  catch (e) { say("Could not start: " + e.message); }
+}
+async function resend(id) {
+  try { const r = await send("POST", `/api/runs/${id}/resend`, {}); say(`Run #${id}: ${r.state}`); await load(); } catch (e) { say("Failed: " + e.message); }
+}
+function numbers() {
+  const posted = top_().filter(d => d.status === "posted");
+  if (!posted.length) return `<div class="empty">Nothing posted yet. Mark a clip in READY TO POST as posted, then fill in its views here.</div>`;
+  return `<table class="list"><tr><th>Clip</th><th>Posted</th>${PLATFORMS.map(p => `<th>${p} views</th>`).join("")}<th>Steam visits</th><th></th></tr>` +
+    posted.map(d => `<tr><td>${esc(d.title)}</td><td>${esc(d.posted || "")}</td>${PLATFORMS.concat(["steam"]).map(p =>
+      `<td><input id="s-${d.id}-${p}" value="${esc((d.stats || {})[p] ?? "")}"></td>`).join("")}
+      <td><button class="btn small" onclick="stats('${d.id}')">Save</button></td></tr>`).join("") + `</table>`;
+}
+async function stats(id) {
+  const s = {}; PLATFORMS.concat(["steam"]).forEach(p => { const v = document.getElementById(`s-${id}-${p}`).value.trim(); if (v) s[p] = v; });
+  try { await send("POST", `/api/ideas/${id}/stats`, {stats: s}); say("Numbers saved"); await load(); } catch (e) { say("Failed: " + e.message); }
+}
+function scout() {
+  const open_ = B.inbox.filter(i => !i.report), used = B.inbox.filter(i => i.report);
+  return `<p style="margin-bottom:8px">Drop links (TikToks, Shorts, posts) or thoughts here. The scout reads them and writes a report; the designer reads the latest reports before proposing.</p>
+    <textarea id="inboxText" placeholder="https://www.tiktok.com/@.../video/... why it caught your eye"></textarea>
+    <div class="acts"><button class="btn" onclick="addInbox()">Add to inbox</button><button class="btn go" onclick="startRun('scout')">Run scout</button></div>
+    <h4>Inbox (${open_.length} new)</h4><div class="inbox">${open_.concat(used).map(i => `<div class="${i.report ? "used" : ""}">${esc(i.body)}${i.report ? ` <small>(report ${i.report})</small>` : ""}</div>`).join("") || "Empty."}</div>
+    <h4>Reports</h4>${B.reports.map(r => `<div class="report"><b>${esc(r.kind)} report ${r.id}, ${esc(r.at.slice(0, 10))}</b>\n\n${esc(r.body)}</div>`).join("") || "None yet."}`;
+}
+async function addInbox() {
+  const text = document.getElementById("inboxText").value;
+  try { await send("POST", "/api/inbox", {body: text}); say("Added to the scout inbox"); await load(); } catch (e) { say("Failed: " + e.message); }
+}
+function runs() {
+  if (!B.runs.length) return `<div class="empty">No runs yet. The buttons above and Redo start them; each one is a T3 thread.</div>`;
+  return `<table class="list"><tr><th>#</th><th>Run</th><th>State</th><th>Result</th><th>Started</th><th></th></tr>` + B.runs.map(r =>
+    `<tr><td>${r.id}</td><td>${esc(runName(r))}</td><td class="state ${r.state}">${r.state}</td><td>${esc(r.summary || r.error || "")}</td>
+     <td>${esc(r.created.replace("T", " ").slice(5, 16))}</td><td>${["queued", "failed"].includes(r.state) ? `<button class="btn small" onclick="resend(${r.id})">Resend</button>` : ""}</td></tr>`).join("") + `</table>`;
+}
+load().then(() => { const id = decodeURIComponent(location.hash.slice(1)); const d = byId(id);
+  if (d) { tab = (TABS.find(t => t[2].includes(d.status)) || TABS[0])[0]; show(id); } });
+setInterval(() => { const typing = ["note", "inboxText"].includes(document.activeElement?.id); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
+  if (!typing && !playing) load(); }, 15000);
+</script>
+</body>
+</html>

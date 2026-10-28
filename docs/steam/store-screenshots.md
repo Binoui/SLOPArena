@@ -84,8 +84,9 @@ gives 60 fps, so a 5-second clip is a 300-tick window. Encode it with
 which writes H.264 yuv420p for phones and browsers (`--hud` composites the HUD layer;
 `--fps 30` for step-2 live captures). Each shoot also writes `audio.wav`: the game's own
 sound for the captured ticks, recorded frame-locked with `AudioRenderer` and without music.
-Vertical social clips, their tested specs and the idea queue live under `scenarios/social/`;
-see `skills/social-clips/SKILL.md` and `tools/social_clip.py`.
+Vertical social clips keep their tested specs under `scenarios/social/specs/`; the ideas, takes
+and the owner's verdicts live in the content factory on alfred. See `skills/social-clips/SKILL.md`,
+`tools/social_clip.py` and `tools/factory.py`.
 
 - One move fills about 2.5 seconds, so script a short exchange: lead-in, hit, payoff.
 - A press lands only on the first tick of its input step. A press during another move is

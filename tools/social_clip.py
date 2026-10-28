@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Render social clip ideas from the queue as vertical 9:16 clips with the game's own sound.
+"""Render social clip ideas from the content factory as vertical 9:16 clips with the game's own sound.
 
-Each idea is one JSON file in scenarios/social/queue/ (skills/social-clips/SKILL.md owns the workflow):
+Each idea lives in the factory on alfred (tools/factory.py; skills/social-clips/SKILL.md owns the workflow):
 
     {"id": "02-home-run", "status": "approved", "format": "moment", "title": "...", "idea": "...",
      "spec": "scenarios/social/specs/02-splash-deck-home-run.json", "fovScale": 1.1,
      "camera": {"lookOffset": [-0.2, 0.9, -0.5], "ease": 0.2}, "capture": {"to": 365}, "end": 328, "hold": 0.6}
+
+Change these render fields with `python3 tools/factory.py set <idea> '<json>'`.
 
 `spec` is a photo-mode spec (docs/steam/store-screenshots.md). `fovScale` scales its lenses for portrait;
 `camera` overrides fields of every spec camera; `capture` overrides the shoot window; `end` cuts the
@@ -14,12 +16,11 @@ audio runs on); `hold` freezes the last frame for that many seconds.
 
 `make` reshoots the spec in portrait at 1080x1920 through the Unity Editor gateway (photo mode records
 the game's sound without music), writes `tmp/content/<id>/<id>-vertical.mp4` and a contact sheet, and
-marks the idea `rendered`. Music and text are added in CapCut.
+uploads them to the factory as the idea's next take for the owner to review. Music and text are added in CapCut.
 
-    python3 tools/social_clip.py list                       # the queue by status
-    python3 tools/social_clip.py make <idea.json> --probe   # cheap 540x960 framing check (~15 s of Editor)
-    python3 tools/social_clip.py make <idea.json>           # full shoot, encode and mix
-    python3 tools/social_clip.py mix <idea.json>            # re-encode the last full shoot
+    python3 tools/social_clip.py make <idea> --probe   # cheap 540x960 framing check (~15 s of Editor)
+    python3 tools/social_clip.py make <idea>           # full shoot, encode, mix and upload
+    python3 tools/social_clip.py mix <idea>            # re-encode the last full shoot (no upload)
 """
 from __future__ import annotations
 
@@ -29,9 +30,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-QUEUE = ROOT / "scenarios/social/queue"
-STATUSES = ["proposed", "approved", "rendered", "ready", "posted", "rejected"]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import factory  # noqa: E402
+
+ROOT = factory.ROOT
 FPS = 60
 
 
@@ -39,8 +41,8 @@ def rel(path: Path) -> str:
     return str(path.relative_to(ROOT))
 
 
-def load_job(path: str) -> tuple[dict, Path]:
-    job = json.loads(Path(path).read_text())
+def load_job(idea: str) -> tuple[dict, Path]:
+    job = factory.get(Path(idea).stem)
     out = ROOT / job.get("out", f"tmp/content/{job['id']}")
     out.mkdir(parents=True, exist_ok=True)
     return job, out
@@ -154,12 +156,6 @@ def normalize(source: Path, out: Path) -> None:
                     "-movflags", "+faststart", str(out)], check=True)
 
 
-def set_status(path: str, status: str, **fields: str) -> None:
-    job = json.loads(Path(path).read_text())
-    job.update(status=status, **fields)
-    Path(path).write_text(json.dumps(job, indent=1, ensure_ascii=False) + "\n")
-
-
 def cmd_make(args: argparse.Namespace) -> None:
     job, out = load_job(args.job)
     spec_path = vertical_spec(job, out, args.probe)
@@ -170,20 +166,12 @@ def cmd_make(args: argparse.Namespace) -> None:
         sheet(run, json.loads(spec_path.read_text()), capture["from"], capture["to"], 15, out / "probe.sheet.jpg")
         return
     final = mix(job, out)
-    set_status(args.job, "rendered", clip=rel(final))
-
-
-def cmd_list(args: argparse.Namespace) -> None:
-    jobs = [json.loads(p.read_text()) | {"file": p.name} for p in sorted(QUEUE.glob("*.json"))]
-    for status in STATUSES:
-        for job in (j for j in jobs if j.get("status") == status):
-            print(f"{status:9} {job['id']:32} {job.get('format', ''):9} {job.get('title', '')}")
+    factory.take(job["id"], final, out / f"{job['id']}-sheet.jpg")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("list", help="print the queue by status").set_defaults(func=cmd_list)
     make = sub.add_parser("make", help="shoot an idea vertically, then encode and mix")
     make.add_argument("job")
     make.add_argument("--probe", action="store_true", help="cheap 540x960 framing check, no encode")

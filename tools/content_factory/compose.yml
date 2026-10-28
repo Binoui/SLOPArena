@@ -1,0 +1,13 @@
+# Deployed by deploy.sh to ~/content-factory on alfred. Tailnet only: Docker's published ports skip UFW.
+services:
+  factory:
+    image: python:3.13-alpine
+    container_name: content-factory
+    restart: unless-stopped
+    user: "1000:1000"
+    command: python3 /app/server.py --data /data --port 8765
+    volumes:
+      - ./app:/app:ro
+      - ./data:/data
+    ports:
+      - "100.68.254.9:8765:8765"
