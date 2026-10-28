@@ -1,8 +1,18 @@
 {
  "id": "09-splash-deck-juggle",
- "status": "approved",
+ "status": "rendered",
  "format": "moment",
  "title": "Wibou's juggle under the bomb",
  "idea": "Wibou's shuriken, Manki hops it and lobs a Round Bomb, Wibou runs in under it and juggles Manki with Up Slash and Rising Slash. The owner's favourite of the promo set.",
- "spec": "scenarios/social/specs/09-splash-deck-juggle.json"
+ "spec": "scenarios/social/specs/09-splash-deck-juggle.json",
+ "fovScale": 1.25,
+ "camera": {
+  "lookOffset": [
+   0.4,
+   0.9,
+   0
+  ],
+  "ease": 0.15
+ },
+ "clip": "tmp/content/09-splash-deck-juggle/09-splash-deck-juggle-vertical.mp4"
 }
