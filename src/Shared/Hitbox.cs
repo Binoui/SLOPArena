@@ -116,6 +116,12 @@ namespace SlopArena.Shared
         public bool FreezesOwner;
 
         /// <summary>
+        /// A fighter-state window (the shell's bowling hitbox, ADR-0045): it follows its owner without an attack,
+        /// is never removed with an ability, and lives exactly as long as its owner's state says.
+        /// </summary>
+        public bool OwnerWindow;
+
+        /// <summary>
         /// True = hit each opponent once and persist until the window expires (Melee-style
         /// melee hitboxes). False = die on first contact (projectiles). Uses HitEntities.
         /// </summary>

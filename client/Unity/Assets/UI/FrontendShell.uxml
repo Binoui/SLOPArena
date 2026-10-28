@@ -8,8 +8,7 @@
             <ui:Button name="shell-wordmark" text="SLOPArena" tooltip="Home" class="shell-wordmark" />
             <ui:VisualElement name="shell-nav" class="shell-nav">
                 <ui:Button name="shell-nav-training" text="TRAINING" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>
-                <ui:Button name="shell-nav-offline" text="SOLO" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>
-                <ui:Button name="shell-nav-arcade" text="ARCADE" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>
+                <ui:Button name="shell-nav-local" text="LOCAL PLAY" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>
                 <ui:Button name="shell-nav-online" text="ONLINE" class="shell-nav-tab"><ui:VisualElement class="shell-nav-underline" picking-mode="Ignore" /></ui:Button>
             </ui:VisualElement>
             <ui:Label name="shell-page-context" text="" class="shell-page-context" />

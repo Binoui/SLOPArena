@@ -59,6 +59,7 @@ FightGuy's, Wibou's and Manki's effects come from their presentation builders, a
 ## Repository and commits
 
 - Write the game's name as **SLOPArena** (shorthand **SLOPA**, not SA) in player-facing text, docs, comments, log prefixes, Editor menus and shader names. Code identifiers keep the C# spelling `SlopArena` (namespaces, types, files, assemblies), and commands, skills and environment variables stay `sloparena`/`SLOPARENA`.
+- Show a fighter's name with `MenuRoster.Name(CharacterClass)` (the cooked `displayName`, e.g. "Sir Bonk"), never `CharacterClass.ToString()`; the selector is a code identifier.
 - Keep source filenames and semantic IDs consistent and descriptive.
 - Do not commit generated Unity library state, local vendor assets, or transient reports unless a task explicitly makes an artifact canonical.
 - Use one focused squash commit per branch and the repository's Conventional Commit format:

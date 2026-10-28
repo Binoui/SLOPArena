@@ -1,0 +1,14 @@
+{
+ "id": "20a-beeline-ground",
+ "status": "rendered",
+ "format": "shot",
+ "for": "20-beeline-explained",
+ "title": "Beeline on the ground",
+ "idea": "A grounded Beeline: Wibou dashes at Manki, who runs sideways; the dash curves after him across the floor and Wibou's buffered Up Slash lands on arrival.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/20a-beeline-ground.json",
+ "fovScale": 1.0,
+ "end": 118,
+ "hold": 0.6,
+ "clip": "tmp/content/20a-beeline-ground/20a-beeline-ground-vertical.mp4"
+}

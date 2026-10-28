@@ -9,7 +9,7 @@
    - **Tutorial** — new here? Learn the controls step by step (about 10 minutes).
    - **Training** — practise freely against a CPU dummy, any fighter.
    - **Solo** — a stock match against a CPU.
-   - **Arcade** — solo challenges: Slopball and Character Courses.
+   - **Arcade** — solo challenges: Slopball and Slop Rally.
    - **Online** — join a Room with friends.
 5. Controls (all rebindable in Settings):
    - Mouse — camera; you always move relative to it
@@ -23,8 +23,10 @@
    - C — grab, then any attack to throw
    - Right click — target lock on/off · Tab — next target · Left click — face the camera
    - Esc — pause / back
-   - Controller: left stick move, right stick camera, RB jump, LT down, A/X/Y/B attacks,
-     LB + A/Y/X/B for Q/E/R/F specials, RT shield, LB + RT grab, Start pause
+   - Controller: left stick move, A jump, X/Y/B attacks, RB Beeline, flick the right stick
+     for specials (down Q, up E, left R, right F; hold to aim with the left stick), RT shield,
+     LB grab, LT down, Start pause. The camera turns by itself; Settings → Controls →
+     Right Stick: Camera puts specials back on LB + a face button.
 6. Problems?
    - Game won't start → your PC must be 64-bit Windows 10/11.
    - Firewall prompt → allow SLOPArena on private networks.

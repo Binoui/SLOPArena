@@ -1,0 +1,50 @@
+.local-mode-body { flex-grow: 1; min-height: 0; flex-direction: row; padding: 80px 12px 72px; }
+.local-mode-hero { width: 48%; min-width: 0; margin-right: 24px; }
+.local-mode-stack { flex-grow: 1; flex-basis: 0; min-width: 0; }
+.local-mode-card { flex-direction: row; flex-grow: 1; flex-basis: 0; min-height: 0; min-width: 0; margin: 0 0 14px; padding: 0; border-width: 4px; border-right-width: 8px; border-bottom-width: 8px; border-color: rgb(27, 26, 24); border-radius: 0; background-color: rgb(240, 238, 232); color: rgb(27, 26, 24); overflow: hidden; }
+.local-mode-stack .local-mode-card:last-child { margin-bottom: 0; }
+.local-mode-card--hero { height: 100%; flex-direction: column; margin-bottom: 0; }
+.local-mode-card:hover, .local-mode-card:focus, .local-mode-card--selected { border-color: rgb(255, 204, 34); }
+.local-mode-card:hover .local-mode-title, .local-mode-card:focus .local-mode-title, .local-mode-card--selected .local-mode-title { background-color: rgb(255, 204, 34); }
+.local-mode-card:disabled { opacity: 0.4; }
+.local-mode-art { width: 35%; min-width: 0; flex-shrink: 0; background-position: center; -unity-background-scale-mode: scale-and-crop; background-color: rgb(58, 54, 49); }
+.local-mode-card--hero .local-mode-art { width: 100%; flex-grow: 1; min-height: 0; }
+.local-poster--brawl { background-image: url("Stages/slop_pit.png"); }
+.local-poster--slopball { background-image: url("../../UI/Arcade/SlopballPoster.png"); }
+.local-poster--course { background-image: url("../../UI/Arcade/CoursesPoster.png"); }
+.local-poster--mayhem { background-image: url("Stages/manki_mayhem.png"); }
+.local-mode-badge { align-self: flex-start; margin: 14px; padding: 5px 10px; font-size: 14px; -unity-font-style: bold; color: rgb(240, 238, 232); background-color: rgb(27, 26, 24); }
+.local-mode-caption { flex-grow: 1; flex-basis: 0; min-width: 0; padding: 14px 16px; justify-content: center; }
+.local-mode-card--hero .local-mode-caption { flex-grow: 0; flex-basis: auto; padding: 20px 24px; }
+.local-mode-title { margin: 0; padding: 0 4px; font-size: 26px; -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); -unity-font-style: normal; white-space: normal; color: rgb(27, 26, 24); }
+.local-mode-card--hero .local-mode-title { font-size: 44px; }
+.local-mode-rule { margin: 6px 0 8px; font-size: 15px; white-space: normal; color: rgb(27, 26, 24); }
+.local-mode-chips { align-self: flex-start; margin: 0; padding: 4px 8px; border-width: 2px; border-color: rgb(27, 26, 24); font-size: 13px; -unity-font-style: bold; color: rgb(27, 26, 24); }
+.frontend-shell--compact .local-mode-body { padding-top: 76px; padding-bottom: 64px; }
+.frontend-shell--compact .local-mode-hero { margin-right: 16px; width: 44%; }
+.frontend-shell--compact .local-mode-caption { padding: 8px 10px; }
+.frontend-shell--compact .local-mode-title { font-size: 28px; }
+.frontend-shell--compact .local-mode-card--hero .local-mode-title { font-size: 36px; }
+.frontend-shell--compact .local-mode-rule { font-size: 18px; margin-top: 4px; margin-bottom: 5px; }
+.frontend-shell--compact .local-mode-chips { font-size: 16px; padding: 3px 5px; }
+.frontend-shell--compact .local-mode-card { margin-bottom: 10px; }
+.frontend-shell--fighters .char-summary--challenge .roster-panel { width: 54%; }
+.local-record-panel { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; margin: 0 10px; padding: 0 14px 12px; background-color: rgb(240, 238, 232); border-width: 4px; border-right-width: 8px; border-bottom-width: 8px; border-color: rgb(27, 26, 24); color: rgb(27, 26, 24); }
+.local-record-poster { height: 44%; min-height: 0; margin: 0 -14px 8px; -unity-background-scale-mode: scale-and-crop; background-position: center; }
+.local-record-title { margin: 0 0 8px; font-size: 23px; white-space: normal; -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); color: rgb(27, 26, 24); }
+.local-record-label { margin: 0 0 4px; font-size: 12px; -unity-font-style: bold; white-space: normal; color: rgb(27, 26, 24); }
+.local-record-best { margin: 0 0 6px; font-size: 27px; -unity-font-definition: url("../../Fonts/ArchivoBlack.asset"); color: rgb(27, 26, 24); }
+.local-record-panel .unity-foldout__text, .local-record-panel .unity-toggle__text { color: rgb(27, 26, 24); font-size: 12px; -unity-font-style: bold; }
+.local-record-panel .unity-foldout__checkmark, .local-record-panel .unity-toggle__checkmark { -unity-background-image-tint-color: rgb(27, 26, 24); }
+.local-record-archive { max-height: 64px; }
+.local-record-archive Label { white-space: normal; font-size: 12px; color: rgb(27, 26, 24); }
+.local-record-feedback { white-space: normal; font-size: 12px; color: rgb(27, 26, 24); }
+#arcade-course-tips { margin-top: 8px; }
+#arcade-course-tips .unity-toggle__checkmark { width: 20px; height: 20px; border-width: 2px; border-color: rgb(27, 26, 24); background-color: white; }
+#arcade-course-tips:checked .unity-toggle__checkmark { background-color: rgb(255, 204, 34); }
+.frontend-shell--compact .local-record-title { font-size: 18px; margin-bottom: 4px; }
+.frontend-shell--compact .local-record-best { font-size: 22px; }
+.frontend-shell--compact.frontend-shell--fighters .char-summary--challenge .roster-panel { width: 70%; }
+
+.local-mode-caption Label { -unity-text-align: middle-left; }
+.local-mode-card--hero .local-mode-caption Label { -unity-text-align: middle-left; }

@@ -46,7 +46,8 @@
     "hurtboxBoneScale": 0.85,
     "modelYOffset": -0.75,
     "modelSoleOffset": 0,
-    "autoModelYOffset": false
+    "autoModelYOffset": false,
+    "shell": "anim.bashie.gr-slide"
   },
   "capsuleRadius": 0.3,
   "capsuleHeight": 1.5,
@@ -203,14 +204,44 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.ability.steered-charge.v1",
+      "capabilityId": "slop.ability.shell-stance.v1",
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.ability.aimed-recovery.v1",
+      "capabilityId": "slop.ability.thrust.v1",
       "capabilityVersion": "1"
     }
   ],
+  "shell": {
+    "skateTicks": 90,
+    "minSkateSpeed": 10,
+    "maxSkateSpeed": 20,
+    "landingSpeedRatio": 0.5,
+    "popOutDeceleration": 40,
+    "blockedRecoilSpeed": 4,
+    "hitbox": {
+      "shape": "capsule",
+      "radius": 0.5,
+      "offsetX": 0,
+      "offsetY": -0.45,
+      "offsetZ": -0.1,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0.6,
+      "startBoneId": null,
+      "endBoneId": null,
+      "damage": 9,
+      "angle": 65,
+      "baseKnockback": 9,
+      "knockbackGrowth": 20,
+      "stunTicks": 18,
+      "durationTicks": 1,
+      "interruptible": false,
+      "hitGroup": 0,
+      "knockbackDirection": "awayFromOwner"
+    },
+    "hitPresentationId": "presentation.bashie.shell.hit"
+  },
   "slots": [
     {
       "id": "ground.1",
@@ -515,24 +546,24 @@
     },
     {
       "id": "air.3",
-      "name": "Double Fist Slam",
-      "description": "Overhead double-fist aerial strike",
+      "name": "Air Shell Flip",
+      "description": "Tuck into your shell and somersault backward in the air to launch an opponent upward, carrying your airborne momentum.",
       "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
       "cooldownTicks": 0,
       "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
+      "preserveMomentumOnStart": true,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 62,
-            "iasaTicks": 57,
-            "landingLagTicks": 12,
-            "autoCancelBeforeTicks": 6,
-            "autoCancelAfterTicks": 44,
+            "durationTicks": 42,
+            "iasaTicks": 42,
+            "landingLagTicks": 9,
+            "autoCancelBeforeTicks": 10,
+            "autoCancelAfterTicks": 36,
             "attackRange": 0,
             "warpRange": 0,
             "useTargetLock": false,
@@ -546,7 +577,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 23,
+                "endTick": 9,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -555,28 +586,45 @@
                 "pitchDegreesPerSecond": 0
               },
               {
+                "kind": "emitPresentation",
+                "tick": 4,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.flip-tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 38
+                }
+              },
+              {
                 "kind": "spawnHitbox",
-                "tick": 23,
+                "tick": 24,
                 "unit": "meters",
                 "hitbox": {
-                  "shape": "sphere",
-                  "radius": 0.5,
+                  "shape": "capsule",
+                  "radius": 0.32,
                   "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0.14,
+                  "offsetY": -0.2,
+                  "offsetZ": 0.65,
                   "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "bone.right-hand",
+                  "endOffsetY": 0.6,
+                  "endOffsetZ": -0.3,
+                  "startBoneId": null,
                   "endBoneId": null,
-                  "damage": 8,
-                  "angle": 65,
+                  "damage": 7,
+                  "angle": 75,
                   "baseKnockback": 5,
                   "knockbackGrowth": 26,
-                  "stunTicks": 20,
-                  "durationTicks": 8,
+                  "stunTicks": 18,
+                  "durationTicks": 6,
                   "interruptible": true,
-                  "hitGroup": 0,
+                  "hitGroup": 1,
                   "knockbackDirection": "awayFromOwner"
                 }
               }
@@ -654,7 +702,7 @@
                 "kind": "setVelocity",
                 "tick": 10,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 2.444444,
                 "z": 0
@@ -663,7 +711,7 @@
                 "kind": "setVelocity",
                 "tick": 11,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 6.111111,
                 "z": 0
@@ -672,7 +720,7 @@
                 "kind": "setVelocity",
                 "tick": 12,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 7.944444,
                 "z": 0
@@ -681,7 +729,7 @@
                 "kind": "setVelocity",
                 "tick": 13,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 7.944444,
                 "z": 0
@@ -690,7 +738,7 @@
                 "kind": "setVelocity",
                 "tick": 14,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 6.111111,
                 "z": 0
@@ -759,7 +807,7 @@
                 "kind": "setVelocity",
                 "tick": 15,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 2.444444,
                 "z": 0
@@ -794,7 +842,7 @@
                 "kind": "setVelocity",
                 "tick": 16,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -0.666667,
                 "z": 0
@@ -829,7 +877,7 @@
                 "kind": "setVelocity",
                 "tick": 17,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -1.666667,
                 "z": 0
@@ -864,7 +912,7 @@
                 "kind": "setVelocity",
                 "tick": 18,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -2.166667,
                 "z": 0
@@ -899,7 +947,7 @@
                 "kind": "setVelocity",
                 "tick": 19,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -2.166667,
                 "z": 0
@@ -934,7 +982,7 @@
                 "kind": "setVelocity",
                 "tick": 20,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -1.666667,
                 "z": 0
@@ -969,7 +1017,7 @@
                 "kind": "setVelocity",
                 "tick": 21,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -0.666667,
                 "z": 0
@@ -1004,7 +1052,7 @@
                 "kind": "setVelocity",
                 "tick": 22,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -1.777778,
                 "z": 0
@@ -1039,7 +1087,7 @@
                 "kind": "setVelocity",
                 "tick": 23,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -4.444444,
                 "z": 0
@@ -1074,7 +1122,7 @@
                 "kind": "setVelocity",
                 "tick": 24,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -5.777778,
                 "z": 0
@@ -1083,7 +1131,7 @@
                 "kind": "setVelocity",
                 "tick": 25,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -5.777778,
                 "z": 0
@@ -1092,7 +1140,7 @@
                 "kind": "setVelocity",
                 "tick": 26,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -4.444444,
                 "z": 0
@@ -1101,7 +1149,7 @@
                 "kind": "setVelocity",
                 "tick": 27,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": -1.777778,
                 "z": 0
@@ -1110,7 +1158,7 @@
                 "kind": "setVelocity",
                 "tick": 28,
                 "unit": "metersPerSecond",
-                "velocityMode": "absolute",
+                "velocityMode": "vertical",
                 "x": 0,
                 "y": 0,
                 "z": 0
@@ -1598,8 +1646,8 @@
     },
     {
       "id": "ground.E",
-      "name": "Ring Bounce",
-      "description": "Throw the ring ahead, hop automatically onto it, compress, then spring high. Movement input at the spring trades some height for horizontal reach; neutral maximizes height. Works with ordinary jumps spent.",
+      "name": "Hydro Jet",
+      "description": "Tuck and jet off in the stick's direction with no wind-up (neutral goes straight up). The jet behind you shoves. Press R mid-jet to dive without untucking; landing still tucked flows into the skate.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1608,11 +1656,12 @@
       "isRecoveryMove": true,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
+      "shellPolicy": "tuck",
       "timeline": {
         "stages": [
           {
-            "durationTicks": 54,
-            "iasaTicks": 0,
+            "durationTicks": 20,
+            "iasaTicks": 8,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -1622,49 +1671,62 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.ge"
+              "anim.bashie.gr-slide"
             ],
             "operations": [
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.tuck",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 600
+                }
+              },
               {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.aimed-recovery.v1",
+                "capabilityId": "slop.ability.thrust.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "startupTicks": 44,
-                  "verticalSpeed": 15,
-                  "directionalVerticalSpeed": 13,
-                  "horizontalSpeed": 8,
-                  "preparationRiseSpeed": 0,
-                  "hop": {
-                    "startTicks": 18,
-                    "contactTicks": 34,
-                    "forwardDistance": 0.792,
-                    "arcHeight": 0.495,
-                    "landingHeight": 0.198
+                  "aim": "stick",
+                  "neutralPitchDegrees": 90,
+                  "stickPitchDegrees": 25,
+                  "speed": 15,
+                  "acceleration": 0,
+                  "maxSpeed": 15,
+                  "keepIncomingSpeed": false,
+                  "thrustTicks": 20,
+                  "trailHitbox": {
+                    "shape": "capsule",
+                    "radius": 0.5,
+                    "offsetX": 0,
+                    "offsetY": 0,
+                    "offsetZ": -0.6,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": -1.8,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 10,
+                    "baseKnockback": 10,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 0,
+                    "durationTicks": 1,
+                    "interruptible": false,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner"
                   }
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 0,
-                "unit": "ticks",
-                "presentationId": "presentation.bashie.ring.bounce",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.hips",
-                  "durationTicks": 44
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 44,
-                "unit": "ticks",
-                "presentationId": "presentation.bashie.ring.rebound",
-                "placement": {
-                  "attachmentMode": "world",
-                  "durationTicks": 10
                 }
               }
             ]
@@ -1674,20 +1736,21 @@
     },
     {
       "id": "ground.R",
-      "name": "Shell Slide",
-      "description": "Tuck into your shell and slide off fast, armoured and steered with the stick. The first fighter you meet is bowled over and you pop out. A miss leaves you flipped on your back, paddling. Off a ledge you slide on thin air, look down and drop.",
+      "name": "Shell Shift",
+      "description": "Drop into your shell and skate straight on at your speed (a standing start pushes off). Fighters in the way are bowled up and you skate on under them. A normal or a jump pops you out at skate speed; when the skate runs out you pop up.",
       "iconId": "icon.r",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "cooldownTicks": 240,
+      "cooldownTicks": 180,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
+      "shellPolicy": "tuck",
       "timeline": {
         "stages": [
           {
-            "durationTicks": 15,
+            "durationTicks": 10,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1699,8 +1762,6 @@
             "trackingStrength": 0,
             "animationIds": [
               "anim.bashie.gr",
-              "anim.bashie.gr-flip",
-              "anim.bashie.gr-lookdown",
               "anim.bashie.gr-pop",
               "anim.bashie.gr-slide"
             ],
@@ -1709,7 +1770,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 8,
+                "endTick": 6,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -1719,7 +1780,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 8,
+                "tick": 0,
                 "unit": "ticks",
                 "presentationId": "presentation.bashie.shell.tuck",
                 "placement": {
@@ -1736,7 +1797,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 8,
+                "tick": 6,
                 "unit": "ticks",
                 "presentationId": "presentation.bashie.shell.plop",
                 "placement": {
@@ -1750,18 +1811,53 @@
                   "localScaleZ": 1,
                   "durationTicks": 60
                 }
-              },
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.R",
+      "name": "Shell Dive",
+      "description": "Tuck and dive steeply at the ground ahead, leaning toward a target in front. Landing turns the dive's speed into the skate: a higher dive skates faster. Pressed during Hydro Jet it keeps the jet's speed.",
+      "iconId": "icon.r",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 180,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "shellPolicy": "tuck",
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 45,
+            "iasaTicks": 24,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.bashie.gr"
+            ],
+            "operations": [
               {
                 "kind": "emitPresentation",
-                "tick": 14,
+                "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.bashie.shell.surf",
+                "presentationId": "presentation.bashie.shell.tuck",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.hips",
                   "localPositionX": 0,
                   "localPositionY": 0,
-                  "localPositionZ": 0.0,
+                  "localPositionZ": 0,
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
@@ -1770,54 +1866,26 @@
               },
               {
                 "kind": "startCapability",
-                "tick": 14,
+                "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.steered-charge.v1",
+                "capabilityId": "slop.ability.thrust.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "gallopSpeed": 13,
-                  "turnDegreesPerSecond": 200,
-                  "maxGallopTicks": 240,
-                  "armored": true,
-                  "lanceHitbox": {
-                    "shape": "capsule",
-                    "radius": 0.5,
-                    "offsetX": 0,
-                    "offsetY": -0.45,
-                    "offsetZ": -0.1,
-                    "endOffsetX": 0,
-                    "endOffsetY": 0,
-                    "endOffsetZ": 0.6,
-                    "startBoneId": null,
-                    "endBoneId": null,
-                    "damage": 9,
-                    "angle": 40,
-                    "baseKnockback": 9,
-                    "knockbackGrowth": 28,
-                    "stunTicks": 18,
-                    "durationTicks": 1,
-                    "interruptible": false,
-                    "hitGroup": 0,
-                    "knockbackDirection": "awayFromOwner"
-                  },
-                  "hitEndingTicks": 30,
-                  "missEndingTicks": 48,
-                  "skidTicks": 12,
-                  "turnAroundOnMiss": false,
-                  "airStrideTicks": 120,
-                  "lookDownTicks": 20,
-                  "gallopAnimationId": "anim.bashie.gr-slide",
-                  "gallopLoopTicks": 24,
-                  "hitEndingAnimationId": "anim.bashie.gr-pop",
-                  "missEndingAnimationId": "anim.bashie.gr-flip",
-                  "airEndingAnimationId": "anim.bashie.gr-lookdown"
+                  "aim": "targetAhead",
+                  "targetConeDegrees": 60,
+                  "neutralPitchDegrees": -55,
+                  "stickPitchDegrees": -55,
+                  "speed": 14,
+                  "acceleration": 30,
+                  "maxSpeed": 24,
+                  "keepIncomingSpeed": true,
+                  "thrustTicks": 45
                 }
               }
             ]
           }
         ]
-      },
-      "hitPresentationId": "presentation.bashie.shell.hit"
+      }
     },
     {
       "id": "ground.F",
@@ -1927,10 +1995,6 @@
     {
       "from": "air.E",
       "to": "ground.E"
-    },
-    {
-      "from": "air.R",
-      "to": "ground.R"
     },
     {
       "from": "air.F",

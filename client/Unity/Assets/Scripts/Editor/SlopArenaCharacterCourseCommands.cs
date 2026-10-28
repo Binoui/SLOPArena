@@ -196,10 +196,10 @@ namespace SlopArena.EditorTools
         private static void OpenMenu() => Open();
         [MenuItem("Tools/SLOPArena/Arcade/Open Manki Course")]
         private static void OpenMankiMenu() => Open("manki_quarry", "manki");
-        [CliCommand("sloparena.arcade.course.open", "Open a Character Course (FightGuy's sanctuary by default) with a fighter it admits; press Play to begin.", MainThreadRequired = true, Tags = new[] { "arcade" })]
+        [CliCommand("sloparena.arcade.course.open", "Open a Character Course (Sanctuary by default) with any roster fighter; press Play to begin.", MainThreadRequired = true, Tags = new[] { "arcade" })]
         public static object Open(
             [CliArg("stage", "Course stage key, one of CharacterCourseMatch.Courses.")] string stage = CharacterCourseMatch.ArenaKey,
-            [CliArg("fighter", "Package ID the course admits (fightguy for the sanctuary, manki for the quarry).")] string fighter = "fightguy")
+            [CliArg("fighter", "Roster fighter package ID (for example fightguy, manki or bonk).")] string fighter = "fightguy")
         {
             if (Array.FindIndex(CharacterCourseMatch.Courses, c => c.Key == stage) < 0)
                 throw new ArgumentException("Unknown course " + stage + "; add it to CharacterCourseMatch.Courses.", nameof(stage));
@@ -325,7 +325,7 @@ namespace SlopArena.EditorTools
                 var spawn = Marker(spawns.transform, "Spawn_01", StartPosition); spawn.tag = "SpawnPoint";
                 var aids = Child(root.transform, "AuthoringAids");
                 var config = aids.AddComponent<ArcadeStageAuthoring>(); config.CharacterCourse = true;
-                config.ProfileId = "fightguy_sanctuary_v1"; config.AllowedPackageIds = new[] { "fightguy" };
+                config.ProfileId = "fightguy_sanctuary_v1"; config.AllowedPackageIds = Array.Empty<string>();
                 config.Targets = TargetPositions.Select((p, i) => new ArcadeStageAuthoring.Target
                     { Id = "target_" + (i + 1).ToString("00"), Marker = Marker(aids.transform, "Target_" + (i + 1).ToString("00"), p), Radius = .65f }).ToArray();
                 config.Checkpoints = CheckpointSpawns.Select((p, i) => new ArcadeStageAuthoring.Checkpoint

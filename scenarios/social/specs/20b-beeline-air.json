@@ -1,0 +1,97 @@
+{
+ "stage": "splash_deck",
+ "notes": "final: clip 13's air beat, tighter: Manki (150%) jetpacks away, FightGuy jumps and Beelines up after him, buffered Floating Kick hits on arrival (t94); camera follows FightGuy, look point between the two",
+ "capture": {
+  "from": 30,
+  "to": 170,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    1.5,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "target": 2,
+   "input": [
+    {
+     "from": 40,
+     "to": 44,
+     "move": 270
+    },
+    {
+     "from": 48,
+     "to": 58,
+     "jump": true
+    },
+    {
+     "at": 56,
+     "dash": true
+    },
+    {
+     "at": 72,
+     "press": "1"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    0.0,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "damage": 150,
+   "target": 0,
+   "input": [
+    {
+     "at": 2,
+     "press": "1"
+    },
+    {
+     "from": 22,
+     "to": 47,
+     "move": 270
+    },
+    {
+     "at": 44,
+     "press": "E"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "a",
+   "pos": [
+    5.0,
+    2.6,
+    -0.8
+   ],
+   "look": [
+    -0.3,
+    3.0,
+    5.0
+   ],
+   "follow": 1,
+   "lookOffset": [
+    -1.9,
+    1.5,
+    0
+   ],
+   "move": true,
+   "ease": 0.15,
+   "fov": 52,
+   "far": 4000
+  }
+ ]
+}

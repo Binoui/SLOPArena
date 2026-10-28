@@ -354,8 +354,10 @@ public static class CharacterPackageSourceCodec
             HitSmall = Rename(p.HitSmall), HitMedium = Rename(p.HitMedium), HitHard = Rename(p.HitHard),
             Tumble = Rename(p.Tumble), Crouch = Rename(p.Crouch), Slide = Rename(p.Slide),
             Shield = Rename(p.Shield), Grab = Rename(p.Grab), Grabbed = Rename(p.Grabbed),
-            ThrowForward = Rename(p.ThrowForward), AirDodge = Rename(p.AirDodge)
+            ThrowForward = Rename(p.ThrowForward), AirDodge = Rename(p.AirDodge), Shell = Rename(p.Shell)
         };
+        var shell = c.Shell is { } stance && stance.HitPresentationId == oldId
+            ? stance with { HitPresentationId = newId } : c.Shell;
         var presentations = c.PresentationIds.Select(Rename).ToArray();
         var slots = c.Slots.Select(slot =>
         {
@@ -373,7 +375,7 @@ public static class CharacterPackageSourceCodec
                 }).ToArray())
             };
         }).ToArray();
-        return CharacterSourceEditResult.Success(source with { Character = c with { Presentation = p, PresentationIds = presentations, Slots = slots } });
+        return CharacterSourceEditResult.Success(source with { Character = c with { Presentation = p, PresentationIds = presentations, Slots = slots, Shell = shell } });
         string Rename(string value) => value == oldId ? newId : value;
     }
 
@@ -390,7 +392,8 @@ public static class CharacterPackageSourceCodec
             source.Character.Presentation.Tumble, source.Character.Presentation.Crouch,
             source.Character.Presentation.Slide, source.Character.Presentation.Shield,
             source.Character.Presentation.Grab, source.Character.Presentation.Grabbed,
-            source.Character.Presentation.ThrowForward, source.Character.Presentation.AirDodge
+            source.Character.Presentation.ThrowForward, source.Character.Presentation.AirDodge,
+            source.Character.Presentation.Shell, source.Character.Shell?.HitPresentationId ?? ""
         };
         sourceIds.AddRange(source.Character.PresentationIds);
         sourceIds.AddRange(source.Character.Slots.Select(x => x.HitPresentationId ?? "").Where(x => !string.IsNullOrEmpty(x)));
@@ -443,6 +446,7 @@ public static class CharacterPackageSourceCodec
             WibouBladeFlurryCapabilityParameters x => x with { },
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { } },
+            ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
             MankiRoundBombCapabilityParameters x => x with { },
             MankiJetpackBoostCapabilityParameters x => x with { },
             MankiBazookaCapabilityParameters x => x with { },
@@ -476,8 +480,23 @@ public static class CharacterPackageSourceCodec
         w.WritePropertyName("hurtboxBoneDefs"); w.WriteStartArray(); foreach (var h in x.HurtboxBoneDefs ?? System.Array.Empty<HurtboxBoneSource>()) { w.WriteStartObject(); w.WriteString("boneId",h.BoneId); Number(w,"offsetX",h.OffsetX); Number(w,"offsetY",h.OffsetY); Number(w,"offsetZ",h.OffsetZ); Number(w,"radius",h.Radius); w.WriteEndObject(); } w.WriteEndArray();
         WriteStringArray(w, "attachmentBoneIds", x.AttachmentBoneIds); WriteStringArray(w, "presentationIds", x.PresentationIds);
         w.WritePropertyName("capabilityRequirements"); w.WriteStartArray(); foreach (var c in x.CapabilityRequirements ?? System.Array.Empty<CapabilityRequirementSource>()) { w.WriteStartObject(); w.WriteString("capabilityId", c.CapabilityId); w.WriteString("capabilityVersion", c.CapabilityVersion); w.WriteEndObject(); } w.WriteEndArray();
+        if (x.Shell != null) WriteShell(w, x.Shell);
         w.WritePropertyName("slots"); w.WriteStartArray(); foreach (var slot in x.Slots ?? System.Array.Empty<CharacterSlotSource>()) WriteSlot(w, slot); w.WriteEndArray();
         w.WritePropertyName("aliases"); w.WriteStartArray(); foreach (var a in x.Aliases ?? System.Array.Empty<CharacterAliasSource>()) { w.WriteStartObject(); w.WriteString("from",a.From); w.WriteString("to",a.To); w.WriteEndObject(); } w.WriteEndArray();
+        w.WriteEndObject();
+    }
+    private static void WriteShell(Utf8JsonWriter w, ShellSource x)
+    {
+        w.WritePropertyName("shell");
+        w.WriteStartObject();
+        w.WriteNumber("skateTicks", x.SkateTicks);
+        Number(w, "minSkateSpeed", x.MinSkateSpeed);
+        Number(w, "maxSkateSpeed", x.MaxSkateSpeed);
+        Number(w, "landingSpeedRatio", x.LandingSpeedRatio);
+        Number(w, "popOutDeceleration", x.PopOutDeceleration);
+        Number(w, "blockedRecoilSpeed", x.BlockedRecoilSpeed);
+        WriteHitbox(w, x.Hitbox);
+        if (x.HitPresentationId != null) w.WriteString("hitPresentationId", x.HitPresentationId);
         w.WriteEndObject();
     }
     private static void WriteMovement(Utf8JsonWriter w, CharacterMovementSource x) { w.WritePropertyName("movement"); w.WriteStartObject(); Number(w,"runSpeed",x.RunSpeed); Number(w,"runAccelerationA",x.RunAccelerationA); Number(w,"runAccelerationB",x.RunAccelerationB); Number(w,"dashSpeed",x.DashSpeed); Number(w,"airDodgeSpeed",x.AirDodgeSpeed); Number(w,"airSpeedMax",x.AirSpeedMax); Number(w,"airAccelStick",x.AirAccelStick); Number(w,"airAccelBase",x.AirAccelBase); Number(w,"jumpForce",x.JumpForce); Number(w,"shortHopForce",x.ShortHopForce); Number(w,"airJumpVMultiplier",x.AirJumpVMultiplier); Number(w,"airJumpHMultiplier",x.AirJumpHMultiplier); Number(w,"gravity",x.Gravity); Number(w,"airFloatGravity",x.AirFloatGravity); w.WriteNumber("dashDurationTicks",x.DashDurationTicks); w.WriteNumber("dashCooldownTicks",x.DashCooldownTicks); Number(w,"groundFriction",x.GroundFriction); Number(w,"airFriction",x.AirFriction); Number(w,"maxFallSpeed",x.MaxFallSpeed); Number(w,"fastFallSpeed",x.FastFallSpeed); w.WriteNumber("maxJumps",x.MaxJumps); w.WriteNumber("jumpSquatTicks",x.JumpSquatTicks); w.WriteNumber("floatWindowTicks",x.FloatWindowTicks); w.WriteNumber("rushTicks",x.RushTicks); w.WriteEndObject(); }
@@ -501,6 +520,7 @@ public static class CharacterPackageSourceCodec
         OptionalString(w, "grabbed", x.Grabbed);
         OptionalString(w, "throwForward", x.ThrowForward);
         OptionalString(w, "airDodge", x.AirDodge);
+        OptionalString(w, "shell", x.Shell);
         Number(w, "landStartOffsetSeconds", x.LandStartOffsetSeconds);
         w.WriteString("modelResourcePath", x.ModelResourcePath);
         Number(w, "visualScale", x.VisualScale);
@@ -550,6 +570,7 @@ public static class CharacterPackageSourceCodec
         w.WriteBoolean("isRecoveryMove", x.IsRecoveryMove);
         w.WriteBoolean("preserveMomentumOnStart", x.PreserveMomentumOnStart);
         w.WriteBoolean("allowSlideCarry", x.AllowSlideCarry);
+        if (x.ShellPolicy == ShellPolicy.Tuck) w.WriteString("shellPolicy", "tuck");
         if (x.ChargePool != null)
         {
             w.WritePropertyName("chargePool");
@@ -735,6 +756,14 @@ public static class CharacterPackageSourceCodec
                 OptionalString(w, "missEndingPresentationId", p.MissEndingPresentationId);
                 OptionalString(w, "airEndingPresentationId", p.AirEndingPresentationId);
                 break;
+            case ThrustCapabilityParameters p:
+                w.WriteString("aim", p.Aim == ThrustAim.TargetAhead ? "targetAhead" : "stick");
+                if (p.Aim == ThrustAim.TargetAhead) Number(w, "targetConeDegrees", p.TargetConeDegrees);
+                Number(w, "neutralPitchDegrees", p.NeutralPitchDegrees); Number(w, "stickPitchDegrees", p.StickPitchDegrees);
+                Number(w, "speed", p.Speed); Number(w, "acceleration", p.Acceleration); Number(w, "maxSpeed", p.MaxSpeed);
+                w.WriteBoolean("keepIncomingSpeed", p.KeepIncomingSpeed); w.WriteNumber("thrustTicks", p.ThrustTicks);
+                if (p.TrailHitbox != null) WriteHitboxNamed(w, p.TrailHitbox, "trailHitbox");
+                break;
             case MankiRoundBombCapabilityParameters p: w.WriteNumber("throwTriggerTick", p.ThrowTriggerTick); Number(w, "maxRange", p.MaxRange); Number(w, "launchAngle", p.LaunchAngle); Number(w, "gravity", p.Gravity); Number(w, "hitboxRadius", p.HitboxRadius); Number(w, "damage", p.Damage); w.WriteNumber("stunTicks", p.StunTicks); w.WriteNumber("maxFlightTicks", p.MaxFlightTicks); Number(w, "kbAngle", p.KbAngle); Number(w, "explosionDamage", p.ExplosionDamage); Number(w, "explosionRadius", p.ExplosionRadius); Number(w, "explosionKbBase", p.ExplosionKbBase); Number(w, "explosionKbGrowth", p.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", p.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", p.ExplosionDurationTicks); Number(w, "explosionKbAngle", p.ExplosionKbAngle); OptionalString(w, "explosionPresentationId", p.ExplosionPresentationId); break;
             case MankiJetpackBoostCapabilityParameters p: w.WriteNumber("startupTicks", p.StartupTicks); Number(w, "verticalSpeed", p.VerticalSpeed); Number(w, "horizontalSpeed", p.HorizontalSpeed); Number(w, "explosionRadius", p.ExplosionRadius); Number(w, "explosionDamage", p.ExplosionDamage); Number(w, "explosionKbAngle", p.ExplosionKbAngle); Number(w, "explosionKbBase", p.ExplosionKbBase); Number(w, "explosionKbGrowth", p.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", p.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", p.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", p.ExplosionPresentationId); break;
             case MankiBazookaCapabilityParameters p: Number(w, "homingTurnDegPerTick", p.HomingTurnDegPerTick); w.WriteNumber("fireTriggerTick", p.FireTriggerTick); Number(w, "projectileSpeed", p.ProjectileSpeed); Number(w, "hitboxRadius", p.HitboxRadius); Number(w, "damage", p.Damage); Number(w, "gravity", p.Gravity); w.WriteNumber("maxFlightTicks", p.MaxFlightTicks); w.WriteNumber("stunTicks", p.StunTicks); Number(w, "explosionRadius", p.ExplosionRadius); Number(w, "kbAngle", p.KbAngle); Number(w, "explosionKbBase", p.ExplosionKbBase); Number(w, "explosionKbGrowth", p.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", p.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", p.ExplosionDurationTicks); Number(w, "explosionKbAngle", p.ExplosionKbAngle); w.WriteNumber("castDuration", p.CastDuration); w.WriteNumber("recoveryDuration", p.RecoveryDuration); OptionalString(w, "explosionPresentationId", p.ExplosionPresentationId); break;
@@ -767,7 +796,7 @@ public static class CharacterPackageSourceCodec
     private static string AimText(AuthoringAimMode value)=>value switch { AuthoringAimMode.None=>"none", AuthoringAimMode.GroundCursor=>"groundCursor", AuthoringAimMode.CameraForward3D=>"cameraForward3D", AuthoringAimMode.GroundVector=>"groundVector", _=>throw new InvalidDataException("Unknown aim mode.") };
     private static string ShapeText(AuthoringHitboxShape value)=>value switch { AuthoringHitboxShape.Sphere=>"sphere", AuthoringHitboxShape.Capsule=>"capsule", _=>throw new InvalidDataException("Unknown shape.") };
     private static string KnockbackDirectionText(AuthoringKnockbackDirection value)=>value switch { AuthoringKnockbackDirection.AwayFromOwner=>"awayFromOwner", AuthoringKnockbackDirection.TowardOwner=>"towardOwner", _=>throw new InvalidDataException("Unknown knockback direction.") };
-    private static string VelocityText(AuthoringVelocityMode value)=>value switch { AuthoringVelocityMode.Absolute=>"absolute", AuthoringVelocityMode.Additive=>"additive", _=>throw new InvalidDataException("Unknown velocity mode.") };
+    private static string VelocityText(AuthoringVelocityMode value)=>value switch { AuthoringVelocityMode.Absolute=>"absolute", AuthoringVelocityMode.Additive=>"additive", AuthoringVelocityMode.Vertical=>"vertical", _=>throw new InvalidDataException("Unknown velocity mode.") };
     private static string UnitText(AuthoringUnit value)=>value switch { AuthoringUnit.Meters=>"meters", AuthoringUnit.MetersPerSecond=>"metersPerSecond", AuthoringUnit.MetersPerSecondSquared=>"metersPerSecondSquared", AuthoringUnit.Degrees=>"degrees", AuthoringUnit.Normalized=>"normalized", AuthoringUnit.Damage=>"damage", AuthoringUnit.Knockback=>"knockback", AuthoringUnit.Ticks=>"ticks", _=>throw new InvalidDataException("Unknown unit.") };
     private static string OperationKind(CharacterTimelineOperationSource value)=>value switch { SetVelocityOperationSource=>"setVelocity", ForwardLungeOperationSource=>"forwardLunge", GravityWindowOperationSource=>"gravityWindow", ArmorWindowOperationSource=>"armorWindow", SpawnHitboxOperationSource=>"spawnHitbox", SpawnProjectileOperationSource=>"spawnProjectile", SetAimStateOperationSource=>"setAimState", StartCapabilityOperationSource=>"startCapability", EmitPresentationOperationSource=>"emitPresentation", CompleteTimelineOperationSource=>"completeTimeline", StartupAimCorrectionOperationSource=>"startupAimCorrection", _=>throw new InvalidDataException("Unknown operation.") };
 
@@ -805,7 +834,7 @@ public static class CharacterPackageSourceCodec
 
     private static CharacterAuthoringDocument ParseCharacter(JsonElement root, DiagnosticBag d)
     {
-        var p = ReadObject(root, "character", d, "authoringSchemaVersion", "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "slots", "aliases", "schemaVersion", "id", "class");
+        var p = ReadObject(root, "character", d, "authoringSchemaVersion", "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots", "aliases", "schemaVersion", "id", "class");
         if (p.ContainsKey("schemaVersion")) d.Error("schema.unsupported", "character.schemaVersion", "Legacy schemaVersion is not accepted.");
         if (p.ContainsKey("id")) d.Error("source.identity-forbidden", "character.id", "Character identity belongs in package.json.");
         if (p.ContainsKey("class")) d.Error("source.class-forbidden", "character.class", "Character class is not part of the source contract.");
@@ -825,7 +854,23 @@ public static class CharacterPackageSourceCodec
         return new CharacterAuthoringDocument(version, displayName, weight, movement, presentation,
             Float(p, "capsuleRadius", "character.capsuleRadius", d), Float(p, "capsuleHeight", "character.capsuleHeight", d),
             Float(p, "hipHeight", "character.hipHeight", d), Float(p, "hurtboxRadius", "character.hurtboxRadius", d),
-            Float(p, "shieldRadius", "character.shieldRadius", d), ParseCaptureGeometry(p, d), capsules, bones, attachmentBoneIds, presentationIds, capabilities, slots, aliases);
+            Float(p, "shieldRadius", "character.shieldRadius", d), ParseCaptureGeometry(p, d), capsules, bones, attachmentBoneIds, presentationIds, capabilities, slots, aliases,
+            p.ContainsKey("shell") ? ParseShell(p, d) : null);
+    }
+
+    private static ShellSource ParseShell(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    {
+        var p = Object(parent, "shell", "character.shell", d, "skateTicks", "minSkateSpeed", "maxSkateSpeed",
+            "landingSpeedRatio", "popOutDeceleration", "blockedRecoilSpeed", "hitbox", "hitPresentationId");
+        return new ShellSource(
+            UShort(p, "skateTicks", "character.shell.skateTicks", d),
+            Float(p, "minSkateSpeed", "character.shell.minSkateSpeed", d),
+            Float(p, "maxSkateSpeed", "character.shell.maxSkateSpeed", d),
+            Float(p, "landingSpeedRatio", "character.shell.landingSpeedRatio", d),
+            Float(p, "popOutDeceleration", "character.shell.popOutDeceleration", d),
+            Float(p, "blockedRecoilSpeed", "character.shell.blockedRecoilSpeed", d),
+            ParseHitboxNamed(p, "hitbox", "character.shell.hitbox", d),
+            OptionalString(p, "hitPresentationId", "character.shell.hitPresentationId", d));
     }
 
     private static CharacterMovementSource ParseMovement(Dictionary<string, JsonElement> parent, DiagnosticBag d)
@@ -842,7 +887,7 @@ public static class CharacterPackageSourceCodec
 
     private static CharacterPresentationSource ParsePresentation(Dictionary<string, JsonElement> parent, DiagnosticBag d)
     {
-        var p = Object(parent, "presentation", "character.presentation", d, "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset");
+        var p = Object(parent, "presentation", "character.presentation", d, "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset");
         return new CharacterPresentationSource(
             String(p, "idle", "character.presentation.idle", d),
             String(p, "run", "character.presentation.run", d),
@@ -866,7 +911,8 @@ public static class CharacterPackageSourceCodec
             OptionalString(p, "grab", "character.presentation.grab", d) ?? "",
             OptionalString(p, "grabbed", "character.presentation.grabbed", d) ?? "",
             OptionalString(p, "throwForward", "character.presentation.throwForward", d) ?? "",
-            OptionalString(p, "airDodge", "character.presentation.airDodge", d) ?? "");
+            OptionalString(p, "airDodge", "character.presentation.airDodge", d) ?? "",
+            OptionalString(p, "shell", "character.presentation.shell", d) ?? "");
     }
 
     private static CharacterCaptureGeometrySource ParseCaptureGeometry(Dictionary<string, JsonElement> parent, DiagnosticBag d)
@@ -955,12 +1001,13 @@ public static class CharacterPackageSourceCodec
         foreach (var e in a.EnumerateArray())
         {
             var path = $"character.slots[{i}]";
-            var p = ReadObject(e, path, d, "id", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart", "allowSlideCarry", "chargePool", "timeline");
+            var p = ReadObject(e, path, d, "id", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart", "allowSlideCarry", "shellPolicy", "chargePool", "timeline");
             var chargePool = p.TryGetValue("chargePool", out var chargeElement) && chargeElement.ValueKind != JsonValueKind.Null
                 ? ParseChargePool(chargeElement, path + ".chargePool", d)
                 : null;
             result.Add(new CharacterSlotSource(String(p, "id", path + ".id", d), String(p, "name", path + ".name", d), String(p, "description", path + ".description", d), String(p, "iconId", path + ".iconId", d), EnumValue(p, "behavior", path + ".behavior", d, ParseBehavior), EnumValue(p, "aimMode", path + ".aimMode", d, ParseAimMode), UShort(p, "cooldownTicks", path + ".cooldownTicks", d), Bool(p, "isRecoveryMove", path + ".isRecoveryMove", d), Bool(p, "preserveMomentumOnStart", path + ".preserveMomentumOnStart", d), ParseTimeline(p, path, d), chargePool, OptionalEnumValue(p, "aimMovement", path + ".aimMovement", d, ParseAimMovement, AuthoringAimMovementMode.Fixed), OptionalString(p, "aimAnimationId", path + ".aimAnimationId", d), OptionalBool(p, "allowSlideCarry", path + ".allowSlideCarry", d), OptionalString(p, "hitPresentationId", path + ".hitPresentationId", d),
-                p.ContainsKey("aimMovementSpeedScale") ? Float(p, "aimMovementSpeedScale", path + ".aimMovementSpeedScale", d) : 1f));
+                p.ContainsKey("aimMovementSpeedScale") ? Float(p, "aimMovementSpeedScale", path + ".aimMovementSpeedScale", d) : 1f,
+                OptionalEnumValue(p, "shellPolicy", path + ".shellPolicy", d, ParseShellPolicy, ShellPolicy.PopOut)));
             i++;
         }
         return result;
@@ -1180,6 +1227,7 @@ public static class CharacterPackageSourceCodec
             CharacterPackageCompiler.BladeFlurryCapabilityId => new[] { "forwardSpeed", "ascentStartTick", "ascentEndTick", "descentStartTick", "riseSpeed", "descentSpeed" },
             "slop.ability.targeted-leap.v1" => new[] { "maxAimTicks", "maxFlightTicks", "minRange", "maxRange", "launchVerticalSpeed", "landingSeekTick", "recoveryTicks", "hitbox", "launchPresentationId", "landingPresentationId" },
             "slop.ability.steered-charge.v1" => SteeredChargeFields,
+            "slop.ability.thrust.v1" => ThrustFields,
             "slop.internal.manki.round-bomb.v1" => new[] { "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "explosionPresentationId" },
             "slop.internal.manki.jetpack-boost.v1" => new[] { "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionPresentationId" },
             "slop.internal.manki.bazooka.v2" => new[] { "homingTurnDegPerTick", "fireTriggerTick", "projectileSpeed", "hitboxRadius", "damage", "gravity", "maxFlightTicks", "stunTicks", "explosionRadius", "kbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "castDuration", "recoveryDuration", "explosionPresentationId" },
@@ -1190,6 +1238,8 @@ public static class CharacterPackageSourceCodec
         var p = ReadObjectWithCode(element, path + ".parameters", d, "operation.parameter-unknown", allowed);
         if (id == CharacterPackageCompiler.SteeredChargeCapabilityId)
             return ParseSteeredCharge(p, path + ".parameters", d);
+        if (id == CharacterPackageCompiler.ThrustCapabilityId)
+            return ParseThrust(p, path + ".parameters", d);
         if (id == CharacterPackageCompiler.AimedRecoveryCapabilityId)
         {
             foreach (var required in allowed)
@@ -1289,6 +1339,33 @@ public static class CharacterPackageSourceCodec
         d.Error("capability.unknown", path + ".capabilityId", "Capability parameters are not supported.");
         return new RisingDragonCapabilityParameters(0, 0, 0);
     }
+    private static readonly string[] ThrustFields =
+    {
+        "aim", "targetConeDegrees", "neutralPitchDegrees", "stickPitchDegrees", "speed", "acceleration", "maxSpeed",
+        "keepIncomingSpeed", "thrustTicks", "trailHitbox",
+    };
+
+    private static ThrustCapabilityParameters ParseThrust(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    {
+        var aim = EnumValue(p, "aim", path + ".aim", d, x => x switch
+        {
+            "stick" => ThrustAim.Stick,
+            "targetAhead" => ThrustAim.TargetAhead,
+            _ => (ThrustAim?)null,
+        });
+        return new ThrustCapabilityParameters(
+            aim,
+            OptionalFloat(p, "targetConeDegrees", path + ".targetConeDegrees", d),
+            Float(p, "neutralPitchDegrees", path + ".neutralPitchDegrees", d),
+            Float(p, "stickPitchDegrees", path + ".stickPitchDegrees", d),
+            Float(p, "speed", path + ".speed", d),
+            Float(p, "acceleration", path + ".acceleration", d),
+            Float(p, "maxSpeed", path + ".maxSpeed", d),
+            Bool(p, "keepIncomingSpeed", path + ".keepIncomingSpeed", d),
+            UShort(p, "thrustTicks", path + ".thrustTicks", d),
+            p.ContainsKey("trailHitbox") ? ParseHitboxNamed(p, "trailHitbox", path + ".trailHitbox", d) : null);
+    }
+
     private static readonly string[] SteeredChargeRequired =
     {
         "gallopSpeed", "turnDegreesPerSecond", "maxGallopTicks", "armored", "lanceHitbox", "hitEndingTicks",
@@ -1392,7 +1469,8 @@ public static class CharacterPackageSourceCodec
     private static AuthoringAimMovementMode? ParseAimMovement(string x) => x switch { "fixed" => AuthoringAimMovementMode.Fixed, "mobile" => AuthoringAimMovementMode.Mobile, _ => null };
     private static AuthoringHitboxShape? ParseShape(string x) => x switch { "sphere" => AuthoringHitboxShape.Sphere, "capsule" => AuthoringHitboxShape.Capsule, _ => null };
     private static AuthoringKnockbackDirection? ParseKnockbackDirection(string x) => x switch { "awayFromOwner" => AuthoringKnockbackDirection.AwayFromOwner, "towardOwner" => AuthoringKnockbackDirection.TowardOwner, _ => null };
-    private static AuthoringVelocityMode? ParseVelocityMode(string x) => x switch { "absolute" => AuthoringVelocityMode.Absolute, "additive" => AuthoringVelocityMode.Additive, _ => null };
+    private static AuthoringVelocityMode? ParseVelocityMode(string x) => x switch { "absolute" => AuthoringVelocityMode.Absolute, "additive" => AuthoringVelocityMode.Additive, "vertical" => AuthoringVelocityMode.Vertical, _ => null };
+    private static ShellPolicy? ParseShellPolicy(string x) => x switch { "popOut" => ShellPolicy.PopOut, "tuck" => ShellPolicy.Tuck, _ => null };
     private sealed class DiagnosticBag
     {
         private readonly List<(int Order, CharacterDiagnostic Value)> _items = new(); private int _order;

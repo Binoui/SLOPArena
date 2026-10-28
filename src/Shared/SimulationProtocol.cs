@@ -16,6 +16,10 @@ namespace SlopArena.Shared
         // 22: BREAK OUT! walls, World Snapshot v12 and World Frame v7.
         // 23: universal progressive ground locomotion. Snapshot and input layouts unchanged.
         // 24: Run-started attack carry brakes over 20 ticks; replicated carry origin.
-        public const byte Version = 24;
+        // 25: homing dash holds a slot pressed in flight for the arrival; airborne arrivals glide.
+        // 26: Bashie's shell stance (ADR-0045): ActionState.Shell, owner windows, thrust, World Snapshot v13.
+        // 27: Beeline climbs feet to feet toward fighters, so grounded dashes at taller fighters stay grounded.
+        // 28: grounded Beelines never climb, airborne ones aim just above the target's feet; arrival lands on a 0.3 m gap.
+        public const byte Version = 28;
     }
 }

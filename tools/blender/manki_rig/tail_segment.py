@@ -88,6 +88,15 @@ def find_tail_geo(bm, deform, groups, bones, ds=0.02, min_len=0.2):
         tip = bm.verts[max(island, key=lambda i: from_root[i])]
         g = geodesic(bm, [tip], everything)
         s_root = max(g.values()) + ds
+        # v5's tail club is made of further loose pieces at the tip: they ride on the last bone (distance 0)
+        seen = set(g)
+        for v in bm.verts:
+            if v.index in seen: continue
+            piece = geodesic(bm, [v], everything); seen |= set(piece)
+            if len(piece) < len(g):
+                centre = sum((bm.verts[i].co for i in piece), Vector()) / len(piece)
+                if (centre - tip.co).length < 0.1:
+                    g.update({i: 0.0 for i in piece})
         return set(g), g, s_root, tip
     tip = max(cands, key=lambda v: from_centre.get(v.index, 0))
     # When the tail end hangs within reach of a leg (Manki v3's club), it is not a candidate and the pick above

@@ -16,11 +16,12 @@ namespace SlopArena.Client.World
     }
 
     /// <summary>
-    /// Tucks its owner into her shell while the attack shows one of <see cref="HoldAnimationIds"/>, through the
-    /// model's <see cref="ShellTuckRig"/>: Bashie's Shell Slide folds in as she dives and stays in while she slides,
-    /// then pops out when the slide ends (a hit, a miss or the look-down shows another clip) or the attack does. The
-    /// tuck eases in over <see cref="InSeconds"/> and out over <see cref="OutSeconds"/>, overshooting a little each
-    /// way. One tuck per cue: once out, it stays out. Emit it on the attack at the tick she dives. Cosmetic only.
+    /// Tucks its owner into her shell through the model's <see cref="ShellTuckRig"/>: while the attack shows one of
+    /// <see cref="HoldAnimationIds"/>, or, with <see cref="HoldWhileTucked"/>, for as long as the simulation says she
+    /// is in the shell (<see cref="SlopArena.Shared.Shell.IsTucked"/>, ADR-0045), across her tuck moves and the skate
+    /// between them. The tuck eases in over <see cref="InSeconds"/> and out over <see cref="OutSeconds"/>,
+    /// overshooting a little each way. One tuck per cue: once out, it stays out. Emit it on the attack at the tick
+    /// she tucks. Cosmetic only.
     /// </summary>
     [DefaultExecutionOrder(700)] // asks before ShellTuckRig (800) applies
     public sealed class ShellTuck : MonoBehaviour, IPresentationOwnerReceiver
@@ -28,8 +29,10 @@ namespace SlopArena.Client.World
         private static readonly bool[] Variants = { false, true };   // the slot's ground and air timelines
 
         public ShellTuckPose Pose = ShellTuckPose.Bashie;
-        [Tooltip("Clips of the attack that keep her tucked: the dive and the slide loop.")]
+        [Tooltip("Clips of the attack that keep her tucked.")]
         public string[] HoldAnimationIds = System.Array.Empty<string>();
+        [Tooltip("Hold while the simulation has her in the shell, across tuck moves and the skate, instead of by clip.")]
+        public bool HoldWhileTucked;
         public float InSeconds = 0.1f;
         public float OutSeconds = 0.12f;
         [Tooltip("Overshoot of the ease (ease-out-back): 1.7 goes about 10% past and settles.")]
@@ -64,6 +67,9 @@ namespace SlopArena.Client.World
             _sequence = owner.CurrentAttackSequence;
             _rig = ShellTuckRig.For(owner, Pose);
             _done = _rig == null;
+            // A tuck move started inside the shell (R during Hydro Jet) finds her tucked: no second fold.
+            if (HoldWhileTucked && _rig != null && _rig.AppliedWeight >= 0.99f)
+                _in = InSeconds;
         }
 
         private void LateUpdate()
@@ -105,7 +111,9 @@ namespace SlopArena.Client.World
             _rig.Request(Pose, _outFrom * (1f - Ease(_out / OutSeconds)));
         }
 
-        private bool Holding() => ShowsClip(_owner!, _sequence, HoldAnimationIds);
+        private bool Holding() => HoldWhileTucked
+            ? SlopArena.Shared.Shell.IsTucked(_owner!.CurrentActionState, _owner.CurrentMove)
+            : ShowsClip(_owner!, _sequence, HoldAnimationIds);
 
         /// <summary>
         /// Whether <paramref name="owner"/>'s attack <paramref name="sequence"/> is still current and shows one of

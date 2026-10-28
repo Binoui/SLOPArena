@@ -565,6 +565,7 @@ videos/*
 !/.agents/skills/slopbot/
 !/.agents/skills/slopbot-animation/
 !/.agents/skills/slopbot-character/
+!/.agents/skills/social-clips/
 /.agents/skills/*/*
 !/.agents/skills/*/SKILL.md
 !/.agents/skills/*/agents/

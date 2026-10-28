@@ -52,7 +52,7 @@ def merged(name, asset, solids):
     return mesh(name, asset, vertices, triangles)
 
 
-def course(profile_id, packages, targets, checkpoints, finish, revision=1):
+def course(profile_id, targets, checkpoints, finish, revision=1, racing_line=None):
     """An Arcade Character Course for `document(course=...)`.
 
     targets: [(id, (x, y, z), radius)] or [(id, (x, y, z), radius, hits)] in route order; every target is
@@ -72,11 +72,14 @@ def course(profile_id, packages, targets, checkpoints, finish, revision=1):
     counts = [c[5] for c in checkpoints]
     if counts != sorted(counts) or any(not 0 < n <= len(targets) for n in counts):
         raise ValueError("checkpoint target counts must be cumulative and within the target count")
-    return {"profileId": profile_id, "gameplayRevision": revision, "allowedPackageIds": list(packages),
+    result = {"profileId": profile_id, "gameplayRevision": revision, "allowedPackageIds": [],
             "targets": [_target(*t) for t in targets],
             "checkpoints": [{"id": i, "centre": list(c), "halfSize": list(h), "respawn": list(r), "yaw": yaw,
                              "requiredTargets": n} for i, c, h, r, yaw, n in checkpoints],
             "finish": {"centre": list(finish[0]), "halfSize": list(finish[1])}}
+    if racing_line is not None:
+        result["racingLine"] = racing_line
+    return result
 
 
 def _target(target_id, position, radius, hits=1):

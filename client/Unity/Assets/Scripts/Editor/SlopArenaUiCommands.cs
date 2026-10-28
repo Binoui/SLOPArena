@@ -62,7 +62,7 @@ namespace SlopArena.EditorTools
             MainThreadRequired = true,
             Tags = new[] { "frontend/ui" })]
         public static async Task<SlopArenaUiNavigateResult> Navigate(
-            [CliArg("page", "FrontendPage name: Home, FighterSelect, StageSelect, Results, ServerBrowser, LobbyRoom, ArcadeSelect.")]
+            [CliArg("page", "FrontendPage name: Home, FighterSelect, StageSelect, Results, ServerBrowser, LobbyRoom, ModeSelect.")]
             string page = null,
             [CliArg("mode", "GameMode name: Training, Solo, PvP, Arcade. Returns through Home when the current page requires it.")]
             string mode = null,
@@ -103,13 +103,12 @@ namespace SlopArena.EditorTools
                         $"Unknown mode '{mode}'. Valid: {string.Join(", ", Enum.GetNames(typeof(GameMode)))}.");
                 if (!FrontendController.IsFrontendActive)
                     throw new InvalidOperationException("Frontend scene is not active; use --page Home first.");
-                expectedPage = targetMode == GameMode.Arcade ? FrontendPage.ArcadeSelect
+                expectedPage = targetMode is GameMode.Solo or GameMode.Arcade ? FrontendPage.ModeSelect
                     : targetMode == GameMode.PvP ? FrontendPage.ServerBrowser : FrontendPage.FighterSelect;
                 string modeButton = targetMode switch
                 {
                     GameMode.Training => "shell-nav-training",
-                    GameMode.Solo => "shell-nav-offline",
-                    GameMode.Arcade => "shell-nav-arcade",
+                    GameMode.Solo or GameMode.Arcade => "shell-nav-local",
                     // The tutorial has no navigation tab; it starts from Home.
                     GameMode.Tutorial => "menu-tutorial",
                     _ => "shell-nav-online"
@@ -191,8 +190,9 @@ namespace SlopArena.EditorTools
                 requireNextFrame: stepped,
                 beforeWait: stepped ? (Action)(() => EditorApplication.Step()) : null,
                 timeoutDiagnostic: () =>
-                    $"UI layout did not settle after submitting '{name}' within 5 seconds. " +
-                    "Inspect sloparena.ui.status and retry in a stable Play Mode session.");
+                    $"UI layout did not settle after submitting '{name}' within 20 seconds. " +
+                    "Inspect sloparena.ui.status and retry in a stable Play Mode session.",
+                timeoutSeconds: 20d);
 
             return new SlopArenaUiClickResult
             {
@@ -279,6 +279,27 @@ namespace SlopArena.EditorTools
 
         // ---- shared helpers --------------------------------------------------------
 
+        [CliCommand("sloparena.ui.wait-local-match", "Observe local gameplay initialization and the first simulation tick, including its countdown.",
+            MainThreadRequired = true, Tags = new[] { "frontend/ui" })]
+        public static async Task<object> WaitLocalMatch()
+        {
+            RequirePlayMode("sloparena.ui.wait-local-match");
+            uint tick = 0;
+            int fighters = 0;
+            await WaitForEditorUpdates("sloparena.ui.wait-local-match", () =>
+            {
+                var match = UnityEngine.Object.FindFirstObjectByType<SlopArena.Client.World.TrainingMatch>();
+                var arcade = UnityEngine.Object.FindFirstObjectByType<SlopArena.Client.World.ArcadeBallMatch>();
+                var course = UnityEngine.Object.FindFirstObjectByType<SlopArena.Client.World.CharacterCourseMatch>();
+                var simulation = match?.CaptureSimulation ?? arcade?.Simulation ?? course?.Simulation;
+                tick = simulation?.CurrentTick ?? 0;
+                fighters = simulation?.GetAllStates().Count ?? 0;
+                return !FrontendController.IsFrontendActive && tick > 0 && fighters > 0;
+            }, 2, false, null, () => $"Local gameplay did not advance within 20 seconds. Scene={SceneManager.GetActiveScene().name}, tick={tick}, fighters={fighters}.", 20d);
+            return new { success = true, scene = SceneManager.GetActiveScene().name, tick, fighters,
+                mode = MatchConfig.Mode.ToString(), localMode = MatchConfig.LocalMode.ToString() };
+        }
+
         private static void RequirePlayMode(string command)
         {
             if (!EditorApplication.isPlaying)
@@ -286,14 +307,15 @@ namespace SlopArena.EditorTools
         }
         private static async Task WaitForEditorUpdates(
             string operation,
-            Func<bool> isComplete,
+            Func<bool>? isComplete,
             int minimumUpdates,
             bool requireNextFrame,
-            Action beforeWait,
-            Func<string> timeoutDiagnostic)
+            Action? beforeWait,
+            Func<string> timeoutDiagnostic,
+            double timeoutSeconds = 5d)
         {
             var completion = new TaskCompletionSource<bool>();
-            double deadline = EditorApplication.timeSinceStartup + 5d;
+            double deadline = EditorApplication.timeSinceStartup + timeoutSeconds;
             int observedUpdates = 0;
             int startingFrame = 0;
 

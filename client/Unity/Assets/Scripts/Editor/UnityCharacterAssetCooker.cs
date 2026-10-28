@@ -630,6 +630,7 @@ public static class UnityCharacterAssetCooker
         Add(p.Fall, "character.presentation.fall");
         Add(p.Crouch, "character.presentation.crouch");
         Add(p.Slide, "character.presentation.slide");
+        Add(p.Shell, "character.presentation.shell");
         Add(p.Tumble, "character.presentation.tumble");
         Add(p.HitSmall, "character.presentation.hitSmall");
         Add(p.HitMedium, "character.presentation.hitMedium");

@@ -76,7 +76,7 @@ keep the best in memory and show that it could not be saved to disk.
 | Gameplay projection | [ArcadeRecordCompatibility](../../src/Shared/ArcadeRecordCompatibility.cs) |
 | Persistent categories and codec | [ArcadeRecords](../../src/Shared/ArcadeRecords.cs) |
 | Local storage | [ArcadeRecordsStore](../../client/Unity/Assets/Scripts/Runtime/UI/ArcadeRecordsStore.cs) |
-| Selection page | [ArcadeSelectController](../../client/Unity/Assets/Scripts/Runtime/UI/ArcadeSelectController.cs) and [Arcade UXML](../../client/Unity/Assets/UI/Arcade.uxml) |
+| Selection page | [ModeSelectController](../../client/Unity/Assets/Scripts/Runtime/UI/ModeSelectController.cs) and [Mode Select UXML](../../client/Unity/Assets/UI/ModeSelect.uxml) |
 | Gameplay and immutable result capture | [SlopballMatch](../../client/Unity/Assets/Scripts/Runtime/World/SlopballMatch.cs) |
 | HUD/results | [SlopballView](../../client/Unity/Assets/Scripts/Runtime/UI/SlopballView.cs) and [Arcade styles](../../client/Unity/Assets/Resources/UI/Arcade.uss) |
 | Native setup/observation | [Phase 3 commands](../../client/Unity/Assets/Scripts/Editor/SlopArenaArcadePhase3Commands.cs) |

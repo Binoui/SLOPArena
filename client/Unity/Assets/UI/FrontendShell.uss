@@ -403,6 +403,9 @@
     white-space: nowrap;
 }
 
+/* Layout measures the label without its letter spacing; the longest tab needs explicit room. */
+#shell-nav-local { min-width: 140px; }
+
 .shell-nav-underline {
     position: absolute;
     bottom: 3px;
@@ -624,6 +627,7 @@
     font-size: 12px;
     letter-spacing: 0;
 }
+.frontend-shell--compact #shell-nav-local { min-width: 104px; }
 .frontend-shell--compact .shell-settings {
     min-height: 32px;
     margin-left: 4px;
@@ -673,8 +677,8 @@
 .frontend-shell--home .shell-page-context { display: none; }
 
 /* Arcade keeps its mode browser and launch controls together in the body. */
-.frontend-shell--arcade .shell-header-host { background-color: rgba(0, 0, 0, 0); }
-.frontend-shell--arcade .shell-lower-row { display: none; }
+.frontend-shell--local .shell-header-host { background-color: rgba(0, 0, 0, 0); }
+.frontend-shell--local .shell-lower-row { display: none; }
 
 /* ── Presenter sizing inside the absolute overlay ──────────────────────
    The chat presenter keeps its own stylesheet. The shell cell's size, the
@@ -768,6 +772,9 @@
     align-items: stretch;
     justify-content: space-between;
 }
+
+.frontend-shell--home .menu-actions { padding-top: 64px; }
+.frontend-shell--home .menu-action { margin-bottom: 64px; }
 
 .menu-actions {
     width: 330px;
@@ -1541,6 +1548,10 @@
 
 .stage-body-section .stage-card .stage-name {
     display: none;
+}
+
+.stage-body-section .stage-course-card .stage-name {
+    display: flex;
 }
 
 

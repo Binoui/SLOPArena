@@ -1,0 +1,161 @@
+{
+ "stage": "splash_deck",
+ "notes": "final: Wibou's shuriken, Manki hops it and lobs a Round Bomb, Wibou runs in under it: Up Slash, Rising Slash, Air Heavy Down Slash spike (r3a choreography, closer camera); re-shot first in its batch so no VFX carry over from a previous shoot",
+ "capture": {
+  "from": 0,
+  "to": 299,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    10,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "target": 2,
+   "input": [
+    {
+     "at": 3,
+     "press": "A"
+    },
+    {
+     "from": 86,
+     "to": 120,
+     "move": 270
+    },
+    {
+     "at": 121,
+     "press": "3"
+    },
+    {
+     "at": 157,
+     "press": "E"
+    },
+    {
+     "at": 161,
+     "press": "E"
+    },
+    {
+     "at": 165,
+     "press": "E"
+    },
+    {
+     "at": 169,
+     "press": "E"
+    },
+    {
+     "at": 173,
+     "press": "E"
+    },
+    {
+     "at": 177,
+     "press": "E"
+    },
+    {
+     "at": 181,
+     "press": "E"
+    },
+    {
+     "at": 185,
+     "press": "E"
+    },
+    {
+     "at": 211,
+     "press": "4"
+    },
+    {
+     "at": 216,
+     "press": "4"
+    },
+    {
+     "at": 221,
+     "press": "4"
+    },
+    {
+     "at": 226,
+     "press": "4"
+    },
+    {
+     "at": 231,
+     "press": "4"
+    },
+    {
+     "at": 236,
+     "press": "4"
+    },
+    {
+     "at": 241,
+     "press": "4"
+    },
+    {
+     "at": 246,
+     "press": "4"
+    },
+    {
+     "at": 251,
+     "press": "4"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    2,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "damage": 100,
+   "target": 1,
+   "input": [
+    {
+     "from": 12,
+     "to": 26,
+     "jump": true
+    },
+    {
+     "at": 70,
+     "press": "A"
+    },
+    {
+     "from": 70,
+     "to": 82,
+     "aim": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    2.8,
+    0.85,
+    -0.6
+   ],
+   "look": [
+    3.5,
+    1.75,
+    5.0
+   ],
+   "follow": 2,
+   "lookOffset": [
+    1.5,
+    0.9,
+    0
+   ],
+   "ease": 0.1,
+   "fov": 45,
+   "far": 4000,
+   "move": true
+  }
+ ]
+}

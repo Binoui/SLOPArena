@@ -16,11 +16,11 @@ MonoBehaviour:
   - AttackSlot: 0
     BoneName: mixamorig:RightHand
     Prefab: {fileID: 4730676044292442314, guid: 4668b626e7fabeb8284808f40c15f1c3, type: 3}
-    PositionOffset: {x: 0.16897316, y: 0.1535069, z: 0.16608365}
+    PositionOffset: {x: -0.20006765, y: 0.15350695, z: 0.12691979}
     HasFirePhaseOverride: 0
     FirePositionOffset: {x: 0, y: 0, z: 0}
-    FireRotationOffset: {x: 1.7900702, y: 109.229225, z: 348.21277}
-    RotationOffset: {x: 281.92047, y: 190.7157, z: 61.698315}
+    FireRotationOffset: {x: 1.7900766, y: 6.1255126, z: 348.21277}
+    RotationOffset: {x: 281.92047, y: 87.61198, z: 61.69833}
     HideAfterTicks: 0
     ShowFromTicks: 0
     HiddenBySlot: 0
@@ -33,11 +33,11 @@ MonoBehaviour:
   - AttackSlot: 5
     BoneName: mixamorig:Hips
     Prefab: {fileID: 6727160258064593376, guid: 94229ca159e5d329dbc78a175bc433e1, type: 3}
-    PositionOffset: {x: 0.0003600481, y: -0.021490684, z: -0.00023369491}
+    PositionOffset: {x: -0.00023369484, y: -0.021490684, z: -0.00036004794}
     HasFirePhaseOverride: 0
     FirePositionOffset: {x: 0, y: 0, z: 0}
-    FireRotationOffset: {x: 0, y: 0, z: 0}
-    RotationOffset: {x: 312.2441, y: 269.48425, z: 359.15326}
+    FireRotationOffset: {x: 3.0533326e-13, y: 89.99999, z: -0.00000050396244}
+    RotationOffset: {x: 312.2441, y: 359.48422, z: 359.15326}
     HideAfterTicks: 0
     ShowFromTicks: 0
     HiddenBySlot: 0
@@ -49,12 +49,12 @@ MonoBehaviour:
     TrailTipAnchor: 
   - AttackSlot: 0
     BoneName: mixamorig:LeftArm
-    Prefab: {fileID: 8336184591587626734, guid: cb3a5b76da1beae37b15593890a90886, type: 3}
-    PositionOffset: {x: -0.034538608, y: -0.0068898853, z: 0.011938242}
+    Prefab: {fileID: 110122871996679997, guid: f9912002aaf6b94f59d14f01aea2477c, type: 3}
+    PositionOffset: {x: 0.01429392, y: 0.013715848, z: -0.043779984}
     HasFirePhaseOverride: 0
     FirePositionOffset: {x: 0, y: 0, z: 0}
-    FireRotationOffset: {x: 0, y: 0, z: 0}
-    RotationOffset: {x: 24.841022, y: 77.389565, z: 91.06298}
+    FireRotationOffset: {x: -0.000052345942, y: 172.05533, z: 0.000025493837}
+    RotationOffset: {x: 43.90958, y: 241.33511, z: 75.30024}
     HideAfterTicks: 0
     ShowFromTicks: 0
     HiddenBySlot: 11
@@ -66,12 +66,12 @@ MonoBehaviour:
     TrailTipAnchor: 
   - AttackSlot: 11
     BoneName: mixamorig:LeftHand
-    Prefab: {fileID: 8336184591587626734, guid: cb3a5b76da1beae37b15593890a90886, type: 3}
-    PositionOffset: {x: 0.030494913, y: 0.016005263, z: -0.044929713}
+    Prefab: {fileID: 110122871996679997, guid: f9912002aaf6b94f59d14f01aea2477c, type: 3}
+    PositionOffset: {x: -0.0326191, y: 0.016005244, z: 0.043412182}
     HasFirePhaseOverride: 0
     FirePositionOffset: {x: 0, y: 0, z: 0}
-    FireRotationOffset: {x: 0, y: 0, z: 0}
-    RotationOffset: {x: 270.89853, y: 325.99524, z: 89.839745}
+    FireRotationOffset: {x: -0.00004529059, y: 177.2452, z: 0.000030876115}
+    RotationOffset: {x: 270.8981, y: 143.23767, z: 89.842575}
     HideAfterTicks: 19
     ShowFromTicks: 6
     HiddenBySlot: 0

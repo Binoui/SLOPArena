@@ -28,6 +28,41 @@ public class WorldSnapshotTests
     }
 
     [Theory]
+    [InlineData("skate", 24)]
+    [InlineData("coast", 22)]
+    [InlineData("jet", 3)]
+    [InlineData("dive", 3)]
+    public void BashieShellRestoredMidPhaseReplaysIdentically(string phase, int captureTick)
+    {
+        ServerSimulation Make() => phase switch
+        {
+            "skate" => BashieShellTests.Sim(BashieShellTests.Running(11.5f), BashieShellTests.Dummy2(0f, 4f)),
+            "dive" => BashieShellTests.Sim(BashieShellTests.Airborne(4f)),
+            _ => BashieShellTests.Sim(),
+        };
+        InputState Input(int tick) => tick != 1 ? default : new InputState
+        {
+            ActiveSlot = phase is "skate" or "dive" ? AbilitySlots.R : AbilitySlots.E,
+            MoveY = phase == "jet" ? 1f : 0f,
+        };
+        var continuous = Make();
+        for (int tick = 1; tick <= captureTick; tick++) BashieShellTests.Step(continuous, Input(tick));
+        var captured = BashieShellTests.State(continuous);
+        Assert.Equal(phase is "skate" or "coast" ? ActionState.Shell : ActionState.Attacking, captured.State);
+        if (phase == "skate")
+            Assert.Contains(continuous.Resolver.GetActiveHitboxes(), h => h.OwnerWindow && h.HitEntities!.Count == 1);
+
+        var restored = Make();
+        restored.RestoreSnapshot(continuous.CaptureSnapshot());
+        for (int tick = captureTick + 1; tick <= captureTick + 60; tick++)
+        {
+            BashieShellTests.Step(continuous, Input(tick));
+            BashieShellTests.Step(restored, Input(tick));
+            Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()), $"{phase} diverged at tick {tick}");
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(Fights))]
     public void FreshSimulationsRestoredMidFightMatchTheContinuousOneEveryTick(
         string arenaName, CharacterClass[] roster, int seed)

@@ -23,7 +23,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.a2
   - _semanticId: anim.bashie.a3
-    _clip: {fileID: 7400000, guid: f946c224fd7866101a6104403890bb18, type: 2}
+    _clip: {fileID: 7400000, guid: af4a38833bdd5902ca11d50359d23cb6, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.a3
   - _semanticId: anim.bashie.a4
@@ -54,22 +54,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 350fcd55cc96fa8f49af7446e44586e4, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g4
-  - _semanticId: anim.bashie.ge
-    _clip: {fileID: 7400000, guid: a4b82b7cbeeba814abf93587596d4018, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.ge
   - _semanticId: anim.bashie.gr
     _clip: {fileID: 7400000, guid: bd5d1a687f9b7531890a35e230f592bd, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.gr
-  - _semanticId: anim.bashie.gr-flip
-    _clip: {fileID: 7400000, guid: 2c7c17f34a06e2dabb63223759151535, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.gr-flip
-  - _semanticId: anim.bashie.gr-lookdown
-    _clip: {fileID: 7400000, guid: 6bf1f1718569bbca98bfc4f661f89844, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.gr-lookdown
   - _semanticId: anim.bashie.gr-pop
     _clip: {fileID: 7400000, guid: 215ba6d4b00832ca3b0847513a6fbc2e, type: 2}
     _extrapolation: 0
@@ -155,8 +143,6 @@ MonoBehaviour:
     _prefab: {fileID: 6302717232837139324, guid: fe1eff96796114aa1909778daa488d52, type: 3}
   - _semanticId: presentation.bashie.shell.air-strike-tuck
     _prefab: {fileID: 4185853069914809720, guid: 377b85d28fb137f6b9dd9987c4192ece, type: 3}
-  - _semanticId: presentation.bashie.shell.flip-tuck
-    _prefab: {fileID: 1165248993868918788, guid: 89fa43edb19bfe10ebb6c96a8e2bf680, type: 3}
   - _semanticId: presentation.bashie.whistle.puff
     _prefab: {fileID: 1912667602288168695, guid: e4ffe33ccb2207130a627bc404d83443, type: 3}
   - _semanticId: presentation.bashie.whistle.blow
@@ -167,6 +153,8 @@ MonoBehaviour:
     _prefab: {fileID: 517856996095854005, guid: 9225ed2d42dccad728d84469e1770e71, type: 3}
   - _semanticId: presentation.bashie.ring.rebound
     _prefab: {fileID: 6741874939935604705, guid: a79d6fb931198771d85f65ce202b128a, type: 3}
+  - _semanticId: presentation.bashie.shell.flip-tuck
+    _prefab: {fileID: 1165248993868918788, guid: 89fa43edb19bfe10ebb6c96a8e2bf680, type: 3}
   _presentationProfile:
     _respawnTint: {r: 0.98, g: 0.3, b: 0.27, a: 0.95}
     _swing:

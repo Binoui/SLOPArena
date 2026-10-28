@@ -145,7 +145,7 @@ namespace SlopArena.Client.UI
         public void FlashCheckpointNotSaved() => _notSaved = NotSavedSeconds;
 
         /// <summary>The running count floats up from a broken target (or a bonus target's hit count).</summary>
-        public void ShowCountPop(Vector3 world, string text, string variant = null)
+        public void ShowCountPop(Vector3 world, string text, string variant = null, Color? colour = null)
         {
             // A target's next count replaces its last, so a flurry of bonus hits reads as one climbing number.
             for (int i = _pops.Count - 1; i >= 0; i--)
@@ -161,6 +161,7 @@ namespace SlopArena.Client.UI
             label.AddToClassList("course-count-pop");
             if (!string.IsNullOrEmpty(variant)) label.AddToClassList(variant);
             if (_live.styleSheets.count > 0) label.styleSheets.Add(_live.styleSheets[0]);
+            if (colour.HasValue) label.style.color = colour.Value;
             label.style.display = DisplayStyle.None;
             _hud.Add(label);
             _pops.Add((label, world, 0f));
@@ -263,9 +264,10 @@ namespace SlopArena.Client.UI
         }
         public void AttachOnlineRoster(VisualElement roster) => _live.Add(roster);
 
-        public void PresentOnlineStatus(string status, string controls)
+        public void PresentOnlineStatus(string status, string controls, string checkpoint = null)
         {
             _cue.text = status; _controls.text = controls;
+            if (checkpoint != null) _checkpoint.text = checkpoint;
             _hold.style.display = DisplayStyle.None;
         }
 

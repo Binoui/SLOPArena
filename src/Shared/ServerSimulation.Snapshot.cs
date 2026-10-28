@@ -18,7 +18,8 @@ namespace SlopArena.Shared
         // 10: Mayhem director, scores, bench flags and sticky-fuse projectiles.
         // 11: expanding shockwave rings and per-hazard shield policy.
         // 12: deterministic breakable cage walls.
-        public const uint SnapshotFormatVersion = 12;
+        // 13: the shell (ADR-0045): owner-window hitboxes, jump takeoff and attack carry origins, thrust state.
+        public const uint SnapshotFormatVersion = 13;
 
         private readonly List<ulong> _abilityOrder = new();
 

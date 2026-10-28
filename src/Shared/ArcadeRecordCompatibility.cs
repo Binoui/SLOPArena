@@ -126,6 +126,14 @@ public static class ArcadeRecordCompatibility
         if (course && stage.Course!.HasMultiHitTargets)
             bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(
                 new { TargetHits = stage.Course.Targets.Select(t => (int)t.Hits).ToArray() })).ToArray();
+        // The shell stance (ADR-0045) joins only for fighters that have one, so other fighters keep their records.
+        if (c.Shell != null || c.Slots.Any(slot => slot.ShellPolicy != ShellPolicy.PopOut))
+            bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                Shell = c.Shell == null ? null : c.Shell with { HitPresentationId = null },
+                ShellPose = Pose(d.ShellAnim),
+                Tucks = c.Slots.Where(slot => slot.ShellPolicy != ShellPolicy.PopOut).Select(slot => slot.Ordinal).ToArray(),
+            }, new JsonSerializerOptions { IncludeFields = true })).ToArray();
         return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
     }
 
@@ -190,7 +198,8 @@ public static class ArcadeRecordCompatibility
             x.FireTriggerTick, x.RecoveryTicks, x.ShotsPerReload, x.ReloadTicks,
             x.AirMaxFallSpeed, x.AirRecoilSpeed, Projectile = Projectile(x.Projectile),
         },
-        CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
+        CookedAimedRecoveryCapabilityParameters or CookedThrustCapabilityParameters
+            or CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
             or CookedCycloneKickCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
             or CookedWibouRisingSlashCapabilityParameters or CookedWibouBladeFlurryCapabilityParameters
             or CookedMankiAerosolInfernoCapabilityParameters => p,

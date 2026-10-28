@@ -1,0 +1,112 @@
+{
+ "stage": "table_manners",
+ "notes": "final 06: v3c timeline (pot lid bonks Manki twice, Manki shakes the aerosol can, Bonk's Targeted Jump Slam KOs Manki at 320% toward the bunk bed); step 1 at 1920x1080",
+ "capture": {
+  "from": 30,
+  "to": 345,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    -2.4,
+    1.5,
+    -1.8
+   ],
+   "yaw": 53,
+   "damage": 30,
+   "target": 2,
+   "input": [
+    {
+     "at": 2,
+     "press": "A"
+    },
+    {
+     "at": 125,
+     "press": "E"
+    },
+    {
+     "from": 125,
+     "to": 139,
+     "aim": true
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    0.0,
+    1.5,
+    0.0
+   ],
+   "yaw": 233,
+   "damage": 320,
+   "target": 1,
+   "input": [
+    {
+     "at": 140,
+     "press": "F"
+    },
+    {
+     "from": 140,
+     "to": 320,
+     "aim": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "k2",
+   "pos": [
+    -4.5,
+    0.6,
+    -5.5
+   ],
+   "look": [
+    0,
+    0,
+    0
+   ],
+   "follow": 2,
+   "move": true,
+   "lookOffset": [
+    0,
+    1.4,
+    0.5
+   ],
+   "ease": 0.08,
+   "fov": 48,
+   "far": 4000
+  },
+  {
+   "name": "k4",
+   "pos": [
+    -5.0,
+    1.0,
+    -6.0
+   ],
+   "look": [
+    0,
+    0,
+    0
+   ],
+   "follow": 2,
+   "move": true,
+   "lookOffset": [
+    0,
+    2.0,
+    0.5
+   ],
+   "ease": 0.08,
+   "fov": 50,
+   "far": 4000
+  }
+ ]
+}

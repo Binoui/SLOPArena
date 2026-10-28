@@ -1,0 +1,42 @@
+{
+ "id": "20-beeline-explained",
+ "status": "ready",
+ "format": "explainer",
+ "title": "Beeline: fair or broken?",
+ "idea": "The new homing dash on the ground and in the air, then read and punished. Pros: a guaranteed chase and hit in 3D; cons: punishable if expected. Ends on a question.",
+ "created": "2026-10-28",
+ "beats": [
+  {
+   "type": "shot",
+   "clip": "20a-beeline-ground",
+   "text": "NEW:\nBEELINE",
+   "at": 0
+  },
+  {
+   "type": "shot",
+   "clip": "20b-beeline-air",
+   "from": 0.25,
+   "text": "CHASES IN 3D",
+   "at": 0.1
+  },
+  {
+   "type": "card",
+   "seconds": 1.1,
+   "text": "GUARANTEED\nHIT?",
+   "pos": "top"
+  },
+  {
+   "type": "shot",
+   "clip": "20c-beeline-punished",
+   "text": "UNLESS THEY\nSEE IT COMING",
+   "at": 0.2
+  },
+  {
+   "type": "card",
+   "seconds": 1.8,
+   "text": "FAIR OR\nBROKEN?",
+   "pos": "top"
+  }
+ ],
+ "clip": "tmp/content/20-beeline-explained/20-beeline-explained-vertical.mp4"
+}

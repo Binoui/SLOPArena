@@ -1,0 +1,205 @@
+{
+ "stage": "slop_pit",
+ "notes": "promo 03 final f5: f4 staging (Bonk 15%, no KO before 300) re-shot with cameras panning gently on Wibou",
+ "capture": {
+  "from": 0,
+  "to": 299,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    -3.0,
+    0,
+    1.4
+   ],
+   "yaw": 270,
+   "damage": 30,
+   "target": 2,
+   "input": [
+    {
+     "from": 2,
+     "to": 30,
+     "shield": true
+    },
+    {
+     "at": 42,
+     "press": "E"
+    },
+    {
+     "at": 46,
+     "press": "E"
+    },
+    {
+     "at": 150,
+     "press": "A"
+    },
+    {
+     "from": 150,
+     "to": 175,
+     "aim": true
+    },
+    {
+     "at": 240,
+     "press": "4"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    -3.9,
+    0,
+    1.4
+   ],
+   "yaw": 90,
+   "damage": 35,
+   "target": 1,
+   "input": [
+    {
+     "at": 4,
+     "press": "1"
+    },
+    {
+     "at": 175,
+     "press": "A"
+    },
+    {
+     "at": 181,
+     "press": "A"
+    },
+    {
+     "at": 225,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "package": "manki",
+   "feet": [
+    0.6,
+    0,
+    -0.6
+   ],
+   "yaw": 90,
+   "damage": 25,
+   "target": 4,
+   "input": [
+    {
+     "at": 2,
+     "press": "F"
+    },
+    {
+     "from": 2,
+     "to": 56,
+     "aim": true
+    },
+    {
+     "at": 165,
+     "press": "R"
+    },
+    {
+     "at": 171,
+     "press": "R"
+    },
+    {
+     "at": 235,
+     "press": "E"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "package": "bonk",
+   "feet": [
+    5.2,
+    0,
+    -0.6
+   ],
+   "yaw": 270,
+   "damage": 15,
+   "target": 3,
+   "input": [
+    {
+     "from": 0,
+     "to": 10,
+     "move": 270
+    },
+    {
+     "at": 22,
+     "press": "F"
+    },
+    {
+     "from": 66,
+     "to": 110,
+     "move": 270
+    },
+    {
+     "at": 180,
+     "press": "4"
+    },
+    {
+     "at": 186,
+     "press": "4"
+    },
+    {
+     "at": 230,
+     "press": "A"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "v1",
+   "pos": [
+    1.4,
+    2.6,
+    -8.4
+   ],
+   "look": [
+    1.4,
+    2.0,
+    0.4
+   ],
+   "follow": 2,
+   "lookOffset": [
+    5.3,
+    -0.05,
+    -1.0
+   ],
+   "ease": 0.05,
+   "fov": 44,
+   "far": 3000
+  },
+  {
+   "name": "v2",
+   "pos": [
+    1.4,
+    2.5,
+    -7.4
+   ],
+   "look": [
+    1.4,
+    2.0,
+    0.4
+   ],
+   "follow": 2,
+   "lookOffset": [
+    5.3,
+    -0.05,
+    -1.0
+   ],
+   "ease": 0.05,
+   "fov": 46,
+   "far": 3000
+  }
+ ]
+}

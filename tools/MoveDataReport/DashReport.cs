@@ -19,6 +19,7 @@ internal static class DashReport
     private static readonly float[] GroundDistances = { 3f, 6f, 9f, 12f, 15f, 18f };
     private static readonly float[] AirDistances = { 6f, 9f, 12f };
     private static readonly float[] SidestepDistances = { 4f, 8f, 12f };
+    private static readonly float[] ApexDistances = { 4f, 7f, 10f };
     private static readonly string[] Roster = { "fightguy", "wibou", "manki", "bonk", "bashie", "salamander" };
     private static readonly (string Label, byte Wire)[] Normals =
         { ("1", AbilitySlots.Slot1), ("2", AbilitySlots.Slot3), ("3", AbilitySlots.Slot4) };
@@ -116,6 +117,27 @@ internal static class DashReport
         }
 
         sb.AppendLine();
+        sb.AppendLine("Attacker full-jumps and dashes at the apex; aerial pressed mid-dash (4 t into the travel) / on arrival. " +
+            "**dy** = attacker height above the target on arrival:");
+        sb.AppendLine();
+        sb.AppendLine("| target | distance | arrive | dy | air 1 | air 2 | air 3 |");
+        sb.AppendLine("|---|---:|---:|---:|---:|---:|---:|");
+        foreach (var (label, move, high) in new[] { ("standing", TargetMove.Stand, false), ("standing, double jump", TargetMove.Stand, true),
+                     ("jumping", TargetMove.Jump, false) })
+        foreach (float d in ApexDistances)
+        {
+            var dash = Measure(entry, d, move, 0, attackerJumps: true, apex: true, doubleJump: high);
+            string Cell(byte wire)
+            {
+                var mid = Measure(entry, d, move, wire, attackerJumps: true, apex: true, midDash: true, doubleJump: high).FirstContact;
+                var late = Measure(entry, d, move, wire, attackerJumps: true, apex: true, doubleJump: high).FirstContact;
+                return $"{Hit(mid)} / {Hit(late)}";
+            }
+            sb.AppendLine($"| {label} | {d:0} m | {Ticks(dash.Arrive, dash.Miss)} | {dash.ArrivalDy:0.0} m | " +
+                $"{Cell(Normals[0].Wire)} | {Cell(Normals[1].Wire)} | {Cell(Normals[2].Wire)} |");
+        }
+
+        sb.AppendLine();
         sb.AppendLine("Target runs sideways from the press (does the 4°/tick turn still catch it?):");
         sb.AppendLine();
         sb.AppendLine("| distance | result | free |");
@@ -133,12 +155,16 @@ internal static class DashReport
 
     private enum TargetMove { Stand, Jump, Sidestep }
 
-    private sealed record DashRun(int Arrive, int Miss, int Actionable, int FirstContact, float ArrivalHeight, float DropToContact);
+    private sealed record DashRun(int Arrive, int Miss, int Actionable, int FirstContact, float ArrivalHeight, float DropToContact, float ArrivalDy);
 
     /// <summary>Press the dash on tick 0; optionally press <paramref name="followUp"/> on the first arrival tick.</summary>
     private const int JumpLead = 10;
 
-    private static DashRun Measure(MatchContentEntry entry, float distance, TargetMove move, byte followUp, bool attackerJumps = false)
+    /// <summary>Mid-dash presses land this many ticks into the travel, after the float.</summary>
+    private const int MidDashLead = 4;
+
+    private static DashRun Measure(MatchContentEntry entry, float distance, TargetMove move, byte followUp,
+        bool attackerJumps = false, bool apex = false, bool midDash = false, bool doubleJump = false)
     {
         var def = entry.Definition;
         var sim = new ServerSimulation(Program.BuildArena());
@@ -147,17 +173,28 @@ internal static class DashReport
         sim.RegisterEntity(Defender, def, Fighter(Defender, ground, StartX, StartZ + distance, MathF.PI, def), entry.BakedAnimation);
         Step(sim, default, default);
         if (attackerJumps)
-            for (int t = 0; t < JumpLead; t++)
-                Step(sim, new InputState { Jump = t == 0, JumpHeld = true }, default);
+        {
+            bool second = false;
+            for (int t = 0, since = 0; t < (apex ? 200 : JumpLead); t++, since++)
+            {
+                bool press = t == 0 || second && since == 0;
+                Step(sim, new InputState { Jump = press, JumpHeld = true }, default);
+                var rising = sim.GetState(Attacker);
+                if (!apex || since <= 4 || rising.IsGrounded || rising.VY > 0f) continue;
+                if (!doubleJump || second) break;
+                second = true;
+                since = -1;
+            }
+        }
 
         int arrive = -1, miss = -1, actionable = -1, contact = -1;
-        float arrivalY = 0f, contactY = 0f;
+        float arrivalY = 0f, contactY = 0f, arrivalDy = 0f;
         bool pressed = false;
         for (int t = 0; t < 240; t++)
         {
             var attackerInput = t == 0 ? new InputState { DashPressed = true } : default;
             var state = sim.GetState(Attacker);
-            if (followUp != 0 && arrive >= 0 && !pressed)
+            if (followUp != 0 && !pressed && (midDash ? t == HomingDashConfig.FloatTicks + MidDashLead : arrive >= 0))
             {
                 attackerInput.ActiveSlot = followUp;
                 pressed = true;
@@ -170,7 +207,7 @@ internal static class DashReport
             };
             Step(sim, attackerInput, defenderInput);
             state = sim.GetState(Attacker);
-            if (arrive < 0 && state.State == ActionState.HomingDashArrive) { arrive = t; arrivalY = state.PY - ground; }
+            if (arrive < 0 && state.State == ActionState.HomingDashArrive) { arrive = t; arrivalY = state.PY - ground; arrivalDy = state.PY - sim.GetState(Defender).PY; }
             if (miss < 0 && state.State == ActionState.HomingDashMiss) miss = t;
             if (contact < 0 && sim.LastTickHits.Any(h => h.OwnerEntityId == Attacker && h.TargetEntityId == Defender))
             {
@@ -180,9 +217,9 @@ internal static class DashReport
             if (actionable < 0 && t > 0 && (arrive >= 0 || miss >= 0) && state.State is ActionState.Idle or ActionState.Run
                 && state.AnimLockTicks == 0)
                 actionable = t;
-            if (followUp == 0 ? actionable >= 0 : contact >= 0 || (pressed && t > arrive + 90)) break;
+            if (followUp == 0 ? actionable >= 0 : contact >= 0 || (pressed && arrive >= 0 && t > arrive + 90)) break;
         }
-        return new DashRun(arrive, miss, actionable, contact, arrivalY, contact >= 0 ? arrivalY - contactY : 0f);
+        return new DashRun(arrive, miss, actionable, contact, arrivalY, contact >= 0 ? arrivalY - contactY : 0f, arrivalDy);
     }
 
     private static int StandingHit(MatchContentEntry entry, float spacing, byte slot)

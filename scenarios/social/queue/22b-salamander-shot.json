@@ -1,0 +1,12 @@
+{
+ "id": "22b-salamander-shot",
+ "status": "rendered",
+ "format": "shot",
+ "for": "22-salamander-teaser",
+ "title": "Finger Guns",
+ "idea": "Salamander taps six Finger Guns shots into FightGuy, then blows the smoke, twirls and holsters: the reload.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/22b-salamander-shot.json",
+ "fovScale": 1.1,
+ "clip": "tmp/content/22b-salamander-shot/22b-salamander-shot-vertical.mp4"
+}

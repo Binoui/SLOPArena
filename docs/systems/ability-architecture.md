@@ -86,7 +86,8 @@ seek plus recovery fits the authored stage, and its hitbox lifetime fits
 recovery. Ability Lab edits the same typed source contract, not a separate
 simulation or a Bonk-specific ability.
 
-`slop.ability.aimed-recovery.v1` requires runtime API `1.9.0` (Bashie's Ring Bounce).
+`slop.ability.aimed-recovery.v1` requires runtime API `1.9.0` (Bashie's retired Ring Bounce; kept as a public
+capability with a test fixture).
 One tick-zero lifecycle in a single recovery stage suppresses gravity and horizontal momentum during a fixed
 automatic setup, then samples world-plane movement input exactly once at `startupTicks`. Neutral uses `verticalSpeed`;
 stick magnitude interpolates toward `directionalVerticalSpeed` and adds up to `horizontalSpeed` along the normalized
@@ -193,6 +194,26 @@ IASA zero and one lifecycle; motion, hitbox, projectile, aim, other capability a
 completion operations are rejected, and startup aim correction, gravity and armour
 windows must end by its start tick. Phase clips (gallop loop, hit, miss, air ending)
 must be listed in the stage after the startup clip. Ability Lab does not edit it yet.
+
+`slop.ability.shell-stance.v1` and `slop.ability.thrust.v1` require runtime API `1.12.0`
+([ADR-0045](../adr/0045-bashie-shell-state.md), Bashie's Shell Shift, Shell Dive and Hydro Jet).
+The shell stance is a character-level `shell` block, not an operation: skate clock
+(`skateTicks`, 1–600), `minSkateSpeed` ≤ `maxSkateSpeed` ≤ 60, `landingSpeedRatio` (0–2),
+`popOutDeceleration` (0–600 m/s²), `blockedRecoilSpeed` (0–30), a root-relative bowling
+`hitbox` (no bones, hitGroup 0) and an optional `hitPresentationId`. It exists exactly when
+the capability is required, and needs a `presentation.shell` pose, which also sets her
+hurtbox in the shell. A slot opts in with `"shellPolicy": "tuck"` (written only when tuck,
+so other packages cook to the same bytes): only specials may tuck, without
+`allowSlideCarry` or `preserveMomentumOnStart`. `slop.ability.thrust.v1` picks one direction
+when its move starts (`aim`: `stick`, or `targetAhead` within `targetConeDegrees` of her
+facing), pitches it from `neutralPitchDegrees` to `stickPitchDegrees` with stick magnitude,
+and drives that velocity with gravity off for `thrustTicks` at `speed`, accelerating to
+`maxSpeed`; `keepIncomingSpeed` starts at the faster of `speed` and her current speed. An
+optional `trailHitbox` is authored along the travel (behind her is -Z) and lasts the thrust.
+Its slot is one tick-zero lifecycle in one `meleeCombo` stage with no aim, alongside only
+presentation and armour; IASA is allowed. A `setVelocity` may use `velocityMode: vertical`
+(same API): it writes only the vertical speed and keeps horizontal carry. Compiler and cooked
+loader enforce the same rules (`ShellBoundsError`, `ThrustBoundsError`).
 
 A `spawnProjectile` may carry a `return` block (runtime API `1.8.0`; Sir Bonk's pot
 lid). The projectile needs a positive speed and no gravity. It flies out for

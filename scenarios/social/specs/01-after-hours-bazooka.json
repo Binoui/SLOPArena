@@ -1,0 +1,101 @@
+{
+ "stage": "after_hours",
+ "notes": "final: FightGuy's tier-3 Ki Shot, Manki hops it; FightGuy rushes in with a Straight Punch; Manki backs off and answers with the Bazooka; FightGuy blasts off past the SLOP ARENA billboard, KO star at 304 (r6c choreography)",
+ "capture": {
+  "from": 5,
+  "to": 304,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "landmarks": [
+  "After Hours Fight Night Billboard"
+ ],
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    1,
+    0,
+    -4
+   ],
+   "target": 2,
+   "input": [
+    {
+     "from": 70,
+     "to": 84,
+     "jump": true
+    },
+    {
+     "from": 180,
+     "to": 209,
+     "move": 184.9
+    },
+    {
+     "at": 211,
+     "press": "R"
+    },
+    {
+     "at": 214,
+     "press": "R"
+    },
+    {
+     "at": 217,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    1.6,
+    0,
+    3.0
+   ],
+   "damage": 230,
+   "target": 1,
+   "input": [
+    {
+     "at": 16,
+     "press": "A"
+    },
+    {
+     "from": 16,
+     "to": 64,
+     "aim": true
+    },
+    {
+     "from": 110,
+     "to": 138,
+     "move": 184.9
+    },
+    {
+     "at": 139,
+     "press": "1"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "side",
+   "pos": [
+    -5.2,
+    2.6,
+    -1.5
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -0.3,
+    0.0,
+    -4.0
+   ],
+   "ease": 0.12,
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

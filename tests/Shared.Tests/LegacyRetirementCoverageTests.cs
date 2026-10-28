@@ -92,7 +92,7 @@ public class LegacyRetirementCoverageTests
         var actual = predictor.GetState(1);
         if (scenario == "slide-stop") Assert.Equal(ActionState.Crouching, actual.State);
         if (scenario == "fast-fall") Assert.True(actual.IsFastFalling);
-        if (scenario == "slide-jump") Assert.True(actual.JumpFromSlide);
+        if (scenario == "slide-jump") Assert.Equal(JumpTakeoff.Slide, actual.JumpTakeoff);
         if (scenario == "wall-contact")
         {
             TestHelpers.AssertNear(0, actual.VX);

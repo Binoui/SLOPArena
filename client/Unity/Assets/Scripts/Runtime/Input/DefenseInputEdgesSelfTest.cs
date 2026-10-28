@@ -20,7 +20,9 @@ public static class DefenseInputEdgesSelfTest
         ControllerChordRearmsWhenEitherComponentReleases();
         MixedDeviceAttackRemainsNormal();
         SuppressionDropsPendingEdgesUntilRelease();
-        Debug.Log("[DefenseInputEdgesSelfTest] Passed keyboard defense/grab, both chord orders, same-frame chord, rearm, mixed-device slot selection, and suppression checks.");
+        StickSpecialsFollowTheFaceDiamond();
+        ShieldThenLbGrabsOnce();
+        Debug.Log("[DefenseInputEdgesSelfTest] Passed keyboard defense/grab, both chord orders, same-frame chord, rearm, mixed-device slot selection, suppression, stick-special directions and shield-then-LB grab checks.");
     }
     private static void DefaultBindingsAreDefenseFirst()
     {
@@ -28,8 +30,8 @@ public static class DefenseInputEdgesSelfTest
         var grabPaths = HumanInputActions.Get("Grab").bindings.Select(binding => binding.path).ToArray();
         Require(shieldPaths.Contains("<Keyboard>/leftShift") && shieldPaths.Contains("<Gamepad>/rightTrigger"),
             "Defense defaults are not Left Shift and RT.");
-        Require(grabPaths.Length == 1 && grabPaths[0] == "<Keyboard>/c" &&
-            HumanInputActions.RebindableActions.Contains("Grab"), "C grab is not independently rebindable.");
+        Require(grabPaths.Length == 2 && grabPaths.Contains("<Keyboard>/c") && grabPaths.Contains("<Gamepad>/leftShoulder") &&
+            HumanInputActions.RebindableActions.Contains("Grab"), "Grab is not independently rebindable on C and LB.");
         Require(!HumanInputActions.RebindableActions.Contains("Burst"),
             "The retired Burst action remains rebindable.");
         var dashPaths = HumanInputActions.Get("Dash").bindings.Select(binding => binding.path).ToArray();
@@ -112,6 +114,28 @@ public static class DefenseInputEdgesSelfTest
         edges.Update(false, false, false, false, false, false, false);
         edges.Update(true, false, false, false, false, true, false);
         Require(edges.TakeShieldPressed(), "A fresh defense press did not work after release.");
+    }
+
+    private static void StickSpecialsFollowTheFaceDiamond()
+    {
+        Require(InputController.StickSpecialSlot(new Vector2(0f, 1f)) == SlopArena.Shared.AbilitySlots.E, "Stick up is not E (Y).");
+        Require(InputController.StickSpecialSlot(new Vector2(-1f, 0f)) == SlopArena.Shared.AbilitySlots.R, "Stick left is not R (X).");
+        Require(InputController.StickSpecialSlot(new Vector2(1f, 0f)) == SlopArena.Shared.AbilitySlots.F, "Stick right is not F (B).");
+        Require(InputController.StickSpecialSlot(new Vector2(0f, -1f)) == SlopArena.Shared.AbilitySlots.A, "Stick down is not special A (A).");
+        Require(InputController.StickSpecialSlot(new Vector2(0.7f, 0.6f)) == SlopArena.Shared.AbilitySlots.F,
+            "A diagonal flick did not take its larger axis.");
+    }
+
+    /// <summary>Right-stick specials: LB is a direct grab, and RT then LB is a shield grab.</summary>
+    private static void ShieldThenLbGrabsOnce()
+    {
+        var edges = new DefenseInputEdges(true);
+        edges.Update(true, true, true, false, false, false, false);
+        Require(edges.TakeShieldPressed(), "RT did not shield before LB.");
+        edges.Update(true, true, false, false, false, false, true);
+        AssertGrabOnly(ref edges, "RT then LB");
+        edges.Update(true, true, false, false, false, false, false);
+        Require(!edges.TakeGrabPressed() && !edges.ShieldHeld(true), "Held RT resumed shielding after the LB grab.");
     }
 
     private static void AssertGrabOnly(ref DefenseInputEdges edges, string chord)

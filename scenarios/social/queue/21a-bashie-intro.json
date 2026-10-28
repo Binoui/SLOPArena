@@ -1,0 +1,12 @@
+{
+ "id": "21a-bashie-intro",
+ "status": "rendered",
+ "format": "shot",
+ "for": "21-bashie-teaser",
+ "title": "Bashie intro",
+ "idea": "Bashie speed-walks in on Splash Deck, stops and turns three-quarter to a close low camera: red one-piece, water wings, hat and shell readable.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/21a-bashie-intro.json",
+ "fovScale": 1.1,
+ "clip": "tmp/content/21a-bashie-intro/21a-bashie-intro-vertical.mp4"
+}

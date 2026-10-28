@@ -1,4 +1,8 @@
-# Bonk
+# Sir Bonk
+
+> **Name (2026-10-28):** the player-facing name is **Sir Bonk** (`displayName` in `character.json`;
+> UI reads it through `MenuRoster.Name`). The package ID `bonk`, the `CharacterClass.Bonk` selector,
+> asset paths and code identifiers keep `Bonk`.
 
 > **Three normals (2026-10-26, [ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md)):** Squire's Cut stays on normal 1; Barn Door (normal 2) is retired. Normal-2 rows below are history.
 
@@ -16,7 +20,7 @@
 
 ## Status
 
-Bonk is a package-native greatsword kit admitted to the built-in roster.
+Sir Bonk is a package-native greatsword kit admitted to the built-in roster.
 It exercises the authoritative Shared compiler, trusted built-in capability
 admission, cooked package loading, Character Select discovery, and match
 content admission. Avatar visual/pose review remains a release prerequisite.

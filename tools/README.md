@@ -87,6 +87,8 @@ for their source snapshot.
 [`hud_icon_prep.py`](hud_icon_prep.py) cleans a generated HUD move icon for Unity:
 palette snap, crisp edges, normalised fill, 256 px export and the embedded prompt. It needs
 ImageMagick 7; see the [HUD move icons README](../client/Unity/Assets/Resources/UI/AbilityCards/README.md).
+[`hud_icons/`](hud_icons/hud_icons.py) makes the glyph move icons from the live models, from render to
+install, driven by `hud_icons/decks.json`; the same README has the steps.
 
 Add a new maintained C# tool to `SlopArena.sln` and this inventory so CI compiles
 it. Document its inputs and output directory. Keep exploratory projects outside

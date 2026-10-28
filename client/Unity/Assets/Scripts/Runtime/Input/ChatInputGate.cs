@@ -23,6 +23,17 @@ namespace SlopArena.Client.Input
         private static bool _releaseRequired;
         private static int _suppressThroughFrame = -1;
 
+        /// <summary>
+        /// Play Mode without a domain reload keeps these statics, and Time.frameCount restarts,
+        /// so the last session's end-of-chat frame would mute every new session until it passed.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetForPlay()
+        {
+            _isComposing = _externalOverlayActive = _externalReleaseRequired = _releaseRequired = false;
+            _externalSuppressThroughFrame = _suppressThroughFrame = -1;
+        }
+
         public static bool IsComposing => _isComposing;
 
         /// <summary>True while human gameplay and camera input must be ignored.</summary>

@@ -574,7 +574,11 @@ editor editor_stop
 default and puts the project's Enter Play Mode Options back when Play Mode ends (also
 after a crash, on the next Editor start); `editor_play --reload true` opts into a
 fresh domain. Without a reload, static state set before Play Mode survives, so reset
-what a test depends on. Workflows that need Play Mode still prefer the stage-views
+what a test depends on. Never commit an `m_EnterPlayModeOptions` change in
+`ProjectSettings/EditorSettings.asset`: 18e7809b captured a temporary `3`, so the owner's
+own Play skipped the reload and a stale chat-gate frame muted every input (2026-10-28).
+Runtime statics that gate input reset in a `SubsystemRegistration` hook (see
+`ChatInputGate.ResetForPlay`). Workflows that need Play Mode still prefer the stage-views
 commands or the course replay runner, which also save and restore scenes and
 selection.
 
@@ -619,6 +623,9 @@ the catalog before `character.json` refers to it: an `eval` of
 imports just that file, where a full `Refresh` would also compile other threads' scripts.
 In between, every command that loads the package fails with `reference.animation.unresolved`,
 including other threads' commands.
+`unbind` clears an ID's clip but keeps its entry, which the cook then reports as missing and,
+once `character.json` stops using the ID, as an orphan. To retire an ID, remove its `_bindings`
+entry and import the catalog the same way (2026-10-28, Bashie's retired R and E clips).
 
 `cook --dry-run` returns the predicted hashes and output paths without writing
 canonical cooked artifacts, generated catalogs, or cook status. Roster admission is
@@ -686,7 +693,7 @@ old styles. Import exactly the files you edited first, in the same batch:
 (one call per file). It neither recompiles nor imports anyone else's work.
 
 Use `eval_file` only when a genuinely novel probe needs more code than an inline
-expression. First check the relevant native and SLOPArena command schemas. Keep
+expression. Pass it an absolute path; a repository-relative path is not found. First check the relevant native and SLOPArena command schemas. Keep
 task-specific assertions temporary; promote repeated setup/control operations into
 the existing typed command seam rather than rewriting them in each session.
 

@@ -57,6 +57,7 @@ namespace SlopArena.Client.World
         public Checkpoint[] Checkpoints = Array.Empty<Checkpoint>();
         public Transform Finish;
         public Vector3 FinishHalfSize = new(2f, 2f, 2f);
+        public Transform[] RacingLine = Array.Empty<Transform>();
 
         [Header("Optional Manki Mayhem (instead of a ball or course)")]
         public bool MankiMayhem;
@@ -92,8 +93,11 @@ namespace SlopArena.Client.World
                     checkpoints[i] = new(cp.Id, new(Point(cp.Marker), new(cp.HalfSize.x, cp.HalfSize.y, cp.HalfSize.z)),
                         Point(cp.Respawn), cp.Respawn.eulerAngles.y * Mathf.Deg2Rad, cp.RequiredTargetCount);
                 }
-                return ArcadeStageDefinition.ForCourse(ProfileId, GameplayRevision, AllowedPackageIds,
-                    new(targets, checkpoints, new(Point(Finish), new(FinishHalfSize.x, FinishHalfSize.y, FinishHalfSize.z))));
+                var points = new ArcadePoint[RacingLine.Length];
+                for (int i = 0; i < points.Length; i++) points[i] = Point(RacingLine[i]);
+                return ArcadeStageDefinition.ForCourse(ProfileId, GameplayRevision, Array.Empty<string>(),
+                    new(targets, checkpoints, new(Point(Finish), new(FinishHalfSize.x, FinishHalfSize.y, FinishHalfSize.z)),
+                        points.Length == 0 ? null : new CourseRacingLine(points)));
             }
             if (BallSpawn == null || !BallSpawn.IsChildOf(transform)
                 || BallSpawn.childCount != 0 || BallSpawn.GetComponents<Component>().Length != 1)

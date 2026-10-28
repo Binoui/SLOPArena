@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _packageId: bonk
   _catalogSchemaVersion: 2
-  _rig: {fileID: 996956790671633796, guid: c9b31b06ccef030b7910054845350b4c, type: 3}
+  _rig: {fileID: 2676192514196542758, guid: 165e79a15748d333fbbb3af2a6047d33, type: 3}
   _weaponConfig: {fileID: 11400000, guid: e39ce81cb942475ddadbde1245b85bd5, type: 2}
   _sampleRate: 60
   _bindings:

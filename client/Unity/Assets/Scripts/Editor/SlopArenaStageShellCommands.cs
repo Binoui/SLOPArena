@@ -53,6 +53,9 @@ namespace SlopArena.EditorTools
             if ((int?)shell["format"] != 1 || (string)shell["stage"] != stage)
                 throw new InvalidOperationException("The shell must be format 1 for stage '" + stage + "' (tools/blender/stagekit/shell.py).");
             float killY = (float)shell["killY"];
+            bool markersOnly = (bool?)shell["markersOnly"] ?? false;
+            if (markersOnly && (create || remove != null || ((JArray)shell["meshes"]).Count != 0 || shell["course"] == null))
+                throw new ArgumentException("A markers-only shell needs an existing course source and no geometry edits.");
             var removable = new HashSet<string>((remove ?? "").Split(',').Select(x => x.Trim()).Where(x => x.Length > 0));
 
             // Mesh assets first: an existing asset is updated in place so references keep its GUID.
@@ -107,7 +110,7 @@ namespace SlopArena.EditorTools
                 var geometry = root.transform.Find("GameplayGeometry") ?? throw new InvalidOperationException("GameplayGeometry not found.");
                 foreach (var child in geometry.Cast<Transform>().ToArray())
                 {
-                    if (meshes.Any(m => m.name == child.name)) continue;
+                    if (markersOnly || meshes.Any(m => m.name == child.name)) continue;
                     if (!removable.Contains(child.name))
                         throw new InvalidOperationException("Unexpected GameplayGeometry child " + child.name + "; inspect it, then pass --remove " + child.name + " if the new shell replaces it.");
                     removed.Add(child.name);
@@ -148,17 +151,19 @@ namespace SlopArena.EditorTools
                             + "); pass --spawns move to set it.");
                     markers.Add(new { name, before = new[] { before.x, before.y, before.z }, position = new[] { want.x, want.y, want.z }, yaw });
                 }
-                var kill = root.transform.Find("AuthoringAids/KillPlane") ?? throw new InvalidOperationException("AuthoringAids/KillPlane marker not found.");
-                if (spawns == "move")
+                var aids = root.transform.Find("AuthoringAids") ?? throw new InvalidOperationException("AuthoringAids not found.");
+                var kill = aids.Find("KillPlane");
+                if (kill == null && !markersOnly) throw new InvalidOperationException("AuthoringAids/KillPlane marker not found.");
+                if (kill != null && spawns == "move")
                     kill.position = new Vector3(kill.position.x, killY, kill.position.z);
-                else if (Mathf.Abs(kill.position.y - killY) > 1e-4f)
+                else if (kill != null && Mathf.Abs(kill.position.y - killY) > 1e-4f)
                     throw new InvalidOperationException("The KillPlane marker is at " + kill.position.y + ", the layout says " + killY + "; pass --spawns move to set it.");
                 if (shell["course"] != null && shell["mayhem"] != null)
                     throw new ArgumentException("A shell cannot define both a course and Mayhem.");
                 if (shell["mayhem"] is JObject mayhemSpec)
-                    mayhem = ApplyMayhem(kill.parent, mayhemSpec);
+                    mayhem = ApplyMayhem(aids, mayhemSpec);
                 if (shell["course"] is JObject courseSpec)
-                    course = ApplyCourse(kill.parent, courseSpec);
+                    course = ApplyCourse(aids, courseSpec);
 
                 EditorSceneManager.MarkSceneDirty(scene);
                 if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("Saving " + scenePath + " failed.");
@@ -256,6 +261,8 @@ namespace SlopArena.EditorTools
             }).ToArray();
             config.Finish = Marker("Finish", spec["finish"]["centre"]);
             config.FinishHalfSize = Vector(spec["finish"]["halfSize"]);
+            config.RacingLine = (spec["racingLine"] as JArray ?? new JArray())
+                .Select((point, index) => Marker("RacingLine_" + index.ToString("D2"), point)).ToArray();
             var removed = new List<string>();
             foreach (var child in aids.Cast<Transform>().ToArray())
                 if (!keep.Contains(child.name))

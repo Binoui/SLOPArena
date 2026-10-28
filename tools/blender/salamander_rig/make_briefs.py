@@ -79,6 +79,10 @@ def air(name, **kw):
 
 BRIEFS = []
 
+# The three ground normals below (Pistol Whip, Stick 'Em Up!, Lasso Crack) were replaced on 2026-10-28 by simpler body
+# hits whose briefs are hand-written: tools/genra/briefs/salamander-g1-backhand-slap.json, salamander-g3-uppercut.json
+# and salamander-g4-tail-spin.json. These stay for the record of the first proposal.
+
 # --- ground.1: Pistol Whip (jab/all-rounder) --------------------------------------------------------------
 BRIEFS.append(ground('g1-pistol-whip',
   notes='Salamander ground.1 (anim.salamander.g1), kit proposal 2026-10-27: Pistol Whip, his jab. Timing kept from the '

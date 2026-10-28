@@ -1,0 +1,14 @@
+{
+ "id": "12-joust-hamster-habitat",
+ "status": "rendered",
+ "format": "fighter",
+ "title": "The Joust",
+ "idea": "Sir Bonk rears on his hobby horse (NEIGH!) and gallops at Wibou; Wibou's shuriken plink off the armour, the lance unhorses Wibou (BONK!) and Sir Bonk rears proudly before the horse poofs away. Camera on Bonk's front three-quarter.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/12-joust-hamster-habitat.json",
+ "fovScale": 1.1,
+ "end": 170,
+ "hold": 0.8,
+ "clip": "tmp/content/12-joust-hamster-habitat/12-joust-hamster-habitat-vertical.mp4",
+ "feedback": "Owner 2026-10-28: weak execution but keep the idea: it shows Sir Bonk's R (the ability is great) and the armour shrugging off a projectile is a good beat. Redo closer and readable: see the hobby horse, the shuriken plinking off the armour, and Wibou big when the lance hits."
+}

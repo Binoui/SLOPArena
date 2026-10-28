@@ -58,7 +58,15 @@ namespace SlopArena.EditorTools
                     "CPU removal must preserve one opponent, including when P2 was previously Open.");
                 Require(MatchConfig.Seat(2).Difficulty == CpuDifficulty.Hard,
                     "Changing or removing another seat must preserve the CPU difficulty.");
-                Debug.Log("[SoloSeatsSelfTest] All seat admission, device ownership, leave fallback and removal checks passed.");
+                foreach (LocalPlayMode mode in Enum.GetValues(typeof(LocalPlayMode)))
+                {
+                    MatchConfig.LocalMode = mode;
+                    MatchConfig.ClearActiveMatch();
+                    Require(MatchConfig.LocalMode == mode, "Match cleanup must preserve the Local Play retry destination.");
+                }
+                MatchConfig.Reset();
+                Require(MatchConfig.LocalMode == LocalPlayMode.Brawl, "A full menu reset must restore Brawl as the default.");
+                Debug.Log("[SoloSeatsSelfTest] Seat admission, ownership, leave fallback, removal and Local Play return persistence passed.");
             }
             finally
             {

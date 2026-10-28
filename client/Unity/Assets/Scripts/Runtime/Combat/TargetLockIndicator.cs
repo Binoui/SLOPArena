@@ -13,6 +13,10 @@ namespace SlopArena.Client.Combat
     {
         private const string VisibleClass = "visible";
         private const string DamageHiddenClass = "damage-hidden";
+        private static readonly Color Paper = new(240f / 255f, 238f / 255f, 232f / 255f);
+        private static readonly Color Ink = new(22f / 255f, 21f / 255f, 19f / 255f);
+        private static readonly Color Hot = new(1f, 107f / 255f, 107f / 255f);
+        private static readonly Color Crimson = new(239f / 255f, 68f / 255f, 68f / 255f);
 
         [Header("Framing")]
         [SerializeField] private float _paddingPx = 10f;
@@ -21,6 +25,8 @@ namespace SlopArena.Client.Combat
         private VisualElement _root;
         private Label? _damage;
         private Label? _percent;
+        private VisualElement? _marker;
+        private Color _markerColour = Paper;
         private int _damagePercent = -1;
         private UnityEngine.Camera _camera;
         private PlayerRenderer _target;
@@ -38,6 +44,8 @@ namespace SlopArena.Client.Combat
             _root = root;
             _damage = root?.Q<Label>("target-lock-damage");
             _percent = root?.Q<Label>("target-lock-percent");
+            _marker = root?.Q<VisualElement>("target-lock-marker");
+            if (_marker != null) _marker.generateVisualContent = DrawChevron;
             _damagePercent = -1;
             _target = null;
             _objectTarget = null;
@@ -64,6 +72,7 @@ namespace SlopArena.Client.Combat
                     : System.Array.Empty<Renderer>();
             }
             _target = target;
+            SetMarkerColour(target != null ? SeatColours.ForFighter(target.EntityId, target.PlayerNumber) : Paper);
             if (target == null || !locked)
             {
                 HideImmediate();
@@ -82,6 +91,7 @@ namespace SlopArena.Client.Combat
                     : System.Array.Empty<Renderer>();
             _target = null; _targetHead = null;
             _objectTarget = target; _objectRadius = radius;
+            SetMarkerColour(Paper);
             _showDamage = damagePercent.HasValue;
             if (target == null || !locked) { HideImmediate(); return; }
             if (damagePercent.HasValue) ShowDamage(damagePercent.Value);
@@ -94,8 +104,9 @@ namespace SlopArena.Client.Combat
             if (_damage != null && damagePercent != _damagePercent)
             {
                 _damage.text = damagePercent.ToString();
-                _damage.style.fontSize = damagePercent >= 1000 ? 18f : 22f;
-                var color = HUDManager.DamageColor(damagePercent);
+                // Heat avoids the seat palette: paper, then red, then a bigger crimson from 90%.
+                _damage.style.fontSize = damagePercent >= 1000 ? 26f : damagePercent >= 90 ? 35f : 30f;
+                var color = damagePercent < 40 ? Paper : damagePercent < 90 ? Hot : Crimson;
                 _damage.style.color = color;
                 if (_percent != null) _percent.style.color = color;
                 _damagePercent = damagePercent;
@@ -103,6 +114,33 @@ namespace SlopArena.Client.Combat
 
             _root.EnableInClassList(VisibleClass, true);
         }
+        private void SetMarkerColour(Color colour)
+        {
+            if (_marker == null || _markerColour == colour) return;
+            _markerColour = colour;
+            _marker.MarkDirtyRepaint();
+        }
+
+        private void DrawChevron(MeshGenerationContext context)
+        {
+            var rect = _marker!.contentRect;
+            var painter = context.painter2D;
+            Triangle(painter, rect, Ink);
+            var inner = new Rect(rect.x + 3f, rect.y + 2f, rect.width - 6f, rect.height - 5f);
+            Triangle(painter, inner, _markerColour);
+        }
+
+        private static void Triangle(Painter2D painter, Rect rect, Color colour)
+        {
+            painter.fillColor = colour;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(rect.xMin, rect.yMin));
+            painter.LineTo(new Vector2(rect.xMax, rect.yMin));
+            painter.LineTo(new Vector2(rect.center.x, rect.yMax));
+            painter.ClosePath();
+            painter.Fill();
+        }
+
         /// <summary>Clear the presentation during lifecycle reset or lock loss.</summary>
         public void Clear(bool immediate = false)
         {

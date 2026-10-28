@@ -134,6 +134,19 @@ identity and canonical-project rules apply. It launches the existing local cours
 scene using the selected stage/package; this checks gameplay and presentation,
 not navigation through the Arcade menu.
 
+Local Scramble probes reuse this lifecycle. Pass `--extra-fighters manki,bashie,bonk`
+to `sloparena.replay.prepare` for P2–P4. Omit it for the solo replay. Preparation
+saves and restores the local seats and isolates records. Use
+`sloparena.scramble.run --inputs '{"1":[{"ticks":60}],"2":[{"ticks":60}],"3":[{"ticks":60}],"4":[{"ticks":60}]}'`
+to drive the human seats through their normal local match. Each seat supplies the same
+1–600 ticks in the semantic step format. The run waits through the countdown,
+freezes at its final Shared tick, and reports points, places, leader, positions,
+events and hits. `sloparena.scramble.status` reads that state. Capture through
+`sloparena.replay.capture` at the exact elapsed tick; Scramble retains its leader
+camera and rejects camera overrides. Stop and restore remain required in the same
+gateway batch. These probes verify runtime behavior; they do not establish controller
+feel or a complete traversal route.
+
 The typed `sloparena.replay.prepare/run/capture/stop/restore` commands reuse the normal
 course input driver, semantic parser, content catalog and capture implementation.
 The repository runner owns scenario planning, chunking and result checks. An

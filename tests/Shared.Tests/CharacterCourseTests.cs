@@ -22,6 +22,40 @@ public sealed class CharacterCourseTests
         Assert.Null(ArcadeStageBinaryFormat.Deserialize(section.Concat(new byte[] { 0 }).ToArray()));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CoursesAdmitEveryPackageWithLegacyOrEmptyListsAndPreserveRecords(bool empty)
+    {
+        var arena = Arena();
+        var original = arena.Arcade!;
+        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        string record = ArcadeRecordCompatibility.Course(arena, fighter);
+        if (empty)
+            arena.Arcade = ArcadeStageDefinition.ForCourse(original.ProfileId, original.GameplayRevision,
+                Array.Empty<string>(), original.Course!);
+        byte[] bytes = ArenaBinaryFormat.Serialize(arena);
+        var loaded = ArenaBinaryFormat.Deserialize(bytes)!.Value;
+        Assert.Equal(empty ? 0 : 1, loaded.Arcade!.AllowedPackageIds.Count);
+        Assert.True(loaded.Arcade.AllowsPackage("fightguy"));
+        Assert.True(loaded.Arcade.AllowsPackage("manki"));
+        Assert.True(loaded.Arcade.AllowsPackage("future-package"));
+        Assert.Equal(bytes, ArenaBinaryFormat.Serialize(loaded));
+        Assert.Equal(record, ArcadeRecordCompatibility.Course(loaded, fighter));
+    }
+
+    [Theory]
+    [MemberData(nameof(CourseFinishabilityTests.Cases), MemberType = typeof(CourseFinishabilityTests))]
+    public void EveryCourseAndRosterFighterCanCreateAPersonalBestKey(string arenaKey, CharacterClass fighter)
+    {
+        var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(CourseFinishability.Root, "data/arenas", arenaKey + ".arena"))!.Value;
+        var entry = BuiltInContentResolver.Resolve(fighter);
+        Assert.True(arena.Arcade!.AllowsPackage(entry.Identity.PackageId));
+        var key = new ArcadeRecordKey("character-course", arena.Arcade.ProfileId, entry.Identity.PackageId,
+            ArcadeRecordCompatibility.Course(arena, entry));
+        key.Validate();
+    }
+
     [Fact]
     public void InvalidTargetsVolumesAndContradictoryCheckpointPrefixesAreRejected()
     {
@@ -190,7 +224,7 @@ public sealed class CharacterCourseTests
         arena.Arcade = ArcadeStageDefinition.ForCourse("fixture", 1, new[] { "fightguy" }, new CharacterCourseDefinition(
             new[] { new CourseTargetDefinition("first", new(3, 1, 0), .5f), c.Targets[1] }, c.Checkpoints, c.Finish));
         Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, entry));
-        Assert.Throws<ArgumentException>(() => ArcadeRecordCompatibility.Course(arena, BuiltInContentResolver.Resolve(CharacterClass.Manki)));
+        Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, BuiltInContentResolver.Resolve(CharacterClass.Manki)));
     }
 
     [Fact]

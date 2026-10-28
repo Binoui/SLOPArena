@@ -30,7 +30,7 @@ Camera aim input cannot put these slots into an aiming stance.
 - Camera-relative movement uses one ground Run tier. Keyboard stays digital in eight directions. Controller stick 8-way snap is a persisted Controls setting, default on, applied only by the client.
 - Jump and double jump use the character's movement definition. ShortHop is release-timed during the opening jump window.
 - FastFall requires a fresh Down press while already descending; it sets and latches the configured downward speed until landing or interruption. Release preserves the latch; ascent/apex and locked/owned presses are discarded. Ordinary aerial attacks may coexist, but Hitstop, Hitstun, ledges and authored vertical motion prevent activation. FastFall overrides any active gravity window.
-- Shield is a permanent, full-body grounded defense held with Left Shift / RT. It stops ordinary melee, projectile and explosion attacks from every direction, freezes combat facing, and enters a vulnerable 7-tick drop after release. Grab is C or the controller LB+RT chord.
+- Shield is a permanent, full-body grounded defense held with Left Shift / RT. It stops ordinary melee, projectile and explosion attacks from every direction, freezes combat facing, and enters a vulnerable 7-tick drop after release. Grab is C or controller LB (LB+RT when Settings → Controls → Right Stick is Camera).
 - Automatic ledge grabs and LedgeHang are disabled for the friends demo. Fighters fall past stage edges; return with jumps, movement, and kit recovery moves.
 - Each ability entry can be limited to one use per flight. Landing resets air-use counters.
 - RecoveryMove is the per-character return-to-stage move. It is the only ordinary move that resets the FloatWindow mid-air.
@@ -108,7 +108,7 @@ The previous facing-locked tuning (11 m/s for 10 ticks, then 20 ticks frozen in
 place) covered 1.83 m, less than holding the stick for the same 30 ticks, and a
 dodge just before touchdown left 29 ticks of grounded recovery.
 
-The old Universal Dash is retired. Its input bit now starts the universal homing dash (ADR-0042): a startup float, then a dash that turns toward the target at a limited rate. Arriving opens a short window that any action cancels; running out of travel is a locked, punishable miss. It has a universal cooldown, one use per airtime, and starts from any state except being hit or attacking (an attack's IASA window counts as free). Shield, hitboxes and projectiles beat it. Values live in `HomingDashConfig`.
+The old Universal Dash is retired. Its input bit now starts the Beeline, the universal homing dash (ADR-0042): a startup float, then a dash that turns toward the target at a limited rate. Arriving opens a short window that any action cancels, and a slot pressed during the dash starts there; an airborne arrival glides on briefly instead of stopping dead; running out of travel is a locked, punishable miss. It has a universal cooldown, one use per airtime, and starts from any state except being hit or attacking (an attack's IASA window counts as free). Shield, hitboxes and projectiles beat it. Values live in `HomingDashConfig`.
 Kit-owned dash/lunge/recovery abilities retain their own timing and mobility.
 The former Burst input bit is reserved and inert; Burst cannot escape
 Hitstop or Hitstun, interrupt a move, or grant invulnerability.
@@ -135,7 +135,7 @@ momentum at RunSpeed. Run starts brake to zero over `DownActionTuning.RunAttackC
 currently 20 ticks (3× RunSpeed per second), so a run attack slides as far as releasing
 the stick. Slide starts decay by 6× RunSpeed per second. Neither origin steers, accelerates
 or refills lower incoming speed. At the cap, Run stops after 20 unfrozen ticks and Slide
-after 10. The replicated `AttackCarryFromRun` flag selects the Run rate.
+after 10. The replicated `AttackCarryFrom` origin (`Slide`, `Run`, `Shell`) selects the rate.
 `PreserveMomentumOnStart` overrides Run braking; opted-in Slide carry retains priority.
 Idle starts and chained normals do not gain carry. Carry freezes during Hitstop and clears
 on completion, cancellation, hit or motion takeover. Aerial momentum and normal attack locks
@@ -143,6 +143,25 @@ remain unchanged. The replicated flag retains its historical `SlideAttackCarryAc
 
 Default max-fall/fast-fall speeds: FightGuy 14/22, Manki 13.5/21, Bonk 15/24, Wibou 14/22.
 The report's historical-fall and 3× slide-friction controls do not change these defaults.
+
+### Shell
+
+Bashie's shell ([ADR-0045](../adr/0045-bashie-shell-state.md)) is a fighter state beside Slide,
+`ActionState.Shell`, entered when a tuck move (Shell Shift, Shell Dive, Hydro Jet) completes or
+touches down. "In the shell" is `Shell.IsTucked`: that state, or attacking in a tuck move. On the
+ground she skates straight along her facing on her velocity, with no steering or friction; in the
+air she coasts ballistically. `StateTicks` is the skate clock: it starts at a grounded hand-off or
+her first touchdown, keeps running through walk-off coasts, and its expiry pops her up into Idle.
+A landing adds `landingSpeedRatio` × the downward speed, so a higher dive skates faster; speeds stay
+within the shell's minimum and maximum. She may act from the shell: a grounded normal pops her out
+at skate speed (carry origin `Shell`: no RunSpeed cap, braking at `popOutDeceleration`, kept through
+a vertical-only hop), a grounded jump takes off uncapped (`JumpTakeoff.Shell`), an air jump hops her
+out, and shield, grab, air dodge and homing dash leave through their own admission. While she is in
+the state an engine-owned bowling hitbox (`Hitbox.OwnerWindow`) follows her and hits each fighter
+once per stay, freezing both, and she skates under the fighters she bowls (pushboxes skipped). A
+head-on wall (a side contact that would keep under 60% of her forward speed, including runtime
+walls and the Slopball net) or a shield pops her up bouncing back at `blockedRecoilSpeed` with no
+recovery lock. Any hit pops her out (no armour) and drops her later bowling contacts in that batch.
 
 ### Settled CrouchBrace
 
@@ -170,7 +189,8 @@ interruption or a crouched landing. These are scenario measurements, not balance
 
 ### Ground grab, held movement, and forward throw
 
-Grab uses C on keyboard (rebindable) or LB+RT on controller. It takes priority
+Grab uses C on keyboard (rebindable) or LB on controller; with the right stick set to
+Camera, LB is the special modifier and grab is the LB+RT chord (ADR-0042 amendment). It takes priority
 over grounded movement and snapshots facing. Incoming horizontal momentum carries
 briefly, capped at run speed and braked to a stop within 6 ticks (100 ms), before
 the active window; held movement cannot steer or add speed. Stationary grabs stay in place.
@@ -334,7 +354,8 @@ input-suppressed modes do not auto-orbit. Training and PvP share this behavior.
 The experimental tuning and enable switch live on `CameraMount` under **Lock Camera
 Assistance** in the Inspector, not in target-selection or Shared gameplay rules.
 
-The right stick orbits on a curve: precise near the centre and up to 300°/s yaw at full
+When Settings → Controls → Right Stick is Camera (the default flicks specials, ADR-0042),
+the right stick orbits on a curve: precise near the centre and up to 300°/s yaw at full
 deflection (pitch at 60% of yaw), reaching top speed after a quarter second held near the
 edge. **Stick Look Speed** (Settings → Controls, 10–200%) scales it, plus the stick-driven
 aim camera and ground cursor; **Mouse Sensitivity** (Settings → Gameplay) scales only the

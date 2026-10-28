@@ -90,12 +90,6 @@ namespace SlopArena.Client.World
             public byte LastDeaths;
         }
         private bool Couch => _npcs.Any(npc => npc.Input != null);
-        protected override Func<ulong, Color?> LocalAccentOf => id =>
-        {
-            if (id == PlayerEntityId) return SeatColours.For(1);
-            var seat = _npcs.FirstOrDefault(npc => npc.Id == id && npc.Input != null);
-            return seat != null ? SeatColours.For(seat.PlayerNumber) : null;
-        };
         private ushort _soloCountdownTicks;
         private ushort _lastSoloPlayerDeaths;
         private readonly Dictionary<ulong, uint> _eliminatedAt = new();
@@ -186,6 +180,7 @@ namespace SlopArena.Client.World
 
         public int NpcCount => _npcs.Count;
         public int SelectedNpcIndex => _selectedNpcIndex;
+        public int SelectedNpcPlayerNumber => _npcs.Count > 0 ? _npcs[_selectedNpcIndex].PlayerNumber : 2;
         public NpcAiMode CurrentNpcMode => _npcAiMode;
         public CpuDifficulty CurrentNpcDifficulty => BotDifficultyProfile.Normalize(_npcDifficulty);
         public bool NoCooldowns => _bridge != null && _bridge.InternalSim.NoCooldownsEntityId == PlayerEntityId;
@@ -308,6 +303,8 @@ namespace SlopArena.Client.World
             if (MatchConfig.Mode != GameMode.Training || _bridge == null) return;
             var entry = _npcs.FirstOrDefault()?.Entry;
             if (entry == null) return;
+            int playerNumber = 2;
+            while (_npcs.Any(npc => npc.PlayerNumber == playerNumber)) playerNumber++;
             var slot = new NpcSlot
             {
                 Id = (ulong)_nextNpcId++,
@@ -315,7 +312,7 @@ namespace SlopArena.Client.World
                 Memory = new BotMemory(),
                 Entry = entry,
                 Def = entry.Definition,
-                PlayerNumber = _npcs.Count + 2,
+                PlayerNumber = playerNumber,
                 Spawn = NextNpcSpawn(),
             };
             slot.Memory.Difficulty = CurrentNpcDifficulty;
@@ -568,10 +565,9 @@ namespace SlopArena.Client.World
 
         private List<HUDManager.HudPlayer> HudExtraPlayers()
         {
-            // CPU cards name the CPU, not its internal entity id (which starts at 100).
             var list = new List<HUDManager.HudPlayer>(_npcs.Count);
             for (int i = 0; i < _npcs.Count; i++)
-                list.Add(new HUDManager.HudPlayer(_npcs[i].Id, MatchConfig.Mode == GameMode.Solo ? $"P{_npcs[i].PlayerNumber}" : i == 0 ? "CPU" : $"CPU {i + 1}",
+                list.Add(new HUDManager.HudPlayer(_npcs[i].Id, $"P{_npcs[i].PlayerNumber}",
                     _npcs[i].Def.Class, isLocal: false, playerNumber: _npcs[i].PlayerNumber));
             return list;
         }
@@ -585,6 +581,7 @@ namespace SlopArena.Client.World
                 slot.Renderer = new GameObject($"Npc{slot.Id}").AddComponent<PlayerRenderer>();
             if (!SetupRenderer(slot.Renderer, slot.Entry, _arenaDef, slot.Id, false))
                 return false;
+            slot.Renderer.PlayerNumber = slot.PlayerNumber;
             slot.Renderer.RenderInterpolation = _renderInterpolation;
             var spawn = slot.Spawn;
             slot.Renderer.transform.position = new Vector3(spawn.X, spawn.Y, spawn.Z);
@@ -803,10 +800,13 @@ namespace SlopArena.Client.World
 
         private void LateUpdate() => _mayhem?.UpdateView();
 
-        protected override void LeaveMatch()
+        // Leaving keeps the Mayhem format, so Fighter Select reopens on the same show's seats.
+        protected override Action PauseRetry => Mayhem ? RestartMayhem : null;
+
+        private static void RestartMayhem()
         {
-            if (Mayhem) MatchConfig.Format = MatchFormat.Stock;
-            base.LeaveMatch();
+            MatchConfig.MayhemSeed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         private void BuildSoloResults(MatchOutcome outcome)

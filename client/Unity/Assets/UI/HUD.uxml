@@ -52,137 +52,129 @@
                 <ui:Label name="target-lock-damage" class="target-lock-damage" />
                 <ui:Label name="target-lock-percent" class="target-lock-percent" text="%" />
             </ui:VisualElement>
-            <ui:VisualElement name="target-lock-marker" class="target-lock-marker">
-                <ui:VisualElement class="target-lock-bracket target-lock-bracket-left" />
-                <ui:VisualElement class="target-lock-bracket target-lock-bracket-right" />
-                <ui:VisualElement class="target-lock-pointer target-lock-pointer-left" />
-                <ui:VisualElement class="target-lock-pointer target-lock-pointer-right" />
-            </ui:VisualElement>
+            <ui:VisualElement name="target-lock-marker" class="target-lock-marker" />
         </ui:VisualElement>
         <ui:VisualElement name="player-billboard" class="player-billboard" />
         <ui:VisualElement name="kit-diamonds" class="move-deck">
             <ui:VisualElement name="move-pairs" class="move-pairs">
-                <ui:VisualElement name="move-pair-1" class="move-pair">
-                    <ui:VisualElement name="ab-dash" class="slot normal-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-dash-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-dash-icon" class="slot-icon-inner" />
-                            </ui:VisualElement>
-                            <ui:VisualElement name="ab-dash-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-dash-timer" class="slot-timer" />
-                            <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-dash-button" class="slot-prompt-image" />
-                                <ui:Label name="ab-dash-key" class="slot-key-label" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
+                <ui:VisualElement name="ab-dash" class="slot beeline-slot">
+                    <ui:VisualElement name="ab-dash-ring" class="beeline-ring" />
+                    <ui:Label name="ab-dash-name" class="slot-name" />
+                    <ui:VisualElement class="slot-content">
+                        <ui:Image name="ab-dash-icon" class="slot-icon-inner" />
                     </ui:VisualElement>
-                    <ui:VisualElement name="ab-a" class="slot special-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-a-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-a-icon" class="slot-icon-inner" />
-                            </ui:VisualElement>
-                            <ui:VisualElement name="ab-a-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-a-timer" class="slot-timer" />
-                            <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-a-button" class="slot-prompt-image" />
-                                <ui:Label name="ab-a-key" class="slot-key-label" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
+                    <ui:VisualElement name="ab-dash-cooldown" class="slot-cooldown" />
+                    <ui:Label name="ab-dash-timer" class="slot-timer" />
+                    <ui:Label text="BEELINE" class="beeline-tag" />
+                    <ui:VisualElement class="slot-prompt">
+                        <ui:Image name="ab-dash-button" class="slot-prompt-image" />
+                        <ui:Label name="ab-dash-key" class="slot-key-label" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:VisualElement name="move-pair-2" class="move-pair">
-                    <ui:VisualElement name="ab-1" class="slot normal-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-1-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-1-icon" class="slot-icon-inner" />
+                <ui:VisualElement class="move-stack">
+                    <ui:VisualElement class="normal-row">
+                        <ui:VisualElement name="ab-1" class="slot normal-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-1-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-1-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-1-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-1-timer" class="slot-timer" />
                             </ui:VisualElement>
-                            <ui:VisualElement name="ab-1-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-1-timer" class="slot-timer" />
                             <ui:VisualElement class="slot-prompt">
                                 <ui:Image name="ab-1-button" class="slot-prompt-image" />
                                 <ui:Label name="ab-1-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement name="ab-r" class="slot special-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-r-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-r-icon" class="slot-icon-inner" />
+                        <ui:VisualElement name="ab-3" class="slot normal-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-3-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-3-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-3-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-3-timer" class="slot-timer" />
                             </ui:VisualElement>
-                            <ui:VisualElement name="ab-r-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-r-timer" class="slot-timer" />
-                            <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-r-button" class="slot-prompt-image" />
-                                <ui:Label name="ab-r-key" class="slot-key-label" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-                <ui:VisualElement name="move-pair-3" class="move-pair">
-                    <ui:VisualElement name="ab-3" class="slot normal-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-3-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-3-icon" class="slot-icon-inner" />
-                            </ui:VisualElement>
-                            <ui:VisualElement name="ab-3-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-3-timer" class="slot-timer" />
                             <ui:VisualElement class="slot-prompt">
                                 <ui:Image name="ab-3-button" class="slot-prompt-image" />
                                 <ui:Label name="ab-3-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement name="ab-e" class="slot special-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-e-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-e-icon" class="slot-icon-inner" />
+                        <ui:VisualElement name="ab-4" class="slot normal-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-4-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-4-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-4-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-4-timer" class="slot-timer" />
                             </ui:VisualElement>
-                            <ui:VisualElement name="ab-e-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-e-timer" class="slot-timer" />
-                            <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-e-button" class="slot-prompt-image" />
-                                <ui:Label name="ab-e-key" class="slot-key-label" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-                <ui:VisualElement name="move-pair-4" class="move-pair">
-                    <ui:VisualElement name="ab-4" class="slot normal-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-4-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-4-icon" class="slot-icon-inner" />
-                            </ui:VisualElement>
-                            <ui:VisualElement name="ab-4-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-4-timer" class="slot-timer" />
                             <ui:VisualElement class="slot-prompt">
                                 <ui:Image name="ab-4-button" class="slot-prompt-image" />
                                 <ui:Label name="ab-4-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:VisualElement name="ab-f" class="slot special-slot">
-                        <ui:VisualElement class="slot-plate" />
-                        <ui:VisualElement class="slot-face">
-                            <ui:Label name="ab-f-name" class="slot-name" />
-                            <ui:VisualElement class="slot-content">
-                                <ui:Image name="ab-f-icon" class="slot-icon-inner" />
+                    <ui:VisualElement class="special-row">
+                        <ui:VisualElement name="ab-a" class="slot special-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-a-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-a-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-a-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-a-timer" class="slot-timer" />
                             </ui:VisualElement>
-                            <ui:VisualElement name="ab-f-cooldown" class="slot-cooldown" />
-                            <ui:Label name="ab-f-timer" class="slot-timer" />
+                            <ui:VisualElement class="slot-prompt">
+                                <ui:Image name="ab-a-button" class="slot-prompt-image" />
+                                <ui:Label name="ab-a-key" class="slot-key-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="ab-r" class="slot special-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-r-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-r-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-r-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-r-timer" class="slot-timer" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="slot-prompt">
+                                <ui:Image name="ab-r-button" class="slot-prompt-image" />
+                                <ui:Label name="ab-r-key" class="slot-key-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="ab-e" class="slot special-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-e-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-e-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-e-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-e-timer" class="slot-timer" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="slot-prompt">
+                                <ui:Image name="ab-e-button" class="slot-prompt-image" />
+                                <ui:Label name="ab-e-key" class="slot-key-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="ab-f" class="slot special-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-f-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-f-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-f-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-f-timer" class="slot-timer" />
+                            </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
                                 <ui:Image name="ab-f-button" class="slot-prompt-image" />
                                 <ui:Label name="ab-f-key" class="slot-key-label" />
@@ -190,13 +182,7 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:VisualElement class="modifier-rail" />
                 <ui:Label name="move-tooltip" class="move-tooltip" picking-mode="Ignore" />
-                <ui:VisualElement name="special-modifier-prompt" class="modifier-prompt">
-                    <ui:Image name="special-modifier-button" class="modifier-button" />
-                    <ui:Label name="special-modifier-key" class="modifier-key" />
-                    <ui:Label text="+" class="modifier-plus" />
-                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

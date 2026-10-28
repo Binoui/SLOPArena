@@ -46,10 +46,12 @@ public sealed class MatchResultPacket
     private const int MayhemHeaderSize = 2;
     private const int MayhemPlayerSize = 15;
     private const byte CourseMarker = 3;
+    private const byte ScrambleMarker = 5;
+    private const int ScramblePlayerSize = 24;
     private const int CourseHeaderSize = 12;
     private const int CoursePlayerSize = 22;
     public const int MaxPlayers = 4;
-    public const int MaxSize = HeaderSize + EntrySize * MaxPlayers + CourseHeaderSize + CoursePlayerSize * MaxPlayers;
+    public const int MaxSize = HeaderSize + EntrySize * MaxPlayers + CourseHeaderSize + ScramblePlayerSize * MaxPlayers;
 
     public MatchResultPacket(uint durationTicks, bool sharedVictory, MatchResultEntry[] entries,
         SlopballRunResult? run = null, SlopballVersusResult? versus = null, CourseRunResult? course = null, MayhemRunResult? mayhem = null)
@@ -80,13 +82,14 @@ public sealed class MatchResultPacket
     public SlopballVersusResult? Versus { get; }
     public CourseRunResult? Course { get; }
     public MayhemRunResult? Mayhem { get; }
-    public int WireSize => HeaderSize + EntrySize * Entries.Length + (Run.HasValue ? RunSize : Versus.HasValue ? VersusSize : Course != null ? CourseHeaderSize + Course.Players.Count * CoursePlayerSize : Mayhem != null ? MayhemHeaderSize + Mayhem.Players.Count * MayhemPlayerSize : 0);
+    public int WireSize => HeaderSize + EntrySize * Entries.Length + (Run.HasValue ? RunSize : Versus.HasValue ? VersusSize : Course != null ? CourseHeaderSize + Course.Players.Count * (Course.Format == CourseFormat.Scramble ? ScramblePlayerSize : CoursePlayerSize) : Mayhem != null ? MayhemHeaderSize + Mayhem.Players.Count * MayhemPlayerSize : 0);
 
     private static bool ValidCourse(CourseRunResult course, MatchResultEntry[] entries)
-        => course.Players != null && course.Players.Count == entries.Length
+        => course.Format <= CourseFormat.Scramble && course.Players != null && course.Players.Count == entries.Length
             && course.Players.Select(x => x.EntityId).Distinct().Count() == entries.Length
-            && course.Players.All(x => Array.Exists(entries, e => e.EntityId == x.EntityId && e.Placement == x.Place)
+            && course.Players.All(x => Array.Exists(entries, e => e.EntityId == x.EntityId && e.Placement == course.PlaceFor(x.EntityId))
                 && x.TotalTargets is > 0 and <= CharacterCourseDefinition.MaxTargets && x.BrokenTargets <= x.TotalTargets
+                && (course.Format == CourseFormat.Scramble ? x.Points <= x.TotalTargets * CourseScrambleTuning.BonusTargetPoints + CourseScrambleTuning.FirstFinishPoints : x.Points == 0)
                 && x.Place <= entries.Length && (x.Place == 0) == (x.FinishTicks == 0)
                 && x.FinishTicks <= course.ElapsedTicks && (x.Place == 0 || x.BrokenTargets == x.TotalTargets))
             && course.Completed == course.Players.Any(x => x.Place != 0);
@@ -147,7 +150,7 @@ public sealed class MatchResultPacket
         }
         else if (Course is { } course)
         {
-            buffer[offset++] = CourseMarker; buffer[offset++] = course.Cooperative ? (byte)1 : (byte)0;
+            buffer[offset++] = course.Format == CourseFormat.Scramble ? ScrambleMarker : CourseMarker; buffer[offset++] = (byte)course.Format;
             buffer[offset++] = course.Completed ? (byte)1 : (byte)0;
             BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(offset, 8), course.ElapsedTicks); offset += 8;
             buffer[offset++] = (byte)course.Players.Count;
@@ -158,6 +161,7 @@ public sealed class MatchResultPacket
                 BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.BrokenTargets); offset += 2;
                 BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.TotalTargets); offset += 2;
                 buffer[offset++] = player.Place; buffer[offset++] = player.Withdrawn ? (byte)1 : (byte)0;
+                if (course.Format == CourseFormat.Scramble) { BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.Points); offset += 2; }
             }
         }
     }
@@ -207,11 +211,13 @@ public sealed class MatchResultPacket
             mayhem = new(Array.AsReadOnly(players));
             if (!ValidMayhem(mayhem, entries)) return false;
         }
-        else if (buffer.Length > offset && buffer[offset] == CourseMarker)
+        else if (buffer.Length > offset && buffer[offset] is CourseMarker or ScrambleMarker)
         {
-            if (buffer.Length < offset + CourseHeaderSize || buffer[offset + 1] > 1 || buffer[offset + 2] > 1
-                || buffer[offset + 11] != count || buffer.Length != offset + CourseHeaderSize + count * CoursePlayerSize) return false;
-            bool cooperative = buffer[offset + 1] == 1, completed = buffer[offset + 2] == 1;
+            bool scramble = buffer[offset] == ScrambleMarker;
+            int playerSize = scramble ? ScramblePlayerSize : CoursePlayerSize;
+            if (buffer.Length < offset + CourseHeaderSize || (scramble ? buffer[offset + 1] != 2 : buffer[offset + 1] > 1) || buffer[offset + 2] > 1
+                || buffer[offset + 11] != count || buffer.Length != offset + CourseHeaderSize + count * playerSize) return false;
+            var format = (CourseFormat)buffer[offset + 1]; bool completed = buffer[offset + 2] == 1;
             ulong elapsed = BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset + 3, 8));
             offset += CourseHeaderSize;
             var players = new CourseFinishResult[count];
@@ -222,10 +228,11 @@ public sealed class MatchResultPacket
                 ushort broken = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 16, 2));
                 ushort total = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 18, 2));
                 if (buffer[offset + 21] > 1) return false;
-                players[i] = new(id, time, broken, total, buffer[offset + 20], buffer[offset + 21] == 1);
-                offset += CoursePlayerSize;
+                players[i] = new(id, time, broken, total, buffer[offset + 20], buffer[offset + 21] == 1,
+                    scramble ? BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 22, 2)) : (ushort)0);
+                offset += playerSize;
             }
-            course = new(cooperative, completed, elapsed, Array.AsReadOnly(players));
+            course = new(format, completed, elapsed, Array.AsReadOnly(players));
             if (!ValidCourse(course, entries)) return false;
         }
         else if (buffer.Length > offset && buffer[offset] == VersusMarker)

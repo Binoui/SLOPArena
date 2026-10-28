@@ -66,6 +66,8 @@ SPEC = {
         # atrium and the closed skybridge (a missing middle span with two hanging planters).
         "WestL2": (-16.0, -50.0, -8.0, -8.0, L2),
         "Podium": (-3.0, -38.0, 1.0, -30.0, L2),
+        "SaleBalloon1": (3.1, -27.2, 4.5, -25.8, L2),
+        "SaleBalloon2": (5.7, -23.7, 7.1, -22.3, L2),
         "BridgeW": (-8.0, -14.0, -6.0, -10.0, L2),
         "PlanterW": (-3.0, -12.7, -1.6, -11.3, 3.7),
         "PlanterE": (1.6, -12.7, 3.0, -11.3, 3.7),
@@ -74,6 +76,8 @@ SPEC = {
         # the level-3 landing and the level-3 bridge west to the food court.
         "EastL2": (8.0, -20.0, 16.0, 4.0, L2),
         "LandingL3": (6.0, 13.0, 16.0, 17.0, L3),
+        "ServiceSign1": (14.3, 17.9, 15.7, 19.3, 11.0),
+        "ServiceSign2": (11.8, 18.5, 13.2, 19.9, 13.0),
         "BridgeL3": (-8.0, 13.0, 6.0, 17.0, L3),
         # Section 3 - the food court and the glass elevator tower (Jump, jump, E up its west
         # face), with the hanging menu signs and speakers as the ordinary climb on its north side.
@@ -95,6 +99,8 @@ SPEC = {
         "LandingL3": L3 - SLAB, "BridgeL3": L3 - SLAB, "FoodCourt": L3 - SLAB,
         "BridgeL4": L4 - SLAB, "EastL4": L4 - SLAB,
         "PlanterW": 3.1, "PlanterE": 3.1, "Sign1": 10.1, "Sign2": 11.6, "Sign3": 13.1,
+        "SaleBalloon1": 2.7, "SaleBalloon2": 2.7,
+        "ServiceSign1": 10.5, "ServiceSign2": 12.5,
     },
     # Pieces standing on another piece instead of the floor: name -> host.
     "stacked": {},
@@ -115,13 +121,13 @@ SPEC = {
         "RailBridgeWN": (-8.0, -10.0 - RAIL_T, -6.0, -10.0, "BridgeW"),
         "RailBridgeES": (6.0, -14.0, 8.0, -14.0 + RAIL_T, "BridgeE"),
         "RailBridgeEN": (6.0, -10.0 - RAIL_T, 8.0, -10.0, "BridgeE"),
-        "RailEastL2A": (8.0, -20.0 + RAIL_T, 8.0 + RAIL_T, -14.0, "EastL2"),
+        "RailEastL2A": (8.0, -18.5, 8.0 + RAIL_T, -14.0, "EastL2"),
         "RailEastL2B": (8.0, -10.0, 8.0 + RAIL_T, 4.0, "EastL2"),
-        "RailEastL2S": (8.0, -20.0, 16.0, -20.0 + RAIL_T, "EastL2"),
+        "RailEastL2S": (10.0, -20.0, 16.0, -20.0 + RAIL_T, "EastL2"),
         "RailEastL2N": (10.0, 4.0 - RAIL_T, 16.0, 4.0, "EastL2"),
         "RailLandingS1": (6.0, 13.0, 8.0, 13.0 + RAIL_T, "LandingL3"),
         "RailLandingS2": (10.0, 13.0, 16.0, 13.0 + RAIL_T, "LandingL3"),
-        "RailLandingN": (6.0, 17.0 - RAIL_T, 16.0, 17.0, "LandingL3"),
+        "RailLandingN": (6.0, 17.0 - RAIL_T, 13.8, 17.0, "LandingL3"),
         "RailBridgeL3S": (-8.0, 13.0, 6.0, 13.0 + RAIL_T, "BridgeL3"),
         "RailBridgeL3N": (-8.0, 17.0 - RAIL_T, 6.0, 17.0, "BridgeL3"),
         "RailFoodS": (-18.0, 8.0, -8.0 - RAIL_T, 8.0 + RAIL_T, "FoodCourt"),
@@ -135,7 +141,8 @@ SPEC = {
         "RailBridgeL4N2": (-1.8, 25.0 - RAIL_T, 8.0, 25.0, "BridgeL4"),
         "RailEastL4A": (8.0, 20.0 + RAIL_T, 8.0 + RAIL_T, 21.0, "EastL4"),
         "RailEastL4B": (8.0, 25.0, 8.0 + RAIL_T, 45.0, "EastL4"),
-        "RailEastL4S": (8.0, 20.0, 16.0, 20.0 + RAIL_T, "EastL4"),
+        "RailEastL4SW": (8.0, 20.0, 10.0, 20.0 + RAIL_T, "EastL4"),
+        "RailEastL4SE": (13.5, 20.0, 16.0, 20.0 + RAIL_T, "EastL4"),
     },
     # The mall's envelope: shopfront walls from the floor up to the dome, (x0, z0, x1, z1, top).
     # Every facade is collision, so Rising Slash's carry and the camera both stop at it.
@@ -208,7 +215,6 @@ SPEC = {
     # The game store's back room at the north end of the east gallery.
     "finish": ("EastL4", (12.0, 42.0), (3.0, 1.5, 1.5)),
     "profile_id": "wibou_mall_v1",
-    "packages": ("wibou",),
 }
 
 
@@ -390,7 +396,8 @@ def course(spec=SPEC):
         checkpoints.append((cid, (cx, top + half[1], cz), half, (rx, top + body, rz), yaw, required))
     piece, (fx, fz), half = spec["finish"]
     finish = ((fx, tops[piece][4] + half[1], fz), half)
-    return shell.course(spec["profile_id"], spec["packages"], targets, checkpoints, finish)
+    return shell.course(spec["profile_id"], targets, checkpoints, finish,
+                        racing_line=json.loads(Path(__file__).with_name("racing_line.json").read_text()))
 
 
 def bounds(spec=SPEC):

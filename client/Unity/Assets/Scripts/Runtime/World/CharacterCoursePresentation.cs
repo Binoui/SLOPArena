@@ -42,6 +42,7 @@ namespace SlopArena.Client.World
         private readonly AudioClip _pop, _bell, _chord, _saved, _missed, _gong, _finishGong;
         private readonly Material _orb, _orbCore;
         private readonly Dictionary<string, int> _played = new();
+        private readonly Dictionary<(Material Source, Color Colour), Material> _seatMaterials = new();
         private CourseBeacon _shrine;
         private Vector3? _lastPosition;
         private bool _insideFinish, _finishLocked, _cleared;
@@ -220,7 +221,9 @@ namespace SlopArena.Client.World
                 {
                     case CharacterCourseEventKind.TargetBroken:
                         pendingBreaks--;
-                        Break(e.Index, state.BrokenTargets - pendingBreaks, state.TotalTargets);
+                        Break(e.Index, state.BrokenTargets - pendingBreaks, state.TotalTargets,
+                            simulation.Scramble.HasValue ? SeatColours.For((int)simulation.CourseTargetBreaker(e.Index)) : null,
+                            simulation.Scramble.HasValue ? CourseScrambleTuning.PointsFor(_course.Targets[e.Index]) : (ushort)0);
                         break;
                     case CharacterCourseEventKind.TargetHit:
                         BonusHit(e.Index, simulation.CourseTargetHitsLeft(fighter.EntityId, e.Index));
@@ -243,13 +246,13 @@ namespace SlopArena.Client.World
             Present(state);
         }
 
-        private void Break(int index, int broken, int total)
+        private void Break(int index, int broken, int total, Color? colour = null, ushort points = 0)
         {
             var target = _course.Targets[index];
             var position = Position(target.Position);
             var look = _looks[index];
             float scale = _set != null ? target.Radius / Mathf.Max(.01f, look?.TargetRadius ?? _set.TargetRadius) : 1f;
-            Spawn(look?.Break ?? _set?.Break, position, scale, look != null ? 4f : 3f);
+            Spawn(look?.Break ?? _set?.Break, position, scale, look != null ? 4f : 3f, colour);
             ReleaseBeacon(index);
             _flagged[index] = false;
             int section = _sectionOf[index], inSection = 0;
@@ -257,7 +260,7 @@ namespace SlopArena.Client.World
             Play(LookClip(look?.BreakClip) ?? _pop, look != null ? .85f : .7f, UnityEngine.Random.Range(.96f, 1.04f));
             if (_set != null && _set.NoteSemitones.Length > 0)
                 Play(_bell, .5f, Mathf.Pow(2f, _set.NoteSemitones[Mathf.Clamp(inSection - 1, 0, _set.NoteSemitones.Length - 1)] / 12f));
-            _view.ShowCountPop(position + Vector3.up * target.Radius * 1.7f, $"{broken}/{total}");
+            _view.ShowCountPop(position + Vector3.up * target.Radius * 1.7f, points > 0 ? $"+{points}" : $"{broken}/{total}", colour: colour);
             if (inSection < _sectionEnd[section] - _sectionStart[section]) return;
             if (broken >= total) { AllClear(); return; }
             Queue(_chord, .25f, .45f);
@@ -400,11 +403,34 @@ namespace SlopArena.Client.World
             _view.PresentEdgeMarkers(_camera(), _flaggedPositions);
         }
 
-        private void Spawn(GameObject prefab, Vector3 position, float scale, float seconds)
+        private void Spawn(GameObject prefab, Vector3 position, float scale, float seconds, Color? colour = null)
         {
             if (prefab == null) return;
             var instance = Object.Instantiate(prefab, position, Quaternion.identity, _root);
             instance.transform.localScale = Vector3.one * scale;
+            if (colour.HasValue)
+            {
+                foreach (var renderer in instance.GetComponentsInChildren<ParticleSystemRenderer>(true))
+                {
+                    var materials = renderer.sharedMaterials;
+                    for (int i = 0; i < materials.Length; i++)
+                    {
+                        var source = materials[i]; if (source == null) continue;
+                        var key = (source, colour.Value);
+                        if (!_seatMaterials.TryGetValue(key, out var tinted))
+                        {
+                            tinted = new Material(Resources.Load<Shader>("Shaders/CourseScrambleTint")) { name = source.name + " seat break" };
+                            tinted.SetTexture("_BaseMap", source.mainTexture); tinted.SetColor("_SeatColour", colour.Value);
+                            if (source.HasProperty("_BaseColor")) tinted.SetColor("_BaseColor", source.GetColor("_BaseColor"));
+                            if (source.HasProperty("_SrcBlend")) tinted.SetFloat("_SrcBlend", source.GetFloat("_SrcBlend"));
+                            if (source.HasProperty("_DstBlend")) tinted.SetFloat("_DstBlend", source.GetFloat("_DstBlend"));
+                            tinted.renderQueue = source.renderQueue; _seatMaterials.Add(key, tinted);
+                        }
+                        materials[i] = tinted;
+                    }
+                    renderer.sharedMaterials = materials;
+                }
+            }
             Object.Destroy(instance, seconds);
             _effects.RemoveAll(x => x == null);
             _effects.Add(instance);
@@ -466,6 +492,8 @@ namespace SlopArena.Client.World
             if (_root != null) Object.Destroy(_root.gameObject);
             if (_orb != null) Object.Destroy(_orb);
             if (_orbCore != null) Object.Destroy(_orbCore);
+            foreach (var material in _seatMaterials.Values) Object.Destroy(material);
+            _seatMaterials.Clear();
         }
     }
 }

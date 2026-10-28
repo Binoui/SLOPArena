@@ -29,9 +29,8 @@ namespace SlopArena.Client.UI
                 return;
             }
             _context.Q<Button>("menu-online")!.clicked += () => FrontendController.StartMode(GameMode.PvP);
-            _context.Q<Button>("menu-solo")!.clicked += () => FrontendController.StartMode(GameMode.Solo);
+            _context.Q<Button>("menu-local")!.clicked += () => FrontendController.StartMode(GameMode.Solo);
             _context.Q<Button>("menu-training")!.clicked += () => FrontendController.StartMode(GameMode.Training);
-            _context.Q<Button>("menu-arcade")!.clicked += () => FrontendController.StartMode(GameMode.Arcade);
             var tutorial = _context.Q<Button>("menu-tutorial")!;
             tutorial.clicked += () => FrontendController.StartMode(GameMode.Tutorial);
             // Newcomers land on the tutorial until they have finished it once.

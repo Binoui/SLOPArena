@@ -1,0 +1,109 @@
+{
+ "stage": "last_stop",
+ "notes": "final 04 (v2, tighter camera): platform chase, Manki dives into the gap and jetpacks past Wibou's kunai onto the train roof; Wibou (160%) running-jumps after him and Manki's bazooka blasts him west over the locomotive for a KO; Manki trots after him; step 1 at 1920x1080",
+ "capture": {
+  "from": 20,
+  "to": 330,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -11.0,
+    0,
+    -1.8
+   ],
+   "yaw": 90,
+   "damage": 40,
+   "target": 2,
+   "input": [
+    {
+     "from": 0,
+     "to": 96,
+     "move": 90
+    },
+    {
+     "from": 97,
+     "to": 118,
+     "move": 0
+    },
+    {
+     "at": 110,
+     "press": "E"
+    },
+    {
+     "at": 190,
+     "press": "R"
+    },
+    {
+     "from": 232,
+     "to": 258,
+     "move": 270
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    -14.0,
+    0,
+    -2.6
+   ],
+   "yaw": 90,
+   "damage": 160,
+   "target": 1,
+   "input": [
+    {
+     "from": 12,
+     "to": 70,
+     "move": 90
+    },
+    {
+     "at": 104,
+     "press": "A"
+    },
+    {
+     "from": 138,
+     "to": 170,
+     "move": 0
+    },
+    {
+     "from": 152,
+     "to": 166,
+     "jump": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "se4",
+   "pos": [
+    3.8,
+    1.0,
+    -3.8
+   ],
+   "look": [
+    0,
+    0,
+    0
+   ],
+   "follow": 1,
+   "move": true,
+   "lookOffset": [
+    -0.6,
+    0.9,
+    -0.6
+   ],
+   "ease": 0.1,
+   "fov": 48,
+   "far": 4000
+  }
+ ]
+}

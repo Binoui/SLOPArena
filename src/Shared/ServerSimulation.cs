@@ -124,7 +124,7 @@ namespace SlopArena.Shared
             if (arena.Arcade?.Course is CharacterCourseDefinition course)
             {
                 course.ValidateArena(in arena);
-                if (_rule is CourseMatchRule courseRule) _onlineCourse = new OnlineCourseSimulation(course, courseRule.Cooperative);
+                if (_rule is CourseMatchRule courseRule) _onlineCourse = new OnlineCourseSimulation(course, courseRule.Format);
                 else _course = new CharacterCourseSimulation(course);
             }
             if (_rule is MankiMayhemMatchRule)
@@ -158,7 +158,7 @@ namespace SlopArena.Shared
                 || !_states.ContainsKey(id) && (_states.Count >= 4 || _mayhem.State.Seed != 0)))
                 throw new ArgumentException("Mayhem reserves object identities and admits up to four fighters before Begin.", nameof(id));
 			_defs[id] = def;
-                if (_onlineCourse != null) _onlineCourse.Register(id);
+                if (_onlineCourse != null) _onlineCourse.Register(id, initialState);
 			initialState.EntityId = id;
 			_states[id] = initialState;
 			_kos[id] = 0;
@@ -211,8 +211,12 @@ namespace SlopArena.Shared
 
         private void RetireAbility(ulong id, ref CharacterState state, AbilityExit exit)
         {
+            CookedShellDefinition? resumeShell = null;
             if (_activeAbilities.TryGetValue(id, out var ability))
             {
+                // A tuck move that completes hands her back to the shell (ADR-0045).
+                if (exit == AbilityExit.Completed && ability.Move?.ShellPolicy == ShellPolicy.Tuck)
+                    resumeShell = _defs.TryGetValue(id, out var owner) ? owner.Shell : null;
                 if (exit != AbilityExit.Completed)
                 {
                     if (exit == AbilityExit.Cancelled)
@@ -237,6 +241,8 @@ namespace SlopArena.Shared
             state.AnimLockTicks = completionRecoveryLockTicks;
             if (exit == AbilityExit.Cancelled && state.State is (ActionState.Attacking or ActionState.Aiming))
                 state.State = ActionState.Idle;
+            if (resumeShell != null)
+                Shell.Settle(ref state, resumeShell, 0f, restartClock: true);
         }
 
         private void ApplyAbilityCooldown(ulong id, ServerAbility ability, ref CharacterState state)
@@ -267,7 +273,8 @@ namespace SlopArena.Shared
 		/// Activate a server ability for an entity.
 		/// Calls OnStart and registers the ability for per-tick updates.
 		/// </summary>
-		public void ActivateAbility(ulong entityId, ServerAbility ability, byte slot, CharacterDefinition def, short? activationAimYaw = null, InputState activationInput = default)
+		/// <param name="fromShell">She was in the shell when the press arrived, before any IASA cancel (ADR-0045).</param>
+		public void ActivateAbility(ulong entityId, ServerAbility ability, byte slot, CharacterDefinition def, short? activationAimYaw = null, InputState activationInput = default, bool fromShell = false)
 		{
 			if (!_states.TryGetValue(entityId, out var state)) return;
 			unchecked
@@ -288,25 +295,28 @@ namespace SlopArena.Shared
 			ability.Slot = slot;
 			ability.AirborneAtStart = !state.IsGrounded;
             var cookedSlot = def.GetCookedSlotAbility((byte)(slot + 1), !state.IsGrounded);
-            bool preserveMomentum = cookedSlot?.PreserveMomentumOnStart ?? false;
-            bool attackCarry = state.IsGrounded
-                && cookedSlot?.AllowSlideCarry == true
-                && (state.State == ActionState.Sliding
-                    || state.State == ActionState.Run && !preserveMomentum);
-            state.SlideAttackCarryActive = false;
-            state.AttackCarryFromRun = attackCarry && state.State == ActionState.Run;
-            if (attackCarry)
+            if (!Shell.StartMove(ref state, cookedSlot, fromShell))
             {
-                float capRatio = state.AttackCarryFromRun
-                    ? DownActionTuning.RunAttackEntryCapRatio
-                    : DownActionTuning.AttackEntryCapRatio;
-                Simulation.ClampHorizontalSpeed(ref state, def.Movement.RunSpeed * capRatio);
-                state.SlideAttackCarryActive = true;
-            }
-            if (state.IsGrounded && !preserveMomentum && !attackCarry)
-            {
-                state.VX = 0f;
-                state.VZ = 0f;
+                bool preserveMomentum = cookedSlot?.PreserveMomentumOnStart ?? false;
+                bool attackCarry = state.IsGrounded
+                    && cookedSlot?.AllowSlideCarry == true
+                    && (state.State == ActionState.Sliding
+                        || state.State == ActionState.Run && !preserveMomentum);
+                state.SlideAttackCarryActive = false;
+                state.AttackCarryFrom = attackCarry && state.State == ActionState.Run ? AttackCarryOrigin.Run : AttackCarryOrigin.Slide;
+                if (attackCarry)
+                {
+                    float capRatio = state.AttackCarryFrom == AttackCarryOrigin.Run
+                        ? DownActionTuning.RunAttackEntryCapRatio
+                        : DownActionTuning.AttackEntryCapRatio;
+                    Simulation.ClampHorizontalSpeed(ref state, def.Movement.RunSpeed * capRatio);
+                    state.SlideAttackCarryActive = true;
+                }
+                if (state.IsGrounded && !preserveMomentum && !attackCarry)
+                {
+                    state.VX = 0f;
+                    state.VZ = 0f;
+                }
             }
             // Activation aim is the camera direction for moves that consume it on start.
             // Apply it before OnStart so capabilities cache the current input, not the
@@ -321,8 +331,8 @@ namespace SlopArena.Shared
 			ability.ClearArmorWindow();
 			state.ClearStartupAimCorrection();
 			state.BufferedSlot = 0;
-			// The homing dash arrival window is timed by StateTicks; its expiry must not end the attack.
-			if (state.State == ActionState.HomingDashArrive)
+			// The homing dash arrival window and the skate are timed by StateTicks; its expiry must not end the attack.
+			if (state.State is ActionState.HomingDashArrive or ActionState.Shell)
 				state.StateTicks = 0;
             bool aimingAbility = cookedSlot?.AimMode is { } aimMode && aimMode != AuthoringAimMode.None;
             if (aimingAbility && ability is CookedTimelineAbility { UsesStartupAimCorrection: true })
@@ -564,6 +574,13 @@ namespace SlopArena.Shared
             // when the state is grounded and the baked payload contains the exact
             // semantic binding; absent legacy content falls through to upright
             // selection without fabricating low hurtboxes.
+            if (state.State == ActionState.Shell && !string.IsNullOrEmpty(def.ShellAnim)
+                && baked.FindAnimIndex(def.ShellAnim) >= 0)
+            {
+                targetAnim = def.ShellAnim;
+                bakedFrame = 0;
+                return true;
+            }
             if (state.IsGrounded && (state.State is ActionState.Crouching or ActionState.Sliding))
             {
                 string lowAnim = state.State == ActionState.Crouching ? def.CrouchAnim : def.SlideAnim;
@@ -722,9 +739,7 @@ namespace SlopArena.Shared
 				|| state.LandingLagTicks > 0)
 				return false;
 			bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId));
-			if (state.State != ActionState.Idle && state.State != ActionState.Run
-				&& state.State != ActionState.Crouching && state.State != ActionState.Sliding
-				&& state.State != ActionState.HomingDashArrive && !iasaUnlocked)
+			if (!ActionStates.AdmitsActions(state.State) && state.State != ActionState.HomingDashArrive && !iasaUnlocked)
 				return false;
 			if (state.AnimLockTicks > 0 && !iasaUnlocked)
 				return false;
@@ -804,7 +819,7 @@ namespace SlopArena.Shared
 				&& IsEligibleEnemy(id, targetId, state.PX, state.PZ, LockRangeMeters, out _)
 				&& TryGetCombatTargetPosition(targetId, out var target))
 			{
-				dx = target.X - state.PX; dy = target.Y - state.PY; dz = target.Z - state.PZ;
+				dx = target.X - state.PX; dy = HomingDashRise(targetId, target.Y, in state, _defs[id], airborneDash: !state.IsGrounded); dz = target.Z - state.PZ;
 			}
 			else
 				targetId = 0;
@@ -826,8 +841,24 @@ namespace SlopArena.Shared
 			}
 			float targetRadius = _defs.TryGetValue(targetId, out var targetDef) ? targetDef.CapsuleRadius : 0f;
 			Simulation.StepHomingDash(ref state, true,
-				target.X - state.PX, target.Y - state.PY, target.Z - state.PZ,
+				target.X - state.PX, HomingDashRise(targetId, target.Y, in state, def, state.HomingDashAirUsed), target.Z - state.PZ,
 				def.CapsuleRadius + targetRadius + HomingDashConfig.ArrivalGap, def.Movement.FloatWindowTicks);
+		}
+
+		/// <summary>
+		/// Height the dash climbs toward a target. A grounded dash never climbs, so its follow-up is
+		/// a ground normal; it can still drop off a ledge toward a lower target. An airborne dash
+		/// (<see cref="CharacterState.HomingDashAirUsed"/> until landing) aims its feet
+		/// <see cref="HomingDashConfig.AirAimLift"/> above a fighter's feet so it arrives in the air
+		/// for an aerial, and centre to centre at other targets.
+		/// </summary>
+		private float HomingDashRise(ulong targetId, float targetY, in CharacterState state, CharacterDefinition def,
+			bool airborneDash)
+		{
+			if (!_defs.TryGetValue(targetId, out var targetDef))
+				return airborneDash ? targetY - state.PY : MathF.Min(0f, targetY - state.PY);
+			float feet = targetY - targetDef.CapsuleHeight * 0.5f - (state.PY - def.CapsuleHeight * 0.5f);
+			return airborneDash ? feet + targetDef.CapsuleHeight * HomingDashConfig.AirAimLift : MathF.Min(0f, feet);
 		}
 
 		private static bool HasQueuedShieldLaunch(in CharacterState state)
@@ -847,10 +878,8 @@ namespace SlopArena.Shared
                 || state.AnimLockTicks > 0 && !Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId)))
 				return false;
 
-			return state.State is ActionState.Idle or ActionState.Run
-				or ActionState.Crouching or ActionState.Sliding
-				or ActionState.Attacking or ActionState.Shielding
-				or ActionState.HomingDashArrive;
+			return ActionStates.AdmitsActions(state.State) || state.State is ActionState.Attacking
+				or ActionState.Shielding or ActionState.HomingDashArrive;
 		}
 
 		private bool CanAcceptGroundShieldAfterTimers(
@@ -920,8 +949,7 @@ namespace SlopArena.Shared
 				if (CanTakeOrdinaryAbilityAction(state, def))
 					_lastTickOrdinaryActionOpportunities.Add(id);
 				bool bufferedPress = input.ActiveSlot == 0 && state.BufferedSlot > 0
-					&& state.State is (ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
-						or ActionState.HomingDashArrive)
+					&& (ActionStates.AdmitsActions(state.State) || state.State == ActionState.HomingDashArrive)
 					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed;
 				if (bufferedPress)
 					input.ActiveSlot = state.BufferedSlot;
@@ -943,9 +971,8 @@ namespace SlopArena.Shared
 				if (state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
 					|| state.LandingLagTicks > 0
 					|| (state.AnimLockTicks > 0 && !iasaUnlocked)) continue; // ADR-0014
-				if (state.State != ActionState.Idle && state.State != ActionState.Attacking
-					&& state.State != ActionState.Run && state.State != ActionState.Crouching
-					&& state.State != ActionState.Sliding && state.State != ActionState.HomingDashArrive) continue;
+				if (!ActionStates.AdmitsActions(state.State) && state.State != ActionState.Attacking
+					&& state.State != ActionState.HomingDashArrive) continue;
 				if (bufferedPress)
 				{
 					state.BufferedSlot = 0;
@@ -999,6 +1026,7 @@ namespace SlopArena.Shared
 				// TickAbilities. Attack state is cleared so the new ability's OnStart begins
 				// clean and no stale buffered press double-fires when the new attack's lock
 				// expires.
+				bool fromShell = Shell.IsTucked(state.State, GetActiveMove(id)?.Slot);
 				if (currentAbility != null)
 				{
 					if (!iasaUnlocked) continue;
@@ -1008,7 +1036,7 @@ namespace SlopArena.Shared
 
 				ability.Cooldown = cookedSlot.CooldownTicks;
 
-				ActivateAbility(id, ability, (byte)(input.ActiveSlot - 1), def, input.AimYaw, input);
+				ActivateAbility(id, ability, (byte)(input.ActiveSlot - 1), def, input.AimYaw, input, fromShell);
 
                 // Spend charges from the cooked pool; they return only through regen.
                 if (maxCharges > 0 && _states.TryGetValue(id, out var afterState))
@@ -1535,7 +1563,8 @@ namespace SlopArena.Shared
 				// Landing lag (issue #125 / ADR-0021 §3): land mid-aerial → lock, unless the
 				// landing frame falls in an auto-cancel window. Only air-started moves resolve
 				// their airborne variant's landing lag (ground moves keep their ground spec).
-				ApplyLandingLag(ref state, def, wasGrounded, activeAbility);
+				if (!ResolveShellTouchdown(id, ref state, def, wasGrounded, activeAbility, -beforeMovement.VY))
+					ApplyLandingLag(ref state, def, wasGrounded, activeAbility);
 				_states[id] = state;
 			}
 
@@ -1584,6 +1613,9 @@ namespace SlopArena.Shared
 					    || !_defs.TryGetValue(secondId, out var secondDef)
 					    || IsEliminated(second))
 						continue;
+                    // She skates under the fighters she bowls over.
+                    if (first.State == ActionState.Shell || second.State == ActionState.Shell)
+                        continue;
                     if ((_activeAbilities.TryGetValue(firstId, out var firstAbility)
                             && firstAbility.IgnoresFighterPushboxes)
                         || (_activeAbilities.TryGetValue(secondId, out var secondAbility)
@@ -2229,8 +2261,7 @@ namespace SlopArena.Shared
 				or ActionState.Grabbing or ActionState.Throwing;
 			bool beingHit = owner.State == ActionState.Hitstun || owner.HitstunTicks > 0 || Simulation.HasKnockback(owner);
 			bool free = owner.HitstopTicks == 0 && owner.BlockStunTicks == 0 && owner.LandingLagTicks == 0
-				&& owner.State is ActionState.Idle or ActionState.Run or ActionState.Crouching or ActionState.Sliding
-					or ActionState.JumpSquat;
+				&& (ActionStates.AdmitsActions(owner.State) || owner.State == ActionState.JumpSquat);
 			return held || beingHit || free || owner.State is ActionState.Shielding or ActionState.LedgeHang;
 		}
 
@@ -2282,6 +2313,10 @@ namespace SlopArena.Shared
 			int hitContactOperationIndex = 0;
 			foreach (var hit in hits)
 			{
+				// A shield or a hit on her earlier in this batch ended her shell and its window.
+				if (hit.OwnerWindow && (!_states.TryGetValue(hit.OwnerEntityId, out var windowOwner)
+					|| windowOwner.State != ActionState.Shell))
+					continue;
 				if (_arcadeBall != null && hit.TargetEntityId == _arcadeBall.State.EntityId)
 				{
 					ResolveArcadeBallHit(hit, inputs, hitContactOperationIndex++);
@@ -2316,6 +2351,11 @@ namespace SlopArena.Shared
 						blockingAbility.OnShieldBlock(ref attackerState, ref targetState);
 						_states[hit.OwnerEntityId] = attackerState;
 					}
+					else if (attackerExists && hit.OwnerWindow && _defs[hit.OwnerEntityId].Shell is { } blockedShell)
+					{
+						Shell.Blocked(ref attackerState, blockedShell);
+						_states[hit.OwnerEntityId] = attackerState;
+					}
 					continue;
 				}
 
@@ -2328,7 +2368,15 @@ namespace SlopArena.Shared
 				bool crouchBraceEligible = IsCrouchBraceEligible(
 					hit.TargetEntityId, in targetState, _defs[hit.TargetEntityId]);
 				if (!hit.ArmorProtected)
+				{
 					Simulation.ClearMovementInterruptionFlags(ref targetState);
+					// No armour in the shell: any hit pops her out (ADR-0045).
+					if (targetState.State == ActionState.Shell)
+					{
+						targetState.State = ActionState.Idle;
+						targetState.StateTicks = 0;
+					}
+				}
 				if (_mayhem == null && attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
 					_lastHitCredits[hit.TargetEntityId] = (hit.OwnerEntityId, _tick, hit.AttackSlot);
 				if (hit.OwnerEntityId != 0)
@@ -2407,7 +2455,7 @@ namespace SlopArena.Shared
                         targetState.InPostHitstunFlight = armoredReaction.InPostHitstunFlight;
                         targetState.LandingLagTicks = armoredReaction.LandingLagTicks;
                         targetState.IsFastFalling = armoredReaction.IsFastFalling;
-                        targetState.JumpFromSlide = armoredReaction.JumpFromSlide;
+                        targetState.JumpTakeoff = armoredReaction.JumpTakeoff;
                     }
                     hookSuppliedForce = kbForce != kbForceDefault;
                     hookZeroForce = hookSuppliedForce && kbForce <= 0f;
@@ -2527,16 +2575,18 @@ namespace SlopArena.Shared
 				_states[hit.TargetEntityId] = targetState;
 				LastTickHits.Add(resolvedHit);
 				if (_defs.TryGetValue(hit.OwnerEntityId, out var hitOwnerDefinition)
-				    && hit.AttackSlot > 0)
+				    && (hit.AttackSlot > 0 || hit.OwnerWindow))
 				{
-					var attackSpec = hitOwnerDefinition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne);
-					if (!string.IsNullOrEmpty(attackSpec?.HitPresentationId))
+					string? hitPresentationId = hit.OwnerWindow
+						? hitOwnerDefinition.Shell?.HitPresentationId
+						: hitOwnerDefinition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
+					if (!string.IsNullOrEmpty(hitPresentationId))
 					{
 						// Confirmed contact carries cosmetic weight, including through replay.
 						float presentationScale = Math.Clamp(MathF.Sqrt(finalDamage / 6f), 0.6f, 1.6f);
 						_presentationEvents.Add(new TimelinePresentationEvent(
 							_tick, hit.OwnerEntityId, hitContactOperationIndex,
-							attackSpec.HitPresentationId!, hit.AttackSequence,
+							hitPresentationId!, hit.AttackSequence,
 							PresentationEventSource.HitContact,
 							hit.HitX, hit.HitY, hit.HitZ,
 							attackerExists ? attackerState.FacingYaw : 0f)
@@ -2694,9 +2744,9 @@ namespace SlopArena.Shared
 					State = ActionState.Idle,
 					IsGrounded = true,
 					IsFastFalling = false,
-					JumpFromSlide = false,
+					JumpTakeoff = JumpTakeoff.Standing,
 					SlideAttackCarryActive = false,
-					AttackCarryFromRun = false,
+					AttackCarryFrom = AttackCarryOrigin.Slide,
 					CrouchSettled = false,
 					QueuedCrouchBrace = false,
 					InPostHitstunFlight = false,
@@ -2808,6 +2858,7 @@ namespace SlopArena.Shared
 				// Settlement is finalized after all movement, ability, lag, and pushbox work,
 				// but before hurtbox construction and hit resolution.
 				FinalizeSettledCrouch();
+				SyncShellWindows();
 				if (_volley?.State.Phase == SlopballVersusPhase.HeldServe) _arcadeBall!.Hold();
                 else _arcadeBall?.Step(in _arena, _states, _defs);
                 if (_slopball != null) _slopball.PlanMotion(_arcadeBall!);

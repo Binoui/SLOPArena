@@ -48,7 +48,9 @@ WHISTLE_TILT = float(opt.get("whistle_tilt", 20))
 WHISTLE_HANG = float(opt.get("whistle_hang", 0.4))
 CORD_R = float(opt.get("cord_r", 0.007))
 CORD_RGB = [float(v) for v in opt.get("cord_rgb", "0.86,0.2,0.18").split(",")]
-TEX_SIZE = {"Body": 4096, "Shell": 2048, "Whistle": 1024}
+SUIT_OFFSET = float(opt.get("suit_offset", 0.004))
+WING_FIT = [float(v) for v in opt.get("wing_fit", "0.3,0.7,0.02").split(",")]
+TEX_SIZE = {"Body": 4096, "Shell": 2048, "Whistle": 1024, "Suit": 2048, "Wings": 1024}
 os.makedirs(os.path.join(out_dir, "textures"), exist_ok=True)
 P = "mixamorig:"
 report = {"source": src, "options": opt}
@@ -275,8 +277,9 @@ def skin(ob, weights):
     ob.modifiers.new("Armature", "ARMATURE").object = arm
 
 
-def keep_texture(ob, piece):
-    """One material per piece, named <name>_<piece>, its colour map saved as textures/<name>_<piece>.png."""
+def keep_texture(ob, piece, crop=False):
+    """One material per piece, named <name>_<piece>, its colour map saved as textures/<name>_<piece>.png. With
+    crop, only the part of the map its UVs use is kept (an outfit piece is a corner of the kit's shared atlas)."""
     mat = ob.data.materials[0]
     mat.name = f"{name}_{piece}"
     while len(ob.data.materials) > 1:
@@ -286,6 +289,26 @@ def keep_texture(ob, piece):
     node = max((n for n in mat.node_tree.nodes if n.type == "TEX_IMAGE" and n.image),
                key=lambda n: n.image.size[0] * n.image.size[1])
     img = node.image
+    if crop:
+        uvl = ob.data.uv_layers.active.data
+        us = [l.uv[0] for l in uvl]
+        vs = [l.uv[1] for l in uvl]
+        w, h = img.size
+        pad = 4
+        x0, x1 = max(0, int(min(us) * w) - pad), min(w, int(max(us) * w) + pad + 1)
+        y0, y1 = max(0, int(min(vs) * h) - pad), min(h, int(max(vs) * h) + pad + 1)
+        px = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(px)
+        px = px.reshape(h, w, 4)[y0:y1, x0:x1]
+        side = max(x1 - x0, y1 - y0)
+        sq = np.zeros((side, side, 4), dtype=np.float32)
+        sq[..., 3] = 1
+        sq[:y1 - y0, :x1 - x0] = px
+        img = bpy.data.images.new(f"{name}_{piece}", side, side)
+        img.pixels.foreach_set(sq.ravel())
+        node.image = img
+        for l in uvl:
+            l.uv = ((l.uv[0] * w - x0) / side, (l.uv[1] * h - y0) / side)
     dst = os.path.join(out_dir, "textures", f"{name}_{piece}.png")
     side = TEX_SIZE[piece]
     if img.size[0] > side:
@@ -457,6 +480,118 @@ if "whistle" in opt:
     skin(cord, cord_weights)
     pieces["cord"] = {"bones": ["Spine2", "Whistle"], "neck_z": round(neck_z, 4), "points": len(path),
                       "verts": len(cord_mesh.vertices)}
+
+# --- 4b. Outfit: a swimsuit wrapped onto her torso, water wings on her forearms ----------------------
+if "suit" in opt:
+    suit = import_piece(opt["suit"], "Suit")
+    sm = suit.data
+    # A generated garment is double-walled. Keep its outer layer: faces facing away from its vertical centre line
+    # (clamped inside its height, so the straps' tops and the crotch count as outside). A normal-ray test fails
+    # here: inner faces looking out through the arm, neck and leg holes pass it and z-fight once wrapped.
+    sv = [v.co for v in sm.vertices]
+    c = sum(sv, Vector()) / len(sv)
+    zlo, zhi = min(p.z for p in sv), max(p.z for p in sv)
+    m = 0.15 * (zhi - zlo)
+    inner = [f.index for f in sm.polygons
+             if f.normal.dot(f.center - Vector((c.x, c.y, min(max(f.center.z, zlo + m), zhi - m)))) < 0]
+    bm = bmesh.new()
+    bm.from_mesh(sm)
+    bm.faces.ensure_lookup_table()
+    bmesh.ops.delete(bm, geom=[bm.faces[i] for i in inner], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(sm)
+    bm.free()
+    # Her torso: faces whose vertices all lean on torso bones (no arms, neck or head), from the crotch up.
+    names = {g.index: g.name.replace(P, "") for g in body.vertex_groups}
+    torso_bones = {"Hips", "Spine", "Spine1", "Spine2", "LeftShoulder", "RightShoulder", "LeftUpLeg", "RightUpLeg"}
+    top = [names[max(v.groups, key=lambda g: g.weight).group] if v.groups else None for v in me.vertices]
+    crotch = min(p.z for p, t in zip(pts, top) if t == "Hips")
+    lid = joint("Neck").z
+    tfaces = [f for f in me.polygons if all(top[i] in torso_bones and crotch - 0.03 * H <= pts[i].z for i in f.vertices)]
+    tverts = sorted({i for f in tfaces for i in f.vertices})
+    tidx = {i: k for k, i in enumerate(tverts)}
+    torso = BVHTree.FromPolygons([pts[i] for i in tverts], [tuple(tidx[i] for i in f.vertices) for f in tfaces])
+    band = [pts[i] for i in tverts if top[i] not in ("LeftUpLeg", "RightUpLeg") and pts[i].z < lid]
+    # Stretch it over her torso's box (crotch to neck, widest point side to side and front to back), then wrap
+    # every vertex onto the nearest torso surface point, SUIT_OFFSET out along its normal.
+    sp = [v.co.copy() for v in sm.vertices]
+    lo = Vector([min(p[i] for p in sp) for i in range(3)])
+    hi = Vector([max(p[i] for p in sp) for i in range(3)])
+    tlo = Vector((min(p.x for p in band), min(p.y for p in band), crotch))
+    thi = Vector((max(p.x for p in band), max(p.y for p in band), lid))
+    for v, p in zip(sm.vertices, sp):
+        q = Vector([tlo[i] + (p[i] - lo[i]) / (hi[i] - lo[i]) * (thi[i] - tlo[i]) for i in range(3)])
+        hit, nrm, _, _ = torso.find_nearest(q)
+        v.co = hit + nrm * SUIT_OFFSET * H
+    sm.update()
+    keep_texture(suit, "Suit", crop=True)
+    suit.name = suit.data.name = f"{name}_Suit"
+    # Her own weights, interpolated from the body triangle under each vertex, then at most 4 influences.
+    surface_idx = BVHTree.FromPolygons(pts, [tuple(p.vertices) for p in me.polygons])
+    groups = {}
+    for v in sm.vertices:
+        hit, _, fi, _ = surface_idx.find_nearest(v.co)
+        corners = me.polygons[fi].vertices
+        inv = [1 / max((pts[i] - hit).length, 1e-6) for i in corners]
+        acc = {}
+        for i, wi in zip(corners, inv):
+            for g in me.vertices[i].groups:
+                acc[g.group] = acc.get(g.group, 0) + g.weight * wi / sum(inv)
+        keep = sorted(acc.items(), key=lambda t: -t[1])[:4]
+        total = sum(w for _, w in keep)
+        for gi, w in keep:
+            bone = body.vertex_groups[gi].name
+            if bone not in groups:
+                groups[bone] = suit.vertex_groups.new(name=bone)
+            groups[bone].add([v.index], w / total, "REPLACE")
+    saved = suit.matrix_world.copy()
+    suit.parent = arm
+    suit.matrix_world = saved
+    suit.modifiers.new("Armature", "ARMATURE").object = arm
+    pieces["suit"] = {"inner_faces_deleted": len(inner), "verts": len(sm.vertices), "crotch": round(crotch, 4),
+                      "box": [[round(c, 4) for c in tlo], [round(c, 4) for c in thi]], "offset": SUIT_OFFSET}
+
+if "wings" in opt:
+    # Each water wing (a closed puck from the generator) is centred on a forearm, its axis along the bone, and
+    # skinned rigidly to it. Its ends read as the floatie's faces with her arm coming out. Both become one mesh.
+    t_mid, len_k, clear = WING_FIT
+
+    def arm_radius(side):
+        a, b = joint(side + "ForeArm"), joint(side + "Hand")
+        d, L = (b - a).normalized(), (b - a).length
+        gi = body.vertex_groups[P + side + "ForeArm"].index
+        return max(((pts[v.index] - a) - d * (pts[v.index] - a).dot(d)).length for v in me.vertices
+                   if any(g.group == gi and g.weight > 0.5 for g in v.groups) and 0 <= (pts[v.index] - a).dot(d) <= L)
+
+    r_arm = max(arm_radius("Left"), arm_radius("Right"))  # one size for both: her generated arms differ a little
+    wings = []
+    for side, path in zip(("Left", "Right"), opt["wings"].split(",")):
+        wing = import_piece(path, "Wing" + side)
+        wp = [v.co.copy() for v in wing.data.vertices]
+        lo = Vector([min(p[i] for p in wp) for i in range(3)])
+        hi = Vector([max(p[i] for p in wp) for i in range(3)])
+        c = (lo + hi) / 2
+        ext = hi - lo
+        ax = min(range(3), key=lambda i: ext[i])  # the puck's axis is its thinnest side
+        a, b = joint(side + "ForeArm"), joint(side + "Hand")
+        d = (b - a).normalized()
+        L = (b - a).length
+        r_out = r_arm + clear * H
+        S = Matrix.Diagonal([(len_k * L / ext[i]) if i == ax else (2 * r_out / ext[i]) for i in range(3)] + [1])
+        to_axis = Vector([1.0 if i == ax else 0.0 for i in range(3)]).rotation_difference(d).to_matrix().to_4x4()
+        wing.data.transform(Matrix.Translation(a + d * L * t_mid) @ to_axis @ S @ Matrix.Translation(-c))
+        wings.append(wing)
+        pieces["wing_" + side.lower()] = {"bone": side + "ForeArm", "arm_radius": round(r_arm, 4),
+                                          "outer_radius": round(r_out, 4), "length": round(len_k * L, 4)}
+    bpy.ops.object.select_all(action="DESELECT")
+    for w in wings:
+        w.select_set(True)
+    bpy.context.view_layer.objects.active = wings[0]
+    bpy.ops.object.join()
+    wing = wings[0]
+    wing.name = wing.data.name = f"{name}_Wings"
+    keep_texture(wing, "Wings", crop=True)
+    skin(wing, lambda p: {P + ("Left" if p.x > 0 else "Right") + "ForeArm": 1.0})
 report["pieces"] = pieces
 
 # --- 5. Export ---------------------------------------------------------------------------------------

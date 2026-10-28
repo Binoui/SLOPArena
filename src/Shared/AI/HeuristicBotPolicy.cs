@@ -467,8 +467,7 @@ public sealed class HeuristicBotPolicy
             && self.LandingLagTicks == 0;
         bool actionable = movementAllowed
             && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
-            && (self.State == ActionState.Idle
-                || self.State == ActionState.Run
+            && (ActionStates.AdmitsActions(self.State)
                 || Simulation.IsIasaUnlocked(in self, activeMove));
         if (memory.PlanPhase != BotPlanPhase.None
             && memory.PlanKind != BotPlanKind.Recovery)
@@ -769,8 +768,7 @@ public sealed class HeuristicBotPolicy
             && self.HitstopTicks == 0
             && self.LandingLagTicks == 0
             && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
-            && (self.State == ActionState.Idle
-                || self.State == ActionState.Run
+            && (ActionStates.AdmitsActions(self.State)
                 || Simulation.IsIasaUnlocked(in self, activeMove))
             && !HasCooldown(self, def, slot, activeMove)
             && (def.GetCookedSlotAbility(slot, !self.IsGrounded) != null);
@@ -1235,6 +1233,7 @@ public sealed class HeuristicBotPolicy
             or CookedWibouBladeFlurryCapabilityParameters
             or CookedTargetedLeapCapabilityParameters
             or CookedSteeredChargeCapabilityParameters
+            or CookedThrustCapabilityParameters
             or CookedMankiRoundBombCapabilityParameters
             or CookedMankiJetpackBoostCapabilityParameters
             or CookedMankiBazookaCapabilityParameters;
@@ -1293,6 +1292,12 @@ public sealed class HeuristicBotPolicy
             case CookedTargetedLeapCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.MaxRange + MathF.Max(x.Hitbox.OffsetZ, x.Hitbox.EndOffsetZ) + x.Hitbox.Radius);
                 damage += x.Hitbox.Damage; hasDamage |= x.Hitbox.Damage > 0f; hasMovement = true; break;
+            case CookedThrustCapabilityParameters x:
+                // The thrust only travels; the shell's bowling hitbox is not part of the move.
+                float pitch = MathF.Max(x.NeutralPitchDegrees, x.StickPitchDegrees) * MathF.PI / 180f;
+                recoveryHorizontal = MathF.Max(recoveryHorizontal, x.Speed * MathF.Cos(pitch) * x.ThrustTicks / 60f);
+                recoveryVertical = MathF.Max(recoveryVertical, x.Speed * MathF.Sin(pitch) * x.ThrustTicks / 60f);
+                hasMovement = true; break;
             case CookedSteeredChargeCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.GallopSpeed * x.MaxGallopTicks / 60f
                     + MathF.Max(x.LanceHitbox.OffsetZ, x.LanceHitbox.EndOffsetZ) + x.LanceHitbox.Radius);

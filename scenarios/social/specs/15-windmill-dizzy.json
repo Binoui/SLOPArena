@@ -1,0 +1,95 @@
+{
+ "stage": "splash_deck",
+ "notes": "15 windmill: Sir Bonk's Blade Storm (F, 142 ticks: spin hits 8/29/43/57 pull in, finisher 71 launches, dizzy windmill 88-142) through Wibou and FightGuy flanking him, then the dizzy wobble while they recover; victims tucked behind his back (x +-0.32) launch into depth and land ~5 m back at both sides; wide portrait lens keeps them in; they walk back in at 182 while he is dizzy",
+ "capture": {
+  "from": 1,
+  "to": 240,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    5.0,
+    0,
+    0.0
+   ],
+   "yaw": 180,
+   "damage": 0,
+   "target": 2,
+   "input": [
+    {
+     "at": 4,
+     "press": "F"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    5.32,
+    0,
+    1.1
+   ],
+   "yaw": 196,
+   "damage": 0,
+   "target": 1,
+   "input": [
+    {
+     "from": 182,
+     "to": 212,
+     "move": 206
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "package": "fightguy",
+   "feet": [
+    4.68,
+    0,
+    1.1
+   ],
+   "yaw": 164,
+   "damage": 0,
+   "target": 1,
+   "input": [
+    {
+     "from": 182,
+     "to": 212,
+     "move": 148
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "w",
+   "pos": [
+    5.0,
+    4.8,
+    -8.8
+   ],
+   "look": [
+    5.0,
+    1.0,
+    1.2
+   ],
+   "follow": 1,
+   "lookOffset": [
+    -0.5,
+    0.6,
+    2.2
+   ],
+   "move": true,
+   "ease": 0.2,
+   "fov": 56,
+   "far": 4000
+  }
+ ]
+}

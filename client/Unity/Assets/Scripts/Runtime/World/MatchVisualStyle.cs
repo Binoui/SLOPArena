@@ -27,10 +27,8 @@ namespace SlopArena.Client.World
         /// <summary>Resting silhouette rim applied to every fighter material.</summary>
         public const float RimStrength = 0.72f, RimPower = 3.2f;
 
-        /// <summary>Player silhouette colour: the local fighter is orange, everyone else cyan.</summary>
-        public static Color RimColorFor(ulong entityId) => entityId == MatchConfig.LocalEntityId
-            ? new Color(1f, 0.68f, 0.12f)
-            : new Color(0.18f, 0.78f, 1f);
+        /// <summary>Fighter silhouette colour follows camp, course or seat identity.</summary>
+        public static Color RimColorFor(PlayerRenderer renderer) => SeatColours.ForFighter(renderer.EntityId, renderer.PlayerNumber);
 
         private void ApplyAtmosphere()
         {
@@ -81,7 +79,7 @@ namespace SlopArena.Client.World
 
             foreach (var player in FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None))
             {
-                Color rimColor = RimColorFor(player.EntityId);
+                Color rimColor = RimColorFor(player);
 
                 foreach (var modelRenderer in player.GetComponentsInChildren<Renderer>(true))
                 {

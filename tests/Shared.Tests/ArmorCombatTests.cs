@@ -19,7 +19,7 @@ public sealed class ArmorCombatTests
         defender.AirTimeTicks = 100;
         defender.FacingYaw = 0.7f;
         defender.IsFastFalling = true;
-        defender.JumpFromSlide = true;
+        defender.JumpTakeoff = JumpTakeoff.Slide;
         defender.KVX = 1.25f;
         defender.KVY = 0.5f;
         defender.KVZ = -0.75f;
@@ -51,7 +51,7 @@ public sealed class ArmorCombatTests
         Assert.Equal(ActionState.Attacking, afterHit.State);
         Assert.Equal(uninterrupted.FacingYaw, afterHit.FacingYaw);
         Assert.True(afterHit.IsFastFalling);
-        Assert.True(afterHit.JumpFromSlide);
+        Assert.Equal(JumpTakeoff.Slide, afterHit.JumpTakeoff);
         Assert.Equal((ushort)0, afterHit.QueuedKBFixedHitstunTicks);
         Assert.True(armor.HasArmor);
 
@@ -69,7 +69,7 @@ public sealed class ArmorCombatTests
         Assert.Equal(ActionState.Attacking, afterFreeze.State);
         Assert.Equal(afterHit.FacingYaw, afterFreeze.FacingYaw);
         Assert.True(afterFreeze.IsFastFalling);
-        Assert.True(afterFreeze.JumpFromSlide);
+        Assert.Equal(JumpTakeoff.Slide, afterFreeze.JumpTakeoff);
         Assert.Equal(afterHit.KVX, afterFreeze.KVX);
         Assert.Equal(afterHit.KVY, afterFreeze.KVY);
         Assert.Equal(afterHit.KVZ, afterFreeze.KVZ);

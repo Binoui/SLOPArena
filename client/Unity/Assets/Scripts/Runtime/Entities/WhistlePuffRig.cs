@@ -13,8 +13,8 @@ namespace SlopArena.Client.Entities
                 new Vector3(0.01f, 0.035f, 0.035f)));
 
         private Transform _head = null!, _whistle = null!, _shell = null!;
-        private SkinnedMeshRenderer? _body;
-        private int _puffShape = -1;
+        // Her body and every outfit piece baked with a matching Puff shape (the swimsuit), so they swell together.
+        private readonly List<(SkinnedMeshRenderer skin, int shape)> _puffs = new();
         private Vector3 _shellScale, _beakInHead;
         private Quaternion _heldInHead;
         private Vector3 _whistlePosition, _whistleScale;
@@ -61,10 +61,9 @@ namespace SlopArena.Client.Entities
                     if (bones[i] != null && !rest.ContainsKey(bones[i])) rest[bones[i]] = onModel * binds[i].inverse;
             }
             foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-                if (skin.name == "Bashie_Body") _body = skin;
-            if (_body != null && _body.sharedMesh != null)
-                _puffShape = _body.sharedMesh.GetBlendShapeIndex("Puff");
-            if (_puffShape < 0)
+                if (skin.sharedMesh != null && skin.sharedMesh.GetBlendShapeIndex("Puff") is int shape and >= 0)
+                    _puffs.Add((skin, shape));
+            if (!_puffs.Exists(p => p.skin.name == "Bashie_Body"))
                 Debug.LogWarning("[WhistlePuffRig] Bashie_Body has no Puff blend shape. Rerun Bashie's presentation builder.", this);
             if (_shell != null) _shellScale = LocalRest(rest, _shell).lossyScale;
             if (!rest.TryGetValue(_head, out var headRest)) return false;
@@ -95,9 +94,10 @@ namespace SlopArena.Client.Entities
         {
             if (_requested)
             {
-                if (_puffShape >= 0 && _body != null)
+                if (_puffs.Count > 0)
                 {
-                    _body.SetBlendShapeWeight(_puffShape, 100f * _puff);
+                    foreach (var (skin, shape) in _puffs)
+                        if (skin != null) skin.SetBlendShapeWeight(shape, 100f * _puff);
                     if (_shell != null) _shell.localScale = _shellScale * (1f + 0.2f * _puff);
                 }
                 if (_hold > 0f)
@@ -120,7 +120,8 @@ namespace SlopArena.Client.Entities
 
         private void Restore()
         {
-            if (_puffShape >= 0 && _body != null) _body.SetBlendShapeWeight(_puffShape, 0f);
+            foreach (var (skin, shape) in _puffs)
+                if (skin != null) skin.SetBlendShapeWeight(shape, 0f);
             if (_shell != null) _shell.localScale = _shellScale;
             if (_whistle != null)
             {

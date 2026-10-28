@@ -3,16 +3,19 @@
 // into Assets/CharacterPackages/bashie/Presentation/BashieRig.prefab, which her catalog binds as its rig.
 // Import settings, material and Humanoid mapping follow Manki's rig (same mixamorig names); the avatar skeleton is
 // generated from Bashie's T-pose. Her shell, whistle and cord are rigidly skinned meshes on bones of their own
-// (Shell, Whistle), each with its own material made from Manki's.
+// (Shell, Whistle), each with its own material made from Manki's. Her swimsuit (skinned like her body) and water
+// wings (on her forearms) came in on 2026-10-28. Rerun sloparena.presentation.bashie.puff.build afterwards: this
+// rewrites the prefab, which drops the baked puff meshes it points at.
 // Run: bun scripts/unity-editor-gateway.ts --project-path client/Unity -- eval_file --file "$PWD/tools/blender/bashie_rig/unity_import.eval.cs"
-const string Build = "/home/binoui/Documents/projects/SlopArena/tmp/bashie-model/rig-build-v4";
+const string Build = "/home/binoui/Documents/projects/SlopArena/tmp/bashie-model/rig-build-v5";
 const string Dir = "Assets/Art/Characters/bashie";
 const string Fbx = Dir + "/Models/bashie.fbx";
 // Her package owns the rig prefab, like MankiRig.prefab; the model, textures and materials stay under Art.
 const string PrefabPath = "Assets/CharacterPackages/bashie/Presentation/BashieRig.prefab";
 const string MankiRig = "Assets/CharacterPackages/manki/Presentation/MankiRig.prefab";
 // Piece (object, material and texture name) -> largest texture size in game.
-var pieces = new Dictionary<string, int> { ["Bashie_Body"] = 2048, ["Bashie_Shell"] = 2048, ["Bashie_Whistle"] = 512, ["Bashie_Cord"] = 32 };
+var pieces = new Dictionary<string, int> { ["Bashie_Body"] = 2048, ["Bashie_Shell"] = 2048, ["Bashie_Whistle"] = 512, ["Bashie_Cord"] = 32,
+    ["Bashie_Suit"] = 1024, ["Bashie_Wings"] = 512 };
 var report = new Dictionary<string, object>();
 string root = System.IO.Path.GetDirectoryName(Application.dataPath);
 foreach (var source in new[] { "Bashie.fbx" }.Concat(pieces.Keys.Select(p => "textures/" + p + ".png")))

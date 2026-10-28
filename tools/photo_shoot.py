@@ -10,6 +10,7 @@ Unity's photo shoot (client/Unity/Assets/Scripts/Editor/SlopArenaPhotoCommands.c
   python3 tools/photo_shoot.py final tmp/store/runs/x --camera a --tick 52 --out final.png
   python3 tools/photo_shoot.py final --image tmp/store/runs/live/0063.jpg --out final.png
   python3 tools/photo_shoot.py states tmp/store/runs/x --frames 40-60
+  python3 tools/photo_shoot.py clip tmp/store/runs/x --camera a --from 0 --to 299 --out clip.mp4
   python3 tools/photo_shoot.py batch scenarios/store/02-splash-deck-bonk.json --output tmp/store/runs/02 > batch.json
 
 `batch` turns a recipe from scenarios/store/ into a gateway batch: a PvP photo spec, a live Slopball
@@ -21,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -56,17 +58,29 @@ def ticks_in(folder: Path, suffix: str) -> list[int]:
     return sorted(int(path.stem) for path in folder.glob(f"*{suffix}") if path.stem.isdigit())
 
 
+def frame_path(folder: Path, tick: int, suffix: str = ".jpg") -> Path:
+    # Photo shoots name frames NNN; live and Mayhem captures use NNNN.
+    for width in (3, 4):
+        path = folder / f"{tick:0{width}d}{suffix}"
+        if path.exists():
+            return path
+    return folder / f"{tick:03d}{suffix}"
+
+
+def with_hud(image: Image.Image, hud_path: Path) -> Image.Image:
+    if not hud_path.exists():
+        return image
+    hud = np.asarray(Image.open(hud_path).convert("RGBA")).astype(np.float32) / 255.0
+    base = np.asarray(image).astype(np.float32) / 255.0
+    alpha = hud[..., 3:4]
+    # UI Toolkit renders premultiplied colour into its cleared target.
+    out = hud[..., :3] + base * (1.0 - alpha)
+    return Image.fromarray(np.clip(out * 255.0 + 0.5, 0, 255).astype(np.uint8))
+
+
 def composite(run: Path, camera: str, tick: int) -> Image.Image:
-    image = Image.open(run / camera / f"{tick:03d}.jpg").convert("RGB")
-    hud_path = run / "hud" / f"{tick:03d}.png"
-    if hud_path.exists():
-        hud = np.asarray(Image.open(hud_path).convert("RGBA")).astype(np.float32) / 255.0
-        base = np.asarray(image).astype(np.float32) / 255.0
-        alpha = hud[..., 3:4]
-        # UI Toolkit renders premultiplied colour into its cleared target.
-        out = hud[..., :3] + base * (1.0 - alpha)
-        image = Image.fromarray(np.clip(out * 255.0 + 0.5, 0, 255).astype(np.uint8))
-    return image
+    image = Image.open(frame_path(run / camera, tick)).convert("RGB")
+    return with_hud(image, frame_path(run / "hud", tick, ".png"))
 
 
 def cmd_sheet(args: argparse.Namespace) -> None:
@@ -76,7 +90,7 @@ def cmd_sheet(args: argparse.Namespace) -> None:
     if not frames:
         raise SystemExit(f"No frames in {folder} for {args.frames!r}")
     cell_w = args.cell
-    first = Image.open(folder / f"{frames[0]:03d}.jpg")
+    first = Image.open(frame_path(folder, frames[0]))
     cell_h = round(cell_w * first.height / first.width)
     cols = min(args.cols, len(frames))
     rows = math.ceil(len(frames) / cols)
@@ -84,7 +98,7 @@ def cmd_sheet(args: argparse.Namespace) -> None:
     label = font(max(14, cell_w // 18))
     draw = ImageDraw.Draw(sheet)
     for index, tick in enumerate(frames):
-        image = composite(run, args.camera, tick) if args.hud else Image.open(folder / f"{tick:03d}.jpg").convert("RGB")
+        image = composite(run, args.camera, tick) if args.hud else Image.open(frame_path(folder, tick)).convert("RGB")
         image = image.resize((cell_w, cell_h), Image.LANCZOS)
         x = 4 + (index % cols) * (cell_w + 4)
         y = 4 + (index // cols) * (cell_h + 4)
@@ -156,6 +170,35 @@ def cmd_final(args: argparse.Namespace) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     image.save(out, optimize=True)
     print(f"{out} {image.size[0]}x{image.size[1]}")
+
+
+def cmd_clip(args: argparse.Namespace) -> None:
+    run = Path(args.run)
+    frames = sorted((path for path in (run / args.camera).glob("*.jpg") if path.stem.isdigit()),
+                    key=lambda path: int(path.stem))
+    frames = [path for path in frames if args.start <= int(path.stem) <= args.end]
+    if not frames:
+        raise SystemExit(f"no frames in {run / args.camera} between {args.start} and {args.end}")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    size = f"{args.width}x{args.height}"
+    # Browsers and phones refuse full-range yuvj420p, so encode limited-range yuv420p.
+    encoder = subprocess.Popen(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", size,
+         "-r", str(args.fps), "-i", "-", "-c:v", "libx264", "-preset", "slow", "-crf", str(args.crf),
+         "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out)], stdin=subprocess.PIPE)
+    assert encoder.stdin is not None
+    for path in frames:
+        image = Image.open(path).convert("RGB")
+        if args.hud:
+            image = with_hud(image, run / "hud" / f"{path.stem}.png")
+        if image.size != (args.width, args.height):
+            image = image.resize((args.width, args.height), Image.LANCZOS)
+        encoder.stdin.write(image.tobytes())
+    encoder.stdin.close()
+    if encoder.wait() != 0:
+        raise SystemExit("ffmpeg failed")
+    print(f"{out} {len(frames)} frames, {len(frames) / args.fps:.2f} s at {args.fps} fps")
 
 
 def cmd_states(args: argparse.Namespace) -> None:
@@ -277,6 +320,18 @@ def main() -> None:
     final.add_argument("--height", type=int, default=1080)
     final.add_argument("--out", required=True)
     final.set_defaults(func=cmd_final)
+    clip = sub.add_parser("clip", help="encode a camera's frames as an H.264 MP4")
+    clip.add_argument("run")
+    clip.add_argument("--camera", default="a", help="frame folder below the run (live captures: frames)")
+    clip.add_argument("--from", dest="start", type=int, default=0)
+    clip.add_argument("--to", dest="end", type=int, default=10**6)
+    clip.add_argument("--fps", type=int, default=60, help="60 for step-1 shoots, 30 for step-2 captures")
+    clip.add_argument("--hud", action="store_true", help="composite the HUD layer")
+    clip.add_argument("--width", type=int, default=1920)
+    clip.add_argument("--height", type=int, default=1080)
+    clip.add_argument("--crf", type=int, default=18)
+    clip.add_argument("--out", required=True)
+    clip.set_defaults(func=cmd_clip)
     states = sub.add_parser("states", help="print fighter states per tick")
     states.add_argument("run")
     states.add_argument("--frames")

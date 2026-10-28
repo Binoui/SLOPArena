@@ -70,6 +70,8 @@ namespace SlopArena.Client.Combat
         private const float AimScreenMaxOffset = 600f;
         /// <summary>Whether the current aimed move needs the HUD crosshair.</summary>
         public bool ShowCrosshair { get; private set; }
+        public bool SharedCamera { get; set; }
+        public bool ControllerAim { get; set; }
 
         // Last computed ground-cursor destination, kept for UpdateTargetPresentation-free
         // per-tick view driving in Evaluate.
@@ -207,7 +209,7 @@ namespace SlopArena.Client.Combat
             CameraMode desired = aimMode switch
             {
                 AimMode.GroundCursor    => CameraMode.FreeCursor,
-                AimMode.CameraForward3D => CameraMode.Aiming,
+                AimMode.CameraForward3D => SharedCamera ? CameraMode.Normal : CameraMode.Aiming,
                 AimMode.GroundVector    => CameraMode.Frozen,
                 _                       => CameraMode.Normal,
             };
@@ -235,7 +237,7 @@ namespace SlopArena.Client.Combat
                             _resolveAimTarget?.Invoke(playerState.TargetEntityId) ?? BodyCentre + facing * 6f,
                             BodyCentre, _lob?.MaxRange ?? _maxRange);
                     }
-                    _controllerCursorActive = HumanInputActions.LastUsedGamepad || Mouse.current == null;
+                    _controllerCursorActive = ControllerAim || HumanInputActions.LastUsedGamepad || Mouse.current == null;
                 }
                 // Entering Frozen (GroundVector) — freeze the camera; mouse delta rotates the
                 // aim direction instead. Inherit the current view yaw as the initial aim.
@@ -321,7 +323,7 @@ namespace SlopArena.Client.Combat
                 // Screen-space aim: the direction follows the mouse like a hidden cursor
                 // anchored at the character's screen position. Horizontal AND vertical mouse
                 // movement rotate it naturally (1:1 on screen), instead of a yaw-only delta.
-                Vector2 delta = HumanInputActions.MouseLook.ReadValue<Vector2>();
+                Vector2 delta = ControllerAim ? Vector2.zero : HumanInputActions.MouseLook.ReadValue<Vector2>();
                 var cameraSettings = ClientSettingsService.Instance;
                 delta *= cameraSettings.CameraInputGain;
                 if (cameraSettings.InvertCameraHorizontal) delta.x = -delta.x;
@@ -384,7 +386,12 @@ namespace SlopArena.Client.Combat
                 _groundDestinationIndicator?.Clear();
                 _trajectoryIndicator?.Clear();
 
-                if (aimMode == AimMode.CameraForward3D && _aimCameraMount != null)
+                if (aimMode == AimMode.CameraForward3D && SharedCamera)
+                {
+                    _lastAimYawRad = playerState.FacingYaw; _lastAimPitchRad = 0f; _lastAimingSlot = _aimingSlot;
+                    ctx = new AimContext { IsAiming = true, AimYawRad = _lastAimYawRad, AimPitchRad = 0f };
+                }
+                else if (aimMode == AimMode.CameraForward3D && _aimCameraMount != null)
                 {
                     var cameraSettings = ClientSettingsService.Instance;
                     // Mouse follows mouse sensitivity; the stick follows stick look speed.
@@ -461,7 +468,7 @@ namespace SlopArena.Client.Combat
                     * (GroundCursorSpeed * Time.deltaTime * ClientSettingsService.Instance.StickInputGain);
                 _controllerCursorActive = true;
             }
-            else if (HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f)
+            else if (!ControllerAim && HumanInputActions.MouseLook.ReadValue<Vector2>().sqrMagnitude > 0.01f)
                 _controllerCursorActive = false;
             Vector2 mousePos = mouse != null ? mouse.position.ReadValue() : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
             if (_controllerCursorActive)

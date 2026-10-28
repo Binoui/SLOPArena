@@ -261,8 +261,102 @@ public sealed class BashieNormalsTests
         Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
     }
 
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(90f)]
+    [InlineData(180f)]
+    [InlineData(270f)]
+    public void AirThreeHitsOnceWithUpwardLaunch(float degrees)
+    {
+        var result = Run(degrees, 1f, false, airborne: true, ticks: 90,
+            slot: AbilitySlots.Slot3, attackerYawDegrees: degrees);
+        var hit = Assert.Single(result.Hits);
+        Assert.False(hit.Blocked);
+        Assert.Equal(7f, hit.Damage);
+        Assert.Equal((ushort)7, result.Victim.DamagePercent);
+        Assert.Equal((sbyte)75, hit.KnockbackAngle);
+        Assert.InRange(result.FirstContactTick, 24, 29);
+        Assert.True(hit.Airborne);
+        Assert.False(result.Attacker.IsGrounded);
+        Assert.True(result.Attacker.VY < 0f);
+        Assert.Null(result.Sim.GetActiveAbility(1));
+        Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
+    }
+
+    [Fact]
+    public void AirThreePreservesTakeoffMomentum()
+    {
+        var attack = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, slot: AbilitySlots.Slot3);
+        var baseline = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, press: false);
+        Assert.Equal(3f, attack.Attacker.VX);
+        Assert.Equal(2f, attack.Attacker.VZ);
+        Assert.Equal(baseline.Attacker.VY, attack.Attacker.VY);
+        Assert.NotNull(attack.Sim.GetActiveAbility(1));
+        Assert.Equal("air.3", attack.Sim.GetActiveAbility(1)!.Move!.Id);
+    }
+
+    [Fact]
+    public void AirThreeDoesNotBoostOrResetTheFall()
+    {
+        var attack = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, slot: AbilitySlots.Slot3);
+        var baseline = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, press: false);
+        Assert.Equal(baseline.Attacker.PY, attack.Attacker.PY);
+        Assert.Equal(baseline.Attacker.VY, attack.Attacker.VY);
+        Assert.Equal(baseline.Attacker.JumpsLeft, attack.Attacker.JumpsLeft);
+        Assert.Equal(baseline.Attacker.AirDodgesLeft, attack.Attacker.AirDodgesLeft);
+    }
+
+    [Theory]
+    [InlineData(1f, 1, 9, 0)]
+    [InlineData(4f, 10, 35, 9)]
+    [InlineData(6.5f, 36, 41, 0)]
+    public void AirThreeLandingCleansUpAndUsesAutoCancel(float height, int earliestLanding, int latestLanding, int expectedLag)
+    {
+        var result = Run(0f, 20f, false, airborne: true, ticks: 100, height: height,
+            falling: true, slot: AbilitySlots.Slot3);
+        Assert.InRange(result.FirstLandingTick, earliestLanding, latestLanding);
+        Assert.Equal(expectedLag, result.MaxLandingLag);
+        Assert.True(result.Attacker.IsGrounded);
+        Assert.Equal((ushort)0, result.Attacker.LandingLagTicks);
+        Assert.Null(result.Sim.GetActiveAbility(1));
+        Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
+    }
+
+    [Fact]
+    public void AirThreeRespectsGroundedShieldAndWhiffRecovery()
+    {
+        var blocked = Run(0f, 1f, true, airborne: true, height: .25f,
+            slot: AbilitySlots.Slot3, victimGrounded: true);
+        Assert.NotEmpty(blocked.Hits);
+        Assert.All(blocked.Hits, hit => Assert.True(hit.Blocked));
+        Assert.Equal((ushort)0, blocked.Victim.DamagePercent);
+        Assert.Null(blocked.Sim.GetActiveAbility(1));
+        Assert.Empty(blocked.Sim.Resolver.GetActiveHitboxes());
+        var missed = Run(0f, 3f, false, airborne: true, slot: AbilitySlots.Slot3);
+        Assert.Empty(missed.Hits);
+        Assert.Equal((ushort)0, missed.Victim.DamagePercent);
+        Assert.Null(missed.Sim.GetActiveAbility(1));
+        Assert.Empty(missed.Sim.Resolver.GetActiveHitboxes());
+    }
+
+    [Fact]
+    public void AirThreeInterruptionClearsTheStrike()
+    {
+        var active = Run(0f, 3f, false, airborne: true, ticks: 26, slot: AbilitySlots.Slot3);
+        Assert.NotEmpty(active.Sim.Resolver.GetActiveHitboxes());
+        var interrupted = Run(0f, 3f, false, airborne: true, ticks: 27,
+            slot: AbilitySlots.Slot3, interruptAt: 26);
+        Assert.Null(interrupted.Sim.GetActiveAbility(1));
+        Assert.Empty(interrupted.Sim.Resolver.GetActiveHitboxes());
+        var result = Run(0f, 3f, false, airborne: true, ticks: 120,
+            slot: AbilitySlots.Slot3, interruptAt: 26);
+        Assert.Empty(result.Hits);
+        Assert.Null(result.Sim.GetActiveAbility(1));
+        Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
+    }
+
     private static (ServerSimulation Sim, CharacterState Attacker, CharacterState Victim,
-        SpellResolver.HitResult[] Hits, int FirstContactTick, int MaxLandingLag, float MaxHorizontalDelta, float MaxRise, float ReturnHeightDelta, bool AirborneDuringAttack) Run(float degrees, float distance, bool shield,
+        SpellResolver.HitResult[] Hits, int FirstContactTick, int FirstLandingTick, int MaxLandingLag, float MaxHorizontalDelta, float MaxRise, float ReturnHeightDelta, bool AirborneDuringAttack) Run(float degrees, float distance, bool shield,
         bool airborne = false, int ticks = 100, bool moving = false, bool press = true, float height = 12f, bool falling = false,
         byte slot = AbilitySlots.Slot1, float victimHeight = 0f, int interruptAt = -1, bool steerDuringAttack = false, float attackerYawDegrees = 0f, bool victimGrounded = false)
     {
@@ -304,7 +398,7 @@ public sealed class BashieNormalsTests
         float maxRise = 0f;
         bool airborneDuringAttack = false;
         var hits = new List<SpellResolver.HitResult>();
-        int firstContact = -1, maxLandingLag = 0;
+        int firstContact = -1, firstLanding = -1, maxLandingLag = 0;
         for (int tick = 0; tick < ticks; tick++)
         {
             if (tick == interruptAt)
@@ -317,6 +411,7 @@ public sealed class BashieNormalsTests
                 [100] = shield ? new InputState { ShieldHeld = true } : default,
             });
             var state = sim.GetState(1);
+            if (airborne && state.IsGrounded && firstLanding < 0) firstLanding = tick + 1;
             maxHorizontalDelta = Math.Max(maxHorizontalDelta, Math.Max(Math.Abs(state.PX - initialX), Math.Abs(state.PZ - initialZ)));
             maxRise = Math.Max(maxRise, state.PY - initialY);
             airborneDuringAttack |= !state.IsGrounded && sim.GetActiveAbility(1) != null;
@@ -327,7 +422,7 @@ public sealed class BashieNormalsTests
                 hits.Add(hit);
             }
         }
-        return (sim, sim.GetState(1), sim.GetState(100), hits.ToArray(), firstContact, maxLandingLag, maxHorizontalDelta, maxRise, sim.GetState(1).PY - initialY, airborneDuringAttack);
+        return (sim, sim.GetState(1), sim.GetState(100), hits.ToArray(), firstContact, firstLanding, maxLandingLag, maxHorizontalDelta, maxRise, sim.GetState(1).PY - initialY, airborneDuringAttack);
     }
 
     private static string Root()

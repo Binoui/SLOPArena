@@ -31,7 +31,12 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 12).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 13).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+
+    /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
+    private static bool ApiAtLeast(string runtimeApiMin, int minor)
+        => SupportedRuntimeApiMinimums.Contains(runtimeApiMin)
+            && int.Parse(runtimeApiMin.Split('.')[1], System.Globalization.CultureInfo.InvariantCulture) >= minor;
 
     public static CookedCharacterPackageLoadResult LoadAssembly(CharacterPackageAssemblyResult assembly)
     {
@@ -113,6 +118,7 @@ public static class CookedCharacterPackageLoader
             ValidateSteeredCharges(package.Definition, m.RuntimeApiMin, d);
             ValidateAimedRecoveries(package.Definition, m.RuntimeApiMin, d);
             ValidateReturningProjectiles(package.Definition, m.RuntimeApiMin, d);
+            ValidateShellStance(package.Definition, m.RuntimeApiMin, d);
             if(package.Metadata.PackageId!=m.PackageId||package.Metadata.Version!=m.Version||package.Metadata.CookedSchemaVersion!=m.CookedSchemaVersion) d.Add(Error("package.runtime.metadata-mismatch",CharacterPackageAssembler.RuntimePath,"Runtime package metadata does not match manifest."));
             var baked=BakedAnimationData.LoadFromBin(copied[CharacterPackageAssembler.PosePath]);
             using var bindings = JsonDocument.Parse(copied[CharacterPackageAssembler.BindingPath]);
@@ -183,7 +189,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.FingerGunsCapabilityId).ToArray();
             if (guns.Length == 0) continue;
-            if (runtimeApiMin != "1.11.0")
+            if (!ApiAtLeast(runtimeApiMin, 11))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Finger Guns requires runtime API 1.11.0."));
             bool invalid = guns.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0 ||
@@ -221,7 +227,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedStreamCapabilityId).ToArray();
             if (streams.Length == 0) continue;
-            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+            if (!ApiAtLeast(runtimeApiMin, 8))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged stream requires runtime API 1.8.0."));
             bool invalid = streams.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
@@ -284,7 +290,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.ChargedProjectileCapabilityId).ToArray();
             if (charges.Length == 0) continue;
-            if (runtimeApiMin is not ("1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+            if (!ApiAtLeast(runtimeApiMin, 6))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Charged projectile requires runtime API 1.6.0 or later."));
             bool invalid = charges.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.ChargeAttack ||
                 slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0;
@@ -330,7 +336,7 @@ public static class CookedCharacterPackageLoader
                         continue;
                     lifecycleCount++;
                     string path = slot.Id + ".chargedDirectionalDash";
-                    if (runtimeApiMin is not ("1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+                    if (!ApiAtLeast(runtimeApiMin, 5))
                         diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                             "Charged directional dash requires runtime API 1.5.0."));
                     if (capability.Parameters is not CookedChargedDirectionalDashCapabilityParameters dash)
@@ -433,9 +439,64 @@ public static class CookedCharacterPackageLoader
                 ValidateFixedHitstun(leap.Hitbox.FixedHitstunTicks, leap.Hitbox.StunTicks,
                     slot.Id, diagnostics, ref requiresApi13);
         }
-        if (requiresApi13 && runtimeApiMin is not ("1.3.0" or "1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+        if (requiresApi13 && !ApiAtLeast(runtimeApiMin, 3))
             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                 "Armor windows and fixed hitstun require runtime API 1.3.0 or later."));
+    }
+
+    /// <summary>Mirrors the compiler's shell rules (ADR-0045): stance, pose, tuck moves, thrust and vertical velocity.</summary>
+    private static void ValidateShellStance(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        void Fail(string path, string message) => diagnostics.Add(Error("package.shell.invalid", path, message));
+        bool stance = definition.CapabilityRequirements.Any(x => x.CapabilityId == CharacterPackageCompiler.ShellStanceCapabilityId);
+        var shell = definition.Shell;
+        var thrusts = definition.Slots.SelectMany(slot => slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<CookedStartCapabilityOperation>()
+            .Where(op => op.CapabilityId == CharacterPackageCompiler.ThrustCapabilityId)
+            .Select(op => (slot, op))).ToList();
+        bool vertical = definition.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(op =>
+            op is CookedSetVelocityOperation { VelocityMode: AuthoringVelocityMode.Vertical })));
+        if (definition.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(op =>
+            op is CookedSetVelocityOperation velocity && velocity.VelocityMode > AuthoringVelocityMode.Vertical))))
+            Fail("character.slots", "Unknown velocity mode.");
+        if ((shell != null || thrusts.Count > 0 || vertical
+                || definition.Slots.Any(slot => slot.ShellPolicy != ShellPolicy.PopOut)) && !ApiAtLeast(runtimeApiMin, 12))
+            diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                "The shell stance, tuck moves, thrust and vertical-only velocity require runtime API 1.12.0."));
+        if (stance != (shell != null))
+            Fail("character.shell", "A shell block exists exactly when the shell-stance capability is required.");
+        if (shell != null && string.IsNullOrEmpty(definition.Presentation.Shell))
+            Fail("character.presentation.shell", "A shell block needs a shell pose.");
+        if (shell == null && !string.IsNullOrEmpty(definition.Presentation.Shell))
+            Fail("character.presentation.shell", "A shell pose needs a shell block.");
+        if (shell != null && CharacterPackageCompiler.ShellBoundsError(shell) is { } shellError)
+            Fail("character.shell", shellError);
+        if (shell?.HitPresentationId is { } hit && !definition.PresentationIds.Contains(hit, StringComparer.Ordinal))
+            Fail("character.shell.hitPresentationId", "Presentation ID is not declared.");
+        foreach (var slot in definition.Slots.Where(slot => slot.ShellPolicy != ShellPolicy.PopOut))
+        {
+            if (slot.ShellPolicy != ShellPolicy.Tuck || shell == null
+                || !(slot.Id.EndsWith(".A", StringComparison.Ordinal) || slot.Id.EndsWith(".E", StringComparison.Ordinal)
+                    || slot.Id.EndsWith(".R", StringComparison.Ordinal) || slot.Id.EndsWith(".F", StringComparison.Ordinal))
+                || slot.AllowSlideCarry || slot.PreserveMomentumOnStart)
+                Fail(slot.Id, "A tuck move is a special of a fighter with a shell block, without slide carry or preserved momentum.");
+        }
+        foreach (var (slot, op) in thrusts)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (slot.Timeline.Stages.Count != 1 || op.Tick != 0 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo
+                || slot.AimMode != AuthoringAimMode.None
+                || stage.Operations.Any(other => other != op
+                    && other is not (CookedEmitPresentationOperation or CookedArmorWindowOperation)))
+                Fail(slot.Id, "Thrust requires one tick-zero lifecycle in one meleeCombo stage with no aim.");
+            if (op.Parameters is not CookedThrustCapabilityParameters thrust)
+                Fail(slot.Id, "Thrust parameters are missing.");
+            else if (CharacterPackageCompiler.ThrustBoundsError(thrust) is { } thrustError)
+                Fail(slot.Id, thrustError);
+            else if (thrust.ThrustTicks > stage.DurationTicks)
+                Fail(slot.Id, "The thrust must end within its stage.");
+        }
     }
 
     private static void ValidateAimMovementSpeeds(
@@ -444,7 +505,7 @@ public static class CookedCharacterPackageLoader
         foreach (var slot in definition.Slots)
         {
             if (slot.AimMovementSpeedScale == 1f) continue;
-            if (runtimeApiMin is not ("1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+            if (!ApiAtLeast(runtimeApiMin, 7))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Aim movement speed scale requires runtime API 1.7.0."));
             if (!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f)
@@ -463,10 +524,10 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedStartCapabilityOperation>()
                 .Where(operation => operation.CapabilityId == CharacterPackageCompiler.AimedRecoveryCapabilityId).ToArray();
             if (recoveries.Length == 0) continue;
-            if (runtimeApiMin is not ("1.9.0" or "1.10.0" or "1.11.0") || recoveries.Any(op =>
-                op.Parameters is CookedAimedRecoveryCapabilityParameters { Hop: not null }) && runtimeApiMin is not ("1.10.0" or "1.11.0")
+            if (!ApiAtLeast(runtimeApiMin, 9) || recoveries.Any(op =>
+                op.Parameters is CookedAimedRecoveryCapabilityParameters { Hop: not null }) && !ApiAtLeast(runtimeApiMin, 10)
                 || recoveries.Any(op => op.Parameters is CookedAimedRecoveryCapabilityParameters { RiseSteerAcceleration: > 0f })
-                    && runtimeApiMin != "1.11.0")
+                    && !ApiAtLeast(runtimeApiMin, 11))
                 diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Aimed recovery requires runtime API 1.9.0, 1.10.0 with a setup hop, or 1.11.0 with rise steering."));
             var stage = slot.Timeline.Stages[0];
             if (recoveries.Length != 1 || slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0
@@ -494,7 +555,7 @@ public static class CookedCharacterPackageLoader
                 .ToArray();
             if (charges.Length == 0) continue;
             string path = slot.Id + ".steeredCharge";
-            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+            if (!ApiAtLeast(runtimeApiMin, 8))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Steered charge requires runtime API 1.8.0."));
             if (charges.Length != 1 || slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0)
@@ -541,7 +602,7 @@ public static class CookedCharacterPackageLoader
                 .OfType<CookedSpawnProjectileOperation>()
                 .Where(operation => operation.Projectile.Return != null).ToArray();
             if (throws.Length == 0) continue;
-            if (runtimeApiMin is not ("1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+            if (!ApiAtLeast(runtimeApiMin, 8))
                 diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                     "Returning projectiles require runtime API 1.8.0."));
             if (throws.Length > 1)
@@ -581,7 +642,7 @@ public static class CookedCharacterPackageLoader
                 {
                     if (operation is CookedStartupAimCorrectionOperation correction)
                     {
-                        if (runtimeApiMin is not ("1.4.0" or "1.5.0" or "1.6.0" or "1.7.0" or "1.8.0" or "1.9.0" or "1.10.0" or "1.11.0"))
+                        if (!ApiAtLeast(runtimeApiMin, 4))
                             diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
                                 "Startup aim correction requires runtime API 1.4.0 or later."));
                         windowCount++;
@@ -667,10 +728,10 @@ public static class CookedCharacterPackageLoader
         public static CookedCharacterPackage Parse(byte[] bytes)
         {
             using var doc=JsonDocument.Parse(bytes);var root=doc.RootElement;var mm=O(root.GetProperty("metadata"),"packageId","version","cookedSchemaVersion","compatibility");var api=O(mm["compatibility"],"runtimeApiMin","runtimeApiMax");var metadata=new CookedPackageMetadata(S(mm,"packageId"),S(mm,"version"),U(mm,"cookedSchemaVersion"),S(api,"runtimeApiMin"),S(api,"runtimeApiMax"));
-            var c = O(root.GetProperty("character"),
+            var c = OOptional(root.GetProperty("character"), new[] { "shell" },
                 "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight",
                 "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs",
-                "attachmentBoneIds", "presentationIds", "capabilityRequirements", "slots");
+                "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots");
             var mv = O(c["movement"], "runSpeed", "runAccelerationA", "runAccelerationB", "dashSpeed", "airDodgeSpeed",
                 "airSpeedMax", "airAccelStick", "airAccelBase", "jumpForce", "shortHopForce",
                 "airJumpVMultiplier", "airJumpHMultiplier", "gravity", "airFloatGravity",
@@ -683,9 +744,9 @@ public static class CookedCharacterPackageLoader
                 F(mv, "groundFriction"), F(mv, "airFriction"), F(mv, "maxFallSpeed"), F(mv, "fastFallSpeed"),
                 B(mv, "maxJumps"), U(mv, "jumpSquatTicks"), U(mv, "floatWindowTicks"), U(mv, "rushTicks"));
             var pr = OOptional(c["presentation"],
-                new[] { "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge" },
+                new[] { "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell" },
                 "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard",
-                "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge",
+                "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell",
                 "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale",
                 "modelYOffset", "modelSoleOffset", "autoModelYOffset");
             var presentation = new CookedPresentation(
@@ -695,7 +756,7 @@ public static class CookedCharacterPackageLoader
                 F(pr, "modelYOffset"), F(pr, "modelSoleOffset"), Bo(pr, "autoModelYOffset"),
                 SO(pr, "tumble", ""), SO(pr, "crouch", ""), SO(pr, "slide", ""),
                 SO(pr, "shield", ""), SO(pr, "grab", ""), SO(pr, "grabbed", ""),
-                SO(pr, "throwForward", ""), SO(pr, "airDodge", ""));
+                SO(pr, "throwForward", ""), SO(pr, "airDodge", ""), SO(pr, "shell", ""));
             var capture = O(c["captureGeometry"], "reach", "width", "height", "offsetY", "attackerAnchor", "victimAnchor");
             var attacker = O(capture["attackerAnchor"], "x", "y", "z");
             var victim = O(capture["victimAnchor"], "x", "y", "z");
@@ -733,19 +794,28 @@ public static class CookedCharacterPackageLoader
             var definition = new CookedCharacterDefinition(
                 S(c, "displayName"), F(c, "weight"), movement, presentation,
                 F(c, "capsuleRadius"), capsuleHeight, F(c, "hipHeight"),
-                F(c, "hurtboxRadius"), shieldRadius, captureGeometry, capsules, bones, attachments, ids, caps, slots);
+                F(c, "hurtboxRadius"), shieldRadius, captureGeometry, capsules, bones, attachments, ids, caps, slots,
+                c.TryGetValue("shell", out var shellElement) ? ParseShell(shellElement) : null);
             var b = O(root.GetProperty("budget"), "slotCount", "stageCount", "operationCount", "hitboxCount",
                 "projectileCount", "capabilityCount", "maxTimelineDurationTicks");
             var budget = new CookedBudget(I(b, "slotCount"), I(b, "stageCount"), I(b, "operationCount"),
                 I(b, "hitboxCount"), I(b, "projectileCount"), I(b, "capabilityCount"), I(b, "maxTimelineDurationTicks"));
             return new CookedCharacterPackage(metadata, definition, budget, Array.Empty<CharacterDiagnostic>(), bytes);
         }
+        private static CookedShellDefinition ParseShell(JsonElement e)
+        {
+            var q = OOptional(e, new[] { "hitPresentationId" }, "skateTicks", "minSkateSpeed", "maxSkateSpeed",
+                "landingSpeedRatio", "popOutDeceleration", "blockedRecoilSpeed", "hitbox", "hitPresentationId");
+            return new CookedShellDefinition(U(q, "skateTicks"), F(q, "minSkateSpeed"), F(q, "maxSkateSpeed"),
+                F(q, "landingSpeedRatio"), F(q, "popOutDeceleration"), F(q, "blockedRecoilSpeed"),
+                ParseHitbox(q["hitbox"]), N(q, "hitPresentationId"));
+        }
         private static CookedSlotDefinition ParseSlot(JsonElement e)
         {
-            var q = OOptional(e, new[] { "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "allowSlideCarry", "hitPresentationId" },
+            var q = OOptional(e, new[] { "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "allowSlideCarry", "hitPresentationId", "shellPolicy" },
                 "ordinal", "id", "isAir", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimMovementSpeedScale",
                 "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart",
-                "allowSlideCarry", "chargePool", "timeline");
+                "allowSlideCarry", "shellPolicy", "chargePool", "timeline");
             var pool = q["chargePool"].ValueKind == JsonValueKind.Null ? null : ParseChargePool(q["chargePool"]);
             var t = O(q["timeline"], "stages");
             string? hitPresentationId = null;
@@ -760,7 +830,8 @@ public static class CookedCharacterPackageLoader
                 U(q, "cooldownTicks"), Bo(q, "isRecoveryMove"), Bo(q, "preserveMomentumOnStart"),
                 new CookedTimeline(A(t, "stages").EnumerateArray().Select(ParseStage).ToList()), pool,
                 (AuthoringAimMovementMode)BOrDefault(q, "aimMovement", 0), SO(q, "aimAnimationId", ""),
-                BoOrDefault(q, "allowSlideCarry", false), hitPresentationId, FOrDefault(q, "aimMovementSpeedScale", 1f));
+                BoOrDefault(q, "allowSlideCarry", false), hitPresentationId, FOrDefault(q, "aimMovementSpeedScale", 1f),
+                (ShellPolicy)BOrDefault(q, "shellPolicy", 0));
         }
         private static CookedChargePool ParseChargePool(JsonElement e){var q=O(e,"maxCharges","regenTicks");return new CookedChargePool(I(q,"maxCharges"),U(q,"regenTicks"));}
         private static CookedStage ParseStage(JsonElement e){var q=OOptional(e,new[]{"attackRange","warpRange","useTargetLock","rotateTowardTarget","trackingStrength"},"durationTicks","iasaTicks","landingLagTicks","autoCancelBeforeTicks","autoCancelAfterTicks","attackRange","warpRange","useTargetLock","rotateTowardTarget","trackingStrength","animationIds","operations");return new CookedStage(U(q,"durationTicks"),U(q,"iasaTicks"),U(q,"landingLagTicks"),U(q,"autoCancelBeforeTicks"),U(q,"autoCancelAfterTicks"),A(q["animationIds"]).EnumerateArray().Select(x=>x.GetString()!).ToList(),A(q["operations"]).EnumerateArray().Select(ParseOperation).ToList(),FOrDefault(q,"attackRange",0f),FOrDefault(q,"warpRange",0f),BoOrDefault(q,"useTargetLock",false),BoOrDefault(q,"rotateTowardTarget",false),FOrDefault(q,"trackingStrength",0f));}
@@ -913,6 +984,8 @@ public static class CookedCharacterPackageLoader
                 "slop.internal.wibou.rising-slash.v1" => WibouRisingSlash(O(e, "riseSpeed", "riseTicks", "homingRange", "homingSpeed")),
                 CharacterPackageCompiler.BladeFlurryCapabilityId => WibouBladeFlurry(O(e, "forwardSpeed", "ascentStartTick", "ascentEndTick", "descentStartTick", "riseSpeed", "descentSpeed")),
                 "slop.ability.steered-charge.v1" => SteeredCharge(OOptional(e, SteeredChargeOptional, SteeredChargeFields)),
+                "slop.ability.thrust.v1" => Thrust(OOptional(e, new[] { "trailHitbox" }, "aim", "targetConeDegrees", "neutralPitchDegrees",
+                    "stickPitchDegrees", "speed", "acceleration", "maxSpeed", "keepIncomingSpeed", "thrustTicks", "trailHitbox")),
                 "slop.ability.targeted-leap.v1" => TargetedLeap(OOptional(e, new[] { "launchPresentationId", "landingPresentationId" }, "maxAimTicks", "maxFlightTicks", "minRange", "maxRange", "launchVerticalSpeed", "landingSeekTick", "recoveryTicks", "hitbox")),
                 "slop.internal.manki.round-bomb.v1" => MankiRoundBomb(OOptional(e, new[] { "explosionPresentationId" }, "throwTriggerTick", "maxRange", "launchAngle", "gravity", "hitboxRadius", "damage", "stunTicks", "maxFlightTicks", "kbAngle", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle")),
                 "slop.internal.manki.jetpack-boost.v1" => MankiJetpackBoost(OOptional(e, new[] { "explosionPresentationId" }, "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks")),
@@ -955,6 +1028,10 @@ public static class CookedCharacterPackageLoader
             "gallopSpeed", "turnDegreesPerSecond", "maxGallopTicks", "armored", "lanceHitbox", "hitEndingTicks",
             "missEndingTicks", "skidTicks", "turnAroundOnMiss", "airStrideTicks", "lookDownTicks",
         };
+        private static CookedCapabilityParameters Thrust(Dictionary<string, JsonElement> q)
+            => new CookedThrustCapabilityParameters((ThrustAim)B(q, "aim"), F(q, "targetConeDegrees"), F(q, "neutralPitchDegrees"),
+                F(q, "stickPitchDegrees"), F(q, "speed"), F(q, "acceleration"), F(q, "maxSpeed"), Bo(q, "keepIncomingSpeed"),
+                U(q, "thrustTicks"), q.TryGetValue("trailHitbox", out var trail) ? ParseHitbox(trail) : null);
         private static CookedCapabilityParameters SteeredCharge(Dictionary<string, JsonElement> q)
             => new CookedSteeredChargeCapabilityParameters(
                 F(q, "gallopSpeed"), F(q, "turnDegreesPerSecond"), U(q, "maxGallopTicks"), Bo(q, "armored"),

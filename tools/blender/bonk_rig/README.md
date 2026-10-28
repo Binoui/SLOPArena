@@ -76,6 +76,57 @@ blender -b --factory-startup --python-exit-code 1 --python tools/blender/bonk_ri
   scene: his left arm kept the idle (fist on the hip) while the plank arm followed the clip, so the wrong hand seemed to
   grab the lid. Check a rendered frame against the clip's bone positions before showing it.
 
+## Sir Bonk v2 (2026-10-28): Tripo kit + Mixamo
+
+v2 replaces the v1 Tripo auto-rig. The owner generated concept take 3 ("Junk Knight") with Tripo's character extraction,
+which returns a kit: a bare body and every costume part beside it, each at its own scale. The owner rigged the body in
+Mixamo. The scripts are in `v2/`; the 2026-10-28 inputs and outputs are under `tmp/bonk-sir/tripo-v2/`. The kit
+coordinates in `split.py` and the part targets in `assemble.py` are this kit's.
+
+```bash
+B="blender -b --factory-startup --python-exit-code 1"
+$B --python v2/split.py -- <kit.fbx> <kit_rgb.png> <parts>/parts.blend          # one object per part, glitches dropped
+blender -b <parts>/parts.blend --python v2/frame_body.py -- <parts>/framed.blend  # body turned square (it was yawed 25°)
+blender -b --python-exit-code 1 <parts>/framed.blend --python v2/assemble.py -- <dress_dir>   # fit every part
+blender -b --python-exit-code 1 <dress_dir>/dressed.blend --python v2/apose.py -- <apose_dir> # arms 35° up for Mixamo
+blender -b --python-exit-code 1 <apose_dir>/apose.blend --python v2/export_mixamo.py -- <kit_rgb.png> <upload_dir>
+#  -> the owner rigs <upload_dir>/sir-bonk-v2-mixamo.fbx (body + boots) in Mixamo, Original Pose
+$B --python v2/swap_mesh.py -- <mixamo.fbx> <sent apose.blend> <new apose.blend> <rigged_dir>  # reshape, keep weights
+$B --python v2/build_rig.py -- <rigged_dir>/sir-bonk-v2-rigged.blend <apose_dir>/apose.blend \
+  client/Unity/Assets/Art/Characters/bonk/Models/bonk.fbx <kit_rgb.png> <build_dir>
+LID_ISLANDS=2 $B --python lid_split.py -- <build_dir>/SirBonk_rig.blend <lid_dir>   # Q's pot lid as its own prop
+```
+
+Then, through the gateway (`eval_file`, absolute paths), in this order:
+1. `v2_import.eval.cs` with `Build` = `<build_dir>`: candidate `Art/Characters/bonk/Prefabs/SirBonkV2Rig.prefab`.
+2. `v2_lid_import.eval.cs`: the lid prop `sir_bonk_v2_pot_lid.prefab` and its offset on `mixamorig:LeftArm`.
+3. `v2_import.eval.cs` again with `Build` = `<lid_dir>`: the body without the lid.
+4. `v2_review.eval.cs`: the live rig and the candidate side by side in Bonk's bound clips.
+5. `v2_swap.eval.cs`: back up first (it cooks every package). It:
+   - makes v2 the catalog `_rig`;
+   - puts the v2 lid in the weapon config and in the thrown lid (`BonkPotLidProjectile`);
+   - strips `Cape_*` curves from the bound clips.
+6. `sloparena.character.inspect --target bonk`, then the Bonk kit tests.
+7. Rebuild the GenRA rig pack: `unity_rigpack.py all bonk --label sirv2 --prefab
+   Assets/CharacterPackages/bonk/Presentation/SirBonkV2Rig.prefab --weapon-config
+   Assets/CharacterPackages/bonk/BonkWeaponAttachConfig.asset`.
+
+What the kit needed:
+- **Glitches and caps:** Tripo added an extra head and a long grey stick. It also capped every tube end: the wraps
+  are closed solids, and the pants and boot shafts are capped. `assemble.py` cuts the caps.
+- **Knee guards:** the kit's knee guards carry a mirrored back pad, which is dropped.
+- **Bucket handle:** it is its own part. Its loop under the chin pushed the bucket off the head.
+- **Collision tests:** signed distance to thin cloth layers is unreliable, so solid parts test against the body only,
+  with a bigger gap.
+- **Hidden body:** the body is trimmed below the boot cuffs, so no foot or shin pokes through.
+- **A-pose:** the body's arms hung about 1 cm from his sides. Raise them with a harmonic blend over the shoulder,
+  with the arm and deltoid rigid. A piecewise blend left a ledge under the biceps, which the owner saw in Mixamo.
+  The upload is body, boot_a, boot_b joined, so `swap_mesh.py` can reshape the rigged mesh by vertex index.
+- **Mixamo rig:** it has index fingers only. `v2_import.eval.cs` allows the live mapping's other finger bones to be missing.
+- **Cape keys:** clips must not key spring chains. BoneChainSpring takes its rest from the first animated frame, so
+  the v1 clips' `Cape_*` keys flipped v2's cape. `tools/genra/unity/write_clip.cs.template` now skips every
+  BoneChainSpring bone.
+
 ## Why the rig looks like this
 
 - **Back stick:** the generator turned a frying-pan pauldron's handle into a stick strapped across

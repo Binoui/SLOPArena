@@ -28,6 +28,8 @@ public static class CookedCharacterRuntimeAdapter
             ShieldAnim = c.Presentation.Shield, GrabAnim = c.Presentation.Grab,
             GrabbedAnim = c.Presentation.Grabbed, ThrowForwardAnim = c.Presentation.ThrowForward,
             AirDodgeAnim = c.Presentation.AirDodge,
+            ShellAnim = c.Presentation.Shell,
+            Shell = c.Shell,
             HitSmallAnim=c.Presentation.HitSmall, HitMediumAnim=c.Presentation.HitMedium, HitHardAnim=c.Presentation.HitHard, TumbleAnim=c.Presentation.Tumble, LandStartOffset=c.Presentation.LandStartOffsetSeconds,
             CookedSlots = c.Slots,
         };

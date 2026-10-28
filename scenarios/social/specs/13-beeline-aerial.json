@@ -1,0 +1,97 @@
+{
+ "stage": "splash_deck",
+ "notes": "final (r5 + wider lens): Manki (150%) hits FightGuy with Monkey Punch, runs west and jetpacks away; FightGuy jumps and Beelines the whole way up after him, buffering Floating Kick mid-dash (hit t94); Manki flies off the deck over the harbour, KO near t250; 3/4 camera from the south-east",
+ "capture": {
+  "from": 1,
+  "to": 200,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    1.5,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "target": 2,
+   "input": [
+    {
+     "from": 40,
+     "to": 44,
+     "move": 270
+    },
+    {
+     "from": 48,
+     "to": 58,
+     "jump": true
+    },
+    {
+     "at": 56,
+     "dash": true
+    },
+    {
+     "at": 72,
+     "press": "1"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    0.0,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "damage": 150,
+   "target": 0,
+   "input": [
+    {
+     "at": 2,
+     "press": "1"
+    },
+    {
+     "from": 22,
+     "to": 47,
+     "move": 270
+    },
+    {
+     "at": 44,
+     "press": "E"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "s",
+   "pos": [
+    5.5,
+    1.2,
+    -1.0
+   ],
+   "look": [
+    0.5,
+    2.2,
+    5.0
+   ],
+   "follow": 2,
+   "lookOffset": [
+    0.8,
+    1.2,
+    0
+   ],
+   "move": true,
+   "ease": 0.18,
+   "fov": 58,
+   "far": 4000
+  }
+ ]
+}

@@ -105,6 +105,8 @@ namespace SlopArena.Shared
             public bool ArmorProtected;
             /// <summary>If true, the hit freezes the owner too (melee contact, ADR-0012).</summary>
             public bool FreezesOwner;
+            /// <summary>True when a fighter-state window (the shell's bowling hitbox) made the contact.</summary>
+            public bool OwnerWindow;
             /// <summary>World-space contact point resolved from the colliding shapes.</summary>
             public float HitX, HitY, HitZ;
             /// <summary>Final launch magnitude resolved by ServerSimulation after ability hooks.</summary>
@@ -187,6 +189,25 @@ namespace SlopArena.Shared
 
                 hb.Active = false;
                 OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
+                _hitboxes.RemoveAt(i);
+            }
+        }
+
+        internal bool HasOwnerWindow(ulong ownerId)
+        {
+            foreach (var hitbox in _hitboxes)
+                if (hitbox.OwnerWindow && hitbox.Active && hitbox.OwnerId == ownerId) return true;
+            return false;
+        }
+
+        internal void RemoveOwnerWindow(ulong ownerId)
+        {
+            for (int i = _hitboxes.Count - 1; i >= 0; i--)
+            {
+                var hitbox = _hitboxes[i];
+                if (!hitbox.OwnerWindow || hitbox.OwnerId != ownerId) continue;
+                hitbox.Active = false;
+                OnHitboxRemoved?.Invoke(hitbox, hitbox.X, hitbox.Y, hitbox.Z);
                 _hitboxes.RemoveAt(i);
             }
         }
@@ -593,7 +614,7 @@ namespace SlopArena.Shared
                 var hb = _hitboxes[i];
                 if (!hb.Active || !hb.TracksBone || hb.Def == null) continue;
                 if (!states.TryGetValue(hb.OwnerId, out var owner)) continue;
-                if (owner.AttackSlot == 0)
+                if (owner.AttackSlot == 0 && !hb.OwnerWindow)
                 {
                     // Owner interrupted/ended — leave the lingering hitbox as-is.
                     if (hb.Sweep != null) { hb.Sweep = null; _hitboxes[i] = hb; }
@@ -797,6 +818,7 @@ namespace SlopArena.Shared
                         KnockbackGrowth = hb.KnockbackGrowth,
                         StunTicks = hb.StunTicks,
                         FreezesOwner = hb.FreezesOwner,
+                        OwnerWindow = hb.OwnerWindow,
                         HitX = hitX,
                         HitY = hitY,
                         HitZ = hitZ,

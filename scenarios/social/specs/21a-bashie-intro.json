@@ -1,0 +1,60 @@
+{
+ "stage": "splash_deck",
+ "notes": "21a Bashie intro: she speed-walks in from the harbour side toward a fixed low camera, stops, turns three-quarter and idles (outfit read)",
+ "capture": {
+  "from": 1,
+  "to": 200,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bashie",
+   "feet": [
+    7.0,
+    0,
+    3.5
+   ],
+   "yaw": 229,
+   "input": [
+    {
+     "from": 3,
+     "to": 34,
+     "move": 229
+    },
+    {
+     "at": 60,
+     "face": 250
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "c",
+   "pos": [
+    0.49,
+    0.7,
+    -3.45
+   ],
+   "look": [
+    1.9,
+    0.6,
+    -0.9
+   ],
+   "follow": 1,
+   "lookOffset": [
+    0,
+    0.05,
+    0
+   ],
+   "ease": 0.15,
+   "fov": 40,
+   "far": 4000,
+   "move": false
+  }
+ ]
+}

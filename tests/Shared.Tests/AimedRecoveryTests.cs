@@ -9,7 +9,7 @@ public sealed class AimedRecoveryTests
 {
     private const ushort LaunchTick = 12, EndTick = 18;
     private static readonly CookedAimedRecoveryCapabilityParameters Parameters = new(LaunchTick, 15f, 13f, 8f, .8f);
-    private static readonly CookedAimedRecoveryCapabilityParameters HopParameters = new(44, 15f, 13f, 8f, 0f,
+    internal static readonly CookedAimedRecoveryCapabilityParameters HopParameters = new(44, 15f, 13f, 8f, 0f,
         new RecoveryHopParameters(18, 34, .72f, .45f, .18f));
     private static readonly CookedAimedRecoveryCapabilityParameters SteerParameters = Parameters with { RiseSteerAcceleration = 30f };
 
@@ -211,37 +211,6 @@ public sealed class AimedRecoveryTests
     }
 
     [Fact]
-    public void BashieCanReturnFromBelowALedgeWithBothJumpsSpent()
-    {
-        var definition = TestHelpers.ResolveSourceDef("bashie");
-        var arena = FloorArena(100f);
-        for (int z = 0; z < arena.Heightmap.Height; z++)
-            for (int x = 100; x < arena.Heightmap.Width; x++)
-                arena.Heightmap.Data[z * arena.Heightmap.Width + x] = float.MinValue;
-        var sim = TestHelpers.MakeSim(arena);
-        var state = TestHelpers.PlayerState(103f, 100f);
-        state.PY = TestHelpers.GroundPY(definition) - 2f;
-        state.VY = -11f;
-        state.JumpsLeft = state.AirDodgesLeft = 0;
-        state.IsGrounded = false;
-        sim.RegisterEntity(1, definition, state);
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.E, MoveX = -1f });
-        bool landed = false;
-        for (int tick = 1; tick < 180; tick++)
-        {
-            Tick(sim, new InputState { MoveX = -1f });
-            var current = sim.GetState(1);
-            Assert.Equal((byte)0, current.Deaths);
-            if (!current.IsGrounded) continue;
-            Assert.True(current.PX < 100f);
-            Assert.InRange(current.PY, TestHelpers.GroundPY(definition) - .01f, TestHelpers.GroundPY(definition) + .01f);
-            landed = true;
-            break;
-        }
-        Assert.True(landed, "recover onto the top surface; no ledge grab is involved");
-    }
-
-    [Fact]
     public void GroundedRecoveryStartsTheSameAutomaticSetup()
     {
         var sim = MakeSim(grounded: true);
@@ -290,7 +259,7 @@ public sealed class AimedRecoveryTests
         return sim;
     }
 
-    private static ArenaDefinition FloorArena(float edgeX)
+    internal static ArenaDefinition FloorArena(float edgeX)
     {
         var arena = TestHelpers.TestArena();
         arena.CollisionTriangles = new[]

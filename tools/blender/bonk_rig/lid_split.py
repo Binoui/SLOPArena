@@ -59,8 +59,9 @@ for comp in islands():
         continue
     lid.update(comp)
     found.append({"verts": len(comp), "weights": {n: round(x / total, 3) for n, x in acc.items()}})
-if len(found) != 5:
-    raise SystemExit(f"expected the dome and four fittings on his left shoulder, found {len(found)} islands")
+EXPECT = int(os.environ.get("LID_ISLANDS", "5"))  # v1: the dome and four fittings; v2 (2026-10-28): set LID_ISLANDS
+if len(found) != EXPECT:
+    raise SystemExit(f"expected {EXPECT} lid islands on his left shoulder, found {len(found)}: {found}")
 
 world = body.matrix_world.copy()
 points = [world @ me.vertices[i].co for i in lid]

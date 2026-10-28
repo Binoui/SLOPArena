@@ -93,3 +93,9 @@ Decisions 1 and 3 are prerequisites.
 2. P2 pairing and fighter pick on the P2 card, player colours and P1/P2 results. P2 joins by
    pressing A on a second pad and picks with LB/RB; while P2 is joining or playing, that pad's
    presses never drive P1's menus.
+
+## 2026-10-28 frontend entry
+
+Solo and Arcade share one **Local Play** entry. The flow is Mode, then Fighters, then Stage for Brawl. Slopball, Character Courses and Manki Mayhem start from Fighter Select on their fixed stages. Match-facing Solo and Arcade values stay unchanged.
+
+[ADR-0046](0046-courses-open-to-every-fighter.md) changes Character Courses to Mode, then Course, then Fighters. Every roster fighter can play every course. Courses remain P1-only in this slice.

@@ -10,6 +10,8 @@ public partial class ServerSimulation
     private readonly Dictionary<ulong, ArcadePoint> _coursePrevious = new();
     private readonly Dictionary<ulong, int> _courseCheckpoints = new();
     public OnlineCourseState? OnlineCourse => _onlineCourse?.State;
+    public CourseScrambleState? Scramble => _onlineCourse?.Scramble;
+    public ulong CourseTargetBreaker(int index) => _onlineCourse?.Breaker(index) ?? 0;
     public IReadOnlyList<CoursePlayerProgress> CoursePlayers => _onlineCourse?.Players.ToArray() ?? Array.Empty<CoursePlayerProgress>();
     public IReadOnlyList<CourseTickEvent> LastTickOnlineCourseEvents => _onlineCourse?.Events ?? Array.Empty<CourseTickEvent>();
     public CharacterCourseState? CourseFor(ulong id) => _onlineCourse?.For(id)?.State ?? _course?.State;
@@ -55,7 +57,7 @@ public partial class ServerSimulation
     private void FinishOnlineCourseTick()
     {
         if (_onlineCourse == null) return;
-        _onlineCourse.FinishTick(_tick, _coursePrevious, _states, LastTickDeaths.Select(x => x.EntityId).ToArray());
+        _onlineCourse.FinishTick(_tick, _coursePrevious, _states, LastTickDeaths.Select(x => x.EntityId).ToArray(), RespawnCourseRacer);
         foreach (var progress in _onlineCourse.Players)
             if (progress.Course.SavedCheckpoint != _courseCheckpoints[progress.EntityId])
             {
@@ -66,4 +68,22 @@ public partial class ServerSimulation
             if (item.Event.Kind == CharacterCourseEventKind.Completed)
                 FreezeCourseFighter(item.EntityId);
     }
+    private void RespawnCourseRacer(ulong id, CourseSafeGround ground)
+    {
+        FreezeCourseFighter(id);
+        var old = _states[id];
+        _lastHitCredits.Remove(id); _lastHitContexts.Remove(id);
+        _spellResolver.StopHomingAt(id);
+        var definition = _defs[id];
+        _states[id] = new CharacterState
+        {
+            EntityId = id, PX = ground.Position.X, PY = ground.Position.Y, PZ = ground.Position.Z,
+            FacingYaw = ground.Yaw, AimYaw = ground.Yaw, IsGrounded = true, State = ActionState.Idle,
+            JumpsLeft = definition.Movement.MaxJumps, AirDodgesLeft = 1, Deaths = old.Deaths,
+            InvincibilityTicks = RespawnInvincibilityTicks,
+            LastTerminalInteractionId = old.LastTerminalInteractionId, InteractionTerminalTick = old.InteractionTerminalTick,
+            InteractionPhase = (byte)(old.LastTerminalInteractionId != 0 ? DefenseInteractionPhase.Terminal : DefenseInteractionPhase.None),
+        };
+    }
+
 }

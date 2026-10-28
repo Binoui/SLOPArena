@@ -169,13 +169,26 @@ namespace SlopArena.Client.UI
             root.Add(_device);
             if (_deviceName == "Controller")
             {
+                var stickChoices = new System.Collections.Generic.List<string> { "Specials", "Camera" };
+                var rightStick = new DropdownField("RIGHT STICK", stickChoices, settings.RightStickSpecials ? 0 : 1)
+                    { name = "right-stick-mode" };
+                rightStick.AddToClassList("sa-settings-field");
+                rightStick.RegisterValueChangedCallback(evt =>
+                {
+                    settings.SetRightStickSpecials(evt.newValue == stickChoices[0]);
+                    SelectCategory(Controls);
+                });
+                root.Add(rightStick);
+                bool stickSpecials = settings.RightStickSpecials;
                 foreach (var action in new[]
                          {
-                             "MoveStick", "Slot1", "Slot3", "Slot4", "SpecialModifier",
+                             "MoveStick", "Slot1", "Slot3", "Slot4", stickSpecials ? "Grab" : "SpecialModifier",
                              "Jump", "Dash", "Down", "Shield", "FaceToCamera", "ToggleLock", "Retarget", "Pause", "Retry"
                          })
                     AddBindingRow(root, action, ActionLabel(action, controller: true));
-                var help = new Label("Specials: hold Special Modifier + Jump or a Normal button. Grab: hold Special Modifier + RT.");
+                var help = new Label(stickSpecials
+                    ? "Specials: flick the right stick. Up E, left R, right F, down Q. Hold it to aim with the left stick or to charge. The camera turns by itself."
+                    : "Specials: hold Special Modifier + Jump or a Normal button. Grab: hold Special Modifier + RT. The right stick turns the camera.");
                 help.AddToClassList("sa-settings-note");
                 root.Add(help);
             }
@@ -195,7 +208,8 @@ namespace SlopArena.Client.UI
                 snap.RegisterValueChangedCallback(evt => settings.SetStick8WaySnap(evt.newValue));
                 root.Add(snap);
                 AddSlider(root, "Stick Deadzone", settings.StickDeadzone, 5f, 50f, settings.SetStickDeadzone);
-                AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
+                if (!settings.RightStickSpecials)
+                    AddSlider(root, "Stick Look Speed", settings.StickLookSpeed * 100f, 10f, 200f, settings.SetStickLookSpeed);
                 var vibration = new Toggle("VIBRATION") { value = settings.Vibration };
                 vibration.AddToClassList("sa-settings-toggle");
                 vibration.RegisterValueChangedCallback(evt => settings.SetVibration(evt.newValue));
@@ -277,7 +291,7 @@ namespace SlopArena.Client.UI
             "Slot1" => controller ? "Normal 1" : "Action 1",
             "Slot3" => controller ? "Normal 2" : "Action 2",
             "Slot4" => controller ? "Normal 3" : "Action 3",
-            "Dash" => "Homing Dash",
+            "Dash" => "Beeline",
             "SpecialModifier" => "Special Modifier",
             "Shield" => "Shield", "Grab" => "Grab", "Jump" => "Jump",
             "SlotA" => "Action A", "SlotE" => "Action E", "SlotR" => "Action R", "SlotF" => "Action F",
@@ -297,7 +311,7 @@ namespace SlopArena.Client.UI
                 cameraNote.AddToClassList("sa-settings-note");
                 void DescribeCamera() => cameraNote.text = settings.ResolveCameraStyle(controller) switch
                 {
-                    CameraStyle.Steady => "A high view centred on you. It turns slowly, only when your target leaves a wide cone, and holds still when anyone jumps. Bubbles at the screen edge show fighters it cannot hold. Right stick or mouse overrides briefly.",
+                    CameraStyle.Steady => "A high view centred on you. It turns slowly, only when your target leaves a wide cone, and holds still when anyone jumps. Bubbles at the screen edge show fighters it cannot hold. The mouse, or the right stick when it is set to Camera, overrides briefly.",
                     CameraStyle.Arena => "A wider, elevated view that follows and zooms to frame the fighters. The viewing direction stays steady; right stick or mouse adjusts the angle.",
                     _ => "The original player-following camera. Turn with the right stick or mouse.",
                 };

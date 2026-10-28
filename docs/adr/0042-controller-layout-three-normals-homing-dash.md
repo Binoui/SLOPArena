@@ -1,6 +1,8 @@
 # ADR-0042: Controller layout v2 — A jumps, three normals, homing dash
 
-**Status:** Accepted — 2026-10-26 (implemented; supersedes ADR-0016's four-normal slot layout)
+**Status:** Accepted — 2026-10-26 (implemented; supersedes ADR-0016's four-normal slot layout).
+Amended 2026-10-28: specials moved to the right stick and LB grabs by default; see
+[Right-stick specials](#right-stick-specials-2026-10-28).
 
 ## Context
 
@@ -121,7 +123,8 @@ Dash numbers (float length, speed, turn rate, range, cooldown) come from Trainin
   ticks, miss lock 30 ticks, cooldown 180 ticks.
 - **Controls.** A = jump, X/Y/B = normals 1/3/4, LB + A/X/Y/B = specials A/R/E/F, RB = dash;
   keyboard 1/2/3 = normals, 4 = dash. `InputController` turns LB + A into special A without a
-  jump. The HUD pairs dash/A, 1/R, 3/E, 4/F and shows the dash cooldown.
+  jump. The HUD shows the Beeline as a round badge whose ring refills over the
+  cooldown (2026-10-28), with the three normals centred over the four specials.
 - **Presentation:** the air-dodge clip winds up during the float and holds through the dash.
   The look is the lock-on read (concept C, 2026-10-27): outline, afterimages, dotted line,
   chevrons, reticle and an arrival "!" (see `docs/systems/vfx-particles.md#homing-dash-lock-on`),
@@ -130,3 +133,59 @@ Dash numbers (float length, speed, turn rate, range, cooldown) come from Trainin
   float window before gravity returns; an airborne miss falls at once. An attack started from the
   arrival window used to inherit its timer and was forced to Idle after 14 ticks, which cut slow
   follow-ups; activation now clears it. Frame data comes from `MoveDataReport --dash`.
+- **Name, 2026-10-28.** The owner named the dash **Beeline**. The HUD and Controls settings
+  show it; code, states and assets keep the `HomingDash` names.
+- **Tuning pass 2026-10-28** (protocol 25). A slot pressed during the float or travel used to be
+  dropped; it is now held (latest press wins) and starts on the first arrival-window tick, so
+  jump → dash → aerial works without timing the press after arrival. A miss or a hit drops it.
+  An airborne arrival keeps `ArriveCarrySpeed` (3 m/s) along the dash instead of stopping dead;
+  air friction ends the glide. In the apex-dash rows of `MoveDataReport --dash`, a press in
+  flight now hits as often as a press on arrival. With the glide, aerials hit far more often
+  (Manki 14 → 24 of 27, Bashie 21 → 23). The remaining misses are mostly slow aerials against
+  a jumping target that falls away during the hover.
+
+## Right-stick specials (2026-10-28)
+
+The Steady camera (ADR-0043) turns by itself, so on a controller the right stick was only a
+brief manual nudge. LB + face-button chords were the hardest part of the layout for new
+players, and grab needed a second chord (LB + RT).
+
+1. **Default controller layout.** A right-stick flick is a special, laid out like the face
+   diamond: up E (Y), left R (X), right F (B), down Q (A). LB alone grabs; RT then LB is a
+   shield grab. A, X/Y/B, RB, RT and LT keep their ADR-0042 roles.
+2. **Flick and hold.** A special fires when the stick crosses 60% of its range, on the
+   larger axis. The slot stays held until the stick falls below 35%, so aimed and charged
+   specials hold through the stick. Another special needs the stick back near the centre;
+   rolling the held stick does not fire a second one.
+3. **Aiming.** The six aimed specials (all Fixed aim) take their aim from the left stick.
+   The right stick no longer aims while it holds the special.
+4. **Camera.** On a controller the right stick no longer turns the camera. R3 keeps the
+   lock toggle (tap) and the camera toggle (hold); a lock tap during a held flick is ignored.
+5. **Fallback.** Settings → Controls → Right Stick: **Camera** restores the previous layout
+   (LB + face-button specials, LB + RT grab, stick camera). Grab and Special Modifier share
+   LB; the input adapter reads only the one the setting selects.
+
+This is client input mapping only: the input bits, the wire format and the simulation are
+unchanged, so there was no protocol bump. The HUD shows a stick-direction glyph on each
+special (text arrows without the optional prompt sheet), and Fighter's License prompts follow
+the setting. Its first lesson asks for a camera turn: with right-stick specials the player
+circles the dummy and the Steady camera turns to keep it in view.
+- **Feet-to-feet climb, 2026-10-28** (protocol 27). The dash used to aim at the target's capsule
+  centre, so a 1.5 m fighter (Manki, Bashie) dashing at a grounded 1.7 m fighter climbed 0.1 m,
+  arrived airborne and could only follow up with an aerial. Toward fighters it now climbs by the
+  difference in feet height (`HomingDashRise`), so ground to ground stays on the floor and a jump
+  is still caught. Other targets (ball, course targets) keep the centre offset. Found by the
+  Fighter's License Beeline lesson in the Editor.
+- **Ground and air aim, 2026-10-28** (protocol 28). Goal: a grounded Beeline always leaves a
+  ground normal and an airborne one an aerial. `MoveDataReport --dash-pairs` measured every
+  attacker × defender pair at 3–12 m. Before: a grounded dash at a jumper climbed and gave an
+  aerial every time, an air dash early in a jump dived onto the floor and gave a ground move in
+  180 of 432 runs, and the arrival gap drifted between 0.35 and 0.70 m with the distance, so
+  short normals (Bashie 1, Manki 3) whiffed at the far end. Now a grounded dash never climbs
+  (it can still drop off a ledge), an airborne dash aims its feet `AirAimLift` (10 %) of the
+  target's height above the target's feet, and the last step shortens to land on the
+  `ArrivalGap`, now 0.3 m. A sweep from feet to body middle picked 10 %: aiming at the middle
+  lost aerials (Wibou air 2, Sir Bonk air 1, Salamander air 1). Hits of the expected version,
+  out of 432: ground vs standing 377 → 406, ground vs jumper 0 → 255, rising air dash
+  172 → 348, apex 348 → 356, apex vs jumper 267 → 244. Sir Bonk's meteor cleave (air 3) prefers
+  a higher arrival (46 of 48 at 50 %) and stays weak here.

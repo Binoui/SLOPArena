@@ -9,6 +9,9 @@ namespace SlopArena.Shared.Tests;
 /// <summary>Tutorial checklist detection: synthetic frames for each rule, real simulation for the wiring.</summary>
 public sealed class TutorialProgressTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+    public TutorialProgressTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     private const ulong Player = 1, Dummy = 2;
     private const float Capsule = 1.7f;
     private static readonly TutorialStageLayout Layout = TutorialCurriculum.TrainingLab;
@@ -48,16 +51,22 @@ public sealed class TutorialProgressTests
         Assert.Equal(new[]
         {
             TutorialLessonId.MoveAndLook, TutorialLessonId.Jump, TutorialLessonId.FastFall, TutorialLessonId.Attacks,
-            TutorialLessonId.Aerials, TutorialLessonId.Specials, TutorialLessonId.Recovery,
+            TutorialLessonId.Aerials, TutorialLessonId.Beeline, TutorialLessonId.Specials, TutorialLessonId.Recovery,
             TutorialLessonId.ShieldAndDodge, TutorialLessonId.GrabAndThrow, TutorialLessonId.Combo,
-            TutorialLessonId.Knockout,
+            TutorialLessonId.BeelineTricks, TutorialLessonId.Knockout,
         }, TutorialCurriculum.Default.Select(lesson => lesson.Id));
         Assert.All(TutorialCurriculum.Default, lesson => Assert.InRange(lesson.Objectives.Count, 1, 8));
         var combo = TutorialCurriculum.Default.Single(lesson => lesson.Id == TutorialLessonId.Combo);
         Assert.True(combo.NoCooldowns);
         Assert.Equal(30, combo.DummyPercent);
         Assert.Equal(100, TutorialCurriculum.Default.Single(lesson => lesson.Id == TutorialLessonId.Knockout).DummyPercent);
-        Assert.DoesNotContain(TutorialCurriculum.Default, lesson => lesson.NoCooldowns && lesson.Id != TutorialLessonId.Combo);
+        var tricks = TutorialCurriculum.Default.Single(lesson => lesson.Id == TutorialLessonId.BeelineTricks);
+        Assert.True(tricks.NoCooldowns);
+        Assert.Equal(30, tricks.DummyPercent);
+        Assert.Equal(TutorialDummySetup.Reset, tricks.DummySetup);
+        Assert.Equal(TutorialDummyBehavior.Sparring, tricks.DummyBehavior);
+        Assert.DoesNotContain(TutorialCurriculum.Default, lesson => lesson.NoCooldowns
+            && lesson.Id is not (TutorialLessonId.Combo or TutorialLessonId.BeelineTricks));
     }
 
     [Fact]
@@ -252,6 +261,120 @@ public sealed class TutorialProgressTests
     }
 
     [Fact]
+    public void BeelineHitsNeedAnArrivalActivationAndAnUnblockedHitOnTheDummy()
+    {
+        var progress = At(TutorialLessonId.Beeline);
+        var idle = Fighter(Player);
+        var attack = idle with { AttackSequence = 1, AttackSlot = AbilitySlots.Slot1 };
+        Observe(progress, idle, attack, new[] { Hit(AbilitySlots.Slot1) });
+        Assert.False(progress.IsComplete(0));
+        var arrival = idle with { State = ActionState.HomingDashArrive };
+        Observe(progress, arrival, attack, new[]
+        {
+            Hit(AbilitySlots.Slot1, blocked: true), Hit(AbilitySlots.Slot1, target: 99),
+            Hit(AbilitySlots.Slot1, owner: 99),
+        });
+        Assert.False(progress.IsComplete(0));
+        Observe(progress, attack, attack, new[] { Hit(AbilitySlots.Slot1) });
+        Assert.True(progress.IsComplete(0));
+        Assert.False(progress.IsComplete(1));
+        var next = attack with { AttackSequence = 2 };
+        Observe(progress, attack, next, new[] { Hit(AbilitySlots.Slot1, airborne: true) });
+        Assert.False(progress.IsComplete(1));
+        var special = next with { AttackSequence = 3, AttackSlot = AbilitySlots.R };
+        Observe(progress, arrival, special);
+        Observe(progress, special, special, new[] { Hit(AbilitySlots.R, airborne: true) });
+        Assert.True(progress.LessonComplete);
+    }
+
+    [Fact]
+    public void BeelineOutOfShieldNeedsAFreshDashAndStopsSparring()
+    {
+        var progress = At(TutorialLessonId.BeelineTricks);
+        var idle = Fighter(Player);
+        var dash = idle with { State = ActionState.HomingDashFloat };
+        Observe(progress, idle, dash);
+        Observe(progress, dash, dash);
+        Assert.False(progress.IsComplete(0));
+        Assert.Equal(TutorialDummyBehavior.Sparring, progress.DummyBehavior);
+        Observe(progress, idle with { State = ActionState.Shielding }, dash);
+        Assert.True(progress.IsComplete(0));
+        Assert.Equal(TutorialDummyBehavior.Idle, progress.DummyBehavior);
+        Assert.False(progress.LessonComplete);
+        progress.RestartLesson();
+        Assert.Equal(TutorialDummyBehavior.Sparring, progress.DummyBehavior);
+    }
+
+    [Fact]
+    public void BeelineRecoveryNeedsAnOffstageDashAndALandingWithoutDying()
+    {
+        var progress = At(TutorialLessonId.BeelineTricks);
+        var floor = Fighter(Player);
+        var below = Fighter(Player, feet: -0.6f, grounded: false);
+        Observe(progress, floor, below);
+        Observe(progress, below, floor);
+        Assert.False(progress.IsComplete(1));
+        var dash = below with { State = ActionState.HomingDashFloat };
+        Observe(progress, floor, floor with { State = ActionState.HomingDashFloat });
+        Observe(progress, floor, below);
+        Observe(progress, below, floor);
+        Assert.False(progress.IsComplete(1));
+        Observe(progress, floor, below);
+        Observe(progress, below, dash);
+        Observe(progress, dash, below with { Deaths = 1 });
+        Observe(progress, below, floor with { Deaths = 1 });
+        Assert.False(progress.IsComplete(1));
+        below.Deaths = 1; dash.Deaths = 1; floor.Deaths = 1;
+        Observe(progress, floor, below);
+        Observe(progress, below, floor);
+        Assert.False(progress.IsComplete(1));
+        Observe(progress, floor, below);
+        Observe(progress, below, dash);
+        Observe(progress, dash, floor);
+        Assert.True(progress.IsComplete(1));
+        progress.RestartLesson();
+        Observe(progress, below, floor);
+        Assert.False(progress.IsComplete(1));
+    }
+
+    [Fact]
+    public void BeelineChaseNeedsADashStartedWhileTheDummyIsAirborne()
+    {
+        var progress = At(TutorialLessonId.BeelineTricks);
+        var idle = Fighter(Player);
+        var dashing = idle with { State = ActionState.HomingDashFloat };
+        var arrival = idle with { State = ActionState.HomingDashArrive };
+        var grounded = Fighter(Dummy);
+        var launched = Fighter(Dummy, feet: 2f, grounded: false);
+
+        Observe(progress, idle, dashing, dummyBefore: grounded, dummy: grounded);
+        Observe(progress, arrival, idle with { AttackSequence = 1 }, new[] { Hit(AbilitySlots.Slot1) }, grounded, launched);
+        Assert.False(progress.IsComplete(2), "a Beeline at a grounded dummy is not a chase");
+
+        Observe(progress, idle, dashing, dummyBefore: launched, dummy: launched);
+        Observe(progress, idle, idle with { AttackSequence = 2 }, new[] { Hit(AbilitySlots.Slot1, activation: 2) }, launched, launched);
+        Assert.False(progress.IsComplete(2), "the hit must come from the arrival window");
+        Observe(progress, arrival, idle with { AttackSequence = 3 },
+            new[] { Hit(AbilitySlots.Slot1, activation: 3, blocked: true) }, launched, launched);
+        Assert.False(progress.IsComplete(2), "a blocked hit does not count");
+        Observe(progress, arrival, idle with { AttackSequence = 4 }, new[] { Hit(AbilitySlots.Slot1, activation: 4) }, launched, grounded);
+        Assert.True(progress.IsComplete(2));
+    }
+
+    [Fact]
+    public void RestartClearsTheChaseDash()
+    {
+        var progress = At(TutorialLessonId.BeelineTricks);
+        var idle = Fighter(Player);
+        var launched = Fighter(Dummy, feet: 2f, grounded: false);
+        Observe(progress, idle, idle with { State = ActionState.HomingDashFloat }, dummyBefore: launched, dummy: launched);
+        progress.RestartLesson();
+        Observe(progress, idle with { State = ActionState.HomingDashArrive }, idle with { AttackSequence = 1 },
+            new[] { Hit(AbilitySlots.Slot1) }, launched, launched);
+        Assert.False(progress.IsComplete(2));
+    }
+
+    [Fact]
     public void KnockoutNeedsTheDummyToLoseALife()
     {
         var progress = At(TutorialLessonId.Knockout);
@@ -293,6 +416,8 @@ public sealed class TutorialProgressTests
         public readonly MatchContentEntry PlayerEntry;
         public int Completed;
         public uint Tick;
+        public readonly List<string> Contacts = new();
+        public readonly List<string> DashTrace = new();
 
         public Lab(CharacterClass player, CharacterClass dummy, TutorialLessonId lesson,
             float playerX = 0f, float playerZ = -4f, float dummyX = 0f, float dummyZ = 4f)
@@ -306,6 +431,8 @@ public sealed class TutorialProgressTests
             Register(Dummy, dummyEntry, dummyX, dummyZ, MathF.PI);
             Progress = new TutorialProgress(Layout, PlayerEntry.Definition.CapsuleHeight);
             while (Progress.Lesson.Id != lesson) Progress.StartNextLesson();
+            Sim.NoCooldownsEntityId = Progress.Lesson.NoCooldowns ? Player : null;
+            Sim.SetState(Dummy, Sim.GetState(Dummy) with { DamagePercent = Progress.Lesson.DummyPercent });
         }
 
         private void Register(ulong id, MatchContentEntry entry, float x, float z, float yaw)
@@ -327,10 +454,133 @@ public sealed class TutorialProgressTests
             Sim.Tick(new Dictionary<ulong, InputState> { [Player] = player, [Dummy] = dummyInput });
             Completed |= Progress.Observe(new TutorialFrame(playerBefore, Sim.GetState(Player), dummyBefore,
                 Sim.GetState(Dummy), Sim.LastTickHits.ToArray()));
+            var after = Sim.GetState(Player);
+            if (after.State != playerBefore.State && after.State is ActionState.HomingDashFloat
+                or ActionState.HomingDashArrive or ActionState.HomingDashMiss)
+            {
+                var d = Sim.GetState(Dummy);
+                DashTrace.Add($"t{Tick} {after.State} p=({after.PX:F2},{after.PY:F2},{after.PZ:F2}) "
+                    + $"d=({d.PX:F2},{d.PY:F2},{d.PZ:F2}) dummyGround={d.IsGrounded}");
+            }
+            foreach (var hit in Sim.LastTickHits)
+                Contacts.Add($"t{Tick} slot{hit.AttackSlot} air={hit.Airborne} blocked={hit.Blocked} "
+                    + $"owner={hit.OwnerEntityId} dummyBefore={dummyBefore.State}/ground={dummyBefore.IsGrounded} "
+                    + $"playerBefore={playerBefore.State} seq={Sim.GetState(Player).AttackSequence}");
             Tick++;
         }
 
         public void Wait(int ticks) { for (int i = 0; i < ticks; i++) Step(); }
+    }
+
+    /// <summary>The live tutorial's dummy (TutorialMatch): Bonk, or FightGuy when the player is Bonk.</summary>
+    private static CharacterClass DummyFor(CharacterClass fighter)
+        => fighter == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk;
+
+    public static IEnumerable<object[]> BeelineFighters()
+    {
+        foreach (var fighter in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou,
+            CharacterClass.Bonk, CharacterClass.Bashie })
+            yield return new object[] { fighter };
+        try { BuiltInContentResolver.Resolve(CharacterClass.Salamander); }
+        catch (InvalidDataException) { yield break; }
+        yield return new object[] { CharacterClass.Salamander };
+    }
+
+    private static string Snapshot(Lab lab)
+    {
+        var p = lab.Sim.GetState(Player); var d = lab.Sim.GetState(Dummy);
+        return $"t{lab.Tick} player={p.State} ({p.PX:F2},{p.PY:F2},{p.PZ:F2}) ground={p.IsGrounded} deaths={p.Deaths}; "
+            + $"dummy={d.State} ({d.PX:F2},{d.PY:F2},{d.PZ:F2}) ground={d.IsGrounded}; "
+            + string.Join("; ", lab.DashTrace.Concat(lab.Contacts));
+    }
+
+    [Theory]
+    [MemberData(nameof(BeelineFighters))]
+    public void RealBeelineGroundAndAerialHitsAreFeasible(CharacterClass fighter)
+    {
+        foreach (bool aerial in new[] { false, true })
+        {
+            bool passed = false;
+            string evidence = "";
+            foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.R })
+            {
+                var lab = new Lab(fighter, DummyFor(fighter), TutorialLessonId.Beeline, playerZ: -3f, dummyZ: 3f);
+                lab.Step();
+                if (aerial)
+                {
+                    lab.Step(new InputState { Jump = true, JumpHeld = true });
+                    for (int t = 0; t < 9; t++) lab.Step(new InputState { JumpHeld = true });
+                }
+                lab.Step(new InputState { DashPressed = true });
+                bool pressed = false;
+                for (int t = 0; t < 180 && !lab.Progress.IsComplete(aerial ? 1 : 0); t++)
+                {
+                    bool press = !pressed && lab.Sim.GetState(Player).State == ActionState.HomingDash;
+                    lab.Step(new InputState { ActiveSlot = press ? slot : AbilitySlots.None });
+                    pressed |= press;
+                }
+                evidence = Snapshot(lab);
+                if (!lab.Progress.IsComplete(aerial ? 1 : 0)) continue;
+                _output.WriteLine($"{fighter} {(aerial ? "aerial" : "ground")}: {(aerial ? "Jump held 10t, " : "")}Dash, buffered slot {slot}; {evidence}");
+                passed = true; break;
+            }
+            Assert.True(passed, $"{fighter} aerial={aerial}: {evidence}");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(BeelineFighters))]
+    public void RealBeelineOutOfShieldAndRecoveryAreFeasible(CharacterClass fighter)
+    {
+        var shield = new Lab(fighter, CharacterClass.Bonk, TutorialLessonId.BeelineTricks,
+            playerZ: -1f, dummyZ: 3f);
+        bool blocked = false;
+        for (int t = 0; t < 600 && !shield.Progress.IsComplete(0); t++)
+        {
+            bool dash = blocked && shield.Sim.GetState(Player).State == ActionState.Shielding
+                && shield.Sim.GetState(Player).BlockStunTicks == 0;
+            shield.Step(new InputState { ShieldHeld = true, ShieldPressed = t == 0, DashPressed = dash });
+            blocked |= shield.Sim.LastTickHits.Any(h => h.Blocked && h.TargetEntityId == Player);
+        }
+        Assert.True(blocked && shield.Progress.IsComplete(0), $"{fighter} shield: {Snapshot(shield)}");
+        Assert.Equal(TutorialDummyBehavior.Idle, shield.Progress.DummyBehavior);
+        _output.WriteLine($"{fighter} shield: hold Shield, block, Dash after blockstun; {Snapshot(shield)}");
+
+        var recovery = new Lab(fighter, DummyFor(fighter), TutorialLessonId.BeelineTricks,
+            playerX: -23f, playerZ: 0f, dummyX: -17f, dummyZ: 0f);
+        recovery.Sim.SetState(Player, recovery.Sim.GetState(Player) with
+        {
+            IsGrounded = false, PY = recovery.PlayerEntry.Definition.CapsuleHeight * 0.5f - 0.7f,
+            FacingYaw = MathF.PI * 0.5f, AimYaw = MathF.PI * 0.5f,
+        });
+        recovery.Step(dummy: default(InputState));
+        recovery.Step(new InputState { DashPressed = true }, default(InputState));
+        for (int t = 0; t < 180 && !recovery.Progress.IsComplete(1); t++) recovery.Step(dummy: default(InputState));
+        Assert.True(recovery.Progress.IsComplete(1), $"{fighter} recovery: {Snapshot(recovery)}");
+        Assert.Equal(0, recovery.Sim.GetState(Player).Deaths);
+        _output.WriteLine($"{fighter} recovery: west edge x=-23, feet=-0.7, Dash toward dummy x=-17; {Snapshot(recovery)}");
+    }
+
+    [Theory]
+    [MemberData(nameof(BeelineFighters))]
+    public void RealBeelineChaseIsFeasible(CharacterClass fighter)
+    {
+        var lab = new Lab(fighter, DummyFor(fighter), TutorialLessonId.BeelineTricks, playerZ: 0f, dummyZ: 1.2f);
+        lab.Sim.SetState(Dummy, lab.Sim.GetState(Dummy) with { DamagePercent = 30 });
+        lab.Step(new InputState { ActiveSlot = AbilitySlots.Slot3 }, default(InputState));
+        bool dashed = false, pressed = false;
+        for (int t = 0; t < 240 && !lab.Progress.IsComplete(2); t++)
+        {
+            var p = lab.Sim.GetState(Player);
+            bool dash = !dashed && lab.Contacts.Count > 0 && !lab.Sim.GetState(Dummy).IsGrounded;
+            bool press = dashed && !pressed && p.State == ActionState.HomingDash;
+            lab.Step(new InputState { DashPressed = dash, ActiveSlot = press ? AbilitySlots.Slot1 : AbilitySlots.None },
+                default(InputState));
+            dashed |= lab.Sim.GetState(Player).State == ActionState.HomingDashFloat;
+            pressed |= press;
+        }
+        Assert.True(lab.Progress.IsComplete(2), $"{fighter} chase: {Snapshot(lab)}");
+        _output.WriteLine($"{fighter} chase: up normal, Beeline once the dummy is airborne, normal 1 buffered; {Snapshot(lab)}");
     }
 
     [Fact]

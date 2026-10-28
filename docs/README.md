@@ -42,7 +42,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Game mode exploration](design/game-modes.md) | Capture, volleyball, crown, upgrade rounds, solo arcade and moving-platform directions; proposed rules and open decisions |
 | [Solo Arcade feature brief](design/arcade.md) | Approved Slopball and FightGuy Course scope, rules, offline entry and personal records |
 | [Solo Arcade implementation plan](design/arcade-implementation.md) | Focused Shared objects, unified stage migration, Slopball-first delivery and verification handoff |
-| [Online Arcade feature brief](design/online-arcade.md) | Stage-first Room flow, online Slopball (Versus, Co-op) and Character Course (Race, Co-op) formats, decisions and proposals |
+| [Online Arcade feature brief](design/online-arcade.md) | Stage-first Room flow, online Slopball (Versus, Co-op) and Slop Rally (Race, Co-op) formats, decisions and proposals |
 | [Online Arcade implementation options](design/online-arcade-implementation.md) | Room contract, admission, Match Format, Shared formats, rollback coverage and client hosting, for approval |
 | [Manki Mayhem feature brief](design/manki-mayhem.md) | Manki's game-show survival mode: call cards, rounds, scoring, friendly fire, host and show camera |
 | [Manki Mayhem implementation plan](design/manki-mayhem-implementation.md) | Ordered slices, files and tests, maintainer test path, risks and open decisions ([ADR-0044](adr/0044-manki-mayhem-hazard-director.md)) |
@@ -142,6 +142,7 @@ Accepted records for current gameplay, runtime and content decisions include:
 - [ADR-0036: Arcade PvP kit parity and legal fall resets](adr/0036-arcade-pvp-kit-parity-and-legal-fall-resets.md)
 - [ADR-0037: Arcade Shared objects and unified stage artifact](adr/0037-arcade-shared-objects-and-unified-stage-artifact.md)
 - [ADR-0038: Editor play without installed animation clips](adr/0038-editor-play-without-installed-clips.md)
+- [ADR-0046: Slop Rally courses are racing maps for every fighter](adr/0046-courses-open-to-every-fighter.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 

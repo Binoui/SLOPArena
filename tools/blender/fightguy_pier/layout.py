@@ -149,7 +149,6 @@ SPEC = {
     # The ring at the pier head.
     "finish": ("Ring", (5.0, 48.0), (4.0, 1.5, 3.5)),
     "profile_id": "fightguy_pier_v1",
-    "packages": ("fightguy",),
 }
 
 
@@ -280,7 +279,8 @@ def course(spec=SPEC):
         checkpoints.append((cid, (cx, top + half[1], cz), half, (rx, top + body, rz), yaw, required))
     piece, (fx, fz), half = spec["finish"]
     finish = ((fx, tops[piece][4] + half[1], fz), half)
-    return shell.course(spec["profile_id"], spec["packages"], targets, checkpoints, finish)
+    return shell.course(spec["profile_id"], targets, checkpoints, finish,
+                        racing_line=json.loads(Path(__file__).with_name("racing_line.json").read_text()))
 
 
 def bounds(spec=SPEC):

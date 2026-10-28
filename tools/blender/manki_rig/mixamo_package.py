@@ -31,6 +31,10 @@ o.name = o.data.name = name
 base = next((n.image for s in o.material_slots if s.material and s.material.use_nodes
              for n in s.material.node_tree.nodes
              if n.type == "TEX_IMAGE" and n.image and "basecolor" in n.image.name.lower()), None)
+if base is None:  # Tripo's FBX names its map "Diffuse Texture": take the image feeding Base Color
+    base = next((l.from_node.image for s in o.material_slots if s.material and s.material.use_nodes
+                 for l in s.material.node_tree.links
+                 if l.to_socket.name == "Base Color" and l.from_node.type == "TEX_IMAGE" and l.from_node.image), None)
 if base is None:
     raise SystemExit("mixamo_package: no BaseColor image found")
 ext = os.path.splitext(base.name)[1] or ".png"

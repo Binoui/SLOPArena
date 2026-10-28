@@ -25,6 +25,7 @@ namespace SlopArena.EditorTools
             string previousOverrides = HumanInputActions.SaveOverrides();
             bool previouslyEnabled = HumanInputActions.Get("Slot1").actionMap.enabled;
             bool previouslyGamepad = HumanInputActions.LastUsedGamepad;
+            bool previousStickSpecials = HumanInputActions.RightStickSpecials;
             var previousMouse = Mouse.current;
             var previousKeyboard = Keyboard.current;
             var previousPad = Gamepad.current;
@@ -48,19 +49,23 @@ namespace SlopArena.EditorTools
                 HumanInputActions.Initialize("");
                 HumanInputActions.ResetOverrides();
                 Require(HumanInputActions.SaveOverrides() == "", "Default controls unexpectedly save overrides.");
+                // The older cases predate right-stick specials; LB is their special modifier.
+                HumanInputActions.SetRightStickSpecials(false);
                 MouseButtonsCastAndHold(input, mouse, pad);
                 WheelDirectionsCastAndRelease(input, mouse);
                 MouseDefenseReachesSimulationInput(input, mouse);
                 ControllerLayoutJumpsDashesAndCastsSpecialA(input, pad);
+                RightStickFlicksSpecialsAndLbGrabs(input, pad);
                 ConflictsAndCancellationPreserveBindings(mouse, keyboard);
                 OverridesSurviveNewBindingIds();
                 LegacyOverridesStillLoad();
-                Debug.Log("[HumanInputRebindingSelfTest] Passed all five mouse buttons, normal/special holds, four wheel directions and repeated ticks, defense, the controller layout (A jump, LB+A special, RB dash, X/Y/B normals), conflicts, cancellation, saved/cleared bindings, and legacy preferences.");
+                Debug.Log("[HumanInputRebindingSelfTest] Passed all five mouse buttons, normal/special holds, four wheel directions and repeated ticks, defense, the controller layout (A jump, LB+A special, RB dash, X/Y/B normals), right-stick specials with LB grab, conflicts, cancellation, saved/cleared bindings, and legacy preferences.");
             }
             finally
             {
                 HumanInputActions.CancelCapture();
                 HumanInputActions.ApplyOverrides(previousOverrides);
+                HumanInputActions.SetRightStickSpecials(previousStickSpecials);
                 if (!previouslyEnabled) HumanInputActions.Get("Slot1").actionMap.Disable();
                 UnityEngine.Object.DestroyImmediate(host);
                 EditorSceneManager.ClosePreviewScene(scene);
@@ -165,21 +170,27 @@ namespace SlopArena.EditorTools
                 "Mouse shield stayed held after release.");
         }
 
-        /// <summary>ADR-0042: A jumps, LB + A casts special A without jumping, RB dashes, X/Y/B are the normals.</summary>
+        private static SlopArena.Shared.InputState PressPad(InputController input, Gamepad pad, GamepadState state)
+        {
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            InputSystem.Update();
+            input.Poll();
+            input.ClearPendingFrameState();
+            InputSystem.QueueStateEvent(pad, state);
+            InputSystem.Update();
+            input.Poll();
+            return input.BuildInputState(null, 0f, input.ConsumePendingSlotPress(), default, null).input;
+        }
+
+        /// <summary>
+        /// ADR-0042 with the right stick on the camera: A jumps, LB + A casts special A without
+        /// jumping, RB dashes, X/Y/B are the normals.
+        /// </summary>
         private static void ControllerLayoutJumpsDashesAndCastsSpecialA(InputController input, Gamepad pad)
         {
             HumanInputActions.ResetOverrides();
-            SlopArena.Shared.InputState Press(GamepadState state)
-            {
-                InputSystem.QueueStateEvent(pad, new GamepadState());
-                InputSystem.Update();
-                input.Poll();
-                input.ClearPendingFrameState();
-                InputSystem.QueueStateEvent(pad, state);
-                InputSystem.Update();
-                input.Poll();
-                return input.BuildInputState(null, 0f, input.ConsumePendingSlotPress(), default, null).input;
-            }
+            HumanInputActions.SetRightStickSpecials(false);
+            SlopArena.Shared.InputState Press(GamepadState state) => PressPad(input, pad, state);
 
             var jump = Press(new GamepadState().WithButton(GamepadButton.South));
             Require(jump.Jump && jump.JumpHeld && jump.ActiveSlot == 0, "A did not jump on its own.");
@@ -193,6 +204,50 @@ namespace SlopArena.EditorTools
             Require(Press(new GamepadState().WithButton(GamepadButton.East)).ActiveSlot == AbilitySlots.Slot4, "B is not normal 3 (slot 4).");
             Require(Press(new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.R,
                 "LB + X is not special R.");
+            Require(!Press(new GamepadState().WithButton(GamepadButton.LeftShoulder)).GrabPressed,
+                "LB alone grabbed while it is the special modifier.");
+            Require(Press(new GamepadState { rightStick = Vector2.up }).ActiveSlot == 0,
+                "The camera stick cast a special.");
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            InputSystem.Update();
+            input.ClearPendingFrameState();
+        }
+
+        /// <summary>
+        /// Right-stick specials (default): a flick casts the special in that direction and holds
+        /// it until the stick returns to centre; LB grabs; LB + A is a jump, not a special.
+        /// </summary>
+        private static void RightStickFlicksSpecialsAndLbGrabs(InputController input, Gamepad pad)
+        {
+            HumanInputActions.ResetOverrides();
+            HumanInputActions.SetRightStickSpecials(true);
+            SlopArena.Shared.InputState Press(GamepadState state) => PressPad(input, pad, state);
+            void Hold(GamepadState state)
+            {
+                InputSystem.QueueStateEvent(pad, state);
+                InputSystem.Update();
+                input.Poll();
+            }
+
+            Require(Press(new GamepadState { rightStick = Vector2.up }).ActiveSlot == AbilitySlots.E, "Right stick up is not special E.");
+            Require(input.IsSlotKeyHeld((byte)(AbilitySlots.E - 1)), "A held flick does not hold special E for aiming.");
+            Hold(new GamepadState { rightStick = Vector2.right });
+            Require(input.ConsumePendingSlotPress() == 0, "Rolling the held stick cast a second special.");
+            Hold(new GamepadState { rightStick = new Vector2(0.2f, 0f) });
+            Require(!input.IsSlotKeyHeld((byte)(AbilitySlots.E - 1)), "Centring the stick did not release special E.");
+            Hold(new GamepadState { rightStick = Vector2.right });
+            Require(input.ConsumePendingSlotPress() == AbilitySlots.F, "Right stick right is not special F after centring.");
+            Require(Press(new GamepadState { rightStick = Vector2.left }).ActiveSlot == AbilitySlots.R, "Right stick left is not special R.");
+            Require(Press(new GamepadState { rightStick = Vector2.down }).ActiveSlot == AbilitySlots.A, "Right stick down is not special A.");
+            Require(Press(new GamepadState { rightStick = new Vector2(0.5f, 0f) }).ActiveSlot == 0,
+                "A light right-stick tilt cast a special.");
+            Require(input.GetAimStick(true) == Vector2.zero, "The special stick also aimed the special.");
+
+            var grab = Press(new GamepadState().WithButton(GamepadButton.LeftShoulder));
+            Require(grab.GrabPressed && grab.ActiveSlot == 0, "LB did not grab.");
+            var jump = Press(new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.South));
+            Require(jump.Jump && jump.ActiveSlot == 0, "LB + A cast a special instead of jumping.");
+            Require(Press(new GamepadState().WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.Slot1, "X is not normal 1.");
             InputSystem.QueueStateEvent(pad, new GamepadState());
             InputSystem.Update();
             input.ClearPendingFrameState();

@@ -81,7 +81,9 @@ public partial class ServerSimulation
         {
             var state = _states[id];
             if (IsEliminated(state)) continue;
+            var before = state;
             _mayhem.Solids.Constrain(_mayhemPrevious[id], ref state, _defs[id]);
+            StopShellAtRuntimeWall(id, in before, ref state);
             _states[id] = state;
         }
     }

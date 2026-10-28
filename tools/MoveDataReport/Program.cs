@@ -145,6 +145,9 @@ internal static class Program
         if (args.Contains("--coverage"))
             return ContactCoverageReport.Run(args);
 
+        if (args.Contains("--dash-pairs"))
+            return DashPairsReport.Run(args);
+
         if (args.Contains("--dash"))
             return DashReport.Run(args);
 

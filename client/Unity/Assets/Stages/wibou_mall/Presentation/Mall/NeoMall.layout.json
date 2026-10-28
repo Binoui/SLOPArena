@@ -2,10 +2,10 @@
  "generator": "tools/blender/wibou_mall/build.py",
  "seed": 20261020,
  "source": "client/Unity/Assets/Stages/wibou_mall/wibou_mall.unity",
- "sourceSha256": "8da6c2709e8c1cbaa81369f73173b829117251d28b7aa675a93e1952b4d74dec",
+ "sourceSha256": "87711d453752371c60221c39467e2b7f6f22413e4f6a94e67bcff0cabb84cfe0",
  "arena": "data/arenas/wibou_mall.arena",
- "arenaSha256": "13d6b3304a12954b333da4209687026c90785198aa1d6ad4f12ba1ad08bb4a43",
- "blender": "5.2.2 LTS",
+ "arenaSha256": "4c13a6ffe3429d7ed5d95e09ca98c1ea3aa37900cf4e578af708c524bec86129",
+ "blender": "5.2.3 LTS",
  "materials": [
   "NM_Lit",
   "NM_Ground",
@@ -35,11 +35,13 @@
   "Podium",
   "Props",
   "Railings",
+  "SaleBalloons",
+  "ServiceSigns",
   "Tops",
   "Tower",
   "Vault",
   "Walls"
  ],
- "geometryDigest": "c0c04563c92bd35984dbf1adfda9b96a9d6806371d6bc31734e318e86b2e251f",
+ "geometryDigest": "41931e569d1e73794decdcc60bc4ac590123953b7ddb625b783f841a9b19f461",
  "problems": 0
 }

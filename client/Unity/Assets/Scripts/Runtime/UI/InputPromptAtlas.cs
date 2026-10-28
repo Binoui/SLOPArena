@@ -53,6 +53,10 @@ namespace SlopArena.Client.UI
             if (path.EndsWith("/dpad/down", StringComparison.OrdinalIgnoreCase)) return "xbox_dpad_down";
             if (path.EndsWith("/dpad/left", StringComparison.OrdinalIgnoreCase)) return "xbox_dpad_left";
             if (path.EndsWith("/dpad/right", StringComparison.OrdinalIgnoreCase)) return "xbox_dpad_right";
+            if (path.EndsWith("/rightStick/up", StringComparison.OrdinalIgnoreCase)) return "xbox_stick_r_up";
+            if (path.EndsWith("/rightStick/down", StringComparison.OrdinalIgnoreCase)) return "xbox_stick_r_down";
+            if (path.EndsWith("/rightStick/left", StringComparison.OrdinalIgnoreCase)) return "xbox_stick_r_left";
+            if (path.EndsWith("/rightStick/right", StringComparison.OrdinalIgnoreCase)) return "xbox_stick_r_right";
             return path.Substring(path.LastIndexOf('/') + 1) switch
             {
                 "buttonSouth" => "xbox_button_color_a", "buttonEast" => "xbox_button_color_b",

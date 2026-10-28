@@ -31,7 +31,9 @@ namespace SlopArena.Client.UI
         private FrontendPageContext _context = null!;
 
         private CharacterClass _selected = CharacterClass.None;
+        private LocalChallengeSetup? _challenge;
         private int _editingSeat = 1;
+        private bool HumanCourse => MatchConfig.Mode == GameMode.Arcade && MatchConfig.LocalMode == LocalPlayMode.CharacterCourse;
         private readonly List<Button> _gridButtons = new();
 
         // PvP state
@@ -59,6 +61,8 @@ namespace SlopArena.Client.UI
             _lockedIn = false;
             _context?.Q<VisualElement>("camp-select")?.style.SetDisplay(false);
             _gridButtons.Clear();
+            _rosterPanel = null!;
+            _challenge = null;
             _editingSeat = 1;
             if (_context == null)
             {
@@ -66,6 +70,7 @@ namespace SlopArena.Client.UI
                 enabled = false;
                 return;
             }
+            _challenge = MatchConfig.Mode == GameMode.Arcade ? new LocalChallengeSetup(_context) : null;
             var grid = _context.Q<VisualElement>("char-grid");
             grid?.Clear();
 
@@ -102,7 +107,7 @@ namespace SlopArena.Client.UI
                         portrait.Add(placeholder);
                     }
 
-                    var name = new Label(cls.ToString().ToUpperInvariant()) { name = "char-card-name" };
+                    var name = new Label(MenuRoster.Name(cls).ToUpperInvariant()) { name = "char-card-name" };
                     name.AddToClassList("char-card-name");
                     var check = new VisualElement { pickingMode = PickingMode.Ignore };
                     check.AddToClassList("char-card-check");
@@ -118,6 +123,13 @@ namespace SlopArena.Client.UI
                 }
             }
 
+            if (_challenge != null)
+            {
+                foreach (var button in _gridButtons)
+                    button.SetEnabled(Enum.TryParse(button.name.Substring(5), out CharacterClass fighter) && _challenge.Admits(fighter));
+                if (!_challenge.Admits(_selected))
+                    _selected = classes.FirstOrDefault(cls => _challenge.Admits(cls));
+            }
             if (_selected != CharacterClass.None)
                 SelectCharacter(_selected, _context);
 
@@ -128,6 +140,8 @@ namespace SlopArena.Client.UI
                 InitPvP(_context);
             else if (MatchConfig.Mode == GameMode.Tutorial)
                 InitTutorial(_context);
+            else if (_challenge != null)
+                InitChallenge(_context);
             else
                 InitLocal(_context);
         }
@@ -177,8 +191,9 @@ namespace SlopArena.Client.UI
         private void InitLocal(FrontendPageContext context)
         {
             bool training = MatchConfig.Mode == GameMode.Training;
-            SetModeChrome(context, training ? "TRAINING // SELECT YOUR FIGHTER" : "SOLO // SELECT YOUR FIGHTER",
-                "STEP 1 OF 2  /  FIGHTERS");
+            var mode = LocalPlayModes.Current;
+            SetModeChrome(context, training ? "TRAINING // SELECT YOUR FIGHTER" : mode.Title + " // SELECT YOUR FIGHTER",
+                training ? "STEP 1 OF 2  /  FIGHTERS" : $"STEP 2 OF {mode.TotalSteps}  /  FIGHTERS");
             ApplyLocalSelectLayout(context);
             context.Q<VisualElement>("page-summary")?.AddToClassList("char-summary-section--solo");
             // The active card and editing panel already name this fighter;
@@ -188,7 +203,7 @@ namespace SlopArena.Client.UI
             if (rosterMeta != null)
                 rosterMeta.text = MenuRoster.Classes.Length == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{MenuRoster.Classes.Length} FIGHTERS // {(training ? "TRAINING" : "SOLO")}";
+                    : $"{MenuRoster.Classes.Length} FIGHTERS // {(training ? "TRAINING" : mode.Title)}";
             // Local modes show both participant cards and CPU editing.
             context.Q<VisualElement>("pvp-action-area")?.style.SetDisplay(false);
 
@@ -196,7 +211,7 @@ namespace SlopArena.Client.UI
             if (selectButton != null)
             {
                 selectButton.style.display = DisplayStyle.Flex;
-                selectButton.text = "SELECT STAGE";
+                selectButton.text = training ? "SELECT STAGE" : mode.FighterAction;
                 selectButton.SetEnabled(MenuRoster.Classes.Length > 0);
             }
 
@@ -222,12 +237,17 @@ namespace SlopArena.Client.UI
                 selectButton.clicked += () =>
                 {
                     if (_selected == CharacterClass.None || MatchConfig.SoloOpponentCount == 0) return;
-                    FrontendController.Show(FrontendPage.StageSelect);
+                    if (training || mode.HasStageStep)
+                    {
+                        FrontendController.Show(FrontendPage.StageSelect);
+                        return;
+                    }
+                    mode.Launch();
                 };
             }
 
             var btnBack = context.Q<Button>("btn-back");
-            Action back = () => FrontendController.Show(FrontendPage.Home);
+            Action back = () => FrontendController.Show(training ? FrontendPage.Home : FrontendPage.ModeSelect);
             if (btnBack != null)
                 btnBack.clicked += back;
             ConfigureNavigation(context, MenuRoster.Classes.Length > 0
@@ -236,6 +256,56 @@ namespace SlopArena.Client.UI
 
             if (MenuRoster.Classes.Length == 0)
                 ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
+        }
+
+        private void InitChallenge(FrontendPageContext context)
+        {
+            var mode = LocalPlayModes.Current;
+            SetModeChrome(context, mode.Title + " // SELECT YOUR FIGHTER", $"STEP {(mode.CourseFirst ? 3 : 2)} OF {mode.TotalSteps}  /  FIGHTERS");
+            ApplyLocalSelectLayout(context);
+            context.Q<VisualElement>("page-summary")!.AddToClassList("char-summary--challenge");
+            context.Q<VisualElement>("pvp-action-area")!.style.SetDisplay(false);
+            var style = Resources.Load<StyleSheet>("UI/LocalPlay");
+            foreach (var root in context.OwnedRoots) if (style != null) root.styleSheets.Add(style);
+            _rosterPanel = context.Q<VisualElement>("roster-panel")!;
+            _rosterPanel.Clear();
+            RenderChallengeSeat();
+            if (HumanCourse)
+            {
+                var menuPad = SlopArena.Client.Input.HumanInputActions.LastUsedGamepad ? UnityEngine.InputSystem.Gamepad.current : null;
+                if (menuPad == null || !SlopArena.Client.Input.CouchPads.IsJoined(menuPad)) SlopArena.Client.Input.CouchPads.P1MenuPad = menuPad;
+            }
+            var record = context.Q<VisualElement>("local-record-panel")!;
+            record.style.SetDisplay(true);
+            _rosterPanel.Add(record);
+            var start = context.Q<Button>("btn-select")!;
+            start.text = mode.FighterAction;
+            start.SetEnabled(_challenge!.Admits(_selected));
+            start.clicked += _challenge!.Launch;
+            _challenge!.Bind();
+            if (_challenge!.Admits(_selected)) _challenge!.Select(_selected);
+            var back = context.Q<Button>("btn-back")!;
+            Action leave = () => FrontendController.Show(mode.CourseFirst ? FrontendPage.StageSelect : FrontendPage.ModeSelect);
+            back.clicked += leave;
+            ConfigureNavigation(context, _gridButtons.FirstOrDefault(b => b.name == $"char-{_selected}" && b.enabledSelf), back, leave, start);
+        }
+
+        private void RenderChallengeSeat()
+        {
+            for (int player = 1; player <= 4; player++) _rosterPanel.Q<VisualElement>($"solo-slot-p{player}")?.RemoveFromHierarchy();
+            var seat = FighterPanel.Build(1, "YOU", "PLAYER", _selected == CharacterClass.None ? null : _selected, "A: PICK FIGHTER");
+            seat.name = "solo-slot-p1";
+            _rosterPanel.Insert(0, seat);
+            if (!HumanCourse) return;
+            for (int player = 2; player <= 4; player++)
+            {
+                bool joined = MatchConfig.Seat(player).Kind == SeatKind.LocalPlayer;
+                var panel = FighterPanel.Build(player, joined ? $"PLAYER {player}" : "", joined ? "PLAYER" : "OPEN",
+                    joined ? MatchConfig.Seat(player).Fighter : null, joined ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN", interactive: false);
+                panel.name = $"solo-slot-p{player}";
+                _rosterPanel.Insert(player - 1, panel);
+            }
+            UpdateCouchCursors();
         }
 
         private static void ApplyLocalSelectLayout(FrontendPageContext context)
@@ -306,7 +376,7 @@ namespace SlopArena.Client.UI
 
             var nameLabel = context.Q<Label>("char-name");
             if (nameLabel != null)
-                nameLabel.text = cls.ToString().ToUpperInvariant();
+                nameLabel.text = MenuRoster.Name(cls).ToUpperInvariant();
             var roleLabel = context.Q<Label>("char-role");
             if (roleLabel != null)
                 roleLabel.text = MenuRoster.Description(cls);
@@ -341,7 +411,7 @@ namespace SlopArena.Client.UI
                 var kind = player == 1 ? SeatKind.LocalPlayer : practiceOpen ? SeatKind.Open : MatchConfig.Seat(player).Kind;
                 bool open = kind == SeatKind.Open;
                 var fighter = player == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(player).Fighter;
-                var panel = FighterPanel.Build(player, player == 1 ? "YOU" : open ? "" : kind == SeatKind.Cpu ? "CPU" : $"PLAYER {player}",
+                var panel = FighterPanel.Build(player, player == 1 ? "YOU" : open ? "" : kind == SeatKind.Cpu ? "" : $"PLAYER {player}",
                     open ? "OPEN" : kind == SeatKind.Cpu ? "CPU" : "PLAYER", open ? null : fighter,
                     practiceOpen ? "TRAINING · ONE PRACTICE CPU" : open ? "A: ADD CPU\nPAD: PRESS A TO JOIN"
                         : player == 1 || MatchConfig.Mode == GameMode.Training ? "A: PICK FIGHTER" : kind == SeatKind.LocalPlayer ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN",
@@ -598,14 +668,11 @@ namespace SlopArena.Client.UI
                 : arena.HasValue && !string.IsNullOrWhiteSpace(arena.Value.DisplayName)
                     ? arena.Value.DisplayName
                     : room.ArenaName.Replace('_', ' ');
-            SetModeChrome(_context, CourseRoom ? "ROOM // CHOOSE YOUR COLOUR" : "ROOM // CHOOSE YOUR FIGHTER", $"STEP 2 OF 2  /  {name.ToUpperInvariant()}");
+            SetModeChrome(_context, "ROOM // CHOOSE YOUR FIGHTER", $"STEP 2 OF 2  /  {name.ToUpperInvariant()}");
         }
 
-        private string CourseFighter => _roomSnapshot?.AdmittedArcade.FirstOrDefault(e =>
-            e.Format == _roomSnapshot.Format && e.Arena == _roomSnapshot.ArenaName)?.Fighter;
         private bool CourseRoom => _roomMode && MatchFormats.TryParseWire(_roomSnapshot?.Format, out var format) && format.IsCourse();
-        private string[] RoomFighters => CourseRoom ? (string.IsNullOrEmpty(CourseFighter) ? Array.Empty<string>() : new[] { CourseFighter })
-            : _roomSnapshot?.AdmittedCharacters ?? Array.Empty<string>();
+        private string[] RoomFighters => _roomSnapshot?.AdmittedCharacters ?? Array.Empty<string>();
 
         private void ApplyRoomCharacterAllowlist()
         {
@@ -643,12 +710,22 @@ namespace SlopArena.Client.UI
             {
                 var member = members[i];
                 bool hasCharacter = Enum.TryParse(member.CharacterSelection, true, out CharacterClass cls);
-                _rosterPanel.Add(BuildPlayerCard(
+                var panel = BuildPlayerCard(
                     CourseRoom ? $"P{i + 1} · {CourseColours.Names[member.Colour % 4]}" : string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
                     hasCharacter ? cls : (CharacterClass?)null,
                     member.LockedIn ? "LOCKED" : "PICKING",
                     member.SteamId == ClientSession.SteamId,
-                    member.IsLeader));
+                    member.IsLeader);
+                if (CourseRoom)
+                {
+                    var colour = CourseColours.For(member.Colour);
+                    panel.Q<VisualElement>(className: "fighter-panel__heading").style.backgroundColor = colour;
+                    panel.Q<Label>(className: "fighter-panel__number").text = $"P{i + 1} · {CourseColours.Names[member.Colour % 4]}";
+                    if (member.SteamId == ClientSession.SteamId && !member.LockedIn)
+                        panel.style.borderTopColor = panel.style.borderBottomColor =
+                            panel.style.borderLeftColor = panel.style.borderRightColor = colour;
+                }
+                _rosterPanel.Add(panel);
             }
             AddOpenRoomPanels(members.Length);
         }
@@ -725,7 +802,7 @@ namespace SlopArena.Client.UI
                     ? (leader
                         ? allLocked ? "Everyone is locked in. Start the match." : "Locked in. Waiting for the other members."
                         : "Locked in. Waiting for the Room leader to start.")
-                    : CourseRoom ? "Choose a colour, then lock in. Choosing an occupied colour swaps it and unlocks both players."
+                    : CourseRoom ? "Choose any fighter and a colour, then lock in. Mirrors are allowed. Choosing an occupied colour swaps it and unlocks both players."
                     : "Choose your fighter, then lock in.", admittedCharacters.Length == 0);
             RenderRoomCardMarkers();
             if (!balanced) SetRoomStatus("Choose equal Teal and Clay camps before starting. Switching camp unlocks your fighter.", false);
@@ -800,7 +877,7 @@ namespace SlopArena.Client.UI
                 var marker = new Label($"P{i + 1} {(members[i].LockedIn ? "LOCKED" : "SELECTING")}");
                 marker.AddToClassList("char-marker");
                 marker.AddToClassList(members[i].LockedIn ? "char-marker--ready" : "char-marker--selecting");
-                marker.style.backgroundColor = SeatColours.For(i + 1);
+                marker.style.backgroundColor = CourseRoom ? CourseColours.For(members[i].Colour) : SeatColours.For(i + 1);
                 markers.Add(marker);
             }
         }
@@ -1144,9 +1221,10 @@ namespace SlopArena.Client.UI
 
         private void SelectCharacter(CharacterClass cls, FrontendPageContext context)
         {
-            if (cls == CharacterClass.None || CourseRoom && !string.Equals(cls.ToString(), CourseFighter, StringComparison.OrdinalIgnoreCase))
+            if (cls == CharacterClass.None)
                 return;
 
+            if (_challenge != null && !_challenge.Admits(cls)) return;
             _selected = cls;
             if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _editingSeat > 1)
                 MatchConfig.Seat(_editingSeat).Fighter = cls;
@@ -1157,6 +1235,11 @@ namespace SlopArena.Client.UI
                 SetSelectionTarget(context, _editingSeat);
             else
                 UpdateSelectionVisuals(cls, context);
+            if (_challenge != null && _rosterPanel != null)
+            {
+                RenderChallengeSeat();
+                _challenge.Select(cls);
+            }
         }
 
         private void RenderCardMarkers()
@@ -1194,7 +1277,7 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
-            bool active = MatchConfig.Mode == GameMode.Solo && _rosterPanel != null;
+            bool active = (HumanCourse || MatchConfig.Mode == GameMode.Solo && LocalPlayModes.Current.Seats == LocalSeatPolicy.FourSeats) && _rosterPanel != null;
             SlopArena.Client.Input.CouchPads.Listening = active;
             if (!active) return;
             bool changed = false;
@@ -1225,7 +1308,11 @@ namespace SlopArena.Client.UI
                 Debug.Log($"[Couch] P{joined} joined with {pad.displayName}.");
                 changed = true;
             }
-            if (changed) SetSelectionTarget(_context, _editingSeat);
+            if (changed)
+            {
+                if (HumanCourse) { RenderChallengeSeat(); _challenge?.RefreshSeats(); }
+                else SetSelectionTarget(_context, _editingSeat);
+            }
             UpdateCouchCursors();
         }
 

@@ -70,6 +70,21 @@ A grounded low posture that spends existing horizontal momentum without an entry
 **SlideJump**:
 An ordinary grounded jump accepted from Slide. It preserves remaining momentum through the normal jump squat without refilling speed or changing jump cost, vertical force or ShortHop timing.
 
+**Shell**:
+Bashie's fighter state between her tuck moves (ADR-0045): she is in it in `ActionState.Shell`, or while attacking in a tuck move. It holds the Skate on the ground and the Coast in the air, bowls fighters over, and admits actions like Idle.
+
+**Skate**:
+The Shell on the ground: she travels straight along her facing at her carried speed, with no steering or friction, until the skate clock runs out (she pops up), a head-on wall or a shield stops her, or she acts.
+
+**Coast**:
+The Shell in the air, after a jet or a walk-off: ballistic, with no air control. Landing turns it into the Skate, faster from higher.
+
+**Tuck move**:
+A special whose slot declares `shellPolicy: tuck` (Shell Shift, Shell Dive, Hydro Jet). It runs in the Shell, tucking her if she was not, and hands her back to it when it ends or touches down.
+
+**Pop out**:
+Leaving the Shell into an action: a grounded normal starts at skate speed, a jump keeps her speed; hits, shield, grab, air dodge and homing dash leave it too. Popping up is the skate running out, or a wall or shield stopping it.
+
 **CrouchBrace**:
 Reduced ordinary launch strength for a fighter already settled motionless in Crouch when a hit connects. The contact snapshot survives Hitstop and release; damage, freeze and Hitstun remain unchanged. Sliding, entry/braking crouch and fixed/custom forces do not qualify.
 
@@ -101,6 +116,16 @@ shield-cancel before recovery ends. Landing stops all horizontal movement and
 caps the remaining commitment at ten ticks; ledge grabs cannot interrupt
 recovery while disabled.
 _Avoid_: air dash, wavedash
+
+**Beeline**:
+The universal homing dash on RB / key 4 (ADR-0042; `HomingDash*` in code). A startup
+float, then a fast dash that turns toward the target at a limited rate. A grounded Beeline
+stays on the floor, so its follow-up is a ground normal; an airborne one arrives just above the
+target's feet for an aerial. Arrival opens a
+short window that any action cancels; a slot pressed during the dash starts there, and an
+airborne arrival hovers and glides on briefly. Running out of travel is a locked,
+punishable miss. Shared cooldown, one use per airtime.
+_Avoid_: super dash, homing dash (in player-facing text)
 
 **RecoveryMove**:
 The per-character dedicated upward/diagonal burst used to return to the stage after being knocked out — one Slot per kit, long cooldown. The only move that resets the FloatWindow; normal air attacks no longer do (ADR-0015).
@@ -187,6 +212,9 @@ _Avoid_: control scheme
 
 ## Arcade
 
+**Local Play**:
+The frontend entry for Brawl, Slopball, Slop Rally and Manki Mayhem. Choose Mode, then Fighters for Slopball and Manki Mayhem. Brawl adds Stage Select after Fighters. Slop Rally chooses Mode, then Course, then Fighters; every roster fighter can play every course. Brawl and Mayhem support CPUs and couch players. Slopball uses P1 only. Courses keep a solo time trial for one seat and play Course Scramble with two to four human seats; CPUs are not offered.
+
 **Arcade**:
 Solo minigames played with a selected fighter's movement and Character Kit, offering repeatable challenges and records to beat. Online Rooms can play them too (see Match Format).
 
@@ -223,7 +251,7 @@ One run of a selected Arcade challenge from its clean start until completion, fa
 _Avoid_: PvP Match (when referring to an Arcade run)
 
 **Personal Best** (Arcade):
-The player's highest recorded Slopball Return count or fastest completed Character Course time for a given challenge, fighter and compatible gameplay, saved locally.
+The player's highest recorded Slopball Return count or fastest completed Slop Rally time for a given challenge, fighter and compatible gameplay, saved locally.
 _Avoid_: match standing, stock score
 
 **Slopball**:
@@ -247,16 +275,19 @@ _Avoid_: rally (when referring to an individual served ball)
 The ball's accumulated damage during a Slopball Serve, increasing its response to later attacks. Each fresh ball starts at zero percent.
 _Avoid_: fighter damage (when referring to damage accumulated by the ball)
 
-**Character Course**:
-A character-specific Arcade challenge combining traversal and attack targets. It is completed by breaking every required target and reaching the finish.
-_Avoid_: obstacle run, break-the-targets mode (when referring to the combined challenge)
+**Slop Rally**:
+The course racing mode. Any roster fighter can race any course, combining traversal and attack targets. Formats are solo Time Trial, Scramble, Race and Co-op. A course is completed by breaking every required target and reaching the finish. `CharacterCourse*` and "Character Course" remain the code and legacy names.
+_Avoid in UI_: Character Course, Character Courses, obstacle run, break-the-targets mode
+
+**Course Scramble**:
+A Local Play course race for two to four human seats on one screen. Targets are shared; the breaker earns one point, or three for a multi-hit bonus target's last hit. Every target must break before the finish opens. Finish places add 5, 3, 2 or 1 points; same-tick finishers share their place bonus. The race ends when everyone finishes or 30 seconds after the first finish. Most points wins; tied leaders share the win. Shared selects the leader by arc length along the course racing line, then entity ID. Courses without a line use saved checkpoint, distance to the next checkpoint or finish, then entity ID. Falls and racers outside the 20 m horizontal or 10 m downward leash for 45 ticks return to the leader's safe ground from 60 ticks earlier. Unity frames the leader and racers inside the leash. Scramble saves no Personal Bests and is not admitted online.
 
 **Course Target**:
-A floating objective required for completing a Character Course, broken by one damaging attack or projectile hit without blocking fighter movement.
+A floating objective required for completing a Slop Rally course. Any fighter's damaging attacks or projectiles can break it; some targets require multiple hits. It does not block fighter movement.
 _Avoid_: CPU Opponent, bot (when referring to a Course Target)
 
 **Course Checkpoint**:
-A progress marker activated by reaching it after clearing every required target up to that point in the route. It supplies a fall-respawn location; visiting every checkpoint is not required to finish the Character Course.
+A progress marker activated by reaching it after clearing every required target up to that point in the route. It supplies a fall-respawn location; visiting every checkpoint is not required to finish the Slop Rally course.
 _Avoid_: save point (when referring to a checkpoint within an attempt)
 
 ## Tutorial
@@ -356,7 +387,7 @@ An operator-run, always-on GameHost available to Master for Match allocation. Pl
 _Avoid_: public Room, dedicated Room, hosted lobby
 
 **MatchFlow**:
-The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Stage Select → Character Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. The leader chooses what to play before anyone picks a fighter ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)); Solo and Training still pick fighters first. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
+The lifecycle of a PvP group: ServerBrowser → Room (Lobby) → Stage Select → Character Select → Match Starting → Fight → Results → the same Room (Lobby), if membership remains valid. The leader chooses what to play before anyone picks a fighter ([ADR-0040](docs/adr/0040-online-arcade-room-pick-and-match-format.md)); Local Play chooses Mode, then Fighters, then Stage for Brawl, or Mode, then Course, then Fighters for Slop Rally. Training still picks fighters first. Master owns Room preparation and its terminal transition; the GameHost runs the authoritative Match and sends its result or cancellation. Results remains viewable until the player returns; leaving or Room expiry routes to the browser with an explanation. A rematch requires new selections and Lock-in.
 _Avoid_: physical-server lobby flow, automatic rematch
 
 ## Replays & Spectating

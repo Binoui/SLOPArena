@@ -1,5 +1,8 @@
 """Weld + triangulate + smooth + tail chain + 4-influence weights + fur normals, then export.
-blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0] [fur_normal_iterations=40|0]"""
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/manki_rig/fix_rig.py -- <in.fbx> <out.fbx> [bones=5] [smooth_angle_deg=40|0] [fur_normal_iterations=40|0] [rigid_parts.json]
+rigid_parts.json pins loose worn props (v5's jetpack, holster) to one bone each: {"parts": [{"name", "bone", "box": [[min xyz], [max xyz]]}]},
+in metres in the rest mesh space after step 0; every mesh island whose bounds lie inside a box gets that bone at weight 1.
+Its optional "remove" list (same box format) deletes stray generator islands before the tail search."""
 import bpy, bmesh, sys, os, math, json
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
@@ -11,6 +14,8 @@ src, dst = argv[:2]
 N = int(argv[2]) if len(argv) > 2 else 5
 SMOOTH = float(argv[3]) if len(argv) > 3 else 40.0
 FUR_ITERATIONS = int(argv[4]) if len(argv) > 4 else 40
+SPEC = json.load(open(argv[5])) if len(argv) > 5 else {}
+RIGID = SPEC.get("parts", [])
 P = "mixamorig:"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=src)
@@ -41,6 +46,21 @@ for a in list(bpy.data.actions): bpy.data.actions.remove(a)
 bm = bmesh.new(); bm.from_mesh(body.data)
 bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
 bmesh.ops.triangulate(bm, faces=bm.faces)  # v4 arrives with quads; fur_normals and Unity want triangles
+removed = 0
+for part in SPEC.get("remove", []):  # stray generator pieces (v5: a loose shard beside the tail club)
+    a, b = part["box"]
+    seen = set()
+    for v in list(bm.verts):
+        if not v.is_valid or v.index in seen: continue
+        stack, piece = [v], [v]; seen.add(v.index)
+        while stack:
+            x = stack.pop()
+            for e in x.link_edges:
+                y = e.other_vert(x)
+                if y.index not in seen: seen.add(y.index); stack.append(y); piece.append(y)
+        if all(a[k] <= min(p.co[k] for p in piece) and max(p.co[k] for p in piece) <= b[k] for k in range(3)):
+            bmesh.ops.delete(bm, geom=piece, context="VERTS"); removed += len(piece)
+if removed: report["removed_verts"] = removed
 bm.to_mesh(body.data); body.data.update()
 report["verts_welded"] = len(body.data.vertices)
 bpy.context.view_layer.objects.active = body
@@ -119,6 +139,36 @@ for i in tail:
     for x in list(v.groups): body.vertex_groups[x.group].remove([i])
     for k_, w in mix.items():
         if w > 1e-4: vg[k_].add([i], w, "REPLACE")
+
+# 5b. worn props on their own mesh islands follow one bone rigidly (Mixamo skins v5's jetpack tanks to the arms)
+if RIGID:
+    bm.verts.ensure_lookup_table()
+    seen, pinned = set(), {}
+    for v in bm.verts:
+        if v.index in seen: continue
+        stack, piece = [v], [v.index]; seen.add(v.index)
+        while stack:
+            x = stack.pop()
+            for e in x.link_edges:
+                y = e.other_vert(x)
+                if y.index not in seen: seen.add(y.index); stack.append(y); piece.append(y.index)
+        co = [bm.verts[i].co for i in piece]
+        lo = [min(c[k] for c in co) for k in range(3)]; hi = [max(c[k] for c in co) for k in range(3)]
+        for part in RIGID:
+            a, b = part["box"]
+            if all(a[k] <= lo[k] and hi[k] <= b[k] for k in range(3)):
+                group = body.vertex_groups.get(P + part["bone"]) or body.vertex_groups.new(name=P + part["bone"])
+                for i in piece:
+                    for x in list(body.data.vertices[i].groups): body.vertex_groups[x.group].remove([i])
+                    group.add([i], 1.0, "REPLACE")
+                pinned[part["name"]] = pinned.get(part["name"], 0) + len(piece)
+                break
+    report["rigid_parts"] = pinned
+
+# 5c. Mixamo sometimes rigs fewer fingers than the hand has (v5's first download: index chain only): rebuild the
+#     thumb/index/middle/ring chains from the fingertip islands and the glove's thumb
+import finger_chains
+report["finger_chains"] = finger_chains.rebuild(bpy, arm, body, P)
 
 # 6. Unity keeps 4 influences: do it here so Blender previews match the game, then normalise
 over = 0

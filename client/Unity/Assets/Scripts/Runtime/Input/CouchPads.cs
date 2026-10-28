@@ -8,7 +8,7 @@ namespace SlopArena.Client.Input
     /// <summary>Device ownership for Solo's menus and joined Local Players.</summary>
     public static class CouchPads
     {
-        public static Gamepad? ForSeat(int playerNumber) => MatchConfig.Mode == GameMode.Solo &&
+        public static Gamepad? ForSeat(int playerNumber) => (MatchConfig.Mode == GameMode.Solo || MatchConfig.Mode == GameMode.Arcade && MatchConfig.LocalMode == LocalPlayMode.CharacterCourse) &&
             MatchConfig.Seat(playerNumber).Kind == SeatKind.LocalPlayer
                 ? InputSystem.GetDeviceById(MatchConfig.Seat(playerNumber).DeviceId) as Gamepad : null;
 
@@ -22,7 +22,7 @@ namespace SlopArena.Client.Input
             return false;
         }
 
-        private static bool OwnsMenus(Gamepad pad) => Listening || MatchConfig.Mode == GameMode.Solo
+        private static bool OwnsMenus(Gamepad pad) => Listening || MatchConfig.Mode == GameMode.Solo || MatchConfig.Mode == GameMode.Arcade && MatchConfig.LocalMode == LocalPlayMode.CharacterCourse
             ? pad == P1MenuPad : !IsJoined(pad);
 
         public static Gamepad? MenuPad => Gamepad.current != null && OwnsMenus(Gamepad.current) ? Gamepad.current : null;

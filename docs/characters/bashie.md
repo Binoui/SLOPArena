@@ -12,17 +12,20 @@ Playable with a stand-in kit. On 2026-10-21 the owner approved the look (concept
 the four specials and the name Bashie (Shelly was "a bit common"). On 2026-10-22 she got her package and joined the
 roster, playing Manki's kit until hers exists. The same day her first special, Hose Down (A), went in (below), with its
 own capability, her water blaster and key-pose animation, and then her Shell Slide (R), which tucks her into her own
-shell, with her own clips, a surf wave and sounds. Ring Bounce (E) now supplies her aimed recovery, and ground/air 2 have
-her Whirlpool Spin. Ground 4 now has Rising Shell and air 4 its diagonal shell strike. Ground 1 now has her Slap and ground 3 her Shell Flip. NO RUNNING! now supplies her F. Air 1 and air 3 still use stand-ins.
+shell, with her own clips, a surf wave and sounds, and Ring Bounce (E) supplied her aimed recovery. On 2026-10-28 the
+owner replaced both with the shell kit ([ADR-0045](../adr/0045-bashie-shell-state.md)): Shell Shift and Shell Dive on R
+and Hydro Jet on E share one shell state, built as a Training prototype. Ground and air 1
+now have Whirlpool Spin after ADR-0042. Ground 4 has Rising Shell and air 4 its diagonal shell strike. Ground and air 3
+have Shell Flip. NO RUNNING! now supplies her F. Her movement still comes from Manki.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
 - `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
   5 was the retired Nilus).
-- Her movement, air 1 and air 3 still come from Manki. Her
+- Her movement still comes from Manki. Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Hose Down in
-  place of his Round Bomb, Shell Slide in place of his Bazooka, Ring Bounce in place of his Jetpack Boost, and Whirlpool
-  Spin on ground and air 2, the diagonal shell strikes on ground and air 4, Slap on ground 1, Shell Flip on ground 3, and NO RUNNING! on F.
+  place of his Round Bomb, Shell Shift and Shell Dive in place of his Bazooka, Hydro Jet in place of his Jetpack Boost, and Whirlpool
+  Spin on ground and air 1, the diagonal shell strikes on ground and air 4, Shell Flip on ground and air 3, and NO RUNNING! on F.
 - The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
   Played on her as they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -173,7 +176,7 @@ forward and upward reach around contact. The head and red hat stay visible while
   startup aim correction remains. Slide carry is disabled. The simulated actor stays grounded and stationary.
 - One root-relative capsule has radius 0.32 m, start offset `(0, -0.20, 0.65)` and end delta `(0, 0.60, -0.30)`.
   Its absolute end offset is `(0, 0.40, 0.35)`. It uses hit group 1, is interruptible, and has no bone anchor.
-- `anim.bashie.g3` binds `Animations/bashie_g3_shell_flip.anim`. Air 3 retains Manki's borrowed Double Fist Slam.
+- `anim.bashie.g3` and `anim.bashie.a3` bind `Animations/bashie_g3_shell_flip.anim`.
 - `presentation.bashie.shell.flip-tuck` starts at tick 4 for 38 ticks. The optional ShellTuck flip profile applies
   the accepted native hips rotation after the tuck during ticks 10 through 29. Its 43 lift samples carry the measured
   floor corrections. Runtime code reads no preview artifacts and scans no meshes.
@@ -186,6 +189,21 @@ Hitstop and cleanup after injected Hitstun at ticks 18 and 25. G2, G4 and air 3 
 Evidence is in `artifacts/bashie-g3-integration-20261023-r1/implementation/cutover/`. The raw hierarchy probe used an
 incorrect scaled mesh conversion. Its corrected report includes every skin and agrees with weighted bone skinning.
 Sub-tick floor clearance and human controller feel remain unverified.
+
+### Air Shell Flip (air 3)
+
+Reuses the accepted G3 clip under `anim.bashie.a3`. She tucks into her shell and somersaults backward while
+preserving airborne momentum and normal gravity. No velocity writes, gravity windows or air-resource resets apply.
+
+- **Clock:** 42 ticks at 60 Hz, actionable at tick 42. Startup aim correction runs through tick 9.
+- **Hit:** the same root-relative capsule as ground 3, active ticks 24 through 29. It hits each opponent once for
+  7% at 75 degrees, with base knockback 5, growth 26 and Hitstun 18. Slide carry is disabled.
+- **Landing:** 9 ticks of landing lag, auto-cancel before tick 10 and from tick 36. Landing and interruption clear
+  the hitbox and tuck through the existing ability and presentation lifetime.
+- **Presentation:** `presentation.bashie.shell.flip-tuck` starts at tick 4 for 38 ticks on `bone.hips`.
+  The shared cue holds both G3 and A3. There is no water cue.
+- **Verification:** source-compiled Shared tests cover four facings, momentum and fall equivalence, landing windows,
+  grounded Shield, a 3 m whiff and interruption. Unity rebuild, cook, roster refresh and visual verification remain pending.
 
 ### Rising Shell (ground 4)
 
@@ -235,8 +253,8 @@ the one rule she enforces, on everyone else.
 | Slot | Special | Shape | The opening |
 | --- | --- | --- | --- |
 | A | Hose Down | She pulls a toy water blaster out of her shell. Hold to pump it, release to fire a gush that shoves rather than hurts; more pumping makes a bigger gush. In the air the recoil pushes her back. Sign: NO SPLASHING! | Pumping keeps her in place, and the recoil can push her away from the stage. |
-| E | Ring Bounce | Her necessary vertical recovery: she automatically throws the life ring and hops onto it, squashes it and bounces off (BOING). Movement input aims the jump. An optional fresh second press at the top starts a cannonball drop with a splash. Sign: NO BOMBS! | The cannonball commits her downward, even off the stage. |
-| R | Shell Slide | She tucks into her shell and slides off fast on a little wave; the stick steers, and the shell shrugs off hits. The first fighter she meets is bowled over, and she pops out with a pose. In the air she slides on thin air, looks down and drops. No sign (owner, 2026-10-22). | A miss (a shield, a wall, or the slide running out) leaves her flipped on her back, paddling, until she rocks herself over. |
+| E | Hydro Jet | She tucks and jets off in the stick's direction with no wind-up (neutral goes straight up). The jet behind her shoves. R mid-jet becomes Shell Dive without untucking; landing still tucked flows into the skate. | No armour: any hit pops her out. The jet's direction is fixed once it starts. |
+| R | Shell Shift / Shell Dive | On the ground she drops into her shell and skates straight on at her speed, bowling fighters up and skating on under them. In the air she dives steeply at the ground ahead, leaning toward a target in front; the dive's speed becomes the skate's. | A wall or a shield pops her up bouncing back; the skate cannot steer. |
 | F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! The blow stuns fighters within 5 m for 2 s with no damage or horizontal push. Shields block it. The owner changed the original slow to a stun on 2026-10-26. Sign: NO RUNNING!. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
 
 ### Hose Down (A)
@@ -289,103 +307,52 @@ gush; it became a stream.
     sign's pop. They are low and soft, because the owner found the first set too shrill.
 - **Open:** the end clip. The cooldown is 90 ticks.
 
-### Ring Bounce (E)
+### The shell: Shell Shift, Shell Dive and Hydro Jet (R and E)
+
+**Accepted 2026-10-28** for a Training prototype ([ADR-0045](../adr/0045-bashie-shell-state.md)): the owner rejected
+the first specials (Hose Down aimed with the camera, Ring Bounce waited 44 ticks, Shell Slide was hard to steer for one
+9% hit) and approved "the shell as a fighter state" ("sounds good, i want to try it"). Her R and E share one state:
+
+- **In the shell:** she skates on the ground (straight, at her carried speed) and coasts in the air. The skate bowls
+  each fighter once per stay and she skates on under them. When the clock runs out she pops up, with no flipped punish.
+  A head-on wall or a shield pops her up bouncing back.
+- **R, ground: Shell Shift.** She tucks and settles into the skate at her run speed; a standing start pushes off.
+- **R, air: Shell Dive.** A steep dive at the ground ahead, leaning toward a target in front. The dive's speed (plus a
+  share of its downward speed) becomes the skate's: a higher dive skates faster.
+- **E: Hydro Jet.** She jets in the stick's direction (neutral: straight up) with a trailing shove. R mid-jet dives at
+  the jet's speed without untucking; landing still tucked flows into the skate.
+- **Exits:** a normal (1, 3, 4) pops her out at skate speed (Rising Shell keeps its hop and the carry); a jump hops out
+  keeping her speed; Q, F, shield, grab, air dodge and homing dash pop her out. E and R keep her in.
+- **First-pass values (named, untuned):** skate 90 ticks, push-off 10 m/s, cap 20 m/s, landing ratio 0.5, pop-out
+  braking 40 m/s², wall/shield bounce 4 m/s; bowling hitbox from Shell Slide's lance (capsule 0.5, damage 9, angle 65,
+  knockback 9 + 20, stun 18). Shell Shift tucks for 10 ticks (cooldown 180). Shell Dive: -55°, 14 m/s accelerating
+  30 m/s² to 24 for up to 45 ticks, IASA 24, 60° target cone (cooldown 180, shared with ground R). Hydro Jet: 15 m/s
+  for 20 ticks, stick pitch 25°, IASA 8, trailing shove (knockback 10, no damage or stun), cooldown 210.
+- **Stand-in presentation:** the tuck cue holds while she is in the shell (`ShellTuck.HoldWhileTucked`); the shell pose
+  is `anim.bashie.gr-slide`, Shell Shift shows `anim.bashie.gr`, Shell Dive `anim.bashie.gr`, Hydro Jet
+  `anim.bashie.gr-slide`. No new art, VFX or sounds yet.
+
+### Ring Bounce (E, retired 2026-10-28)
 
 ![Ring Bounce](../design/references/bashie/bashie-e-ring-bounce.jpg)
 
-**Control direction (owner, 2026-10-22):** "i agree, aiming the ring is too much, aiming the jump is nice".
+Built 2026-10-22 on the public `slop.ability.aimed-recovery.v1`: she threw the life ring, hopped onto it, squashed it and
+sprang 15 m/s up (stick aimed: 13 up, 8 across) at tick 44 of a 54-tick move, cooldown 210. Hydro Jet replaced it; its
+clip `bashie_e_ring_bounce.anim`, ring props and cues stay in the package, unbound from her E. The capability keeps its
+tests through a fixture. Plans: [integration](../plans/2026-10-22-bashie-ring-bounce.md),
+[four-beat revision](../plans/2026-10-22-bashie-ring-bounce-v2.md).
 
-- One E runs four readable beats: throw the ring clearly ahead, make a small forward hop onto it, connect and
-  squash, then spring high. It works offstage.
-- Ring placement and getting onto it are automatic. The player uses movement input to aim the bounce's launch.
-- Direction can change during the squash and locks when the ring springs. Neutral launches straight up for
-  maximum height; holding a direction trades some height for horizontal reach. Ordinary air control returns
-  after launch.
-
-**Priority (owner, 2026-10-22):** the cannonball sounds cool, but "the first part is most important cause its her
-necessary vertical recovery".
-
-- Build and validate the throw, squash and upward launch first. A single E must provide the recovery with no
-  second press or spare ordinary jump needed for the automatic hop.
-- Arrest her descent while she prepares the bounce, so the throw does not waste the
-  height she needs to recover. The ring works in mid-air without a floor beneath it.
-- Recovery acceptance is returning from below the stage onto a playable surface; ledge hang is disabled.
-- The cannonball is an optional follow-up near the top, entered only by a fresh second E. Holding the initial
-  press or choosing no follow-up must leave the upward recovery intact. It comes after the core recovery works.
-- A cannonball is *une bombe* in French, hence the sign.
-- First playable values remain open to feel tuning. Cannonball timing and impact values are unset.
-
-**Pose direction (owner, 2026-10-22):** approved the actual-model throw → plant → squash → spring → rise sheet
-("very good lets go for it") and chose new recovery timing over the temporary jetpack's. The first GenRA body
-keys set the spring at tick 12 (0.2 s). Their actual-prefab Unity review uses
-her existing life-ring model, squashed independently of her body. The owner approved the actual-rig keys with
-"perfect". One GenRA motion pass preserves the six keys (ticks 0, 4, 7, 10, 12 and 18); it passes the full rig
-checks. The original actual-prefab motion review is `artifacts/bashie-e-20261022/motion-review.html`, with side and
-rear views at 1x or quarter speed. The ring toss clears her sandals, both soles stay on the rim through compression,
-and the ring rebounds as she rises. The owner accepted the full motion ("it's probably a bit too fast but it's fine")
-and asked to put it in game. That first version used an 18-tick action; the owner subsequently requested the
-separate throw and forward hop described below.
-
-**Built 2026-10-22:** the owner approved the public Shared recovery capability in
-[the integration plan](../plans/2026-10-22-bashie-ring-bounce.md). The owner accepted revised keys ("this looks really good")
-and full motion ("good") in the [four-beat revision](../plans/2026-10-22-bashie-ring-bounce-v2.md). Ground and air E share
-a 54-tick cooked timeline and `bashie_e_ring_bounce.anim`. The throw holds her position until the small hop starts
-at 18. The automatic hop travels 0.792 m forward on her entry heading, with a 0.495 m arc above its chord, reaching
-the ring 0.198 m higher at 34. These world distances account for the existing 1.1 visual scale. She compresses through 40,
-then springs at 44. Setup suppresses gravity and incoming momentum. At tick 44, current movement input selects the
-launch: neutral is 15 m/s up; full direction is 13 m/s up
-and 8 m/s horizontally, with analog interpolation and normalized diagonals. Ordinary gravity applies after launch;
-normal air steering and actions return at 54. The existing 210-tick cooldown starts at completion/cancellation.
-The setup consumes/refills no ordinary jump or air dodge, adds no air-use rule, and has no hitbox or invulnerability.
-Holding E never adds a cannonball.
-
-The ring is a separate package prop sampled on attack ticks. It waits ahead in the entry model frame while she
-hops toward it, then follows the feet during compression. A second world-placed cue at launch leaves its rebound
-behind as she rises and shrinks it away; neither cue controls movement or collision. The body rig/Avatar are unchanged.
-The original review's lift was schematic; the integrated Play Mode captures use actual Shared movement.
-
-Verification of the revision: 42 focused recovery/schema/loader checks; full Shared suite 3,312 passed / 2 existing skips; Shared and
-Server builds; native Unity compile with no errors; valid fresh cook/verify and roster refresh; authoritative Lab
-ground/air runs with no contacts, deaths or diagnostics; and inspected ground/air Play Mode captures on Splash Deck
-with an empty error console. A Shared scenario returns from 2 m below a solid ledge, 3 m out, with both jumps spent.
-Human controller feel and offstage routes remain on `TESTING-UNITY.md`. Local evidence:
-`artifacts/bashie-e-v2-20261022/integration/` and `tmp/bashie-e-v2-integrated-20261022/`.
-
-### Shell Slide (R)
+### Shell Slide (R, retired 2026-10-28)
 
 ![Shell Slide](../design/references/bashie/bashie-r-shell-slide.jpg)
 
 ![Flipped after a miss](../design/references/bashie/bashie-r-flipped.jpg)
 
-**Built 2026-10-22.** The owner asked how she could retract into her shell. Of three looks
-rendered on her rig, they picked A, her hat and face peeking out of the front: "A is very good! nice job".
-- **The tuck:** `presentation.bashie.shell.tuck` (a `ShellTuck` cue, emitted at tick 6) folds her into her own shell
-  through `ShellTuckRig`, with no new model. She lies prone with the shell on top. The shell grows 1.7×, her arms
-  shrink to 0.15× and her legs to 0.3×, the whistle vanishes, and her head (0.8×) is held upright in the shell's front.
-  It is emitted at tick 8 and eases in over 0.1 s and out over 0.12 s, a little past each way. It holds while the attack shows `anim.bashie.gr`
-  or `anim.bashie.gr-slide`, and pops her out on the hit, miss or look-down clip, or when the attack ends. Only her
-  look changes: the simulated hurtbox follows the clip. [tools/blender/bashie_rig](../../tools/blender/bashie_rig/README.md)
-  previews looks in Blender.
-- **Data, a first pass from the Joust:** `slop.ability.steered-charge.v1` starts at tick 14 (Sir Bonk rears for 30).
-  She slides at 13 m/s for up to 240 ticks (4 s), turns 200°/s and is armoured. The hitbox is a capsule round the shell
-  (radius 0.5, from 0.1 m behind her to 0.6 m ahead, 0.45 m below her capsule's centre): damage 9, angle 40, knockback
-  9 + 28, stun 18. The hit ending lasts 30 ticks and the miss 48 (a 12-tick skid, then she lies there); thin air is
-  120 ticks (2 s) of sliding + 20 ticks of look-down. Cooldown 240.
-- **Her clips (GenRA, briefs `bashie-sr-*`):** key poses from Codex pose sheets, approved by the owner ("motion looks
-  good"), then motion on the approved keys, written to `Animations/bashie_sr_*.anim`:
-  - the dive (`anim.bashie.gr`, 15 ticks): squat, a racing dive, a belly-flop, tucked
-  - the slide loop (`gr-slide`, 24 ticks): the tucked pose, hidden by the tuck; it lays her hurtbox low while she slides
-  - the pop-out (`gr-pop`, 30 ticks): she springs up like a starfish, lands and points at the fighter she bowled over
-  - the miss (`gr-flip`, 48 ticks): the shell tips over, she paddles on her back, rocks onto its edge, rolls and gets up
-  - the look-down (`gr-lookdown`, 20 ticks): she pops out in mid-air, looks down, gulps, flaps and falls
-  Every clip after the slide starts on the tucked pose the dive ends on.
-- **Water (concept C, "surf"; the owner: "i like the wave"):** `presentation.bashie.shell.surf` (tick 14, on her hips)
-  is a toon wave mesh curling just ahead of her, low in front of her face and higher at the sides, with foam on its crest,
-  spray thrown back off its sides and a wet streak on the floor. `AttackClipShow` shows it only while the slide clip plays
-  on the ground. `presentation.bashie.shell.plop` splashes round her as she dives in, and `presentation.bashie.shell.hit`
-  is the splash on the fighter she hits. The owner dropped the NO HORSEPLAY! sign.
-- **Sounds** (`tools/sfx/bashie_clips.py`, under 2 kHz): `bashie_shell_tuck` (a soft fwump), `bashie_shell_slide` (a
-  looping rush of water that fades with the wave) and `bashie_shell_hit` (a hollow knock on the shell and a splash).
+Built 2026-10-22 on Sir Bonk's `slop.ability.steered-charge.v1`: a steered, armoured 13 m/s slide for up to 240 ticks
+that ended on the first hit, with a flipped-on-her-back miss and a thin-air look-down. Shell Shift and Shell Dive
+replaced it. What carries over: the tuck (`ShellTuck`/`ShellTuckRig`, look "A", her hat and face peeking out), its clips
+(`anim.bashie.gr` dive, `gr-slide` loop, `gr-pop` pop-out; `gr-flip` and `gr-lookdown` are unbound), the plop and
+hit cues, and the lance's hitbox numbers for the bowling hitbox. The surf wave is not emitted by the new kit yet.
 
 ### NO RUNNING! (F)
 
@@ -437,9 +404,9 @@ The real effects pass follows concept approval. Slopball interaction and human c
 
 | Special | What exists | What's new |
 | --- | --- | --- |
-| R | `slop.ability.steered-charge.v1` (Sir Bonk's Joust) already steers, gives armour, ends on a hit or a miss and handles thin air ([ability architecture](../systems/ability-architecture.md)). | Done 2026-10-22: the data, and the tuck in presentation (`ShellTuck`, client only). Her own clips are next. |
+| R | The shell state ([ADR-0045](../adr/0045-bashie-shell-state.md)): `ActionState.Shell`, `slop.ability.shell-stance.v1` and `slop.ability.thrust.v1` ([ability architecture](../systems/ability-architecture.md)). | Built 2026-10-28 as a Training prototype; Shell Slide (steered charge) retired. |
 | A | Ki Shot's hold-and-release, and `stunTicks` 0 already shoves without hitstun. | Done 2026-10-22: `slop.ability.charged-stream.v1` (FLUDD: pump, stream, air push back) and no hitstop for pure pushes. |
-| E | Close to Manki's Jetpack Boost and existing landing hits. | Automatic ring throw/hop and an aimed upward bounce first; the optional cannonball follows once recovery works. |
+| E | `slop.ability.thrust.v1` with a trailing hitbox, a tuck move like R. | Built 2026-10-28 with the shell; Ring Bounce (aimed recovery) retired. |
 | F | An ordinary hitbox with `fixedHitstunTicks: 120`, `stunTicks: 1` and base knockback 1 pointed straight down at -90 degrees prevents horizontal slide. | Built 2026-10-26 with package data and client presentation only. No Shared engine change. |
 
 ## Concept images

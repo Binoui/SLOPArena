@@ -1,0 +1,89 @@
+{
+ "stage": "slop_pit",
+ "notes": "10-fist-of-fury vertical: staging copied unchanged from 10-slop-pit-fist-of-fury.json; side-on portrait cameras (z = far side, h = near side higher)",
+ "capture": {
+  "from": 0,
+  "to": 300,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    -5.4,
+    0,
+    0
+   ],
+   "yaw": 90,
+   "damage": 25,
+   "target": 2,
+   "input": [
+    {
+     "from": 0,
+     "to": 9,
+     "move": 90
+    },
+    {
+     "at": 10,
+     "press": "3"
+    },
+    {
+     "at": 52,
+     "press": "F"
+    },
+    {
+     "at": 56,
+     "press": "F"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "bonk",
+   "feet": [
+    -2.7,
+    0,
+    0
+   ],
+   "yaw": 270,
+   "damage": 110,
+   "target": 1,
+   "input": [
+    {
+     "from": 6,
+     "to": 42,
+     "shield": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "z",
+   "pos": [
+    -3.7,
+    2.6,
+    6.4
+   ],
+   "look": [
+    -3.1,
+    2.0,
+    0
+   ],
+   "lookOffset": [
+    -0.6,
+    0.8,
+    0
+   ],
+   "follow": 2,
+   "move": true,
+   "ease": 0.22,
+   "fov": 48,
+   "far": 3000
+  }
+ ]
+}

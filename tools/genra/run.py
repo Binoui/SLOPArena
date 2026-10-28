@@ -6,7 +6,8 @@
     <genra python> tools/genra/run.py BRIEF.json --keys artifacts/genra-runs/<keys run>   # the motion between them
 
 --revise revises an earlier run: its scripts and result.json go into the new scratch's previous/, and the prompt adds
-the director's notes (review.py) with their Unity evidence. loop.py chains reviews and revisions.
+the director's notes (review.py) with their Unity evidence. loop.py chains reviews and revisions. With --owner and no
+--review it revises on the owner's note alone, e.g. one key pose of a --stage keys run to re-pose.
 --stage keys authors only the brief's key poses (Brief.key_beats: the video beats' ticks) and renders keys.png and,
 with video beats, beats-keys.png for the owner. Once approved, --keys hands that run's poses (or a result.json of
 approved key poses, e.g. keys whose arms were re-solved for the owner) to a full run as keys/result.json; its check
@@ -150,6 +151,22 @@ Check report of the previous version:
 
 The last {count} attached images are the director's evidence:
 {captions}"""
+
+
+OWNER_REVISION = """
+
+## Revision {round}
+
+An earlier version of this clip is in `previous/`: `previous/result.json` and the scripts that built it. The owner
+looked at it and asked for the changes below; there is no director review. Change what the owner asks, keep everything
+else as it is, and save the revised clip as `result.json`. Start from the previous script or clip
+(`Clip.load(rig, 'previous/result.json', frame=b.entry_frame)`). The brief may have changed with the owner's note
+(new targets): check each target yourself with the toolkit before saving.
+
+The owner's direction: {owner}
+
+Check report of the previous version:
+{checks}"""
 
 
 KEYS_STAGE = """
@@ -409,7 +426,13 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
         for item in (Path(revise) / 'scratch').iterdir():
             if item.suffix == '.py' or item.name == 'result.json':
                 shutil.copy2(item, previous / item.name)
-        text, evidence = revision_notes(Path(review), round_number, owner=owner, skip=skip)
+        if review:
+            text, evidence = revision_notes(Path(review), round_number, owner=owner, skip=skip)
+        else:  # the owner's note alone (e.g. a key pose to re-pose): no director review to run first
+            check = Path(revise) / 'check.txt'
+            text = OWNER_REVISION.format(round=round_number, owner=owner,
+                                         checks=check.read_text().strip() if check.exists() else '(none)')
+            evidence = []
         prompt += text
         images = list(images) + evidence
     checkpoint = seed_candidate(brief, scratch, run_dir) if not probe else None
@@ -491,7 +514,7 @@ def main(argv=None):
     mode.add_argument('--probe', action='store_true', help='cheap sandbox/toolkit probe instead of authoring')
     mode.add_argument('--dry-run', action='store_true', help='prepare prompt and scratch without a model call')
     parser.add_argument('--revise', help='an earlier run directory to revise (its scratch scripts and result.json)')
-    parser.add_argument('--review', help="the director's review.json of that run (review.py)")
+    parser.add_argument('--review', help="the director's review.json of that run (review.py); optional with --owner")
     parser.add_argument('--round', type=int, default=1, help='revision number, for the prompt')
     parser.add_argument('--owner', help="the owner's direction for a revision, ahead of the director's review")
     parser.add_argument('--skip', default='', help='review issue numbers (from 1) the owner set aside, e.g. 2,5')
@@ -500,8 +523,10 @@ def main(argv=None):
     parser.add_argument('--keys', help='an approved --stage keys run (or a result.json of approved key poses): a full '
                         'run keeps its key poses')
     args = parser.parse_args(argv)
-    if bool(args.revise) != bool(args.review):
-        parser.error('--revise and --review go together')
+    if args.review and not args.revise:
+        parser.error('--review needs --revise')
+    if args.revise and not (args.review or args.owner):
+        parser.error('--revise needs --review (the director\'s) or --owner (the owner\'s note alone)')
     if args.keys and args.stage == 'keys':
         parser.error('--keys hands approved key poses to a full run')
     code, _ = author(args.brief, args.name, args.model, args.effort, args.timeout, args.python, args.out_root,

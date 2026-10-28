@@ -120,19 +120,120 @@ namespace SlopArena.EditorTools
                     EditorUtility.SetDirty(saved);
                 }
                 AssetDatabase.SaveAssetIfDirty(saved);
-                if (body.sharedMesh != saved)
+                bool changed = body.sharedMesh != saved;
+                body.sharedMesh = saved;
+                // Her swimsuit hugs the body, so it gets the same swell: each vertex follows the nearest body vertices.
+                object suitReport = null;
+                var suit = actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).SingleOrDefault(s => s.name == "Bashie_Suit");
+                if (suit != null)
                 {
-                    body.sharedMesh = saved;
-                    PrefabUtility.SaveAsPrefabAsset(actor, prefabPath);
+                    const string suitPath = "Assets/CharacterPackages/bashie/Presentation/BashieSuitPuff.asset";
+                    var suitSource = PrefabUtility.GetCorrespondingObjectFromOriginalSource(suit)?.sharedMesh;
+                    if (suitSource == null || AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(suitSource)) is not ModelImporter)
+                        throw new System.InvalidOperationException("Bashie_Suit must resolve to its source model mesh.");
+                    var suitBaked = FollowPuff(body, saved, suit, suitSource);
+                    var suitSaved = AssetDatabase.LoadAssetAtPath<Mesh>(suitPath);
+                    if (suitSaved == null)
+                    {
+                        AssetDatabase.CreateAsset(suitBaked, suitPath);
+                        suitSaved = suitBaked;
+                    }
+                    else
+                    {
+                        EditorUtility.CopySerialized(suitBaked, suitSaved);
+                        EditorUtility.SetDirty(suitSaved);
+                        Object.DestroyImmediate(suitBaked);
+                    }
+                    AssetDatabase.SaveAssetIfDirty(suitSaved);
+                    changed |= suit.sharedMesh != suitSaved;
+                    suit.sharedMesh = suitSaved;
+                    suitReport = new { mesh = suitPath, vertices = suitSaved.vertexCount };
                 }
+                if (changed)
+                    PrefabUtility.SaveAsPrefabAsset(actor, prefabPath);
                 return new { success = true, mesh = meshPath, source = AssetDatabase.GetAssetPath(source),
-                    vertices = saved.vertexCount, blendShape = saved.GetBlendShapeName(0), frameWeight = saved.GetBlendShapeFrameWeight(0, 0) };
+                    vertices = saved.vertexCount, blendShape = saved.GetBlendShapeName(0), frameWeight = saved.GetBlendShapeFrameWeight(0, 0),
+                    suit = suitReport };
             }
             finally
             {
                 if (baked != null) Object.DestroyImmediate(baked);
                 PrefabUtility.UnloadPrefabContents(actor);
             }
+        }
+
+        // A copy of an outfit mesh whose Puff shape moves each vertex like the nearest point of the body's surface
+        // (barycentric on its nearest triangle, in rest pose), pushed OutfitPuffMargin further so the swollen belly
+        // never shows through. Following the nearest vertices instead let the skin poke out between them.
+        private const float OutfitPuffMargin = 0.12f;
+
+        private static Mesh FollowPuff(SkinnedMeshRenderer body, Mesh bodyPuff, SkinnedMeshRenderer piece, Mesh src)
+        {
+            var bodyV = bodyPuff.vertices;
+            var bodyD = new Vector3[bodyV.Length];
+            bodyPuff.GetBlendShapeFrameVertices(bodyPuff.GetBlendShapeIndex("Puff"), 0, bodyD, null, null);
+            var bodyL2W = body.transform.localToWorldMatrix;
+            var bodyP = new Vector3[bodyV.Length];
+            var bodyDw = new Vector3[bodyV.Length];
+            for (int i = 0; i < bodyV.Length; i++)
+            {
+                bodyP[i] = bodyL2W.MultiplyPoint3x4(bodyV[i]);
+                bodyDw[i] = bodyL2W.MultiplyVector(bodyD[i]);
+            }
+            var tris = bodyPuff.triangles;
+            var L2W = piece.transform.localToWorldMatrix;
+            var W2L = piece.transform.worldToLocalMatrix;
+            var V = src.vertices;
+            var delta = new Vector3[V.Length];
+            for (int i = 0; i < V.Length; i++)
+            {
+                var p = L2W.MultiplyPoint3x4(V[i]);
+                float best = float.MaxValue;
+                Vector3 moved = Vector3.zero;
+                for (int t = 0; t < tris.Length; t += 3)
+                {
+                    int ia = tris[t], ib = tris[t + 1], ic = tris[t + 2];
+                    var bary = ClosestBarycentric(p, bodyP[ia], bodyP[ib], bodyP[ic]);
+                    var q = bodyP[ia] * bary.x + bodyP[ib] * bary.y + bodyP[ic] * bary.z;
+                    float d = (q - p).sqrMagnitude;
+                    if (d >= best) continue;
+                    best = d;
+                    moved = bodyDw[ia] * bary.x + bodyDw[ib] * bary.y + bodyDw[ic] * bary.z;
+                }
+                delta[i] = W2L.MultiplyVector(moved * (1f + OutfitPuffMargin));
+            }
+            var mesh = Object.Instantiate(src);
+            mesh.name = src.name + "Puff";
+            mesh.ClearBlendShapes();
+            mesh.AddBlendShapeFrame("Puff", 100f, delta, null, null);
+            return mesh;
+        }
+
+        // Barycentric weights of the point of triangle abc closest to p (Ericson, Real-Time Collision Detection 5.1.5).
+        private static Vector3 ClosestBarycentric(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
+        {
+            Vector3 ab = b - a, ac = c - a, ap = p - a;
+            float d1 = Vector3.Dot(ab, ap), d2 = Vector3.Dot(ac, ap);
+            if (d1 <= 0f && d2 <= 0f) return new Vector3(1f, 0f, 0f);
+            Vector3 bp = p - b;
+            float d3 = Vector3.Dot(ab, bp), d4 = Vector3.Dot(ac, bp);
+            if (d3 >= 0f && d4 <= d3) return new Vector3(0f, 1f, 0f);
+            float vc = d1 * d4 - d3 * d2;
+            if (vc <= 0f && d1 >= 0f && d3 <= 0f) { float v = d1 / (d1 - d3); return new Vector3(1f - v, v, 0f); }
+            Vector3 cp = p - c;
+            float d5 = Vector3.Dot(ab, cp), d6 = Vector3.Dot(ac, cp);
+            if (d6 >= 0f && d5 <= d6) return new Vector3(0f, 0f, 1f);
+            float vb = d5 * d2 - d1 * d6;
+            if (vb <= 0f && d2 >= 0f && d6 <= 0f) { float w = d2 / (d2 - d6); return new Vector3(1f - w, 0f, w); }
+            float va = d3 * d6 - d5 * d4;
+            if (va <= 0f && d4 - d3 >= 0f && d5 - d6 >= 0f)
+            {
+                float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                return new Vector3(0f, 1f - w, w);
+            }
+            float denom = 1f / (va + vb + vc);
+            float bv = vb * denom, cw = vc * denom;
+            return new Vector3(1f - bv - cw, bv, cw);
         }
 
         private static Mesh BakePuffMesh(GameObject actor, SkinnedMeshRenderer body, Mesh src)
@@ -354,16 +455,16 @@ namespace SlopArena.EditorTools
         // ── Shell Slide ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Folds her into her shell for the dive and the slide (<see cref="ShellTuck"/>), the look the owner picked
-        /// ("A", 2026-10-22): her hat and face peek out of the front. It pops her back out when the slide shows its
-        /// hit, miss or look-down clip, or when the attack ends.
+        /// Folds her into her shell (<see cref="ShellTuck"/>), the look the owner picked ("A", 2026-10-22): her hat
+        /// and face peek out of the front. It holds for as long as the simulation has her in the shell (ADR-0045),
+        /// through Shell Shift, Hydro Jet, Shell Dive and the skate, so it is not bound to one attack.
         /// </summary>
         private static GameObject Tuck()
         {
-            var root = _kit.NewRoot("BashieShellTuck", attackBound: true);
+            var root = _kit.NewRoot("BashieShellTuck", attackBound: false);
             var tuck = root.AddComponent<ShellTuck>();
             tuck.Pose = ShellTuckPose.Bashie;
-            tuck.HoldAnimationIds = new[] { "anim.bashie.gr", "anim.bashie.gr-slide" };
+            tuck.HoldWhileTucked = true;
             return _kit.Save(root);
         }
 
@@ -420,7 +521,7 @@ namespace SlopArena.EditorTools
             var tuck = root.AddComponent<ShellTuck>();
             tuck.Pose = ShellTuckPose.Bashie;
             tuck.Pose.WobbleDegrees = 0f;
-            tuck.HoldAnimationIds = new[] { "anim.bashie.g3" };
+            tuck.HoldAnimationIds = new[] { "anim.bashie.g3", "anim.bashie.a3" };
             tuck.WeightByAttackTick = new AnimationCurve(new Keyframe(4f, 0f), new Keyframe(10f, 1f),
                 new Keyframe(29f, 1f), new Keyframe(36f, 0f));
             tuck.ForwardByAttackTick = new AnimationCurve(new Keyframe(20f, 0f), new Keyframe(24f, 0.30f),

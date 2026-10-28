@@ -53,5 +53,6 @@ at its real 462x174: the mark must stay legible.
 
 Files changed outside Unity: import exactly them through the gateway's `import_asset`
 (one command per file, `--confirm true`) instead of refreshing the whole project, under your
-own lease ([coordination](../../docs/contributing/unity-editor-coordination.md)). The website
+own lease ([coordination](../../docs/contributing/unity-editor-coordination.md)). `import_asset` copies `--source` (absolute) to `--path` (`Assets/...`), so copy the
+built file to `/tmp` first and import from there; the same file as both fails with a sharing violation. The website
 needs `scripts/social-preview.html` re-rendered after a portrait change, as its comment says.

@@ -401,6 +401,7 @@ public sealed class MatchRecorder
             CookedWibouRisingSlashCapabilityParameters x => x.RiseTicks,
             CookedWibouBladeFlurryCapabilityParameters x => x.DescentStartTick,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks + x.MaxFlightTicks + x.RecoveryTicks,
+            CookedThrustCapabilityParameters x => x.ThrustTicks,
             CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
                 + Math.Max(x.HitEndingTicks, x.MissEndingTicks),
             CookedMankiRoundBombCapabilityParameters x => x.ThrowTriggerTick + x.MaxFlightTicks + x.ExplosionDurationTicks,

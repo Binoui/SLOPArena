@@ -52,7 +52,7 @@ scripts/move-data.sh <char> --truecombos --di --html report.html    # + true-com
 - `<char>`: `fightguy` (default) | `manki` | `wibou` | `bonk`, resolved through the cooked roster.
 - Default markdown output: `docs/generated/<char>-move-data.md`.
 
-### Homing dash frame data (ADR-0042)
+### Beeline (homing dash) frame data (ADR-0042)
 
 ```bash
 dotnet run --project tools/MoveDataReport -p:SkipUnityPluginCopy=true -- --dash [character|all] [--out tmp/dash.md]
@@ -61,9 +61,19 @@ dotnet run --project tools/MoveDataReport -p:SkipUnityPluginCopy=true -- --dash 
 Mirror matches on flat ground, per fighter: press → arrival by distance, press → first contact for
 each normal pressed on the first arrival tick, the defender's reaction window, press → actionable
 without a follow-up, aerial follow-ups after a jump-then-dash at standing and jumping targets (with the
-attacker's drop before contact), sideways runners, and the out-of-range miss. A no-dash control row
+attacker's drop before contact), apex dashes after a full or double jump with each aerial pressed
+mid-dash / on arrival, sideways runners, and the out-of-range miss. A no-dash control row
 presses each normal from standstill at the arrival spacing, so a dash-only whiff stands out. Tune with
 `HomingDashConfig` and rerun.
+
+```bash
+dotnet run --project tools/MoveDataReport -p:SkipUnityPluginCopy=true -- --dash-pairs [--out tmp/dash-pairs.md] [--csv tmp/dash-pairs.csv]
+```
+
+Every attacker × defender pair at 3–12 m: a grounded Beeline (target standing or jumping) into
+each ground normal, and a rising or apex Beeline into each aerial. A cell counts a hit only when the
+expected version came out; **wrong** counts runs where the other version did. Rerun after any
+change to Beeline aim, arrival or a normal's reach.
 
 ### Analysis modes (issue #147)
 

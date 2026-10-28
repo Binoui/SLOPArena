@@ -68,6 +68,8 @@ public sealed class CookedCharacterDefinition
     public IReadOnlyList<string> PresentationIds { get; }
     public IReadOnlyList<CookedCapabilityRequirement> CapabilityRequirements { get; }
     public IReadOnlyList<CookedSlotDefinition> Slots { get; }
+    /// <summary>The shell stance (ADR-0045), or null for fighters without one.</summary>
+    public CookedShellDefinition? Shell { get; }
 
     public CookedCharacterDefinition(
         string displayName,
@@ -85,7 +87,8 @@ public sealed class CookedCharacterDefinition
         IReadOnlyList<string> attachmentBoneIds,
         IReadOnlyList<string> presentationIds,
         IReadOnlyList<CookedCapabilityRequirement> capabilityRequirements,
-        IReadOnlyList<CookedSlotDefinition> slots)
+        IReadOnlyList<CookedSlotDefinition> slots,
+        CookedShellDefinition? shell = null)
     {
         DisplayName = displayName;
         Weight = weight;
@@ -103,6 +106,7 @@ public sealed class CookedCharacterDefinition
         PresentationIds = Copy(presentationIds);
         CapabilityRequirements = Copy(capabilityRequirements);
         Slots = Copy(slots);
+        Shell = shell;
     }
 
     private static IReadOnlyList<T> Copy<T>(IReadOnlyList<T> values)
@@ -158,7 +162,29 @@ public sealed record CookedPresentation(
     string Grab = "",
     string Grabbed = "",
     string ThrowForward = "",
-    string AirDodge = "");
+    string AirDodge = "",
+    string Shell = "");
+
+/// <summary>
+/// The character-level shell stance (slop.ability.shell-stance.v1, ADR-0045). The pose and hurtbox while in
+/// <see cref="ActionState.Shell"/> come from <see cref="CookedPresentation.Shell"/>.
+/// </summary>
+/// <param name="SkateTicks">Skating time from a grounded hand-off or her first touchdown in the shell.</param>
+/// <param name="MinSkateSpeed">A slower start pushes off at this speed.</param>
+/// <param name="MaxSkateSpeed">Faster starts are capped here.</param>
+/// <param name="LandingSpeedRatio">Share of the touchdown's downward speed added to the skate.</param>
+/// <param name="PopOutDeceleration">m/s² braking of the skate speed carried into a grounded move that pops her out.</param>
+/// <param name="BlockedRecoilSpeed">A wall or a shield pops her up bouncing back at this speed.</param>
+/// <param name="Hitbox">The bowling hitbox, root-relative; it hits each fighter once per stay in the shell.</param>
+public sealed record CookedShellDefinition(
+    ushort SkateTicks,
+    float MinSkateSpeed,
+    float MaxSkateSpeed,
+    float LandingSpeedRatio,
+    float PopOutDeceleration,
+    float BlockedRecoilSpeed,
+    CookedHitbox Hitbox,
+    string? HitPresentationId);
 
 public sealed record CookedHurtboxCapsule(
     float StartX,
@@ -205,6 +231,8 @@ public sealed class CookedSlotDefinition
     public AuthoringAimMovementMode AimMovement { get; }
     /// <summary>Fraction of the fighter's run and air speed while a mobile aim state is active.</summary>
     public float AimMovementSpeedScale { get; }
+    /// <summary>Whether the move runs in the shell (ADR-0045).</summary>
+    public ShellPolicy ShellPolicy { get; }
     public string? AimAnimationId { get; }
     public CookedTimeline Timeline { get; }
 
@@ -262,7 +290,8 @@ public sealed class CookedSlotDefinition
         string? aimAnimationId = null,
         bool allowSlideCarry = false,
         string? hitPresentationId = null,
-        float aimMovementSpeedScale = 1f)
+        float aimMovementSpeedScale = 1f,
+        ShellPolicy shellPolicy = ShellPolicy.PopOut)
     {
         Ordinal = ordinal;
         Id = id;
@@ -281,6 +310,7 @@ public sealed class CookedSlotDefinition
         ChargePool = chargePool;
         AimMovement = aimMovement;
         AimMovementSpeedScale = aimMovementSpeedScale;
+        ShellPolicy = shellPolicy;
         AimAnimationId = aimAnimationId;
         HitPresentationId = hitPresentationId;
     }
@@ -677,6 +707,19 @@ public sealed record CookedWibouBladeFlurryCapabilityParameters(
     ushort DescentStartTick,
     float RiseSpeed,
     float DescentSpeed) : CookedCapabilityParameters;
+/// <summary>slop.ability.thrust.v1 (ADR-0045); see <see cref="ThrustCapabilityParameters"/>.</summary>
+public sealed record CookedThrustCapabilityParameters(
+    ThrustAim Aim,
+    float TargetConeDegrees,
+    float NeutralPitchDegrees,
+    float StickPitchDegrees,
+    float Speed,
+    float Acceleration,
+    float MaxSpeed,
+    bool KeepIncomingSpeed,
+    ushort ThrustTicks,
+    CookedHitbox? TrailHitbox) : CookedCapabilityParameters;
+
 public sealed record CookedSteeredChargeCapabilityParameters(
     float GallopSpeed,
     float TurnDegreesPerSecond,

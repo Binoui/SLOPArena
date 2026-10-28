@@ -152,7 +152,7 @@ public static class CharacterPackageAuthoringSelfTest
     {
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
         CharacterPackageInspectionResult inspection = service.Inspect("bonk");
-        Require(inspection.Success && inspection.PackageId == "bonk" && inspection.DisplayName == "Bonk",
+        Require(inspection.Success && inspection.PackageId == "bonk" && inspection.DisplayName == "Sir Bonk",
             "Bonk package was not discovered by ID.");
         Require(inspection.Status == "valid" && !inspection.DirtyOrStale &&
             inspection.Slots.Count == CanonicalSlotProjection.All.Count &&

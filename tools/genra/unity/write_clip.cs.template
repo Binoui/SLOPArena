@@ -280,6 +280,17 @@ try {
     else if (InBetween(source.bones[i])) inBetween.Add(paths[i]);
     else generic.Add(i);
   }
+  // Spring chains (BoneChainSpring: capes, tails) are driven in Play Mode from their rest under the animated parent, and
+  // the spring takes its rest from the first animated frame: keyed chains carry one rig's bone frames into another
+  // (2026-10-28: Sir Bonk v2's cape flipped on the v1 clips' Cape_* keys). Never key them.
+  var springBones = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
+  foreach (var spring in source.animator.GetComponentsInChildren<SlopArena.Client.Entities.BoneChainSpring>(true)) {
+    var chain = new UnityEditor.SerializedObject(spring).FindProperty("_bones");
+    for (int k = 0; k < chain.arraySize; k++)
+      if (chain.GetArrayElementAtIndex(k).objectReferenceValue is UnityEngine.Transform chainBone) springBones.Add(chainBone);
+  }
+  var springSkipped = new System.Collections.Generic.List<string>();
+  generic.RemoveAll(i => { if (!springBones.Contains(source.bones[i])) return false; springSkipped.Add(paths[i]); return true; });
 
   // 2. The clip. HumanTrait names finger muscles "Left Index 1 Stretched"; clips bind "LeftHand.Index.1 Stretched".
   string MuscleAttribute(string muscle) {
@@ -442,7 +453,7 @@ try {
     package, name, fps, ticks, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), avatar = avatar.name, humanMotion = result.humanMotion,
     lengthSeconds = result.length, looping = result.isLooping, alignOrigin, curves = UnityEditor.AnimationUtility.GetCurveBindings(result).Length,
     muscleAttributes = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(UnityEngine.HumanTrait.MuscleName, MuscleAttribute)),
-    mapped, generic = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(generic, i => paths[i])), inBetween,
+    mapped, generic = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(generic, i => paths[i])), inBetween, springSkipped,
     reference = referenceClip != null ? new { clip = referenceClip.name, semanticId = (string)(reference["semanticId"] ?? reference["asset"]), tick = (int)reference["tick"], positions = referencePositions } : null,
     originBodyOffset = P(origin), compare = compareClip?.name,
     fit = new { beforeMetres = fitBefore, afterMetres = fitAfter, afterDegrees = fitAngle, worstJoint = System.Array.ConvertAll(fitWorst, i => paths[i]),

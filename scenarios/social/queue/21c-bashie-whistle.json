@@ -1,0 +1,12 @@
+{
+ "id": "21c-bashie-whistle",
+ "status": "rendered",
+ "format": "shot",
+ "for": "21-bashie-teaser",
+ "title": "NO RUNNING!",
+ "idea": "Wibou and FightGuy run at Bashie; she puffs up and blows the whistle, and both freeze stunned under the NO RUNNING! sign.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/21c-bashie-whistle.json",
+ "fovScale": 1.1,
+ "clip": "tmp/content/21c-bashie-whistle/21c-bashie-whistle-vertical.mp4"
+}

@@ -35,7 +35,31 @@ mi.autoGenerateAvatarMappingIfUnspecified = true;
 mi.SaveAndReimport();
 mi = (ModelImporter)AssetImporter.GetAtPath(Fbx);
 var hd = mi.humanDescription;
-hd.human = saved.human;
+// Keep only mappings whose bone exists in the new skeleton (a Mixamo rig with fewer finger chains, like v5's
+// first index-only download, would otherwise leave dangling finger bones and an invalid avatar).
+var bones = new HashSet<string>(hd.skeleton.Select(s => s.name));
+var kept = saved.human.Where(h => bones.Contains(h.boneName)).ToList();
+report["droppedMappings"] = saved.human.Length - kept.Count;
+// Finger bones the saved mapping lacks (it lost them while v5's first rig had only index chains) are mapped by their
+// Mixamo names. Unity's auto-mapping does not write back into the importer, so it cannot fill them.
+var mappedHuman = new HashSet<string>(kept.Select(h => h.humanName));
+var added = new List<HumanBone>();
+foreach (var side in new[] { "Left", "Right" })
+    foreach (var finger in new[] { "Thumb", "Index", "Middle", "Ring" })
+    {
+        var segments = new[] { "Proximal", "Intermediate", "Distal" };
+        for (int k = 0; k < 3; k++)
+        {
+            string human = side + " " + finger + " " + segments[k], bone = "mixamorig:" + side + "Hand" + finger + (k + 1);
+            if (mappedHuman.Contains(human) || !bones.Contains(bone)) continue;
+            var hb = new HumanBone { humanName = human, boneName = bone };
+            hb.limit.useDefaultValues = true;
+            added.Add(hb);
+        }
+    }
+kept.AddRange(added);
+hd.human = kept.ToArray();
+report["fingerMappingsAdded"] = string.Join(",", added.Select(h => h.humanName));
 hd.upperArmTwist = saved.upperArmTwist; hd.lowerArmTwist = saved.lowerArmTwist;
 hd.upperLegTwist = saved.upperLegTwist; hd.lowerLegTwist = saved.lowerLegTwist;
 hd.armStretch = saved.armStretch; hd.legStretch = saved.legStretch; hd.feetSpacing = saved.feetSpacing;

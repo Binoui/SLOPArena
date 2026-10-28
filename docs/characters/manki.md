@@ -137,7 +137,28 @@ weights and UVs. Renderer count stays **10**; material slots rise **10 → 12**
 through two additional body submeshes. Cooked `poses.bin` is unchanged.
 The original Art prefab's mesh/material bindings are restored.
 
-### Model — Manki v4 (2026-10-27)
+### Model — Manki v5 "pyro" (2026-10-28)
+
+Manki v5 replaced v4 in the same files, rig prefab and GUIDs. The owner picked concept D3 "pyro" plus D1's spray-can
+jetpack from a Codex concept round (`artifacts/manki-v5-20261028/source/`, local): toothy grin with missing teeth, a
+burnt brow, cracked goggles, a lighter on the vest, a holstered TORCH can on his left thigh, a scorched glove on his
+right hand and a two-can jetpack. Tripo built the mesh; the owner rigged it in Mixamo.
+
+- **Rebuild:** README steps 0 (`mixamo_package.py`), 1 with `rigid_parts/manki_v5.json` (also rebuilds the finger chains), 2 at scale 1.3834
+  (humanScale 0.6194), no face paint, then 4.
+- **Worn props:** the jetpack and holster are their own mesh islands. Mixamo skinned the tanks to the arms, so
+  `fix_rig.py` pins the jetpack to Spine2 and the holster to LeftUpLeg, and removes a loose shard beside the tail club.
+- **Tail:** a shaft island plus club pieces at its tip; all ride the 5-bone chain.
+- **Fingers:** Mixamo rigged only the index chains although the mesh has a thumb and three fingers.
+  `finger_chains.py` (fix_rig step 5c) rebuilds thumb/index/middle/ring from the three fingertip islands and the
+  glove's thumb, and `unity_import.eval.cs` maps missing Mixamo finger bones by name: all 46 bones map.
+- **Open:** the thumb stretches a little glove when it curls; the missing-teeth gaps read as brown smudges.
+- **Checks:** verify `valid`, full Shared tests pass, Ability Lab captures of ground.1, ground.E, air.3 and ground.4
+  keep the props rigid.
+- **Rollback to v4:** v4 is committed (7e132082): restore its Manki2 FBX, `.meta`, colour map, `MankiRig.prefab`
+  and Manki cooks from Git.
+
+### Model — Manki v4 (2026-10-27, replaced by v5)
 
 Manki v4 replaced v3 in the same files, rig prefab and GUIDs as below. It is a Tripo model
 the owner rigged in Mixamo (`newmanki2.fbx`, source and its 4K map in
@@ -265,7 +286,7 @@ The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pa
 | --- | --- |
 | Normals (ground and air 1–4) | An orange toon swoosh behind the striking limb and a puff of smoke. Hits use `normal.hit`: a soot-rimmed orange "pow" with sparks. Ground and air 4 use `normal.heavy-hit`, which adds a flash star and a nut flying off. |
 | Round Bomb (A) | The held and thrown bomb (`MankiLitBomb`) fizzes at the fuse, pulses red and leaves a dotted puff trail that fades after the blast. The explosion is a flash star, a toon fireball, a ring of puffs, and junk that bounces once and settles on the floor. A floor ring grows to the real 3 m blast radius and a scorch with glowing cracks fades over 2.5 s. Then his grin rises out of the smoke. Contacts use `blast.hit`. |
-| Jetpack Boost (E) | Ignition at his feet: a squashed flash and fireball, puffs along the ground, a ring at the 1.5 m blast radius, and a spring and a bolt popping loose. While he rises, a flaring exhaust (it ends with the move at the apex) and a sputtering puff column (`jetpack-boost.trail`, not attack-bound, so it fades on its own). Just before the apex the engine coughs a ring of puffs and drops a bolt (`jetpack-boost.cough`, tick 38; Hitstop delays it). Contacts use `blast.hit`. |
+| Jetpack Boost (E) | Ignition at his feet: a squashed flash and fireball, puffs along the ground, a ring at the 1.5 m blast radius, and a spring and a bolt popping loose. While he rises, a flaring jet under each of the pack's two cans (it ends with the move at the apex) and a sputtering puff column from each (`jetpack-boost.trail`, not attack-bound, so it fades on its own). Just before the apex the pack coughs a ring of puffs and drops a bolt (`jetpack-boost.cough`, tick 38; Hitstop delays it). All three cues attach to `bone.spine2`, which carries the worn pack, at the nozzles' midpoint `(0, -0.13, -0.15)`; the builder's `NozzleHalfSpacing` (0.176 m) places each can's emitters. Both were measured from the v5 mesh on 2026-10-28. Contacts use `blast.hit`. |
 | Bazooka (R) | A glint and a clunk-click as he shoulders it (`bazooka.ready`, tick 0). The shot: a flash star and a short flame at the muzzle, and a comically oversized backblast out of the back end that singes his fur, which smokes for a moment (`bazooka.singe`, on his head). The rocket is a red toon rocket that flies point-first, with a wobbly smoke trail that lingers after impact. The explosion is the Round Bomb's, bigger, with the grin. Contacts use `blast.hit`. |
 | Aerosol Inferno (F) | While he charges, the can itself shows the charge time: it grows up to 35%, shakes harder, heats from yellow to red and throbs once full (`ChargePropFeedback`, added 2026-10-17 at the owner's request). It rattles and leaks mist, and a pilot flame on the nozzle grows at each of the five charge tiers with a spark pop and a rattle (`aerosol-inferno.charge`). He holds a chunky red lighter, sized like his cartoon can, in his free hand from the first shake (`MankiLighterHeld`, a slot prop like the can, owner 2026-10-21). When he releases, it flicks on at its hood with sparks and burns until the stream ends (`aerosol-inferno.lighter`, ticks 1–52), and its flame flares forward into the spray as the stream lights at tick 8, selling the homemade aerosol-and-lighter flamethrower (added 2026-10-17 at the owner's request). The stream is a toon flame that licks forward, with soot rolling off the top. It scales with the charge like the hitbox, and from tier 4 the nozzle burns white-hot. Hits use `aerosol-inferno.hit`: a soot puff, licks of flame and embers. |
 

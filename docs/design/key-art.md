@@ -1,7 +1,7 @@
 # Key art: images to replace and their generation prompts
 
 **Status:** installed 2026-10-18 from images the owner generated with these prompts ("this came out really well"): the game art, the Steam store and library set (uploaded by the owner) and the website. See [Installed set](#installed-set-2026-10-18).  
-**Inputs:** [Visual language](visual-language.md), the live models rendered on 2026-10-18, and the owner identity lines in [FightGuy](../characters/fightguy.md), [Manki](../characters/manki.md), [Wibou](../characters/wibou.md) and [Bonk](../characters/bonk.md).
+**Inputs:** [Visual language](visual-language.md), the live models rendered on 2026-10-18, and the owner identity lines in [FightGuy](../characters/fightguy.md), [Manki](../characters/manki.md), [Wibou](../characters/wibou.md) and [Sir Bonk](../characters/bonk.md).
 
 ## Installed set (2026-10-18)
 
@@ -17,14 +17,14 @@ the shorthand SLOPA. On large marks (the Steam logo and capsules, the Home poste
 
 | Target | Source | How |
 | --- | --- | --- |
-| `Assets/UI/SplashArt/<Name>.png` | `<name>_splash.png` (P1-P4), 1086x1448 | as generated |
+| `Assets/UI/SplashArt/<Name>.png` | `<name>_splash.png` (P1-P4; Sir Bonk: `sir_bonk_splash.png`), 1086x1448 | as generated |
 | `Resources/UI/Portraits/<Name>.png` | the splashes | 512x512 crops, face centred for the tall fighter-select card, which shows only the middle ~60% of the square |
-| `Assets/UI/MainMenuBackground.png` | `SlopArena Four-Fighter Fight Night-1.png` (P5), 1672x941 | name mark and a `GET IN THE SLOP.` strip on the plate, 1438x810 |
-| `Assets/Stages/after_hours/Presentation/Neon/AfterHoursFightNight.png` | `key_art.png` (P6), 1024x1536 | name mark on the plate, lower square, 1254x1254 |
-| `Assets/UI/Arcade/SlopballPoster.png` | `Bonk's Night Court Smash.png` (P8), 1983x793 | as generated |
+| `Assets/UI/MainMenuBackground.png` | `sir_bonk_wide.png` (P5 with Sir Bonk edited in), 1672x941 | name mark and a `GET IN THE SLOP.` strip on the plate, 1438x810 |
+| `Assets/Stages/after_hours/Presentation/Neon/AfterHoursFightNight.png` | `sir_bonk_tall.png` (P6 with Sir Bonk edited in), 1024x1536 | name mark on the plate, lower square, 1254x1254 |
+| `Assets/UI/Arcade/SlopballPoster.png` | `sir_bonk_slopball.png` (P8 with Sir Bonk edited in), 1983x793 | as generated |
 | `Assets/UI/Arcade/CoursesPoster.png` | `course.png` (P9), 1983x793 | as generated; replaces the card's flat green field and its ONE MAP PER FIGHTER label |
 | `Assets/UI/FrontendPaperBackground.png` | `Warm newsprint with torn edge scraps.png` (P10), 1672x941 | as generated |
-| Steam store and library (`steam` outputs) | P5, P6, P7 (`... wide newsprint showdown-2.png`, retouched as `hero_steam_clean.png`), P10 | capsules with the name mark; text-free hero upscaled to 3840x1240; transparent 1280x312 logo; README and previews beside them |
+| Steam store and library (`steam` outputs) | P5, P6, P7 (`... wide newsprint showdown-2.png`, retouched as `hero_steam_clean.png`, then Sir Bonk edited in without crowns as `sir_bonk_hero_clean.png`), P10 | capsules with the name mark; text-free hero upscaled to 3840x1240; transparent 1280x312 logo; README and previews beside them |
 | Steam community icon and client `.ico` | `Assets/UI/SlopArenaIcon.png` | the bomb on Action Yellow; replaces the X-eyed crowned smiley |
 | SlopArena-web portraits, nameplate and trailer poster | the portraits; the logo; P5 without the mark | the shadowless logo is the hero nameplate and the social card's; the trailer's play button sits on the empty plate |
 
@@ -37,7 +37,7 @@ new portraits and billboard; see [Store screenshots](../steam/store-screenshots.
 
 ## Why the current art has to go
 
-- Every character image predates the model swaps. FightGuy still wears the old red face mask and topknot; v2 has a bare face, a cocky grin, a nose band-aid and 肉 on his gi. Manki still has the open tongue-out grin; v3 smiles with his mouth closed. Wibou wears a long coat he no longer has. Bonk is drawn from the generated concept rather than the model.
+- Every character image predates the model swaps. FightGuy still wears the old red face mask and topknot; v2 has a bare face, a cocky grin, a nose band-aid and 肉 on his gi. Manki still has the open tongue-out grin; v3 smiles with his mouth closed. Wibou wears a long coat he no longer has. Bonk is drawn from the generated concept rather than the model. **2026-10-28:** the Sir Bonk splash (P4, a new generation) and portrait are redone on the live v2 model. In P5-P8 old Bonk was swapped for Sir Bonk with Codex image edits of the approved originals (the other fighters and the logo plates kept); the pre-swap originals stay in `~/Downloads/sloparena/newart/` under their old names.
 - The look is the generic dark grunge splash: black-and-orange splatter, stadium lights, crowd silhouettes and glossy painterly rendering. The visual language rejects exactly that ("AI slop gloss", generic graffiti, grunge without hierarchy), while the menus, website and fighter VFX have moved to Paper/Ink, Archivo and flat comic stickers.
 - The Steam store and library art use a brushy crowned `SLOPARENA` wordmark and an X-eyed smiley icon. The shared name mark is Archivo Black (in-game top bar, website), and the app icon is the photocopied bomb.
 
@@ -45,7 +45,7 @@ new portraits and billboard; see [Store screenshots](../steam/store-screenshots.
 
 | Image | Where it is used | Size | Made by |
 | --- | --- | --- | --- |
-| FightGuy, Manki, Wibou and Bonk splashes | `Assets/UI/SplashArt/<Name>.png`; source of every portrait; reused in marketing | 3:4, at least 1086x1448 | P1-P4 |
+| FightGuy, Manki, Wibou and Sir Bonk splashes | `Assets/UI/SplashArt/<Name>.png`; source of every portrait; reused in marketing | 3:4, at least 1086x1448 | P1-P4 |
 | Portraits (4) | `Resources/UI/Portraits/<Name>.png`: fighter select, HUD fight cards, stage select, results, Solo end card, Arcade fighter picker; website fighter cards | 512x512 | crop of P1-P4 |
 | Home poster | `Assets/UI/MainMenuBackground.png`, centre of the Home screen | 1438x810 | P5 + type |
 | Steam main, header and small capsules; library header | store page and library | 1232x706, 920x430, 462x174, 920x430 | crops of P5 + logo |
@@ -53,13 +53,13 @@ new portraits and billboard; see [Store screenshots](../steam/store-screenshots.
 | Steam library hero | library page, logo overlaid by Steam | 3840x1240, no text | P7 |
 | Steam library logo | library page | 1280 wide, transparent | typeset, not generated |
 | Slopball card | `Assets/UI/Arcade/SlopballPoster.png`, Arcade mode card | 1600x640 (5:2) | P8 |
-| Character Courses card | `Assets/UI/Arcade/CoursesPoster.png`, Arcade mode card | 1600x640 (5:2) | P9 |
+| Slop Rally card | `Assets/UI/Arcade/CoursesPoster.png`, Arcade mode card | 1600x640 (5:2) | P9 |
 | Paper wallpaper (optional) | `Assets/UI/FrontendPaperBackground.png`; Steam page background | 1672x941; 1438x810 | P10 |
 | After Hours billboard | `Assets/Stages/after_hours/Presentation/Neon/AfterHoursFightNight.png`, in-world poster | 1254x1254 | square crop of P5 + name mark |
 | Steam community and client icons | Steam | 184x184; .ico | the existing bomb icon |
 | Website social preview | SlopArena-web `public/social-preview.png` | 1200x630 | rebuilt from the new portraits |
 
-Not generated: stage thumbnails (`Resources/UI/Stages/`, rendered from the real prefabs by the stage tooling), the HUD move icons (the locked linocut set, drawn after the model swaps), and the Steam screenshots (real captures; see [Store screenshots](../steam/store-screenshots.md)).
+Not generated: stage thumbnails (`Resources/UI/Stages/`, rendered from the real prefabs by the stage tooling), the HUD move icons (the locked glyph set, generated from renders of the live models by `tools/hud_icons/`), and the Steam screenshots (real captures; see [Store screenshots](../steam/store-screenshots.md)).
 
 Order: P1-P4 first (portraits are the most visible art in the game), then P5 (Home poster and most capsules), P8-P9 (Arcade cards), P6-P7 (remaining Steam art), and P10 only if the wallpaper should match.
 
@@ -93,7 +93,7 @@ Avoid: digital painting, anime splash-art rendering, glossy AAA 3D, realistic sk
 
 ### Fighters
 
-Colours are sampled from the lit renders; sides are the character's own (Bonk's pauldron is on his left shoulder, Manki winks his left eye, Wibou's kunai holster is on his left thigh).
+Colours are sampled from the lit renders; sides are the character's own (Sir Bonk's colander is on his right elbow, Manki winks his left eye, Wibou's kunai holster is on his left thigh).
 
 ```text
 FIGHTGUY
@@ -111,8 +111,8 @@ The ironic mall ninja: a cringe Neo from The Matrix with a katana, who takes him
 ```
 
 ```text
-BONK
-The big dense brute: simple, good-natured, all big hits; his name is the sound his hits make. Enormous and top-heavy, about 1.7 times FightGuy's height: a huge bare tan chest and arms, short thick legs, and a tiny head sunk between his shoulders, completely enclosed in a chipped bucket-red (#B8483C) riveted bucket helmet with a narrow horizontal visor slit, two small round white eyes peering out, and a short steel spike on top. Cream bandage straps crossed over his chest and wrapped around his upper arms, a dark-brown leather harness with iron rings and a big square iron belt buckle, one bucket-red pauldron with three steel spikes on his left shoulder, a tattered cream loincloth with a red jagged crown mark, baggy brown trousers, riveted iron knee plates, enormous riveted iron boots and iron gauntlet fists. Weapon: a giant, slightly curved iron plank greatsword with chipped edges, riveted iron bands near the hilt, red paint stripes near the tip and a red-wrapped grip. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
+SIR BONK
+The self-made knight: he knighted himself, built his armour out of household junk and believes every word of it. Goofy, good-natured and brave, not a hulking brute: broad shoulders and strong tan arms, but an ordinary build, about 1.5 times FightGuy's height. His head is completely enclosed in a chipped teal-blue (#3E7C95) bucket helm: a flat top with a stiff fan of straw broom bristles standing up as a crest, a narrow horizontal eye slit with two small round cream eyes peering out, a vertical seam down the front, and the bucket's thin wire handle looped under his chin as a chin strap. Two steel pot lids worn as pauldrons, each with its little handle on top and a cream crown painted on teal. On his chest a plate of wooden barrel staves held with rivets and rope knots, a cream crown painted across it. A teal tabard with a big drippy cream crown, cream side panels with ragged hems, a mustard-yellow (#D4A238) sash knotted at his left hip with long hanging ends, a short cream cape down his back. A steel kitchen colander strapped to his right elbow, cream cloth wraps and leather bands on both forearms, bare tan fists. Dark charcoal trousers, round tin knee plates on leather straps, big tan cuffed leather boots with chunky soles. Weapon: a plank greatsword made of one wooden board, its tip cut to a chipped point, two red paint stripes near the tip, two iron bands where a short wooden plank crossguard is nailed on, a red cloth-wrapped grip and a round wooden knob for a pommel. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, flat cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
 ```
 
 ## Prompts
@@ -234,18 +234,19 @@ TEXT ALLOWED
 Only the decorative dot-matrix katakana glyphs; no Latin letters or numbers.
 ```
 
-### P4. Bonk splash
+### P4. Sir Bonk splash
 
 - **Deliver:** 3:4, at least 1086x1448
-- **Used for:** Assets/UI/SplashArt/Bonk.png, source of the Bonk portrait
-- **Attach, in order:** `bonk-model-ref.jpg`; style anchor (the approved P1)
+- **Used for:** Assets/UI/SplashArt/Bonk.png, source of the Sir Bonk portrait
+- **Attach, in order:** `bonk-model-ref.jpg`; style anchor (the approved P1); in-game pose renders of the live model (optional)
+- **Approved 2026-10-28:** take B of three (`~/Downloads/sloparena/newart/sir_bonk_splash.png`), generated with Codex imagegen. Known flaw: the colander is drawn on his left arm (the model has it on the right elbow).
 
 ```text
 IMAGE
-Character splash art of Bonk, portrait 3:4 (1536x2048 if the tool offers it; otherwise 2:3, cropped to 3:4 afterwards). One fighter, knees-up or full body; the feet may leave the frame.
+Character splash art of Sir Bonk, portrait 3:4 (1536x2048 if the tool offers it; otherwise 2:3, cropped to 3:4 afterwards). One fighter, knees-up or full body; the feet may leave the frame.
 
 REFERENCES
-Image 1 is Bonk's model sheet: match him exactly, including the tiny bucket-helmet head. Image 2 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly.
+Image 1 is Sir Bonk's model sheet: match him exactly, including the bucket helm, the straw crest, the pot-lid pauldrons and the barrel-stave chest plate. Image 2 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly. Image 3 shows the same model posed in the game (he is the right figure of each pair): use it for proportions and for how he holds the plank.
 
 STYLE
 An underground fight-night flyer built from scavenged low-poly 3D fighters. Render every fighter as the actual stylized 3D game model shown in its model sheet: chunky simplified shapes, matte hand-painted textures, polygon facets left visible where the model has them, and exactly the same proportions, face, costume, colours and props. Nothing is redesigned. Light the 3D render with one hard warm key light from the upper left and a soft cool fill: crisp shadows, no gloss, glow, bloom or rim-light halo.
@@ -255,23 +256,23 @@ Tone: a cool fighting-game image first, one dry joke in a detail second.
 No text: no letters, numbers, logos, signatures or watermarks, except the exact words this prompt allows.
 Avoid: digital painting, anime splash-art rendering, glossy AAA 3D, realistic skin, fabric or metal detail, lens flares, light rays, smoke clouds, sparks everywhere, paint splatter, grunge brush strokes, graffiti, neon or cyberpunk colours, stadium lights, crowd silhouettes, black-and-orange fire backgrounds, extra fingers, changed costumes.
 
-BONK
-The big dense brute: simple, good-natured, all big hits; his name is the sound his hits make. Enormous and top-heavy, about 1.7 times FightGuy's height: a huge bare tan chest and arms, short thick legs, and a tiny head sunk between his shoulders, completely enclosed in a chipped bucket-red (#B8483C) riveted bucket helmet with a narrow horizontal visor slit, two small round white eyes peering out, and a short steel spike on top. Cream bandage straps crossed over his chest and wrapped around his upper arms, a dark-brown leather harness with iron rings and a big square iron belt buckle, one bucket-red pauldron with three steel spikes on his left shoulder, a tattered cream loincloth with a red jagged crown mark, baggy brown trousers, riveted iron knee plates, enormous riveted iron boots and iron gauntlet fists. Weapon: a giant, slightly curved iron plank greatsword with chipped edges, riveted iron bands near the hilt, red paint stripes near the tip and a red-wrapped grip. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
+SIR BONK
+The self-made knight: he knighted himself, built his armour out of household junk and believes every word of it. Goofy, good-natured and brave, not a hulking brute: broad shoulders and strong tan arms, but an ordinary build, about 1.5 times FightGuy's height. His head is completely enclosed in a chipped teal-blue (#3E7C95) bucket helm: a flat top with a stiff fan of straw broom bristles standing up as a crest, a narrow horizontal eye slit with two small round cream eyes peering out, a vertical seam down the front, and the bucket's thin wire handle looped under his chin as a chin strap. Two steel pot lids worn as pauldrons, each with its little handle on top and a cream crown painted on teal. On his chest a plate of wooden barrel staves held with rivets and rope knots, a cream crown painted across it. A teal tabard with a big drippy cream crown, cream side panels with ragged hems, a mustard-yellow (#D4A238) sash knotted at his left hip with long hanging ends, a short cream cape down his back. A steel kitchen colander strapped to his right elbow, cream cloth wraps and leather bands on both forearms, bare tan fists. Dark charcoal trousers, round tin knee plates on leather straps, big tan cuffed leather boots with chunky soles. Weapon: a plank greatsword made of one wooden board, its tip cut to a chipped point, two red paint stripes near the tip, two iron bands where a short wooden plank crossguard is nailed on, a red cloth-wrapped grip and a round wooden knob for a pommel. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, flat cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
 
 POSE
-Low-angle hero shot. Bonk stands planted wide with the giant plank greatsword raised high in both fists, about to bring it down. His helmet sits clear between his shoulders in the upper middle of the frame, never hidden by the sword or his arms. Cracks and a few flat cartoon dust puffs at his boots.
+Three-quarter view from slightly below. Sir Bonk stands tall and solemn, chest out, the plank greatsword held upright in his right fist in front of his right shoulder, its flat side resting on his own pot-lid pauldron as if he is dubbing himself, his left fist planted on his hip. His helmet tilts up a little, chin lifted, enormously proud.
 
 BACKGROUND
-Warm newsprint paper. Behind his body and sword, but not behind his helmet: a big flat red (#E2463A) comic balloon burst with a thick ink outline, with the word "BONK!" in chunky cream comic letters, a red outline and an ink drop shadow, tilted across the lower left of the burst.
+Warm newsprint paper. Behind him, a big flat Action Yellow (#FFCC22) rosette shape with a thick ink outline, like a prize ribbon from a county fair, its two tails hanging down behind his legs; a red (#E2463A) comic balloon burst peeks from behind the rosette at the lower left with the word "BONK!" in chunky cream comic letters, a red outline and an ink drop shadow.
 
 JOKE
-A small red question mark floats just above his helmet spike, with two little dizzy rings: he is not sure what he just hit.
+The cream crown on his tabard is clearly hand-painted and still dripping, and one fresh drip has run onto his boot.
 
 CROP RULES
-The helmet is centred horizontally about 28% down from the top and sits against calm paper, not against the red burst (they are the same red). Nothing crosses the helmet. Bonk is so big that his square portrait crop shows the helmet, the spiked pauldron and his shoulders; that is intended.
+The helmet and its straw crest are centred horizontally, the helmet about 28% down from the top, against calm paper or a calm flat shape, not against the red burst. Nothing crosses the helmet. The square portrait crop around the helmet shows the helmet, the crest, both pot-lid pauldrons and the top of the barrel-stave chest plate.
 
 TEXT ALLOWED
-Only "BONK!" and the question mark.
+Only "BONK!".
 ```
 
 ### P5. Key art, wide (all four)
@@ -285,7 +286,7 @@ IMAGE
 Wide key art with all four fighters, 16:9, at least 1920x1080. It is a master: it gets cropped into the Home menu poster and several Steam capsules.
 
 REFERENCES
-Images 1-4 are the model sheets for FightGuy, Manki, Wibou and Bonk: match each fighter exactly. Image 5 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly. Any further images are approved splashes of the same fighters, for faces and attitude only.
+Images 1-4 are the model sheets for FightGuy, Manki, Wibou and Sir Bonk: match each fighter exactly. Image 5 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly. Any further images are approved splashes of the same fighters, for faces and attitude only.
 
 STYLE
 An underground fight-night flyer built from scavenged low-poly 3D fighters. Render every fighter as the actual stylized 3D game model shown in its model sheet: chunky simplified shapes, matte hand-painted textures, polygon facets left visible where the model has them, and exactly the same proportions, face, costume, colours and props. Nothing is redesigned. Light the 3D render with one hard warm key light from the upper left and a soft cool fill: crisp shadows, no gloss, glow, bloom or rim-light halo.
@@ -304,25 +305,25 @@ The mad bomber monkey: chaotic, fights with gadgets and explosions, everybody's 
 WIBOU
 The ironic mall ninja: a cringe Neo from The Matrix with a katana, who takes himself completely seriously. A lean man slightly taller than FightGuy. Charcoal low-poly fedora with a band, rectangular sunglasses with smoky brown-to-clear lenses, messy shoulder-length brown hair, an angular jaw and a deadpan, far-too-serious face. Fitted black crew-neck T-shirt, a small glossy blue teardrop pendant on a black cord, a silver studded belt with a square buckle, black fingerless gloves with dark-red wrist bands, loose black cargo trousers with a kunai holster strapped to his left thigh, chunky grey-and-white sneakers. Weapons: a plain katana with a black wrapped hilt, a round guard and a straight steel blade; steel kunai with black-wrapped ring handles. Signature effect: hacker-green (#91FF69) dot-matrix katakana glyphs and square green pixels. No coat, no cape, no fox ears or tails.
 
-BONK
-The big dense brute: simple, good-natured, all big hits; his name is the sound his hits make. Enormous and top-heavy, about 1.7 times FightGuy's height: a huge bare tan chest and arms, short thick legs, and a tiny head sunk between his shoulders, completely enclosed in a chipped bucket-red (#B8483C) riveted bucket helmet with a narrow horizontal visor slit, two small round white eyes peering out, and a short steel spike on top. Cream bandage straps crossed over his chest and wrapped around his upper arms, a dark-brown leather harness with iron rings and a big square iron belt buckle, one bucket-red pauldron with three steel spikes on his left shoulder, a tattered cream loincloth with a red jagged crown mark, baggy brown trousers, riveted iron knee plates, enormous riveted iron boots and iron gauntlet fists. Weapon: a giant, slightly curved iron plank greatsword with chipped edges, riveted iron bands near the hilt, red paint stripes near the tip and a red-wrapped grip. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
+SIR BONK
+The self-made knight: he knighted himself, built his armour out of household junk and believes every word of it. Goofy, good-natured and brave, not a hulking brute: broad shoulders and strong tan arms, but an ordinary build, about 1.5 times FightGuy's height. His head is completely enclosed in a chipped teal-blue (#3E7C95) bucket helm: a flat top with a stiff fan of straw broom bristles standing up as a crest, a narrow horizontal eye slit with two small round cream eyes peering out, a vertical seam down the front, and the bucket's thin wire handle looped under his chin as a chin strap. Two steel pot lids worn as pauldrons, each with its little handle on top and a cream crown painted on teal. On his chest a plate of wooden barrel staves held with rivets and rope knots, a cream crown painted across it. A teal tabard with a big drippy cream crown, cream side panels with ragged hems, a mustard-yellow (#D4A238) sash knotted at his left hip with long hanging ends, a short cream cape down his back. A steel kitchen colander strapped to his right elbow, cream cloth wraps and leather bands on both forearms, bare tan fists. Dark charcoal trousers, round tin knee plates on leather straps, big tan cuffed leather boots with chunky soles. Weapon: a plank greatsword made of one wooden board, its tip cut to a chipped point, two red paint stripes near the tip, two iron bands where a short wooden plank crossguard is nailed on, a red cloth-wrapped grip and a round wooden knob for a pommel. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, flat cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
 
 SCALE
-Keep the in-game size relationships: Bonk towers over everyone at about 1.7 times FightGuy's height; Wibou is slightly taller than FightGuy; Manki is the smallest, about three quarters of FightGuy.
+Keep the in-game size relationships: Sir Bonk is the tallest, about 1.5 times FightGuy's height; Wibou is slightly taller than FightGuy; Manki is the smallest, about three quarters of FightGuy.
 
 LAYOUT
 A fight-night flyer. In the centre, one big torn Action Yellow (#FFCC22) paper plate, about 40% of the width and 28% of the height, rotated about -2 degrees and left completely empty: a logo is pasted there later. Four cutouts overlap its edges like a tournament poster:
 - FightGuy, large, on the left, firing his blue ki ball toward the plate; his face in the upper-left third.
-- Bonk, the biggest, on the right, greatsword raised toward the top-right corner; his helmet about 20% down from the top.
+- Sir Bonk, the tallest, on the right, plank greatsword raised toward the top-right corner; his helmet about 20% down from the top.
 - Manki leaping across the top, just above the plate, a lit bomb in hand.
 - Wibou crouched low in front of the bottom-right edge of the plate, katana drawn in one long horizontal line.
-Each signature effect stays small and flat: the ki ball, the bomb spark, one green crescent slash, dust puffs at Bonk's boots.
+Each signature effect stays small and flat: the ki ball, the bomb spark, one green crescent slash, dust puffs at Sir Bonk's boots.
 
 SAFE AREAS
 Every face sits inside the middle 80% of the height (a 920x430 crop removes the top and bottom tenth). No face in the bottom-left 35% x 35%: the chat overlay covers it on the Home screen. The plate stays empty and clearly readable.
 
 JOKE
-A small red question mark floats over Bonk's helmet.
+A small red question mark floats over Sir Bonk's straw crest.
 
 TEXT ALLOWED
 Only the question mark.
@@ -339,7 +340,7 @@ IMAGE
 Tall key art with all four fighters, 2:3, at least 1024x1536. Master for two Steam capsules; one of them crops about 10% off the top and bottom.
 
 REFERENCES
-Images 1-4 are the model sheets for FightGuy, Manki, Wibou and Bonk: match each fighter exactly. Image 5 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly. If a wide key art image is attached, match its flyer, plate and treatment.
+Images 1-4 are the model sheets for FightGuy, Manki, Wibou and Sir Bonk: match each fighter exactly. Image 5 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly. If a wide key art image is attached, match its flyer, plate and treatment.
 
 STYLE
 An underground fight-night flyer built from scavenged low-poly 3D fighters. Render every fighter as the actual stylized 3D game model shown in its model sheet: chunky simplified shapes, matte hand-painted textures, polygon facets left visible where the model has them, and exactly the same proportions, face, costume, colours and props. Nothing is redesigned. Light the 3D render with one hard warm key light from the upper left and a soft cool fill: crisp shadows, no gloss, glow, bloom or rim-light halo.
@@ -358,14 +359,14 @@ The mad bomber monkey: chaotic, fights with gadgets and explosions, everybody's 
 WIBOU
 The ironic mall ninja: a cringe Neo from The Matrix with a katana, who takes himself completely seriously. A lean man slightly taller than FightGuy. Charcoal low-poly fedora with a band, rectangular sunglasses with smoky brown-to-clear lenses, messy shoulder-length brown hair, an angular jaw and a deadpan, far-too-serious face. Fitted black crew-neck T-shirt, a small glossy blue teardrop pendant on a black cord, a silver studded belt with a square buckle, black fingerless gloves with dark-red wrist bands, loose black cargo trousers with a kunai holster strapped to his left thigh, chunky grey-and-white sneakers. Weapons: a plain katana with a black wrapped hilt, a round guard and a straight steel blade; steel kunai with black-wrapped ring handles. Signature effect: hacker-green (#91FF69) dot-matrix katakana glyphs and square green pixels. No coat, no cape, no fox ears or tails.
 
-BONK
-The big dense brute: simple, good-natured, all big hits; his name is the sound his hits make. Enormous and top-heavy, about 1.7 times FightGuy's height: a huge bare tan chest and arms, short thick legs, and a tiny head sunk between his shoulders, completely enclosed in a chipped bucket-red (#B8483C) riveted bucket helmet with a narrow horizontal visor slit, two small round white eyes peering out, and a short steel spike on top. Cream bandage straps crossed over his chest and wrapped around his upper arms, a dark-brown leather harness with iron rings and a big square iron belt buckle, one bucket-red pauldron with three steel spikes on his left shoulder, a tattered cream loincloth with a red jagged crown mark, baggy brown trousers, riveted iron knee plates, enormous riveted iron boots and iron gauntlet fists. Weapon: a giant, slightly curved iron plank greatsword with chipped edges, riveted iron bands near the hilt, red paint stripes near the tip and a red-wrapped grip. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
+SIR BONK
+The self-made knight: he knighted himself, built his armour out of household junk and believes every word of it. Goofy, good-natured and brave, not a hulking brute: broad shoulders and strong tan arms, but an ordinary build, about 1.5 times FightGuy's height. His head is completely enclosed in a chipped teal-blue (#3E7C95) bucket helm: a flat top with a stiff fan of straw broom bristles standing up as a crest, a narrow horizontal eye slit with two small round cream eyes peering out, a vertical seam down the front, and the bucket's thin wire handle looped under his chin as a chin strap. Two steel pot lids worn as pauldrons, each with its little handle on top and a cream crown painted on teal. On his chest a plate of wooden barrel staves held with rivets and rope knots, a cream crown painted across it. A teal tabard with a big drippy cream crown, cream side panels with ragged hems, a mustard-yellow (#D4A238) sash knotted at his left hip with long hanging ends, a short cream cape down his back. A steel kitchen colander strapped to his right elbow, cream cloth wraps and leather bands on both forearms, bare tan fists. Dark charcoal trousers, round tin knee plates on leather straps, big tan cuffed leather boots with chunky soles. Weapon: a plank greatsword made of one wooden board, its tip cut to a chipped point, two red paint stripes near the tip, two iron bands where a short wooden plank crossguard is nailed on, a red cloth-wrapped grip and a round wooden knob for a pommel. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, flat cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
 
 SCALE
-Keep the in-game size relationships: Bonk towers over everyone at about 1.7 times FightGuy's height; Wibou is slightly taller than FightGuy; Manki is the smallest, about three quarters of FightGuy.
+Keep the in-game size relationships: Sir Bonk is the tallest, about 1.5 times FightGuy's height; Wibou is slightly taller than FightGuy; Manki is the smallest, about three quarters of FightGuy.
 
 LAYOUT
-The same fight-night flyer, stacked vertically. Across the middle, one empty torn Action Yellow (#FFCC22) plate, about 80% of the width and 18% of the height, rotated about -2 degrees: a logo is pasted there later. Above it, Bonk huge at the upper right with the greatsword over his shoulder, and Manki leaping in at the upper left with the bazooka. Below it, FightGuy charging his blue ki ball at the lower left and Wibou crouched with his katana at the lower right. The cutouts overlap the plate's edges but never cover its centre.
+The same fight-night flyer, stacked vertically. Across the middle, one empty torn Action Yellow (#FFCC22) plate, about 80% of the width and 18% of the height, rotated about -2 degrees: a logo is pasted there later. Above it, Sir Bonk tall at the upper right with the plank greatsword over his shoulder, and Manki leaping in at the upper left with the bazooka. Below it, FightGuy charging his blue ki ball at the lower left and Wibou crouched with his katana at the lower right. The cutouts overlap the plate's edges but never cover its centre.
 
 SAFE AREAS
 All faces between 12% and 88% of the height. The plate stays empty and clearly readable.
@@ -385,7 +386,7 @@ IMAGE
 A very wide banner, 31:10 (final 3840x1240). If the tool cannot make it, generate 21:9 and extend both sides by outpainting.
 
 REFERENCES
-Images 1-4 are the model sheets for FightGuy, Manki, Wibou and Bonk: match each fighter exactly. Image 5 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly.
+Images 1-4 are the model sheets for FightGuy, Manki, Wibou and Sir Bonk: match each fighter exactly. Image 5 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly.
 
 STYLE
 An underground fight-night flyer built from scavenged low-poly 3D fighters. Render every fighter as the actual stylized 3D game model shown in its model sheet: chunky simplified shapes, matte hand-painted textures, polygon facets left visible where the model has them, and exactly the same proportions, face, costume, colours and props. Nothing is redesigned. Light the 3D render with one hard warm key light from the upper left and a soft cool fill: crisp shadows, no gloss, glow, bloom or rim-light halo.
@@ -404,20 +405,20 @@ The mad bomber monkey: chaotic, fights with gadgets and explosions, everybody's 
 WIBOU
 The ironic mall ninja: a cringe Neo from The Matrix with a katana, who takes himself completely seriously. A lean man slightly taller than FightGuy. Charcoal low-poly fedora with a band, rectangular sunglasses with smoky brown-to-clear lenses, messy shoulder-length brown hair, an angular jaw and a deadpan, far-too-serious face. Fitted black crew-neck T-shirt, a small glossy blue teardrop pendant on a black cord, a silver studded belt with a square buckle, black fingerless gloves with dark-red wrist bands, loose black cargo trousers with a kunai holster strapped to his left thigh, chunky grey-and-white sneakers. Weapons: a plain katana with a black wrapped hilt, a round guard and a straight steel blade; steel kunai with black-wrapped ring handles. Signature effect: hacker-green (#91FF69) dot-matrix katakana glyphs and square green pixels. No coat, no cape, no fox ears or tails.
 
-BONK
-The big dense brute: simple, good-natured, all big hits; his name is the sound his hits make. Enormous and top-heavy, about 1.7 times FightGuy's height: a huge bare tan chest and arms, short thick legs, and a tiny head sunk between his shoulders, completely enclosed in a chipped bucket-red (#B8483C) riveted bucket helmet with a narrow horizontal visor slit, two small round white eyes peering out, and a short steel spike on top. Cream bandage straps crossed over his chest and wrapped around his upper arms, a dark-brown leather harness with iron rings and a big square iron belt buckle, one bucket-red pauldron with three steel spikes on his left shoulder, a tattered cream loincloth with a red jagged crown mark, baggy brown trousers, riveted iron knee plates, enormous riveted iron boots and iron gauntlet fists. Weapon: a giant, slightly curved iron plank greatsword with chipped edges, riveted iron bands near the hilt, red paint stripes near the tip and a red-wrapped grip. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
+SIR BONK
+The self-made knight: he knighted himself, built his armour out of household junk and believes every word of it. Goofy, good-natured and brave, not a hulking brute: broad shoulders and strong tan arms, but an ordinary build, about 1.5 times FightGuy's height. His head is completely enclosed in a chipped teal-blue (#3E7C95) bucket helm: a flat top with a stiff fan of straw broom bristles standing up as a crest, a narrow horizontal eye slit with two small round cream eyes peering out, a vertical seam down the front, and the bucket's thin wire handle looped under his chin as a chin strap. Two steel pot lids worn as pauldrons, each with its little handle on top and a cream crown painted on teal. On his chest a plate of wooden barrel staves held with rivets and rope knots, a cream crown painted across it. A teal tabard with a big drippy cream crown, cream side panels with ragged hems, a mustard-yellow (#D4A238) sash knotted at his left hip with long hanging ends, a short cream cape down his back. A steel kitchen colander strapped to his right elbow, cream cloth wraps and leather bands on both forearms, bare tan fists. Dark charcoal trousers, round tin knee plates on leather straps, big tan cuffed leather boots with chunky soles. Weapon: a plank greatsword made of one wooden board, its tip cut to a chipped point, two red paint stripes near the tip, two iron bands where a short wooden plank crossguard is nailed on, a red cloth-wrapped grip and a round wooden knob for a pommel. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, flat cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
 
 SCALE
-Keep the in-game size relationships: Bonk towers over everyone at about 1.7 times FightGuy's height; Wibou is slightly taller than FightGuy; Manki is the smallest, about three quarters of FightGuy.
+Keep the in-game size relationships: Sir Bonk is the tallest, about 1.5 times FightGuy's height; Wibou is slightly taller than FightGuy; Manki is the smallest, about three quarters of FightGuy.
 
 LAYOUT
-A long fight-night flyer wall with two groups of cutouts. Left group: FightGuy throwing his blue ki ball, with Manki rocketing up behind him on a flat comic jetpack flame. Right group: Wibou in his iai stance, with Bonk towering behind him, greatsword on his shoulder. The middle third is quiet paper with one big flat orange (#F05B35) halftone circle and nothing else: Steam places the game logo over the bottom centre.
+A long fight-night flyer wall with two groups of cutouts. Left group: FightGuy throwing his blue ki ball, with Manki rocketing up behind him on a flat comic jetpack flame. Right group: Wibou in his iai stance, with Sir Bonk towering behind him, plank greatsword on his shoulder. The middle third is quiet paper with one big flat orange (#F05B35) halftone circle and nothing else: Steam places the game logo over the bottom centre.
 
 SAFE AREAS
 Faces between 15% and 72% of the height and between 11% and 89% of the width. Nothing important in the bottom 16%, which Steam darkens.
 
 TEXT ALLOWED
-None at all: Valve requires the library hero to be text-free. Keep every costume and prop free of symbols, letters and emblems too: draw Wibou's pendant as a plain glossy drop and Bonk's loincloth plain, without its crown mark. Steam's automatic check rejects a hero with anything that reads as text or a logo.
+None at all: Valve requires the library hero to be text-free. Keep every costume and prop free of symbols, letters and emblems too: draw Wibou's pendant as a plain glossy drop and leave Sir Bonk's tabard, chest plate and pot lids plain teal and cream, without the painted crowns. Steam's automatic check rejects a hero with anything that reads as text or a logo.
 ```
 
 ### P8. Arcade card: Slopball
@@ -431,7 +432,7 @@ IMAGE
 Mode-card art, 5:2 (final 1600x640). If the tool cannot make 5:2, generate 21:9 or 16:9 and keep everything important inside a centred 5:2 band.
 
 REFERENCES
-Image 1 is Bonk's model sheet: match him exactly. Image 2 shows the real Night Court: keep its layout and colours but restyle it as described. Image 3 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly.
+Image 1 is Sir Bonk's model sheet: match him exactly. Image 2 shows the real Night Court: keep its layout and colours but restyle it as described. Image 3 is the style anchor (the approved FightGuy splash): match its paper, print texture, cutout edge, offset shadow, lighting and rendering exactly.
 
 STYLE
 An underground fight-night flyer built from scavenged low-poly 3D fighters. Render every fighter as the actual stylized 3D game model shown in its model sheet: chunky simplified shapes, matte hand-painted textures, polygon facets left visible where the model has them, and exactly the same proportions, face, costume, colours and props. Nothing is redesigned. Light the 3D render with one hard warm key light from the upper left and a soft cool fill: crisp shadows, no gloss, glow, bloom or rim-light halo.
@@ -441,14 +442,14 @@ Tone: a cool fighting-game image first, one dry joke in a detail second.
 No text: no letters, numbers, logos, signatures or watermarks, except the exact words this prompt allows.
 Avoid: digital painting, anime splash-art rendering, glossy AAA 3D, realistic skin, fabric or metal detail, lens flares, light rays, smoke clouds, sparks everywhere, paint splatter, grunge brush strokes, graffiti, neon or cyberpunk colours, stadium lights, crowd silhouettes, black-and-orange fire backgrounds, extra fingers, changed costumes.
 
-BONK
-The big dense brute: simple, good-natured, all big hits; his name is the sound his hits make. Enormous and top-heavy, about 1.7 times FightGuy's height: a huge bare tan chest and arms, short thick legs, and a tiny head sunk between his shoulders, completely enclosed in a chipped bucket-red (#B8483C) riveted bucket helmet with a narrow horizontal visor slit, two small round white eyes peering out, and a short steel spike on top. Cream bandage straps crossed over his chest and wrapped around his upper arms, a dark-brown leather harness with iron rings and a big square iron belt buckle, one bucket-red pauldron with three steel spikes on his left shoulder, a tattered cream loincloth with a red jagged crown mark, baggy brown trousers, riveted iron knee plates, enormous riveted iron boots and iron gauntlet fists. Weapon: a giant, slightly curved iron plank greatsword with chipped edges, riveted iron bands near the hilt, red paint stripes near the tip and a red-wrapped grip. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
+SIR BONK
+The self-made knight: he knighted himself, built his armour out of household junk and believes every word of it. Goofy, good-natured and brave, not a hulking brute: broad shoulders and strong tan arms, but an ordinary build, about 1.5 times FightGuy's height. His head is completely enclosed in a chipped teal-blue (#3E7C95) bucket helm: a flat top with a stiff fan of straw broom bristles standing up as a crest, a narrow horizontal eye slit with two small round cream eyes peering out, a vertical seam down the front, and the bucket's thin wire handle looped under his chin as a chin strap. Two steel pot lids worn as pauldrons, each with its little handle on top and a cream crown painted on teal. On his chest a plate of wooden barrel staves held with rivets and rope knots, a cream crown painted across it. A teal tabard with a big drippy cream crown, cream side panels with ragged hems, a mustard-yellow (#D4A238) sash knotted at his left hip with long hanging ends, a short cream cape down his back. A steel kitchen colander strapped to his right elbow, cream cloth wraps and leather bands on both forearms, bare tan fists. Dark charcoal trousers, round tin knee plates on leather straps, big tan cuffed leather boots with chunky soles. Weapon: a plank greatsword made of one wooden board, its tip cut to a chipped point, two red paint stripes near the tip, two iron bands where a short wooden plank crossguard is nailed on, a red cloth-wrapped grip and a round wooden knob for a pommel. Chunky hand-painted stylized 3D. Signature effects: a red comic balloon burst, flat cartoon dust puffs, cracked ground, and a small red question mark over his head when he is confused.
 
 SCENE
 The Night Court: after closing, a floodlit streetball cage inside a dark warehouse. Chain-link fence walls on low sponsor dasher boards, two hard floodlight cones from the ceiling, a teal court with white lines, a dark-red far half beyond a low red net, and a giant winking green smiley-ball mascot mural faintly visible behind the fence. Render the court as a chunky low-poly 3D game scene, like the game itself.
 
 LAYOUT
-A torn-paper split: the left 40% is warm flyer paper with orange halftone, the right 60% is the low-poly court, and the tear runs diagonally between them. Bonk's cutout bridges both, swinging the plank greatsword like a baseball bat into a big pale-yellow ball, which flies over the net toward the top right with a flat red comic "BONK!" burst at the point of impact.
+A torn-paper split: the left 40% is warm flyer paper with orange halftone, the right 60% is the low-poly court, and the tear runs diagonally between them. Sir Bonk's cutout bridges both, swinging the plank greatsword like a baseball bat into a big pale-yellow ball, which flies over the net toward the top right with a flat red comic "BONK!" burst at the point of impact.
 
 JOKE
 On the far court, the ball launcher, a black post with a little green screen face, looks alarmed.
@@ -457,10 +458,10 @@ TEXT ALLOWED
 Only "BONK!". No signage or sponsor text: the card's title is UI.
 ```
 
-### P9. Arcade card: Character Courses
+### P9. Arcade card: Slop Rally
 
 - **Deliver:** 5:2, 1600x640
-- **Used for:** Assets/UI/Arcade/CoursesPoster.png, the CHARACTER COURSES card
+- **Used for:** Assets/UI/Arcade/CoursesPoster.png, the SLOP RALLY card
 - **Attach, in order:** `fightguy-model-ref.jpg`; `manki-model-ref.jpg`; `scene-sanctuary.jpg`; `scene-kaboom-quarry.jpg`; style anchor (the approved P1)
 
 ```text
@@ -536,7 +537,7 @@ Retire with the old set: the brushy crowned wordmark (`sloparena_wordmark_transp
 
 ## Review checklist
 
-- **On-model, against the sheet.** FightGuy: no mask, nose band-aid, low headband, white trousers, bare feet. Manki: one googly eye, one wink, closed grin, three black head spikes, black-tipped tail. Wibou: T-shirt and no coat, fedora, sunglasses, thigh holster. Bonk: tiny bucket head with a visor slit, a single spiked pauldron, red stripes on the blade. Count fingers.
+- **On-model, against the sheet.** FightGuy: no mask, nose band-aid, low headband, white trousers, bare feet. Manki: one googly eye, one wink, closed grin, three black head spikes, black-tipped tail. Wibou: T-shirt and no coat, fedora, sunglasses, thigh holster. Sir Bonk: teal bucket helm with a straw crest and eye slit, two pot-lid pauldrons, barrel-stave chest plate, colander on the right elbow, wooden plank with red stripes. Count fingers.
 - **Portrait test.** The 512x512 crop reads at 64 px next to the other three, and nothing crosses the face.
 - **The look.** Paper and Ink do most of the work, with one dominant shape and one joke. No black-and-orange grunge, glow, light rays or stadium lights.
 - **No stray text.** Only the allowed words; no fake logos or signatures.

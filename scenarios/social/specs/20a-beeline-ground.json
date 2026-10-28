@@ -1,0 +1,79 @@
+{
+ "stage": "splash_deck",
+ "notes": "final (r4 camera): Wibou Beelines at Manki (120%), who sidesteps 2 m; the grounded dash curves after him and Wibou's buffered Up Slash (hit t57) pops him up; low camera behind the dash line, following Manki. Wibou starts just out of frame and enters as the dash blur.",
+ "capture": {
+  "from": 1,
+  "to": 130,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    3.5,
+    0,
+    0
+   ],
+   "yaw": 270,
+   "target": 2,
+   "input": [
+    {
+     "at": 4,
+     "dash": true
+    },
+    {
+     "at": 20,
+     "press": "3"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    -3.0,
+    0,
+    -1.0
+   ],
+   "yaw": 90,
+   "damage": 120,
+   "target": 0,
+   "input": [
+    {
+     "from": 6,
+     "to": 26,
+     "move": 0
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "r",
+   "pos": [
+    6.0,
+    2.45,
+    -3.8
+   ],
+   "look": [
+    -0.5,
+    1.05,
+    -1.6
+   ],
+   "follow": 2,
+   "lookOffset": [
+    2.5,
+    0.3,
+    -0.6
+   ],
+   "move": true,
+   "ease": 0.12,
+   "fov": 50,
+   "far": 4000
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+{
+ "id": "14-pyro-inferno",
+ "status": "rendered",
+ "format": "fighter",
+ "title": "Pyro Manki",
+ "idea": "Sir Bonk struts up to Manki, who is already shaking his aerosol can. The can swells and glows, Sir Bonk freezes, ducks, then turns and runs at the camera, and the inferno catches him mid-run and launches him out of frame.",
+ "created": "2026-10-28",
+ "spec": "scenarios/social/specs/14-pyro-inferno.json",
+ "fovScale": 1.1,
+ "end": 166,
+ "hold": 0.7,
+ "clip": "tmp/content/14-pyro-inferno/14-pyro-inferno-vertical.mp4",
+ "feedback": "Owner 2026-10-28: weak, but there is almost a funny timing: Sir Bonk approaches, sees the flames, then flees. Redo around that comedy beat with both fighters readable (not from behind, not small).",
+ "camera": {
+  "follow": [
+   1,
+   2
+  ],
+  "lookOffset": [
+   0,
+   0.9,
+   0
+  ],
+  "move": true,
+  "spread": 0.8,
+  "ease": 0.15
+ },
+ "capture": {
+  "from": 34
+ }
+}
