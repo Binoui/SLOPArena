@@ -28,6 +28,16 @@ with `clip`) → `ready` (owner accepted the clip) → `posted`; `rejected` at a
 Tested landscape specs from the 2026-10-28 promo set live in `scenarios/social/specs/` (09 is the
 owner's favourite). Reuse them before staging new ones.
 
+## Dashboard
+
+The owner reviews in a local web dashboard, not in threads: `python3 tools/social_dashboard.py`
+(port 8765; it runs as the user service `sloparena-dashboard`). It shows the queue by status with
+each clip playable, and writes the owner's verdicts and notes into the queue files: read `status`
+and the dated lines in `feedback` before every round. Its "Propose clips" and "Render approved"
+buttons start a T3 webhook task (URL in `~/.config/sloparena/social-dashboard.json`, never in the
+repo). When a run finishes, the dashboard is where the owner sees it, so a run started from it
+does not need to send attachments.
+
 ## Propose
 
 1. Read what changed since the newest queue entry: `git log --since=<date> --stat`, new or
@@ -36,8 +46,8 @@ owner's favourite). Reuse them before staging new ones.
 2. Write 5 to 7 ideas as `proposed` queue files, mixing formats. Prefer the newest playable
    content and a clear payoff in the first second. Each idea names its fighters, stage and the
    exchange (lead-in, hit, payoff); point `spec` at an existing spec when one fits.
-3. Send the owner a short numbered list (title, one-line idea, format) and stop. Their reply sets
-   `approved` or `rejected`.
+3. Stop. The owner approves or rejects in the dashboard; when asked in a thread instead, send a short
+   numbered list (title, one-line idea, format).
 
 Show only Sir Bonk, FightGuy, Manki and Wibou unless the owner approves a reveal of a newer fighter
 in that idea. Manki Mayhem is not ready to show.

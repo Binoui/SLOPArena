@@ -1,6 +1,6 @@
 {
  "id": "23-camera-decision",
- "status": "rendered",
+ "status": "rejected",
  "format": "explainer",
  "title": "We replaced four cameras with one",
  "idea": "Design decision (ADR-0043): the chasing combat cameras spun with every sidestep (83 degrees over six sidesteps); Steady turned 6. Real Steady footage, the measured numbers, an old/new launch still, ends on a question.",
@@ -43,5 +43,6 @@
    "pos": "middle"
   }
  ],
- "clip": "tmp/content/23-camera-decision/23-camera-decision-vertical.mp4"
+ "clip": "tmp/content/23-camera-decision/23-camera-decision-vertical.mp4",
+ "feedback": "Owner 2026-10-28: not so good. Stills cannot show the old camera spinning; options left open: animated 83 vs 6 degree dials, real old-camera footage from git, or an X dev-log."
 }
