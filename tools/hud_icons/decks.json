@@ -1,0 +1,93 @@
+{
+  "bonk": {
+    "folder": "Bonk",
+    "accent": "#E8524A",
+    "accentName": "coral red",
+    "fighter": "Sir Bonk, a stocky knight with a bucket helmet topped by a brush plume, a cape and a long wooden plank sword",
+    "pack": "bonk-unity-sir",
+    "moves": {
+      "1": {"frame": "profile:13", "ticks": 60, "subject": "Squire's Cut: a quick forward cut, the plank sweeping out in front of him at waist height", "direction": "forward to the right"},
+      "3": {"frame": "profile:27", "ticks": 125, "subject": "Sunrise: a rising swing, the plank sweeping from low in front of him up to straight overhead", "direction": "upward"},
+      "4": {"frame": "profile:52", "ticks": 118, "subject": "The BONK: a huge overhead slam, the plank smashing down onto the ground in front of him with an impact burst", "direction": "downward"},
+      "A": {"frame": "front-three-quarter-right:13", "ticks": 36, "pack": "bonk-unity-sirlid", "subject": "Pot-Lid Throw: he flings his round metal pot lid like a frisbee straight ahead, the spinning lid trailing a curved spin swoosh; show the lid in flight and his open throwing hand and forearm behind it", "direction": "to the right"},
+      "E": {"frame": "profile:32", "ticks": 148, "subject": "Targeted Jump Slam: he leaps high with the plank raised overhead, about to slam down onto a target spot below", "direction": "up and then down in an arc"},
+      "R": {"frame": "profile:8", "clip": "anim.bonk.gr-gallop", "ticks": 24, "pack": "bonk-unity-sirjoust", "subject": "The Joust: he charges on a toy hobby horse (a stuffed horse head on a stick, red yarn mane, big button eyes) with his long wooden plank couched under his arm as a lance", "direction": "to the right"},
+      "F": {"frame": "front-three-quarter-right:50", "ticks": 100, "pack": "bonk-unity-sirf", "subject": "Windmill: he spins his long wooden plank sword in a flat full circle around himself at hip height", "direction": "around in a flat circle"}
+    }
+  },
+  "fightguy": {
+    "folder": "FightGuy",
+    "accent": "#39A9FF",
+    "accentName": "ki blue",
+    "fighter": "FightGuy, a martial artist with a headband, sleeveless gi top and fingerless gloves",
+    "moves": {
+      "1": {"frame": "profile:12", "subject": "Straight Punch: a lunging straight punch, fist driving forward", "direction": "forward to the right"},
+      "3": {"frame": "profile:11", "subject": "High Kick: a high side kick, the foot striking forward and up at head height", "direction": "forward and up"},
+      "4": {"frame": "profile:38", "subject": "Double Kick: an upside-down flip, hands near the ground, both feet kicking straight up", "direction": "upward in a flip"},
+      "A": {"frame": "profile:15", "subject": "Ki Shot: both palms thrust forward, firing a dense round ki ball with a short swept-back tail", "direction": "forward to the right"},
+      "E": {"frame": "profile:18", "subject": "Rising Dragon: a jumping rising uppercut, fist leading straight up", "direction": "straight up"},
+      "R": {"frame": "profile:53", "subject": "Cyclone Kick: a spinning kick, leg extended, his body rotating", "direction": "around in a horizontal spin"},
+      "F": {"frame": "profile:13", "subject": "Fist of Fury: a rapid flurry of many punches, several fists blurring forward", "direction": "forward to the right"}
+    }
+  },
+  "manki": {
+    "folder": "Manki",
+    "accent": "#E05C2A",
+    "accentName": "orange",
+    "fighter": "Manki, a wiry cartoon monkey with goggles, a long tail and a small jetpack",
+    "moves": {
+      "1": {"frame": "profile:11", "subject": "Monkey Punch: a lunging right punch", "direction": "forward to the right"},
+      "3": {"frame": "profile:14", "subject": "Sweeping Kick: a low kick sweeping along the ground", "direction": "forward in a low arc"},
+      "4": {"frame": "profile:13", "subject": "Head Slam: he dives head-first forward and down like a battering ram, skull leading, body stretched in one diagonal line behind it, tail trailing, an orange impact burst where his head hits", "direction": "forward and down"},
+      "A": {"frame": "profile:13", "ticks": 40, "subject": "Round Bomb: he lobs a round black bomb with a lit fuse in a high arc", "direction": "up and forward in an arc"},
+      "E": {"frame": "profile:20", "subject": "Jetpack Boost: he blasts straight up on his jetpack, a burst of exhaust flame below", "direction": "straight up"},
+      "R": {"frame": "profile:26", "ticks": 60, "subject": "Bazooka: he fires a bazooka from his shoulder, the rocket flying forward with a smoke trail", "direction": "forward to the right"},
+      "F": {"frame": "profile:34", "pack": "manki-unity-aerosol", "subject": "Aerosol Inferno: he sprays an aerosol can through a lighter flame, projecting a forward column of fire", "direction": "forward to the right"}
+    }
+  },
+  "wibou": {
+    "folder": "Wibou",
+    "accent": "#91FF69",
+    "accentName": "matrix green",
+    "fighter": "Wibou, a lanky ninja in a long coat and cap with a katana",
+    "moves": {
+      "1": {"frame": "profile:28", "subject": "Quick Slash: a fast forward-down katana slash", "direction": "forward and down"},
+      "3": {"frame": "profile:21", "subject": "Up Slash: a leaping upward katana slash", "direction": "upward"},
+      "4": {"frame": "profile:49", "subject": "Heavy Down Slash: a heavy two-handed slash driven down into the ground", "direction": "downward"},
+      "A": {"frame": "profile:8", "subject": "Shuriken Toss: he throws three shuriken forward in a fan", "direction": "forward to the right"},
+      "E": {"frame": "profile:26", "subject": "Rising Slash: he rises up into the air on an upward katana slash", "direction": "straight up"},
+      "R": {"frame": "profile:26", "subject": "Dash Slash: he dashes forward low with the blade trailing, leaving a long dash streak", "direction": "forward to the right"},
+      "F": {"frame": "profile:71", "subject": "Skyfall: he plunges straight down from the sky, body vertical, both hands driving the katana point-first straight down below him; long vertical speed lines above him and an impact burst on the ground under the blade tip", "direction": "straight down"}
+    }
+  },
+  "bashie": {
+    "folder": "Bashie",
+    "accent": "#22CCD0",
+    "accentName": "aqua",
+    "fighter": "Bashie, a cartoon lifeguard turtle with a big floppy sun hat, a one-piece swimsuit, a round shell and water wings",
+    "moves": {
+      "1": {"frame": "profile:17", "subject": "Whirlpool Spin: she is tucked into her round shell (hat on top), seen slightly from above, spinning in place; one big closed whirlpool ring circles the shell and splash droplets fly outward. The circular ring is the main read.", "direction": "around in a flat circle"},
+      "3": {"frame": "profile:18", "subject": "Shell Flip: her tucked shell is upside down mid-backflip; one big curved arrow loops up and backward over it from a small splash on the ground. The looping backward arrow is the main read.", "direction": "up and back in a flip"},
+      "4": {"frame": "profile:26", "subject": "Rising Shell: her tucked shell rockets diagonally forward and up like a cannonball, long straight speed lines trailing down and back, a small impact burst ahead of it. The diagonal launch is the main read.", "direction": "diagonally forward and up"},
+      "A": {"frame": "profile:16", "clip": "anim.bashie.hose-spray", "ticks": 30, "pack": "bashie-unity-hose", "subject": "Hose Down: she sprays a strong water stream forward from a toy water blaster", "direction": "forward to the right"},
+      "E": {"frame": "profile:13", "clip": "anim.bashie.gr-slide", "ticks": 30, "subject": "Hydro Jet: tucked into her shell, she shoots off with a water jet blasting behind her", "direction": "forward and up"},
+      "R": {"frame": "profile:16", "ticks": 30, "subject": "Shell Shift: she drops into her shell and skates forward along the ground", "direction": "forward to the right, along the ground"},
+      "F": {"frame": "front-three-quarter-right:40", "subject": "NO RUNNING!: she puffs up and blows a lifeguard whistle, sound waves ringing out around her (draw the waves, never any words)", "direction": "outward all around her"}
+    }
+  },
+  "salamander": {
+    "folder": "Salamander",
+    "accent": "#B57BFF",
+    "accentName": "violet",
+    "fighter": "the Salamander, a lanky salamander gunslinger with a wide sombrero, a poncho and a long tail",
+    "moves": {
+      "1": {"frame": "profile:11", "subject": "Backhand Slap: an open-hand backhand slap swept out to his side", "direction": "sideways to the right"},
+      "3": {"frame": "front-three-quarter-right:14", "subject": "Uppercut: he dips, then drives his fist straight up over the sombrero", "direction": "straight up"},
+      "4": {"frame": "front-three-quarter-right:21", "subject": "Tail Spin: he spins one full turn with his tail stretched out, sweeping all round him", "direction": "around in a flat circle"},
+      "A": {"frame": "profile:16", "ticks": 30, "subject": "Finger Guns: he fires a finger gun made of index and middle fingers, one bullet flying forward with a small muzzle flash", "direction": "forward to the right"},
+      "E": {"frame": "front-three-quarter-right:27", "subject": "Sombrero Copter: holding the brim, he spins his sombrero overhead like a helicopter rotor and lifts off", "direction": "straight up"},
+      "R": {"frame": "profile:21", "subject": "Tumbleweed: tucked into a ball, he rolls forward like a tumbleweed", "direction": "forward to the right, rolling"},
+      "F": {"frame": "front-three-quarter-right:20", "subject": "Big Iron: he fires a big slow shot from a two-handed finger gun, the recoil throwing his arms up", "direction": "forward to the right"}
+    }
+  }
+}

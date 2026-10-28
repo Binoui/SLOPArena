@@ -59,7 +59,7 @@ new portraits and billboard; see [Store screenshots](../steam/store-screenshots.
 | Steam community and client icons | Steam | 184x184; .ico | the existing bomb icon |
 | Website social preview | SlopArena-web `public/social-preview.png` | 1200x630 | rebuilt from the new portraits |
 
-Not generated: stage thumbnails (`Resources/UI/Stages/`, rendered from the real prefabs by the stage tooling), the HUD move icons (the locked linocut set, drawn after the model swaps), and the Steam screenshots (real captures; see [Store screenshots](../steam/store-screenshots.md)).
+Not generated: stage thumbnails (`Resources/UI/Stages/`, rendered from the real prefabs by the stage tooling), the HUD move icons (the locked glyph set, generated from renders of the live models by `tools/hud_icons/`), and the Steam screenshots (real captures; see [Store screenshots](../steam/store-screenshots.md)).
 
 Order: P1-P4 first (portraits are the most visible art in the game), then P5 (Home poster and most capsules), P8-P9 (Arcade cards), P6-P7 (remaining Steam art), and P10 only if the wallpaper should match.
 

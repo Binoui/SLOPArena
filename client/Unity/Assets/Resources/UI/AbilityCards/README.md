@@ -1,67 +1,68 @@
 # HUD move icons
 
-`HUDManager` loads these sprites as `UI/AbilityCards/{CharacterClass}/{IconName}` for the
-move keys; nothing else uses them. The HUD shows each fighter's grounded set as a fixed
-legend. `Air/` variants and the older `Icons/` art remain as assets and fallback. Each PNG
-embeds its exact generation prompt as `impeccable:prompt` and carries no gameplay authority.
+`HUDManager` loads these sprites as `UI/AbilityCards/{CharacterClass}/{iconId}` for the move keys,
+where `iconId` comes from each slot in the package's `character.json`. FightGuy's and Bashie's slot 1
+use `icon.2`. Nothing else loads these sprites. The HUD shows each fighter's grounded set as a fixed
+legend. `Air/` variants and the older `Icons/` art remain as assets and fallback. Each PNG embeds its
+exact generation prompt as `impeccable:prompt` and carries no gameplay authority.
 
-## Locked style: linocut moves (2026-10-17)
+## Locked style: glyph moves (2026-10-28)
 
-Chosen from a 16-image test (cut-paper, sticker, stencil, linocut) judged inside the keys
-at real size. Every icon shows **the move, not the fighter**: the striking limb, weapon or
-projectile plus its effect, cropped tight, with the motion travelling a clear direction
-(forward moves right, risers up, slams down).
+The style was chosen by the owner on 2026-10-28 from a three-way trial on Sir Bonk's Q, R and F, judged
+inside the keys at real size. It replaced the 2026-10-17 linocut set, which turned to grey noise at key
+size and did not match the bright toon game.
+
+Each icon is a flat pictogram: one solid silhouette plus one accent shape for the motion. It shows
+whatever explains the move. That means the whole fighter when the body performs it (a lunge, kick,
+leap, spin, roll or slam), and the hand and prop only when a thrown object is the move. As the owner
+put it, "if you just show a sword or a horse you don't visually explain it."
 
 | | Normal (tab) | Special (key) |
 |---|---|---|
 | Shown at | 30 px on a paper tab | 56 px on an ink key |
-| Main shapes | ink `#1B1A18`, carving filled solid | paper `#F0EEE8`, carving kept |
-| Accent | fighter colour, motion/effect only | fighter colour, motion/effect only |
+| Silhouette | ink `#1B1A18`, filled solid | paper `#F0EEE8` |
+| Accent | fighter colour, motion arc, speed lines or burst only | same |
 
-Fighter accents: FightGuy `#39A9FF`, Manki `#E05C2A`, Wibou `#91FF69`, Bonk `#B8B2A8`.
-Never use Action Yellow `#FFCC22`; the HUD reserves it for held and ready states.
+Fighter accents: Sir Bonk coral `#E8524A`, FightGuy `#39A9FF`, Manki `#E05C2A`, Wibou `#91FF69`,
+Bashie aqua `#22CCD0`, Salamander violet `#B57BFF`. Never use Action Yellow `#FFCC22`. The HUD
+reserves it for held and ready states.
 
-Status: all four fighters' grounded sets use this style (2026-10-17). The `Air/` variants still
-use the previous full-body illustrations; the HUD does not show them.
+The subject always comes from the live model. Each move is rendered from its bound clip, so the
+icons follow model and prop swaps instead of a prompt's guess.
 
-## Making a set
+## Making or redoing a set
 
-1. Generate 1024×1024 transparent PNGs with the template below, filled verbatim. Attach
-   FightGuy's `icon.a.png`, `icon.r.png`, `icon.e.png` and `icon.f.png` as style references
-   and end the prompt with: "The reference images show the required style only; do not
-   copy their subjects." Keep one generation per icon; regenerate only for text, frames,
-   scenery, a full body or a face.
-2. Clean each image (ImageMagick 7 required); add `--solid` for normals:
+[`tools/hud_icons/hud_icons.py`](../../../../../../tools/hud_icons/hud_icons.py) runs every step from
+[`tools/hud_icons/decks.json`](../../../../../../tools/hud_icons/decks.json). For each package, that
+file holds the folder, accent and fighter line. For each slot, it holds the frame, subject and
+direction, plus any clip, tick or rig pack override. Work goes to ignored `tmp/hud-icons/<package>/`.
 
-   ```bash
-   python3 tools/hud_icon_prep.py raw/fightguy-1.png FightGuy/icon.1.png \
-       --accent '#39A9FF' --solid --manifest raw/manifest.json
-   ```
-
-   It snaps colours to the palette, crisps edges, normalises the fill, exports 256 px and
-   embeds the prompt from the generation manifest.
-3. Review the whole set inside the keys at real size over a stage frame before installing.
-   If two icons blur together at 40 px, regenerate one.
-4. Overwrite the PNGs in place, preserving `.meta` GUIDs and sprite IDs. If the image
-   dimensions change, update the existing sprite slice in Unity's Sprite Editor to the
-   full new canvas (`x: 0, y: 0, width: 256, height: 256` for prepared icons), then apply.
-   Reimport and verify `Resources.LoadAll<Sprite>` returns one sprite per icon; stale
-   slices outside the new canvas produce no sprites and make the HUD use the older art.
-
-```text
-Game ability icon for a 56-pixel HUD key in SLOPArena, a scrappy underground fight-club platform fighter. Square 1024x1024 canvas, transparent background.
-Subject: {SUBJECT}
-Show only the move: crop tight on the striking limb, weapon or projectile. At most a hand, forearm or shoulder of the fighter, never a full body, never a face.
-Direction: the motion clearly travels {DIRECTION}.
-Style: hand-carved linocut stamp print: chunky gouged shapes with slightly irregular edges and a few bold carving marks, printed flat.
-Palette: {PALETTE} Flat colour only: no gradients, no shading, no other colours.
-Composition: one dominant shape group filling about 85% of the canvas, centred by visual weight, with the effect streak carrying the direction. Large, simple shapes that still read as a 40-pixel silhouette.
-No text, letters, numbers, frames, borders, badges, background scenery or drop shadows.
-```
-
-`{PALETTE}` for normals: `main shapes in ink #1B1A18 (they sit on a light paper background); {accent colour} for the {effect} only.`
-For specials: `main shapes in paper #F0EEE8 (they sit on a dark ink background); {accent colour} for the {effect} only.`
+1. `render <package>` plays each grounded move's clip on the catalog prefab through GenRA's Unity
+   renderer, on a magenta backdrop. It writes `sheet.png`, a contact sheet of both views. It needs the
+   GenRA venv and rig packs (see the [GenRA README](../../../../../../tools/genra/README.md)) and your
+   own gateway lease. Props that only some moves show need their rig pack in `decks.json`, for example
+   Manki's aerosol (`manki-unity-aerosol`) or Sir Bonk's hobby horse (`bonk-unity-sirjoust`). Pick the
+   frame that reads as the move and record it as `"frame": "view:tick"`.
+2. `refs <package>` cuts those frames out as `refs/<slot>.png`.
+3. `job <package>` writes `job.md`, with one filled prompt per slot. Generate one image per slot with
+   the slot's ref as Image 1 and the installed FightGuy `icon.r.png` as the style anchor (Image 2).
+   Save the results as `gen/<slot>.png` beside `gen/<slot>.prompt.txt`. The Codex image tool through a
+   T3 child task works: give it `job.md`. Keep one generation per icon. Regenerate only for text,
+   frames, backing shapes or scenery, or when the move does not read at 30 px. In that case, put the
+   accent shape that must carry the move into the subject. Bashie's shell normals needed a ring, a
+   loop and a diagonal.
+4. `prep <package>` cleans each image with [`hud_icon_prep.py`](../../../../../../tools/hud_icon_prep.py).
+   The cleanup snaps colours to the palette, crisps edges, fills normals solid, exports 256 px and
+   embeds the prompt.
+5. `board <packages...>` draws the deck at real size and 3× over a stage frame. Review it there. If
+   two icons blur together at real size, regenerate one.
+6. `install <package>` overwrites the sprites by `iconId`, keeping the existing `.meta` GUIDs. Images
+   stay 256 px, so the existing 256×256 sprite slices still apply. A new fighter's files get a
+   `.meta` copied from an installed icon with a fresh GUID. Import exactly the printed paths under
+   your own lease (`AssetDatabase.ImportAsset`). Check that `Resources.LoadAll<Sprite>` returns one
+   sprite per icon. Stale slices outside the canvas produce no sprites and make the HUD fall back to
+   the older art.
 
 Keep PNGs and `.meta` files together and preserve alpha and the sprite import settings
-(256 px maximum). Raw generations, manifests, mockups and review captures stay outside Git.
+(256 px maximum). Raw generations, renders and boards stay outside Git.
 See the [visual contract](../../../../../../DESIGN.md).
