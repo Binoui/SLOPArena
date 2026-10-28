@@ -1,0 +1,11 @@
+{
+ "id": "23a-steady-strafe",
+ "status": "rendered",
+ "format": "shot",
+ "for": "23-camera-decision",
+ "title": "Steady camera: sidesteps",
+ "idea": "Live Training gameplay camera (Steady, mouse/keyboard): FightGuy does six 0.4 s sidesteps 8 m from an idle dummy, then starts a strafe; the camera holds its angle and keeps him centred.",
+ "created": "2026-10-28",
+ "capture": "tmp/content/23-camera-decision/runs/strafe-q2 frames 0-183 (live, no audio)",
+ "clip": "tmp/content/23-camera-decision/23a-steady-strafe.mp4"
+}

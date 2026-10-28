@@ -58,6 +58,13 @@ def duration(path: Path) -> float:
     return float(out)
 
 
+def sound(clip: Path) -> str:
+    """Live captures carry no audio track; HyperFrames rejects a video that claims one."""
+    streams = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
+                              "-of", "csv=p=0", str(clip)], capture_output=True, text=True, check=True).stdout
+    return 'data-has-audio="true"' if streams.strip() else "muted"
+
+
 def font_size(lines: list[str], size: int | None) -> int:
     # Archivo Black caps run about 0.8 em wide; the widest line must fit 850 px of the 890 px left of the rail.
     return size or max(64, min(150, int(850 / (0.8 * max(len(line) for line in lines)))))
@@ -100,7 +107,7 @@ def build(job: dict, project: Path) -> float:
             top = round(BAND_H / 2 - 1920 * beat.get("focus", 0.5))
             media.append(f'<video id="m{i}" class="clip shot" src="assets/media/{name}" style="top:{top}px" '
                          f'data-start="{t:.4f}" data-duration="{length:.4f}" data-media-start="{start:.4f}" '
-                         f'data-has-audio="true" data-track-index="1" playsinline></video>')
+                         f'{sound(clip)} data-track-index="1" playsinline></video>')
             last = f"b{i}-last.png"
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{end - 3 / 60:.4f}", "-i", str(clip), "-frames:v", "1",
                             str(project / "assets/media" / last)], check=True)
