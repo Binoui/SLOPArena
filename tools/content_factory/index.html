@@ -65,15 +65,15 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 <div class="sheet" id="sheet"></div>
 <div id="view"></div>
 <script>
-const TABS = [["review","To review",["rendered"]],["proposed","Proposed",["proposed"]],["approved","Rendering",["approved"]],
+const TABS = [["review","To review",["rendered"]],["proposed","Proposed",["proposed"]],["approved","Approved",["approved"]],
   ["ready","Ready to post",["ready"]],["posted","Posted",["posted"]],["rejected","Rejected",["rejected"]],
   ["numbers","Numbers",[]],["scout","Scout",[]],["runs","Runs",[]]];
 const ACTIONS = {rendered:[["ready","Ready to post","go"],["approved","Redo with note",""],["rejected","Reject",""]],
   proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["proposed","Back to proposed",""],["rejected","Reject",""]],
   ready:[["posted","Mark posted","go"],["approved","Redo with note",""],["rejected","Reject",""]], posted:[], rejected:[["proposed","Restore",""]]};
 const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
-const RUN_TEXT = {propose: "Designer started in T3: new ideas land in PROPOSED.", render: "Renderer started in T3: clips land in TO REVIEW.",
-  scout: "Scout started in T3: its report lands in this tab.", redo: "Redo started in T3: the new take lands in TO REVIEW."};
+const RUN_TEXT = {propose: "Sent to T3: the designer thread appears in about 2 minutes, ideas land in PROPOSED.", render: "Sent to T3: the thread appears in about 2 minutes, clips land in TO REVIEW.",
+  scout: "Sent to T3: the scout thread appears in about 2 minutes, its report lands in this tab.", redo: "Sent to T3: the redo thread appears in about 2 minutes, the new take lands in TO REVIEW."};
 let B = {ideas: [], runs: [], inbox: [], reports: []}, tab = localStorage.tab || "review", open = null, shown = {};
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const byId = id => B.ideas.find(d => d.id === id);
@@ -88,7 +88,7 @@ async function load() {
   B = await (await fetch("/api/board")).json();
   const active = B.runs.filter(r => ACTIVE.includes(r.state));
   document.getElementById("running").innerHTML = `<span class="dot ${active.length ? "busy" : ""}"></span><b>Running:</b> ` +
-    (active.length ? active.map(r => `#${r.id} ${esc(runName(r))} (${r.state})`).join(", ") : "nothing");
+    (active.length ? active.map(r => `#${r.id} ${esc(runName(r))} (${r.state === "sent" ? "waiting for T3, about 2 min" : r.state})`).join(", ") : "nothing");
   draw();
   if (open) show(open, false);
 }
