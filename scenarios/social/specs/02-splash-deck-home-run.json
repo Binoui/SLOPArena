@@ -1,0 +1,124 @@
+{
+ "stage": "splash_deck",
+ "notes": "final: Wibou's shuriken, run in, two Quick Slashes, Sir Bonk's grounded BONK, home run over the harbour, KO star at 329; window 30-329 ends on the KO flash because the respawned Wibou enters the corner at 330",
+ "capture": {
+  "from": 30,
+  "to": 329,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    -2.5,
+    0,
+    -4
+   ],
+   "damage": 0,
+   "target": 2,
+   "input": [
+    {
+     "at": 180,
+     "press": "4"
+    },
+    {
+     "at": 184,
+     "press": "4"
+    },
+    {
+     "at": 188,
+     "press": "4"
+    },
+    {
+     "at": 192,
+     "press": "4"
+    },
+    {
+     "at": 196,
+     "press": "4"
+    },
+    {
+     "at": 200,
+     "press": "4"
+    },
+    {
+     "at": 204,
+     "press": "4"
+    },
+    {
+     "at": 208,
+     "press": "4"
+    },
+    {
+     "at": 212,
+     "press": "4"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    0.5,
+    0,
+    7.9
+   ],
+   "damage": 155,
+   "deaths": 1,
+   "target": 1,
+   "input": [
+    {
+     "at": 3,
+     "press": "A"
+    },
+    {
+     "from": 19,
+     "to": 85,
+     "move": 194.15
+    },
+    {
+     "at": 86,
+     "press": "1"
+    },
+    {
+     "from": 121,
+     "to": 128,
+     "move": 194.15
+    },
+    {
+     "at": 129,
+     "press": "1"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "q3w",
+   "pos": [
+    5.7,
+    2.9,
+    -1.1
+   ],
+   "look": [
+    -0.3,
+    1.1,
+    5.4
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -0.8,
+    0.2,
+    -2.5
+   ],
+   "ease": 0.07,
+   "fov": 42,
+   "far": 4000,
+   "move": true
+  }
+ ]
+}

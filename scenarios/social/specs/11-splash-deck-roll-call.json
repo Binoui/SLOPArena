@@ -1,0 +1,139 @@
+{
+ "stage": "splash_deck",
+ "notes": "t3 roll call vertical final-v3: {\"fg_x\": 0.0, \"fg_z\": -5.5, \"line\": 332.0, \"spacing\": 4.3, \"h_phi\": 40.0, \"h_d0\": 7.75, \"h_xfg\": -0.64, \"h_y\": 1.15, \"h_pitch\": 4.0, \"h_fov\": 30.0, \"v_phi\": 22.0, \"v_d0\": 10.5, \"v_xfg\": -0.35, \"v_y\": 1.15, \"v_pitch\": 4.0, \"v_fov\": 40.0, \"v_fg_x\": 0.0, \"v_fg_z\": -3.2, \"v_s1\": 13.0, \"v_s2\": 16.0, \"v_s3\": 25.0, \"jump\": 143, \"air\": 0, \"step\": 1, \"from\": 0, \"to\": 235, \"w\": 1920.0, \"h\": 1080.0, \"q\": 92.0, \"shift\": 1.0}",
+ "capture": {
+  "from": 1,
+  "to": 236,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "fightguy",
+   "feet": [
+    0.0,
+    0,
+    -3.2
+   ],
+   "yaw": 125.9,
+   "damage": 0,
+   "input": [
+    {
+     "at": 17,
+     "press": "3"
+    },
+    {
+     "from": 144,
+     "to": 159,
+     "jump": true
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "manki",
+   "feet": [
+    -2.59,
+    0,
+    0.23
+   ],
+   "yaw": 130.8,
+   "damage": 0,
+   "input": [
+    {
+     "at": 50,
+     "press": "4"
+    },
+    {
+     "from": 144,
+     "to": 159,
+     "jump": true
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "package": "wibou",
+   "feet": [
+    -4.99,
+    0,
+    3.79
+   ],
+   "yaw": 134.2,
+   "damage": 0,
+   "input": [
+    {
+     "at": 70,
+     "press": "3"
+    },
+    {
+     "from": 144,
+     "to": 159,
+     "jump": true
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "package": "bonk",
+   "feet": [
+    -6.81,
+    0,
+    7.69
+   ],
+   "yaw": 138.0,
+   "damage": 0,
+   "input": [
+    {
+     "at": 70,
+     "press": "4"
+    },
+    {
+     "from": 143,
+     "to": 143,
+     "shield": true
+    },
+    {
+     "from": 144,
+     "to": 159,
+     "jump": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "vert",
+   "pos": [
+    8.527,
+    1.15,
+    -9.373
+   ],
+   "look": [
+    0.885,
+    1.848,
+    -2.961
+   ],
+   "fov": 40.0,
+   "far": 4000
+  },
+  {
+   "name": "vwide",
+   "pos": [
+    8.527,
+    1.15,
+    -9.373
+   ],
+   "look": [
+    0.885,
+    1.848,
+    -2.961
+   ],
+   "fov": 44.0,
+   "far": 4000
+  }
+ ]
+}

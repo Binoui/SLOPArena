@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Unity.Collections;
 using SlopArena.Client;
 using SlopArena.Client.Combat;
 using SlopArena.Client.Entities;
@@ -110,6 +111,9 @@ namespace SlopArena.EditorTools
         private Texture2D? _pixels, _hudPixels;
         private bool _stepping;
         private uint _capturedTick = uint.MaxValue;
+        private readonly List<float> _audio = new();
+        private uint _audioTick = uint.MaxValue;
+        private bool _recordingAudio;
 
         public uint Tick { get; private set; }
         public bool Ready { get; private set; }
@@ -125,6 +129,9 @@ namespace SlopArena.EditorTools
             {
                 OnMatchStart();
                 gameObject.AddComponent<MatchVisualStyle>().Apply();
+                // Game sound without music; AudioRenderer keeps it in step with captureFramerate.
+                UISFX.StopMenuMusic();
+                _recordingAudio = AudioRenderer.Start();
                 StartCoroutine(CaptureFrames());
             }
             catch (Exception error)
@@ -137,6 +144,9 @@ namespace SlopArena.EditorTools
 
         // Stepping happens in Update so each rendered frame is exactly one tick.
         private void FixedUpdate() { }
+
+        // After Update has stepped this frame's tick and its sounds have started.
+        private void LateUpdate() => RecordAudio();
 
         private void Update()
         {
@@ -428,6 +438,8 @@ namespace SlopArena.EditorTools
                     {
                         Directory.CreateDirectory(OutputDirectory);
                         File.WriteAllText(Path.Combine(OutputDirectory, "states.jsonl"), _states.ToString());
+                        StopAudio();
+                        WriteWav(Path.Combine(OutputDirectory, "audio.wav"));
                         Done = true;
                     }
                 }
@@ -437,6 +449,57 @@ namespace SlopArena.EditorTools
                     Debug.LogException(error);
                 }
             }
+        }
+
+        /// <summary>Renders this frame's audio; frames From..To keep it, one frame per tick.</summary>
+        private void RecordAudio()
+        {
+            if (!_recordingAudio) return;
+            // Render every frame, even an empty one: the count runs from the previous Render call.
+            int samples = AudioRenderer.GetSampleCountForCaptureFrame();
+            using var buffer = new NativeArray<float>(Math.Max(0, samples) * AudioChannels, Allocator.Temp);
+            AudioRenderer.Render(buffer);
+            if (samples <= 0) return;
+            if (!Ready || Tick < From || Tick > To || Tick == _audioTick) return;
+            _audio.AddRange(buffer);
+            _audioTick = Tick;
+        }
+
+        private void StopAudio()
+        {
+            if (!_recordingAudio) return;
+            AudioRenderer.Stop();
+            _recordingAudio = false;
+        }
+
+        private static int AudioChannels => AudioSettings.speakerMode switch
+        {
+            AudioSpeakerMode.Mono => 1,
+            AudioSpeakerMode.Quad => 4,
+            AudioSpeakerMode.Surround => 5,
+            AudioSpeakerMode.Mode5point1 => 6,
+            AudioSpeakerMode.Mode7point1 => 8,
+            _ => 2,
+        };
+
+        private void WriteWav(string path)
+        {
+            int channels = AudioChannels, rate = AudioSettings.outputSampleRate;
+            using var writer = new BinaryWriter(File.Create(path));
+            writer.Write(Encoding.ASCII.GetBytes("RIFF"));
+            writer.Write(36 + _audio.Count * 2);
+            writer.Write(Encoding.ASCII.GetBytes("WAVEfmt "));
+            writer.Write(16);
+            writer.Write((short)1);
+            writer.Write((short)channels);
+            writer.Write(rate);
+            writer.Write(rate * channels * 2);
+            writer.Write((short)(channels * 2));
+            writer.Write((short)16);
+            writer.Write(Encoding.ASCII.GetBytes("data"));
+            writer.Write(_audio.Count * 2);
+            foreach (float sample in _audio)
+                writer.Write((short)Mathf.RoundToInt(Mathf.Clamp(sample, -1f, 1f) * short.MaxValue));
         }
 
         private void Write(RenderTexture target, string folder, bool alpha)
@@ -514,6 +577,7 @@ namespace SlopArena.EditorTools
         {
             success = Failure == null, failure = Failure, ready = Ready, done = Done, tick = Tick, frames = FramesWritten,
             hud = _hudTarget != null, hits = _hits,
+            audio = new { seconds = _audio.Count / (double)(AudioChannels * AudioSettings.outputSampleRate) },
             fighters = Fighters.Select(f => new
             {
                 id = f.Id.ToString(), package = f.Package,
@@ -523,6 +587,7 @@ namespace SlopArena.EditorTools
 
         protected override void OnDestroy()
         {
+            StopAudio();
             if (_hudDocument != null)
             {
                 _hudDocument.panelSettings = _hudOriginalPanel;

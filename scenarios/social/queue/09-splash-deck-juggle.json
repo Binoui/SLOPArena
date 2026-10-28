@@ -1,0 +1,8 @@
+{
+ "id": "09-splash-deck-juggle",
+ "status": "approved",
+ "format": "moment",
+ "title": "Wibou's juggle under the bomb",
+ "idea": "Wibou's shuriken, Manki hops it and lobs a Round Bomb, Wibou runs in under it and juggles Manki with Up Slash and Rising Slash. The owner's favourite of the promo set.",
+ "spec": "scenarios/social/specs/09-splash-deck-juggle.json"
+}

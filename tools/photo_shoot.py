@@ -58,6 +58,15 @@ def ticks_in(folder: Path, suffix: str) -> list[int]:
     return sorted(int(path.stem) for path in folder.glob(f"*{suffix}") if path.stem.isdigit())
 
 
+def frame_path(folder: Path, tick: int, suffix: str = ".jpg") -> Path:
+    # Photo shoots name frames NNN; live and Mayhem captures use NNNN.
+    for width in (3, 4):
+        path = folder / f"{tick:0{width}d}{suffix}"
+        if path.exists():
+            return path
+    return folder / f"{tick:03d}{suffix}"
+
+
 def with_hud(image: Image.Image, hud_path: Path) -> Image.Image:
     if not hud_path.exists():
         return image
@@ -70,8 +79,8 @@ def with_hud(image: Image.Image, hud_path: Path) -> Image.Image:
 
 
 def composite(run: Path, camera: str, tick: int) -> Image.Image:
-    image = Image.open(run / camera / f"{tick:03d}.jpg").convert("RGB")
-    return with_hud(image, run / "hud" / f"{tick:03d}.png")
+    image = Image.open(frame_path(run / camera, tick)).convert("RGB")
+    return with_hud(image, frame_path(run / "hud", tick, ".png"))
 
 
 def cmd_sheet(args: argparse.Namespace) -> None:
@@ -81,7 +90,7 @@ def cmd_sheet(args: argparse.Namespace) -> None:
     if not frames:
         raise SystemExit(f"No frames in {folder} for {args.frames!r}")
     cell_w = args.cell
-    first = Image.open(folder / f"{frames[0]:03d}.jpg")
+    first = Image.open(frame_path(folder, frames[0]))
     cell_h = round(cell_w * first.height / first.width)
     cols = min(args.cols, len(frames))
     rows = math.ceil(len(frames) / cols)
@@ -89,7 +98,7 @@ def cmd_sheet(args: argparse.Namespace) -> None:
     label = font(max(14, cell_w // 18))
     draw = ImageDraw.Draw(sheet)
     for index, tick in enumerate(frames):
-        image = composite(run, args.camera, tick) if args.hud else Image.open(folder / f"{tick:03d}.jpg").convert("RGB")
+        image = composite(run, args.camera, tick) if args.hud else Image.open(frame_path(folder, tick)).convert("RGB")
         image = image.resize((cell_w, cell_h), Image.LANCZOS)
         x = 4 + (index % cols) * (cell_w + 4)
         y = 4 + (index // cols) * (cell_h + 4)

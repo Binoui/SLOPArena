@@ -76,6 +76,29 @@ What worked: survey the stage first (a spec with no fighters and a top orthograp
 X/Z lines and spawns), test at 960×540 every 2–3 ticks from three or four cameras with
 contact sheets, then shoot a narrow window at 3840×2160 from the chosen cameras.
 
+## Video clips
+
+Photo mode also films short clips. Shoot with `"step": 1` at 1920×1080: one tick per frame
+gives 60 fps, so a 5-second clip is a 300-tick window. Encode it with
+`python3 tools/photo_shoot.py clip <run> --camera <name> --from A --to B --out clip.mp4`,
+which writes H.264 yuv420p for phones and browsers (`--hud` composites the HUD layer;
+`--fps 30` for step-2 live captures). Each shoot also writes `audio.wav`: the game's own
+sound for the captured ticks, recorded frame-locked with `AudioRenderer` and without music.
+Vertical social clips, their tested specs and the idea queue live under `scenarios/social/`;
+see `skills/social-clips/SKILL.md` and `tools/social_clip.py`.
+
+- One move fills about 2.5 seconds, so script a short exchange: lead-in, hit, payoff.
+- A press lands only on the first tick of its input step. A press during another move is
+  dropped, not buffered.
+- A KO'd fighter jumps back to its spawn on the KO tick, which swings a follow camera.
+  End the clip within about 12 ticks of the KO.
+- Cameras move only by `follow`; there are no keyframes or orbits.
+- Manki's Aerosol Inferno turns toward the nearest fighter within 4 m at release and
+  ignores `target`. Manki's Bazooka homes on the nearest target, and inside about 3 m it
+  can hit Manki himself.
+- Manki Mayhem films only through its fixed show camera, and the Sanctuary course inputs
+  have fallen since progressive movement (2026-10-27).
+
 ## Pitfalls
 
 - A fighter placed in the air starts past its FloatWindow. Its zero float gravity would

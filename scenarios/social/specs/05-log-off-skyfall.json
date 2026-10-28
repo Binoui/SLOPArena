@@ -1,0 +1,112 @@
+{
+ "stage": "log_off",
+ "notes": "promo 05 final f1: shuriken on FightGuy's shield, he charges, Skyfall cut beats his High Kick, dive, FG 110%",
+ "capture": {
+  "from": 0,
+  "to": 330,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    -10.2,
+    0,
+    -4.2
+   ],
+   "yaw": 67.6,
+   "damage": 35,
+   "target": 2,
+   "input": [
+    {
+     "at": 4,
+     "press": "A"
+    },
+    {
+     "at": 64,
+     "press": "F"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    -5.97,
+    0,
+    -2.45
+   ],
+   "yaw": 247.6,
+   "damage": 110,
+   "target": 1,
+   "input": [
+    {
+     "from": 8,
+     "to": 38,
+     "shield": true
+    },
+    {
+     "from": 50,
+     "to": 74,
+     "move": 247.6
+    },
+    {
+     "at": 75,
+     "press": "3"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "side",
+   "pos": [
+    2.13,
+    -0.4,
+    -5.15
+   ],
+   "look": [
+    0,
+    0,
+    0
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -0.46,
+    1.1,
+    -0.19
+   ],
+   "move": true,
+   "ease": 0.12,
+   "fov": 52,
+   "far": 4000
+  },
+  {
+   "name": "side2",
+   "pos": [
+    2.51,
+    -0.2,
+    -6.07
+   ],
+   "look": [
+    0,
+    0,
+    0
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -0.74,
+    1.1,
+    -0.3
+   ],
+   "move": true,
+   "ease": 0.2,
+   "fov": 48,
+   "far": 4000
+  }
+ ]
+}

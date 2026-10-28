@@ -1,0 +1,23 @@
+{
+ "id": "02-home-run",
+ "status": "ready",
+ "format": "moment",
+ "title": "Sir Bonk's home run",
+ "idea": "Wibou pokes Sir Bonk with a shuriken and two Quick Slashes; Sir Bonk answers with the grounded BONK and sends Wibou over the harbour.",
+ "spec": "scenarios/social/specs/02-splash-deck-home-run.json",
+ "fovScale": 1.1,
+ "camera": {
+  "lookOffset": [
+   -0.2,
+   0.9,
+   -0.5
+  ],
+  "ease": 0.2
+ },
+ "capture": {
+  "to": 365
+ },
+ "end": 328,
+ "hold": 0.6,
+ "clip": "tmp/content/02-home-run/02-home-run-vertical.mp4"
+}
