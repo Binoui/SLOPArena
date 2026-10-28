@@ -1,0 +1,54 @@
+{
+  "source": "artifacts/manki-v5-20261028/rigged/manki_v5_mixamo.fbx (Mixamo rig of the Tripo v5 model; rest space after fix_rig step 0, metres, +Y = his back, +X = his left)",
+  "parts": [
+    {
+      "name": "jetpack",
+      "bone": "Spine2",
+      "box": [
+        [
+          -0.22,
+          -0.155,
+          0.4
+        ],
+        [
+          0.22,
+          0.2,
+          0.72
+        ]
+      ]
+    },
+    {
+      "name": "holster",
+      "bone": "LeftUpLeg",
+      "box": [
+        [
+          -0.005,
+          -0.36,
+          0.26
+        ],
+        [
+          0.17,
+          -0.15,
+          0.46
+        ]
+      ]
+    }
+  ],
+  "remove": [
+    {
+      "name": "loose shard beside the tail club",
+      "box": [
+        [
+          0.23,
+          0.37,
+          0.07
+        ],
+        [
+          0.3,
+          0.44,
+          0.16
+        ]
+      ]
+    }
+  ]
+}

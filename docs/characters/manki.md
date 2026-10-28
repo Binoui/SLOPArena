@@ -137,7 +137,29 @@ weights and UVs. Renderer count stays **10**; material slots rise **10 → 12**
 through two additional body submeshes. Cooked `poses.bin` is unchanged.
 The original Art prefab's mesh/material bindings are restored.
 
-### Model — Manki v4 (2026-10-27)
+### Model — Manki v5 "pyro" (2026-10-28)
+
+Manki v5 replaced v4 in the same files, rig prefab and GUIDs. The owner picked concept D3 "pyro" plus D1's spray-can
+jetpack from a Codex concept round (`artifacts/manki-v5-20261028/source/`, local): toothy grin with missing teeth, a
+burnt brow, cracked goggles, a lighter on the vest, a holstered TORCH can on his left thigh, a scorched glove on his
+right hand and a two-can jetpack. Tripo built the mesh; the owner rigged it in Mixamo.
+
+- **Rebuild:** README steps 0 (`mixamo_package.py`), 1 with `rigid_parts/manki_v5.json` (also rebuilds the finger chains), 2 at scale 1.3834
+  (humanScale 0.6194), no face paint, then 4.
+- **Worn props:** the jetpack and holster are their own mesh islands. Mixamo skinned the tanks to the arms, so
+  `fix_rig.py` pins the jetpack to Spine2 and the holster to LeftUpLeg, and removes a loose shard beside the tail club.
+- **Tail:** a shaft island plus club pieces at its tip; all ride the 5-bone chain.
+- **Fingers:** Mixamo rigged only the index chains although the mesh has a thumb and three fingers.
+  `finger_chains.py` (fix_rig step 5c) rebuilds thumb/index/middle/ring from the three fingertip islands and the
+  glove's thumb, and `unity_import.eval.cs` maps missing Mixamo finger bones by name: all 46 bones map.
+- **Open:** the thumb stretches a little glove when it curls; the missing-teeth gaps read as brown smudges; the jetpack move's exhaust still comes from the hips, not
+  the nozzles.
+- **Checks:** verify `valid`, full Shared tests pass, Ability Lab captures of ground.1, ground.E, air.3 and ground.4
+  keep the props rigid.
+- **Rollback to v4:** v4 is committed (7e132082): restore its Manki2 FBX, `.meta`, colour map, `MankiRig.prefab`
+  and Manki cooks from Git.
+
+### Model — Manki v4 (2026-10-27, replaced by v5)
 
 Manki v4 replaced v3 in the same files, rig prefab and GUIDs as below. It is a Tripo model
 the owner rigged in Mixamo (`newmanki2.fbx`, source and its 4K map in

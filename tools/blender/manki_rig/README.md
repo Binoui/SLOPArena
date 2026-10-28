@@ -7,7 +7,14 @@ exports stay local and ignored (`Assets/Art/Characters/manki/Models/Manki2.fbx`,
 are kept so GUIDs do not change); this folder records how to rebuild them. The previous
 rigs are kept under `Presentation/Legacy/`.
 
-The live model is Manki v4 (2026-10-27): a Tripo model that arrived already rigged in
+The live model is Manki v5 (2026-10-28), a Tripo model with worn props, repackaged with step 0
+and rigged in Mixamo. Step 1 takes `rigid_parts/manki_v5.json` as a sixth argument: it pins the jetpack and
+holster islands to one bone each and removes a stray shard. When Mixamo rigs fewer fingers than the hand
+has (v5 got index chains only), step 1 rebuilds the thumb/index/middle/ring chains (`finger_chains.py`) and
+`unity_import.eval.cs` maps the missing finger bones by their Mixamo names. Export scale 1.3834, no face paint. See
+`docs/characters/manki.md`.
+
+Manki v4 (2026-10-27) was a Tripo model that arrived already rigged in
 Mixamo, so it starts at step 1. It also skips step 3 (its face is clean): the colour map is
 the FBX's packed 4K map, downscaled to 2048. Export scale 1.3486 (humanScale 0.6194).
 Its FBX differs from v3's in three ways, and `fix_rig.py` handles each one:
