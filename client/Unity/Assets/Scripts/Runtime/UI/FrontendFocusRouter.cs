@@ -12,6 +12,7 @@ namespace SlopArena.Client.UI
     public sealed class FrontendFocusRouter : MonoBehaviour
     {
         private enum UiRegion { TopBar, Page, Social }
+        private static readonly string[] SectionTabs = { "shell-nav-training", "shell-nav-local", "shell-nav-online" };
 
         public const string TopBarHintName = "shell-topbar-hint";
 
@@ -45,6 +46,7 @@ namespace SlopArena.Client.UI
             {
                 _shell.Root.UnregisterCallback<NavigationCancelEvent>(OnShellNavigationCancel, TrickleDown.TrickleDown);
                 _shell.Root.UnregisterCallback<ClickEvent>(OnShellClick);
+                _shell.Root.UnregisterCallback<NavigationMoveEvent>(OnShellNavigationMove, TrickleDown.TrickleDown);
             }
             FrontendController.PageChanged -= OnPageChanged;
             _bound = false;
@@ -77,6 +79,7 @@ namespace SlopArena.Client.UI
             _shell = shell;
             _shell.Root.RegisterCallback<NavigationCancelEvent>(OnShellNavigationCancel, TrickleDown.TrickleDown);
             _shell.Root.RegisterCallback<ClickEvent>(OnShellClick);
+            _shell.Root.RegisterCallback<NavigationMoveEvent>(OnShellNavigationMove, TrickleDown.TrickleDown);
             FrontendController.PageChanged += OnPageChanged;
             _bound = true;
             ApplyRegionFocusability();
@@ -115,6 +118,7 @@ namespace SlopArena.Client.UI
                 HandlePageCancel();
             PollForward();
             PollPause();
+            PollMenu();
             if (UiModalState.Presented)
             {
                 UpdateHints();
@@ -125,6 +129,7 @@ namespace SlopArena.Client.UI
             {
                 PollTopBarRoute();
                 PollRegionSwitch();
+                if (_region != UiRegion.Social) PollSections();
             }
             UpdateHints();
         }
@@ -167,8 +172,11 @@ namespace SlopArena.Client.UI
             var forward = FrontendController.CurrentContext?.ForwardButton;
             if (forward != null)
                 GamepadUIBridge.Submit(forward);
-            else if (_region == UiRegion.Page && FrontendController.CurrentPage == FrontendPage.Home)
-                GamepadUIBridge.Submit(focused as Button);
+            else if (_region == UiRegion.Page && focused is Button button
+                && (FrontendController.CurrentPage == FrontendPage.Home
+                    || FrontendController.CurrentPage == FrontendPage.ModeSelect
+                    && button.ClassListContains("local-mode-card")))
+                GamepadUIBridge.Submit(button);
         }
 
         private void PollPause()
@@ -199,24 +207,88 @@ namespace SlopArena.Client.UI
             UISFX.PlayClick();
         }
 
-        /// <summary>
-        /// The visible, controller-reachable top-bar route (issue #220): E on
-        /// the keyboard, the west face button (X / Square) on controller.
-        /// Tab is not usable — the panel consumes it for focus cycling before
-        /// dispatch. Enter/leave is a toggle; leaving restores the remembered
-        /// focus of the region the player came from.
-        /// </summary>
         private void PollTopBarRoute()
         {
             bool key = Keyboard.current?.eKey.wasPressedThisFrame == true;
-            bool pad = SlopArena.Client.Input.CouchPads.MenuPad?.buttonWest.wasPressedThisFrame == true;
-            if (!key && !pad)
+            if (!key)
                 return;
             if (_region == UiRegion.TopBar)
                 SetActiveRegion(_regionBeforeTopBar, focusTarget: true);
             else
                 SetActiveRegion(UiRegion.TopBar, focusTarget: true);
             UISFX.PlayClick();
+        }
+
+        private void PollMenu()
+        {
+            if (CouchPads.MenuPad?.selectButton.wasPressedThisFrame != true)
+                return;
+            if (_shell?.IsMenuOpen == true && SettingsOverlay.Active is not { IsOpen: true })
+                HandlePageCancel();
+            else if (!UiModalState.Presented && _region != UiRegion.Social
+                && !IsEditingAnyField(_shell?.Root?.panel))
+                GamepadUIBridge.Submit(_shell?.Root?.Q<Button>("shell-menu-trigger"));
+        }
+
+        private void PollSections()
+        {
+            var pad = CouchPads.MenuPad;
+            int step = pad?.rightShoulder.wasPressedThisFrame == true ? 1
+                : pad?.leftShoulder.wasPressedThisFrame == true ? -1 : 0;
+            if (step != 0 && _shell?.TopBar != null)
+                GamepadUIBridge.Submit(AdjacentSection(_shell.TopBar, step));
+        }
+
+        internal static Button? AdjacentSection(VisualElement topBar, int step)
+        {
+            int current = ArrayIndexOfSelectedSection(topBar);
+            int index = current < 0 ? (step > 0 ? 0 : SectionTabs.Length - 1)
+                : (current + step + SectionTabs.Length) % SectionTabs.Length;
+            return topBar.Q<Button>(SectionTabs[index]);
+        }
+
+        private static int ArrayIndexOfSelectedSection(VisualElement topBar)
+        {
+            for (int i = 0; i < SectionTabs.Length; i++)
+                if (topBar.Q<Button>(SectionTabs[i])?.ClassListContains("shell-nav-tab--selected") == true)
+                    return i;
+            return -1;
+        }
+
+        private void OnShellNavigationMove(NavigationMoveEvent evt)
+        {
+            if (ChatInputGate.ExternalOverlaySuppressed || HumanInputActions.IsCapturing
+                || UiModalState.Presented || IsEditingAnyField(_shell?.Root?.panel)
+                || _region == UiRegion.Social)
+                return;
+            var pad = CouchPads.MenuPad;
+            if (pad == null) return;
+            if (_region == UiRegion.TopBar && evt.direction == NavigationMoveEvent.Direction.Down
+                && (pad.dpad.down.isPressed || pad.leftStick.ReadValue().y < -0.5f))
+            {
+                _shell?.Root?.focusController?.IgnoreEvent(evt);
+                evt.StopImmediatePropagation();
+                SetActiveRegion(UiRegion.Page, focusTarget: true);
+                return;
+            }
+            if (_region != UiRegion.Page || evt.direction != NavigationMoveEvent.Direction.Up
+                || !(pad.dpad.up.isPressed || pad.leftStick.ReadValue().y > 0.5f)
+                || _shell?.Root?.panel?.focusController?.focusedElement is not VisualElement before)
+                return;
+            var context = FrontendController.CurrentContext;
+            // Let the native focus ring choose first. Staying put or wrapping down means the page's upper edge.
+            _shell.Root.schedule.Execute(() =>
+            {
+                if (_region != UiRegion.Page || context != FrontendController.CurrentContext
+                    || UiModalState.Presented || ChatInputGate.ExternalOverlaySuppressed
+                    || HumanInputActions.IsCapturing || IsEditingAnyField(_shell?.Root?.panel))
+                    return;
+                var after = _shell?.Root?.panel?.focusController?.focusedElement as VisualElement;
+                if (after != null && after != before && after.worldBound.center.y < before.worldBound.center.y)
+                    return;
+                if (!TryFocus(before)) return;
+                SetActiveRegion(UiRegion.TopBar, focusTarget: true);
+            });
         }
 
         /// <summary>
@@ -269,12 +341,14 @@ namespace SlopArena.Client.UI
         /// the region's conventional entry point.</summary>
         private void FocusRegionDefault(UiRegion region)
         {
-            if (TryFocus(_regionFocus[(int)region]))
+            if (region != UiRegion.TopBar && TryFocus(_regionFocus[(int)region]))
                 return;
             switch (region)
             {
                 case UiRegion.TopBar:
-                    TryFocus(FindFirstFocusable(_shell?.TopBar));
+                    int selected = _shell?.TopBar == null ? -1 : ArrayIndexOfSelectedSection(_shell.TopBar);
+                    if (selected < 0 || !TryFocus(_shell?.TopBar?.Q<Button>(SectionTabs[selected])))
+                        TryFocus(FindFirstFocusable(_shell?.TopBar));
                     break;
                 case UiRegion.Social:
                     var chatRoot = ResolveChatRoot();
@@ -326,9 +400,12 @@ namespace SlopArena.Client.UI
             if (shell?.Root == null || !FrontendController.IsFrontendActive)
                 return;
 
-            bool topBar = _region == UiRegion.TopBar;
-            bool social = _region == UiRegion.Social;
-            bool page = _region == UiRegion.Page;
+            // The shell MENU and Settings live outside every region; while one is open,
+            // spatial navigation must not escape to the page behind its backdrop.
+            bool menu = shell.IsMenuOpen || SettingsOverlay.Active is { IsOpen: true };
+            bool topBar = !menu && _region == UiRegion.TopBar;
+            bool social = !menu && _region == UiRegion.Social;
+            bool page = !menu && _region == UiRegion.Page;
 
             SetRegionFocusable(shell.TopBar, topBar);
             SetRegionFocusable(shell.PageContentRoot, page, exclude: shell.SocialHost);
@@ -501,10 +578,6 @@ namespace SlopArena.Client.UI
 
         // ── Hints ─────────────────────────────────────────────────────────
 
-        /// <summary>The visible region-switch affordances (issue #220): the
-        /// chat-surface chip naming the region Q/Y reaches and the top-bar
-        /// chip naming the E/X route. Hidden while a text field is editing,
-        /// while a modal is presented, and outside shell pages.</summary>
         private void UpdateHints()
         {
             var shell = FrontendController.Shell;
@@ -515,26 +588,26 @@ namespace SlopArena.Client.UI
                 _topBarHint = _shell.Root.Q<Label>(TopBarHintName);
             if (_topBarHint != null)
             {
-                _topBarHint.text = Gamepad.current != null
-                    ? "A // SELECT   B // BACK   START // NEXT   X // TOP BAR"
-                    : "E // TOP BAR";
-                _topBarHint.style.display = show && _region != UiRegion.TopBar
+                _topBarHint.text = "E // TOP BAR";
+                _topBarHint.style.display = show && !MenuInputMode.PadActive && _region != UiRegion.TopBar
                     ? DisplayStyle.Flex : DisplayStyle.None;
             }
 
             if (_regionHint == null)
             {
                 var chatRoot = ResolveChatRoot();
-                _regionHint = chatRoot?.Q<Label>("chat-region-hint");
+                _regionHint = shell?.SocialHost?.Q<Label>("chat-region-hint");
+                var chip = chatRoot?.Q<Button>("chat-open");
+                if (chip != null) MenuPrompts.Stick(chip, MenuAction.Chat);
                 if (_regionHint != null)
                     _regionHint.pickingMode = PickingMode.Ignore;
             }
             if (_regionHint == null)
                 return;
-            _regionHint.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+            _regionHint.style.display = show && !MenuInputMode.PadActive ? DisplayStyle.Flex : DisplayStyle.None;
             if (!show)
                 return;
-            _regionHint.text = _region == UiRegion.Page ? "Q/Y // SOCIAL" : "Q/Y // PAGE";
+            _regionHint.text = _region == UiRegion.Page ? "Q // SOCIAL" : "Q // PAGE";
             // The chip floats just above the reserved shell cell so it never
             // covers the composer or the history feedback (issue #219). The
             // hint resolves only against the shell cell; gameplay has no

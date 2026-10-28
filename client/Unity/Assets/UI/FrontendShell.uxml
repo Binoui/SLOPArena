@@ -19,7 +19,7 @@
                  surface. -->
             <ui:Button name="shell-settings" text="SETTINGS" class="shell-settings" />
             <ui:Button name="shell-identity" text="" class="shell-identity" />
-            <ui:Button name="shell-menu-trigger" text="MENU" tooltip="Open menu (Esc, or X then A)" class="shell-menu-trigger">
+            <ui:Button name="shell-menu-trigger" text="MENU" tooltip="Open menu (Esc or View)" class="shell-menu-trigger">
                 <ui:VisualElement class="shell-menu-gear" picking-mode="Ignore" />
             </ui:Button>
         </ui:VisualElement>

@@ -45,6 +45,12 @@ namespace SlopArena.Client.UI
             context.ForwardButton = forwardButton;
 
             var roots = context.OwnedRoots;
+            foreach (var root in roots)
+                root.Query<Button>(className: "btn-back").ForEach(button =>
+                {
+                    if (button.text == "BACK" || button.name == "btn-back")
+                        MenuPrompts.Stick(button, MenuAction.Back);
+                });
             EventCallback<ClickEvent> clickHandler = _ => UISFX.PlayClick();
             EventCallback<NavigationCancelEvent> cancelHandler = evt => OnScreenCancel(evt, backAction);
             for (int i = 0; i < roots.Count; i++)

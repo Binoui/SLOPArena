@@ -123,15 +123,26 @@ fallback styles until an asset-distribution plan is agreed.
   row at roughly 16:9. Fighter portraits use crops of the supplied splash
   illustrations, not prefab renders.
 - **Recovery:** focus is visible; controller Back closes address entry before leaving the
-  browser. Escape, gamepad Start, or the top-right gear opens the frontend menu on any
-  pre-match page, including over address entry and chat. Resume or a second Escape/Start
-  returns to the same page; Settings returns to the menu when closed; Quit Game exits
-  immediately. Mandatory identity entry and active Settings confirmations/remaps keep
-  their own cancel behavior. Directory, host, and room failures present a retry or a
+  browser. Escape, gamepad View/Select, or the MENU trigger opens the frontend menu.
+  View/Select again or B closes it. Start activates the page's forward action, or the
+  focused mode card on Home and Local Play Mode Select. LB/RB cycle Training, Local Play,
+  and Online with wrapping; in Settings they cycle the five categories. Up at the page's
+  upper focus edge enters the top bar; Down returns to remembered page focus. Keyboard E
+  toggles top-bar focus, Y switches Social, and X has no global menu action. Modal entry,
+  text editing, Social focus, native overlays, and rebinding retain input ownership.
+  Settings returns to the menu when opened there; Quit Game exits immediately.
+  Mandatory identity entry and active Settings confirmations/remaps keep their own
+  cancel behavior. Directory, host, and room failures present a retry or a
   route back rather than an indefinite connecting label. Empty player slots are not
   presented as connected players.
 
-Results and in-match HUD presentation are outside this pre-match refresh.
+Controller menu prompts use Paper discs with a 3 px Ink border, rotated about -8 degrees
+and attached to button corners without changing label widths. Xbox face glyphs retain
+colour; monochrome glyphs use Ink. LB/RB discs flank the section and Settings tab rows.
+Prompts appear only after pad input and have text fallbacks when the local sheet is absent.
+The same shared prompt module supplies B on the in-match pause card's Resume action.
+
+Results and other in-match HUD presentation are outside this pre-match refresh.
 
 ## One-sentence definition
 

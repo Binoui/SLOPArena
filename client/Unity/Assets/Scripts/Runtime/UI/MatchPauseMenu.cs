@@ -26,6 +26,7 @@ namespace SlopArena.Client.UI
         private Action? _onRetry;
         private Action? _onReturnToLobby;
         private VisualElement? _panel;
+        private VisualElement? _root;
         private Button? _resumeButton;
         private Button? _returnToLobbyButton;
         private Label? _returnToLobbyError;
@@ -62,11 +63,14 @@ namespace SlopArena.Client.UI
                 return;
             }
             _settingsOverlay = gameObject.GetComponent<SettingsOverlay>() ?? gameObject.AddComponent<SettingsOverlay>();
-            BuildPanel(doc.rootVisualElement);
+            _root = doc.rootVisualElement;
+            MenuPrompts.ApplyInputMode(_root);
+            BuildPanel(_root);
         }
 
         private void Update()
         {
+            if (_root != null) MenuPrompts.ApplyInputMode(_root);
             // Escape also generates a UI Toolkit cancel event. Whichever path
             // changes pause first consumes the press for this frame.
             if (_pauseChangedFrame == Time.frameCount)
@@ -161,6 +165,7 @@ namespace SlopArena.Client.UI
 
             _resumeButton = MakeButton("RESUME", () => SetPaused(false));
             _resumeButton.AddToClassList("match-pause-action--primary");
+            MenuPrompts.Stick(_resumeButton, MenuAction.Back);
             box.Add(_resumeButton);
             if (_onRetry != null)
                 box.Add(MakeButton("RETRY", Retry));

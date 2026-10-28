@@ -408,6 +408,15 @@ The accepted 36 transparent PNGs for Wibou, FightGuy, Manki and Bonk remain inst
 
 Grounded HUD move art uses one locked glyph icon set under `Assets/Resources/UI/AbilityCards/` (2026-10-28, replacing the linocut set). Each icon is a flat pictogram drawn from the live model's move: one Ink (normal tab) or Paper (special key) silhouette plus the fighter's accent for the motion only, showing the whole fighter when the body performs the move and the hand and prop when a thrown object is the move. That folder's README records the steps: `tools/hud_icons/hud_icons.py` renders each move from the live model, writes the prompts from `tools/hud_icons/decks.json`, cleans the images with `tools/hud_icon_prep.py` (palette snap, solid normals, embedded `impeccable:prompt`) and installs them. All six fighters' grounded sets are installed. Airborne sprites and original icons remain as authored assets and fallback. Sprites import at a maximum of 256 pixels; source alpha is preserved.
 
+Menu controls use the approved corner-sticker prompts. Paper discs with a 3 px Ink border
+carry Xbox glyphs, with text fallbacks when the local atlas is absent. Stickers overlap
+button corners without changing button sizes or measured labels. LB/RB discs flank tab
+rows. The last input device controls visibility across the frontend, Settings, and pause.
+Mouse or keyboard hides them. Start advances the page, LB/RB cycle sections or Settings
+categories, View opens MENU, and Y switches Social. Up at the page's upper focus edge
+enters the top bar; Down restores page focus. Keyboard E keeps its top-bar route. X is
+free. Yellow remains selection, never focus.
+
 ## Do's and Don'ts
 
 ### Do:

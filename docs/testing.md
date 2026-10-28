@@ -90,7 +90,8 @@ from the roster manifest and verify all four payloads for each admitted package.
 - B / east face button closes the topmost dialog or menu, otherwise invokes the
   page's Back action, including from top-bar focus or a page text field. Social
   focus returns to the page first. Home has no preceding page.
-- Start invokes the page's Continue/Ready/Play action independently of focused
+- On Home and Local Play Mode Select, Start presses the focused mode card.
+  Elsewhere Start invokes the page's Continue/Ready/Play action independently of focused
   fighter/stage cards: fighter selection → stage selection → launch; online
   selection → lock-in → leader-only continuation. Disabled/hidden controls stay
   unavailable. Browser continuation joins the last controller-focused room;
@@ -99,9 +100,17 @@ from the roster manifest and verify all four payloads for each admitted package.
   the covered page. In Settings it accepts the active confirmation or finishes
   Settings; in the shell menu it resumes. Gameplay Start still opens/resumes
   pause. B closes pause, with Resume focused on entry.
-- X / west switches top-bar focus; Y / north switches page/social focus.
-  Keyboard Escape retains the shell-menu shortcut. Native Steam overlay and
-  active rebinding keep input ownership; menu shortcuts do not steal captures.
+- LB/RB cycle Training, Local Play, and Online in that order with wrapping. From
+  Home, RB enters Training and LB enters Online. Joined P2-P4 pads retain seat
+  fighter cycling. Settings LB/RB cycle Audio, Controls, Video, Gameplay, and Accessibility.
+- Up at the page's upper focus edge enters the top bar on the active section tab;
+  Down returns to remembered page focus. Keyboard E toggles top-bar focus.
+  X has no global action. Y / north switches page/social focus.
+- View/Select opens or closes the frontend MENU; B also closes it. Keyboard
+  Escape retains the shell-menu shortcut. Native Steam overlay, modal entry,
+  text editing, Social focus, and active rebinding keep input ownership.
+- Xbox stickers show only after pad input. Mouse or keyboard hides them and
+  restores the E and Q text hints. Missing local glyph sheets leave readable labels.
 
 Test in Unity with a controller: navigate Home → Solo/Training → fighters →
 stages without a mouse; select cards with A, continue with Start and return with
