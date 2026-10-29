@@ -276,9 +276,12 @@ roles deliberately do not promise automatic combos.
    [kit regression workflow](../sloparena-kit-regression-testing/SKILL.md); do not
    generate whole-state goldens or freeze incidental tuning values.
 3. Rebuild Shared, regenerate both report renderings, and run affected regression tests.
-4. Request a Unity recompilation check. For Unity-facing behavior, add a short manual
-   Training/Ability-Lab checklist to `TESTING-UNITY.md`: contact alignment, coverage,
-   one-hit semantics, reward, commitment, and target-lock/manual-aim behavior.
+4. Request a Unity recompilation check. For Unity-facing behavior, file short human checks
+   for contact alignment, coverage, one-hit semantics, reward, commitment, and target-lock
+   or manual-aim behavior. File each human check with `python3 tools/factory.py check add`.
+   Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+   Retire your own superseded checks with `check drop`.
+   Answer redo notes with `check ready`.
 
 ## Verify / flow
 

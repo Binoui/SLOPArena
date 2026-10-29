@@ -44,7 +44,7 @@ away.
 6. **Motion.** Run one authoring round per clip. Show each take on its own, and let the owner
    pick before any revision.
 7. **In game.** Promote, bind and wire the clips, cook, and show the move from Play Mode
-   captures. The owner then plays it in Training (`TESTING-UNITY.md`).
+   captures. The owner then plays it in Training from the Slop Factory check.
 8. **Effects.** Paint concepts over real captures and make a sound tour video. After the
    owner's picks, build the effects, then capture "after" frames and a review video
    ([VFX pass](../sloparena-character-vfx-pass/SKILL.md)). Key footstep cues to the clip's
@@ -228,7 +228,10 @@ Require all of the following for an accepted package:
 - for weapon normals the weapon is the hitbox, so design the arc first: check key poses or sketched arcs with GenRA's `hitarc.py` (tools/genra/README.md, "Weapon arcs") and the bound move with the report's Arc maps (owner, 2026-10-22: "for those moves it's the most important part");
 - for attack clips, rerun `tools/HitReliabilityReport --char <character>` after the cook and compare the move with its previous row: playback speed, active ticks touching a target 1 m ahead, aerial reach below the feet, multi-hit coverage and bone/weapon sampling loss should not regress unintentionally. Specials need their slot, for example `--slots F`. See [hit reliability](../../docs/systems/move-data-report.md#hit-reliability).
 
-Record Unity-facing verification in the ignored root `TESTING-UNITY.md`.
+File each human check with `python3 tools/factory.py check add`.
+Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+Retire your own superseded checks with `check drop`.
+Answer redo notes with `check ready`.
 
 ## Presentation acceptance:
 

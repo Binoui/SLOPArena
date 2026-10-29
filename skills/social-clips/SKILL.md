@@ -39,6 +39,14 @@ locations and deploy.
 Tested landscape specs from the 2026-10-28 promo set live in `scenarios/social/specs/` (09 is the
 owner's favourite). Reuse them before staging new ones.
 
+## Checks
+
+Slop Factory also holds human gameplay checks beside Clips, with a Console link.
+File checks with `python3 tools/factory.py check add`, retire your own superseded
+checks with `check drop`, and answer redo notes with `check ready`. Pass your T3
+thread id from `t3_thread_configuration` when you are in T3. Owner notes reach the
+linked thread through the desk relay. See [Slop Factory checks](../../docs/systems/slop-factory.md).
+
 ## Propose
 
 1. Read the open inbox (`factory.py inbox`). Every item that asks for a clip, a theme or a change

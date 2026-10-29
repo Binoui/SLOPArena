@@ -50,7 +50,10 @@ Every step has a typed command; a stage needs data and Python, not Unity C# of i
    and `thumbnail`), capture them with `sloparena.stage.views.cameras`, then install the card
    with `sloparena.stage.thumbnail --stage <key> --from tmp/<dir>/thumbnail.png`.
 8. **Report and wait for acceptance.** Update the production brief, quote the design
-   decisions with PASS/DEVIATION lines and leave a `TESTING-UNITY.md` checklist. When the
+   decisions with PASS/DEVIATION lines. File each human check with `python3 tools/factory.py check add`.
+   Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+   Retire your own superseded checks with `check drop`.
+   Answer redo notes with `check ready`. When the
    maintainer accepts the stage after playing it, record `status: accepted` in the design
    brief and `roster.md`, commit its generated art (listed in `.gitignore` after
    `tools/check_asset_closure.py` passes) and add it to

@@ -121,7 +121,13 @@ Use Humanoid for ordinary humanoid fighters when built-in retargeting helps. Cus
 
 For generated-model cleanup or replacement, use the [character model polish guide](../../docs/characters/character-model-polish.md) and `blender-character-polish`. Keep surface polish separate from approved rig changes.
 
-After structural repairs, check the candidate early in Unity with target-material backface culling, relevant raised-arm/underside/rear views and actual bound clips. Use the installed Unity CLI/Pipeline on the main checkout. Validate attachments, animation-aware bounds, skin influences and gameplay-distance appearance; maintain `TESTING-UNITY.md`. Controlled Blender poses are not runtime acceptance.
+After structural repairs, check the candidate early in Unity with target-material backface culling, relevant raised-arm/underside/rear views and actual bound clips. Use the installed Unity CLI/Pipeline on the main checkout. Validate attachments, animation-aware bounds, skin influences and gameplay-distance appearance.
+
+File each human check with `python3 tools/factory.py check add`.
+Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+Retire your own superseded checks with `check drop`.
+Answer redo notes with `check ready`.
+Controlled Blender poses are not runtime acceptance.
 
 When the rig, rest transforms or import/binding settings change, compare old/new retargeted output at matching clip times, including relevant attachment and authoritative pose tracks. A valid Avatar, unchanged bone names or byte-identical gameplay JSON does not prove pose equivalence. If presentation-only scope is required, investigate differences before promotion; otherwise obtain explicit approval for changed authoritative content and verify affected behavior. Report changed cooked poses without calling them cosmetic or hand-editing them. Local preview does not require a publishing cook on every iteration; accepted integration still follows the persistence boundary below.
 

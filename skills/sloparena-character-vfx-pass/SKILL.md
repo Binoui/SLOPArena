@@ -173,7 +173,10 @@ python3 tools/presentation_review.py page tmp/vfx/<package>/page --spec tmp/vfx/
 - The current-state table in [VFX and particles](../../docs/systems/vfx-particles.md).
 - The plan's status and open decisions.
 - Credits for any new sound or art.
-- Owner checks in the local, ignored `TESTING-UNITY.md`.
+- File each human check with `python3 tools/factory.py check add`.
+  Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+  Retire your own superseded checks with `check drop`.
+  Answer redo notes with `check ready`.
 
 The pass is done when the owner has approved it in game, cook and verify are valid with
 a clean console, the "after" captures land the "before" hits, and the docs match.

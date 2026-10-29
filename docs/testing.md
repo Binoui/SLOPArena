@@ -11,16 +11,20 @@ historical evidence, not a checklist to repeat for every release.
 
 ## Human playtest checklist
 
-Keep the gitignored root `TESTING-UNITY.md` to at most five short, actionable checks
-for current work. Each check names where to go, what to do, and what to look for.
-Merge overlapping checks and retire resolved or superseded ones. Before trimming a
-large backlog, preserve the original under ignored `tmp/testing-unity/` and link it
-from the current file.
+File each human check with `python3 tools/factory.py check add`. Pass your T3
+thread id from `t3_thread_configuration` when you are in T3. Otherwise choose an
+explicit `--thread <id>` or `--no-thread`. See [Slop Factory checks](systems/slop-factory.md)
+for commands and the desk relay.
+
+Each check names where to go, what to do, and what to look for. Keep it short.
+Merge overlapping checks, retire your own superseded checks with `check drop`,
+and answer redo notes with `check ready` after fixing them. The owner records
+Good, Redo, or Dropped on the board; unresolved checks stay visible there.
 
 Record human feedback briefly, with only the scope actually reported. General
 "looks good" feedback does not establish that every historical scenario passed.
-Keep automated test totals, technical evidence and capture logs in task/PR reports
-or linked artifacts so the checklist stays easy to use.
+Keep automated test totals, technical evidence, and capture logs in task/PR reports
+or linked artifacts.
 
 ## Grab and throw verification
 

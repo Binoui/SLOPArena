@@ -34,7 +34,7 @@ For GitHub issue work, follow [issue tracking](docs/agents/issue-tracker.md) and
 
 - For offline Shared/Server builds and tests use `-p:SkipUnityPluginCopy=true`. Copying a plugin into an open Editor requires your own bounded gateway lease and settled imports.
 - Choose the applicable mode in `docs/testing.md`: local iteration, integrated change, or distributable demo. Keep focused behavioral coverage and applicable Shared/Server/Unity/package checks; do not force a publishing cook or unrelated runtime checks for ordinary tuning.
-- For Unity-facing implementation, maintain the gitignored root `TESTING-UNITY.md` with at most five short, actionable human checks for current work. Retire resolved or superseded checks, archive old notes under ignored `tmp/testing-unity/`, and keep automated evidence in task/PR reports or linked artifacts. Follow the checklist guidance in `docs/testing.md`.
+- For Unity-facing implementation, file each human check with `python3 tools/factory.py check add` (pass your T3 thread id from `t3_thread_configuration` when you are in T3). Retire your own superseded checks with `check drop` and answer redo notes with `check ready`. Each short check names where to go, what to do, and what to look for. Merge overlaps and keep automated evidence in task/PR reports or linked artifacts. Follow [Slop Factory checks](docs/systems/slop-factory.md) and the guidance in `docs/testing.md`.
 - Editor operations use the approved canonical project through the gateway, not a worktree-local connection or unowned raw CLI. Worktree agents share the same runtime lease and honor source windows; never silently substitute main for an invalid explicit target.
 
 ## Conventions that differ from defaults
