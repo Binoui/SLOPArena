@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SLOPArena content factory</title>
+<title>Slop Factory</title>
 <style>
 @font-face{font-family:"Archivo Black";src:url(/font.ttf) format("truetype");font-display:block}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -13,6 +13,7 @@ h1{font-size:28px;background:#ffcc22;display:inline-block;padding:6px 14px 4px;b
 h4{font-size:14px;margin:12px 0 6px}
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .btn{border:3px solid #1b1a18;background:#fff;color:#1b1a18;padding:7px 12px 5px;font-size:13px;cursor:pointer;box-shadow:3px 3px 0 #161513;text-decoration:none;display:inline-block}
+.bar[hidden]{display:none}
 .btn.go{background:#ffcc22}.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #161513}.btn.small{padding:3px 8px 2px;font-size:11px;box-shadow:2px 2px 0 #161513}
 .run{flex:1;min-width:260px;font-size:13px;border:3px solid #1b1a18;padding:6px 10px;background:#fff}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#3a3;margin-right:5px}.dot.busy{background:#f05b35}
@@ -54,12 +55,32 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 .inbox div{background:#fff;border:2px solid #1b1a18;padding:6px 8px;margin-bottom:6px;font-size:13px;word-break:break-word}
 .inbox div.used{opacity:.5}
 .tabrun{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tabrun span{font-size:13px}
+.check-card{align-self:start}
+.check-card img,.check-card .noimg{aspect-ratio:16/9}
+.check-card .t{font-size:16px}.check-card .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 8px 8px}
+.check-card .chip{margin:0}.age{font-size:12px;color:#625f58}
+.thread{display:flex;align-items:center;gap:6px;background:#f0eee8;border:2px solid #1b1a18;padding:4px 6px;font-size:12px;min-width:0;max-width:100%;margin:0 0 8px}
+.thread span{overflow-wrap:anywhere;flex:1;min-width:0}.thread .btn{flex-shrink:0}.check-card .thread{margin:0 8px 8px}
+.check-sheet{grid-template-rows:auto 1fr;row-gap:0}.check-sheet>div{min-width:0}
+.check-intro,.check-feedback{grid-column:2}.check-intro{grid-row:1}.check-feedback{grid-row:2}
+.check-media{grid-column:1;grid-row:1 / span 2;display:flex;flex-direction:column;gap:10px}
+.check-media img,.check-media video{width:100%;height:auto;aspect-ratio:auto;max-height:480px;object-fit:contain;border:3px solid #1b1a18;background:#1b1a18}
+.checksteps{border:0;padding:0;margin:12px 0}.checksteps code{overflow-wrap:anywhere}
+.check-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.check-filter select{border:3px solid #1b1a18;background:#fff;padding:5px;font:inherit;max-width:100%}
+.send-note{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px}.send-note input{width:18px;height:18px}
+.notes .delivery{display:block;opacity:1}.notes .delivery.error{color:#b22}
 @media(max-width:700px){body{padding:12px}.sheet{grid-template-columns:1fr}.sheet video{width:100%;max-width:340px}
-  .grid{grid-template-columns:repeat(2,1fr);gap:12px}h1{font-size:21px}}
+  .check-intro,.check-media,.check-feedback{grid-column:1;grid-row:auto}.check-media{margin:8px 0}.grid{grid-template-columns:repeat(2,1fr);gap:12px}h1{font-size:21px}}
 </style>
 </head>
 <body>
-<h1>SLOPArena content factory</h1>
+<h1>Slop Factory</h1>
+<div class="tabs" id="areas">
+  <button class="tab" id="clips-area" onclick="pickArea('clips')">Clips</button>
+  <button class="tab" id="checks-area" onclick="pickArea('checks')">Checks</button>
+  <a class="tab" href="/console/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Console ↗</a>
+</div>
 <div class="bar">
   <div class="run" id="running">Loading...</div>
 </div>
@@ -74,12 +95,18 @@ const TABS = [["review","To review",["rendered"]],["proposed","Proposed",["propo
 const ACTIONS = {rendered:[["ready","Ready to post","go"],["approved","Redo with note",""],["rejected","Reject",""]],
   proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["ready","Ready to post","go"],["proposed","Back to proposed",""],["rejected","Reject",""]],
   ready:[["posted","Mark posted","go"],["approved","Redo with note",""],["rejected","Reject",""]], posted:[], rejected:[["proposed","Restore",""]]};
+const CHECK_TABS = [["to-try","To try"],["redo","Redo"],["good","Good"],["dropped","Dropped"]];
+const CHECK_ACTIONS = {"to-try": [["good","Good","go"],["redo","Redo with note",""],["dropped","Drop",""]],
+  redo: [["good","Good","go"],["dropped","Drop",""]], good: [["to-try","Reopen",""]], dropped: [["to-try","Reopen",""]]};
 const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer builds the batch around your open notes in the Scout inbox, then the latest scout reports and what changed in the game: 5 to 7 ideas here."],
   approved: ["render", "Render approved", "Films every idea in this tab; each take lands in To review."]};
 const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
 const RUN_TEXT = {propose: "Sent to T3: the designer thread appears in about 2 minutes, ideas land in PROPOSED.", render: "Sent to T3: the thread appears in about 2 minutes, clips land in TO REVIEW.",
   scout: "Sent to T3: the scout thread appears in about 2 minutes, its report lands in this tab.", redo: "Sent to T3: the redo thread appears in about 2 minutes, the new take lands in TO REVIEW."};
-let B = {ideas: [], runs: [], inbox: [], reports: []}, tab = localStorage.tab || "review", open = null, shown = {};
+let B = {ideas: [], checks: [], runs: [], inbox: [], reports: []}, tab = localStorage.tab || "review", open = null, shown = {};
+let area = localStorage.area === "checks" ? "checks" : "clips", checkTab = localStorage.checkTab || "to-try", checkArea = "";
+if (!TABS.some(t => t[0] === tab)) tab = "review";
+if (!CHECK_TABS.some(t => t[0] === checkTab)) checkTab = "to-try";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const byId = id => B.ideas.find(d => d.id === id);
 const top_ = () => B.ideas.filter(d => d.format !== "shot");
@@ -95,7 +122,7 @@ async function load() {
   document.getElementById("running").innerHTML = `<span class="dot ${active.length ? "busy" : ""}"></span><b>Running:</b> ` +
     (active.length ? active.map(r => `#${r.id} ${esc(runName(r))} (${r.state === "sent" ? "waiting for T3, about 2 min" : r.state})`).join(", ") : "nothing");
   draw();
-  if (open) show(open, false);
+  if (open) area === "checks" ? showCheck(open, false) : show(open, false);
 }
 function count(k, s) {
   if (k === "scout") return B.inbox.filter(i => !i.report).length;
@@ -103,6 +130,9 @@ function count(k, s) {
   return k === "numbers" ? 0 : top_().filter(d => s.includes(d.status)).length;
 }
 function draw() {
+  for (const name of ["clips", "checks"]) document.getElementById(name + "-area").classList.toggle("on", area === name);
+  document.getElementById("running").parentElement.hidden = area === "checks";
+  if (area === "checks") return drawChecks();
   document.getElementById("tabs").innerHTML = TABS.map(([k, l, s]) => {
     const n = count(k, s);
     return `<div class="tab ${k === tab ? "on" : ""}" onclick="pick('${k}')">${l}${n ? `<b>${n}</b>` : ""}</div>`;
@@ -130,6 +160,7 @@ function show(id, scroll = true) {
   const shots = (d.beats || []).filter(b => b.type === "shot").map(b => byId(b.clip)).filter(Boolean);
   const unused = B.ideas.filter(x => x.for === d.id && !shots.includes(x));
   const sheet = document.getElementById("sheet");
+  sheet.classList.remove("check-sheet");
   sheet.innerHTML = `${t?.clip ? `<video src="${t.clip}" poster="${t.poster}" controls playsinline preload="metadata"></video>` : `<div class="empty">No clip yet</div>`}
     <div><h3>${esc(d.title || d.id)}</h3>
     <span class="chip ${esc(d.format)}" style="margin:0 0 8px;display:inline-block">${esc(d.format)} &middot; ${esc(d.status)}</span>
@@ -149,6 +180,86 @@ function show(id, scroll = true) {
     ${t?.sheet ? `<a class="sheetlink" href="${t.sheet}" target="_blank">Contact sheet of take ${t.n}</a>` : ""}</div>`;
   sheet.classList.add("on"); draw(); if (scroll) sheet.scrollIntoView({behavior: "smooth", block: "nearest"});
 }
+function pickArea(name) { area = localStorage.area = name; hide(); draw(); }
+function pickCheckTab(status) { checkTab = localStorage.checkTab = status; hide(); draw(); }
+const checkById = id => B.checks.find(c => c.id === id);
+function threadChip(d) {
+  return d.thread ? `<div class="thread"><span title="${esc(d.thread)}">${esc(d.thread_title || d.thread)}</span>
+    <button class="btn small" onclick="copyThread(${d.id},event)">Copy id</button></div>` : "";
+}
+async function copyThread(id, event) {
+  event.stopPropagation();
+  const thread = checkById(id).thread;
+  try {
+    if (navigator.clipboard) await navigator.clipboard.writeText(thread);
+    else {
+      const input = document.createElement("textarea"); input.value = thread;
+      input.style.position = "fixed"; input.style.opacity = "0"; document.body.append(input); input.select();
+      const copied = document.execCommand("copy"); input.remove();
+      if (!copied) throw new Error("Clipboard unavailable");
+    }
+    say("Thread id copied");
+  } catch { say("Thread id: " + thread); }
+}
+function age(at) {
+  const hours = Math.max(0, Math.floor((Date.now() - new Date(at)) / 3600000));
+  return hours < 1 ? "Just added" : hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+}
+function drawChecks() {
+  document.getElementById("tabs").innerHTML = CHECK_TABS.map(([status, label]) => {
+    const n = B.checks.filter(c => c.status === status).length;
+    return `<button class="tab ${status === checkTab ? "on" : ""}" onclick="pickCheckTab('${status}')">${label}${["to-try","redo"].includes(status) ? `<b>${n}</b>` : ""}</button>`;
+  }).join("");
+  const areas = [...new Set(B.checks.map(c => c.area).filter(Boolean))].sort();
+  const list = B.checks.filter(c => c.status === checkTab && (!checkArea || c.area === checkArea)).reverse();
+  document.getElementById("view").innerHTML = `<div class="check-filter"><label for="checkFilter">Area</label>
+    <select id="checkFilter" onchange="checkArea=this.value;drawChecks()"><option value="">All areas</option>${areas.map(a =>
+      `<option value="${esc(a)}" ${a === checkArea ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
+    <span class="age">${list.length} ${list.length === 1 ? "check" : "checks"}</span></div>` +
+    (list.length ? `<div class="grid">${list.map(checkCard).join("")}</div>` : `<div class="empty">Nothing here.</div>`);
+}
+function checkCard(d) {
+  const img = d.media.find(m => /\.(jpg|png)$/i.test(m));
+  const poster = img ? `<img src="${img}" alt="" loading="lazy">` : d.media.length ? `<div class="noimg">▶ Video attached</div>` : "";
+  return `<div class="card check-card ${open === d.id ? "sel" : ""}" role="button" tabindex="0" onclick="showCheck(${d.id})"
+    onkeydown="if(event.target===this && ['Enter',' '].includes(event.key)){event.preventDefault();showCheck(${d.id})}">${poster}
+    <div class="t">${esc(d.title)}</div><div class="meta">${d.area ? `<span class="chip">${esc(d.area)}</span>` : ""}
+    <time class="age" datetime="${esc(d.created)}" title="${esc(d.created)}">${age(d.created)}</time></div>${threadChip(d)}</div>`;
+}
+function showCheck(id, scroll = true) {
+  const d = checkById(id); if (!d) return;
+  const same = open === id, note = same ? document.getElementById("checkNote")?.value || "" : "";
+  const sendToThread = same ? document.getElementById("sendNote")?.checked ?? true : true;
+  open = id; history.replaceState(null, "", "#check-" + id);
+  const sheet = document.getElementById("sheet");
+  const media = `<div class="check-media">${d.media.map(m => /\.mp4$/i.test(m)
+    ? `<video src="${m}" controls playsinline preload="metadata"></video>`
+    : `<a href="${m}" target="_blank" rel="noopener"><img src="${m}" alt="${esc(d.title)}"></a>`).join("") || `<div class="empty">No media attached</div>`}</div>`;
+  sheet.innerHTML = `<div class="check-intro"><h3>${esc(d.title)}</h3><span class="chip" style="margin:0;display:inline-block">#${d.id} &middot; ${esc(d.status)}</span>
+    ${d.area ? `<span class="chip" style="display:inline-block">${esc(d.area)}</span>` : ""}
+    <div class="report checksteps">${md(d.steps)}</div>${threadChip(d)}
+    </div>${media}<div class="check-feedback"><h4>Notes</h4><div class="notes">${d.notes.map(n => `<div class="${n.author === "agent" ? "agent" : ""}"><small>${n.author === "owner" ? "You" : "Agent"} ${esc(n.at.replace("T"," "))}</small> ${esc(n.body)}${n.send ? `<small class="delivery ${n.error && !n.delivered ? "error" : ""}">${n.delivered ? "Sent to thread" : n.error ? "Error: " + esc(n.error) : "Waiting for desk"}</small>` : ""}</div>`).join("") || `<p>No notes yet.</p>`}</div>
+    <textarea id="checkNote" placeholder="What happened? What needs to change?" aria-label="Check note">${esc(note)}</textarea>
+    ${d.thread ? `<label class="send-note"><input type="checkbox" id="sendNote" ${sendToThread ? "checked" : ""}>Send note to thread</label>` : `<p class="age">No thread linked. Notes stay on this check.</p>`}
+    <div class="acts">${CHECK_ACTIONS[d.status].map(([status,label,kind]) => `<button class="btn ${kind}" onclick="checkAct(${d.id},'${status}')">${label}</button>`).join("")}
+    <button class="btn" onclick="checkAct(${d.id},'')">Save note</button><button class="btn" onclick="hide();draw()">Close</button></div>
+    ${d.thread ? `<p class="age">Verdicts always go to the thread when the desk relay is running.</p>` : ""}</div>`;
+  sheet.classList.add("on", "check-sheet"); draw(); if (scroll) sheet.scrollIntoView({behavior: "smooth", block: "start"});
+}
+async function checkAct(id, status) {
+  const note = document.getElementById("checkNote").value;
+  if (status === "redo" && !note.trim()) return say("Write what to change before choosing Redo.");
+  if (!status && !note.trim()) return say("Write a note first.");
+  try {
+    await send("POST", `/api/checks/${id}/${status ? "verdict" : "notes"}`, status ? {status, note}
+      : {author: "owner", body: note, send: document.getElementById("sendNote")?.checked || false});
+    say(status ? `Check #${id}: ${status}` : "Note saved");
+    if (status) { checkTab = localStorage.checkTab = status; hide(); }
+    else document.getElementById("checkNote").value = "";
+    await load();
+  } catch (e) { say("Failed: " + e.message); }
+}
+
 async function send(method, url, body) {
   const res = await (await fetch(url, {method, headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})).json();
   if (res.error) throw new Error(res.error);
@@ -224,13 +335,18 @@ function outputs(r) {  // a shot links to the explainer it was made for
   const ideas = new Set(made.filter(m => !m.startsWith("report:")).map(id => byId(id)?.for || id));
   return reports.concat([...ideas].map(byId).filter(Boolean));
 }
-function openIdea(id) { const d = byId(id); if (!d) return; tab = localStorage.tab = (TABS.find(t => t[2].includes(d.status)) || TABS[0])[0]; show(id); }
+function openIdea(id) { const d = byId(id); if (!d) return; area = localStorage.area = "clips"; tab = localStorage.tab = (TABS.find(t => t[2].includes(d.status)) || TABS[0])[0]; show(id); }
 function openReport(n) {
   pick("scout"); const el = document.getElementById(`report-${n}`);
   if (el) { el.open = true; el.scrollIntoView({behavior: "smooth", block: "start"}); }
 }
-load().then(() => openIdea(decodeURIComponent(location.hash.slice(1))));
-setInterval(() => { const typing = ["note", "inboxText"].includes(document.activeElement?.id); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
+load().then(() => {
+  const hash = decodeURIComponent(location.hash.slice(1)), check = hash.match(/^check-(\d+)$/);
+  if (check && checkById(+check[1])) {
+    area = localStorage.area = "checks"; checkTab = localStorage.checkTab = checkById(+check[1]).status; showCheck(+check[1]);
+  } else openIdea(hash);
+}).catch(e => say("Could not load: " + e.message));
+setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter"].includes(document.activeElement?.id); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
   if (!typing && !playing) load(); }, 15000);
 </script>
 </body>
