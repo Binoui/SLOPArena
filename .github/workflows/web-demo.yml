@@ -1,0 +1,51 @@
+name: web demo
+on:
+  push:
+    branches: [main]
+    paths:
+      - client/Web/**
+      - src/Shared/**
+      - content-cooked/**
+      - data/arenas/**
+      - .github/workflows/web-demo.yml
+  pull_request:
+    paths:
+      - client/Web/**
+      - .github/workflows/web-demo.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: web-demo-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Fetch the pinned assets
+        run: client/Web/scripts/assets.sh fetch
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Build the WASM sim
+        run: client/Web/scripts/build.sh
+      - name: Smoke-test a headless match
+        run: node client/Web/scripts/smoke.mjs brawl after_hours fightguy,manki
+      - name: Package
+        run: node client/Web/scripts/package.mjs
+      - name: Deploy to Cloudflare Pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.156.0'
+          command: pages deploy client/Web/dist --project-name=sloparena-play --branch=main --commit-hash=${{ github.sha }}
