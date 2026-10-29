@@ -2132,7 +2132,7 @@ namespace SlopArena.Shared
             verticalVelocity = MathF.Max(verticalVelocity - FlightGravity * TickDt, fallLimit);
         }
 
-        private static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier,
+        internal static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier,
             bool verticalMotionOwned = false)
         {
             if (!s.IsGrounded)

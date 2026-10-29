@@ -82,7 +82,6 @@ namespace SlopArena.Client.World
             public byte Form;
             public MatchContentEntry Entry = null!;
             public int PlayerNumber;
-            public ulong TargetId;
             public ushort LastToastDeaths;
             public InputController? Input;
             [NonSerialized] public InputActionMap? Map;
@@ -590,9 +589,9 @@ namespace SlopArena.Client.World
         {
             var input = npc.Input!;
             byte slot = input.ConsumePendingSlotPress();
+            // No target id: the simulation aims a couch seat at its nearest eligible enemy.
             return input.BuildInputState(_cameraMount, npc.Renderer.transform.eulerAngles.y, slot,
-                AimContext.None, canMove: null, targetEntityId: (byte)npc.TargetId,
-                aimFromFacing: true).input;
+                AimContext.None, canMove: null, targetEntityId: 0, aimFromFacing: true).input;
         }
 
         /// <summary>Rebuild the HUD and lock indicator after the NPC roster changes.</summary>
@@ -713,8 +712,7 @@ namespace SlopArena.Client.World
                     tickInputs[npc.Id] = default;
                     continue;
                 }
-                var opponent = SelectOpponent(npc, state);
-                tickInputs[npc.Id] = npc.Input != null ? BuildLocalInput(npc) : BuildNpcInput(state, opponent, npc);
+                tickInputs[npc.Id] = npc.Input != null ? BuildLocalInput(npc) : BuildNpcInput(state, npc);
 #if UNITY_EDITOR
                 if (MatchConfig.Mode == GameMode.Training && npc.Id == SelectedNpcId && CaptureTargetInput != null)
                     tickInputs[npc.Id] = CaptureTargetInput(_tick);
@@ -740,14 +738,14 @@ namespace SlopArena.Client.World
                     continue;
                 }
 
+                // BotMemory keeps only hits on the opponent it chose.
                 foreach (var hit in _bridge.LastTickHits)
                 {
-                    if (hit.Blocked || hit.OwnerEntityId != npc.Id
-                        || hit.TargetEntityId != npc.TargetId)
+                    if (hit.Blocked || hit.OwnerEntityId != npc.Id)
                         continue;
-                    var playerAfterHit = _bridge.GetState(npc.TargetId);
-                    npc.Memory.RecordOpponentHit(hit.AttackSlot, !playerAfterHit.IsGrounded,
-                        playerAfterHit, playerAfterHit.HitstunTicks, hit.HitstopTicks);
+                    var victim = _bridge.GetState(hit.TargetEntityId);
+                    npc.Memory.RecordOpponentHit(hit.AttackSlot, !victim.IsGrounded,
+                        victim, victim.HitstunTicks, hit.HitstopTicks);
                 }
             }
 
@@ -926,48 +924,14 @@ namespace SlopArena.Client.World
                 || state.LandingLagTicks > 0;
         }
 
-        private CharacterState SelectOpponent(NpcSlot npc, CharacterState self)
-        {
-            if (MatchConfig.Mode != GameMode.Solo)
-            {
-                npc.TargetId = PlayerEntityId;
-                return _bridge.GetState(PlayerEntityId);
-            }
-            ulong nearest = 0;
-            float distance = float.PositiveInfinity;
-            float currentDistance = float.PositiveInfinity;
-            foreach (var pair in _bridge.GetAllStates())
-            {
-                if (pair.Key == npc.Id || _bridge.InternalSim.IsEntityInactive(pair.Key)) continue;
-                var other = pair.Value;
-                float dx = self.PX - other.PX, dy = self.PY - other.PY, dz = self.PZ - other.PZ;
-                float squared = dx * dx + dy * dy + dz * dz;
-                if (pair.Key == npc.TargetId) currentDistance = squared;
-                if (squared < distance) { nearest = pair.Key; distance = squared; }
-            }
-            // Keep the current opponent until another is at least 20 percent closer.
-            if (nearest != npc.TargetId && (float.IsPositiveInfinity(currentDistance) || distance < currentDistance * 0.64f))
-            {
-                ulong previous = npc.TargetId;
-                npc.TargetId = nearest;
-                npc.Memory.Reset();
-                if (npc.Input == null)
-                {
-                    Debug.Log($"[Solo] CPU P{npc.PlayerNumber} target={nearest} previous={previous} tick={_tick}");
-                    _sessionLog?.LogEvent((int)_tick, "cpu-target", $"P{npc.PlayerNumber}:{previous}->{nearest}");
-                }
-            }
-            return npc.TargetId != 0 ? _bridge.GetState(npc.TargetId) : self;
-        }
-
-        private InputState BuildNpcInput(CharacterState npcState, CharacterState playerState, NpcSlot slot)
+        private InputState BuildNpcInput(CharacterState npcState, NpcSlot slot)
         {
             return _npcAiMode switch
             {
                 NpcAiMode.Idle => BuildIdleInput(),
-                NpcAiMode.Attack => BuildPolicyInput(npcState, playerState, slot, CpuBehavior.Attack),
-                NpcAiMode.Shield => BuildPolicyInput(npcState, playerState, slot, CpuBehavior.Shield),
-                NpcAiMode.Avoid => BuildPolicyInput(npcState, playerState, slot, CpuBehavior.Avoid),
+                NpcAiMode.Attack => BuildPolicyInput(npcState, slot, CpuBehavior.Attack),
+                NpcAiMode.Shield => BuildPolicyInput(npcState, slot, CpuBehavior.Shield),
+                NpcAiMode.Avoid => BuildPolicyInput(npcState, slot, CpuBehavior.Avoid),
                 _ => BuildIdleInput(),
             };
         }
@@ -978,12 +942,25 @@ namespace SlopArena.Client.World
         /// existing input-injection / rendering / respawn plumbing applies unchanged. Seeded
         /// randomly per match; idle until the match has initialized the NPC def.
         /// </summary>
-        private InputState BuildPolicyInput(CharacterState npcState, CharacterState playerState,
-            NpcSlot slot, CpuBehavior behavior)
+        private InputState BuildPolicyInput(CharacterState npcState, NpcSlot slot, CpuBehavior behavior)
         {
             if (slot.Def == null) return BuildIdleInput();
             slot.Rng ??= new System.Random();
-            _npcPolicy.ObserveOpponent(slot.Memory, playerState, _bridge.InternalSim.GetDefinition(playerState.EntityId));
+            ulong previous = slot.Memory.OpponentId;
+            // Training CPUs fight P1 only; Solo and Mayhem CPUs may fight every active fighter.
+            foreach (var pair in _bridge.GetAllStates())
+            {
+                if (pair.Key == slot.Id || (MatchConfig.Mode == GameMode.Solo
+                        ? _bridge.InternalSim.IsEntityInactive(pair.Key) : pair.Key != PlayerEntityId))
+                    continue;
+                _npcPolicy.ObserveOpponent(slot.Memory, pair.Value, _bridge.InternalSim.GetDefinition(pair.Key));
+            }
+            ulong opponent = slot.Memory.ChooseOpponent(npcState);
+            if (MatchConfig.Mode == GameMode.Solo && opponent != previous && opponent != 0)
+            {
+                Debug.Log($"[Solo] CPU P{slot.PlayerNumber} target={opponent} previous={previous} tick={_tick}");
+                _sessionLog?.LogEvent((int)_tick, "cpu-target", $"P{slot.PlayerNumber}:{previous}->{opponent}");
+            }
             return _npcPolicy.Decide(npcState, slot.Def.ForForm(npcState.Form.Active), slot.Rng, slot.Memory,
                 _arenaDef, slot.Entry.BakedAnimation, behavior, _bridge.GetActiveMove(slot.Id)?.Slot,
                 mayhemThreats: Mayhem ? new MayhemThreats(_bridge.InternalSim) : null,
