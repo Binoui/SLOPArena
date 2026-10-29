@@ -1,7 +1,8 @@
 ---
 key: training
-status: locked
+status: accepted
 locked: 2026-10-29
+accepted: 2026-10-29
 approved_by: maintainer
 approval_scope: round 2, options 1 + 2 combined from the 2026-10-29 layout board ("id like 1 + 2 so i can test out platforms and recovery but still have a more interesting stage"), on top of round 1's setting A "Crash-Test Lab"; pick-based lock, the maintainer judges the built stage in Training
 blockout:
@@ -26,7 +27,8 @@ heights, a trench and a shelf) with option 2 (recovery tests around the edges). 
 lock this brief. Acceptance comes from the maintainer playing it in Training. One
 factual correction followed the build: the first version called the trench lips ledges,
 but ledge grabs are disabled in the current game, so shell items 3 and 4 now say lips and
-shelf.
+shelf. The maintainer accepted the built stage on 2026-10-29 after playing it ("Training map
+view and edge recoveries", GOOD).
 
 Training mode itself does not change: the key stays `training`, it stays the only
 `trainingOnly` roster entry, and Training still opens on it by default.

@@ -5,7 +5,7 @@ target: training
 players: 1-4
 roster_entry: trainingOnly
 variant: static
-availability: pending-maintainer-acceptance
+availability: accepted
 competitive_intent: mixed
 topology: Crash Pad with western drill yard, trench, low shelf and eastern recovery islands
 source_scene: client/Unity/Assets/Stages/training/training.unity
@@ -15,7 +15,7 @@ design_brief: docs/design/stages/training.design.md
 art_source: tools/blender/training
 human_review:
   owner: project maintainer
-  status: pending
+  status: accepted 2026-10-29 (Slop Factory check #20, "Training map view and edge recoveries": GOOD)
   process: play Training and judge drill access, recovery, CPU reset positions, launch distances and effect readability
 ---
 
@@ -23,7 +23,8 @@ human_review:
 
 Every punch gets crash-tested here before it ships. The [locked round-2 brief](training.design.md)
 combines the Drill Yard and Recovery Range with the retained Crash Pad. Training keeps its key,
-sole `trainingOnly` roster entry and default selection. Human acceptance remains pending.
+sole `trainingOnly` roster entry and default selection. The maintainer accepted it on
+2026-10-29 after playing it ("Training map view and edge recoveries", GOOD).
 
 ## Gameplay shell
 
@@ -111,7 +112,8 @@ retained east deck. There are no external environment dependencies or stage-spec
 Fonts are the project's OFL Archivo Black and Space Mono.
 
 The cosmetic prefab has only `Crash-Test Lab` and `Stage Lights` roots. Art, materials and
-the prefab remain ignored pending maintainer acceptance. The shell scene, mesh assets,
+the prefab ship in Git since acceptance: `.gitignore` lists the `CrashTestLab` art and the
+prefab, and `tools/check_asset_closure.py` reports every reference shipping. The shell scene, mesh assets,
 `.arena`, generator, two affected test files, production brief, roster prose and thumbnail
 form the Training changes. `TESTING-UNITY.md` changes only its existing Training item.
 The original grey-lab backup under `artifacts/training-greylab-20261029/` is untouched.
@@ -156,8 +158,8 @@ Parent-review JPEGs are `tmp/training-rework-20261029/r2-start.jpg`, `r2-yard.jp
 and `r2-thumbnail.jpg`. The detailed local report is `tmp/training-views/round4-report.md`;
 `tmp/training-views/round4-files.tsv` inventories the touched files and their status.
 
-These checks establish the implemented shell and presentation. They do not establish
-maintainer acceptance, multi-CPU controller feel or packaged-player performance.
+These checks establish the implemented shell and presentation. The maintainer's play
+accepted the map on 2026-10-29. Packaged-player performance remains unmeasured.
 
 ## Brief conformance
 

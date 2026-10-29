@@ -501,6 +501,10 @@ videos/*
 !client/Unity/Assets/Stages/hamster_habitat/Presentation/Bedroom/*.png
 !client/Unity/Assets/Stages/hamster_habitat/Presentation/Bedroom/*.mat
 !client/Unity/Assets/Resources/Stages/hamster_habitat.prefab*
+!client/Unity/Assets/Stages/training/Presentation/CrashTestLab/*.fbx
+!client/Unity/Assets/Stages/training/Presentation/CrashTestLab/*.png
+!client/Unity/Assets/Stages/training/Presentation/CrashTestLab/*.mat
+!client/Unity/Assets/Resources/Stages/training.prefab*
 !client/Unity/Assets/Stages/manki_mayhem/Presentation/PirateBroadcast/*.fbx
 !client/Unity/Assets/Stages/manki_mayhem/Presentation/PirateBroadcast/*.png
 !client/Unity/Assets/Stages/manki_mayhem/Presentation/PirateBroadcast/*.mat
