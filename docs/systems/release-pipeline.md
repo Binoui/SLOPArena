@@ -217,8 +217,8 @@ existing publish-ready archive; do not overwrite an old artifact or move its tag
 If game `main` changes before workflow dispatch, select/build the new approved
 snapshot with a new version; the action rejects a client for a different commit.
 MasterConsole is a separate application/repository with an independent container
-image and authenticated gateway. Publish and deploy its approved source through
-the console workflow; see [Hosted owner console](owner-console.md). Local mode
+image and authenticated gateway. It runs on alfred and is rebuilt by the Slop
+Factory deploy; see [owner console](owner-console.md). Local mode
 remains available for development. This workflow builds game and Master backends;
 it does not deploy the console or a website.
 

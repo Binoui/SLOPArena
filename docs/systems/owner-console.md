@@ -1,4 +1,17 @@
-# Hosted owner console
+# Owner console
+
+The Master console runs on alfred at `http://100.68.254.9:8765/console/`, on the
+tailnet only, beside the Slop Factory. Caddy on alfred adds the gateway token, the
+console holds the Master key, and an SSH tunnel container reaches Master's private
+address with a key the VPS only allows to forward to that port. Deployment and
+secrets are in [Slop Factory: run it on alfred](slop-factory.md#run-it-on-alfred).
+
+The VPS-hosted console below was retired on 2026-10-29. Its container is stopped and
+its Caddy site file is kept as `/var/lib/sloparena-console/console.caddy.retired`.
+To bring it back, rerun the console repository's `deploy/deploy.py` as described
+below.
+
+## Retired hosted console
 
 The first hosted console uses the existing Playtest HTTPS site at
 `https://master-test.sloparena.barakaslurp.fr/console/`. Caddy requires the
@@ -14,7 +27,7 @@ test after an image archive round trip before publishing the immutable image
 digest. Private delivery uses the Actions image archive, verified against its
 receipt checksum and image content ID, without VPS registry credentials.
 
-## Runtime boundary
+### Runtime boundary
 
 The common Caddyfile imports `/etc/caddy/console/*.caddy` inside the existing
 Playtest host. The common Compose file mounts
@@ -31,7 +44,7 @@ The credential-free health endpoint returns only process health.
 Public Master `/owner` routes remain excluded. Game, database, match-control
 ports, Steam admission and gameplay authority are unaffected.
 
-## Provisioning and updates
+### Provisioning and updates
 
 Use the console repository's `deploy/deploy.py` with its exact CI image/source
 receipt and checksum-pinned archive in an authenticated operator sudo session.
