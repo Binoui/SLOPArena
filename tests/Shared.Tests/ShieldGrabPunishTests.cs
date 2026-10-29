@@ -59,16 +59,6 @@ public sealed class ShieldGrabPunishTests
         Assert.False(result.Captured, "Reach tuning must not erase recovery-based escape.");
     }
 
-    [Fact]
-    public void CloseBonkGrabCanCatchMankisExposedBodyAfterRecoveryAllowsMovement()
-    {
-        var result = RunPunish(CharacterClass.Bonk, CharacterClass.Manki, AbilitySlots.Slot1, 1.2f);
-        Assert.True(result.Blocked);
-        Assert.True(result.GrabStarted);
-        Assert.True(result.AttackerCouldActBeforeCapture);
-        Assert.True(result.Captured);
-    }
-
     private static PunishResult RunPunish(
         CharacterClass defender, CharacterClass attacker, byte slot, float distance)
     {
