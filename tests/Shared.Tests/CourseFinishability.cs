@@ -285,7 +285,7 @@ public sealed class CourseFinishability
     private IEnumerable<JumpPlan> JumpPlans()
     {
         int apex = (int)MathF.Round(Fighter.Movement.JumpForce / Fighter.Movement.Gravity * 60) + Fighter.Movement.JumpSquatTicks;
-        foreach (int run in new[] { 0, 4, 8, 12 })
+        foreach (int run in new[] { 0, 1, 4, 8, 12 })
         foreach (int second in new[] { -1, apex, apex - 8, apex + 8, apex + 16, 18, 25, 36, 48 }.Distinct())
         foreach (int held in new[] { 65, 1 })
             yield return new(run, held, second, -1, 1f, false);
@@ -478,7 +478,7 @@ public sealed class CourseFinishability
             new Hop(-34.5f,2f), new Go(-31f,5.4f), new Hop(-31f,12.5f),
             new Go(-32f,14.2f), new Hop(-34f,20.5f), new Go(-33.5f,21f),
             new Hop(-33f,26.5f), new Go(-30f,31.5f), new Go(-24.6f,29f),
-            new Hop(-18.5f,29f), new Go(-17f,27.1f), new Break("booth_1"), new Go(-17f,30.9f), new Break("booth_2"),
+            new Hop(-18.5f,29f), new Go(-17f,27.1f), new Break("booth_1"), new Go(-17f,30.7f), new Break("booth_2"),
             new Go(-15.6f,29f), new Hop(-10.5f,29f), new Go(-4.3f,27f), new Break("tower_1"),
             new Go(-4.3f,27f), new Break("tower_2"), new Go(-7.6f,30.2f), new Hop(-6.5f,32f),
             new Go(-5.8f,32.6f), new Hop(-3f,33.6f), new Go(-2.3f,33.6f),
