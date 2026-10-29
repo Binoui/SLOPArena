@@ -20,11 +20,16 @@ import urllib.request
 from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlsplit
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 HERE = Path(__file__).resolve().parent
 DATA = Path("/data")
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS checks (id INTEGER PRIMARY KEY, title TEXT NOT NULL, steps TEXT NOT NULL,
+  area TEXT, status TEXT NOT NULL, thread TEXT, thread_title TEXT, created TEXT NOT NULL, updated TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS check_notes (id INTEGER PRIMARY KEY, check_id INTEGER NOT NULL REFERENCES checks,
+  author TEXT NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL, send INTEGER NOT NULL DEFAULT 0,
+  delivered TEXT, error TEXT);
 CREATE TABLE IF NOT EXISTS ideas (id TEXT PRIMARY KEY, status TEXT NOT NULL, data TEXT NOT NULL, chosen INTEGER,
   posted TEXT, stats TEXT, created TEXT NOT NULL, updated TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY, idea TEXT NOT NULL REFERENCES ideas, author TEXT NOT NULL,
@@ -45,6 +50,10 @@ VERDICTS = {
     "posted": set(),
     "rejected": {"proposed"},
 }
+CHECK_MOVES = {"to-try": {"good", "redo", "dropped"}, "redo": {"to-try", "good", "dropped"},
+               "good": {"to-try"}, "dropped": {"to-try"}}
+CHECK_FIELDS = {"title", "steps", "area", "thread", "thread_title"}
+CHECK_MEDIA = {".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png"}
 TAKE_FROM = {"proposed", "approved", "rendered"}
 RUN_KINDS = {"propose", "render", "redo", "scout"}
 RUN_STATES = {"queued", "sent", "running", "done", "failed"}
@@ -93,6 +102,7 @@ def full_idea(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
 def board() -> dict:
     with db() as con:
         return {
+            "checks": [full_check(con, row) for row in con.execute("SELECT * FROM checks ORDER BY created, id")],
             "ideas": [full_idea(con, row) for row in con.execute("SELECT * FROM ideas ORDER BY created, id")],
             "runs": [dict(r) for r in con.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 40")],
             "inbox": [dict(r) for r in con.execute("SELECT * FROM inbox ORDER BY id DESC LIMIT 40")],
@@ -100,11 +110,165 @@ def board() -> dict:
         }
 
 
+def check_row(con: sqlite3.Connection, check_id: int) -> sqlite3.Row:
+    row = con.execute("SELECT * FROM checks WHERE id = ?", (check_id,)).fetchone()
+    if not row:
+        raise Refused(f"no check {check_id}", 404)
+    return row
+
+
+def full_check(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
+    folder = DATA / "media" / f"check-{row['id']}"
+    media = [f"/media/check-{row['id']}/{quote(p.name)}" for p in sorted(folder.iterdir())
+             if p.is_file() and p.suffix.lower() in CHECK_MEDIA] if folder.is_dir() else []
+    return dict(row) | {"notes": [dict(n) for n in con.execute(
+        "SELECT * FROM check_notes WHERE check_id = ? ORDER BY id", (row["id"],))], "media": media}
+
+
+def check_fields(body: dict, creating: bool = False) -> dict:
+    if body.keys() - CHECK_FIELDS:
+        raise Refused("check fields are title, steps, area, thread and thread_title")
+    fields = {}
+    for key, value in body.items():
+        if value is not None and not isinstance(value, str):
+            raise Refused(f"{key} must be text")
+        fields[key] = value.strip() if value else None
+    for key in ("title", "steps"):
+        if (creating or key in fields) and not fields.get(key):
+            raise Refused(f"a check needs {key}")
+    if "thread" in fields and not fields["thread"]:
+        fields["thread_title"] = None
+    return fields
+
+
+def add_check(body: dict) -> dict:
+    fields = check_fields(body, creating=True)
+    with db() as con:
+        check_id = con.execute(
+            "INSERT INTO checks (title, steps, area, status, thread, thread_title, created, updated) "
+            "VALUES (?, ?, ?, 'to-try', ?, ?, ?, ?)",
+            (fields["title"], fields["steps"], fields.get("area"), fields.get("thread"),
+             fields.get("thread_title"), now(), now())).lastrowid
+        return full_check(con, check_row(con, check_id))
+
+
+def patch_check(check_id: int, body: dict) -> dict:
+    fields = check_fields(body)
+    with db() as con:
+        con.execute("BEGIN IMMEDIATE")
+        row = check_row(con, check_id)
+        if "thread" in fields and fields["thread"] != row["thread"] and "thread_title" not in fields:
+            fields["thread_title"] = None
+        for key, value in fields.items():
+            con.execute(f"UPDATE checks SET {key} = ? WHERE id = ?", (value, check_id))
+        con.execute("UPDATE checks SET updated = ? WHERE id = ?", (now(), check_id))
+        return full_check(con, check_row(con, check_id))
+
+
+def check_note(con: sqlite3.Connection, check_id: int, author: str, body: str, send: bool) -> None:
+    if author not in {"owner", "agent"} or not isinstance(body, str) or not body.strip():
+        raise Refused("a note needs an author (owner or agent) and a body")
+    if not isinstance(send, bool):
+        raise Refused("send must be true or false")
+    if send and author != "owner":
+        raise Refused("only owner notes can be sent to a thread")
+    con.execute("INSERT INTO check_notes (check_id, author, body, at, send) VALUES (?, ?, ?, ?, ?)",
+                (check_id, author, body.strip(), now(), send))
+    con.execute("UPDATE checks SET updated = ? WHERE id = ?", (now(), check_id))
+
+
+def add_check_note(check_id: int, body: dict) -> dict:
+    with db() as con:
+        con.execute("BEGIN IMMEDIATE")
+        row = check_row(con, check_id)
+        send = body.get("send", False)
+        if not isinstance(send, bool):
+            raise Refused("send must be true or false")
+        check_note(con, check_id, body.get("author", "agent"), body.get("body", ""),
+                   send and bool(row["thread"]))
+        return full_check(con, check_row(con, check_id))
+
+
+def check_verdict(check_id: int, body: dict) -> dict:
+    status, note, author = body.get("status"), body.get("note", ""), body.get("author", "owner")
+    if not isinstance(note, str):
+        raise Refused("note must be text")
+    if author not in {"owner", "agent"}:
+        raise Refused("author must be owner or agent")
+    with db() as con:
+        con.execute("BEGIN IMMEDIATE")
+        row = check_row(con, check_id)
+        if not isinstance(status, str) or status not in CHECK_MOVES[row["status"]]:
+            raise Refused(f"check {check_id} is {row['status']}: it cannot become {status}", 409)
+        if author == "agent" and not (status == "dropped" or (row["status"] == "redo" and status == "to-try")):
+            raise Refused("agents can ready a redo or drop a superseded check", 409)
+        if status == "redo" and not note.strip():
+            raise Refused("redo needs a note explaining what to change")
+        con.execute("UPDATE checks SET status = ?, updated = ? WHERE id = ?", (status, now(), check_id))
+        # Keep the verdict in the note so a later move cannot change a queued outcome.
+        text = f"Verdict: {status.upper()}." + (f"\n\n{note.strip()}" if note.strip() else "")
+        check_note(con, check_id, author, text, author == "owner" and bool(row["thread"]))
+        return full_check(con, check_row(con, check_id))
+
+
+def upload_check(check_id: int, name: str, length: int, stream) -> dict:
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._-]*", name) or Path(name).suffix.lower() not in CHECK_MEDIA:
+        raise Refused("check media needs a safe file name ending in .mp4, .jpg or .png")
+    if length <= 0:
+        raise Refused("media upload is empty")
+    with db() as con:
+        check_row(con, check_id)
+    folder = DATA / "media" / f"check-{check_id}"
+    folder.mkdir(parents=True, exist_ok=True)
+    part = folder / f".upload-{threading.get_ident()}"
+    try:
+        with part.open("wb") as handle:
+            left = length
+            while left:
+                chunk = stream.read(min(left, 1 << 20))
+                if not chunk:
+                    raise Refused("upload ended early")
+                handle.write(chunk)
+                left -= len(chunk)
+        part.replace(folder / name)
+    finally:
+        part.unlink(missing_ok=True)
+    with db() as con:
+        con.execute("UPDATE checks SET updated = ? WHERE id = ?", (now(), check_id))
+        return full_check(con, check_row(con, check_id))
+
+
+def outbox() -> list:
+    with db() as con:
+        return [dict(n) for n in con.execute(
+            "SELECT n.*, c.title, c.thread, c.status FROM check_notes n JOIN checks c ON c.id = n.check_id "
+            "WHERE n.author = 'owner' AND n.send = 1 AND n.delivered IS NULL "
+            "AND c.thread IS NOT NULL AND c.thread != '' ORDER BY n.id")]
+
+
+def outbox_result(note_id: int, body: dict) -> dict:
+    if body.get("delivered") is not True and not isinstance(body.get("error"), str):
+        raise Refused("report delivered: true or an error string")
+    with db() as con:
+        con.execute("BEGIN IMMEDIATE")
+        row = con.execute("SELECT * FROM check_notes WHERE id = ? AND author = 'owner' AND send = 1",
+                          (note_id,)).fetchone()
+        if not row:
+            raise Refused(f"no sendable note {note_id}", 404)
+        if not row["delivered"]:
+            con.execute("UPDATE check_notes SET delivered = ?, error = ? WHERE id = ?",
+                        (now() if body.get("delivered") is True else None,
+                         None if body.get("delivered") is True else body["error"], note_id))
+        return dict(con.execute("SELECT * FROM check_notes WHERE id = ?", (note_id,)).fetchone())
+
+
 def add_idea(body: dict) -> dict:
     """Agents' proposals, and the one-time import (which may carry a status, take choice and history)."""
     idea_id = body.get("id", "")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", idea_id):
         raise Refused("an idea needs an id of lowercase letters, digits and dashes")
+    if re.fullmatch(r"check-\d+", idea_id):
+        raise Refused("check-<number> is reserved for check media")
     status = body.get("status", "proposed")
     if status not in VERDICTS:
         raise Refused(f"unknown status {status}")
@@ -343,13 +507,33 @@ class Handler(BaseHTTPRequestHandler):
             target = (DATA / "media" / parts[1] / parts[2]).resolve()
             if not target.is_relative_to((DATA / "media").resolve()) or not target.is_file():
                 raise Refused("no such file", 404)
-            kind = "video/mp4" if target.suffix == ".mp4" else "image/jpeg"
+            kind = CHECK_MEDIA.get(target.suffix.lower(), "image/jpeg")
             return self.file(target, kind, f"{parts[1]}-{parts[2]}" if "dl" in query else "")
         if parts[0] != "api":
             raise Refused("not found", 404)
         api = parts[1:]
         if method == "GET" and api == ["board"]:
             return self.json(board())
+        if method == "POST" and api == ["checks"]:
+            return self.json(add_check(self.body()))
+        if api[:1] == ["checks"] and len(api) >= 2:
+            if not api[1].isdigit():
+                raise Refused("a check id is a number")
+            check_id = int(api[1])
+            if method == "PATCH" and len(api) == 2:
+                return self.json(patch_check(check_id, self.body()))
+            if method == "POST" and api[2:] == ["verdict"]:
+                return self.json(check_verdict(check_id, self.body()))
+            if method == "POST" and api[2:] == ["notes"]:
+                return self.json(add_check_note(check_id, self.body()))
+            if method == "PUT" and len(api) == 4 and api[2] == "media":
+                return self.json(upload_check(check_id, api[3], int(self.headers.get("Content-Length", 0)), self.rfile))
+        if method == "GET" and api == ["outbox"]:
+            return self.json(outbox())
+        if method == "POST" and len(api) == 2 and api[0] == "outbox":
+            if not api[1].isdigit():
+                raise Refused("a note id is a number")
+            return self.json(outbox_result(int(api[1]), self.body()))
         if method == "GET" and api == ["ideas"]:
             with db() as con:
                 rows = con.execute("SELECT * FROM ideas WHERE ? = '' OR status = ? ORDER BY created, id",

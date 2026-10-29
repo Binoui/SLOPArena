@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Talk to the SLOPArena content factory on alfred (tools/content_factory/server.py) from the studio desk.
 
-The factory is the source of truth for social ideas, the owner's comments, takes, runs and scout reports;
+The factory is the source of truth for human checks, social ideas, the owner's comments, takes, runs and scout reports;
 skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPARENA_FACTORY, else
 ~/.config/sloparena/factory.json ({"url": "..."}), else alfred's tailnet address.
 
@@ -18,15 +18,27 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
     python3 tools/factory.py report scout|designer <report.md> [--inbox 3,4]   # closes those inbox items
     python3 tools/factory.py reports [--kind scout] [--limit 3]
     python3 tools/factory.py import <queue-dir>             # one-time move of the old JSON queue
+    python3 tools/factory.py check add --title "..." --steps <file.md|-> (--thread <id>|--no-thread)
+                                      [--area Bashie] [--clip <file> ...]
+    python3 tools/factory.py check list [--status to-try]
+    python3 tools/factory.py check get <id>
+    python3 tools/factory.py check note <id> "<text>"
+    python3 tools/factory.py check ready <id> [--note "what changed"]
+    python3 tools/factory.py check drop <id> [--note "why superseded"]
+    python3 tools/factory.py check attach <id> <file>...
+    python3 tools/factory.py check import <checks.json>
+    python3 tools/factory.py relay [--once] [--interval 20]  # desk outbox worker, T3_CLI overrides t3
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -115,6 +127,111 @@ def migrate(queue: Path) -> None:
         print(f"{job['id']}: {job['status']}")
 
 
+def t3_cli() -> str:
+    return os.environ.get("T3_CLI") or os.environ.get("T3CODE_CLI_PATH") or "t3"
+
+
+def thread_title(thread: str | None) -> str | None:
+    if not thread:
+        return None
+    try:
+        result = subprocess.run([t3_cli(), "thread", "list", "--json"], check=True,
+                                capture_output=True, text=True, timeout=30)
+        threads = json.loads(result.stdout)
+        return next((t["title"] for t in threads if t.get("threadId") == thread), None)
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+        return None
+
+
+def attach_check(check_id: int, files: list[Path]) -> None:
+    for path in files:
+        name = re.sub(r"[^a-zA-Z0-9._-]", "-", path.name)
+        if not name or not name[0].isalnum():
+            name = "media-" + name
+        call("PUT", f"/api/checks/{check_id}/media/{quote(name)}", data=path.read_bytes(),
+             headers={"Content-Type": "application/octet-stream"})
+
+
+def create_check(title: str, steps: str, area: str | None, thread: str | None, clips: list[Path]) -> int:
+    for path in clips:
+        if not path.is_file() or path.suffix.lower() not in {".mp4", ".jpg", ".png"}:
+            raise SystemExit(f"factory: check media must be an existing .mp4, .jpg or .png file: {path}")
+    check = call("POST", "/api/checks", {"title": title, "steps": steps, "area": area,
+                                        "thread": thread, "thread_title": thread_title(thread)})
+    print(check["id"], flush=True)
+    attach_check(check["id"], clips)
+    return check["id"]
+
+
+def check_command(args) -> None:
+    if args.check_command == "add":
+        steps = sys.stdin.read() if args.steps == "-" else Path(args.steps).read_text()
+        create_check(args.title, steps, args.area, args.thread, args.clip)
+    elif args.check_command == "list":
+        for check in call("GET", "/api/board")["checks"]:
+            if not args.status or check["status"] == args.status:
+                print(f"{check['id']:4} {check['status']:8} {check['area'] or '-':16} {check['title']}")
+    elif args.check_command == "get":
+        check = next((c for c in call("GET", "/api/board")["checks"] if c["id"] == args.id), None)
+        if not check:
+            raise SystemExit(f"factory: no check {args.id}")
+        print(json.dumps(check, indent=1, ensure_ascii=False))
+    elif args.check_command == "note":
+        call("POST", f"/api/checks/{args.id}/notes", {"author": "agent", "body": args.text, "send": False})
+    elif args.check_command in {"ready", "drop"}:
+        call("POST", f"/api/checks/{args.id}/verdict",
+             {"status": {"ready": "to-try", "drop": "dropped"}[args.check_command],
+              "author": "agent", "note": args.note})
+    elif args.check_command == "attach":
+        attach_check(args.id, args.files)
+    elif args.check_command == "import":
+        for item in json.loads(args.file.read_text()):
+            create_check(item["title"], item["steps"], item.get("area"), item.get("thread"),
+                         [Path(p) for p in item.get("clips", [])])
+
+
+def relay_message(note: dict) -> str:
+    body = note["body"]
+    match = re.fullmatch(r"Verdict: (TO-TRY|GOOD|REDO|DROPPED)\.(?:\n\n(.*))?", body, re.DOTALL)
+    if match:
+        verdict, text = match[1], match[2]
+        message = f'Owner checked "{note["title"]}" (factory check #{note["check_id"]}): {verdict}.'
+        if text:
+            message += f"\n\n{text}"
+        if verdict == "REDO":
+            message += (f'\n\nWhen fixed, run: python3 tools/factory.py check ready {note["check_id"]} '
+                        '--note "<what changed>"')
+        elif verdict == "TO-TRY":
+            message += "\n\nThe owner reopened this check for another try."
+        return message
+    return (f'Owner left a note on "{note["title"]}" (factory check #{note["check_id"]}, '
+            f'{note["status"]}):\n\n{body}\n\n'
+            f'Read the check: python3 tools/factory.py check get {note["check_id"]}')
+
+
+def relay(once: bool, interval: float) -> None:
+    while True:
+        try:
+            for note in call("GET", "/api/outbox"):
+                try:
+                    subprocess.run([t3_cli(), "thread", "send", note["thread"], "-"],
+                                   input=relay_message(note), text=True, capture_output=True, check=True, timeout=60)
+                except (OSError, subprocess.SubprocessError) as error:
+                    detail = error.stderr.strip() if isinstance(error, subprocess.CalledProcessError) else str(error)
+                    call("POST", f"/api/outbox/{note['id']}", {"error": detail or str(error)})
+                    print(f"note {note['id']}: {detail or error}", file=sys.stderr, flush=True)
+                else:
+                    call("POST", f"/api/outbox/{note['id']}", {"delivered": True})
+                    print(f"note {note['id']}: delivered", flush=True)
+        except (OSError, SystemExit) as error:
+            if once:
+                raise
+            print(f"relay: {error}", file=sys.stderr, flush=True)
+        if once:
+            return
+        time.sleep(interval)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -149,9 +266,40 @@ def main() -> None:
     reports.add_argument("--kind", default="")
     reports.add_argument("--limit", type=int, default=3)
     sub.add_parser("import").add_argument("queue", type=Path)
+    checks = sub.add_parser("check").add_subparsers(dest="check_command", required=True)
+    add = checks.add_parser("add")
+    add.add_argument("--title", required=True)
+    add.add_argument("--steps", required=True)
+    add.add_argument("--area")
+    thread = add.add_mutually_exclusive_group(required=True)
+    thread.add_argument("--thread")
+    thread.add_argument("--no-thread", action="store_true")
+    add.add_argument("--clip", nargs="+", type=Path, default=[])
+    checks.add_parser("list").add_argument("--status", choices=["to-try", "redo", "good", "dropped"])
+    checks.add_parser("get").add_argument("id", type=int)
+    note = checks.add_parser("note")
+    note.add_argument("id", type=int)
+    note.add_argument("text")
+    for command in ("ready", "drop"):
+        move = checks.add_parser(command)
+        move.add_argument("id", type=int)
+        move.add_argument("--note", default="")
+    attach = checks.add_parser("attach")
+    attach.add_argument("id", type=int)
+    attach.add_argument("files", nargs="+", type=Path)
+    checks.add_parser("import").add_argument("file", type=Path)
+    worker = sub.add_parser("relay")
+    worker.add_argument("--once", action="store_true")
+    worker.add_argument("--interval", type=float, default=20)
     args = parser.parse_args()
+    if args.command == "relay" and args.interval <= 0:
+        parser.error("relay interval must be positive")
 
-    if args.command == "list":
+    if args.command == "check":
+        check_command(args)
+    elif args.command == "relay":
+        relay(args.once, args.interval)
+    elif args.command == "list":
         ideas = call("GET", f"/api/ideas?status={args.status or ''}")
         for status in STATUSES:
             for idea in (i for i in ideas if i["status"] == status):
