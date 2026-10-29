@@ -147,7 +147,7 @@ public sealed class ArmorAuthoringTests
         throw new InvalidDataException("ground.1 fixture has no hitbox operation.");
     }
 
-    private static CharacterPackageAssemblyInput BuildInput(CookedCharacterPackage package)
+    internal static CharacterPackageAssemblyInput BuildInput(CookedCharacterPackage package)
     {
         const string sourceHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         var names = new HashSet<string>(StringComparer.Ordinal)

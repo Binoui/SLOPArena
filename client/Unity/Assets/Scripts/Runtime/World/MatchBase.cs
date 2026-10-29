@@ -77,9 +77,23 @@ namespace SlopArena.Client.World
         }
         private void FixedUpdate()
         {
+#if UNITY_EDITOR
+            if (CaptureStepping) return;
+#endif
             OnMatchFixedUpdate();
             UpdateCameraFraming();
         }
+
+#if UNITY_EDITOR
+        protected virtual bool CaptureStepping => false;
+        protected void StepForCapture()
+        {
+            OnMatchFixedUpdate();
+            UpdateCameraFraming();
+        }
+
+        public void ClearCapturePresentation() => ResetSimulationPresentation();
+#endif
 
         private readonly List<FramingSubject> _framingSubjects = new();
 

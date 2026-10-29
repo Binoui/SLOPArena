@@ -22,6 +22,7 @@ internal static class SteeredChargeFixture
     /// <summary>Drops every other lifecycle (so the package fits the Workshop profile) and puts the charge on ground.R.</summary>
     internal static void Apply(JsonObject character, JsonObject? operation = null)
     {
+        FightGuyFixture.WithoutTitleMatch(character);
         character["capabilityRequirements"] = new JsonArray(new JsonObject
         {
             ["capabilityId"] = CharacterPackageCompiler.SteeredChargeCapabilityId,

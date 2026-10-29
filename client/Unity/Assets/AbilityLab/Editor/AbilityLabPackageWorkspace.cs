@@ -26,10 +26,41 @@ public sealed partial class AbilityLabPackageWorkspace
             RefreshPersistedStatus(true);
         if (lab != null && HasPackage)
         {
+            lab.SetForm(SelectedForm);
             lab.SetSourceDocument(new CharacterPackageSource(Manifest, Draft));
             lab.SetPresentationBindings(Catalog.Presentations);
         }
     }
+
+    public byte SelectedForm { get; private set; }
+    public IReadOnlyList<CharacterSlotSource> SelectedSlots => SelectedForm == 1 && Draft?.AlternateForm != null
+        ? Draft.AlternateForm.Slots : Draft.Slots;
+    public IReadOnlyList<CharacterAliasSource> SelectedAliases => SelectedForm == 1 && Draft?.AlternateForm != null
+        ? Draft.AlternateForm.Aliases : Draft.Aliases;
+
+    public bool SelectForm(byte form)
+    {
+        if (!HasPackage || form > 1 || form == 1 && Draft.AlternateForm == null) return false;
+        SelectedForm = form;
+        PreviewLab?.SetForm(form);
+        return true;
+    }
+
+    private CharacterPackageSource GridSource()
+        => new(Manifest, Draft with { Slots = SelectedSlots, Aliases = SelectedAliases });
+
+    private CharacterSourceEditResult CompleteGridEdit(CharacterSourceEditResult result)
+    {
+        if (SelectedForm == 0 || !result.IsValid || result.Source == null) return result;
+        var edited = result.Source.Character;
+        return new CharacterSourceEditResult(new CharacterPackageSource(result.Source.Manifest, edited with
+        {
+            Slots = Draft.Slots, Aliases = Draft.Aliases,
+            AlternateForm = Draft.AlternateForm with { Slots = edited.Slots, Aliases = edited.Aliases },
+        }), result.Diagnostics);
+    }
+
+    private bool ApplyGridEdit(CharacterSourceEditResult result) => ApplyEdit(CompleteGridEdit(result));
 
     public string PackageRoot { get; private set; } = "";
     public PackageManifestSource Manifest { get; private set; } = null!;
@@ -139,6 +170,8 @@ public sealed partial class AbilityLabPackageWorkspace
         PackageRoot = inspection.SourcePath;
         Manifest = inspection.Source.Manifest;
         Draft = inspection.Source.Character;
+        SelectedForm = 0;
+        PreviewLab?.SetForm(0);
         Catalog = inspection.Catalog;
         _undo.Clear();
         _redo.Clear();
@@ -796,11 +829,11 @@ public sealed partial class AbilityLabPackageWorkspace
         sourceSlot = null!;
         if (!HasPackage || !CanonicalSlotProjection.TryGet(canonicalSlotId, out _)) return false;
 
-        var explicitById = Draft.Slots
+        var explicitById = SelectedSlots
             .Select((slot, index) => (slot, index))
             .Where(item => item.slot != null)
             .ToDictionary(item => item.slot.Id, item => item.index, StringComparer.Ordinal);
-        var aliases = (Draft.Aliases ?? Array.Empty<CharacterAliasSource>())
+        var aliases = (SelectedAliases ?? Array.Empty<CharacterAliasSource>())
             .Where(alias => alias != null)
             .ToDictionary(alias => alias.From, alias => alias.To, StringComparer.Ordinal);
         var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -810,7 +843,7 @@ public sealed partial class AbilityLabPackageWorkspace
             if (!visited.Add(current)) return false;
             if (explicitById.TryGetValue(current, out explicitSourceSlotIndex))
             {
-                sourceSlot = Draft.Slots[explicitSourceSlotIndex];
+                sourceSlot = SelectedSlots[explicitSourceSlotIndex];
                 return true;
             }
             if (!aliases.TryGetValue(current, out string target)) return false;
@@ -850,7 +883,7 @@ public sealed partial class AbilityLabPackageWorkspace
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         if (!TryResolveCanonicalSlot(canonicalSlotId, out int slotIndex, out _))
             return Fail("edit.slot.unresolved", canonicalSlotId, "Canonical slot does not resolve to an explicit source slot.");
-        return ApplyEdit(CharacterPackageSourceCodec.ReplaceOperationTick(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operationIndex, tick));
+        return ApplyGridEdit(CharacterPackageSourceCodec.ReplaceOperationTick(GridSource(), slotIndex, stageIndex, operationIndex, tick));
     }
 
     public bool ReplaceHitboxDuration(string canonicalSlotId, int stageIndex, int operationIndex, int durationTicks)
@@ -858,15 +891,15 @@ public sealed partial class AbilityLabPackageWorkspace
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         if (!TryResolveCanonicalSlot(canonicalSlotId, out int slotIndex, out _))
             return Fail("edit.slot.unresolved", canonicalSlotId, "Canonical slot does not resolve to an explicit source slot.");
-        return ApplyEdit(CharacterPackageSourceCodec.ReplaceHitboxDuration(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operationIndex, durationTicks));
+        return ApplyGridEdit(CharacterPackageSourceCodec.ReplaceHitboxDuration(GridSource(), slotIndex, stageIndex, operationIndex, durationTicks));
     }
     public bool ReplacePresentationPlacement(string canonicalSlotId, int stageIndex, int operationIndex, PresentationPlacement placement)
     {
         if (!HasPackage) return Fail("workspace.missing", "workspace", "No package is open.");
         if (!TryResolveCanonicalSlot(canonicalSlotId, out int slotIndex, out _))
             return Fail("edit.slot.unresolved", canonicalSlotId, "Canonical slot does not resolve to an explicit source slot.");
-        return ApplyEdit(CharacterPackageSourceCodec.ReplacePresentationPlacement(
-            new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operationIndex, placement));
+        return ApplyGridEdit(CharacterPackageSourceCodec.ReplacePresentationPlacement(
+            GridSource(), slotIndex, stageIndex, operationIndex, placement));
     }
 
 
@@ -953,8 +986,8 @@ public sealed partial class AbilityLabPackageWorkspace
         var parameters = new TargetedLeapCapabilityParameters(
             0, 120, 1f, 12f, 10f, 0, recoveryTicks, hitbox);
         var source = new CharacterPackageSource(Manifest,
-            Draft with { CapabilityRequirements = requirements });
-        return ApplyEdit(CharacterPackageSourceCodec.AddOperation(source, slotIndex, stageIndex,
+            GridSource().Character with { CapabilityRequirements = requirements });
+        return ApplyGridEdit(CharacterPackageSourceCodec.AddOperation(source, slotIndex, stageIndex,
             new StartCapabilityOperationSource(0, AuthoringUnit.Ticks,
                 CharacterPackageCompiler.TargetedLeapCapabilityId,
                 CharacterPackageCompiler.TargetedLeapCapabilityVersion, parameters)));
@@ -997,7 +1030,7 @@ public sealed partial class AbilityLabPackageWorkspace
         var parameters = new DashStrikeCapabilityParameters(3.5f, 28f, 33, 16, light, tip,
             Draft.PresentationIds.FirstOrDefault() ?? "");
         int minimumStageTicks = 60;
-        var slots = Draft.Slots.ToArray();
+        var slots = SelectedSlots.ToArray();
         slots[slotIndex] = sourceSlot with
         {
             Behavior = AuthoringAbilityBehavior.MeleeCombo,
@@ -1011,8 +1044,8 @@ public sealed partial class AbilityLabPackageWorkspace
             }),
         };
         var source = new CharacterPackageSource(Manifest,
-            Draft with { CapabilityRequirements = requirements, Slots = slots });
-        return ApplyEdit(CharacterPackageSourceCodec.AddOperation(source, slotIndex, stageIndex,
+            GridSource().Character with { CapabilityRequirements = requirements, Slots = slots });
+        return ApplyGridEdit(CharacterPackageSourceCodec.AddOperation(source, slotIndex, stageIndex,
             new StartCapabilityOperationSource(0, AuthoringUnit.Ticks,
                 CharacterPackageCompiler.DashStrikeCapabilityId,
                 CharacterPackageCompiler.DashStrikeCapabilityVersion, parameters)));
@@ -1022,7 +1055,7 @@ public sealed partial class AbilityLabPackageWorkspace
 
     public bool ReplaceStage(int slotIndex, int stageIndex, CharacterStageSource stage)
     {
-        var result = CharacterPackageSourceCodec.ReplaceStage(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, stage);
+        var result = CompleteGridEdit(CharacterPackageSourceCodec.ReplaceStage(GridSource(), slotIndex, stageIndex, stage));
         if (!result.IsValid || result.Source == null) { SetDiagnostics(result.Diagnostics, "Failed"); return false; }
         PushUndo();
         Manifest = result.Source.Manifest;
@@ -1034,7 +1067,7 @@ public sealed partial class AbilityLabPackageWorkspace
 
     public bool ReplaceOperation(int slotIndex, int stageIndex, int operationIndex, CharacterTimelineOperationSource operation)
     {
-        var result = CharacterPackageSourceCodec.ReplaceOperation(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operationIndex, operation);
+        var result = CompleteGridEdit(CharacterPackageSourceCodec.ReplaceOperation(GridSource(), slotIndex, stageIndex, operationIndex, operation));
         if (!result.IsValid || result.Source == null) { SetDiagnostics(result.Diagnostics, "Failed"); return false; }
         PushUndo();
         Manifest = result.Source.Manifest;
@@ -1045,16 +1078,16 @@ public sealed partial class AbilityLabPackageWorkspace
     }
 
     public bool AddStage(int slotIndex, CharacterStageSource stage)
-        => ApplyEdit(CharacterPackageSourceCodec.AddStage(new CharacterPackageSource(Manifest, Draft), slotIndex, stage));
+        => ApplyGridEdit(CharacterPackageSourceCodec.AddStage(GridSource(), slotIndex, stage));
     public bool RemoveStage(int slotIndex, int stageIndex)
-        => ApplyEdit(CharacterPackageSourceCodec.RemoveStage(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex));
+        => ApplyGridEdit(CharacterPackageSourceCodec.RemoveStage(GridSource(), slotIndex, stageIndex));
 
     public bool AddOperation(int slotIndex, int stageIndex, CharacterTimelineOperationSource operation)
-        => ApplyEdit(CharacterPackageSourceCodec.AddOperation(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operation));
+        => ApplyGridEdit(CharacterPackageSourceCodec.AddOperation(GridSource(), slotIndex, stageIndex, operation));
     public bool RemoveOperation(int slotIndex, int stageIndex, int operationIndex)
-        => ApplyEdit(CharacterPackageSourceCodec.RemoveOperation(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operationIndex));
+        => ApplyGridEdit(CharacterPackageSourceCodec.RemoveOperation(GridSource(), slotIndex, stageIndex, operationIndex));
     public bool MoveOperation(int slotIndex, int stageIndex, int operationIndex, int destinationIndex)
-        => ApplyEdit(CharacterPackageSourceCodec.MoveOperation(new CharacterPackageSource(Manifest, Draft), slotIndex, stageIndex, operationIndex, destinationIndex));
+        => ApplyGridEdit(CharacterPackageSourceCodec.MoveOperation(GridSource(), slotIndex, stageIndex, operationIndex, destinationIndex));
     private bool ApplyEdit(CharacterSourceEditResult result)
     {
         if (!result.IsValid || result.Source == null) { SetDiagnostics(result.Diagnostics, "Failed"); return false; }

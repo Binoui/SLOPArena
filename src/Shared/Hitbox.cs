@@ -93,6 +93,12 @@ namespace SlopArena.Shared
         /// <summary>Cooked cosine and sine of the maximum turn per tick.</summary>
         public float HomingTurnCos, HomingTurnSin;
 
+        /// <summary>
+        /// A perching projectile's pop (ADR-0051). Set, the sticky path carries it without damage and never explodes it;
+        /// a hit from the thrower's other form on its carrier queues the pop, and an opposing attack in flight breaks it.
+        /// </summary>
+        public ProjectilePerch? Perch;
+
         /// <summary>Optional damage override for contact with the owner.</summary>
         public float? OwnerDamage;
 

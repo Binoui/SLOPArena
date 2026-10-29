@@ -1,0 +1,190 @@
+{
+  "name": "nyx-swap-golive",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakemoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx real form ground.F (anim.nyx.gf), from her pose sheet swap-golive (2026-10-29). Proposed game timing: {\"total\": 48, \"contact\": 24, \"active\": [24, 28], \"iasa\": 40, \"model\": \"ADR-0051 swapForm with a towardOwner hitbox on the same tick; Bashie Wave Pool 24\", \"what\": \"the form swaps and the pull hitbox spawns at the contact tick, inside the flash\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyx's F from the real form, Going Live: the swap to her fake form. The real goth rolls her eyes, pulls her phone, raises it, and a ring-light flash covers her; out of the flash steps Nyxxie, posing and beckoning enemies in.\n\nWho she is. Nyx in her real form (image 1): a deadpan trad-goth shadow witch, a stark white face, black lips, waist-length straight black hair with blunt bangs, a long black dress with puffed shoulders, silver chains and an ankh, studded bangles, black platform boots. She stands straight and stiff, bored and unimpressed. Her body barely moves: her shadows do the hitting (claws, hands, tendrils, added later as effects, not in this clip). Her moves are small, stiff, deliberate gestures of one hand or both: precise and economical, with a slight anticipation, a crisp gesture, a held beat and a clean return. Barely moving means small amplitudes, not a statue: the chest breathes, the head settles a degree or two, the free hand's fingers relax, so nothing parks dead still, but nothing moves big. Her feet stay planted and her torso upright.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.912 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.009 m above the floor and the ankle (Foot) about 0.184 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `realstance`, the entry and exit pose): standing perfectly upright, heels together, arms straight down at her sides, chin level, a flat dead stare.\n\nThe clip (96 ticks, played once):\n- Tick 0: The real form's stance (reference `realstance`): upright, heels together, arms down.\n- Tick 4: Sigh: the head tips back 5-8 degrees and rolls a little, an eye-roll, the shoulders dropping.\n- Tick 14: Her right hand crosses in front of her waist to her left wrist and pulls a phone out of her left sleeve.\n- Tick 22: The phone comes out; the right hand starts up.\n- Tick 38: Lift: the right hand holds the phone at face height, about 0.3 m in front of her face, screen toward her, elbow down. The left arm hangs. A flat stare at the screen.\n- Tick 46: Still holding, the hand rising 2 cm: the flash is about to burst.\n- Tick 48: Swap flash (contact): the game swaps her body in this one frame. From here she is Nyxxie, and the pose jumps into a big performer's pose within 3-4 ticks (the flash hides the jump): her right hand thrown up high holding the phone above and to the right of her head, the left arm reaching forward at chest height with the palm up, fingers curling in a 'come here' that pulls people in, weight popped onto one hip, knees loose, a big grin.\n- Tick 56: The pose holds while the pull hits: the left fingers curl in once.\n- Tick 64: The left fingers curl in a second time; the body bounces once in the knees.\n- Tick 80: She relaxes toward her fake idle; she can act again.\n- Tick 96: Nyxxie's idle (reference `fakestance`), matching the exit pose.\n\nThe sheet's last pose has the hands the wrong way round: follow this text. The phone is in her right hand and the left hand beckons. The rig shows her fake body for the whole clip (one skeleton, two bodies); the game draws the real form before tick 48 and the fake form from tick 48. The ticks before 48 are the real form: stiff and minimal, as she always is. The ticks after 48 are Nyxxie: loose and bouncy.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "realstance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 96,
+    "contact_tick": 48,
+    "active": [
+      48,
+      56
+    ],
+    "iasa_tick": 80
+  },
+  "timing": {
+    "fixed": [
+      "96 ticks played once",
+      "contact at tick 48, active ticks 48-56; the player can act from tick 80",
+      "authored at 2x the proposed game length (48 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her realstance pose and tick 96 her fakestance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-left"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/real/q3.png",
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/swap-golive.png"
+  ],
+  "image_notes": "1: Nyx's real form model (three-quarter render). 2: Nyx's fake form model (three-quarter render). 3: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'real: sigh': the REAL form, upright, rolling her eyes, pulling a smartphone in a pink glitter case out of her sleeve; pose 2 'real: lift': the REAL form raising the phone to face height, screen toward her face; pose 3 'swap flash': a big flat white-and-pink comic flash burst covers her whole body, only the phone visible at the top; pose 4 'fake: pose': the FAKE form, phone held high in her right hand, her left arm reaching forward with the palm turned up, fingers curling in a 'come here' that pulls people in, a big grin. Sheet note: The outfit swap happens inside the flash in one frame; the flash pulls enemies in. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    4,
+    14,
+    22,
+    38,
+    46,
+    48,
+    52,
+    56,
+    64,
+    80,
+    96
+  ],
+  "review_ticks": [
+    0,
+    2,
+    4,
+    9,
+    14,
+    18,
+    22,
+    30,
+    38,
+    42,
+    46,
+    47,
+    48,
+    50,
+    52,
+    54,
+    56,
+    60,
+    64,
+    72,
+    80,
+    88,
+    96
+  ],
+  "exit": {
+    "reference": "fakestance",
+    "tick": 0,
+    "from_tick": 96
+  },
+  "fast_windows": [
+    [
+      46,
+      52
+    ]
+  ],
+  "strike": [
+    "LeftHand"
+  ],
+  "meshes_shown": {
+    "Nyx_Real": [
+      [
+        0,
+        47
+      ]
+    ],
+    "Nyx_Real_Dress": [
+      [
+        0,
+        47
+      ]
+    ],
+    "Nyx_Fake": [
+      [
+        48,
+        96
+      ]
+    ],
+    "Nyx_Backpack": [
+      [
+        48,
+        96
+      ]
+    ]
+  },
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor at tick 38 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 38,
+      "min": -0.923,
+      "max": -0.873
+    },
+    {
+      "name": "RightToeBase on the floor at tick 56 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 56,
+      "min": -0.923,
+      "max": -0.873
+    },
+    {
+      "name": "lift: phone hand at face height (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 38,
+      "min": -0.14,
+      "max": 0.05
+    },
+    {
+      "name": "lift: phone in front of her face (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 38,
+      "min": 0.18
+    },
+    {
+      "name": "pose: phone hand thrown up high (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 54,
+      "min": 0.08
+    },
+    {
+      "name": "pose: left hand reaching forward (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 54,
+      "min": 0.28
+    },
+    {
+      "name": "pose: left hand at chest height (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "LeftHand",
+      "tick": 54,
+      "min": -0.18,
+      "max": 0.1
+    }
+  ]
+}

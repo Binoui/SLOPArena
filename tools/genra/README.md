@@ -206,6 +206,24 @@ such a mesh joined the Torso, and her first run keys swung an arm 10 cm into the
 checked against the torso they join at the shoulder. Helper joints that share a mesh with the body, such as Manki's
 arm stretch and offset controls, stay in the body's regions.
 
+**One skeleton, several bodies (Nyx, 2026-10-29).** `--meshes` builds one pack per form, and each pack lists every
+renderer its form draws: `Nyx_Real,Nyx_Real_Tights,Nyx_Real_Dress` and `Nyx_Fake,Nyx_Backpack,Nyx_BackpackPole,Nyx_Phone`.
+A brief's `meshes_shown` gives the other form's meshes, and props that change places, their tick windows. When her model
+was rebuilt mid-session, these held:
+
+- **Mapped toes are always kept.** A pack keeps only weighted joints and their ancestors, and the rebuilt boots were
+  weighted to the feet alone, so `LeftToeBase` and `RightToeBase`, which briefs plant and floor-check, dropped out.
+- **Added subtrees load.** `Clip.load` puts an older clip onto a pack that has gained joints hanging off its own (a held
+  prop, the dress's 48 spring-chain joints under Hips) and leaves those joints at their bind locals.
+- **Unposed helpers are not held to the keys.** The approved-keys check skips joints outside the Humanoid that stay at
+  their bind rotation in both the keys and the take. Riding the hips, the dress chains' tips swung 3 cm within the
+  allowed overlap and failed keys the animator had kept.
+- **A pole is at least 0.3 m long.** A rigid skinned mesh in one hand gets `bladeHilt`/`bladeEnd` only if its ends lie
+  0.3 m or more apart. Without this the phone took the anchors, which the keys check holds to the exact tick.
+- **Rebuild packs when the prefab changes.** Compare the prefab's hash before rendering. `write` names a changed vertex
+  count (`meshChanged`) but not new bones: a re-export that gave the fake body 115 bindposes for 67 bones drew garbage
+  and made sole grounding read nonsense, with matching vertex counts.
+
 `manki-sr199` is the experiment-time Manki rig from 14 October, built through Blender. It is
 used only by the aerial benchmark.
 

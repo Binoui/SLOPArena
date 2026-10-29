@@ -1,0 +1,252 @@
+{
+  "NyxShadowClaws": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxShadowClaws.obj",
+    "vertices": 8928,
+    "triangles": 2976,
+    "sizeMeters": [
+      1.6123568,
+      1.4189479,
+      2.0671404
+    ]
+  },
+  "NyxRisingHands": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxRisingHands.obj",
+    "vertices": 1092,
+    "triangles": 364,
+    "sizeMeters": [
+      0.6165,
+      0.9632,
+      0.3854751
+    ]
+  },
+  "NyxFloorLash": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxFloorLash.obj",
+    "vertices": 9372,
+    "triangles": 3124,
+    "sizeMeters": [
+      0.7326166,
+      0.6237076,
+      3.2116414
+    ]
+  },
+  "NyxShadowRing": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxShadowRing.obj",
+    "vertices": 7008,
+    "triangles": 2336,
+    "sizeMeters": [
+      2.6141315,
+      0.6046,
+      2.6160022
+    ]
+  },
+  "NyxUpClaw": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxUpClaw.obj",
+    "vertices": 1104,
+    "triangles": 368,
+    "sizeMeters": [
+      0.8905,
+      1.118,
+      0.5605158
+    ]
+  },
+  "NyxSpikeFist": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxSpikeFist.obj",
+    "vertices": 1440,
+    "triangles": 480,
+    "sizeMeters": [
+      1.0032,
+      1.1629093,
+      0.6102899
+    ]
+  },
+  "NyxGraspHand": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxGraspHand.obj",
+    "vertices": 1092,
+    "triangles": 364,
+    "sizeMeters": [
+      1.1645,
+      1.9264,
+      0.6950464
+    ]
+  },
+  "NyxGraspWarning": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxGraspWarning.obj",
+    "vertices": 8952,
+    "triangles": 2984,
+    "sizeMeters": [
+      1.7214911,
+      0.6376889,
+      1.72256
+    ]
+  },
+  "NyxGraspDrag": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxGraspDrag.obj",
+    "vertices": 864,
+    "triangles": 288,
+    "sizeMeters": [
+      1.0106996,
+      0.2099153,
+      1.0034688
+    ]
+  },
+  "NyxBat": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxBat.obj",
+    "vertices": 948,
+    "triangles": 316,
+    "sizeMeters": [
+      0.432,
+      0.1944,
+      0.2239392
+    ]
+  },
+  "NyxFeather": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxFeather.obj",
+    "vertices": 516,
+    "triangles": 172,
+    "sizeMeters": [
+      0.1116,
+      0.494,
+      0.1117296
+    ]
+  },
+  "NyxHeart": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxHeart.obj",
+    "vertices": 468,
+    "triangles": 156,
+    "sizeMeters": [
+      0.204,
+      0.2016,
+      0.1369888
+    ]
+  },
+  "NyxSparkle": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxSparkle.obj",
+    "vertices": 372,
+    "triangles": 124,
+    "sizeMeters": [
+      0.182,
+      0.26,
+      0.18088
+    ]
+  },
+  "NyxShadowShard": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxShadowShard.obj",
+    "vertices": 228,
+    "triangles": 76,
+    "sizeMeters": [
+      0.176,
+      1.04,
+      0.206873
+    ]
+  },
+  "NyxShadowImpact": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxShadowImpact.obj",
+    "vertices": 2076,
+    "triangles": 692,
+    "sizeMeters": [
+      0.798,
+      0.7589431,
+      0.513
+    ]
+  },
+  "NyxPinkImpact": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxPinkImpact.obj",
+    "vertices": 2076,
+    "triangles": 692,
+    "sizeMeters": [
+      0.684,
+      0.6505227,
+      0.513
+    ]
+  },
+  "NyxPoleUpperArc": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxPoleUpperArc.obj",
+    "vertices": 4704,
+    "triangles": 1568,
+    "sizeMeters": [
+      0.64,
+      1.3070209,
+      0.6683586
+    ]
+  },
+  "NyxPoleOverheadArc": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxPoleOverheadArc.obj",
+    "vertices": 4704,
+    "triangles": 1568,
+    "sizeMeters": [
+      1.8117624,
+      0.5252849,
+      0.5093552
+    ]
+  },
+  "NyxSpinArc": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxSpinArc.obj",
+    "vertices": 7008,
+    "triangles": 2336,
+    "sizeMeters": [
+      1.957,
+      0.33,
+      1.9569634
+    ]
+  },
+  "NyxDropkickSpike": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxDropkickSpike.obj",
+    "vertices": 360,
+    "triangles": 120,
+    "sizeMeters": [
+      0.584,
+      1.0725,
+      0.273728
+    ]
+  },
+  "NyxFlashCone": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxFlashCone.obj",
+    "vertices": 12192,
+    "triangles": 4064,
+    "sizeMeters": [
+      1.0414391,
+      0.6083533,
+      1.0682319
+    ]
+  },
+  "NyxRotorArcs": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxRotorArcs.obj",
+    "vertices": 14016,
+    "triangles": 4672,
+    "sizeMeters": [
+      1.3168734,
+      0.4099356,
+      1.316824
+    ]
+  },
+  "NyxCrowBody": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxCrowBody.obj",
+    "vertices": 468,
+    "triangles": 156,
+    "sizeMeters": [
+      0.42,
+      0.49,
+      0.304704
+    ]
+  },
+  "NyxCrowWingLeft": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxCrowWingLeft.obj",
+    "vertices": 468,
+    "triangles": 156,
+    "sizeMeters": [
+      0.54,
+      0.4,
+      0.414856
+    ]
+  },
+  "NyxCrowWingRight": {
+    "asset": "Assets/CharacterPackages/nyx/Presentation/Source/NyxCrowWingRight.obj",
+    "vertices": 468,
+    "triangles": 156,
+    "sizeMeters": [
+      0.54,
+      0.4,
+      0.414856
+    ]
+  }
+}

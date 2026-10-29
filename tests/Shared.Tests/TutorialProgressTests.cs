@@ -220,8 +220,18 @@ public sealed class TutorialProgressTests
         Assert.Equal(0f, progress.Amount(0));
         Observe(progress, idle, idle with { State = ActionState.Grabbing, InteractionPartnerId = Dummy });
         Assert.True(progress.IsComplete(0));
-        var held = Fighter(Dummy) with { State = ActionState.Grabbed };
-        Observe(progress, idle, idle, dummyBefore: held, dummy: held with { State = ActionState.Thrown });
+        var holder = Fighter(Player) with { State = ActionState.Throwing, InteractionId = 11,
+            InteractionPartnerId = Dummy, InteractionPhase = (byte)DefenseInteractionPhase.UpTossing };
+        var held = Fighter(Dummy) with { State = ActionState.Grabbed, InteractionId = 11,
+            InteractionPartnerId = Player, InteractionPhase = holder.InteractionPhase };
+        var holderAfter = holder with { InteractionId = 0, InteractionPartnerId = 0, LastTerminalInteractionId = 11,
+            InteractionTerminalTick = 100, InteractionPhase = (byte)DefenseInteractionPhase.UpTossReleased };
+        var victimAfter = held with { State = ActionState.Idle, InteractionId = 0, InteractionPartnerId = 0,
+            LastTerminalInteractionId = 11, InteractionTerminalTick = 100, InteractionPhase = holderAfter.InteractionPhase };
+        Observe(progress, holder, holderAfter with { InteractionPhase = (byte)DefenseInteractionPhase.Terminal },
+            dummyBefore: held, dummy: victimAfter);
+        Assert.False(progress.LessonComplete);
+        Observe(progress, holder, holderAfter, dummyBefore: held, dummy: victimAfter);
         Assert.True(progress.LessonComplete);
     }
 

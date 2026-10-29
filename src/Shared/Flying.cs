@@ -13,7 +13,6 @@ public struct FlyingState
 
 public static class Flying
 {
-    public const float PoseFraction = .65f;
     public static CookedMankiJetpackBoostCapabilityParameters? Parameters(CharacterDefinition def)
     {
         var slot = def.GetCookedSlotAbility(AbilitySlots.E, false);

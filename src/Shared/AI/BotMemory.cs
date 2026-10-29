@@ -11,6 +11,7 @@ public readonly struct CpuObservation
     public readonly int ObservationTick;
     public readonly float PX, PY, PZ;
     public readonly float VX, VY, VZ;
+    public readonly float ThreatReach;
     public readonly ActionState State;
     public readonly ushort StateTicks;
     public readonly bool IsGrounded;
@@ -20,9 +21,10 @@ public readonly struct CpuObservation
     public readonly ushort AnimLockTicks, LandingLagTicks, ChargeTicks;
     public readonly ushort HitstunTicks, HitstopTicks;
 
-    private CpuObservation(int observationTick, in CharacterState state)
+    private CpuObservation(int observationTick, in CharacterState state, float threatReach)
     {
         ObservationTick = observationTick;
+        ThreatReach = threatReach;
         PX = state.PX;
         PY = state.PY;
         PZ = state.PZ;
@@ -43,8 +45,8 @@ public readonly struct CpuObservation
         HitstopTicks = state.HitstopTicks;
     }
 
-    internal static CpuObservation Capture(int observationTick, in CharacterState state)
-        => new(observationTick, state);
+    internal static CpuObservation Capture(int observationTick, in CharacterState state, float threatReach)
+        => new(observationTick, state, threatReach);
 
     public bool IsThreatening
         => State is ActionState.Attacking or ActionState.Aiming or ActionState.Warping
@@ -148,11 +150,11 @@ public sealed class BotMemory
     /// Record the opponent's current simulation state. The policy can only retrieve it after
     /// the selected difficulty's delay has elapsed.
     /// </summary>
-    public void ObserveOpponent(in CharacterState state)
+    public void ObserveOpponent(in CharacterState state, float threatReach = float.PositiveInfinity)
     {
         _observationTick++;
         _opponentHistory[_opponentHistoryWriteIndex] =
-            CpuObservation.Capture(_observationTick, state);
+            CpuObservation.Capture(_observationTick, state, threatReach);
         _opponentHistoryWriteIndex = (_opponentHistoryWriteIndex + 1) % _opponentHistory.Length;
         if (_opponentHistoryCount < _opponentHistory.Length)
             _opponentHistoryCount++;

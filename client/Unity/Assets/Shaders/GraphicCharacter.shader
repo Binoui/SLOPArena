@@ -12,6 +12,7 @@ Shader "SLOPArena/GraphicCharacter"
         // Hit flash, driven per renderer by FighterHitFeel through a MaterialPropertyBlock.
         _FlashColor("Flash Color", Color) = (1, 1, 1, 1)
         _FlashAmount("Flash Amount", Range(0, 1)) = 0
+        _CodeCutHeight("Code dissolve height", Float) = -10000
     }
 
     SubShader
@@ -69,6 +70,7 @@ Shader "SLOPArena/GraphicCharacter"
                 half _RimStrength;
                 half4 _FlashColor;
                 half _FlashAmount;
+                float _CodeCutHeight;
             CBUFFER_END
 
             Varyings Vert(Attributes input)
@@ -86,6 +88,9 @@ Shader "SLOPArena/GraphicCharacter"
 
             half4 Frag(Varyings input, FRONT_FACE_TYPE facing : FRONT_FACE_SEMANTIC) : SV_Target
             {
+                float2 cell = floor(input.positionWS.xz * 24);
+                float front = _CodeCutHeight + frac(sin(dot(cell, float2(12.9898, 78.233))) * 43758.5453) * 0.06;
+                clip(input.positionWS.y - front);
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
                 half3 normalWS = normalize(input.normalWS) * IS_FRONT_VFACE(facing, 1.0h, -1.0h);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
@@ -111,6 +116,8 @@ Shader "SLOPArena/GraphicCharacter"
                     * _RimStrength * 0.4h;
                 color += _RimColor.rgb * rim;
                 color = lerp(color, _FlashColor.rgb, _FlashAmount);
+                if (input.positionWS.y < front + 0.065)
+                    color = frac(input.positionWS.y * 42) < 0.4 ? half3(1, 1, 1) : half3(0.569, 1, 0.412);
                 return half4(color, albedo.a);
             }
             ENDHLSL
@@ -127,16 +134,22 @@ Shader "SLOPArena/GraphicCharacter"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             struct Attributes { float4 positionOS : POSITION; };
-            struct Varyings { float4 positionCS : SV_POSITION; };
+            float _CodeCutHeight;
+            struct Varyings { float4 positionCS : SV_POSITION; float3 world : TEXCOORD0; };
 
             Varyings ShadowVert(Attributes input)
             {
                 Varyings output;
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                output.world = TransformObjectToWorld(input.positionOS.xyz);
+                output.positionCS = TransformWorldToHClip(output.world);
                 return output;
             }
 
-            half4 ShadowFrag(Varyings input) : SV_Target { return 0; }
+            half4 ShadowFrag(Varyings input) : SV_Target
+            {
+                clip(input.world.y - _CodeCutHeight);
+                return 0;
+            }
             ENDHLSL
         }
     }

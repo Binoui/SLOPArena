@@ -29,6 +29,8 @@ public static class CookedCharacterRuntimeAdapter
             GrabbedAnim = c.Presentation.Grabbed, ThrowForwardAnim = c.Presentation.ThrowForward,
             AirDodgeAnim = c.Presentation.AirDodge,
             ShellAnim = c.Presentation.Shell,
+            FlyingAnim = c.Presentation.Flying,
+            MayhemLaughAnim = c.Presentation.MayhemLaugh,
             Shell = c.Shell,
             HitSmallAnim=c.Presentation.HitSmall, HitMediumAnim=c.Presentation.HitMedium, HitHardAnim=c.Presentation.HitHard, TumbleAnim=c.Presentation.Tumble, LandStartOffset=c.Presentation.LandStartOffsetSeconds,
             CookedSlots = c.Slots,
@@ -85,6 +87,8 @@ public static class CookedCharacterRuntimeAdapter
             FixedHitstunTicks = hitbox.FixedHitstunTicks,
             Interruptible = hitbox.Interruptible,
             HitGroup = hitbox.HitGroup,
+            HitPresentationId = hitbox.HitPresentationId,
+            RequiresFacingOwner = hitbox.RequiresFacingOwner,
         };
 
     internal static string? RuntimeBoneId(string? value)

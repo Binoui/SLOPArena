@@ -308,7 +308,7 @@ public static class CharacterPackageAssembler
                 if (!root.GetProperty("character").TryGetProperty("shieldRadius", out _))
                     d.Add(Error("package.runtime.schema", RuntimePath + ".character.shieldRadius", "Shield radius is required."));
                 if (HasObject(root.GetProperty("character"), "presentation"))
-                    EnsureFields(root.GetProperty("character").GetProperty("presentation"), new[] { "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset" }, RuntimePath + ".character.presentation", d);
+                    EnsureFields(root.GetProperty("character").GetProperty("presentation"), new[] { "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset" }, RuntimePath + ".character.presentation", d);
                 if (!HasObject(root.GetProperty("character"), "captureGeometry"))
                     d.Add(Error("package.runtime.schema", RuntimePath + ".character.captureGeometry", "Capture geometry is required."));
                 else
@@ -362,6 +362,8 @@ public static class CharacterPackageAssembler
         AddOptional(required, package.Definition.Presentation.ThrowForward, d, "character.presentation");
         AddOptional(required, package.Definition.Presentation.AirDodge, d, "character.presentation");
         AddOptional(required, package.Definition.Presentation.Shell, d, "character.presentation");
+        AddOptional(required, package.Definition.Presentation.Flying, d, "character.presentation");
+        AddOptional(required, package.Definition.Presentation.MayhemLaugh, d, "character.presentation");
         if (package.Definition.AlternateForm is { } form)
             foreach (var (_, id) in form.Presentation.Roles)
                 AddOptional(required, id, d, "character.alternateForm.presentation");
@@ -390,7 +392,7 @@ public static class CharacterPackageAssembler
                 AddOptional(required, crouch.GetString() ?? "", d, "character.presentation");
             if (presentation.TryGetProperty("slide", out var slide) && slide.ValueKind == JsonValueKind.String)
                 AddOptional(required, slide.GetString() ?? "", d, "character.presentation");
-            foreach (string name in new[] { "shield", "grab", "grabbed", "throwForward", "airDodge", "shell" })
+            foreach (string name in new[] { "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh" })
                 if (presentation.TryGetProperty(name, out var role) && role.ValueKind == JsonValueKind.String)
                     AddOptional(required, role.GetString() ?? "", d, "character.presentation");
         }

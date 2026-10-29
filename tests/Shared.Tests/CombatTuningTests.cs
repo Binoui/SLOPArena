@@ -89,12 +89,13 @@ public class CombatTuningTests
         for (int tick = 0; tick < DefenseConfig.GrabHoldTicks + DefenseConfig.ThrowReleaseTicks; tick++)
             sim.Tick(new());
 
+        while (sim.GetState(100).HitstopTicks > 0) sim.Tick(new());
         var thrown = sim.GetState(100);
-        Assert.Equal(ActionState.Thrown, thrown.State);
+        Assert.Equal(ActionState.Hitstun, thrown.State);
         var expected = TestHelpers.NpcState();
-        expected.DamagePercent = 6;
-        Simulation.ApplyKnockback(ref expected, 0, 1, 30, 5, 26, 6, 1, 100, combatTuning: tuning);
-        TestHelpers.AssertNear(expected.KVZ, thrown.KVZ);
+        expected.DamagePercent = 4;
+        Simulation.ApplyKnockback(ref expected, 0, 0, 90, 34, 10, 4, 1, 100, combatTuning: tuning);
+        TestHelpers.AssertNear(expected.KVY, thrown.KVY);
         Assert.Equal(expected.HitstunTicks, thrown.HitstunTicks);
     }
 

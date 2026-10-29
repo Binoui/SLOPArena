@@ -1,0 +1,201 @@
+{
+  "name": "nyx-fake-g1",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakemoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form ground.1 (anim.nyx.fake.g1), from her pose sheet fake-g1 (2026-10-29). Proposed game timing: {\"total\": 44, \"contact\": 8, \"active\": [8, 30], \"iasa\": 38, \"hits\": [8, 16, 26], \"model\": \"three hitboxes linked by fixedHitstunTicks (ADR-0051); FightGuy Floating Kick 48/8,14; Bashie Whirlpool 40\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's ground.1, Phone Slaps: a three-hit slap string. A backhand with the phone hand, a forehand with the open left hand, then an overhand smack down with the phone.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nA forward hit lands on her centre line, well ahead of her chest, not beside her shoulder. After the hit the ending lag is plain: she regains her balance and the arms take the shortest calm path back to the stance. No flourish, no gesture after the hit.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.889 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.015 m above the floor and the ankle (Foot) about 0.191 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `fakestance`, the entry and exit pose): her weight on one hip, the phone at chest height in her right hand, bored.\n\nThe clip (88 ticks, played once):\n- Tick 0: The stance.\n- Tick 6: Load the backhand: the phone hand swings across to in front of her left shoulder, the back of the hand facing ahead; the chest turns 20 degrees to her left; a bounce down in the knees.\n- Tick 16: Hit 1, backhand (contact): the phone hand whips out forward and to the right, the back of the hand leading, arm nearly straight at chest height, crossing her centre line about 0.35 m ahead of her chest; the chest turns through to 15 degrees right; her left boot slides 8-10 cm forward. The left hand is drawing back beside her left shoulder, palm open, for the forehand.\n- Tick 22: The phone hand keeps going out to her right; the left hand cocked back.\n- Tick 32: Hit 2, forehand (contact): the open left palm swings forward and across, palm leading, at face height, about 0.35 m ahead of her chest on her centre line; the chest turns back to her left; the phone hand pulls back and up toward her right shoulder.\n- Tick 44: Wind-up for the smack: the phone hand high above her right shoulder, elbow up and back, the chest turned right, up on the balls of her feet (this is the sheet's pose 4, which is the wind-up, not the hit).\n- Tick 52: Hit 3, smack (contact): the phone hand chops down in front of her on her centre line, arm extending down and forward, the phone ending about 0.3 m ahead of her chest at belly height; the chest folds 10-15 degrees forward, the knees dip.\n- Tick 60: The hit carries through: the hand sinks a little lower, the body settling.\n- Tick 76: Recovered: the arms back to the stance by the shortest path (the stance already holds the phone at chest height); she can act again.\n- Tick 88: The stance, matching tick 0.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fakestance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 88,
+    "contact_tick": 16,
+    "active": [
+      16,
+      60
+    ],
+    "iasa_tick": 76
+  },
+  "timing": {
+    "fixed": [
+      "88 ticks played once",
+      "contact at tick 16, active ticks 16-60; the player can act from tick 76",
+      "authored at 2x the proposed game length (44 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her fakestance pose and tick 88 her fakestance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-g1.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'ready': a loose brawler stance, the phone in her right hand at shoulder height; pose 2 'backhand': a backhand slap toward the left with the phone hand; pose 3 'forehand': a forehand slap toward the left with her open left hand; pose 4 'smack': an overhand smack downward with the phone; pose 5 'recover': back to the stance, checking the phone screen. Sheet note: A three-hit slap string; quick and close. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    6,
+    16,
+    22,
+    32,
+    44,
+    52,
+    60,
+    76,
+    88
+  ],
+  "review_ticks": [
+    0,
+    3,
+    6,
+    11,
+    16,
+    19,
+    22,
+    27,
+    32,
+    38,
+    44,
+    48,
+    52,
+    56,
+    60,
+    68,
+    76,
+    82,
+    88
+  ],
+  "exit": {
+    "reference": "fakestance",
+    "tick": 0,
+    "from_tick": 88
+  },
+  "fast_windows": [
+    [
+      10,
+      18
+    ],
+    [
+      26,
+      34
+    ],
+    [
+      46,
+      54
+    ]
+  ],
+  "strike": [
+    "RightHand",
+    "LeftHand"
+  ],
+  "targets": [
+    {
+      "name": "RightToeBase on the floor at tick 16 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 16,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "LeftToeBase on the floor at tick 32 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 32,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "RightToeBase on the floor at tick 52 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 52,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "backhand: phone hand well ahead (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 16,
+      "min": 0.28
+    },
+    {
+      "name": "backhand: on her centre line (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 16,
+      "min": -0.08,
+      "max": 0.12
+    },
+    {
+      "name": "forehand: left hand well ahead (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 32,
+      "min": 0.28
+    },
+    {
+      "name": "forehand: on her centre line (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 32,
+      "min": -0.12,
+      "max": 0.08
+    },
+    {
+      "name": "smack wind-up: phone hand above her head (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 44,
+      "min": 0.02
+    },
+    {
+      "name": "smack: phone hand ahead (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 52,
+      "min": 0.22
+    },
+    {
+      "name": "smack: on her centre line (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 52,
+      "min": -0.08,
+      "max": 0.12
+    },
+    {
+      "name": "smack: phone hand low, below her chest (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "RightHand",
+      "tick": 52,
+      "min": -0.45,
+      "max": -0.05
+    }
+  ]
+}

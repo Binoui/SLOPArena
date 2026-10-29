@@ -59,12 +59,7 @@ Prior art: [Salamander](../salamander_rig/README.md), [Bashie](../bashie_rig/REA
 
 The 2026-10-29 rig build uses the owner's fake Mixamo skeleton for both forms. The real mesh keeps its own Mixamo weights, with the repairs below. All scripts run from the repository root.
 
-```bash
-blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/build_rig.py -- tmp/nyx-model/rig-build-v1
-blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_rig.py -- tmp/nyx-model/rig-build-v1
-blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/review_renders.py -- tmp/nyx-model/rig-build-v1
-python3 tools/blender/nyx_rig/make_review_sheet.py tmp/nyx-model/rig-build-v1
-```
+The original artifacts and receipts are preserved under `tmp/nyx-model/rig-build-v1/`. Do not rebuild into that approved historical baseline. Use the v3 build commands below for the current candidate.
 
 `build_rig.py` writes `Nyx.fbx` without embedded media, `Nyx_rig.blend`, two 2048-square colour maps in `textures/`, and `Nyx_report.json`. `fit-coordinates.npz` retains the real mesh before and after fitting. `a-pose.npz` retains the original fake bone matrices for the round-trip check. `verify_rig.py` independently imports the exported FBX and checks the single armature, 65 Mixamo bones plus two prop bones, horizontal T-pose arms, finite geometry, normalized weights, four-influence limit, rigid props and skirt, texture size and absent embedded media.
 
@@ -79,7 +74,7 @@ python3 tools/blender/nyx_rig/make_review_sheet.py tmp/nyx-model/rig-build-v1
 - `Nyx_Backpack` is the complete bag, pole and ring, rigid on a new `Nyx_Backpack` bone under `mixamorig:Spine2`. `Nyx_PoleHeld` copies only the pole, its lower shaft, ring and collar, rigid on a new bone under `mixamorig:LeftHand`. It is hidden by default. The source-island guards reject changed input topology.
 - No clean phone island was found in the fake body. The build extracts no phone and invents no replacement. The body retains its original surfaces. A shared phone prop remains open.
 
-### Unity package
+### Historical first-package integration
 
 Use a distinct caller identity and your own bounded gateway lease under [Editor coordination](../../../docs/contributing/unity-editor-coordination.md). The canonical project is `client/Unity`. Never run these through a raw Editor connection.
 
@@ -95,3 +90,115 @@ Use a distinct caller identity and your own bounded gateway lease under [Editor 
 The package has FightGuy's moves and movement as approved placeholders. The separate ADR-0051 engine task owns `alternateForm` and `FormPresentation`. This build does not author them. Vendor animation copies remain local, following Salamander's policy. The original Nyx model, colour maps and materials are allowlisted in `.gitignore`; project-authored crouch and tumble copies are allowlisted too.
 
 `tests/Shared.Tests/NyxPackageTests.cs` executes all fourteen saved slots through the pinned content catalog, checks recovery and finite positions, and covers hit, shield and miss on the first normal. Local task receipts, hashes, review paths and the complete displacement table are under `tmp/nyx-model/rig-build-v1/`.
+
+
+## Real lower-body rebuild, v3
+
+This section supersedes the v1 Cloth instructions above. The v3 candidate is `tmp/nyx-model/spring-dress-v3/`. The owner rejected both Cloth versions. The coarse original was stiff, and the procedural v2 cone lost the approved folds, collapsed between the legs and moved its hem 1.6 m on a turn. The long fighting-game dress now uses skinned leaf chains with presentation-only springs.
+
+The commands in this v3 section record the historical build. Use the current prop build commands below for new runs. Do not overwrite the preserved v3 baseline.
+
+```bash
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/build_rig.py -- tmp/nyx-model/spring-dress-v3
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_rig.py -- tmp/nyx-model/spring-dress-v3
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/check_preservation.py -- tmp/nyx-model/cloth-rebuild-v2 tmp/nyx-model/spring-dress-v3
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/review_renders.py -- tmp/nyx-model/spring-dress-v3
+python3 tools/blender/nyx_rig/make_review_sheet.py tmp/nyx-model/spring-dress-v3
+# After the Unity pose captures:
+python3 tools/blender/nyx_rig/make_spring_review.py tmp/nyx-model/spring-dress-v3
+```
+
+`real_lower_body.py` keeps v2's black tights and real boots. It restores the dress's original Tripo coordinates before the limb fit, subdivides the original triangles twice, and applies four mild smoothing iterations. It retains the original texture atlas and interpolated UVs. It does not replace the folds with a cone or a fabric swatch. The refined skirt has 7,979 vertices and 7,876 faces. Its hem is at 0.273 m, just above the boots.
+
+Twelve four-bone chains, `Nyx_Skirt_00_00` through `Nyx_Skirt_11_03`, branch below `mixamorig:Hips`. They add 48 leaf bones. The existing 67 bone names, hierarchy and rest matrices remain exactly unchanged. The preservation check also compares the retained real body, tights, fake body and both props exactly against v2. No bone is inserted between Humanoid mappings.
+
+The waistband follows Hips. Lower weights interpolate neighbouring angular chains and vertical bone levels, with at most four influences. The dress stays one continuous mesh. `SkirtBoneSpring` uses the tail spring's Verlet/rest-target approach, with circumferential smoothing, bounded inertial travel, a 20-degree world-direction limit around each posed segment, six mathematical leg capsules and pose-driven lift for raised thighs. After solving tips, it checks every vertex of the actual weighted fabric and rotates skirt bones out of capsule contacts between chains. Pose lift moves with the leg immediately. The spring preserves its inertial offset around that lifted pose. It never changes mapped bones or Shared state. `LateUpdate` runs only in Play Mode. Controlled offline pose checks explicitly call `Step`.
+
+Run `unity_import.eval.cs` through your own gateway lease after the build. Its build path currently names the v3 directory. It loads the latest prefab, checks the existing 67 bone transforms and Humanoid description, adds only missing skirt leaves, replaces the real meshes, removes all old Cloth and cloth-collider objects, and configures the spring. The existing Avatar and humanScale must remain valid and unchanged. It refreshes FormPresentation's real-form objects without editing gameplay source. `dress_cloth.eval.cs` now rejects use so an old plan cannot silently restore Cloth.
+
+Real-form renderer names are exactly `Nyx_Real`, `Nyx_Real_Tights`, and `Nyx_Real_Dress`. GenRA's final real pack must include all three. Added skirt bones require rebuilding that rig pack. The fake form and its props are unchanged.
+
+For controlled eight-pose spring captures, run `pose_springs.eval.cs` through the gateway with the Editor stopped. It uses a disposable preview scene and the actual saved prefab and spring. It also renders fist and open-hand closeups and records independent baked-skin vertex penetration counts against the leg capsules. Those counts are sampled geometry checks, not a universal collision guarantee. Blender pose sheets are skin-only and do not simulate the runtime spring.
+
+Generate a fresh native Training plan, execute it through your own gateway lease, then encode and measure:
+
+```bash
+python3 tools/blender/nyx_rig/capture_springs.py tmp/nyx-model/spring-dress-v3/final
+bun scripts/unity-editor-gateway.ts --project-path client/Unity --batch tmp/nyx-model/spring-dress-v3/final/play.json > tmp/nyx-model/spring-dress-v3/final/play.jsonl
+python3 tools/blender/nyx_rig/report_springs.py tmp/nyx-model/spring-dress-v3/final
+```
+
+The plan records the current R kick, resumes only a paused owned Play session, restores capture timing, stops Play Mode and restores the previous scene. Each output directory must be fresh. MP4 output is H.264 with yuv420p. `measure_springs.eval.cs` samples fixed rest-hem vertices on the baked skin, removes hip translation and rotation, and reports deformation rather than fighter travel. The imported bones have scale 100, so physical spring distances use the model root. The Unity probe verified that `BakeMesh(mesh, true)` returns vertices that can be transformed with the renderer matrix. The rest-hem selection uses a fraction of mesh height because imported mesh coordinates are centimetre-scaled. The report's source receipts identify run and turn windows. Read the candidate's `REPORT.md` for measured values and remaining visual problems. Automated checks do not establish owner acceptance.
+
+Leave `nyx/character.json` to its gameplay owner. Transient `capability.ambiguous` diagnostics during concurrent engine work are a reason to wait and retry, not to edit that file. Cook and verify identities remain pending whenever current source is invalid or another owner is rebuilding the animation catalog.
+
+## Current prop split and shared phone
+
+The current integrated candidate is `tmp/nyx-model/props/`. It retains the complete spring-dress-v3 surface and all 115 existing bone rest matrices. The only added bone is the leaf `Nyx_PhoneBone` under `mixamorig:RightHand`. `props-preservation.json` proves the existing bones and retained surfaces exactly match v3. It also proves that the split backpack surfaces reconstruct the original vertices, faces, UVs and weights without loss.
+
+```bash
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/build_rig.py -- tmp/nyx-model/props
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_rig.py -- tmp/nyx-model/props
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_props.py -- tmp/nyx-model/spring-dress-v3 tmp/nyx-model/props
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/review_props.py
+python3 tools/blender/nyx_rig/prop_events.py
+```
+
+Run `unity_import.eval.cs`, then `props_bindings.eval.cs`, through your own gateway lease. The importer now reads this candidate. It checks every existing bone and the existing Humanoid description, Avatar reference and humanScale. It keeps the spring dress and imports all eight named renderers. The binding step merges only three prop presentation bindings into the existing asset catalog.
+
+The renderer names are exactly:
+
+- `Nyx_Real`.
+- `Nyx_Real_Tights`.
+- `Nyx_Real_Dress`.
+- `Nyx_Fake`.
+- `Nyx_Backpack`.
+- `Nyx_BackpackPole`.
+- `Nyx_PoleHeld`.
+- `Nyx_Phone`.
+
+`Nyx_Backpack` contains the bag and its straps. `Nyx_BackpackPole` contains the pole, lower shaft, collar and ring light. Both remain rigid on the existing `Nyx_Backpack` bone. `Nyx_PoleHeld` retains its existing geometry and LeftHand leaf bone.
+
+`Nyx_Phone` is one skinned renderer, rigid on `Nyx_PhoneBone`. Its black screen and pink glitter case are authored as a 7.5 × 15.5 × 0.9 cm rounded slab with small camera details. The current fake right hand is open and has no visible baked phone. Placement therefore uses its palm and finger landmarks. The saved real-form prefab hides the phone. Fake-form defaults show one phone. Final GenRA hand poses must grip it with the existing finger chains.
+
+`PropVisibilityPresentation` receives the existing dispatcher events through `IPresentationOwnerReceiver`. It gives `FormPresentation` named renderer overrides scoped to a form. Its event prefab has `AttackBoundPresentation`, so duration, interruption, replacement, owner disable, rollback retraction and fresh-simulation cleanup use the existing dispatcher lifecycle. The component also runs in Edit Mode for Lab previews. Travel hiding suppresses the overrides. Form selection filters them, so correcting a predicted form keeps an event that is still active.
+
+The three installed semantic events are `presentation.nyx.props.pole-held`, `presentation.nyx.props.phone-raise`, and `presentation.nyx.props.phone-drop`. Exact `emitPresentation` operations for fake ground 3, fake air 3, Going Live and Logging Off are in `tmp/nyx-model/props/events.json`. `prop_events.py` writes that handoff without modifying `character.json`. The engine owner must merge it. Ground and air F share the existing aliases.
+
+Run `preview_props.eval.cs` through the gateway to fire actual `TimelinePresentationEvent` values through `TimelinePresentationDispatcher` in a disposable preview scene. It loads the saved rig, saved prop prefabs and catalog bindings. Its assertions and images are written to `tmp/nyx-model/props/unity-preview/`. This proves the presentation mechanism independently of the pending gameplay-source handoff. It does not prove the final GenRA timing or hand grip.
+
+
+## Current real-form waist repair
+
+The current candidate is `tmp/nyx-model/waist-fix/`. This supersedes the prop candidate for new imports. Keep `tmp/nyx-model/props/` as the approved comparison baseline and phone-mesh source. Do not overwrite it.
+
+The copied fake hips caused the solid black band on the real dress. The builder removes tights faces above Z=0.84 m and tapers the surviving upper vertices inward from Z=0.70 m. Their weights and UVs remain exact. The renderer stays `Nyx_Real_Tights`. The dress cap above Z=1.00 m moves smoothly up by at most 1.4 cm and toward the bodice using Y × 1.33 + 0.12 m at the top, closing beneath the belt. Dress topology, UVs, weights and the lower bell remain unchanged. All 116 bones retain their exact rest matrices and parents.
+
+The builder retains the approved phone mesh from `props/Nyx_rig.blend`. Blender's procedural bevel otherwise introduces small nondeterministic UV rounding differences during a full rebuild. This repair changes no prop surface.
+
+```bash
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/build_rig.py -- tmp/nyx-model/waist-fix
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_waist.py -- tmp/nyx-model/props tmp/nyx-model/waist-fix
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_rig.py -- tmp/nyx-model/waist-fix
+```
+
+After those checks pass, run `unity_import.eval.cs` through your own gateway lease. The importer reads the waist candidate and checks the existing Avatar and bones. The waist report records matching GenRA-lit closeups, controlled spring poses, Training captures and package verification status. Rebuild the GenRA real rig pack to include the corrected dress and tights geometry. Existing renderer names, bones and animation keys remain compatible.
+
+
+## Current real-form spine fit
+
+`tmp/nyx-model/spine-fix/` supersedes the waist candidate for new imports. Keep the waist, prop and v3 directories as comparison sources. The final packed Blender source and exported FBX are in the spine directory. Unity import, controlled poses, close Training idle/run/g3, the 24 prop checks, and package cook/verify passed. The task report records the exact hashes and remaining extreme-pose contacts.
+
+`fit_spine.py` postprocesses the final waist candidate. It fits the real axial anatomy to the unchanged shared pivots, translates rigid face/hair geometry together, and replaces the torso's axial weights with a continuous segment field. It restores the refined approved skirt from v3, adds the canonical frame offset omitted by the lower-body rebuild, then fits its waist to the real bodice. The cap shares the bodice's skin field and fades into the existing skirt chains. The already trimmed/tapered tights remain exact.
+
+```bash
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/fit_spine.py -- tmp/nyx-model/waist-fix tmp/nyx-model/spine-fix
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_spine.py -- tmp/nyx-model/waist-fix tmp/nyx-model/spine-fix
+blender -b --factory-startup --python-exit-code 1 --python tools/blender/nyx_rig/verify_rig.py -- tmp/nyx-model/spine-fix
+```
+
+Use `unity_import.eval.cs` through your own gateway lease. It reads this final candidate. All 116 bones, including skirt leaves and props, retain exact names, parents and rest matrices. The existing Humanoid avatar and scale are retained. Fake and prop surfaces, boots, topology, UVs and texture files remain unchanged. No animation or gameplay binding is edited by the fit.
+
+The real GenRA rig pack must be rebuilt from `Nyx_Real`, `Nyx_Real_Tights`, and `Nyx_Real_Dress`. Existing clips remain structurally compatible. The complete authored idle and g3 USDs were played on the final mesh in Blender and their bound clips were exercised in Training. Review the other real-form moves and both swaps on the new geometry, especially extreme legs and torso twists. The new rig pack does not require new animation keys solely because of this mesh fit.
+
+Blender spine comparisons, approved front/side/back silhouettes, all eight poses, full motion videos, Unity controlled captures and gateway receipts are under `tmp/nyx-model/spine-fix/`. Skin-only views do not simulate the runtime spring. Controlled spring tests still record high-kick and run-stride boot/hem contact; see the report before claiming universal clearance or owner acceptance.

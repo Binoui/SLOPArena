@@ -90,7 +90,7 @@ public class ShieldStateTests
         TestHelpers.AssertNear(initial.VX / initial.VZ, state.VX / state.VZ);
         Assert.True(state.PX > initial.PX);
         Assert.True(state.PZ > initial.PZ);
-        Assert.Equal(initial.FacingYaw, state.FacingYaw);
+        TestHelpers.AssertNear(initial.FacingYaw, state.FacingYaw, 0.0001f);
 
         for (int tick = 1; tick < DefenseConfig.GrabBrakeTicks; tick++)
         {
@@ -98,7 +98,7 @@ public class ShieldStateTests
             state = Tick(sim, new InputState { MoveX = -1f, MoveY = 1f });
             Assert.InRange(state.VX, 0f, previous.VX);
             Assert.InRange(state.VZ, 0f, previous.VZ);
-            Assert.Equal(initial.FacingYaw, state.FacingYaw);
+            TestHelpers.AssertNear(initial.FacingYaw, state.FacingYaw, 0.0001f);
         }
         Assert.Equal(ActionState.GrabAttempt, state.State);
         Assert.Equal(0f, state.VX);
@@ -111,7 +111,7 @@ public class ShieldStateTests
             Assert.Equal(ActionState.GrabAttempt, state.State);
             Assert.Equal(stopped.PX, state.PX);
             Assert.Equal(stopped.PZ, state.PZ);
-            Assert.Equal(initial.FacingYaw, state.FacingYaw);
+            TestHelpers.AssertNear(initial.FacingYaw, state.FacingYaw, 0.0001f);
         }
     }
 

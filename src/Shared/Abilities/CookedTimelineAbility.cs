@@ -70,6 +70,26 @@ public sealed class CookedTimelineAbility : ServerAbility
             return null;
         }
     }
+    public override ClinchAbility? Clinch
+    {
+        get
+        {
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].Clinch is { } clinch)
+                    return clinch;
+            return null;
+        }
+    }
+    public override CommandGrabAbility? CommandGrab
+    {
+        get
+        {
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].CommandGrab is { } grab)
+                    return grab;
+            return null;
+        }
+    }
     public override HeldCutRelease? HeldCutFor(ulong victimId)
     {
         for (var i = 0; i < _capabilities.Count; i++)
@@ -108,6 +128,9 @@ public sealed class CookedTimelineAbility : ServerAbility
 
 
     public override CookedSlotDefinition Move => _slot;
+    internal bool Connected { get; private set; }
+    // A confirmed hit from a hitbox naming its own hit presentation (ADR-0053) unlocks sweetspot-only presentations.
+    private bool _sweetspotConnected;
 
     public CookedTimelineAbility(CookedSlotDefinition slot)
     {
@@ -219,6 +242,7 @@ public sealed class CookedTimelineAbility : ServerAbility
         if (_completed)
             return;
 
+        bool stageHeld = false;
         for (var i = 0; i < _capabilities.Count; i++)
         {
             var capability = _capabilities[i];
@@ -226,6 +250,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             capability.Tick(ref s, ref input, def);
             if (capability.AnimIndex != previousClip)
                 AnimIndex = capability.AnimIndex;
+            stageHeld |= capability.HoldsStage;
         }
 
         // Aim-hold capabilities freeze stage time during aiming; reset the clock on release.
@@ -245,7 +270,7 @@ public sealed class CookedTimelineAbility : ServerAbility
         // Landing-continuation capabilities own their end: landing re-seeks animation time,
         // and impact plus recovery may outlast the authored stage duration.
         // Unrelated capabilities retain the ordinary stage clock.
-        if (_stageTick >= CurrentStage.DurationTicks && !ContinuesThroughLanding)
+        if (_stageTick >= CurrentStage.DurationTicks && !ContinuesThroughLanding && !stageHeld)
         {
             if (_stageIndex + 1 >= _slot.Timeline.Stages.Count)
             {
@@ -293,6 +318,8 @@ public sealed class CookedTimelineAbility : ServerAbility
     }
     public override void OnHitConfirmed(in SpellResolver.HitResult hit, in CharacterState target, int operationIndex)
     {
+        Connected = true;
+        if (hit.HitPresentationId != null) _sweetspotConnected = true;
         foreach (var capability in _capabilities) capability.OnHitConfirmed(in hit, in target, operationIndex);
     }
 
@@ -397,6 +424,8 @@ public sealed class CookedTimelineAbility : ServerAbility
                     StartCapability(ref s, def, capability, flattenedOperationIndex);
                     break;
                 case CookedEmitPresentationOperation presentation:
+                    if (presentation.Condition == AuthoringPresentationCondition.SweetspotHit && !_sweetspotConnected)
+                        break;
                     if (presentation.PresentationId == FightGuyCycloneKick.DizzyPresentationId
                         && _capabilities.Exists(c => c is FightGuyCycloneKick { ShowsDizzy: false }))
                         break;
@@ -559,6 +588,8 @@ public sealed class CookedTimelineAbility : ServerAbility
         w.WriteInt(_stageIndex);
         w.WriteInt(_operationCursor);
         w.WriteBool(_completed);
+        w.WriteBool(Connected);
+        w.WriteBool(_sweetspotConnected);
         w.WriteBool(_unlimitedAimHold);
         w.WriteFloat(_forwardLungeSpeed);
         w.WriteFloat(_forwardLungeYaw);
@@ -589,6 +620,8 @@ public sealed class CookedTimelineAbility : ServerAbility
         if (_operationCursor < 0 || _operationCursor > CurrentStage.Operations.Count)
             throw SnapshotReader.Malformed("timeline operation cursor");
         _completed = r.ReadBool();
+        Connected = r.ReadBool();
+        _sweetspotConnected = r.ReadBool();
         _unlimitedAimHold = r.ReadBool();
         _forwardLungeSpeed = r.ReadFloat();
         _forwardLungeYaw = r.ReadFloat();

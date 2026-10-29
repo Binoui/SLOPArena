@@ -21,13 +21,14 @@ namespace SlopArena.EditorTools
     [InitializeOnLoad]
     public static class SlopArenaGamepadCommands
     {
-        private sealed class PadFrame
+        internal sealed class PadFrame
         {
             public int Frame;
             public GamepadState State;
         }
 
-        private static Gamepad? _pad;
+        private static VirtualPadTimeline? _pad;
+        public static bool Active => _pad != null;
         private static TrainingMatch? _targetMatch;
         private static Func<uint, InputState>? _targetInput;
 
@@ -48,7 +49,10 @@ namespace SlopArena.EditorTools
         {
             if (!EditorApplication.isPlaying || EditorApplication.isPaused || Time.timeScale <= 0f)
                 throw new InvalidOperationException("Use unpaused, running Play Mode.");
-            if (_pad != null) throw new InvalidOperationException("A pad timeline is already running.");
+            if (_pad != null || VirtualPadTimeline.Active) throw new InvalidOperationException("A pad timeline is already running.");
+            var training = UnityEngine.Object.FindFirstObjectByType<TrainingMatch>();
+            if (training != null && training.CaptureInputSequenceOwned)
+                throw new InvalidOperationException("Training input is already owned.");
             if (InputSystem.settings.updateMode != InputSettings.UpdateMode.ProcessEventsInDynamicUpdate)
                 throw new InvalidOperationException("The pad timeline requires the normal Dynamic Input System update mode.");
             var plan = Parse(ReadTimeline(timeline), out int duration);
@@ -64,16 +68,13 @@ namespace SlopArena.EditorTools
                     match.GetCaptureState(match.SelectedNpcId).FacingYaw);
                 if (targetPlan.Length != duration) throw new ArgumentException("Target ticks must equal pad frames.");
             }
-            var pad = InputSystem.AddDevice<Gamepad>("Capture Timeline");
-            _pad = pad;
-            int frame = 0, index = 0, lastUnityFrame = -1;
-            var state = new GamepadState();
+            var expanded = Expand(plan, duration);
+            int frame = 0, lastUnityFrame = -1;
             uint? startTick = null;
             double deadline = EditorApplication.timeSinceStartup + 180;
-            void Feed()
+            var pad = new VirtualPadTimeline(expanded, () =>
             {
-                if (_pad != pad || !pad.added || UnityEngine.InputSystem.LowLevel.InputState.currentUpdateType != InputUpdateType.Dynamic
-                    || lastUnityFrame == Time.frameCount || frame >= duration) return;
+                if (lastUnityFrame == Time.frameCount) return frame - 1;
                 lastUnityFrame = Time.frameCount;
                 if (!startTick.HasValue && match != null && targetPlan != null)
                 {
@@ -83,11 +84,9 @@ namespace SlopArena.EditorTools
                         ? targetPlan[(int)(tick - startTick.Value)] : default;
                     match.CaptureTargetInput = _targetInput;
                 }
-                while (index < plan.Count && plan[index].Frame == frame) state = plan[index++].State;
-                InputSystem.QueueStateEvent(pad, state);
-                frame++;
-            }
-            InputSystem.onBeforeUpdate += Feed;
+                return frame++;
+            });
+            _pad = pad;
             try
             {
                 while (frame < duration)
@@ -106,7 +105,6 @@ namespace SlopArena.EditorTools
             }
             finally
             {
-                InputSystem.onBeforeUpdate -= Feed;
                 RemovePad();
             }
         }
@@ -124,7 +122,7 @@ namespace SlopArena.EditorTools
             ClearTarget();
             var pad = _pad;
             _pad = null;
-            if (pad != null && pad.added) InputSystem.RemoveDevice(pad);
+            pad?.Dispose();
         }
 
         [CliCommand("sloparena.training.target-clear", "Clear this capture runner's target timeline. Safe when none is active.",
@@ -147,7 +145,7 @@ namespace SlopArena.EditorTools
             return File.ReadAllText(Path.GetFullPath(Path.Combine(Application.dataPath, "../../..", path)));
         }
 
-        private static InputState[] ParseTarget(string json, float cameraYaw, float facing)
+        internal static InputState[] ParseTarget(string json, float cameraYaw, float facing)
         {
             var root = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
             Only(root, "ticks", "space", "events");
@@ -212,7 +210,7 @@ namespace SlopArena.EditorTools
             return (bool)item[name]!;
         }
 
-        private static List<PadFrame> Parse(string json, out int duration)
+        internal static List<PadFrame> Parse(string json, out int duration)
         {
             var root = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
             Only(root, "frames", "events");
@@ -237,6 +235,19 @@ namespace SlopArena.EditorTools
                 result.Add(new PadFrame { Frame = frame, State = state });
             }
             return result;
+        }
+
+        internal static GamepadState[] Expand(List<PadFrame> patches, int duration)
+        {
+            var frames = new GamepadState[duration];
+            int index = 0;
+            var state = new GamepadState();
+            for (int frame = 0; frame < duration; frame++)
+            {
+                while (index < patches.Count && patches[index].Frame == frame) state = patches[index++].State;
+                frames[frame] = state;
+            }
+            return frames;
         }
 
         private static void Buttons(JToken? token, bool down, ref GamepadState state)
@@ -353,7 +364,9 @@ namespace SlopArena.EditorTools
             [CliArg("distance", "Initial horizontal separation in metres, 1–25.")] float distance = 8,
             [CliArg("behavior", "Idle, Attack, Shield or Avoid.")] string behavior = "Idle",
             [CliArg("damage", "Selected CPU starting damage percent, 0–300.")] int damage = 0,
-            [CliArg("no-cooldowns", "Use Training's no-cooldowns option for the local player.")] bool noCooldowns = false)
+            [CliArg("no-cooldowns", "Use Training's no-cooldowns option for the local player.")] bool noCooldowns = false,
+            [CliArg("facing", "Explicit world facing in degrees; omitted keeps the camera-yaw default.")] float? facing = null,
+            [CliArg("form", "Starting form 0 or 1; omitted preserves the current form.")] int? form = null)
         {
             if (!float.IsFinite(distance) || distance < 1 || distance > 25 || damage < 0 || damage > 300
                 || !Enum.TryParse(behavior, false, out NpcAiMode mode) || !Enum.IsDefined(typeof(NpcAiMode), mode))
@@ -366,24 +379,13 @@ namespace SlopArena.EditorTools
                     throw new InvalidOperationException("No ready Training match.");
                 await Task.Delay(30);
             }
-            if (match.CaptureInputOverrideActive || match.CaptureTargetInput != null) throw new InvalidOperationException("Training input is already owned.");
-            match.SetNpcMode(mode);
-            match.ResetTrainingPositions();
-            match.ResetTrainingDamage();
-            match.SetSelectedNpcDamage(damage);
-            match.SetNoCooldowns(noCooldowns);
-            var player = match.GetCaptureState(MatchConfig.LocalEntityId);
-            var target = match.GetCaptureState(match.SelectedNpcId);
+            if (form.HasValue && form.Value is not (0 or 1)) throw new ArgumentException("form must be 0 or 1.");
             var mount = UnityEngine.Object.FindFirstObjectByType<CameraMount>();
-            float yaw = mount.GetCameraYawDeg() * Mathf.Deg2Rad;
-            target.PX = player.PX + Mathf.Sin(yaw) * distance;
-            target.PY = player.PY;
-            target.PZ = player.PZ + Mathf.Cos(yaw) * distance;
-            target.FacingYaw = yaw + Mathf.PI;
-            player.FacingYaw = yaw;
-            match.SetCaptureState(MatchConfig.LocalEntityId, player);
-            match.SetCaptureState(match.SelectedNpcId, target);
-            return new { success = true, distance, behavior, player = new[] { player.PX, player.PY, player.PZ }, target = new[] { target.PX, target.PY, target.PZ } };
+            var arranged = TrainingArrangement.Apply(match, mount, new Arrangement(facing * Mathf.Deg2Rad, false,
+                form.HasValue ? (byte?)form.Value : null, distance, mode, damage, noCooldowns));
+            return new { success = true, distance, behavior, facing = arranged.FacingRadians * Mathf.Rad2Deg,
+                form = arranged.Form, player = new[] { arranged.Player.x, arranged.Player.y, arranged.Player.z },
+                target = new[] { arranged.Dummy.x, arranged.Dummy.y, arranged.Dummy.z } };
         }
     }
 }

@@ -62,6 +62,18 @@ public static class SlopArenaAbilityLabCommands
         }
     }
 
+    [CliCommand("sloparena.lab.form", "Select the package form shown and edited in Ability Lab.",
+        MainThreadRequired = true, Tags = new[] { "authoring/lab" })]
+    public static AbilityLabCommandResult Form(
+        [CliArg("form", "Form index: 0 or 1.", Required = true)] int form)
+    {
+        var window = AbilityLabWindow.FindExistingForCommand();
+        if (!CanMutate(out var modeError)) return Failure("lab.mode.unsupported", modeError, window);
+        if (form < 0 || form > 1 || window == null || !window.SelectFormForCommand((byte)form))
+            return Failure("lab.form.unavailable", "Open a package containing the requested form first.", window);
+        return Snapshot(window);
+    }
+
 [CliCommand(
         "sloparena.lab.run",
         "Run an authoritative Shared scenario against an idle or shielding mirror opponent.",
@@ -1235,6 +1247,7 @@ public static class SlopArenaAbilityLabCommands
         }
 
         result.PackageId = workspace.PackageId;
+        result.Form = workspace.SelectedForm;
         result.Dirty = workspace.IsDirty;
         result.WorkspaceStatus = workspace.Status;
         result.PreviewPackageId = lab != null && lab.IsPackagePreview ? lab.SelectedPackageId : null;
@@ -1459,6 +1472,7 @@ public static class SlopArenaAbilityLabCommands
 [JsonObject(MemberSerialization.OptIn)]
 public sealed class AbilityLabCommandResult
 {
+    [JsonProperty("form")] public byte Form { get; set; }
     [JsonProperty("success")] public bool Success { get; set; }
     [JsonProperty("packageId", NullValueHandling = NullValueHandling.Ignore)] public string? PackageId { get; set; }
     [JsonProperty("previewPackageId", NullValueHandling = NullValueHandling.Ignore)] public string? PreviewPackageId { get; set; }

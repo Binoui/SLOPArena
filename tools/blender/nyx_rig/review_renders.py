@@ -72,7 +72,7 @@ for name,pose in poses.items():
 reset()
 a=np.load(OUT/'a-pose.npz')
 for b in sorted(arm.pose.bones,key=lambda b:len(b.parent_recursive)):
- b.matrix=Matrix(a[b.name].tolist());bpy.context.view_layer.update()
+ if b.name in a: b.matrix=Matrix(a[b.name].tolist());bpy.context.view_layer.update()
 show('Real')
 # Before is the supplied upload A pose, with animation and skin evaluation disabled.
 before=set(bpy.context.scene.objects)
@@ -83,6 +83,8 @@ material(src,OUT/'textures/Nyx_Real.png','Nyx_Real_FitReference')
 for ob in added:
  if ob.type=='ARMATURE':ob.animation_data_clear()
 for phase in ['before','after']:
+ if phase == 'after':
+  reset();rot('LeftArm',(0,1,0),45);rot('RightArm',(0,1,0),-45)
  src.hide_render=phase!='before'
  for ob in meshes:ob.hide_render=phase=='before' or not ob.name.startswith('Nyx_Real')
  for view,yaw,center,scale in [('front',0,(0,-.03,.85),1.90),('side',90,(0,-.03,.85),1.90),('face',0,(0,-.09,1.55),.40)]:

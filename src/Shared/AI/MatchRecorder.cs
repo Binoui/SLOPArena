@@ -402,8 +402,11 @@ public sealed class MatchRecorder
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks + x.MaxFlightTicks + x.RecoveryTicks,
             CookedThrustCapabilityParameters x => x.ThrustTicks,
             CookedCannonballCapabilityParameters x => x.TakeoffTick + x.MaxFlightTicks,
-            CookedTetherCapabilityParameters x => x.ThrowTick + x.Projectile.MaxFlightTicks
-                + Math.Max(x.MaxReelTicks, (int)MathF.Ceiling(x.Projectile.Speed / x.RetractSpeed * x.Projectile.MaxFlightTicks)
+            CookedClinchCapabilityParameters x => x.LungeStageTicks + x.WhiffRecoveryTicks,
+            CookedTetherCapabilityParameters { AtTarget: { } at } x => x.ThrowTick + at.WarningTicks + at.CatchTicks
+                + Math.Max(x.MaxReelTicks, x.MissRecoveryTicks),
+            CookedTetherCapabilityParameters { Projectile: { } ring } x => x.ThrowTick + ring.MaxFlightTicks
+                + Math.Max(x.MaxReelTicks, (int)MathF.Ceiling(ring.Speed / x.RetractSpeed * ring.MaxFlightTicks)
                     + x.MissRecoveryTicks),
             CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
                 + Math.Max(x.HitEndingTicks, x.MissEndingTicks),

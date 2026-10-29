@@ -93,6 +93,9 @@ namespace SlopArena.Client.UI
             }
         }
 
+        /// <summary>True for a fighter still being built; menus tag it WIP so players know its kit and art are unfinished.</summary>
+        public static bool IsWorkInProgress(CharacterClass characterClass) => characterClass is CharacterClass.Bashie or CharacterClass.Salamander or CharacterClass.Nyx;
+
         /// <summary>
         /// Short, player-facing guidance that distinguishes each admitted fighter's
         /// game plan without pretending to expose uncooked move data.

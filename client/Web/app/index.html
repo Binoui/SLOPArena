@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLOPArena · browser demo</title>
+<style>
+  :root { --ink: #fff7e8; --bg: #12101a; --accent: #ffcf3a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 600 15px/1.3 system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 12px; overflow-y: auto; padding: 20px; background: radial-gradient(ellipse at center, #2a2140ee, #0c0a12f5); z-index: 5; }
+  .hidden { display: none !important; }
+  h1 { margin: 0; font-size: 48px; letter-spacing: -1px; font-weight: 900; }
+  h1 b { color: var(--accent); }
+  h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; opacity: .7; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 900px; }
+  .pick { padding: 10px 16px; border-radius: 12px; border: 2px solid #ffffff22; background: #ffffff10; color: var(--ink); font: inherit; cursor: pointer; }
+  .pick:hover { border-color: #ffffff66; }
+  .pick.on { border-color: var(--accent); background: #ffcf3a22; }
+  .go { padding: 14px 40px; font-size: 22px; font-weight: 900; border-radius: 14px; border: 0; background: var(--accent); color: #1a1420; cursor: pointer; }
+  .keys { opacity: .65; font-weight: 500; text-align: center; max-width: 760px; font-size: 13px; }
+  .keys kbd { background: #ffffff1c; padding: 1px 6px; border-radius: 4px; font: inherit; font-weight: 700; }
+  #hud { position: fixed; left: 0; right: 0; bottom: 18px; display: flex; justify-content: center; gap: 14px; pointer-events: none; z-index: 2; }
+  .card { min-width: 150px; padding: 8px 14px 10px; border-radius: 14px; background: #0d0b14cc; border-bottom: 5px solid var(--seat); }
+  .card .who { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .8; }
+  .card .pct { font-size: 40px; font-weight: 900; line-height: 1; }
+  .card .stocks { display: flex; gap: 4px; margin-top: 4px; }
+  .card .stocks i { width: 10px; height: 10px; border-radius: 50%; background: var(--seat); }
+  .card .stocks i.lost { background: #ffffff22; }
+  #hud.top { bottom: auto; top: 14px; justify-content: flex-end; padding-right: 18px; }
+  .card.score { min-width: 220px; text-align: center; }
+  .card.score .pct { font-size: 64px; color: #ffd23a; }
+  .card .sub { font-size: 13px; opacity: .8; }
+  section { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  #status { position: fixed; top: 12px; left: 12px; font-size: 12px; opacity: .6; z-index: 2; white-space: pre; font-weight: 500; }
+  #banner { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3; pointer-events: none; }
+  #banner .big { font-size: 96px; font-weight: 900; color: var(--accent); text-shadow: 0 6px 0 #0008; }
+  .pop { position: fixed; z-index: 2; font-weight: 900; font-size: 22px; pointer-events: none; text-shadow: 0 2px 0 #000a; transition: transform .6s ease-out, opacity .6s ease-in; }
+</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }</script>
+</head>
+<body>
+<div id="status">loading…</div>
+<div id="menu" class="overlay hidden">
+  <h1>SLOP<b>A</b>rena</h1>
+  <h2>browser demo · capsule edition</h2>
+  <section><h2>Mode</h2><div class="row" id="pickMode"></div></section>
+  <section><h2>You</h2><div class="row" id="pickYou"></div></section>
+  <section id="secCpu"><h2>CPU opponents</h2><div class="row" id="pickCpu"></div></section>
+  <section id="secStage"><h2>Stage</h2><div class="row" id="pickStage"></div></section>
+  <section id="secLevel"><h2>CPU level</h2><div class="row" id="pickLevel"></div></section>
+  <button class="go" id="go">FIGHT</button>
+  <div class="keys">
+    <kbd>WASD</kbd> move · <kbd>Space</kbd> jump · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> normals · <kbd>Q</kbd><kbd>E</kbd><kbd>R</kbd><kbd>F</kbd> specials ·
+    <kbd>Shift</kbd> shield · <kbd>C</kbd> grab · <kbd>4</kbd> dash · <kbd>X</kbd> down · <kbd>H</kbd> hitboxes · <kbd>Esc</kbd> menu<br>
+    Gamepad: stick, A jump, X/Y/B normals, LB + face specials, RB dash, RT shield, LT down
+  </div>
+</div>
+<div id="hud"></div>
+<div id="banner" class="hidden"><div class="big" id="bannerText"></div><div id="bannerSub"></div></div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

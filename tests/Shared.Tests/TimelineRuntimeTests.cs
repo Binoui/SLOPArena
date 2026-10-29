@@ -946,7 +946,6 @@ public sealed class TimelineRuntimeTests
 
     [Theory]
     [InlineData("fightguy", "R")]
-    [InlineData("fightguy", "F")]
     [InlineData("bonk", "A")]
     [InlineData("bonk", "R")]
     public void AuthoredSpecialsCorrectStartupAndCommitGroundAndAir(string package, string label)

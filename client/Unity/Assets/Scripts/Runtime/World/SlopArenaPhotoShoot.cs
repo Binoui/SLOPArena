@@ -95,8 +95,8 @@ namespace SlopArena.EditorTools
         private sealed class View
         {
             public PhotoCamera Spec = null!;
-            public UnityEngine.Camera Camera = null!;
-            public RenderTexture Target = null!;
+            public CaptureView Capture = null!;
+            public UnityEngine.Camera Camera => Capture.Camera;
             public Vector3 Look, Position;
         }
 
@@ -116,7 +116,7 @@ namespace SlopArena.EditorTools
         private bool _wasGamepad;
         private Gamepad? _photoPad;
         private RenderTexture? _hudTarget;
-        private Texture2D? _pixels, _hudPixels;
+        private Texture2D? _hudPixels;
         private bool _stepping;
         private uint _capturedTick = uint.MaxValue;
         private readonly List<float> _audio = new();
@@ -195,7 +195,6 @@ namespace SlopArena.EditorTools
             }
             for (int i = 0; i < Cameras.Count; i++)
                 _views.Add(CreateView(Cameras[i], i == 0));
-            // Billboards face the first camera; shoot one camera per run to judge them.
             gameObject.AddComponent<HomingDashLockOn>().Init(_bridge.GetState, _renderers.Values.ToArray(),
                 null, _views.Count > 0 ? _views[0].Camera : null);
             if (Hud) SetupHudLayer();
@@ -238,24 +237,14 @@ namespace SlopArena.EditorTools
 
         private View CreateView(PhotoCamera spec, bool main)
         {
-            var camera = new GameObject($"Photo Camera {spec.Name} (temporary)").AddComponent<UnityEngine.Camera>();
-            camera.CopyFrom(Template);
-            var data = camera.GetUniversalAdditionalCameraData();
-            var source = Template.GetUniversalAdditionalCameraData();
-            data.renderType = CameraRenderType.Base;
-            data.renderPostProcessing = source.renderPostProcessing;
-            data.antialiasing = source.antialiasing;
-            data.antialiasingQuality = source.antialiasingQuality;
+            var capture = CaptureView.Create(spec.Name, Template, new FrameSize(Width, Height));
+            var camera = capture.Camera;
             camera.orthographic = spec.Ortho > 0f;
             if (camera.orthographic) camera.orthographicSize = spec.Ortho;
             camera.fieldOfView = spec.Fov;
             if (spec.Far > 0f) camera.farClipPlane = spec.Far;
-            // Camera-facing effects (hit sparks, lettering) orient to Camera.main: the first view.
             if (main) camera.tag = "MainCamera";
-            var target = new RenderTexture(Width, Height, 24) { antiAliasing = 4, name = "Photo " + spec.Name };
-            camera.targetTexture = target;
-            camera.enabled = true;
-            var view = new View { Spec = spec, Camera = camera, Target = target };
+            var view = new View { Spec = spec, Capture = capture };
             Aim(view, snap: true);
             return view;
         }
@@ -450,8 +439,13 @@ namespace SlopArena.EditorTools
                 {
                     if (Tick >= From && Tick <= To && (Tick - From) % Step == 0)
                     {
-                        foreach (var view in _views) Write(view.Target, view.Spec.Name, alpha: false);
-                        if (_hudTarget != null) Write(_hudTarget, "hud", alpha: true);
+                        foreach (var view in _views)
+                        {
+                            string directory = Path.Combine(OutputDirectory, view.Spec.Name);
+                            Directory.CreateDirectory(directory);
+                            view.Capture.WriteJpg(Path.Combine(directory, $"{Tick:000}.jpg"), Quality);
+                        }
+                        if (_hudTarget != null) WriteHud();
                         FramesWritten++;
                     }
                     _capturedTick = Tick;
@@ -523,13 +517,10 @@ namespace SlopArena.EditorTools
                 writer.Write((short)Mathf.RoundToInt(Mathf.Clamp(sample, -1f, 1f) * short.MaxValue));
         }
 
-        private void Write(RenderTexture target, string folder, bool alpha)
+        private void WriteHud()
         {
-            Texture2D pixels;
-            if (alpha)
-                pixels = _hudPixels ??= new Texture2D(target.width, target.height, TextureFormat.RGBA32, false);
-            else
-                pixels = _pixels ??= new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
+            var target = _hudTarget;
+            var pixels = _hudPixels ??= new Texture2D(target.width, target.height, TextureFormat.RGBA32, false);
             var previous = RenderTexture.active;
             try
             {
@@ -537,10 +528,9 @@ namespace SlopArena.EditorTools
                 pixels.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0, false);
             }
             finally { RenderTexture.active = previous; }
-            string directory = Path.Combine(OutputDirectory, folder);
+            string directory = Path.Combine(OutputDirectory, "hud");
             Directory.CreateDirectory(directory);
-            File.WriteAllBytes(Path.Combine(directory, $"{Tick:000}.{(alpha ? "png" : "jpg")}"),
-                alpha ? pixels.EncodeToPNG() : pixels.EncodeToJPG(Quality));
+            File.WriteAllBytes(Path.Combine(directory, $"{Tick:000}.png"), pixels.EncodeToPNG());
         }
 
         private object BuildSurvey()
@@ -623,15 +613,7 @@ namespace SlopArena.EditorTools
                 Destroy(_hudTarget);
             }
             foreach (var view in _views)
-            {
-                if (view.Camera != null) Destroy(view.Camera.gameObject);
-                if (view.Target != null)
-                {
-                    view.Target.Release();
-                    Destroy(view.Target);
-                }
-            }
-            if (_pixels != null) Destroy(_pixels);
+                view.Capture.Dispose();
             if (_hudPixels != null) Destroy(_hudPixels);
             if (StageVisual != null && StageVisual.parent != null) Destroy(StageVisual.parent.gameObject);
             base.OnDestroy();

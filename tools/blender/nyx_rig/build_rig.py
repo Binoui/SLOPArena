@@ -11,11 +11,12 @@ from mathutils import Vector, Matrix
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import islands, subset, select, material
 from real_lower_body import replace_lower_body
+from props import add_props
 
 P = 'mixamorig:'
 ROOT = Path(__file__).resolve().parents[3]
 args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-OUT = Path(args[0]).resolve() if args else ROOT / 'tmp/nyx-model/cloth-rebuild-v2'
+OUT = Path(args[0]).resolve() if args else ROOT / 'tmp/nyx-model/waist-fix'
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT / 'textures').mkdir(exist_ok=True)
 SOURCES = ROOT / 'tmp/nyx-model/mixamo-rig-v1'
@@ -169,11 +170,11 @@ for form, mesh in [('fake', fake), ('real', real)]:
                          'max_displacement_m': float(displacement.max()), 'mean_displacement_m': float(displacement.mean())}
         np.savez_compressed(OUT/'fit-coordinates.npz', before=original_real, after=fitted)
         # The continuous dress cannot be skinned independently to both legs without a crotch pinch.
-        # Hips owns its rest shape; the importer adds presentation-only Unity Cloth and leg colliders.
+        # Hips owns the intermediate rest shape; the lower-body pass adds radial skirt chains.
         for vi in gs[3][1]:
             weights[vi] = {P+'Hips': 1.0}
         fixes['dress'] = {'island': 3, 'vertices': len(gs[3][1]), 'skin': P+'Hips', 'leg_influences': 0,
-                          'runtime': 'separate renderer with Unity Cloth, waist pins and leg colliders'}
+                          'runtime': 'refined approved surface with presentation-only radial spring bones'}
         set_weights(mesh, weights)
         real_dress = subset(mesh, gs[3][0], 'Nyx_Real_Dress')
         body_faces = [fi for i, (fs, _) in enumerate(gs) if i != 3 for fi in fs]
@@ -206,9 +207,7 @@ pole_ids = [1, 2, 13, 23]
 assert [len(pg[i][1]) for i in pole_ids] == [193, 208, 49, 24], 'Inspect changed prop topology'
 assert pole_ids, 'No pole islands above bag'
 pole = subset(backpack, [fi for i in pole_ids for fi in pg[i][0]], 'Nyx_PoleHeld')
-report['props'] = {'backpack_vertices': len(backpack.data.vertices), 'pole_islands': pole_ids, 'pole_vertices': len(pole.data.vertices),
-                   'phone': 'No independent phone island found in supplied fake mesh. No phone extracted or fabricated.'}
-report['limitations'].append('The supplied fake mesh has open fingers and no separable phone. Phone presentation needs an asset.')
+report['props'] = {'pole_islands': pole_ids, 'pole_vertices': len(pole.data.vertices)}
 
 select([arm]); bpy.ops.object.mode_set(mode='EDIT')
 for name, parent, position in [('Nyx_Backpack', P+'Spine2', Vector((0, .13, 1.22))),
@@ -282,7 +281,7 @@ for mesh in all_meshes:
 all_meshes.remove(real)
 all_meshes.remove(real_dress)
 real, tights, real_dress, report['real_lower_body'] = replace_lower_body(
-    real, real_dress, fake, arm, OUT, rj, fj)
+    real, real_dress, fake, arm, OUT, rj)
 all_meshes.extend([real, tights, real_dress])
 for mesh in [real, tights, real_dress]:
     mesh.parent = arm
@@ -292,9 +291,27 @@ for mesh in all_meshes:
     attribute = mesh.data.attributes.get('nyx_source_position')
     if attribute:
         mesh.data.attributes.remove(attribute)
+backpack, stowed_pole, phone, prop_report = add_props(arm, backpack, all_meshes, OUT)
+# Blender bevel UV interpolation can vary by a few float ULPs across builds.
+# Reuse the approved phone mesh so this dress-only repair leaves the prop exact.
+phone_baseline = ROOT / 'tmp/nyx-model/props/Nyx_rig.blend'
+with bpy.data.libraries.load(str(phone_baseline), link=False) as (available, loaded):
+    assert 'Nyx_Phone' in available.meshes
+    loaded.meshes = ['Nyx_Phone']
+phone_materials = list(phone.data.materials)
+old_phone_mesh = phone.data
+phone.data = loaded.meshes[0]
+assert len(phone.data.vertices) == len(old_phone_mesh.vertices)
+phone.data.materials.clear()
+for mat in phone_materials:
+    phone.data.materials.append(mat)
+bpy.data.meshes.remove(old_phone_mesh)
+phone.data.name = 'Nyx_Phone'
+prop_report['phone_preserved_from'] = str(phone_baseline.relative_to(ROOT))
+report['props'].update(prop_report)
 report['bones'] = len(arm.data.bones)
 report['meshes'] = {o.name: {'vertices': len(o.data.vertices), 'faces': len(o.data.polygons)} for o in all_meshes}
-report['textures'] = {'Nyx_Fake.png': [2048,2048], 'Nyx_Real.png': [2048,2048], 'Nyx_Dress.png': [1024,1024], 'Nyx_Tights.png': [256,256]}
+report['textures'] = {'Nyx_Fake.png': [2048,2048], 'Nyx_Real.png': [2048,2048], 'Nyx_Tights.png': [256,256], 'Nyx_Phone.png': [512,512]}
 select([arm]+all_meshes)
 bpy.ops.export_scene.fbx(filepath=str(OUT/'Nyx.fbx'), use_selection=True, object_types={'ARMATURE','MESH'},
     add_leaf_bones=False, bake_anim=False, path_mode='STRIP', embed_textures=False, mesh_smooth_type='OFF',
@@ -307,7 +324,9 @@ for img in bpy.data.images:
 fake.hide_render = True
 backpack.hide_render = True
 pole.hide_render = True
-fake.hide_set(True); backpack.hide_set(True); pole.hide_set(True)
+stowed_pole.hide_render = True
+phone.hide_render = True
+fake.hide_set(True); backpack.hide_set(True); pole.hide_set(True); stowed_pole.hide_set(True); phone.hide_set(True)
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'Nyx_rig.blend'))
 report['fbx_sha256'] = hashlib.sha256((OUT/'Nyx.fbx').read_bytes()).hexdigest()
 (OUT/'Nyx_report.json').write_text(json.dumps(report, indent=2))

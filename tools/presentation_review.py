@@ -35,6 +35,7 @@ FONT = ROOT / "client/Unity/Assets/Fonts/ArchivoBlack-Regular.ttf"
 # A:hold=50 (ticks of aiming after the press, which charges aim-hold specials) or
 # F:orbit=70 (degrees the cameras orbit toward the attacker's back, for the gameplay angle) or
 # R:shield=1 (the victim holds its shield, for a move's blocked path).
+# The capture rig accepts 0.4–8 m; use R:distance=5 for Wibou's endpoint tip.
 MOVE_DEFAULTS = {
     "1": {"distance": 1.3, "damage": 40, "ticks": 50},
     "2": {"distance": 1.3, "damage": 40, "ticks": 50},

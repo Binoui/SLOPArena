@@ -7,22 +7,19 @@ namespace SlopArena.Client.Combat
 {
     public sealed class MankiBombVisual : MonoBehaviour
     {
-        private Material _body, _fuse, _zoneMaterial;
+        private Material _zoneMaterial;
         private Transform _bomb, _zone;
         private MeshRenderer _zoneRenderer;
         private MaterialPropertyBlock _zoneProperties;
 
-        public static MankiBombVisual Create()
+        public static MankiBombVisual Create(GameObject prefab)
         {
             var root = new GameObject("Manki Bomb");
             var visual = root.AddComponent<MankiBombVisual>();
-            visual._bomb = new GameObject("Body").transform;
+            visual._bomb = prefab != null ? Instantiate(prefab, root.transform, false).transform
+                : new GameObject("Missing bomb presentation").transform;
             visual._bomb.SetParent(root.transform, false);
-            visual._body = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(.08f, .07f, .06f) };
-            visual._fuse = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(1f, .5f, .03f) };
-            visual.Part(PrimitiveType.Sphere, Vector3.zero, Vector3.one * .7f, visual._body);
-            visual.Part(PrimitiveType.Cylinder, new Vector3(0f, .38f, 0f), new Vector3(.05f, .12f, .05f), visual._fuse);
-            visual.Part(PrimitiveType.Sphere, new Vector3(0f, .5f, 0f), Vector3.one * .12f, visual._fuse);
+            if (prefab == null) Debug.LogError("[MankiBombVisual] Bomb presentation prefab is missing.");
             var zone = GameObject.CreatePrimitive(PrimitiveType.Quad);
             zone.name = "Blast ground warning";
             zone.transform.SetParent(root.transform, false);
@@ -40,7 +37,7 @@ namespace SlopArena.Client.Combat
 
         public void UpdateBomb(in Hitbox bomb, in ArenaDefinition arena, int[] triangleCandidates)
         {
-            // The original sphere has a .35 m radius. Scale only the body, not the floor marker.
+            // The generated shell keeps the original .35 m radius. The floor marker stays independent.
             _bomb.localScale = Vector3.one * (bomb.Radius / .35f);
             bool floor = SpellResolver.TryProjectStraightDrop(arena, bomb.X, bomb.Y, bomb.Z,
                 bomb.Radius, triangleCandidates, out float landingY);
@@ -66,20 +63,17 @@ namespace SlopArena.Client.Combat
             _zoneRenderer.SetPropertyBlock(_zoneProperties);
         }
 
-        private void Part(PrimitiveType type, Vector3 position, Vector3 scale, Material material)
+        private void OnEnable() => RenderPipelineManager.beginCameraRendering += FaceCamera;
+
+        private void OnDisable() => RenderPipelineManager.beginCameraRendering -= FaceCamera;
+
+        private void FaceCamera(ScriptableRenderContext context, UnityEngine.Camera camera)
         {
-            var part = GameObject.CreatePrimitive(type);
-            part.transform.SetParent(_bomb, false);
-            part.transform.localPosition = position;
-            part.transform.localScale = scale;
-            Destroy(part.GetComponent<Collider>());
-            part.GetComponent<MeshRenderer>().sharedMaterial = material;
+            if (_bomb != null && camera != null) _bomb.rotation = camera.transform.rotation;
         }
 
         private void OnDestroy()
         {
-            Destroy(_body);
-            Destroy(_fuse);
             Destroy(_zoneMaterial);
         }
     }

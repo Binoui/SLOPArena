@@ -89,5 +89,95 @@
       "R": {"frame": "profile:21", "subject": "Tumbleweed: tucked into a ball, he rolls forward like a tumbleweed", "direction": "forward to the right, rolling"},
       "F": {"frame": "front-three-quarter-right:20", "subject": "Big Iron: he fires a big slow shot from a two-handed finger gun, the recoil throwing his arms up", "direction": "forward to the right"}
     }
+  },
+  "nyx": {
+    "forms": {
+      "0": {
+        "folder": "Nyx/Real",
+        "accent": "#B57BFF",
+        "accentName": "violet",
+        "fighter": "Nyx",
+        "moves": {
+          "1": {
+            "subject": "Shadow Flick",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "3": {
+            "subject": "Grasping Hands",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "4": {
+            "subject": "Shadow Lash",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "A": {
+            "subject": "Hex Crow",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "E": {
+            "subject": "Bat Scatter",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "R": {
+            "subject": "Grasp",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "F": {
+            "subject": "Going Live",
+            "direction": "forward",
+            "placeholder": true
+          }
+        }
+      },
+      "1": {
+        "folder": "Nyx/Fake",
+        "accent": "#FF5EA8",
+        "accentName": "hot pink",
+        "fighter": "Nyxxie",
+        "moves": {
+          "1": {
+            "subject": "Phone Slaps",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "3": {
+            "subject": "Ring Light Uppercut",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "4": {
+            "subject": "Platform Stomp-Kick",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "A": {
+            "subject": "Ring Light",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "E": {
+            "subject": "Ring Light Rise",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "R": {
+            "subject": "Selfie Grab",
+            "direction": "forward",
+            "placeholder": true
+          },
+          "F": {
+            "subject": "Logging Off",
+            "direction": "forward",
+            "placeholder": true
+          }
+        }
+      }
+    }
   }
 }

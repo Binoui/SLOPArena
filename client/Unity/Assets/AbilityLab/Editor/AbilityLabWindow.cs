@@ -46,6 +46,8 @@ public sealed partial class AbilityLabWindow : EditorWindow
     private AbilityLab? _lab;
     [SerializeField] private string _reloadSlot = "";
     [SerializeField] private string _reloadPackageId = "";
+    [SerializeField] private byte _reloadForm;
+    private DropdownField _formSelector = null!;
     [SerializeField] private int _reloadStage, _reloadTick;
     [SerializeField] private bool _reloadPlaying, _restoreReloadCursor;
     private bool _refreshAfterCompilation;
@@ -317,7 +319,10 @@ public sealed partial class AbilityLabWindow : EditorWindow
         EnsureOwnedLab();
         string initialPackage = _packages.Any(option => option.PackageId == _reloadPackageId) ? _reloadPackageId : "fightguy";
         if (!_workspace.HasPackage && !_suppressInitialPackage && _packages.Any(option => option.PackageId == initialPackage))
+        {
             OpenPackage(initialPackage);
+            if (initialPackage == _reloadPackageId && _workspace.SelectForm(_reloadForm)) RefreshAll();
+        }
         else
             RefreshAll();
         _workspace.StatusChanged -= OnWorkspaceStatusChanged;
@@ -385,6 +390,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
     private void BindElements()
     {
         _packageSelector = Required<DropdownField>("package-selector");
+        _formSelector = Required<DropdownField>("form-selector");
         _packageStatusToggle = Required<Button>("package-status-toggle");
         _diagnosticsPanel = Required<ScrollView>("diagnostics-panel");
         _moveSelector = Required<VisualElement>("move-selector");
@@ -550,6 +556,10 @@ public sealed partial class AbilityLabWindow : EditorWindow
             OpenPackage(option.PackageId);
         });
         _packageStatusToggle.clicked += ToggleDiagnostics;
+        _formSelector.RegisterValueChangedCallback(evt =>
+        {
+            if (!_updatingControls) SelectFormForCommand((byte)_formSelector.choices.IndexOf(evt.newValue));
+        });
         Required<Button>("diagnostics-toggle").clicked += ToggleDiagnostics;
         Required<Button>("toolbar-undo").clicked += () => { _workspace.Undo(); RefreshAll(); };
         Required<Button>("toolbar-redo").clicked += () => { _workspace.Redo(); RefreshAll(); };
@@ -1350,8 +1360,30 @@ public sealed partial class AbilityLabWindow : EditorWindow
         _packageSelector.SetValueWithoutNotify(display);
         _updatingControls = false;
     }
+    internal bool SelectFormForCommand(byte form)
+    {
+        if (!_workspace.SelectForm(form)) return false;
+        _timelineProjection = null;
+        _timelineProjectionSlotId = "";
+        _selectedOperation = null;
+        _selectedHitboxSourceIndex = -1;
+        _grabSelected = false;
+        RefreshAll();
+        return true;
+    }
+
     private void RefreshWorkspaceControls()
     {
+        bool hasForms = _workspace.HasPackage && _workspace.Draft.AlternateForm != null;
+        _formSelector.style.display = hasForms ? DisplayStyle.Flex : DisplayStyle.None;
+        if (hasForms)
+        {
+            _updatingControls = true;
+            _formSelector.choices = new List<string> { _workspace.Draft.DisplayName, _workspace.Draft.AlternateForm.DisplayName };
+            _formSelector.SetValueWithoutNotify(_formSelector.choices[_workspace.SelectedForm]);
+            _updatingControls = false;
+        }
+
         RefreshUnsavedChanges();
         _packageStatusToggle.text = PackageStatus();
         Required<Button>("toolbar-undo").SetEnabled(_workspace.CanUndo);
@@ -3395,6 +3427,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         _waitingForAssemblyReload = true;
         _waitingForAssemblyReloadSince = EditorApplication.timeSinceStartup;
         _reloadPackageId = _workspace.PackageId;
+        _reloadForm = _workspace.SelectedForm;
         _refreshAfterCompilation = true;
         DestroyOwnedLab();
     }

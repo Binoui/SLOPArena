@@ -22,6 +22,23 @@ Record human feedback briefly, with only the scope actually reported. General
 Keep automated test totals, technical evidence and capture logs in task/PR reports
 or linked artifacts so the checklist stays easy to use.
 
+## Grab and throw verification
+
+Offline `GrabAimTests`, `GrabBeelineTests`, `GrabHoldTests`, `GrabThrowTests`,
+`GrabThrowConformanceTests` and `GrabThrowMeasurementTests` cover startup aim,
+stationary input, queue arbitration, legal wall turns, real release reactions,
+rollback and roster aerial chases. Run with `-p:SkipUnityPluginCopy=true`.
+Measurement output uses `--logger "console;verbosity=detailed"` and records the
+stage, percent, weight, tuning and DI. It distinguishes state readiness from
+accepted jump and slot ticks.
+
+After Unity compilation, run **Grab Animation Presentation** and the Ability Lab
+scenario self-test in Edit Mode. In Training, check startup turning, a stationary
+hold, both throw directions near a wall, release freeze and ordinary victim
+reaction. Check Beeline grab arrival on the ground and its drop in the air.
+Use the current root checklist for human follow-up. Dated records below retain
+the behavior and test totals observed at their dates.
+
 ## Local iteration
 
 Source or asset tuning uses the existing Editor development catalog and the affected
@@ -358,7 +375,8 @@ Inspect semantic `data.result.success` and diagnostics, plus actual
 `scenario.frames[]`, accepted `contacts[]`, grab `interactions[]`,
 `presentationEvents[]`, and `deaths[]`. Confirm hit damage/knockback and later
 state, block as zero-damage blocked contact, miss as no contact/damage, and grab
-capture/release as interaction transitions rather than fabricated hit records.
+capture as a paired transition and release as an attributed terminal transition
+plus exactly one accepted slot-zero contact. An interruption must remain terminal.
 Frame 0 corresponds to MatchTick 1. Preview and capture with `--action`; capture
 must use the matching recorded run/options. It restores prior scenario/cursor,
 playback, visibility, camera and render target; verify restoration and cache

@@ -78,8 +78,12 @@ namespace SlopArena.EditorTools
                 ("presentation.fightguy.fist-of-fury.focus", FuryFocus()),
                 ("presentation.fightguy.fist-of-fury.glint", FuryGlint()),
                 ("presentation.fightguy.fist-of-fury.ghost", FuryGhost()),
-                ("presentation.fightguy.fist-of-fury.hit", FuryHit()),
             };
+            // Rising Dragon's sweetspot shows the finisher's gold ego burst and 肉 seal (ADR-0053): its 14 damage
+            // contact scale picks the Finisher variant.
+            var furyHit = FuryHit();
+            built.Add(("presentation.fightguy.fist-of-fury.hit", furyHit));
+            built.Add(("presentation.fightguy.rising-dragon.sweet-hit", furyHit));
             var ball = KiBall();
             kit.BindProjectile("ground.A", ball, ProjectileOrientation.PreservePrefab, "bone.right-hand");
             kit.BindProjectile("air.A", ball, ProjectileOrientation.PreservePrefab, "bone.right-hand");

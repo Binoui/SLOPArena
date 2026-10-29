@@ -496,8 +496,8 @@ internal sealed class FlashDuel
 {
     internal const ulong Wibou = 1, V2 = 2, V3 = 3, V4 = 4, Third = 9;
     internal static readonly ulong[] Victims = { V2, V3, V4 };
-    internal const string Lock = "presentation.wibou.blade.glint", Reveal = "presentation.wibou.code-rain",
-        Click = "presentation.wibou.dash.charge", Pop = "presentation.wibou.blade.heavy-hit";
+    internal const string Lock = "presentation.wibou.flash.lock", Reveal = "presentation.wibou.flash.nani",
+        Click = "presentation.wibou.flash.click", Pop = "presentation.wibou.flash.pop";
     internal static readonly CharacterDefinition Def = TestHelpers.ResolveSourceDef("wibou", Pin);
     internal static readonly CookedFlashCutCapabilityParameters P = (CookedFlashCutCapabilityParameters)Def.CookedSlots!
         .Single(s => s.Id == "ground.F").Timeline.Stages[0].Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters;

@@ -174,7 +174,9 @@ public sealed record CharacterPresentationSource(
     string Grabbed = "",
     string ThrowForward = "",
     string AirDodge = "",
-    string Shell = "");
+    string Shell = "",
+    string Flying = "",
+    string MayhemLaugh = "");
 
 public sealed record HurtboxCapsuleSource(
     float StartX,
@@ -319,11 +321,20 @@ public sealed record PresentationPlacement(
     float LocalScaleZ = 1f,
     ushort DurationTicks = 28);
 
+/// <summary>When a timeline presentation plays (ADR-0053); <see cref="Always"/> is every activation.</summary>
+public enum AuthoringPresentationCondition : byte
+{
+    Always = 0,
+    /// <summary>Only once the activation has landed a sweetspot hit: a confirmed hit from a hitbox that names its own hitPresentationId.</summary>
+    SweetspotHit = 1,
+}
+
 public sealed record EmitPresentationOperationSource(
     ushort Tick,
     AuthoringUnit Unit,
     string PresentationId,
-    PresentationPlacement Placement) : CharacterTimelineOperationSource(Tick, Unit)
+    PresentationPlacement Placement,
+    AuthoringPresentationCondition Condition = AuthoringPresentationCondition.Always) : CharacterTimelineOperationSource(Tick, Unit)
 {
     public EmitPresentationOperationSource(ushort tick, AuthoringUnit unit, string presentationId)
         : this(tick, unit, presentationId, new PresentationPlacement()) { }
@@ -358,7 +369,9 @@ public sealed record HitboxSource(
     bool Interruptible,
     byte HitGroup,
     AuthoringKnockbackDirection KnockbackDirection = AuthoringKnockbackDirection.AwayFromOwner,
-    ushort FixedHitstunTicks = 0);
+    ushort FixedHitstunTicks = 0,
+    string? HitPresentationId = null,
+    bool RequiresFacingOwner = false);
 public sealed record ProjectileSource(
     float LaunchOffsetX,
     float LaunchOffsetY,
@@ -373,7 +386,9 @@ public sealed record ProjectileSource(
     ushort StunTicks,
     ushort MaxFlightTicks,
     float YawOffsetDegrees = 0f,
-    ProjectileReturnSource? Return = null);
+    ProjectileReturnSource? Return = null,
+    ProjectileHomingSource? Homing = null,
+    ProjectilePerchSource? Perch = null);
 
 /// <summary>
 /// A projectile's optional "return" block: it flies out for outboundTicks (or until it meets the stage
@@ -552,10 +567,12 @@ public sealed record ThrustCapabilityParameters(
 /// <see cref="ArrivalStunTicks"/>. A miss reels the empty ring back at <see cref="RetractSpeed"/>, then
 /// <see cref="MissRecoveryTicks"/>. Airborne her gravity is scaled by <see cref="AirGravityScale"/>. The projectile
 /// has no gravity, no yaw offset and no return. Ticks are 60 Hz, distances metres, speeds m/s.
+/// With <see cref="AtTarget"/> (runtime API 1.18.0, ADR-0051) no ring is thrown: <see cref="Projectile"/> and
+/// <see cref="RetractSpeed"/> are absent, and a miss is <see cref="MissRecoveryTicks"/> alone.
 /// </summary>
 public sealed record TetherCapabilityParameters(
     ushort ThrowTick,
-    ProjectileSource Projectile,
+    ProjectileSource? Projectile,
     float ReelSpeed,
     float AnchorDistance,
     ushort ArrivalStunTicks,
@@ -566,7 +583,26 @@ public sealed record TetherCapabilityParameters(
     string ReelAnimationId = "",
     string RetractAnimationId = "",
     string ThrowPresentationId = "",
-    string RetractPresentationId = "") : TypedCapabilityParameters;
+    string RetractPresentationId = "",
+    TetherAtTargetSource? AtTarget = null) : TypedCapabilityParameters;
+
+/// <summary>
+/// The tether's placed catch (ADR-0051, Nyx's Grasp). The spot is her current target's feet at the press, at most
+/// <see cref="MaxRange"/> away (<see cref="NoTargetDistance"/> ahead of her without a target), and stays there. At
+/// the tether's throw tick a warning marks it; <see cref="WarningTicks"/> later a stationary upright capsule of
+/// <see cref="Radius"/> and <see cref="Height"/> rises from it and catches for <see cref="CatchTicks"/>, dealing
+/// <see cref="Damage"/>. A fighter that left the spot is missed.
+/// </summary>
+public sealed record TetherAtTargetSource(
+    ushort WarningTicks,
+    ushort CatchTicks,
+    float Radius,
+    float Height,
+    float Damage,
+    float MaxRange,
+    float NoTargetDistance,
+    string WarningPresentationId = "",
+    string CatchPresentationId = "");
 
 /// <summary>
 /// slop.ability.cannonball.v1 (runtime API 1.14.0, ADR-0050), Bashie's ground R: a tucked hop onto where her current

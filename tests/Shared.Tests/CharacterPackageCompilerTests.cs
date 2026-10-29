@@ -376,6 +376,7 @@ public sealed class CharacterPackageCompilerTests
     {
         var result = CompileCharacter(character =>
         {
+            FightGuyFixture.WithoutTitleMatch(character);
             character["slots"]![0]!["allowSlideCarry"] = false;
             character["slots"]![0]!["aimMovement"] = "mobile";
             character["slots"]![0]!["aimMovementSpeedScale"] = 0.4;

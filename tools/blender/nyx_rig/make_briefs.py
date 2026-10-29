@@ -483,8 +483,9 @@ move('swap-golive', form='fake', sheet_form='real', slot='ground.F', semantic='a
      game={'total': 48, 'contact': 24, 'active': [24, 28], 'iasa': 40,
            'model': 'ADR-0051 swapForm with a towardOwner hitbox on the same tick; Bashie Wave Pool 24',
            'what': 'the form swaps and the pull hitbox spawns at the contact tick, inside the flash'},
-     meshes_shown=lambda total, swap: {'Nyx_Real': [[0, swap - 1]], 'Nyx_Real_Dress': [[0, swap - 1]],
-                                       'Nyx_Fake': [[swap, total]], 'Nyx_Backpack': [[swap, total]]},
+     meshes_shown=lambda total, swap: {'Nyx_Real': [[0, swap - 1]], 'Nyx_Real_Tights': [[0, swap - 1]], 'Nyx_Real_Dress': [[0, swap - 1]],
+                                       'Nyx_Fake': [[swap, total]], 'Nyx_Backpack': [[swap, total]],
+                                       'Nyx_BackpackPole': [[swap, total]], 'Nyx_Phone': [[swap, total]]},
      what=("Nyx's F from the real form, Going Live: the swap to her fake form. The real goth rolls her eyes, pulls her phone, "
            "raises it, and a ring-light flash covers her; out of the flash steps Nyxxie, posing and beckoning enemies in."),
      beats=[(0, "The real form's stance (reference `realstance`): upright, heels together, arms down."),
@@ -607,7 +608,7 @@ move('fake-g1', form='fake', slot='ground.1', semantic='anim.nyx.fake.g1', kind=
 move('fake-g3', form='fakepole', slot='ground.3', semantic='anim.nyx.fake.g3', kind='normal', frame='stance', scale=2,
      game={'total': 48, 'contact': 16, 'active': [16, 24], 'iasa': 40,
            'model': 'Wibou Up Slash 63/14/26, FightGuy High Kick 33/8; a weapon launcher along the pole'},
-     meshes_shown=lambda total, _: {'Nyx_PoleHeld': [[16, 72]]},
+     meshes_shown=lambda total, _: {'Nyx_PoleHeld': [[16, 72]], 'Nyx_BackpackPole': [[0, 15], [73, total]]},
      what=("Nyxxie's ground.3, Ring Light Uppercut: her launcher. She pulls the ring-light pole off her backpack with her "
            "left hand and swings it up in a big arc from low in front of her to straight overhead."),
      beats=[(0, "The stance."),
@@ -698,7 +699,7 @@ move('fake-a1', form='fake', slot='air.1', semantic='anim.nyx.fake.a1', kind='no
 move('fake-a3', form='fakepole', slot='air.3', semantic='anim.nyx.fake.a3', kind='normal', frame='air', scale=2,
      game={'total': 44, 'contact': 12, 'active': [12, 22], 'iasa': 38, 'landingLag': 10,
            'model': 'salamander Tail Whip 44/12 ll10, Bonk air Sunrise 54/20'},
-     meshes_shown=lambda total, _: {'Nyx_PoleHeld': [[14, 66]]},
+     meshes_shown=lambda total, _: {'Nyx_PoleHeld': [[14, 66]], 'Nyx_BackpackPole': [[0, 13], [67, total]]},
      what=("Nyxxie's air.3, Ring Light Overhead: her up aerial. She grabs the ring-light pole off her backpack and swings it in "
            "an arc over her head from front to back."),
      beats=[(0, "Her airborne pose."),
@@ -830,7 +831,9 @@ move('swap-logoff', form='real', sheet_form='fake', slot='ground.F', semantic='a
            'model': 'ADR-0051 swapForm with an awayFromOwner hitbox on the same tick; Bashie Wave Pool 24',
            'what': 'the form swaps and the push hitbox spawns at the contact tick, inside the shard burst'},
      meshes_shown=lambda total, swap: {'Nyx_Fake': [[0, swap - 1]], 'Nyx_Backpack': [[0, swap - 1]],
-                                       'Nyx_Real': [[swap, total]], 'Nyx_Real_Dress': [[swap, total]]},
+                                       'Nyx_BackpackPole': [[0, swap - 1]], 'Nyx_Phone': [[0, 9]],
+                                       'Nyx_Real': [[swap, total]], 'Nyx_Real_Tights': [[swap, total]],
+                                       'Nyx_Real_Dress': [[swap, total]]},
      what=("Nyxxie's F, Logging Off: the swap back to the real form. Her phone slips out of her hand, her grin dies, a burst "
            "of shadow shards covers her, and the real goth stands there pushing a ring of shards out along the floor."),
      beats=[(0, "Nyxxie's stance (reference `fakestance`)."),

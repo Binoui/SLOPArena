@@ -1,0 +1,310 @@
+{
+  "name": "manki-fly-loop",
+  "notes": "Manki Flying loop (new clip, proposed semantic id anim.manki.fly-loop), 2026-10-29. ADR-0049 made Flying a fighter state; today Flying holds a frozen frame of anim.manki.ge at Flying.PoseFraction 0.65, and anim.manki.ge is bound to the same clip as anim.manki.fall, so players see the fall pose frozen (reference 'fall', image 3). The server also bakes Flying's hurtboxes from that frame (ServerSimulation, Flying.PoseFraction), so binding a loop is an integration change on both sides. Owner direction (via the coordinator): a gleeful jetpack hover-cruise; body pitched a little forward; legs dangle and sway loosely, lagging the body; arms out for balance or steering, not stiff; a small thrust-pulse bob; the head stays alive; fingers get secondary motion; 48-tick cycle proposed; R and Q fire during flight, so the upper body is a loop other clips briefly override. Rig pack manki-unity-v5 built 2026-10-29 from the live v5 'pyro' MankiRig.prefab (snapshot _snapshots/manki+v5-20261029-121816.json), with the bound R and Q clips as references 'rocket' and 'bomb'. Keys stage only; the owner approves the keys before motion. Owner, 2026-10-29, on the approved keys (run 20261029-122442-manki-fly-loop-keys): widen the arms a little, since from behind they read short next to the jetpack cans; let the legs trail further behind instead of hanging nearly straight down; keep two thrust puffs per cycle. The keys were re-solved for that (hands about 5 cm further out, feet 18 cm further back) in tmp/manki-anim/motion/fly-keys-v2 and the targets below follow them.",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-v5",
+  "character": "Manki v5 'pyro' (58 joints: a Humanoid body with Mixamo names, a big head with goggles and a spiky mane, big ears, an open vest and ragged shorts; a two-can spray-can jetpack built into the body mesh and pinned rigidly to Spine2, so it sits on his upper back and turns with the chest; a TORCH-can holster on his left thigh; thumb, index, middle and ring fingers on each hand; arm stretch, forearm offset and fist deform controls that carry the arm skin; a five-joint tail Tail1..5 that a spring drives in the game, so leave it at rest). He is small: hips to head 0.38 m, thigh 0.25 m, shin 0.19 m, upper arm 0.14 m, forearm 0.15 m in this rig.",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "rocket": "references/rocket.usda",
+    "bomb": "references/bomb.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "clock": {
+    "duration_ticks": 48
+  },
+  "timing": {
+    "fixed": [
+      "the game plays this loop for as long as Manki is Flying: up to 180 fuel ticks (3 s) per flight, wrapping from tick 48 back to 0",
+      "it crossfades in over about 0.1 s after the 4-tick jetpack ignition clip, and again after every R (rocket) or Q (bomb) he uses in flight, at whatever tick the loop is on",
+      "R and Q replace his whole pose while they play and then hand back to this loop, so the upper body must be a calm base that blends to and from them",
+      "the game moves him: about 12 m/s along the stick or the held heading, sinking 1.2 m/s, with a 12-tick lift burst on each jump press; the fighter does not move in the clip",
+      "the flight ends into his fall, an air normal or a hit reaction, all crossfades"
+    ],
+    "adjustable": [
+      "the cycle length (48 ticks proposed) and the beat ticks below, as the owner approves them with the key poses",
+      "one or two thrust pulses per cycle (two proposed: a stronger one at tick 0, a softer one at tick 24)"
+    ]
+  },
+  "description": "Manki's flight loop: what his body does while he flies on his jetpack. Since his bomber rework (ADR-0049) this is the pose players see most: he takes off with E, then cruises low and fast over the arena while he drops bombs (Q) and fires homing rockets (R). Today the game freezes one frame of his old fall (image 3, reference `fall` ticks 0-42 barely move): a stiff tilted crouch with one arm up. This loop replaces it.\n\nWho he is. Manki is a pyromaniac mad-inventor monkey (images 1 and 2: front and back of the v5 model): toothy grin with missing teeth, cracked goggles, a burnt brow, a lighter on his vest, a TORCH can holstered on his left thigh, and a homemade jetpack of two big spray cans strapped to his back. He is chaotic and delighted with himself. In flight he is having the time of his life: a gleeful joyride, not a heroic superhero pose and not a struggle.\n\nHow the game plays it. The clip loops (ticks 0-48 are 0.8 s, wrapping from 48 back to 0) for as long as he flies, up to 3 s. The game crossfades into it over 0.1 s after the jetpack ignition, and again whenever his R rocket or Q bomb clip, which take over his whole body for a moment, hands back to the flight. The game moves him at about 12 m/s along his facing (front), sinking slowly; the fighter does not move in the clip. The jetpack's exhaust flame and smoke trail come out of the two can nozzles under his back and follow the Spine2 joint. The match camera sits behind and a little above him, so players mostly see his back: the jetpack in the middle, his arms out either side of it, his legs hanging below.\n\nThe pose: a hover-cruise.\n- Body: the hips and spine pitch forward into the flight about 15-25 degrees from upright (the head 0.12-0.24 m ahead of the hips), the chest proud and open rather than hunched, as if leaning into a fun ride. The hips stay about where the idle's are (within 8 cm up or down).\n- Head: up and looking ahead along the flight, not at the floor: the neck lifts it against the body's pitch. Chin a little up, delighted.\n- Arms: out to the sides for balance and steering, like a kid playing airplane or surfing the air, never stiff and never straight. Elbows bent about 30-60 degrees, hands well out past the jetpack (about 0.40 m to either side of the centre line: the owner found the first keys' arms short beside the cans from behind), at about chest height (0.10-0.35 m above the hips), a little ahead of the shoulders, palms facing down and forward, fingers loosely spread and half curled. Keep the hands out of the jetpack: never behind his back. Make the two arms a little different (one a few centimetres higher or further forward, as if steering), not a mirror.\n- Legs: dangling loose below and behind the hips, dragged back by the flight (the owner: trailing behind, not hanging nearly straight down): knees bent about 20-55 degrees, feet hanging 0.2 m or more below the hips and trailing 0.2-0.38 m behind them, about 40 degrees back from hanging straight down, toes pointing down and back, feet apart (not crossed). No running, kicking or pedalling.\n\nThe motion: calm and readable, a loop not a performance.\n- Thrust pulse: two pulses per cycle. At tick 0 the jetpack puffs and the hips start to rise, peaking at tick 6 (about 3-5 cm above their lowest), then the body sinks slowly until the second, softer pulse at tick 24, peaking at tick 30 (2-3 cm), then sinks to tick 48 = tick 0. The rise is quicker than the sink: a puff and a glide, not a sine wave.\n- Lag through the body: the chest follows the hips one tick late, the head two to three ticks late and with a smaller bob (the head steadier than the body). The arms dip 3-8 cm as the body rises (their hands trail the shoulders by 2-4 ticks) and float back up as it sinks, like wings.\n- Legs lag the body: when the hips rise the legs hang straighter and the feet drop and trail, when the hips sink the knees fold a little more and the feet float up, 4-6 ticks behind the hips. On top of that each leg sways slowly front to back (6-14 cm at the foot) once per cycle, the two legs out of phase and with different amounts, so they look loose and heavy, not mirrored.\n- Head alive: a small happy side tilt (4-8 degrees) that changes side once per cycle, and one small look to his left around tick 16 and back by tick 30 (5-10 degrees of turn), never a snap.\n- Fingers: they flutter with the air, curling and opening 10-20 degrees two or three ticks behind their hand's motion.\n- Chest: a small counter-roll against the arms' drift (3-6 degrees).\n- Tail: do not animate Tail1..5. The game's spring swings it from the hips' motion, so the hips' pulse and sway are what make it move.\n- Keep the upper body near this calm base: R plays a rocket clip with both hands at his right shoulder (image 4, reference `rocket`) and Q a bomb clip (reference `bomb`) that crossfade in and out of this loop at any tick, so no big twist of the chest, no arm crossing the body, and the shoulders level enough that those clips blend in without a swing through the head.\n\nKey poses for approval (the keys stage): tick 0, the low point as the first pulse fires; tick 6, the first pulse's peak, arms dipped and legs hanging straightest; tick 16, gliding and sinking, the left foot at its most forward, the head starting its look left; tick 24, the low point as the softer pulse fires; tick 30, the second peak, the head back to centre; tick 40, gliding, the right foot at its most forward, the tilt on the other side; tick 48, the same pose as tick 0. Make each key a pose of its own: they should differ by the pulse, the leg sway and the head, while the overall cruise silhouette stays the same.",
+  "views": [
+    "profile",
+    "gameplay",
+    "three-quarter-right",
+    "front"
+  ],
+  "preview_views": [
+    "profile",
+    "gameplay",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../manki-anim-20261029/concept-front.png",
+    "../../manki-anim-20261029/concept-back.png",
+    "../../manki-anim-20261029/today-flight-fall.png",
+    "../../manki-anim-20261029/rocket-override.png",
+    "images/idle-entry.png"
+  ],
+  "image_notes": "1 and 2: the v5 'pyro' Manki concept the model was built from, front and back (the two-can jetpack on his back, the TORCH can on his left thigh). It is a drawing: the rig's proportions rule. 3: today's flight pose, the fall clip the game freezes (reference `fall`, ticks 0, 14, 27 and 42 from the side, the front and the gameplay camera behind him): what this loop replaces. 4: the R rocket clip that interrupts the flight (reference `rocket`, ticks 0, 8, 16, 30 and 48, side and gameplay): both hands at his right shoulder. 5: the idle entry pose (side, front, three-quarter rear).",
+  "keys": [
+    0,
+    6,
+    16,
+    24,
+    30,
+    40,
+    48
+  ],
+  "review_ticks": [
+    0,
+    3,
+    6,
+    10,
+    16,
+    20,
+    24,
+    27,
+    30,
+    34,
+    40,
+    44,
+    48
+  ],
+  "snap_degrees_per_tick": 10,
+  "targets": [
+    {
+      "name": "body pitched forward: head ahead of the hips at tick 0 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.12,
+      "max": 0.24
+    },
+    {
+      "name": "body pitched forward: head ahead of the hips at tick 24 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 24,
+      "min": 0.12,
+      "max": 0.24
+    },
+    {
+      "name": "hips about the idle's height at tick 0 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.08,
+      "max": 0.08
+    },
+    {
+      "name": "thrust pulse: hips rise and sink over the cycle (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.03,
+      "max": 0.07
+    },
+    {
+      "name": "head bobs gently, steadier than the body (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.015,
+      "max": 0.06
+    },
+    {
+      "name": "left hand out past the jetpack at tick 0 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.37
+    },
+    {
+      "name": "right hand out past the jetpack at tick 0 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.37
+    },
+    {
+      "name": "left hand out past the jetpack at tick 24 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 24,
+      "max": -0.37
+    },
+    {
+      "name": "right hand out past the jetpack at tick 24 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 24,
+      "min": 0.37
+    },
+    {
+      "name": "left hand at chest height at tick 0 (m above the hips)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": 0.1,
+      "max": 0.35
+    },
+    {
+      "name": "right hand at chest height at tick 0 (m above the hips)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 0,
+      "min": 0.1,
+      "max": 0.35
+    },
+    {
+      "name": "left hand never behind the back: ahead of the chest at tick 6 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 6,
+      "min": -0.03
+    },
+    {
+      "name": "right hand never behind the back: ahead of the chest at tick 6 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 6,
+      "min": -0.03
+    },
+    {
+      "name": "arms float: left hand up and down over the cycle (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.03,
+      "max": 0.1
+    },
+    {
+      "name": "arms float: right hand up and down over the cycle (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.03,
+      "max": 0.1
+    },
+    {
+      "name": "left foot dangles well below the hips at tick 6 (m)",
+      "kind": "below",
+      "a": "LeftFoot",
+      "b": "Hips",
+      "tick": 6,
+      "min": 0.2
+    },
+    {
+      "name": "right foot dangles well below the hips at tick 6 (m)",
+      "kind": "below",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 6,
+      "min": 0.2
+    },
+    {
+      "name": "left foot trails behind the hips, even at its most forward, at tick 16 (m)",
+      "kind": "ahead",
+      "a": "LeftFoot",
+      "b": "Hips",
+      "tick": 16,
+      "min": -0.38,
+      "max": -0.15
+    },
+    {
+      "name": "right foot trails behind the hips, even at its most forward, at tick 40 (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 40,
+      "min": -0.38,
+      "max": -0.15
+    },
+    {
+      "name": "left leg sways front to back over the cycle (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "front",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.06,
+      "max": 0.16
+    },
+    {
+      "name": "right leg sways front to back over the cycle (m)",
+      "kind": "range",
+      "a": "RightFoot",
+      "axis": "front",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.06,
+      "max": 0.16
+    },
+    {
+      "name": "feet apart, not crossed, at tick 16 (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 16,
+      "min": 0.12
+    },
+    {
+      "name": "legs trail: left foot well behind the hips at tick 0 (m)",
+      "kind": "ahead",
+      "a": "LeftFoot",
+      "b": "Hips",
+      "tick": 0,
+      "min": -0.4,
+      "max": -0.22
+    },
+    {
+      "name": "legs trail: right foot well behind the hips at tick 0 (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 0,
+      "min": -0.4,
+      "max": -0.22
+    }
+  ]
+}

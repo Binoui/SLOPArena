@@ -1,0 +1,146 @@
+{
+  "name": "nyx-fake-q",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakemoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form ground.A (anim.nyx.fake.ga), from her pose sheet fake-q (2026-10-29). Proposed game timing: {\"total\": 36, \"contact\": 10, \"active\": [10, 14], \"iasa\": 30, \"model\": \"startupAimCorrection snap turn, then a short cone (ADR-0051); Wibou Shuriken Toss 24/8/16\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's Q, Ring Light: she snaps to face the target and flicks her ring light on: a short flash cone dazzles everyone facing her, while she pulls an exaggerated duck pout.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.889 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.015 m above the floor and the ankle (Foot) about 0.191 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `fakestance`, the entry and exit pose): her weight on one hip, the phone at chest height in her right hand, bored.\n\nThe clip (72 ticks, played once):\n- Tick 0: The stance.\n- Tick 6: Snap: a quick whip of the hips and chest to square up to the front, the feet jumping into a wide stance (boots about 0.55 m apart, knees bent); the phone comes up in her right hand toward face height.\n- Tick 12: Set: wide stance, the phone held up and to the right of her face, screen toward her; her left hand rising toward the ring light above her left shoulder.\n- Tick 20: Flash (contact): her left hand flicks up and taps the ring light, the hand at the pole about 0.36 m above her left shoulder; her head tilts back 10 degrees and toward the phone in a duck pout; a little pop up in the knees.\n- Tick 28: End of the flash, holding the pose.\n- Tick 48: Still holding, drifting: the pout eases, the left hand slides down the pole a little.\n- Tick 60: The arms come back to the stance; she can act again.\n- Tick 72: The stance, matching tick 0.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fakestance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 72,
+    "contact_tick": 20,
+    "active": [
+      20,
+      28
+    ],
+    "iasa_tick": 60
+  },
+  "timing": {
+    "fixed": [
+      "72 ticks played once",
+      "contact at tick 20, active ticks 20-28; the player can act from tick 60",
+      "authored at 2x the proposed game length (36 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her fakestance pose and tick 72 her fakestance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-left"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-q.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'snap': a quick snap-turn to face the left, the phone coming up; pose 2 'flash': her left hand flicks the ring light on above her shoulder; a short flat white-and-pink flash cone, as long as her body, bursts toward the left; her face pulls an exaggerated duck pout; pose 3 'hold': holding the pose, the flash fading. Sheet note: A short cone that dazzles everyone facing her. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    6,
+    12,
+    20,
+    28,
+    48,
+    60,
+    72
+  ],
+  "review_ticks": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    16,
+    20,
+    24,
+    28,
+    38,
+    48,
+    54,
+    60,
+    66,
+    72
+  ],
+  "exit": {
+    "reference": "fakestance",
+    "tick": 0,
+    "from_tick": 72
+  },
+  "fast_windows": [
+    [
+      2,
+      10
+    ],
+    [
+      16,
+      22
+    ]
+  ],
+  "strike": [
+    "LeftHand"
+  ],
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor at tick 12 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "RightToeBase on the floor at tick 20 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "wide stance (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 20,
+      "min": 0.42
+    },
+    {
+      "name": "flash: left hand up at the ring light (m)",
+      "kind": "below",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 20,
+      "min": 0.23
+    },
+    {
+      "name": "flash: left hand above her left shoulder (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 20,
+      "max": -0.05
+    },
+    {
+      "name": "flash: phone up at face height (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 20,
+      "min": -0.15,
+      "max": 0.12
+    }
+  ]
+}

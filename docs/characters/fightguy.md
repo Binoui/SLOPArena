@@ -93,7 +93,7 @@ FightGuy specials are cooked timeline and capability bindings:
 - A: Ki Shot — public `slop.ability.charged-projectile.v1`, three charge tiers
 - E: Rising Dragon
 - R: Cyclone Kick
-- F: Fist of Fury
+- F: Title Match (public `slop.ability.clinch.v1`, [ADR-0053](../adr/0053-fightguy-title-match-clinch.md))
 
 Ground and air A (physical Q) hold a stationary charge until release. Tier 2 starts
 at 20 held ticks (0.33 s), tier 3 at 45 ticks (0.75 s); charge caps at 60 ticks
@@ -141,13 +141,38 @@ six hits for 11 damage, FightGuy acts about 11 ticks before the victim at 0% and
 22 at 100%, about 4 m apart. The dizzy stars play only when nothing was hit, so a
 whiff or a blocked kick still shows the punish window. Training verdict pending.
 
-Fist of Fury uses `fightguy_spell_f_2` for its full two-phase presentation:
-seven inward-stunning punches followed by a right-foot knockback finisher.
-Punches use horizontal, zero-growth pull so damage percent cannot eject the victim.
-Their fixed Hitstun covers the remaining timeline through the kick's active window;
-the stronger inward pull keeps late catches in reach despite outward defensive drift.
-Only the tick-88 right-foot hit launches outward. Ground and air F share this timeline.
-The cooked timeline and hitbox direction are authoritative.
+**Rising Dragon sweetspot (2026-10-29).** Before, E never killed: point blank all
+three hitboxes landed for 24 damage, but the victim rose only 2.2–3.1 m against a top
+blast line about 20 m up. Now the first three active ticks (6–8) are the sweetspot:
+the fist, head and a hip sphere 0.63 m ahead (r 0.45) deal 14 damage at 80°, base 30,
+growth 52, reaching 1.3 m. From tick 9 the fist and head are the sourspot, 6 damage
+at 75°, base 30, growth 6, a 1.7–2.3 m pop-up. All five share hit group 1, so each
+fighter takes one hit. Measured in the offline sim (`tmp/fightguy-specials/probe3`,
+compiled from this source): the sweetspot KOs off the top of Training at 105% from
+spawn 0, with or without sideways DI, which only turns the horizontal part of a launch.
+Double Kick needs 90–95% there. It lands on a Beeline arrival (1.0 m gap) and
+out of shield after blocking FightGuy's g1, g3 or g4 at 0%, before the attacker can act.
+A late catch during the rise, including most anti-air catches, gets the sourspot.
+Cooked 2026-10-29; Training verdict pending.
+
+**Sweetspot feedback (2026-10-29, ADR-0053).** The three sweet hitboxes name their own hit presentation,
+`presentation.fightguy.rising-dragon.sweet-hit`: the gold ego burst with the 肉 seal (the Fist of Fury finisher
+prefab, which its 14-damage contact scales to). The sourspot keeps the blue Dragon hit. The apex "#1" finger
+carries `condition: "sweetspotHit"`, so it plays only after a sweet hit: a sourspot or a whiff shows no finger.
+Checked in Training (`tmp/fightguy-specials/ingame/s4-dragon-sweet.mp4`, `s5-dragon-whiff.mp4`); verdict pending.
+
+**Title Match (F, 2026-10-29, [ADR-0053](../adr/0053-fightguy-title-match-clinch.md)).** Fist of Fury became a
+command grab. F lunges 2 m at 20 m/s along his current target's bearing (his facing without one), level and with
+gravity off, with a catch sphere 0.6 m ahead. The first fighter it meets is clinched: a shield does not stop it, an
+air dodge does. The held fighter floats 0.8 m in front of him, on the ground or in the air, while the old flurry
+(`anim.fist-of-fury`, `fightguy_spell_f_2`, its ghost fists and hits unchanged) deals damage and hitstop only. One
+tick before the right-foot kick the hold releases with a 6-tick lock, and the kick (12 damage, 28°, base 12, growth 42)
+launches. Measured offline: it catches a standing fighter up to 3.5 m away, and the kick KOs off Training from spawn 0
+at 75%, against 95% for Double Kick and 110% for the old F. A miss (range, a wall, a dodge) holds the diving lunge pose
+for 24 ticks: he acts again 30 ticks after the press. On a full hit he acts again at tick 178. A third party's hit on
+either fighter frees both, and the move ends at once if the victim is taken. On the courses a lunge that meets a bonus
+target punches it as before. Ground and air F share the timeline. Cooldown stays 720 ticks. Training captures:
+`tmp/fightguy-specials/ingame/`; verdict pending.
 
 ## Combat presentation — 2026-10-17
 
@@ -167,9 +192,9 @@ damage, hitboxes and timing did not.
 | --- | --- |
 | Normals (ground and air 1–4) | A blue toon ribbon behind the striking limb and a puff of chalk off the wraps; heavies use a gold-cored ribbon. Hits use `normal.hit`: a round blue "pow" and speed lines. Ground and air 4 use `normal.heavy-hit`, which adds a gold star and chalk specks. |
 | Ki Shot (A) | While charging, ki motes are pulled into his palm. Reaching tier 2 and tier 3 pops a gold ring around the ball and paparazzi camera flashes around him (`ChargeTierCues`). Release: shockwave rings at the palm. The ball is a toon blue sphere with a slowly spinning gold 肉, a comet tail and motes, and grows with the charge tier. Hit: a blue impact with a small gold 肉 spark; a fully charged shot also slaps a red 肉 ink stamp on the victim (`ChargeTierVariant`). |
-| Rising Dragon (E) | A blue ki glow on the uppercut fist shedding gold sparkles, and twin blue and gold helices growing up his body. At the top a spotlight finds him and his fist pops into a giant foam "#1" finger with a star glint. Hit: gold behind blue with rising speed lines. |
+| Rising Dragon (E) | A blue ki glow on the uppercut fist shedding gold sparkles, and twin blue and gold helices growing up his body. After a sweetspot hit, a spotlight finds him at the top and his fist pops into a giant foam "#1" finger with a star glint. Hit: gold behind blue with rising speed lines; a sweetspot hit shows the gold ego burst with the 肉 seal instead. |
 | Cyclone Kick (R) | Fast twin helices and wind rings around his legs, chalk kicked up from both feet. Gold dizzy stars circle his head through the recovery after a whiff and vanish exactly when he can act: the gag doubles as a punish window. A landed kick skips them. Hit: a blue impact in a gold swirl with chalk specks. |
-| Fist of Fury (F) | He locks in: gold power lines rise around him over a gold ring on the floor, and his eye glints. Each punch throws a blue ghost fist. Punch hits are a small blue impact with a gold 肉; the finisher kick (`DamageScaleVariant`) is a gold-and-blue starburst stamped with a gold 肉 seal, a shockwave ring and speed lines. |
+| Title Match (F) | A diving lunge with no effect. On a catch he locks in: gold power lines rise around him over a gold ring on the floor, and his eye glints. Each punch throws a blue ghost fist. Punch hits are a small blue impact with a gold 肉; the finisher kick (`DamageScaleVariant`) is a gold-and-blue starburst stamped with a gold 肉 seal, a shockwave ring and speed lines. |
 
 Bone-attached cues put their content under a `PresentationFrame` child, which cancels
 the bone scale: FightGuy's rig bones carry a 1.5× import scale. Spirals, rings, the

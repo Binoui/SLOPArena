@@ -206,10 +206,13 @@ crow's `pop` hit on that fighter, credited to her, and removes the crow. The pop
 hitstop, so it reads as a second hit. Real-form hits do not pop. The pop is an engine rule in the hit pass, not an
 activation hook, so any fake-form move can pop it, including one that started after the swap.
 
+In the build the rule is general: a hit from the thrower's other form pops the perch, so a `perch` block requires
+`slop.ability.forms.v1`. The pop is unblockable and joins the hit pass on the victim's first tick out of hitstop.
+
 **New resolver pieces.**
 
 - A `PopOnly` flag. Today the sticky path explodes when its fuse runs out and when its carrier is KO'd. The crow must
-  do neither.
+  do neither. In the build the projectile's `perch` data on the resolver hitbox is that flag.
 - A fragile rule for "hit away": a crow in flight that overlaps an opposing fighter's active hitbox is destroyed. It
   is not reflected.
 
@@ -246,7 +249,7 @@ Every normal in both forms uses existing operations. Specials reuse capabilities
 | Fake | air 4 | Double Dropkick | Downward hitbox | None |
 | Fake | A | Ring Light | `startupAimCorrection` for the snap turn, `forwardLunge` with `stopInAttackRange`, a short cone of spheres with `fixedHitstunTicks` and zero launch for the dazzle | A hitbox facing filter, so only fighters facing her are dazzled |
 | Fake | E | Ring Light Rise | `slop.ability.aimed-recovery.v1` with `riseSteerAcceleration` | None. If the rotor must hit, `thrust.v1` straight up with its `trailHitbox` does that instead. |
-| Fake | R | Selfie Grab | Grab rules (shields do not stop it, armour does not resist it, grab clash), pair fields, `Grabbed`, `CanPlaceVictim`, the throw release into `Thrown` | A capability, `slop.ability.command-grab.v1`: lunge, authored capture volume, a short hold with Nyx `Attacking` and the victim `Grabbed` under a new `DefenseInteractionPhase`, a both-sides validator like `TetherHolds`, then a release with an authored launch |
+| Fake | R | Selfie Grab | Grab rules (shields do not stop it, armour does not resist it, grab clash), pair fields, `Grabbed`, `CanPlaceVictim`, and an ordinary launch on release (the build does not use `Thrown`) | A capability, `slop.ability.command-grab.v1`: lunge, authored capture volume, a short hold with Nyx `Attacking` and the victim `Grabbed` under a new `DefenseInteractionPhase`, a both-sides validator like `TetherHolds`, then a release with an authored launch |
 | Fake | F | Logging Off | `awayFromOwner` hitbox, presentation event | `swapForm` |
 
 Grasp reuses the tether instead of getting its own capability because the drag, the pair, the arrival window and
@@ -276,6 +279,19 @@ authored launch of its own.
 
 The CPU gets no crow rule in the first pass. Any fake-form hit pops the crow.
 
+Phase 7 implements option A for both HUD and CPU. Close range is the largest authored normal reach of the fake
+form, plus the policy's existing victim margin. Both form profiles are cached before either swaps. Delayed opponent
+observations carry reach from the form observed on that tick. Normal and Hard request a swap cancel only after their
+hit observation arrives and Shared confirms that the running activation connected. Selfie Grab is eligible against
+shields, while the crow's pop makes its zero-damage flight a useful attack. Ring Light Rise participates in the
+existing recovery selector. The HUD uses borrowed placeholder glyphs per form and the destination portrait on F.
+
+Ring Light's hitboxes opt into `requiresFacingOwner`, runtime API 1.19.0. At contact, the victim's horizontal forward
+vector must point toward the owner's current root position. Rejected contacts consume no hit history. Other hitboxes
+omit the field and retain their cooked bytes. World Snapshot v21 stores the flag in the hitbox event's existing flags
+byte. Ability Lab's Form selector routes lookup, editing, preview and scenarios to the selected grid; Save + Cook
+still writes one complete package. `sloparena.lab.form --form 0|1` selects the same grid for agent commands.
+
 ### 8. Build order
 
 Each phase ends playable in Training, with Shared tests for its rules.
@@ -298,8 +314,8 @@ Each phase ends playable in Training, with Shared tests for its rules.
 7. **Finish:** the Ring Light facing filter, the CPU swap rule, both decks' icons, an Ability Lab form selector, and
    Fighter's License if she joins it.
 
-Until phase 7, Ability Lab shows and edits form 0 only. The fake form is edited in `character.json` and tried in
-Training.
+Phase 7 provides both Ability Lab grids and HUD decks with placeholder icons. Final icon renders wait for her own
+approved animations. Fighter's License admission, effects and sounds remain separate owner decisions or work.
 
 ## Prototype defaults
 
@@ -334,7 +350,9 @@ The owner answered the six questions on 2026-10-29.
 
 - New state: `FormState` on `CharacterState`, `Hitbox.Form`, the activation's form and `Connected` flag in its
   snapshot record, and the next World Snapshot format. Phase 1 took format 17 (ADR-0052 took 16), World Frame format 8
-  for the hit record's form byte and runtime API `1.16.0`. The command hold takes the next `DefenseInteractionPhase` value (6). There is no new `ActionState`: the
+  for the hit record's form byte and runtime API `1.16.0`. Phases 4 to 6 took World Snapshot format 20 (ADR-0053 took
+  19) for perching projectiles and queued pops, and runtime API `1.18.0`. The command hold took
+  `DefenseInteractionPhase.CommandHold` (7), because ADR-0053's clinch took 6. There is no new `ActionState`: the
   swap is an ordinary move. The change goes under "Unreleased" in `SimulationProtocol.cs`; release prepare does the one
   protocol bump.
 - A seat's pick and `MatchPlayer` carry a starting form. Online starts in the real form until the master lobby passes

@@ -62,6 +62,7 @@ public sealed class AbilityLabSimulationController
         var state = new CharacterState
         {
             EntityId = PreviewEntityId,
+            Form = new FormState { Active = definition.Form },
             PX = origin.x,
             PY = origin.y,
             PZ = origin.z,
@@ -125,6 +126,7 @@ public sealed class AbilityLabSimulationController
         var actor = new CharacterState
         {
             EntityId = PreviewEntityId,
+            Form = new FormState { Active = definition.Form },
             PX = origin.x, PY = origin.y + (address.IsAirborne ? definition.CapsuleHeight : 0f), PZ = origin.z,
             FacingYaw = facingYaw, AimYaw = facingYaw,
             IsGrounded = !address.IsAirborne, State = ActionState.Idle,
@@ -134,6 +136,7 @@ public sealed class AbilityLabSimulationController
         var opponent = new CharacterState
         {
             EntityId = opponentId,
+            Form = new FormState { Active = definition.Form },
             PX = origin.x + Mathf.Sin(facingYaw) * options.Distance,
             PY = origin.y,
             PZ = origin.z + Mathf.Cos(facingYaw) * options.Distance,
@@ -184,10 +187,8 @@ public sealed class AbilityLabSimulationController
                 interactions.Add(new AbilityLabScenarioInteraction(frame, matchTick, "capture", actor.InteractionId));
             if (previousActor.InteractionId != 0 && actor.InteractionId == 0)
             {
-                // This is an observation of the resolved paired states, not a
-                // predicted release tick or an invented hitbox contact.
-                string kind = opponent.DamagePercent > previousOpponent.DamagePercent
-                    && opponent.State is (ActionState.Hitstun or ActionState.Thrown) ? "release" : "terminal";
+                string kind = GrabThrow.WasReleased(in previousActor, in previousOpponent, in actor, in opponent)
+                    ? "release" : "terminal";
                 interactions.Add(new AbilityLabScenarioInteraction(frame, matchTick, kind, previousActor.InteractionId));
             }
             events.AddRange(simulation.GetPresentationEvents(clear: true));

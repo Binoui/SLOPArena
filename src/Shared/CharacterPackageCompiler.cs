@@ -54,6 +54,10 @@ public static class CharacterPackageCompiler
     public const string ThrustCapabilityVersion = "1";
     public const string TetherCapabilityId = "slop.ability.tether.v1";
     public const string TetherCapabilityVersion = "1";
+    public const string ClinchCapabilityId = "slop.ability.clinch.v1";
+    public const string ClinchCapabilityVersion = "1";
+    public const string CommandGrabCapabilityId = "slop.ability.command-grab.v1";
+    public const string CommandGrabCapabilityVersion = "1";
     public const string FormsCapabilityId = "slop.ability.forms.v1";
     public const string FormsCapabilityVersion = "1";
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
@@ -96,6 +100,8 @@ public static class CharacterPackageCompiler
             || id == ShellStanceCapabilityId && version == ShellStanceCapabilityVersion
             || id == ThrustCapabilityId && version == ThrustCapabilityVersion
             || id == TetherCapabilityId && version == TetherCapabilityVersion
+            || id == ClinchCapabilityId && version == ClinchCapabilityVersion
+            || id == CommandGrabCapabilityId && version == CommandGrabCapabilityVersion
             || id == CannonballCapabilityId && version == CannonballCapabilityVersion
             || id == FormsCapabilityId && version == FormsCapabilityVersion;
 
@@ -135,10 +141,35 @@ public static class CharacterPackageCompiler
     private static bool RequiresRuntimeApi116(CharacterAuthoringDocument character)
         => character.AlternateForm != null
             || character.CapabilityRequirements.Any(requirement => requirement.CapabilityId == FormsCapabilityId);
+    /// <summary>A hitbox's own hit presentation, a conditioned presentation and the clinch (ADR-0053).</summary>
+    private static bool RequiresRuntimeApi117(CharacterAuthoringDocument character)
+        => AllSlots(character).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is SpawnHitboxOperationSource { Hitbox.HitPresentationId: not null }
+                or EmitPresentationOperationSource { Condition: not AuthoringPresentationCondition.Always }
+                or StartCapabilityOperationSource { CapabilityId: ClinchCapabilityId })));
+    /// <summary>Nyx's specials (ADR-0051): the tether's placed catch, homing and perching projectiles and the command grab.</summary>
+    private static bool RequiresRuntimeApi118(CharacterAuthoringDocument character)
+        => AllSlots(character).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is StartCapabilityOperationSource { Parameters: TetherCapabilityParameters { AtTarget: not null } }
+                or SpawnProjectileOperationSource { Projectile.Homing: not null }
+                or SpawnProjectileOperationSource { Projectile.Perch: not null }
+                or StartCapabilityOperationSource { CapabilityId: CommandGrabCapabilityId })));
     private static bool RequiresRuntimeApi115(CharacterAuthoringDocument character)
         => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
             operation is StartCapabilityOperationSource capability &&
             capability.CapabilityId is DashStrikeCapabilityId or FlashCutCapabilityId)));
+
+    private static bool FacingFilteredCapability(TypedCapabilityParameters parameters) => parameters switch
+    {
+        TargetedLeapCapabilityParameters x => x.Hitbox.RequiresFacingOwner,
+        ThrustCapabilityParameters x => x.TrailHitbox?.RequiresFacingOwner == true,
+        DashStrikeCapabilityParameters x => x.LightHitbox.RequiresFacingOwner || x.TipHitbox.RequiresFacingOwner,
+        FlashCutCapabilityParameters x => x.CutHitbox.RequiresFacingOwner,
+        SteeredChargeCapabilityParameters x => x.LanceHitbox.RequiresFacingOwner,
+        CommandGrabCapabilityParameters x => x.Capture.RequiresFacingOwner,
+        ClinchCapabilityParameters x => x.CatchHitbox.RequiresFacingOwner,
+        _ => false,
+    };
 
     public static CharacterCompileResult Compile(string packageManifestJson, string characterJson, CharacterCookProfile profile = CharacterCookProfile.Workshop)
     {
@@ -215,6 +246,8 @@ public static class CharacterPackageCompiler
                      requirement.CapabilityId == ShellStanceCapabilityId ||
                      requirement.CapabilityId == ThrustCapabilityId ||
                      requirement.CapabilityId == TetherCapabilityId ||
+                     requirement.CapabilityId == ClinchCapabilityId ||
+                     requirement.CapabilityId == CommandGrabCapabilityId ||
                      requirement.CapabilityId == CannonballCapabilityId ||
                      requirement.CapabilityId == FormsCapabilityId)
             {
@@ -253,7 +286,13 @@ public static class CharacterPackageCompiler
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            RequiresRuntimeApi116(c) ? "1.16.0"
+            c.Shell?.Splash?.Hitbox.RequiresFacingOwner == true || c.Shell?.Ride?.Wave.RequiresFacingOwner == true
+            || AllSlots(c).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(op =>
+                op is SpawnHitboxOperationSource { Hitbox.RequiresFacingOwner: true }
+                || op is StartCapabilityOperationSource capability && FacingFilteredCapability(capability.Parameters)))) ? "1.19.0"
+            : RequiresRuntimeApi118(c) ? "1.18.0"
+            : RequiresRuntimeApi117(c) ? "1.17.0"
+            : RequiresRuntimeApi116(c) ? "1.16.0"
             : RequiresRuntimeApi115(c) ? "1.15.0"
             : RequiresRuntimeApi114(c) ? "1.14.0"
             : RequiresRuntimeApi113(c) ? "1.13.0"
@@ -499,6 +538,34 @@ public static class CharacterPackageCompiler
             .Where(operation => operation.CapabilityId == TetherCapabilityId).ToArray();
         if (tethers.Length > 0)
             ValidateTetherSlot(slot, index, tethers, d);
+        var clinches = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>().Where(x => x.CapabilityId == ClinchCapabilityId).ToArray();
+        if (clinches.Length > 0 && clinches[0].Parameters is ClinchCapabilityParameters clinch)
+        {
+            var stages = slot.Timeline.Stages;
+            var lunge = stages[0];
+            var hold = stages.Count > 1 ? stages[1] : null;
+            if (ClinchContract.SlotError(clinches.Length, stages.Count, clinches[0].Tick, slot.Behavior, slot.AimMode,
+                    slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
+                    !lunge.Operations.Contains(clinches[0])
+                        || lunge.Operations.Any(x => x != clinches[0] && x is not EmitPresentationOperationSource),
+                    lunge.DurationTicks, lunge.IasaTicks, hold?.DurationTicks ?? 0, hold?.IasaTicks ?? 0,
+                    (CookedClinchCapabilityParameters)CookParameters(clinch)) is { } error)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", error);
+        }
+        var commandGrabs = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>().Where(x => x.CapabilityId == CommandGrabCapabilityId).ToArray();
+        if (commandGrabs.Length > 0 && commandGrabs[0].Parameters is CommandGrabCapabilityParameters commandGrab)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (CommandGrabContract.SlotError(commandGrabs.Length, slot.Timeline.Stages.Count, commandGrabs[0].Tick,
+                    slot.Behavior, slot.AimMode, slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
+                    !stage.Operations.Contains(commandGrabs[0])
+                        || stage.Operations.Any(x => x != commandGrabs[0] && x is not EmitPresentationOperationSource),
+                    stage.DurationTicks, stage.IasaTicks,
+                    (CookedCommandGrabCapabilityParameters)CookParameters(commandGrab)) is { } error)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", error);
+        }
         var cannonballs = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
             .OfType<StartCapabilityOperationSource>()
             .Where(operation => operation.CapabilityId == CannonballCapabilityId).ToArray();
@@ -690,7 +757,13 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the tether is admissible.</summary>
     internal static string? TetherBoundsError(CookedTetherCapabilityParameters x)
     {
+        if (x.AtTarget is { } at)
+            return x.Projectile != null || x.RetractSpeed != 0f || x.RetractAnimationId.Length > 0
+                || x.RetractPresentationId.Length > 0
+                ? "A placed catch (atTarget) throws no ring: no projectile, retract speed, retract clip or retract presentation."
+                : TetherAtTargetBoundsError(x, at);
         var ring = x.Projectile;
+        if (ring == null) return "A thrown tether needs its projectile.";
         if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.RetractSpeed, x.AirGravityScale, ring.LaunchOffsetX,
                 ring.LaunchOffsetY, ring.LaunchOffsetZ, ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
                 ring.BaseKnockback, ring.KnockbackGrowth, ring.YawOffsetDegrees))
@@ -705,6 +778,29 @@ public static class CharacterPackageCompiler
             return "The ring catches instead of launching: damage >= 0, no knockback and no stun.";
         if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f) || !(x.RetractSpeed > 0f && x.RetractSpeed <= 60f))
             return "reelSpeed and retractSpeed must be above 0 and at most 60.";
+        return TetherReelBoundsError(x);
+    }
+
+    private static string? TetherAtTargetBoundsError(CookedTetherCapabilityParameters x, CookedTetherAtTarget at)
+    {
+        if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.AirGravityScale, at.Radius, at.Height, at.Damage, at.MaxRange,
+                at.NoTargetDistance))
+            return "Tether values must be finite.";
+        if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
+        if (at.WarningTicks == 0 || at.WarningTicks > 120) return "atTarget.warningTicks must be 1 to 120.";
+        if (at.CatchTicks == 0 || at.CatchTicks > 60) return "atTarget.catchTicks must be 1 to 60.";
+        if (!(at.Radius > 0f && at.Radius <= 3f) || !(at.Height >= 2f * at.Radius && at.Height <= 6f))
+            return "The catch needs 0 < radius <= 3 and a height of two radii up to 6.";
+        if (!(at.Damage >= 0f && at.Damage <= 100f)) return "atTarget.damage must be 0 to 100.";
+        if (!(at.MaxRange > 0f && at.MaxRange <= MaxStartupAcquisitionRange)
+            || !(at.NoTargetDistance >= 0f && at.NoTargetDistance <= at.MaxRange))
+            return "atTarget needs 0 < maxRange <= 32 and 0 <= noTargetDistance <= maxRange.";
+        if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f)) return "reelSpeed must be above 0 and at most 60.";
+        return TetherReelBoundsError(x);
+    }
+
+    private static string? TetherReelBoundsError(CookedTetherCapabilityParameters x)
+    {
         if (!(x.AnchorDistance >= 0f && x.AnchorDistance <= 3f)) return "anchorDistance must be 0 to 3.";
         if (x.ArrivalStunTicks == 0 || x.ArrivalStunTicks > 240) return "arrivalStunTicks must be 1 to 240.";
         if (x.MaxReelTicks == 0 || x.MaxReelTicks > 600) return "maxReelTicks must be 1 to 600.";
@@ -1059,6 +1155,17 @@ public static class CharacterPackageCompiler
     {
         var expected = operation switch { SetVelocityOperationSource or ForwardLungeOperationSource => AuthoringUnit.MetersPerSecond, GravityWindowOperationSource => AuthoringUnit.Normalized, SpawnHitboxOperationSource => AuthoringUnit.Meters, SpawnProjectileOperationSource => AuthoringUnit.Meters, _ => AuthoringUnit.Ticks };
         if (operation.Unit != expected) d.Error("unit.unknown", "character.operation.unit", "Unit does not match operation contract.");
+        if (operation is StartCapabilityOperationSource { Parameters: var embedded }
+            && embedded switch
+            {
+                ChargedProjectileCapabilityParameters x => x.Projectile,
+                FingerGunsCapabilityParameters x => x.Projectile,
+                ChargedStreamCapabilityParameters x => x.Projectile,
+                TetherCapabilityParameters x => x.Projectile,
+                _ => null,
+            } is { } inner && (inner.Homing != null || inner.Perch != null))
+            d.Error("value.out-of-range", "character.operation.parameters.projectile",
+                "homing and perch belong to spawnProjectile operations, not to a capability's projectile.");
         switch (operation)
         {
             case StartCapabilityOperationSource capability when capability.Parameters is AimedRecoveryCapabilityParameters recovery:
@@ -1109,10 +1216,13 @@ public static class CharacterPackageCompiler
                 ValidateFixedHitstun(hitbox.Hitbox.FixedHitstunTicks, hitbox.Hitbox.StunTicks,
                     "character.hitbox.fixedHitstunTicks", d);
                 ValidateBoneReference(hitbox.Hitbox.StartBoneId, c, "character.hitbox.startBoneId", d); ValidateBoneReference(hitbox.Hitbox.EndBoneId, c, "character.hitbox.endBoneId", d);
+                ValidateHitPresentation(hitbox.Hitbox, c, "character.hitbox.hitPresentationId", d);
                 break;
             case SpawnProjectileOperationSource projectile:
                 if (projectile.Projectile.Return != null)
                     ValidateProjectileReturn(projectile.Projectile, c, d);
+                if (projectile.Projectile.Homing != null || projectile.Projectile.Perch != null)
+                    ValidateHomingAndPerch(projectile.Projectile, c, d);
                 ValidateFiniteValues(new[] { projectile.Projectile.LaunchOffsetX, projectile.Projectile.LaunchOffsetY, projectile.Projectile.LaunchOffsetZ, projectile.Projectile.Speed, projectile.Projectile.Gravity, projectile.Projectile.Radius, projectile.Projectile.Damage, projectile.Projectile.Angle, projectile.Projectile.BaseKnockback, projectile.Projectile.KnockbackGrowth, projectile.Projectile.YawOffsetDegrees }, "character.projectile", d);
                 ValidateNonNegative(projectile.Projectile.Speed, "character.projectile.speed", d); ValidateNonNegative(projectile.Projectile.Radius, "character.projectile.radius", d); ValidateNonNegative(projectile.Projectile.Damage, "character.projectile.damage", d); ValidateAngle(projectile.Projectile.Angle, "character.projectile.angle", d); ValidateYaw(projectile.Projectile.YawOffsetDegrees, "character.projectile.yawOffsetDegrees", d);
                 break;
@@ -1126,6 +1236,20 @@ public static class CharacterPackageCompiler
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is DashStrikeCapabilityParameters dash:
                 ValidateDashStrike(dash, c, d);
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is CommandGrabCapabilityParameters commandGrab:
+                ValidateCapabilityHitbox(commandGrab.Capture, c, "capture", d);
+                if (CommandGrabContract.BoundsError((CookedCommandGrabCapabilityParameters)CookParameters(commandGrab)) is { } grabError)
+                    d.Error("value.out-of-range", "character.operation.parameters", grabError);
+                foreach (var (id, field) in new[] { (commandGrab.CatchPresentationId, "catchPresentationId"),
+                             (commandGrab.ReleasePresentationId, "releasePresentationId") })
+                    if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                        d.Error("reference.unresolved", "character.operation.parameters." + field, "Presentation ID is not declared.");
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is ClinchCapabilityParameters clinch:
+                ValidateCapabilityHitbox(clinch.CatchHitbox, c, "catchHitbox", d);
+                if (ClinchContract.BoundsError((CookedClinchCapabilityParameters)CookParameters(clinch)) is { } clinchError)
+                    d.Error("value.out-of-range", "character.operation.parameters", clinchError);
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is FlashCutCapabilityParameters flash:
                 ValidateFlashCut(flash, c, d);
@@ -1149,7 +1273,9 @@ public static class CharacterPackageCompiler
                 if (TetherBoundsError((CookedTetherCapabilityParameters)CookParameters(tether)) is { } tetherError)
                     d.Error("value.out-of-range", "character.operation.parameters", tetherError);
                 foreach (var (id, field) in new[] { (tether.ThrowPresentationId, "throwPresentationId"),
-                             (tether.RetractPresentationId, "retractPresentationId") })
+                             (tether.RetractPresentationId, "retractPresentationId"),
+                             (tether.AtTarget?.WarningPresentationId ?? "", "atTarget.warningPresentationId"),
+                             (tether.AtTarget?.CatchPresentationId ?? "", "atTarget.catchPresentationId") })
                     if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
                         d.Error("reference.unresolved", "character.operation.parameters." + field, "Presentation ID is not declared.");
                 break;
@@ -1254,6 +1380,28 @@ public static class CharacterPackageCompiler
                 d.Error("reference.unresolved", "character.operation.parameters." + field, "Flash cut presentation ID is not declared.");
     }
 
+    /// <summary>
+    /// The homing and perch blocks (ADR-0051). A perched projectile pops on a hit from its thrower's other form, so
+    /// it needs the second form; its pop presentation must be declared.
+    /// </summary>
+    private static void ValidateHomingAndPerch(ProjectileSource projectile, CharacterAuthoringDocument c, DiagnosticBag d)
+    {
+        var cooked = new CookedProjectile(projectile.LaunchOffsetX, projectile.LaunchOffsetY, projectile.LaunchOffsetZ,
+            projectile.Speed, projectile.Gravity, projectile.Radius, projectile.Damage, projectile.Angle,
+            projectile.BaseKnockback, projectile.KnockbackGrowth, projectile.StunTicks, projectile.MaxFlightTicks,
+            projectile.YawOffsetDegrees, projectile.Return == null ? null : new CookedProjectileReturn(0, 0f, 0f, 0f, 0),
+            ProjectilePerchContract.Cook(projectile.Homing), ProjectilePerchContract.Cook(projectile.Perch));
+        if (ProjectilePerchContract.BoundsError(cooked) is { } error)
+            d.Error("value.out-of-range", "character.projectile", error);
+        if (projectile.Perch == null) return;
+        if (c.AlternateForm == null)
+            d.Error("capability.ambiguous", "character.projectile.perch",
+                "A perched projectile pops on a hit from the thrower's other form: it needs slop.ability.forms.v1.");
+        string id = projectile.Perch.Pop.PresentationId;
+        if (id.Length > 0 && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+            d.Error("reference.unresolved", "character.projectile.perch.pop.presentationId", "Presentation ID is not declared.");
+    }
+
     private static void ValidateProjectileReturn(ProjectileSource projectile, CharacterAuthoringDocument c, DiagnosticBag d)
     {
         const string path = "character.projectile.return";
@@ -1345,6 +1493,13 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", path + ".knockbackDirection", "Unknown knockback direction.");
         ValidateBoneReference(x.StartBoneId, c, path + ".startBoneId", d);
         ValidateBoneReference(x.EndBoneId, c, path + ".endBoneId", d);
+        ValidateHitPresentation(x, c, path + ".hitPresentationId", d);
+    }
+
+    private static void ValidateHitPresentation(HitboxSource x, CharacterAuthoringDocument c, string path, DiagnosticBag d)
+    {
+        if (x.HitPresentationId != null && !c.PresentationIds.Contains(x.HitPresentationId, StringComparer.Ordinal))
+            d.Error("reference.unresolved", path, "Hit presentation ID is not declared.");
     }
 
 
@@ -1450,7 +1605,9 @@ public static class CharacterPackageCompiler
             (c.Presentation.Grabbed, "grabbed"),
             (c.Presentation.ThrowForward, "throwForward"),
             (c.Presentation.AirDodge, "airDodge"),
-            (c.Presentation.Shell, "shell")
+            (c.Presentation.Shell, "shell"),
+            (c.Presentation.Flying, "flying"),
+            (c.Presentation.MayhemLaugh, "mayhemLaugh")
         })
         {
             if (string.IsNullOrEmpty(id)) continue;
@@ -1465,6 +1622,7 @@ public static class CharacterPackageCompiler
             || c.Shell?.Splash?.PresentationId == id || c.Shell?.Ride?.HitPresentationId == id
             || AllSlots(c).SelectMany(s => s.Timeline.Stages).SelectMany(s => s.Operations).Any(op =>
             op is EmitPresentationOperationSource emit && emit.PresentationId == id ||
+            op is SpawnHitboxOperationSource hitbox && hitbox.Hitbox.HitPresentationId == id ||
             op is SpawnProjectileOperationSource { Projectile.Return: { } back }
                 && (back.CatchPresentationId == id || back.SelfHitPresentationId == id) ||
             op is StartCapabilityOperationSource capability && (capability.Parameters switch
@@ -1599,7 +1757,9 @@ public static class CharacterPackageCompiler
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { } },
             ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
-            TetherCapabilityParameters x => x with { Projectile = x.Projectile with { } },
+            TetherCapabilityParameters x => x with { Projectile = x.Projectile == null ? null : x.Projectile with { }, AtTarget = x.AtTarget == null ? null : x.AtTarget with { } },
+            ClinchCapabilityParameters x => x with { CatchHitbox = x.CatchHitbox with { } },
+            CommandGrabCapabilityParameters x => x with { Capture = x.Capture with { } },
             CannonballCapabilityParameters x => x with { },
             MankiRoundBombCapabilityParameters x => x with { },
             MankiJetpackBoostCapabilityParameters x => x with { },
@@ -1630,15 +1790,18 @@ public static class CharacterPackageCompiler
                     case ArmorWindowOperationSource x: cookedOps.Add(new CookedArmorWindowOperation(x.Tick, x.Unit, x.DurationTicks)); break;
                     case SpawnHitboxOperationSource x: hitboxes++; cookedOps.Add(new CookedSpawnHitboxOperation(x.Tick, x.Unit, CookHitbox(x.Hitbox))); break;
                     case SpawnProjectileOperationSource x: projectiles++; cookedOps.Add(new CookedSpawnProjectileOperation(x.Tick, x.Unit, new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ, x.Projectile.Speed, x.Projectile.Gravity, x.Projectile.Radius, x.Projectile.Damage, x.Projectile.Angle, x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks, x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees,
-                        x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed, back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks, back.CatchPresentationId, back.SelfHitPresentationId) : null))); break;
+                        x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed, back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks, back.CatchPresentationId, back.SelfHitPresentationId) : null,
+                        ProjectilePerchContract.Cook(x.Projectile.Homing), ProjectilePerchContract.Cook(x.Projectile.Perch)))); break;
                     case SetAimStateOperationSource x: cookedOps.Add(new CookedSetAimStateOperation(x.Tick, x.Unit, x.AimState)); break;
                     case StartCapabilityOperationSource x:
                         capabilities++;
                         if (x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters
                             or ThrustCapabilityParameters { TrailHitbox: not null }) hitboxes++;
                         else if (x.Parameters is DashStrikeCapabilityParameters) hitboxes += 2;
-                        else if (x.Parameters is FlashCutCapabilityParameters) hitboxes++;
-                        else if (x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters) projectiles++;
+                        else if (x.Parameters is FlashCutCapabilityParameters or ClinchCapabilityParameters
+                                 or CommandGrabCapabilityParameters) hitboxes++;
+                        else if (x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters { AtTarget: null }) projectiles++;
+                        else if (x.Parameters is TetherCapabilityParameters) hitboxes++;
                         cookedOps.Add(new CookedStartCapabilityOperation(x.Tick, x.Unit, x.CapabilityId, x.CapabilityVersion, CookParameters(x.Parameters)));
                         break;
                     case StartupAimCorrectionOperationSource x:
@@ -1647,7 +1810,7 @@ public static class CharacterPackageCompiler
                             x.AcquisitionHalfAngleDegrees, x.MaxYawDegrees, x.MaxPitchDegrees,
                             x.YawDegreesPerSecond, x.PitchDegreesPerSecond));
                         break;
-                    case EmitPresentationOperationSource x: cookedOps.Add(new CookedEmitPresentationOperation(x.Tick, x.Unit, x.PresentationId, cookedOperationOrdinal, x.Placement)); break;
+                    case EmitPresentationOperationSource x: cookedOps.Add(new CookedEmitPresentationOperation(x.Tick, x.Unit, x.PresentationId, cookedOperationOrdinal, x.Placement, x.Condition)); break;
                     case CompleteTimelineOperationSource x: cookedOps.Add(new CookedCompleteTimelineOperation(x.Tick, x.Unit)); break;
                     case SwapFormOperationSource x: cookedOps.Add(new CookedSwapFormOperation(x.Tick, x.Unit)); break;
                 }
@@ -1661,7 +1824,7 @@ public static class CharacterPackageCompiler
         => new(x.Shape, x.Radius, x.OffsetX, x.OffsetY, x.OffsetZ, x.EndOffsetX, x.EndOffsetY,
             x.EndOffsetZ, x.StartBoneId, x.EndBoneId, x.Damage, x.Angle, x.BaseKnockback,
             x.KnockbackGrowth, x.StunTicks, x.DurationTicks, x.Interruptible, x.HitGroup,
-            x.KnockbackDirection, x.FixedHitstunTicks);
+            x.KnockbackDirection, x.FixedHitstunTicks, x.HitPresentationId, x.RequiresFacingOwner);
 
     private static CookedCapabilityParameters CookParameters(TypedCapabilityParameters p) => p switch
     {
@@ -1702,14 +1865,22 @@ public static class CharacterPackageCompiler
             x.LockPresentationId, x.RevealPresentationId, x.SheathePresentationId, x.PopPresentationId),
         TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox), x.LaunchPresentationId, x.LandingPresentationId),
         TetherCapabilityParameters x => new CookedTetherCapabilityParameters(x.ThrowTick,
-            new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ,
-                x.Projectile.Speed, x.Projectile.Gravity, x.Projectile.Radius, x.Projectile.Damage, x.Projectile.Angle,
-                x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks,
-                x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees,
-                x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed,
+            x.Projectile is not { } ring ? null : new CookedProjectile(ring.LaunchOffsetX, ring.LaunchOffsetY, ring.LaunchOffsetZ,
+                ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
+                ring.BaseKnockback, ring.KnockbackGrowth, ring.StunTicks,
+                ring.MaxFlightTicks, ring.YawOffsetDegrees,
+                ring.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed,
                     back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks) : null),
             x.ReelSpeed, x.AnchorDistance, x.ArrivalStunTicks, x.MaxReelTicks, x.RetractSpeed, x.MissRecoveryTicks,
-            x.AirGravityScale, x.ReelAnimationId, x.RetractAnimationId, x.ThrowPresentationId, x.RetractPresentationId),
+            x.AirGravityScale, x.ReelAnimationId, x.RetractAnimationId, x.ThrowPresentationId, x.RetractPresentationId,
+            x.AtTarget is not { } at ? null : new CookedTetherAtTarget(at.WarningTicks, at.CatchTicks, at.Radius,
+                at.Height, at.Damage, at.MaxRange, at.NoTargetDistance, at.WarningPresentationId, at.CatchPresentationId)),
+        ClinchCapabilityParameters x => new CookedClinchCapabilityParameters(x.LungeDistance, x.LungeSpeed,
+            CookHitbox(x.CatchHitbox), x.AnchorDistance, x.WhiffRecoveryTicks, x.ReleaseTick, x.ReleaseLockTicks),
+        CommandGrabCapabilityParameters x => new CookedCommandGrabCapabilityParameters(x.LungeTicks, x.LungeSpeed,
+            x.StopDistance, x.CaptureTick, CookHitbox(x.Capture), x.ReleaseTick,
+            new CookedGrabLaunch(x.Launch.Damage, x.Launch.Angle, x.Launch.BaseKnockback, x.Launch.KnockbackGrowth,
+                x.Launch.StunTicks), x.CatchPresentationId, x.ReleasePresentationId),
         CannonballCapabilityParameters x => new CookedCannonballCapabilityParameters(x.TakeoffTick, x.MaxRange,
             x.NoTargetDistance, x.MinFlightTicks, x.MaxFlightTicks, x.MaxLaunchSpeed, x.LaunchPresentationId),
         ThrustCapabilityParameters x => new CookedThrustCapabilityParameters(x.Aim, x.TargetConeDegrees, x.NeutralPitchDegrees,
@@ -1730,7 +1901,7 @@ public static class CharacterPackageCompiler
         => new(x.Idle, x.Run, x.Dash, x.Jump, x.Fall, x.HitSmall, x.HitMedium, x.HitHard,
             x.LandStartOffsetSeconds, x.ModelResourcePath, x.VisualScale, x.HurtboxBoneScale,
             x.ModelYOffset, x.ModelSoleOffset, x.AutoModelYOffset, x.Tumble, x.Crouch, x.Slide,
-            x.Shield, x.Grab, x.Grabbed, x.ThrowForward, x.AirDodge, x.Shell);
+            x.Shield, x.Grab, x.Grabbed, x.ThrowForward, x.AirDodge, x.Shell, x.Flying, x.MayhemLaugh);
     private static CookedCaptureGeometry CookCaptureGeometry(CharacterCaptureGeometrySource x)
         => new(x.Reach, x.Width, x.Height, x.OffsetY,
             new CaptureAnchor(x.AttackerAnchor.X, x.AttackerAnchor.Y, x.AttackerAnchor.Z),
@@ -1781,6 +1952,8 @@ public static class CharacterPackageCompiler
         if (!string.IsNullOrEmpty(x.ThrowForward)) w.WriteString("throwForward", x.ThrowForward);
         if (!string.IsNullOrEmpty(x.AirDodge)) w.WriteString("airDodge", x.AirDodge);
         if (!string.IsNullOrEmpty(x.Shell)) w.WriteString("shell", x.Shell);
+        if (!string.IsNullOrEmpty(x.Flying)) w.WriteString("flying", x.Flying);
+        if (!string.IsNullOrEmpty(x.MayhemLaugh)) w.WriteString("mayhemLaugh", x.MayhemLaugh);
         Number(w, "landStartOffsetSeconds", x.LandStartOffsetSeconds);
         w.WriteString("modelResourcePath", x.ModelResourcePath);
         Number(w, "visualScale", x.VisualScale);
@@ -1917,6 +2090,7 @@ public static class CharacterPackageCompiler
                 w.WriteNumber("operationIndex", p.OperationIndex);
                 w.WriteString("presentationId", p.PresentationId);
                 WritePlacement(w, p.Placement);
+                if (p.Condition != AuthoringPresentationCondition.Always) w.WriteNumber("condition", (byte)p.Condition);
                 break;
             case CookedSpawnHitboxOperation h:
                 WriteHitbox(w, h.Hitbox);
@@ -1979,7 +2153,7 @@ public static class CharacterPackageCompiler
         w.WriteNumber("durationTicks", x.DurationTicks);
         w.WriteEndObject();
     }
-    private static void WriteHitbox(Utf8JsonWriter w, CookedHitbox x) { w.WritePropertyName("hitbox"); w.WriteStartObject(); w.WriteNumber("shape", (byte)x.Shape); Number(w, "radius", x.Radius); Number(w, "offsetX", x.OffsetX); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetX", x.EndOffsetX); Number(w, "endOffsetY", x.EndOffsetY); Number(w, "endOffsetZ", x.EndOffsetZ); if (x.StartBoneId != null) w.WriteString("startBoneId", x.StartBoneId); else w.WriteNull("startBoneId"); if (x.EndBoneId != null) w.WriteString("endBoneId", x.EndBoneId); else w.WriteNull("endBoneId"); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("durationTicks", x.DurationTicks); w.WriteBoolean("interruptible", x.Interruptible); w.WriteNumber("hitGroup", x.HitGroup); w.WriteNumber("knockbackDirection", (byte)x.KnockbackDirection); if (x.FixedHitstunTicks > 0) w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks); w.WriteEndObject(); }
+    private static void WriteHitbox(Utf8JsonWriter w, CookedHitbox x) { w.WritePropertyName("hitbox"); w.WriteStartObject(); w.WriteNumber("shape", (byte)x.Shape); Number(w, "radius", x.Radius); Number(w, "offsetX", x.OffsetX); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetX", x.EndOffsetX); Number(w, "endOffsetY", x.EndOffsetY); Number(w, "endOffsetZ", x.EndOffsetZ); if (x.StartBoneId != null) w.WriteString("startBoneId", x.StartBoneId); else w.WriteNull("startBoneId"); if (x.EndBoneId != null) w.WriteString("endBoneId", x.EndBoneId); else w.WriteNull("endBoneId"); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("durationTicks", x.DurationTicks); w.WriteBoolean("interruptible", x.Interruptible); w.WriteNumber("hitGroup", x.HitGroup); w.WriteNumber("knockbackDirection", (byte)x.KnockbackDirection); if (x.FixedHitstunTicks > 0) w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks); if (x.RequiresFacingOwner) w.WriteBoolean("requiresFacingOwner", true); if (x.HitPresentationId != null) w.WriteString("hitPresentationId", x.HitPresentationId); w.WriteEndObject(); }
     private static void WriteHitboxObject(Utf8JsonWriter w, CookedHitbox x, string name)
     {
         w.WritePropertyName(name); w.WriteStartObject();
@@ -1993,9 +2167,32 @@ public static class CharacterPackageCompiler
         w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("durationTicks", x.DurationTicks);
         w.WriteBoolean("interruptible", x.Interruptible); w.WriteNumber("hitGroup", x.HitGroup);
         w.WriteNumber("knockbackDirection", (byte)x.KnockbackDirection);
-        w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks); w.WriteEndObject();
+        w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks);
+        if (x.RequiresFacingOwner) w.WriteBoolean("requiresFacingOwner", true); if (x.HitPresentationId != null) w.WriteString("hitPresentationId", x.HitPresentationId);
+        w.WriteEndObject();
     }
-    private static void WriteProjectile(Utf8JsonWriter w, CookedProjectile x) { w.WritePropertyName("projectile"); w.WriteStartObject(); Number(w, "launchOffsetX", x.LaunchOffsetX); Number(w, "launchOffsetY", x.LaunchOffsetY); Number(w, "launchOffsetZ", x.LaunchOffsetZ); Number(w, "speed", x.Speed); Number(w, "gravity", x.Gravity); Number(w, "radius", x.Radius); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "yawOffsetDegrees", x.YawOffsetDegrees); if (x.Return is { } back) { w.WritePropertyName("return"); w.WriteStartObject(); w.WriteNumber("outboundTicks", back.OutboundTicks); Number(w, "returnSpeed", back.ReturnSpeed); Number(w, "returnAcceleration", back.ReturnAcceleration); Number(w, "selfHitDamage", back.SelfHitDamage); w.WriteNumber("selfHitStunTicks", back.SelfHitStunTicks); OptionalString(w, "catchPresentationId", back.CatchPresentationId); OptionalString(w, "selfHitPresentationId", back.SelfHitPresentationId); w.WriteEndObject(); } w.WriteEndObject(); }
+    private static void WriteProjectile(Utf8JsonWriter w, CookedProjectile x) { w.WritePropertyName("projectile"); w.WriteStartObject(); Number(w, "launchOffsetX", x.LaunchOffsetX); Number(w, "launchOffsetY", x.LaunchOffsetY); Number(w, "launchOffsetZ", x.LaunchOffsetZ); Number(w, "speed", x.Speed); Number(w, "gravity", x.Gravity); Number(w, "radius", x.Radius); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "yawOffsetDegrees", x.YawOffsetDegrees); if (x.Return is { } back) { w.WritePropertyName("return"); w.WriteStartObject(); w.WriteNumber("outboundTicks", back.OutboundTicks); Number(w, "returnSpeed", back.ReturnSpeed); Number(w, "returnAcceleration", back.ReturnAcceleration); Number(w, "selfHitDamage", back.SelfHitDamage); w.WriteNumber("selfHitStunTicks", back.SelfHitStunTicks); OptionalString(w, "catchPresentationId", back.CatchPresentationId); OptionalString(w, "selfHitPresentationId", back.SelfHitPresentationId); w.WriteEndObject(); } WriteHomingAndPerch(w, x); w.WriteEndObject(); }
+
+    private static void WriteHomingAndPerch(Utf8JsonWriter w, CookedProjectile x)
+    {
+        if (x.Homing is { } homing)
+        {
+            w.WritePropertyName("homing"); w.WriteStartObject();
+            Number(w, "turnDegreesPerTick", homing.TurnDegreesPerTick);
+            Number(w, "turnCos", homing.TurnCos); Number(w, "turnSin", homing.TurnSin);
+            w.WriteEndObject();
+        }
+        if (x.Perch is not { } perch) return;
+        w.WritePropertyName("perch"); w.WriteStartObject();
+        w.WriteNumber("perchTicks", perch.PerchTicks);
+        w.WritePropertyName("pop"); w.WriteStartObject();
+        Number(w, "damage", perch.Pop.Damage); Number(w, "angle", perch.Pop.Angle);
+        Number(w, "baseKnockback", perch.Pop.BaseKnockback); Number(w, "knockbackGrowth", perch.Pop.KnockbackGrowth);
+        w.WriteNumber("stunTicks", perch.Pop.StunTicks);
+        OptionalString(w, "presentationId", perch.Pop.PresentationId);
+        w.WriteEndObject();
+        w.WriteEndObject();
+    }
     private static void WriteParameters(Utf8JsonWriter w, CookedCapabilityParameters p)
     {
         w.WriteStartObject();
@@ -2075,15 +2272,44 @@ public static class CharacterPackageCompiler
                 OptionalString(w, "launchPresentationId", x.LaunchPresentationId);
                 break;
             case CookedTetherCapabilityParameters x:
-                w.WriteNumber("throwTick", x.ThrowTick); WriteProjectile(w, x.Projectile);
+                w.WriteNumber("throwTick", x.ThrowTick);
+                if (x.Projectile != null) WriteProjectile(w, x.Projectile);
                 Number(w, "reelSpeed", x.ReelSpeed); Number(w, "anchorDistance", x.AnchorDistance);
                 w.WriteNumber("arrivalStunTicks", x.ArrivalStunTicks); w.WriteNumber("maxReelTicks", x.MaxReelTicks);
-                Number(w, "retractSpeed", x.RetractSpeed); w.WriteNumber("missRecoveryTicks", x.MissRecoveryTicks);
+                if (x.AtTarget == null) Number(w, "retractSpeed", x.RetractSpeed);
+                w.WriteNumber("missRecoveryTicks", x.MissRecoveryTicks);
                 Number(w, "airGravityScale", x.AirGravityScale);
                 OptionalString(w, "reelAnimationId", x.ReelAnimationId);
                 OptionalString(w, "retractAnimationId", x.RetractAnimationId);
                 OptionalString(w, "throwPresentationId", x.ThrowPresentationId);
                 OptionalString(w, "retractPresentationId", x.RetractPresentationId);
+                if (x.AtTarget is { } at)
+                {
+                    w.WritePropertyName("atTarget"); w.WriteStartObject();
+                    w.WriteNumber("warningTicks", at.WarningTicks); w.WriteNumber("catchTicks", at.CatchTicks);
+                    Number(w, "radius", at.Radius); Number(w, "height", at.Height); Number(w, "damage", at.Damage);
+                    Number(w, "maxRange", at.MaxRange); Number(w, "noTargetDistance", at.NoTargetDistance);
+                    OptionalString(w, "warningPresentationId", at.WarningPresentationId);
+                    OptionalString(w, "catchPresentationId", at.CatchPresentationId);
+                    w.WriteEndObject();
+                }
+                break;
+            case CookedCommandGrabCapabilityParameters x:
+                w.WriteNumber("lungeTicks", x.LungeTicks); Number(w, "lungeSpeed", x.LungeSpeed);
+                Number(w, "stopDistance", x.StopDistance); w.WriteNumber("captureTick", x.CaptureTick);
+                WriteHitboxObject(w, x.Capture, "capture"); w.WriteNumber("releaseTick", x.ReleaseTick);
+                w.WritePropertyName("launch"); w.WriteStartObject();
+                Number(w, "damage", x.Launch.Damage); Number(w, "angle", x.Launch.Angle);
+                Number(w, "baseKnockback", x.Launch.BaseKnockback); Number(w, "knockbackGrowth", x.Launch.KnockbackGrowth);
+                w.WriteNumber("stunTicks", x.Launch.StunTicks); w.WriteEndObject();
+                OptionalString(w, "catchPresentationId", x.CatchPresentationId);
+                OptionalString(w, "releasePresentationId", x.ReleasePresentationId);
+                break;
+            case CookedClinchCapabilityParameters x:
+                Number(w, "lungeDistance", x.LungeDistance); Number(w, "lungeSpeed", x.LungeSpeed);
+                WriteHitboxObject(w, x.CatchHitbox, "catchHitbox"); Number(w, "anchorDistance", x.AnchorDistance);
+                w.WriteNumber("whiffRecoveryTicks", x.WhiffRecoveryTicks); w.WriteNumber("releaseTick", x.ReleaseTick);
+                w.WriteNumber("releaseLockTicks", x.ReleaseLockTicks);
                 break;
             case CookedSteeredChargeCapabilityParameters x:
                 Number(w, "gallopSpeed", x.GallopSpeed); Number(w, "turnDegreesPerSecond", x.TurnDegreesPerSecond);

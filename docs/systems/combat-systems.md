@@ -199,64 +199,79 @@ ownership controls, ten-cycle resource routes and 1,152 finite response scenario
 `aerialAccepted` and `slideStartTick` to distinguish a full aerial/slide route from
 interruption or a crouched landing. These are scenario measurements, not balance proof.
 
-### Ground grab, held movement, and forward throw
+### Stationary grab and directional throws
 
-Grab uses C on keyboard (rebindable) or LB on controller; with the right stick set to
-Camera, LB is the special modifier and grab is the LB+RT chord (ADR-0042 amendment). It takes priority
-over grounded movement and snapshots facing. Incoming horizontal momentum carries
-briefly, capped at run speed and braked to a stop within 6 ticks (100 ms), before
-the active window; held movement cannot steer or add speed. Stationary grabs stay in place.
-`GrabAttempt` commits to 7 startup, 3 front-only active, and 36 whiff-recovery
-ticks; the 46-tick total matches the 23-frame `grab.fbx` at 30 fps. Block stun
-prevents admission. Cooked per-character `captureGeometry` defines the forward
-volume and restraint anchors. Hurtbox overlap and stage collision determine
-capture. Reciprocal active grabs clash with 10 recovery ticks; damaging contact
-resolves before capture and can interrupt either side of a linked pair.
+Grab uses C on keyboard or LB on controller. With the right stick set to Camera,
+LB is the special modifier and LB+RT grabs. Bindings are rebindable.
+`GrabAttempt` has 7 startup ticks, 3 active ticks and 36 whiff-recovery ticks.
+Incoming momentum is capped at run speed and braked to a stop within 6 ticks.
+Block stun prevents admission. Cooked `captureGeometry` defines the forward box
+and restraint anchors. Reciprocal grabs clash with 10 recovery ticks.
+Damage resolves before capture and before throw release, so a damaging hit can
+interrupt either participant without producing a throw.
 
-Successful capture enters `Grabbing` for the grabber and `Grabbed` for the victim.
-The grabber walks forward/backward along its facing at 25% of run speed. Sideways
-movement input (Q/D or the stick's horizontal axis) rotates the pair at 60°/second
-instead of strafing. Camera azimuth recovers the original control axes from the
-world-space movement input; camera rotation alone does not turn the pair. The
-victim faces the same direction, away from the grabber, follows its restraint
-anchor, and cannot move, jump, attack, or shield independently. Stage collision
-limits both bodies; movement or rotation that would pull the victim through a wall is stopped.
-Any attack-slot press from the grabber starts the throw, including an empty or
-cooling-down slot, without activating or buffering that ability. Otherwise the
-throw starts automatically after 180 simulation ticks (three seconds).
+At the grab press, startup aim captures one selected or locked target when valid,
+otherwise the nearest eligible enemy. Acquisition uses a 4 m sphere and the full
+circle. Only fighters can supply grab correction. The existing normal aim rule
+turns at 720 degrees per second with a 90-degree cap. Seven startup steps can
+reach 84 degrees. `CapturedYaw` follows the correction, so the box turns too.
+There is no correction during active contact or recovery, late acquisition or
+retargeting. Hitstop pauses correction, including the last frozen tick.
 
-The shared animation config binds the paired clips independently of character
-package catalogs. `grab_idle_a`/`grab_idle_b` play while stationary;
-`Grab_Walk_F_A`/`Grab_Walk_F_B` and `Grab_Walk_B_A`/`Grab_Walk_B_B` play during
-forward and backward held movement. Velocity is evaluated against captured facing,
-so the victim's movement input cannot select its animation. Shared state ticks
-sample each clip, including recorded previews and rollback rewinds; animation
-callbacks never decide movement, capture, damage, or release.
+A grab pressed during a Beeline waits for arrival. The latest attack or grab
+press replaces the held press. An attack wins a same-tick tie. A press on the
+movement tick that reaches arrival still waits until the following tick.
+Grounded arrival attempts the grab with ordinary startup and aim. Airborne
+arrival drops it. Accepted hits, misses and resets clear either kind of press.
+A fresh arrival attack clears the old press even when its slot is unavailable.
 
-A throw starts `throw.fbx` for the grabber and `Grab_Throw_B.fbx` for the victim
-on the same clock. Both clips are authored at 30 fps. At frame 11 (22 simulation
-ticks), the server releases the pair, deals 6 damage, and enters `Thrown` for
-the victim. The grabber finishes its 29-frame clip in `Throwing`, retaining 36
-recovery ticks after release. Horizontal launch retains ordinary percent, weight,
-and match-tuning scaling with base 5 and growth 26; the vertical arc is timed for
-landing at victim frame 34 (68 ticks after throw start) on level ground. The
-victim completes eight more frames of grounded recovery, through frame 42.
-Stage collision remains authoritative: a higher or lower landing surface starts
-the frame-34 landing segment at actual ground contact. A missing or invalid
-partner, damage, or death ends the interaction without an extra throw.
+Capture enters `Grabbing` and `Grabbed`. Neither participant can move or turn
+with input while held. The victim follows the existing restraint anchor and
+faces away from the holder. Third-party pushbox separation retains its existing
+behavior. Any attack-slot press starts a throw, including empty and cooling
+slots, without activating the slot. The 180-tick timeout starts a throw too.
 
-Training and the GameServer share these rules. Online `RollbackSimulationBridge`
-uses `NetplaySession` to predict the full world, including both sides of grab
-capture, hold, throw, and release. Authoritative World Frames restore and replay
-the interaction when prediction differs. The earlier capture/release barrier
-belongs to the retired three-track model; see [ADR-0039](../adr/0039-full-world-rollback.md)
-and [`NetplayPredictorTests.GrabAndThrowArePredictedForTheGrabber`](../../tests/Shared.Tests/NetplayPredictorTests.cs).
+Only the stick on that throw-start tick chooses the throw. The input adapter has
+already transformed movement into world space. A stick outside the 0.2 deadzone
+turns the pair instantly and flings along the reached heading. The turn checks
+stage placement in substeps of at most 15 degrees, stopping at the last legal
+heading. A blocked first step still throws along the current heading.
+Neutral input selects a vertical up toss. Later stick changes do not alter either
+throw. The timeout reads its own tick's stick with the same rule.
 
-Scene/Game **Gizmos** show the cooked forward box during `GrabAttempt`: yellow
-startup, orange active contact, gray whiff recovery. The Edit Mode menu
-**Tools → SLOPArena → Tests → Grab Animation Presentation** checks held loops,
-both walk directions and roles, throw frame 11, victim landing frame 34, recorded
-poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
+| Throw | Damage | Angle | Base / growth knockback | Recovery after freeze |
+| --- | ---: | ---: | --- | ---: |
+| Up toss | 4 | 90 degrees | 34 / 10 | 3 ticks |
+| Fling | 8 | 35 degrees | 10 / 32 | 12 ticks |
+
+Both release 22 ticks after the throw press. Release clears the victim's old
+reaction, applies damage, freezes both fighters with the ordinary hitstop rule,
+and queues the ordinary formula launch. Mayhem shoves deal zero damage and retain
+the source hit's freeze. SDI during freeze and DI at expiry use ordinary reaction
+code. Percent, weight and match tuning affect the launch. The victim enters
+ordinary `Hitstun`, can act when it ends, and has no scripted landing or extra
+throw recovery. Fling retains percent-scaled KO potential. Low-percent toss
+recovery permits a jump and aerial chase.
+
+Shared state supplies one slot-zero `HitResult` for release feedback and an
+attributed terminal outcome for Tutorial and Ability Lab. An interruption supplies
+neither a release outcome nor a throw contact. Both kinds retain their terminal
+identity across respawn. Full-world rollback predicts and restores the pair,
+windup, freeze, launch and detached recovery without changing snapshot layout.
+Action wire value 21 is reserved for the retired scripted throw flight.
+
+Shared clips `grab_idle_a` and `grab_idle_b` present the stationary hold. `throw`
+and `Grab_Throw_B` share natural time during windup. The thrower samples tick 22
+through the release freeze, then continues at natural speed until recovery ends.
+The victim leaves the paired animation for its ordinary hit reaction after freeze.
+No clip, animation callback or root motion decides gameplay.
+
+Scene/Game **Gizmos** show the corrected box during `GrabAttempt`. The Edit Mode
+menu **Tools > SLOPArena > Tests > Grab Animation Presentation** checks both
+windups, release freeze, recovery, ordinary victim reaction and recorded poses.
+[`GrabThrowMeasurementTests`](../../tests/Shared.Tests/GrabThrowMeasurementTests.cs)
+measures real launch milestones, installed roster aerial contact and edge agency.
+See [ADR-0054](../adr/0054-grab-aim-and-directional-throws.md).
 
 ### Held cut
 
@@ -387,6 +402,8 @@ the throw itself, so it bonks him. Rules and limits:
 No Unity physics query or client-only trajectory determines gameplay.
 
 ## Targeting and aiming
+
+Universal grab startup reuses the normal aim rule with fighter-only acquisition and zero pitch, as described above.
 
 The client may provide camera-derived aim and target intent. The Shared simulation validates targetability and range and owns the selected target. Target lock is passive while moving: it does not steer facing outside attacks. Ordinary stages do not continuously track targets. `startupAimCorrection` is an explicit cooked timeline operation available to any slot. Normals and selected specials opt in through their package's `character.json`; read that source for current coverage and tuning. When opted in, the simulation captures one eligible target at activation, even if the operation's correction tick is later. It prefers the currently selected/locked target when valid in the acquisition envelope; otherwise it picks the nearest eligible enemy, breaking distance ties by entity ID. RetargetPressed keeps its existing nearest-valid-enemy semantics; correction never switches target after capture.
 

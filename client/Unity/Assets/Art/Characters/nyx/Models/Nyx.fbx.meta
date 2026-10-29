@@ -7,13 +7,28 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Nyx_Dress
+    second: {fileID: 2100000, guid: bf02e50c379dc8d02939bbbfed9772ac, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Nyx_Fake
     second: {fileID: 2100000, guid: fa5dc7b4a0ae33c97bc4f6e4fa1d1a2f, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Nyx_Phone
+    second: {fileID: 2100000, guid: 6270607ef33700b49af2669067163298, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Nyx_Real
     second: {fileID: 2100000, guid: c615f8ac7be9db9ef9a90ca0ff06ea82, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Nyx_Tights
+    second: {fileID: 2100000, guid: 0f8a6f37d244e69b6ba63e525106eaf2, type: 2}
   materials:
     materialImportMode: 0
     materialName: 0
@@ -40,7 +55,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages: []
     globalScale: 1

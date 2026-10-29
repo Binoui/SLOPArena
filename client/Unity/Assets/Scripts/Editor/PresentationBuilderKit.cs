@@ -41,6 +41,7 @@ namespace SlopArena.EditorTools
         public List<string> Warnings { get; } = new();
 
         private readonly Scene _scene;
+        private readonly HashSet<Object> _changedAssets = new();
         private bool _sceneOpen;
 
         public PresentationBuilderKit(string packageId, string audioFolder)
@@ -153,6 +154,7 @@ namespace SlopArena.EditorTools
             material.SetShaderPassEnabled("SHADOWCASTER", false);
             if (created) AssetDatabase.CreateAsset(material, path);
             else EditorUtility.SetDirty(material);
+            _changedAssets.Add(material);
             return material;
         }
 
@@ -169,6 +171,7 @@ namespace SlopArena.EditorTools
             EditorUtility.CopySerialized(mesh, existing);
             Object.DestroyImmediate(mesh);
             EditorUtility.SetDirty(existing);
+            _changedAssets.Add(existing);
             return existing;
         }
 
@@ -296,6 +299,7 @@ namespace SlopArena.EditorTools
             }
             if (bound == 0) Warnings.Add($"{AssetDatabase.GetAssetPath(weapon)}: no entry carries a sword trail.");
             EditorUtility.SetDirty(weapon);
+            _changedAssets.Add(weapon);
         }
 
         public void BindProjectile(string canonicalSlotId, GameObject prefab,
@@ -333,7 +337,9 @@ namespace SlopArena.EditorTools
                 bindings.Add(new CharacterAssetCatalog.PresentationBinding { SemanticId = id, Prefab = prefab });
             catalog.Presentations = bindings.ToArray();
             EditorUtility.SetDirty(catalog);
-            AssetDatabase.SaveAssets();
+            foreach (var asset in _changedAssets)
+                if (asset != null) AssetDatabase.SaveAssetIfDirty(asset);
+            AssetDatabase.SaveAssetIfDirty(catalog);
             AssetDatabase.Refresh();
             return new
             {

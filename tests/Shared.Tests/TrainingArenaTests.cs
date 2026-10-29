@@ -40,6 +40,8 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
     public static IEnumerable<object[]> Fighters() => BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"))
         .Entries.Select(e => new object[] { e.Selector });
     public static IEnumerable<object[]> SpawnCases() => Fighters().SelectMany(f => Enumerable.Range(0, 4).Select(i => new object[] { f[0], i }));
+    // These island reach categories pin old recovery tuning; Nyx's package tests cover her retimed recovery instead.
+    public static IEnumerable<object[]> IslandFighters() => Fighters().Where(f => (CharacterClass)f[0] != CharacterClass.Nyx);
 
     private static ServerSimulation Fresh(CharacterClass fighter, float x, float z, float surface, bool grounded = true)
     {
@@ -205,7 +207,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
         output.WriteLine($"{fighter} block single={direct}, apex={probe.Jump.ApexHeight:F2}, {directPlan}");
     }
 
-    [Theory, MemberData(nameof(Fighters))]
+    [Theory, MemberData(nameof(IslandFighters))]
     public void IslandLadderMeasuresSingleDoubleAndRecovery(CharacterClass fighter)
     {
         var results = new List<string>();

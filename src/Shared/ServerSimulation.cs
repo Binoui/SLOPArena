@@ -598,10 +598,12 @@ namespace SlopArena.Shared
             // when the state is grounded and the baked payload contains the exact
             // semantic binding; absent legacy content falls through to upright
             // selection without fabricating low hurtboxes.
-            if (state.State == ActionState.Flying)
+            if (state.State == ActionState.Flying && !string.IsNullOrEmpty(def.FlyingAnim)
+                && baked.FrameCountFor(def.FlyingAnim) > 0)
             {
-                targetAnim = def.GetCookedSlotAbility(AbilitySlots.E, true)!.Timeline.Stages[0].AnimationIds[0];
-                bakedFrame = Math.Max(0, baked.FrameCountFor(targetAnim) - 1) * Flying.PoseFraction;
+                targetAnim = def.FlyingAnim;
+                // Flight's small cosmetic bob uses one stable, rollback-independent body sample.
+                bakedFrame = 0f;
                 return true;
             }
             if (state.State == ActionState.Shell && !string.IsNullOrEmpty(def.ShellAnim)
@@ -839,7 +841,7 @@ namespace SlopArena.Shared
 			if ((state.AnimLockTicks > 0 || _activeAbilities.ContainsKey(id)) && !iasaUnlocked)
 				return false;
 			if (state.State is ActionState.Hitstun or ActionState.Aiming or ActionState.GrabAttempt
-				or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
+				or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing
 				or ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashMiss
 				|| ActionStates.Captive(state.State))
 				return false;
@@ -985,15 +987,28 @@ namespace SlopArena.Shared
 					_lastTickAcceptedActions.Add(id);
 					continue;
 				}
+                bool heldForBeeline = PrepareBeelinePress(ref state, ref input);
+                inputs[id] = input;
+                _states[id] = state;
+                if (heldForBeeline) continue;
 				if (HandleShieldPreTickAdmission(id, ref state, ref input, inputs, def))
 					continue;
 				if (CanTakeOrdinaryAbilityAction(state, def))
 					_lastTickOrdinaryActionOpportunities.Add(id);
+                bool connectedSwap = CanSwapCancel(id, in state, input.ActiveSlot);
+                if (connectedSwap && state.HitstopTicks > 0 && state.HitstunTicks == 0
+                    && state.BlockStunTicks == 0 && state.LandingLagTicks == 0)
+                {
+                    state.BufferedSlot = AbilitySlots.F;
+                    _states[id] = state;
+                }
 				bool bufferedPress = input.ActiveSlot == 0 && state.BufferedSlot > 0
-					&& (ActionStates.AdmitsActions(state.State) || state.State == ActionState.HomingDashArrive)
+					&& (ActionStates.AdmitsActions(state.State) || state.State == ActionState.HomingDashArrive
+                        || CanSwapCancel(id, in state, state.BufferedSlot))
 					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed;
 				if (bufferedPress)
 					input.ActiveSlot = state.BufferedSlot;
+                connectedSwap = CanSwapCancel(id, in state, input.ActiveSlot);
 				if (input.ActiveSlot == 0)
 				{
 					if (TryCancelGroundedNormalOnMovement(id, ref state, def, input))
@@ -1011,7 +1026,7 @@ namespace SlopArena.Shared
 				bool iasaUnlocked = Simulation.IsIasaUnlocked(in state, GetActiveMove(state.EntityId));
 				if (state.HitstunTicks > 0 || state.HitstopTicks > 0 || state.BlockStunTicks > 0
 					|| state.LandingLagTicks > 0
-					|| (state.AnimLockTicks > 0 && !iasaUnlocked)) continue; // ADR-0014
+					|| (state.AnimLockTicks > 0 && !iasaUnlocked && !connectedSwap)) continue; // ADR-0014
 				if (!ActionStates.AdmitsActions(state.State) && state.State != ActionState.Attacking
 					&& state.State != ActionState.HomingDashArrive) continue;
 				if (bufferedPress)
@@ -1078,7 +1093,7 @@ namespace SlopArena.Shared
                 bool fromShell = Shell.IsTucked(state.State, GetActiveMove(id)?.Slot);
 				if (currentAbility != null)
 				{
-					if (!iasaUnlocked) continue;
+					if (!iasaUnlocked && !connectedSwap) continue;
 					RetireAbility(id, ref state, AbilityExit.Cancelled);
 					_states[id] = state;
 				}
@@ -1101,9 +1116,14 @@ namespace SlopArena.Shared
 			}
 		}
 
-		private const float ThrowDamage = 6f;
-		private const float ThrowBaseKnockback = 5f;
-		private const float ThrowGrowthKnockback = 26f;
+        /// <summary>The active move has connected and can be cancelled by F; admission still enforces cooldown and locks.</summary>
+        public bool CanSwapCancel(ulong id)
+            => _states.TryGetValue(id, out var state) && CanSwapCancel(id, in state, AbilitySlots.F);
+
+        private bool CanSwapCancel(ulong id, in CharacterState state, byte slot)
+            => slot == AbilitySlots.F && state.State == ActionState.Attacking && Def(id).AlternateForm != null
+                && _activeAbilities.TryGetValue(id, out var ability)
+                && ability is CookedTimelineAbility { Connected: true };
 
 		private bool HasGrabAttempts()
 		{
@@ -1393,9 +1413,20 @@ namespace SlopArena.Shared
 					|| _states.TryGetValue(owner.InteractionPartnerId, out var dyingPartner)
 						&& IsOutsideBlastZone(in dyingPartner))
 					continue;
-				if (owner.InteractionPhase == (byte)DefenseInteractionPhase.Reeling)
+				if (owner.InteractionPhase == (byte)DefenseInteractionPhase.CommandHold)
 				{
-					if (!TetherHolds(ownerId, in owner))
+					if (!CommandHolds(ownerId, in owner))
+					{
+						InterruptInteraction(ref owner);
+						_states[ownerId] = owner;
+					}
+					continue;
+				}
+				if (owner.InteractionPhase is (byte)DefenseInteractionPhase.Reeling or (byte)DefenseInteractionPhase.Clinching)
+				{
+					bool holds = owner.InteractionPhase == (byte)DefenseInteractionPhase.Reeling
+						? TetherHolds(ownerId, in owner) : ClinchHolds(ownerId, in owner);
+					if (!holds)
 					{
 						InterruptInteraction(ref owner);
 						_states[ownerId] = owner;
@@ -1425,7 +1456,7 @@ namespace SlopArena.Shared
 				ulong interactionId = owner.InteractionId;
 				ulong partnerId = owner.InteractionPartnerId;
 				if ((owner.InteractionPhase != (byte)DefenseInteractionPhase.Captured
-						&& owner.InteractionPhase != (byte)DefenseInteractionPhase.Throwing)
+						&& !GrabThrow.IsWindup(owner.InteractionPhase))
 					|| !_states.TryGetValue(partnerId, out var partner)
 					|| partner.InteractionId != interactionId
 					|| partner.InteractionPartnerId != ownerId
@@ -1452,11 +1483,8 @@ namespace SlopArena.Shared
 					&& (elapsed >= DefenseConfig.GrabHoldTicks
 						|| inputs.TryGetValue(ownerId, out var grabInput) && grabInput.ActiveSlot > 0))
 				{
-					owner.State = ActionState.Throwing;
-					owner.InteractionPhase = partner.InteractionPhase = (byte)DefenseInteractionPhase.Throwing;
-					owner.InteractionTick = partner.InteractionTick = _tick;
-					owner.VX = owner.VY = owner.VZ = 0f;
-					partner.VX = partner.VY = partner.VZ = 0f;
+                    inputs.TryGetValue(ownerId, out var throwInput);
+                    BeginGrabThrow(ref owner, ref partner, in throwInput);
 					elapsed = 0;
 					_lastTickAcceptedActions.Add(ownerId);
 				}
@@ -1464,43 +1492,13 @@ namespace SlopArena.Shared
 				if (owner.State == ActionState.Throwing
 					&& elapsed >= DefenseConfig.ThrowReleaseTicks && releaseDue)
 				{
-					float yaw = owner.CapturedYaw * (MathF.PI / 18000f);
-					owner.ClearAttackFields();
-					owner.State = ActionState.Throwing;
-					owner.StateTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
-					owner.AnimLockTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
-					partner.ClearAttackFields();
-					float throwDamage = IsMayhemShove(ownerId, partnerId) ? 0f : ThrowDamage;
-                    partner.DamagePercent = (ushort)Math.Min(999, partner.DamagePercent + (ushort)throwDamage);
-					partner.CrouchSettled = false;
-					partner.QueuedCrouchBrace = false;
-					Simulation.ApplyKnockback(ref partner, MathF.Sin(yaw), MathF.Cos(yaw),
-						30, ThrowBaseKnockback, ThrowGrowthKnockback, throwDamage, 1,
-						Def(partnerId).Weight, combatTuning: CombatTuning);
-					// Retain percent/weight-scaled horizontal launch. The paired animation
-					// owns the vertical flight time, with ground contact at victim frame 34.
-					partner.State = ActionState.Thrown;
-					partner.StateTicks = DefenseConfig.ThrownAnimationTicks - DefenseConfig.ThrowReleaseTicks;
-					partner.IsGrounded = false;
-					partner.KVY = Def(partnerId).Movement.Gravity
-						* (DefenseConfig.ThrownLandingTicks - DefenseConfig.ThrowReleaseTicks + 1)
-						* Simulation.TickDt * 0.5f;
-					partner.VX = partner.KVX; partner.VY = partner.KVY; partner.VZ = partner.KVZ;
-					if (_mayhem == null) _lastHitCredits[partnerId] = (ownerId, _tick, 0);
-					_lastHitContexts[partnerId] = (ownerId, _tick, 0);
-					MarkInteractionTerminal(ref owner, interactionId);
-					MarkInteractionTerminal(ref partner, interactionId);
+                    ReleaseGrabThrow(ref owner, ref partner);
 					_states[ownerId] = owner;
 					_states[partnerId] = partner;
 					continue;
 				}
 
-				int ownerDuration = owner.State == ActionState.Grabbing
-					? DefenseConfig.GrabHoldTicks : DefenseConfig.ThrowAnimationTicks;
-				int partnerDuration = owner.State == ActionState.Grabbing
-					? DefenseConfig.GrabHoldTicks : DefenseConfig.ThrownAnimationTicks;
-				owner.StateTicks = (ushort)Math.Max(0, ownerDuration - (int)elapsed);
-				partner.StateTicks = (ushort)Math.Max(0, partnerDuration - (int)elapsed);
+                MirrorGrabPairClocks(ref owner, ref partner, elapsed);
 				_states[ownerId] = owner;
 				_states[partnerId] = partner;
 
@@ -1581,20 +1579,12 @@ namespace SlopArena.Shared
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned, GetActiveMove(id),
 					NoGravityEntityId == id || state.Flight.Active ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
-				if (state.State == ActionState.Grabbing && state.InteractionId != 0
-					&& _states.TryGetValue(state.InteractionPartnerId, out var heldPartner)
-					&& !CanPlaceVictim(in state, in heldPartner, def, Def(state.InteractionPartnerId),
-						out _, out _, out _))
-				{
-					state.PX = beforeMovement.PX; state.PY = beforeMovement.PY; state.PZ = beforeMovement.PZ;
-					state.IsGrounded = beforeMovement.IsGrounded;
-					state.FacingYaw = beforeMovement.FacingYaw;
-					state.AimYaw = beforeMovement.AimYaw;
-					state.CapturedYaw = beforeMovement.CapturedYaw;
-					state.VX = state.VY = state.VZ = 0f;
-				}
-				if (state.State is ActionState.Shielding or ActionState.GrabAttempt or ActionState.AirDodgeMovement)
-					RetireAbility(id, ref state, AbilityExit.Superseded);
+
+				if (state.State is ActionState.Shielding or ActionState.AirDodgeMovement
+                    || state.State == ActionState.GrabAttempt && beforeMovement.State != ActionState.GrabAttempt)
+                    RetireAbility(id, ref state, AbilityExit.Superseded);
+                if (state.State == ActionState.GrabAttempt && beforeMovement.State != ActionState.GrabAttempt)
+                    BeginGrabStartupAim(ref state, in input);
 
 				if (ordinaryActionOpportunity)
 					_lastTickOrdinaryActionOpportunities.Add(id);
@@ -1627,6 +1617,7 @@ namespace SlopArena.Shared
 
             // ── Step 1b: Tick server-side abilities (overrides movement, spawns hitboxes) ──
 			TickAbilities(inputs);
+            UpdateGrabStartupAim(simIds);
 			_abilityTickPhaseComplete = true;
 
 			// ── Step 1c: Landing lag freeze (issue #125 / ADR-0021 §3) ──
@@ -1672,9 +1663,9 @@ namespace SlopArena.Shared
                     // She rides under the fighters her wave carries.
                     if (first.State == ActionState.Shell || second.State == ActionState.Shell)
                         continue;
-                    // A line being reeled in has one writer, the thrower's tether (ADR-0048).
-                    if (first.State == ActionState.Reeled && first.InteractionId != 0
-                        || second.State == ActionState.Reeled && second.InteractionId != 0)
+                    // A line being reeled in, or a clinch, has one writer: the thrower's tether (ADR-0048), the holder's clinch (ADR-0053).
+                    if (first.State is ActionState.Reeled or ActionState.Clinched && first.InteractionId != 0
+                        || second.State is ActionState.Reeled or ActionState.Clinched && second.InteractionId != 0)
                         continue;
                     if ((_activeAbilities.TryGetValue(firstId, out var firstAbility)
                             && firstAbility.IgnoresFighterPushboxes)
@@ -2330,7 +2321,7 @@ namespace SlopArena.Shared
 		/// </summary>
 		internal static bool CatchesReturningProjectile(in CharacterState owner)
 		{
-			bool held = owner.InteractionId != 0 || owner.State == ActionState.Thrown
+			bool held = owner.InteractionId != 0
 				|| ActionStates.InPairedInteraction(owner.State);
 			bool beingHit = owner.State == ActionState.Hitstun || owner.HitstunTicks > 0 || Simulation.HasKnockback(owner);
 			bool free = owner.HitstopTicks == 0 && owner.BlockStunTicks == 0 && owner.LandingLagTicks == 0
@@ -2362,12 +2353,16 @@ namespace SlopArena.Shared
 			_spellResolver.UpdateReturningProjectiles(_returnTarget ??= ReturnTarget, _arena);
 			_spellResolver.UpdateHomingProjectiles(_homingTarget ??= HomingTarget);
             _spellResolver.UpdateStickyProjectiles(StickyCarrier);
+            _spellResolver.BreakFragileProjectiles(_opposesProjectileOwner ??= OpposesProjectileOwner);
 
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
 			LastTickAttackEntities = attackEntities;
 			var hits = _spellResolver.Tick(attackEntities, orderMovingTargetContacts: _slopball != null,
-				frozenOwners: _hitstopFrozenThisTick, canHitTarget: _attackTargetFilter);
+				frozenOwners: _hitstopFrozenThisTick, canHitTarget: _attackTargetFilter, fighters: _states);
+			AddDuePops(hits);
+			hits.AddRange(_commandReleases);
+			_commandReleases.Clear();
 			for (int i = 0; i < hits.Count; i++)
 			{
 				var contact = hits[i];
@@ -2384,7 +2379,7 @@ namespace SlopArena.Shared
 				else
 					hits.RemoveAt(i);
 			}
-			ClashTetherCatches(hits);
+			ClashCatches(hits);
 			LastTickHits.Clear();
 			int hitContactOperationIndex = 0;
 			foreach (var hit in hits)
@@ -2423,6 +2418,33 @@ namespace SlopArena.Shared
 					_states[hit.TargetEntityId] = targetState;
 					continue;
 				}
+				// A clinch's lunge catches through a shield; its own move's hits on the fighter it holds land as
+				// damage and hitstop only (ADR-0053).
+				if (attackerExists && ContactAbility(hit)?.Clinch is { } clinch)
+				{
+					bool ownHeldVictim = clinch.Holding && targetState.State == ActionState.Clinched
+						&& targetState.InteractionId != 0 && targetState.InteractionId == attackerState.InteractionId
+						&& targetState.InteractionPartnerId == hit.OwnerEntityId;
+					if (clinch.Catches || ownHeldVictim)
+					{
+						if (clinch.Catches)
+							CatchOnClinch(in hit, clinch, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
+						else
+							HitClinchedFighter(in hit, ref targetState, ref attackerState, inputs, hitContactOperationIndex++);
+						_states[hit.OwnerEntityId] = attackerState;
+						_states[hit.TargetEntityId] = targetState;
+						continue;
+					}
+				}
+				// A command grab's capture (no damage) holds through a shield and armour (ADR-0051); its release is an
+				// ordinary hit.
+				if (attackerExists && hit.Damage <= 0f && ContactAbility(hit)?.CommandGrab is { } commandGrab)
+				{
+					CatchOnCommandGrab(in hit, commandGrab, ref attackerState, ref targetState);
+					_states[hit.OwnerEntityId] = attackerState;
+					_states[hit.TargetEntityId] = targetState;
+					continue;
+				}
 				if (!PredictCoupledInteractions && targetState.InteractionId != 0) continue;
 				if (targetState.State == ActionState.Shielding && !hit.Unblockable)
 				{
@@ -2454,6 +2476,8 @@ namespace SlopArena.Shared
 				}
 
 				if (hit.Damage > 0f) _damagedThisTick.Add(hit.TargetEntityId);
+                if (targetState.State is ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashArrive)
+                    targetState.BufferedSlot = 0;
 				// Snapshot settled crouch before reaction cleanup/callbacks. A later
 				// replacement hit may overwrite this queue, but cannot earn a new stance.
 				if (PredictCoupledInteractions && targetState.InteractionId != 0 && hit.Damage > 0f)
@@ -2573,29 +2597,9 @@ namespace SlopArena.Shared
                     freeze = HoldCut(in hit, ref targetState, heldCut);
 				if (freeze > 0)
 				{
-					targetState.HitstopTicks = freeze;
-					if (hit.ArmorProtected)
-					{
-						targetState.QueuedArmorHitstop = true;
-					}
-					else
-					{
-						targetState.QueuedArmorHitstop = false;
-						targetState.QueuedKBDirX = dirX; targetState.QueuedKBDirZ = dirZ;
-						targetState.QueuedKBAngle = hit.KnockbackAngle;
-						targetState.QueuedKBBase = launchBase;
-						targetState.QueuedKBGrowth = launchGrowth;
-						targetState.QueuedKBForce = kbForce;
-						targetState.QueuedKBResolvedForce = hookSuppliedForce;
-						targetState.QueuedKBZero = hookZeroForce;
-						targetState.QueuedKBDamage = finalDamage;
-						targetState.QueuedKBStun = hit.StunTicks;
-						targetState.QueuedKBFixedHitstunTicks = hit.FixedHitstunTicks;
-						targetState.QueuedKBStunGate = hit.StunTicks;
-						targetState.QueuedCrouchBrace = crouchBraceEligible && ordinaryFormulaLaunch;
-					}
-					if (hit.FreezesOwner && attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
-						attackerState.HitstopTicks = freeze;
+                    QueueHitReaction(in hit, ref targetState, ref attackerState, attackerExists, freeze,
+                        dirX, dirZ, launchBase, launchGrowth, kbForce, finalDamage,
+                        hookSuppliedForce, hookZeroForce, crouchBraceEligible && ordinaryFormulaLaunch);
 				}
 
 				else if (!hit.ArmorProtected)
@@ -2675,6 +2679,8 @@ namespace SlopArena.Shared
 				_states[hit.TargetEntityId] = targetState;
 				LastTickHits.Add(resolvedHit);
 				ContactAbility(in hit)?.OnHitConfirmed(in resolvedHit, in targetState, hitContactOperationIndex);
+				if (finalDamage > 0f && attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
+					QueuePerchPop(in hit, in targetState);
 				EmitHitPresentation(in hit, finalDamage, in attackerState, attackerExists, hitContactOperationIndex);
 				hitContactOperationIndex++;
 			}
@@ -2689,7 +2695,8 @@ namespace SlopArena.Shared
 				return;
 			string? hitPresentationId = hit.OwnerWindow
 				? hitOwnerDefinition.Shell?.Ride?.HitPresentationId
-				: hitOwnerDefinition.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
+				: hit.HitPresentationId
+					?? hitOwnerDefinition.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
 			if (string.IsNullOrEmpty(hitPresentationId))
 				return;
 			// Confirmed contact carries cosmetic weight, including through replay.
@@ -2846,6 +2853,7 @@ namespace SlopArena.Shared
                 _spellResolver.RemoveContactBombs(id);
 				_spellResolver.StopHomingAt(id);
                 _spellResolver.ExplodeAttachedTo(id);
+                ForgetPerches(id);
 				if (killerEntityId != 0 && _kos[killerEntityId] < byte.MaxValue)
 					_kos[killerEntityId]++;
 				_lastHitCredits.Remove(id);
@@ -2888,8 +2896,9 @@ namespace SlopArena.Shared
 					InteractionTerminalTick = oldState.InteractionTerminalTick,
 					// She respawns in the form she was KO'd in (ADR-0051); cooldowns reset with the bank.
 					Form = new FormState { Active = oldState.Form.Active },
-					InteractionPhase = (byte)(oldState.LastTerminalInteractionId != 0
-						? DefenseInteractionPhase.Terminal : DefenseInteractionPhase.None),
+					InteractionPhase = GrabThrow.IsRelease(oldState.InteractionPhase) ? oldState.InteractionPhase
+                        : (byte)(oldState.LastTerminalInteractionId != 0
+                            ? DefenseInteractionPhase.Terminal : DefenseInteractionPhase.None),
 				};
 				// The last terminal interaction identity survives KO to prevent a delayed
 				// capture from resurrecting a pair after respawn.
@@ -2951,6 +2960,7 @@ namespace SlopArena.Shared
 				_settledCrouchCandidates.Clear();
 				_damagedThisTick.Clear();
 				_hitstopFrozenThisTick.Clear();
+				_commandReleases.Clear();
                 if (_volley != null)
                 {
                     _volley.BeginTick(_arcadeBall!, VersusServePosition);

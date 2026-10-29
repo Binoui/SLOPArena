@@ -9,7 +9,7 @@ namespace SlopArena.Shared
     /// Spawn hitboxes via Spawn(), then call Tick() each server tick.
     /// Handles: movement (projectiles), sphere-sphere collision, aging, knockback.
     /// </summary>
-    public class SpellResolver
+    public partial class SpellResolver
     {
         private readonly List<Hitbox> _hitboxes = new();
         private ulong _lastEmissionId;
@@ -111,6 +111,8 @@ namespace SlopArena.Shared
             public bool OwnerWindow;
             /// <summary>World-space contact point resolved from the colliding shapes.</summary>
             public float HitX, HitY, HitZ;
+            /// <summary>The hitbox's own hit presentation (ADR-0053), or null for the slot's. Not on the wire.</summary>
+            public string? HitPresentationId;
             /// <summary>Final launch magnitude resolved by ServerSimulation after ability hooks.</summary>
             public float ImpactForce;
             /// <summary>Hitstop applied to this accepted hit.</summary>
@@ -335,7 +337,8 @@ namespace SlopArena.Shared
 
         private void ExplodeSticky(int index, Hitbox hb)
         {
-            if (hb.Explosion.HasValue)
+            // A perch only pops (ADR-0051): its fuse and its carrier's KO remove it silently.
+            if (hb.Explosion.HasValue && !hb.Perch.HasValue)
                 _pendingExplosions.Add((hb.X, hb.Y, hb.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
                     hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));
             OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
@@ -739,11 +742,13 @@ namespace SlopArena.Shared
         /// move's other live windows. They still test contact. Projectiles keep their own time.
         /// </summary>
         public List<HitResult> Tick(List<EntityData> entities, bool orderMovingTargetContacts = false,
-            HashSet<ulong>? frozenOwners = null, Func<ulong, ulong, bool>? canHitTarget = null)
+            HashSet<ulong>? frozenOwners = null, Func<ulong, ulong, bool>? canHitTarget = null,
+            IReadOnlyDictionary<ulong, CharacterState>? fighters = null)
         {
             var results = new List<HitResult>();
             var hitThisTick = new HashSet<ulong>();
             _lastTickChecked.Clear();
+            _perchedThisTick.Clear();
             if (orderMovingTargetContacts) OrderMovingTargetContacts(entities);
 
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
@@ -807,6 +812,11 @@ namespace SlopArena.Shared
                     if (hb.OnlyTargetId != 0 && entity.Id != hb.OnlyTargetId) continue;
                     // Reject friendly contacts before consuming a projectile or its hit history.
                     if (canHitTarget != null && !canHitTarget(hb.OwnerId, entity.Id)) continue;
+                    if (hb.SourceEvent.RequiresFacingOwner && fighters != null
+                        && fighters.TryGetValue(entity.Id, out var victim)
+                        && (!fighters.TryGetValue(hb.OwnerId, out var owner)
+                            || MathF.Sin(victim.FacingYaw) * (owner.PX - victim.PX)
+                                + MathF.Cos(victim.FacingYaw) * (owner.PZ - victim.PZ) <= 0f)) continue;
                     if (hitThisTick.Contains(entity.Id)) continue;
                     if (entity.InvincibilityTicks > 0) continue;
                     // One-hit-per-opponent: skip entities this hitbox already tagged.
@@ -880,6 +890,7 @@ namespace SlopArena.Shared
 
                     if (hb.StickyFuseTicks > 0 && !entity.ShieldSurface)
                     {
+                        if (hb.Perch.HasValue) _perchedThisTick.Add(hb.EmissionId);
                         hb.AttachedEntityId = entity.Id; hb.FuseTicksLeft = hb.StickyFuseTicks;
                         hb.X = entity.PosX; hb.Y = (entity.PosY + entity.EndY) * .5f; hb.Z = entity.PosZ;
                         hb.VX = hb.VY = hb.VZ = hb.Gravity = 0f;
@@ -919,6 +930,7 @@ namespace SlopArena.Shared
                         HitY = hitY,
                         HitZ = hitZ,
                         ContactTime = contactTime,
+                        HitPresentationId = hb.SourceEvent.HitPresentationId,
                     });
 
                     hitThisTick.Add(entity.Id);
@@ -957,6 +969,7 @@ namespace SlopArena.Shared
                 }
             }
 
+            ReplacePerches();
             return results;
         }
 

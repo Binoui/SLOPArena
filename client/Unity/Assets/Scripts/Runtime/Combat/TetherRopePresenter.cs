@@ -26,6 +26,8 @@ namespace SlopArena.Client.Combat
         private sealed class Line
         {
             public Phase Phase;
+            public bool Placed;
+            public GameObject? GraspPrefab, Grasp;
             public Vector3 Target;
             public ulong Partner;
             public Vector3 RetractFrom;
@@ -34,7 +36,7 @@ namespace SlopArena.Client.Combat
             public GameObject? EmptyRing;
         }
 
-        private readonly Dictionary<ulong, (PlayerRenderer Renderer, ProjectilePresentation? Ring)> _fighters = new();
+        private readonly Dictionary<ulong, (PlayerRenderer Renderer, ProjectilePresentation? Ring, CharacterAnimationCatalog Catalog)> _fighters = new();
         private readonly Dictionary<ulong, Line> _lines = new();
         private readonly Dictionary<ulong, GameObject> _worn = new();
         private readonly Dictionary<ulong, ulong> _wornFrom = new();
@@ -43,7 +45,7 @@ namespace SlopArena.Client.Combat
         private Material? _ropeMaterial;
 
         public void Register(ulong entityId, PlayerRenderer renderer, CharacterAnimationCatalog catalog)
-            => _fighters[entityId] = (renderer, catalog?.PresentationProfile?.FindProjectile(AbilitySlots.A, false));
+            => _fighters[entityId] = (renderer, catalog?.PresentationProfile?.FindProjectile(AbilitySlots.A, false), catalog);
 
         /// <summary>Reads this tick's predicted or authoritative world: who is throwing, reeling or reeling back.</summary>
         public void Present(ISimulationBridge bridge, IReadOnlyList<TimelinePresentationEvent> events)
@@ -52,16 +54,20 @@ namespace SlopArena.Client.Combat
             {
                 if (fighter.Renderer == null) continue;
                 var state = bridge.GetState(id);
-                bool tether = IsTether(bridge.GetActiveMove(id)?.Slot) && state.State == ActionState.Attacking;
+                var parameters = Tether(bridge.GetActiveMove(id)?.Slot);
+                bool tether = parameters != null && state.State == ActionState.Attacking;
                 var line = LineFor(id);
+                line.Placed = tether && parameters.AtTarget != null;
+                line.GraspPrefab = line.Placed ? GraspPrefab(fighter.Catalog, parameters.AtTarget.CatchPresentationId) : null;
                 if (tether && state.InteractionId != 0
                     && state.InteractionPhase == (byte)DefenseInteractionPhase.Reeling)
                 {
                     line.Phase = Phase.Reel;
                     line.Partner = state.InteractionPartnerId;
-                    _wornFrom[line.Partner] = id;
+                    if (!line.Placed) _wornFrom[line.Partner] = id;
+                    else _wornFrom.Remove(line.Partner);
                 }
-                else if (tether && RingInFlight(bridge.Resolver, id, out var ring))
+                else if (tether && !line.Placed && RingInFlight(bridge.Resolver, id, out var ring))
                 {
                     line.Phase = Phase.Flight;
                     line.Target = ring;
@@ -84,7 +90,8 @@ namespace SlopArena.Client.Combat
                     }
             foreach (var (id, fighter) in _fighters)
             {
-                bool reeled = fighter.Renderer != null && bridge.GetState(id).State == ActionState.Reeled;
+                bool reeled = fighter.Renderer != null && bridge.GetState(id).State == ActionState.Reeled
+                    && _wornFrom.TryGetValue(id, out var from) && _lines.TryGetValue(from, out var source) && !source.Placed;
                 if (reeled && !_worn.ContainsKey(id) && NewRing(id) is { } ring)
                     _worn[id] = ring;
                 else if (!reeled && _worn.Remove(id, out var worn))
@@ -100,6 +107,7 @@ namespace SlopArena.Client.Combat
             foreach (var line in _lines.Values)
             {
                 if (line.Rope != null) Destroy(line.Rope.gameObject);
+                if (line.Grasp != null) Destroy(line.Grasp);
                 if (line.EmptyRing != null) Destroy(line.EmptyRing);
             }
             foreach (var worn in _worn.Values)
@@ -123,6 +131,19 @@ namespace SlopArena.Client.Combat
             {
                 var hand = _fighters.TryGetValue(id, out var owner) && owner.Renderer != null
                     ? owner.Renderer.ResolvePresentationBone(HandBone) : null;
+                bool grasp = line.Placed && line.Phase == Phase.Reel && line.GraspPrefab != null
+                    && _fighters.TryGetValue(line.Partner, out var target) && target.Renderer != null && hand != null;
+                if (grasp)
+                {
+                    if (line.Grasp == null) line.Grasp = Instantiate(line.GraspPrefab, transform);
+                    var victim = _fighters[line.Partner].Renderer;
+                    line.Grasp.GetComponent<PlacedTetherVisual>().Present(victim.transform.position, hand.position);
+                }
+                else if (line.Grasp != null)
+                {
+                    Destroy(line.Grasp);
+                    line.Grasp = null;
+                }
                 Vector3? end = null;
                 bool retracting = false;
                 if (hand != null)
@@ -146,7 +167,7 @@ namespace SlopArena.Client.Combat
                             break;
                     }
                 }
-                if (retracting && line.EmptyRing == null)
+                if (retracting && !line.Placed && line.EmptyRing == null)
                     line.EmptyRing = NewRing(id);
                 if (!retracting && line.EmptyRing != null)
                 {
@@ -155,7 +176,7 @@ namespace SlopArena.Client.Combat
                 }
                 if (line.EmptyRing != null && end.HasValue)
                     line.EmptyRing.transform.position = end.Value;
-                line.Rope.enabled = hand != null && end.HasValue;
+                line.Rope.enabled = !line.Placed && hand != null && end.HasValue;
                 if (line.Rope.enabled)
                     DrawRope(line.Rope, hand!.position, end!.Value);
             }
@@ -229,14 +250,23 @@ namespace SlopArena.Client.Combat
             return false;
         }
 
-        private static bool IsTether(CookedSlotDefinition? slot)
+        private static GameObject? GraspPrefab(CharacterAnimationCatalog catalog, string catchId)
         {
-            if (slot == null) return false;
+            if (catalog?.Presentations == null) return null;
+            foreach (var binding in catalog.Presentations)
+                if (binding != null && binding.SemanticId == catchId && binding.Prefab != null)
+                    return binding.Prefab.GetComponent<PlacedTetherVisual>()?.DragPrefab;
+            return null;
+        }
+
+        private static CookedTetherCapabilityParameters? Tether(CookedSlotDefinition? slot)
+        {
+            if (slot == null) return null;
             foreach (var stage in slot.Timeline.Stages)
                 foreach (var operation in stage.Operations)
-                    if (operation is CookedStartCapabilityOperation { CapabilityId: CharacterPackageCompiler.TetherCapabilityId })
-                        return true;
-            return false;
+                    if (operation is CookedStartCapabilityOperation { Parameters: CookedTetherCapabilityParameters tether })
+                        return tether;
+            return null;
         }
     }
 }

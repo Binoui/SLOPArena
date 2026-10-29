@@ -321,7 +321,13 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
     if keys:
         approved = keys['clip'].world()
         digits = set(rig.humanoid_digits)
-        body = [j for j in range(len(rig.names)) if j not in digits]  # fingers may still close
+        # Helper joints outside the Humanoid that neither the keys nor the take ever turn from their bind pose ride their
+        # parent, like Nyx's dress spring chains that only the game's springs move (2026-10-29): a degree of allowed
+        # overlap at the hips swung their tips 3 cm. They carry no authored pose, so they are not held to the keys. Rigs
+        # without Humanoid data (the Blender-built benchmark) cannot tell them apart and keep every joint.
+        still = [j for j in range(len(rig.names)) if rig.humanoid and j not in rig.humanoid and not rig.names[j].startswith(('Weapon', 'blade')) and all(
+            (np.abs(np.abs(np.sum(q[:, j] * rig.bind_q[j], axis=-1)) - 1) < 1e-6).all() for q in (clip.q, keys['clip'].q))]
+        body = [j for j in range(len(rig.names)) if j not in digits and j not in still]  # fingers may still close
         # The body may meet its key pose up to keys_ticks early or late, so overlap and drag can offset joints in time;
         # a weapon keeps its tick (its timing is the hit's).
         exact = [j for j in body if rig.names[j].startswith(('Weapon', 'blade'))]

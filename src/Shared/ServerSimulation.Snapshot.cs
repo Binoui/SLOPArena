@@ -23,7 +23,10 @@ namespace SlopArena.Shared
         // 15: fighter-owned Flying, contact bombs and Kamikaze (ADR-0049).
         // 16: single-target hitboxes and held cuts (ADR-0052).
         // 17: two forms (ADR-0051): the fighter's form and cooldown bank, each hitbox's form, the activation's form.
-        public const uint SnapshotFormatVersion = 17;
+        // 18: a timeline activation records its confirmed fighter contact for form swap-cancels.
+        // 19: a hitbox's own hit presentation and the activation's sweetspot contact (ADR-0053).
+        // 20: perching projectiles and their queued pops (ADR-0051).
+        public const uint SnapshotFormatVersion = 21;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -80,6 +83,7 @@ namespace SlopArena.Shared
             }
             _spellResolver.WriteSnapshot(w, OwnerContent);
             WriteHeldCuts(w);
+            WritePendingPops(w);
             // Arcade objects (ADR-0040): the ball, then the Slopball rules that own it.
             w.WriteBool(_arcadeBall != null);
             if (_arcadeBall != null)
@@ -161,6 +165,7 @@ namespace SlopArena.Shared
             }
             var resolver = SpellResolver.ReadSnapshot(r, OwnerContent);
             var heldCuts = ReadHeldCuts(r);
+            var pendingPops = ReadPendingPops(r);
             bool hasBall = r.ReadBool();
             if (hasBall != (_arcadeBall != null))
                 throw SnapshotReader.Malformed("Arcade ball presence");
@@ -198,7 +203,7 @@ namespace SlopArena.Shared
                 throw SnapshotReader.Malformed("trailing data");
 
             return new PreparedSnapshot(tick, nextActivationId, nextInteractionId, fighters,
-                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem) { HeldCuts = heldCuts };
+                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem) { HeldCuts = heldCuts, PendingPops = pendingPops };
         }
 
         internal void ApplySnapshot(PreparedSnapshot prepared)
@@ -224,6 +229,8 @@ namespace SlopArena.Shared
             _spellResolver.ApplySnapshot(prepared.Resolver);
             _heldCuts.Clear();
             _heldCuts.AddRange(prepared.HeldCuts);
+            _pendingPops.Clear();
+            _pendingPops.AddRange(prepared.PendingPops);
             if (prepared.Mayhem != null) _mayhem!.Apply(prepared.Mayhem);
             if (prepared.Course.HasValue) _course!.Apply(prepared.Course.Value);
             if (prepared.OnlineCourse != null) _onlineCourse!.Apply(prepared.OnlineCourse);
@@ -336,6 +343,7 @@ namespace SlopArena.Shared
             MankiMayhemSimulation.Snapshot? Mayhem)
         {
             internal HeldCut[] HeldCuts { get; init; } = Array.Empty<HeldCut>();
+            internal PendingPop[] PendingPops { get; init; } = Array.Empty<PendingPop>();
         }
 
         internal sealed class FighterSnapshot

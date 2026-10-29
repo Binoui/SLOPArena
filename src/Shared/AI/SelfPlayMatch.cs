@@ -53,8 +53,12 @@ public static class SelfPlayMatch
         {
             var sA = sim.GetState(EntityA);
             var sB = sim.GetState(EntityB);
-            inputs[EntityA] = policy.Decide(sA, sB, def, rng, memA, arena, baked, activeMove: sim.GetActiveMove(EntityA)?.Slot);
-            inputs[EntityB] = policy.Decide(sB, sA, def, rng, memB, arena, baked, activeMove: sim.GetActiveMove(EntityB)?.Slot);
+            policy.ObserveOpponent(memA, sB, sim.GetDefinition(EntityB), baked);
+            policy.ObserveOpponent(memB, sA, sim.GetDefinition(EntityA), baked);
+            inputs[EntityA] = policy.Decide(sA, sim.GetDefinition(EntityA), rng, memA, arena, baked,
+                activeMove: sim.GetActiveMove(EntityA)?.Slot, canSwapCancel: sim.CanSwapCancel(EntityA));
+            inputs[EntityB] = policy.Decide(sB, sim.GetDefinition(EntityB), rng, memB, arena, baked,
+                activeMove: sim.GetActiveMove(EntityB)?.Slot, canSwapCancel: sim.CanSwapCancel(EntityB));
             recorder.RecordInputs(tick, inputs);
 
             recorder.RecordPresses(sim, tick, inputs, def); // swings from the pre-tick presses

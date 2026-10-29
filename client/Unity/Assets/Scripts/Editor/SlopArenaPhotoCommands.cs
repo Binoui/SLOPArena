@@ -34,7 +34,7 @@ namespace SlopArena.EditorTools
         private const string SessionKey = "SlopArena.Photo.Active";
         private static readonly string[] ArtifactPrefixes = { "tmp/", ".impeccable/", ".ability-lab-cache/", "client/Unity/Temp/" };
 
-        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public CharacterClass playerClass; public string packageId = ""; public CharacterClass opponentClass; }
+        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public CharacterClass playerClass; public string packageId = ""; public CharacterClass opponentClass; public byte playerForm, opponentForm; }
 
         [CliCommand("sloparena.photo.prepare", "Prepare an in-memory photo shoot on a PvP stage, real Training, or the live Slopball scene for sloparena.photo.live, using the stage-view save/restore lifecycle.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
         public static object Prepare(
@@ -49,20 +49,18 @@ namespace SlopArena.EditorTools
             if (new[] { SessionKey, "SlopArena.StageViews.Active", "SlopArena.CpuShowcase.Active", "SlopArena.HitFeelReview.Active" }
                 .Any(key => !string.IsNullOrEmpty(SessionState.GetString(key, ""))))
                 throw new InvalidOperationException("A stage-view, showcase, hit-feel or photo session still needs restoration.");
-            CharacterClass selected = fighter switch
+            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var catalogError))
+                throw new InvalidOperationException("Local catalog: " + catalogError);
+            CharacterClass Select(string package)
             {
-                "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
-                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
-                "salamander" => CharacterClass.Salamander,
-                "nyx" => CharacterClass.Nyx,
-                _ => throw new ArgumentException("fighter must be fightguy, manki, wibou, bonk or bashie.")
-            };
-            if (!Enum.TryParse(opponent, true, out CharacterClass opponentClass) || opponentClass == CharacterClass.None
-                || !Enum.GetNames(typeof(CharacterClass)).Any(name => string.Equals(name, opponent, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException("opponent must be a fighter name.");
+                var entry = catalog.ResolvePackage(package);
+                return entry?.LegacySelector ?? throw new ArgumentException("fighter must be one of: "
+                    + string.Join(", ", catalog.Entries.Select(e => e.Identity.PackageId)) + ".");
+            }
+            CharacterClass selected = Select(fighter), opponentClass = Select(opponent);
             // Save before the first mutation so the declared restore also handles partial setup failure.
             SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate,
-                training = training, playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, opponentClass = MatchConfig.Seat(2).Fighter }));
+                training = training, playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, opponentClass = MatchConfig.Seat(2).Fighter, playerForm = MatchConfig.PlayerForm, opponentForm = MatchConfig.Seat(2).Form }));
             SlopArenaStageViewCommands.Prepare(stage, lighting);
             if (stage == SlopballMatch.ArenaKey)
             {
@@ -75,6 +73,7 @@ namespace SlopArena.EditorTools
             if (training)
             {
                 MatchConfig.Seat(2).Fighter = opponentClass;
+                MatchConfig.PlayerForm = 0; MatchConfig.Seat(2).Form = 0;
                 MatchConfig.PlayerClass = selected;
                 MatchConfig.PlayerPackageId = fighter;
                 var match = Object.FindFirstObjectByType<TrainingMatch>();
@@ -442,6 +441,7 @@ namespace SlopArena.EditorTools
         }
 
         private static LiveSession? _live;
+        internal static bool LiveActive => _live != null;
 
         private static async Task<T> ReadyMatch<T>(Func<T, bool> ready) where T : Object
         {
@@ -460,7 +460,8 @@ namespace SlopArena.EditorTools
         private static SlopArenaPhotoLive BeginLive(ArcadeBallMatch? ball, CharacterCourseMatch? course, string output,
             int from, int to, int step, int quality, float? yaw, float? pitch, string? camera, TutorialMatch? tutorial = null, TrainingMatch? training = null)
         {
-            if (_live != null) throw new InvalidOperationException("A live capture is already running; call sloparena.photo.live-end.");
+            if (_live != null || MoveReview.TakeSession.IsActive)
+                throw new InvalidOperationException("A live capture or move take is already active.");
             if (from < 0 || to < from || step < 1 || step > 600 || quality < 50 || quality > 100)
                 throw new ArgumentException("Use 0 ≤ from ≤ to, step 1–600 and quality 50–100.");
             string directory = Resolve(output, "output", directory: true);
@@ -564,6 +565,8 @@ namespace SlopArena.EditorTools
                 throw new InvalidOperationException("Stop and settle Play Mode before restoring a photo session.");
             var saved = JsonConvert.DeserializeObject<Saved>(text) ?? new Saved();
             Time.captureFramerate = saved.captureFramerate;
+            MatchConfig.PlayerForm = saved.playerForm;
+            MatchConfig.Seat(2).Form = saved.opponentForm;
             if (saved.training)
             {
                 MatchConfig.PlayerClass = saved.playerClass;
@@ -580,7 +583,7 @@ namespace SlopArena.EditorTools
                 .Select(mount => mount.RenderCamera).FirstOrDefault(value => value != null)
                 ?? throw new InvalidOperationException("The capture scene has no gameplay render camera.");
 
-        private static string Resolve(string path, string name, bool directory, string? extraPrefix = null)
+        internal static string Resolve(string path, string name, bool directory, string? extraPrefix = null)
         {
             path = (path ?? "").Trim().TrimEnd('/');
             var prefixes = extraPrefix == null ? ArtifactPrefixes : ArtifactPrefixes.Append(extraPrefix).ToArray();
@@ -691,7 +694,7 @@ namespace SlopArena.EditorTools
             // Keep one command well inside the CLI timeout: bound the pixels written.
             long frames = (to - from) / step + 1;
             double megapixels = frames * (cameras.Count + (hud ? 2 : 0)) * (double)width * height / 1e6;
-            if (megapixels > 1400)
+            if (megapixels > CaptureBudget.MaxMegapixelsPerCommand)
                 throw new ArgumentException($"The shoot would write {megapixels:0} megapixels; narrow the window, lower the size or use fewer cameras (limit 1400).");
 
             return shoot =>

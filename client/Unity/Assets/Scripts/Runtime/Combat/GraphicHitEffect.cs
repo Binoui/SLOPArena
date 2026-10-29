@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using SlopArena.Shared;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace SlopArena.Client.Combat
 {
@@ -24,7 +25,6 @@ namespace SlopArena.Client.Combat
         private const int InitialPoolSize = 16;
         private static readonly Stack<GraphicHitEffect> Pool = new();
         private static Material _sharedMaterial;
-        private static UnityEngine.Camera _renderCamera;
 
         private readonly List<Vector3> _vertices = new(192);
         private readonly List<Color> _colors = new(192);
@@ -37,6 +37,33 @@ namespace SlopArena.Client.Combat
         private float _fadeDuration;
         private float _endScale;
         private float _flashOpacity = 1f;
+        private Vector3 _launch;
+        private Vector2 _localLaunch;
+        private ImpactTier _tier;
+
+        private void OnEnable() => RenderPipelineManager.beginCameraRendering += FaceCamera;
+        private void OnDisable() => RenderPipelineManager.beginCameraRendering -= FaceCamera;
+
+        private void FaceCamera(ScriptableRenderContext context, UnityEngine.Camera camera)
+        {
+            if (_tier == ImpactTier.Block || camera == null) return;
+            transform.rotation = camera.transform.rotation;
+            Vector2 direction = LocalLaunch(camera);
+            // Radial rays stay fixed on screen; only the directional streak follows the launch.
+            if ((direction - _localLaunch).sqrMagnitude > 0.000001f)
+            {
+                _localLaunch = direction;
+                BuildMesh(_tier, direction);
+            }
+        }
+
+        private Vector2 LocalLaunch(UnityEngine.Camera camera)
+        {
+            Vector2 direction = camera != null
+                ? new Vector2(Vector3.Dot(_launch, camera.transform.right), Vector3.Dot(_launch, camera.transform.up))
+                : new Vector2(_launch.x, _launch.y);
+            return direction.sqrMagnitude < 0.001f ? Vector2.right : direction.normalized;
+        }
 
         public static void Prewarm()
         {
@@ -103,29 +130,22 @@ namespace SlopArena.Client.Combat
 
         private void Show(in SpellResolver.HitResult hit, ImpactTier tier, Vector3 surfaceNormal)
         {
-            if (_renderCamera == null)
-                _renderCamera = UnityEngine.Camera.main;
-            if (_renderCamera == null)
-                _renderCamera = Object.FindFirstObjectByType<UnityEngine.Camera>();
+            var camera = UnityEngine.Camera.main;
+            if (camera == null) camera = Object.FindFirstObjectByType<UnityEngine.Camera>();
 
             transform.position = new Vector3(hit.HitX, hit.HitY, hit.HitZ);
             transform.rotation = tier == ImpactTier.Block && surfaceNormal.sqrMagnitude > 0.000001f
                 ? Quaternion.LookRotation(surfaceNormal, Mathf.Abs(surfaceNormal.y) > 0.95f
                     ? Vector3.forward : Vector3.up)
-                : _renderCamera != null ? _renderCamera.transform.rotation : Quaternion.identity;
+                : camera != null ? camera.transform.rotation : Quaternion.identity;
             transform.localScale = Vector3.one * 0.72f;
 
-            Vector3 launch = ResolveLaunch(in hit);
-            Vector2 localLaunch = _renderCamera != null
-                ? new Vector2(Vector3.Dot(launch, _renderCamera.transform.right),
-                    Vector3.Dot(launch, _renderCamera.transform.up))
-                : new Vector2(launch.x, launch.y);
-            if (localLaunch.sqrMagnitude < 0.001f)
-                localLaunch = Vector2.right;
-            localLaunch.Normalize();
+            _tier = tier;
+            _launch = ResolveLaunch(in hit);
+            _localLaunch = LocalLaunch(camera);
 
             _flashOpacity = ClientSettingsService.Instance.ReducedFlashing ? 0.48f : 1f;
-            BuildMesh(tier, localLaunch);
+            BuildMesh(tier, _localLaunch);
             _age = 0f;
             _holdDuration = hit.HitstopTicks * SlopArena.Shared.Simulation.TickDt;
             _fadeDuration = tier switch
@@ -273,7 +293,11 @@ namespace SlopArena.Client.Combat
 
         private void Update()
         {
+#if UNITY_EDITOR
+            _age += Time.captureDeltaTime > 0f ? Time.deltaTime : Time.unscaledDeltaTime;
+#else
             _age += Time.unscaledDeltaTime;
+#endif
             if (_age <= _holdDuration)
             {
                 float settle = _holdDuration > 0f ? _age / _holdDuration : 1f;

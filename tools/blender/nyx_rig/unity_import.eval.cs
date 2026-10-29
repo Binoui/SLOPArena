@@ -1,69 +1,28 @@
-const string Build = "/home/binoui/Documents/projects/SlopArena/tmp/nyx-model/rig-build-v1";
+const string Build = "/home/binoui/Documents/projects/SlopArena/tmp/nyx-model/spine-fix";
 const string Dir = "Assets/Art/Characters/nyx";
 const string Fbx = Dir + "/Models/Nyx.fbx";
 const string PrefabPath = "Assets/CharacterPackages/nyx/Presentation/NyxRig.prefab";
-const string MankiRig = "Assets/CharacterPackages/manki/Presentation/MankiRig.prefab";
-var maps = new Dictionary<string, int> { ["Nyx_Fake"] = 2048, ["Nyx_Real"] = 2048 };
-var rendererMap = new Dictionary<string, string>
-{
-    ["Nyx_Fake"] = "Nyx_Fake", ["Nyx_Real"] = "Nyx_Real", ["Nyx_Real_Dress"] = "Nyx_Real",
-    ["Nyx_Backpack"] = "Nyx_Fake", ["Nyx_PoleHeld"] = "Nyx_Fake",
-};
-var report = new Dictionary<string, object>();
-string root = System.IO.Path.GetDirectoryName(Application.dataPath);
-foreach (var source in new[] { "Nyx.fbx" }.Concat(maps.Keys.Select(p => "textures/" + p + ".png")))
-    if (!System.IO.File.Exists(System.IO.Path.Combine(Build, source)))
-        throw new System.IO.FileNotFoundException("Missing build_rig.py output", source);
-foreach (var folder in new[] { Dir, Dir + "/Models", Dir + "/Textures", Dir + "/Materials", "Assets/CharacterPackages/nyx/Presentation" })
-    if (!AssetDatabase.IsValidFolder(folder))
-        AssetDatabase.CreateFolder(System.IO.Path.GetDirectoryName(folder).Replace('\\', '/'), System.IO.Path.GetFileName(folder));
-
-Dictionary<string, object> Probe(string path)
-{
-    var probe = new Dictionary<string, object>();
-    var go = UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path));
-    go.hideFlags = HideFlags.HideAndDontSave;
-    try
-    {
-        go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-        go.transform.localScale = Vector3.one;
-        var a = go.GetComponentInChildren<Animator>();
-        a.Rebind();
-        var smr = go.GetComponentsInChildren<SkinnedMeshRenderer>().FirstOrDefault(s => s.name == "Nyx_Real")
-            ?? go.GetComponentInChildren<SkinnedMeshRenderer>();
-        probe["humanScale"] = a.humanScale;
-        probe["avatarValid"] = a.avatar != null && a.avatar.isValid && a.avatar.isHuman;
-        probe["material"] = smr.sharedMaterial != null ? AssetDatabase.GetAssetPath(smr.sharedMaterial) : null;
-        probe["mesh"] = AssetDatabase.GetAssetPath(smr.sharedMesh);
-        probe["bones"] = smr.bones.Length;
-        probe["vertices"] = smr.sharedMesh.vertexCount;
-        var baked = new Mesh();
-        smr.BakeMesh(baked, true);
-        float lo = float.MaxValue, hi = float.MinValue;
-        foreach (var v in baked.vertices) { float y = smr.transform.localToWorldMatrix.MultiplyPoint3x4(v).y; lo = Mathf.Min(lo, y); hi = Mathf.Max(hi, y); }
-        UnityEngine.Object.DestroyImmediate(baked);
-        probe["restMinY"] = lo;
-        probe["restMaxY"] = hi;
-        probe["hipsY"] = a.GetBoneTransform(HumanBodyBones.Hips).position.y;
-        probe["headY"] = a.GetBoneTransform(HumanBodyBones.Head).position.y;
-    }
-    finally { UnityEngine.Object.DestroyImmediate(go); }
-    return probe;
-}
-
-var manki = Probe(MankiRig);
-report["manki"] = manki;
-var mankiImporter = (ModelImporter)AssetImporter.GetAtPath((string)manki["mesh"]);
-var saved = mankiImporter.humanDescription;
-var mankiMat = AssetDatabase.LoadAssetAtPath<Material>((string)manki["material"]);
-report["materialFrom"] = manki["material"];
-
+var maps = new Dictionary<string, int> { ["Nyx_Fake"] = 2048, ["Nyx_Real"] = 2048, ["Nyx_Tights"] = 256, ["Nyx_Phone"] = 512 };
+string project = System.IO.Path.GetDirectoryName(Application.dataPath);
+var prior = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+if (prior == null) throw new InvalidOperationException("Build the initial shared Nyx prefab before replacing its real lower body.");
+var priorAnimator = prior.GetComponentInChildren<Animator>(true);
+var priorAvatar = priorAnimator.avatar;
+float priorScale = priorAnimator.humanScale;
+var mi = (ModelImporter)AssetImporter.GetAtPath(Fbx);
+string priorHumanDescription = JsonUtility.ToJson(mi.humanDescription);
+var template = AssetDatabase.LoadAssetAtPath<Material>(Dir + "/Materials/Nyx_Real.mat");
 var materials = new Dictionary<string, Material>();
 foreach (var map in maps)
 {
     string tex = Dir + "/Textures/" + map.Key + ".png";
-    System.IO.File.Copy(System.IO.Path.Combine(Build, "textures", map.Key + ".png"), System.IO.Path.Combine(root, tex), true);
-    AssetDatabase.ImportAsset(tex, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+    string destination = System.IO.Path.Combine(project, tex);
+    byte[] bytes = System.IO.File.ReadAllBytes(System.IO.Path.Combine(Build, "textures", map.Key + ".png"));
+    if (!System.IO.File.Exists(destination) || !System.IO.File.ReadAllBytes(destination).SequenceEqual(bytes))
+    {
+        System.IO.File.WriteAllBytes(destination, bytes);
+        AssetDatabase.ImportAsset(tex, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+    }
     var ti = (TextureImporter)AssetImporter.GetAtPath(tex);
     ti.textureType = TextureImporterType.Default;
     ti.sRGBTexture = true;
@@ -76,159 +35,141 @@ foreach (var map in maps)
     var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
     if (mat == null)
     {
-        mat = new Material(mankiMat) { name = map.Key };
+        mat = new Material(template) { name = map.Key };
         AssetDatabase.CreateAsset(mat, matPath);
     }
-    var t2d = AssetDatabase.LoadAssetAtPath<Texture2D>(tex);
-    if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", t2d);
-    if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", t2d);
+    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(tex);
+    if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", texture);
+    if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
+    if (map.Key == "Nyx_Dress")
+    {
+        mat.SetFloat("_Cull", 0);
+        mat.doubleSidedGI = true;
+    }
     EditorUtility.SetDirty(mat);
     AssetDatabase.SaveAssetIfDirty(mat);
     materials[map.Key] = mat;
 }
-
-System.IO.File.Copy(System.IO.Path.Combine(Build, "Nyx.fbx"), System.IO.Path.Combine(root, Fbx), true);
+var dressMaterial = AssetDatabase.LoadAssetAtPath<Material>(Dir + "/Materials/Nyx_Dress.mat");
+if (dressMaterial == null) { dressMaterial = new Material(template) { name = "Nyx_Dress" }; AssetDatabase.CreateAsset(dressMaterial, Dir + "/Materials/Nyx_Dress.mat"); }
+var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(Dir + "/Textures/Nyx_Real.png");
+if (dressMaterial.HasProperty("_BaseMap")) dressMaterial.SetTexture("_BaseMap", atlas);
+if (dressMaterial.HasProperty("_MainTex")) dressMaterial.SetTexture("_MainTex", atlas);
+dressMaterial.SetFloat("_Cull", 0); dressMaterial.doubleSidedGI = true;
+EditorUtility.SetDirty(dressMaterial); AssetDatabase.SaveAssetIfDirty(dressMaterial);
+materials["Nyx_Dress"] = dressMaterial;
+System.IO.File.Copy(System.IO.Path.Combine(Build, "Nyx.fbx"), System.IO.Path.Combine(project, Fbx), true);
 AssetDatabase.ImportAsset(Fbx, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
-var mi = (ModelImporter)AssetImporter.GetAtPath(Fbx);
-mi.globalScale = mankiImporter.globalScale;
-mi.useFileScale = mankiImporter.useFileScale;
-mi.importBlendShapes = false;
-mi.importCameras = false;
-mi.importLights = false;
-mi.importAnimation = false;
-mi.optimizeGameObjects = false;
-mi.isReadable = mankiImporter.isReadable;
-mi.importNormals = ModelImporterNormals.Import;
-mi.materialImportMode = mankiImporter.materialImportMode;
+mi = (ModelImporter)AssetImporter.GetAtPath(Fbx);
+mi.isReadable = true;
 foreach (var m in materials)
     mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), m.Key), m.Value);
-mi.animationType = ModelImporterAnimationType.Human;
-mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
-mi.humanDescription = new HumanDescription();
-mi.autoGenerateAvatarMappingIfUnspecified = true;
 mi.SaveAndReimport();
-mi = (ModelImporter)AssetImporter.GetAtPath(Fbx);
-var hd = mi.humanDescription;
-var skeletonNames = new HashSet<string>(hd.skeleton.Select(s => s.name));
-var human = saved.human.Where(h => skeletonNames.Contains(h.boneName)).ToList();
-var missing = saved.human.Where(h => !skeletonNames.Contains(h.boneName)).Select(h => h.humanName).ToArray();
-hd.human = human.ToArray();
-hd.upperArmTwist = saved.upperArmTwist; hd.lowerArmTwist = saved.lowerArmTwist;
-hd.upperLegTwist = saved.upperLegTwist; hd.lowerLegTwist = saved.lowerLegTwist;
-hd.armStretch = saved.armStretch; hd.legStretch = saved.legStretch; hd.feetSpacing = saved.feetSpacing;
-hd.hasTranslationDoF = saved.hasTranslationDoF;
-mi.humanDescription = hd;
-mi.SaveAndReimport();
-report["mapped"] = hd.human.Length;
-report["unmapped"] = missing;
-report["skeletonBones"] = hd.skeleton.Length;
-var notFingers = missing.Where(n => !n.Contains("Thumb") && !n.Contains("Index") && !n.Contains("Middle") && !n.Contains("Ring") && !n.Contains("Little")).ToArray();
-if (missing.Length != 0 || human.Count != 46)
-    throw new InvalidOperationException("Nyx is missing mapped bones: " + string.Join(", ", missing));
-
+if (JsonUtility.ToJson(mi.humanDescription) != priorHumanDescription)
+    throw new InvalidOperationException("Mesh import changed the existing Humanoid description.");
 var model = AssetDatabase.LoadAssetAtPath<GameObject>(Fbx);
-var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+var report = new Dictionary<string, object>();
 try
 {
-    var inst = (GameObject)PrefabUtility.InstantiatePrefab(model, scene);
-    PrefabUtility.UnpackPrefabInstance(inst, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-    inst.name = "NyxRig";
-    var placed = new Dictionary<string, object>();
-    foreach (var r in inst.GetComponentsInChildren<Renderer>(true).Where(r => r is SkinnedMeshRenderer || r is MeshRenderer))
+    var bones = root.GetComponentsInChildren<Transform>(true).Where(t => t.GetComponent<Renderer>() == null)
+        .GroupBy(t => t.name).ToDictionary(g => g.Key, g => g.First());
+    var importedBones = model.GetComponentsInChildren<Transform>(true).Where(t => t.GetComponent<Renderer>() == null &&
+        (t.name.StartsWith("mixamorig:") || t.name.StartsWith("Nyx_Skirt_") || t.name == "Nyx_Backpack" || t.name == "Nyx_PoleHeld" || t.name == "Nyx_PhoneBone"))
+        .OrderBy(t => t.GetComponentsInParent<Transform>(true).Length).ToArray();
+    int preservedBones = 0;
+    foreach (var bone in importedBones)
     {
-        var mat = materials[rendererMap.TryGetValue(r.name, out var key) ? key : "Nyx_Body"];
-        r.sharedMaterials = Enumerable.Repeat(mat, r.sharedMaterials.Length).ToArray();
-        placed[r.name] = new Dictionary<string, object>
+        if (bones.TryGetValue(bone.name, out var retained))
         {
-            ["material"] = mat.name,
-            ["bones"] = r is SkinnedMeshRenderer smr ? smr.bones.Count(b => b != null) : 0,
-            ["vertices"] = r is SkinnedMeshRenderer smr3 ? smr3.sharedMesh.vertexCount : 0,
-        };
+            if (retained.parent.name != bone.parent.name || Vector3.Distance(retained.localPosition, bone.localPosition) > 0.00001f || Quaternion.Angle(retained.localRotation, bone.localRotation) > .001f || Vector3.Distance(retained.localScale, bone.localScale) > .00001f)
+                throw new InvalidOperationException("Bone hierarchy or rest transform changed: " + bone.name);
+            preservedBones++;
+            continue;
+        }
+        if (bone.name != "Nyx_PhoneBone") throw new InvalidOperationException("Unexpected added bone: " + bone.name);
+        var added = new GameObject(bone.name).transform;
+        added.SetParent(bones[bone.parent.name], false);
+        added.localPosition = bone.localPosition;
+        added.localRotation = bone.localRotation;
+        added.localScale = bone.localScale;
+        bones[added.name] = added;
     }
-    report["renderers"] = placed;
-    foreach (var name in new[] { "Nyx_Fake", "Nyx_Backpack", "Nyx_PoleHeld" })
+    foreach (var oldCloth in root.GetComponentsInChildren<Cloth>(true)) UnityEngine.Object.DestroyImmediate(oldCloth);
+    foreach (var old in root.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("NyxDressCollider_")).ToArray())
+        UnityEngine.Object.DestroyImmediate(old.gameObject);
+    foreach (var source in model.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r => r.name.StartsWith("Nyx_")))
     {
-        var part = inst.GetComponentsInChildren<Transform>(true).Single(t => t.name == name && t.GetComponent<Renderer>() != null);
-        part.gameObject.SetActive(false);
+        var destination = root.GetComponentsInChildren<SkinnedMeshRenderer>(true).SingleOrDefault(r => r.name == source.name);
+        if (destination == null)
+        {
+            var go = new GameObject(source.name);
+            go.transform.SetParent(root.transform, false);
+            destination = go.AddComponent<SkinnedMeshRenderer>();
+        }
+        var oldCloth = destination.GetComponent<Cloth>();
+        if (oldCloth != null) UnityEngine.Object.DestroyImmediate(oldCloth);
+        destination.transform.localPosition = source.transform.localPosition;
+        destination.transform.localRotation = source.transform.localRotation;
+        destination.transform.localScale = source.transform.localScale;
+        destination.sharedMesh = source.sharedMesh;
+        destination.bones = source.bones.Select(b => bones[b.name]).ToArray();
+        destination.rootBone = bones[source.rootBone.name];
+        string key = source.name == "Nyx_Real_Dress" ? "Nyx_Dress" : source.name == "Nyx_Real_Tights" ? "Nyx_Tights" : source.name == "Nyx_Phone" ? "Nyx_Phone" : source.name.StartsWith("Nyx_Real") ? "Nyx_Real" : "Nyx_Fake";
+        destination.sharedMaterials = Enumerable.Repeat(materials[key], source.sharedMaterials.Length).ToArray();
+        destination.updateWhenOffscreen = true;
+        destination.quality = SkinQuality.Bone4;
+        destination.localBounds = new Bounds(new Vector3(0,.9f,0), new Vector3(4,4,4));
+        destination.gameObject.SetActive(source.name.StartsWith("Nyx_Real"));
+        report[source.name] = new { vertices = source.sharedMesh.vertexCount, bones = source.bones.Length, material = key };
     }
-    foreach (var skin in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+    var animator = root.GetComponentInChildren<Animator>(true);
+    if (animator.avatar != priorAvatar || !animator.avatar.isValid || !animator.avatar.isHuman || Mathf.Abs(animator.humanScale-priorScale) > .000001f)
+        throw new InvalidOperationException("The existing Avatar or human scale changed.");
+    var forms = root.GetComponentInChildren<SlopArena.Client.Entities.FormPresentation>(true);
+    if (forms == null) throw new InvalidOperationException("Nyx requires FormPresentation.");
+    var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+    forms.Configure(skins.Where(r => r.name.StartsWith("Nyx_Real")).Select(r => r.gameObject).ToArray(),
+        skins.Where(r => r.name == "Nyx_Fake" || r.name == "Nyx_Backpack" || r.name == "Nyx_BackpackPole" || r.name == "Nyx_Phone").Select(r => r.gameObject).ToArray(),
+        skins.Where(r => r.name == "Nyx_PoleHeld").Select(r => r.gameObject).ToArray());
+    forms.Show(0);
+    var dress = root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Single(r => r.name == "Nyx_Real_Dress");
+    var spring = dress.GetComponent<SlopArena.Client.Entities.SkirtBoneSpring>();
+    if (spring == null) spring = dress.gameObject.AddComponent<SlopArena.Client.Entities.SkirtBoneSpring>();
+    var settings = new SerializedObject(spring);
+    settings.FindProperty("_hips").objectReferenceValue = bones["mixamorig:Hips"];
+    settings.FindProperty("_modelRoot").objectReferenceValue = root.transform;
+    var chains = settings.FindProperty("_chains"); chains.arraySize = 12;
+    for (int c=0; c<12; c++)
     {
-        skin.updateWhenOffscreen = true;
-        skin.localBounds = new Bounds(new Vector3(0, 0.9f, 0), new Vector3(4, 4, 4));
-        skin.quality = SkinQuality.Bone4;
+        var chain = chains.GetArrayElementAtIndex(c).FindPropertyRelative("Bones"); chain.arraySize = 4;
+        for (int j=0; j<4; j++) chain.GetArrayElementAtIndex(j).objectReferenceValue = bones[$"Nyx_Skirt_{c:00}_{j:00}"];
     }
-    var dress = inst.GetComponentsInChildren<SkinnedMeshRenderer>(true).Single(r => r.name == "Nyx_Real_Dress");
-    const string DressMaterialPath = "Assets/Art/Characters/nyx/Materials/Nyx_Dress.mat";
-    var dressMaterial = AssetDatabase.LoadAssetAtPath<Material>(DressMaterialPath);
-    if (dressMaterial == null)
+    var capsuleDefinitions = new[] { ("LeftUpLeg", "LeftLeg", .08f), ("RightUpLeg", "RightLeg", .08f),
+        ("LeftLeg", "LeftFoot", .06f), ("RightLeg", "RightFoot", .06f),
+        ("LeftFoot", "LeftToeBase", .075f), ("RightFoot", "RightToeBase", .075f) };
+    var capsules = settings.FindProperty("_capsules"); capsules.arraySize = capsuleDefinitions.Length;
+    for (int i=0; i<capsuleDefinitions.Length; i++)
     {
-        dressMaterial = new Material(dress.sharedMaterial) { name = "Nyx_Dress" };
-        AssetDatabase.CreateAsset(dressMaterial, DressMaterialPath);
+        var capsule = capsules.GetArrayElementAtIndex(i); var definition = capsuleDefinitions[i];
+        capsule.FindPropertyRelative("Start").objectReferenceValue = bones["mixamorig:" + definition.Item1];
+        capsule.FindPropertyRelative("End").objectReferenceValue = bones["mixamorig:" + definition.Item2];
+        capsule.FindPropertyRelative("Radius").floatValue = definition.Item3;
     }
-    dressMaterial.SetFloat("_Cull", 0);
-    dressMaterial.doubleSidedGI = true;
-    EditorUtility.SetDirty(dressMaterial);
-    AssetDatabase.SaveAssetIfDirty(dressMaterial);
-    dress.sharedMaterial = dressMaterial;
-    var cloth = dress.gameObject.AddComponent<Cloth>();
-    cloth.stretchingStiffness = 1f;
-    cloth.bendingStiffness = 1f;
-    cloth.damping = 0.7f;
-    cloth.useGravity = true;
-    cloth.worldVelocityScale = 0.15f;
-    cloth.worldAccelerationScale = 0.15f;
-    cloth.friction = 0.15f;
-    cloth.collisionMassScale = 0.2f;
-    cloth.useTethers = true;
-    cloth.clothSolverFrequency = 180f;
-    cloth.enableContinuousCollision = true;
-    Transform Bone(string n) => inst.GetComponentsInChildren<Transform>(true).Single(t => t.name == "mixamorig:" + n);
-    var coeff = new ClothSkinningCoefficient[cloth.vertices.Length];
-    var rootY = dress.rootBone.position.y;
-    int pinned = 0;
-    for (int i = 0; i < coeff.Length; i++)
-    {
-        float y = cloth.vertices[i].y + rootY;
-        float t = Mathf.SmoothStep(0, 1, Mathf.Clamp01((1.05f - y) / 0.65f));
-        coeff[i].maxDistance = 0.65f * t;
-        coeff[i].collisionSphereDistance = float.MaxValue;
-        if (t == 0) pinned++;
-    }
-    cloth.coefficients = coeff;
-    cloth.selfCollisionDistance = 0.025f;
-    cloth.selfCollisionStiffness = 1f;
-    cloth.SetSelfAndInterCollisionIndices(Enumerable.Range(0, coeff.Length).Select(i => (uint)i).ToList());
-    var capsules = new List<CapsuleCollider>();
-    foreach (var entry in new[] { ("Hips", "Spine", 0.13f), ("LeftUpLeg", "LeftLeg", 0.10f),
-        ("RightUpLeg", "RightLeg", 0.10f), ("LeftLeg", "LeftFoot", 0.08f), ("RightLeg", "RightFoot", 0.08f) })
-    {
-        var bone = Bone(entry.Item1); var end = Bone(entry.Item2);
-        var go = new GameObject("NyxDressCollider_" + entry.Item1);
-        go.transform.SetParent(bone, false);
-        var local = bone.InverseTransformPoint(end.position);
-        go.transform.localRotation = Quaternion.FromToRotation(Vector3.up, local.normalized);
-        var capsule = go.AddComponent<CapsuleCollider>();
-        capsule.isTrigger = true; capsule.direction = 1;
-        capsule.center = new Vector3(0, local.magnitude / 2, 0);
-        capsule.radius = entry.Item3 / Mathf.Abs(bone.lossyScale.x);
-        capsule.height = local.magnitude + 2 * capsule.radius;
-        capsules.Add(capsule);
-    }
-    cloth.capsuleColliders = capsules.ToArray();
-    report["dressCloth"] = new { vertices = coeff.Length, pinned, colliders = capsules.Count };
-
-    PrefabUtility.SaveAsPrefabAsset(inst, PrefabPath);
+    settings.FindProperty("_stiffness").floatValue = .22f;
+    settings.FindProperty("_damping").floatValue = .3f;
+    settings.FindProperty("_neighbourBlend").floatValue = .35f;
+    settings.FindProperty("_maxHemTravel").floatValue = .2f;
+    settings.FindProperty("_fabricClearance").floatValue = .04f;
+    settings.ApplyModifiedPropertiesWithoutUndo();
+    PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+    var saved = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+    if (saved.GetComponentsInChildren<Cloth>(true).Length != 0 || saved.GetComponentsInChildren<SlopArena.Client.Entities.SkirtBoneSpring>(true).Length != 1)
+        throw new InvalidOperationException("Spring dress failed prefab persistence.");
+    report["renderers"] = saved.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(r => new { name = r.name, active = r.gameObject.activeSelf }).ToArray();
+    report["phoneBone"] = new { parent = bones["Nyx_PhoneBone"].parent.name, leaf = bones["Nyx_PhoneBone"].childCount == 0 };
+    report["skirt"] = new { chains = 12, segments = 4, capsules = capsuleDefinitions.Length, clothComponents = 0 };
+    report["avatar"] = new { valid = animator.avatar.isValid, human = animator.avatar.isHuman, humanScale = animator.humanScale, preserved = true, checkedBones = preservedBones };
 }
-finally { UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene); }
-
-var persistedRig = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-var persistedCloth = persistedRig.GetComponentInChildren<Cloth>(true);
-if (persistedCloth == null) throw new InvalidOperationException("Nyx dress Cloth was not serialized into the saved prefab.");
-report["persistedClothVertices"] = persistedCloth.coefficients.Length;
-var sal = Probe(PrefabPath);
-report["nyx"] = sal;
-if (!(bool)sal["avatarValid"] || (float)sal["humanScale"] < 0.5f || (float)sal["humanScale"] > 2f)
-    throw new InvalidOperationException("The nyx Avatar is invalid.");
-var fg = AssetDatabase.LoadAssetAtPath<SlopArena.Client.Animation.CharacterAssetCatalog>("Assets/CharacterPackages/fightguy/CharacterAssetCatalog.asset");
-if (fg?.Rig != null) report["fightguy"] = Probe(AssetDatabase.GetAssetPath(fg.Rig));
+finally { PrefabUtility.UnloadPrefabContents(root); }
 return report;

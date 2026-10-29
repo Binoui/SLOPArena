@@ -112,9 +112,20 @@ without a blast and clear flight. The release protocol remains unchanged until a
 The source compiler and cooked loader share `MankiCapabilityBounds`. The replacement Q/E capability
 IDs and Kamikaze remain trusted built-in exceptions. Unity reconciles round bomb visuals from resolver
 identity. `MankiFlightPresentation` reads saved fuel and keeps the existing pack exhaust/trail alive
-while Flying, including during Q/R. Kamikaze reuses the pack trail and bomb explosion. The shake clip
-remains bound for Mayhem and supplies Kamikaze's temporary pose. Removed aim/fire clips remain assets.
+while Flying, including during Q/R. Kamikaze uses its package trail and explosion. The shake clip
+remains bound for Mayhem. Removed aim/fire clips remain assets.
 Normals, their bindings and the rocket prop are unchanged by this prototype.
+
+The optional `presentation.flying` semantic animation role follows `presentation.shell` through source,
+compiler, cooked admission, catalog and runtime definition as `FlyingAnim`. `presentation.mayhemLaugh`
+explicitly retains the shake clip for the Mayhem host, independently of F. Manki binds the accepted
+48-tick cruise loop. Shared samples frame zero for stable flight hurtboxes; the small bob is cosmetic.
+Unity derives loop time from spent fuel, so Q/R and rollback do not restart it. A masked Animancer layer
+plays Q/R on the upper body and fades back to the continuing loop. Their Shared hurtboxes retain the
+existing full-clip sampling. Kamikaze binds its accepted 56-tick one-shot over the unchanged 55-tick stage.
+Unity smoothly pitches the model and bone-attached pack trail toward replicated velocity. Shared keeps
+the horizontal baked body and the existing swept capsule contact test; presentation tilt changes no
+admission, movement or contact result.
 
 ## Prototype defaults
 

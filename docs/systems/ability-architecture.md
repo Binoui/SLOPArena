@@ -246,6 +246,29 @@ duration is the empty ring's time home. Its slot is one tick-zero lifecycle in o
 IASA disabled and only presentation alongside; it cannot tuck. Compiler and cooked loader enforce the same rules
 (`TetherSlotError`, `TetherBoundsError`). Ability Lab does not edit it yet.
 
+`slop.ability.clinch.v1` requires runtime API `1.17.0`
+([ADR-0053](../adr/0053-fightguy-title-match-clinch.md), FightGuy's Title Match). It opens a two-stage `meleeCombo`
+with no aim, carry or charge pool. Stage 0 is the lunge: it holds only the tick-zero clinch and presentation, has IASA
+disabled and lasts exactly the lunge's travel ticks plus one. The lunge dashes `lungeDistance` (0–8 m) at `lungeSpeed`
+(0–60 m/s, at most 60 travel ticks) along the current target's bearing at the press (its facing without one), level
+and with gravity off, carrying `catchHitbox`: a root-relative sphere (radius up to 3 m, hit group 0, no knockback or
+stun) refreshed each travel tick, whose per-tick travel may not exceed twice its radius. Its first fighter contact,
+before the shield check, pairs both fighters (`DefenseInteractionPhase.Clinching`, victim `ActionState.Clinched`) unless
+the fighter is already paired, captive or damaged this batch; air-dodge invincibility ignores it, and two catches on
+each other's owners in one batch clash. Stage 1 is the hold: the holder's clinch places the victim each tick
+`anchorDistance` (0–3 m, at least body contact) in front of its feet through the body mover, gravity off for both, and
+the activation's own hits on the held fighter deal damage and hitstop only. On the hold stage's `releaseTick` (inside
+the stage, no IASA before it) the pair ends and the victim stays `Clinched` unpaired for `releaseLockTicks` (1–60). A
+lunge that ends empty (range, a wall, a dodge) holds stage 0 for `whiffRecoveryTicks` (1–120), then the move ends; a
+lost pair ends the move at once; a lunge meeting an object (course target, ball, Mayhem wall) plays the hold stage on
+it unpaired. Compiler and cooked loader enforce the same rules (`ClinchContract`). Ability Lab previews it; it does not
+edit it yet.
+
+Under the same runtime API `1.17.0`, a timeline hitbox may name its own `hitPresentationId`, played at its contacts
+instead of the slot's, and an `emitPresentation` may carry `condition: "sweetspotHit"`: it plays only once the
+activation has confirmed a hit from a hitbox that names its own hit presentation (Rising Dragon's "#1" finger). Both
+are written only when set, so packages without them cook unchanged; Arcade record fingerprints ignore them.
+
 `slop.ability.forms.v1` requires runtime API `1.16.0`
 ([ADR-0051](../adr/0051-nyx-two-forms.md), Nyx). It is a character-level capability: the `alternateForm` block exists
 exactly when it is required. The block is form 1, with an `id`, a `displayName`, a full `movement` block, optional

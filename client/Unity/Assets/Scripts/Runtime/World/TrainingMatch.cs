@@ -107,6 +107,33 @@ namespace SlopArena.Client.World
         public event Action<uint> CaptureSimulationTickCompleted;
         public uint CaptureTick => _tick;
 #if UNITY_EDITOR
+        private object _captureStepper;
+        protected override bool CaptureStepping => _captureStepper != null;
+        public bool RenderInterpolationEnabled => _renderInterpolation;
+        public bool CaptureInputSequenceOwned => _captureInputSequenceOwner != null;
+
+        public bool TryAcquireCaptureStepping(object owner)
+        {
+            if (owner == null || _captureStepper != null) return false;
+            _captureStepper = owner;
+            return true;
+        }
+
+        public void ReleaseCaptureStepping(object owner)
+        {
+            if (ReferenceEquals(_captureStepper, owner)) _captureStepper = null;
+        }
+
+        public void CaptureStep(object owner)
+        {
+            if (!ReferenceEquals(_captureStepper, owner))
+                throw new InvalidOperationException("The caller does not own Training capture stepping.");
+            if (!CaptureSequenceReady) throw new InvalidOperationException("Training stopped or paused during capture.");
+            _inputController.Poll();
+            foreach (var npc in _npcs) npc.Input?.Poll();
+            StepForCapture();
+        }
+
         public Func<uint, InputState>? CaptureTargetInput { get; set; }
         public InputState CaptureLastTargetInput { get; private set; }
 #endif
@@ -169,6 +196,14 @@ namespace SlopArena.Client.World
                 throw new InvalidOperationException("The caller does not own Training capture input.");
             _captureInputOverride = input;
         }
+#if UNITY_EDITOR
+        public void ClearCaptureSequenceInput(object owner)
+        {
+            if (!ReferenceEquals(_captureInputSequenceOwner, owner))
+                throw new InvalidOperationException("The caller does not own Training capture input.");
+            _captureInputOverride = null;
+        }
+#endif
         public void ReleaseCaptureInputSequence(object owner)
         {
             if (!ReferenceEquals(_captureInputSequenceOwner, owner))
@@ -611,6 +646,10 @@ namespace SlopArena.Client.World
             // no buffered presses leak into the first frame after resume (issue #77).
             if (!enabled || IsPaused) return;
 
+#if UNITY_EDITOR
+            if (CaptureStepping) return;
+#endif
+
             _inputController.Poll();
             foreach (var npc in _npcs) npc.Input?.Poll();
 
@@ -944,10 +983,11 @@ namespace SlopArena.Client.World
         {
             if (slot.Def == null) return BuildIdleInput();
             slot.Rng ??= new System.Random();
-            slot.Memory.ObserveOpponent(playerState);
+            _npcPolicy.ObserveOpponent(slot.Memory, playerState, _bridge.InternalSim.GetDefinition(playerState.EntityId));
             return _npcPolicy.Decide(npcState, slot.Def.ForForm(npcState.Form.Active), slot.Rng, slot.Memory,
                 _arenaDef, slot.Entry.BakedAnimation, behavior, _bridge.GetActiveMove(slot.Id)?.Slot,
-                mayhemThreats: Mayhem ? new MayhemThreats(_bridge.InternalSim) : null);
+                mayhemThreats: Mayhem ? new MayhemThreats(_bridge.InternalSim) : null,
+                canSwapCancel: _bridge.InternalSim.CanSwapCancel(slot.Id));
         }
 
         private static InputState BuildIdleInput()

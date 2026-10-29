@@ -48,7 +48,7 @@ namespace SlopArena.Client.World
             _throw = catalog.Animations.FirstOrDefault(a => a.SemanticId == "anim.manki.ga")?.Clip;
             _slam = catalog.Animations.FirstOrDefault(a => a.SemanticId == "anim.manki.g4")?.Clip;
             _call = catalog.Animations.First(a => a.SemanticId == "anim.manki.g1").Clip;
-            _laugh = catalog.Animations.First(a => a.SemanticId == "anim.manki.gf-loop").Clip;
+            _laugh = catalog.Animations.First(a => a.SemanticId == manki.Definition.MayhemLaughAnim).Clip;
             _hype = catalog.Animations.First(a => a.SemanticId == "anim.manki.a3").Clip;
             if (_slam == null) throw new InvalidOperationException("Mayhem host needs the installed Head Slam clip.");
             if (_idle == null || _throw == null) throw new InvalidOperationException("Mayhem host needs Manki's installed idle and Round Bomb throw clips.");

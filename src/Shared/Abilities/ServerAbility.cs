@@ -39,6 +39,12 @@ namespace SlopArena.Shared.Abilities
         public virtual bool HoldsFighterPushboxPosition => false;
         /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
         public virtual TetherAbility? Tether => null;
+        /// <summary>The clinch this activation runs, if any (ADR-0053): its lunge catches and it holds the caught fighter.</summary>
+        public virtual ClinchAbility? Clinch => null;
+        /// <summary>The command grab this activation runs, if any (ADR-0051): its capture holds instead of hitting.</summary>
+        public virtual CommandGrabAbility? CommandGrab => null;
+        /// <summary>A capability that keeps its timeline in the current stage past the stage's length (a clinch's whiff).</summary>
+        internal virtual bool HoldsStage => false;
 
         /// <summary>The hold this activation's contact puts on that victim (ADR-0052), or null for an ordinary hit.</summary>
         public virtual HeldCutRelease? HeldCutFor(ulong victimId) => null;
@@ -331,6 +337,19 @@ namespace SlopArena.Shared.Abilities
                 spawned.HitsMultipleOpponents = true;
                 spawned.HitEntities = new HashSet<ulong>();
                 spawned.Gravity = 0f;
+            }
+            // Homing takes the current target at spawn and never reacquires (ADR-0051).
+            if (projectile.Homing is { } homing && OwnerSimulation != null
+                && OwnerSimulation.TryGetCurrentTarget(in s, out ulong homingTarget, out _))
+            {
+                spawned.HomingTargetEntityId = homingTarget;
+                spawned.HomingTurnCos = homing.TurnCos;
+                spawned.HomingTurnSin = homing.TurnSin;
+            }
+            if (projectile.Perch is { } perch)
+            {
+                spawned.StickyFuseTicks = perch.PerchTicks;
+                spawned.Perch = ProjectilePerch.From(perch.Pop);
             }
             SpawnResolverHitbox(spawned);
             return spawned;

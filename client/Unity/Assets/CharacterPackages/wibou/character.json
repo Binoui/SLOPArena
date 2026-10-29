@@ -188,10 +188,16 @@
     "presentation.wibou.kunai.hit",
     "presentation.wibou.code-rain",
     "presentation.wibou.rising.crescent",
-    "presentation.wibou.skyfall.draw",
+    "presentation.wibou.flash.stance",
+    "presentation.wibou.flash.lock",
+    "presentation.wibou.flash.cut",
+    "presentation.wibou.flash.click",
+    "presentation.wibou.flash.pop",
     "presentation.wibou.flash.nani",
-    "presentation.wibou.dash.charge",
-    "presentation.wibou.dash.cut"
+    "presentation.wibou.quick.draw",
+    "presentation.wibou.quick.sheathe",
+    "presentation.wibou.quick.contact",
+    "presentation.wibou.quick.tip"
   ],
   "capabilityRequirements": [
     {
@@ -1060,14 +1066,14 @@
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
-                  "tipPresentationId": "presentation.wibou.blade.heavy-hit"
+                  "tipPresentationId": "presentation.wibou.quick.tip"
                 }
               },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.wibou.dash.cut",
+                "presentationId": "presentation.wibou.quick.draw",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.hips",
@@ -1080,14 +1086,34 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 12
+                  "durationTicks": 90
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 14,
+                "unit": "ticks",
+                "presentationId": "presentation.wibou.quick.sheathe",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "_weapon_hilt",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 14
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": ""
+      "hitPresentationId": "presentation.wibou.quick.contact"
     },
     {
       "id": "ground.F",
@@ -1159,17 +1185,17 @@
                   "stanceAnimationId": "anim.wibou.r-charge",
                   "legAnimationId": "anim.wibou.r",
                   "sheatheAnimationId": "",
-                  "lockPresentationId": "presentation.wibou.blade.glint",
+                  "lockPresentationId": "presentation.wibou.flash.lock",
                   "revealPresentationId": "presentation.wibou.flash.nani",
-                  "sheathePresentationId": "presentation.wibou.dash.charge",
-                  "popPresentationId": "presentation.wibou.blade.heavy-hit"
+                  "sheathePresentationId": "presentation.wibou.flash.click",
+                  "popPresentationId": "presentation.wibou.flash.pop"
                 }
               },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.wibou.skyfall.draw",
+                "presentationId": "presentation.wibou.flash.stance",
                 "placement": {
                   "attachmentMode": "world",
                   "boneId": null,
@@ -1182,14 +1208,14 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 32
+                  "durationTicks": 180
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.wibou.blade.hit"
+      "hitPresentationId": "presentation.wibou.flash.cut"
     }
   ],
   "aliases": [

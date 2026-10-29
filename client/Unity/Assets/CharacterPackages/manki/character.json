@@ -38,6 +38,8 @@
     "hitMedium": "anim.manki.hit-medium",
     "hitHard": "anim.manki.hit-hard",
     "tumble": "anim.manki.tumble",
+    "flying": "anim.manki.fly-loop",
+    "mayhemLaugh": "anim.manki.gf-loop",
     "crouch": "anim.manki.crouch",
     "slide": "anim.manki.slide",
     "landStartOffsetSeconds": 0.49,
@@ -180,6 +182,8 @@
   "presentationIds": [
     "presentation.manki.aerosol-inferno.start",
     "presentation.manki.round-bomb.explosion",
+    "presentation.manki.kamikaze.explosion",
+    "presentation.manki.kamikaze.trail",
     "presentation.manki.jetpack-boost.ignition",
     "presentation.manki.jetpack-boost.exhaust",
     "presentation.manki.bazooka.explosion",
@@ -1091,7 +1095,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.manki.gf-loop"
+              "anim.manki.gf-kamikaze"
             ],
             "operations": [
               {
@@ -1112,14 +1116,14 @@
                   "explosionDurationTicks": 8,
                   "explosionKbAngle": 35,
                   "selfPushSpeed": 12,
-                  "explosionPresentationId": "presentation.manki.round-bomb.explosion"
+                  "explosionPresentationId": "presentation.manki.kamikaze.explosion"
                 }
               },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.manki.jetpack-boost.trail",
+                "presentationId": "presentation.manki.kamikaze.trail",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.spine2",

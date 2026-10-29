@@ -1,0 +1,167 @@
+{
+  "name": "nyx-fake-r",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakemoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form ground.R (anim.nyx.fake.gr), from her pose sheet fake-r (2026-10-29). Proposed game timing: {\"total\": 76, \"contact\": 10, \"active\": [10, 14], \"iasa\": 68, \"model\": \"slop.ability.command-grab.v1 (ADR-0051): lunge, capture, a hold with the victim Grabbed, an authored launch\", \"phases\": \"lunge 0-10, capture 10-14, hook 14-22, selfie 22-50 (flash at 44), shove and release at 52, recovery to 76\"}; authored at 1x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's R, Selfie Grab: a command grab. She lunges, hooks the opponent around the neck cheek to cheek, takes a selfie with her tongue out, and the flash blasts them away as she shoves them off with her hip.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.889 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.015 m above the floor and the ankle (Foot) about 0.191 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `fakestance`, the entry and exit pose): her weight on one hip, the phone at chest height in her right hand, bored.\n\nThe clip (76 ticks, played once):\n- Tick 0: The stance.\n- Tick 6: Lunge: a quick step forward onto her left boot (25-30 cm), the left arm reaching out ahead at chest height, fingers open; the phone hand up.\n- Tick 10: Capture (the grab connects): the left arm fully out ahead on her centre line, about 0.5 m in front of her chest.\n- Tick 20: Hook: the left arm hooks around the (invisible) opponent's neck and pulls them close, cheek to cheek at her left: the left elbow bent at shoulder height, the forearm about 0.3 m ahead and to her left of her chest; her head leans left toward theirs.\n- Tick 30: Selfie: the phone held up at arm's length in front of both faces (the right hand above her head height, about 0.45 m ahead, a little left of her centre); she leans her head on theirs and sticks her tongue out.\n- Tick 44: The flash pops from the phone: a little bounce in her knees, the head tilting further.\n- Tick 50: Shove: she bumps the opponent away forward with her left hip (the hips shift 5-6 cm to her left and turn left), pushing out with the left arm, still looking at the phone.\n- Tick 52: Release: the left arm extended forward-left, the opponent gone.\n- Tick 68: Recovered by the shortest path; she can act again.\n- Tick 76: The stance, matching tick 0.\n\nThe sheet's last pose moves the phone to her left hand: follow this text, the phone stays in her right hand.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fakestance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 76,
+    "contact_tick": 10,
+    "active": [
+      10,
+      14
+    ],
+    "iasa_tick": 68
+  },
+  "timing": {
+    "fixed": [
+      "76 ticks played once",
+      "contact at tick 10, active ticks 10-14; the player can act from tick 68",
+      "tick 0 is her fakestance pose and tick 76 her fakestance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-left"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-r.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'lunge': a short lunge toward the left, her left arm reaching out; pose 2 'hook': her left arm hooked around the neck of a plain grey mannequin opponent, pulling it cheek to cheek; pose 3 'selfie': the phone held up at arm's length in front of both faces, she sticks her tongue out, a flat white-and-pink flash pops from the phone; pose 4 'shove': she shoves the mannequin away toward the left with her hip and free arm, still looking at the phone. Sheet note: A command grab; the opponent is shown as a plain grey mannequin only to make the grab readable. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    6,
+    10,
+    20,
+    30,
+    44,
+    50,
+    52,
+    68,
+    76
+  ],
+  "review_ticks": [
+    0,
+    3,
+    6,
+    8,
+    10,
+    15,
+    20,
+    25,
+    30,
+    37,
+    44,
+    47,
+    50,
+    51,
+    52,
+    60,
+    68,
+    72,
+    76
+  ],
+  "exit": {
+    "reference": "fakestance",
+    "tick": 0,
+    "from_tick": 76
+  },
+  "fast_windows": [
+    [
+      2,
+      12
+    ],
+    [
+      46,
+      54
+    ]
+  ],
+  "strike": [
+    "LeftHand"
+  ],
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor (lunge) at tick 10 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 10,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "capture: left hand far ahead (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 10,
+      "min": 0.42
+    },
+    {
+      "name": "capture: on her centre line (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 10,
+      "min": -0.15,
+      "max": 0.08
+    },
+    {
+      "name": "hook: left arm at shoulder height (m)",
+      "kind": "below",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 20,
+      "min": -0.15,
+      "max": 0.12
+    },
+    {
+      "name": "selfie: phone up high (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 32,
+      "min": 0.0
+    },
+    {
+      "name": "selfie: phone held out ahead (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 32,
+      "min": 0.3
+    },
+    {
+      "name": "shove: left arm pushing out ahead (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 52,
+      "min": 0.35
+    },
+    {
+      "name": "shove: hip bump to her left (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "right",
+      "tick": 50,
+      "max": -0.03
+    }
+  ]
+}

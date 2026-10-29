@@ -31,7 +31,7 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 17).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 20).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 
     /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
     private static bool ApiAtLeast(string runtimeApiMin, int minor)
@@ -121,7 +121,12 @@ public static class CookedCharacterPackageLoader
             ValidateReturningProjectiles(package.Definition, m.RuntimeApiMin, d);
             ValidateShellStance(package.Definition, m.RuntimeApiMin, d);
             ValidateTethers(package.Definition, m.RuntimeApiMin, d);
+            ValidateHomingAndPerch(package.Definition, m.RuntimeApiMin, d);
+            ValidateClinches(package.Definition, m.RuntimeApiMin, d);
+            ValidateCommandGrabs(package.Definition, m.RuntimeApiMin, d);
             ValidateForms(package.Definition, m.RuntimeApiMin, d);
+            ValidateHitPresentations(package.Definition, m.RuntimeApiMin, d);
+            ValidateFacingFilters(package.Definition, m.RuntimeApiMin, d);
             if(package.Metadata.PackageId!=m.PackageId||package.Metadata.Version!=m.Version||package.Metadata.CookedSchemaVersion!=m.CookedSchemaVersion) d.Add(Error("package.runtime.metadata-mismatch",CharacterPackageAssembler.RuntimePath,"Runtime package metadata does not match manifest."));
             var baked=BakedAnimationData.LoadFromBin(copied[CharacterPackageAssembler.PosePath]);
             using var bindings = JsonDocument.Parse(copied[CharacterPackageAssembler.BindingPath]);
@@ -394,6 +399,8 @@ public static class CookedCharacterPackageLoader
             hitbox.FixedHitstunTicks > 240 || hitbox.FixedHitstunTicks > 0 && hitbox.StunTicks == 0 || hitbox.HitGroup != 0)
             diagnostics.Add(Error("package.capability.parameters-invalid", path,
                 "Charged dash hitbox geometry or values are invalid."));
+        if (hitbox.HitPresentationId != null && !definition.PresentationIds.Contains(hitbox.HitPresentationId, StringComparer.Ordinal))
+            diagnostics.Add(Error("package.capability.parameters-invalid", path, "Hit presentation ID is not declared."));
         bool HasBone(string? id) => id == null ||
             definition.HurtboxBoneDefs.Any(bone => bone.BoneId == id) ||
             definition.AttachmentBoneIds.Contains(id, StringComparer.Ordinal);
@@ -438,6 +445,58 @@ public static class CookedCharacterPackageLoader
     /// Mirrors the compiler's shell rules (ADR-0045, ADR-0050): stance, pose, splash and ride, tuck and ride moves,
     /// the cannonball, thrust and vertical velocity.
     /// </summary>
+    /// <summary>
+    /// A hitbox's own hit presentation and a conditioned timeline presentation (ADR-0053): runtime API 1.17.0,
+    /// declared IDs and a known condition.
+    /// </summary>
+    private static void ValidateFacingFilters(CookedCharacterDefinition definition, string runtimeApiMin,
+        List<CharacterDiagnostic> diagnostics)
+    {
+        bool filtered = definition.Shell?.Splash?.Hitbox.RequiresFacingOwner == true
+            || definition.Shell?.Ride?.Wave.RequiresFacingOwner == true;
+        foreach (var operation in definition.AllSlots.SelectMany(slot => slot.Timeline.Stages).SelectMany(stage => stage.Operations))
+            filtered |= operation switch
+            {
+                CookedSpawnHitboxOperation x => x.Hitbox.RequiresFacingOwner,
+                CookedStartCapabilityOperation x => x.Parameters switch
+                {
+                    CookedTargetedLeapCapabilityParameters p => p.Hitbox.RequiresFacingOwner,
+                    CookedThrustCapabilityParameters p => p.TrailHitbox?.RequiresFacingOwner == true,
+                    CookedDashStrikeCapabilityParameters p => p.LightHitbox.RequiresFacingOwner || p.TipHitbox.RequiresFacingOwner,
+                    CookedFlashCutCapabilityParameters p => p.CutHitbox.RequiresFacingOwner,
+                    CookedSteeredChargeCapabilityParameters p => p.LanceHitbox.RequiresFacingOwner,
+                    _ => false,
+                },
+                _ => false,
+            };
+        if (filtered && !ApiAtLeast(runtimeApiMin, 19))
+            diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                "Facing-filtered hitboxes require runtime API 1.19.0."));
+    }
+
+    private static void ValidateHitPresentations(CookedCharacterDefinition definition, string runtimeApiMin,
+        List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.AllSlots)
+        foreach (var operation in slot.Timeline.Stages.SelectMany(stage => stage.Operations))
+        {
+            if (operation is CookedSpawnHitboxOperation { Hitbox.HitPresentationId: { } id })
+            {
+                if (!definition.PresentationIds.Contains(id, StringComparer.Ordinal))
+                    diagnostics.Add(Error("package.presentation.unresolved", slot.Id, "Hit presentation ID is not declared."));
+            }
+            else if (operation is CookedEmitPresentationOperation { Condition: not AuthoringPresentationCondition.Always } emit)
+            {
+                if (emit.Condition != AuthoringPresentationCondition.SweetspotHit)
+                    diagnostics.Add(Error("package.presentation.invalid", slot.Id, "Unknown presentation condition."));
+            }
+            else continue;
+            if (!ApiAtLeast(runtimeApiMin, 17))
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "Hitbox hit presentations and presentation conditions require runtime API 1.17.0."));
+        }
+    }
+
     /// <summary>Two forms (ADR-0051): runtime API 1.16.0 and the bounds the compiler enforces.</summary>
     private static void ValidateForms(CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
     {
@@ -539,6 +598,68 @@ public static class CookedCharacterPackageLoader
         }
     }
 
+    /// <summary>Mirrors the compiler's clinch rules (ADR-0053).</summary>
+    private static void ValidateClinches(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.AllSlots)
+        {
+            var clinches = slot.Timeline.Stages.SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>()
+                .Where(op => op.CapabilityId == CharacterPackageCompiler.ClinchCapabilityId).ToArray();
+            if (clinches.Length == 0) continue;
+            string path = slot.Id + ".clinch";
+            if (!ApiAtLeast(runtimeApiMin, 17))
+                diagnostics.Add(Error("package.compatibility.unsupported", path, "The clinch requires runtime API 1.17.0."));
+            if (clinches[0].Parameters is not CookedClinchCapabilityParameters p)
+            {
+                diagnostics.Add(Error("package.capability.parameters-invalid", path, "Clinch parameter type is invalid."));
+                continue;
+            }
+            var stages = slot.Timeline.Stages;
+            var lunge = stages[0];
+            var hold = stages.Count > 1 ? stages[1] : null;
+            foreach (var error in new[] { ClinchContract.BoundsError(p),
+                ClinchContract.SlotError(clinches.Length, stages.Count, clinches[0].Tick, slot.Behavior, slot.AimMode,
+                    slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
+                    !lunge.Operations.Contains(clinches[0])
+                        || lunge.Operations.Any(x => x != clinches[0] && x is not CookedEmitPresentationOperation),
+                    lunge.DurationTicks, lunge.IasaTicks, hold?.DurationTicks ?? 0, hold?.IasaTicks ?? 0, p) })
+                if (error != null) diagnostics.Add(Error("package.capability.parameters-invalid", path, error));
+            ValidateChargedHitbox(p.CatchHitbox, definition, path + ".catchHitbox", diagnostics);
+        }
+    }
+
+    /// <summary>Mirrors the compiler's command grab rules (ADR-0051).</summary>
+    private static void ValidateCommandGrabs(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.AllSlots)
+        {
+            var grabs = slot.Timeline.Stages.SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>()
+                .Where(op => op.CapabilityId == CharacterPackageCompiler.CommandGrabCapabilityId).ToArray();
+            if (grabs.Length == 0) continue;
+            string path = slot.Id + ".commandGrab";
+            if (!ApiAtLeast(runtimeApiMin, 18))
+                diagnostics.Add(Error("package.compatibility.unsupported", path, "The command grab requires runtime API 1.18.0."));
+            if (grabs[0].Parameters is not CookedCommandGrabCapabilityParameters p)
+            {
+                diagnostics.Add(Error("package.capability.parameters-invalid", path, "Command grab parameter type is invalid."));
+                continue;
+            }
+            var stage = slot.Timeline.Stages[0];
+            foreach (var error in new[] { CommandGrabContract.BoundsError(p),
+                CommandGrabContract.SlotError(grabs.Length, slot.Timeline.Stages.Count, grabs[0].Tick, slot.Behavior,
+                    slot.AimMode, slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
+                    !stage.Operations.Contains(grabs[0])
+                        || stage.Operations.Any(x => x != grabs[0] && x is not CookedEmitPresentationOperation),
+                    stage.DurationTicks, stage.IasaTicks, p) })
+                if (error != null) diagnostics.Add(Error("package.capability.parameters-invalid", path, error));
+            foreach (string id in new[] { p.CatchPresentationId, p.ReleasePresentationId })
+                if (id.Length > 0 && !definition.PresentationIds.Contains(id, StringComparer.Ordinal))
+                    diagnostics.Add(Error("package.capability.parameters-invalid", path, "Presentation ID is not declared."));
+        }
+    }
+
     /// <summary>Mirrors the compiler's tether rules (ADR-0048).</summary>
     private static void ValidateTethers(
         CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
@@ -565,12 +686,51 @@ public static class CookedCharacterPackageLoader
             }
             if (CharacterPackageCompiler.TetherBoundsError(tether) is { } boundsError)
                 Fail(boundsError);
+            if (tether.AtTarget != null && !ApiAtLeast(runtimeApiMin, 18))
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "The tether's placed catch requires runtime API 1.18.0."));
             foreach (string clip in new[] { tether.ReelAnimationId, tether.RetractAnimationId })
                 if (clip.Length > 0 && stage.AnimationIds.ToList().IndexOf(clip) <= 0)
                     Fail("A tether phase clip must be listed in its stage after the throw clip.");
-            foreach (string id in new[] { tether.ThrowPresentationId, tether.RetractPresentationId })
+            foreach (string id in new[] { tether.ThrowPresentationId, tether.RetractPresentationId,
+                         tether.AtTarget?.WarningPresentationId ?? "", tether.AtTarget?.CatchPresentationId ?? "" })
                 if (id.Length > 0 && !definition.PresentationIds.Contains(id, StringComparer.Ordinal))
                     Fail("Tether presentation ID is not declared.");
+        }
+    }
+
+    /// <summary>Mirrors the compiler's homing and perch rules (ADR-0051).</summary>
+    private static void ValidateHomingAndPerch(
+        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.AllSlots)
+        foreach (var operation in slot.Timeline.Stages.SelectMany(stage => stage.Operations))
+        {
+            void Fail(string message) => diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id, message));
+            var embedded = operation is CookedStartCapabilityOperation capability ? capability.Parameters switch
+            {
+                CookedChargedProjectileCapabilityParameters x => x.Projectile,
+                CookedFingerGunsCapabilityParameters x => x.Projectile,
+                CookedChargedStreamCapabilityParameters x => x.Projectile,
+                CookedTetherCapabilityParameters x => x.Projectile,
+                _ => null,
+            } : null;
+            if (embedded is { Homing: not null } or { Perch: not null })
+                Fail("homing and perch belong to spawnProjectile operations.");
+            if (operation is not CookedSpawnProjectileOperation { Projectile: var projectile }
+                || projectile.Homing == null && projectile.Perch == null)
+                continue;
+            if (!ApiAtLeast(runtimeApiMin, 18))
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "Homing and perching projectiles require runtime API 1.18.0."));
+            if (ProjectilePerchContract.BoundsError(projectile) is { } error)
+                Fail(error);
+            if (projectile.Perch is not { } perch) continue;
+            if (definition.AlternateForm == null)
+                Fail("A perched projectile needs a second form to pop it.");
+            if (perch.Pop.PresentationId.Length > 0
+                && !definition.PresentationIds.Contains(perch.Pop.PresentationId, StringComparer.Ordinal))
+                Fail("Pop presentation ID is not declared.");
         }
     }
 
@@ -809,9 +969,9 @@ public static class CookedCharacterPackageLoader
                 "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots", "alternateForm");
             var movement = ParseMovement(c["movement"]);
             var pr = OOptional(c["presentation"],
-                new[] { "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell" },
+                new[] { "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh" },
                 "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard",
-                "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell",
+                "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh",
                 "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale",
                 "modelYOffset", "modelSoleOffset", "autoModelYOffset");
             var presentation = new CookedPresentation(
@@ -821,7 +981,7 @@ public static class CookedCharacterPackageLoader
                 F(pr, "modelYOffset"), F(pr, "modelSoleOffset"), Bo(pr, "autoModelYOffset"),
                 SO(pr, "tumble", ""), SO(pr, "crouch", ""), SO(pr, "slide", ""),
                 SO(pr, "shield", ""), SO(pr, "grab", ""), SO(pr, "grabbed", ""),
-                SO(pr, "throwForward", ""), SO(pr, "airDodge", ""), SO(pr, "shell", ""));
+                SO(pr, "throwForward", ""), SO(pr, "airDodge", ""), SO(pr, "shell", ""), SO(pr, "flying", ""), SO(pr, "mayhemLaugh", ""));
             var capture = O(c["captureGeometry"], "reach", "width", "height", "offsetY", "attackerAnchor", "victimAnchor");
             var attacker = O(capture["attackerAnchor"], "x", "y", "z");
             var victim = O(capture["victimAnchor"], "x", "y", "z");
@@ -1003,9 +1163,10 @@ public static class CookedCharacterPackageLoader
 
         private static CookedEmitPresentationOperation Emit(JsonElement e, ushort tick, AuthoringUnit unit)
         {
-            var q = OOptional(e, new[] { "placement" }, "kind", "tick", "unit", "presentationId", "operationIndex");
+            var q = OOptional(e, new[] { "placement", "condition" }, "kind", "tick", "unit", "presentationId", "operationIndex");
             var placement = q.TryGetValue("placement", out var value) ? Placement(value) : new PresentationPlacement();
-            return new CookedEmitPresentationOperation(tick, unit, S(q, "presentationId"), I(q, "operationIndex"), placement);
+            return new CookedEmitPresentationOperation(tick, unit, S(q, "presentationId"), I(q, "operationIndex"), placement,
+                (AuthoringPresentationCondition)BOrDefault(q, "condition", (byte)AuthoringPresentationCondition.Always));
         }
 
         private static PresentationPlacement Placement(JsonElement e)
@@ -1034,7 +1195,7 @@ public static class CookedCharacterPackageLoader
         
         private static CookedHitbox ParseHitbox(JsonElement e)
         {
-            var q = OOptional(e, new[] { "knockbackDirection", "fixedHitstunTicks" },
+            var q = OOptional(e, new[] { "knockbackDirection", "fixedHitstunTicks", "hitPresentationId", "requiresFacingOwner" },
                 "shape", "radius", "offsetX", "offsetY", "offsetZ", "endOffsetX", "endOffsetY", "endOffsetZ",
                 "startBoneId", "endBoneId", "damage", "angle", "baseKnockback", "knockbackGrowth",
                 "stunTicks", "durationTicks", "interruptible", "hitGroup", "knockbackDirection");
@@ -1046,11 +1207,12 @@ public static class CookedCharacterPackageLoader
                 Bo(q, "interruptible"), B(q, "hitGroup"),
                 (AuthoringKnockbackDirection)BOrDefault(q, "knockbackDirection",
                     (byte)AuthoringKnockbackDirection.AwayFromOwner),
-                UOrDefault(q, "fixedHitstunTicks", 0));
+                UOrDefault(q, "fixedHitstunTicks", 0), N(q, "hitPresentationId"),
+                q.TryGetValue("requiresFacingOwner", out var facing) && facing.GetBoolean());
         }
         private static CookedProjectile ParseProjectile(JsonElement e)
         {
-            var q = OOptional(e, new[] { "return" }, "launchOffsetX", "launchOffsetY", "launchOffsetZ", "speed", "gravity", "radius", "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks", "maxFlightTicks", "yawOffsetDegrees", "return");
+            var q = OOptional(e, new[] { "return", "homing", "perch" }, "launchOffsetX", "launchOffsetY", "launchOffsetZ", "speed", "gravity", "radius", "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks", "maxFlightTicks", "yawOffsetDegrees", "return", "homing", "perch");
             CookedProjectileReturn? back = null;
             if (q.TryGetValue("return", out var r))
             {
@@ -1059,7 +1221,22 @@ public static class CookedCharacterPackageLoader
                 back = new CookedProjectileReturn(U(b, "outboundTicks"), F(b, "returnSpeed"), F(b, "returnAcceleration"),
                     F(b, "selfHitDamage"), U(b, "selfHitStunTicks"), SO(b, "catchPresentationId", ""), SO(b, "selfHitPresentationId", ""));
             }
-            return new CookedProjectile(F(q, "launchOffsetX"), F(q, "launchOffsetY"), F(q, "launchOffsetZ"), F(q, "speed"), F(q, "gravity"), F(q, "radius"), F(q, "damage"), F(q, "angle"), F(q, "baseKnockback"), F(q, "knockbackGrowth"), U(q, "stunTicks"), U(q, "maxFlightTicks"), F(q, "yawOffsetDegrees"), back);
+            CookedProjectileHoming? homing = null;
+            if (q.TryGetValue("homing", out var h))
+            {
+                var t = O(h, "turnDegreesPerTick", "turnCos", "turnSin");
+                homing = new CookedProjectileHoming(F(t, "turnDegreesPerTick"), F(t, "turnCos"), F(t, "turnSin"));
+            }
+            CookedProjectilePerch? perch = null;
+            if (q.TryGetValue("perch", out var pe))
+            {
+                var t = O(pe, "perchTicks", "pop");
+                var pop = OOptional(t["pop"], new[] { "presentationId" }, "damage", "angle", "baseKnockback",
+                    "knockbackGrowth", "stunTicks", "presentationId");
+                perch = new CookedProjectilePerch(U(t, "perchTicks"), new CookedProjectilePop(F(pop, "damage"), F(pop, "angle"),
+                    F(pop, "baseKnockback"), F(pop, "knockbackGrowth"), U(pop, "stunTicks"), SO(pop, "presentationId", "")));
+            }
+            return new CookedProjectile(F(q, "launchOffsetX"), F(q, "launchOffsetY"), F(q, "launchOffsetZ"), F(q, "speed"), F(q, "gravity"), F(q, "radius"), F(q, "damage"), F(q, "angle"), F(q, "baseKnockback"), F(q, "knockbackGrowth"), U(q, "stunTicks"), U(q, "maxFlightTicks"), F(q, "yawOffsetDegrees"), back, homing, perch);
         }
         private static CookedChargedProjectileCapabilityParameters ChargedProjectile(Dictionary<string, JsonElement> q)
             => new(U(q, "maxChargeTicks"), U(q, "tier2Ticks"), U(q, "tier3Ticks"), U(q, "fireTriggerTick"),
@@ -1093,7 +1270,12 @@ public static class CookedCharacterPackageLoader
                 "slop.ability.steered-charge.v1" => SteeredCharge(OOptional(e, SteeredChargeOptional, SteeredChargeFields)),
                 "slop.ability.tether.v1" => Tether(OOptional(e, TetherOptional, "throwTick", "projectile", "reelSpeed",
                     "anchorDistance", "arrivalStunTicks", "maxReelTicks", "retractSpeed", "missRecoveryTicks", "airGravityScale",
-                    "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId")),
+                    "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId", "atTarget")),
+                CharacterPackageCompiler.CommandGrabCapabilityId => CommandGrab(OOptional(e,
+                    new[] { "catchPresentationId", "releasePresentationId" }, "lungeTicks", "lungeSpeed", "stopDistance",
+                    "captureTick", "capture", "releaseTick", "launch", "catchPresentationId", "releasePresentationId")),
+                CharacterPackageCompiler.ClinchCapabilityId => Clinch(O(e, "lungeDistance", "lungeSpeed", "catchHitbox",
+                    "anchorDistance", "whiffRecoveryTicks", "releaseTick", "releaseLockTicks")),
                 "slop.ability.cannonball.v1" => Cannonball(OOptional(e, new[] { "launchPresentationId" }, "takeoffTick",
                     "maxRange", "noTargetDistance", "minFlightTicks", "maxFlightTicks", "maxLaunchSpeed", "launchPresentationId")),
                 "slop.ability.thrust.v1" => Thrust(OOptional(e, new[] { "trailHitbox" }, "aim", "targetConeDegrees", "neutralPitchDegrees",
@@ -1147,12 +1329,42 @@ public static class CookedCharacterPackageLoader
             "missEndingTicks", "skidTicks", "turnAroundOnMiss", "airStrideTicks", "lookDownTicks",
         };
         private static readonly string[] TetherOptional =
-            { "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId" };
+        {
+            "projectile", "retractSpeed", "reelAnimationId", "retractAnimationId", "throwPresentationId",
+            "retractPresentationId", "atTarget",
+        };
+        private static CookedCapabilityParameters CommandGrab(Dictionary<string, JsonElement> q)
+        {
+            var l = O(q["launch"], "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+            return new CookedCommandGrabCapabilityParameters(U(q, "lungeTicks"), F(q, "lungeSpeed"), F(q, "stopDistance"),
+                U(q, "captureTick"), ParseHitbox(q["capture"]), U(q, "releaseTick"),
+                new CookedGrabLaunch(F(l, "damage"), F(l, "angle"), F(l, "baseKnockback"), F(l, "knockbackGrowth"), U(l, "stunTicks")),
+                SO(q, "catchPresentationId", ""), SO(q, "releasePresentationId", ""));
+        }
+        private static CookedCapabilityParameters Clinch(Dictionary<string, JsonElement> q)
+            => new CookedClinchCapabilityParameters(F(q, "lungeDistance"), F(q, "lungeSpeed"), ParseHitbox(q["catchHitbox"]),
+                F(q, "anchorDistance"), U(q, "whiffRecoveryTicks"), U(q, "releaseTick"), U(q, "releaseLockTicks"));
+        /// <summary>A thrown ring has its projectile and retract speed; a placed catch has its atTarget block instead.</summary>
         private static CookedCapabilityParameters Tether(Dictionary<string, JsonElement> q)
-            => new CookedTetherCapabilityParameters(U(q, "throwTick"), ParseProjectile(q["projectile"]), F(q, "reelSpeed"),
-                F(q, "anchorDistance"), U(q, "arrivalStunTicks"), U(q, "maxReelTicks"), F(q, "retractSpeed"),
+        {
+            CookedTetherAtTarget? at = null;
+            if (q.TryGetValue("atTarget", out var a))
+            {
+                var t = OOptional(a, new[] { "warningPresentationId", "catchPresentationId" }, "warningTicks",
+                    "catchTicks", "radius", "height", "damage", "maxRange", "noTargetDistance", "warningPresentationId",
+                    "catchPresentationId");
+                at = new CookedTetherAtTarget(U(t, "warningTicks"), U(t, "catchTicks"), F(t, "radius"), F(t, "height"),
+                    F(t, "damage"), F(t, "maxRange"), F(t, "noTargetDistance"), SO(t, "warningPresentationId", ""),
+                    SO(t, "catchPresentationId", ""));
+                if (q.ContainsKey("projectile") || q.ContainsKey("retractSpeed"))
+                    throw new InvalidDataException("A placed catch throws no ring.");
+            }
+            return new CookedTetherCapabilityParameters(U(q, "throwTick"),
+                at == null ? ParseProjectile(q["projectile"]) : null, F(q, "reelSpeed"),
+                F(q, "anchorDistance"), U(q, "arrivalStunTicks"), U(q, "maxReelTicks"), at == null ? F(q, "retractSpeed") : 0f,
                 U(q, "missRecoveryTicks"), F(q, "airGravityScale"), SO(q, "reelAnimationId", ""),
-                SO(q, "retractAnimationId", ""), SO(q, "throwPresentationId", ""), SO(q, "retractPresentationId", ""));
+                SO(q, "retractAnimationId", ""), SO(q, "throwPresentationId", ""), SO(q, "retractPresentationId", ""), at);
+        }
         private static CookedCapabilityParameters Cannonball(Dictionary<string, JsonElement> q)
             => new CookedCannonballCapabilityParameters(U(q, "takeoffTick"), F(q, "maxRange"), F(q, "noTargetDistance"),
                 U(q, "minFlightTicks"), U(q, "maxFlightTicks"), F(q, "maxLaunchSpeed"), SO(q, "launchPresentationId", ""));

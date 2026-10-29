@@ -171,7 +171,14 @@ public static class ArcadeRecordCompatibility
     /// order, so content without a return keeps its fingerprint. A return block joins it, minus its
     /// presentation IDs.
     /// </summary>
-    private static object Projectile(CookedProjectile x) => x.Return == null
+    private static object Projectile(CookedProjectile x) => x.Homing != null || x.Perch != null
+        ? new
+        {
+            x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
+            x.BaseKnockback, x.KnockbackGrowth, x.StunTicks, x.MaxFlightTicks, x.YawOffsetDegrees,
+            x.Homing, Perch = x.Perch == null ? null : x.Perch with { Pop = x.Perch.Pop with { PresentationId = "" } },
+        }
+        : x.Return == null
         ? new
         {
             x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
@@ -196,7 +203,11 @@ public static class ArcadeRecordCompatibility
         CookedMankiJetpackBoostCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiBazookaCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiKamikazeCapabilityParameters x => x with { ExplosionPresentationId = "" },
-        CookedTetherCapabilityParameters x => x with { ThrowPresentationId = "", RetractPresentationId = "" },
+        CookedTetherCapabilityParameters x => x with
+        {
+            ThrowPresentationId = "", RetractPresentationId = "",
+            AtTarget = x.AtTarget == null ? null : x.AtTarget with { WarningPresentationId = "", CatchPresentationId = "" },
+        },
         CookedCannonballCapabilityParameters x => x with { LaunchPresentationId = "" },
         CookedChargedProjectileCapabilityParameters x => new
         {
@@ -212,6 +223,8 @@ public static class ArcadeRecordCompatibility
         {
             x.Distance, x.Speed, x.TipPoseTick, x.RecoveryTicks, x.LightHitbox, x.TipHitbox,
         },
+        CookedClinchCapabilityParameters x => x,
+        CookedCommandGrabCapabilityParameters x => x with { CatchPresentationId = "", ReleasePresentationId = "" },
         CookedFlashCutCapabilityParameters x => new
         {
             x.StanceTicks, x.LockRange, x.MaxTargets, x.LegTicks, x.PassThroughDistance, x.SheatheTicks,

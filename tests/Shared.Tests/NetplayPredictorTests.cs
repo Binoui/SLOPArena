@@ -216,10 +216,10 @@ public class NetplayPredictorTests
 
         uint grab = FirstTick(lab.ServerStates, 1, 1, s => s.State == ActionState.Grabbing);
         uint throwStart = FirstTick(lab.ServerStates, 1, grab, s => s.State == ActionState.Throwing);
-        uint thrown = FirstTick(lab.ServerStates, 2, grab, s => s.State == ActionState.Thrown);
+        uint thrown = FirstTick(lab.ServerStates, 2, grab, s => s.InteractionPhase == (byte)DefenseInteractionPhase.UpTossReleased);
         Assert.True(grab > 30 && throwStart > grab && thrown >= throwStart, $"grab {grab} throw {throwStart} thrown {thrown}");
         Assert.Equal(grab, FirstTick(lab[1].Presented, 1, 1, s => s.State == ActionState.Grabbing));
-        Assert.Equal(thrown, FirstTick(lab[1].Presented, 2, 1, s => s.State == ActionState.Thrown));
+        Assert.Equal(thrown, FirstTick(lab[1].Presented, 2, 1, s => s.InteractionPhase == (byte)DefenseInteractionPhase.UpTossReleased));
         // The grabber's client predicts the whole interaction, victim included, without a correction.
         Assert.Equal(0, lab[1].Totals.Corrections);
         AssertPresentedLikeGameHost(lab, lab[1], 2, from: 1);

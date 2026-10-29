@@ -186,7 +186,7 @@ public sealed class MankiBomberTests
         for (int i = 0; i < 60; i++)
         {
             Step(sim);
-            if (sim.GetPresentationEvents().Any(e => e.PresentationId == "presentation.manki.round-bomb.explosion"))
+            if (sim.GetPresentationEvents().Any(e => e.PresentationId == "presentation.manki.kamikaze.explosion"))
             {
                 var owner = sim.GetState(1);
                 Assert.Equal((ushort)0, owner.DamagePercent);
@@ -490,7 +490,7 @@ public sealed class MankiBomberTests
         string path = Path.Combine(root!.FullName, relative);
         var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(path, "package.json")),
             File.ReadAllText(Path.Combine(path, "character.json"))).Source!;
-        const string previous = "presentation.manki.round-bomb.explosion", next = "presentation.manki.bomber.explosion";
+        const string previous = "presentation.manki.kamikaze.explosion", next = "presentation.manki.bomber.explosion";
         var renamed = CharacterPackageSourceCodec.RenameSemanticId(source, previous, next,
             new[] { new CharacterAssetCatalogBindingSnapshot(previous, previous) });
         Assert.True(renamed.IsValid);

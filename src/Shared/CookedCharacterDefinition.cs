@@ -170,7 +170,9 @@ public sealed record CookedPresentation(
     string Grabbed = "",
     string ThrowForward = "",
     string AirDodge = "",
-    string Shell = "");
+    string Shell = "",
+    string Flying = "",
+    string MayhemLaugh = "");
 
 /// <summary>
 /// Form 1 of a two-form fighter (slop.ability.forms.v1, ADR-0051): its own movement, presentation roles and fourteen
@@ -532,7 +534,11 @@ public sealed record CookedHitbox(
     bool Interruptible,
     byte HitGroup,
     AuthoringKnockbackDirection KnockbackDirection = AuthoringKnockbackDirection.AwayFromOwner,
-    ushort FixedHitstunTicks = 0);
+    ushort FixedHitstunTicks = 0,
+    // Presentation only (ADR-0053): Arcade record fingerprints serialize this record and must not see it.
+    [property: System.Text.Json.Serialization.JsonIgnore] string? HitPresentationId = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    bool RequiresFacingOwner = false);
 
 public sealed class CookedSpawnProjectileOperation : CookedTimelineOperation
 {
@@ -555,7 +561,12 @@ public sealed record CookedProjectile(
     ushort StunTicks,
     ushort MaxFlightTicks,
     float YawOffsetDegrees = 0f,
-    CookedProjectileReturn? Return = null);
+    CookedProjectileReturn? Return = null,
+    // Both blocks are omitted when absent so existing projectiles keep their Arcade record fingerprints.
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedProjectileHoming? Homing = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedProjectilePerch? Perch = null);
 
 public sealed record CookedProjectileReturn(
     ushort OutboundTicks,
@@ -648,17 +659,20 @@ public sealed class CookedEmitPresentationOperation : CookedTimelineOperation
     public string PresentationId { get; }
     public int OperationIndex { get; }
     public PresentationPlacement Placement { get; }
+    public AuthoringPresentationCondition Condition { get; }
     public CookedEmitPresentationOperation(
         ushort tick,
         AuthoringUnit unit,
         string presentationId,
         int operationIndex,
-        PresentationPlacement placement)
+        PresentationPlacement placement,
+        AuthoringPresentationCondition condition = AuthoringPresentationCondition.Always)
         : base(tick, unit, CookedOperationKind.EmitPresentation)
     {
         PresentationId = presentationId;
         OperationIndex = operationIndex;
         Placement = placement ?? new PresentationPlacement();
+        Condition = condition;
     }
     public CookedEmitPresentationOperation(
         ushort tick,
@@ -728,7 +742,7 @@ public sealed record CookedCannonballCapabilityParameters(
 /// <summary>slop.ability.tether.v1 (ADR-0048); see <see cref="TetherCapabilityParameters"/>.</summary>
 public sealed record CookedTetherCapabilityParameters(
     ushort ThrowTick,
-    CookedProjectile Projectile,
+    CookedProjectile? Projectile,
     float ReelSpeed,
     float AnchorDistance,
     ushort ArrivalStunTicks,
@@ -739,7 +753,22 @@ public sealed record CookedTetherCapabilityParameters(
     string ReelAnimationId = "",
     string RetractAnimationId = "",
     string ThrowPresentationId = "",
-    string RetractPresentationId = "") : CookedCapabilityParameters;
+    string RetractPresentationId = "",
+    // Omitted when absent so a thrown ring keeps its Arcade record fingerprint.
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedTetherAtTarget? AtTarget = null) : CookedCapabilityParameters;
+
+/// <summary>The tether's placed catch (ADR-0051); see <see cref="TetherAtTargetSource"/>.</summary>
+public sealed record CookedTetherAtTarget(
+    ushort WarningTicks,
+    ushort CatchTicks,
+    float Radius,
+    float Height,
+    float Damage,
+    float MaxRange,
+    float NoTargetDistance,
+    string WarningPresentationId = "",
+    string CatchPresentationId = "");
 
 public sealed record CookedSteeredChargeCapabilityParameters(
     float GallopSpeed,

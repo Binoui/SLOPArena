@@ -1170,7 +1170,7 @@ public class ServerSimulationTests
         {
             sim.Tick(inputs);
             if (i == DefenseConfig.GrabHoldTicks - 1)
-                Assert.Equal((byte)DefenseInteractionPhase.Throwing, sim.GetState(1).InteractionPhase);
+                Assert.Equal((byte)DefenseInteractionPhase.UpTossing, sim.GetState(1).InteractionPhase);
             Assert.Equal(interactionId, sim.GetState(1).InteractionId);
             Assert.Equal(interactionId, sim.GetState(2).InteractionId);
         }
@@ -1182,14 +1182,14 @@ public class ServerSimulationTests
         attacker = sim.GetState(1);
         victim = sim.GetState(2);
         Assert.Equal(ActionState.Throwing, attacker.State);
-        Assert.Equal(ActionState.Thrown, victim.State);
-        Assert.Equal(6, victim.DamagePercent);
+        Assert.True(victim.HitstopTicks > 0);
+        Assert.Equal(4, victim.DamagePercent);
         Assert.Equal(0ul, attacker.InteractionId);
         Assert.Equal(0ul, victim.InteractionId);
-        Assert.True(victim.KVZ > 0f);
-        Assert.True(victim.HitstunTicks > 0);
+        Assert.True(victim.QueuedKBStun > 0);
+        Assert.Equal(0f, victim.QueuedKBDirZ);
         sim.Tick(inputs);
-        Assert.Equal(6, sim.GetState(2).DamagePercent);
+        Assert.Equal(4, sim.GetState(2).DamagePercent);
         Assert.Equal(interactionId, attacker.LastTerminalInteractionId);
         Assert.Equal(interactionId, victim.LastTerminalInteractionId);
         Assert.True(attacker.AnimLockTicks > 0);

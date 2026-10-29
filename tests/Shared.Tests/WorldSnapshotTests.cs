@@ -581,7 +581,7 @@ public class WorldSnapshotTests
             {
             "ability", "capability", "hitbox", "hitstop", nameof(ActionState.Hitstun), nameof(ActionState.Shielding),
             nameof(ActionState.Aiming), nameof(ActionState.Grabbing), nameof(ActionState.Grabbed),
-            nameof(ActionState.Throwing), nameof(ActionState.Thrown), nameof(ActionState.AirDodgeMovement),
+            nameof(ActionState.Throwing), "throw-release", nameof(ActionState.AirDodgeMovement),
             }.Where(state => hasAimedMove || state != nameof(ActionState.Aiming)).ToArray();
         }
         public int Restores;
@@ -603,6 +603,8 @@ public class WorldSnapshotTests
                         _now.Add("capability");
                 }
                 if (state.HitstopTicks > 0) _now.Add("hitstop");
+                if (state.InteractionPhase is (byte)DefenseInteractionPhase.FlingReleased or (byte)DefenseInteractionPhase.UpTossReleased)
+                    _now.Add("throw-release");
             }
             if (sim.Resolver.GetActiveHitboxes().Count > 0) _now.Add("hitbox");
             _deaths += sim.LastTickDeaths.Count;

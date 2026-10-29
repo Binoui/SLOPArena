@@ -27,6 +27,26 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // - Grab aim and directional throws (ADR-0054): stationary hold, Beeline attack/grab arbitration,
+        //   press-only stick fling or neutral toss, shared release freeze/queued launch into ordinary Hitstun,
+        //   attributed release outcomes and short detached recovery. Phase values 8/9/10; action 21 reserved.
+        //   World Snapshot layout unchanged.
+        // - Nyx phase 7 (ADR-0051): opt-in requiresFacingOwner hitboxes reject fighters looking away,
+        //   runtime API 1.19.0; World Snapshot v21 packs the flag in the existing hitbox-event flags byte.
+        //   CPU profiles and delayed threat reach follow forms, with range swaps and Normal/Hard hit-confirmed swap cancels.
+        // - Package presentation.flying selects flight hurtboxes at its representative frame zero;
+        //   Unity loops it beneath upper-body Q/R and pitches Kamikaze cosmetically. Snapshot layout unchanged.
+        // - Nyx's specials (ADR-0051): the tether's atTarget placed catch (Grasp), spawnProjectile homing and perch
+        //   blocks with a fragile rule and a hit-pass pop from the thrower's other form (Hex Crow), and
+        //   slop.ability.command-grab.v1 (Selfie Grab; DefenseInteractionPhase.CommandHold = 7). Runtime API 1.18.0,
+        //   World Snapshot v20 (perching projectiles and queued pops).
+        // - FightGuy's Title Match (ADR-0053): slop.ability.clinch.v1, a lunging command grab held as a paired
+        //   interaction (ActionState.Clinched = 31, DefenseInteractionPhase.Clinching = 6) whose holder's own hits deal
+        //   damage and hitstop only; a hitbox may name its own hit presentation and a timeline presentation may need a
+        //   sweetspot hit (Rising Dragon). Runtime API 1.17.0, World Snapshot v19.
+        // - Fixed Hitstun can admit a zero-damage, zero-launch dazzle (Nyx Ring Light).
+        // - Nyx swap-cancels (ADR-0051): confirmed fighter contacts unlock F through move recovery,
+        //   hitstop buffers F, and World Snapshot v18 writes the activation's Connected flag.
         // - Wibou Quick Draw (ADR-0052): slop.ability.dash-strike.v1, fixed target-bearing R,
         //   exclusive light/tip cuts and recovery turn; runtime API 1.15.0. Snapshot layout unchanged.
         // - Wibou's flash (ADR-0052): slop.ability.flash-cut.v1 replaces Skyfall (blade-flurry.v2 retired); held cuts

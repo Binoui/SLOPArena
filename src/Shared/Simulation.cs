@@ -170,42 +170,23 @@ namespace SlopArena.Shared
             movementActionAccepted = false;
             if (s.InteractionId != 0 && ActionStates.MovedByPartner(s.State))
             {
+                // A clinched fighter takes its holder's hits as hitstop alone (ADR-0053); nothing else runs it down.
+                if (s.State == ActionState.Clinched && s.HitstopTicks > 0) s.HitstopTicks--;
                 TickTimers(ref s);
                 return;
             }
             if (s.InteractionId != 0 && s.State == ActionState.Grabbing)
             {
                 TickTimers(ref s);
-                (float dx, float dz) = GetInputDirection(input);
-                // Human movement arrives in world space, with camera azimuth in AimYaw.
-                // Recover the control axes: sideways steers, forward/back walks along
-                // the held pair's facing. Camera turns alone never rotate the pair.
-                float controlYaw = input.AimYaw * (MathF.PI / 18000f);
-                float side = dx * MathF.Cos(controlYaw) - dz * MathF.Sin(controlYaw);
-                float forward = dx * MathF.Sin(controlYaw) + dz * MathF.Cos(controlYaw);
-                int yaw = (int)MathF.Round(s.CapturedYaw
-                    + side * DefenseConfig.GrabTurnDegreesPerSecond * TickDt * 100f);
-                if (yaw > 18000) yaw -= 36000;
-                else if (yaw < -18000) yaw += 36000;
-                s.CapturedYaw = (short)yaw;
-                s.FacingYaw = s.AimYaw = yaw * (MathF.PI / 18000f);
-                float speed = forward * def.Movement.RunSpeed * DefenseConfig.GrabWalkSpeedRatio;
-                s.VX = MathF.Sin(s.FacingYaw) * speed;
-                s.VZ = MathF.Cos(s.FacingYaw) * speed;
-                s.VY = 0f;
-                MoveDefenseBody(ref s, def, arena);
-                return;
-            }
-            if (s.State == ActionState.Thrown)
-            {
-                ProcessThrown(ref s, def, arena);
+                s.VX = s.VY = s.VZ = 0f;
                 return;
             }
 
             var stats = def.Movement;
             bool wasGrounded = s.IsGrounded;
             bool blockStunLocked = s.BlockStunTicks > 0;
-            bool slotInputBlocked = s.LandingLagTicks > 0 || IsDefenseActionState(s.State);
+            bool slotInputBlocked = s.LandingLagTicks > 0
+                || IsDefenseActionState(s.State) && !(s.State == ActionState.Throwing && s.InteractionId == 0);
 
             if (verticalMotionOwned)
             {
@@ -312,7 +293,6 @@ namespace SlopArena.Shared
             // during the dash is held for the arrival window (the latest press wins).
             if (s.State is ActionState.HomingDashFloat or ActionState.HomingDash)
             {
-                if (input.ActiveSlot > 0) s.BufferedSlot = input.ActiveSlot;
                 TickTimers(ref s);
                 MoveDefenseBody(ref s, def, arena);
                 return;
@@ -753,7 +733,7 @@ namespace SlopArena.Shared
                 if (s.StateTicks == 0 && s.State != ActionState.Idle &&
                     s.State is not (ActionState.Shielding or ActionState.ShieldDrop or
                         ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed or
-                        ActionState.Throwing or ActionState.Thrown or ActionState.AirDodgeMovement or
+                        ActionState.Throwing or ActionState.AirDodgeMovement or
                         ActionState.AirDodgeRecovery or ActionState.HomingDashFloat or ActionState.HomingDash))
                     s.State = ActionState.Idle;
             }
@@ -775,7 +755,7 @@ namespace SlopArena.Shared
         }
         private static bool IsDefenseActionState(ActionState state)
             => state is ActionState.Shielding or ActionState.ShieldDrop or ActionState.GrabAttempt
-                or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
+                or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing
                 or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery || ActionStates.Captive(state);
 
         private static bool CanAcceptDefenseAction(in CharacterState state, ActiveMoveView? activeMove,
@@ -988,6 +968,7 @@ namespace SlopArena.Shared
             else if (state.State == ActionState.GrabAttempt && state.StateTicks == 0)
             {
                 state.State = ActionState.Idle;
+                state.ClearStartupAimCorrection();
                 state.InteractionPhase = (byte)DefenseInteractionPhase.None;
                 state.InteractionId = 0;
                 state.InteractionPartnerId = 0;
@@ -1024,34 +1005,6 @@ namespace SlopArena.Shared
             {
                 state.PY = floor;
                 state.VY = 0f;
-            }
-        }
-
-        private static void ProcessThrown(ref CharacterState state, CharacterDefinition def,
-            in ArenaDefinition arena)
-        {
-            TickTimers(ref state);
-            if (!state.IsGrounded)
-            {
-                state.KVY -= def.Movement.Gravity * TickDt;
-                state.VX = state.KVX; state.VY = state.KVY; state.VZ = state.KVZ;
-                MoveDefenseBody(ref state, def, arena);
-                if (state.IsGrounded)
-                {
-                    // Stage contact starts the final eight animation frames. Lower
-                    // platforms extend flight; higher ones cannot be passed through.
-                    state.StateTicks = DefenseConfig.ThrownRecoveryTicks;
-                    state.KVX = state.KVY = state.KVZ = 0f;
-                    state.VX = state.VY = state.VZ = 0f;
-                    state.HitstunTicks = 0;
-                    state.WasAirborneDuringKnockback = false;
-                    RefreshGroundResources(ref state, def.Movement);
-                }
-            }
-            else if (state.StateTicks == 0)
-            {
-                state.State = ActionState.Idle;
-                state.AnimLockTicks = 0;
             }
         }
 
@@ -1999,7 +1952,12 @@ namespace SlopArena.Shared
 
         internal static void ApplyFixedHitstun(ref CharacterState s, ushort fixedTicks, ushort stunGate)
         {
-            if (fixedTicks == 0 || stunGate == 0 || s.HitstunTicks == 0) return;
+            if (fixedTicks == 0 || stunGate == 0) return;
+            if (s.HitstunTicks == 0)
+            {
+                s.State = ActionState.Hitstun;
+                s.HitReactionSequence = unchecked((ushort)(s.HitReactionSequence + 1));
+            }
             s.HitstunTicks = Math.Min(fixedTicks, (ushort)240);
             s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 :
                 s.HitstunTicks <= 50 ? (byte)1 : (byte)2;

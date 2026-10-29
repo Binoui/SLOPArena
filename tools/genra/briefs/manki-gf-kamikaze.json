@@ -1,0 +1,252 @@
+{
+  "name": "manki-gf-kamikaze",
+  "notes": "Manki Kamikaze dive (ground.F, aliased in the air), 2026-10-29. It replaces the placeholder on the slot, anim.manki.gf-loop: the Manki Mayhem / old Aerosol Inferno shake loop, which stays bound for Mayhem (ADR-0049), so this clip needs its own semantic id (proposed anim.manki.gf-kamikaze). The move (slop.internal.manki.kamikaze.v1): from tick 0 he travels at 18 m/s toward his locked target (OnStart sets the velocity; the swept contact hitbox spawns from tick 1), the sim turns his yaw toward the target every tick and may also pitch the travel up or down (for example diving from flight); contact or the end of the 54-tick run explodes him; the stage is 55 ticks. Owner direction (via the coordinator): a short wind-up (hunch, grin, brace), then a committed torpedo dive, head first, arms swept back or hugging himself, legs together trailing, the body buzzing with speed; an 8-tick entry then a 24-tick dive loop, using the toolkit's build-up loop. This clip is horizontal; pitching the body to the travel direction is a separate presentation follow-up. The game today stretches an ability clip over its stage (PlayerRenderer.GetAbilityAnimationSpeed) and wraps a build-up loop only for the tumble, so integration needs either a loop-from for this slot or the loop unrolled into a 56-tick one-shot. Rig pack manki-unity-v5 built 2026-10-29 from the live v5 'pyro' MankiRig.prefab. Keys stage only; the owner approves the keys before motion. Owner, 2026-10-29: keys approved as they are (arms swept back, the 8-tick wind-up kept). The game will play the dive as one 56-tick play-through, written out from this clip: ticks 0-8, then the 8-32 loop twice (8 + 24 + 24), over the 55-tick stage, with no game code change. So author the loop as a seamless cycle; the second pass repeats it exactly.",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-v5",
+  "character": "Manki v5 'pyro' (58 joints: a Humanoid body with Mixamo names, a big head with goggles and a spiky mane, big ears, an open vest and ragged shorts; a two-can spray-can jetpack built into the body mesh and pinned rigidly to Spine2, so it sits on his upper back and turns with the chest; a TORCH-can holster on his left thigh; thumb, index, middle and ring fingers on each hand; arm stretch, forearm offset and fist deform controls that carry the arm skin; a five-joint tail Tail1..5 that a spring drives in the game, so leave it at rest). He is small: hips to head 0.38 m, thigh 0.25 m, shin 0.19 m, upper arm 0.14 m, forearm 0.15 m in this rig.",
+  "references": {
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 8
+  },
+  "clock": {
+    "duration_ticks": 32
+  },
+  "timing": {
+    "fixed": [
+      "he travels at 18 m/s toward his target from tick 0: the wind-up plays while he is already rocketing forward, and a close target can be hit as early as tick 1",
+      "contact, or the end of the 54-tick run, explodes him and ends the move at once; the stage is 55 ticks",
+      "the game crossfades into the clip over 0.05 s from whatever he was doing: idle, run, a jump or fall, or Flying",
+      "the game turns his facing toward the target every tick; the fighter does not move or turn in the clip",
+      "the dive is authored horizontal; tilting the body up or down along the travel is a later presentation step",
+      "the game plays one 56-tick play-through written out from this clip (the entry, then the dive loop twice) over the 55-tick stage, so the loop must close seamlessly at tick 32"
+    ],
+    "adjustable": [
+      "the 8-tick entry and the 24-tick dive loop (wrapping from tick 32 back to 8), as the owner approves them with the key poses",
+      "arms swept back (proposed) or hugging himself"
+    ]
+  },
+  "description": "Manki's F, Kamikaze. He locks onto his target, rockets straight into them head first at full throttle and explodes on contact. The blast throws him clear unhurt. It is his kill move, so it must look completely committed and a little insane. Today the slot borrows his old spray-can shake loop; this clip replaces it.\n\nWho he is. Manki is a pyromaniac mad-inventor monkey (images 1 and 2: front and back of the v5 model): toothy grin with missing teeth, cracked goggles, a burnt brow, a TORCH can on his left thigh, and a homemade jetpack of two big spray cans on his back. Kamikaze is the moment he decides that he himself is the bomb, and he loves it.\n\nHow the game plays it. The game crossfades into the clip over 0.05 s from whatever he was doing (standing, running, jumping, falling or flying), so tick 0 must be a calm, central pose that any of those blend into. From tick 0 he is already travelling at 18 m/s toward the target, and the game keeps turning his facing toward it, so front is always where he flies; the fighter does not move or turn in the clip. Ticks 0-8 play once: the wind-up. Ticks 8-32 then loop (wrapping from 32 back to 8) until he hits someone or the run ends after 54 ticks, often much sooner. Then he explodes and the game moves on. The jetpack's flame trail comes out of the two can nozzles under the cans and follows the Spine2 joint, so when he lies flat the jets point back along the flight. The match camera sits behind and above him, so players see him end-on from behind: the soles of his feet, the jetpack cans and the top of his head beyond them.\n\nThe wind-up (ticks 0-8), fast, a quick anticipation, never a pause:\n- Tick 0: neutral and compact, about upright, a slight forward lean, arms in near the body, knees a little bent.\n- Tick 3, the brace: he hunches into a ball. Hips drop 3-6 cm, the chest curls forward over his knees, the shoulders hunch up toward his ears, the head ducks down between them but the chin lifts so he glares ahead at the target with that grin, fists clenched in front of his chest, knees pulled up. A wound spring.\n- Ticks 3-8, the launch: he uncoils forward. The head drives forward first, the chest follows, the hips last; the arms sweep back past his sides, the legs kick straight back behind him.\n- Tick 8: the torpedo (the loop's first pose).\n\nThe torpedo (the loop, ticks 8-32): a committed, rigid dive.\n- Body flat along the flight, face down, head first: the spine and the hips pitched forward about 80-95 degrees from upright, so the head is 0.3 m or more ahead of the hips and at about their height (within 12 cm), and the jetpack sits on top of his back with its nozzles pointing back.\n- Head: leading, the neck extended so the face looks ahead along the flight with a crazed grin, not down at the floor.\n- Arms swept back tight along his sides: the hands beside or just behind the hips and above them, close to the body (within about 0.25 m of the centre line), palms up and fingers straight and trailing, like a diving bird. They never reach forward and never go under the body.\n- Legs together and straight, trailing straight back behind the hips (the feet 0.3 m or more behind them and at about their height), toes pointed back, the feet close together (within 14 cm).\n- Buzzing with speed: the whole body shivers with the thrust. A small fast shudder about every 6 ticks (four per loop): the shoulders and head jitter 2-4 degrees, the hands flutter 2-3 cm, the feet flutter 2-4 cm, the two sides out of step, so he vibrates like a rocket at full throttle. Under that, one slow roll of the body about its own long axis, 6-10 degrees to either side over the 24-tick loop, so the wide jetpack visibly rocks from the camera behind him. The fingers tremble 2-3 ticks behind the hands. The loop must close seamlessly at tick 32.\n- Tail: do not animate Tail1..5. The game's spring trails it behind him.\n\nKeep the hips about where the idle's are (the body pivots around them). No spin, no flip, no turning to face another way.\n\nKey poses for approval (the keys stage): tick 0 neutral; tick 3 the hunch and grin; tick 6 the uncoil, head and chest already forward, legs going back; tick 8 the torpedo; ticks 14, 20 and 26 the torpedo at the slow roll's extremes and middle (14 rolled to his left, 20 level, 26 rolled to his right), each with the arms and legs a little differently placed by the shudder; tick 32 the same pose as tick 8.",
+  "views": [
+    "profile",
+    "gameplay",
+    "three-quarter-right",
+    "front"
+  ],
+  "preview_views": [
+    "profile",
+    "gameplay",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../manki-anim-20261029/concept-front.png",
+    "../../manki-anim-20261029/concept-back.png",
+    "images/idle-entry.png"
+  ],
+  "image_notes": "1 and 2: the v5 'pyro' Manki concept the model was built from, front and back (the two-can jetpack on his back, the TORCH can on his left thigh). It is a drawing: the rig's proportions rule. 3: the idle entry pose (side, front, three-quarter rear).",
+  "keys": [
+    0,
+    3,
+    6,
+    8,
+    14,
+    20,
+    26,
+    32
+  ],
+  "review_ticks": [
+    0,
+    2,
+    3,
+    5,
+    6,
+    8,
+    11,
+    14,
+    17,
+    20,
+    23,
+    26,
+    29,
+    32
+  ],
+  "fast_windows": [
+    [
+      0,
+      10
+    ]
+  ],
+  "targets": [
+    {
+      "name": "brace: hips drop at tick 3 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 3,
+      "max": -0.03
+    },
+    {
+      "name": "brace: head ducked lower than the idle's at tick 3 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Head",
+      "tick": 3,
+      "max": 0.31
+    },
+    {
+      "name": "brace: left fist in at the chest at tick 3 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 3,
+      "max": 0.3
+    },
+    {
+      "name": "brace: right fist in at the chest at tick 3 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 3,
+      "max": 0.3
+    },
+    {
+      "name": "torpedo: head leads well ahead of the hips at tick 8 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 8,
+      "min": 0.3
+    },
+    {
+      "name": "torpedo: head leads well ahead of the hips at tick 20 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 20,
+      "min": 0.3
+    },
+    {
+      "name": "torpedo: head at the hips' height at tick 8 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Head",
+      "tick": 8,
+      "min": -0.1,
+      "max": 0.12
+    },
+    {
+      "name": "torpedo: head at the hips' height at tick 20 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Head",
+      "tick": 20,
+      "min": -0.1,
+      "max": 0.12
+    },
+    {
+      "name": "torpedo: left foot trails behind the hips at tick 8 (m)",
+      "kind": "ahead",
+      "a": "LeftFoot",
+      "b": "Hips",
+      "tick": 8,
+      "max": -0.3
+    },
+    {
+      "name": "torpedo: right foot trails behind the hips at tick 8 (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 8,
+      "max": -0.3
+    },
+    {
+      "name": "torpedo: left foot at the hips' height at tick 20 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftFoot",
+      "tick": 20,
+      "min": -0.18,
+      "max": 0.1
+    },
+    {
+      "name": "torpedo: legs together at tick 8 (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 8,
+      "max": 0.14
+    },
+    {
+      "name": "torpedo: legs together at tick 20 (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 20,
+      "max": 0.14
+    },
+    {
+      "name": "torpedo: left hand swept back beside the hips at tick 8 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 8,
+      "max": 0.06
+    },
+    {
+      "name": "torpedo: right hand swept back beside the hips at tick 8 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 8,
+      "max": 0.06
+    },
+    {
+      "name": "torpedo: left hand close to the body at tick 20 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 20,
+      "min": -0.25
+    },
+    {
+      "name": "torpedo: right hand close to the body at tick 20 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 20,
+      "max": 0.25
+    },
+    {
+      "name": "buzz: the head shivers in the loop (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        8,
+        32
+      ],
+      "min": 0.01,
+      "max": 0.05
+    },
+    {
+      "name": "buzz: the feet flutter in the loop (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "up",
+      "window": [
+        8,
+        32
+      ],
+      "min": 0.02,
+      "max": 0.08
+    }
+  ]
+}

@@ -70,8 +70,9 @@ CHARACTERS = {  # package -> {reference label: catalog semantic id}
     'nyx': {'idle': 'anim.nyx.idle', 'run': 'anim.nyx.run', 'jump': 'anim.nyx.jump', 'fall': 'anim.nyx.fall'},
 }
 # Skinned meshes the game simulates as cloth rather than animates: left out of the pack, so the animator poses the body
-# under them and the checks don't treat them as limbs (the salamander's poncho, 2026-10-27).
-CLOTH_MESHES = {'salamander': {'Salamander_Poncho'}, 'nyx': {'Nyx_Real_Dress'}}
+# under them and the checks don't treat them as limbs (the salamander's poncho, 2026-10-27). Nyx's real dress was Cloth
+# until its v3 (2026-10-29), which is skinned to spring chains under Hips like a cape, so the pack carries it.
+CLOTH_MESHES = {'salamander': {'Salamander_Poncho'}}
 SLOTS = {'E': 4, 'R': 5, 'F': 6, 'A': 11}  # AbilitySlots numbers of the letter keys, as weapon configs store them
 BAKE_FRAMES = [0, 10, -1]  # -1 = last frame
 MIRROR = np.diag([-1.0, 1.0, 1.0])
@@ -230,6 +231,9 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
             used.add(resolve(m['bones'][bone_index]))
     for w in data['weapons']:
         used.add(resolve(w['bone']))
+    # Mapped toes stay even when no skin rides them: briefs plant and floor-check ToeBase, and Nyx's rebuilt real
+    # boots (2026-10-29) are weighted to the feet alone, which dropped both toes from her pack.
+    used |= {e['path'] for e in data.get('humanoid', []) if e['humanBone'] in ('LeftToes', 'RightToes') and e['path'] in path_index}
     selected = set()
     for p in used:
         i = path_index[p]
@@ -265,7 +269,7 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
                 local = np.eye(4)
                 local[3, :3] = point
                 extra.append((f'{weapon_joint}/{name}', weapon_joint, local))
-    # A skinned prop held rigidly in a hand (Nyx's hand-held ring-light pole, 2026-10-29) gets the weapons' anchors, so
+    # A skinned pole held rigidly in a hand (Nyx's hand-held ring-light pole, 2026-10-29) gets the weapons' anchors, so
     # briefs, motion paths and strike visibility can follow its far end: bladeHilt nearer the hand, bladeEnd beyond.
     if not any(w['anchors'] for w in data['weapons']):
         for m in data['meshes']:
@@ -282,6 +286,8 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
             pose = to_row(m['bindposes'][next(iter(bone_ids))])
             local_points = (np.c_[points(m['mesh']['vertices']), np.ones(m['mesh']['vertexCount'])] @ pose)[:, :3]
             near, far = sorted(prop_ends([local_points]), key=lambda e: float(np.linalg.norm(e)))
+            if np.linalg.norm(far - near) < 0.3:  # a phone in the other hand is a prop, not a pole to swing
+                continue
             for name, point in (('bladeHilt', near), ('bladeEnd', far)):
                 local = np.eye(4)
                 local[3, :3] = point

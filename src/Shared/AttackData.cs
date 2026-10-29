@@ -34,6 +34,8 @@ namespace SlopArena.Shared
         public ushort FixedHitstunTicks;
         /// <summary>If false: persists even if attacker is hit during startup.</summary>
         public bool Interruptible;
+        /// <summary>Opt-in fighter contact filter: the victim must face the current owner in the horizontal plane.</summary>
+        public bool RequiresFacingOwner;
 
         /// <summary>
         /// Cross-event hit identity within one ability activation. 0 = this event has its own
@@ -43,6 +45,8 @@ namespace SlopArena.Shared
         public byte HitGroup;
         /// <summary>Direction of horizontal knockback relative to the hitbox owner.</summary>
         public AuthoringKnockbackDirection KnockbackDirection;
+        /// <summary>This hitbox's own hit presentation (ADR-0053); null plays the slot's.</summary>
+        public string? HitPresentationId;
     }
 
     /// <summary>

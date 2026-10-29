@@ -71,7 +71,7 @@ namespace SlopArena.EditorTools
             [CliArg("attacker", "Roster package ID of the attacker.")] string attacker = "fightguy",
             [CliArg("victim", "Roster package ID of the idle victim.")] string victim = "manki",
             [CliArg("slot", "Canonical label: 1, 3, 4, A, E, R or F.")] string slot = "4",
-            [CliArg("distance", "Metres between the fighters, 0.4–4.")] float distance = 1.2f,
+            [CliArg("distance", "Metres between the fighters, 0.4–8; Wibou R's endpoint tip is around 5 m.")] float distance = 1.2f,
             [CliArg("damage", "Victim starting percent, 0–300.")] int damage = 0,
             [CliArg("ticks", "Ticks captured after the press, 10–240.")] int ticks = 90,
             [CliArg("presets", "Comma list of name:scale, at most 5, e.g. off:0,low:0.6,mid:1,high:1.6.")] string presets = "off:0,low:0.6,mid:1,high:1.6",
@@ -88,7 +88,7 @@ namespace SlopArena.EditorTools
             var saved = Read();
             if (!EditorApplication.isPlaying)
                 throw new InvalidOperationException("Enter Play Mode (editor_play) after sloparena.hitfeel.prepare.");
-            if (distance < 0.4f || distance > 4f || damage < 0 || damage > 300 || ticks < 10 || ticks > 240 || hold < 0 || hold > 120
+            if (distance < 0.4f || distance > 8f || damage < 0 || damage > 300 || ticks < 10 || ticks > 240 || hold < 0 || hold > 120
                 || orbit < -180f || orbit > 180f
                 || width < 320 || width > 1920 || height < 180 || height > 1080 || width % 2 != 0 || height % 2 != 0)
                 throw new ArgumentException("distance, damage, ticks, hold, orbit or frame size is out of range (even frame sizes only).");

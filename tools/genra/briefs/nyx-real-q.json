@@ -1,0 +1,140 @@
+{
+  "name": "nyx-real-q",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-realmoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Real form: her long black dress is not in this rig. It is simulated cloth hanging from her hips to her ankles, so pose the body only, and keep her knees and boots where a long skirt can still hang over them: no high knees, no wide stances.",
+  "notes": "Nyx real form ground.A (anim.nyx.ga), from her pose sheet real-q (2026-10-29). Proposed game timing: {\"total\": 40, \"contact\": 16, \"active\": [16, 16], \"iasa\": 32, \"model\": \"Bonk Pot-Lid Throw 41/projectile 19/35\", \"what\": \"the crow projectile leaves at the contact tick\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyx's real-form Q, Hex Crow: a crow made of shadow forms on her wrist and flies off toward the target. Her part is a lazy point.\n\nWho she is. Nyx in her real form (image 1): a deadpan trad-goth shadow witch, a stark white face, black lips, waist-length straight black hair with blunt bangs, a long black dress with puffed shoulders, silver chains and an ankh, studded bangles, black platform boots. She stands straight and stiff, bored and unimpressed. Her body barely moves: her shadows do the hitting (claws, hands, tendrils, added later as effects, not in this clip). Her moves are small, stiff, deliberate gestures of one hand or both: precise and economical, with a slight anticipation, a crisp gesture, a held beat and a clean return. Barely moving means small amplitudes, not a statue: the chest breathes, the head settles a degree or two, the free hand's fingers relax, so nothing parks dead still, but nothing moves big. Her feet stay planted and her torso upright.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.912 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.009 m above the floor and the ankle (Foot) about 0.184 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `realstance`, the entry and exit pose): standing perfectly upright, heels together, arms straight down at her sides, chin level, a flat dead stare.\n\nThe clip (80 ticks, played once):\n- Tick 0: The stance.\n- Tick 8: The right arm starts to rise in front of her, unhurried.\n- Tick 22: Summon: her right arm raised forward to shoulder height, nearly straight, the hand about 0.45 m in front of her right shoulder, index and middle fingers pointing ahead together, the other fingers curled, the thumb tucked. The crow forms on her wrist (an effect). Her head tilts 3-4 degrees, bored.\n- Tick 30: She holds the point; the wrist lifts a hair.\n- Tick 32: Release (the crow takes off): a tiny flick of the two fingers forward, 2-3 cm.\n- Tick 44: She keeps pointing a moment, unbothered.\n- Tick 64: The hand has lowered to her side; she can act again.\n- Tick 80: The stance, matching tick 0.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "realstance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 80,
+    "contact_tick": 32,
+    "active": [
+      32,
+      32
+    ],
+    "iasa_tick": 64
+  },
+  "timing": {
+    "fixed": [
+      "80 ticks played once",
+      "contact at tick 32, active ticks 32-32; the player can act from tick 64",
+      "authored at 2x the proposed game length (40 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her realstance pose and tick 80 her realstance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/real/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/real-q.png"
+  ],
+  "image_notes": "1: Nyx's real form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'ready': upright, arms at her sides; pose 2 'summon': she raises her right hand to shoulder height, two fingers pointing toward the left; a black low-poly crow with violet eyes forms out of flat shadow on her wrist; pose 3 'release': the crow takes off toward the left from her pointing fingers, she keeps pointing; pose 4 'return': she lowers the hand, unbothered, the crow gone off to the left. Sheet note: The crow is a slow homing projectile; her part is a lazy point. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    8,
+    22,
+    30,
+    32,
+    44,
+    64,
+    80
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    15,
+    22,
+    26,
+    30,
+    31,
+    32,
+    38,
+    44,
+    54,
+    64,
+    72,
+    80
+  ],
+  "exit": {
+    "reference": "realstance",
+    "tick": 0,
+    "from_tick": 80
+  },
+  "fast_windows": [
+    [
+      30,
+      34
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "planted": [
+    "LeftFoot",
+    "LeftToeBase",
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor at tick 32 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 32,
+      "min": -0.923,
+      "max": -0.873
+    },
+    {
+      "name": "RightToeBase on the floor at tick 32 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 32,
+      "min": -0.923,
+      "max": -0.873
+    },
+    {
+      "name": "summon: right hand at shoulder height (m)",
+      "kind": "below",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 24,
+      "min": -0.08,
+      "max": 0.08
+    },
+    {
+      "name": "summon: right hand pointing far ahead (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 24,
+      "min": 0.35
+    },
+    {
+      "name": "release: still pointing (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 34,
+      "min": 0.35
+    }
+  ]
+}

@@ -117,14 +117,26 @@ MonoBehaviour:
     _prefab: {fileID: 1218640255236271351, guid: 4e756395b97e087e290dc8b40553fa1f, type: 3}
   - _semanticId: presentation.wibou.rising.crescent
     _prefab: {fileID: 8198410025174390627, guid: cc7fa917eb148dcceb0d44373194c4de, type: 3}
-  - _semanticId: presentation.wibou.skyfall.draw
-    _prefab: {fileID: 7530250364334947904, guid: bb5fbe80363b9e2cda1e534cd114997b, type: 3}
+  - _semanticId: presentation.wibou.flash.stance
+    _prefab: {fileID: 2324923686866606775, guid: d3f3e4a046d42d66fa77e453cf987bce, type: 3}
+  - _semanticId: presentation.wibou.flash.lock
+    _prefab: {fileID: 4980412595700986964, guid: 83b1dc927c1316f34ae2b0a0782f4b5a, type: 3}
+  - _semanticId: presentation.wibou.flash.cut
+    _prefab: {fileID: 9035162927018323288, guid: 98417d0bb16b1b93ab8adf3d3ace8bfd, type: 3}
+  - _semanticId: presentation.wibou.flash.click
+    _prefab: {fileID: 6116062229812120258, guid: 92afc5ed91bd708628d5e449fb0a98ff, type: 3}
+  - _semanticId: presentation.wibou.flash.pop
+    _prefab: {fileID: 5431912258897899765, guid: e3addf0e0355a8fcb9ee3d570dc40120, type: 3}
   - _semanticId: presentation.wibou.flash.nani
     _prefab: {fileID: 866338650819680867, guid: 19e87e5d8e0e3ee999b411836f859ec0, type: 3}
-  - _semanticId: presentation.wibou.dash.charge
-    _prefab: {fileID: 8470178808113140597, guid: 5f7fa5706c9647af5bdd5eb8da96edcf, type: 3}
-  - _semanticId: presentation.wibou.dash.cut
-    _prefab: {fileID: 3790780032384582987, guid: 7c667a41ff7c3e4818015dcc12d12dfe, type: 3}
+  - _semanticId: presentation.wibou.quick.draw
+    _prefab: {fileID: 7317106204478440700, guid: 702030948261b9edd83642770492c23e, type: 3}
+  - _semanticId: presentation.wibou.quick.sheathe
+    _prefab: {fileID: 2997615672399584260, guid: 412c9ec74cfb9258f9e053815ba60b98, type: 3}
+  - _semanticId: presentation.wibou.quick.contact
+    _prefab: {fileID: 7252455739862125093, guid: 9a353fc313b08d0679c5ca34227c73fb, type: 3}
+  - _semanticId: presentation.wibou.quick.tip
+    _prefab: {fileID: 2724504268146824475, guid: 22c5d4be5175f36e7a8de5691dddbbab, type: 3}
   _presentationProfile:
     _respawnTint: {r: 0.76, g: 0.9, b: 1, a: 0.95}
     _swing:

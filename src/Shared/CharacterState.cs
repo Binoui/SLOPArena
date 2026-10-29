@@ -42,7 +42,7 @@ namespace SlopArena.Shared
         public ulong LastTerminalInteractionId;
         /// <summary>Authoritative tick at which the last terminal interaction was committed.</summary>
         public uint InteractionTerminalTick;
-        /// <summary>Pair heading in signed degrees × 100; steered during the hold, frozen when throwing starts.</summary>
+        /// <summary>Pair heading in signed degrees × 100; corrected during startup and committed at the throw press.</summary>
         public short CapturedYaw;
         /// <summary>Match lifecycle state (Waiting, Countdown, Playing, Ended).</summary>
         public MatchState MatchState;
@@ -106,7 +106,7 @@ namespace SlopArena.Shared
         public ushort AttackElapsedTicks;  // elapsed ticks since attack start
         /// <summary>Which ability slot this attack uses (1-6). 0 = none.</summary>
         public byte AttackSlot;
-        /// <summary>Buffered input slot (general buffer during any lock). 0 = none.</summary>
+        /// <summary>Buffered press. 0 = none; attack slots or the private HeldPress grab marker.</summary>
         public byte BufferedSlot;
         /// <summary>
         /// 0 = none, 1-3 = stage
@@ -347,7 +347,17 @@ namespace SlopArena.Shared
         Throwing = 3,
         Terminal = 4,
         /// <summary>A tether holds the pair (ADR-0048): the thrower is Attacking in her tether, the victim Reeled.</summary>
-        Reeling = 5
+        Reeling = 5,
+        /// <summary>A clinch holds the pair (ADR-0053): the holder is Attacking in its clinch, the victim Clinched.</summary>
+        Clinching = 6,
+        /// <summary>A command grab holds the pair (ADR-0051): the grabber is Attacking in its grab, the victim Grabbed.</summary>
+        CommandHold = 7,
+        /// <summary>The universal grab's neutral up-toss windup (ADR-0054); a stick fling winds up in Throwing.</summary>
+        UpTossing = 8,
+        /// <summary>A released fling (ADR-0054): the holder's terminal phase is the release witness.</summary>
+        FlingReleased = 9,
+        /// <summary>A released up toss (ADR-0054): the holder's terminal phase is the release witness.</summary>
+        UpTossReleased = 10,
     }
 
     /// <summary>Hitstop reason for defensive block contacts.</summary>

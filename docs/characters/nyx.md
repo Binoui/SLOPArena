@@ -8,7 +8,7 @@
 
 ## Status
 
-Playable in Training since 2026-10-29 as the real form only, with FightGuy's moves standing in for her own. The two-form engine and her own animations are being built.
+Both forms have authored normals, hit-confirmed F cancels, and their recoveries. Nyxxie's A is Ring Light, a short lunge into a zero-launch dazzle that only catches fighters facing her. Her other three specials use new engine pieces: Grasp (real R) places a catch on her target's spot and drags a caught target to her feet, Hex Crow (real A) is a slow homing crow that perches and pops on her next fake-form hit, and Selfie Grab (fake R) is a lunging command grab with a held selfie and a launch. The owner approved all 24 GenRA candidates and the effect concepts on 2026-10-29. Her own clips and cut-paper effects are now bound in the package. The timing slowdown below lengthens both forms while preserving hitbox shapes and hit reactions. The Stomp-Kick contact mismatch still needs a decision.
 
 | Piece | State | Where |
 | --- | --- | --- |
@@ -16,12 +16,15 @@ Playable in Training since 2026-10-29 as the real form only, with FightGuy's mov
 | 3D models | Received 2026-10-29: one dressed A-pose mesh per form, no rig | [Real](../design/references/nyx/nyx-model-real.jpg), [fake](../design/references/nyx/nyx-model-fake.jpg); files in ignored `tmp/nyx-model/tripo-v1/` |
 | Kit | Accepted 2026-10-29 (below) | This page |
 | Move concepts | Shown 2026-10-29, verdict pending | [Board](../design/references/nyx/nyx-moves.jpg) |
-| Animation pose sheets | 24 made 2026-10-29, owner review pending | Ignored `tmp/nyx-model/anim-sheets/board/` |
-| Rig | Built 2026-10-29: one skeleton, both meshes, the real dress as Unity Cloth; dress shape in big poses awaits the owner | [nyx_rig](../../tools/blender/nyx_rig/README.md); build in ignored `tmp/nyx-model/rig-build-v1/` |
-| Two-form engine | Phases 0 and 1 built 2026-10-29, uncommitted: two grids, swap on F (Going Live pulls, Logging Off pushes, 300-tick shared clock), per-form E clocks, start form picked on Fighter Select | [ADR-0051](../adr/0051-nyx-two-forms.md) |
-| Package | `nyx`, `CharacterClass` 8, admitted 2026-10-29 with FightGuy's kit and clips as placeholders | `client/Unity/Assets/CharacterPackages/nyx/` |
+| Animation pose sheets | 24 made 2026-10-29; all resulting motion candidates approved the same day | Ignored `tmp/nyx-model/anim-sheets/board/` |
+| Rig | Built 2026-10-29: one shared 116-bone skeleton and twelve dress spring chains. The body delegate's spine fit is installed; extreme hem/boot clearance still needs review | [nyx_rig](../../tools/blender/nyx_rig/README.md); build in ignored `tmp/nyx-model/rig-build-v1/` |
+| Two-form engine | Phases 0 and 1 built 2026-10-29, uncommitted: two grids, swap on F (Going Live pulls, Logging Off pushes, 300-tick shared clock), per-form E clocks, start form picked on Fighter Select. Phases 4 to 6 built 2026-10-29, uncommitted: the tether's placed catch, homing and perching projectiles with the pop, and `slop.ability.command-grab.v1` | [ADR-0051](../adr/0051-nyx-two-forms.md) |
+| Package | `nyx`, `CharacterClass` 8, admitted 2026-10-29. The 24 approved clips replace attack, idle and run placeholders | `client/Unity/Assets/CharacterPackages/nyx/` |
+| Normals and existing-capability specials | Phase 2 and 3 implementation, 2026-10-29. Bat Scatter uses immediate thrust with no invincibility; Ring Light Rise steers during ascent; Ring Light now filters fighters by facing | [ADR-0051](../adr/0051-nyx-two-forms.md) |
+| Grasp, Hex Crow, Selfie Grab | Phase 4 to 6 implementation, 2026-10-29, uncommitted. Combos 1 to 3 connect in the Shared sim and in Training. Grasp now shows a warning, shadow hand and drag; Hex Crow uses its own flying/perched paper bird. Phase 7 adds the facing filter, form-aware CPU, HUD decks and Lab form selector | [ADR-0051](../adr/0051-nyx-two-forms.md) |
+| Phase 7 | Built 2026-10-29, uncommitted: facing-filtered Ring Light, cached CPU profiles with range swaps and Normal/Hard hit cancels, live HUD decks and portraits, and both editable Lab grids. HUD icons are borrowed placeholders; final renders remain separate work | [ADR-0051](../adr/0051-nyx-two-forms.md) |
 | Portraits | Installed 2026-10-29, one per form; other takes in ignored `tmp/nyx-model/portraits/` | `Resources/UI/Portraits/Nyx.png`, `Nyx_Fake.png` |
-| Her own animations | GenRA keys and motion for all 24 sheets in progress; nothing binds before the owner approves | Ignored `tmp/nyx-model/genra/` |
+| Her own animations | All 24 approved 2026-10-29, including the four check exceptions. Promoted, bound and cooked with separate pose-track IDs | `Animations/NyxApprovedClips.json`; local evidence in `tmp/nyx-model/integration/` |
 
 ## Look
 
@@ -137,10 +140,115 @@ Each move gets a pose sheet on the actual model before any motion is authored, f
 and a run per form. Idles stay calm, with one slow gesture. The real form's run is the joke "creepy glide": fast
 legs under the dress and a torso that never moves. The fake form runs while filming herself.
 
+## Animation integration, 2026-10-29
+
+`NyxAnimationIntegration` binds all 24 approved candidates from package-owned assets. Every
+clip has its own semantic animation and pose-track ID. Normals, A and the original swap
+takes were authored at twice their game length. Each attack clip now plays over the longer stage clock below. The accepted poses and
+attack clips are preserved. Run cycles stretch from 16 to 24 ticks for Nyx and from 20
+to 26 ticks for Nyxxie, with unchanged movement speeds of 10 and 15 m/s.
+
+Bat Scatter's original source remap is retained. Its stage now lasts 63 ticks and
+its thrust lasts 30 ticks. Going Live lasts 38 ticks with its swap and pull at 11;
+Logging Off lasts 41 ticks with its swap and push at 13. Both keep the shared
+300-tick cooldown. The original accepted takes remain under `Animations/Source`.
+
+### Timing slowdown, 2026-10-29
+
+`tools/nyx/retime.py` applies 1.25 to every move clock, except both ground 1 moves
+which use 1.35. Its journal records the original leaves and applied factors so reruns
+cannot compound. `tools/genra/retime_anim.py` stretches run curves and their tangents
+without changing poses or loop settings. Damage, launch, hit reactions, cooldowns,
+landing lag, crow rules, and movement stats keep their prior values.
+
+The table uses 60 Hz ticks and inclusive active windows. Hex Crow's active entry is
+its launch tick. Grasp and Selfie Grab list capture windows. An IASA of 0 leaves
+completion to the timeline or capability. Air A, E, R, and F alias their ground moves.
+
+| Form | Slot | First contact | Active windows | IASA | Total |
+| --- | --- | --- | --- | --- | --- |
+| real | ground.1 | 11 | 11 to 18 | 32 | 41 |
+| real | ground.3 | 18 | 18 to 31 | 45 | 55 |
+| real | ground.4 | 30 | 30 to 39 | 70 | 80 |
+| real | ground.A | 20 | 20 | 40 | 50 |
+| real | ground.E | none | none | 0 | 63 |
+| real | ground.R | 30 | 30 to 35 | 0 | 105 |
+| real | ground.F | 11 | 11 to 14 | 23 | 38 |
+| real | air.1 | 10 | 10 to 23 | 43 | 50 |
+| real | air.3 | 13 | 13 to 22 | 45 | 53 |
+| real | air.4 | 25 | 25 to 34 | 63 | 70 |
+| fake | ground.1 | 11 | 11 to 15, 22 to 26, 35 to 41 | 51 | 59 |
+| fake | ground.3 | 20 | 20 to 30 | 50 | 60 |
+| fake | ground.4 | 20 | 20 to 28 | 58 | 65 |
+| fake | ground.A | 13 | 13 to 18 | 38 | 45 |
+| fake | ground.E | none | none | 0 | 63 |
+| fake | ground.R | 13 | 13 to 18 | 85 | 95 |
+| fake | ground.F | 13 | 13 to 16 | 25 | 41 |
+| fake | air.1 | 9 | 9 to 21 | 39 | 45 |
+| fake | air.3 | 15 | 15 to 28 | 48 | 55 |
+| fake | air.4 | 15 | 15 to 30 | 53 | 60 |
+
+Nyxxie's Phone Slaps contact ticks are 11, 22, and 35. Both linking hits retain
+14 fixed Hitstun ticks. Source and saved-package sim checks verify that the victim
+stays locked between all three contacts and that the three documented combos connect.
+The full before/after table and verification receipts are local in
+`tmp/nyx-model/timing-slowdown/REPORT.md`.
+
+## Combat presentation, 2026-10-29
+
+The approved concepts use ink, dark, accent and pale bands. Real effects use violet
+`#5B2A86` and lavender `#D9C8F0`; fake effects use hot pink `#FF4FA3` and white. The package
+paper shader has no emission, bloom, smoke or camera-shake behavior. Mesh cues follow the
+restored attack clock, so their active silhouettes stop during hitstop and on interruption.
+
+`tools/nyx/build_paper_assets.py` makes the source meshes and palette offline.
+`sloparena.presentation.nyx.build` assembles separate prefabs with the roster's
+`PresentationBuilderKit`. It preserves the existing phone and pole bindings and never
+writes `NyxRig.prefab`.
+
+The direction-readability pass replaces Ring Light's filled pyramid with a small hoop and
+six separated pink/white rays. Hands turn toward the gameplay camera around their own
+up axes; the aerial claw/fist have open centres, and Grasp's catch and carried hand are
+smaller and offset beside the victim. Bat,
+launch-feather and swap-scrap faces use the same yaw-facing presentation with varied rolls.
+Going Live uses one thin hoop about 1.5 fighter heights across, a small flash and hearts.
+Contact stars have a shorter peak and smaller fragments. These changes preserve the
+attack clock, gameplay data, rig and flat comic palette. Eight-view before/after evidence
+and remaining limits are recorded locally in `tmp/nyx-model/vfx-direction-fix/REPORT.md`.
+
+All IDs below have the prefix `presentation.nyx.`.
+
+| Form | Move | Effect ID |
+| --- | --- | --- |
+| Real | Shadow Flick | `shadow-claws` |
+| Real | Grasping Hands | `rising-hands` |
+| Real | Shadow Lash | `floor-lash` |
+| Real | Shadow Ring | `shadow-ring` |
+| Real | Up Claw | `up-claw` |
+| Real | Shadow Fist | `spike-fist` |
+| Real | Hex Crow | `crow-launch`, `crow`, `crow-pop` |
+| Real | Bat Scatter | `bat-scatter` |
+| Real | Grasp | `grasp-warning`, `grasp-catch`, `grasp-drag` |
+| Real | Going Live | `going-live` |
+| Fake | Phone Slaps | `phone-slaps` |
+| Fake | Ring Light Uppercut | `pole-uppercut` |
+| Fake | Platform Stomp-Kick | `stomp-impact` |
+| Fake | Spinning Slap | `spin-arc` |
+| Fake | Ring Light Overhead | `pole-overhead` |
+| Fake | Double Dropkick | `dropkick-spike` |
+| Fake | Ring Light | `ring-light` |
+| Fake | Ring Light Rise | `rotor-arcs` |
+| Fake | Selfie Grab | `selfie-pop`, `selfie-release` |
+| Fake | Logging Off | `logging-off` |
+| Both | Confirmed contacts | `shadow-hit`, `pink-hit` |
+
+The crow's projectile profile binds both A variants. Resolver attachment places it on the
+victim's head; its wings fold on a perch. Only the authored pop makes feathers and shadow.
+Grasp warning/catch cues use its existing capability events. The placed-tether presenter
+carries a bound shadow-hand prefab during the drag and suppresses the borrowed ring/rope.
+
 ## Open items
 
-- The owner's verdict on the move concepts and the pose sheets.
-- The shared skeleton for both bodies, her package and the engine phases of
-  [ADR-0051](../adr/0051-nyx-two-forms.md).
-- The phone, as a separate prop in her right hand.
-- Her package, sounds, portrait and HUD move deck for both forms.
+- In-game visual and feel acceptance of the integrated animations and effects remains with the owner.
+- Stomp-Kick's approved right boot sits above its unchanged low capsule at contact. The inspected ankle is approximately 0.17 m outside it. Proposed correction, not applied: raise both capsule Y offsets by 0.30 m, from -0.45/-0.15 to -0.15/+0.15, then verify standing, crouched and airborne contacts. The original take and hitbox are unchanged.
+- Final HUD glyphs, sounds and the owner's Fighter's License decision remain separate work.

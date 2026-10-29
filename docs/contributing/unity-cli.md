@@ -34,6 +34,15 @@ unity doctor
 Use `--format json` for automation. Results are written to stdout, errors to stderr, and
 command failure produces a nonzero exit code.
 
+Check for a running Editor before `unity open`. The gateway reports a missing descriptor both
+when no Editor runs and while one is still starting. A Hub-launched Editor runs as
+`unityhub-unity-editor-<version> -projectpath …`, so look for it with
+`pgrep -af -- '-projectpath .*client/Unity'` and rerun gateway `status` after a minute.
+Opening a project that is already open starts a second Editor that quits at once, but first it
+rotates the log: the live Editor keeps writing to `~/.config/unity3d/Editor-prev.log`, and the
+older log is lost. Moving `Editor-prev.log` back to `Editor.log` restores the live log's usual
+path. This happened on 2026-10-29.
+
 ### Gateway baseline and upgrades
 
 The shipped [ownership gateway](../../scripts/unity-editor-gateway.ts) uses the

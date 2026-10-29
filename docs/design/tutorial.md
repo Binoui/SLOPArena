@@ -81,7 +81,14 @@ The end card reads *LICENSE GRANTED* and offers Training or the menu.
 
 Objective rules are deliberately lenient where the game allows several ways: any block
 counts, the tallest block can be climbed, any special activation counts even without a
-hit, and the throw counts once the dummy is released.
+hit, and the throw counts once the player's paired throw releases the dummy.
+A damaging interruption cannot complete that objective, even when it produces
+Hitstun. A zero-damage Mayhem shove still counts as a release.
+
+The Grab & Throw prompt explains that startup turns toward a nearby fighter and
+that a Beeline can hold a grab for grounded arrival. During the hold, the pair
+stands still. Press any attack with a held direction to fling, or with a neutral
+stick to toss up. The up toss allows a jump and aerial chase at low percent.
 
 ## Findings that shape the lessons
 

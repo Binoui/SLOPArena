@@ -1,0 +1,161 @@
+{
+  "name": "nyx-real-g4",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-realmoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Real form: her long black dress is not in this rig. It is simulated cloth hanging from her hips to her ankles, so pose the body only, and keep her knees and boots where a long skirt can still hang over them: no high knees, no wide stances.",
+  "notes": "Nyx real form ground.4 (anim.nyx.g4), from her pose sheet real-g4 (2026-10-29). Proposed game timing: {\"total\": 64, \"contact\": 24, \"active\": [24, 31], \"iasa\": 56, \"model\": \"FightGuy Double Kick 69/12/64, Wibou Heavy Down Slash 74/41/63; slow startup for the long reach\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyx's real-form ground.4, Shadow Lash: her slow, long-reaching big move. Her right arm sweeps forward and down and a long shadow tendril lashes along the floor in front of her.\n\nWho she is. Nyx in her real form (image 1): a deadpan trad-goth shadow witch, a stark white face, black lips, waist-length straight black hair with blunt bangs, a long black dress with puffed shoulders, silver chains and an ankh, studded bangles, black platform boots. She stands straight and stiff, bored and unimpressed. Her body barely moves: her shadows do the hitting (claws, hands, tendrils, added later as effects, not in this clip). Her moves are small, stiff, deliberate gestures of one hand or both: precise and economical, with a slight anticipation, a crisp gesture, a held beat and a clean return. Barely moving means small amplitudes, not a statue: the chest breathes, the head settles a degree or two, the free hand's fingers relax, so nothing parks dead still, but nothing moves big. Her feet stay planted and her torso upright.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nA forward hit lands on her centre line, well ahead of her chest, not beside her shoulder. After the hit the ending lag is plain: she regains her balance and the arms take the shortest calm path back to the stance. No flourish, no gesture after the hit.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.912 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.009 m above the floor and the ankle (Foot) about 0.184 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `realstance`, the entry and exit pose): standing perfectly upright, heels together, arms straight down at her sides, chin level, a flat dead stare.\n\nThe clip (128 ticks, played once):\n- Tick 0: The stance.\n- Tick 14: The wind-up begins: her shoulders turn a little to her LEFT.\n- Tick 34: Wound up: chest turned 15-20 degrees to her left, her right arm drawn back across her body at waist height, the right hand in front of her left hip, palm down, fingers together. Head stays facing ahead; eyes on the target. The feet do not move.\n- Tick 42: Still drawing in, a moving hold: the hand slides 3-4 cm further back.\n- Tick 48: The lash (contact): the right arm sweeps forward and down, the hand passing out in front of her to about 0.45 m ahead of her hips on her centre line, at hip height, arm almost straight, palm down, fingers spread. The chest turns back past square to 5-10 degrees right.\n- Tick 62: Held at full reach while the tendril is out: the arm drifts 2-3 cm lower.\n- Tick 80: The arm returns toward her side by the shortest path; the chest squares.\n- Tick 112: Arm at her side; she can act again.\n- Tick 128: The stance, matching tick 0.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "realstance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 128,
+    "contact_tick": 48,
+    "active": [
+      48,
+      62
+    ],
+    "iasa_tick": 112
+  },
+  "timing": {
+    "fixed": [
+      "128 ticks played once",
+      "contact at tick 48, active ticks 48-62; the player can act from tick 112",
+      "authored at 2x the proposed game length (64 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her realstance pose and tick 128 her realstance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/real/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/real-g4.png"
+  ],
+  "image_notes": "1: Nyx's real form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'ready': upright, arms at her sides; pose 2 'wind-up': a slight turn of the shoulders, her right arm drawn back across her body at waist height, palm down; pose 3 'lash': her right arm sweeps forward and down toward the left; a long faceted shadow tendril lashes along the floor in front of her, reaching twice her height in length; pose 4 'hold': arm extended low toward the left, the tendril at full reach; pose 5 'recover': arm returning to her side, the tendril retracting. Sheet note: Her slow, long-reach kill move. The shoulders turn a little; feet stay planted. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    14,
+    34,
+    42,
+    48,
+    62,
+    80,
+    112,
+    128
+  ],
+  "review_ticks": [
+    0,
+    7,
+    14,
+    24,
+    34,
+    38,
+    42,
+    45,
+    48,
+    55,
+    62,
+    71,
+    80,
+    96,
+    112,
+    120,
+    128
+  ],
+  "exit": {
+    "reference": "realstance",
+    "tick": 0,
+    "from_tick": 128
+  },
+  "fast_windows": [
+    [
+      42,
+      50
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "planted": [
+    "LeftFoot",
+    "LeftToeBase",
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor at tick 48 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.923,
+      "max": -0.873
+    },
+    {
+      "name": "RightToeBase on the floor at tick 48 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.923,
+      "max": -0.873
+    },
+    {
+      "name": "wind-up: right hand across in front of her left hip (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 34,
+      "max": 0.02
+    },
+    {
+      "name": "wind-up: right hand at waist height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 34,
+      "min": -0.05,
+      "max": 0.2
+    },
+    {
+      "name": "lash: right hand far ahead (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 48,
+      "min": 0.38
+    },
+    {
+      "name": "lash: right hand on her centre line (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 48,
+      "min": -0.08,
+      "max": 0.12
+    },
+    {
+      "name": "lash: right hand low, at hip height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "tick": 48,
+      "min": -0.15,
+      "max": 0.12
+    }
+  ]
+}

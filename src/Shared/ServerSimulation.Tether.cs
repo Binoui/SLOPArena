@@ -32,15 +32,17 @@ namespace SlopArena.Shared
         private const float ArrivalTolerance = 0.05f;
 
         /// <summary>
-        /// Two rings that meet each other's throwers in one batch clash: both contacts drop, so both rings are spent
-        /// without a catch and both throwers reel back empty, as reciprocal grabs clash.
+        /// Two catches that meet each other's owners in one batch clash, as reciprocal grabs do: both contacts drop.
+        /// Rings are spent, so both throwers reel back empty; clinch lunges cannot catch each other again and run on.
+        /// A shield stops a ring, never a clinch (ADR-0053).
         /// </summary>
-        private void ClashTetherCatches(List<SpellResolver.HitResult> hits)
+        private void ClashCatches(List<SpellResolver.HitResult> hits)
         {
             List<int>? rings = null;
             for (int i = 0; i < hits.Count; i++)
-                if (ContactAbility(hits[i])?.Tether is { Catches: true }
-                    && _states.TryGetValue(hits[i].TargetEntityId, out var target) && target.State != ActionState.Shielding)
+                if (ContactAbility(hits[i]) is { } ability && _states.TryGetValue(hits[i].TargetEntityId, out var target)
+                    && (ability.Tether is { Catches: true } && target.State != ActionState.Shielding
+                        || ability.Clinch is { Catches: true } || ability.CommandGrab is { Catches: true }))
                     (rings ??= new List<int>()).Add(i);
             if (rings == null || rings.Count < 2) return;
             var clashed = new SortedSet<int>();

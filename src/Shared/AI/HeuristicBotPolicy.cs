@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace SlopArena.Shared.AI;
 
@@ -392,10 +393,29 @@ public sealed class HeuristicBotPolicy
     }
 
 
+    private sealed record MoveProfile(CharacterDefinition Definition, BakedAnimationData? Baked,
+        MoveCandidate[] Ground, MoveCandidate[] Air);
+    private readonly List<MoveProfile> _profiles = new();
     private CharacterDefinition? _profileDefinition;
     private BakedAnimationData? _profileBaked;
     private MoveCandidate[] _profile = Array.Empty<MoveCandidate>();
     private MoveCandidate[] _airProfile = Array.Empty<MoveCandidate>();
+
+    /// <summary>Capture the target's current-form reach with the observation, subject to the same reaction delay.</summary>
+    public void ObserveOpponent(BotMemory memory, in CharacterState target, CharacterDefinition definition,
+        BakedAnimationData? baked = null)
+    {
+        var profile = FindProfile(definition.ForForm(target.Form.Active), baked);
+        float reach = 0f;
+        foreach (var move in target.IsGrounded ? profile.Ground : profile.Air)
+            if (target.AttackSlot == 0 || move.Slot == target.AttackSlot)
+                reach = MathF.Max(reach, move.Reach);
+        memory.ObserveOpponent(target, reach);
+    }
+
+    private static bool Threatens(in CharacterState self, in CpuObservation target)
+        => target.IsThreatening && Distance(target.PX - self.PX, target.PZ - self.PZ)
+            <= target.ThreatReach + VictimRadiusMargin;
 
     public InputState Decide(in CharacterState self, in CharacterState target,
         CharacterDefinition def, Random rng, BotMemory memory, CookedSlotDefinition? activeMove = null)
@@ -429,14 +449,15 @@ public sealed class HeuristicBotPolicy
     public InputState Decide(in CharacterState self, CharacterDefinition def,
         Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked = null,
         CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null,
-        MayhemThreats? mayhemThreats = null)
+        MayhemThreats? mayhemThreats = null, bool canSwapCancel = false)
     {
         if (mayhemThreats.HasValue && mayhemThreats.Value.TryAvoid(self, def, arena, out var escape))
         {
             memory.ClearPlan();
             return escape;
         }
-        var input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove);
+        def = def.ForForm(self.Form.Active);
+        var input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove, canSwapCancel);
         // Recovery is allowed to cross an edge. Ordinary grounded approach, retreat,
         // and circling must stay on supported ground, including around stage holes.
         if (self.IsGrounded && self.State != ActionState.LedgeHang
@@ -448,7 +469,7 @@ public sealed class HeuristicBotPolicy
 
     private InputState DecideAction(in CharacterState self, CharacterDefinition def,
         Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked,
-        CpuBehavior behavior, CookedSlotDefinition? activeMove)
+        CpuBehavior behavior, CookedSlotDefinition? activeMove, bool canSwapCancel)
     {
         if (memory.Behavior != behavior)
         {
@@ -469,6 +490,16 @@ public sealed class HeuristicBotPolicy
             && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
             && (ActionStates.AdmitsActions(self.State)
                 || Simulation.IsIasaUnlocked(in self, activeMove));
+        if (behavior == CpuBehavior.Attack && movementAllowed && self.BlockStunTicks == 0 && canSwapCancel
+            && memory.Difficulty != CpuDifficulty.Easy && self.AttackSlot != AbilitySlots.F
+            && def.AlternateForm != null && self.GetCooldown(AbilitySlots.F) == 0
+            && memory.TryGetNewHit(out var confirmed) && confirmed.Slot == self.AttackSlot)
+        {
+            memory.MarkHitEvaluated(confirmed);
+            memory.ClearPlan();
+            return new InputState { ActiveSlot = AbilitySlots.F,
+                AimYaw = AimYaw(confirmed.PX - self.PX, confirmed.PZ - self.PZ), FaceToCamera = true };
+        }
         if (memory.PlanPhase != BotPlanPhase.None
             && memory.PlanKind != BotPlanKind.Recovery)
         {
@@ -494,7 +525,7 @@ public sealed class HeuristicBotPolicy
         if (self.State == ActionState.Shielding)
             return behavior == CpuBehavior.Shield
                 || behavior == CpuBehavior.Attack
-                    && memory.TryGetDelayedOpponent(out var threat) && threat.IsThreatening
+                    && memory.TryGetDelayedOpponent(out var threat) && Threatens(self, threat)
                 ? new InputState { ShieldHeld = true }
                 : default;
         if (!actionable)
@@ -527,6 +558,23 @@ public sealed class HeuristicBotPolicy
 
         input.AimYaw = AimYaw(dx, dz);
         input.FaceToCamera = true;
+        if (def.AlternateForm != null && memory.DecisionTicksRemaining == 0
+            && CanPress(self, def, AbilitySlots.F, activeMove))
+        {
+            var fake = FindProfile(def.ForForm(1), baked);
+            var closeMoves = self.IsGrounded ? fake.Ground : fake.Air;
+            float closeRange = 0f;
+            foreach (var move in closeMoves)
+                if (IsNormalSlot(move.Slot) && move.Functional)
+                    closeRange = MathF.Max(closeRange, move.Reach + VictimRadiusMargin);
+            byte desiredForm = dist <= closeRange ? (byte)1 : (byte)0;
+            if (desiredForm != self.Form.Active)
+            {
+                input.ActiveSlot = AbilitySlots.F;
+                memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
+                return input;
+            }
+        }
         bool targetOffstage = IsOffstage(target, in arena, _recoveryMinSurface);
 
         // Range error is an intentional tier-specific spacing error around real reach.
@@ -536,7 +584,8 @@ public sealed class HeuristicBotPolicy
         bool allowRecoveryMove = !IsNearEdge(self, in arena);
         float maxReach = MaxConnectReach(self, rangeScale, allowRecoveryMove, in arena, activeMove);
         bool inRange = dist <= maxReach || ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove)
-            || ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove);
+            || ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove)
+            || ReadyClinch(in self, in target, allowRecoveryMove, in arena, activeMove);
         if (!inRange && !targetOffstage)
         {
             input.MoveX = dx / dist;
@@ -549,7 +598,7 @@ public sealed class HeuristicBotPolicy
         memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
         // A fighter with every attack cooling down still needs to guard nearby
         // pressure; offensive reach must not disable the defensive decision.
-        if (!inRange && self.IsGrounded && target.IsThreatening
+        if (!inRange && self.IsGrounded && Threatens(self, target)
             && dist <= 2f * def.CapsuleRadius
             && rng.NextDouble() < profile.DefenseChance)
         {
@@ -572,7 +621,7 @@ public sealed class HeuristicBotPolicy
             return input;
         }
 
-        bool targetThreatening = target.IsThreatening;
+        bool targetThreatening = Threatens(self, target);
         var candidate = ChooseSlot(self, target, dist, rangeScale, rng,
             profile.SpecialChance, allowRecoveryMove: !IsNearEdge(self, in arena), in arena, activeMove);
 
@@ -656,7 +705,7 @@ public sealed class HeuristicBotPolicy
         }
         input.MoveX = dx / distance;
         input.MoveY = dz / distance;
-        if (!self.IsGrounded && target.IsThreatening && self.AirDodgesLeft > 0
+        if (!self.IsGrounded && Threatens(self, target) && self.AirDodgesLeft > 0
             && memory.DecisionTicksRemaining == 0)
         {
             memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
@@ -815,9 +864,9 @@ public sealed class HeuristicBotPolicy
         float dist = Distance(dx, dz);
         var pressure = ChooseSlot(self, target, dist, rangeScale, rng,
             profile.SpecialChance, allowRecoveryMove, in arena, activeMove);
-        if (!pressure.HasValue || (!target.IsThreatening && memory.RemainingHitstun(hit) == 0))
+        if (!pressure.HasValue || (!Threatens(self, target) && memory.RemainingHitstun(hit) == 0))
             return;
-        if (!target.IsThreatening && rng.NextDouble() >= profile.AttackChance)
+        if (!Threatens(self, target) && rng.NextDouble() >= profile.AttackChance)
             return;
 
         var pressureMove = pressure.GetValueOrDefault();
@@ -921,20 +970,32 @@ public sealed class HeuristicBotPolicy
             AimDistance = memory.PlanAimDistance,
         };
 
-    private void EnsureProfile(CharacterDefinition def, BakedAnimationData? baked)
+    private MoveProfile FindProfile(CharacterDefinition def, BakedAnimationData? baked)
     {
-        if (ReferenceEquals(_profileDefinition, def) && ReferenceEquals(_profileBaked, baked))
-            return;
-
-        _profileDefinition = def;
-        _profileBaked = baked;
-        _profile = new MoveCandidate[Slots.Length];
-        _airProfile = new MoveCandidate[Slots.Length];
+        foreach (var cached in _profiles)
+            if (ReferenceEquals(cached.Definition, def) && ReferenceEquals(cached.Baked, baked))
+                return cached;
+        var ground = new MoveCandidate[Slots.Length];
+        var air = new MoveCandidate[Slots.Length];
         for (int i = 0; i < Slots.Length; i++)
         {
-            EvaluateMove(def, Slots[i], airborne: false, baked, out _profile[i]);
-            EvaluateMove(def, Slots[i], airborne: true, baked, out _airProfile[i]);
+            EvaluateMove(def, Slots[i], false, baked, out ground[i]);
+            EvaluateMove(def, Slots[i], true, baked, out air[i]);
         }
+        var result = new MoveProfile(def, baked, ground, air);
+        _profiles.Add(result);
+        if (def.AlternateForm != null) FindProfile(def.ForForm((byte)(def.Form ^ 1)), baked);
+        return result;
+    }
+
+    private void EnsureProfile(CharacterDefinition def, BakedAnimationData? baked)
+    {
+        if (ReferenceEquals(_profileDefinition, def) && ReferenceEquals(_profileBaked, baked)) return;
+        var profile = FindProfile(def, baked);
+        _profileDefinition = def;
+        _profileBaked = baked;
+        _profile = profile.Ground;
+        _airProfile = profile.Air;
     }
     private bool HasSafeAttackTravel(in CharacterState self, in MoveCandidate candidate,
         in ArenaDefinition arena)
@@ -980,6 +1041,7 @@ public sealed class HeuristicBotPolicy
     private bool IsCandidateAvailable(in CharacterState self, in MoveCandidate candidate,
         bool air, bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
         => candidate.Functional
+            && !(_profileDefinition!.AlternateForm != null && candidate.Slot == AbilitySlots.F)
             && (allowRecoveryMove || !candidate.IsRecovery)
             && !HasCooldown(self, _profileDefinition!, candidate.Slot, activeMove)
             && !IsChargePoolExhausted(self, candidate.Slot, air)
@@ -1001,7 +1063,8 @@ public sealed class HeuristicBotPolicy
             else
                 specialMax = MathF.Max(specialMax, reach);
         }
-        return normalMax > 0f ? normalMax : specialMax;
+        return _profileDefinition!.AlternateForm != null ? MathF.Max(normalMax, specialMax)
+            : normalMax > 0f ? normalMax : specialMax;
     }
     private MoveCandidate? ChooseSlot(in CharacterState self, in CpuObservation target,
         float dist, float rangeScale, Random rng, float specialChance,
@@ -1012,6 +1075,14 @@ public sealed class HeuristicBotPolicy
             return air ? _airProfile[5] : _profile[5];
         if (ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove))
             return air ? _airProfile[FlashIndex] : _profile[FlashIndex];
+        if (ReadyClinch(in self, in target, allowRecoveryMove, in arena, activeMove))
+            return air ? _airProfile[FlashIndex] : _profile[FlashIndex];
+        if (target.State == ActionState.Shielding)
+            foreach (var grab in air ? _airProfile : _profile)
+                if (HasCommandGrab(_profileDefinition!.GetCookedSlotAbility(grab.Slot, air))
+                    && dist <= grab.Reach + VictimRadiusMargin
+                    && IsCandidateAvailable(self, grab, air, allowRecoveryMove, in arena, activeMove))
+                    return grab;
         Span<MoveCandidate> viable = stackalloc MoveCandidate[Slots.Length];
         int count = 0;
         int damagingCount = 0;
@@ -1058,9 +1129,10 @@ public sealed class HeuristicBotPolicy
                 normalCount++;
         if (normalCount > 0 && normalCount < count)
         {
+            bool pickSpecial = _profileDefinition!.AlternateForm != null && rng.NextDouble() < specialChance;
             int write = 0;
             for (int i = 0; i < count; i++)
-                if (IsNormalSlot(viable[i].Slot))
+                if (IsNormalSlot(viable[i].Slot) != pickSpecial)
                     viable[write++] = viable[i];
             count = write;
         }
@@ -1070,16 +1142,20 @@ public sealed class HeuristicBotPolicy
         // so a clearly strong response remains eligible to repeat.
         float bestScore = float.NegativeInfinity;
         for (int i = 0; i < count; i++)
-            bestScore = MathF.Max(bestScore, Score(viable[i], dist, target.IsThreatening));
+            bestScore = MathF.Max(bestScore, Score(viable[i], dist, Threatens(self, target)));
 
         Span<MoveCandidate> best = stackalloc MoveCandidate[Slots.Length];
         int bestCount = 0;
         for (int i = 0; i < count; i++)
-            if (Score(viable[i], dist, target.IsThreatening) >= bestScore - 2f)
+            if (Score(viable[i], dist, Threatens(self, target)) >= bestScore - 2f)
                 best[bestCount++] = viable[i];
         return best[rng.Next(bestCount)];
     }
 
+
+    private static bool HasCommandGrab(CookedSlotDefinition? move)
+        => move != null && move.Timeline.Stages.Any(stage => stage.Operations.Any(op =>
+            op is CookedStartCapabilityOperation { Parameters: CookedCommandGrabCapabilityParameters }));
 
     private static readonly int FlashIndex = Array.IndexOf(Slots, AbilitySlots.F);
 
@@ -1100,6 +1176,30 @@ public sealed class HeuristicBotPolicy
             && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
     }
 
+    /// <summary>
+    /// A clinch is worth its long cooldown where a shield cannot stop it, or when the launch at the end can KO: the
+    /// target stands where the lunge's catch will reach it, shielding or at <see cref="ClinchKillPercent"/> or more.
+    /// </summary>
+    private bool ReadyClinch(in CharacterState self, in CpuObservation target,
+        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
+    {
+        bool air = !self.IsGrounded;
+        if (target.State != ActionState.Shielding && target.DamagePercent < ClinchKillPercent) return false;
+        CookedClinchCapabilityParameters? clinch = null;
+        foreach (var operation in _profileDefinition!.GetCookedSlotAbility(AbilitySlots.F, air)?.Timeline.Stages[0].Operations
+                     ?? Array.Empty<CookedTimelineOperation>())
+            if (operation is CookedStartCapabilityOperation { Parameters: CookedClinchCapabilityParameters p }) clinch = p;
+        if (clinch == null || FlashIndex < 0) return false;
+        float dx = target.PX - self.PX, dy = target.PY - self.PY, dz = target.PZ - self.PZ;
+        float reach = clinch.LungeDistance + clinch.CatchHitbox.OffsetZ + clinch.CatchHitbox.Radius;
+        var candidate = air ? _airProfile[FlashIndex] : _profile[FlashIndex];
+        return MathF.Sqrt(dx * dx + dz * dz) <= reach && MathF.Abs(dy) <= clinch.CatchHitbox.Radius + 0.5f
+            && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
+    }
+
+    // Title Match's launch KOs off Training from about 75% (ADR-0053); a little earlier still carries it.
+    private const ushort ClinchKillPercent = 70;
+
     private bool ReadyDashStrikeTip(in CharacterState self, in CpuObservation target,
         bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
@@ -1112,11 +1212,12 @@ public sealed class HeuristicBotPolicy
             && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
     }
 
-    private static float Score(in MoveCandidate candidate, float dist, bool threatening)
+    private float Score(in MoveCandidate candidate, float dist, bool threatening)
         => (candidate.HasDamage ? 100f : 10f)
             + (threatening && candidate.HasDamage ? 5f : 0f)
             + candidate.Damage * 0.1f
-            - MathF.Abs(candidate.Reach - dist) * 0.2f
+            - (_profileDefinition!.AlternateForm != null ? MathF.Max(0f, dist - candidate.Reach)
+                : MathF.Abs(candidate.Reach - dist)) * 0.2f
             - candidate.StartupTicks * 0.05f;
 
     private bool IsChargePoolExhausted(in CharacterState state, byte slot, bool air)
@@ -1160,7 +1261,7 @@ public sealed class HeuristicBotPolicy
                                 animationNames, (byte)stageIndex, baked);
                             hitReach = MathF.Max(hitReach,
                                 poseReach > 0f ? poseReach : DirectForwardReach(evt));
-                            hasDamage |= hitbox.Hitbox.Damage > 0f;
+                            hasDamage |= hitbox.Hitbox.Damage > 0f || hitbox.Hitbox.FixedHitstunTicks > 0;
                             damage += MathF.Max(0f, hitbox.Hitbox.Damage);
                             break;
                         case CookedSpawnProjectileOperation projectile:
@@ -1173,7 +1274,8 @@ public sealed class HeuristicBotPolicy
                                 MathF.Max(0f, projectile.Projectile.LaunchOffsetZ)
                                 + projectile.Projectile.Radius);
                             functional = true;
-                            damage += MathF.Max(0f, projectile.Projectile.Damage);
+                            damage += MathF.Max(0f, projectile.Projectile.Damage) + (projectile.Projectile.Perch?.Pop.Damage ?? 0f);
+                            hasDamage |= projectile.Projectile.Damage > 0f || projectile.Projectile.Perch != null;
                             hitReach = MathF.Max(hitReach,
                                 travelOffset + projectile.Projectile.Speed * flight / 60f);
                             break;
@@ -1204,7 +1306,15 @@ public sealed class HeuristicBotPolicy
                                 ref damage, ref hasDamage, ref hasMovement,
                                 ref recoveryHorizontal, ref recoveryVertical,
                                 ref recoveryRequiresDelayedOpponent);
-                            if (capability.Parameters is CookedCycloneKickCapabilityParameters cyclone)
+                            if (capability.Parameters is CookedAimedRecoveryCapabilityParameters recovery)
+                            {
+                                hasMovement = true;
+                                float vertical = MathF.Max(recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed);
+                                float gravity = MathF.Max(1f, def.Movement.Gravity);
+                                recoveryVertical = MathF.Max(recoveryVertical, vertical * vertical / (2f * gravity));
+                                recoveryHorizontal = MathF.Max(recoveryHorizontal, recovery.HorizontalSpeed * 2f * vertical / gravity);
+                            }
+                            else if (capability.Parameters is CookedCycloneKickCapabilityParameters cyclone)
                             {
                                 // Cyclone brakes when its capability expires, before timeline recovery ends.
                                 float committed = cyclone.ForwardSpeed
@@ -1213,6 +1323,10 @@ public sealed class HeuristicBotPolicy
                                 hitReach = MathF.Max(hitReach, committed
                                     + MathF.Max(cyclone.BodyRadius, cyclone.SideOffset + cyclone.SideRadius));
                             }
+                            else if (capability.Parameters is CookedCommandGrabCapabilityParameters grab)
+                                forwardTravel = MathF.Max(forwardTravel, grab.LungeSpeed * grab.LungeTicks / 60f);
+                            else if (capability.Parameters is CookedClinchCapabilityParameters clinch)
+                                forwardTravel = MathF.Max(forwardTravel, clinch.LungeDistance);
                             else if (capability.Parameters is CookedDashStrikeCapabilityParameters dash)
                             {
                                 forwardTravel = MathF.Max(forwardTravel, dash.Distance);
@@ -1257,7 +1371,8 @@ public sealed class HeuristicBotPolicy
     private static float DirectForwardReach(in HitboxEvent evt)
         => MathF.Max(evt.OffZ, evt.EndOffZ) + evt.Radius;
     private static bool IsSupportedCapability(CookedCapabilityParameters parameters)
-        => parameters is CookedRisingDragonCapabilityParameters
+        => parameters is CookedAimedRecoveryCapabilityParameters
+            or CookedRisingDragonCapabilityParameters
             or CookedCycloneKickCapabilityParameters
             or CookedChargedProjectileCapabilityParameters
             or CookedChargedStreamCapabilityParameters
@@ -1269,6 +1384,8 @@ public sealed class HeuristicBotPolicy
             or CookedSteeredChargeCapabilityParameters
             or CookedThrustCapabilityParameters
             or CookedTetherCapabilityParameters
+            or CookedClinchCapabilityParameters
+            or CookedCommandGrabCapabilityParameters
             or CookedCannonballCapabilityParameters
             or CookedMankiRoundBombCapabilityParameters
             or CookedMankiJetpackBoostCapabilityParameters
@@ -1336,13 +1453,27 @@ public sealed class HeuristicBotPolicy
                 // The hop only travels; the shell's splash is not part of the move.
                 movementReach = MathF.Max(movementReach, x.MaxRange);
                 hasMovement = true; break;
-            case CookedTetherCapabilityParameters x:
-                // The ring is thrown like a projectile; the catch and the reel are not modelled.
-                hitReach = MathF.Max(hitReach, MathF.Max(0f, x.Projectile.LaunchOffsetZ)
-                    + x.Projectile.Radius + x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
-                damage += x.Projectile.Damage;
-                hasDamage |= x.Projectile.Damage > 0f;
+            case CookedTetherCapabilityParameters { AtTarget: { } at }:
+                // The placed catch reaches as far as its spot; the reel is not modelled.
+                hitReach = MathF.Max(hitReach, at.MaxRange + at.Radius);
+                damage += at.Damage;
+                hasDamage |= at.Damage > 0f;
                 break;
+            case CookedTetherCapabilityParameters { Projectile: { } ring }:
+                // The ring is thrown like a projectile; the catch and the reel are not modelled.
+                hitReach = MathF.Max(hitReach, MathF.Max(0f, ring.LaunchOffsetZ)
+                    + ring.Radius + ring.Speed * ring.MaxFlightTicks / 60f);
+                damage += ring.Damage;
+                hasDamage |= ring.Damage > 0f;
+                break;
+            case CookedCommandGrabCapabilityParameters x:
+                hitReach = MathF.Max(hitReach, x.LungeSpeed * x.LungeTicks / 60f
+                    + MathF.Max(x.Capture.OffsetZ, x.Capture.EndOffsetZ) + x.Capture.Radius);
+                damage += x.Launch.Damage; hasDamage = true; hasMovement = true; break;
+            case CookedClinchCapabilityParameters x:
+                // The lunge catches whoever its sphere meets; the held hits are the hold stage's own hitboxes.
+                hitReach = MathF.Max(hitReach, x.LungeDistance + x.CatchHitbox.OffsetZ + x.CatchHitbox.Radius);
+                damage += x.CatchHitbox.Damage; hasDamage = true; hasMovement = true; break;
             case CookedSteeredChargeCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.GallopSpeed * x.MaxGallopTicks / 60f
                     + MathF.Max(x.LanceHitbox.OffsetZ, x.LanceHitbox.EndOffsetZ) + x.LanceHitbox.Radius);
@@ -1364,11 +1495,13 @@ public sealed class HeuristicBotPolicy
     private static ushort CapabilityFirstActiveTicks(CookedCapabilityParameters parameters)
         => parameters switch
         {
+            CookedAimedRecoveryCapabilityParameters x => x.StartupTicks,
             CookedRisingDragonCapabilityParameters x => x.RiseDelay,
             CookedCycloneKickCapabilityParameters x => x.WindupTicks,
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
             CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
-            CookedTetherCapabilityParameters x => x.ThrowTick,
+            CookedTetherCapabilityParameters x => x.AtTarget?.WarningTicks ?? x.ThrowTick,
+            CookedCommandGrabCapabilityParameters x => x.CaptureTick,
             CookedCannonballCapabilityParameters x => x.TakeoffTick,
             CookedFingerGunsCapabilityParameters x => x.FireTriggerTick,
             CookedDashStrikeCapabilityParameters _ => 0,
@@ -1392,11 +1525,11 @@ public sealed class HeuristicBotPolicy
                 travelOffset = MathF.Max(travelOffset,
                     MathF.Max(0f, x.Projectile.LaunchOffsetZ) + x.Projectile.Radius);
                 break;
-            case CookedTetherCapabilityParameters x:
-                travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);
-                travelSpeed = MathF.Max(travelSpeed, x.Projectile.Speed);
+            case CookedTetherCapabilityParameters { Projectile: { } ring }:
+                travelTicks = Math.Max(travelTicks, ring.MaxFlightTicks);
+                travelSpeed = MathF.Max(travelSpeed, ring.Speed);
                 travelOffset = MathF.Max(travelOffset,
-                    MathF.Max(0f, x.Projectile.LaunchOffsetZ) + x.Projectile.Radius);
+                    MathF.Max(0f, ring.LaunchOffsetZ) + ring.Radius);
                 break;
             case CookedChargedStreamCapabilityParameters x:
                 travelTicks = Math.Max(travelTicks, x.Projectile.MaxFlightTicks);

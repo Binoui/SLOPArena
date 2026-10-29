@@ -351,9 +351,10 @@ namespace SlopArena.Shared
             Write(w, evt.Knockback);
             w.WriteUShort(evt.StunTicks);
             w.WriteUShort(evt.FixedHitstunTicks);
-            w.WriteBool(evt.Interruptible);
+            w.WriteByte((byte)((evt.Interruptible ? 1 : 0) | (evt.RequiresFacingOwner ? 2 : 0)));
             w.WriteByte(evt.HitGroup);
             w.WriteByte((byte)evt.KnockbackDirection);
+            w.WriteString(evt.HitPresentationId);
         }
 
         public static HitboxEvent ReadHitboxEvent(SnapshotReader r)
@@ -375,9 +376,13 @@ namespace SlopArena.Shared
             evt.Knockback = ReadKnockbackData(r);
             evt.StunTicks = r.ReadUShort();
             evt.FixedHitstunTicks = r.ReadUShort();
-            evt.Interruptible = r.ReadBool();
+            byte flags = r.ReadByte();
+            if (flags > 3) throw SnapshotReader.Malformed("hitbox event flags");
+            evt.Interruptible = (flags & 1) != 0;
+            evt.RequiresFacingOwner = (flags & 2) != 0;
             evt.HitGroup = r.ReadByte();
             evt.KnockbackDirection = (AuthoringKnockbackDirection)r.ReadByte();
+            evt.HitPresentationId = r.ReadString();
             return evt;
         }
 
@@ -534,6 +539,12 @@ namespace SlopArena.Shared
             w.WriteULong(hb.HomingTargetEntityId);
             w.WriteFloat(hb.HomingTurnCos);
             w.WriteFloat(hb.HomingTurnSin);
+            w.WriteBool(hb.Perch.HasValue);
+            if (hb.Perch is { } perch)
+            {
+                w.WriteFloat(perch.Damage); w.WriteSByte(perch.Angle); w.WriteFloat(perch.BaseKnockback);
+                w.WriteFloat(perch.KnockbackGrowth); w.WriteUShort(perch.StunTicks); w.WriteString(perch.PresentationId);
+            }
             w.WriteBool(hb.OwnerDamage.HasValue);
             if (hb.OwnerDamage.HasValue) w.WriteFloat(hb.OwnerDamage.Value);
             w.WriteBool(hb.ContactExplosion);
@@ -619,6 +630,12 @@ namespace SlopArena.Shared
             hb.HomingTargetEntityId = r.ReadULong();
             hb.HomingTurnCos = r.ReadFloat();
             hb.HomingTurnSin = r.ReadFloat();
+            if (r.ReadBool())
+                hb.Perch = new ProjectilePerch
+                {
+                    Damage = r.ReadFloat(), Angle = r.ReadSByte(), BaseKnockback = r.ReadFloat(),
+                    KnockbackGrowth = r.ReadFloat(), StunTicks = r.ReadUShort(), PresentationId = r.ReadString(),
+                };
             if (r.ReadBool()) hb.OwnerDamage = r.ReadFloat();
             hb.ContactExplosion = r.ReadBool();
             hb.ExplodeOnExpiry = r.ReadBool();

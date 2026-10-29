@@ -205,6 +205,10 @@ public class WorldSnapshotContractTests
         yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
             CharacterPackageCompiler.TetherCapabilityId,
             CharacterPackageCompiler.TetherCapabilityVersion, TetherTests.Parameters);
+        // Nyx's Selfie Grab lives in her second form's grid, which this roster walk does not visit.
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+            CharacterPackageCompiler.CommandGrabCapabilityId,
+            CharacterPackageCompiler.CommandGrabCapabilityVersion, SelfieGrabTests.Parameters);
     }
 
     private static ServerAbility Create(CookedStartCapabilityOperation operation)

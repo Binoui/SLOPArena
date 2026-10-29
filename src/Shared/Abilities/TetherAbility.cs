@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SlopArena.Shared.Abilities;
 
@@ -9,6 +10,9 @@ namespace SlopArena.Shared.Abilities;
 /// bounced miss reels the empty ring back for a time fixed at the miss, then a short recovery: the punish. She
 /// stays Attacking throughout and the move owns its end. The ring in flight is an ordinary projectile of this
 /// activation; the caught fighter is held by the pair fields and moved by <see cref="ServerSimulation.ReelTether"/>.
+/// With an atTarget block (ADR-0051, Nyx's Grasp) nothing is thrown: the spot is fixed at the press, a warning marks
+/// it at the throw tick, then a stationary catch volume of this activation rises there. Its catch reels as above; a
+/// miss or a snapped line is a fixed recovery with no retract.
 /// </summary>
 public sealed class TetherAbility : ServerAbility, ILandingContinuationCapability
 {
@@ -20,6 +24,7 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     // The empty reel plus the recovery, fixed when the miss happens.
     private ushort _retractTicks;
     // Where the ring is: its next position in flight, the caught fighter while reeling. A miss reels back from here.
+    // A placed catch keeps its spot (the target's feet at the press) here until it catches.
     private float _ringX, _ringY, _ringZ;
 
     public TetherAbility(CookedTetherCapabilityParameters parameters)
@@ -41,8 +46,38 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         if (s.IsGrounded) Plant(ref s);
         _phase = Phase.Windup;
         _phaseTicks = 0;
+        if (_parameters.AtTarget is { } at)
+        {
+            PlaceSpot(ref s, def, at);
+            s.AnimLockTicks = (ushort)(_parameters.ThrowTick + at.WarningTicks + at.CatchTicks + 3);
+            return;
+        }
         // An upper bound until the ring resolves; each later phase sets its own.
-        s.AnimLockTicks = (ushort)(_parameters.ThrowTick + _parameters.Projectile.MaxFlightTicks + 3);
+        s.AnimLockTicks = (ushort)(_parameters.ThrowTick + _parameters.Projectile!.MaxFlightTicks + 3);
+    }
+
+    /// <summary>
+    /// The placed catch's spot: her current target's feet, at most maxRange away along the line to them, else
+    /// noTargetDistance ahead at her own feet. She turns to face it, so the reel delivers in front of her.
+    /// </summary>
+    private void PlaceSpot(ref CharacterState s, CharacterDefinition def, CookedTetherAtTarget at)
+    {
+        float feet = s.PY - def.CapsuleHeight * 0.5f;
+        float dx = MathF.Sin(s.FacingYaw) * at.NoTargetDistance, dz = MathF.Cos(s.FacingYaw) * at.NoTargetDistance;
+        if (OwnerSimulation != null && OwnerSimulation.TryGetCurrentTargetFeet(in s, out var target))
+        {
+            dx = target.X - s.PX;
+            dz = target.Z - s.PZ;
+            feet = target.Y;
+            float distance = MathF.Sqrt(dx * dx + dz * dz);
+            if (distance > at.MaxRange)
+            {
+                dx *= at.MaxRange / distance;
+                dz *= at.MaxRange / distance;
+            }
+            if (distance > 0.001f) s.FacingYaw = MathF.Atan2(dx, dz);
+        }
+        (_ringX, _ringY, _ringZ) = (s.PX + dx, feet, s.PZ + dz);
     }
 
     public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
@@ -52,8 +87,21 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         if (_phaseTicks < ushort.MaxValue) _phaseTicks++;
         switch (_phase)
         {
+            case Phase.Windup when _parameters.AtTarget is { } at:
+                if (_phaseTicks == _parameters.ThrowTick)
+                    Emit(ref s, at.WarningPresentationId, PresentationEventSource.CapabilityLaunch, _ringX, _ringY, _ringZ,
+                        at.WarningTicks);
+                if (_phaseTicks >= _parameters.ThrowTick + at.WarningTicks) RaiseCatch(ref s, at);
+                break;
             case Phase.Windup:
                 if (_phaseTicks >= _parameters.ThrowTick) Throw(ref s);
+                break;
+            case Phase.Out when _parameters.AtTarget is { } at:
+                if (_phaseTicks >= at.CatchTicks)
+                {
+                    Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);
+                    StartRetract(ref s, (_ringX, _ringY, _ringZ));
+                }
                 break;
             case Phase.Out:
                 TickOut(ref s);
@@ -83,10 +131,40 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         }
     }
 
+    /// <summary>
+    /// The placed catch rises: an upright capsule standing on the spot, still for its catch window. Its contacts
+    /// reach <see cref="ServerSimulation"/> as this activation's, so a fighter in it is caught like a ring catch.
+    /// </summary>
+    private void RaiseCatch(ref CharacterState s, CookedTetherAtTarget at)
+    {
+        var hands = new Hitbox
+        {
+            X = _ringX, Y = _ringY + at.Radius, Z = _ringZ,
+            EndX = _ringX, EndY = _ringY + at.Height - at.Radius, EndZ = _ringZ,
+            Shape = HitboxShape.Capsule,
+            Radius = at.Radius,
+            Damage = at.Damage,
+            DurationTicks = at.CatchTicks,
+            OwnerId = s.EntityId,
+            AttackSlot = (byte)(Slot + 1),
+            Slot = Slot,
+            Airborne = AirborneAtStart,
+            VisualOperationIndex = PresentationOperationIndex,
+            CancelWithAbility = true,
+            HitsMultipleOpponents = true,
+            HitEntities = new HashSet<ulong>(),
+        };
+        SpawnResolverHitbox(hands);
+        Emit(ref s, at.CatchPresentationId, PresentationEventSource.CapabilityLaunch, _ringX, _ringY, _ringZ, at.CatchTicks);
+        _phase = Phase.Out;
+        _phaseTicks = 0;
+        s.AnimLockTicks = (ushort)(at.CatchTicks + 3);
+    }
+
     /// <summary>The ring leaves her hand toward her target's torso at this tick, which also turns her to face it.</summary>
     private void Throw(ref CharacterState s)
     {
-        var ring = SpawnCookedProjectile(ref s, _parameters.Projectile, PresentationOperationIndex, autoTarget: true,
+        var ring = SpawnCookedProjectile(ref s, _parameters.Projectile!, PresentationOperationIndex, autoTarget: true,
             cancelWithAbility: true);
         Emit(ref s, _parameters.ThrowPresentationId, PresentationEventSource.CapabilityLaunch, ring.X, ring.Y, ring.Z, 0);
         _phase = Phase.Out;
@@ -124,6 +202,8 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     /// <summary>Called by the simulation in the tick its ring catches a fighter: the reel starts.</summary>
     internal void OnCaught(ref CharacterState s, float victimX, float victimY, float victimZ)
     {
+        // A placed catch takes one fighter: the rest of its window closes with the catch.
+        if (_parameters.AtTarget != null) Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);
         _phase = Phase.Reel;
         _phaseTicks = 0;
         (_ringX, _ringY, _ringZ) = (victimX, victimY, victimZ);
@@ -136,6 +216,15 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     /// </summary>
     private void StartRetract(ref CharacterState s, (float X, float Y, float Z) from)
     {
+        if (_parameters.AtTarget != null)
+        {
+            // Nothing was thrown, so nothing comes back: the miss is the fixed recovery alone.
+            _retractTicks = _parameters.MissRecoveryTicks;
+            _phase = Phase.Retract;
+            _phaseTicks = 0;
+            s.AnimLockTicks = (ushort)(_retractTicks + 1);
+            return;
+        }
         var hand = Hand(in s);
         float dx = from.X - hand.X, dy = from.Y - hand.Y, dz = from.Z - hand.Z;
         float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
@@ -167,7 +256,7 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
 
     private (float X, float Y, float Z) Hand(in CharacterState s)
     {
-        var ring = _parameters.Projectile;
+        var ring = _parameters.Projectile!;
         float sin = MathF.Sin(s.FacingYaw), cos = MathF.Cos(s.FacingYaw);
         return (s.PX + ring.LaunchOffsetX * cos + ring.LaunchOffsetZ * sin, s.PY + ring.LaunchOffsetY,
             s.PZ - ring.LaunchOffsetX * sin + ring.LaunchOffsetZ * cos);

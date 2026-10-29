@@ -12,6 +12,35 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    [Fact]
+    public void FlyingAnimationSurvivesSourceEditsAndCookedAdmission()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
+        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json"))).Source!;
+        source = source with { Character = source.Character with
+        {
+            Presentation = source.Character.Presentation with { Flying = "anim.test.flight" }
+        } };
+        var renamed = CharacterPackageSourceCodec.RenameSemanticId(source, "anim.test.flight", "anim.test.flying",
+            new[] { new CharacterAssetCatalogBindingSnapshot("anim.test.flight", "anim.test.flight") });
+        Assert.True(renamed.IsValid);
+        var compiled = CharacterPackageCompiler.Compile(CharacterPackageSourceCodec.SerializeManifest(renamed.Source!.Manifest),
+            CharacterPackageSourceCodec.SerializeCharacter(renamed.Source.Character), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var assembly = CharacterPackageAssembler.Assemble(BuildInput(package, Array.Empty<PackageDependencySource>(),
+            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>()));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
+        Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics));
+        Assert.Equal("anim.manki.gf-loop", loaded.Package!.Definition.Presentation.MayhemLaugh);
+        Assert.Equal("anim.manki.gf-loop", loaded.ToCharacterDefinition().MayhemLaughAnim);
+        Assert.True(loaded.BakedAnimation!.FindAnimIndex("anim.manki.gf-loop") >= 0);
+        Assert.Equal("anim.test.flying", loaded.Package.Definition.Presentation.Flying);
+        Assert.Equal("anim.test.flying", CookedCharacterRuntimeAdapter.ToCharacterDefinition(loaded.Package).FlyingAnim);
+        Assert.True(BakedAnimationData.LoadFromBin(assembly.PoseBytes).FindAnimIndex("anim.test.flying") >= 0);
+    }
+
     [Theory]
     [InlineData("roundtrip")]
     [InlineData("api")]
@@ -473,6 +502,7 @@ public sealed class CharacterPackageAssemblerTests
         JsonObject Character(bool block = true, bool capability = true)
         {
             var c = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+            FightGuyFixture.WithoutTitleMatch(c);
             if (capability)
                 c["capabilityRequirements"]!.AsArray().Add(new JsonObject
                     { ["capabilityId"] = CharacterPackageCompiler.FormsCapabilityId, ["capabilityVersion"] = "1" });
@@ -1181,6 +1211,7 @@ public sealed class CharacterPackageAssemblerTests
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
         var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
+        FightGuyFixture.WithoutTitleMatch(character.AsObject());
         foreach (var slot in character["slots"]!.AsArray())
         foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
         {
@@ -1250,7 +1281,7 @@ public sealed class CharacterPackageAssemblerTests
 
     [Theory]
     [InlineData("wibou", "1.15.0", "1.14.0")]
-    [InlineData("fightguy", "1.6.0", "1.5.0")]
+    [InlineData("fightguy", "1.17.0", "1.16.0")]
     [InlineData("bonk", "1.8.0", "1.7.0")]
     public void CookedLoaderRestoresParametersAndEnforcesApiFloor(string id, string api, string incompatibleApi)
     {
@@ -1276,6 +1307,11 @@ public sealed class CharacterPackageAssemblerTests
             Assert.Equal(1f, charge.GetRadius(45));
             Assert.Equal(20f, charge.Projectile.Speed);
             Assert.Equal((ushort)112, charge.Projectile.MaxFlightTicks);
+            var source = package.Definition.Slots.Single(slot => slot.Id == "ground.F");
+            var clinch = Assert.IsType<CookedClinchCapabilityParameters>(loaded.Package!.Definition.Slots
+                .Single(slot => slot.Id == "ground.F").Timeline.Stages[0].Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+            Assert.Equal(source.Timeline.Stages[0].Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters, clinch);
         }
         if (id == "bonk")
             Assert.All(loaded.Package!.Definition.Slots.Where(slot => slot.Id.EndsWith(".F")),
@@ -1329,6 +1365,8 @@ public sealed class CharacterPackageAssemblerTests
             package.Definition.Presentation.Grabbed,
             package.Definition.Presentation.ThrowForward,
             package.Definition.Presentation.AirDodge,
+            package.Definition.Presentation.Flying,
+            package.Definition.Presentation.MayhemLaugh,
         })
             if (!string.IsNullOrEmpty(role))
                 names.Add(role);

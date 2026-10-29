@@ -1,0 +1,2895 @@
+{
+  "appliedFactors": {
+    "real/ground.1": 1.35,
+    "real/ground.3": 1.25,
+    "real/ground.4": 1.25,
+    "real/ground.A": 1.25,
+    "real/ground.E": 1.25,
+    "real/ground.R": 1.25,
+    "real/ground.F": 1.25,
+    "real/air.1": 1.25,
+    "real/air.3": 1.25,
+    "real/air.4": 1.25,
+    "real/air.A": 1.25,
+    "real/air.E": 1.25,
+    "real/air.R": 1.25,
+    "real/air.F": 1.25,
+    "fake/ground.1": 1.35,
+    "fake/ground.3": 1.25,
+    "fake/ground.4": 1.25,
+    "fake/ground.A": 1.25,
+    "fake/ground.E": 1.25,
+    "fake/ground.R": 1.25,
+    "fake/ground.F": 1.25,
+    "fake/air.1": 1.25,
+    "fake/air.3": 1.25,
+    "fake/air.4": 1.25,
+    "fake/air.A": 1.25,
+    "fake/air.E": 1.25,
+    "fake/air.R": 1.25,
+    "fake/air.F": 1.25
+  },
+  "changes": [
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 30,
+      "after": 41
+    },
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 24,
+      "after": 32
+    },
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 8,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 8,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 6,
+      "after": 8
+    },
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 8,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 6,
+      "after": 8
+    },
+    {
+      "path": [
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 40,
+      "after": 50
+    },
+    {
+      "path": [
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 34,
+      "after": 43
+    },
+    {
+      "path": [
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "tick"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 44,
+      "after": 55
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 36,
+      "after": 45
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 14,
+      "after": 18
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 14,
+      "after": 18
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 14,
+      "after": 18
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "tick"
+      ],
+      "before": 14,
+      "after": 18
+    },
+    {
+      "path": [
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 42,
+      "after": 53
+    },
+    {
+      "path": [
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 36,
+      "after": 45
+    },
+    {
+      "path": [
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 64,
+      "after": 80
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 56,
+      "after": 70
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 24,
+      "after": 30
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 24,
+      "after": 30
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 24,
+      "after": 30
+    },
+    {
+      "path": [
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 56,
+      "after": 70
+    },
+    {
+      "path": [
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 50,
+      "after": 63
+    },
+    {
+      "path": [
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "tick"
+      ],
+      "before": 20,
+      "after": 25
+    },
+    {
+      "path": [
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 20,
+      "after": 25
+    },
+    {
+      "path": [
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 40,
+      "after": 50
+    },
+    {
+      "path": [
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 32,
+      "after": 40
+    },
+    {
+      "path": [
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "slots",
+        7,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 50,
+      "after": 63
+    },
+    {
+      "path": [
+        "slots",
+        7,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "thrustTicks"
+      ],
+      "before": 24,
+      "after": 30
+    },
+    {
+      "path": [
+        "slots",
+        7,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 50,
+      "after": 63
+    },
+    {
+      "path": [
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 84,
+      "after": 105
+    },
+    {
+      "path": [
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "throwTick"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "maxReelTicks"
+      ],
+      "before": 60,
+      "after": 75
+    },
+    {
+      "path": [
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "missRecoveryTicks"
+      ],
+      "before": 43,
+      "after": 54
+    },
+    {
+      "path": [
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "atTarget",
+        "warningTicks"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "atTarget",
+        "catchTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 30,
+      "after": 38
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 18,
+      "after": 23
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 9,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 9,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 9,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 3,
+      "after": 4
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "tick"
+      ],
+      "before": 9,
+      "after": 11
+    },
+    {
+      "path": [
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 14,
+      "after": 18
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 44,
+      "after": 59
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 38,
+      "after": 51
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 8,
+      "after": 11
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 8,
+      "after": 11
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 4,
+      "after": 5
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 8,
+      "after": 11
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 4,
+      "after": 5
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "tick"
+      ],
+      "before": 16,
+      "after": 22
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 4,
+      "after": 5
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        4,
+        "tick"
+      ],
+      "before": 16,
+      "after": 22
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        4,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 4,
+      "after": 5
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        5,
+        "tick"
+      ],
+      "before": 26,
+      "after": 35
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        5,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 7
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        6,
+        "tick"
+      ],
+      "before": 26,
+      "after": 35
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        0,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        6,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 7
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 36,
+      "after": 45
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 31,
+      "after": 39
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "tick"
+      ],
+      "before": 7,
+      "after": 9
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 7,
+      "after": 9
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        1,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 48,
+      "after": 60
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 40,
+      "after": 50
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 48,
+      "after": 60
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "endTick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 9,
+      "after": 11
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "tick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        2,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 9,
+      "after": 11
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 44,
+      "after": 55
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 38,
+      "after": 48
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 44,
+      "after": 55
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        3,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 11,
+      "after": 14
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 52,
+      "after": 65
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 46,
+      "after": 58
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 7,
+      "after": 9
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 16,
+      "after": 20
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        4,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 7,
+      "after": 9
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 48,
+      "after": 60
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 42,
+      "after": 53
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "tick"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 13,
+      "after": 16
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        5,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 13,
+      "after": 16
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 36,
+      "after": 45
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 30,
+      "after": 38
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "endTick"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "durationTicks"
+      ],
+      "before": 2,
+      "after": 3
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        4,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        4,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        5,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        5,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        6,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        6,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        6,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        7,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 50,
+      "after": 63
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        7,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "startupTicks"
+      ],
+      "before": 12,
+      "after": 15
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        7,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 50,
+      "after": 63
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 76,
+      "after": 95
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 68,
+      "after": 85
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "lungeTicks"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "captureTick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "capture",
+        "durationTicks"
+      ],
+      "before": 5,
+      "after": 6
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "parameters",
+        "releaseTick"
+      ],
+      "before": 52,
+      "after": 65
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 44,
+      "after": 55
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        8,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 8,
+      "after": 10
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "durationTicks"
+      ],
+      "before": 33,
+      "after": 41
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "iasaTicks"
+      ],
+      "before": 20,
+      "after": 25
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        0,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        1,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        2,
+        "hitbox",
+        "durationTicks"
+      ],
+      "before": 3,
+      "after": 4
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "tick"
+      ],
+      "before": 10,
+      "after": 13
+    },
+    {
+      "path": [
+        "alternateForm",
+        "slots",
+        9,
+        "timeline",
+        "stages",
+        0,
+        "operations",
+        3,
+        "placement",
+        "durationTicks"
+      ],
+      "before": 14,
+      "after": 18
+    }
+  ],
+  "moves": [
+    {
+      "form": "real",
+      "slot": "ground.1",
+      "factor": 1.35,
+      "before": {
+        "first": 8,
+        "active": [
+          [
+            8,
+            13
+          ]
+        ],
+        "iasa": 24,
+        "total": 30
+      },
+      "after": {
+        "first": 11,
+        "active": [
+          [
+            11,
+            18
+          ]
+        ],
+        "iasa": 32,
+        "total": 41
+      }
+    },
+    {
+      "form": "real",
+      "slot": "ground.3",
+      "factor": 1.25,
+      "before": {
+        "first": 14,
+        "active": [
+          [
+            14,
+            24
+          ]
+        ],
+        "iasa": 36,
+        "total": 44
+      },
+      "after": {
+        "first": 18,
+        "active": [
+          [
+            18,
+            31
+          ]
+        ],
+        "iasa": 45,
+        "total": 55
+      }
+    },
+    {
+      "form": "real",
+      "slot": "ground.4",
+      "factor": 1.25,
+      "before": {
+        "first": 24,
+        "active": [
+          [
+            24,
+            31
+          ]
+        ],
+        "iasa": 56,
+        "total": 64
+      },
+      "after": {
+        "first": 30,
+        "active": [
+          [
+            30,
+            39
+          ]
+        ],
+        "iasa": 70,
+        "total": 80
+      }
+    },
+    {
+      "form": "real",
+      "slot": "ground.A",
+      "factor": 1.25,
+      "before": {
+        "first": 16,
+        "active": [
+          [
+            16,
+            16
+          ]
+        ],
+        "iasa": 32,
+        "total": 40
+      },
+      "after": {
+        "first": 20,
+        "active": [
+          [
+            20,
+            20
+          ]
+        ],
+        "iasa": 40,
+        "total": 50
+      }
+    },
+    {
+      "form": "real",
+      "slot": "ground.E",
+      "factor": 1.25,
+      "before": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 50
+      },
+      "after": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 63
+      }
+    },
+    {
+      "form": "real",
+      "slot": "ground.R",
+      "factor": 1.25,
+      "before": {
+        "first": 24,
+        "active": [
+          [
+            24,
+            28
+          ]
+        ],
+        "iasa": 0,
+        "total": 84
+      },
+      "after": {
+        "first": 30,
+        "active": [
+          [
+            30,
+            35
+          ]
+        ],
+        "iasa": 0,
+        "total": 105
+      }
+    },
+    {
+      "form": "real",
+      "slot": "ground.F",
+      "factor": 1.25,
+      "before": {
+        "first": 9,
+        "active": [
+          [
+            9,
+            11
+          ]
+        ],
+        "iasa": 18,
+        "total": 30
+      },
+      "after": {
+        "first": 11,
+        "active": [
+          [
+            11,
+            14
+          ]
+        ],
+        "iasa": 23,
+        "total": 38
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.1",
+      "factor": 1.25,
+      "before": {
+        "first": 8,
+        "active": [
+          [
+            8,
+            18
+          ]
+        ],
+        "iasa": 34,
+        "total": 40
+      },
+      "after": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            23
+          ]
+        ],
+        "iasa": 43,
+        "total": 50
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.3",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            17
+          ]
+        ],
+        "iasa": 36,
+        "total": 42
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            22
+          ]
+        ],
+        "iasa": 45,
+        "total": 53
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.4",
+      "factor": 1.25,
+      "before": {
+        "first": 20,
+        "active": [
+          [
+            20,
+            27
+          ]
+        ],
+        "iasa": 50,
+        "total": 56
+      },
+      "after": {
+        "first": 25,
+        "active": [
+          [
+            25,
+            34
+          ]
+        ],
+        "iasa": 63,
+        "total": 70
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.A",
+      "factor": 1.25,
+      "before": {
+        "first": 16,
+        "active": [
+          [
+            16,
+            16
+          ]
+        ],
+        "iasa": 32,
+        "total": 40
+      },
+      "after": {
+        "first": 20,
+        "active": [
+          [
+            20,
+            20
+          ]
+        ],
+        "iasa": 40,
+        "total": 50
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.E",
+      "factor": 1.25,
+      "before": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 50
+      },
+      "after": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 63
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.R",
+      "factor": 1.25,
+      "before": {
+        "first": 24,
+        "active": [
+          [
+            24,
+            28
+          ]
+        ],
+        "iasa": 0,
+        "total": 84
+      },
+      "after": {
+        "first": 30,
+        "active": [
+          [
+            30,
+            35
+          ]
+        ],
+        "iasa": 0,
+        "total": 105
+      }
+    },
+    {
+      "form": "real",
+      "slot": "air.F",
+      "factor": 1.25,
+      "before": {
+        "first": 9,
+        "active": [
+          [
+            9,
+            11
+          ]
+        ],
+        "iasa": 18,
+        "total": 30
+      },
+      "after": {
+        "first": 11,
+        "active": [
+          [
+            11,
+            14
+          ]
+        ],
+        "iasa": 23,
+        "total": 38
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.1",
+      "factor": 1.35,
+      "before": {
+        "first": 8,
+        "active": [
+          [
+            8,
+            11
+          ],
+          [
+            16,
+            19
+          ],
+          [
+            26,
+            30
+          ]
+        ],
+        "iasa": 38,
+        "total": 44
+      },
+      "after": {
+        "first": 11,
+        "active": [
+          [
+            11,
+            15
+          ],
+          [
+            22,
+            26
+          ],
+          [
+            35,
+            41
+          ]
+        ],
+        "iasa": 51,
+        "total": 59
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.3",
+      "factor": 1.25,
+      "before": {
+        "first": 16,
+        "active": [
+          [
+            16,
+            24
+          ]
+        ],
+        "iasa": 40,
+        "total": 48
+      },
+      "after": {
+        "first": 20,
+        "active": [
+          [
+            20,
+            30
+          ]
+        ],
+        "iasa": 50,
+        "total": 60
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.4",
+      "factor": 1.25,
+      "before": {
+        "first": 16,
+        "active": [
+          [
+            16,
+            22
+          ]
+        ],
+        "iasa": 46,
+        "total": 52
+      },
+      "after": {
+        "first": 20,
+        "active": [
+          [
+            20,
+            28
+          ]
+        ],
+        "iasa": 58,
+        "total": 65
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.A",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            14
+          ]
+        ],
+        "iasa": 30,
+        "total": 36
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            18
+          ]
+        ],
+        "iasa": 38,
+        "total": 45
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.E",
+      "factor": 1.25,
+      "before": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 50
+      },
+      "after": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 63
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.R",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            14
+          ]
+        ],
+        "iasa": 68,
+        "total": 76
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            18
+          ]
+        ],
+        "iasa": 85,
+        "total": 95
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "ground.F",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            12
+          ]
+        ],
+        "iasa": 20,
+        "total": 33
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            16
+          ]
+        ],
+        "iasa": 25,
+        "total": 41
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.1",
+      "factor": 1.25,
+      "before": {
+        "first": 7,
+        "active": [
+          [
+            7,
+            16
+          ]
+        ],
+        "iasa": 31,
+        "total": 36
+      },
+      "after": {
+        "first": 9,
+        "active": [
+          [
+            9,
+            21
+          ]
+        ],
+        "iasa": 39,
+        "total": 45
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.3",
+      "factor": 1.25,
+      "before": {
+        "first": 12,
+        "active": [
+          [
+            12,
+            22
+          ]
+        ],
+        "iasa": 38,
+        "total": 44
+      },
+      "after": {
+        "first": 15,
+        "active": [
+          [
+            15,
+            28
+          ]
+        ],
+        "iasa": 48,
+        "total": 55
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.4",
+      "factor": 1.25,
+      "before": {
+        "first": 12,
+        "active": [
+          [
+            12,
+            24
+          ]
+        ],
+        "iasa": 42,
+        "total": 48
+      },
+      "after": {
+        "first": 15,
+        "active": [
+          [
+            15,
+            30
+          ]
+        ],
+        "iasa": 53,
+        "total": 60
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.A",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            14
+          ]
+        ],
+        "iasa": 30,
+        "total": 36
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            18
+          ]
+        ],
+        "iasa": 38,
+        "total": 45
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.E",
+      "factor": 1.25,
+      "before": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 50
+      },
+      "after": {
+        "first": null,
+        "active": [],
+        "iasa": 0,
+        "total": 63
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.R",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            14
+          ]
+        ],
+        "iasa": 68,
+        "total": 76
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            18
+          ]
+        ],
+        "iasa": 85,
+        "total": 95
+      }
+    },
+    {
+      "form": "fake",
+      "slot": "air.F",
+      "factor": 1.25,
+      "before": {
+        "first": 10,
+        "active": [
+          [
+            10,
+            12
+          ]
+        ],
+        "iasa": 20,
+        "total": 33
+      },
+      "after": {
+        "first": 13,
+        "active": [
+          [
+            13,
+            16
+          ]
+        ],
+        "iasa": 25,
+        "total": 41
+      }
+    }
+  ]
+}

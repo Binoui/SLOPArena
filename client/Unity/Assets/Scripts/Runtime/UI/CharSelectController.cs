@@ -118,6 +118,13 @@ namespace SlopArena.Client.UI
                     btn.Add(name);
                     btn.Add(check);
                     btn.Add(markers);
+                    if (MenuRoster.IsWorkInProgress(cls))
+                    {
+                        btn.AddToClassList("char-card--wip");
+                        var wip = new Label("WIP") { name = "char-card-wip", pickingMode = PickingMode.Ignore };
+                        wip.AddToClassList("char-card-wip");
+                        btn.Add(wip);
+                    }
                     // Her player picks the starting form here (ADR-0051); online starts in form 0 until the lobby carries it.
                     if (MenuRoster.HasForms(cls) && MatchConfig.Mode != GameMode.PvP)
                     {
@@ -388,7 +395,9 @@ namespace SlopArena.Client.UI
                 nameLabel.text = MenuRoster.Name(cls, EditingForm).ToUpperInvariant();
             var roleLabel = context.Q<Label>("char-role");
             if (roleLabel != null)
-                roleLabel.text = MenuRoster.Description(cls);
+                roleLabel.text = MenuRoster.Description(cls) + (MenuRoster.IsWorkInProgress(cls)
+                    ? "\nWORK IN PROGRESS: moves, art and balance still changing."
+                    : "");
             RefreshFormCards();
         }
 

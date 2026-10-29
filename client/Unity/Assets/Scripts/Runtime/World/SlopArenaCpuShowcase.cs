@@ -171,9 +171,11 @@ namespace SlopArena.EditorTools
                 var self = _bridge.GetState(fighter.Id);
                 SelectTarget(fighter, self);
                 var target = _bridge.GetState(fighter.Target);
-                var input = fighter.Policy.Decide(self, target, fighter.Entry.Definition,
+                fighter.Policy.ObserveOpponent(fighter.Memory, target, _bridge.InternalSim.GetDefinition(fighter.Target));
+                var input = fighter.Policy.Decide(self, fighter.Entry.Definition.ForForm(self.Form.Active),
                     fighter.Random, fighter.Memory, _arena, fighter.Entry.BakedAnimation,
-                    activeMove: _bridge.GetActiveMove(fighter.Id)?.Slot);
+                    activeMove: _bridge.GetActiveMove(fighter.Id)?.Slot,
+                    canSwapCancel: _bridge.InternalSim.CanSwapCancel(fighter.Id));
                 input.TargetEntityId = (byte)fighter.Target;
                 _inputs[fighter.Id] = input;
                 if (input.ActiveSlot > 0 && input.ActiveSlot <= fighter.Presses.Length)

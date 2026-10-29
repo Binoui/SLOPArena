@@ -24,10 +24,9 @@ namespace SlopArena.Shared
         // Wire code 17 is reserved to preserve the phase wire codes.
         AirDodgeMovement = 18,
         AirDodgeRecovery = 19,
-        /// <summary>Grounded capture hold; the grabber can walk until requesting a throw.</summary>
+        /// <summary>Stationary grounded capture hold.</summary>
         Grabbing = 20,
-        /// <summary>Released victim's throw flight and landing recovery.</summary>
-        Thrown = 21,
+        // Wire code 21 reserved for retired scripted throw flight.
         /// <summary>Homing dash startup: the fighter hangs in place facing the target.</summary>
         HomingDashFloat = 22,
         /// <summary>Homing dash travel, turning toward the target at a limited rate.</summary>
@@ -59,6 +58,12 @@ namespace SlopArena.Shared
         /// The freeze's end returns it to Idle before the queued launch; other hits add damage only.
         /// </summary>
         CutHeld = 30,
+        /// <summary>
+        /// Held in a clinch (ADR-0053). Paired (phase Clinching), the holder's move places it each tick and its own
+        /// hits deal damage and hitstop only. Released, it stays here unpaired for a StateTicks countdown with ordinary
+        /// gravity, then Idle.
+        /// </summary>
+        Clinched = 31,
     }
 
     /// <summary>Where a jump that is taking off started; selects its horizontal speed cap.</summary>
@@ -95,17 +100,18 @@ namespace SlopArena.Shared
 
         /// <summary>States that only exist inside a paired interaction; ending the pair frees them.</summary>
         public static bool InPairedInteraction(ActionState state)
-            => state is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Reeled;
+            => state is ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Reeled
+                or ActionState.Clinched;
 
         /// <summary>
         /// States another fighter's move holds this one in: it takes no input and shows the small-hit pose. Reeled
-        /// (ADR-0048), Swept (ADR-0050) and CutHeld (ADR-0052).
+        /// (ADR-0048), Swept (ADR-0050), CutHeld (ADR-0052) and Clinched (ADR-0053).
         /// </summary>
         public static bool Captive(ActionState state)
-            => state is ActionState.Reeled or ActionState.Swept or ActionState.CutHeld;
+            => state is ActionState.Reeled or ActionState.Swept or ActionState.CutHeld or ActionState.Clinched;
 
         /// <summary>Paired states whose fighter skips its own movement step: the partner's pass places it.</summary>
         public static bool MovedByPartner(ActionState state)
-            => state is ActionState.Grabbed or ActionState.Throwing or ActionState.Reeled;
+            => state is ActionState.Grabbed or ActionState.Throwing or ActionState.Reeled or ActionState.Clinched;
     }
 }

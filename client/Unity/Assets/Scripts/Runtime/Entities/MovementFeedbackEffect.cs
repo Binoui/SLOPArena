@@ -121,7 +121,7 @@ namespace SlopArena.Client.Entities
                 return;
             _continuous = false;
             StopParticles(false);
-            _releaseAt = Time.unscaledTime + 0.55f;
+            _releaseAt = Clock + 0.55f;
         }
         public static MovementFeedbackEffect BeginInvincibility(
             Vector3 position, Color tint)
@@ -150,7 +150,7 @@ namespace SlopArena.Client.Entities
                 return;
             _continuous = false;
             StopParticles(false);
-            _releaseAt = Time.unscaledTime + 0.35f;
+            _releaseAt = Clock + 0.35f;
         }
 
         /// <summary>Smoke puffs that follow a launched fighter; density and size track the launch.</summary>
@@ -205,7 +205,7 @@ namespace SlopArena.Client.Entities
                 return;
             _continuous = false;
             StopParticles(false);
-            _releaseAt = Time.unscaledTime + 0.8f;
+            _releaseAt = Clock + 0.8f;
         }
 
 
@@ -329,7 +329,7 @@ namespace SlopArena.Client.Entities
             }
 
             _active = true;
-            _releaseAt = Time.unscaledTime + LifetimeFor(_kind);
+            _releaseAt = Clock + LifetimeFor(_kind);
         }
         private void ShowContinuousInvincibility(Vector3 position, Color tint)
         {
@@ -427,9 +427,20 @@ namespace SlopArena.Client.Entities
             _releaseAt = float.PositiveInfinity;
         }
 
+        private static float Clock
+        {
+            get
+            {
+#if UNITY_EDITOR
+                if (Time.captureDeltaTime > 0f) return Time.time;
+#endif
+                return Time.unscaledTime;
+            }
+        }
+
         private void Update()
         {
-            if (!_active || _continuous || Time.unscaledTime < _releaseAt)
+            if (!_active || _continuous || Clock < _releaseAt)
                 return;
 
             StopParticles(true);

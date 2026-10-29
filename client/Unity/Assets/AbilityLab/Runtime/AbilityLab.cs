@@ -313,6 +313,23 @@ namespace SlopArena.Client.Tools
         private string _trajDirty = "";
 
         // ── Loaded data ──
+        public byte SelectedForm { get; private set; }
+        public void SetForm(byte form)
+        {
+            if (form > 1) throw new ArgumentOutOfRangeException(nameof(form));
+            if (SelectedForm == form) return;
+            SelectedForm = form;
+            ClearScenario();
+            _simulationPreviewer.Clear();
+            if (Def != null)
+            {
+                Def = Def.ForForm(form);
+                DisplayDef = Def;
+                SetSlot(CanonicalSlotProjection.TryGet(SelectedSlotId, out var slot) ? slot : CanonicalSlotProjection.All[0]);
+                RefreshPose();
+            }
+        }
+
         public CharacterDefinition Def { get; private set; } = null!;
         public CharacterDefinition DisplayDef { get; private set; } = null!; // Def + hurtbox override
         public BakedAnimationData? Baked { get; private set; }
@@ -775,13 +792,13 @@ namespace SlopArena.Client.Tools
                 return;
             }
 
-            if (ReferenceEquals(_liveDraftPackage, package) && IsPackagePreview)
+            if (ReferenceEquals(_liveDraftPackage, package) && IsPackagePreview && Def.Form == SelectedForm)
             {
                 RefreshPose();
                 return;
             }
 
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None);
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
             string priorSlotId = SelectedSlotId;
             ClearScenario();
             int priorStage = StageIndex;
@@ -859,7 +876,7 @@ namespace SlopArena.Client.Tools
                 _previewAnimationCatalog = animationCatalog;
             }
             _previewRig = rig;
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None);
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
             SelectedPackageHash = packageHash;
             Character = CharacterClass.None;
             SelectedPackageId = packageId;
@@ -1451,12 +1468,12 @@ namespace SlopArena.Client.Tools
             var visited = new HashSet<string>(StringComparer.Ordinal);
             while (visited.Add(current))
             {
-                var slot = _sourceDocument.Character.Slots?.FirstOrDefault(candidate => candidate != null && candidate.Id == current);
+                var slot = (SelectedForm == 1 ? _sourceDocument.Character.AlternateForm?.Slots : _sourceDocument.Character.Slots)?.FirstOrDefault(candidate => candidate != null && candidate.Id == current);
                 if (slot != null)
                     return slot.Timeline?.Stages != null && StageIndex >= 0 && StageIndex < slot.Timeline.Stages.Count
                         ? slot.Timeline.Stages[StageIndex]
                         : null;
-                var alias = _sourceDocument.Character.Aliases?.FirstOrDefault(candidate => candidate != null && candidate.From == current);
+                var alias = (SelectedForm == 1 ? _sourceDocument.Character.AlternateForm?.Aliases : _sourceDocument.Character.Aliases)?.FirstOrDefault(candidate => candidate != null && candidate.From == current);
                 if (alias == null) break;
                 current = alias.To;
             }

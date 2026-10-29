@@ -91,6 +91,15 @@ A special whose slot declares `shellPolicy: tuck` (Cannonball, Cannonball Dive, 
 **Pop out**:
 Leaving the Ride into an action: a grounded normal starts at ride speed, a jump keeps her speed; hits, shield, grab, air dodge and homing dash leave it too. Popping up is the end of a Splash or of the Ride.
 
+**Grab**:
+The universal grounded capture. Startup turns toward one captured fighter target under the normal aim rule. A Beeline can hold the press for grounded arrival. The held pair takes no input-driven movement or turns. Any attack press or the three-second timeout starts a throw.
+
+**Fling**:
+A grab throw chosen by a held world-space movement stick on the throw-start tick. The pair turns through legal stage placements and launches along its reached heading. Percent scaling makes it the positioning and kill throw.
+
+**Up toss**:
+A grab throw chosen by a neutral stick on the throw-start tick. It launches vertically through ordinary freeze, DI and Hitstun. Short thrower recovery permits a low-percent jump and aerial chase. Release has no scripted landing clock.
+
 **Tether**:
 A thrown line that catches the first fighter it meets and reels them to the thrower's feet (ADR-0048, `slop.ability.tether.v1`, Bashie's Rescue Ring). It is a paired interaction like a Grab, with phase `Reeling`, so deaths, resets and damaging hits end it the same way. A miss (range, a wall, a shield) reels the empty ring back, and that wait is the punish.
 _Avoid_: hook, pull, ranged grab
@@ -472,7 +481,7 @@ An opponent rendered from received state rather than local re-simulation while i
 _Avoid_: unpredicted entity, fallback display, snap-only entity
 
 **Predictable ActionState**:
-An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery, Thrown flight/recovery and the air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
+An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery and the air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction. The historical model also listed scripted Thrown flight, whose action wire value 21 is now reserved. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: safe state, simple state, movement state
 
 **Complex ActionState**:

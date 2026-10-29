@@ -243,13 +243,13 @@ public class MankiMayhemTests
             sim.Tick(new() { [1] = new() { GrabPressed = t == 0, AimYaw = 0, FacingYaw = 0,
                 ActiveSlot = sim.GetState(1).State == ActionState.Grabbing ? AbilitySlots.Slot1 : (byte)0 } });
             captured |= sim.GetState(2).State == ActionState.Grabbed;
-            thrown |= sim.GetState(2).State == ActionState.Thrown;
+            thrown |= sim.GetState(2).InteractionPhase == (byte)DefenseInteractionPhase.UpTossReleased;
             if (thrown) break;
         }
         Assert.Equal(fire != FriendlyFireMode.Off, captured);
         Assert.Equal(fire != FriendlyFireMode.Off, thrown);
-        Assert.Equal(fire == FriendlyFireMode.On ? 76 : 70, sim.GetState(2).DamagePercent);
-        if (thrown) Assert.True(Simulation.HasKnockback(sim.GetState(2)));
+        Assert.Equal(fire == FriendlyFireMode.On ? 74 : 70, sim.GetState(2).DamagePercent);
+        if (thrown) Assert.True(sim.GetState(2).QueuedKBStun > 0);
     }
 
     [Fact]

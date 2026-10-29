@@ -57,6 +57,9 @@ namespace SlopArena.Client.UI
         private sealed class OverheadPanel
         {
             public VisualElement Root = null!;
+            public VisualElement Portrait = null!;
+            public CharacterClass Class;
+            public byte PortraitForm = byte.MaxValue;
             public Label Damage = null!;
             public VisualElement[] StockIcons = Array.Empty<VisualElement>();
             public Label StockCountLabel = null!;
@@ -479,7 +482,7 @@ namespace SlopArena.Client.UI
             damage.AddToClassList("overhead-damage");
             copy.Add(damage);
 
-            var panel = new OverheadPanel { Root = root, Damage = damage, IdentityColor = identityColor, PlayerNumber = p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1 };
+            var panel = new OverheadPanel { Root = root, Portrait = portrait, Class = p.Class, Damage = damage, IdentityColor = identityColor, PlayerNumber = p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1 };
             AddStocks(panel, copy);
             root.Add(copy);
 
@@ -557,6 +560,7 @@ namespace SlopArena.Client.UI
         /// </summary>
         public void SetCharacterDefinition(CharacterDefinition def)
         {
+            if (_getState != null && _localEntityId != 0) def = def.ForForm(_getState(_localEntityId).Form.Active);
             _charDef = def;
             if (_moveTooltip != null) _moveTooltip.style.display = DisplayStyle.None;
             bool isGrounded = _getState == null || _localEntityId == 0 || _getState(_localEntityId).IsGrounded;
@@ -591,13 +595,20 @@ namespace SlopArena.Client.UI
                 slot.AirAvailable = airborne != null;
                 // The HUD is a stable control legend, even when the active move is aerial.
                 var displayAbility = grounded ?? airborne;
-                slot.DisplayName = MoveLabel(displayAbility);
-                slot.Artwork = LoadSlotIcon(displayAbility, normal);
+                slot.DisplayName = d.SlotIndex + 1 == AbilitySlots.F && def.AlternateForm != null
+                    ? def.ForForm((byte)(def.Form ^ 1)).DisplayName.ToUpperInvariant()
+                    : MoveLabel(displayAbility);
+                slot.Artwork = d.SlotIndex + 1 == AbilitySlots.F && def.AlternateForm != null
+                    ? new SlotArtwork(Resources.Load<Texture2D>($"UI/Portraits/{PortraitId(def.Class, (byte)(def.Form ^ 1))}"), null, Color.white)
+                    : LoadSlotIcon(displayAbility, normal);
                 SetChargePips(slot, normal ? null : displayAbility);
                 SetSlotPresentation(slot, isGrounded);
             }
 
         }
+
+        private static string PortraitId(CharacterClass character, byte form)
+            => character == CharacterClass.Nyx && form == 1 ? "Nyx_Fake" : character.ToString();
 
         private static string MoveLabel(CookedSlotDefinition spec)
             => spec != null && !string.IsNullOrWhiteSpace(spec.Name)
@@ -608,6 +619,7 @@ namespace SlopArena.Client.UI
             if (spec == null || string.IsNullOrEmpty(spec.IconId)) return default;
             string path = $"Icons/{_charDef.Class}/";
             string cardPath = $"UI/AbilityCards/{_charDef.Class}/";
+            if (_charDef.AlternateForm != null) cardPath += _charDef.Form == 0 ? "Real/" : "Fake/";
             var tint = normal ? MoveInk : Color.white;
             var cardIcons = Resources.LoadAll<Sprite>(cardPath + spec.IconId);
             if (cardIcons.Length > 0) return new SlotArtwork(null, cardIcons[0], Color.white);
@@ -671,6 +683,15 @@ namespace SlopArena.Client.UI
         /// <summary>Apply damage % + stocks to one scoreboard card.</summary>
         private void UpdatePanel(OverheadPanel panel, CharacterState state)
         {
+            if (panel.PortraitForm != state.Form.Active)
+            {
+                panel.PortraitForm = state.Form.Active;
+                string portraitId = PortraitId(panel.Class, state.Form.Active);
+                var texture = Resources.Load<Texture2D>($"UI/Portraits/{portraitId}");
+                panel.Portrait.style.backgroundImage = texture != null ? new StyleBackground(texture) : StyleKeyword.None;
+                panel.Portrait.parent.EnableInClassList("portrait-missing", texture == null);
+            }
+
             int dmg = (int)state.DamagePercent;
             panel.TierColor = DamageColor(dmg);
             if (dmg != panel.PrevDamage)
@@ -837,7 +858,8 @@ namespace SlopArena.Client.UI
             if (_localEntityId != 0)
             {
                 var state = _getState(_localEntityId);
-
+                if (_charDef != null && _charDef.Form != state.Form.Active)
+                    SetCharacterDefinition(_charDef.ForForm(state.Form.Active));
 
                 for (int i = 0; i < _abilitySlots.Length; i++)
                 {

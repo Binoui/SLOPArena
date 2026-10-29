@@ -22,6 +22,9 @@ MonoBehaviour:
     FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: 0, y: 0, z: 0}
     HideAfterTicks: 10
+    ShowFromTicks: 0
+    HiddenBySlot: 0
+    HiddenBySlotFromTicks: 0
     TrailStylePrefab: {fileID: 0}
     HitboxMotionTime: 0.12
     TrailBladeWidth: 0.8
@@ -36,6 +39,9 @@ MonoBehaviour:
     FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: -20, y: -90, z: 0}
     HideAfterTicks: 20
+    ShowFromTicks: 0
+    HiddenBySlot: 0
+    HiddenBySlotFromTicks: 0
     TrailStylePrefab: {fileID: 0}
     HitboxMotionTime: 0.12
     TrailBladeWidth: 0.8
@@ -50,6 +56,9 @@ MonoBehaviour:
     FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: 180, y: 0, z: 0}
     HideAfterTicks: 0
+    ShowFromTicks: 0
+    HiddenBySlot: 0
+    HiddenBySlotFromTicks: 0
     TrailStylePrefab: {fileID: 0}
     HitboxMotionTime: 0.12
     TrailBladeWidth: 0.8
@@ -64,6 +73,9 @@ MonoBehaviour:
     FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: 0, y: 0, z: -90}
     HideAfterTicks: 0
+    ShowFromTicks: 0
+    HiddenBySlot: 0
+    HiddenBySlotFromTicks: 0
     TrailStylePrefab: {fileID: 0}
     HitboxMotionTime: 0.12
     TrailBladeWidth: 0.8

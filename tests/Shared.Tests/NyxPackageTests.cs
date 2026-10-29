@@ -7,22 +7,14 @@ namespace SlopArena.Shared.Tests;
 
 public class NyxPackageTests
 {
+    public static IEnumerable<object[]> FormSlots() =>
+        from form in new byte[] { 0, 1 }
+        from slot in CanonicalSlotProjection.All
+        select new object[] { form, CanonicalSlotProjection.ToWire(slot), slot.IsAirborne };
+
     [Theory]
-    [InlineData(AbilitySlots.Slot1, false)]
-    [InlineData(AbilitySlots.Slot3, false)]
-    [InlineData(AbilitySlots.Slot4, false)]
-    [InlineData(AbilitySlots.A, false)]
-    [InlineData(AbilitySlots.E, false)]
-    [InlineData(AbilitySlots.R, false)]
-    [InlineData(AbilitySlots.F, false)]
-    [InlineData(AbilitySlots.Slot1, true)]
-    [InlineData(AbilitySlots.Slot3, true)]
-    [InlineData(AbilitySlots.Slot4, true)]
-    [InlineData(AbilitySlots.A, true)]
-    [InlineData(AbilitySlots.E, true)]
-    [InlineData(AbilitySlots.R, true)]
-    [InlineData(AbilitySlots.F, true)]
-    public void SavedPackage_AllSlotsActivateAndRecover(byte slot, bool airborne)
+    [MemberData(nameof(FormSlots))]
+    public void SavedPackage_AllSlotsActivateAndRecover(byte form, byte slot, bool airborne)
     {
         var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
         var def = content.Definition;
@@ -31,6 +23,7 @@ public class NyxPackageTests
         var actor = TestHelpers.PlayerState(x: 20, z: 10) with
         {
             PY = TestHelpers.GroundPY(def) + (airborne ? 3f : 0f),
+            Form = new FormState { Active = form },
             IsGrounded = !airborne,
         };
         sim.RegisterEntity(1, def, actor, content.BakedAnimation);
