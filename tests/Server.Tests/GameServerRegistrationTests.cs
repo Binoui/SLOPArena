@@ -108,7 +108,7 @@ public class GameServerRegistrationTests
             clock.Advance(TimeSpan.FromSeconds(16));
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync("/health")).StatusCode);
             Assert.Equal(HttpStatusCode.ServiceUnavailable, (await http.GetAsync("/ready")).StatusCode);
-            await registration.ReportMatchResultAsync(Guid.NewGuid(), 1);
+            await registration.ReportMatchResultAsync(new MatchResultReport(Guid.NewGuid(), 1, []));
             Assert.Equal("api-token", await reportedToken.Task.WaitAsync(TimeSpan.FromSeconds(3)));
             Assert.True(registration.IsRegistered);
             Assert.Equal(id, registration.ServerId);
@@ -214,7 +214,7 @@ public class GameServerRegistrationTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var run = registration.RunAsync(cts.Token, heartbeatInterval: TimeSpan.FromMilliseconds(30));
         await ready.Task.WaitAsync(TimeSpan.FromSeconds(3));
-        await registration.ReportMatchResultAsync(Guid.NewGuid(), 1);
+        await registration.ReportMatchResultAsync(new MatchResultReport(Guid.NewGuid(), 1, []));
         cts.Cancel();
         await run;
 
@@ -368,7 +368,8 @@ public class GameServerRegistrationTests
         var run = registration.RunAsync(cts.Token, heartbeatInterval: TimeSpan.FromMilliseconds(15));
         Assert.True(SpinWait.SpinUntil(() => registration.IsRegistered, 3000));
 
-        await registration.ReportMatchResultAsync(Guid.NewGuid(), 22);
+        await registration.ReportMatchResultAsync(new MatchResultReport(Guid.NewGuid(), 22,
+            [new MatchPlayerTime(22, 184), new MatchPlayerTime(23, 97)]));
         registration.QueueMatchCancellation(Guid.NewGuid(), "absent");
         Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref resultRequests) == 2, 3000));
         await Task.Delay(100);
@@ -379,6 +380,9 @@ public class GameServerRegistrationTests
         await run;
         Assert.Equal(2, handler.Requests.Count(x => x.Path == "/match/result"));
         Assert.Equal(1, handler.Requests.Count(x => x.Path == "/match/cancel"));
+        Assert.All(handler.Bodies.Where(x => x.Path == "/match/result"), body => Assert.Contains(
+            "\"players\":[{\"steamId\":22,\"connectedSeconds\":184},{\"steamId\":23,\"connectedSeconds\":97}]",
+            body.Body));
     }
 
     [Fact]

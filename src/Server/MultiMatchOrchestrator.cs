@@ -57,8 +57,8 @@ namespace SlopArena.Server
             return false;
         }
 
-        /// <summary>Optional callback invoked once with (match GUID, winner SteamID) when a match ends.</summary>
-        public Action<Guid, long>? ReportMatchResult { get; set; }
+        /// <summary>Optional callback invoked once with the result when a match ends.</summary>
+        public Action<MatchResultReport>? ReportMatchResult { get; set; }
         public Action<Guid, string>? ReportMatchCancellation { get; set; }
 
         /// <summary>Assigns a match only after building its match-scoped catalog.</summary>

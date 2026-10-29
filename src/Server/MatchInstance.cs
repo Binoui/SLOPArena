@@ -64,7 +64,7 @@ namespace SlopArena.Server
 
 		private Thread? _thread;
 		private readonly Action<int> _onMatchEnd;
-		private readonly Action<Guid, long>? _onMatchResult;
+		private readonly Action<MatchResultReport>? _onMatchResult;
 		private readonly Action<Guid>? _onSteamMatchEnd;
 		private readonly Action<Guid, string>? _onMatchCancelled;
 		private readonly Action<Guid, ulong, byte[], bool>? _steamSend;
@@ -90,10 +90,10 @@ namespace SlopArena.Server
 
 		/// <param name="roster">Ordered players (index 0 = host). Each carries an entity ID (1..N) and a character class.</param>
 		/// <param name="maxStocks">Stocks per player (default 3, issue #37).</param>
-		/// <param name="onMatchResult">Optional callback invoked once when the match ends (match guid, winner steam id).</param>
+		/// <param name="onMatchResult">Optional callback invoked once when the match ends.</param>
 		public MatchInstance(int port, string matchId, ArenaDefinition arena,
 			IReadOnlyList<MatchPlayer> roster, MatchContentCatalog contentCatalog, Action<int> onMatchEnd,
-			byte maxStocks = MatchDefaults.DefaultMaxStocks, Action<Guid, long>? onMatchResult = null,
+			byte maxStocks = MatchDefaults.DefaultMaxStocks, Action<MatchResultReport>? onMatchResult = null,
 			Action<Guid>? onSteamMatchEnd = null, Action<Guid, string>? onMatchCancelled = null,
 			DateTimeOffset? admissionDeadlineUtc = null, string? contentHash = null,
 			Action<Guid, ulong, byte[], bool>? steamSend = null, TimeProvider? clock = null,
@@ -498,10 +498,22 @@ namespace SlopArena.Server
 			{
 				int count = 0;
 				foreach (var slot in _slots)
-					if (_steamSend is null ? slot.EndPoint != null && !slot.Disconnected : slot.SteamConnected)
+					if (IsConnected(slot))
 						count++;
 				return count;
 			}
+		}
+
+		private bool IsConnected(PlayerSlot slot) =>
+			_steamSend is null ? slot.EndPoint != null && !slot.Disconnected : slot.SteamConnected;
+
+		private void CountConnectedTicks()
+		{
+			if (_matchState is not (MatchState.Countdown or MatchState.Playing)) return;
+			lock (_steamGate)
+				foreach (var slot in _slots)
+					if (IsConnected(slot))
+						slot.ConnectedTicks++;
 		}
 
 
@@ -698,6 +710,7 @@ namespace SlopArena.Server
 				return;
 			}
 
+			CountConnectedTicks();
 			if (_matchState == MatchState.Countdown)
 			{
 				_serverTick++;
@@ -809,7 +822,11 @@ namespace SlopArena.Server
 					long winnerSteamId = 0;
 					var winnerSlot = FindSlot(_winnerEntityId);
 					if (winnerSlot != null) winnerSteamId = winnerSlot.SteamId;
-					_onMatchResult(matchGuid, winnerSteamId);
+					var players = new List<MatchPlayerTime>();
+					foreach (var slot in _slots)
+						if (slot.SteamId > 0)
+							players.Add(new MatchPlayerTime(slot.SteamId, (int)Math.Round(slot.ConnectedTicks / 60.0)));
+					_onMatchResult(new MatchResultReport(matchGuid, winnerSteamId, players));
 				}
 			}
 			SendState();
@@ -1018,6 +1035,8 @@ namespace SlopArena.Server
 			public long ReadyConnectionId { get; set; }
 			public bool Ready { get; set; }
 			public int MissingInputTicks { get; set; }
+			/// <summary>Countdown and Playing ticks this peer was connected (match thread only).</summary>
+			public int ConnectedTicks { get; set; }
 			/// <summary>Queued input, held controls and late-press rescue (ADR-0039 decision 5).</summary>
 			public PeerInputTimeline Inputs { get; } = new();
 			// Arrival report for the next Clock control (match thread only).
